@@ -1,0 +1,30 @@
+{
+  "name": "nc-medicaid-crawler",
+  "version": "1.0.0",
+  "description": "Polite incremental crawler for NC Medicaid policy documents",
+  "type": "module",
+  "scripts": {
+    "crawl": "tsx src/index.ts crawl",
+    "check": "tsx src/index.ts check",
+    "stats": "tsx src/index.ts stats",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.0.0",
+    "cheerio": "^1.0.0",
+    "commander": "^12.0.0",
+    "file-type": "^19.0.0",
+    "mime-types": "^2.1.35",
+    "p-queue": "^8.0.0",
+    "robots-parser": "^3.0.0",
+    "undici": "^6.0.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.0",
+    "@types/mime-types": "^2.1.4",
+    "tsx": "^4.0.0",
+    "typescript": "^5.5.0",
+    "vitest": "^2.0.0"
+  }
+}
