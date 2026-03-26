@@ -1,5 +1,6 @@
 import type { DiscoveredDocument, Fetcher, SourceType } from '../sources/types.js';
 import { clinicalPoliciesSource } from '../sources/clinical-policies.js';
+import { bulletinsSource } from '../sources/bulletins.js';
 import { logger } from '../utils/logger.js';
 
 // Source modules registered here — add new sources as they're implemented
@@ -7,7 +8,7 @@ const sourceModules: Partial<
   Record<SourceType, { discover: (fetcher: Fetcher, sinceYear?: number) => Promise<DiscoveredDocument[]> }>
 > = {
   clinical_policy: clinicalPoliciesSource,
-  // bulletin: bulletins,             // Task 12
+  bulletin: bulletinsSource,
   // state_plan_amendment: statePlan, // Task 13
   // waiver: waivers,                 // Task 14
 };
