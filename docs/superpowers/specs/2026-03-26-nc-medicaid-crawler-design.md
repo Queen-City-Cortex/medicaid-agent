@@ -289,6 +289,8 @@ Most complex source — spans multiple pages and formats.
 - **Archives (2016+):** Fetch yearly archive pages, find PDF links directly.
 - **Archives (pre-2016):** Fetch archive index pages with expandable year sections.
 
+**HTML-only blog posts:** Some older bulletins are HTML-only with no PDF attachment. Skip these — the crawler is focused on downloadable document files. Log them for awareness but don't create registry entries.
+
 **Strategy:** Start with current bulletins and monthly digests (configurable via `--since-year`, default 2018). Backfill archives later.
 
 ### 6.3 State Plan Amendments
@@ -327,7 +329,7 @@ data/documents/state-plan-amendments/SPA-24-0001_assertive-community-treatment.p
 data/documents/waivers/innovations-1915c-waiver-application.pdf
 ```
 
-Rules: lowercase, hyphens for spaces, no special characters, prefix with policy_number if available, max 100 characters, numeric suffix on collision.
+Rules: lowercase, hyphens for spaces, no special characters, prefix with policy_number if available, max 100 characters, numeric suffix on collision. For bulletins without a policy_number, use the publication date as prefix (e.g., `2026-02` extracted from the bulletin title or page context).
 
 ### 7.2 Streaming Downloads
 
