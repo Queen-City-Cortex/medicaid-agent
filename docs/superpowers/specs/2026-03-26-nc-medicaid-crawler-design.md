@@ -99,6 +99,7 @@ This crawler is the prerequisite to Layer 0 (Document Pipeline + Knowledge Graph
 | `p-queue` | Concurrency-limited queue for request scheduling. |
 | `mime-types` | Detect file types from headers. |
 | `commander` | CLI subcommands and flags with auto-generated help. |
+| `file-type` | Detect actual file type from magic bytes (more reliable than server Content-Type). |
 | `crypto` (built-in) | SHA-256 hashing for content change detection. |
 
 **Dev dependencies:** `typescript`, `tsx`, `vitest`, `@types/better-sqlite3`, `@types/mime-types`
@@ -177,7 +178,9 @@ CREATE TABLE documents (
   local_path TEXT,                         -- Relative path to downloaded file in data/documents/
   file_hash TEXT,                          -- SHA-256 of the downloaded file content
   file_size INTEGER,                       -- Bytes
-  mime_type TEXT,                          -- From Content-Type header
+  mime_type TEXT,                          -- From Content-Type response header (may be wrong, e.g. application/octet-stream)
+  detected_content_type TEXT,              -- Actual type detected from file magic bytes (reliable for downstream processing)
+  content_disposition_filename TEXT,       -- Filename from Content-Disposition header, if present
 
   -- HTTP caching headers (for conditional requests)
   etag TEXT,                               -- ETag header from last successful download
@@ -284,7 +287,7 @@ Each source module exports a `discover()` function that fetches index page(s), p
 
 Most complex source — spans multiple pages and formats.
 
-- **Current bulletins:** Fetch main bulletin page and paginated blog listing. For each post page, find PDF download links.
+- **Current bulletins:** Fetch main bulletin page and paginated blog listing at `/blog-category/bulletins`. The listing is paginated Drupal-style (`?page=0`, `?page=1`, etc.). Follow pagination links until hitting an empty page or all bulletins on the page predate the `--since-year` cutoff. For each post page, find PDF download links.
 - **Monthly digests:** Fetch digests page, find PDF links.
 - **Archives (2016+):** Fetch yearly archive pages, find PDF links directly.
 - **Archives (pre-2016):** Fetch archive index pages with expandable year sections.
@@ -335,6 +338,10 @@ Rules: lowercase, hyphens for spaces, no special characters, prefix with policy_
 
 Using `undici.request()` to stream file content directly to disk via pipeline, avoiding buffering large files in memory. Max file size: 50 MB (log and skip anything larger).
 
+When the server returns a `Content-Disposition` header with a filename (common on `/media/{id}/download?attachment` URLs), capture that filename in the registry's `content_disposition_filename` column. This server-provided name is often more meaningful than what we'd generate from the URL slug. It's stored for reference but does not override the local filename (which follows our naming rules for consistency).
+
+After downloading, detect the actual file type from magic bytes (e.g., `%PDF` header) and store in `detected_content_type`. This is more reliable than the server's `Content-Type` header, which government servers sometimes set incorrectly (e.g., `application/octet-stream` for a PDF). Downstream tools like Docling should use `detected_content_type` to determine parser selection.
+
 ### 7.3 Version History
 
 When a document's content hash changes:
@@ -370,7 +377,7 @@ npx tsx src/index.ts list --source clinical_policy --status downloaded
 npx tsx src/index.ts list --status error
 
 # Manually add a document URL to the registry
-npx tsx src/index.ts add-url "https://example.com/some-policy.pdf" --source waiver --title "CAP/DA Amendment 2025"
+npx tsx src/index.ts add-url "https://example.com/some-policy.pdf" --source waiver --title "CAP/DA Amendment 2025" --policy-number "3K-2" --category "Community-Based Services"
 
 # Export registry to JSON
 npx tsx src/index.ts export --output registry.json
@@ -545,10 +552,14 @@ Run manually or via cron:
 
 1. `npx tsx src/index.ts crawl --source clinical_policy` discovers and downloads all ~120+ clinical coverage policy PDFs.
 2. `npx tsx src/index.ts check` after a successful crawl produces zero downloads (304 or hash-match).
-3. SQLite registry contains accurate metadata for every downloaded document.
+3. SQLite registry contains accurate metadata for every downloaded document, including `detected_content_type` from magic bytes.
 4. `stats` command shows complete summary with zero errors.
 5. No 429s or IP bans during testing.
 6. Second full crawl completes in under 10 minutes (most documents unchanged).
+
+### Implementation Order
+
+Start with **clinical policies** — it's the cleanest roundtrip to validate the full architecture (single index page, consistent link structure, well-formatted titles). Once that source works end-to-end (discover → download → registry → check → unchanged), add the other sources incrementally.
 
 ---
 
