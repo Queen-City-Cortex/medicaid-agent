@@ -115,6 +115,16 @@ def stats():
         for r in edges:
             console.print(f"  {r['rel_type']}: {r['cnt']}")
 
+        # Federal vs state document breakdown
+        doc_breakdown = session.run("""
+            MATCH (d:Document)
+            WITH d.document_type AS doc_type, count(d) AS cnt
+            RETURN doc_type, cnt ORDER BY doc_type
+        """)
+        console.print("\n[bold]Documents by type:[/bold]")
+        for r in doc_breakdown:
+            console.print(f"  {r['doc_type']}: {r['cnt']}")
+
         # Check section embedding coverage
         result = session.run("""
             MATCH (s:Section)
@@ -136,6 +146,17 @@ def stats():
         cr = chunk_result.single()
         if cr:
             console.print(f"[bold]Chunk embeddings:[/bold] {cr['with_emb']}/{cr['total']} chunks")
+
+
+@cli.command("ingest-cfr")
+@click.option("--part", type=int, help="Ingest only this CFR part number")
+@click.option("--refresh", is_flag=True, help="Force re-fetch even if cached (use when CMS finalizes major rules)")
+def ingest_cfr(part: int | None, refresh: bool):
+    """Fetch and load Medicaid-relevant federal regulations from eCFR."""
+    from pipeline.federal.loader import load_all_cfr
+
+    stats = load_all_cfr(part_filter=part, refresh=refresh)
+    console.print(f"\n[bold]eCFR ingest complete:[/bold] {stats['parts_loaded']} parts, {stats['sections_total']} sections, {stats['errors']} errors")
 
 
 @cli.command()
@@ -211,6 +232,11 @@ def run_all(source_type: str | None):
     console.print("[bold]Stage 2: Load[/bold]")
     load_stats = load_all(source_type=source_type)
     console.print(f"  {load_stats['loaded']} documents, {load_stats['sections_total']} sections\n")
+
+    console.print("[bold]Stage 2.5: Federal Regulations[/bold]")
+    from pipeline.federal.loader import load_all_cfr
+    cfr_stats = load_all_cfr()
+    console.print(f"  {cfr_stats['parts_loaded']} CFR parts, {cfr_stats['sections_total']} sections\n")
 
     console.print("[bold]Stage 3: Cross-references[/bold]")
     ref_stats = extract_and_resolve_all()
