@@ -54,3 +54,17 @@ class TestParseCfrCitation:
     def test_single_digit_section_suffix(self):
         result = parse_cfr_citation("42 CFR 440.1")
         assert result == {"title": 42, "section": "440.1", "part": 440}
+
+    def test_superseded_part_74_redirects_to_75(self):
+        # 45 CFR Part 74 was superseded by Part 75 in Dec 2014
+        result = parse_cfr_citation("45 CFR 74.1")
+        assert result == {"title": 45, "section": "75.1", "part": 75}
+
+    def test_superseded_part_74_deep_section(self):
+        result = parse_cfr_citation("45 CFR 74.21")
+        assert result == {"title": 45, "section": "75.21", "part": 75}
+
+    def test_non_superseded_part_unchanged(self):
+        # 42 CFR 440 is not superseded — should pass through unchanged
+        result = parse_cfr_citation("42 CFR 440.70")
+        assert result == {"title": 42, "section": "440.70", "part": 440}

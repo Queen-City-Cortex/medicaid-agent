@@ -14,6 +14,13 @@ CFR_CITATION_RE = re.compile(
     r"(\d+)\s*CFR\s*§?\s*([\d]+(?:\.[\d]+)*)"
 )
 
+# Superseded CFR parts: old → current. Citations to the old part
+# resolve to the replacement part instead.
+# 45 CFR 74 was superseded by 45 CFR 75 in Dec 2014 (OMB Uniform Guidance).
+CFR_SUPERSESSIONS: dict[tuple[int, int], tuple[int, int]] = {
+    (45, 74): (45, 75),
+}
+
 
 def parse_cfr_citation(text: str) -> dict | None:
     """
@@ -32,6 +39,15 @@ def parse_cfr_citation(text: str) -> dict | None:
 
     # Derive part number: integer part of section number (before the dot)
     part = int(section.split(".")[0])
+
+    # Redirect superseded parts to their current replacements
+    redirect = CFR_SUPERSESSIONS.get((title, part))
+    if redirect:
+        new_title, new_part = redirect
+        # Remap section number: 74.x → 75.x
+        section = str(new_part) + section[len(str(part)):]
+        title = new_title
+        part = new_part
 
     return {"title": title, "section": section, "part": part}
 
