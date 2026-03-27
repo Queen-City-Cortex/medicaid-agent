@@ -1,12 +1,39 @@
 """Resolve extracted references to Neo4j graph nodes."""
 
 import json
+import re
 from pathlib import Path
 
 from pipeline.graph.connection import get_session
 from pipeline.graph import queries
 from pipeline.references.extractor import ReferenceMatch
 from pipeline.config import PARSED_DATA_DIR
+
+# Matches "42 CFR 440.70" and variants with optional § and spaces
+CFR_CITATION_RE = re.compile(
+    r"(\d+)\s*CFR\s*§?\s*([\d]+(?:\.[\d]+)*)"
+)
+
+
+def parse_cfr_citation(text: str) -> dict | None:
+    """
+    Parse a CFR citation string into its components.
+
+    Input: "42 CFR 440.70" or "42 CFR §440.70(b)(3)"
+    Output: {"title": 42, "section": "440.70", "part": 440}
+    Returns None if the text does not match a CFR citation pattern.
+    """
+    match = CFR_CITATION_RE.search(text)
+    if not match:
+        return None
+
+    title = int(match.group(1))
+    section = match.group(2)
+
+    # Derive part number: integer part of section number (before the dot)
+    part = int(section.split(".")[0])
+
+    return {"title": title, "section": section, "part": part}
 
 
 def resolve_reference(
@@ -55,6 +82,23 @@ def resolve_reference(
                     "target_type": "section",
                     "edge_type": "REFERENCES",
                 }
+
+        elif ref.ref_type == "federal_regulation":
+            parsed = parse_cfr_citation(ref.target_id)
+            if parsed:
+                doc_id = f"doc:federal_regulation:{parsed['title']}-CFR-{parsed['part']}"
+                result = session.run(
+                    "MATCH (s:Section {document_id: $doc_id, section_number: $sn}) RETURN s.id",
+                    {"doc_id": doc_id, "sn": parsed["section"]},
+                )
+                record = result.single()
+                if record:
+                    return {
+                        "resolved": True,
+                        "target_node_id": record["s.id"],
+                        "target_type": "section",
+                        "edge_type": "REFERENCES",
+                    }
 
     return {
         "resolved": False,

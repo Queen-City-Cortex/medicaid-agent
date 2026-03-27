@@ -1,0 +1,56 @@
+"""Test CFR citation parsing and normalization."""
+
+import pytest
+from pipeline.references.resolver import parse_cfr_citation
+
+
+class TestParseCfrCitation:
+    def test_standard_format(self):
+        result = parse_cfr_citation("42 CFR 440.70")
+        assert result == {"title": 42, "section": "440.70", "part": 440}
+
+    def test_with_section_symbol(self):
+        result = parse_cfr_citation("42 CFR §440.70")
+        assert result == {"title": 42, "section": "440.70", "part": 440}
+
+    def test_with_spaced_section_symbol(self):
+        result = parse_cfr_citation("42 CFR § 440.70")
+        assert result == {"title": 42, "section": "440.70", "part": 440}
+
+    def test_no_space_before_cfr(self):
+        result = parse_cfr_citation("42CFR § 440.70")
+        assert result == {"title": 42, "section": "440.70", "part": 440}
+
+    def test_with_subsection(self):
+        # Subsection (b)(3) should be stripped — resolve to parent section
+        result = parse_cfr_citation("42 CFR 440.70(b)(3)")
+        assert result == {"title": 42, "section": "440.70", "part": 440}
+
+    def test_three_digit_part(self):
+        result = parse_cfr_citation("42 CFR 438.10")
+        assert result == {"title": 42, "section": "438.10", "part": 438}
+
+    def test_deep_section(self):
+        result = parse_cfr_citation("42 CFR 484.4")
+        assert result == {"title": 42, "section": "484.4", "part": 484}
+
+    def test_title_45(self):
+        result = parse_cfr_citation("45 CFR 92.42")
+        assert result == {"title": 45, "section": "92.42", "part": 92}
+
+    def test_invalid_format(self):
+        result = parse_cfr_citation("not a cfr citation")
+        assert result is None
+
+    def test_from_target_id_format(self):
+        # The extractor produces target_ids like "42 CFR 440.70"
+        result = parse_cfr_citation("42 CFR 440.70")
+        assert result is not None
+
+    def test_embedded_in_sentence(self):
+        result = parse_cfr_citation("requirements under 42 CFR 440.70 apply here")
+        assert result == {"title": 42, "section": "440.70", "part": 440}
+
+    def test_single_digit_section_suffix(self):
+        result = parse_cfr_citation("42 CFR 440.1")
+        assert result == {"title": 42, "section": "440.1", "part": 440}
