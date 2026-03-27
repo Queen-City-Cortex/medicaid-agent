@@ -3,7 +3,9 @@ name = "nc-medicaid-pipeline"
 version = "1.0.0"
 description = "Document parsing pipeline for NC Medicaid policy documents"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+  "docling>=2.0",
+]
 
 [project.optional-dependencies]
 dev = [
