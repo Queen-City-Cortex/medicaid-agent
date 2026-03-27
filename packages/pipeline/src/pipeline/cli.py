@@ -25,5 +25,16 @@ def parse(file_path: Path | None, source_type: str | None, force: bool):
     console.print(f"\n[bold]Parse complete:[/bold] {stats['parsed']} parsed, {stats['skipped']} skipped, {stats['errors']} errors")
 
 
+@cli.command()
+@click.option("--source", "source_type", type=str, help="Load only this source type")
+@click.option("--reset", is_flag=True, help="Drop all data and reload")
+def load(source_type: str | None, reset: bool):
+    """Load parsed documents into Neo4j."""
+    from pipeline.graph.loader import load_all
+
+    stats = load_all(source_type=source_type, reset=reset)
+    console.print(f"\n[bold]Load complete:[/bold] {stats['loaded']} documents, {stats['sections_total']} sections, {stats['errors']} errors")
+
+
 if __name__ == "__main__":
     cli()
