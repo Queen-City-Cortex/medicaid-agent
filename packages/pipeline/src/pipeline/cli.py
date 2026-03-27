@@ -115,7 +115,7 @@ def stats():
         for r in edges:
             console.print(f"  {r['rel_type']}: {r['cnt']}")
 
-        # Check embedding coverage
+        # Check section embedding coverage
         result = session.run("""
             MATCH (s:Section)
             WITH count(s) AS total,
@@ -124,7 +124,18 @@ def stats():
         """)
         r = result.single()
         if r:
-            console.print(f"\n[bold]Embeddings:[/bold] {r['with_emb']}/{r['total']} sections")
+            console.print(f"\n[bold]Section embeddings:[/bold] {r['with_emb']}/{r['total']} sections")
+
+        # Check chunk counts and embedding coverage
+        chunk_result = session.run("""
+            MATCH (ch:Chunk)
+            WITH count(ch) AS total,
+                 count(CASE WHEN ch.embedding IS NOT NULL THEN 1 END) AS with_emb
+            RETURN total, with_emb
+        """)
+        cr = chunk_result.single()
+        if cr:
+            console.print(f"[bold]Chunk embeddings:[/bold] {cr['with_emb']}/{cr['total']} chunks")
 
 
 @cli.command()

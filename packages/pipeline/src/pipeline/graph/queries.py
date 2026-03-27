@@ -72,6 +72,21 @@ RETURN c
 
 # Note: Concept-section edges use dynamic Cypher in linker.py (relationship type varies)
 
+MERGE_CHUNK = """
+MERGE (ch:Chunk {id: $id})
+SET ch.section_id = $section_id,
+    ch.chunk_index = $chunk_index,
+    ch.content_text = $content_text,
+    ch.content_length = $content_length
+RETURN ch
+"""
+
+MERGE_HAS_CHUNK = """
+MATCH (s:Section {id: $section_id})
+MATCH (ch:Chunk {id: $chunk_id})
+MERGE (s)-[:HAS_CHUNK]->(ch)
+"""
+
 # Stats queries
 COUNT_NODES = """
 MATCH (n)
