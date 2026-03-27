@@ -10,6 +10,13 @@ from pipeline.concepts.seed import SEED_CONCEPTS, slugify
 
 console = Console()
 
+# Short aliases that match common English words — require case-sensitive match
+# to avoid false positives like "at home" matching Assistive Technology
+CASE_SENSITIVE_ALIASES = {"AT", "PA", "POC", "HHS"}
+
+# Minimum alias length for case-insensitive matching
+MIN_ALIAS_LENGTH = 3
+
 
 def _determine_relationship(section_title: str | None) -> str:
     """Determine the relationship type based on section heading context."""
@@ -51,18 +58,29 @@ def link_concepts() -> dict:
     for record in track(sections, description="Scanning sections..."):
         section_id = record["s.id"]
         section_title = record["s.title"]
-        content = (record["s.content_text"] or "").lower()
+        content_raw = record["s.content_text"] or ""
+        content_lower = content_raw.lower()
 
-        if not content:
+        if not content_lower:
             continue
 
         rel_type = _determine_relationship(section_title)
 
         for concept_id, concept_name, terms in search_map:
-            found = any(
-                re.search(r"\b" + re.escape(term.lower()) + r"\b", content)
-                for term in terms
-            )
+            found = False
+            for term in terms:
+                if term in CASE_SENSITIVE_ALIASES:
+                    # Case-sensitive match for short ambiguous aliases
+                    if re.search(r"\b" + re.escape(term) + r"\b", content_raw):
+                        found = True
+                        break
+                elif len(term) < MIN_ALIAS_LENGTH:
+                    # Skip very short aliases entirely — too many false positives
+                    continue
+                else:
+                    if re.search(r"\b" + re.escape(term.lower()) + r"\b", content_lower):
+                        found = True
+                        break
             if found:
                 edges_to_create.append((section_id, concept_id, rel_type))
 

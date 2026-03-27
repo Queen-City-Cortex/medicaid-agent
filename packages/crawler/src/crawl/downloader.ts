@@ -147,7 +147,16 @@ export async function downloadDocument(
           contentDisposition ?? new URL(doc.source_url).pathname,
         ) || '.pdf';
 
-    // Build final filename
+    // Archive old version BEFORE building filename so the old name
+    // is freed from the collision set
+    if (doc.local_path && doc.file_hash && fileHash !== doc.file_hash) {
+      const oldFullPath = path.join(config.documentsDir, doc.local_path);
+      const oldFilename = path.basename(doc.local_path);
+      archiveOldVersion(oldFullPath);
+      existingFilenames.delete(oldFilename);
+    }
+
+    // Build final filename (old name is now available for reuse)
     const filename = buildFilename({
       policyNumber: doc.policy_number,
       title: doc.title,
@@ -156,12 +165,6 @@ export async function downloadDocument(
     });
 
     const finalPath = path.join(sourceDir, filename);
-
-    // Archive old version if this is an update
-    if (doc.local_path && doc.file_hash && fileHash !== doc.file_hash) {
-      const oldFullPath = path.join(config.documentsDir, doc.local_path);
-      archiveOldVersion(oldFullPath);
-    }
 
     // Move tmp file to final location
     fs.renameSync(tmpPath, finalPath);

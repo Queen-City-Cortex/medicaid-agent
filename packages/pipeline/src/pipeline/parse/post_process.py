@@ -46,7 +46,17 @@ def build_section_id(document_id: str, section_number: str | None, index: int) -
     return f"sec:{document_id}:_s{index}"
 
 
-def build_document_id(source_type: str, policy_number: str | None, slug: str) -> str:
-    """Build a unique document ID for the graph."""
-    identifier = policy_number or slug
-    return f"doc:{source_type}:{identifier}"
+def build_document_id(source_type: str, policy_number: str | None, slug: str, source_url: str | None = None) -> str:
+    """Build a unique document ID for the graph.
+
+    Uses policy_number when available (stable across renames).
+    Falls back to source_url hash (stable across filename changes),
+    then slug as last resort.
+    """
+    if policy_number:
+        return f"doc:{source_type}:{policy_number}"
+    if source_url:
+        import hashlib
+        url_hash = hashlib.sha256(source_url.encode()).hexdigest()[:12]
+        return f"doc:{source_type}:url-{url_hash}"
+    return f"doc:{source_type}:{slug}"

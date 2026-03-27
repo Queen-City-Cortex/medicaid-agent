@@ -28,49 +28,28 @@ def evaluate_retrieval(entries: list[dict], top_k: int | None = None) -> list[di
         )
         query_embedding = embed_result.embeddings[0]
 
-        # Run vector search
+        # Run vector search — returns dicts with section_id, section_number, policy_number, etc.
         search_results = vector_search(query_embedding, top_k=top_k)
-        retrieved_ids = [r["section_number"] for r in search_results]
 
-        # Build expected sets from evidence
-        primary = {
+        # Build expected sets from evidence using section_id (document-scoped, not just section_number)
+        primary_ids = {
             s["section_id"]
             for s in entry["evidence"]["primary_sections"]
         }
-        supporting = {
+        supporting_ids = {
             s["section_id"]
             for s in entry["evidence"].get("supporting_sections", [])
         }
-        all_relevant = primary | supporting
+        all_relevant_ids = primary_ids | supporting_ids
 
-        # Also match by section_number since IDs may differ slightly
-        primary_numbers = {
-            s.get("section_number")
-            for s in entry["evidence"]["primary_sections"]
-            if s.get("section_number")
-        }
-        supporting_numbers = {
-            s.get("section_number")
-            for s in entry["evidence"].get("supporting_sections", [])
-            if s.get("section_number")
-        }
+        # Retrieved section IDs from vector search
+        retrieved_ids = [r["section_id"] for r in search_results]
 
-        # Build retrieved set — match by both full section ID and section number
-        retrieved_section_ids = []
-        for r in search_results:
-            # Try to get full section ID from the result
-            sid = f"sec:{r.get('doc_id', '')}:{r.get('section_number', '')}" if r.get('doc_id') else ""
-            retrieved_section_ids.append(sid)
-
-        # Use section numbers for matching (more robust than full IDs)
-        all_relevant_numbers = primary_numbers | supporting_numbers
-        retrieved_numbers = [r.get("section_number", "") for r in search_results]
-
-        # Compute metrics using section numbers
-        p = precision_at_k(retrieved_numbers, all_relevant_numbers)
-        r_val = recall_at_k(retrieved_numbers, all_relevant_numbers)
-        m = mrr(retrieved_numbers, primary_numbers)
-        primary_hit = any(rn in primary_numbers for rn in retrieved_numbers)
+        # Compute metrics using full section IDs (document-scoped)
+        p = precision_at_k(retrieved_ids, all_relevant_ids)
+        r_val = recall_at_k(retrieved_ids, all_relevant_ids)
+        m = mrr(retrieved_ids, primary_ids)
+        primary_hit = any(rid in primary_ids for rid in retrieved_ids)
 
         results.append({
             "id": entry["id"],
@@ -80,9 +59,9 @@ def evaluate_retrieval(entries: list[dict], top_k: int | None = None) -> list[di
             "recall": r_val,
             "mrr": m,
             "primary_hit": primary_hit,
-            "retrieved": retrieved_numbers[:top_k],
-            "expected_primary": list(primary_numbers),
-            "expected_supporting": list(supporting_numbers),
+            "retrieved": retrieved_ids[:top_k],
+            "expected_primary": list(primary_ids),
+            "expected_supporting": list(supporting_ids),
         })
 
     return results

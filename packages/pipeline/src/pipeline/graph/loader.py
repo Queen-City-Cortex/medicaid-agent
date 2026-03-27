@@ -50,8 +50,8 @@ def build_sections_from_items(doc_dict: dict, document_id: str) -> list[dict]:
         text = getattr(item, "text", "") or ""
 
         if label in (DocItemLabel.SECTION_HEADER, DocItemLabel.TITLE):
-            # Save previous section
-            if current_section and current_section["content_text"].strip():
+            # Save previous section (keep even if empty — preserves hierarchy)
+            if current_section:
                 sections.append(current_section)
 
             section_number = extract_section_number(text)
@@ -114,7 +114,7 @@ def build_sections_from_items(doc_dict: dict, document_id: str) -> list[dict]:
                     }
 
     # Don't forget the last section
-    if current_section and current_section["content_text"].strip():
+    if current_section:
         sections.append(current_section)
 
     # Set content_length
@@ -157,7 +157,10 @@ def _assign_hierarchy(sections: list[dict]):
 
 
 def read_crawler_metadata(source_type: str, filename_stem: str) -> dict:
-    """Read metadata from the crawler's SQLite registry."""
+    """Read metadata from the crawler's SQLite registry.
+
+    Matches on exact filename within local_path to avoid fuzzy mismatches.
+    """
     import sqlite3
 
     if not CRAWLER_DB_PATH.exists():
@@ -166,9 +169,10 @@ def read_crawler_metadata(source_type: str, filename_stem: str) -> dict:
     conn = sqlite3.connect(str(CRAWLER_DB_PATH))
     conn.row_factory = sqlite3.Row
     try:
+        # Exact match: local_path ends with /{filename_stem}.pdf (or other extensions)
         row = conn.execute(
-            "SELECT * FROM documents WHERE source_type = ? AND local_path LIKE ?",
-            (source_type, f"%{filename_stem}%"),
+            "SELECT * FROM documents WHERE source_type = ? AND (local_path LIKE ? OR local_path LIKE ? OR local_path LIKE ?)",
+            (source_type, f"%/{filename_stem}.pdf", f"%/{filename_stem}.docx", f"%/{filename_stem}.xlsx"),
         ).fetchone()
         return dict(row) if row else {}
     finally:
@@ -184,9 +188,10 @@ def load_document(json_path: Path, source_type: str) -> dict:
     # Read crawler metadata
     crawler_meta = read_crawler_metadata(source_type, json_path.stem)
 
-    # Build document ID
+    # Build document ID — use policy_number or source_url for stability
     policy_number = crawler_meta.get("policy_number")
-    doc_id = build_document_id(source_type, policy_number, json_path.stem)
+    source_url = crawler_meta.get("source_url")
+    doc_id = build_document_id(source_type, policy_number, json_path.stem, source_url)
 
     # Build sections
     sections = build_sections_from_items(doc_dict, doc_id)

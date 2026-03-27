@@ -129,8 +129,9 @@ program
       return;
     }
 
-    // Download phase — download newly discovered documents
-    const toDownload = registry.getDocumentsToDownload();
+    // Download phase — download newly discovered documents (scoped to selected sources)
+    const toDownload = registry.getDocumentsToDownload()
+      .filter((doc) => sourceTypes.includes(doc.source_type as SourceType));
     const stats = {
       documents_discovered: newCount,
       documents_downloaded: 0,
