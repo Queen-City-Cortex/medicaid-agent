@@ -4,13 +4,19 @@ version = "1.0.0"
 description = "Document parsing pipeline for NC Medicaid policy documents"
 requires-python = ">=3.11"
 dependencies = [
-  "docling>=2.0",
+    "docling>=2.0",
+    "docling-core>=2.8",
+    "neo4j>=5.25",
+    "voyageai>=0.3.0rc0",
+    "click>=8.0",
+    "pydantic>=2.0",
+    "rich>=13.0",
 ]
 
 [project.optional-dependencies]
 dev = [
-  "pytest>=8.0",
-  "ruff>=0.4",
+    "pytest>=8.0",
+    "ruff>=0.4",
 ]
 
 [build-system]
