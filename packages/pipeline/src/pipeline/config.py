@@ -51,9 +51,10 @@ CFR_PARTS = [
         460, 482, 483, 484, 485, 488, 489,
     ]],
     # 45 CFR — HHS administrative rules, nondiscrimination, health insurance
+    # Note: Part 74 is [Reserved] (superseded by Part 75 in 2014). Part 248 doesn't exist in Title 45.
     *[(45, p) for p in [
-        16, 74, 75, 92, 95,
+        16, 75, 92, 95,
         144, 146, 147, 155, 156, 158, 164, 170, 171,
-        233, 248,
+        233,
     ]],
 ]
