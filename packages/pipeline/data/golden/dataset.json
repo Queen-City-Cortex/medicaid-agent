@@ -1,0 +1,380 @@
+[
+  {
+    "id": "q-001",
+    "version": 1,
+    "created": "2026-03-26",
+    "updated": "2026-03-26",
+    "question": "What are the general eligibility criteria for CAP/DA services under NC Medicaid?",
+    "difficulty": "simple",
+    "reasoning_type": "single_lookup",
+    "topics": ["cap_da", "eligibility", "waiver"],
+    "target_users": ["beneficiary", "care_coordinator"],
+    "answer": {
+      "text": "CAP/DA (Community Alternatives Program for Disabled Adults) is available to Medicaid beneficiaries who are aged 18 or older, meet institutional level of care criteria, and require nursing facility level services but can safely receive care in the community. Beneficiaries must have a functional need for assistance with activities of daily living.",
+      "confidence": "high",
+      "caveats": ["EPSDT exception may apply for beneficiaries under 21"]
+    },
+    "evidence": {
+      "primary_sections": [
+        {
+          "document_id": "doc:clinical_policy:3K-2",
+          "section_id": "sec:doc:clinical_policy:3K-2:2.1.1",
+          "section_number": "2.1.1",
+          "relevance": "General eligibility provisions for CAP/DA"
+        },
+        {
+          "document_id": "doc:clinical_policy:3K-2",
+          "section_id": "sec:doc:clinical_policy:3K-2:3.1",
+          "section_number": "3.1",
+          "relevance": "General criteria covered under CAP/DA"
+        }
+      ],
+      "supporting_sections": [
+        {
+          "document_id": "doc:clinical_policy:3K-2",
+          "section_id": "sec:doc:clinical_policy:3K-2:3.2.1",
+          "section_number": "3.2.1",
+          "relevance": "Specific Medicaid coverage criteria"
+        }
+      ],
+      "cross_references": [],
+      "federal_references": []
+    },
+    "source": "lived_experience",
+    "notes": "Basic CAP/DA eligibility question. Section 2.1.1 covers general provisions."
+  },
+  {
+    "id": "q-002",
+    "version": 1,
+    "created": "2026-03-26",
+    "updated": "2026-03-26",
+    "question": "What DME items are specifically NOT covered by NC Medicaid under the Orthotics and Prosthetics policy, and what general criteria must be met for coverage?",
+    "difficulty": "moderate",
+    "reasoning_type": "multi_hop",
+    "topics": ["dme", "orthotics", "prosthetics", "coverage_exclusions"],
+    "target_users": ["provider", "beneficiary"],
+    "answer": {
+      "text": "Under Clinical Coverage Policy 5B (Orthotics and Prosthetics), coverage requires that items meet general criteria in section 3.1 including medical necessity and appropriate prescribing. Items not covered are described in section 4.1 general exclusions and 4.2.1 specific exclusions, which include items for comfort or convenience, duplicate devices, and experimental equipment. A beneficiary must first meet general coverage criteria before specific items are evaluated.",
+      "confidence": "high",
+      "caveats": ["EPSDT exception may expand coverage for beneficiaries under 21 per section 2.2.1"]
+    },
+    "evidence": {
+      "primary_sections": [
+        {
+          "document_id": "doc:clinical_policy:5B",
+          "section_id": "sec:doc:clinical_policy:5B:4.1",
+          "section_number": "4.1",
+          "relevance": "General criteria NOT covered for orthotics and prosthetics"
+        },
+        {
+          "document_id": "doc:clinical_policy:5B",
+          "section_id": "sec:doc:clinical_policy:5B:4.2.1",
+          "section_number": "4.2.1",
+          "relevance": "Specific criteria not covered by Medicaid"
+        }
+      ],
+      "supporting_sections": [
+        {
+          "document_id": "doc:clinical_policy:5B",
+          "section_id": "sec:doc:clinical_policy:5B:3.1",
+          "section_number": "3.1",
+          "relevance": "General coverage criteria that must be met"
+        },
+        {
+          "document_id": "doc:clinical_policy:5B",
+          "section_id": "sec:doc:clinical_policy:5B:3.2.1",
+          "section_number": "3.2.1",
+          "relevance": "Specific criteria covered by Medicaid"
+        }
+      ],
+      "cross_references": [],
+      "federal_references": []
+    },
+    "source": "legal_aid",
+    "notes": "Multi-hop: must check both general covered and not-covered criteria."
+  },
+  {
+    "id": "q-003",
+    "version": 1,
+    "created": "2026-03-26",
+    "updated": "2026-03-26",
+    "question": "What are the entrance, continued service, and discharge criteria for outpatient behavioral health services in NC Medicaid?",
+    "difficulty": "moderate",
+    "reasoning_type": "multi_hop",
+    "topics": ["behavioral_health", "outpatient", "level_of_care", "authorization"],
+    "target_users": ["provider", "care_coordinator"],
+    "answer": {
+      "text": "Clinical Coverage Policy 8C defines behavioral health service criteria across three phases: Entrance criteria (section 3.2.1.1) specify the clinical conditions and functional impairments required for initial authorization. Continued service criteria (section 3.2.1.2) require documented progress or ongoing medical necessity. Discharge criteria (section 3.2.1.3) are met when goals are achieved, patient is stable, or a higher level of care is needed.",
+      "confidence": "high",
+      "caveats": ["Telephonic service criteria in 3.1.2 may differ", "Psychological testing has additional criteria in 3.2.1.4"]
+    },
+    "evidence": {
+      "primary_sections": [
+        {
+          "document_id": "doc:clinical_policy:8C",
+          "section_id": "sec:doc:clinical_policy:8C:3.2.1.1",
+          "section_number": "3.2.1.1",
+          "relevance": "Entrance criteria for behavioral health services"
+        },
+        {
+          "document_id": "doc:clinical_policy:8C",
+          "section_id": "sec:doc:clinical_policy:8C:3.2.1.2",
+          "section_number": "3.2.1.2",
+          "relevance": "Continued service criteria"
+        },
+        {
+          "document_id": "doc:clinical_policy:8C",
+          "section_id": "sec:doc:clinical_policy:8C:3.2.1.3",
+          "section_number": "3.2.1.3",
+          "relevance": "Discharge criteria"
+        }
+      ],
+      "supporting_sections": [
+        {
+          "document_id": "doc:clinical_policy:8C",
+          "section_id": "sec:doc:clinical_policy:8C:3.1",
+          "section_number": "3.1",
+          "relevance": "General covered criteria for behavioral health"
+        }
+      ],
+      "cross_references": [],
+      "federal_references": []
+    },
+    "source": "legal_aid",
+    "notes": "Common provider question about prior authorization criteria across service phases."
+  },
+  {
+    "id": "q-004",
+    "version": 1,
+    "created": "2026-03-26",
+    "updated": "2026-03-26",
+    "question": "How does the EPSDT special provision affect coverage for outpatient therapy services, and what ordering practitioner requirements apply to beneficiaries under 21?",
+    "difficulty": "complex",
+    "reasoning_type": "cross_document",
+    "topics": ["epsdt", "outpatient_therapy", "ordering_requirements", "pediatric"],
+    "target_users": ["provider", "beneficiary", "legal_aid"],
+    "answer": {
+      "text": "Under Clinical Coverage Policy 10A, the EPSDT Special Provision (section 2.2.1) allows beneficiaries under 21 to receive medically necessary therapy services even when they would otherwise not meet standard policy limitations. Section 3.1.2 specifies ordering practitioner requirements that apply broadly, while the EPSDT exception may override certain coverage limits. Speech-Language Therapy (3.2.1.3) and Audiology (3.2.1.4) each have specific criteria. The EPSDT provision requires that services be medically necessary for the correction or amelioration of a condition.",
+      "confidence": "medium",
+      "caveats": [
+        "EPSDT provision applies to beneficiaries strictly under age 21",
+        "Medical necessity must still be documented",
+        "Ordering practitioner requirements in 3.1.2 still apply under EPSDT"
+      ]
+    },
+    "evidence": {
+      "primary_sections": [
+        {
+          "document_id": "doc:clinical_policy:10A",
+          "section_id": "sec:doc:clinical_policy:10A:2.2.1",
+          "section_number": "2.2.1",
+          "relevance": "EPSDT Special Provision for beneficiaries under 21"
+        },
+        {
+          "document_id": "doc:clinical_policy:10A",
+          "section_id": "sec:doc:clinical_policy:10A:3.1.2",
+          "section_number": "3.1.2",
+          "relevance": "Ordering practitioner requirements"
+        }
+      ],
+      "supporting_sections": [
+        {
+          "document_id": "doc:clinical_policy:10A",
+          "section_id": "sec:doc:clinical_policy:10A:3.2.1.3",
+          "section_number": "3.2.1.3",
+          "relevance": "Speech-Language Therapy specific criteria"
+        },
+        {
+          "document_id": "doc:clinical_policy:10A",
+          "section_id": "sec:doc:clinical_policy:10A:3.2.1.4",
+          "section_number": "3.2.1.4",
+          "relevance": "Audiology therapy criteria"
+        },
+        {
+          "document_id": "doc:clinical_policy:3K-2",
+          "section_id": "sec:doc:clinical_policy:3K-2:2.2.1",
+          "section_number": "2.2.1",
+          "relevance": "EPSDT provision cross-reference in CAP/DA policy"
+        }
+      ],
+      "cross_references": [
+        {
+          "from_document_id": "doc:clinical_policy:10A",
+          "to_document_id": "doc:clinical_policy:3K-2",
+          "relationship": "EPSDT provision appears across multiple clinical policies"
+        }
+      ],
+      "federal_references": []
+    },
+    "source": "legal_aid",
+    "notes": "Complex cross-document question: EPSDT provision appears in 10A and 3K-2. Tests ability to synthesize across policies."
+  },
+  {
+    "id": "q-005",
+    "version": 1,
+    "created": "2026-03-26",
+    "updated": "2026-03-26",
+    "question": "Does NC Medicaid cover Personal Care Services for beneficiaries who live in an assisted living facility?",
+    "difficulty": "moderate",
+    "reasoning_type": "single_lookup",
+    "topics": ["personal_care", "pcs", "setting", "assisted_living"],
+    "target_users": ["beneficiary", "care_coordinator"],
+    "answer": {
+      "text": "NC Medicaid State Plan Personal Care Services (Clinical Coverage Policy 3L) covers personal care in in-home settings as defined in section 3.3. Section 3.2.2 specifies Medicaid-specific criteria including approved settings. Assisted living facilities are generally not qualifying in-home settings under the State Plan PCS benefit; beneficiaries in such facilities may need to look at other waiver programs. The general covered criteria in section 3.1 and specific criteria in 3.2.1 define the scope of covered services.",
+      "confidence": "medium",
+      "caveats": [
+        "Setting eligibility rules may have changed with benefit redesign",
+        "CAP/DA waiver (policy 3K-2) has different setting rules",
+        "Verify current policy version for assisted living facility rules"
+      ]
+    },
+    "evidence": {
+      "primary_sections": [
+        {
+          "document_id": "doc:clinical_policy:3L",
+          "section_id": "sec:doc:clinical_policy:3L:3.3",
+          "section_number": "3.3",
+          "relevance": "Personal Care Services in In-Home Settings — defines qualifying settings"
+        },
+        {
+          "document_id": "doc:clinical_policy:3L",
+          "section_id": "sec:doc:clinical_policy:3L:3.2.2",
+          "section_number": "3.2.2",
+          "relevance": "Medicaid specific criteria including setting requirements"
+        }
+      ],
+      "supporting_sections": [
+        {
+          "document_id": "doc:clinical_policy:3L",
+          "section_id": "sec:doc:clinical_policy:3L:3.1",
+          "section_number": "3.1",
+          "relevance": "General criteria covered for PCS"
+        },
+        {
+          "document_id": "doc:clinical_policy:3L",
+          "section_id": "sec:doc:clinical_policy:3L:4.1",
+          "section_number": "4.1",
+          "relevance": "General criteria not covered — may address facility settings"
+        }
+      ],
+      "cross_references": [],
+      "federal_references": []
+    },
+    "source": "lived_experience",
+    "notes": "Common setting question. Tests retrieval of section 3.3 (in-home settings) alongside 3.2.2."
+  },
+  {
+    "id": "q-006",
+    "version": 1,
+    "created": "2026-03-26",
+    "updated": "2026-03-26",
+    "question": "Does NC Medicaid cover chiropractic services under Clinical Coverage Policy 5B?",
+    "difficulty": "simple",
+    "reasoning_type": "single_lookup",
+    "topics": ["orthotics", "chiropractic", "coverage_exclusions"],
+    "target_users": ["beneficiary", "provider"],
+    "answer": {
+      "text": "Chiropractic services are not a covered benefit under Clinical Coverage Policy 5B (Orthotics and Prosthetics). Policy 5B specifically covers orthotic and prosthetic devices and related fitting services. Chiropractic manipulative treatment is a distinct service category not addressed under this policy.",
+      "confidence": "high",
+      "caveats": ["Chiropractic may be addressed under a separate clinical policy"]
+    },
+    "evidence": {
+      "primary_sections": [
+        {
+          "document_id": "doc:clinical_policy:5B",
+          "section_id": "sec:doc:clinical_policy:5B:4.1",
+          "section_number": "4.1",
+          "relevance": "General criteria not covered — policy scope"
+        }
+      ],
+      "supporting_sections": [
+        {
+          "document_id": "doc:clinical_policy:5B",
+          "section_id": "sec:doc:clinical_policy:5B:1.0",
+          "section_number": "1.0",
+          "relevance": "Description of the policy scope (orthotics and prosthetics)"
+        }
+      ],
+      "cross_references": [],
+      "federal_references": []
+    },
+    "source": "edge_case",
+    "notes": "Negative case: chiropractic is outside the scope of 5B. Tests that the retrieval system does not hallucinate coverage."
+  },
+  {
+    "id": "q-007",
+    "version": 1,
+    "created": "2026-03-26",
+    "updated": "2026-03-26",
+    "question": "What is the treatment plan (plan of care) requirement for outpatient therapy services under NC Medicaid policy 10A?",
+    "difficulty": "simple",
+    "reasoning_type": "single_lookup",
+    "topics": ["outpatient_therapy", "treatment_plan", "documentation"],
+    "target_users": ["provider"],
+    "answer": {
+      "text": "Clinical Coverage Policy 10A section 3.2.1.6 specifies Treatment Plan (Plan of Care) requirements for outpatient therapy services. A treatment plan must be established, signed, and periodically reviewed by the treating provider. The plan must document the patient's functional deficits, treatment goals, frequency and duration of services, and the expected outcomes.",
+      "confidence": "high",
+      "caveats": []
+    },
+    "evidence": {
+      "primary_sections": [
+        {
+          "document_id": "doc:clinical_policy:10A",
+          "section_id": "sec:doc:clinical_policy:10A:3.2.1.6",
+          "section_number": "3.2.1.6",
+          "relevance": "Treatment Plan (Plan of Care) requirements"
+        }
+      ],
+      "supporting_sections": [
+        {
+          "document_id": "doc:clinical_policy:10A",
+          "section_id": "sec:doc:clinical_policy:10A:3.1",
+          "section_number": "3.1",
+          "relevance": "General covered criteria referencing documentation requirements"
+        }
+      ],
+      "cross_references": [],
+      "federal_references": []
+    },
+    "source": "lived_experience",
+    "notes": "Simple single-section lookup for provider documentation requirements."
+  },
+  {
+    "id": "q-008",
+    "version": 1,
+    "created": "2026-03-26",
+    "updated": "2026-03-26",
+    "question": "Can a CAP/DA beneficiary transfer between service providers, and what rules govern transfers of eligible beneficiaries?",
+    "difficulty": "moderate",
+    "reasoning_type": "single_lookup",
+    "topics": ["cap_da", "transfers", "provider_change"],
+    "target_users": ["beneficiary", "care_coordinator"],
+    "answer": {
+      "text": "Yes, CAP/DA beneficiaries may transfer between providers. Clinical Coverage Policy 3K-2 section 3.3 governs transfers of eligible beneficiaries and outlines the process and conditions under which a beneficiary may change their CAP/DA service provider while maintaining continuity of care. The transfer process must comply with NC Medicaid's enrollment and authorization requirements.",
+      "confidence": "high",
+      "caveats": ["Specific transfer timelines and administrative steps may be detailed in operational guidance beyond the clinical policy"]
+    },
+    "evidence": {
+      "primary_sections": [
+        {
+          "document_id": "doc:clinical_policy:3K-2",
+          "section_id": "sec:doc:clinical_policy:3K-2:3.3",
+          "section_number": "3.3",
+          "relevance": "Transfers of Eligible Beneficiaries — governs provider changes"
+        }
+      ],
+      "supporting_sections": [
+        {
+          "document_id": "doc:clinical_policy:3K-2",
+          "section_id": "sec:doc:clinical_policy:3K-2:3.2.4",
+          "section_number": "3.2.4",
+          "relevance": "Priority Consideration for CAP/DA Participation — relevant to slot availability on transfer"
+        }
+      ],
+      "cross_references": [],
+      "federal_references": []
+    },
+    "source": "lived_experience",
+    "notes": "Practical question from beneficiaries wanting to change providers."
+  }
+]
