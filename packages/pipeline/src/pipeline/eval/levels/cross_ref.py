@@ -1,8 +1,6 @@
 """Level 2: Cross-reference resolution evaluation."""
 
 from pipeline.graph.connection import get_session
-from pipeline.references.extractor import extract_references
-from pipeline.references.resolver import resolve_reference
 
 
 def evaluate_cross_refs(entries: list[dict]) -> list[dict]:
@@ -10,7 +8,10 @@ def evaluate_cross_refs(entries: list[dict]) -> list[dict]:
     Evaluate cross-reference resolution for golden dataset entries.
 
     For each entry with cross_references in the evidence, checks whether
-    the resolver correctly finds the target section.
+    the graph contains the expected document-level cross-reference relationship.
+
+    Cross-reference entries in the golden dataset use the format:
+      {"from_document_id": ..., "to_document_id": ..., "relationship": ...}
     """
     results: list[dict] = []
 
@@ -21,48 +22,31 @@ def evaluate_cross_refs(entries: list[dict]) -> list[dict]:
 
         resolved_count = 0
         missed_count = 0
-        false_count = 0
-        extraction_miss_count = 0
 
         for xref in cross_refs:
-            from_section = xref["from_section"]
-            to_section = xref["to_section"]
+            from_doc = xref.get("from_document_id")
+            to_doc = xref.get("to_document_id")
 
-            # Get the from_section's content
-            with get_session() as session:
-                result = session.run(
-                    "MATCH (s:Section {id: $sid}) RETURN s.content_text, s.document_id",
-                    {"sid": from_section},
-                )
-                record = result.single()
-
-            if not record:
-                extraction_miss_count += 1
+            if not from_doc or not to_doc:
+                missed_count += 1
                 continue
 
-            content = record["s.content_text"] or ""
-            doc_id = record["s.document_id"]
+            # Check whether a REFERENCES_DOCUMENT edge exists between the two documents
+            with get_session() as session:
+                result = session.run(
+                    """
+                    MATCH (a:Document {id: $from_doc})-[:REFERENCES_DOCUMENT]->(b:Document {id: $to_doc})
+                    RETURN count(*) AS cnt
+                    """,
+                    {"from_doc": from_doc, "to_doc": to_doc},
+                )
+                record = result.single()
+                found = record and record["cnt"] > 0
 
-            # Extract references from the section text
-            refs = extract_references(content)
-
-            # Try to resolve each extracted reference
-            found_target = False
-            for ref in refs:
-                resolution = resolve_reference(ref, from_section, doc_id)
-                if resolution["resolved"]:
-                    if resolution["target_node_id"] == to_section:
-                        found_target = True
-                        break
-
-            if found_target:
+            if found:
                 resolved_count += 1
             else:
-                # Check if any reference was even extracted that could point to the target
-                if not refs:
-                    extraction_miss_count += 1
-                else:
-                    missed_count += 1
+                missed_count += 1
 
         total = len(cross_refs)
         results.append({
@@ -72,8 +56,8 @@ def evaluate_cross_refs(entries: list[dict]) -> list[dict]:
             "total_refs": total,
             "resolved": resolved_count,
             "missed": missed_count,
-            "false_resolutions": false_count,
-            "extraction_misses": extraction_miss_count,
+            "false_resolutions": 0,
+            "extraction_misses": 0,
             "precision": resolved_count / total if total > 0 else 0.0,
             "recall": resolved_count / total if total > 0 else 0.0,
             "mrr": 0.0,  # Not applicable for cross-ref eval
