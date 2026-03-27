@@ -213,6 +213,140 @@ def search(query_text: str, top_k: int):
         console.print()
 
 
+@cli.command()
+@click.option("--level", type=click.Choice(["retrieval", "cross-ref"]), help="Eval level to run")
+@click.option("--top-k", type=int, help="Top-k for retrieval eval")
+@click.option("--category", type=str, help="Filter by reasoning_type")
+@click.option("--difficulty", type=str, help="Filter by difficulty")
+@click.option("--question", type=str, help="Run single question by ID")
+def eval(level: str | None, top_k: int | None, category: str | None, difficulty: str | None, question: str | None):
+    """Run evaluation against the golden dataset."""
+    from pipeline.eval.runner import run_eval
+    from pipeline.eval.reports import print_retrieval_report
+
+    levels = [level] if level else ["retrieval"]
+
+    for lvl in levels:
+        console.print(f"\n[bold]Running {lvl} evaluation...[/bold]")
+        result = run_eval(
+            level=lvl,
+            difficulty=difficulty,
+            reasoning_type=category,
+            question_id=question,
+            top_k=top_k,
+        )
+        if "error" in result:
+            console.print(f"[red]{result['error']}[/red]")
+            continue
+
+        if lvl == "retrieval":
+            print_retrieval_report(result)
+        else:
+            console.print(f"  Results saved: {result.get('run_id', 'unknown')}")
+
+
+@cli.command("eval-compare")
+@click.argument("run_a")
+@click.argument("run_b")
+def eval_compare(run_a: str, run_b: str):
+    """Compare two eval runs for regression detection."""
+    from pipeline.eval.results import load_result, list_results
+    from pipeline.eval.metrics import compare_runs
+    from pipeline.eval.reports import print_comparison_report
+    from pipeline.config import EVAL_RESULTS_DIR, EVAL_REGRESSION_THRESHOLD
+
+    # Find result files matching the run IDs
+    all_files = list_results()
+    file_a = next((f for f in all_files if run_a in f.name), None)
+    file_b = next((f for f in all_files if run_b in f.name), None)
+
+    if not file_a or not file_b:
+        console.print("[red]Could not find both result files[/red]")
+        return
+
+    result_a = load_result(file_a)
+    result_b = load_result(file_b)
+    diffs = compare_runs(result_a, result_b, threshold=EVAL_REGRESSION_THRESHOLD)
+    print_comparison_report(diffs)
+
+
+@cli.command("eval-runs")
+@click.option("--level", type=str, help="Filter by level")
+@click.option("--last", type=int, default=10, help="Show last N runs")
+def eval_runs(level: str | None, last: int):
+    """List past eval runs."""
+    from pipeline.eval.results import list_results, load_result
+
+    files = list_results(level=level, last=last)
+    if not files:
+        console.print("No eval runs found.")
+        return
+
+    for f in files:
+        result = load_result(f)
+        agg = result.get("aggregate", {})
+        p = agg.get("precision_at_k", 0)
+        r = agg.get("recall_at_k", 0)
+        hit = agg.get("primary_hit_rate", 0)
+        n = result.get("config", {}).get("dataset_count", 0)
+        console.print(
+            f"  {result['run_id']}  [{result['level']}]  "
+            f"P@k={p:.2f}  R@k={r:.2f}  Hit={hit:.0%}  (n={n})"
+        )
+
+
+@cli.command("eval-validate")
+def eval_validate():
+    """Validate the golden dataset against the graph."""
+    from pipeline.eval.dataset import validate_dataset, load_dataset
+    from pipeline.graph.connection import get_session
+
+    # Schema validation
+    errors = validate_dataset()
+    if errors:
+        console.print("[red]Schema validation errors:[/red]")
+        for e in errors:
+            console.print(f"  {e}")
+        return
+
+    console.print("[green]Schema validation: PASS[/green]")
+
+    # Reference integrity
+    entries = load_dataset()
+    missing = []
+    with get_session() as session:
+        for entry in entries:
+            for sec in entry["evidence"]["primary_sections"]:
+                result = session.run(
+                    "MATCH (s:Section {id: $sid}) RETURN s.id",
+                    {"sid": sec["section_id"]},
+                )
+                if not result.single():
+                    missing.append(f"{entry['id']}: section {sec['section_id']} not found")
+
+            for sec in entry["evidence"].get("supporting_sections", []):
+                result = session.run(
+                    "MATCH (s:Section {id: $sid}) RETURN s.id",
+                    {"sid": sec["section_id"]},
+                )
+                if not result.single():
+                    missing.append(f"{entry['id']}: section {sec['section_id']} not found")
+
+    if missing:
+        console.print(f"[red]Reference integrity errors ({len(missing)}):[/red]")
+        for m in missing:
+            console.print(f"  {m}")
+    else:
+        console.print("[green]Reference integrity: PASS[/green]")
+
+    # Completeness
+    difficulties = set(e["difficulty"] for e in entries)
+    categories = set(e["reasoning_type"] for e in entries)
+    console.print(f"\nDataset: {len(entries)} entries")
+    console.print(f"Difficulties: {', '.join(sorted(difficulties))}")
+    console.print(f"Categories: {', '.join(sorted(categories))}")
+
+
 @cli.command("run-all")
 @click.option("--source", "source_type", type=str, help="Process only this source type")
 def run_all(source_type: str | None):
