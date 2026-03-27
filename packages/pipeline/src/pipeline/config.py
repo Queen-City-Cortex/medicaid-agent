@@ -42,6 +42,14 @@ SOURCE_TYPE_DIRS = {
 ECFR_API_BASE = "https://www.ecfr.gov/api/versioner/v1"
 ECFR_CACHE_DIR = PROJECT_ROOT / "data" / "ecfr-cache"
 ECFR_CACHE_MAX_AGE_DAYS = 90
+# Evaluation harness
+GOLDEN_DATASET_PATH = PROJECT_ROOT / "data" / "golden" / "dataset.json"
+GOLDEN_DATASET_SCHEMA = PROJECT_ROOT / "data" / "golden" / "dataset.schema.json"
+EVAL_RESULTS_DIR = PROJECT_ROOT / "data" / "eval-results"
+EVAL_DEFAULT_TOP_K = 10
+EVAL_REGRESSION_THRESHOLD = 0.05  # 5% drop = regression flag
+EVAL_JUDGE_MODEL = "claude-sonnet-4-6"
+
 CFR_PARTS = [
     # 42 CFR — Medicaid, CHIP, Medicare (referenced by NC Medicaid policies)
     *[(42, p) for p in [
