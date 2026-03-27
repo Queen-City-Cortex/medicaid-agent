@@ -42,7 +42,18 @@ SOURCE_TYPE_DIRS = {
 ECFR_API_BASE = "https://www.ecfr.gov/api/versioner/v1"
 ECFR_CACHE_DIR = PROJECT_ROOT / "data" / "ecfr-cache"
 ECFR_CACHE_MAX_AGE_DAYS = 90
-CFR_PARTS = [(42, p) for p in [
-    430, 431, 432, 433, 434, 435, 436, 438,
-    440, 441, 442, 447, 455, 456, 457, 484,
-]]
+CFR_PARTS = [
+    # 42 CFR — Medicaid, CHIP, Medicare (referenced by NC Medicaid policies)
+    *[(42, p) for p in [
+        405, 409, 410, 411, 412, 413, 418,
+        430, 431, 432, 433, 434, 435, 436, 438,
+        440, 441, 442, 447, 455, 456, 457,
+        460, 482, 483, 484, 485, 488, 489,
+    ]],
+    # 45 CFR — HHS administrative rules, nondiscrimination, health insurance
+    *[(45, p) for p in [
+        16, 74, 75, 92, 95,
+        144, 146, 147, 155, 156, 158, 164, 170, 171,
+        233, 248,
+    ]],
+]
