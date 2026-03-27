@@ -79,7 +79,13 @@ def parse_pdf(pdf_path: Path, converter: DocumentConverter) -> dict:
             elif "table" in label_str.lower():
                 table_count += 1
 
-    page_count = getattr(doc, "num_pages", None) or len(getattr(doc, "pages", []))
+    _num_pages = getattr(doc, "num_pages", None)
+    if callable(_num_pages):
+        page_count = _num_pages()
+    elif _num_pages is not None:
+        page_count = _num_pages
+    else:
+        page_count = len(getattr(doc, "pages", []))
 
     return {
         "doc_dict": doc_dict,
