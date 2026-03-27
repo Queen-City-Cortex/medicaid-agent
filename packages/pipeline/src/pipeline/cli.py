@@ -68,5 +68,17 @@ def unresolved_refs():
         console.print(f"  ... and {len(data) - 20} more")
 
 
+@cli.command()
+@click.option("--model", type=str, help="Embedding model to use")
+def embed(model: str | None):
+    """Generate vector embeddings for all sections."""
+    from pipeline.embeddings.generator import embed_all
+    from pipeline.embeddings.indexer import ensure_vector_index
+
+    stats = embed_all(model=model)
+    ensure_vector_index()
+    console.print(f"\n[bold]Embedding complete:[/bold] {stats['embedded']} embedded, {stats['errors']} errors")
+
+
 if __name__ == "__main__":
     cli()
