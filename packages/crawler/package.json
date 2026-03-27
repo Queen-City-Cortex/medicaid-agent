@@ -1,5 +1,5 @@
 {
-  "name": "nc-medicaid-crawler",
+  "name": "@nc-medicaid/crawler",
   "version": "1.0.0",
   "description": "Polite incremental crawler for NC Medicaid policy documents",
   "type": "module",
@@ -7,6 +7,7 @@
     "crawl": "tsx src/index.ts crawl",
     "check": "tsx src/index.ts check",
     "stats": "tsx src/index.ts stats",
+    "build": "tsc",
     "test": "vitest run",
     "test:watch": "vitest"
   },
