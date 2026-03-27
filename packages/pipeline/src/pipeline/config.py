@@ -37,3 +37,12 @@ SOURCE_TYPE_DIRS = {
     "state_plan_amendment": "state-plan-amendments",
     "waiver": "waivers",
 }
+
+# eCFR (Federal Regulations)
+ECFR_API_BASE = "https://www.ecfr.gov/api/versioner/v1"
+ECFR_CACHE_DIR = PROJECT_ROOT / "data" / "ecfr-cache"
+ECFR_CACHE_MAX_AGE_DAYS = 90
+CFR_PARTS = [(42, p) for p in [
+    430, 431, 432, 433, 434, 435, 436, 438,
+    440, 441, 442, 447, 455, 456, 457, 484,
+]]

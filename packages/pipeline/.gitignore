@@ -5,3 +5,4 @@ __pycache__/
 dist/
 data/parsed/
 data/unresolved-references.json
+data/ecfr-cache/
