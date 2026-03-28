@@ -23,7 +23,7 @@ SEED_CONCEPTS = [
     {"name": "Home Health Services", "aliases": ["HHS"], "category": "service"},
     {"name": "Durable Medical Equipment", "aliases": ["DME"], "category": "service"},
     {"name": "Home Modifications", "aliases": [], "category": "service"},
-    {"name": "Assistive Technology", "aliases": ["AT"], "category": "service"},
+    {"name": "Assistive Technology", "aliases": [], "category": "service"},
     {"name": "Respite Care", "aliases": ["respite"], "category": "service"},
     {"name": "Community Living and Supports", "aliases": ["CLS"], "category": "service"},
 

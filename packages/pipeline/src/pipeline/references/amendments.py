@@ -15,12 +15,17 @@ _CHANGE_NOTICE_RE = re.compile(
     re.IGNORECASE,
 )
 
-# Pattern for "REVISED" SPA titles — capture the SPA number
-# e.g. "NC SPA 12-001 REVISED" or "REVISED - SPA 12-001"
+# Pattern for "REVISED" SPA titles — capture multi-part SPA numbers
+# e.g. "NC SPA 12-001 REVISED", "REVISED - SPA 14 047"
 _REVISED_SPA_RE = re.compile(
-    r"SPA\s+([\w\-]+)",
+    r"SPA\s+(\d+[\s\-]+\d+)",
     re.IGNORECASE,
 )
+
+
+def _normalize_spa_number(num: str) -> str:
+    """Normalize SPA number: '14 047' -> '14-047'."""
+    return re.sub(r'\s+', '-', num.strip())
 
 
 def _parse_manual_number(title: str) -> str | None:
@@ -57,15 +62,15 @@ def detect_amendments() -> dict:
     with get_session() as session:
         # Fetch all documents with id and title
         result = session.run(
-            "MATCH (d:Document) RETURN d.id AS doc_id, d.title AS title"
+            "MATCH (d:Document) RETURN d.id AS doc_id, d.title AS title, d.document_type AS doc_type"
         )
-        all_docs = [{"doc_id": r["doc_id"], "title": r["title"] or ""} for r in result]
+        all_docs = [{"doc_id": r["doc_id"], "title": r["title"] or "", "doc_type": r["doc_type"] or ""} for r in result]
 
     console.print(f"Scanning {len(all_docs)} documents for amendment patterns...")
 
-    # Build lookup: lower-case title → doc_id (for substring matching)
-    title_index: list[tuple[str, str]] = [
-        (d["title"].lower(), d["doc_id"]) for d in all_docs
+    # Build lookup: lower-case title → doc_id, doc_type (for substring matching)
+    title_index: list[tuple[str, str, str]] = [
+        (d["title"].lower(), d["doc_id"], d["doc_type"]) for d in all_docs
     ]
 
     edges_to_create: list[tuple[str, str]] = []  # (source_id, target_id)
@@ -83,7 +88,7 @@ def detect_amendments() -> dict:
             change_notice_ids.append(doc_id)
             # Find documents whose title contains the manual number
             manual_lower = manual_num.lower()
-            for target_title_lower, target_id in title_index:
+            for target_title_lower, target_id, target_type in title_index:
                 if target_id == doc_id:
                     continue
                 if manual_lower in target_title_lower:
@@ -96,10 +101,13 @@ def detect_amendments() -> dict:
                 continue
             stats["revised_spas"] += 1
             revised_spa_ids.append(doc_id)
-            spa_lower = spa_num.lower()
-            for target_title_lower, target_id in title_index:
+            spa_num_normalized = _normalize_spa_number(spa_num)
+            spa_lower = spa_num_normalized.lower()
+            for target_title_lower, target_id, target_type in title_index:
                 if target_id == doc_id:
                     continue
+                if target_type != "state_plan_amendment":
+                    continue  # Only link SPAs to other SPAs
                 # Match by SPA number but exclude other revised SPAs
                 if spa_lower in target_title_lower and "revised" not in target_title_lower:
                     edges_to_create.append((doc_id, target_id))
