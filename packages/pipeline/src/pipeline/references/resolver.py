@@ -99,6 +99,21 @@ def resolve_reference(
                     "edge_type": "REFERENCES",
                 }
 
+        elif ref.ref_type == "attachment":
+            section_num = f"Attachment {ref.target_id}"
+            result = session.run(
+                "MATCH (s:Section {document_id: $doc_id, section_number: $sn}) RETURN s.id",
+                {"doc_id": source_document_id, "sn": section_num},
+            )
+            record = result.single()
+            if record:
+                return {
+                    "resolved": True,
+                    "target_node_id": record["s.id"],
+                    "target_type": "section",
+                    "edge_type": "REFERENCES",
+                }
+
         elif ref.ref_type == "federal_regulation":
             parsed = parse_cfr_citation(ref.target_id)
             if parsed:
@@ -106,6 +121,22 @@ def resolve_reference(
                 result = session.run(
                     "MATCH (s:Section {document_id: $doc_id, section_number: $sn}) RETURN s.id",
                     {"doc_id": doc_id, "sn": parsed["section"]},
+                )
+                record = result.single()
+                if record:
+                    return {
+                        "resolved": True,
+                        "target_node_id": record["s.id"],
+                        "target_type": "section",
+                        "edge_type": "REFERENCES",
+                    }
+
+        elif ref.ref_type == "ssa_section":
+            for title_num in [19, 21]:
+                doc_id = f"doc:federal_statute:ssa-title-{title_num}"
+                result = session.run(
+                    "MATCH (s:Section {document_id: $doc_id, section_number: $sn}) RETURN s.id",
+                    {"doc_id": doc_id, "sn": ref.target_id},
                 )
                 record = result.single()
                 if record:

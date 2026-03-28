@@ -16,7 +16,10 @@ class TestExtractSectionNumber:
         assert extract_section_number("1.0 Description of the Service") == "1.0"
 
     def test_attachment_label(self):
-        assert extract_section_number("Attachment A: Claims Information") is None
+        assert extract_section_number("Attachment A: Claims Information") == "Attachment A"
+
+    def test_attachment_label_lowercase(self):
+        assert extract_section_number("attachment b: Billing Codes") == "Attachment B"
 
     def test_no_number(self):
         assert extract_section_number("Introduction") is None

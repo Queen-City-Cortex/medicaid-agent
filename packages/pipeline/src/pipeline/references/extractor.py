@@ -23,7 +23,11 @@ PATTERNS: list[tuple[str, re.Pattern]] = [
     ),
     (
         "section",
-        re.compile(r"(?:Section|Subsection)\s+([\d]+(?:\.[\d]+)*)"),
+        re.compile(r"(?:Section|Subsection)\s+([\d]+\.[\d]+(?:\.[\d]+)*)"),
+    ),
+    (
+        "ssa_section",
+        re.compile(r"(?:Section|Subsection)\s+(1[89]\d{2}|2[01]\d{2})"),
     ),
     (
         "attachment",

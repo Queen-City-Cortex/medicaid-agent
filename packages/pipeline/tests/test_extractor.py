@@ -39,6 +39,17 @@ class TestExtractReferences:
         refs = extract_references(text)
         assert any(r.ref_type == "waiver" for r in refs)
 
+    def test_ssa_section_classified_separately(self):
+        text = "as required by Section 1902 of the Social Security Act"
+        refs = extract_references(text)
+        assert any(r.ref_type == "ssa_section" and r.target_id == "1902" for r in refs)
+        assert not any(r.ref_type == "section" for r in refs)
+
+    def test_internal_section_still_works(self):
+        text = "See Section 5.1.3 for eligibility criteria"
+        refs = extract_references(text)
+        assert any(r.ref_type == "section" and r.target_id == "5.1.3" for r in refs)
+
     def test_no_references(self):
         text = "This is a plain sentence with no policy references."
         refs = extract_references(text)

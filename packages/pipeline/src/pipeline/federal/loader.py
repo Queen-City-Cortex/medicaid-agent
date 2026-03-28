@@ -70,6 +70,77 @@ def load_cfr_part(title: int, part: int, refresh: bool = False) -> dict:
     }
 
 
+def load_ssa(refresh: bool = False) -> dict:
+    """Fetch, parse, and load SSA Title XIX and XXI into Neo4j."""
+    from pipeline.federal.ssa_client import fetch_ssa_title_index, fetch_ssa_section
+    from pipeline.federal.ssa_parser import parse_title_index, parse_section_page
+    from pipeline.graph.schema import ensure_schema
+
+    ensure_schema()
+    stats = {"titles_loaded": 0, "sections_total": 0, "errors": 0}
+
+    for title_num in [19, 21]:
+        doc_id = f"doc:federal_statute:ssa-title-{title_num}"
+        console.print(f"  SSA Title {title_num}...", end=" ")
+
+        try:
+            index_html = fetch_ssa_title_index(title_num, refresh=refresh)
+            section_list = parse_title_index(index_html, title_num)
+
+            with get_session() as session:
+                session.run(queries.MERGE_DOCUMENT, {
+                    "id": doc_id,
+                    "title": f"Social Security Act — Title {'XIX' if title_num == 19 else 'XXI'} ({'Medicaid' if title_num == 19 else 'CHIP'})",
+                    "document_type": "federal_statute",
+                    "policy_number": f"SSA-Title-{title_num}",
+                    "category": "federal",
+                    "status": "current",
+                    "source_url": f"https://www.ssa.gov/OP_Home/ssact/title{title_num}/title{title_num}.htm",
+                    "local_path": "",
+                    "pdf_path": "",
+                    "page_count": 0,
+                    "section_count": len(section_list),
+                })
+
+            prev_section_id = None
+            for sec_info in section_list:
+                try:
+                    sec_html = fetch_ssa_section(sec_info["url"], sec_info["section_number"], title_num, refresh=refresh)
+                    section = parse_section_page(sec_html, sec_info, title_num)
+
+                    with get_session() as session:
+                        session.run(queries.MERGE_SECTION, {
+                            "id": section["id"],
+                            "document_id": doc_id,
+                            "section_number": section["section_number"],
+                            "title": section["title"],
+                            "level": section["level"],
+                            "content_text": section["content_text"],
+                            "content_length": section["content_length"],
+                            "has_tables": section["has_tables"],
+                            "has_definitions": section["has_definitions"],
+                        })
+                        session.run(queries.MERGE_HAS_SECTION, {"doc_id": doc_id, "sec_id": section["id"]})
+
+                        if prev_section_id:
+                            session.run(queries.MERGE_NEXT_SIBLING, {"prev_id": prev_section_id, "next_id": section["id"]})
+                        prev_section_id = section["id"]
+
+                    stats["sections_total"] += 1
+                except Exception as e:
+                    console.print(f"[red]Error on Section {sec_info['section_number']}: {e}[/red]")
+                    stats["errors"] += 1
+
+            console.print(f"[green]OK[/green] ({len(section_list)} sections)")
+            stats["titles_loaded"] += 1
+
+        except Exception as e:
+            console.print(f"[red]ERROR: {e}[/red]")
+            stats["errors"] += 1
+
+    return stats
+
+
 def load_all_cfr(part_filter: int | None = None, refresh: bool = False) -> dict:
     """Load all configured CFR parts into Neo4j."""
     ensure_schema()

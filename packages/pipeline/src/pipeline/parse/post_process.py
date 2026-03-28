@@ -9,6 +9,8 @@ SECTION_NUMBER_RE = re.compile(
     r"^(?:Section\s+|Subsection\s+)?(\d+(?:\.\d+)+)\b"
 )
 
+ATTACHMENT_RE = re.compile(r"^Attachment\s+([A-Z])\b", re.IGNORECASE)
+
 
 def extract_section_number(heading_text: str) -> str | None:
     """
@@ -16,9 +18,13 @@ def extract_section_number(heading_text: str) -> str | None:
 
     Returns the section number string (e.g., "5.1.3") or None if not found.
     """
-    match = SECTION_NUMBER_RE.match(heading_text.strip())
+    text = heading_text.strip()
+    match = SECTION_NUMBER_RE.match(text)
     if match:
         return match.group(1)
+    match = ATTACHMENT_RE.match(text)
+    if match:
+        return f"Attachment {match.group(1).upper()}"
     return None
 
 
