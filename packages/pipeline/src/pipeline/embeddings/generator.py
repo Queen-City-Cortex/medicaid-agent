@@ -4,11 +4,11 @@ Large sections (>= MAX_CHUNK_CHARS) are split into Chunk nodes and embedded
 per-chunk. Small sections are embedded directly on the Section node.
 """
 
-import voyageai
 from rich.console import Console
 from rich.progress import track
 
 from pipeline.config import VOYAGE_API_KEY, EMBEDDING_MODEL, EMBED_BATCH_SIZE
+from pipeline.embeddings.voyage_client import embed as voyage_embed
 from pipeline.graph.connection import get_session
 from pipeline.graph import queries
 from pipeline.embeddings.chunker import chunk_text, MAX_CHUNK_CHARS
@@ -82,7 +82,6 @@ def _create_chunks_in_neo4j(
 
 
 def _flush_batch(
-    client: voyageai.Client,
     model: str,
     batch_ids: list[str],
     batch_texts: list[str],
@@ -93,9 +92,9 @@ def _flush_batch(
     if not batch_texts:
         return
     try:
-        result = client.embed(batch_texts, model=model, input_type="document")
+        embeddings = voyage_embed(batch_texts, model=model, input_type="document")
         with get_session() as session:
-            for node_id, emb, kind in zip(batch_ids, result.embeddings, batch_kinds):
+            for node_id, emb, kind in zip(batch_ids, embeddings, batch_kinds):
                 if kind == "section":
                     session.run(
                         "MATCH (s:Section {id: $id}) SET s.embedding = $embedding",
@@ -125,8 +124,6 @@ def embed_all(model: str | None = None) -> dict:
         console.print("[red]VOYAGE_API_KEY not set. Export it as an environment variable.[/red]")
         return {"embedded": 0, "errors": 0, "chunks_created": 0}
 
-    client = voyageai.Client(api_key=VOYAGE_API_KEY)
-
     # Clear stale truncated embeddings (sections that are too large but were
     # previously embedded via truncation)
     with get_session() as session:
@@ -143,7 +140,7 @@ def embed_all(model: str | None = None) -> dict:
     # Find sections without embeddings (small sections only — large ones use chunks)
     with get_session() as session:
         result = session.run(
-            "MATCH (s:Section) WHERE s.embedding IS NULL AND s.content_length < $max_chars RETURN s.id",
+            "MATCH (s:Section) WHERE s.embedding IS NULL AND s.content_length > 0 AND s.content_length < $max_chars RETURN s.id",
             {"max_chars": MAX_CHUNK_CHARS},
         )
         section_ids = [r["s.id"] for r in result]
@@ -152,7 +149,7 @@ def embed_all(model: str | None = None) -> dict:
     with get_session() as session:
         result = session.run(
             """
-            MATCH (s:Section) WHERE s.embedding IS NULL AND s.content_length >= $max_chars
+            MATCH (s:Section) WHERE s.embedding IS NULL AND s.content_length > 0 AND s.content_length >= $max_chars
             AND NOT (s)-[:HAS_CHUNK]->()
             RETURN s.id
             """,
@@ -187,7 +184,7 @@ def embed_all(model: str | None = None) -> dict:
     def _maybe_flush():
         nonlocal batch_ids, batch_texts, batch_kinds, batch_token_estimate
         if len(batch_texts) >= EMBED_BATCH_SIZE:
-            _flush_batch(client, model, batch_ids, batch_texts, batch_kinds, stats)
+            _flush_batch(model, batch_ids, batch_texts, batch_kinds, stats)
             batch_ids, batch_texts, batch_kinds = [], [], []
             batch_token_estimate = 0
 
@@ -195,7 +192,7 @@ def embed_all(model: str | None = None) -> dict:
         nonlocal batch_ids, batch_texts, batch_kinds, batch_token_estimate
         token_est = len(text) // _CHARS_PER_TOKEN
         if batch_texts and batch_token_estimate + token_est > _MAX_BATCH_TOKENS:
-            _flush_batch(client, model, batch_ids, batch_texts, batch_kinds, stats)
+            _flush_batch(model, batch_ids, batch_texts, batch_kinds, stats)
             batch_ids, batch_texts, batch_kinds = [], [], []
             batch_token_estimate = 0
         batch_ids.append(item_id)
@@ -233,7 +230,7 @@ def embed_all(model: str | None = None) -> dict:
 
     # Flush remaining
     if batch_texts:
-        _flush_batch(client, model, batch_ids, batch_texts, batch_kinds, stats)
+        _flush_batch(model, batch_ids, batch_texts, batch_kinds, stats)
 
     return stats
 

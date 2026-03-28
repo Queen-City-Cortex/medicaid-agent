@@ -48,6 +48,12 @@ def vector_search(
     """
     # Build optional WHERE clause for document-type filtering
     type_filter = "WHERE doc.document_type IN $document_types" if document_types else ""
+    # For section queries, also filter out empty sections
+    section_type_filter = (
+        "WHERE section.content_length > 0 AND doc.document_type IN $document_types"
+        if document_types
+        else "WHERE section.content_length > 0"
+    )
 
     with get_session() as session:
         # Search section index
@@ -55,7 +61,7 @@ def vector_search(
             CALL db.index.vector.queryNodes('section_embeddings', $k, $embedding)
             YIELD node AS section, score
             MATCH (section)<-[:HAS_SECTION]-(doc:Document)
-            {type_filter}
+            {section_type_filter}
             RETURN doc.title AS doc_title, doc.policy_number AS policy_number,
                    doc.document_type AS document_type,
                    section.id AS section_id,

@@ -202,17 +202,15 @@ def inspect(doc_id: str):
 @click.option("--type", "doc_type", type=str, help="Filter by document type (e.g., dhhs_policy, clinical_policy)")
 def search(query_text: str, top_k: int, doc_type: str | None):
     """Search sections by text using vector similarity."""
-    import voyageai
     from pipeline.config import VOYAGE_API_KEY, EMBEDDING_MODEL
     from pipeline.embeddings.indexer import vector_search
+    from pipeline.embeddings.voyage_client import embed as voyage_embed
 
     if not VOYAGE_API_KEY:
         console.print("[red]VOYAGE_API_KEY not set[/red]")
         return
 
-    client = voyageai.Client(api_key=VOYAGE_API_KEY)
-    result = client.embed([query_text], model=EMBEDDING_MODEL, input_type="query")
-    query_embedding = result.embeddings[0]
+    query_embedding = voyage_embed([query_text], model=EMBEDDING_MODEL, input_type="query")[0]
 
     document_types = [doc_type] if doc_type else None
     results = vector_search(query_embedding, top_k=top_k, document_types=document_types)
@@ -391,6 +389,11 @@ def run_all(source_type: str | None):
     console.print("[bold]Stage 3: Cross-references[/bold]")
     ref_stats = extract_and_resolve_all()
     console.print(f"  {ref_stats['resolved']} resolved, {ref_stats['unresolved']} unresolved\n")
+
+    console.print("[bold]Stage 3.5: Amendments[/bold]")
+    from pipeline.references.amendments import detect_amendments
+    amend_stats = detect_amendments()
+    console.print(f"  {amend_stats['edges_created']} amendment edges\n")
 
     console.print("[bold]Stage 4: Embeddings[/bold]")
     embed_stats = embed_all()

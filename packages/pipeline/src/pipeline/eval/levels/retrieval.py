@@ -1,9 +1,8 @@
 """Level 1: Retrieval evaluation — does vector search return the right sections?"""
 
-import voyageai
-
 from pipeline.config import VOYAGE_API_KEY, EMBEDDING_MODEL, EVAL_DEFAULT_TOP_K
 from pipeline.embeddings.indexer import vector_search
+from pipeline.embeddings.voyage_client import embed as voyage_embed
 from pipeline.eval.metrics import precision_at_k, recall_at_k, mrr
 
 
@@ -18,15 +17,11 @@ def evaluate_retrieval(entries: list[dict], top_k: int | None = None) -> list[di
     if not VOYAGE_API_KEY:
         raise RuntimeError("VOYAGE_API_KEY not set")
 
-    client = voyageai.Client(api_key=VOYAGE_API_KEY)
     results: list[dict] = []
 
     for entry in entries:
         # Embed the question
-        embed_result = client.embed(
-            [entry["question"]], model=EMBEDDING_MODEL, input_type="query"
-        )
-        query_embedding = embed_result.embeddings[0]
+        query_embedding = voyage_embed([entry["question"]], model=EMBEDDING_MODEL, input_type="query")[0]
 
         # Run vector search — returns dicts with section_id, section_number, policy_number, etc.
         search_results = vector_search(query_embedding, top_k=top_k)
