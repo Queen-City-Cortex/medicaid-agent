@@ -1,4 +1,9 @@
-"""Fetch Social Security Act text from ssa.gov."""
+"""Fetch Social Security Act text from uscode.house.gov.
+
+SSA.gov blocks automated access (403). The U.S. Code version at
+uscode.house.gov has identical substantive text. SSA section numbers
+(1902, 1905) map to USC sections (42 USC 1396a, 1396d).
+"""
 
 import time
 import urllib.request
@@ -12,46 +17,107 @@ console = Console()
 
 USER_AGENT = "NCMedicaidNavigator/1.0 (+https://queencitycortex.com/crawler-info)"
 
-SSA_TITLES = {
-    19: "https://www.ssa.gov/OP_Home/ssact/title19/title19.htm",
-    21: "https://www.ssa.gov/OP_Home/ssact/title21/title21.htm",
+# USC URLs for Medicaid (Subchapter XIX) and CHIP (Subchapter XXI)
+USC_URLS = {
+    19: "https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title42-chapter7-subchapter19&edition=prelim",
+    21: "https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title42-chapter7-subchapter21&edition=prelim",
 }
+
+# SSA section number → USC section number mapping
+# SSA §1901 = 42 USC §1396, SSA §1902 = 42 USC §1396a, etc.
+SSA_TO_USC = {
+    # Title XIX — Medicaid
+    "1901": "1396",
+    "1902": "1396a",
+    "1903": "1396b",
+    "1904": "1396c",
+    "1905": "1396d",
+    "1906": "1396e",
+    "1906A": "1396e-1",
+    "1907": "1396f",
+    "1908": "1396g",
+    "1908A": "1396g-1",
+    "1909": "1396h",
+    "1910": "1396i",
+    "1911": "1396j",
+    "1912": "1396k",
+    "1913": "1396l",
+    "1914": "1396m",
+    "1915": "1396n",
+    "1916": "1396o",
+    "1916A": "1396o-1",
+    "1917": "1396p",
+    "1918": "1396q",
+    "1919": "1396r",
+    "1920": "1396r-1",
+    "1920A": "1396r-1a",
+    "1920B": "1396r-1b",
+    "1920C": "1396r-1c",
+    "1921": "1396r-2",
+    "1922": "1396r-3",
+    "1923": "1396r-4",
+    "1924": "1396r-5",
+    "1925": "1396r-6",
+    "1926": "1396r-7",
+    "1927": "1396r-8",
+    "1928": "1396s",
+    "1929": "1396t",
+    "1930": "1396u",
+    "1931": "1396u-1",
+    "1932": "1396u-2",
+    "1933": "1396u-3",
+    "1934": "1396u-4",
+    "1935": "1396u-5",
+    "1936": "1396u-6",
+    "1937": "1396u-7",
+    "1938": "1396u-8",
+    "1939": "1396v",
+    "1940": "1396w",
+    "1941": "1396w-1",
+    "1942": "1396w-2",
+    "1943": "1396w-3",
+    "1944": "1396w-4",
+    "1945": "1396w-5",
+    "1946": "1396w-6",
+    "1947": "1396w-7",
+    # Title XXI — CHIP
+    "2101": "1397aa",
+    "2102": "1397bb",
+    "2103": "1397cc",
+    "2104": "1397dd",
+    "2105": "1397ee",
+    "2106": "1397ff",
+    "2107": "1397gg",
+    "2108": "1397hh",
+    "2109": "1397ii",
+    "2110": "1397jj",
+    "2111": "1397kk",
+    "2112": "1397ll",
+    "2113": "1397mm",
+}
+
+# Reverse mapping for resolving USC references back to SSA numbers
+USC_TO_SSA = {v: k for k, v in SSA_TO_USC.items()}
 
 
 def _cache_path(title_num: int) -> Path:
-    return ECFR_CACHE_DIR / f"ssa-title-{title_num}.html"
+    return ECFR_CACHE_DIR / f"usc-title42-subchapter{title_num}.html"
 
 
-def fetch_ssa_title_index(title_num: int, refresh: bool = False) -> str:
-    """Fetch the SSA title index page listing all sections."""
+def fetch_usc_subchapter(title_num: int, refresh: bool = False) -> str:
+    """Fetch the full USC subchapter HTML from uscode.house.gov."""
     cache = _cache_path(title_num)
     if not refresh and cache.exists():
         return cache.read_text(encoding="utf-8")
 
-    url = SSA_TITLES[title_num]
-    console.print(f"  Fetching SSA Title {title_num} index: {url}")
+    url = USC_URLS[title_num]
+    console.print(f"  Fetching USC Subchapter {title_num}: {url}")
     ECFR_CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(req, timeout=60) as response:
+    with urllib.request.urlopen(req, timeout=120) as response:
         html = response.read().decode("utf-8")
 
     cache.write_text(html, encoding="utf-8")
-    time.sleep(1)
-    return html
-
-
-def fetch_ssa_section(url: str, section_num: str, title_num: int, refresh: bool = False) -> str:
-    """Fetch a single SSA section page."""
-    cache = ECFR_CACHE_DIR / f"ssa-title-{title_num}-sec-{section_num}.html"
-    if not refresh and cache.exists():
-        return cache.read_text(encoding="utf-8")
-
-    console.print(f"    Fetching Section {section_num}...")
-    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(req, timeout=60) as response:
-        html = response.read().decode("utf-8")
-
-    cache.write_text(html, encoding="utf-8")
-    time.sleep(1)
+    time.sleep(2)  # Be polite to government servers
     return html

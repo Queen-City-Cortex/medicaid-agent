@@ -71,9 +71,14 @@ def load_cfr_part(title: int, part: int, refresh: bool = False) -> dict:
 
 
 def load_ssa(refresh: bool = False) -> dict:
-    """Fetch, parse, and load SSA Title XIX and XXI into Neo4j."""
-    from pipeline.federal.ssa_client import fetch_ssa_title_index, fetch_ssa_section
-    from pipeline.federal.ssa_parser import parse_title_index, parse_section_page
+    """Fetch, parse, and load SSA Title XIX and XXI into Neo4j.
+
+    Uses uscode.house.gov (ssa.gov blocks automated access).
+    Section numbers are SSA-style (1902, 1905) since that's what
+    NC Medicaid documents cite.
+    """
+    from pipeline.federal.ssa_client import fetch_usc_subchapter
+    from pipeline.federal.ssa_parser import parse_usc_subchapter
     from pipeline.graph.schema import ensure_schema
 
     ensure_schema()
@@ -81,21 +86,23 @@ def load_ssa(refresh: bool = False) -> dict:
 
     for title_num in [19, 21]:
         doc_id = f"doc:federal_statute:ssa-title-{title_num}"
-        console.print(f"  SSA Title {title_num}...", end=" ")
+        title_name = "XIX" if title_num == 19 else "XXI"
+        program = "Medicaid" if title_num == 19 else "CHIP"
+        console.print(f"  SSA Title {title_name} ({program})...", end=" ")
 
         try:
-            index_html = fetch_ssa_title_index(title_num, refresh=refresh)
-            section_list = parse_title_index(index_html, title_num)
+            html = fetch_usc_subchapter(title_num, refresh=refresh)
+            section_list = parse_usc_subchapter(html, title_num)
 
             with get_session() as session:
                 session.run(queries.MERGE_DOCUMENT, {
                     "id": doc_id,
-                    "title": f"Social Security Act — Title {'XIX' if title_num == 19 else 'XXI'} ({'Medicaid' if title_num == 19 else 'CHIP'})",
+                    "title": f"Social Security Act — Title {title_name} ({program})",
                     "document_type": "federal_statute",
                     "policy_number": f"SSA-Title-{title_num}",
                     "category": "federal",
                     "status": "current",
-                    "source_url": f"https://www.ssa.gov/OP_Home/ssact/title{title_num}/title{title_num}.htm",
+                    "source_url": f"https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title42-chapter7-subchapter{title_num}",
                     "local_path": "",
                     "pdf_path": "",
                     "page_count": 0,
@@ -103,11 +110,8 @@ def load_ssa(refresh: bool = False) -> dict:
                 })
 
             prev_section_id = None
-            for sec_info in section_list:
+            for section in section_list:
                 try:
-                    sec_html = fetch_ssa_section(sec_info["url"], sec_info["section_number"], title_num, refresh=refresh)
-                    section = parse_section_page(sec_html, sec_info, title_num)
-
                     with get_session() as session:
                         session.run(queries.MERGE_SECTION, {
                             "id": section["id"],
@@ -128,7 +132,7 @@ def load_ssa(refresh: bool = False) -> dict:
 
                     stats["sections_total"] += 1
                 except Exception as e:
-                    console.print(f"[red]Error on Section {sec_info['section_number']}: {e}[/red]")
+                    console.print(f"[red]Error on Section {section['section_number']}: {e}[/red]")
                     stats["errors"] += 1
 
             console.print(f"[green]OK[/green] ({len(section_list)} sections)")
