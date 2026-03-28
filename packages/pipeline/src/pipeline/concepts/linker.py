@@ -12,7 +12,7 @@ console = Console()
 
 # Short aliases that match common English words — require case-sensitive match
 # to avoid false positives like "at home" matching Assistive Technology
-CASE_SENSITIVE_ALIASES = {"AT", "PA", "POC", "HHS"}
+CASE_SENSITIVE_ALIASES = {"AT", "PA", "POC", "HHS", "MAA", "MAB", "MAD"}
 
 # Minimum alias length for case-insensitive matching
 MIN_ALIAS_LENGTH = 3

@@ -29,43 +29,60 @@ def ensure_vector_index():
         """)
 
 
-def vector_search(query_embedding: list[float], top_k: int = 10) -> list[dict]:
+def vector_search(
+    query_embedding: list[float],
+    top_k: int = 10,
+    document_types: list[str] | None = None,
+) -> list[dict]:
     """Search for sections similar to a query embedding.
 
     Queries both section_embeddings and chunk_embeddings indexes, merges
     results, deduplicates by section (keeping the best score per section),
     and returns the top_k results ordered by score descending.
+
+    Args:
+        query_embedding: The query vector.
+        top_k: Maximum number of results to return.
+        document_types: When provided, restrict results to documents whose
+            ``document_type`` is in this list (e.g. ``["dhhs_policy"]``).
     """
+    # Build optional WHERE clause for document-type filtering
+    type_filter = "WHERE doc.document_type IN $document_types" if document_types else ""
+
     with get_session() as session:
         # Search section index
-        section_results = session.run("""
+        section_results = session.run(f"""
             CALL db.index.vector.queryNodes('section_embeddings', $k, $embedding)
             YIELD node AS section, score
             MATCH (section)<-[:HAS_SECTION]-(doc:Document)
+            {type_filter}
             RETURN doc.title AS doc_title, doc.policy_number AS policy_number,
+                   doc.document_type AS document_type,
                    section.id AS section_id,
                    section.section_number AS section_number,
                    section.title AS section_title,
                    section.content_text AS content,
                    score
             ORDER BY score DESC
-        """, {"k": top_k, "embedding": query_embedding})
+        """, {"k": top_k, "embedding": query_embedding, "document_types": document_types})
         section_rows = [dict(r) for r in section_results]
 
         # Search chunk index
-        chunk_results = session.run("""
+        chunk_results = session.run(f"""
             CALL db.index.vector.queryNodes('chunk_embeddings', $k, $embedding)
             YIELD node AS chunk, score
             MATCH (section:Section)-[:HAS_CHUNK]->(chunk)
             MATCH (section)<-[:HAS_SECTION]-(doc:Document)
+            {type_filter}
             RETURN doc.title AS doc_title, doc.policy_number AS policy_number,
+                   doc.document_type AS document_type,
                    section.id AS section_id,
                    section.section_number AS section_number,
                    section.title AS section_title,
                    section.content_text AS content,
                    score
             ORDER BY score DESC
-        """, {"k": top_k, "embedding": query_embedding})
+        """, {"k": top_k, "embedding": query_embedding, "document_types": document_types})
         chunk_rows = [dict(r) for r in chunk_results]
 
     # Merge and deduplicate: keep best score per section_id

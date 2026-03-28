@@ -112,3 +112,9 @@ RETURN s.id, s.section_number, s.title, s.level, s.content_length,
        collect(child.section_number) AS children
 ORDER BY s.section_number
 """
+
+MERGE_AMENDS = """
+MATCH (src:Document {id: $source_id})
+MATCH (tgt:Document {id: $target_id})
+MERGE (src)-[:AMENDS]->(tgt)
+"""

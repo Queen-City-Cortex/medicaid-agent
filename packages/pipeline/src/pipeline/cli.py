@@ -98,6 +98,20 @@ def link_concepts_cmd():
     console.print(f"[bold]Created {stats['edges_created']} concept-section edges[/bold]")
 
 
+@cli.command("detect-amendments")
+def detect_amendments_cmd():
+    """Detect amendment relationships and create AMENDS edges."""
+    from pipeline.references.amendments import detect_amendments
+
+    stats = detect_amendments()
+    console.print(
+        f"[bold]Amendments:[/bold] "
+        f"{stats['change_notices']} change notices, "
+        f"{stats['revised_spas']} revised SPAs, "
+        f"{stats['edges_created']} AMENDS edges created"
+    )
+
+
 @cli.command()
 def stats():
     """Show graph statistics."""
@@ -185,7 +199,8 @@ def inspect(doc_id: str):
 @cli.command()
 @click.argument("query_text")
 @click.option("-k", "top_k", type=int, default=10, help="Number of results")
-def search(query_text: str, top_k: int):
+@click.option("--type", "doc_type", type=str, help="Filter by document type (e.g., dhhs_policy, clinical_policy)")
+def search(query_text: str, top_k: int, doc_type: str | None):
     """Search sections by text using vector similarity."""
     import voyageai
     from pipeline.config import VOYAGE_API_KEY, EMBEDDING_MODEL
@@ -199,7 +214,8 @@ def search(query_text: str, top_k: int):
     result = client.embed([query_text], model=EMBEDDING_MODEL, input_type="query")
     query_embedding = result.embeddings[0]
 
-    results = vector_search(query_embedding, top_k=top_k)
+    document_types = [doc_type] if doc_type else None
+    results = vector_search(query_embedding, top_k=top_k, document_types=document_types)
     for r in results:
         console.print(
             f"[bold]{r['policy_number'] or ''}[/bold] "

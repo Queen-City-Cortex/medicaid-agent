@@ -40,6 +40,15 @@ SEED_CONCEPTS = [
     {"name": "Financial Eligibility", "aliases": ["income limits", "resource limits"], "category": "eligibility"},
     {"name": "Functional Eligibility", "aliases": ["functional criteria", "ADL limitations"], "category": "eligibility"},
 
+    # Eligibility programs (new)
+    {"name": "HCWD", "aliases": ["Health Coverage for Workers with Disabilities", "Health Care for Workers with Disabilities"], "category": "eligibility"},
+    {"name": "Medicaid to the Aged", "aliases": ["MAA", "M-AA"], "category": "eligibility"},
+    {"name": "Medicaid to the Blind", "aliases": ["MAB", "M-AB"], "category": "eligibility"},
+    {"name": "Medicaid to the Disabled", "aliases": ["MAD", "M-AD"], "category": "eligibility"},
+    {"name": "MAGI Medicaid", "aliases": ["Modified Adjusted Gross Income"], "category": "eligibility"},
+    {"name": "Spend-Down", "aliases": ["spenddown", "medically needy spend-down"], "category": "eligibility"},
+    {"name": "Special Assistance", "aliases": ["S-AA", "S-AD", "State/County Special Assistance"], "category": "eligibility"},
+
     # Entities
     {"name": "LME-MCO", "aliases": ["Local Management Entity-Managed Care Organization"], "category": "entity"},
     {"name": "MCO", "aliases": ["Managed Care Organization"], "category": "entity"},
