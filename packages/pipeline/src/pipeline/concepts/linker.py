@@ -25,10 +25,12 @@ def _determine_relationship(section_title: str | None) -> str:
     title_lower = section_title.lower()
     if "definition" in title_lower:
         return "DEFINES"
+    # Check restrictive patterns BEFORE permissive ones — "Services Not Covered"
+    # must match RESTRICTS, not COVERS
+    if any(w in title_lower for w in ("limitation", "exclusion", "restriction", "not covered", "non-covered", "noncovered")):
+        return "RESTRICTS"
     if any(w in title_lower for w in ("coverage", "service", "covered")):
         return "COVERS"
-    if any(w in title_lower for w in ("limitation", "exclusion", "restriction", "not covered")):
-        return "RESTRICTS"
     return "COVERS"
 
 
