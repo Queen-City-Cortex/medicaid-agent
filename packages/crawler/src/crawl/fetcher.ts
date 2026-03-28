@@ -57,7 +57,9 @@ export function createFetcher(options: FetcherOptions): RateLimitedFetcher {
     'user-agent': options.userAgent,
     accept:
       'application/pdf, application/vnd.openxmlformats-officedocument.*, text/html, */*',
-    'accept-encoding': 'gzip, deflate',
+    // Do NOT request compressed encoding: undici does not auto-decompress
+    // response bodies, so compressed HTML would be returned as raw bytes.
+    'accept-encoding': 'identity',
   };
 
   async function fetchWithRetry(

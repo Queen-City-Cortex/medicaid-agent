@@ -36,6 +36,8 @@ SOURCE_TYPE_DIRS = {
     "bulletin": "bulletins",
     "state_plan_amendment": "state-plan-amendments",
     "waiver": "waivers",
+    "provider_manual": "provider-manuals",
+    "dhhs_policy": "dhhs-policies",
 }
 
 # eCFR (Federal Regulations)

@@ -3,7 +3,8 @@ export type SourceType =
   | 'bulletin'
   | 'state_plan_amendment'
   | 'waiver'
-  | 'provider_manual';
+  | 'provider_manual'
+  | 'dhhs_policy';
 
 export interface DiscoveredDocument {
   source_url: string;

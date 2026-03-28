@@ -58,6 +58,14 @@ export const config = {
       ],
       enabled: true,
     },
+    provider_manual: {
+      indexUrl: 'https://www.nctracks.nc.gov/content/public/providers/provider-manuals.html',
+      enabled: true,
+    },
+    dhhs_policy: {
+      indexUrl: 'https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/',
+      enabled: true,
+    },
   },
 } as const;
 
@@ -68,4 +76,5 @@ export const SOURCE_TYPE_DIRS: Record<string, string> = {
   state_plan_amendment: 'state-plan-amendments',
   waiver: 'waivers',
   provider_manual: 'provider-manuals',
+  dhhs_policy: 'dhhs-policies',
 };

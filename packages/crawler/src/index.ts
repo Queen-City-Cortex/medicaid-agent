@@ -17,6 +17,8 @@ const VALID_SOURCE_TYPES: SourceType[] = [
   'bulletin',
   'state_plan_amendment',
   'waiver',
+  'provider_manual',
+  'dhhs_policy',
 ];
 
 function initDb(): ReturnType<typeof createRegistry> & { close: () => void } {

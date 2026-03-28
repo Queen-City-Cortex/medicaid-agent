@@ -3,6 +3,8 @@ import { clinicalPoliciesSource } from '../sources/clinical-policies.js';
 import { bulletinsSource } from '../sources/bulletins.js';
 import { statePlanSource } from '../sources/state-plan.js';
 import { waiversSource } from '../sources/waivers.js';
+import { ncTracksSource } from '../sources/nctracks.js';
+import { dhhsPoliciesSource } from '../sources/dhhs-policies.js';
 import { logger } from '../utils/logger.js';
 
 // Source modules registered here — add new sources as they're implemented
@@ -13,6 +15,8 @@ const sourceModules: Partial<
   bulletin: bulletinsSource,
   state_plan_amendment: statePlanSource,
   waiver: waiversSource,
+  provider_manual: ncTracksSource,
+  dhhs_policy: dhhsPoliciesSource,
 };
 
 export async function discoverDocuments(
