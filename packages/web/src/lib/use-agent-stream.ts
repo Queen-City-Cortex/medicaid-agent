@@ -135,8 +135,10 @@ export function useAgentStream(): UseAgentStreamReturn {
                       .filter(e => e.type === 'reasoning')
                       .reduce((sum, e) => sum + e.text.length, 0);
                     // The pending part is what hasn't been flushed
-                    if (pendingReasoningText.trim()) {
-                      timeline.push({ type: 'reasoning', text: pendingReasoningText.trim() });
+                    // Strip the --- from pending reasoning before flushing
+                    const cleanedReasoning = pendingReasoningText.replace(/---\s*$/, '').trim();
+                    if (cleanedReasoning) {
+                      timeline.push({ type: 'reasoning', text: cleanedReasoning });
                       pendingReasoningText = '';
                       setLiveTimeline([...timeline]);
                     }
