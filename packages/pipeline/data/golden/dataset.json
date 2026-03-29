@@ -435,5 +435,287 @@
     },
     "source": "lived_experience",
     "notes": "Real beneficiary question. Answer requires DHHS eligibility manual + understanding that a change notice REMOVES a limit. Tests cross-document reasoning, negative answer pattern (no earned income limit), and the three-tier authority chain (SSA → CFR → state policy)."
+  },
+  {
+    "id": "q-010",
+    "version": 1,
+    "created": "2026-03-28",
+    "updated": "2026-03-28",
+    "question": "What is the federal statutory authority for NC's CAP/DA waiver, and what does the state need to demonstrate in its waiver application?",
+    "difficulty": "complex",
+    "reasoning_type": "cross_document",
+    "topics": ["cap_da", "waiver", "1915c", "federal_authority"],
+    "target_users": ["legal_aid", "policy_analyst"],
+    "answer": {
+      "text": "CAP/DA operates under a Section 1915(c) home and community-based services waiver. Section 1915 of the Social Security Act authorizes states to waive certain Medicaid requirements to provide HCBS to individuals who would otherwise require institutional care. Under 42 CFR 441.301, the state's waiver application must describe the services to be provided, the target population, the geographic area, the estimated number of participants, and safeguards to protect health and welfare. 42 CFR 441.303 specifies the supporting documentation required. NC's Clinical Coverage Policy 3K-2 implements the waiver at the state level, defining the specific services, eligibility criteria, and provider requirements.",
+      "confidence": "high",
+      "caveats": [
+        "Waiver applications are renewed periodically — the current application may differ from the original",
+        "CMS must approve any amendments to the waiver"
+      ]
+    },
+    "evidence": {
+      "primary_sections": [
+        {
+          "document_id": "doc:federal_statute:ssa-title-19",
+          "section_id": "sec:doc:federal_statute:ssa-title-19:1915",
+          "section_number": "1915",
+          "relevance": "Federal statutory authority for HCBS waivers including 1915(c)"
+        },
+        {
+          "document_id": "doc:federal_regulation:42-CFR-441",
+          "section_id": "sec:doc:federal_regulation:42-CFR-441:441.301",
+          "section_number": "441.301",
+          "relevance": "Contents required in a 1915(c) waiver application"
+        }
+      ],
+      "supporting_sections": [
+        {
+          "document_id": "doc:federal_regulation:42-CFR-441",
+          "section_id": "sec:doc:federal_regulation:42-CFR-441:441.303",
+          "section_number": "441.303",
+          "relevance": "Supporting documentation required for waiver applications"
+        },
+        {
+          "document_id": "doc:clinical_policy:3K-2",
+          "section_id": "sec:doc:clinical_policy:3K-2:3.1",
+          "section_number": "3.1",
+          "relevance": "NC state-level implementation of the CAP/DA waiver"
+        }
+      ],
+      "cross_references": [
+        {
+          "from_document_id": "doc:clinical_policy:3K-2",
+          "to_document_id": "doc:federal_statute:ssa-title-19",
+          "relationship": "CAP/DA policy implements Section 1915(c) waiver authority"
+        }
+      ],
+      "federal_references": [
+        {
+          "section_id": "sec:doc:federal_statute:ssa-title-19:1915",
+          "relevance": "Statutory authority for all HCBS waivers"
+        }
+      ]
+    },
+    "source": "legal_aid",
+    "notes": "Tests the three-tier authority chain: SSA 1915 → 42 CFR 441.301/303 → NC CCP 3K-2. A legal aid attorney challenging a waiver denial needs to understand this chain."
+  },
+  {
+    "id": "q-011",
+    "version": 1,
+    "created": "2026-03-28",
+    "updated": "2026-03-28",
+    "question": "What are the requirements for home modifications under CAP/DA, and what documentation must the Multidisciplinary Team provide?",
+    "difficulty": "moderate",
+    "reasoning_type": "single_lookup",
+    "topics": ["cap_da", "home_modifications", "equipment", "documentation"],
+    "target_users": ["case_manager", "beneficiary"],
+    "answer": {
+      "text": "Under Clinical Coverage Policy 3K-2, equipment, modification, and technology services (Section 5.9.1) require a recommendation by the Multidisciplinary Team (MDT) that identifies the beneficiary's need. The recommendation must state the cost of the item, include a plan for training the beneficiary and family on use of the equipment (which must be documented as completed and signed), a statement of need identified in the service plan, and evidence of medical need recommended by the MDT or physician when applicable. Section 3.4.5 provides the general coverage criteria for equipment, modification, and technology under CAP/DA.",
+      "confidence": "high",
+      "caveats": [
+        "Cost thresholds for prior authorization may apply",
+        "Modifications must be to the beneficiary's primary residence"
+      ]
+    },
+    "evidence": {
+      "primary_sections": [
+        {
+          "document_id": "doc:clinical_policy:3K-2",
+          "section_id": "sec:doc:clinical_policy:3K-2:5.9.1",
+          "section_number": "5.9.1",
+          "relevance": "Equipment, Modification, Technology and Supplies — documentation requirements"
+        }
+      ],
+      "supporting_sections": [
+        {
+          "document_id": "doc:clinical_policy:3K-2",
+          "section_id": "sec:doc:clinical_policy:3K-2:3.4.5",
+          "section_number": "3.4.5",
+          "relevance": "Equipment, Modification and Technology — general coverage criteria"
+        }
+      ],
+      "cross_references": [],
+      "federal_references": []
+    },
+    "source": "lived_experience",
+    "notes": "Practical question from CAP/DA beneficiaries seeking home modifications. The MDT documentation requirements are a common pain point."
+  },
+  {
+    "id": "q-012",
+    "version": 1,
+    "created": "2026-03-28",
+    "updated": "2026-03-28",
+    "question": "How many days of therapeutic leave from a nursing facility does NC Medicaid allow per year, and what conditions must be met?",
+    "difficulty": "moderate",
+    "reasoning_type": "multi_hop",
+    "topics": ["nursing_facility", "therapeutic_leave", "reimbursement"],
+    "target_users": ["beneficiary", "provider", "legal_aid"],
+    "answer": {
+      "text": "Under Clinical Coverage Policy 2B-1 (Nursing Facilities), Section 5.8, each Medicaid-eligible resident is entitled to up to 60 days of therapeutic leave per calendar year from their nursing facility bed, without the facility losing reimbursement during the leave period. The leave must be for therapeutic purposes only and must be ordered by the resident's attending physician. The necessity for leave must be documented in the resident's plan of care, and therapeutic justification for each instance must be entered in the resident's medical record.",
+      "confidence": "high",
+      "caveats": [
+        "The 60-day limit is per calendar year, not per leave instance",
+        "Prior approval requirements in Section 5.2 may also apply depending on circumstances"
+      ]
+    },
+    "evidence": {
+      "primary_sections": [
+        {
+          "document_id": "doc:clinical_policy:2B-1",
+          "section_id": "sec:doc:clinical_policy:2B-1:5.8",
+          "section_number": "5.8",
+          "relevance": "Therapeutic Leave — 60-day allowance, physician order requirement, documentation"
+        }
+      ],
+      "supporting_sections": [
+        {
+          "document_id": "doc:clinical_policy:2B-1",
+          "section_id": "sec:doc:clinical_policy:2B-1:5.2.2",
+          "section_number": "5.2.2",
+          "relevance": "Specific prior approval criteria for nursing facility services"
+        },
+        {
+          "document_id": "doc:clinical_policy:2B-1",
+          "section_id": "sec:doc:clinical_policy:2B-1:5.2.3",
+          "section_number": "5.2.3",
+          "relevance": "When prior approval is not required"
+        }
+      ],
+      "cross_references": [],
+      "federal_references": []
+    },
+    "source": "legal_aid",
+    "notes": "Common question from families of nursing facility residents. The 60-day limit and physician order requirement are specific, testable facts."
+  },
+  {
+    "id": "q-013",
+    "version": 1,
+    "created": "2026-03-28",
+    "updated": "2026-03-28",
+    "question": "If a Private Duty Nursing provider terminates services for a Medicaid beneficiary, what notification requirements must they follow?",
+    "difficulty": "moderate",
+    "reasoning_type": "single_lookup",
+    "topics": ["private_duty_nursing", "discharge", "notification", "due_process"],
+    "target_users": ["provider", "beneficiary", "legal_aid"],
+    "answer": {
+      "text": "Under Clinical Coverage Policy 3G-1 (Private Duty Nursing), Section 5.2.4.1, if a PDN service provider discharges a beneficiary, the provider must submit the DMA-3513 (PDN Discharge Summary Form) to NC Medicaid within five (5) business days. If the discharge is because another source of nursing care coverage exists, the provider must also notify NC Medicaid and submit the DMA-3513 within five business days, including the last date PDN services were provided and can be billed to Medicaid, and the name of the other coverage source.",
+      "confidence": "high",
+      "caveats": [
+        "The beneficiary retains the right to request a fair hearing if they disagree with the termination",
+        "Different rules may apply for involuntary vs. voluntary discharge"
+      ]
+    },
+    "evidence": {
+      "primary_sections": [
+        {
+          "document_id": "doc:clinical_policy:3G-1",
+          "section_id": "sec:doc:clinical_policy:3G-1:5.2.4.1",
+          "section_number": "5.2.4.1",
+          "relevance": "Notification of Termination — 5 business day requirement, DMA-3513 form"
+        }
+      ],
+      "supporting_sections": [],
+      "cross_references": [],
+      "federal_references": []
+    },
+    "source": "legal_aid",
+    "notes": "Due process question. When a PDN provider terminates services, the 5-business-day notification window and specific form requirement are critical for beneficiary advocacy."
+  },
+  {
+    "id": "q-014",
+    "version": 1,
+    "created": "2026-03-28",
+    "updated": "2026-03-28",
+    "question": "After receiving an initial PCS (Personal Care Services) approval for fewer than 80 hours per month, how long must a beneficiary wait before requesting a reconsideration for more hours?",
+    "difficulty": "simple",
+    "reasoning_type": "single_lookup",
+    "topics": ["personal_care", "pcs", "reconsideration", "hours", "timeline"],
+    "target_users": ["beneficiary", "case_manager"],
+    "answer": {
+      "text": "Under Clinical Coverage Policy 3L-1, Section 5.6, after receiving an initial approval for fewer than 80 hours per month, a beneficiary must wait 30 calendar days from the date of notification before submitting a reconsideration request. The request must be submitted no earlier than 31 calendar days and no later than 60 calendar days from the date of initial approval notification. This 30-day waiting period does not apply to Change of Status requests, which may be submitted at any time if the change of status criteria are met.",
+      "confidence": "high",
+      "caveats": [
+        "The 30-day wait applies only to reconsideration for more hours, not to Change of Status",
+        "The 60-day deadline is strict — missing it requires starting over"
+      ]
+    },
+    "evidence": {
+      "primary_sections": [
+        {
+          "document_id": "doc:clinical_policy:3L-1",
+          "section_id": "sec:doc:clinical_policy:3L-1:5.6",
+          "section_number": "5.6",
+          "relevance": "Reconsideration Request timeline — 30-day wait, 31-60 day submission window"
+        }
+      ],
+      "supporting_sections": [],
+      "cross_references": [],
+      "federal_references": []
+    },
+    "source": "lived_experience",
+    "notes": "Very specific timeline question. The 30/60 day windows are exact numbers the agent must retrieve correctly. Common pain point — beneficiaries often don't know about the Change of Status exception."
+  },
+  {
+    "id": "q-015",
+    "version": 1,
+    "created": "2026-03-28",
+    "updated": "2026-03-28",
+    "question": "What does federal law define as 'home health services' under Medicaid, and where must they be provided?",
+    "difficulty": "moderate",
+    "reasoning_type": "cross_document",
+    "topics": ["home_health", "federal_definition", "setting"],
+    "target_users": ["provider", "legal_aid", "policy_analyst"],
+    "answer": {
+      "text": "Under 42 CFR 440.70, 'home health services' must be provided at the beneficiary's place of residence and on orders written by a physician, nurse practitioner, clinical nurse specialist, or physician assistant working in accordance with state law, as part of a written plan of care reviewed every 60 days. The federal definition in SSA Section 1905(a) includes this as a mandatory Medicaid benefit. NC implements this through Clinical Coverage Policy 3A (Home Health Services), which defines the state-specific coverage criteria and provider requirements within the federal framework.",
+      "confidence": "high",
+      "caveats": [
+        "State policy may be more specific than federal requirements but cannot be more restrictive for mandatory benefits",
+        "'Place of residence' definition may vary — verify current interpretation"
+      ]
+    },
+    "evidence": {
+      "primary_sections": [
+        {
+          "document_id": "doc:federal_regulation:42-CFR-440",
+          "section_id": "sec:doc:federal_regulation:42-CFR-440:440.70",
+          "section_number": "440.70",
+          "relevance": "Federal definition of home health services — setting, ordering requirements, plan of care"
+        }
+      ],
+      "supporting_sections": [
+        {
+          "document_id": "doc:federal_statute:ssa-title-19",
+          "section_id": "sec:doc:federal_statute:ssa-title-19:1905",
+          "section_number": "1905",
+          "relevance": "SSA Section 1905 — federal definitions including home health as mandatory benefit"
+        },
+        {
+          "document_id": "doc:clinical_policy:3A",
+          "section_id": "sec:doc:clinical_policy:3A:3.2.1",
+          "section_number": "3.2.1",
+          "relevance": "NC state-specific criteria for home health services coverage"
+        }
+      ],
+      "cross_references": [
+        {
+          "from_document_id": "doc:clinical_policy:3A",
+          "to_document_id": "doc:federal_regulation:42-CFR-440",
+          "relationship": "NC home health policy implements 42 CFR 440.70"
+        }
+      ],
+      "federal_references": [
+        {
+          "section_id": "sec:doc:federal_regulation:42-CFR-440:440.70",
+          "relevance": "Federal regulatory definition of home health services"
+        },
+        {
+          "section_id": "sec:doc:federal_statute:ssa-title-19:1905",
+          "relevance": "Statutory definitions for Medicaid services"
+        }
+      ]
+    },
+    "source": "legal_aid",
+    "notes": "Tests the three-tier authority chain for a mandatory Medicaid benefit: SSA 1905 → 42 CFR 440.70 → NC CCP 3A. Important for attorneys arguing that state policy is more restrictive than federal law allows."
   }
 ]
