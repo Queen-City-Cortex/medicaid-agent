@@ -164,18 +164,17 @@ export default function ChatPage() {
         finalAnswer = currentStepText.trim() || 'No response generated.';
       }
 
-      // Finalize
-      setToolCalls(prev => {
-        const tools = prev.map(t => t.name);
-        setMessages(msgs => [...msgs, {
-          role: 'assistant',
-          content: finalAnswer,
-          tools,
-          reasoning: reasoningSteps.length > 0 ? reasoningSteps : undefined,
-        }]);
-        return [];
-      });
+      // Finalize — clear streaming state first, then add message
       setStreamingText('');
+      setCurrentReasoning('');
+      const completedTools = [...allToolNames];
+      setToolCalls([]);
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: finalAnswer,
+        tools: completedTools,
+        reasoning: reasoningSteps.length > 0 ? reasoningSteps : undefined,
+      }]);
       setCurrentReasoning('');
 
     } catch (error) {
