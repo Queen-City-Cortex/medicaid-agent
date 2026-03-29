@@ -30,7 +30,7 @@ export const lookupPolicy = createTool({
       }),
     ),
   }),
-  execute: async ({ context: inputData }) => {
+  execute: async (inputData) => {
     const { policyNumber } = inputData;
 
     return await withSession(async (session) => {

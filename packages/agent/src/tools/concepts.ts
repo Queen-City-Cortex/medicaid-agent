@@ -30,7 +30,7 @@ export const findConceptSections = createTool({
       }),
     ),
   }),
-  execute: async ({ context: inputData }) => {
+  execute: async (inputData) => {
     const { conceptName, relationshipType } = inputData;
 
     return await withSession(async (session) => {

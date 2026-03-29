@@ -1,6 +1,8 @@
 import { Mastra } from '@mastra/core';
 import { Agent } from '@mastra/core/agent';
 import { createAnthropic } from '@ai-sdk/anthropic';
+import { Memory } from '@mastra/memory';
+import { LibSQLStore } from '@mastra/libsql';
 import { searchSections } from './tools/search.js';
 import { getSection, getDocument, getSectionContext } from './tools/read.js';
 import { followReferences, getAmendments } from './tools/navigate.js';
@@ -11,6 +13,13 @@ import { closeDriver } from './neo4j.js';
 const anthropic = createAnthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
+
+const storage = new LibSQLStore({
+  id: 'mastra-storage',
+  url: process.env.DATABASE_URL || 'file:./mastra.db',
+});
+
+const memory = new Memory({ storage });
 
 const SYSTEM_PROMPT = `You are an expert on North Carolina Medicaid policy, assisting legal aid attorneys, case managers, and beneficiaries. You have access to a comprehensive knowledge graph of NC Medicaid policy documents including DHHS policies, clinical policies, federal regulations, and change notices.
 
@@ -60,6 +69,7 @@ When searching, route queries to the appropriate document types:
 - Note when a policy may have been recently updated and recommend the user verify with DHHS if the stakes are high.`;
 
 export const ncMedicaidAgent = new Agent({
+  id: 'nc-medicaid-navigator',
   name: 'NC Medicaid Navigator',
   instructions: SYSTEM_PROMPT,
   model: anthropic('claude-sonnet-4-6'),
@@ -73,11 +83,19 @@ export const ncMedicaidAgent = new Agent({
     findConceptSections,
     lookupPolicy,
   },
+  memory,
 });
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const mastra: Mastra<any, any> = new Mastra({
+export const mastra = new Mastra({
   agents: { ncMedicaidAgent },
+  storage,
+  server: {
+    port: 4111,
+    cors: {
+      origin: ['http://localhost:3000'],
+      credentials: true,
+    },
+  },
 });
 
 // ─── CLI runner ────────────────────────────────────────────────────────────────

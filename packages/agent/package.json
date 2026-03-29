@@ -5,14 +5,17 @@
   "type": "module",
   "main": "src/index.ts",
   "scripts": {
+    "dev": "mastra dev --dir src",
     "build": "tsc",
-    "dev": "tsx src/index.ts",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "cli": "tsx src/index.ts"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "^1.2.12",
-    "@mastra/core": "^0.10.5",
+    "@ai-sdk/anthropic": "^3.0.64",
+    "@mastra/core": "^1.17.0",
+    "@mastra/libsql": "^1.7.2",
+    "@mastra/memory": "^1.10.0",
     "neo4j-driver": "^5.0.0",
     "zod": "^3.23.8"
   },

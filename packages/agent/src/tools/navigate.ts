@@ -25,7 +25,7 @@ export const followReferences = createTool({
       }),
     ),
   }),
-  execute: async ({ context: inputData }) => {
+  execute: async (inputData) => {
     const { sectionId } = inputData;
 
     return await withSession(async (session) => {
@@ -89,7 +89,7 @@ export const getAmendments = createTool({
       })
       .nullable(),
   }),
-  execute: async ({ context: inputData }) => {
+  execute: async (inputData) => {
     const { documentId } = inputData;
 
     return await withSession(async (session) => {

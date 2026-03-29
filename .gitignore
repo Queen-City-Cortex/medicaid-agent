@@ -1,2 +1,6 @@
 node_modules/
 .turbo/
+*.db
+*.db-shm
+*.db-wal
+.mastra/

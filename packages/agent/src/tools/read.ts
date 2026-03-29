@@ -26,7 +26,7 @@ export const getSection = createTool({
       })
       .nullable(),
   }),
-  execute: async ({ context: inputData }) => {
+  execute: async (inputData) => {
     const { sectionId } = inputData;
 
     const section = await withSession(async (session) => {
@@ -140,7 +140,7 @@ export const getDocument = createTool({
       })
       .nullable(),
   }),
-  execute: async ({ context: inputData }) => {
+  execute: async (inputData) => {
     const { documentId } = inputData;
 
     const document = await withSession(async (session) => {
@@ -209,7 +209,7 @@ export const getSectionContext = createTool({
       z.object({ id: z.string(), title: z.string().nullable(), sectionNumber: z.string().nullable() }),
     ),
   }),
-  execute: async ({ context: inputData }) => {
+  execute: async (inputData) => {
     const { sectionId } = inputData;
 
     return await withSession(async (session) => {

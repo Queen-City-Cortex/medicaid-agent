@@ -53,7 +53,7 @@ export const searchSections = createTool({
   outputSchema: z.object({
     sections: z.array(SectionResult),
   }),
-  execute: async ({ context: inputData }) => {
+  execute: async (inputData) => {
     const { query, documentTypes } = inputData;
     const topK = Math.round(inputData.topK ?? DEFAULT_TOP_K);
 
