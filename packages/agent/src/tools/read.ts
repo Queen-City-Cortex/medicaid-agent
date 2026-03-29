@@ -37,8 +37,8 @@ export const getSection = createTool({
            s.id AS id,
            s.title AS title,
            s.section_number AS sectionNumber,
-           s.content AS content,
-           s.effective_date AS effectiveDate,
+           s.content_text AS content,
+           s.content_length AS contentLength,
            d.id AS documentId,
            d.document_type AS documentType,
            d.policy_number AS policyNumber`,
@@ -48,12 +48,58 @@ export const getSection = createTool({
       if (result.records.length === 0) return null;
 
       const rec = result.records[0];
+      const content = rec.get('content') as string | null;
+      const contentLength = rec.get('contentLength') as number | null;
+
+      // If section is an empty container heading, auto-return children's content
+      if (!content || !content.trim()) {
+        const childResult = await session.run(
+          `MATCH (s:Section {id: $id})-[:PARENT_OF]->(child:Section)
+           WHERE child.content_length > 0
+           OPTIONAL MATCH (d:Document)-[:HAS_SECTION]->(s)
+           RETURN
+             s.title AS parentTitle,
+             collect({
+               id: child.id,
+               title: child.title,
+               sectionNumber: child.section_number,
+               content: child.content_text
+             }) AS children,
+             d.id AS documentId,
+             d.document_type AS documentType,
+             d.policy_number AS policyNumber`,
+          { id: sectionId },
+        );
+
+        if (childResult.records.length > 0 && (childResult.records[0].get('children') as any[]).length > 0) {
+          const cRec = childResult.records[0];
+          const children = cRec.get('children') as Array<{
+            id: string; title: string | null; sectionNumber: string | null; content: string | null;
+          }>;
+          // Combine children content under the parent heading
+          const combined = children
+            .map((c) => `### ${c.title || c.sectionNumber || '(untitled)'}\n${c.content || ''}`)
+            .join('\n\n');
+
+          return {
+            id: rec.get('id') as string,
+            title: rec.get('title') as string | null,
+            sectionNumber: rec.get('sectionNumber') as string | null,
+            content: `[This is a container heading. Content from ${children.length} child sections:]\n\n${combined}`,
+            effectiveDate: null,
+            documentId: cRec.get('documentId') as string | null,
+            documentType: cRec.get('documentType') as string | null,
+            policyNumber: cRec.get('policyNumber') as string | null,
+          };
+        }
+      }
+
       return {
         id: rec.get('id') as string,
         title: rec.get('title') as string | null,
         sectionNumber: rec.get('sectionNumber') as string | null,
-        content: rec.get('content') as string | null,
-        effectiveDate: rec.get('effectiveDate') as string | null,
+        content,
+        effectiveDate: null,
         documentId: rec.get('documentId') as string | null,
         documentType: rec.get('documentType') as string | null,
         policyNumber: rec.get('policyNumber') as string | null,
@@ -85,8 +131,10 @@ export const getDocument = createTool({
         url: z.string().nullable(),
         sections: z.array(
           z.object({
+            id: z.string(),
             number: z.string().nullable(),
             title: z.string().nullable(),
+            chars: z.number().nullable(),
           }),
         ),
       })
@@ -99,14 +147,15 @@ export const getDocument = createTool({
       const result = await session.run(
         `MATCH (d:Document {id: $id})
          OPTIONAL MATCH (d)-[:HAS_SECTION]->(s:Section)
+         WHERE s.content_length > 0
          RETURN
            d.id AS id,
            d.title AS title,
            d.document_type AS documentType,
            d.policy_number AS policyNumber,
            d.effective_date AS effectiveDate,
-           d.url AS url,
-           collect({number: s.section_number, title: s.title}) AS sections`,
+           d.source_url AS url,
+           collect({id: s.id, number: s.section_number, title: s.title, chars: s.content_length}) AS sections`,
         { id: documentId },
       );
 
@@ -114,12 +163,14 @@ export const getDocument = createTool({
 
       const rec = result.records[0];
       const rawSections = rec.get('sections') as Array<{
+        id: string;
         number: string | null;
         title: string | null;
+        chars: number | null;
       }>;
 
       // Filter out null entries from empty OPTIONAL MATCH
-      const sections = rawSections.filter((s) => s.number != null || s.title != null);
+      const sections = rawSections.filter((s) => s.id != null);
 
       return {
         id: rec.get('id') as string,
