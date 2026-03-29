@@ -101,16 +101,19 @@ export default function ChatPage() {
             </div>
           ))}
 
-          {/* Live state */}
-          {liveTimeline.length > 0 && <ResearchTrace timeline={liveTimeline} live />}
-
-          {streamingText && (
-            <Card className="animate-in fade-in duration-200">
-              <CardContent className={`p-6 ${PROSE_CLASSES}`}>
-                <ReactMarkdown>{streamingText}</ReactMarkdown>
-                <span className="inline-block w-0.5 h-5 bg-accent animate-pulse ml-0.5 -mb-1" />
-              </CardContent>
-            </Card>
+          {/* Live streaming state */}
+          {(liveTimeline.length > 0 || streamingText) && (
+            <div className="space-y-3">
+              {liveTimeline.length > 0 && <ResearchTrace timeline={liveTimeline} live />}
+              {streamingText && (
+                <Card>
+                  <CardContent className={`p-6 ${PROSE_CLASSES}`}>
+                    <ReactMarkdown>{streamingText}</ReactMarkdown>
+                    <span className="inline-block w-0.5 h-5 bg-accent animate-pulse ml-0.5 -mb-1" />
+                  </CardContent>
+                </Card>
+              )}
+            </div>
           )}
 
           <div ref={messagesEndRef} />
