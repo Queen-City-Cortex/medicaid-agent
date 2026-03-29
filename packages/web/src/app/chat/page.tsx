@@ -5,6 +5,7 @@ import { useState, useRef, useEffect } from 'react';
 interface Message {
   role: 'user' | 'assistant';
   content: string;
+  tools?: string[];  // tool names used to generate this answer
 }
 
 interface ToolCall {
@@ -128,11 +129,14 @@ export default function ChatPage() {
         }
       }
 
-      // Add the final message
+      // Add the final message with tool history attached
       const content = finalText.trim() || 'No response generated.';
-      setMessages(prev => [...prev, { role: 'assistant', content }]);
+      setToolCalls(prev => {
+        const toolNames = prev.map(t => t.name);
+        setMessages(msgs => [...msgs, { role: 'assistant', content, tools: toolNames }]);
+        return [];
+      });
       setStreamingText('');
-      setToolCalls([]);
 
     } catch (error) {
       console.error('Agent error:', error);
@@ -181,12 +185,25 @@ export default function ChatPage() {
 
         {messages.map((msg, i) => (
           <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[80%] rounded-lg px-4 py-3 ${
+            <div className={`max-w-[80%] ${
               msg.role === 'user'
-                ? 'bg-blue-600 text-white'
-                : 'bg-white border border-gray-200 text-gray-900'
+                ? 'bg-blue-600 text-white rounded-lg px-4 py-3'
+                : ''
             }`}>
-              <div className="whitespace-pre-wrap text-sm">{msg.content}</div>
+              {/* Tool calls used (shown above assistant message) */}
+              {msg.role === 'assistant' && msg.tools && msg.tools.length > 0 && (
+                <div className="mb-2 flex flex-wrap gap-1.5">
+                  {msg.tools.map((tool, j) => (
+                    <span key={j} className="inline-flex items-center gap-1 text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded">
+                      <span className="text-green-500">&#10003;</span>
+                      {TOOL_LABELS[tool] || tool}
+                    </span>
+                  ))}
+                </div>
+              )}
+              <div className={msg.role === 'assistant' ? 'bg-white border border-gray-200 text-gray-900 rounded-lg px-4 py-3' : ''}>
+                <div className="whitespace-pre-wrap text-sm">{msg.content}</div>
+              </div>
             </div>
           </div>
         ))}
