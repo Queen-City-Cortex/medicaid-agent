@@ -9,34 +9,36 @@ import { Separator } from '@/components/ui/separator';
 import { ResearchTrace } from '@/components/ResearchTrace';
 import { useAgentStream } from '@/lib/use-agent-stream';
 
-const PROSE_CLASSES =
-  'prose prose-sm prose-slate max-w-none prose-headings:font-heading prose-headings:tracking-tight prose-h2:text-lg prose-h3:text-base prose-p:leading-relaxed prose-li:leading-relaxed prose-strong:text-foreground';
+const PROSE = 'prose prose-sm prose-slate max-w-none prose-headings:font-heading prose-headings:tracking-tight prose-h2:text-lg prose-h3:text-base prose-p:leading-relaxed prose-li:leading-relaxed prose-strong:text-foreground';
 
-const EXAMPLE_QUESTIONS = [
+const EXAMPLES = [
   'Does NC Medicaid cover chiropractic services?',
   'What is the earned income limit for HCWD?',
   'How many days of therapeutic leave are allowed for nursing facility residents?',
 ];
 
 export default function ChatPage() {
-  const { messages, isLoading, liveTimeline, streamingText, sendMessage } = useAgentStream();
+  const {
+    messages, isLoading, liveTimeline,
+    streamingReasoning, streamingAnswer, sendMessage,
+  } = useAgentStream();
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, liveTimeline, streamingText]);
+  }, [messages, liveTimeline, streamingReasoning, streamingAnswer]);
 
-  useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
+  useEffect(() => { inputRef.current?.focus(); }, []);
 
   const handleSend = () => {
     if (!input.trim()) return;
     sendMessage(input);
     setInput('');
   };
+
+  const isStreaming = isLoading && (liveTimeline.length > 0 || streamingReasoning || streamingAnswer);
 
   return (
     <div className="flex flex-col h-screen bg-background">
@@ -62,7 +64,7 @@ export default function ChatPage() {
                 Research NC Medicaid policy across 2,000+ documents
               </p>
               <div className="grid gap-3 max-w-lg mx-auto">
-                {EXAMPLE_QUESTIONS.map((q, i) => (
+                {EXAMPLES.map((q, i) => (
                   <button
                     key={i}
                     onClick={() => { setInput(q); inputRef.current?.focus(); }}
@@ -75,7 +77,7 @@ export default function ChatPage() {
             </div>
           )}
 
-          {/* Messages */}
+          {/* Completed messages */}
           {messages.map((msg, i) => (
             <div key={i}>
               {msg.role === 'user' && (
@@ -92,7 +94,7 @@ export default function ChatPage() {
                     <ResearchTrace timeline={msg.timeline} />
                   )}
                   <Card>
-                    <CardContent className={`p-6 ${PROSE_CLASSES}`}>
+                    <CardContent className={`p-6 ${PROSE}`}>
                       <ReactMarkdown>{msg.content}</ReactMarkdown>
                     </CardContent>
                   </Card>
@@ -102,16 +104,36 @@ export default function ChatPage() {
           ))}
 
           {/* Live streaming state */}
-          {(liveTimeline.length > 0 || streamingText) && (
+          {isStreaming && (
             <div className="space-y-3">
-              {liveTimeline.length > 0 && <ResearchTrace timeline={liveTimeline} live />}
-              {streamingText && (
+              {/* Research trace: reasoning + tool calls */}
+              {(liveTimeline.length > 0 || streamingReasoning) && (
+                <ResearchTrace
+                  timeline={[
+                    // Interleave reasoning with tool calls
+                    ...(streamingReasoning ? [{ type: 'reasoning' as const, text: streamingReasoning }] : []),
+                    ...liveTimeline,
+                  ]}
+                  live
+                />
+              )}
+
+              {/* Answer streaming */}
+              {streamingAnswer && (
                 <Card>
-                  <CardContent className={`p-6 ${PROSE_CLASSES}`}>
-                    <ReactMarkdown>{streamingText}</ReactMarkdown>
+                  <CardContent className={`p-6 ${PROSE}`}>
+                    <ReactMarkdown>{streamingAnswer}</ReactMarkdown>
                     <span className="inline-block w-0.5 h-5 bg-accent animate-pulse ml-0.5 -mb-1" />
                   </CardContent>
                 </Card>
+              )}
+
+              {/* Loading indicator before any text arrives */}
+              {!streamingReasoning && !streamingAnswer && liveTimeline.length === 0 && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <span className="inline-block w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+                  Starting research...
+                </div>
               )}
             </div>
           )}

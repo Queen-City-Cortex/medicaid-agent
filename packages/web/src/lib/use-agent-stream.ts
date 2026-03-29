@@ -9,11 +9,25 @@ export interface Message {
   timeline?: TimelineEntry[];
 }
 
+interface StreamState {
+  /** Full text received so far (reasoning + separator + answer) */
+  fullText: string;
+  /** Whether we've seen the --- separator yet */
+  pastSeparator: boolean;
+  /** Text before the separator (reasoning) */
+  reasoningText: string;
+  /** Text after the separator (answer) */
+  answerText: string;
+}
+
 interface UseAgentStreamReturn {
   messages: Message[];
   isLoading: boolean;
   liveTimeline: TimelineEntry[];
-  streamingText: string;
+  /** Reasoning text streaming before the separator */
+  streamingReasoning: string;
+  /** Answer text streaming after the separator */
+  streamingAnswer: string;
   sendMessage: (question: string) => Promise<void>;
 }
 
@@ -21,7 +35,8 @@ export function useAgentStream(): UseAgentStreamReturn {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [liveTimeline, setLiveTimeline] = useState<TimelineEntry[]>([]);
-  const [streamingText, setStreamingText] = useState('');
+  const [streamingReasoning, setStreamingReasoning] = useState('');
+  const [streamingAnswer, setStreamingAnswer] = useState('');
 
   const sendMessage = useCallback(async (question: string) => {
     if (!question.trim() || isLoading) return;
@@ -29,7 +44,8 @@ export function useAgentStream(): UseAgentStreamReturn {
     setMessages(prev => [...prev, { role: 'user', content: question }]);
     setIsLoading(true);
     setLiveTimeline([]);
-    setStreamingText('');
+    setStreamingReasoning('');
+    setStreamingAnswer('');
 
     try {
       const mastraUrl = process.env.NEXT_PUBLIC_MASTRA_URL || 'http://localhost:4111';
@@ -50,8 +66,13 @@ export function useAgentStream(): UseAgentStreamReturn {
       let buffer = '';
 
       const timeline: TimelineEntry[] = [];
-      let fullText = '';
       const activeTools = new Map<string, string>();
+
+      // Stream state: track reasoning vs answer via --- separator
+      let fullText = '';
+      let pastSeparator = false;
+      let reasoningText = '';
+      let answerText = '';
 
       while (true) {
         const { done, value } = await reader.read();
@@ -96,7 +117,27 @@ export function useAgentStream(): UseAgentStreamReturn {
               case 'text-delta': {
                 const text = event.payload?.text || '';
                 fullText += text;
-                setStreamingText(fullText);
+
+                // Check for separator in the accumulated text
+                if (!pastSeparator) {
+                  // Look for --- in the full text (may arrive across chunks)
+                  const sepMatch = fullText.match(/\n?---\n/);
+                  if (sepMatch && sepMatch.index !== undefined) {
+                    pastSeparator = true;
+                    reasoningText = fullText.slice(0, sepMatch.index).trim();
+                    answerText = fullText.slice(sepMatch.index + sepMatch[0].length);
+                    setStreamingReasoning(reasoningText);
+                    setStreamingAnswer(answerText);
+                  } else {
+                    // Still in reasoning phase
+                    reasoningText = fullText.trim();
+                    setStreamingReasoning(reasoningText);
+                  }
+                } else {
+                  // Past separator — accumulate answer
+                  answerText += text;
+                  setStreamingAnswer(answerText);
+                }
                 break;
               }
             }
@@ -106,40 +147,31 @@ export function useAgentStream(): UseAgentStreamReturn {
         }
       }
 
-      // Split at --- separator: everything before is reasoning, after is answer
-      const raw = fullText.trim() || 'No response generated.';
-      const separatorIndex = raw.lastIndexOf('\n---\n');
-      let reasoning: string | undefined;
-      let content: string;
-
-      if (separatorIndex !== -1) {
-        reasoning = raw.slice(0, separatorIndex).trim();
-        content = raw.slice(separatorIndex + 5).trim(); // skip \n---\n
-      } else {
-        // No separator — try splitting at just ---
-        const altIndex = raw.lastIndexOf('---');
-        if (altIndex > 0 && altIndex < raw.length - 3) {
-          reasoning = raw.slice(0, altIndex).trim();
-          content = raw.slice(altIndex + 3).trim();
-        } else {
-          content = raw;
-        }
-      }
-
-      // Build final timeline: tool calls (from stream) + reasoning (from pre-separator text)
+      // Finalize
       const finalTimeline: TimelineEntry[] = timeline.map(e =>
         e.type === 'tool' ? { ...e, status: 'done' as const } : e
       );
-      if (reasoning) {
-        // Add reasoning as a single entry at the top of the timeline
-        finalTimeline.unshift({ type: 'reasoning', text: reasoning });
+
+      // If we have reasoning text, add it to timeline
+      if (reasoningText.trim()) {
+        // Split reasoning into sentences for cleaner display
+        const sentences = reasoningText
+          .split(/(?<=\.)\s+/)
+          .filter(s => s.trim())
+          .map(s => ({ type: 'reasoning' as const, text: s.trim() }));
+        // Interleave: put reasoning sentences around tool calls chronologically
+        // Simple approach: just prepend all reasoning before tools
+        finalTimeline.unshift(...sentences);
       }
 
-      setStreamingText('');
+      const content = (answerText || fullText).trim() || 'No response generated.';
+
+      setStreamingReasoning('');
+      setStreamingAnswer('');
       setLiveTimeline([]);
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: content || 'No response generated.',
+        content,
         timeline: finalTimeline.length > 0 ? finalTimeline : undefined,
       }]);
 
@@ -150,11 +182,12 @@ export function useAgentStream(): UseAgentStreamReturn {
         content: 'Sorry, there was an error processing your question. Please try again.',
       }]);
       setLiveTimeline([]);
-      setStreamingText('');
+      setStreamingReasoning('');
+      setStreamingAnswer('');
     } finally {
       setIsLoading(false);
     }
   }, [isLoading]);
 
-  return { messages, isLoading, liveTimeline, streamingText, sendMessage };
+  return { messages, isLoading, liveTimeline, streamingReasoning, streamingAnswer, sendMessage };
 }
