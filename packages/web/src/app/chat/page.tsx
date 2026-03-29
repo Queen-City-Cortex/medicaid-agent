@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
 
 interface ToolCall {
   name: string;
@@ -265,9 +266,9 @@ export default function ChatPage() {
                     </details>
                   )}
 
-                  {/* Answer */}
-                  <div className="bg-white border border-gray-200 text-gray-900 rounded-lg px-4 py-3">
-                    <div className="whitespace-pre-wrap text-sm">{msg.content}</div>
+                  {/* Answer (rendered markdown) */}
+                  <div className="bg-white border border-gray-200 text-gray-900 rounded-lg px-4 py-3 prose prose-sm max-w-none">
+                    <ReactMarkdown>{msg.content}</ReactMarkdown>
                   </div>
                 </>
               )}
@@ -308,8 +309,8 @@ export default function ChatPage() {
         {/* Streaming final answer text */}
         {streamingText && (
           <div className="flex justify-start">
-            <div className="max-w-[80%] bg-white border border-gray-200 rounded-lg px-4 py-3">
-              <div className="whitespace-pre-wrap text-sm text-gray-900">{streamingText}</div>
+            <div className="max-w-[80%] bg-white border border-gray-200 rounded-lg px-4 py-3 prose prose-sm max-w-none">
+              <ReactMarkdown>{streamingText}</ReactMarkdown>
               <span className="inline-block w-1.5 h-4 bg-gray-400 animate-pulse ml-0.5" />
             </div>
           </div>
