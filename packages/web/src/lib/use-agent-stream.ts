@@ -73,9 +73,15 @@ export function useAgentStream(): UseAgentStreamReturn {
 
             switch (event.type) {
               case 'step-start': {
-                if (currentStepText.trim() && !currentStepHasTools) {
-                  finalAnswerText += currentStepText;
-                  setStreamingText(finalAnswerText);
+                // Previous step completed — classify its text
+                if (currentStepText.trim()) {
+                  if (currentStepHasTools) {
+                    // Already pushed to timeline by tool-call-input-streaming-start
+                  } else {
+                    // No tools in that step — it was final answer text
+                    finalAnswerText += currentStepText;
+                    setStreamingText(finalAnswerText);
+                  }
                 }
                 currentStepText = '';
                 currentStepHasTools = false;
@@ -83,11 +89,10 @@ export function useAgentStream(): UseAgentStreamReturn {
               }
 
               case 'tool-call-input-streaming-start': {
+                // Any buffered text before this tool call is reasoning
                 if (currentStepText.trim()) {
                   timeline.push({ type: 'reasoning', text: currentStepText.trim() });
                   currentStepText = '';
-                  setStreamingText(finalAnswerText);
-                  setLiveTimeline([...timeline]);
                 }
                 currentStepHasTools = true;
                 const name = event.payload?.toolName || 'unknown';
@@ -115,7 +120,16 @@ export function useAgentStream(): UseAgentStreamReturn {
               case 'text-delta': {
                 const text = event.payload?.text || '';
                 currentStepText += text;
-                if (!currentStepHasTools) {
+
+                if (currentStepHasTools) {
+                  // During a tool step — this is reasoning, show in timeline
+                  setLiveTimeline([...timeline, { type: 'reasoning', text: currentStepText.trim() }]);
+                }
+                // If no tools yet, DON'T show as answer — we don't know
+                // if a tool call is coming. Wait for step-start to confirm.
+                // Exception: if we already have finalAnswerText, this step
+                // is continuing the answer (multi-step answer generation).
+                if (!currentStepHasTools && finalAnswerText) {
                   setStreamingText(finalAnswerText + currentStepText);
                 }
                 break;
