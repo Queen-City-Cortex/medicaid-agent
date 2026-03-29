@@ -53,15 +53,23 @@ export function useAgentStream({ threadId }: UseAgentStreamOptions): UseAgentStr
         if (role !== 'user' && role !== 'assistant') continue;
 
         let content = '';
-        if (typeof msg.content === 'string') {
-          content = msg.content;
-        } else if (Array.isArray(msg.content)) {
-          // Extract text parts from content array
-          for (const part of msg.content) {
+        const rawContent = msg.content as unknown;
+        if (typeof rawContent === 'string') {
+          content = rawContent;
+        } else if (Array.isArray(rawContent)) {
+          for (const part of rawContent) {
             if (typeof part === 'string') {
               content += part;
             } else if (part && typeof part === 'object' && 'text' in part) {
               content += (part as { text: string }).text;
+            }
+          }
+        } else if (rawContent && typeof rawContent === 'object' && 'parts' in rawContent) {
+          // Mastra v2 format: { format: 2, parts: [{ type: 'text', text: '...' }, ...] }
+          const parts = (rawContent as { parts: Array<{ type: string; text?: string }> }).parts;
+          for (const part of parts) {
+            if (part.type === 'text' && part.text) {
+              content += part.text;
             }
           }
         }
