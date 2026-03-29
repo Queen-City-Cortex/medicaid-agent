@@ -717,5 +717,414 @@
     },
     "source": "legal_aid",
     "notes": "Tests the three-tier authority chain for a mandatory Medicaid benefit: SSA 1905 → 42 CFR 440.70 → NC CCP 3A. Important for attorneys arguing that state policy is more restrictive than federal law allows."
+  },
+  {
+    "id": "q-016",
+    "version": 1,
+    "created": "2026-03-28",
+    "updated": "2026-03-28",
+    "question": "How does NC Medicaid define 'terminally ill' for purposes of hospice eligibility, and what certification is required?",
+    "difficulty": "simple",
+    "reasoning_type": "single_lookup",
+    "topics": ["hospice", "definitions", "eligibility", "certification"],
+    "target_users": ["provider", "beneficiary"],
+    "answer": {
+      "text": "Under Clinical Coverage Policy 3D (Hospice Services), a beneficiary is considered terminally ill if they have a medical prognosis of six months or less to live if the illness runs its normal course. The hospice provider must obtain written certification of terminal illness for each benefit period. For the initial 90-day period, certification must come from the medical director of the hospice or the physician member of the hospice interdisciplinary group, and the beneficiary's attending physician if the beneficiary has one.",
+      "confidence": "high",
+      "caveats": [
+        "Certification requirements differ for initial vs. subsequent benefit periods",
+        "The 6-month prognosis is a medical judgment, not a guarantee"
+      ]
+    },
+    "evidence": {
+      "primary_sections": [
+        {
+          "document_id": "doc:clinical_policy:3D",
+          "section_id": "sec:doc:clinical_policy:3D:5.4.1",
+          "section_number": "5.4.1",
+          "relevance": "Timing and requirements for certification of terminal illness"
+        },
+        {
+          "document_id": "doc:clinical_policy:3D",
+          "section_id": "sec:doc:clinical_policy:3D:5.4.3",
+          "section_number": "5.4.3",
+          "relevance": "Sources of certification — who must certify"
+        }
+      ],
+      "supporting_sections": [
+        {
+          "document_id": "doc:clinical_policy:3D",
+          "section_id": "sec:doc:clinical_policy:3D:3.2.1",
+          "section_number": "3.2.1",
+          "relevance": "Specific criteria covered by Medicaid for hospice services"
+        }
+      ],
+      "cross_references": [],
+      "federal_references": []
+    },
+    "source": "legal_aid",
+    "notes": "Definitional question. The term 'terminally ill' has a precise clinical/legal meaning in hospice policy that beneficiaries and families need to understand."
+  },
+  {
+    "id": "q-017",
+    "version": 1,
+    "created": "2026-03-28",
+    "updated": "2026-03-28",
+    "question": "What ambulance services are NOT covered by NC Medicaid?",
+    "difficulty": "simple",
+    "reasoning_type": "single_lookup",
+    "topics": ["ambulance", "coverage_exclusions", "transportation"],
+    "target_users": ["provider", "beneficiary"],
+    "answer": {
+      "text": "Under Clinical Coverage Policy 15 (Ambulance Services), Section 4.2.1.4 lists ambulance services that are not covered by Medicaid. Non-covered services include ambulance transport that is not medically necessary, transport for the convenience of the patient or family, transport to a provider's office when other transportation is available and appropriate, and standby or waiting time charges. Air ambulance transport is only covered when ground transport is contraindicated or the distance to the facility makes ground transport impractical.",
+      "confidence": "high",
+      "caveats": [
+        "EPSDT exception may apply for beneficiaries under 21",
+        "Emergency ambulance transport has different rules than non-emergency"
+      ]
+    },
+    "evidence": {
+      "primary_sections": [
+        {
+          "document_id": "doc:clinical_policy:15",
+          "section_id": "sec:doc:clinical_policy:15:4.2.1.4",
+          "section_number": "4.2.1.4",
+          "relevance": "Other non-covered ambulance services — specific exclusions"
+        }
+      ],
+      "supporting_sections": [
+        {
+          "document_id": "doc:clinical_policy:15",
+          "section_id": "sec:doc:clinical_policy:15:3.2.1.1",
+          "section_number": "3.2.1.1",
+          "relevance": "Air medical ambulance — conditions when air transport IS covered"
+        }
+      ],
+      "cross_references": [],
+      "federal_references": []
+    },
+    "source": "edge_case",
+    "notes": "Negative question — tests that the agent correctly identifies what is excluded, not just what is covered."
+  },
+  {
+    "id": "q-018",
+    "version": 1,
+    "created": "2026-03-28",
+    "updated": "2026-03-28",
+    "question": "Are there quantity limits on prescription drugs under NC Medicaid, and when is prior authorization required for pharmacy claims?",
+    "difficulty": "moderate",
+    "reasoning_type": "multi_hop",
+    "topics": ["pharmacy", "quantity_limits", "prior_authorization", "drugs"],
+    "target_users": ["provider", "beneficiary"],
+    "answer": {
+      "text": "Yes. Under Clinical Coverage Policy 9 (Outpatient Pharmacy), Section 5.4.3 covers quantity and episodic drug limits. Certain drugs have quantity limits per dispensing to minimize costs while ensuring adequate supply. Prior authorization is required for specific drugs listed in the Pharmacy Prior Approval criteria (Attachment K). Section on Pharmacy Prior Approval Drugs and Criteria details the drugs and conditions that trigger prior approval requirements. The prior approval process is designed to ensure appropriate utilization while maintaining access to medically necessary medications.",
+      "confidence": "high",
+      "caveats": [
+        "The specific drug list and quantity limits change periodically via bulletins",
+        "Generic substitution requirements also affect dispensing"
+      ]
+    },
+    "evidence": {
+      "primary_sections": [
+        {
+          "document_id": "doc:clinical_policy:9",
+          "section_id": "sec:doc:clinical_policy:9:5.4.3",
+          "section_number": "5.4.3",
+          "relevance": "Quantity and Episodic Drugs — quantity limit policies"
+        },
+        {
+          "document_id": "doc:clinical_policy:9",
+          "section_id": "sec:doc:clinical_policy:9:_s260",
+          "section_number": null,
+          "relevance": "Pharmacy Prior Approval Drugs and Criteria"
+        }
+      ],
+      "supporting_sections": [
+        {
+          "document_id": "doc:clinical_policy:9",
+          "section_id": "sec:doc:clinical_policy:9:Attachment K",
+          "section_number": "Attachment K",
+          "relevance": "Pharmacy Prior Approval Criteria — specific drug list"
+        }
+      ],
+      "cross_references": [],
+      "federal_references": []
+    },
+    "source": "lived_experience",
+    "notes": "Multi-hop: requires connecting quantity limits (5.4.3) to the PA criteria (Attachment K) and the PA drugs list. Tests attachment resolution."
+  },
+  {
+    "id": "q-019",
+    "version": 1,
+    "created": "2026-03-28",
+    "updated": "2026-03-28",
+    "question": "Under what conditions can speech therapy be provided via telehealth under NC Medicaid?",
+    "difficulty": "moderate",
+    "reasoning_type": "single_lookup",
+    "topics": ["telehealth", "speech_therapy", "outpatient_therapy", "access"],
+    "target_users": ["provider", "beneficiary"],
+    "answer": {
+      "text": "Under Clinical Coverage Policy 10A, speech and language evaluation and treatment may be provided via telehealth when it is medically necessary and the beneficiary resides in a remote or underserved area where in-person services are not reasonably available. The telehealth delivery must meet the same clinical standards as in-person services, and the provider must document why telehealth is appropriate for the specific beneficiary's needs.",
+      "confidence": "medium",
+      "caveats": [
+        "Telehealth policies expanded significantly during COVID-19 and may have been modified since",
+        "Not all therapy modalities are appropriate for telehealth delivery",
+        "Specific billing codes for telehealth may differ from in-person"
+      ]
+    },
+    "evidence": {
+      "primary_sections": [
+        {
+          "document_id": "doc:clinical_policy:10A",
+          "section_id": "sec:doc:clinical_policy:10A:_s31",
+          "section_number": null,
+          "relevance": "Telehealth conditions for speech-language evaluation and treatment"
+        }
+      ],
+      "supporting_sections": [
+        {
+          "document_id": "doc:clinical_policy:10A",
+          "section_id": "sec:doc:clinical_policy:10A:3.2.1.3",
+          "section_number": "3.2.1.3",
+          "relevance": "Speech-Language Therapy criteria — the in-person standard that telehealth must match"
+        }
+      ],
+      "cross_references": [],
+      "federal_references": []
+    },
+    "source": "lived_experience",
+    "notes": "Practical question for rural/underserved beneficiaries. The medium confidence reflects potential policy changes since COVID-19 telehealth expansions."
+  },
+  {
+    "id": "q-020",
+    "version": 1,
+    "created": "2026-03-28",
+    "updated": "2026-03-28",
+    "question": "The Non-Emergency Medical Transportation (NEMT) policy has been amended multiple times. Which change notice is the most recent, and what did it change?",
+    "difficulty": "moderate",
+    "reasoning_type": "temporal",
+    "topics": ["nemt", "transportation", "amendments", "policy_history"],
+    "target_users": ["policy_analyst", "provider"],
+    "answer": {
+      "text": "The NEMT policy (originally DMA Administrative Letter NO. 04-15) has been amended by Change Notice for Manual No. 04-15 and subsequent change notices. The amendment chain is tracked via AMENDS relationships in the policy graph. The most recent change notice updates certification period requirements and other administrative provisions. To determine the currently effective rules, all change notices must be read in conjunction with the base manual.",
+      "confidence": "medium",
+      "caveats": [
+        "Multiple change notices may apply to the same base manual",
+        "The base manual number (04-15) appears in multiple amendment documents",
+        "Always check for the most recent change notice before relying on any specific provision"
+      ]
+    },
+    "evidence": {
+      "primary_sections": [
+        {
+          "document_id": "doc:dhhs_policy:url-309d861173ab",
+          "section_id": "sec:doc:dhhs_policy:url-309d861173ab:_s2",
+          "section_number": null,
+          "relevance": "Implementation section of the original NEMT administrative letter"
+        }
+      ],
+      "supporting_sections": [],
+      "cross_references": [
+        {
+          "from_document_id": "doc:dhhs_policy:url-3aac8c378dc9",
+          "to_document_id": "doc:dhhs_policy:url-309d861173ab",
+          "relationship": "Change Notice for Manual 04-15 amends the original NEMT administrative letter"
+        }
+      ],
+      "federal_references": []
+    },
+    "source": "regression",
+    "notes": "Temporal reasoning question. Tests the agent's ability to traverse AMENDS edges and determine which version of a policy is current. The medium confidence reflects inherent difficulty of amendment chain tracking."
+  },
+  {
+    "id": "q-021",
+    "version": 1,
+    "created": "2026-03-28",
+    "updated": "2026-03-28",
+    "question": "What medical loss ratio (MLR) must Medicaid managed care organizations meet under federal law, and how does NC implement this requirement?",
+    "difficulty": "complex",
+    "reasoning_type": "cross_document",
+    "topics": ["managed_care", "mco", "mlr", "federal_state", "accountability"],
+    "target_users": ["policy_analyst", "legal_aid"],
+    "answer": {
+      "text": "Under 42 CFR 438.8, Medicaid managed care organizations must meet medical loss ratio standards. The MLR is calculated as the ratio of clinical services spending to total premium revenue, ensuring that a minimum percentage of premiums is spent on medical care rather than administrative costs or profit. States must set an MLR standard in their managed care contracts. The federal regulation specifies the methodology for calculating the MLR, including what counts as clinical spending vs. administrative costs. NC implements this through its Medicaid managed care contracts and monitors compliance through reporting requirements.",
+      "confidence": "medium",
+      "caveats": [
+        "Specific NC MLR threshold may differ from other states",
+        "MLR calculation methodology is complex with many adjustable components",
+        "NC's Medicaid managed care transition (Tailored Plans) may have different MLR requirements"
+      ]
+    },
+    "evidence": {
+      "primary_sections": [
+        {
+          "document_id": "doc:federal_regulation:42-CFR-438",
+          "section_id": "sec:doc:federal_regulation:42-CFR-438:438.8",
+          "section_number": "438.8",
+          "relevance": "Federal MLR standards for Medicaid managed care — calculation methodology and requirements"
+        }
+      ],
+      "supporting_sections": [
+        {
+          "document_id": "doc:federal_regulation:42-CFR-438",
+          "section_id": "sec:doc:federal_regulation:42-CFR-438:438.2",
+          "section_number": "438.2",
+          "relevance": "Definitions used in managed care regulations including MCO and MLR terms"
+        }
+      ],
+      "cross_references": [],
+      "federal_references": [
+        {
+          "section_id": "sec:doc:federal_regulation:42-CFR-438:438.8",
+          "relevance": "Federal regulatory authority for MLR requirements"
+        }
+      ]
+    },
+    "source": "legal_aid",
+    "notes": "Federal-state comparison question. Tests whether the agent can explain a federal requirement and how it applies at the state level. The complexity is in connecting the federal regulation to NC's specific implementation."
+  },
+  {
+    "id": "q-022",
+    "version": 1,
+    "created": "2026-03-28",
+    "updated": "2026-03-28",
+    "question": "What are the specific criteria for NC Medicaid coverage of CAR-T cell therapy?",
+    "difficulty": "moderate",
+    "reasoning_type": "single_lookup",
+    "topics": ["car_t", "stem_cell", "specialty", "coverage_criteria"],
+    "target_users": ["provider", "beneficiary"],
+    "answer": {
+      "text": "Clinical Coverage Policy 11A-17 covers CAR-T Cell Therapy under NC Medicaid. Section 3.2.1 specifies the criteria that must be met for Medicaid coverage, including the specific diagnoses for which CAR-T is indicated, the clinical conditions that must be present, and the treatment setting requirements. The therapy must be medically necessary, provided by an approved transplant center, and meet all general Medicaid coverage criteria.",
+      "confidence": "high",
+      "caveats": [
+        "CAR-T coverage criteria evolve rapidly as new products receive FDA approval",
+        "Prior authorization is required",
+        "Coverage may be limited to specific FDA-approved indications"
+      ]
+    },
+    "evidence": {
+      "primary_sections": [
+        {
+          "document_id": "doc:clinical_policy:11A-17",
+          "section_id": "sec:doc:clinical_policy:11A-17:3.2.1",
+          "section_number": "3.2.1",
+          "relevance": "Specific criteria covered by Medicaid for CAR-T cell therapy"
+        }
+      ],
+      "supporting_sections": [],
+      "cross_references": [],
+      "federal_references": []
+    },
+    "source": "regression",
+    "notes": "Tests retrieval of a specialized, niche clinical policy. CAR-T is a high-cost therapy with very specific criteria — the agent must find the right policy among the 11A series."
+  },
+  {
+    "id": "q-023",
+    "version": 1,
+    "created": "2026-03-28",
+    "updated": "2026-03-28",
+    "question": "Until what age should physicians provide fluoride varnish applications for Medicaid beneficiaries, and what oral screening requirements apply?",
+    "difficulty": "simple",
+    "reasoning_type": "single_lookup",
+    "topics": ["dental", "fluoride", "pediatric", "preventive", "screening"],
+    "target_users": ["provider"],
+    "answer": {
+      "text": "Under Clinical Coverage Policy 1A-23 (Physician Fluoride Varnish Services), Section 7.2 specifies oral screening requirements. Physicians should provide fluoride varnish applications and oral screening as part of preventive care for young children. The screening includes early caries detection and assessment of risk factors. Fluoride varnish is indicated from the eruption of the first tooth until age 3½ years, at which point the child should transition to dental care.",
+      "confidence": "high",
+      "caveats": [
+        "This covers physician-provided fluoride varnish — dental providers have separate billing",
+        "EPSDT may extend preventive dental services beyond standard age limits"
+      ]
+    },
+    "evidence": {
+      "primary_sections": [
+        {
+          "document_id": "doc:clinical_policy:1A-23",
+          "section_id": "sec:doc:clinical_policy:1A-23:7.2",
+          "section_number": "7.2",
+          "relevance": "Oral Screening Requirements — age limits and screening criteria"
+        }
+      ],
+      "supporting_sections": [],
+      "cross_references": [],
+      "federal_references": []
+    },
+    "source": "regression",
+    "notes": "Simple factual question with a specific numeric answer (age 3½). Tests precise retrieval of a preventive care guideline."
+  },
+  {
+    "id": "q-024",
+    "version": 1,
+    "created": "2026-03-28",
+    "updated": "2026-03-28",
+    "question": "Can an NC Innovations waiver participant request services that exceed their individual base budget, and what happens if they believe their needs cannot be met within the budget?",
+    "difficulty": "complex",
+    "reasoning_type": "single_lookup",
+    "topics": ["innovations", "budget", "self_directed", "waiver", "adequacy"],
+    "target_users": ["beneficiary", "legal_aid", "case_manager"],
+    "answer": {
+      "text": "Yes. Under Clinical Coverage Policy 8P (NC Innovations), a participant may request services that cost in excess of their base budget if they believe their needs cannot be met within the base budget. The policy states that the results of the Supports Intensity Scale (SIS) assessment and the base budget are guidelines that do not constitute a binding limit on services. However, the process for obtaining additional funding involves demonstrating that the participant's needs require services beyond what the base budget supports, which may involve additional assessment and authorization from the LME/MCO.",
+      "confidence": "medium",
+      "caveats": [
+        "The process for exceeding the base budget is not clearly defined in a single policy section",
+        "LME/MCO discretion plays a significant role in budget exception decisions",
+        "The distinction between base budget guidelines and binding limits is legally significant but practically ambiguous"
+      ]
+    },
+    "evidence": {
+      "primary_sections": [
+        {
+          "document_id": "doc:clinical_policy:8P",
+          "section_id": "sec:doc:clinical_policy:8P:_s564",
+          "section_number": null,
+          "relevance": "Budget change process — base budget as guideline, right to request excess services"
+        }
+      ],
+      "supporting_sections": [],
+      "cross_references": [],
+      "federal_references": []
+    },
+    "source": "legal_aid",
+    "notes": "Ambiguous question — the policy says the budget is a 'guideline' not a 'binding limit,' but the practical process for exceeding it is unclear. Tests whether the agent signals appropriate uncertainty rather than giving a definitive answer."
+  },
+  {
+    "id": "q-025",
+    "version": 1,
+    "created": "2026-03-28",
+    "updated": "2026-03-28",
+    "question": "What are the certification requirements for HIV case management providers under NC Medicaid, and under what conditions can a provider be decertified?",
+    "difficulty": "moderate",
+    "reasoning_type": "multi_hop",
+    "topics": ["hiv", "case_management", "certification", "decertification", "provider"],
+    "target_users": ["provider"],
+    "answer": {
+      "text": "Under Clinical Coverage Policy 12B, Section 6.2.1 specifies the certification requirements for HIV case management providers, including qualifications, training, supervision requirements, and organizational standards that must be met. Section 6.2.5 covers decertification, describing the conditions under which a certified HIV case management provider can lose their certification. Decertification may occur due to failure to meet ongoing requirements, quality of care concerns, or compliance violations. The process includes notification requirements and opportunities to correct deficiencies.",
+      "confidence": "high",
+      "caveats": [
+        "Specific qualification requirements may have been updated via bulletins",
+        "Decertification is distinct from Medicaid provider enrollment termination"
+      ]
+    },
+    "evidence": {
+      "primary_sections": [
+        {
+          "document_id": "doc:clinical_policy:12B",
+          "section_id": "sec:doc:clinical_policy:12B:6.2.1",
+          "section_number": "6.2.1",
+          "relevance": "Certification Requirements — qualifications and standards for HIV case management providers"
+        },
+        {
+          "document_id": "doc:clinical_policy:12B",
+          "section_id": "sec:doc:clinical_policy:12B:6.2.5",
+          "section_number": "6.2.5",
+          "relevance": "Decertification — conditions and process for losing certification"
+        }
+      ],
+      "supporting_sections": [],
+      "cross_references": [],
+      "federal_references": []
+    },
+    "source": "regression",
+    "notes": "Multi-hop within a single document: certification (6.2.1) and decertification (6.2.5) are related but separate sections. Tests that the agent retrieves both sides of the provider lifecycle."
   }
 ]
