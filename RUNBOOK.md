@@ -3,9 +3,54 @@
 ## Prerequisites
 
 - Docker running with `neo4j-medicaid` container (`docker start neo4j-medicaid`)
-- Node.js 20+ (for crawler)
+- Node.js 20+ (for crawler and agent)
 - Python 3.11+ with venv at `packages/pipeline/.venv/`
 - `VOYAGE_API_KEY` environment variable set (for embeddings and search)
+- `ANTHROPIC_API_KEY` environment variable set (for the agent)
+
+## Environment Variables
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `ANTHROPIC_API_KEY` | Yes (agent) | — | Anthropic API key for Claude |
+| `VOYAGE_API_KEY` | Yes (search/embed) | — | Voyage AI API key for embeddings |
+| `AGENT_MODEL` | No | `claude-haiku-4-5-20251001` | Claude model for the agent |
+| `NEO4J_URI` | No | `bolt://localhost:7687` | Neo4j connection URI |
+| `NEO4J_USER` | No | `neo4j` | Neo4j username |
+| `NEO4J_PASSWORD` | No | `medicaid-dev` | Neo4j password |
+| `DATABASE_URL` | No | `file:./mastra.db` | LibSQL storage URL for Mastra |
+| `PORT` | No | `4111` | Mastra server port |
+
+### Model Selection
+
+The agent defaults to **Haiku** for cost efficiency during development (~$0.01/question). Switch to Sonnet for production quality or eval runs (~$0.25/question):
+
+```bash
+# Development (default — Haiku)
+npx mastra dev --dir src
+
+# Production / eval (Sonnet)
+AGENT_MODEL=claude-sonnet-4-6 npx mastra dev --dir src
+
+# Opus (highest quality, highest cost)
+AGENT_MODEL=claude-opus-4-6 npx mastra dev --dir src
+```
+
+## Running the Web UI
+
+Start both services:
+
+```bash
+# Terminal 1: Mastra agent server
+cd packages/agent
+ANTHROPIC_API_KEY=... VOYAGE_API_KEY=... npx mastra dev --dir src
+
+# Terminal 2: Next.js frontend
+cd packages/web
+npm run dev
+```
+
+Open `http://localhost:3000` to use the chat interface.
 
 ## Daily: Check for Document Changes
 
