@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import type { ChunkType } from '@mastra/core/stream';
 import { type TimelineEntry } from '@/components/ResearchTrace';
+import { mastraClient } from './mastra-client';
 
 export interface Message {
   role: 'user' | 'assistant';
@@ -9,15 +11,11 @@ export interface Message {
   timeline?: TimelineEntry[];
 }
 
-interface StreamState {
-  /** Full text received so far (reasoning + separator + answer) */
-  fullText: string;
-  /** Whether we've seen the --- separator yet */
-  pastSeparator: boolean;
-  /** Text before the separator (reasoning) */
-  reasoningText: string;
-  /** Text after the separator (answer) */
-  answerText: string;
+const AGENT_ID = 'nc-medicaid-navigator';
+const RESOURCE_ID = 'anonymous';
+
+interface UseAgentStreamOptions {
+  threadId: string;
 }
 
 interface UseAgentStreamReturn {
@@ -29,14 +27,66 @@ interface UseAgentStreamReturn {
   /** Answer text streaming after the separator */
   streamingAnswer: string;
   sendMessage: (question: string) => Promise<void>;
+  setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
+  loadThread: (threadId: string) => Promise<void>;
 }
 
-export function useAgentStream(): UseAgentStreamReturn {
+export function useAgentStream({ threadId }: UseAgentStreamOptions): UseAgentStreamReturn {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [liveTimeline, setLiveTimeline] = useState<TimelineEntry[]>([]);
   const [streamingReasoning, setStreamingReasoning] = useState('');
   const [streamingAnswer, setStreamingAnswer] = useState('');
+
+  /** Load historical messages from Mastra memory for a given threadId */
+  const loadThread = useCallback(async (tid: string) => {
+    try {
+      const thread = mastraClient.getMemoryThread({ threadId: tid, agentId: AGENT_ID });
+      const result = await thread.listMessages();
+      const dbMessages = result.messages ?? [];
+
+      // Convert Mastra DB messages to our Message format
+      // Filter to only user/assistant messages with text content
+      const converted: Message[] = [];
+      for (const msg of dbMessages) {
+        const role = msg.role as 'user' | 'assistant' | string;
+        if (role !== 'user' && role !== 'assistant') continue;
+
+        let content = '';
+        if (typeof msg.content === 'string') {
+          content = msg.content;
+        } else if (Array.isArray(msg.content)) {
+          // Extract text parts from content array
+          for (const part of msg.content) {
+            if (typeof part === 'string') {
+              content += part;
+            } else if (part && typeof part === 'object' && 'text' in part) {
+              content += (part as { text: string }).text;
+            }
+          }
+        }
+
+        if (!content.trim()) continue;
+
+        // For assistant messages, strip any reasoning section (before ---)
+        if (role === 'assistant') {
+          const sepMatch = content.match(/\n?---\n?/);
+          if (sepMatch && sepMatch.index !== undefined) {
+            content = content.slice(sepMatch.index + sepMatch[0].length).trim();
+          }
+        }
+
+        if (content.trim()) {
+          converted.push({ role: role as 'user' | 'assistant', content: content.trim() });
+        }
+      }
+
+      setMessages(converted);
+    } catch (err) {
+      console.error('Failed to load thread messages:', err);
+      setMessages([]);
+    }
+  }, []);
 
   const sendMessage = useCallback(async (question: string) => {
     if (!question.trim() || isLoading) return;
@@ -48,25 +98,18 @@ export function useAgentStream(): UseAgentStreamReturn {
     setStreamingAnswer('');
 
     try {
-      const mastraUrl = process.env.NEXT_PUBLIC_MASTRA_URL || 'http://localhost:4111';
-      const res = await fetch(`${mastraUrl}/api/agents/ncMedicaidAgent/stream`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [
-            ...messages.map(m => ({ role: m.role, content: m.content })),
-            { role: 'user' as const, content: question },
-          ],
+      const agent = mastraClient.getAgent(AGENT_ID);
+
+      const response = await agent.stream(
+        [{ role: 'user', content: question }],
+        {
           maxSteps: 15,
-        }),
-      });
-
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      if (!res.body) throw new Error('No response body');
-
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
+          memory: {
+            thread: threadId,
+            resource: RESOURCE_ID,
+          },
+        },
+      );
 
       const timeline: TimelineEntry[] = [];
       const activeTools = new Map<string, string>();
@@ -74,96 +117,79 @@ export function useAgentStream(): UseAgentStreamReturn {
       // Stream state
       let fullText = '';
       let pastSeparator = false;
-      let pendingReasoningText = ''; // text accumulated since last tool call
+      let pendingReasoningText = '';
       let answerText = '';
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue;
-          const jsonStr = line.slice(6).trim();
-          if (!jsonStr) continue;
-
-          try {
-            const event = JSON.parse(jsonStr);
-
-            switch (event.type) {
-              case 'tool-call-input-streaming-start': {
-                // Flush any pending reasoning text before this tool call
-                if (pendingReasoningText.trim()) {
-                  timeline.push({ type: 'reasoning', text: pendingReasoningText.trim() });
-                  pendingReasoningText = '';
-                }
-                const name = event.payload?.toolName || 'unknown';
-                activeTools.set(event.payload?.toolCallId, name);
-                timeline.push({ type: 'tool', name, status: 'running' });
-                setLiveTimeline([...timeline]);
-                break;
+      await response.processDataStream({
+        onChunk: async (chunk: ChunkType) => {
+          switch (chunk.type) {
+            case 'tool-call-input-streaming-start': {
+              if (pendingReasoningText.trim()) {
+                timeline.push({ type: 'reasoning', text: pendingReasoningText.trim() });
+                pendingReasoningText = '';
               }
-
-              case 'tool-result': {
-                const toolCallId = event.payload?.toolCallId;
-                const name = activeTools.get(toolCallId) || 'unknown';
-                activeTools.delete(toolCallId);
-                for (let j = timeline.length - 1; j >= 0; j--) {
-                  const entry = timeline[j];
-                  if (entry.type === 'tool' && entry.name === name && entry.status === 'running') {
-                    timeline[j] = { ...entry, status: 'done' };
-                    break;
-                  }
-                }
-                setLiveTimeline([...timeline]);
-                break;
-              }
-
-              case 'text-delta': {
-                const text = event.payload?.text || '';
-                fullText += text;
-
-                if (!pastSeparator) {
-                  pendingReasoningText += text;
-
-                  // Check for --- separator (with or without trailing newline)
-                  const sepMatch = fullText.match(/\n?---\n?/);
-                  if (sepMatch && sepMatch.index !== undefined) {
-                    pastSeparator = true;
-                    // Flush reasoning (strip ---) before switching to answer
-                    const cleanedReasoning = pendingReasoningText.replace(/\n?---\n?.*$/, '').trim();
-                    if (cleanedReasoning) {
-                      timeline.push({ type: 'reasoning', text: cleanedReasoning });
-                    }
-                    pendingReasoningText = '';
-                    setLiveTimeline([...timeline]);
-                    answerText = fullText.slice(sepMatch.index + sepMatch[0].length);
-                    setStreamingReasoning('');
-                    setStreamingAnswer(answerText);
-                  } else {
-                    // Still in reasoning — update live view (strip any trailing ---)
-                    const displayText = pendingReasoningText.replace(/-{1,3}$/, '').trim();
-                    setStreamingReasoning(displayText);
-                    setLiveTimeline([...timeline, ...(displayText
-                      ? [{ type: 'reasoning' as const, text: displayText }]
-                      : []
-                    )]);
-                  }
-                } else {
-                  answerText += text;
-                  setStreamingAnswer(answerText);
-                }
-                break;
-              }
+              const name = chunk.payload?.toolName || 'unknown';
+              const toolCallId = chunk.payload?.toolCallId;
+              activeTools.set(toolCallId, name);
+              timeline.push({ type: 'tool', name, status: 'running' });
+              setLiveTimeline([...timeline]);
+              break;
             }
-          } catch {
-            // Skip malformed JSON
+
+            case 'tool-result': {
+              const toolCallId = chunk.payload?.toolCallId;
+              const name = activeTools.get(toolCallId) || 'unknown';
+              activeTools.delete(toolCallId);
+              for (let j = timeline.length - 1; j >= 0; j--) {
+                const entry = timeline[j];
+                if (entry.type === 'tool' && entry.name === name && entry.status === 'running') {
+                  timeline[j] = { ...entry, status: 'done' };
+                  break;
+                }
+              }
+              setLiveTimeline([...timeline]);
+              break;
+            }
+
+            case 'text-delta': {
+              const text = chunk.payload?.text || '';
+              fullText += text;
+
+              if (!pastSeparator) {
+                pendingReasoningText += text;
+
+                // Check for --- separator (with or without trailing newline)
+                const sepMatch = fullText.match(/\n?---\n?/);
+                if (sepMatch && sepMatch.index !== undefined) {
+                  pastSeparator = true;
+                  // Flush reasoning (strip ---) before switching to answer
+                  const cleanedReasoning = pendingReasoningText.replace(/\n?---\n?.*$/, '').trim();
+                  if (cleanedReasoning) {
+                    timeline.push({ type: 'reasoning', text: cleanedReasoning });
+                  }
+                  pendingReasoningText = '';
+                  setLiveTimeline([...timeline]);
+                  answerText = fullText.slice(sepMatch.index + sepMatch[0].length);
+                  setStreamingReasoning('');
+                  setStreamingAnswer(answerText);
+                } else {
+                  // Still in reasoning — update live view (strip any trailing ---)
+                  const displayText = pendingReasoningText.replace(/-{1,3}$/, '').trim();
+                  setStreamingReasoning(displayText);
+                  setLiveTimeline([...timeline, ...(displayText
+                    ? [{ type: 'reasoning' as const, text: displayText }]
+                    : []
+                  )]);
+                }
+              } else {
+                answerText += text;
+                setStreamingAnswer(answerText);
+              }
+              break;
+            }
           }
-        }
-      }
+        },
+      });
 
       // Finalize — flush any remaining pending reasoning
       if (pendingReasoningText.trim() && !pastSeparator) {
@@ -197,7 +223,7 @@ export function useAgentStream(): UseAgentStreamReturn {
     } finally {
       setIsLoading(false);
     }
-  }, [isLoading]);
+  }, [isLoading, threadId]);
 
-  return { messages, isLoading, liveTimeline, streamingReasoning, streamingAnswer, sendMessage };
+  return { messages, isLoading, liveTimeline, streamingReasoning, streamingAnswer, sendMessage, setMessages, loadThread };
 }

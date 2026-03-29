@@ -1,13 +1,18 @@
 'use client';
 
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { ResearchTrace } from '@/components/ResearchTrace';
+import { ThreadSidebar } from '@/components/ThreadSidebar';
 import { useAgentStream } from '@/lib/use-agent-stream';
+import { mastraClient } from '@/lib/mastra-client';
+
+const AGENT_ID = 'nc-medicaid-navigator';
+const RESOURCE_ID = 'anonymous';
 
 const PROSE = 'prose prose-sm prose-slate max-w-none prose-headings:font-heading prose-headings:tracking-tight prose-h2:text-lg prose-h3:text-base prose-p:leading-relaxed prose-li:leading-relaxed prose-strong:text-foreground';
 
@@ -17,11 +22,27 @@ const EXAMPLES = [
   'How many days of therapeutic leave are allowed for nursing facility residents?',
 ];
 
+function generateUUID(): string {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  // Fallback for older environments
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
 export default function ChatPage() {
+  const [threadId, setThreadId] = useState<string>(() => generateUUID());
+
   const {
     messages, isLoading, liveTimeline,
     streamingReasoning, streamingAnswer, sendMessage,
-  } = useAgentStream();
+    setMessages, loadThread,
+  } = useAgentStream({ threadId });
+
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -38,128 +59,183 @@ export default function ChatPage() {
     setInput('');
   };
 
+  /** Create a thread in Mastra so it appears in the sidebar before the first message */
+  const ensureThreadExists = useCallback(async (tid: string, title?: string) => {
+    try {
+      await mastraClient.createMemoryThread({
+        threadId: tid,
+        resourceId: RESOURCE_ID,
+        agentId: AGENT_ID,
+        title: title ?? 'New conversation',
+      });
+    } catch {
+      // Thread may already exist — that's fine
+    }
+  }, []);
+
+  /** Handle switching to an existing thread */
+  const handleSelectThread = useCallback(async (tid: string) => {
+    setThreadId(tid);
+    setMessages([]);
+    await loadThread(tid);
+    inputRef.current?.focus();
+  }, [loadThread, setMessages]);
+
+  /** Handle creating a new thread */
+  const handleNewThread = useCallback(async () => {
+    const newId = generateUUID();
+    setThreadId(newId);
+    setMessages([]);
+    await ensureThreadExists(newId);
+    inputRef.current?.focus();
+  }, [setMessages, ensureThreadExists]);
+
+  // Wrap sendMessage to create thread before first message
+  const handleSendWithThread = useCallback(async () => {
+    if (!input.trim()) return;
+    const question = input;
+    setInput('');
+    // Create thread with first message as title (truncated to 60 chars)
+    if (messages.length === 0) {
+      await ensureThreadExists(threadId, question.slice(0, 60));
+    }
+    await sendMessage(question);
+  }, [input, messages.length, threadId, ensureThreadExists, sendMessage]);
+
   const isStreaming = isLoading && (liveTimeline.length > 0 || streamingReasoning || streamingAnswer);
 
   return (
-    <div className="flex flex-col h-screen bg-background">
-      <header className="border-b border-border bg-card px-8 py-5">
-        <div className="max-w-3xl mx-auto flex items-baseline gap-3">
-          <h1 className="font-heading text-2xl font-semibold tracking-tight text-foreground">
-            NC Medicaid Navigator
-          </h1>
-          <Separator orientation="vertical" className="h-5" />
-          <span className="text-sm text-muted-foreground">Policy Research</span>
-        </div>
-      </header>
+    <div className="flex h-screen bg-background overflow-hidden">
+      {/* Sidebar */}
+      <div className="w-[280px] shrink-0 flex flex-col h-full">
+        <ThreadSidebar
+          currentThreadId={threadId}
+          onSelectThread={handleSelectThread}
+          onNewThread={handleNewThread}
+        />
+      </div>
 
-      <ScrollArea className="flex-1">
-        <div className="max-w-3xl mx-auto px-8 py-8 space-y-8">
-          {/* Empty state */}
-          {messages.length === 0 && !isLoading && (
-            <div className="py-20 text-center">
-              <h2 className="font-heading text-3xl font-semibold tracking-tight text-foreground mb-2">
-                What would you like to know?
-              </h2>
-              <p className="text-muted-foreground mb-10">
-                Research NC Medicaid policy across 2,000+ documents
-              </p>
-              <div className="grid gap-3 max-w-lg mx-auto">
-                {EXAMPLES.map((q, i) => (
-                  <button
-                    key={i}
-                    onClick={() => { setInput(q); inputRef.current?.focus(); }}
-                    className="text-left px-4 py-3 rounded-lg border border-border bg-card text-sm text-foreground hover:border-accent hover:bg-muted transition-colors"
-                  >
-                    {q}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+      {/* Main chat area */}
+      <div className="flex flex-col flex-1 min-w-0">
+        <header className="border-b border-border bg-card px-8 py-5 shrink-0">
+          <div className="max-w-3xl mx-auto flex items-baseline gap-3">
+            <h1 className="font-heading text-2xl font-semibold tracking-tight text-foreground">
+              NC Medicaid Navigator
+            </h1>
+            <Separator orientation="vertical" className="h-5" />
+            <span className="text-sm text-muted-foreground">Policy Research</span>
+          </div>
+        </header>
 
-          {/* Completed messages */}
-          {messages.map((msg, i) => (
-            <div key={i}>
-              {msg.role === 'user' && (
-                <div className="flex justify-end mb-6">
-                  <div className="bg-primary text-primary-foreground rounded-2xl rounded-br-sm px-5 py-3 max-w-[75%]">
-                    <p className="text-sm leading-relaxed">{msg.content}</p>
-                  </div>
+        <ScrollArea className="flex-1">
+          <div className="max-w-3xl mx-auto px-8 py-8 space-y-8">
+            {/* Empty state */}
+            {messages.length === 0 && !isLoading && (
+              <div className="py-20 text-center">
+                <h2 className="font-heading text-3xl font-semibold tracking-tight text-foreground mb-2">
+                  What would you like to know?
+                </h2>
+                <p className="text-muted-foreground mb-10">
+                  Research NC Medicaid policy across 2,000+ documents
+                </p>
+                <div className="grid gap-3 max-w-lg mx-auto">
+                  {EXAMPLES.map((q, i) => (
+                    <button
+                      key={i}
+                      onClick={() => { setInput(q); inputRef.current?.focus(); }}
+                      className="text-left px-4 py-3 rounded-lg border border-border bg-card text-sm text-foreground hover:border-accent hover:bg-muted transition-colors"
+                    >
+                      {q}
+                    </button>
+                  ))}
                 </div>
-              )}
+              </div>
+            )}
 
-              {msg.role === 'assistant' && (
-                <div className="space-y-3">
-                  {msg.timeline && msg.timeline.length > 0 && (
-                    <ResearchTrace timeline={msg.timeline} />
-                  )}
+            {/* Completed messages */}
+            {messages.map((msg, i) => (
+              <div key={i}>
+                {msg.role === 'user' && (
+                  <div className="flex justify-end mb-6">
+                    <div className="bg-primary text-primary-foreground rounded-2xl rounded-br-sm px-5 py-3 max-w-[75%]">
+                      <p className="text-sm leading-relaxed">{msg.content}</p>
+                    </div>
+                  </div>
+                )}
+
+                {msg.role === 'assistant' && (
+                  <div className="space-y-3">
+                    {msg.timeline && msg.timeline.length > 0 && (
+                      <ResearchTrace timeline={msg.timeline} />
+                    )}
+                    <Card>
+                      <CardContent className={`p-6 ${PROSE}`}>
+                        <ReactMarkdown>{msg.content}</ReactMarkdown>
+                      </CardContent>
+                    </Card>
+                  </div>
+                )}
+              </div>
+            ))}
+
+            {/* Live streaming state */}
+            {isStreaming && (
+              <div className="space-y-3">
+                {/* Research trace: reasoning + tool calls (already interleaved) */}
+                {liveTimeline.length > 0 && (
+                  <ResearchTrace timeline={liveTimeline} live />
+                )}
+
+                {/* Answer streaming */}
+                {streamingAnswer && (
                   <Card>
                     <CardContent className={`p-6 ${PROSE}`}>
-                      <ReactMarkdown>{msg.content}</ReactMarkdown>
+                      <ReactMarkdown>{streamingAnswer}</ReactMarkdown>
+                      <span className="inline-block w-0.5 h-5 bg-accent animate-pulse ml-0.5 -mb-1" />
                     </CardContent>
                   </Card>
-                </div>
-              )}
-            </div>
-          ))}
+                )}
 
-          {/* Live streaming state */}
-          {isStreaming && (
-            <div className="space-y-3">
-              {/* Research trace: reasoning + tool calls (already interleaved) */}
-              {liveTimeline.length > 0 && (
-                <ResearchTrace timeline={liveTimeline} live />
-              )}
+                {/* Loading indicator before any text arrives */}
+                {!streamingReasoning && !streamingAnswer && liveTimeline.length === 0 && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <span className="inline-block w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+                    Starting research...
+                  </div>
+                )}
+              </div>
+            )}
 
-              {/* Answer streaming */}
-              {streamingAnswer && (
-                <Card>
-                  <CardContent className={`p-6 ${PROSE}`}>
-                    <ReactMarkdown>{streamingAnswer}</ReactMarkdown>
-                    <span className="inline-block w-0.5 h-5 bg-accent animate-pulse ml-0.5 -mb-1" />
-                  </CardContent>
-                </Card>
-              )}
+            <div ref={messagesEndRef} />
+          </div>
+        </ScrollArea>
 
-              {/* Loading indicator before any text arrives */}
-              {!streamingReasoning && !streamingAnswer && liveTimeline.length === 0 && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <span className="inline-block w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" />
-                  Starting research...
-                </div>
-              )}
-            </div>
-          )}
-
-          <div ref={messagesEndRef} />
-        </div>
-      </ScrollArea>
-
-      <footer className="border-t border-border bg-card px-8 py-5">
-        <div className="max-w-3xl mx-auto flex gap-3">
-          <input
-            ref={inputRef}
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
-            placeholder="Ask about NC Medicaid policy..."
-            className="flex-1 rounded-lg border border-input bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-shadow"
-            disabled={isLoading}
-          />
-          <Button onClick={handleSend} disabled={isLoading || !input.trim()} className="px-6">
-            {isLoading ? (
-              <span className="flex items-center gap-2">
-                <span className="inline-block w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                Researching
-              </span>
-            ) : 'Ask'}
-          </Button>
-        </div>
-        <p className="max-w-3xl mx-auto text-[11px] text-muted-foreground/50 mt-2">
-          Answers are AI-generated from NC Medicaid policy documents. Verify critical information with DHHS.
-        </p>
-      </footer>
+        <footer className="border-t border-border bg-card px-8 py-5 shrink-0">
+          <div className="max-w-3xl mx-auto flex gap-3">
+            <input
+              ref={inputRef}
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendWithThread()}
+              placeholder="Ask about NC Medicaid policy..."
+              className="flex-1 rounded-lg border border-input bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-shadow"
+              disabled={isLoading}
+            />
+            <Button onClick={handleSendWithThread} disabled={isLoading || !input.trim()} className="px-6">
+              {isLoading ? (
+                <span className="flex items-center gap-2">
+                  <span className="inline-block w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                  Researching
+                </span>
+              ) : 'Ask'}
+            </Button>
+          </div>
+          <p className="max-w-3xl mx-auto text-[11px] text-muted-foreground/50 mt-2">
+            Answers are AI-generated from NC Medicaid policy documents. Verify critical information with DHHS.
+          </p>
+        </footer>
+      </div>
     </div>
   );
 }
