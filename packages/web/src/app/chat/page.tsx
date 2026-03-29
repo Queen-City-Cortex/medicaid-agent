@@ -293,30 +293,26 @@ export default function ChatPage() {
             </div>
           ))}
 
-          {/* Live research panel */}
+          {/* Live research trace (matches completed style) */}
           {liveTimeline.length > 0 && (
-            <Card className="border-accent/30 bg-accent/5 animate-in fade-in duration-300">
-              <CardContent className="p-4 space-y-1.5">
-                {liveTimeline.map((entry, i) => (
-                  entry.type === 'tool' ? (
-                    <div key={i} className="flex items-center gap-2 text-sm">
-                      {entry.status === 'running' ? (
-                        <span className="inline-block w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" />
-                      ) : (
-                        <span className="w-4 text-center text-accent">{TOOL_ICONS[entry.name] || '✓'}</span>
-                      )}
-                      <span className={entry.status === 'done' ? 'text-muted-foreground' : 'text-foreground'}>
-                        {TOOL_LABELS[entry.name] || entry.name}
-                      </span>
-                    </div>
-                  ) : (
-                    <p key={i} className="text-sm text-muted-foreground italic pl-6">
-                      {entry.text}
-                    </p>
-                  )
-                ))}
-              </CardContent>
-            </Card>
+            <div className="border-l-2 border-accent/40 pl-4 py-1 space-y-1 animate-in fade-in duration-300">
+              {liveTimeline.map((entry, i) => (
+                entry.type === 'tool' ? (
+                  <div key={i} className="flex items-center gap-2 text-xs text-muted-foreground">
+                    {entry.status === 'running' ? (
+                      <span className="inline-block w-3 h-3 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <span className="opacity-50">{TOOL_ICONS[entry.name] || '·'}</span>
+                    )}
+                    <span>{TOOL_LABELS[entry.name] || entry.name}</span>
+                  </div>
+                ) : (
+                  <p key={i} className="text-xs text-muted-foreground/60 italic">
+                    {entry.text}
+                  </p>
+                )
+              ))}
+            </div>
           )}
 
           {/* Streaming answer */}
