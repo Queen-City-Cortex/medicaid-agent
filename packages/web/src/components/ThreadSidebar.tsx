@@ -12,11 +12,12 @@ const RESOURCE_ID = 'anonymous';
 
 interface ThreadSidebarProps {
   currentThreadId: string;
+  refreshKey?: number;
   onSelectThread: (threadId: string) => void;
   onNewThread: () => void;
 }
 
-export function ThreadSidebar({ currentThreadId, onSelectThread, onNewThread }: ThreadSidebarProps) {
+export function ThreadSidebar({ currentThreadId, refreshKey, onSelectThread, onNewThread }: ThreadSidebarProps) {
   const [threads, setThreads] = useState<StorageThreadType[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -42,7 +43,7 @@ export function ThreadSidebar({ currentThreadId, onSelectThread, onNewThread }: 
   // Fetch threads on mount and when currentThreadId changes (new thread created)
   useEffect(() => {
     fetchThreads();
-  }, [fetchThreads, currentThreadId]);
+  }, [fetchThreads, currentThreadId, refreshKey]);
 
   function formatDate(date: string | Date | undefined): string {
     if (!date) return '';

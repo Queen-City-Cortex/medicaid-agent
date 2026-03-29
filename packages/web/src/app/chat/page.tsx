@@ -36,6 +36,7 @@ function generateUUID(): string {
 
 export default function ChatPage() {
   const [threadId, setThreadId] = useState<string>(() => generateUUID());
+  const [sidebarRefreshKey, setSidebarRefreshKey] = useState(0);
 
   const {
     messages, isLoading, liveTimeline,
@@ -100,6 +101,7 @@ export default function ChatPage() {
       await ensureThreadExists(threadId, question.slice(0, 60));
     }
     await sendMessage(question);
+    setSidebarRefreshKey(k => k + 1);
   }, [input, messages.length, threadId, ensureThreadExists, sendMessage]);
 
   const isStreaming = isLoading && (liveTimeline.length > 0 || streamingReasoning || streamingAnswer);
@@ -110,6 +112,7 @@ export default function ChatPage() {
       <div className="w-[280px] shrink-0 flex flex-col h-full">
         <ThreadSidebar
           currentThreadId={threadId}
+          refreshKey={sidebarRefreshKey}
           onSelectThread={handleSelectThread}
           onNewThread={handleNewThread}
         />
