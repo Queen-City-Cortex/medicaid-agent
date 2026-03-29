@@ -93,10 +93,16 @@ export default function ChatPage() {
 
             switch (event.type) {
               case 'step-start': {
-                // Flush previous step's reasoning text if it had tools
-                if (currentStepText.trim() && currentStepHasTools) {
-                  timeline.push({ type: 'reasoning', text: currentStepText.trim() });
-                  setLiveTimeline([...timeline]);
+                // Flush previous step's text
+                if (currentStepText.trim()) {
+                  if (currentStepHasTools) {
+                    // This step had tools — text was reasoning
+                    // (already pushed to timeline by tool-call-input-streaming-start)
+                  } else {
+                    // No tools — this was final answer text
+                    finalAnswerText += currentStepText;
+                    setStreamingText(finalAnswerText);
+                  }
                 }
                 currentStepText = '';
                 currentStepHasTools = false;
@@ -104,10 +110,12 @@ export default function ChatPage() {
               }
 
               case 'tool-call-input-streaming-start': {
-                // Flush any reasoning text accumulated before this tool call
+                // This step has a tool call — any text so far is reasoning, not answer
                 if (currentStepText.trim()) {
                   timeline.push({ type: 'reasoning', text: currentStepText.trim() });
                   currentStepText = '';
+                  // Clear the optimistic streaming text since it was reasoning
+                  setStreamingText(finalAnswerText);
                   setLiveTimeline([...timeline]);
                 }
 
@@ -137,12 +145,12 @@ export default function ChatPage() {
 
               case 'text-delta': {
                 const text = event.payload?.text || '';
-                if (currentStepHasTools) {
-                  currentStepText += text;
-                } else {
-                  // Non-tool step — this is the final answer
-                  finalAnswerText += text;
-                  setStreamingText(finalAnswerText);
+                currentStepText += text;
+                // If this step already has tools, it's reasoning (shown in timeline)
+                // If no tools yet, optimistically show as streaming answer
+                // (will be reclassified at step-start if tools appear later)
+                if (!currentStepHasTools) {
+                  setStreamingText(finalAnswerText + currentStepText);
                 }
                 break;
               }
@@ -153,8 +161,16 @@ export default function ChatPage() {
         }
       }
 
-      // Determine final answer
-      const content = finalAnswerText.trim() || currentStepText.trim() || 'No response generated.';
+      // Flush the last step's text
+      if (currentStepText.trim()) {
+        if (currentStepHasTools) {
+          timeline.push({ type: 'reasoning', text: currentStepText.trim() });
+        } else {
+          finalAnswerText += currentStepText;
+        }
+      }
+
+      const content = finalAnswerText.trim() || 'No response generated.';
 
       // Clear live state and add completed message
       setStreamingText('');
