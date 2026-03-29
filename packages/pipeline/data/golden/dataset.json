@@ -376,5 +376,64 @@
     },
     "source": "lived_experience",
     "notes": "Practical question from beneficiaries wanting to change providers."
+  },
+  {
+    "id": "q-009",
+    "version": 1,
+    "created": "2026-03-28",
+    "updated": "2026-03-28",
+    "question": "Is there a maximum earned income limit for people on HCWD (Health Coverage for Workers with Disabilities), and what premiums apply?",
+    "difficulty": "complex",
+    "reasoning_type": "cross_document",
+    "topics": ["hcwd", "eligibility", "income", "premiums"],
+    "target_users": ["beneficiary", "legal_aid", "case_manager"],
+    "answer": {
+      "text": "There is no maximum earned income limit for HCWD. The HCWD Phase III changes (Change Notice for Manual No. 01-14) removed the 150% FPL cap on earned income. The only income limit is 150% FPL on unearned income. Beneficiaries with countable income above 150% FPL must pay a $50 per certification period enrollment fee. Those with countable income above 200% FPL must also pay a sliding-scale monthly premium that increases with income. HCWD covers individuals regardless of total countable income, as long as they are working in competitive, inclusive employment (or self-employed) and meet disability criteria.",
+      "confidence": "high",
+      "caveats": [
+        "Premium amounts are updated periodically — verify current schedule",
+        "Work must be competitive and inclusive unless self-employed",
+        "SSI must have been terminated for non-medical reasons to qualify"
+      ]
+    },
+    "evidence": {
+      "primary_sections": [
+        {
+          "document_id": "doc:dhhs_policy:url-11e0d9a442ce",
+          "section_id": "sec:doc:dhhs_policy:url-11e0d9a442ce:_s6",
+          "section_number": null,
+          "relevance": "MA-2180 revisions removing earned income cap, establishing premium structure"
+        }
+      ],
+      "supporting_sections": [
+        {
+          "document_id": "doc:dhhs_policy:url-11e0d9a442ce",
+          "section_id": "sec:doc:dhhs_policy:url-11e0d9a442ce:_s3",
+          "section_number": null,
+          "relevance": "MA-500 classification revisions removing 150% FPL income limit from policy"
+        },
+        {
+          "document_id": "doc:dhhs_policy:url-11e0d9a442ce",
+          "section_id": "sec:doc:dhhs_policy:url-11e0d9a442ce:_s16",
+          "section_number": null,
+          "relevance": "Premium schedule details for HCWD beneficiaries"
+        }
+      ],
+      "cross_references": [
+        {
+          "from_document_id": "doc:dhhs_policy:url-11e0d9a442ce",
+          "to_document_id": "doc:federal_statute:ssa-title-19",
+          "relationship": "HCWD implements Section 1902(a)(10)(A)(ii)(XV) of the Social Security Act (Ticket to Work)"
+        }
+      ],
+      "federal_references": [
+        {
+          "section_id": "sec:doc:federal_statute:ssa-title-19:1902",
+          "relevance": "Federal statutory authority for HCWD — Section 1902(a)(10)(A)(ii)(XV)"
+        }
+      ]
+    },
+    "source": "lived_experience",
+    "notes": "Real beneficiary question. Answer requires DHHS eligibility manual + understanding that a change notice REMOVES a limit. Tests cross-document reasoning, negative answer pattern (no earned income limit), and the three-tier authority chain (SSA → CFR → state policy)."
   }
 ]
