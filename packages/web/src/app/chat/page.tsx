@@ -197,24 +197,22 @@ export default function ChatPage() {
   };
 
   const renderTimeline = (timeline: TimelineEntry[], live: boolean) => (
-    <div className="space-y-1.5">
+    <div className="space-y-1">
       {timeline.map((entry, i) => {
         if (entry.type === 'tool') {
           return (
-            <div key={i} className="flex items-center gap-2 text-sm">
+            <div key={i} className="flex items-center gap-1.5 text-xs text-gray-400">
               {entry.status === 'running' && live ? (
-                <span className="inline-block w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+                <span className="inline-block w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />
               ) : (
-                <span className="text-green-500 flex-shrink-0">&#10003;</span>
+                <span className="text-green-400 flex-shrink-0">&#10003;</span>
               )}
-              <span className={entry.status === 'done' || !live ? 'text-gray-500' : 'text-gray-700'}>
-                {TOOL_LABELS[entry.name] || entry.name}
-              </span>
+              <span>{TOOL_LABELS[entry.name] || entry.name}</span>
             </div>
           );
         } else {
           return (
-            <p key={i} className="text-xs text-gray-400 italic pl-6">
+            <p key={i} className="text-sm text-gray-500 italic">
               {entry.text}
             </p>
           );
@@ -270,7 +268,7 @@ export default function ChatPage() {
                     <details className="group">
                       <summary className="cursor-pointer text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1.5">
                         <span className="group-open:rotate-90 transition-transform inline-block">&#9654;</span>
-                        {msg.timeline.filter(e => e.type === 'tool').length} tools used &middot; click to see research process
+                        {msg.timeline.filter(e => e.type === 'tool').length} tools used &middot; show research process
                       </summary>
                       <div className="mt-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
                         {renderTimeline(msg.timeline, false)}
