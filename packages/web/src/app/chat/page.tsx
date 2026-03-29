@@ -5,14 +5,30 @@ import { useState, useRef, useEffect } from 'react';
 interface Message {
   role: 'user' | 'assistant';
   content: string;
-  toolCalls?: string[];
 }
+
+interface ToolCall {
+  name: string;
+  status: 'running' | 'done';
+}
+
+const TOOL_LABELS: Record<string, string> = {
+  searchSections: 'Searching policy sections',
+  getSection: 'Reading section content',
+  getDocument: 'Loading document structure',
+  getSectionContext: 'Checking section hierarchy',
+  followReferences: 'Following cross-references',
+  getAmendments: 'Checking for amendments',
+  findConceptSections: 'Finding related concepts',
+  lookupPolicy: 'Looking up policy',
+};
 
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [toolStatus, setToolStatus] = useState<string | null>(null);
+  const [toolCalls, setToolCalls] = useState<ToolCall[]>([]);
+  const [streamingText, setStreamingText] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -21,41 +37,113 @@ export default function ChatPage() {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, toolStatus]);
+  }, [messages, toolCalls, streamingText]);
 
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
 
-    const userMessage: Message = { role: 'user', content: input };
-    setMessages(prev => [...prev, userMessage]);
+    const question = input;
+    setMessages(prev => [...prev, { role: 'user', content: question }]);
     setInput('');
     setIsLoading(true);
-    setToolStatus('Researching...');
+    setToolCalls([]);
+    setStreamingText('');
 
     try {
       const mastraUrl = process.env.NEXT_PUBLIC_MASTRA_URL || 'http://localhost:4111';
-      const res = await fetch(`${mastraUrl}/api/agents/ncMedicaidAgent/generate`, {
+      const res = await fetch(`${mastraUrl}/api/agents/ncMedicaidAgent/stream`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: [{ role: 'user', content: input }], maxSteps: 20 }),
+        body: JSON.stringify({
+          messages: [{ role: 'user', content: question }],
+          maxSteps: 15,
+        }),
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-      const data = await res.json();
 
-      const assistantMessage: Message = {
-        role: 'assistant',
-        content: data.text || 'No response generated.',
-      };
-      setMessages(prev => [...prev, assistantMessage]);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!res.body) throw new Error('No response body');
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let finalText = '';
+      const activeTools = new Map<string, string>(); // toolCallId → toolName
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const jsonStr = line.slice(6).trim();
+          if (!jsonStr) continue;
+
+          try {
+            const event = JSON.parse(jsonStr);
+
+            switch (event.type) {
+              case 'tool-call-input-streaming-start': {
+                const name = event.payload?.toolName || 'unknown';
+                activeTools.set(event.payload?.toolCallId, name);
+                setToolCalls(prev => {
+                  // Don't add duplicate tool names
+                  if (prev.some(t => t.name === name && t.status === 'running')) return prev;
+                  return [...prev, { name, status: 'running' }];
+                });
+                break;
+              }
+
+              case 'tool-result': {
+                const toolCallId = event.payload?.toolCallId;
+                const name = activeTools.get(toolCallId) || 'unknown';
+                activeTools.delete(toolCallId);
+                setToolCalls(prev =>
+                  prev.map(t => t.name === name && t.status === 'running'
+                    ? { ...t, status: 'done' }
+                    : t
+                  )
+                );
+                break;
+              }
+
+              case 'text-delta': {
+                const text = event.payload?.text || '';
+                finalText += text;
+                setStreamingText(finalText);
+                break;
+              }
+
+              case 'finish': {
+                // Stream complete
+                break;
+              }
+            }
+          } catch {
+            // Skip malformed JSON
+          }
+        }
+      }
+
+      // Add the final message
+      const content = finalText.trim() || 'No response generated.';
+      setMessages(prev => [...prev, { role: 'assistant', content }]);
+      setStreamingText('');
+      setToolCalls([]);
+
     } catch (error) {
       console.error('Agent error:', error);
       setMessages(prev => [...prev, {
         role: 'assistant',
         content: 'Sorry, there was an error processing your question. Please try again.',
       }]);
+      setToolCalls([]);
+      setStreamingText('');
     } finally {
       setIsLoading(false);
-      setToolStatus(null);
     }
   };
 
@@ -69,7 +157,7 @@ export default function ChatPage() {
 
       {/* Messages */}
       <main className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-        {messages.length === 0 && (
+        {messages.length === 0 && !isLoading && (
           <div className="text-center text-gray-400 mt-20">
             <p className="text-lg">Ask a question about NC Medicaid policy</p>
             <p className="text-sm mt-2">Examples:</p>
@@ -81,7 +169,7 @@ export default function ChatPage() {
               ].map((q, i) => (
                 <button
                   key={i}
-                  onClick={() => { setInput(q); }}
+                  onClick={() => setInput(q)}
                   className="block mx-auto text-sm text-blue-600 hover:text-blue-800 hover:underline"
                 >
                   {q}
@@ -103,10 +191,32 @@ export default function ChatPage() {
           </div>
         ))}
 
-        {toolStatus && (
+        {/* Tool call status indicators */}
+        {toolCalls.length > 0 && (
           <div className="flex justify-start">
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg px-4 py-3 text-sm text-yellow-800 animate-pulse">
-              {toolStatus}
+            <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 space-y-1.5">
+              {toolCalls.map((tc, i) => (
+                <div key={i} className="flex items-center gap-2 text-sm">
+                  {tc.status === 'running' ? (
+                    <span className="inline-block w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <span className="text-green-600">&#10003;</span>
+                  )}
+                  <span className={tc.status === 'done' ? 'text-gray-400' : 'text-gray-700'}>
+                    {TOOL_LABELS[tc.name] || tc.name}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Streaming text (final answer being built) */}
+        {streamingText && (
+          <div className="flex justify-start">
+            <div className="max-w-[80%] bg-white border border-gray-200 rounded-lg px-4 py-3">
+              <div className="whitespace-pre-wrap text-sm text-gray-900">{streamingText}</div>
+              <span className="inline-block w-1.5 h-4 bg-gray-400 animate-pulse ml-0.5" />
             </div>
           </div>
         )}
