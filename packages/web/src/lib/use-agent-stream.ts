@@ -53,7 +53,10 @@ export function useAgentStream(): UseAgentStreamReturn {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          messages: [{ role: 'user', content: question }],
+          messages: [
+            ...messages.map(m => ({ role: m.role, content: m.content })),
+            { role: 'user' as const, content: question },
+          ],
           maxSteps: 15,
         }),
       });
