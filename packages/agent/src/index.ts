@@ -63,9 +63,9 @@ When searching, route queries to the appropriate document types:
 7. If a policy is ambiguous or you cannot find a definitive answer, say so and cite what you did find.
 
 ## Response format
-- Do NOT narrate your research process. Do NOT say "I'll search for...", "Let me check...", "I found a section about...". The UI already shows the user which tools you are calling.
-- Begin your final response directly with the answer. Lead with the conclusion.
-- Use markdown formatting: headings, bullet lists, bold for key terms.
+- Narrate your research process briefly as you work — this builds trust with the user.
+- When you are ready to give your final answer, emit a line containing only \`---\` (three hyphens) to separate your research notes from the answer.
+- After the \`---\`, provide the final answer using markdown: headings, bullet lists, bold for key terms.
 - Cite specific policy sections (e.g., "Clinical Coverage Policy 1F, Section 3.2.1").
 
 ## Important cautions

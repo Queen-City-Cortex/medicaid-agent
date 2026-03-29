@@ -106,15 +106,41 @@ export function useAgentStream(): UseAgentStreamReturn {
         }
       }
 
-      const content = fullText.trim() || 'No response generated.';
+      // Split at --- separator: everything before is reasoning, after is answer
+      const raw = fullText.trim() || 'No response generated.';
+      const separatorIndex = raw.lastIndexOf('\n---\n');
+      let reasoning: string | undefined;
+      let content: string;
+
+      if (separatorIndex !== -1) {
+        reasoning = raw.slice(0, separatorIndex).trim();
+        content = raw.slice(separatorIndex + 5).trim(); // skip \n---\n
+      } else {
+        // No separator — try splitting at just ---
+        const altIndex = raw.lastIndexOf('---');
+        if (altIndex > 0 && altIndex < raw.length - 3) {
+          reasoning = raw.slice(0, altIndex).trim();
+          content = raw.slice(altIndex + 3).trim();
+        } else {
+          content = raw;
+        }
+      }
+
+      // Build final timeline: tool calls (from stream) + reasoning (from pre-separator text)
+      const finalTimeline: TimelineEntry[] = timeline.map(e =>
+        e.type === 'tool' ? { ...e, status: 'done' as const } : e
+      );
+      if (reasoning) {
+        // Add reasoning as a single entry at the top of the timeline
+        finalTimeline.unshift({ type: 'reasoning', text: reasoning });
+      }
+
       setStreamingText('');
       setLiveTimeline([]);
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content,
-        timeline: timeline.length > 0 ? timeline.map(e =>
-          e.type === 'tool' ? { ...e, status: 'done' as const } : e
-        ) : undefined,
+        content: content || 'No response generated.',
+        timeline: finalTimeline.length > 0 ? finalTimeline : undefined,
       }]);
 
     } catch (error) {
