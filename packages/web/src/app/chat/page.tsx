@@ -4,42 +4,15 @@ import { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-
-type TimelineEntry =
-  | { type: 'reasoning'; text: string }
-  | { type: 'tool'; name: string; status: 'running' | 'done' };
+import { ResearchTrace, type TimelineEntry } from '@/components/ResearchTrace';
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
   timeline?: TimelineEntry[];
 }
-
-const TOOL_LABELS: Record<string, string> = {
-  searchSections: 'Searching policies',
-  getSection: 'Reading section',
-  getDocument: 'Loading document',
-  getSectionContext: 'Checking hierarchy',
-  followReferences: 'Following references',
-  getAmendments: 'Checking amendments',
-  findConceptSections: 'Finding concepts',
-  lookupPolicy: 'Looking up policy',
-};
-
-const TOOL_ICONS: Record<string, string> = {
-  searchSections: '🔍',
-  getSection: '📄',
-  getDocument: '📋',
-  getSectionContext: '🔗',
-  followReferences: '↗',
-  getAmendments: '📝',
-  findConceptSections: '🏷',
-  lookupPolicy: '📖',
-};
 
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -266,20 +239,7 @@ export default function ChatPage() {
                 <div className="space-y-3">
                   {/* Research trace (always visible) */}
                   {msg.timeline && msg.timeline.length > 0 && (
-                    <div className="border-l-2 border-border pl-4 py-1 space-y-1">
-                      {msg.timeline.map((entry, j) => (
-                        entry.type === 'tool' ? (
-                          <div key={j} className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <span className="opacity-50">{TOOL_ICONS[entry.name] || '·'}</span>
-                            <span>{TOOL_LABELS[entry.name] || entry.name}</span>
-                          </div>
-                        ) : (
-                          <p key={j} className="text-xs text-muted-foreground/60 italic">
-                            {entry.text}
-                          </p>
-                        )
-                      ))}
-                    </div>
+                    <ResearchTrace timeline={msg.timeline} />
                   )}
 
                   {/* Answer */}
@@ -293,26 +253,9 @@ export default function ChatPage() {
             </div>
           ))}
 
-          {/* Live research trace (matches completed style) */}
+          {/* Live research trace */}
           {liveTimeline.length > 0 && (
-            <div className="border-l-2 border-accent/40 pl-4 py-1 space-y-1 animate-in fade-in duration-300">
-              {liveTimeline.map((entry, i) => (
-                entry.type === 'tool' ? (
-                  <div key={i} className="flex items-center gap-2 text-xs text-muted-foreground">
-                    {entry.status === 'running' ? (
-                      <span className="inline-block w-3 h-3 border-2 border-accent border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <span className="opacity-50">{TOOL_ICONS[entry.name] || '·'}</span>
-                    )}
-                    <span>{TOOL_LABELS[entry.name] || entry.name}</span>
-                  </div>
-                ) : (
-                  <p key={i} className="text-xs text-muted-foreground/60 italic">
-                    {entry.text}
-                  </p>
-                )
-              ))}
-            </div>
+            <ResearchTrace timeline={liveTimeline} live />
           )}
 
           {/* Streaming answer */}
