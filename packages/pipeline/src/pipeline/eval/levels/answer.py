@@ -26,7 +26,7 @@ def _fetch_evidence_texts(primary_sections: list[dict]) -> list[str]:
             if not section_id:
                 continue
             result = session.run(
-                "MATCH (s:Section {id: $sid}) RETURN s.content AS content, s.title AS title",
+                "MATCH (s:Section {id: $sid}) RETURN s.content_text AS content, s.title AS title",
                 {"sid": section_id},
             )
             record = result.single()

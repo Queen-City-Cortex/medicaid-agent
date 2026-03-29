@@ -1,0 +1,57 @@
+{
+  "run_id": "2026-03-29T05:20:20",
+  "level": "answer",
+  "config": {
+    "embedding_model": "voyage-law-2",
+    "top_k": 10,
+    "dataset_count": 1,
+    "git_sha": "1128599",
+    "judge_model": "claude-sonnet-4-6"
+  },
+  "aggregate": {
+    "precision_at_k": 0.6666666666666666,
+    "recall_at_k": 1.0,
+    "mrr": 0.6666666666666666,
+    "primary_hit_rate": 1.0
+  },
+  "by_difficulty": {
+    "simple": {
+      "precision_at_k": 0.6666666666666666,
+      "recall_at_k": 1.0,
+      "mrr": 0.6666666666666666,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "by_category": {
+    "single_lookup": {
+      "precision_at_k": 0.6666666666666666,
+      "recall_at_k": 1.0,
+      "mrr": 0.6666666666666666,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "per_question": [
+    {
+      "id": "q-001",
+      "difficulty": "simple",
+      "reasoning_type": "single_lookup",
+      "question": "What are the general eligibility criteria for CAP/DA services under NC Medicaid?",
+      "agent_answer": "I now have a comprehensive picture of the CAP/DA eligibility criteria. Here is a thorough, plain-language summary:\n\n---\n\n## CAP/DA (Community Alternatives Program for Disabled Adults) \u2014 General Eligibility Criteria\n\n**Source:** NC DHHS Policy MA-3260, *Community Alternatives Program (CAP)* \u2014 Section A: CAP for Disabled Adults (CAP/DA)\n*(Section ID: `sec:doc:dhhs_policy:url-5cbcc55beb29:_s4`)*\n*(No amendments on file \u2014 policy appears current as published.)*\n\n---\n\n### \u2705 Core Eligibility Requirements\n\nTo qualify for CAP/DA, an individual must meet **all** of the following criteria:\n\n| Criterion | Details |\n|---|---|\n| **Age** | Must be **18 years of age or older** (including those 65+) |\n| **Disability Determination** | Must be determined **disabled** by either Disability Determination Services (DDS) or the Social Security Administration (SSA) |\n| **Level of Care** | Must be determined to require an **ICF (Intermediate Care Facility) or SNF (Skilled Nursing Facility) level of care** under the NC State Medicaid Plan |\n| **Need for CAP Services** | Must be determined to need CAP services based on a **reasonable indication of need and a formal assessment** conducted by the CAP case management entity |\n| **Residence** | Must **live in a private residence** (not a nursing facility or institution) |\n\n---\n\n### \ud83d\udccb Application & Assessment Process\n*(Section `sec:doc:dhhs_policy:url-5cbcc55beb29:_s8`)*\n\n- If the individual is **not yet a Medicaid beneficiary**, a Medicaid application must be submitted and evaluated for eligibility.\n- If the individual is **already a Medicaid beneficiary**, the request is processed as a change in situation.\n- A **CAP assessment** is required to determine need. Upon completion, the local agency receives:\n  - **DHB-2193** (Memorandum of CAP Waiver Enrollment Status), and\n  - A **Service Plan / Plan of Care Summary (POC)**\n- If Medicaid eligibility **cannot** be established without CAP approval, the application may be denied if the DHB-2193 is not received by the **45th or 90th calendar day**.\n\n---\n\n### \ud83d\udcb0 Financial Eligibility / Budgeting\n*(Section `sec:doc:dhhs_policy:url-5cbcc55beb29:_s9`)*\n\n- Financial eligibility follows the basic income rules under **MA-2260 (Financial Eligibility Requirements \u2013 PLA)**.\n- **Only the applicant's own income** is counted \u2014 there is **no spouse-for-spouse or parent-for-child financial responsibility**.\n- The **one-third reduction** in budgeting does **not** apply to SSI beneficiaries.\n\n---\n\n### \ud83d\udd04 Recertification\n*(Section `sec:doc:dhhs_policy:url-5cbcc55beb29:_s15`)*\n\n- Certification periods may not exceed **12 months** (or **6 months** if the beneficiary has a monthly deductible).\n- A **Continued Need Review (CNR)** is conducted to confirm ongoing CAP participation need.\n- If CAP participation is no longer needed, the individual is evaluated for all other applicable programs/categories.\n\n---\n\n### \u26a0\ufe0f Important Notes\n\n- **CAP/DA is a Medicaid waiver program** \u2014 enrollment is subject to **slot availability** (waitlists may apply).\n- CAP/DA is distinct from **CAP/CD** (Consumer Direction) and **CAP/C** (for Children), which have separate eligibility criteria.\n- The level-of-care determination (ICF/SNF) is a clinical determination made through the CAP assessment process \u2014 it does **not** mean the individual must be in a facility; in fact, living in a **private residence** is required.\n- Given the high stakes of waiver eligibility, it is recommended to verify current enrollment status and any recent policy updates directly with **NC DHHS Division of Health Benefits (DHB)**.\n\n---\n\nWould you like more detail on any specific aspect \u2014 such as financial eligibility thresholds, the assessment process, or how CAP/DA interacts with managed care (NC Medicaid Managed Care / PHPs)?",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 2,
+        "completeness": 3,
+        "hallucination": 1,
+        "citation_quality": 2,
+        "overall": 2,
+        "explanation": "The agent's answer covers the core eligibility criteria accurately (age 18+, level of care requirement, community residence, Medicaid eligibility) and goes beyond the reference in useful ways (financial eligibility, recertification, assessment process). However, there are some concerns: (1) The agent adds a 'disability determination by DDS or SSA' requirement that is not mentioned in the reference answer and may represent a hallucination or over-specification not supported by the cited evidence sections; (2) The agent specifies 'ICF or SNF level of care' where the reference says 'nursing facility level of care' - this is a minor discrepancy; (3) Citations reference a URL-based document identifier rather than the specific policy sections noted in the evidence (2.1.1 General, 3.1, 3.2.1), suggesting the citations may not precisely match the actual policy structure. The answer is comprehensive and well-organized but the disability determination criterion and citation structure raise concerns about minor hallucination and citation precision."
+      },
+      "precision": 0.6666666666666666,
+      "recall": 1.0,
+      "mrr": 0.6666666666666666,
+      "primary_hit": true
+    }
+  ]
+}
