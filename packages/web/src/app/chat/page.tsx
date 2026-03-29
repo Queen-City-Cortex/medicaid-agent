@@ -2,8 +2,13 @@
 
 import { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
 
-// A single entry in the research timeline — either reasoning text or a tool call
 type TimelineEntry =
   | { type: 'reasoning'; text: string }
   | { type: 'tool'; name: string; status: 'running' | 'done' };
@@ -15,14 +20,25 @@ interface Message {
 }
 
 const TOOL_LABELS: Record<string, string> = {
-  searchSections: 'Searching policy sections',
-  getSection: 'Reading section content',
-  getDocument: 'Loading document structure',
-  getSectionContext: 'Checking section hierarchy',
-  followReferences: 'Following cross-references',
-  getAmendments: 'Checking for amendments',
-  findConceptSections: 'Finding related concepts',
+  searchSections: 'Searching policies',
+  getSection: 'Reading section',
+  getDocument: 'Loading document',
+  getSectionContext: 'Checking hierarchy',
+  followReferences: 'Following references',
+  getAmendments: 'Checking amendments',
+  findConceptSections: 'Finding concepts',
   lookupPolicy: 'Looking up policy',
+};
+
+const TOOL_ICONS: Record<string, string> = {
+  searchSections: '🔍',
+  getSection: '📄',
+  getDocument: '📋',
+  getSectionContext: '🔗',
+  followReferences: '↗',
+  getAmendments: '📝',
+  findConceptSections: '🏷',
+  lookupPolicy: '📖',
 };
 
 export default function ChatPage() {
@@ -32,6 +48,7 @@ export default function ChatPage() {
   const [liveTimeline, setLiveTimeline] = useState<TimelineEntry[]>([]);
   const [streamingText, setStreamingText] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -40,6 +57,10 @@ export default function ChatPage() {
   useEffect(() => {
     scrollToBottom();
   }, [messages, liveTimeline, streamingText]);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
 
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
@@ -93,13 +114,10 @@ export default function ChatPage() {
 
             switch (event.type) {
               case 'step-start': {
-                // Flush previous step's text
                 if (currentStepText.trim()) {
                   if (currentStepHasTools) {
-                    // This step had tools — text was reasoning
-                    // (already pushed to timeline by tool-call-input-streaming-start)
+                    // already pushed
                   } else {
-                    // No tools — this was final answer text
                     finalAnswerText += currentStepText;
                     setStreamingText(finalAnswerText);
                   }
@@ -110,15 +128,12 @@ export default function ChatPage() {
               }
 
               case 'tool-call-input-streaming-start': {
-                // This step has a tool call — any text so far is reasoning, not answer
                 if (currentStepText.trim()) {
                   timeline.push({ type: 'reasoning', text: currentStepText.trim() });
                   currentStepText = '';
-                  // Clear the optimistic streaming text since it was reasoning
                   setStreamingText(finalAnswerText);
                   setLiveTimeline([...timeline]);
                 }
-
                 currentStepHasTools = true;
                 const name = event.payload?.toolName || 'unknown';
                 activeTools.set(event.payload?.toolCallId, name);
@@ -131,7 +146,6 @@ export default function ChatPage() {
                 const toolCallId = event.payload?.toolCallId;
                 const name = activeTools.get(toolCallId) || 'unknown';
                 activeTools.delete(toolCallId);
-                // Mark the tool as done in the timeline
                 for (let j = timeline.length - 1; j >= 0; j--) {
                   const entry = timeline[j];
                   if (entry.type === 'tool' && entry.name === name && entry.status === 'running') {
@@ -146,9 +160,6 @@ export default function ChatPage() {
               case 'text-delta': {
                 const text = event.payload?.text || '';
                 currentStepText += text;
-                // If this step already has tools, it's reasoning (shown in timeline)
-                // If no tools yet, optimistically show as streaming answer
-                // (will be reclassified at step-start if tools appear later)
                 if (!currentStepHasTools) {
                   setStreamingText(finalAnswerText + currentStepText);
                 }
@@ -161,7 +172,6 @@ export default function ChatPage() {
         }
       }
 
-      // Flush the last step's text
       if (currentStepText.trim()) {
         if (currentStepHasTools) {
           timeline.push({ type: 'reasoning', text: currentStepText.trim() });
@@ -171,8 +181,6 @@ export default function ChatPage() {
       }
 
       const content = finalAnswerText.trim() || 'No response generated.';
-
-      // Clear live state and add completed message
       setStreamingText('');
       setLiveTimeline([]);
       setMessages(prev => [...prev, {
@@ -193,142 +201,180 @@ export default function ChatPage() {
       setStreamingText('');
     } finally {
       setIsLoading(false);
+      inputRef.current?.focus();
     }
   };
 
-  const renderTimeline = (timeline: TimelineEntry[], live: boolean) => (
-    <div className="space-y-1">
-      {timeline.map((entry, i) => {
-        if (entry.type === 'tool') {
-          return (
-            <div key={i} className="flex items-center gap-1.5 text-xs text-gray-400">
-              {entry.status === 'running' && live ? (
-                <span className="inline-block w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />
-              ) : (
-                <span className="text-green-400 flex-shrink-0">&#10003;</span>
-              )}
-              <span>{TOOL_LABELS[entry.name] || entry.name}</span>
-            </div>
-          );
-        } else {
-          return (
-            <p key={i} className="text-sm text-gray-500 italic">
-              {entry.text}
-            </p>
-          );
-        }
-      })}
-    </div>
-  );
+  const toolCount = (timeline: TimelineEntry[]) =>
+    timeline.filter(e => e.type === 'tool').length;
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="flex flex-col h-screen bg-background">
       {/* Header */}
-      <header className="bg-white border-b px-6 py-4">
-        <h1 className="text-xl font-semibold text-gray-900">NC Medicaid Navigator</h1>
-        <p className="text-sm text-gray-500">Ask questions about NC Medicaid policy</p>
+      <header className="border-b border-border bg-card px-8 py-5">
+        <div className="max-w-3xl mx-auto flex items-baseline gap-3">
+          <h1 className="font-heading text-2xl font-semibold tracking-tight text-foreground">
+            NC Medicaid Navigator
+          </h1>
+          <Separator orientation="vertical" className="h-5" />
+          <span className="text-sm text-muted-foreground">Policy Research</span>
+        </div>
       </header>
 
       {/* Messages */}
-      <main className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-        {messages.length === 0 && !isLoading && (
-          <div className="text-center text-gray-400 mt-20">
-            <p className="text-lg">Ask a question about NC Medicaid policy</p>
-            <p className="text-sm mt-2">Examples:</p>
-            <div className="mt-3 space-y-2">
-              {[
-                'Does NC Medicaid cover chiropractic services?',
-                'What is the earned income limit for HCWD?',
-                'How many days of therapeutic leave does Medicaid allow for nursing facility residents?',
-              ].map((q, i) => (
-                <button
-                  key={i}
-                  onClick={() => setInput(q)}
-                  className="block mx-auto text-sm text-blue-600 hover:text-blue-800 hover:underline"
-                >
-                  {q}
-                </button>
-              ))}
+      <ScrollArea className="flex-1">
+        <div className="max-w-3xl mx-auto px-8 py-8 space-y-8">
+          {/* Empty state */}
+          {messages.length === 0 && !isLoading && (
+            <div className="py-20 text-center">
+              <h2 className="font-heading text-3xl font-semibold tracking-tight text-foreground mb-2">
+                What would you like to know?
+              </h2>
+              <p className="text-muted-foreground mb-10">
+                Research NC Medicaid policy across 2,000+ documents
+              </p>
+              <div className="grid gap-3 max-w-lg mx-auto">
+                {[
+                  'Does NC Medicaid cover chiropractic services?',
+                  'What is the earned income limit for HCWD?',
+                  'How many days of therapeutic leave are allowed for nursing facility residents?',
+                ].map((q, i) => (
+                  <button
+                    key={i}
+                    onClick={() => { setInput(q); inputRef.current?.focus(); }}
+                    className="text-left px-4 py-3 rounded-lg border border-border bg-card text-sm text-foreground hover:border-accent hover:bg-muted transition-colors"
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {messages.map((msg, i) => (
-          <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[80%] ${msg.role === 'user' ? '' : 'space-y-2'}`}>
+          {/* Message thread */}
+          {messages.map((msg, i) => (
+            <div key={i}>
               {msg.role === 'user' && (
-                <div className="bg-blue-600 text-white rounded-lg px-4 py-3">
-                  <div className="whitespace-pre-wrap text-sm">{msg.content}</div>
+                <div className="flex justify-end mb-6">
+                  <div className="bg-primary text-primary-foreground rounded-2xl rounded-br-sm px-5 py-3 max-w-[75%]">
+                    <p className="text-sm leading-relaxed">{msg.content}</p>
+                  </div>
                 </div>
               )}
 
               {msg.role === 'assistant' && (
-                <>
+                <div className="space-y-3">
+                  {/* Research timeline (collapsed) */}
                   {msg.timeline && msg.timeline.length > 0 && (
-                    <details className="group">
-                      <summary className="cursor-pointer text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1.5">
-                        <span className="group-open:rotate-90 transition-transform inline-block">&#9654;</span>
-                        {msg.timeline.filter(e => e.type === 'tool').length} tools used &middot; show research process
-                      </summary>
-                      <div className="mt-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
-                        {renderTimeline(msg.timeline, false)}
-                      </div>
-                    </details>
+                    <Collapsible>
+                      <CollapsibleTrigger className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors group cursor-pointer">
+                        <svg className="w-3 h-3 transition-transform group-data-[state=open]:rotate-90" viewBox="0 0 12 12" fill="none">
+                          <path d="M4 2L8 6L4 10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                        <span>{toolCount(msg.timeline)} tools · research trace</span>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <Card className="mt-2 border-dashed">
+                          <CardContent className="p-4 space-y-1.5">
+                            {msg.timeline.map((entry, j) => (
+                              entry.type === 'tool' ? (
+                                <div key={j} className="flex items-center gap-2 text-xs text-muted-foreground">
+                                  <span className="w-4 text-center opacity-60">{TOOL_ICONS[entry.name] || '·'}</span>
+                                  <span>{TOOL_LABELS[entry.name] || entry.name}</span>
+                                </div>
+                              ) : (
+                                <p key={j} className="text-xs text-muted-foreground/70 italic pl-6">
+                                  {entry.text}
+                                </p>
+                              )
+                            ))}
+                          </CardContent>
+                        </Card>
+                      </CollapsibleContent>
+                    </Collapsible>
                   )}
 
-                  <div className="bg-white border border-gray-200 text-gray-900 rounded-lg px-4 py-3 prose prose-sm max-w-none">
-                    <ReactMarkdown>{msg.content}</ReactMarkdown>
-                  </div>
-                </>
+                  {/* Answer */}
+                  <Card>
+                    <CardContent className="p-6 prose prose-sm prose-slate max-w-none prose-headings:font-heading prose-headings:tracking-tight prose-h2:text-lg prose-h3:text-base prose-p:leading-relaxed prose-li:leading-relaxed prose-strong:text-foreground">
+                      <ReactMarkdown>{msg.content}</ReactMarkdown>
+                    </CardContent>
+                  </Card>
+                </div>
               )}
             </div>
-          </div>
-        ))}
+          ))}
 
-        {/* Live research panel */}
-        {liveTimeline.length > 0 && (
-          <div className="flex justify-start">
-            <div className="max-w-[80%]">
-              <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3">
-                {renderTimeline(liveTimeline, true)}
-              </div>
-            </div>
-          </div>
-        )}
+          {/* Live research panel */}
+          {liveTimeline.length > 0 && (
+            <Card className="border-accent/30 bg-accent/5 animate-in fade-in duration-300">
+              <CardContent className="p-4 space-y-1.5">
+                {liveTimeline.map((entry, i) => (
+                  entry.type === 'tool' ? (
+                    <div key={i} className="flex items-center gap-2 text-sm">
+                      {entry.status === 'running' ? (
+                        <span className="inline-block w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <span className="w-4 text-center text-accent">{TOOL_ICONS[entry.name] || '✓'}</span>
+                      )}
+                      <span className={entry.status === 'done' ? 'text-muted-foreground' : 'text-foreground'}>
+                        {TOOL_LABELS[entry.name] || entry.name}
+                      </span>
+                    </div>
+                  ) : (
+                    <p key={i} className="text-sm text-muted-foreground italic pl-6">
+                      {entry.text}
+                    </p>
+                  )
+                ))}
+              </CardContent>
+            </Card>
+          )}
 
-        {/* Streaming final answer */}
-        {streamingText && (
-          <div className="flex justify-start">
-            <div className="max-w-[80%] bg-white border border-gray-200 rounded-lg px-4 py-3 prose prose-sm max-w-none">
-              <ReactMarkdown>{streamingText}</ReactMarkdown>
-              <span className="inline-block w-1.5 h-4 bg-gray-400 animate-pulse ml-0.5" />
-            </div>
-          </div>
-        )}
+          {/* Streaming answer */}
+          {streamingText && (
+            <Card className="animate-in fade-in duration-200">
+              <CardContent className="p-6 prose prose-sm prose-slate max-w-none prose-headings:font-heading prose-headings:tracking-tight">
+                <ReactMarkdown>{streamingText}</ReactMarkdown>
+                <span className="inline-block w-0.5 h-5 bg-accent animate-pulse ml-0.5 -mb-1" />
+              </CardContent>
+            </Card>
+          )}
 
-        <div ref={messagesEndRef} />
-      </main>
+          <div ref={messagesEndRef} />
+        </div>
+      </ScrollArea>
 
       {/* Input */}
-      <footer className="bg-white border-t px-6 py-4">
-        <div className="flex gap-3 max-w-4xl mx-auto">
+      <footer className="border-t border-border bg-card px-8 py-5">
+        <div className="max-w-3xl mx-auto flex gap-3">
           <input
+            ref={inputRef}
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
+            onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
             placeholder="Ask about NC Medicaid policy..."
-            className="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="flex-1 rounded-lg border border-input bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-shadow"
             disabled={isLoading}
           />
-          <button
+          <Button
             onClick={sendMessage}
             disabled={isLoading || !input.trim()}
-            className="bg-blue-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            size="default"
+            className="px-6"
           >
-            {isLoading ? 'Researching...' : 'Ask'}
-          </button>
+            {isLoading ? (
+              <span className="flex items-center gap-2">
+                <span className="inline-block w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                Researching
+              </span>
+            ) : 'Ask'}
+          </Button>
         </div>
+        <p className="max-w-3xl mx-auto text-[11px] text-muted-foreground/50 mt-2">
+          Answers are AI-generated from NC Medicaid policy documents. Verify critical information with DHHS.
+        </p>
       </footer>
     </div>
   );
