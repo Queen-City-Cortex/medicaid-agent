@@ -44,6 +44,9 @@ SOURCE_TYPE_DIRS = {
 ECFR_API_BASE = "https://www.ecfr.gov/api/versioner/v1"
 ECFR_CACHE_DIR = PROJECT_ROOT / "data" / "ecfr-cache"
 ECFR_CACHE_MAX_AGE_DAYS = 90
+# Agent (sibling package in monorepo)
+AGENT_DIR = PROJECT_ROOT.parent / "agent"
+
 # Evaluation harness
 GOLDEN_DATASET_PATH = PROJECT_ROOT / "data" / "golden" / "dataset.json"
 GOLDEN_DATASET_SCHEMA = PROJECT_ROOT / "data" / "golden" / "dataset.schema.json"

@@ -237,7 +237,7 @@ def search(query_text: str, top_k: int, doc_type: str | None):
 
 
 @cli.command()
-@click.option("--level", type=click.Choice(["retrieval", "cross-ref"]), help="Eval level to run")
+@click.option("--level", type=click.Choice(["retrieval", "cross-ref", "answer"]), help="Eval level to run")
 @click.option("--top-k", type=int, help="Top-k for retrieval eval")
 @click.option("--category", type=str, help="Filter by reasoning_type")
 @click.option("--difficulty", type=str, help="Filter by difficulty")
@@ -245,7 +245,7 @@ def search(query_text: str, top_k: int, doc_type: str | None):
 def eval(level: str | None, top_k: int | None, category: str | None, difficulty: str | None, question: str | None):
     """Run evaluation against the golden dataset."""
     from pipeline.eval.runner import run_eval
-    from pipeline.eval.reports import print_retrieval_report
+    from pipeline.eval.reports import print_retrieval_report, print_answer_report
 
     levels = [level] if level else ["retrieval"]
 
@@ -264,6 +264,8 @@ def eval(level: str | None, top_k: int | None, category: str | None, difficulty:
 
         if lvl == "retrieval":
             print_retrieval_report(result)
+        elif lvl == "answer":
+            print_answer_report(result)
         else:
             console.print(f"  Results saved: {result.get('run_id', 'unknown')}")
 

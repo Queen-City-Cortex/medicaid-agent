@@ -29,13 +29,19 @@ def run_eval(
     elif level == "cross-ref":
         from pipeline.eval.levels.cross_ref import evaluate_cross_refs
         per_question = evaluate_cross_refs(entries)
+    elif level == "answer":
+        from pipeline.eval.levels.answer import evaluate_answers
+        per_question = evaluate_answers(entries)
     else:
-        return {"error": f"Unknown level: {level}. Available: retrieval, cross-ref"}
+        return {"error": f"Unknown level: {level}. Available: retrieval, cross-ref, answer"}
 
     # Save results
     config_overrides = {}
     if top_k:
         config_overrides["top_k"] = top_k
+    if level == "answer":
+        from pipeline.config import EVAL_JUDGE_MODEL
+        config_overrides["judge_model"] = EVAL_JUDGE_MODEL
 
     path = save_result(level, per_question, config_overrides)
 

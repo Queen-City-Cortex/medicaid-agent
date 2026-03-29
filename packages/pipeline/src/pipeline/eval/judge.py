@@ -1,6 +1,100 @@
-"""LLM-as-judge wrapper (stub — requires Layer 3 agent)."""
+"""LLM-as-judge wrapper — calls Claude Sonnet via httpx to score agent answers."""
+
+import json
+import httpx
+
+from pipeline.config import ANTHROPIC_API_KEY, EVAL_JUDGE_MODEL
+
+API_URL = "https://api.anthropic.com/v1/messages"
+
+JUDGE_PROMPT = """You are evaluating an AI agent's answer to a Medicaid policy question.
+
+Question: {question}
+
+Reference Answer (verified correct):
+{golden_answer}
+
+Agent's Answer:
+{agent_answer}
+
+Evidence sections the agent should have found:
+{evidence_texts}
+
+Score each dimension 0-3:
+- factual_accuracy: Does the agent's answer contain the same key facts as the reference? (0=wrong, 1=partially correct, 2=mostly correct, 3=fully correct)
+- completeness: Does the answer address all parts of the question? (0=misses most, 1=partial, 2=mostly complete, 3=fully complete)
+- hallucination: Does the answer assert facts not supported by the evidence? (0=major hallucination, 1=minor fabrications, 2=slight embellishment, 3=no hallucination)
+- citation_quality: Does the answer cite specific policy sections? (0=no citations, 1=vague references, 2=some specific citations, 3=precise section-level citations)
+- overall: Would a Medicaid policy expert accept this answer? (0=unacceptable, 1=poor, 2=acceptable, 3=good)
+
+Respond in JSON format only:
+{{"factual_accuracy": N, "completeness": N, "hallucination": N, "citation_quality": N, "overall": N, "explanation": "brief reasoning"}}"""
 
 
-def judge_answer(question: str, golden_answer: str, agent_answer: str, evidence_texts: list[str]) -> dict:
-    """Stub: will use Claude to judge answer quality when Layer 3 is built."""
-    raise NotImplementedError("LLM-as-judge requires the agent from Layer 3")
+def judge_answer(
+    question: str,
+    golden_answer: str,
+    agent_answer: str,
+    evidence_texts: list[str],
+) -> dict:
+    """Score an agent answer against the golden reference.
+
+    Returns:
+        {
+            "factual_accuracy": 0-3,
+            "completeness": 0-3,
+            "hallucination": 0-3 (3 = no hallucination),
+            "citation_quality": 0-3,
+            "overall": 0-3,
+            "explanation": "brief reasoning"
+        }
+    """
+    if not ANTHROPIC_API_KEY:
+        raise RuntimeError("ANTHROPIC_API_KEY not set")
+
+    evidence_block = "\n\n".join(evidence_texts) if evidence_texts else "(none available)"
+
+    prompt = JUDGE_PROMPT.format(
+        question=question,
+        golden_answer=golden_answer,
+        agent_answer=agent_answer,
+        evidence_texts=evidence_block,
+    )
+
+    resp = httpx.post(
+        API_URL,
+        json={
+            "model": EVAL_JUDGE_MODEL,
+            "max_tokens": 512,
+            "messages": [{"role": "user", "content": prompt}],
+        },
+        headers={
+            "x-api-key": ANTHROPIC_API_KEY,
+            "anthropic-version": "2023-06-01",
+            "Content-Type": "application/json",
+        },
+        timeout=60,
+    )
+    resp.raise_for_status()
+
+    content = resp.json()["content"][0]["text"].strip()
+
+    # Strip markdown code fences if present
+    if content.startswith("```"):
+        lines = content.splitlines()
+        content = "\n".join(lines[1:-1]) if len(lines) > 2 else content
+
+    try:
+        scores = json.loads(content)
+    except json.JSONDecodeError:
+        # Fallback: return zeroes with the raw text as explanation
+        scores = {
+            "factual_accuracy": 0,
+            "completeness": 0,
+            "hallucination": 0,
+            "citation_quality": 0,
+            "overall": 0,
+            "explanation": f"JSON parse error. Raw response: {content[:200]}",
+        }
+
+    return scores
