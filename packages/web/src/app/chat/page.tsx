@@ -2,15 +2,16 @@
 
 import { useState, useRef, useEffect } from 'react';
 
-interface Message {
-  role: 'user' | 'assistant';
-  content: string;
-  tools?: string[];  // tool names used to generate this answer
-}
-
 interface ToolCall {
   name: string;
   status: 'running' | 'done';
+}
+
+interface Message {
+  role: 'user' | 'assistant';
+  content: string;
+  tools?: string[];
+  reasoning?: string[];  // intermediate reasoning steps
 }
 
 const TOOL_LABELS: Record<string, string> = {
@@ -30,6 +31,7 @@ export default function ChatPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [toolCalls, setToolCalls] = useState<ToolCall[]>([]);
   const [streamingText, setStreamingText] = useState('');
+  const [currentReasoning, setCurrentReasoning] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -49,6 +51,7 @@ export default function ChatPage() {
     setIsLoading(true);
     setToolCalls([]);
     setStreamingText('');
+    setCurrentReasoning('');
 
     try {
       const mastraUrl = process.env.NEXT_PUBLIC_MASTRA_URL || 'http://localhost:4111';
@@ -67,8 +70,14 @@ export default function ChatPage() {
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
-      let finalText = '';
-      const activeTools = new Map<string, string>(); // toolCallId → toolName
+
+      // Track text per step — only the LAST step's text is the final answer
+      let stepTexts: string[] = [];      // text collected per step
+      let currentStepText = '';
+      let currentStepHasTools = false;
+      let allToolNames: string[] = [];
+      let reasoningSteps: string[] = [];
+      const activeTools = new Map<string, string>();
 
       while (true) {
         const { done, value } = await reader.read();
@@ -87,11 +96,26 @@ export default function ChatPage() {
             const event = JSON.parse(jsonStr);
 
             switch (event.type) {
+              case 'step-start': {
+                // Save previous step's text as reasoning if it had tool calls
+                if (currentStepText.trim() && currentStepHasTools) {
+                  reasoningSteps.push(currentStepText.trim());
+                  setCurrentReasoning(prev => {
+                    const steps = [...reasoningSteps];
+                    return steps.join('\n');
+                  });
+                }
+                currentStepText = '';
+                currentStepHasTools = false;
+                break;
+              }
+
               case 'tool-call-input-streaming-start': {
+                currentStepHasTools = true;
                 const name = event.payload?.toolName || 'unknown';
                 activeTools.set(event.payload?.toolCallId, name);
+                if (!allToolNames.includes(name)) allToolNames.push(name);
                 setToolCalls(prev => {
-                  // Don't add duplicate tool names
                   if (prev.some(t => t.name === name && t.status === 'running')) return prev;
                   return [...prev, { name, status: 'running' }];
                 });
@@ -113,13 +137,13 @@ export default function ChatPage() {
 
               case 'text-delta': {
                 const text = event.payload?.text || '';
-                finalText += text;
-                setStreamingText(finalText);
-                break;
-              }
-
-              case 'finish': {
-                // Stream complete
+                currentStepText += text;
+                // Only show streaming text for non-tool steps (likely the final answer)
+                if (!currentStepHasTools) {
+                  setStreamingText(currentStepText);
+                } else {
+                  setCurrentReasoning([...reasoningSteps, currentStepText.trim()].join('\n'));
+                }
                 break;
               }
             }
@@ -129,14 +153,29 @@ export default function ChatPage() {
         }
       }
 
-      // Add the final message with tool history attached
-      const content = finalText.trim() || 'No response generated.';
+      // Determine final answer: the last step's text (if it had no tools) is the answer
+      // If the last step also had tools, concatenate all non-tool text as the answer
+      let finalAnswer = '';
+      if (!currentStepHasTools && currentStepText.trim()) {
+        finalAnswer = currentStepText.trim();
+      } else {
+        // All steps had tools — use the last step's text
+        finalAnswer = currentStepText.trim() || 'No response generated.';
+      }
+
+      // Finalize
       setToolCalls(prev => {
-        const toolNames = prev.map(t => t.name);
-        setMessages(msgs => [...msgs, { role: 'assistant', content, tools: toolNames }]);
+        const tools = prev.map(t => t.name);
+        setMessages(msgs => [...msgs, {
+          role: 'assistant',
+          content: finalAnswer,
+          tools,
+          reasoning: reasoningSteps.length > 0 ? reasoningSteps : undefined,
+        }]);
         return [];
       });
       setStreamingText('');
+      setCurrentReasoning('');
 
     } catch (error) {
       console.error('Agent error:', error);
@@ -146,6 +185,7 @@ export default function ChatPage() {
       }]);
       setToolCalls([]);
       setStreamingText('');
+      setCurrentReasoning('');
     } finally {
       setIsLoading(false);
     }
@@ -185,50 +225,87 @@ export default function ChatPage() {
 
         {messages.map((msg, i) => (
           <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[80%] ${
-              msg.role === 'user'
-                ? 'bg-blue-600 text-white rounded-lg px-4 py-3'
-                : ''
-            }`}>
-              {/* Tool calls used (shown above assistant message) */}
-              {msg.role === 'assistant' && msg.tools && msg.tools.length > 0 && (
-                <div className="mb-2 flex flex-wrap gap-1.5">
-                  {msg.tools.map((tool, j) => (
-                    <span key={j} className="inline-flex items-center gap-1 text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded">
-                      <span className="text-green-500">&#10003;</span>
-                      {TOOL_LABELS[tool] || tool}
-                    </span>
-                  ))}
+            <div className={`max-w-[80%] ${msg.role === 'user' ? '' : 'space-y-2'}`}>
+              {/* User message */}
+              {msg.role === 'user' && (
+                <div className="bg-blue-600 text-white rounded-lg px-4 py-3">
+                  <div className="whitespace-pre-wrap text-sm">{msg.content}</div>
                 </div>
               )}
-              <div className={msg.role === 'assistant' ? 'bg-white border border-gray-200 text-gray-900 rounded-lg px-4 py-3' : ''}>
-                <div className="whitespace-pre-wrap text-sm">{msg.content}</div>
-              </div>
+
+              {/* Assistant message */}
+              {msg.role === 'assistant' && (
+                <>
+                  {/* Tool calls + reasoning (collapsible) */}
+                  {(msg.tools?.length || msg.reasoning?.length) && (
+                    <details className="group">
+                      <summary className="cursor-pointer text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1.5">
+                        <span className="group-open:rotate-90 transition-transform">&#9654;</span>
+                        {msg.tools?.length || 0} tools used &middot; click to see research process
+                      </summary>
+                      <div className="mt-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 space-y-1.5">
+                        {/* Tool badges */}
+                        <div className="flex flex-wrap gap-1.5">
+                          {msg.tools?.map((tool, j) => (
+                            <span key={j} className="inline-flex items-center gap-1 text-xs bg-white border border-gray-200 text-gray-500 px-2 py-0.5 rounded">
+                              <span className="text-green-500">&#10003;</span>
+                              {TOOL_LABELS[tool] || tool}
+                            </span>
+                          ))}
+                        </div>
+                        {/* Reasoning steps */}
+                        {msg.reasoning && msg.reasoning.length > 0 && (
+                          <div className="mt-2 space-y-1 text-xs text-gray-500 italic border-t border-gray-200 pt-2">
+                            {msg.reasoning.map((r, j) => (
+                              <p key={j}>{r}</p>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </details>
+                  )}
+
+                  {/* Answer */}
+                  <div className="bg-white border border-gray-200 text-gray-900 rounded-lg px-4 py-3">
+                    <div className="whitespace-pre-wrap text-sm">{msg.content}</div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         ))}
 
-        {/* Tool call status indicators */}
+        {/* Live tool call status */}
         {toolCalls.length > 0 && (
           <div className="flex justify-start">
-            <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 space-y-1.5">
-              {toolCalls.map((tc, i) => (
-                <div key={i} className="flex items-center gap-2 text-sm">
-                  {tc.status === 'running' ? (
-                    <span className="inline-block w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <span className="text-green-600">&#10003;</span>
-                  )}
-                  <span className={tc.status === 'done' ? 'text-gray-400' : 'text-gray-700'}>
-                    {TOOL_LABELS[tc.name] || tc.name}
-                  </span>
-                </div>
-              ))}
+            <div className="max-w-[80%] space-y-2">
+              <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 space-y-1.5">
+                {toolCalls.map((tc, i) => (
+                  <div key={i} className="flex items-center gap-2 text-sm">
+                    {tc.status === 'running' ? (
+                      <span className="inline-block w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <span className="text-green-600">&#10003;</span>
+                    )}
+                    <span className={tc.status === 'done' ? 'text-gray-400' : 'text-gray-700'}>
+                      {TOOL_LABELS[tc.name] || tc.name}
+                    </span>
+                  </div>
+                ))}
+                {/* Live reasoning text */}
+                {currentReasoning && (
+                  <div className="text-xs text-gray-400 italic border-t border-gray-100 pt-1.5 mt-1.5">
+                    {currentReasoning.split('\n').slice(-2).map((line, i) => (
+                      <p key={i}>{line}</p>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
 
-        {/* Streaming text (final answer being built) */}
+        {/* Streaming final answer text */}
         {streamingText && (
           <div className="flex justify-start">
             <div className="max-w-[80%] bg-white border border-gray-200 rounded-lg px-4 py-3">
