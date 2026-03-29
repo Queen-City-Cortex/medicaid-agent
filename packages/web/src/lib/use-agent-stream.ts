@@ -124,34 +124,28 @@ export function useAgentStream(): UseAgentStreamReturn {
                 fullText += text;
 
                 if (!pastSeparator) {
-                  // Check for --- separator
-                  const sepMatch = fullText.match(/\n?---\n/);
+                  pendingReasoningText += text;
+
+                  // Check for --- separator (with or without trailing newline)
+                  const sepMatch = fullText.match(/\n?---\n?/);
                   if (sepMatch && sepMatch.index !== undefined) {
                     pastSeparator = true;
-                    // Flush any remaining reasoning before separator
-                    const remainingReasoning = fullText.slice(0, sepMatch.index).trim();
-                    // Find what's already been flushed to timeline
-                    const flushedLength = timeline
-                      .filter(e => e.type === 'reasoning')
-                      .reduce((sum, e) => sum + e.text.length, 0);
-                    // The pending part is what hasn't been flushed
-                    // Strip the --- from pending reasoning before flushing
-                    const cleanedReasoning = pendingReasoningText.replace(/---\s*$/, '').trim();
+                    // Flush reasoning (strip ---) before switching to answer
+                    const cleanedReasoning = pendingReasoningText.replace(/\n?---\n?.*$/, '').trim();
                     if (cleanedReasoning) {
                       timeline.push({ type: 'reasoning', text: cleanedReasoning });
-                      pendingReasoningText = '';
-                      setLiveTimeline([...timeline]);
                     }
+                    pendingReasoningText = '';
+                    setLiveTimeline([...timeline]);
                     answerText = fullText.slice(sepMatch.index + sepMatch[0].length);
                     setStreamingReasoning('');
                     setStreamingAnswer(answerText);
                   } else {
-                    // Still in reasoning — accumulate pending text
-                    pendingReasoningText += text;
-                    // Show current pending reasoning + timeline for live view
-                    setStreamingReasoning(pendingReasoningText);
-                    setLiveTimeline([...timeline, ...(pendingReasoningText.trim()
-                      ? [{ type: 'reasoning' as const, text: pendingReasoningText.trim() }]
+                    // Still in reasoning — update live view (strip any trailing ---)
+                    const displayText = pendingReasoningText.replace(/-{1,3}$/, '').trim();
+                    setStreamingReasoning(displayText);
+                    setLiveTimeline([...timeline, ...(displayText
+                      ? [{ type: 'reasoning' as const, text: displayText }]
                       : []
                     )]);
                   }
