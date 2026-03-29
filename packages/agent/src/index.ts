@@ -62,7 +62,7 @@ When searching, route queries to the appropriate document types:
 export const ncMedicaidAgent = new Agent({
   name: 'NC Medicaid Navigator',
   instructions: SYSTEM_PROMPT,
-  model: anthropic('claude-opus-4-5'),
+  model: anthropic('claude-sonnet-4-6'),
   tools: {
     searchSections,
     getSection,
@@ -92,8 +92,20 @@ if (question) {
   }
 
   try {
-    const result = await agent.generate(question);
+    const result = await agent.generate(question, { maxSteps: 15 });
+    console.log('\n---ANSWER---\n');
     console.log(result.text);
+    if (!result.text?.trim()) {
+      // If no final text, show the last step's text
+      const steps = result.steps || [];
+      for (const step of steps) {
+        if (step.text?.trim()) {
+          console.log(step.text);
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Agent error:', err);
   } finally {
     await closeDriver();
   }

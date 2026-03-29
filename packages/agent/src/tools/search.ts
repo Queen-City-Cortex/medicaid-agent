@@ -1,5 +1,6 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
+import neo4j from 'neo4j-driver';
 import { withSession } from '../neo4j.js';
 import { VOYAGE_API_KEY, VOYAGE_MODEL, VOYAGE_API_URL, DEFAULT_TOP_K } from '../config.js';
 
@@ -53,7 +54,8 @@ export const searchSections = createTool({
     sections: z.array(SectionResult),
   }),
   execute: async ({ context: inputData }) => {
-    const { query, documentTypes, topK = DEFAULT_TOP_K } = inputData;
+    const { query, documentTypes } = inputData;
+    const topK = Math.round(inputData.topK ?? DEFAULT_TOP_K);
 
     const embedding = await embedQuery(query);
 
@@ -77,7 +79,7 @@ export const searchSections = createTool({
 
       const result = await session.run(vectorQuery, {
         embedding,
-        k: topK,
+        k: neo4j.int(topK),
         docTypes: documentTypes || [],
       });
 
@@ -129,7 +131,7 @@ export const searchSections = createTool({
 
         const chunkResult = await session.run(chunkQuery, {
           embedding,
-          k: topK,
+          k: neo4j.int(topK),
           docTypes: documentTypes || [],
         });
 
