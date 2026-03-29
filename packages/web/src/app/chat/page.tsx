@@ -264,34 +264,22 @@ export default function ChatPage() {
 
               {msg.role === 'assistant' && (
                 <div className="space-y-3">
-                  {/* Research timeline (collapsed) */}
+                  {/* Research trace (always visible) */}
                   {msg.timeline && msg.timeline.length > 0 && (
-                    <Collapsible>
-                      <CollapsibleTrigger className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors group cursor-pointer">
-                        <svg className="w-3 h-3 transition-transform group-data-[state=open]:rotate-90" viewBox="0 0 12 12" fill="none">
-                          <path d="M4 2L8 6L4 10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                        <span>{toolCount(msg.timeline)} tools · research trace</span>
-                      </CollapsibleTrigger>
-                      <CollapsibleContent>
-                        <Card className="mt-2 border-dashed">
-                          <CardContent className="p-4 space-y-1.5">
-                            {msg.timeline.map((entry, j) => (
-                              entry.type === 'tool' ? (
-                                <div key={j} className="flex items-center gap-2 text-xs text-muted-foreground">
-                                  <span className="w-4 text-center opacity-60">{TOOL_ICONS[entry.name] || '·'}</span>
-                                  <span>{TOOL_LABELS[entry.name] || entry.name}</span>
-                                </div>
-                              ) : (
-                                <p key={j} className="text-xs text-muted-foreground/70 italic pl-6">
-                                  {entry.text}
-                                </p>
-                              )
-                            ))}
-                          </CardContent>
-                        </Card>
-                      </CollapsibleContent>
-                    </Collapsible>
+                    <div className="border-l-2 border-border pl-4 py-1 space-y-1">
+                      {msg.timeline.map((entry, j) => (
+                        entry.type === 'tool' ? (
+                          <div key={j} className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <span className="opacity-50">{TOOL_ICONS[entry.name] || '·'}</span>
+                            <span>{TOOL_LABELS[entry.name] || entry.name}</span>
+                          </div>
+                        ) : (
+                          <p key={j} className="text-xs text-muted-foreground/60 italic">
+                            {entry.text}
+                          </p>
+                        )
+                      ))}
+                    </div>
                   )}
 
                   {/* Answer */}
