@@ -106,16 +106,9 @@ export default function ChatPage() {
           {/* Live streaming state */}
           {isStreaming && (
             <div className="space-y-3">
-              {/* Research trace: reasoning + tool calls */}
-              {(liveTimeline.length > 0 || streamingReasoning) && (
-                <ResearchTrace
-                  timeline={[
-                    // Interleave reasoning with tool calls
-                    ...(streamingReasoning ? [{ type: 'reasoning' as const, text: streamingReasoning }] : []),
-                    ...liveTimeline,
-                  ]}
-                  live
-                />
+              {/* Research trace: reasoning + tool calls (already interleaved) */}
+              {liveTimeline.length > 0 && (
+                <ResearchTrace timeline={liveTimeline} live />
               )}
 
               {/* Answer streaming */}

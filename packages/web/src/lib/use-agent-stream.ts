@@ -68,10 +68,10 @@ export function useAgentStream(): UseAgentStreamReturn {
       const timeline: TimelineEntry[] = [];
       const activeTools = new Map<string, string>();
 
-      // Stream state: track reasoning vs answer via --- separator
+      // Stream state
       let fullText = '';
       let pastSeparator = false;
-      let reasoningText = '';
+      let pendingReasoningText = ''; // text accumulated since last tool call
       let answerText = '';
 
       while (true) {
@@ -92,6 +92,11 @@ export function useAgentStream(): UseAgentStreamReturn {
 
             switch (event.type) {
               case 'tool-call-input-streaming-start': {
+                // Flush any pending reasoning text before this tool call
+                if (pendingReasoningText.trim()) {
+                  timeline.push({ type: 'reasoning', text: pendingReasoningText.trim() });
+                  pendingReasoningText = '';
+                }
                 const name = event.payload?.toolName || 'unknown';
                 activeTools.set(event.payload?.toolCallId, name);
                 timeline.push({ type: 'tool', name, status: 'running' });
@@ -118,23 +123,37 @@ export function useAgentStream(): UseAgentStreamReturn {
                 const text = event.payload?.text || '';
                 fullText += text;
 
-                // Check for separator in the accumulated text
                 if (!pastSeparator) {
-                  // Look for --- in the full text (may arrive across chunks)
+                  // Check for --- separator
                   const sepMatch = fullText.match(/\n?---\n/);
                   if (sepMatch && sepMatch.index !== undefined) {
                     pastSeparator = true;
-                    reasoningText = fullText.slice(0, sepMatch.index).trim();
+                    // Flush any remaining reasoning before separator
+                    const remainingReasoning = fullText.slice(0, sepMatch.index).trim();
+                    // Find what's already been flushed to timeline
+                    const flushedLength = timeline
+                      .filter(e => e.type === 'reasoning')
+                      .reduce((sum, e) => sum + e.text.length, 0);
+                    // The pending part is what hasn't been flushed
+                    if (pendingReasoningText.trim()) {
+                      timeline.push({ type: 'reasoning', text: pendingReasoningText.trim() });
+                      pendingReasoningText = '';
+                      setLiveTimeline([...timeline]);
+                    }
                     answerText = fullText.slice(sepMatch.index + sepMatch[0].length);
-                    setStreamingReasoning(reasoningText);
+                    setStreamingReasoning('');
                     setStreamingAnswer(answerText);
                   } else {
-                    // Still in reasoning phase
-                    reasoningText = fullText.trim();
-                    setStreamingReasoning(reasoningText);
+                    // Still in reasoning — accumulate pending text
+                    pendingReasoningText += text;
+                    // Show current pending reasoning + timeline for live view
+                    setStreamingReasoning(pendingReasoningText);
+                    setLiveTimeline([...timeline, ...(pendingReasoningText.trim()
+                      ? [{ type: 'reasoning' as const, text: pendingReasoningText.trim() }]
+                      : []
+                    )]);
                   }
                 } else {
-                  // Past separator — accumulate answer
                   answerText += text;
                   setStreamingAnswer(answerText);
                 }
@@ -147,22 +166,14 @@ export function useAgentStream(): UseAgentStreamReturn {
         }
       }
 
-      // Finalize
+      // Finalize — flush any remaining pending reasoning
+      if (pendingReasoningText.trim() && !pastSeparator) {
+        timeline.push({ type: 'reasoning', text: pendingReasoningText.trim() });
+      }
+
       const finalTimeline: TimelineEntry[] = timeline.map(e =>
         e.type === 'tool' ? { ...e, status: 'done' as const } : e
       );
-
-      // If we have reasoning text, add it to timeline
-      if (reasoningText.trim()) {
-        // Split reasoning into sentences for cleaner display
-        const sentences = reasoningText
-          .split(/(?<=\.)\s+/)
-          .filter(s => s.trim())
-          .map(s => ({ type: 'reasoning' as const, text: s.trim() }));
-        // Interleave: put reasoning sentences around tool calls chronologically
-        // Simple approach: just prepend all reasoning before tools
-        finalTimeline.unshift(...sentences);
-      }
 
       const content = (answerText || fullText).trim() || 'No response generated.';
 
