@@ -72,7 +72,7 @@ export const ncMedicaidAgent = new Agent({
   id: 'nc-medicaid-navigator',
   name: 'NC Medicaid Navigator',
   instructions: SYSTEM_PROMPT,
-  model: anthropic('claude-sonnet-4-6'),
+  model: anthropic(process.env.AGENT_MODEL || 'claude-haiku-4-5-20251001'),
   tools: {
     searchSections,
     getSection,
