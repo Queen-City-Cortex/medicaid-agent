@@ -20,9 +20,11 @@ interface ThreadSidebarProps {
 export function ThreadSidebar({ currentThreadId, refreshKey, onSelectThread, onNewThread }: ThreadSidebarProps) {
   const [threads, setThreads] = useState<StorageThreadType[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchThreads = useCallback(async () => {
     setIsLoading(true);
+    setError(null);
     try {
       const result = await mastraClient.listMemoryThreads({
         resourceId: RESOURCE_ID,
@@ -35,6 +37,7 @@ export function ThreadSidebar({ currentThreadId, refreshKey, onSelectThread, onN
     } catch (err) {
       console.error('Failed to fetch threads:', err);
       setThreads([]);
+      setError('Failed to load threads');
     } finally {
       setIsLoading(false);
     }
@@ -96,7 +99,19 @@ export function ThreadSidebar({ currentThreadId, refreshKey, onSelectThread, onN
             <p className="px-4 py-3 text-xs text-zinc-600">Loading...</p>
           )}
 
-          {!isLoading && threads.length === 0 && (
+          {!isLoading && error && (
+            <div className="px-4 py-3">
+              <p className="text-xs text-red-400 mb-2">{error}</p>
+              <button
+                onClick={fetchThreads}
+                className="text-xs text-zinc-400 hover:text-zinc-100 underline underline-offset-2"
+              >
+                Retry
+              </button>
+            </div>
+          )}
+
+          {!isLoading && !error && threads.length === 0 && (
             <p className="px-4 py-3 text-xs text-zinc-600">No threads yet</p>
           )}
 

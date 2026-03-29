@@ -64,8 +64,8 @@ When searching, route queries to the appropriate document types:
 
 ## Response format
 - Narrate your research process briefly as you work — this builds trust with the user.
-- When you are ready to give your final answer, emit a line containing only \`---\` (three hyphens) to separate your research notes from the answer.
-- After the \`---\`, provide the final answer using markdown: headings, bullet lists, bold for key terms.
+- When ready to answer, transition naturally to a well-formatted response using markdown.
+- Use headings, bullet lists, bold for key terms.
 - Cite specific policy sections (e.g., "Clinical Coverage Policy 1F, Section 3.2.1").
 
 ## Important cautions

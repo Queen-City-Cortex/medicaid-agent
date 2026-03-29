@@ -2,13 +2,13 @@
 
 import { useRef, useEffect, useState, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { ResearchTrace } from '@/components/ResearchTrace';
 import { ThreadSidebar } from '@/components/ThreadSidebar';
 import { useAgentStream } from '@/lib/use-agent-stream';
+import { generateUUID } from '@/lib/utils';
 import { mastraClient } from '@/lib/mastra-client';
 
 const AGENT_ID = 'nc-medicaid-navigator';
@@ -22,27 +22,17 @@ const EXAMPLES = [
   'How many days of therapeutic leave are allowed for nursing facility residents?',
 ];
 
-function generateUUID(): string {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-    return crypto.randomUUID();
-  }
-  // Fallback for older environments
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = Math.random() * 16 | 0;
-    const v = c === 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
-}
-
 export default function ChatPage() {
   const [threadId, setThreadId] = useState<string>(() => generateUUID());
-  const [sidebarRefreshKey, setSidebarRefreshKey] = useState(0);
+  const [threadVersion, setThreadVersion] = useState(0);
 
   const {
-    messages, isLoading, liveTimeline,
-    streamingReasoning, streamingAnswer, sendMessage,
-    setMessages, loadThread,
-  } = useAgentStream({ threadId });
+    messages, isLoading, streamText, streamTimeline,
+    sendMessage, setMessages, loadThread,
+  } = useAgentStream({
+    threadId,
+    onComplete: () => setThreadVersion(v => v + 1),
+  });
 
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -50,17 +40,10 @@ export default function ChatPage() {
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, liveTimeline, streamingReasoning, streamingAnswer]);
+  }, [messages, streamTimeline, streamText]);
 
   useEffect(() => { inputRef.current?.focus(); }, []);
 
-  const handleSend = () => {
-    if (!input.trim()) return;
-    sendMessage(input);
-    setInput('');
-  };
-
-  /** Create a thread in Mastra so it appears in the sidebar before the first message */
   const ensureThreadExists = useCallback(async (tid: string, title?: string) => {
     try {
       await mastraClient.createMemoryThread({
@@ -74,7 +57,6 @@ export default function ChatPage() {
     }
   }, []);
 
-  /** Handle switching to an existing thread */
   const handleSelectThread = useCallback(async (tid: string) => {
     setThreadId(tid);
     setMessages([]);
@@ -82,7 +64,6 @@ export default function ChatPage() {
     inputRef.current?.focus();
   }, [loadThread, setMessages]);
 
-  /** Handle creating a new thread */
   const handleNewThread = useCallback(async () => {
     const newId = generateUUID();
     setThreadId(newId);
@@ -91,20 +72,17 @@ export default function ChatPage() {
     inputRef.current?.focus();
   }, [setMessages, ensureThreadExists]);
 
-  // Wrap sendMessage to create thread before first message
-  const handleSendWithThread = useCallback(async () => {
+  const handleSend = useCallback(async () => {
     if (!input.trim()) return;
     const question = input;
     setInput('');
-    // Create thread with first message as title (truncated to 60 chars)
     if (messages.length === 0) {
       await ensureThreadExists(threadId, question.slice(0, 60));
     }
     await sendMessage(question);
-    setSidebarRefreshKey(k => k + 1);
   }, [input, messages.length, threadId, ensureThreadExists, sendMessage]);
 
-  const isStreaming = isLoading && (liveTimeline.length > 0 || streamingReasoning || streamingAnswer);
+  const isStreaming = isLoading && (streamTimeline.length > 0 || !!streamText);
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
@@ -112,7 +90,7 @@ export default function ChatPage() {
       <div className="w-[280px] shrink-0 flex flex-col h-full">
         <ThreadSidebar
           currentThreadId={threadId}
-          refreshKey={sidebarRefreshKey}
+          refreshKey={threadVersion}
           onSelectThread={handleSelectThread}
           onNewThread={handleNewThread}
         />
@@ -167,40 +145,40 @@ export default function ChatPage() {
                 )}
 
                 {msg.role === 'assistant' && (
-                  <div className="space-y-3">
+                  <div className="pl-2 mt-6">
                     {msg.timeline && msg.timeline.length > 0 && (
-                      <ResearchTrace timeline={msg.timeline} />
+                      <div className="border-l-2 border-border pl-4 mb-4">
+                        <ResearchTrace timeline={msg.timeline} />
+                      </div>
                     )}
-                    <Card>
-                      <CardContent className={`p-6 ${PROSE}`}>
-                        <ReactMarkdown>{msg.content}</ReactMarkdown>
-                      </CardContent>
-                    </Card>
+                    <div className={PROSE}>
+                      <ReactMarkdown>{msg.content}</ReactMarkdown>
+                    </div>
                   </div>
                 )}
               </div>
             ))}
 
             {/* Live streaming state */}
-            {isStreaming && (
-              <div className="space-y-3">
-                {/* Research trace: reasoning + tool calls (already interleaved) */}
-                {liveTimeline.length > 0 && (
-                  <ResearchTrace timeline={liveTimeline} live />
+            {(isStreaming || (isLoading && !isStreaming)) && (
+              <div className="pl-2 mt-6">
+                {/* Research trace with left border while streaming */}
+                {streamTimeline.length > 0 && (
+                  <div className="border-l-2 border-accent/30 pl-4 mb-4">
+                    <ResearchTrace timeline={streamTimeline} live />
+                  </div>
                 )}
 
-                {/* Answer streaming */}
-                {streamingAnswer && (
-                  <Card>
-                    <CardContent className={`p-6 ${PROSE}`}>
-                      <ReactMarkdown>{streamingAnswer}</ReactMarkdown>
-                      <span className="inline-block w-0.5 h-5 bg-accent animate-pulse ml-0.5 -mb-1" />
-                    </CardContent>
-                  </Card>
+                {/* Streaming answer text */}
+                {streamText && (
+                  <div className={PROSE}>
+                    <ReactMarkdown>{streamText}</ReactMarkdown>
+                    <span className="inline-block w-0.5 h-5 bg-accent animate-pulse ml-0.5 -mb-1" />
+                  </div>
                 )}
 
-                {/* Loading indicator before any text arrives */}
-                {!streamingReasoning && !streamingAnswer && liveTimeline.length === 0 && (
+                {/* Initial loading indicator before any content arrives */}
+                {!streamText && streamTimeline.length === 0 && (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <span className="inline-block w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" />
                     Starting research...
@@ -220,12 +198,12 @@ export default function ChatPage() {
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendWithThread()}
+              onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
               placeholder="Ask about NC Medicaid policy..."
               className="flex-1 rounded-lg border border-input bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-shadow"
               disabled={isLoading}
             />
-            <Button onClick={handleSendWithThread} disabled={isLoading || !input.trim()} className="px-6">
+            <Button onClick={handleSend} disabled={isLoading || !input.trim()} className="px-6">
               {isLoading ? (
                 <span className="flex items-center gap-2">
                   <span className="inline-block w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
