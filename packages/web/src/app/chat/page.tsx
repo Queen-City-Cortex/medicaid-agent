@@ -2,6 +2,7 @@
 
 import { useRef, useEffect, useState, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
+import { PanelLeftOpen } from 'lucide-react';
 import { useAuth } from '@workos-inc/authkit-nextjs/components';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -42,6 +43,19 @@ export default function ChatPage() {
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem('sidebar-collapsed') === 'true';
+  });
+
+  const toggleSidebar = useCallback(() => {
+    setSidebarCollapsed(prev => {
+      const next = !prev;
+      localStorage.setItem('sidebar-collapsed', String(next));
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     // Scroll the ScrollArea viewport — NOT scrollIntoView which walks up and
@@ -100,13 +114,14 @@ export default function ChatPage() {
   return (
     <div className="flex h-screen bg-background overflow-hidden">
       {/* Sidebar */}
-      <div className="w-[280px] shrink-0 flex flex-col h-full">
+      <div className={`shrink-0 flex flex-col h-full transition-all duration-200 overflow-hidden ${sidebarCollapsed ? 'w-0' : 'w-[280px]'}`}>
         <ThreadSidebar
           currentThreadId={threadId}
           resourceId={resourceId}
           refreshKey={threadVersion}
           onSelectThread={handleSelectThread}
           onNewThread={handleNewThread}
+          onCollapse={toggleSidebar}
         />
       </div>
 
@@ -114,6 +129,15 @@ export default function ChatPage() {
       <div className="flex flex-col flex-1 min-w-0">
         <header className="border-b border-border bg-card px-8 py-5 shrink-0">
           <div className="max-w-3xl mx-auto flex items-baseline gap-3">
+            {sidebarCollapsed && (
+              <button
+                onClick={toggleSidebar}
+                className="p-2 -ml-2 mr-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors self-center"
+                aria-label="Open sidebar"
+              >
+                <PanelLeftOpen className="w-4 h-4" />
+              </button>
+            )}
             <h1 className="font-heading text-2xl font-semibold tracking-tight text-foreground">
               NC Medicaid Navigator
             </h1>

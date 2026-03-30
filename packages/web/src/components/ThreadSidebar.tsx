@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { PanelLeftClose } from 'lucide-react';
 import { useAuth } from '@workos-inc/authkit-nextjs/components';
 import { signOut } from '@workos-inc/authkit-nextjs';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -17,9 +18,10 @@ interface ThreadSidebarProps {
   refreshKey?: number;
   onSelectThread: (threadId: string) => void;
   onNewThread: () => void;
+  onCollapse?: () => void;
 }
 
-export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelectThread, onNewThread }: ThreadSidebarProps) {
+export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelectThread, onNewThread, onCollapse }: ThreadSidebarProps) {
   const { user } = useAuth();
   const [threads, setThreads] = useState<StorageThreadType[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -80,9 +82,20 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
     <div className="flex flex-col h-full bg-zinc-950 border-r border-zinc-800">
       {/* Header */}
       <div className="px-4 py-4 flex items-center justify-between shrink-0">
-        <span className="text-xs font-semibold uppercase tracking-widest text-zinc-500">
-          Threads
-        </span>
+        <div className="flex items-center gap-2">
+          {onCollapse && (
+            <button
+              onClick={onCollapse}
+              className="p-1 rounded-md text-zinc-500 hover:text-zinc-100 hover:bg-zinc-800 transition-colors"
+              aria-label="Close sidebar"
+            >
+              <PanelLeftClose className="w-4 h-4" />
+            </button>
+          )}
+          <span className="text-xs font-semibold uppercase tracking-widest text-zinc-500">
+            Threads
+          </span>
+        </div>
         <Button
           variant="ghost"
           size="sm"
