@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { useAuth } from '@workos-inc/authkit-nextjs/components';
+import { signOut } from '@workos-inc/authkit-nextjs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -8,16 +10,17 @@ import { mastraClient } from '@/lib/mastra-client';
 import type { StorageThreadType } from '@mastra/core/memory';
 
 const AGENT_ID = 'nc-medicaid-navigator';
-const RESOURCE_ID = 'anonymous';
 
 interface ThreadSidebarProps {
   currentThreadId: string;
+  resourceId: string;
   refreshKey?: number;
   onSelectThread: (threadId: string) => void;
   onNewThread: () => void;
 }
 
-export function ThreadSidebar({ currentThreadId, refreshKey, onSelectThread, onNewThread }: ThreadSidebarProps) {
+export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelectThread, onNewThread }: ThreadSidebarProps) {
+  const { user } = useAuth();
   const [threads, setThreads] = useState<StorageThreadType[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +30,7 @@ export function ThreadSidebar({ currentThreadId, refreshKey, onSelectThread, onN
     setError(null);
     try {
       const result = await mastraClient.listMemoryThreads({
-        resourceId: RESOURCE_ID,
+        resourceId,
         agentId: AGENT_ID,
         orderBy: 'updatedAt',
         sortDirection: 'DESC',
@@ -41,7 +44,7 @@ export function ThreadSidebar({ currentThreadId, refreshKey, onSelectThread, onN
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [resourceId]);
 
   // Fetch threads on mount and when currentThreadId changes (new thread created)
   useEffect(() => {
@@ -83,6 +86,7 @@ export function ThreadSidebar({ currentThreadId, refreshKey, onSelectThread, onN
         <Button
           variant="ghost"
           size="sm"
+          data-testid="new-thread-button"
           onClick={onNewThread}
           className="h-7 px-2 text-xs text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800"
         >
@@ -120,6 +124,7 @@ export function ThreadSidebar({ currentThreadId, refreshKey, onSelectThread, onN
             return (
               <button
                 key={thread.id}
+                data-testid="thread-item"
                 onClick={() => onSelectThread(thread.id)}
                 className={`w-full text-left px-4 py-2.5 transition-colors ${
                   isActive
@@ -140,6 +145,24 @@ export function ThreadSidebar({ currentThreadId, refreshKey, onSelectThread, onN
           })}
         </div>
       </ScrollArea>
+
+      {/* User footer */}
+      <Separator className="bg-zinc-800 shrink-0" />
+      <div className="px-4 py-3 shrink-0">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs text-zinc-500 truncate min-w-0">
+            {user?.email ?? ''}
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => signOut()}
+            className="h-7 px-2 text-xs text-zinc-500 hover:text-zinc-100 hover:bg-zinc-800 shrink-0"
+          >
+            Sign out
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

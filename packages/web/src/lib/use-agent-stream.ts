@@ -13,10 +13,10 @@ export interface Message {
 }
 
 const AGENT_ID = 'nc-medicaid-navigator';
-const RESOURCE_ID = 'anonymous';
 
 interface UseAgentStreamOptions {
   threadId: string;
+  resourceId: string;
   onComplete?: () => void;
 }
 
@@ -30,7 +30,7 @@ interface UseAgentStreamReturn {
   loadThread: (threadId: string) => Promise<void>;
 }
 
-export function useAgentStream({ threadId, onComplete }: UseAgentStreamOptions): UseAgentStreamReturn {
+export function useAgentStream({ threadId, resourceId, onComplete }: UseAgentStreamOptions): UseAgentStreamReturn {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [streamText, setStreamText] = useState('');
@@ -85,7 +85,7 @@ export function useAgentStream({ threadId, onComplete }: UseAgentStreamOptions):
           maxSteps: 15,
           memory: {
             thread: threadId,
-            resource: RESOURCE_ID,
+            resource: resourceId,
           },
         },
       );
@@ -165,7 +165,7 @@ export function useAgentStream({ threadId, onComplete }: UseAgentStreamOptions):
     } finally {
       setIsLoading(false);
     }
-  }, [isLoading, threadId, onComplete]);
+  }, [isLoading, threadId, resourceId, onComplete]);
 
   return { messages, isLoading, streamText, streamTimeline, sendMessage, setMessages, loadThread };
 }

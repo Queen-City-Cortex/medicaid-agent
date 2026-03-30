@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Source_Serif_4, DM_Sans, JetBrains_Mono } from "next/font/google";
+import { AuthKitProvider } from '@workos-inc/authkit-nextjs/components';
 import "./globals.css";
 
 const serif = Source_Serif_4({
@@ -35,7 +36,9 @@ export default function RootLayout({
       lang="en"
       className={`${serif.variable} ${sans.variable} ${mono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col font-sans">{children}</body>
+      <body className="min-h-full flex flex-col font-sans">
+        <AuthKitProvider>{children}</AuthKitProvider>
+      </body>
     </html>
   );
 }
