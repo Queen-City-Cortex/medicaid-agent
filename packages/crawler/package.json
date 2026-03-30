@@ -9,6 +9,7 @@
     "stats": "tsx src/index.ts stats",
     "build": "tsc",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "test:watch": "vitest"
   },
   "dependencies": {
@@ -24,6 +25,7 @@
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.0",
     "@types/mime-types": "^2.1.4",
+    "@vitest/coverage-v8": "^2.1.9",
     "tsx": "^4.0.0",
     "typescript": "^5.5.0",
     "vitest": "^2.0.0"

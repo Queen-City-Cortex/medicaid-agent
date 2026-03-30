@@ -6,6 +6,7 @@
   "scripts": {
     "build": "turbo run build",
     "test": "turbo run test",
+    "test:coverage": "turbo run test:coverage",
     "lint": "turbo run lint",
     "test:e2e": "cd e2e && npx playwright test --project=mocked",
     "test:e2e:smoke": "cd e2e && npx playwright test --project=smoke",

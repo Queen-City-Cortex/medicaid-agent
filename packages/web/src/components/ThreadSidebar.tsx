@@ -24,6 +24,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { mastraClient } from '@/lib/mastra-client';
+import { formatDate, getThreadTitle } from '@/lib/thread-helpers';
 import type { StorageThreadType } from '@mastra/core/memory';
 
 const AGENT_ID = 'nc-medicaid-navigator';
@@ -110,35 +111,9 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
     }
   };
 
-  function formatDate(date: string | Date | undefined): string {
-    if (!date) return '';
-    const d = new Date(date);
-    const now = new Date();
-    const diffMs = now.getTime() - d.getTime();
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-    if (diffDays === 0) {
-      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    } else if (diffDays === 1) {
-      return 'Yesterday';
-    } else if (diffDays < 7) {
-      return d.toLocaleDateString([], { weekday: 'short' });
-    } else {
-      return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
-    }
-  }
-
-  function getThreadTitle(thread: StorageThreadType): string {
-    if (thread.title && thread.title.trim()) {
-      return thread.title.length > 50 ? thread.title.slice(0, 50) + '...' : thread.title;
-    }
-    return 'New conversation';
-  }
-
   return (
     <div className="flex flex-col h-full bg-sidebar border-r border-sidebar-border">
-      {/* Header — left-padded to make room for the fixed sidebar toggle button */}
-      <div className="pl-12 pr-4 py-4 flex items-center justify-between shrink-0">
+      <div className="px-4 py-4 flex items-center justify-between shrink-0">
         <span className="text-xs font-semibold uppercase tracking-widest text-sidebar-foreground/50">
           Threads
         </span>
@@ -159,7 +134,16 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
       <ScrollArea className="flex-1">
         <div className="py-2">
           {isLoading && threads.length === 0 && (
-            <p className="px-4 py-3 text-xs text-sidebar-foreground/40">Loading...</p>
+            <div className="space-y-1 py-1" aria-label="Loading threads">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="px-4 py-2.5">
+                  <div
+                    className="h-3.5 rounded bg-sidebar-accent animate-pulse"
+                    style={{ width: `${65 + (i % 3) * 12}%` }}
+                  />
+                </div>
+              ))}
+            </div>
           )}
 
           {!isLoading && error && (
@@ -256,8 +240,8 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
       </ScrollArea>
 
       {/* User footer */}
-      <Separator className="bg-sidebar-accent shrink-0" />
-      <div className="px-4 py-3 shrink-0">
+      <Separator className="bg-sidebar-border shrink-0" />
+      <div className="px-4 py-3 shrink-0 bg-sidebar-accent/50">
         <div className="flex items-center justify-between gap-2">
           <span className="text-xs text-sidebar-foreground/50 truncate min-w-0">
             {user?.email ?? ''}
