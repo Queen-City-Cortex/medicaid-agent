@@ -8,6 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { ResearchTrace } from '@/components/ResearchTrace';
 import { ThreadSidebar } from '@/components/ThreadSidebar';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { useAgentStream } from '@/lib/use-agent-stream';
 import { generateUUID } from '@/lib/utils';
 import { mastraClient } from '@/lib/mastra-client';
@@ -118,6 +119,9 @@ export default function ChatPage() {
             </h1>
             <Separator orientation="vertical" className="h-5" />
             <span className="text-sm text-muted-foreground">Policy Research</span>
+            <div className="ml-auto self-center">
+              <ThemeToggle />
+            </div>
           </div>
         </header>
 
