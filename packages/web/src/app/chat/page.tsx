@@ -215,7 +215,11 @@ export default function ChatPage() {
                       content={msg.content}
                       onRerun={() => {
                         const userMsg = messages.slice(0, i).reverse().find(m => m.role === 'user');
-                        if (userMsg) sendMessage(userMsg.content);
+                        if (userMsg) {
+                          // Remove this assistant message, then re-send
+                          setMessages(prev => prev.filter((_, idx) => idx !== i));
+                          sendMessage(userMsg.content);
+                        }
                       }}
                     />
                   </div>
