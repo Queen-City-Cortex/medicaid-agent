@@ -140,7 +140,7 @@ export default function ChatPage() {
       </div>
 
       {/* Main chat area */}
-      <div className="flex flex-col flex-1 min-w-0 relative">
+      <div className="flex flex-col flex-1 min-w-0">
         <header className="border-b border-border bg-card px-8 py-5 shrink-0">
           <div className="max-w-3xl mx-auto flex items-baseline gap-3">
             {sidebarCollapsed && (
@@ -163,7 +163,8 @@ export default function ChatPage() {
           </div>
         </header>
 
-        <ScrollArea className="flex-1 min-h-0">
+        <div className="flex-1 min-h-0 relative">
+        <ScrollArea className="h-full">
           <div className="max-w-3xl mx-auto px-8 py-8 space-y-8">
             {/* Empty state */}
             {messages.length === 0 && !isLoading && (
@@ -253,8 +254,8 @@ export default function ChatPage() {
             <div ref={messagesEndRef} />
           </div>
         </ScrollArea>
-
         <ScrollToBottom viewportRef={viewportRef} />
+        </div>
 
         <footer className="border-t border-border bg-card px-8 py-5 shrink-0">
           <div className="max-w-3xl mx-auto flex gap-3">
