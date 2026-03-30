@@ -7,7 +7,9 @@ import { useAuth } from '@workos-inc/authkit-nextjs/components';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { MessageActions } from '@/components/MessageActions';
 import { ResearchTrace } from '@/components/ResearchTrace';
+import { ScrollToBottom } from '@/components/ScrollToBottom';
 import { ThreadSidebar } from '@/components/ThreadSidebar';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useAgentStream } from '@/lib/use-agent-stream';
@@ -43,6 +45,7 @@ export default function ChatPage() {
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const viewportRef = useRef<HTMLElement | null>(null);
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     if (typeof window === 'undefined') return false;
@@ -68,6 +71,11 @@ export default function ChatPage() {
   }, [messages, streamTimeline, streamText]);
 
   useEffect(() => { inputRef.current?.focus({ preventScroll: true }); }, []);
+
+  useEffect(() => {
+    const el = messagesEndRef.current?.closest('[data-slot="scroll-area-viewport"]');
+    if (el) viewportRef.current = el as HTMLElement;
+  }, []);
 
   const ensureThreadExists = useCallback(async (tid: string, title?: string) => {
     try {
@@ -126,7 +134,7 @@ export default function ChatPage() {
       </div>
 
       {/* Main chat area */}
-      <div className="flex flex-col flex-1 min-w-0">
+      <div className="flex flex-col flex-1 min-w-0 relative">
         <header className="border-b border-border bg-card px-8 py-5 shrink-0">
           <div className="max-w-3xl mx-auto flex items-baseline gap-3">
             {sidebarCollapsed && (
@@ -177,7 +185,7 @@ export default function ChatPage() {
 
             {/* Completed messages */}
             {messages.map((msg, i) => (
-              <div key={i}>
+              <div key={i} className="group">
                 {msg.role === 'user' && (
                   <div className="flex justify-end mb-6">
                     <div data-testid="user-message" className="bg-primary text-primary-foreground rounded-2xl rounded-br-sm px-5 py-3 max-w-[75%]">
@@ -196,6 +204,13 @@ export default function ChatPage() {
                     <div className={PROSE}>
                       <ReactMarkdown>{msg.content}</ReactMarkdown>
                     </div>
+                    <MessageActions
+                      content={msg.content}
+                      onRerun={() => {
+                        const userMsg = messages.slice(0, i).reverse().find(m => m.role === 'user');
+                        if (userMsg) sendMessage(userMsg.content);
+                      }}
+                    />
                   </div>
                 )}
               </div>
@@ -232,6 +247,8 @@ export default function ChatPage() {
             <div ref={messagesEndRef} />
           </div>
         </ScrollArea>
+
+        <ScrollToBottom viewportRef={viewportRef} />
 
         <footer className="border-t border-border bg-card px-8 py-5 shrink-0">
           <div className="max-w-3xl mx-auto flex gap-3">
