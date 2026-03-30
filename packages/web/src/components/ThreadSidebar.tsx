@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { PanelLeftClose, Ellipsis, Pencil, Trash2 } from 'lucide-react';
+import { Ellipsis, Pencil, Trash2 } from 'lucide-react';
 import { useAuth } from '@workos-inc/authkit-nextjs/components';
 import { signOut } from '@workos-inc/authkit-nextjs';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -34,10 +34,9 @@ interface ThreadSidebarProps {
   refreshKey?: number;
   onSelectThread: (threadId: string) => void;
   onNewThread: () => void;
-  onCollapse?: () => void;
 }
 
-export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelectThread, onNewThread, onCollapse }: ThreadSidebarProps) {
+export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelectThread, onNewThread }: ThreadSidebarProps) {
   const { user } = useAuth();
   const [threads, setThreads] = useState<StorageThreadType[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -138,22 +137,11 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
 
   return (
     <div className="flex flex-col h-full bg-sidebar border-r border-sidebar-border">
-      {/* Header */}
-      <div className="px-4 py-4 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-2">
-          {onCollapse && (
-            <button
-              onClick={onCollapse}
-              className="p-1 rounded-md text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
-              aria-label="Close sidebar"
-            >
-              <PanelLeftClose className="w-4 h-4" />
-            </button>
-          )}
-          <span className="text-xs font-semibold uppercase tracking-widest text-sidebar-foreground/50">
-            Threads
-          </span>
-        </div>
+      {/* Header — left-padded to make room for the fixed sidebar toggle button */}
+      <div className="pl-12 pr-4 py-4 flex items-center justify-between shrink-0">
+        <span className="text-xs font-semibold uppercase tracking-widest text-sidebar-foreground/50">
+          Threads
+        </span>
         <Button
           variant="ghost"
           size="sm"
