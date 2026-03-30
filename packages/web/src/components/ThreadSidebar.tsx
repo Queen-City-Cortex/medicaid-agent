@@ -13,6 +13,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { mastraClient } from '@/lib/mastra-client';
 import type { StorageThreadType } from '@mastra/core/memory';
 
@@ -35,7 +45,7 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
   const [editingThreadId, setEditingThreadId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [menuOpenThreadId, setMenuOpenThreadId] = useState<string | null>(null);
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [deleteThreadId, setDeleteThreadId] = useState<string | null>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
 
   const fetchThreads = useCallback(async () => {
@@ -238,18 +248,12 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
                             <DropdownMenuItem
                               onClick={(e) => {
                                 e.stopPropagation();
-                                if (confirmDeleteId === thread.id) {
-                                  handleDelete(thread.id);
-                                  setConfirmDeleteId(null);
-                                } else {
-                                  setConfirmDeleteId(thread.id);
-                                  setTimeout(() => setConfirmDeleteId(null), 3000);
-                                }
+                                setDeleteThreadId(thread.id);
                               }}
                               className="text-destructive focus:text-destructive"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
-                              {confirmDeleteId === thread.id ? 'Confirm delete?' : 'Delete'}
+                              Delete
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -280,6 +284,30 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
           </Button>
         </div>
       </div>
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={!!deleteThreadId} onOpenChange={(open) => !open && setDeleteThreadId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete chat</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this chat? This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (deleteThreadId) handleDelete(deleteThreadId);
+                setDeleteThreadId(null);
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
