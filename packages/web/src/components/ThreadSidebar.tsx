@@ -35,6 +35,7 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
   const [editingThreadId, setEditingThreadId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [menuOpenThreadId, setMenuOpenThreadId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
 
   const fetchThreads = useCallback(async () => {
@@ -237,12 +238,18 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
                             <DropdownMenuItem
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleDelete(thread.id);
+                                if (confirmDeleteId === thread.id) {
+                                  handleDelete(thread.id);
+                                  setConfirmDeleteId(null);
+                                } else {
+                                  setConfirmDeleteId(thread.id);
+                                  setTimeout(() => setConfirmDeleteId(null), 3000);
+                                }
                               }}
                               className="text-destructive focus:text-destructive"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
-                              Delete
+                              {confirmDeleteId === thread.id ? 'Confirm delete?' : 'Delete'}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
