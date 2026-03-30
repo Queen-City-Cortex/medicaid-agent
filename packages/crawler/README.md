@@ -51,8 +51,9 @@ npx tsx src/index.ts crawl --dry-run
 ## Testing
 
 ```bash
-npm test           # Run all tests
-npm run test:watch # Watch mode
+npm test              # Run all tests
+npm run test:watch    # Watch mode
+npm run test:coverage # With line-level coverage report
 ```
 
 ## Design
