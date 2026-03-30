@@ -82,7 +82,7 @@ export function useAgentStream({ threadId, resourceId, onComplete }: UseAgentStr
       const response = await agent.stream(
         [{ role: 'user', content: question }],
         {
-          maxSteps: 15,
+          maxSteps: 30,
           memory: {
             thread: threadId,
             resource: resourceId,
