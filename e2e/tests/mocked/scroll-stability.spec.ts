@@ -39,7 +39,7 @@ test.describe('Scroll stability', () => {
 
     // Sidebar should be visible at the top of the viewport
     const sidebarTop = await page.evaluate(() => {
-      return document.querySelector('[class*="bg-zinc-950"]')?.getBoundingClientRect().top ?? -999;
+      return document.querySelector('[class*="bg-sidebar"]')?.getBoundingClientRect().top ?? -999;
     });
     expect(sidebarTop).toBeGreaterThanOrEqual(0);
   });
