@@ -79,20 +79,20 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
   }
 
   return (
-    <div className="flex flex-col h-full bg-zinc-950 border-r border-zinc-800">
+    <div className="flex flex-col h-full bg-sidebar border-r border-sidebar-border">
       {/* Header */}
       <div className="px-4 py-4 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2">
           {onCollapse && (
             <button
               onClick={onCollapse}
-              className="p-1 rounded-md text-zinc-500 hover:text-zinc-100 hover:bg-zinc-800 transition-colors"
+              className="p-1 rounded-md text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
               aria-label="Close sidebar"
             >
               <PanelLeftClose className="w-4 h-4" />
             </button>
           )}
-          <span className="text-xs font-semibold uppercase tracking-widest text-zinc-500">
+          <span className="text-xs font-semibold uppercase tracking-widest text-sidebar-foreground/50">
             Threads
           </span>
         </div>
@@ -101,19 +101,19 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
           size="sm"
           data-testid="new-thread-button"
           onClick={onNewThread}
-          className="h-7 px-2 text-xs text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800"
+          className="h-7 px-2 text-xs text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
         >
           + New
         </Button>
       </div>
 
-      <Separator className="bg-zinc-800 shrink-0" />
+      <Separator className="bg-sidebar-accent shrink-0" />
 
       {/* Thread list */}
       <ScrollArea className="flex-1">
         <div className="py-2">
           {isLoading && threads.length === 0 && (
-            <p className="px-4 py-3 text-xs text-zinc-600">Loading...</p>
+            <p className="px-4 py-3 text-xs text-sidebar-foreground/40">Loading...</p>
           )}
 
           {!isLoading && error && (
@@ -121,7 +121,7 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
               <p className="text-xs text-red-400 mb-2">{error}</p>
               <button
                 onClick={fetchThreads}
-                className="text-xs text-zinc-400 hover:text-zinc-100 underline underline-offset-2"
+                className="text-xs text-sidebar-foreground/70 hover:text-sidebar-foreground underline underline-offset-2"
               >
                 Retry
               </button>
@@ -129,7 +129,7 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
           )}
 
           {!isLoading && !error && threads.length === 0 && (
-            <p className="px-4 py-3 text-xs text-zinc-600">No threads yet</p>
+            <p className="px-4 py-3 text-xs text-sidebar-foreground/40">No threads yet</p>
           )}
 
           {threads.map((thread) => {
@@ -141,15 +141,15 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
                 onClick={() => onSelectThread(thread.id)}
                 className={`w-full text-left px-4 py-2.5 transition-colors ${
                   isActive
-                    ? 'bg-zinc-800 text-zinc-100'
-                    : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'
+                    ? 'bg-sidebar-accent text-sidebar-foreground'
+                    : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground/90'
                 }`}
               >
                 <div className="flex items-start justify-between gap-2">
                   <span className="text-xs leading-snug line-clamp-2 flex-1 min-w-0">
                     {getThreadTitle(thread)}
                   </span>
-                  <span className="text-[10px] text-zinc-600 shrink-0 mt-0.5">
+                  <span className="text-[10px] text-sidebar-foreground/40 shrink-0 mt-0.5">
                     {formatDate(thread.updatedAt)}
                   </span>
                 </div>
@@ -160,17 +160,17 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
       </ScrollArea>
 
       {/* User footer */}
-      <Separator className="bg-zinc-800 shrink-0" />
+      <Separator className="bg-sidebar-accent shrink-0" />
       <div className="px-4 py-3 shrink-0">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-xs text-zinc-500 truncate min-w-0">
+          <span className="text-xs text-sidebar-foreground/50 truncate min-w-0">
             {user?.email ?? ''}
           </span>
           <Button
             variant="ghost"
             size="sm"
             onClick={() => signOut()}
-            className="h-7 px-2 text-xs text-zinc-500 hover:text-zinc-100 hover:bg-zinc-800 shrink-0"
+            className="h-7 px-2 text-xs text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent shrink-0"
           >
             Sign out
           </Button>
