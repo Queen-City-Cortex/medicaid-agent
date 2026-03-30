@@ -26,7 +26,7 @@ export function ResearchTrace({ timeline, live = false }: ResearchTraceProps) {
   if (timeline.length === 0) return null;
 
   return (
-    <div className={`space-y-1 ${live ? 'animate-in fade-in duration-300' : ''}`}>
+    <div data-testid="research-trace" className={`space-y-1 ${live ? 'animate-in fade-in duration-300' : ''}`}>
       {timeline.map((entry, i) => (
         entry.type === 'tool' ? (
           <div key={i} className="flex items-center gap-1.5 text-xs text-muted-foreground/50">

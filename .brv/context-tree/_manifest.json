@@ -1,0 +1,85 @@
+{
+  "active_context": [
+    {
+      "order": 3,
+      "path": "_index.md",
+      "tokens": 781,
+      "type": "summary"
+    },
+    {
+      "order": 2,
+      "path": "frontend_ui/_index.md",
+      "tokens": 515,
+      "type": "summary"
+    },
+    {
+      "order": 2,
+      "path": "qa/_index.md",
+      "tokens": 474,
+      "type": "summary"
+    },
+    {
+      "importance": 50,
+      "path": "README.md",
+      "tokens": 2,
+      "type": "context"
+    },
+    {
+      "importance": 50,
+      "path": "frontend_ui/chat_page_scroll_stability/chat_page_scroll_stability.md",
+      "tokens": 720,
+      "type": "context"
+    },
+    {
+      "importance": 50,
+      "path": "frontend_ui/chat_page_scroll_stability/context.md",
+      "tokens": 148,
+      "type": "context"
+    },
+    {
+      "importance": 50,
+      "path": "frontend_ui/context.md",
+      "tokens": 133,
+      "type": "context"
+    },
+    {
+      "importance": 50,
+      "path": "frontend_ui/scroll_area_sidebar_stability/chat_sidebar_scroll_fix.md",
+      "tokens": 634,
+      "type": "context"
+    },
+    {
+      "importance": 50,
+      "path": "frontend_ui/scroll_area_sidebar_stability/context.md",
+      "tokens": 85,
+      "type": "context"
+    },
+    {
+      "importance": 50,
+      "path": "qa/context.md",
+      "tokens": 158,
+      "type": "context"
+    },
+    {
+      "importance": 50,
+      "path": "qa/playwright_e2e/context.md",
+      "tokens": 113,
+      "type": "context"
+    },
+    {
+      "importance": 50,
+      "path": "qa/playwright_e2e/medicaid_agent_playwright_e2e_infrastructure.md",
+      "tokens": 794,
+      "type": "context"
+    }
+  ],
+  "generated_at": "2026-03-29T22:42:40.668Z",
+  "lane_tokens": {
+    "contexts": 2787,
+    "stubs": 0,
+    "summaries": 1770
+  },
+  "source_fingerprint": "fda723f158d012a14275b112772cd41f0ce6f025f3d2245c28dc590240bbf926",
+  "total_tokens": 4557,
+  "version": 1
+}
