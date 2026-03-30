@@ -36,14 +36,12 @@ export function ScrollToBottom({ viewportRef }: ScrollToBottomProps) {
   if (!visible) return null;
 
   return (
-    <Button
-      variant="outline"
-      size="icon"
+    <button
       onClick={scrollToBottom}
-      className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full shadow-lg animate-in fade-in zoom-in-75 duration-200 bg-card border-border"
+      className="absolute bottom-4 left-1/2 -translate-x-1/2 h-8 w-8 flex items-center justify-center rounded-full shadow-lg animate-in fade-in zoom-in-75 duration-200 bg-foreground text-background hover:bg-foreground/90 transition-colors"
       aria-label="Scroll to bottom"
     >
       <ArrowDown className="w-4 h-4" />
-    </Button>
+    </button>
   );
 }
