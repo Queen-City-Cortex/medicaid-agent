@@ -18,7 +18,7 @@ import { mastraClient } from '@/lib/mastra-client';
 
 const AGENT_ID = 'nc-medicaid-navigator';
 
-const PROSE = 'prose prose-sm prose-slate max-w-none prose-headings:font-heading prose-headings:tracking-tight prose-h2:text-lg prose-h3:text-base prose-p:leading-relaxed prose-li:leading-relaxed prose-strong:text-foreground';
+const PROSE = 'prose prose-sm dark:prose-invert max-w-none prose-headings:font-heading prose-headings:tracking-tight prose-h2:text-lg prose-h3:text-base prose-p:leading-relaxed prose-li:leading-relaxed prose-strong:text-foreground';
 
 const EXAMPLES = [
   'Does NC Medicaid cover chiropractic services?',
@@ -72,10 +72,11 @@ export default function ChatPage() {
 
   useEffect(() => { inputRef.current?.focus({ preventScroll: true }); }, []);
 
+  // Re-grab viewport ref whenever messages change (ensures it's set after auth resolves)
   useEffect(() => {
     const el = messagesEndRef.current?.closest('[data-slot="scroll-area-viewport"]');
     if (el) viewportRef.current = el as HTMLElement;
-  }, []);
+  });
 
   const ensureThreadExists = useCallback(async (tid: string, title?: string) => {
     try {

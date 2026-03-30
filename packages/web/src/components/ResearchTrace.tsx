@@ -29,7 +29,7 @@ export function ResearchTrace({ timeline, live = false }: ResearchTraceProps) {
     <div data-testid="research-trace" className={`space-y-1 ${live ? 'animate-in fade-in duration-300' : ''}`}>
       {timeline.map((entry, i) => (
         entry.type === 'tool' ? (
-          <div key={i} className="flex items-center gap-1.5 text-xs text-muted-foreground/50">
+          <div key={i} className="flex items-center gap-1.5 text-xs text-muted-foreground">
             {entry.status === 'running' && live ? (
               <span className="inline-block w-3 h-3 border-2 border-accent border-t-transparent rounded-full animate-spin" />
             ) : (
@@ -38,7 +38,7 @@ export function ResearchTrace({ timeline, live = false }: ResearchTraceProps) {
             <span>{TOOLS[entry.name]?.label || entry.name}</span>
           </div>
         ) : (
-          <p key={i} className="text-sm text-muted-foreground/70 italic">
+          <p key={i} className="text-sm text-muted-foreground italic">
             {entry.text}
           </p>
         )
