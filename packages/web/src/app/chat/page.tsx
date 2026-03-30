@@ -2,6 +2,7 @@
 
 import { useRef, useEffect, useState, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
+import { useAuth } from '@workos-inc/authkit-nextjs/components';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
@@ -12,7 +13,6 @@ import { generateUUID } from '@/lib/utils';
 import { mastraClient } from '@/lib/mastra-client';
 
 const AGENT_ID = 'nc-medicaid-navigator';
-const RESOURCE_ID = 'anonymous';
 
 const PROSE = 'prose prose-sm prose-slate max-w-none prose-headings:font-heading prose-headings:tracking-tight prose-h2:text-lg prose-h3:text-base prose-p:leading-relaxed prose-li:leading-relaxed prose-strong:text-foreground';
 
@@ -23,14 +23,18 @@ const EXAMPLES = [
 ];
 
 export default function ChatPage() {
+  const { user, loading: authLoading } = useAuth();
   const [threadId, setThreadId] = useState<string>(() => generateUUID());
   const [threadVersion, setThreadVersion] = useState(0);
+
+  const resourceId = user?.id ?? 'anonymous';
 
   const {
     messages, isLoading, streamText, streamTimeline,
     sendMessage, setMessages, loadThread,
   } = useAgentStream({
     threadId,
+    resourceId,
     onComplete: () => setThreadVersion(v => v + 1),
   });
 
@@ -39,29 +43,35 @@ export default function ChatPage() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Scroll the ScrollArea viewport — NOT scrollIntoView which walks up and
+    // scrolls the overflow:hidden layout root, pushing the sidebar off-screen.
+    const el = messagesEndRef.current;
+    const viewport = el?.closest('[data-slot="scroll-area-viewport"]');
+    if (viewport) {
+      viewport.scrollTo({ top: viewport.scrollHeight, behavior: 'smooth' });
+    }
   }, [messages, streamTimeline, streamText]);
 
-  useEffect(() => { inputRef.current?.focus(); }, []);
+  useEffect(() => { inputRef.current?.focus({ preventScroll: true }); }, []);
 
   const ensureThreadExists = useCallback(async (tid: string, title?: string) => {
     try {
       await mastraClient.createMemoryThread({
         threadId: tid,
-        resourceId: RESOURCE_ID,
+        resourceId,
         agentId: AGENT_ID,
         title: title ?? 'New conversation',
       });
     } catch {
       // Thread may already exist — that's fine
     }
-  }, []);
+  }, [resourceId]);
 
   const handleSelectThread = useCallback(async (tid: string) => {
     setThreadId(tid);
     setMessages([]);
     await loadThread(tid);
-    inputRef.current?.focus();
+    inputRef.current?.focus({ preventScroll: true });
   }, [loadThread, setMessages]);
 
   const handleNewThread = useCallback(async () => {
@@ -69,7 +79,7 @@ export default function ChatPage() {
     setThreadId(newId);
     setMessages([]);
     await ensureThreadExists(newId);
-    inputRef.current?.focus();
+    inputRef.current?.focus({ preventScroll: true });
   }, [setMessages, ensureThreadExists]);
 
   const handleSend = useCallback(async () => {
@@ -84,12 +94,15 @@ export default function ChatPage() {
 
   const isStreaming = isLoading && (streamTimeline.length > 0 || !!streamText);
 
+  if (authLoading) return null;
+
   return (
     <div className="flex h-screen bg-background overflow-hidden">
       {/* Sidebar */}
       <div className="w-[280px] shrink-0 flex flex-col h-full">
         <ThreadSidebar
           currentThreadId={threadId}
+          resourceId={resourceId}
           refreshKey={threadVersion}
           onSelectThread={handleSelectThread}
           onNewThread={handleNewThread}
@@ -108,12 +121,12 @@ export default function ChatPage() {
           </div>
         </header>
 
-        <ScrollArea className="flex-1">
+        <ScrollArea className="flex-1 min-h-0">
           <div className="max-w-3xl mx-auto px-8 py-8 space-y-8">
             {/* Empty state */}
             {messages.length === 0 && !isLoading && (
               <div className="py-20 text-center">
-                <h2 className="font-heading text-3xl font-semibold tracking-tight text-foreground mb-2">
+                <h2 data-testid="empty-state" className="font-heading text-3xl font-semibold tracking-tight text-foreground mb-2">
                   What would you like to know?
                 </h2>
                 <p className="text-muted-foreground mb-10">
@@ -123,7 +136,8 @@ export default function ChatPage() {
                   {EXAMPLES.map((q, i) => (
                     <button
                       key={i}
-                      onClick={() => { setInput(q); inputRef.current?.focus(); }}
+                      data-testid="example-card"
+                      onClick={() => { setInput(q); inputRef.current?.focus({ preventScroll: true }); }}
                       className="text-left px-4 py-3 rounded-lg border border-border bg-card text-sm text-foreground hover:border-accent hover:bg-muted transition-colors"
                     >
                       {q}
@@ -138,14 +152,14 @@ export default function ChatPage() {
               <div key={i}>
                 {msg.role === 'user' && (
                   <div className="flex justify-end mb-6">
-                    <div className="bg-primary text-primary-foreground rounded-2xl rounded-br-sm px-5 py-3 max-w-[75%]">
+                    <div data-testid="user-message" className="bg-primary text-primary-foreground rounded-2xl rounded-br-sm px-5 py-3 max-w-[75%]">
                       <p className="text-sm leading-relaxed">{msg.content}</p>
                     </div>
                   </div>
                 )}
 
                 {msg.role === 'assistant' && (
-                  <div className="pl-2 mt-6">
+                  <div data-testid="assistant-message" className="pl-2 mt-6">
                     {msg.timeline && msg.timeline.length > 0 && (
                       <div className="border-l-2 border-border pl-4 mb-4">
                         <ResearchTrace timeline={msg.timeline} />
@@ -179,7 +193,7 @@ export default function ChatPage() {
 
                 {/* Initial loading indicator before any content arrives */}
                 {!streamText && streamTimeline.length === 0 && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <div data-testid="loading-indicator" className="flex items-center gap-2 text-sm text-muted-foreground">
                     <span className="inline-block w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" />
                     Starting research...
                   </div>
@@ -196,6 +210,7 @@ export default function ChatPage() {
             <input
               ref={inputRef}
               type="text"
+              data-testid="chat-input"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
@@ -203,7 +218,7 @@ export default function ChatPage() {
               className="flex-1 rounded-lg border border-input bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-shadow"
               disabled={isLoading}
             />
-            <Button onClick={handleSend} disabled={isLoading || !input.trim()} className="px-6">
+            <Button data-testid="send-button" onClick={handleSend} disabled={isLoading || !input.trim()} className="px-6">
               {isLoading ? (
                 <span className="flex items-center gap-2">
                   <span className="inline-block w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
