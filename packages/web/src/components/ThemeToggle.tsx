@@ -1,7 +1,6 @@
 'use client';
 
 import { Sun, Moon, Monitor } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,10 +21,8 @@ export function ThemeToggle() {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Toggle theme">
-          <ActiveIcon className="w-4 h-4" />
-        </Button>
+      <DropdownMenuTrigger className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" aria-label="Toggle theme">
+        <ActiveIcon className="w-4 h-4" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         {options.map(({ value, label, Icon }) => (
