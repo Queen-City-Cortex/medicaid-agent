@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { Copy, Check, ThumbsUp, ThumbsDown, RotateCcw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
 interface MessageActionsProps {
   content: string;
@@ -19,47 +21,53 @@ export function MessageActions({ content, onRerun }: MessageActionsProps) {
   };
 
   return (
-    <div className="flex items-center gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
-      <button
-        onClick={handleCopy}
-        className="p-1.5 rounded-md text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted transition-colors"
-        aria-label={copied ? 'Copied' : 'Copy response'}
-      >
-        {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-      </button>
+    <div className="flex items-center gap-0.5 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleCopy}>
+            {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>{copied ? 'Copied!' : 'Copy'}</TooltipContent>
+      </Tooltip>
 
-      <button
-        onClick={() => setRating(r => r === 'up' ? null : 'up')}
-        className={`p-1.5 rounded-md transition-colors ${
-          rating === 'up'
-            ? 'text-foreground bg-muted'
-            : 'text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted'
-        }`}
-        aria-label="Thumbs up"
-      >
-        <ThumbsUp className="w-3.5 h-3.5" />
-      </button>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className={`h-7 w-7 ${rating === 'up' ? 'bg-muted text-foreground' : ''}`}
+            onClick={() => setRating(r => r === 'up' ? null : 'up')}
+          >
+            <ThumbsUp className="w-3.5 h-3.5" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>Good response</TooltipContent>
+      </Tooltip>
 
-      <button
-        onClick={() => setRating(r => r === 'down' ? null : 'down')}
-        className={`p-1.5 rounded-md transition-colors ${
-          rating === 'down'
-            ? 'text-foreground bg-muted'
-            : 'text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted'
-        }`}
-        aria-label="Thumbs down"
-      >
-        <ThumbsDown className="w-3.5 h-3.5" />
-      </button>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className={`h-7 w-7 ${rating === 'down' ? 'bg-muted text-foreground' : ''}`}
+            onClick={() => setRating(r => r === 'down' ? null : 'down')}
+          >
+            <ThumbsDown className="w-3.5 h-3.5" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>Bad response</TooltipContent>
+      </Tooltip>
 
       {onRerun && (
-        <button
-          onClick={onRerun}
-          className="p-1.5 rounded-md text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted transition-colors"
-          aria-label="Re-run question"
-        >
-          <RotateCcw className="w-3.5 h-3.5" />
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onRerun}>
+              <RotateCcw className="w-3.5 h-3.5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Re-run</TooltipContent>
+        </Tooltip>
       )}
     </div>
   );

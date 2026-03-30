@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { ArrowDown } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface ScrollToBottomProps {
   viewportRef: React.RefObject<HTMLElement | null>;
@@ -35,12 +36,14 @@ export function ScrollToBottom({ viewportRef }: ScrollToBottomProps) {
   if (!visible) return null;
 
   return (
-    <button
+    <Button
+      variant="outline"
+      size="icon"
       onClick={scrollToBottom}
-      className="absolute bottom-20 left-1/2 -translate-x-1/2 p-2 rounded-full border border-border bg-background shadow-md text-muted-foreground hover:text-foreground hover:bg-muted transition-all animate-in fade-in zoom-in-75 duration-200"
+      className="absolute bottom-20 left-1/2 -translate-x-1/2 rounded-full shadow-md animate-in fade-in zoom-in-75 duration-200"
       aria-label="Scroll to bottom"
     >
       <ArrowDown className="w-4 h-4" />
-    </button>
+    </Button>
   );
 }

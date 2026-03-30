@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Source_Serif_4, DM_Sans, JetBrains_Mono } from "next/font/google";
 import { AuthKitProvider } from '@workos-inc/authkit-nextjs/components';
 import { ThemeProvider } from '@/components/ThemeProvider';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import "./globals.css";
 
 const serif = Source_Serif_4({
@@ -39,7 +40,9 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col font-sans">
         <AuthKitProvider>
-          <ThemeProvider>{children}</ThemeProvider>
+          <ThemeProvider>
+            <TooltipProvider>{children}</TooltipProvider>
+          </ThemeProvider>
         </AuthKitProvider>
       </body>
     </html>
