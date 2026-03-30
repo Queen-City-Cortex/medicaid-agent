@@ -34,6 +34,7 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
   const [error, setError] = useState<string | null>(null);
   const [editingThreadId, setEditingThreadId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
+  const [menuOpenThreadId, setMenuOpenThreadId] = useState<string | null>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
 
   const fetchThreads = useCallback(async () => {
@@ -212,12 +213,12 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
                         {getThreadTitle(thread)}
                       </span>
                       <div className="flex items-center gap-1 shrink-0 mt-0.5">
-                        <span className="text-[10px] text-sidebar-foreground/40 group-hover:hidden">
+                        <span className={`text-[10px] text-sidebar-foreground/40 ${menuOpenThreadId === thread.id ? 'hidden' : 'group-hover:hidden'}`}>
                           {formatDate(thread.updatedAt)}
                         </span>
-                        <DropdownMenu>
+                        <DropdownMenu onOpenChange={(open) => setMenuOpenThreadId(open ? thread.id : null)}>
                           <DropdownMenuTrigger
-                            className="hidden group-hover:flex p-0.5 rounded text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+                            className={`${menuOpenThreadId === thread.id ? 'flex' : 'hidden group-hover:flex'} p-0.5 rounded text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors`}
                             onClick={(e) => e.stopPropagation()}
                           >
                             <Ellipsis className="w-3.5 h-3.5" />
