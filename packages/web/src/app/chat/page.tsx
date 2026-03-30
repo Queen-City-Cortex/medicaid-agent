@@ -214,12 +214,17 @@ export default function ChatPage() {
                     <MessageActions
                       content={msg.content}
                       onRerun={() => {
-                        const userMsg = messages.slice(0, i).reverse().find(m => m.role === 'user');
-                        if (userMsg) {
-                          // Remove this assistant message, then re-send
-                          setMessages(prev => prev.filter((_, idx) => idx !== i));
-                          sendMessage(userMsg.content);
+                        // Find the preceding user message index
+                        let userIdx = -1;
+                        for (let j = i - 1; j >= 0; j--) {
+                          if (messages[j].role === 'user') { userIdx = j; break; }
                         }
+                        if (userIdx === -1) return;
+                        const question = messages[userIdx].content;
+                        // Remove both the user message and this assistant response
+                        // (sendMessage will re-add the user message)
+                        setMessages(prev => prev.filter((_, idx) => idx !== i && idx !== userIdx));
+                        sendMessage(question);
                       }}
                     />
                   </div>
