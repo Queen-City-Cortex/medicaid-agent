@@ -98,12 +98,17 @@ export default function ChatPage() {
   }, [loadThread, setMessages]);
 
   const handleNewThread = useCallback(async () => {
+    // Don't create another thread if the current one is empty
+    if (messages.length === 0) {
+      inputRef.current?.focus({ preventScroll: true });
+      return;
+    }
     const newId = generateUUID();
     setThreadId(newId);
     setMessages([]);
     await ensureThreadExists(newId);
     inputRef.current?.focus({ preventScroll: true });
-  }, [setMessages, ensureThreadExists]);
+  }, [messages.length, setMessages, ensureThreadExists]);
 
   const handleSend = useCallback(async () => {
     if (!input.trim()) return;
