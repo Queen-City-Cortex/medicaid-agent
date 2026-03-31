@@ -76,6 +76,7 @@ export const getAmendments = createTool({
         policyNumber: z.string().nullable(),
         effectiveDate: z.string().nullable(),
         url: z.string().nullable(),
+        changeSummary: z.string().nullable(),
       }),
     ),
     baseDocument: z
@@ -93,16 +94,24 @@ export const getAmendments = createTool({
     const { documentId } = inputData;
 
     return await withSession(async (session) => {
-      // Documents that amend this document (incoming AMENDS)
+      // Documents that amend this document, with a summary of changes
+      // from the amendment's first substantive section (where revisions
+      // are typically described, e.g. "MA-2180 is revised in: ...")
       const amendResult = await session.run(
         `MATCH (d:Document {id: $id})<-[:AMENDS]-(amend:Document)
+         OPTIONAL MATCH (amend)-[:HAS_SECTION]->(sec:Section)
+         WHERE sec.content_length > 100
+         WITH amend, sec
+         ORDER BY sec.content_length DESC
+         WITH amend, collect(substring(sec.content_text, 0, 500))[0] AS firstSectionText
          RETURN
            amend.id AS id,
            amend.title AS title,
            amend.document_type AS documentType,
            amend.policy_number AS policyNumber,
            amend.effective_date AS effectiveDate,
-           amend.url AS url
+           amend.url AS url,
+           firstSectionText
          ORDER BY amend.effective_date DESC`,
         { id: documentId },
       );
@@ -114,6 +123,7 @@ export const getAmendments = createTool({
         policyNumber: rec.get('policyNumber') as string | null,
         effectiveDate: rec.get('effectiveDate') as string | null,
         url: rec.get('url') as string | null,
+        changeSummary: rec.get('firstSectionText') as string | null,
       }));
 
       // Document that this document amends (outgoing AMENDS)

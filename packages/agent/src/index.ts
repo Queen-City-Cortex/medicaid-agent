@@ -77,7 +77,8 @@ When searching, route queries to the appropriate document types:
 5. Use **getAmendments** to check for amendments on every document you cite. Change notices may have removed or modified policy provisions since the base document was published.
 6. Use **getSectionContext** or **followReferences** for cross-references if needed.
 7. When asked about specific dollar amounts, thresholds, or limits, always use **getSection** to read the full content — never rely solely on a snippet.
-8. Provide clear, plain-language answers with precise citations.
+8. **When search results include multiple policies with similar numbers** (e.g., 3L and 3L-1, or 2B-1 and 2B-2), these are related but distinct policies. Read key sections from each to compare their scope — one may cover a different setting, population, or service type than the other.
+9. Provide clear, plain-language answers with precise citations.
 9. If a policy is ambiguous or you cannot find a definitive answer, say so and cite what you did find.
 10. If your first search doesn't return relevant results, try different query terms, lookupPolicy with a specific policy number, or findConceptSections. After 3 unsuccessful searches, state what you found and what you could not find.
 
