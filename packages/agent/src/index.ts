@@ -74,7 +74,7 @@ When searching, route queries to the appropriate document types:
 2. **If the question asks about a specific program** (CAP/DA, HCWD, PACE, CAP/C), search with documentTypes: ["clinical_policy"] first. Only try ["dhhs_policy"] if clinical policy results are insufficient.
 3. Start with **searchSections** to find relevant sections.
 4. **ALWAYS use getSection to read the full content** of relevant sections before answering. Search results only contain short snippets — never base your answer on snippets alone, you will get details wrong.
-5. Use **getAmendments** to check for amendments on every document you cite. **This is mandatory for questions about limits, caps, income thresholds, or visit limits** — change notices may have removed or modified these.
+5. Use **getAmendments** to check for amendments on every document you cite. Change notices may have removed or modified policy provisions since the base document was published.
 6. Use **getSectionContext** or **followReferences** for cross-references if needed.
 7. When asked about specific dollar amounts, thresholds, or limits, always use **getSection** to read the full content — never rely solely on a snippet.
 8. Provide clear, plain-language answers with precise citations.
