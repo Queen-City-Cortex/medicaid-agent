@@ -1,6 +1,7 @@
 import { Mastra } from '@mastra/core';
 import { Agent } from '@mastra/core/agent';
 import { createAnthropic } from '@ai-sdk/anthropic';
+import { createOpenAI } from '@ai-sdk/openai';
 import { chatRoute } from '@mastra/ai-sdk';
 import { Memory } from '@mastra/memory';
 import { LibSQLStore } from '@mastra/libsql';
@@ -15,6 +16,19 @@ const anthropic = createAnthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
   headers: { 'anthropic-beta': 'prompt-caching-2024-07-31' },
 });
+
+const openai = createOpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+const AGENT_MODEL = process.env.AGENT_MODEL || 'gpt-5.4-mini';
+
+function createModel(modelId: string) {
+  if (modelId.startsWith('gpt-') || modelId.startsWith('o3') || modelId.startsWith('o4')) {
+    return openai(modelId);
+  }
+  return anthropic(modelId);
+}
 
 const storage = new LibSQLStore({
   id: 'mastra-storage',
@@ -83,7 +97,7 @@ export const ncMedicaidAgent = new Agent({
   id: 'nc-medicaid-navigator',
   name: 'NC Medicaid Navigator',
   instructions: SYSTEM_PROMPT,
-  model: anthropic(process.env.AGENT_MODEL || 'claude-haiku-4-5-20251001'),
+  model: createModel(AGENT_MODEL),
   tools: {
     searchSections,
     getSection,

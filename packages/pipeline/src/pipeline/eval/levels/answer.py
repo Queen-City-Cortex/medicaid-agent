@@ -38,6 +38,13 @@ def _invoke_agent_http(question: str) -> str:
 def _invoke_agent_cli(question: str) -> str:
     """Fall back to CLI subprocess."""
     agent_env = {**os.environ, "ANTHROPIC_API_KEY": ANTHROPIC_API_KEY, "VOYAGE_API_KEY": VOYAGE_API_KEY}
+    # Pass through OpenAI key and model selection if set
+    openai_key = os.environ.get("OPENAI_API_KEY", "")
+    if openai_key:
+        agent_env["OPENAI_API_KEY"] = openai_key
+    agent_model = os.environ.get("AGENT_MODEL", "")
+    if agent_model:
+        agent_env["AGENT_MODEL"] = agent_model
     proc = subprocess.run(
         ["npx", "tsx", "src/index.ts", question],
         capture_output=True,
