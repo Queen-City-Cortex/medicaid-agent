@@ -60,57 +60,73 @@ export const searchSections = createTool({
     const embedding = await embedQuery(query);
 
     const sections = await withSession(async (session) => {
-      // Query the section_embeddings vector index
-      const vectorQuery = `
-        CALL db.index.vector.queryNodes('section_embeddings', $k, $embedding)
-        YIELD node AS s, score
-        MATCH (d:Document)-[:HAS_SECTION]->(s)
-        ${documentTypes && documentTypes.length > 0 ? 'WHERE d.document_type IN $docTypes' : ''}
-        RETURN
-          s.id AS sectionId,
-          s.title AS title,
-          d.policy_number AS policyNumber,
-          d.document_type AS documentType,
-          s.content AS content,
-          score
-        ORDER BY score DESC
-        LIMIT $k
-      `;
+      type SectionResult = {
+        sectionId: string;
+        title: string | null;
+        policyNumber: string | null;
+        documentType: string | null;
+        contentSnippet: string | null;
+        score: number;
+      };
 
-      const result = await session.run(vectorQuery, {
-        embedding,
-        k: neo4j.int(topK),
-        docTypes: documentTypes || [],
-      });
+      const sectionMap = new Map<string, SectionResult>();
 
-      const sectionMap = new Map<
-        string,
-        {
-          sectionId: string;
-          title: string | null;
-          policyNumber: string | null;
-          documentType: string | null;
-          contentSnippet: string | null;
-          score: number;
+      const addRecords = (records: any[]) => {
+        for (const record of records) {
+          const sectionId = record.get('sectionId') as string;
+          const score = record.get('score') as number;
+          const existing = sectionMap.get(sectionId);
+          if (!existing || score > existing.score) {
+            const content = record.get('content') as string | null;
+            sectionMap.set(sectionId, {
+              sectionId,
+              title: record.get('title') as string | null,
+              policyNumber: record.get('policyNumber') as string | null,
+              documentType: record.get('documentType') as string | null,
+              contentSnippet: content ? content.slice(0, 300) : null,
+              score,
+            });
+          }
         }
-      >();
+      };
 
-      for (const record of result.records) {
-        const sectionId = record.get('sectionId') as string;
-        if (!sectionMap.has(sectionId)) {
-          const content = record.get('content') as string | null;
-          sectionMap.set(sectionId, {
-            sectionId,
-            title: record.get('title') as string | null,
-            policyNumber: record.get('policyNumber') as string | null,
-            documentType: record.get('documentType') as string | null,
-            contentSnippet: content ? content.slice(0, 300) : null,
-            score: record.get('score') as number,
-          });
-        }
+      // When no type filter, search each major type separately to ensure
+      // clinical policies aren't drowned out by the 7:1 DHHS policy ratio.
+      // When a type filter is specified, search once with the filter.
+      const typeGroups = (documentTypes && documentTypes.length > 0)
+        ? [documentTypes]
+        : [['clinical_policy'], ['dhhs_policy'], ['federal_regulation', 'federal_statute', 'bulletin', 'state_plan_amendment', 'waiver', 'provider_manual']];
+
+      const perGroupK = (documentTypes && documentTypes.length > 0)
+        ? topK
+        : Math.max(topK, 10); // fetch more per group, then merge and trim
+
+      for (const docTypes of typeGroups) {
+        const vectorQuery = `
+          CALL db.index.vector.queryNodes('section_embeddings', $k, $embedding)
+          YIELD node AS s, score
+          MATCH (d:Document)-[:HAS_SECTION]->(s)
+          WHERE d.document_type IN $docTypes
+          RETURN
+            s.id AS sectionId,
+            s.title AS title,
+            d.policy_number AS policyNumber,
+            d.document_type AS documentType,
+            s.content AS content,
+            score
+          ORDER BY score DESC
+          LIMIT $k
+        `;
+
+        const result = await session.run(vectorQuery, {
+          embedding,
+          k: neo4j.int(perGroupK),
+          docTypes,
+        });
+        addRecords(result.records);
       }
 
-      // Also try chunk_embeddings index if it exists, deduplicate by section
+      // Also try chunk_embeddings index
       try {
         const chunkQuery = `
           CALL db.index.vector.queryNodes('chunk_embeddings', $k, $embedding)
@@ -134,23 +150,7 @@ export const searchSections = createTool({
           k: neo4j.int(topK),
           docTypes: documentTypes || [],
         });
-
-        for (const record of chunkResult.records) {
-          const sectionId = record.get('sectionId') as string;
-          const score = record.get('score') as number;
-          const existing = sectionMap.get(sectionId);
-          if (!existing || score > existing.score) {
-            const content = record.get('content') as string | null;
-            sectionMap.set(sectionId, {
-              sectionId,
-              title: record.get('title') as string | null,
-              policyNumber: record.get('policyNumber') as string | null,
-              documentType: record.get('documentType') as string | null,
-              contentSnippet: content ? content.slice(0, 300) : null,
-              score,
-            });
-          }
-        }
+        addRecords(chunkResult.records);
       } catch {
         // chunk_embeddings index may not exist; that's fine
       }
