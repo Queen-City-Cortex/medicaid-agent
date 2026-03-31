@@ -126,6 +126,42 @@ export const searchSections = createTool({
         addRecords(result.records);
       }
 
+      // Concept-augmented retrieval: if the query matches a known PolicyConcept
+      // name or alias, include concept-linked sections that vector search may miss.
+      // This uses the concept graph (COVERS/DEFINES/RESTRICTS edges) we built
+      // during ingestion. Concept matches get a synthetic score of 0.75 so they
+      // appear in results but don't outrank strong vector matches.
+      try {
+        const conceptQuery = `
+          MATCH (c:PolicyConcept)
+          WHERE toLower($query) CONTAINS toLower(c.name)
+             OR ANY(alias IN c.aliases WHERE toLower($query) CONTAINS toLower(alias))
+          WITH c LIMIT 2
+          MATCH (s:Section)-[:COVERS|DEFINES|RESTRICTS]->(c)
+          MATCH (d:Document)-[:HAS_SECTION]->(s)
+          WHERE s.content_length > 200
+          ${documentTypes && documentTypes.length > 0 ? 'AND d.document_type IN $docTypes' : ''}
+          RETURN
+            s.id AS sectionId,
+            s.title AS title,
+            d.policy_number AS policyNumber,
+            d.document_type AS documentType,
+            s.content AS content,
+            0.75 AS score
+          ORDER BY s.content_length DESC
+          LIMIT $k
+        `;
+
+        const conceptResult = await session.run(conceptQuery, {
+          query,
+          k: neo4j.int(Math.min(topK, 5)),
+          docTypes: documentTypes || [],
+        });
+        addRecords(conceptResult.records);
+      } catch {
+        // Concept matching is best-effort
+      }
+
       // Also try chunk_embeddings index
       try {
         const chunkQuery = `
