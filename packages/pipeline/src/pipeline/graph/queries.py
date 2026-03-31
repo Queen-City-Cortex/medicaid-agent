@@ -12,6 +12,7 @@ SET d.title = $title,
     d.pdf_path = $pdf_path,
     d.page_count = $page_count,
     d.section_count = $section_count,
+    d.effective_date = $effective_date,
     d.last_indexed = datetime()
 RETURN d
 """
@@ -52,14 +53,16 @@ MATCH (src:Section {id: $source_id})
 MATCH (tgt:Section {id: $target_id})
 MERGE (src)-[r:REFERENCES]->(tgt)
 SET r.reference_text = $reference_text,
-    r.reference_type = $reference_type
+    r.reference_type = $reference_type,
+    r.extraction_method = $extraction_method
 """
 
 MERGE_REFERENCES_DOCUMENT = """
 MATCH (src:Section {id: $source_id})
 MATCH (tgt:Document {id: $target_id})
 MERGE (src)-[r:REFERENCES_DOCUMENT]->(tgt)
-SET r.reference_text = $reference_text
+SET r.reference_text = $reference_text,
+    r.extraction_method = $extraction_method
 """
 
 MERGE_CONCEPT = """

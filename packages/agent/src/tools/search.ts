@@ -104,7 +104,7 @@ export const searchSections = createTool({
             title: record.get('title') as string | null,
             policyNumber: record.get('policyNumber') as string | null,
             documentType: record.get('documentType') as string | null,
-            contentSnippet: content ? content.slice(0, 500) : null,
+            contentSnippet: content ? content.slice(0, 300) : null,
             score: record.get('score') as number,
           });
         }
@@ -146,7 +146,7 @@ export const searchSections = createTool({
               title: record.get('title') as string | null,
               policyNumber: record.get('policyNumber') as string | null,
               documentType: record.get('documentType') as string | null,
-              contentSnippet: content ? content.slice(0, 500) : null,
+              contentSnippet: content ? content.slice(0, 300) : null,
               score,
             });
           }

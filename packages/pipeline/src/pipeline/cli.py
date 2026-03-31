@@ -37,16 +37,19 @@ def load(source_type: str | None, reset: bool):
 
 
 @cli.command("extract-refs")
-@click.option("--llm-assist", is_flag=True, help="Use LLM for ambiguous references")
+@click.option("--llm-assist", is_flag=True, help="Use LLM to find implicit cross-references")
 def extract_refs(llm_assist: bool):
     """Extract and resolve cross-references between documents."""
     from pipeline.references.resolver import extract_and_resolve_all
 
-    stats = extract_and_resolve_all()
-    console.print(f"\n[bold]Cross-references:[/bold] {stats['extracted']} extracted, {stats['resolved']} resolved, {stats['unresolved']} unresolved")
+    stats = extract_and_resolve_all(llm_assist=llm_assist)
+    console.print(f"\n[bold]Cross-references (regex):[/bold] {stats['extracted']} extracted, {stats['resolved']} resolved, {stats['unresolved']} unresolved")
 
     if llm_assist:
-        console.print("[yellow]LLM-assisted extraction not yet implemented[/yellow]")
+        console.print(
+            f"[bold]Cross-references (LLM):[/bold] {stats.get('llm_extracted', 0)} extracted, "
+            f"{stats.get('llm_resolved', 0)} resolved, {stats.get('llm_unresolved', 0)} unresolved"
+        )
 
 
 @cli.command("unresolved-refs")
@@ -374,7 +377,8 @@ def eval_validate():
 
 @cli.command("run-all")
 @click.option("--source", "source_type", type=str, help="Process only this source type")
-def run_all(source_type: str | None):
+@click.option("--llm-assist", is_flag=True, help="Use LLM for cross-reference extraction")
+def run_all(source_type: str | None, llm_assist: bool):
     """Run the full pipeline: parse → load → extract-refs → embed → seed → link."""
     from pipeline.parse.converter import parse_all
     from pipeline.graph.loader import load_all
@@ -403,8 +407,12 @@ def run_all(source_type: str | None):
     console.print(f"  {ssa_stats['titles_loaded']} titles, {ssa_stats['sections_total']} sections\n")
 
     console.print("[bold]Stage 3: Cross-references[/bold]")
-    ref_stats = extract_and_resolve_all()
-    console.print(f"  {ref_stats['resolved']} resolved, {ref_stats['unresolved']} unresolved\n")
+    ref_stats = extract_and_resolve_all(llm_assist=llm_assist)
+    console.print(f"  {ref_stats['resolved']} resolved, {ref_stats['unresolved']} unresolved")
+    if llm_assist:
+        console.print(f"  LLM: {ref_stats.get('llm_resolved', 0)} additional resolved\n")
+    else:
+        console.print()
 
     console.print("[bold]Stage 3.5: Amendments[/bold]")
     from pipeline.references.amendments import detect_amendments

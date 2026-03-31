@@ -33,6 +33,7 @@ def load_cfr_part(title: int, part: int, refresh: bool = False) -> dict:
             "pdf_path": "",
             "page_count": 0,
             "section_count": len(sections),
+            "effective_date": None,
         })
 
         # MERGE section nodes
@@ -107,6 +108,7 @@ def load_ssa(refresh: bool = False) -> dict:
                     "pdf_path": "",
                     "page_count": 0,
                     "section_count": len(section_list),
+                    "effective_date": None,
                 })
 
             prev_section_id = None

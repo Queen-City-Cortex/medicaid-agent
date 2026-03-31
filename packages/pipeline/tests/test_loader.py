@@ -7,6 +7,7 @@ from pathlib import Path
 from pipeline.graph.loader import (
     walk_docling_document,
     build_sections_from_items,
+    _extract_dhhs_policy_number,
 )
 
 
@@ -42,3 +43,33 @@ class TestWalkDoclingDocument:
         sections = build_sections_from_items(doc_dict, "doc:test:fixture")
         levels = {s["level"] for s in sections}
         assert len(levels) > 1  # Should have multiple hierarchy levels
+
+
+class TestExtractDhhsPolicyNumber:
+    def test_ma_prefix(self):
+        assert _extract_dhhs_policy_number("MA-2270 LONG TERM CARE NEED AND BUDGETING") == "MA-2270"
+
+    def test_dma_prefix(self):
+        assert _extract_dhhs_policy_number("DMA-5097 Some Policy Title") == "DMA-5097"
+
+    def test_dhb_prefix(self):
+        assert _extract_dhhs_policy_number("DHB-5097 Another Policy") == "DHB-5097"
+
+    def test_dss_prefix(self):
+        assert _extract_dhhs_policy_number("DSS-8110 Guidance Document") == "DSS-8110"
+
+    def test_change_notice_with_ma(self):
+        assert _extract_dhhs_policy_number(
+            "CHANGE NOTICE FOR MANUAL NO. 01-24, MA-3200, Application"
+        ) == "MA-3200"
+
+    def test_change_notice_with_ma_different_format(self):
+        assert _extract_dhhs_policy_number(
+            "CHANGE NOTICE FOR MANUAL NO. 04-24, MA-2420, Notice And Hearings Process"
+        ) == "MA-2420"
+
+    def test_no_policy_number(self):
+        assert _extract_dhhs_policy_number("2025 Basic Medicaid Eligibility Requirements") is None
+
+    def test_plain_title(self):
+        assert _extract_dhhs_policy_number("ADULT MEDICAID TABLE OF CONTENTS") is None

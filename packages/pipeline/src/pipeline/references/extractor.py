@@ -11,13 +11,15 @@ class ReferenceMatch:
     matched_text: str   # The full matched text from the source
     start: int          # Character offset in source text
     end: int
+    confidence: str = "high"          # high, medium, low
+    extraction_method: str = "regex"  # regex, llm
 
 
 PATTERNS: list[tuple[str, re.Pattern]] = [
     (
         "cross_document",
         re.compile(
-            r"Clinical Coverage Policy(?:\s+No\.?)?\s*:?\s*([A-Z0-9]+(?:-[A-Z0-9]+)*)",
+            r"Clinical Coverage Policy(?:\s+No\.?)?\s*:?\s*(\d+[A-Z]?(?:-[A-Z0-9]+)*)",
             re.IGNORECASE,
         ),
     ),

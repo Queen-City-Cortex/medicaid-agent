@@ -1,6 +1,7 @@
 import { Mastra } from '@mastra/core';
 import { Agent } from '@mastra/core/agent';
 import { createAnthropic } from '@ai-sdk/anthropic';
+import { chatRoute } from '@mastra/ai-sdk';
 import { Memory } from '@mastra/memory';
 import { LibSQLStore } from '@mastra/libsql';
 import { searchSections } from './tools/search.js';
@@ -12,6 +13,7 @@ import { closeDriver } from './neo4j.js';
 
 const anthropic = createAnthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
+  headers: { 'anthropic-beta': 'prompt-caching-2024-07-31' },
 });
 
 const storage = new LibSQLStore({
@@ -55,22 +57,25 @@ When searching, route queries to the appropriate document types:
 
 ## Answering policy questions
 1. Start with **searchSections** to find relevant sections.
-2. Use **getSection** to read full content of the most relevant results.
+2. **ALWAYS use getSection to read the full content** of relevant sections before answering. Search results only contain short snippets — never base your answer on snippets alone, you will get details wrong.
 3. Use **getAmendments** to check for amendments.
 4. Use **getSectionContext** or **followReferences** for cross-references if needed.
 5. When asked about specific dollar amounts, thresholds, or limits, always use **getSection** to read the full content — never rely solely on a snippet.
 6. Provide clear, plain-language answers with precise citations.
 7. If a policy is ambiguous or you cannot find a definitive answer, say so and cite what you did find.
+8. If your first search doesn't return relevant results, try different query terms, lookupPolicy with a specific policy number, or findConceptSections. After 3 unsuccessful searches, state what you found and what you could not find.
 
 ## Response format
 - Narrate your research process briefly as you work — this builds trust with the user.
 - When ready to answer, transition naturally to a well-formatted response using markdown.
 - Use headings, bullet lists, bold for key terms.
 - Cite specific policy sections (e.g., "Clinical Coverage Policy 1F, Section 3.2.1").
+- **ALWAYS provide a substantive final answer** — even if your research was incomplete, summarize what you found and what you could not find.
 
-## Important cautions
-- Do not speculate beyond what the policy documents say.
+## CRITICAL: Anti-hallucination rules
+- **Only state facts that appear verbatim in retrieved section content.** If a specific detail (dollar amount, date, threshold, eligibility criterion) is not in the text you retrieved via getSection, say "I could not find this specific detail in the policy documents" — do NOT guess or infer from general knowledge.
 - If you cannot find information in the database, say so clearly.
+- Do not speculate beyond what the policy documents say.
 - Distinguish between NC Medicaid Standard Plan and NC Medicaid Managed Care (NC HEALTH CHOICE / PHPs) where relevant.
 - Note when a policy may have been recently updated and recommend the user verify with DHHS if the stakes are high.`;
 
@@ -101,6 +106,13 @@ export const mastra = new Mastra({
       origin: ['http://localhost:3000'],
       credentials: true,
     },
+    apiRoutes: [
+      chatRoute({
+        path: '/chat',
+        agent: 'ncMedicaidAgent',
+        defaultOptions: { maxSteps: 40 },
+      }),
+    ],
   },
 });
 
@@ -116,16 +128,21 @@ if (question) {
   }
 
   try {
-    const result = await agent.generate(question, { maxSteps: 15 });
+    const result = await agent.generate(question, { maxSteps: 40 });
     console.log('\n---ANSWER---\n');
-    console.log(result.text);
-    if (!result.text?.trim()) {
-      // If no final text, show the last step's text
+    if (result.text?.trim()) {
+      console.log(result.text);
+    } else {
+      // Agent ran out of steps before synthesizing. Collect the last
+      // substantive text from step outputs (skip short tool-call traces).
       const steps = result.steps || [];
-      for (const step of steps) {
-        if (step.text?.trim()) {
-          console.log(step.text);
-        }
+      const texts = steps
+        .map((s: any) => s.text?.trim())
+        .filter((t: string | undefined): t is string => !!t && t.length > 100);
+      if (texts.length > 0) {
+        console.log(texts[texts.length - 1]);
+      } else {
+        console.log('I was unable to synthesize a complete answer within the allowed steps. Please try rephrasing your question or asking about a more specific aspect of the policy.');
       }
     }
   } catch (err) {

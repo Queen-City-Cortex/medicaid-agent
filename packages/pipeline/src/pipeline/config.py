@@ -1,8 +1,14 @@
 from pathlib import Path
 import os
 
+from dotenv import load_dotenv
+
 # Project root is packages/pipeline/
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+
+# Monorepo root is two levels above PROJECT_ROOT (packages/pipeline/ → packages/ → root)
+_MONOREPO_ROOT = PROJECT_ROOT.parent.parent
+load_dotenv(_MONOREPO_ROOT / ".env", override=True)
 
 # Crawler paths (sibling package in monorepo)
 CRAWLER_DATA_DIR = PROJECT_ROOT.parent / "crawler" / "data" / "documents"
@@ -29,6 +35,7 @@ LLM_MODEL = "claude-haiku-4-5-20251001"
 # Processing
 PARSE_BATCH_SIZE = 10
 EMBED_BATCH_SIZE = 128
+LLM_REF_BATCH_SIZE = 30
 
 # Source type directory mapping (must match crawler's SOURCE_TYPE_DIRS)
 SOURCE_TYPE_DIRS = {

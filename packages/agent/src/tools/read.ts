@@ -76,16 +76,23 @@ export const getSection = createTool({
           const children = cRec.get('children') as Array<{
             id: string; title: string | null; sectionNumber: string | null; content: string | null;
           }>;
-          // Combine children content under the parent heading
-          const combined = children
-            .map((c) => `### ${c.title || c.sectionNumber || '(untitled)'}\n${c.content || ''}`)
-            .join('\n\n');
+          // Combine children content under the parent heading, capped at 6K chars
+          const MAX_COMBINED_CHARS = 6000;
+          let combined = '';
+          for (const c of children) {
+            const entry = `### ${c.title || c.sectionNumber || '(untitled)'}\n${c.content || ''}\n\n`;
+            if (combined.length + entry.length > MAX_COMBINED_CHARS) {
+              combined += `\n[Truncated — ${children.length - combined.split('###').length + 1} more child sections. Use getSectionContext to explore.]`;
+              break;
+            }
+            combined += entry;
+          }
 
           return {
             id: rec.get('id') as string,
             title: rec.get('title') as string | null,
             sectionNumber: rec.get('sectionNumber') as string | null,
-            content: `[This is a container heading. Content from ${children.length} child sections:]\n\n${combined}`,
+            content: `[Container heading with ${children.length} child sections:]\n\n${combined}`,
             effectiveDate: null,
             documentId: cRec.get('documentId') as string | null,
             documentType: cRec.get('documentType') as string | null,
@@ -94,11 +101,16 @@ export const getSection = createTool({
         }
       }
 
+      const MAX_CONTENT_CHARS = 6000;
+      const truncatedContent = content && content.length > MAX_CONTENT_CHARS
+        ? content.slice(0, MAX_CONTENT_CHARS) + '\n\n[Content truncated at 6,000 chars. Use getSectionContext to explore sub-sections.]'
+        : content;
+
       return {
         id: rec.get('id') as string,
         title: rec.get('title') as string | null,
         sectionNumber: rec.get('sectionNumber') as string | null,
-        content,
+        content: truncatedContent,
         effectiveDate: null,
         documentId: rec.get('documentId') as string | null,
         documentType: rec.get('documentType') as string | null,

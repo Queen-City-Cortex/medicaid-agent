@@ -59,3 +59,52 @@ class TestExtractReferences:
         text = "See Clinical Coverage Policy 10A and Section 2.2 for details."
         refs = extract_references(text)
         assert len(refs) >= 2
+
+    # --- cross_document false-positive rejection ---
+
+    def test_rejects_english_word_may(self):
+        text = "clinical coverage policy may change at any time"
+        refs = extract_references(text)
+        assert not any(r.ref_type == "cross_document" for r in refs)
+
+    def test_rejects_english_word_has(self):
+        text = "Clinical Coverage Policy has been updated"
+        refs = extract_references(text)
+        assert not any(r.ref_type == "cross_document" for r in refs)
+
+    def test_rejects_english_word_at(self):
+        text = "clinical coverage policy at the state level"
+        refs = extract_references(text)
+        assert not any(r.ref_type == "cross_document" for r in refs)
+
+    def test_rejects_english_word_found(self):
+        text = "Clinical Coverage Policy found in the manual"
+        refs = extract_references(text)
+        assert not any(r.ref_type == "cross_document" for r in refs)
+
+    # --- cross_document edge-case policy numbers ---
+
+    def test_policy_number_1_H(self):
+        text = "Clinical Coverage Policy 1-H covers home health services"
+        refs = extract_references(text)
+        assert any(r.ref_type == "cross_document" and r.target_id == "1-H" for r in refs)
+
+    def test_policy_number_1_O_5(self):
+        text = "as defined in Clinical Coverage Policy 1-O-5"
+        refs = extract_references(text)
+        assert any(r.ref_type == "cross_document" and r.target_id == "1-O-5" for r in refs)
+
+    def test_policy_number_8_D2(self):
+        text = "Clinical Coverage Policy No. 8-D2 addresses dental"
+        refs = extract_references(text)
+        assert any(r.ref_type == "cross_document" and r.target_id == "8-D2" for r in refs)
+
+    def test_policy_number_2B_1(self):
+        text = "refer to Clinical Coverage Policy 2B-1"
+        refs = extract_references(text)
+        assert any(r.ref_type == "cross_document" and r.target_id == "2B-1" for r in refs)
+
+    def test_policy_number_simple_digit_letter(self):
+        text = "Clinical Coverage Policy 5A provides guidance"
+        refs = extract_references(text)
+        assert any(r.ref_type == "cross_document" and r.target_id == "5A" for r in refs)

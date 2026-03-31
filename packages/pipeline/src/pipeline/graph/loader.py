@@ -1,6 +1,7 @@
 """Load parsed Docling JSON into Neo4j as Document and Section nodes."""
 
 import json
+import re
 from pathlib import Path
 
 from docling_core.types.doc import DoclingDocument, DocItemLabel
@@ -156,6 +157,93 @@ def _assign_hierarchy(sections: list[dict]):
         stack.append(section)
 
 
+# Date extraction patterns
+_DATE_MM_DD_YYYY = re.compile(r"(\d{2}/\d{2}/\d{4})")
+_CHANGE_NOTICE_YEAR_RE = re.compile(
+    r"CHANGE NOTICE FOR MANUAL NO\.\s*(\d{2})-(\d{2})", re.IGNORECASE
+)
+
+
+def _extract_effective_date(
+    source_type: str, title: str, sections: list[dict],
+) -> str | None:
+    """Extract the most recent effective/amended date from a document.
+
+    Returns ISO date string (YYYY-MM-DD) or None.
+    """
+    if source_type == "clinical_policy":
+        # Find the History/Revision section and get the most recent date
+        for sec in sections:
+            sec_title = sec.get("title") or ""
+            if "History" in sec_title or "Revision" in sec_title:
+                content = sec.get("content_text") or ""
+                dates = _DATE_MM_DD_YYYY.findall(content)
+                if dates:
+                    # Parse all dates, return the most recent
+                    parsed = []
+                    for d in dates:
+                        try:
+                            month, day, year = d.split("/")
+                            parsed.append(f"{year}-{month}-{day}")
+                        except ValueError:
+                            continue
+                    if parsed:
+                        return max(parsed)  # lexicographic max = most recent
+
+    elif source_type == "dhhs_policy":
+        # Change notices: "CHANGE NOTICE FOR MANUAL NO. 01-24" → year 2024
+        m = _CHANGE_NOTICE_YEAR_RE.search(title)
+        if m:
+            seq = int(m.group(1))  # sequence number (01, 02, etc.)
+            yy = int(m.group(2))   # 2-digit year
+            year = 2000 + yy if yy < 50 else 1900 + yy
+            return f"{year}-01-01"  # approximate: year + sequence only
+
+    return None
+
+
+# Matches 1915(c), 1915(i), 1916(b) etc. in waiver document titles
+_WAIVER_ID_RE = re.compile(r"1915\s*\(([a-z])\)", re.IGNORECASE)
+_SECTION_1916_RE = re.compile(r"(?:Section\s+)?1916\s*\(([a-z])\)", re.IGNORECASE)
+
+
+def _extract_waiver_identifier(title: str) -> str | None:
+    """Extract a waiver identifier like '1915(c)' from a document title."""
+    m = _WAIVER_ID_RE.search(title)
+    if m:
+        return f"1915({m.group(1).lower()})"
+    m = _SECTION_1916_RE.search(title)
+    if m:
+        return f"1916({m.group(1).lower()})"
+    return None
+
+
+# Matches MA-2270, DMA-5097, DHB-5097, DSS-8110 at the start of a title
+_DHHS_POLICY_NUMBER_RE = re.compile(
+    r"^((?:MA|DMA|DHB|DSS)-\d+)"
+)
+
+# Matches "CHANGE NOTICE FOR MANUAL NO. XX-XX, MA-2270" pattern
+_CHANGE_NOTICE_MA_RE = re.compile(
+    r"CHANGE NOTICE.*?(MA-\d+)", re.IGNORECASE
+)
+
+
+def _extract_dhhs_policy_number(title: str) -> str | None:
+    """Extract a DHHS policy number (MA-NNNN, DMA-NNNN, etc.) from a document title."""
+    # Direct title prefix: "MA-2270 LONG TERM CARE NEED AND BUDGETING"
+    m = _DHHS_POLICY_NUMBER_RE.match(title)
+    if m:
+        return m.group(1)
+
+    # Change notice referencing an MA section: "CHANGE NOTICE FOR MANUAL NO. 01-24, MA-3200, ..."
+    m = _CHANGE_NOTICE_MA_RE.search(title)
+    if m:
+        return m.group(1)
+
+    return None
+
+
 def read_crawler_metadata(source_type: str, filename_stem: str) -> dict:
     """Read metadata from the crawler's SQLite registry.
 
@@ -190,19 +278,38 @@ def load_document(json_path: Path, source_type: str) -> dict:
 
     # Build document ID — use policy_number or source_url for stability
     policy_number = crawler_meta.get("policy_number")
+
+    # Extract policy number from DHHS document titles if not set by crawler
+    if not policy_number and source_type == "dhhs_policy":
+        policy_number = _extract_dhhs_policy_number(
+            crawler_meta.get("title", json_path.stem)
+        )
+
+    # Extract waiver identifier from title (e.g., "1915(c)").
+    # Don't use it for the document ID since multiple docs share the same waiver type.
+    waiver_id = None
+    if source_type == "waiver":
+        waiver_id = _extract_waiver_identifier(
+            crawler_meta.get("title", json_path.stem)
+        )
+
     source_url = crawler_meta.get("source_url")
     doc_id = build_document_id(source_type, policy_number, json_path.stem, source_url)
 
     # Build sections
     sections = build_sections_from_items(doc_dict, doc_id)
 
+    # Extract effective date from content
+    title = crawler_meta.get("title", json_path.stem)
+    effective_date = _extract_effective_date(source_type, title, sections)
+
     with get_session() as session:
         # MERGE document node
         session.run(queries.MERGE_DOCUMENT, {
             "id": doc_id,
-            "title": crawler_meta.get("title", json_path.stem),
+            "title": title,
             "document_type": source_type,
-            "policy_number": policy_number,
+            "policy_number": policy_number or waiver_id,
             "category": crawler_meta.get("category"),
             "status": "current",
             "source_url": crawler_meta.get("source_url", ""),
@@ -210,6 +317,7 @@ def load_document(json_path: Path, source_type: str) -> dict:
             "pdf_path": meta.get("source_pdf", ""),
             "page_count": meta.get("page_count", 0),
             "section_count": len(sections),
+            "effective_date": effective_date,
         })
 
         # MERGE section nodes and edges
