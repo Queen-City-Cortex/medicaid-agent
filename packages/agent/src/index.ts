@@ -93,6 +93,24 @@ When searching, route queries to the appropriate document types:
 - Distinguish between NC Medicaid Standard Plan and NC Medicaid Managed Care (NC HEALTH CHOICE / PHPs) where relevant.
 - Note when a policy may have been recently updated and recommend the user verify with DHHS if the stakes are high.`;
 
+const MAX_STEPS = 40;
+
+// Force synthesis when the agent is about to hit the step limit.
+// Mastra's onIterationComplete injects feedback and gives one final step to respond.
+const onIterationComplete = ({ iteration, finishReason }: {
+  iteration: number;
+  finishReason: string;
+  [key: string]: unknown;
+}) => {
+  if (iteration >= MAX_STEPS - 2 && finishReason === 'tool-calls') {
+    return {
+      feedback: 'You are running out of steps. Provide your final answer NOW based on everything you have found so far. Use markdown formatting, cite specific policy sections, and explicitly state what you could not find.',
+      continue: false,
+    };
+  }
+  return undefined;
+};
+
 export const ncMedicaidAgent = new Agent({
   id: 'nc-medicaid-navigator',
   name: 'NC Medicaid Navigator',
@@ -124,7 +142,6 @@ export const mastra = new Mastra({
       chatRoute({
         path: '/chat',
         agent: 'ncMedicaidAgent',
-        defaultOptions: { maxSteps: 40 },
       }),
     ],
   },
@@ -142,23 +159,12 @@ if (question) {
   }
 
   try {
-    const result = await agent.generate(question, { maxSteps: 40 });
+    const result = await agent.generate(question, {
+      maxSteps: MAX_STEPS,
+      onIterationComplete,
+    } as any);
     console.log('\n---ANSWER---\n');
-    if (result.text?.trim()) {
-      console.log(result.text);
-    } else {
-      // Agent ran out of steps before synthesizing. Collect the last
-      // substantive text from step outputs (skip short tool-call traces).
-      const steps = result.steps || [];
-      const texts = steps
-        .map((s: any) => s.text?.trim())
-        .filter((t: string | undefined): t is string => !!t && t.length > 100);
-      if (texts.length > 0) {
-        console.log(texts[texts.length - 1]);
-      } else {
-        console.log('I was unable to synthesize a complete answer within the allowed steps. Please try rephrasing your question or asking about a more specific aspect of the policy.');
-      }
-    }
+    console.log(result.text || 'I was unable to find sufficient information to answer this question. Please try rephrasing or asking about a more specific aspect of the policy.');
   } catch (err) {
     console.error('Agent error:', err);
   } finally {
