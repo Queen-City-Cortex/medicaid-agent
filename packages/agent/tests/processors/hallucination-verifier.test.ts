@@ -16,14 +16,22 @@ interface ToolResultInput {
   output: unknown;
 }
 
-function makeStep(toolResults: ToolResultInput[]) {
+/** Create a message with tool-invocation parts (Mastra's runtime format) */
+function makeToolMessage(toolResults: ToolResultInput[]) {
   return {
-    toolResults: toolResults.map((tr) => ({
-      type: 'tool-result' as const,
-      toolCallId: tr.toolCallId,
-      toolName: tr.toolName,
-      output: tr.output,
-    })),
+    id: `msg-${Math.random().toString(36).slice(2)}`,
+    role: 'assistant' as const,
+    content: {
+      parts: toolResults.map((tr) => ({
+        type: 'tool-invocation' as const,
+        toolInvocation: {
+          state: 'result' as const,
+          toolCallId: tr.toolCallId,
+          toolName: tr.toolName,
+          result: tr.output,
+        },
+      })),
+    },
   };
 }
 
@@ -32,8 +40,8 @@ function makeStep(toolResults: ToolResultInput[]) {
 describe('extractSources', () => {
   // Test 1: getSection
   it('extracts getSection content keyed by section ID', () => {
-    const steps = [
-      makeStep([
+    const msgs = [
+      makeToolMessage([
         {
           toolCallId: 'call-1',
           toolName: 'getSection',
@@ -53,7 +61,7 @@ describe('extractSources', () => {
       ]),
     ];
 
-    const sources = extractSources(steps);
+    const sources = extractSources(msgs);
 
     expect(sources).toHaveLength(1);
     expect(sources[0].toolName).toBe('getSection');
@@ -67,8 +75,8 @@ describe('extractSources', () => {
 
   // Test 2: getAmendments
   it('extracts getAmendments authoritative document and change summaries', () => {
-    const steps = [
-      makeStep([
+    const msgs = [
+      makeToolMessage([
         {
           toolCallId: 'call-amend',
           toolName: 'getAmendments',
@@ -108,7 +116,7 @@ describe('extractSources', () => {
       ]),
     ];
 
-    const sources = extractSources(steps);
+    const sources = extractSources(msgs);
 
     expect(sources).toHaveLength(1);
     expect(sources[0].toolName).toBe('getAmendments');
@@ -123,8 +131,8 @@ describe('extractSources', () => {
 
   // Test 3: lookupPolicy
   it('extracts lookupPolicy document metadata', () => {
-    const steps = [
-      makeStep([
+    const msgs = [
+      makeToolMessage([
         {
           toolCallId: 'call-lookup',
           toolName: 'lookupPolicy',
@@ -149,7 +157,7 @@ describe('extractSources', () => {
       ]),
     ];
 
-    const sources = extractSources(steps);
+    const sources = extractSources(msgs);
 
     expect(sources).toHaveLength(1);
     expect(sources[0].toolName).toBe('lookupPolicy');
@@ -163,8 +171,8 @@ describe('extractSources', () => {
 
   // Test 4: getDocument
   it('extracts getDocument metadata', () => {
-    const steps = [
-      makeStep([
+    const msgs = [
+      makeToolMessage([
         {
           toolCallId: 'call-doc',
           toolName: 'getDocument',
@@ -187,7 +195,7 @@ describe('extractSources', () => {
       ]),
     ];
 
-    const sources = extractSources(steps);
+    const sources = extractSources(msgs);
 
     expect(sources).toHaveLength(1);
     expect(sources[0].toolName).toBe('getDocument');
@@ -201,8 +209,8 @@ describe('extractSources', () => {
 
   // Test 5: followReferences
   it('extracts followReferences cross-reference data', () => {
-    const steps = [
-      makeStep([
+    const msgs = [
+      makeToolMessage([
         {
           toolCallId: 'call-refs',
           toolName: 'followReferences',
@@ -230,7 +238,7 @@ describe('extractSources', () => {
       ]),
     ];
 
-    const sources = extractSources(steps);
+    const sources = extractSources(msgs);
 
     expect(sources).toHaveLength(1);
     expect(sources[0].toolName).toBe('followReferences');
@@ -244,8 +252,8 @@ describe('extractSources', () => {
 
   // Test 6: ignored tools
   it('ignores searchSections, getSectionContext, and findConceptSections', () => {
-    const steps = [
-      makeStep([
+    const msgs = [
+      makeToolMessage([
         {
           toolCallId: 'call-search',
           toolName: 'searchSections',
@@ -272,15 +280,15 @@ describe('extractSources', () => {
       ]),
     ];
 
-    const sources = extractSources(steps);
+    const sources = extractSources(msgs);
 
     expect(sources).toHaveLength(0);
   });
 
   // Test 7: multiple steps
   it('collects sources across multiple steps', () => {
-    const steps = [
-      makeStep([
+    const msgs = [
+      makeToolMessage([
         {
           toolCallId: 'call-s1',
           toolName: 'getSection',
@@ -298,7 +306,7 @@ describe('extractSources', () => {
           },
         },
       ]),
-      makeStep([
+      makeToolMessage([
         {
           toolCallId: 'call-s2',
           toolName: 'getSection',
@@ -336,7 +344,7 @@ describe('extractSources', () => {
       ]),
     ];
 
-    const sources = extractSources(steps);
+    const sources = extractSources(msgs);
 
     expect(sources).toHaveLength(3);
     expect(sources[0].key).toBe('doc-8c:sec-1');
@@ -346,9 +354,9 @@ describe('extractSources', () => {
 
   // Test 8: no retrieval tools called
   it('returns empty array when no retrieval tools were called', () => {
-    const steps = [
-      makeStep([]),
-      makeStep([
+    const msgs = [
+      makeToolMessage([]),
+      makeToolMessage([
         {
           toolCallId: 'call-search',
           toolName: 'searchSections',
@@ -357,15 +365,15 @@ describe('extractSources', () => {
       ]),
     ];
 
-    const sources = extractSources(steps);
+    const sources = extractSources(msgs);
 
     expect(sources).toHaveLength(0);
   });
 
   // getSection with null section
   it('skips getSection result when section is null', () => {
-    const steps = [
-      makeStep([
+    const msgs = [
+      makeToolMessage([
         {
           toolCallId: 'call-null',
           toolName: 'getSection',
@@ -374,15 +382,15 @@ describe('extractSources', () => {
       ]),
     ];
 
-    const sources = extractSources(steps);
+    const sources = extractSources(msgs);
 
     expect(sources).toHaveLength(0);
   });
 
   // lookupPolicy with empty documents
   it('skips lookupPolicy result when no documents found', () => {
-    const steps = [
-      makeStep([
+    const msgs = [
+      makeToolMessage([
         {
           toolCallId: 'call-empty',
           toolName: 'lookupPolicy',
@@ -391,7 +399,7 @@ describe('extractSources', () => {
       ]),
     ];
 
-    const sources = extractSources(steps);
+    const sources = extractSources(msgs);
 
     expect(sources).toHaveLength(0);
   });
@@ -532,6 +540,40 @@ describe('verifyAnswer', () => {
     expect(result.supported).toBe(true);
     expect(result.unsupportedClaims).toHaveLength(0);
   });
+
+  it('extracts JSON when followed by trailing commentary', async () => {
+    const json = JSON.stringify({ supported: false, unsupportedClaims: [{ claim: 'X', reason: 'Y' }], correctedAnswer: 'fixed' });
+    vi.mocked(generateText).mockResolvedValueOnce({
+      text: `${json}\n\nI hope this helps! Let me know if you need anything else.`,
+    } as Awaited<ReturnType<typeof generateText>>);
+
+    const result = await verifyAnswer('answer', 'source');
+    expect(result.supported).toBe(false);
+    expect(result.unsupportedClaims).toHaveLength(1);
+    expect(result.correctedAnswer).toBe('fixed');
+  });
+
+  it('extracts JSON when preceded by explanatory text', async () => {
+    const json = JSON.stringify({ supported: true, unsupportedClaims: [] });
+    vi.mocked(generateText).mockResolvedValueOnce({
+      text: `Here is my analysis:\n\n${json}`,
+    } as Awaited<ReturnType<typeof generateText>>);
+
+    const result = await verifyAnswer('answer', 'source');
+    expect(result.supported).toBe(true);
+  });
+
+  it('extracts the first JSON object when multiple are present', async () => {
+    const first = JSON.stringify({ supported: false, unsupportedClaims: [{ claim: 'A', reason: 'B' }] });
+    const second = JSON.stringify({ supported: true, unsupportedClaims: [] });
+    vi.mocked(generateText).mockResolvedValueOnce({
+      text: `${first}\n\nAlternative:\n${second}`,
+    } as Awaited<ReturnType<typeof generateText>>);
+
+    const result = await verifyAnswer('answer', 'source');
+    expect(result.supported).toBe(false);
+    expect(result.unsupportedClaims[0].claim).toBe('A');
+  });
 });
 
 // ── HallucinationVerifier class ──────────────────────────────────────────────
@@ -645,7 +687,12 @@ describe('HallucinationVerifier.processOutputStep', () => {
 
     expect(args.abort).toHaveBeenCalled();
     const abortCall = vi.mocked(args.abort).mock.calls[0];
+    const abortMessage = abortCall[0] as string;
     expect(abortCall[1]).toEqual(expect.objectContaining({ retry: true }));
+    // Verify the message includes claim text, reason, and anti-over-correction guidance
+    expect(abortMessage).toContain('The limit is $500');
+    expect(abortMessage).toContain('Source says $300');
+    expect(abortMessage).toContain('Do not discard your entire answer');
     expect(state.verificationRetryPending).toBe(true);
   });
 

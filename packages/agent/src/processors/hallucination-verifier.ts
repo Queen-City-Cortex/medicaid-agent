@@ -81,21 +81,6 @@ interface FollowReferencesResult {
   }>;
 }
 
-// Step shape (AI SDK StepResult) ──────────────────────────────────────────────
-// AI SDK v5 StepResult.toolResults entries have toolName/output directly,
-// NOT wrapped in a payload object.
-
-interface ToolResultEntry {
-  type: 'tool-result';
-  toolCallId: string;
-  toolName: string;
-  output: unknown;
-}
-
-interface StepResult {
-  toolResults: ToolResultEntry[];
-}
-
 // ── Evidence tools ───────────────────────────────────────────────────────────
 
 const EVIDENCE_TOOLS = new Set([
@@ -120,7 +105,7 @@ function formatDocMeta(doc: DocumentMetadata): string {
 }
 
 function extractGetSection(result: GetSectionResult): SourceEntry | null {
-  const sec = result.section;
+  const sec = result?.section;
   if (!sec) return null;
 
   const lines: string[] = [`[getSection]`];
@@ -136,13 +121,14 @@ function extractGetSection(result: GetSectionResult): SourceEntry | null {
 }
 
 function extractGetDocument(result: GetDocumentResult): SourceEntry | null {
-  const doc = result.document;
+  const doc = result?.document;
   if (!doc) return null;
 
+  const sections = doc.sections ?? [];
   const lines: string[] = [`[getDocument]`, formatDocMeta(doc)];
-  if (doc.sections.length > 0) {
-    lines.push(`\nSections (${doc.sections.length}):`);
-    for (const s of doc.sections) {
+  if (sections.length > 0) {
+    lines.push(`\nSections (${sections.length}):`);
+    for (const s of sections) {
       const num = s.number ? `${s.number} ` : '';
       const chars = s.chars != null ? ` (${s.chars} chars)` : '';
       lines.push(`  ${num}${s.title || '(untitled)'}${chars} [${s.id}]`);
@@ -154,7 +140,7 @@ function extractGetDocument(result: GetDocumentResult): SourceEntry | null {
 
 function extractGetAmendments(result: GetAmendmentsResult, toolCallId: string): SourceEntry | null {
   // Use authoritativeDocument id as key, fall back to a generated key
-  const auth = result.authoritativeDocument;
+  const auth = result?.authoritativeDocument;
   const key = auth ? auth.id : `amendments:${toolCallId}`;
 
   const lines: string[] = [`[getAmendments]`];
@@ -164,15 +150,16 @@ function extractGetAmendments(result: GetAmendmentsResult, toolCallId: string): 
     lines.push(formatDocMeta(auth));
   }
 
-  if (result.amendments.length > 0) {
-    lines.push(`\nAmendments (${result.amendments.length}):`);
-    for (const a of result.amendments) {
+  const amendments = result?.amendments ?? [];
+  if (amendments.length > 0) {
+    lines.push(`\nAmendments (${amendments.length}):`);
+    for (const a of amendments) {
       lines.push(`  - ${a.id} | ${a.title || '(no title)'} | ${a.effectiveDate || 'unknown date'}`);
       if (a.changeSummary) lines.push(`    Summary: ${a.changeSummary}`);
     }
   }
 
-  if (result.baseDocument) {
+  if (result?.baseDocument) {
     lines.push(`\nBase document:`);
     lines.push(formatDocMeta(result.baseDocument));
   }
@@ -181,19 +168,21 @@ function extractGetAmendments(result: GetAmendmentsResult, toolCallId: string): 
 }
 
 function extractLookupPolicy(result: LookupPolicyResult, toolCallId: string): SourceEntry | null {
-  if (result.documents.length === 0) return null;
+  const docs = result?.documents ?? [];
+  if (docs.length === 0) return null;
 
   // Use first document id as key; multiple docs collapse into one entry
-  const key = result.documents.length === 1
-    ? result.documents[0].id
+  const key = docs.length === 1
+    ? docs[0].id
     : `lookupPolicy:${toolCallId}`;
 
   const lines: string[] = [`[lookupPolicy]`];
-  for (const doc of result.documents) {
+  for (const doc of docs) {
     lines.push(formatDocMeta(doc));
-    if (doc.sections.length > 0) {
-      lines.push(`Sections (${doc.sections.length}):`);
-      for (const s of doc.sections) {
+    const sections = doc.sections ?? [];
+    if (sections.length > 0) {
+      lines.push(`Sections (${sections.length}):`);
+      for (const s of sections) {
         const num = s.number ? `${s.number} ` : '';
         lines.push(`  ${num}${s.title || '(untitled)'} [${s.id}]`);
       }
@@ -205,12 +194,13 @@ function extractLookupPolicy(result: LookupPolicyResult, toolCallId: string): So
 }
 
 function extractFollowReferences(result: FollowReferencesResult, toolCallId: string): SourceEntry | null {
-  if (result.references.length === 0) return null;
+  const refs = result?.references ?? [];
+  if (refs.length === 0) return null;
 
   const key = `followReferences:${toolCallId}`;
   const lines: string[] = [`[followReferences]`];
-  lines.push(`Cross-references (${result.references.length}):`);
-  for (const ref of result.references) {
+  lines.push(`Cross-references (${refs.length}):`);
+  for (const ref of refs) {
     const pn = ref.targetPolicyNumber ? ` [Policy: ${ref.targetPolicyNumber}]` : '';
     lines.push(`  ${ref.targetType} ${ref.targetId}: ${ref.targetTitle || '(no title)'}${pn}`);
     lines.push(`  Relationship: ${ref.relationshipType}`);
@@ -222,33 +212,42 @@ function extractFollowReferences(result: FollowReferencesResult, toolCallId: str
 
 // ── extractSources ───────────────────────────────────────────────────────────
 
-export function extractSources(steps: StepResult[]): SourceEntry[] {
+/**
+ * Extract evidence sources from conversation messages.
+ * Tool results in Mastra messages live in `tool-invocation` parts with
+ * `state: 'result'` and a `result` field containing the tool output.
+ */
+export function extractSources(messages: Array<{ content?: { parts?: any[] } }>): SourceEntry[] {
   const sources: SourceEntry[] = [];
 
-  for (const step of steps) {
-    for (const tr of step.toolResults) {
-      if (tr.type !== 'tool-result') continue;
+  for (const msg of messages) {
+    for (const part of msg.content?.parts ?? []) {
+      if (part.type !== 'tool-invocation') continue;
+      const inv = part.toolInvocation;
+      if (!inv || inv.state !== 'result') continue;
 
-      const { toolName, output, toolCallId } = tr;
+      const toolName: string = inv.toolName;
+      const result: unknown = inv.result;
+      const toolCallId: string = inv.toolCallId ?? '';
       if (!EVIDENCE_TOOLS.has(toolName)) continue;
 
       let entry: SourceEntry | null = null;
 
       switch (toolName) {
         case 'getSection':
-          entry = extractGetSection(output as GetSectionResult);
+          entry = extractGetSection(result as GetSectionResult);
           break;
         case 'getDocument':
-          entry = extractGetDocument(output as GetDocumentResult);
+          entry = extractGetDocument(result as GetDocumentResult);
           break;
         case 'getAmendments':
-          entry = extractGetAmendments(output as GetAmendmentsResult, toolCallId);
+          entry = extractGetAmendments(result as GetAmendmentsResult, toolCallId);
           break;
         case 'lookupPolicy':
-          entry = extractLookupPolicy(output as LookupPolicyResult, toolCallId);
+          entry = extractLookupPolicy(result as LookupPolicyResult, toolCallId);
           break;
         case 'followReferences':
-          entry = extractFollowReferences(output as FollowReferencesResult, toolCallId);
+          entry = extractFollowReferences(result as FollowReferencesResult, toolCallId);
           break;
       }
 
@@ -326,11 +325,41 @@ Respond with JSON only matching this schema:
   "correctedAnswer": "string or omit if supported is true"
 }`;
 
-function stripCodeFences(text: string): string {
-  return text
+/**
+ * Extract the first complete JSON object from LLM response text.
+ * Handles markdown code fences, leading/trailing commentary, etc.
+ */
+function extractJson(text: string): unknown {
+  const stripped = text
     .replace(/^```(?:json)?\s*/i, '')
     .replace(/\s*```\s*$/, '')
     .trim();
+
+  // Fast path: clean JSON
+  try {
+    return JSON.parse(stripped);
+  } catch {
+    // Find the first { and walk to its matching }
+    const start = stripped.indexOf('{');
+    if (start === -1) throw new Error('No JSON object found in response');
+
+    let depth = 0;
+    let inString = false;
+    let escape = false;
+    for (let i = start; i < stripped.length; i++) {
+      const ch = stripped[i];
+      if (escape) { escape = false; continue; }
+      if (ch === '\\' && inString) { escape = true; continue; }
+      if (ch === '"') { inString = !inString; continue; }
+      if (inString) continue;
+      if (ch === '{') depth++;
+      if (ch === '}') {
+        depth--;
+        if (depth === 0) return JSON.parse(stripped.slice(start, i + 1));
+      }
+    }
+    throw new Error('No complete JSON object found in response');
+  }
 }
 
 export async function verifyAnswer(
@@ -352,8 +381,7 @@ export async function verifyAnswer(
       ],
     });
 
-    const stripped = stripCodeFences(text);
-    const parsed = JSON.parse(stripped) as unknown;
+    const parsed = extractJson(text);
 
     if (
       typeof parsed !== 'object' ||
@@ -407,8 +435,8 @@ export class HallucinationVerifier implements Processor {
       return messages;
     }
 
-    // 3. Extract sources from steps
-    const sources = extractSources(steps as any);
+    // 3. Extract sources from conversation messages
+    const sources = extractSources(messages as any);
 
     // 4. Build source text
     const sourceText = buildSourceText(sources, text);
@@ -424,8 +452,13 @@ export class HallucinationVerifier implements Processor {
     // 7. If unsupported and retryCount < 2: set state flag and abort with retry
     if (retryCount < 2) {
       state.verificationRetryPending = true;
+
+      const claimList = verification.unsupportedClaims
+        .map(c => `- "${c.claim}" — ${c.reason}`)
+        .join('\n');
+
       abort(
-        `Unsupported claims found: ${verification.unsupportedClaims.map((c) => c.claim).join('; ')}`,
+        `Some claims in your answer could not be verified against the source documents you retrieved:\n${claimList}\n\nFor each flagged claim, either:\n1. Quote the specific source text that supports it (section ID + passage), or\n2. Remove the claim and state what you could not confirm.\n\nDo not discard your entire answer — only fix the specific flagged claims. Keep all verified content unchanged.`,
         { retry: true },
       );
       // abort() is typed `never` (always throws), but explicit return for clarity
