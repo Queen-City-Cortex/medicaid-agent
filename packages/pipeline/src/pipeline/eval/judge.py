@@ -23,7 +23,7 @@ Evidence sections the agent should have found:
 Score each dimension 0-3:
 - factual_accuracy: Does the agent's answer contain the same key facts as the reference? (0=wrong, 1=partially correct, 2=mostly correct, 3=fully correct)
 - completeness: Does the answer address all parts of the question? (0=misses most, 1=partial, 2=mostly complete, 3=fully complete)
-- hallucination: Does the answer assert facts not supported by the evidence? (0=major hallucination, 1=minor fabrications, 2=slight embellishment, 3=no hallucination)
+- hallucination: Does the answer assert facts not supported by the evidence? (0=major hallucination, 1=minor fabrications, 2=slight embellishment, 3=no hallucination). NOTE: Claims wrapped in [unverified: ...] markers are explicitly flagged as unverified — this is honest disclosure, NOT hallucination. Score these as you would "I could not confirm this detail." Only score as hallucination claims stated as fact without such markers.
 - citation_quality: Does the answer cite specific policy sections? (0=no citations, 1=vague references, 2=some specific citations, 3=precise section-level citations)
 - overall: Would a Medicaid policy expert accept this answer? (0=unacceptable, 1=poor, 2=acceptable, 3=good)
 
