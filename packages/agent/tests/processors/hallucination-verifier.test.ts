@@ -6,7 +6,7 @@ vi.mock('ai', () => ({
 }));
 import { generateObject } from 'ai';
 
-import type { ProcessOutputStepArgs, ProcessInputStepArgs } from '@mastra/core/processors';
+import type { ProcessOutputStepArgs } from '@mastra/core/processors';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -539,20 +539,6 @@ function makeProcessOutputStepArgs(overrides: Partial<ProcessOutputStepArgs> = {
   } as any;
 }
 
-function makeProcessInputStepArgs(overrides: Partial<ProcessInputStepArgs> = {}): ProcessInputStepArgs {
-  return {
-    messages: [],
-    messageList: {} as any,
-    abort: vi.fn() as any,
-    retryCount: 0,
-    state: {},
-    systemMessages: [],
-    stepNumber: 0,
-    steps: [],
-    model: {} as any,
-    ...overrides,
-  } as any;
-}
 
 describe('HallucinationVerifier.processOutputStep', () => {
   const verifier = new HallucinationVerifier();
@@ -605,38 +591,8 @@ describe('HallucinationVerifier.processOutputStep', () => {
     expect(generateObject).toHaveBeenCalled();
   });
 
-  // Test 3: Calls abort with retry when unsupported claims found and retryCount < 2
-  it('calls abort with retry:true when unsupported claims found and retryCount < 2', async () => {
-    mockVerification({
-      supported: false,
-      unsupportedClaims: [{ claim: 'The limit is $500', reason: 'Source says $300' }],
-      correctedAnswer: 'The limit is [unverified: $500].',
-    });
-
-    const state: Record<string, unknown> = {};
-    const args = makeProcessOutputStepArgs({ retryCount: 0, state });
-
-    try {
-      await verifier.processOutputStep!(args);
-      // Should not reach here because abort throws
-      expect.unreachable('abort should have thrown');
-    } catch (e: any) {
-      expect(e.message).toBe('abort-called');
-    }
-
-    expect(args.abort).toHaveBeenCalled();
-    const abortCall = vi.mocked(args.abort).mock.calls[0];
-    const abortMessage = abortCall[0] as string;
-    expect(abortCall[1]).toEqual(expect.objectContaining({ retry: true }));
-    // Verify the message includes claim text, reason, and anti-over-correction guidance
-    expect(abortMessage).toContain('The limit is $500');
-    expect(abortMessage).toContain('Source says $300');
-    expect(abortMessage).toContain('Do not discard your entire answer');
-    expect(state.verificationRetryPending).toBe(true);
-  });
-
-  // Test 4: Rewrites assistant messages with correctedAnswer when retries exhausted
-  it('rewrites assistant messages with correctedAnswer when retries exhausted', async () => {
+  // Test 3: Rewrites assistant messages with correctedAnswer when unsupported
+  it('rewrites assistant messages with correctedAnswer when unsupported claims found', async () => {
     const corrected = 'The limit is [unverified: $500].';
     mockVerification({
       supported: false,
@@ -644,21 +600,20 @@ describe('HallucinationVerifier.processOutputStep', () => {
       correctedAnswer: corrected,
     });
 
-    const args = makeProcessOutputStepArgs({ retryCount: 2 });
+    const args = makeProcessOutputStepArgs();
     const result = await verifier.processOutputStep!(args) as any[];
 
-    // Should NOT have called abort
+    // Should NOT call abort — no retry, direct rewrite
     expect(args.abort).not.toHaveBeenCalled();
 
-    // Assistant messages should have correctedAnswer text
     const assistantMsg = result.find((m: any) => m.role === 'assistant');
     expect(assistantMsg).toBeDefined();
     const textPart = assistantMsg!.content.parts.find((p: any) => p.type === 'text');
     expect(textPart.text).toBe(corrected);
   });
 
-  // Test 5: Emits data-verification-rewrite via writer.custom() on final retry fallback
-  it('emits data-verification-rewrite via writer.custom() on final retry fallback', async () => {
+  // Test 4: Emits data-verification-rewrite via writer.custom()
+  it('emits data-verification-rewrite via writer.custom() when unsupported', async () => {
     const corrected = 'The limit is [unverified: $500].';
     mockVerification({
       supported: false,
@@ -667,7 +622,7 @@ describe('HallucinationVerifier.processOutputStep', () => {
     });
 
     const writer = { custom: vi.fn() };
-    const args = makeProcessOutputStepArgs({ retryCount: 2, writer: writer as any });
+    const args = makeProcessOutputStepArgs({ writer: writer as any });
     await verifier.processOutputStep!(args);
 
     expect(writer.custom).toHaveBeenCalledWith(
@@ -697,27 +652,3 @@ describe('HallucinationVerifier.processOutputStep', () => {
   });
 });
 
-describe('HallucinationVerifier.processInputStep', () => {
-  const verifier = new HallucinationVerifier();
-
-  // Test 8: Returns toolChoice: 'none' when verificationRetryPending is true, then clears it
-  it('returns toolChoice none when verificationRetryPending is true, then clears the flag', async () => {
-    const state: Record<string, unknown> = { verificationRetryPending: true };
-    const args = makeProcessInputStepArgs({ state });
-
-    const result = await verifier.processInputStep!(args);
-
-    expect(result).toEqual(expect.objectContaining({ toolChoice: 'none' }));
-    expect(state.verificationRetryPending).toBe(false);
-  });
-
-  // Test 9: Returns empty object when no retry pending
-  it('returns empty object when no retry pending', async () => {
-    const state: Record<string, unknown> = {};
-    const args = makeProcessInputStepArgs({ state });
-
-    const result = await verifier.processInputStep!(args);
-
-    expect(result).toEqual({});
-  });
-});

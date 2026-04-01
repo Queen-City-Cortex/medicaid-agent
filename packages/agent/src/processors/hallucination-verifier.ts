@@ -1,7 +1,7 @@
 import { generateObject } from 'ai';
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { z } from 'zod';
-import type { Processor, ProcessOutputStepArgs, ProcessInputStepArgs, ProcessInputStepResult } from '@mastra/core/processors';
+import type { Processor, ProcessOutputStepArgs } from '@mastra/core/processors';
 import type { MastraDBMessage } from '@mastra/core/memory';
 
 // ── Config ───────────────────────────────────────────────────────────────────
@@ -359,75 +359,38 @@ export class HallucinationVerifier implements Processor {
   readonly id = 'hallucination-verifier';
   readonly name = 'Hallucination Verifier';
 
-  async processInputStep({ state }: ProcessInputStepArgs): Promise<ProcessInputStepResult> {
-    if (state.verificationRetryPending) {
-      state.verificationRetryPending = false;
-      return { toolChoice: 'none' };
-    }
-    return {};
-  }
-
   async processOutputStep({
     text,
     finishReason,
     toolCalls,
-    steps,
     messages,
-    abort,
-    retryCount,
-    state,
     writer,
   }: ProcessOutputStepArgs): Promise<MastraDBMessage[]> {
-    // 1. Skip if verifier disabled
-    if (!getConfig().enabled) {
-      return messages;
-    }
+    if (!getConfig().enabled) return messages;
 
-    // 2. Skip if not final answer
+    // Only verify the final answer (model stopped, no pending tool calls, has text)
     if (finishReason !== 'stop' || (toolCalls && toolCalls.length > 0) || !text) {
       return messages;
     }
 
-    // 3. Extract sources from conversation messages
     const sources = extractSources(messages as any);
-
-    // 4. Build source text
     const sourceText = buildSourceText(sources, text);
-
-    // 5. Call verifyAnswer
     const verification = await verifyAnswer(text, sourceText);
 
-    // 6. If supported, return messages unchanged
-    if (verification.supported) {
-      return messages;
-    }
+    if (verification.supported) return messages;
 
-    // 7. If unsupported and retryCount < 2: set state flag and abort with retry
-    if (retryCount < 2) {
-      state.verificationRetryPending = true;
+    // Apply the verifier's correctedAnswer directly — no retry.
+    // Retries cause the agent to over-correct and hedge everything.
+    const corrected = verification.correctedAnswer ?? text;
 
-      const claimList = verification.unsupportedClaims
-        .map(c => `- "${c.claim}" — ${c.reason}`)
-        .join('\n');
-
-      abort(
-        `Some claims in your answer could not be verified against the source documents you retrieved:\n${claimList}\n\nFor each flagged claim, either:\n1. Quote the specific source text that supports it (section ID + passage), or\n2. Remove the claim and state what you could not confirm.\n\nDo not discard your entire answer — only fix the specific flagged claims. Keep all verified content unchanged.`,
-        { retry: true },
-      );
-      // abort() is typed `never` (always throws), but explicit return for clarity
-      return messages;
-    }
-
-    // 8. If unsupported and retries exhausted: emit custom chunk and rewrite messages
     if (writer) {
       await writer.custom({
         type: 'data-verification-rewrite' as const,
         unsupportedClaims: verification.unsupportedClaims,
-        correctedAnswer: verification.correctedAnswer,
+        correctedAnswer: corrected,
       });
     }
 
-    const corrected = verification.correctedAnswer ?? text;
     return messages.map((msg) => {
       if (msg.role !== 'assistant') return msg;
       return {

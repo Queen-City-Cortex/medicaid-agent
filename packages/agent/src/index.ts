@@ -134,9 +134,7 @@ export const ncMedicaidAgent = new Agent({
     lookupPolicy,
   },
   memory,
-  inputProcessors: [hallucinationVerifier],
   outputProcessors: [hallucinationVerifier],
-  maxProcessorRetries: 2,
 });
 
 export const mastra = new Mastra({
