@@ -81,15 +81,15 @@ interface FollowReferencesResult {
   }>;
 }
 
-// Step shape (AI SDK StepResult-like) ────────────────────────────────────────
+// Step shape (AI SDK StepResult) ──────────────────────────────────────────────
+// AI SDK v5 StepResult.toolResults entries have toolName/output directly,
+// NOT wrapped in a payload object.
 
 interface ToolResultEntry {
   type: 'tool-result';
-  payload: {
-    toolCallId: string;
-    toolName: string;
-    result: unknown;
-  };
+  toolCallId: string;
+  toolName: string;
+  output: unknown;
 }
 
 interface StepResult {
@@ -229,26 +229,26 @@ export function extractSources(steps: StepResult[]): SourceEntry[] {
     for (const tr of step.toolResults) {
       if (tr.type !== 'tool-result') continue;
 
-      const { toolName, result, toolCallId } = tr.payload;
+      const { toolName, output, toolCallId } = tr;
       if (!EVIDENCE_TOOLS.has(toolName)) continue;
 
       let entry: SourceEntry | null = null;
 
       switch (toolName) {
         case 'getSection':
-          entry = extractGetSection(result as GetSectionResult);
+          entry = extractGetSection(output as GetSectionResult);
           break;
         case 'getDocument':
-          entry = extractGetDocument(result as GetDocumentResult);
+          entry = extractGetDocument(output as GetDocumentResult);
           break;
         case 'getAmendments':
-          entry = extractGetAmendments(result as GetAmendmentsResult, toolCallId);
+          entry = extractGetAmendments(output as GetAmendmentsResult, toolCallId);
           break;
         case 'lookupPolicy':
-          entry = extractLookupPolicy(result as LookupPolicyResult, toolCallId);
+          entry = extractLookupPolicy(output as LookupPolicyResult, toolCallId);
           break;
         case 'followReferences':
-          entry = extractFollowReferences(result as FollowReferencesResult, toolCallId);
+          entry = extractFollowReferences(output as FollowReferencesResult, toolCallId);
           break;
       }
 

@@ -10,17 +10,19 @@ import type { ProcessOutputStepArgs, ProcessInputStepArgs } from '@mastra/core/p
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-interface ToolResultPayload {
+interface ToolResultInput {
   toolCallId: string;
   toolName: string;
-  result: unknown;
+  output: unknown;
 }
 
-function makeStep(toolResults: ToolResultPayload[]) {
+function makeStep(toolResults: ToolResultInput[]) {
   return {
-    toolResults: toolResults.map((p) => ({
+    toolResults: toolResults.map((tr) => ({
       type: 'tool-result' as const,
-      payload: p,
+      toolCallId: tr.toolCallId,
+      toolName: tr.toolName,
+      output: tr.output,
     })),
   };
 }
@@ -35,7 +37,7 @@ describe('extractSources', () => {
         {
           toolCallId: 'call-1',
           toolName: 'getSection',
-          result: {
+          output: {
             section: {
               id: 'doc-8c:sec-4.1',
               title: 'Eligibility Requirements',
@@ -70,7 +72,7 @@ describe('extractSources', () => {
         {
           toolCallId: 'call-amend',
           toolName: 'getAmendments',
-          result: {
+          output: {
             amendments: [
               {
                 id: 'amend-2',
@@ -126,7 +128,7 @@ describe('extractSources', () => {
         {
           toolCallId: 'call-lookup',
           toolName: 'lookupPolicy',
-          result: {
+          output: {
             documents: [
               {
                 id: 'doc-8c',
@@ -166,7 +168,7 @@ describe('extractSources', () => {
         {
           toolCallId: 'call-doc',
           toolName: 'getDocument',
-          result: {
+          output: {
             document: {
               id: 'doc-42cfr440',
               title: '42 CFR Part 440',
@@ -204,7 +206,7 @@ describe('extractSources', () => {
         {
           toolCallId: 'call-refs',
           toolName: 'followReferences',
-          result: {
+          output: {
             references: [
               {
                 targetId: 'doc-42cfr440:sec-440.1',
@@ -247,14 +249,14 @@ describe('extractSources', () => {
         {
           toolCallId: 'call-search',
           toolName: 'searchSections',
-          result: {
+          output: {
             sections: [{ id: 'sec-1', title: 'Found Section', score: 0.9 }],
           },
         },
         {
           toolCallId: 'call-ctx',
           toolName: 'getSectionContext',
-          result: {
+          output: {
             ancestors: [],
             siblings: [],
             children: [{ id: 'sec-child', title: 'Child', sectionNumber: '1.1' }],
@@ -263,7 +265,7 @@ describe('extractSources', () => {
         {
           toolCallId: 'call-concept',
           toolName: 'findConceptSections',
-          result: {
+          output: {
             sections: [{ id: 'sec-concept', title: 'Concept Section', score: 0.85 }],
           },
         },
@@ -282,7 +284,7 @@ describe('extractSources', () => {
         {
           toolCallId: 'call-s1',
           toolName: 'getSection',
-          result: {
+          output: {
             section: {
               id: 'doc-8c:sec-1',
               title: 'Introduction',
@@ -300,7 +302,7 @@ describe('extractSources', () => {
         {
           toolCallId: 'call-s2',
           toolName: 'getSection',
-          result: {
+          output: {
             section: {
               id: 'doc-8c:sec-2',
               title: 'Eligibility',
@@ -316,7 +318,7 @@ describe('extractSources', () => {
         {
           toolCallId: 'call-lookup',
           toolName: 'lookupPolicy',
-          result: {
+          output: {
             documents: [
               {
                 id: 'doc-8c',
@@ -350,7 +352,7 @@ describe('extractSources', () => {
         {
           toolCallId: 'call-search',
           toolName: 'searchSections',
-          result: { sections: [] },
+          output: { sections: [] },
         },
       ]),
     ];
@@ -367,7 +369,7 @@ describe('extractSources', () => {
         {
           toolCallId: 'call-null',
           toolName: 'getSection',
-          result: { section: null },
+          output: { section: null },
         },
       ]),
     ];
@@ -384,7 +386,7 @@ describe('extractSources', () => {
         {
           toolCallId: 'call-empty',
           toolName: 'lookupPolicy',
-          result: { documents: [] },
+          output: { documents: [] },
         },
       ]),
     ];
