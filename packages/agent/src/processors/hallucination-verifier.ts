@@ -428,6 +428,8 @@ export class HallucinationVerifier implements Processor {
         `Unsupported claims found: ${verification.unsupportedClaims.map((c) => c.claim).join('; ')}`,
         { retry: true },
       );
+      // abort() is typed `never` (always throws), but explicit return for clarity
+      return messages;
     }
 
     // 8. If unsupported and retries exhausted: emit custom chunk and rewrite messages
