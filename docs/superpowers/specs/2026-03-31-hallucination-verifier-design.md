@@ -186,12 +186,13 @@ const hallucinationVerifier = new HallucinationVerifier();
 
 export const ncMedicaidAgent = new Agent({
   // ...existing config
+  inputProcessors: [hallucinationVerifier],
   outputProcessors: [hallucinationVerifier],
   maxProcessorRetries: 2,
 });
 ```
 
-Note: `HallucinationVerifier` implements both `processOutputStep` (output processor) and `processInputStep` (input processor behavior). Even though it's registered in `outputProcessors`, Mastra routes `processInputStep` calls to any processor that implements the method regardless of which array it's in.
+The same instance is registered in both arrays because Mastra only routes `processInputStep` calls to `inputProcessors` and `processOutputStep` calls to `outputProcessors`. A single instance in both arrays shares the same processor `state` (keyed by processor ID in Mastra's `processorStates` map), enabling the `verificationRetryPending` flag to coordinate between the two methods.
 
 ### Frontend Handling
 
