@@ -6,8 +6,8 @@ test.describe('Error handling', () => {
   test('shows error message when agent returns 500', async ({ page }) => {
     await mockMastraAPI(page);
 
-    // Override the stream route to return an error
-    await page.route('**/api/agents/*/stream', async (route) => {
+    // Override the chat route to return an error
+    await page.route('**/chat', async (route) => {
       await route.fulfill({
         status: 500,
         contentType: 'application/json',
@@ -28,7 +28,7 @@ test.describe('Error handling', () => {
   test('input is re-enabled after an error', async ({ page }) => {
     await mockMastraAPI(page);
 
-    await page.route('**/api/agents/*/stream', async (route) => {
+    await page.route('**/chat', async (route) => {
       await route.fulfill({
         status: 500,
         contentType: 'application/json',

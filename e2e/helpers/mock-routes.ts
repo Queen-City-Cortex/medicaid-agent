@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { MastraStreamBuilder } from './stream-builder';
+import { AISdkStreamBuilder } from './stream-builder';
 
 interface MockThread {
   id: string;
@@ -18,8 +18,8 @@ interface MockMessage {
 }
 
 export interface MockMastraOptions {
-  /** Response for the agent /stream endpoint. Defaults to a single text-delta "Mock response." */
-  streamResponse?: MastraStreamBuilder;
+  /** Response for the /chat endpoint. Defaults to a single text-delta "Mock response." */
+  streamResponse?: AISdkStreamBuilder;
   /** Threads to return from listMemoryThreads. Defaults to empty array. */
   threads?: MockThread[];
   /** Messages to return from listMessages. Defaults to empty array. */
@@ -33,17 +33,18 @@ const MASTRA_BASE = '**/api/**';
  * Call this before navigating to the chat page.
  */
 export async function mockMastraAPI(page: Page, options: MockMastraOptions = {}): Promise<void> {
-  // 1. POST /api/agents/nc-medicaid-navigator/stream
-  await page.route('**/api/agents/*/stream', async (route) => {
+  // 1. POST /chat
+  await page.route('**/chat', async (route) => {
     if (route.request().method() !== 'POST') {
       await route.fallback();
       return;
     }
     const stream = options.streamResponse
-      ?? new MastraStreamBuilder()
+      ?? new AISdkStreamBuilder()
+          .start()
           .textDelta('Mock response.')
-          .finish()
-          .done();
+          .stepFinish()
+          .finish();
     await route.fulfill(stream.toFulfill());
   });
 

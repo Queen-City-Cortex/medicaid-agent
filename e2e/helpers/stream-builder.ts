@@ -1,87 +1,67 @@
 /**
- * Programmatic builder for Mastra SSE stream responses.
+ * Programmatic builder for AI SDK UIMessageStream responses.
  *
- * The Mastra client SDK parses streams by splitting on `\n\n`,
- * stripping the `data: ` prefix, and JSON-parsing each frame.
- * The stream ends with `data: [DONE]\n\n`.
+ * The AI SDK parses streams line-by-line. Each line has a single-character
+ * prefix followed by a colon, then JSON:
+ *   f: — format/start (contains messageId)
+ *   0: — text delta (JSON-encoded string)
+ *   b: — tool call begin (toolCallId, toolName, args)
+ *   a: — tool result (toolCallId, result)
+ *   e: — step finish (finishReason, usage, isContinued)
+ *   d: — done/finish (finishReason, usage)
  */
-export class MastraStreamBuilder {
+export class AISdkStreamBuilder {
   private chunks: string[] = [];
-  private runId: string;
+  private messageId: string;
 
-  constructor(runId?: string) {
-    this.runId = runId ?? 'test-run-' + Math.random().toString(36).slice(2, 8);
+  constructor(messageId?: string) {
+    this.messageId = messageId ?? 'msg-' + Math.random().toString(36).slice(2, 8);
   }
 
-  /** Emit a text-delta chunk. Text accumulates in the frontend's streamText. */
-  textDelta(text: string, id?: string): this {
-    this.chunks.push(this.frame({
-      type: 'text-delta',
-      runId: this.runId,
-      from: 'AGENT',
-      metadata: {},
-      payload: { id: id ?? 'text-1', text },
-    }));
+  /** Emit the format/start line with the messageId. */
+  start(): this {
+    this.chunks.push(`f:${JSON.stringify({ messageId: this.messageId })}\n`);
     return this;
   }
 
-  /** Emit a tool-call-input-streaming-start chunk. Adds a "running" tool to the timeline. */
-  toolStart(toolName: string, toolCallId?: string): this {
-    this.chunks.push(this.frame({
-      type: 'tool-call-input-streaming-start',
-      runId: this.runId,
-      from: 'AGENT',
-      metadata: {},
-      payload: {
-        toolCallId: toolCallId ?? `tc-${toolName}`,
-        toolName,
-      },
-    }));
+  /** Emit a text delta chunk. Text accumulates in the frontend. */
+  textDelta(text: string): this {
+    this.chunks.push(`0:${JSON.stringify(text)}\n`);
     return this;
   }
 
-  /** Emit a tool-result chunk. Marks the matching tool as "done" in the timeline. */
-  toolResult(toolName: string, result: unknown = {}, toolCallId?: string): this {
-    this.chunks.push(this.frame({
-      type: 'tool-result',
-      runId: this.runId,
-      from: 'AGENT',
-      metadata: {},
-      payload: {
-        toolCallId: toolCallId ?? `tc-${toolName}`,
-        toolName,
-        result,
-      },
-    }));
+  /** Emit a tool call begin chunk. */
+  toolCall(toolName: string, toolCallId: string, args?: unknown): this {
+    this.chunks.push(`b:${JSON.stringify({ toolCallId, toolName, args: args ?? {} })}\n`);
     return this;
   }
 
-  /** Emit a finish chunk with usage stats. */
+  /** Emit a tool result chunk. */
+  toolResult(toolCallId: string, result?: unknown): this {
+    this.chunks.push(`a:${JSON.stringify({ toolCallId, result: result ?? {} })}\n`);
+    return this;
+  }
+
+  /** Emit a step finish chunk. */
+  stepFinish(finishReason?: string): this {
+    this.chunks.push(`e:${JSON.stringify({
+      finishReason: finishReason ?? 'stop',
+      usage: { promptTokens: 100, completionTokens: 50 },
+      isContinued: false,
+    })}\n`);
+    return this;
+  }
+
+  /** Emit the done/finish chunk that signals end of stream. */
   finish(): this {
-    this.chunks.push(this.frame({
-      type: 'finish',
-      runId: this.runId,
-      from: 'AGENT',
-      metadata: {},
-      payload: {
-        finishReason: 'stop',
-        usage: { promptTokens: 100, completionTokens: 50 },
-      },
-    }));
+    this.chunks.push(`d:${JSON.stringify({
+      finishReason: 'stop',
+      usage: { promptTokens: 100, completionTokens: 50 },
+    })}\n`);
     return this;
   }
 
-  /** Emit the [DONE] marker that signals end of stream. */
-  done(): this {
-    this.chunks.push('data: [DONE]\n\n');
-    return this;
-  }
-
-  private frame(obj: Record<string, unknown>): string {
-    return `data: ${JSON.stringify(obj)}\n\n`;
-  }
-
-  /** Return the full SSE body as a string. */
+  /** Return the full stream body as a string. */
   toBody(): string {
     return this.chunks.join('');
   }
@@ -91,9 +71,8 @@ export class MastraStreamBuilder {
     return {
       status: 200,
       headers: {
-        'content-type': 'text/event-stream',
-        'cache-control': 'no-cache',
-        'connection': 'keep-alive',
+        'content-type': 'text/plain; charset=utf-8',
+        'x-vercel-ai-ui-message-stream': 'v1',
       },
       body: this.toBody(),
     };

@@ -141,9 +141,10 @@ export const mastra = new Mastra({
   agents: { ncMedicaidAgent },
   storage,
   server: {
-    port: 4111,
+    host: '0.0.0.0',
+    port: parseInt(process.env.PORT || '4111'),
     cors: {
-      origin: ['http://localhost:3000'],
+      origin: (process.env.CORS_ORIGINS || 'http://localhost:3000').split(','),
       credentials: true,
     },
     apiRoutes: [

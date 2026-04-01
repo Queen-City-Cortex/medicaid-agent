@@ -1,8 +1,6 @@
 'use client';
 
-type TimelineEntry =
-  | { type: 'reasoning'; text: string }
-  | { type: 'tool'; name: string; status: 'running' | 'done' };
+import { Wrench } from 'lucide-react';
 
 const TOOLS: Record<string, { label: string; icon: string }> = {
   searchSections: { label: 'Searching policies', icon: '🔍' },
@@ -15,34 +13,43 @@ const TOOLS: Record<string, { label: string; icon: string }> = {
   lookupPolicy: { label: 'Looking up policy', icon: '📖' },
 };
 
+export type TraceEntry =
+  | { type: 'tool'; toolName: string; toolCallId: string; state: string }
+  | { type: 'reasoning'; text: string };
+
 interface ResearchTraceProps {
-  timeline: TimelineEntry[];
+  entries: TraceEntry[];
   live?: boolean;
 }
 
-export { type TimelineEntry };
-
-export function ResearchTrace({ timeline, live = false }: ResearchTraceProps) {
-  if (timeline.length === 0) return null;
+export function ResearchTrace({ entries, live = false }: ResearchTraceProps) {
+  if (entries.length === 0) return null;
 
   return (
-    <div data-testid="research-trace" className={`space-y-1 ${live ? 'animate-in fade-in duration-300' : ''}`}>
-      {timeline.map((entry, i) => (
-        entry.type === 'tool' ? (
-          <div key={i} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            {entry.status === 'running' && live ? (
-              <span className="inline-block w-3 h-3 border-2 border-accent border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <span>{TOOLS[entry.name]?.icon || '·'}</span>
-            )}
-            <span>{TOOLS[entry.name]?.label || entry.name}</span>
-          </div>
-        ) : (
+    <div data-testid="research-trace" className="space-y-1">
+      {entries.map((entry, i) => {
+        if (entry.type === 'tool') {
+          const isRunning = entry.state === 'input-streaming' || entry.state === 'input-available';
+          return (
+            <div key={entry.toolCallId ?? i} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              {isRunning && live ? (
+                <span className="inline-block w-3 h-3 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+              ) : TOOLS[entry.toolName]?.icon ? (
+                <span>{TOOLS[entry.toolName].icon}</span>
+              ) : (
+                <Wrench className="w-3 h-3 text-muted-foreground" />
+              )}
+              <span>{TOOLS[entry.toolName]?.label || entry.toolName}</span>
+            </div>
+          );
+        }
+
+        return (
           <p key={i} className="text-sm text-muted-foreground italic">
             {entry.text}
           </p>
-        )
-      ))}
+        );
+      })}
     </div>
   );
 }

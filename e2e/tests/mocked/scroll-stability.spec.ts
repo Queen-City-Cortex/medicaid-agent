@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { ChatPage } from '../../helpers/chat-page';
 import { mockMastraAPI } from '../../helpers/mock-routes';
-import { MastraStreamBuilder } from '../../helpers/stream-builder';
+import { AISdkStreamBuilder } from '../../helpers/stream-builder';
 
 /**
  * Regression tests for scroll stability.
@@ -13,16 +13,17 @@ import { MastraStreamBuilder } from '../../helpers/stream-builder';
 test.describe('Scroll stability', () => {
   test('sidebar stays in place after loading a long conversation', async ({ page }) => {
     // Build a stream with enough content to overflow the viewport
-    const stream = new MastraStreamBuilder()
-      .toolStart('searchSections')
-      .toolResult('searchSections')
-      .toolStart('getSection')
-      .toolResult('getSection');
+    const stream = new AISdkStreamBuilder()
+      .start()
+      .toolCall('searchSections', 'tc-searchSections', {})
+      .toolResult('tc-searchSections')
+      .toolCall('getSection', 'tc-getSection', {})
+      .toolResult('tc-getSection');
 
     for (let i = 0; i < 20; i++) {
       stream.textDelta(`Paragraph ${i}: NC Medicaid policy requires detailed documentation. `);
     }
-    stream.finish().done();
+    stream.stepFinish().finish();
 
     await mockMastraAPI(page, { streamResponse: stream });
     const chat = new ChatPage(page);
@@ -45,11 +46,11 @@ test.describe('Scroll stability', () => {
   });
 
   test('main content area is scrollable when content overflows', async ({ page }) => {
-    const stream = new MastraStreamBuilder();
+    const stream = new AISdkStreamBuilder().start();
     for (let i = 0; i < 30; i++) {
       stream.textDelta(`Line ${i}: This is a long policy explanation that takes up space. `);
     }
-    stream.finish().done();
+    stream.stepFinish().finish();
 
     await mockMastraAPI(page, { streamResponse: stream });
     const chat = new ChatPage(page);
@@ -75,11 +76,11 @@ test.describe('Scroll stability', () => {
   });
 
   test('sidebar stays in place after switching threads', async ({ page }) => {
-    const stream = new MastraStreamBuilder();
+    const stream = new AISdkStreamBuilder().start();
     for (let i = 0; i < 20; i++) {
       stream.textDelta(`Content line ${i}. `);
     }
-    stream.finish().done();
+    stream.stepFinish().finish();
 
     await mockMastraAPI(page, {
       streamResponse: stream,

@@ -1,16 +1,17 @@
 import { test, expect } from '@playwright/test';
 import { ChatPage } from '../../helpers/chat-page';
 import { mockMastraAPI } from '../../helpers/mock-routes';
-import { MastraStreamBuilder } from '../../helpers/stream-builder';
+import { AISdkStreamBuilder } from '../../helpers/stream-builder';
 
 test.describe('Send message', () => {
   test('user message appears and assistant streams a response', async ({ page }) => {
-    const stream = new MastraStreamBuilder()
+    const stream = new AISdkStreamBuilder()
+      .start()
       .textDelta('NC Medicaid covers ')
       .textDelta('dental services ')
       .textDelta('for children.')
-      .finish()
-      .done();
+      .stepFinish()
+      .finish();
 
     await mockMastraAPI(page, { streamResponse: stream });
     const chat = new ChatPage(page);
@@ -27,10 +28,11 @@ test.describe('Send message', () => {
   });
 
   test('input is re-enabled after response completes', async ({ page }) => {
-    const stream = new MastraStreamBuilder()
+    const stream = new AISdkStreamBuilder()
+      .start()
       .textDelta('Response.')
-      .finish()
-      .done();
+      .stepFinish()
+      .finish();
 
     await mockMastraAPI(page, { streamResponse: stream });
     const chat = new ChatPage(page);
@@ -47,10 +49,11 @@ test.describe('Send message', () => {
   });
 
   test('empty state disappears after sending a message', async ({ page }) => {
-    const stream = new MastraStreamBuilder()
+    const stream = new AISdkStreamBuilder()
+      .start()
       .textDelta('Answer.')
-      .finish()
-      .done();
+      .stepFinish()
+      .finish();
 
     await mockMastraAPI(page, { streamResponse: stream });
     const chat = new ChatPage(page);

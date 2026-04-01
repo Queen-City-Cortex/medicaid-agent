@@ -1,18 +1,19 @@
 import { test, expect } from '@playwright/test';
 import { ChatPage } from '../../helpers/chat-page';
 import { mockMastraAPI } from '../../helpers/mock-routes';
-import { MastraStreamBuilder } from '../../helpers/stream-builder';
+import { AISdkStreamBuilder } from '../../helpers/stream-builder';
 
 test.describe('Tool calls', () => {
   test('research trace shows tool names and marks them done', async ({ page }) => {
-    const stream = new MastraStreamBuilder()
-      .toolStart('searchSections')
-      .toolResult('searchSections', [{ id: 'sec-1', title: 'Test Section' }])
-      .toolStart('getSection')
-      .toolResult('getSection', { content: 'Section content' })
+    const stream = new AISdkStreamBuilder()
+      .start()
+      .toolCall('searchSections', 'tc-searchSections', {})
+      .toolResult('tc-searchSections', [{ id: 'sec-1', title: 'Test Section' }])
+      .toolCall('getSection', 'tc-getSection', {})
+      .toolResult('tc-getSection', { content: 'Section content' })
       .textDelta('Based on the policy, coverage is available.')
-      .finish()
-      .done();
+      .stepFinish()
+      .finish();
 
     await mockMastraAPI(page, { streamResponse: stream });
     const chat = new ChatPage(page);
@@ -31,10 +32,11 @@ test.describe('Tool calls', () => {
   });
 
   test('stream with only text and no tools renders without trace', async ({ page }) => {
-    const stream = new MastraStreamBuilder()
+    const stream = new AISdkStreamBuilder()
+      .start()
       .textDelta('Simple answer with no tools.')
-      .finish()
-      .done();
+      .stepFinish()
+      .finish();
 
     await mockMastraAPI(page, { streamResponse: stream });
     const chat = new ChatPage(page);

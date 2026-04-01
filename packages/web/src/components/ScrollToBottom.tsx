@@ -6,9 +6,10 @@ import { Button } from '@/components/ui/button';
 
 interface ScrollToBottomProps {
   viewportRef: React.RefObject<HTMLElement | null>;
+  hasMessages?: boolean;
 }
 
-export function ScrollToBottom({ viewportRef }: ScrollToBottomProps) {
+export function ScrollToBottom({ viewportRef, hasMessages = true }: ScrollToBottomProps) {
   const [visible, setVisible] = useState(false);
 
   const checkScroll = useCallback(() => {
@@ -33,7 +34,7 @@ export function ScrollToBottom({ viewportRef }: ScrollToBottomProps) {
     }
   };
 
-  if (!visible) return null;
+  if (!visible || !hasMessages) return null;
 
   return (
     <button

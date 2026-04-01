@@ -1,14 +1,15 @@
 import { test, expect } from '@playwright/test';
 import { ChatPage } from '../../helpers/chat-page';
 import { mockMastraAPI } from '../../helpers/mock-routes';
-import { MastraStreamBuilder } from '../../helpers/stream-builder';
+import { AISdkStreamBuilder } from '../../helpers/stream-builder';
 
 test.describe('Keyboard interactions', () => {
   test('Enter key sends the message', async ({ page }) => {
-    const stream = new MastraStreamBuilder()
+    const stream = new AISdkStreamBuilder()
+      .start()
       .textDelta('Response.')
-      .finish()
-      .done();
+      .stepFinish()
+      .finish();
 
     await mockMastraAPI(page, { streamResponse: stream });
     const chat = new ChatPage(page);
@@ -37,10 +38,11 @@ test.describe('Keyboard interactions', () => {
   test('input is disabled while loading', async ({ page }) => {
     // Use a stream that takes a moment to resolve — but route.fulfill is instant,
     // so we just check the disabled state appears briefly by checking the button text
-    const stream = new MastraStreamBuilder()
+    const stream = new AISdkStreamBuilder()
+      .start()
       .textDelta('Done.')
-      .finish()
-      .done();
+      .stepFinish()
+      .finish();
 
     await mockMastraAPI(page, { streamResponse: stream });
     const chat = new ChatPage(page);

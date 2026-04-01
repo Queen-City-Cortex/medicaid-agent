@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { ChatPage } from '../../helpers/chat-page';
 import { mockMastraAPI } from '../../helpers/mock-routes';
-import { MastraStreamBuilder } from '../../helpers/stream-builder';
+import { AISdkStreamBuilder } from '../../helpers/stream-builder';
 
 test.describe('Thread sidebar', () => {
   test('renders thread list from API', async ({ page }) => {
@@ -20,10 +20,11 @@ test.describe('Thread sidebar', () => {
   });
 
   test('clicking + New clears the conversation', async ({ page }) => {
-    const stream = new MastraStreamBuilder()
+    const stream = new AISdkStreamBuilder()
+      .start()
       .textDelta('Answer.')
-      .finish()
-      .done();
+      .stepFinish()
+      .finish();
 
     await mockMastraAPI(page, { streamResponse: stream });
     const chat = new ChatPage(page);
