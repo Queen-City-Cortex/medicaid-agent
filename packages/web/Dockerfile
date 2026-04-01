@@ -8,9 +8,11 @@ COPY packages/web/package.json ./packages/web/
 RUN npm ci --workspace=@nc-medicaid/web
 
 # --- builder: build Next.js standalone output ---
-# NEXT_PUBLIC_* vars are inlined at build time by Next.js.
-# Railway injects env vars during docker build, so they are available here.
+# NEXT_PUBLIC_* vars must be available at build time (Next.js inlines them).
+# Use ARG so Railway can pass them via --build-arg.
 FROM base AS builder
+ARG NEXT_PUBLIC_MASTRA_URL
+ARG NEXT_PUBLIC_WORKOS_REDIRECT_URI
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/packages/web/node_modules ./packages/web/node_modules
