@@ -21,7 +21,7 @@ const openai = createOpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-const AGENT_MODEL = process.env.AGENT_MODEL || 'gpt-5.4-mini';
+const AGENT_MODEL = process.env.AGENT_MODEL || 'gpt-5.4';
 
 function createModel(modelId: string) {
   if (modelId.startsWith('gpt-') || modelId.startsWith('o3') || modelId.startsWith('o4')) {
