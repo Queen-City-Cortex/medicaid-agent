@@ -24,29 +24,42 @@ Agent agentic loop
         |
   All supported? --> pass through unchanged
   Unsupported found, retryCount < max? --> abort({ retry: true }) with feedback
-  Unsupported found, retries exhausted? --> rewrite answer with [unverified] markers
+        |                                  processInputStep enforces toolChoice: 'none'
+        |                                  on the retry step (via shared state)
+        |
+  Unsupported found, retries exhausted?
+        |
+  generate(): rewrite assistant message in message list with correctedAnswer
+  stream(): emit data-verification-rewrite custom chunk via writer.custom()
 ```
 
 ## Components
 
 ### File: `packages/agent/src/processors/hallucination-verifier.ts`
 
-A class implementing Mastra's `Processor` interface with a `processOutputStep` method. This is the correct hook for retry-capable guardrails -- `processOutputResult` does not support `abort({ retry: true })`.
+A class implementing Mastra's `Processor` interface with two methods:
+
+- **`processOutputStep`**: Runs verification on the final answer step, triggers retry or fallback.
+- **`processInputStep`**: Enforces `toolChoice: 'none'` during verification retries to mechanically prevent the agent from making new tool calls. Coordination between the two methods uses the shared `state` object that Mastra provides to all processor methods within a request.
 
 ### Source Material Extraction
 
-The processor extracts evidence from the `steps[]` array available in `ProcessOutputStepArgs`. It collects tool results from ALL retrieval tools, not just `getSection`:
+The processor extracts evidence from the `steps[]` array available in `ProcessOutputStepArgs`. It collects tool results from retrieval tools that return authoritative content:
 
 | Tool | What it contributes |
 |------|-------------------|
 | `getSection` | Full section content text (primary evidence) |
+| `getDocument` | Document metadata, section lists, effective dates |
 | `getAmendments` | Authoritative document ID, effective dates, change summaries |
 | `lookupPolicy` | Document metadata, section lists, policy numbers, effective dates |
-| `findConceptSections` | Sections linked to policy concepts |
+| `followReferences` | Cross-reference targets with section/document metadata |
 
 Each tool result is labeled by tool name and keyed by section/document ID so the verifier can trace which source supports which claim.
 
-`searchSections` and `getSectionContext` are excluded -- they return only snippets or structural metadata, not authoritative content.
+**Excluded tools:**
+- `searchSections` -- returns only 300-char snippets, not authoritative content
+- `getSectionContext` -- structural hierarchy metadata, not policy text
+- `findConceptSections` -- returns only relationship metadata (which sections link to a concept via COVERS/DEFINES/RESTRICTS edges), not the section content itself
 
 Source texts are capped at ~30K tokens (configurable). When the cap is exceeded, sources cited in the answer text (matched by section ID or policy number mentions) are prioritized; others are truncated oldest-first.
 
@@ -110,7 +123,12 @@ The `correctedAnswer` field solves the brittle string-replacement problem from t
 
 ### Retry Flow
 
-When unsupported claims are found and `retryCount < maxProcessorRetries`, the processor calls `abort()` with `{ retry: true }` and a specific feedback message:
+When unsupported claims are found and `retryCount < maxProcessorRetries`, the processor:
+
+1. Sets `state.verificationRetryPending = true` in the shared processor state
+2. Calls `abort(feedbackMessage, { retry: true })`
+
+The feedback message lists the unsupported claims:
 
 ```
 Your answer contains claims not supported by the documents you retrieved:
@@ -118,17 +136,44 @@ Your answer contains claims not supported by the documents you retrieved:
 - "[claim text]": [reason]
 
 Revise your answer to either cite a retrieved source for each claim,
-or state that you could not confirm the detail. Do NOT add new information
--- only use what you already retrieved.
+or state that you could not confirm the detail.
 ```
 
-The "do NOT add new information" instruction prevents the retry from triggering more tool calls and expanding scope. The agent should only rewrite its answer using evidence it already gathered.
+**Enforcing rewrite-only retries via `processInputStep`:**
+
+Prompting alone cannot reliably prevent the agent from making new tool calls during a retry. The processor's `processInputStep` method checks `state.verificationRetryPending` and, when true, returns `{ toolChoice: 'none' }` to mechanically disable tools for that step. This guarantees the retry is a rewrite-only operation. The flag is cleared after `processInputStep` fires.
+
+```typescript
+async processInputStep({ state }: ProcessInputStepArgs): Promise<ProcessInputStepResult> {
+  if (state.verificationRetryPending) {
+    state.verificationRetryPending = false;
+    return { toolChoice: 'none' };
+  }
+  return {};
+}
+```
 
 ### Fallback Flagging
 
-On the final verification pass (after `maxProcessorRetries` exhausted), instead of aborting, the processor replaces the assistant's answer in the message list with the verifier's `correctedAnswer` -- the version with `[unverified: ...]` markers already inserted by the verifier LLM.
+On the final verification pass (after `maxProcessorRetries` exhausted), the processor handles `generate()` and `stream()` differently:
 
-This avoids fragile string replacement entirely. The verifier has full context of the answer structure and produces a clean, complete rewrite with markers in the right places.
+**`generate()` path:** The processor replaces the assistant's answer in the message list with the verifier's `correctedAnswer`. Since `generate()` returns only after full completion, the caller sees the corrected version.
+
+**`stream()` path:** The hallucinated text has already been streamed to the client by the time `processOutputStep` runs. The processor cannot un-stream it. Instead, it emits a custom data chunk via `writer.custom()`:
+
+```typescript
+await writer?.custom({
+  type: 'data-verification-rewrite',
+  data: {
+    correctedAnswer: verificationResult.correctedAnswer,
+    unsupportedClaims: verificationResult.unsupportedClaims,
+  },
+});
+```
+
+The frontend listens for `data-verification-rewrite` chunks in `fullStream` and replaces the displayed message with the corrected version. This follows the same pattern Mastra documents for the ModerationProcessor streaming example.
+
+In both paths, the message list is also updated so memory persists the corrected version.
 
 ## Integration
 
@@ -146,16 +191,27 @@ export const ncMedicaidAgent = new Agent({
 });
 ```
 
+Note: `HallucinationVerifier` implements both `processOutputStep` (output processor) and `processInputStep` (input processor behavior). Even though it's registered in `outputProcessors`, Mastra routes `processInputStep` calls to any processor that implements the method regardless of which array it's in.
+
+### Frontend Handling
+
+The web chat component needs to handle the `data-verification-rewrite` chunk:
+
+```typescript
+for await (const chunk of stream.fullStream) {
+  if (chunk.type === 'data-verification-rewrite') {
+    // Replace the displayed message with the corrected version
+    replaceCurrentMessage(chunk.data.correctedAnswer);
+  }
+}
+```
+
 ### Configuration
 
 Environment variables:
 - `VERIFIER_MODEL` -- model ID for the verifier (default: `claude-haiku-4-5-20251001`)
 - `VERIFIER_ENABLED` -- set to `false` to disable (default: `true`)
 - `VERIFIER_MAX_SOURCE_TOKENS` -- cap on source material tokens (default: `30000`)
-
-### Streaming
-
-`processOutputStep` runs after each LLM step within the agentic loop. For streaming, if a retry is triggered, the agent streams a corrected version on the next iteration. This matches Mastra's existing processor retry behavior for `processOutputStep`.
 
 ## Cost
 
@@ -171,11 +227,15 @@ The processor is a standalone class with no Neo4j dependency. Unit tests mock th
 1. Pass-through when `finishReason` is `tool-calls` (not a final answer)
 2. Pass-through when all claims supported
 3. Retry trigger when unsupported claims found and retryCount < max
-4. Fallback: message rewrite with `correctedAnswer` after max retries
-5. Source extraction from multiple tool types (getSection, getAmendments, lookupPolicy, findConceptSections)
-6. Verification still runs when no retrieval tools were called (flags all claims)
-7. Token truncation when source material exceeds cap
-8. Verifier LLM error handling (pass through on failure)
+4. `processInputStep` returns `toolChoice: 'none'` when `state.verificationRetryPending` is true
+5. `processInputStep` returns empty object when no retry is pending
+6. Fallback (generate): message list rewrite with `correctedAnswer` after max retries
+7. Fallback (stream): `writer.custom()` called with `data-verification-rewrite` chunk
+8. Source extraction from multiple tool types (getSection, getDocument, getAmendments, lookupPolicy, followReferences)
+9. Excluded tools not in evidence (searchSections, getSectionContext, findConceptSections)
+10. Verification still runs when no retrieval tools were called (flags all claims)
+11. Token truncation when source material exceeds cap
+12. Verifier LLM error handling (pass through on failure)
 
 ## Error Handling
 
@@ -183,4 +243,4 @@ If the verifier LLM call fails (network error, rate limit, malformed JSON respon
 
 ## Eval Impact
 
-No changes to the eval harness. The `[unverified]` flags will naturally lower the hallucination score if they appear, which is the correct signal -- it means the agent is producing claims it can't verify even after correction. The goal is to raise the hallucination score from ~2.06 to 2.7+ by eliminating the unsupported claims before they reach the judge.
+No changes to the eval harness. The eval runner uses `generate()` (not streaming), so the message-list rewrite path applies and the judge sees the corrected answer. The `[unverified]` flags will naturally lower the hallucination score if they appear, which is the correct signal -- it means the agent is producing claims it can't verify even after correction. The goal is to raise the hallucination score from ~2.06 to 2.7+ by eliminating the unsupported claims before they reach the judge.
