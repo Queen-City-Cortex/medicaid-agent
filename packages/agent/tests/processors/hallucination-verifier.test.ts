@@ -2,9 +2,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { extractSources, buildSourceText, verifyAnswer, VerificationResult, SourceEntry, HallucinationVerifier } from '../../src/processors/hallucination-verifier.js';
 
 vi.mock('ai', () => ({
-  generateText: vi.fn(),
+  generateObject: vi.fn(),
 }));
-import { generateText } from 'ai';
+import { generateObject } from 'ai';
 
 import type { ProcessOutputStepArgs, ProcessInputStepArgs } from '@mastra/core/processors';
 
@@ -472,9 +472,9 @@ describe('buildSourceText', () => {
 
 describe('verifyAnswer', () => {
   it('returns supported: true when all claims are supported', async () => {
-    vi.mocked(generateText).mockResolvedValueOnce({
-      text: JSON.stringify({ supported: true, unsupportedClaims: [] }),
-    } as Awaited<ReturnType<typeof generateText>>);
+    vi.mocked(generateObject).mockResolvedValueOnce({
+      object: { supported: true, unsupportedClaims: [] },
+    } as any);
 
     const result = await verifyAnswer('The benefit cap is $500.', 'The benefit cap is $500 per month.');
 
@@ -483,16 +483,15 @@ describe('verifyAnswer', () => {
   });
 
   it('returns unsupported claims with reasons and correctedAnswer', async () => {
-    const mockResult: VerificationResult = {
-      supported: false,
-      unsupportedClaims: [
-        { claim: 'The visit limit is 20 visits per year.', reason: 'Source states 30 visits per year.' },
-      ],
-      correctedAnswer: 'The visit limit is [unverified: 20 visits per year].',
-    };
-    vi.mocked(generateText).mockResolvedValueOnce({
-      text: JSON.stringify(mockResult),
-    } as Awaited<ReturnType<typeof generateText>>);
+    vi.mocked(generateObject).mockResolvedValueOnce({
+      object: {
+        supported: false,
+        unsupportedClaims: [
+          { claim: 'The visit limit is 20 visits per year.', reason: 'Source states 30 visits per year.' },
+        ],
+        correctedAnswer: 'The visit limit is [unverified: 20 visits per year].',
+      },
+    } as any);
 
     const result = await verifyAnswer(
       'The visit limit is 20 visits per year.',
@@ -507,72 +506,12 @@ describe('verifyAnswer', () => {
   });
 
   it('returns supported: true on verifier LLM error (fail-open)', async () => {
-    vi.mocked(generateText).mockRejectedValueOnce(new Error('Network timeout'));
+    vi.mocked(generateObject).mockRejectedValueOnce(new Error('Network timeout'));
 
     const result = await verifyAnswer('Some answer.', 'Some source.');
 
     expect(result.supported).toBe(true);
     expect(result.unsupportedClaims).toHaveLength(0);
-  });
-
-  it('returns supported: true on malformed JSON from verifier (fail-open)', async () => {
-    vi.mocked(generateText).mockResolvedValueOnce({
-      text: 'This is not JSON at all.',
-    } as Awaited<ReturnType<typeof generateText>>);
-
-    const result = await verifyAnswer('Some answer.', 'Some source.');
-
-    expect(result.supported).toBe(true);
-    expect(result.unsupportedClaims).toHaveLength(0);
-  });
-
-  it('handles response wrapped in markdown code fences', async () => {
-    const mockResult: VerificationResult = {
-      supported: true,
-      unsupportedClaims: [],
-    };
-    vi.mocked(generateText).mockResolvedValueOnce({
-      text: `\`\`\`json\n${JSON.stringify(mockResult)}\n\`\`\``,
-    } as Awaited<ReturnType<typeof generateText>>);
-
-    const result = await verifyAnswer('The policy covers dental.', 'Dental services are covered under this policy.');
-
-    expect(result.supported).toBe(true);
-    expect(result.unsupportedClaims).toHaveLength(0);
-  });
-
-  it('extracts JSON when followed by trailing commentary', async () => {
-    const json = JSON.stringify({ supported: false, unsupportedClaims: [{ claim: 'X', reason: 'Y' }], correctedAnswer: 'fixed' });
-    vi.mocked(generateText).mockResolvedValueOnce({
-      text: `${json}\n\nI hope this helps! Let me know if you need anything else.`,
-    } as Awaited<ReturnType<typeof generateText>>);
-
-    const result = await verifyAnswer('answer', 'source');
-    expect(result.supported).toBe(false);
-    expect(result.unsupportedClaims).toHaveLength(1);
-    expect(result.correctedAnswer).toBe('fixed');
-  });
-
-  it('extracts JSON when preceded by explanatory text', async () => {
-    const json = JSON.stringify({ supported: true, unsupportedClaims: [] });
-    vi.mocked(generateText).mockResolvedValueOnce({
-      text: `Here is my analysis:\n\n${json}`,
-    } as Awaited<ReturnType<typeof generateText>>);
-
-    const result = await verifyAnswer('answer', 'source');
-    expect(result.supported).toBe(true);
-  });
-
-  it('extracts the first JSON object when multiple are present', async () => {
-    const first = JSON.stringify({ supported: false, unsupportedClaims: [{ claim: 'A', reason: 'B' }] });
-    const second = JSON.stringify({ supported: true, unsupportedClaims: [] });
-    vi.mocked(generateText).mockResolvedValueOnce({
-      text: `${first}\n\nAlternative:\n${second}`,
-    } as Awaited<ReturnType<typeof generateText>>);
-
-    const result = await verifyAnswer('answer', 'source');
-    expect(result.supported).toBe(false);
-    expect(result.unsupportedClaims[0].claim).toBe('A');
   });
 });
 
@@ -620,7 +559,7 @@ describe('HallucinationVerifier.processOutputStep', () => {
   let savedEnv: string | undefined;
 
   beforeEach(() => {
-    vi.mocked(generateText).mockClear();
+    vi.mocked(generateObject).mockClear();
     savedEnv = process.env.VERIFIER_ENABLED;
   });
 
@@ -634,11 +573,11 @@ describe('HallucinationVerifier.processOutputStep', () => {
     }
   });
 
-  // Helper: mock generateText to make verifyAnswer return a specific result
+  // Helper: mock generateObject to make verifyAnswer return a specific result
   function mockVerification(result: VerificationResult) {
-    vi.mocked(generateText).mockResolvedValueOnce({
-      text: JSON.stringify(result),
-    } as Awaited<ReturnType<typeof generateText>>);
+    vi.mocked(generateObject).mockResolvedValueOnce({
+      object: result,
+    } as any);
   }
 
   // Test 1: Passes through when finishReason is 'tool-calls'
@@ -652,7 +591,7 @@ describe('HallucinationVerifier.processOutputStep', () => {
 
     expect(result).toEqual(args.messages);
     // generateText should not have been called since verifier skips non-final answers
-    expect(generateText).not.toHaveBeenCalled();
+    expect(generateObject).not.toHaveBeenCalled();
   });
 
   // Test 2: Passes through when claims are all supported
@@ -663,7 +602,7 @@ describe('HallucinationVerifier.processOutputStep', () => {
     const result = await verifier.processOutputStep!(args);
 
     expect(result).toEqual(args.messages);
-    expect(generateText).toHaveBeenCalled();
+    expect(generateObject).toHaveBeenCalled();
   });
 
   // Test 3: Calls abort with retry when unsupported claims found and retryCount < 2
@@ -745,7 +684,7 @@ describe('HallucinationVerifier.processOutputStep', () => {
     const result = await verifier.processOutputStep!(args);
 
     expect(result).toEqual(args.messages);
-    expect(generateText).not.toHaveBeenCalled();
+    expect(generateObject).not.toHaveBeenCalled();
   });
 
   // Test 7: Passes through when text is empty
@@ -754,7 +693,7 @@ describe('HallucinationVerifier.processOutputStep', () => {
     const result = await verifier.processOutputStep!(args);
 
     expect(result).toEqual(args.messages);
-    expect(generateText).not.toHaveBeenCalled();
+    expect(generateObject).not.toHaveBeenCalled();
   });
 });
 

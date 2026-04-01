@@ -1,5 +1,6 @@
-import { generateText } from 'ai';
+import { generateObject } from 'ai';
 import { createAnthropic } from '@ai-sdk/anthropic';
+import { z } from 'zod';
 import type { Processor, ProcessOutputStepArgs, ProcessInputStepArgs, ProcessInputStepResult } from '@mastra/core/processors';
 import type { MastraDBMessage } from '@mastra/core/memory';
 
@@ -304,11 +305,18 @@ export function buildSourceText(
 
 // ── verifyAnswer ─────────────────────────────────────────────────────────────
 
-export interface VerificationResult {
-  supported: boolean;
-  unsupportedClaims: Array<{ claim: string; reason: string }>;
-  correctedAnswer?: string;
-}
+const VerificationSchema = z.object({
+  supported: z.boolean().describe('true if ALL factual claims are supported by the sources'),
+  unsupportedClaims: z.array(z.object({
+    claim: z.string().describe('The unsupported claim text from the answer'),
+    reason: z.string().describe('Why the claim is not supported by the sources'),
+  })),
+  correctedAnswer: z.string().optional().describe(
+    'Full answer with [unverified: ...] markers around unsupported claims. Only present when supported is false.',
+  ),
+});
+
+export type VerificationResult = z.infer<typeof VerificationSchema>;
 
 const VERIFIER_PROMPT = `You are a factual verification assistant. Given an ANSWER and SOURCE DOCUMENTS, identify every factual claim in the answer and check whether it is supported by the source documents.
 
@@ -316,51 +324,7 @@ A claim is SUPPORTED if the source documents contain the information stated or i
 
 Focus on: dollar amounts, dates, thresholds, visit limits, eligibility criteria, policy numbers, and specific requirements. Ignore narrative transitions, hedging language, and meta-commentary about the research process.
 
-If any claims are unsupported, produce a CORRECTED VERSION of the full answer where each unsupported claim is wrapped in [unverified: ...] markers. Keep all supported content unchanged. The corrected version must be the complete answer, not a diff.
-
-Respond with JSON only matching this schema:
-{
-  "supported": boolean,
-  "unsupportedClaims": [{"claim": "string", "reason": "string"}],
-  "correctedAnswer": "string or omit if supported is true"
-}`;
-
-/**
- * Extract the first complete JSON object from LLM response text.
- * Handles markdown code fences, leading/trailing commentary, etc.
- */
-function extractJson(text: string): unknown {
-  const stripped = text
-    .replace(/^```(?:json)?\s*/i, '')
-    .replace(/\s*```\s*$/, '')
-    .trim();
-
-  // Fast path: clean JSON
-  try {
-    return JSON.parse(stripped);
-  } catch {
-    // Find the first { and walk to its matching }
-    const start = stripped.indexOf('{');
-    if (start === -1) throw new Error('No JSON object found in response');
-
-    let depth = 0;
-    let inString = false;
-    let escape = false;
-    for (let i = start; i < stripped.length; i++) {
-      const ch = stripped[i];
-      if (escape) { escape = false; continue; }
-      if (ch === '\\' && inString) { escape = true; continue; }
-      if (ch === '"') { inString = !inString; continue; }
-      if (inString) continue;
-      if (ch === '{') depth++;
-      if (ch === '}') {
-        depth--;
-        if (depth === 0) return JSON.parse(stripped.slice(start, i + 1));
-      }
-    }
-    throw new Error('No complete JSON object found in response');
-  }
-}
+If any claims are unsupported, produce a CORRECTED VERSION of the full answer where each unsupported claim is wrapped in [unverified: ...] markers. Keep all supported content unchanged. The corrected version must be the complete answer, not a diff.`;
 
 export async function verifyAnswer(
   answerText: string,
@@ -370,8 +334,9 @@ export async function verifyAnswer(
 
   try {
     const anthropic = createAnthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-    const { text } = await generateText({
+    const { object } = await generateObject({
       model: anthropic(getConfig().model),
+      schema: VerificationSchema,
       system: VERIFIER_PROMPT,
       messages: [
         {
@@ -381,19 +346,7 @@ export async function verifyAnswer(
       ],
     });
 
-    const parsed = extractJson(text);
-
-    if (
-      typeof parsed !== 'object' ||
-      parsed === null ||
-      typeof (parsed as Record<string, unknown>).supported !== 'boolean' ||
-      !Array.isArray((parsed as Record<string, unknown>).unsupportedClaims)
-    ) {
-      console.error('[HallucinationVerifier] Malformed response structure, failing open');
-      return failOpen;
-    }
-
-    return parsed as VerificationResult;
+    return object;
   } catch (err) {
     console.error('[HallucinationVerifier] Error during verification, failing open:', err);
     return failOpen;
