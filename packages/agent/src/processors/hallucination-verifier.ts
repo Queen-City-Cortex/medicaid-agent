@@ -1,3 +1,6 @@
+import { generateText } from 'ai';
+import { createAnthropic } from '@ai-sdk/anthropic';
+
 // ── Config ───────────────────────────────────────────────────────────────────
 
 function getConfig() {
@@ -296,4 +299,73 @@ export function buildSourceText(
   }
 
   return parts.join('').trimEnd();
+}
+
+// ── verifyAnswer ─────────────────────────────────────────────────────────────
+
+export interface VerificationResult {
+  supported: boolean;
+  unsupportedClaims: Array<{ claim: string; reason: string }>;
+  correctedAnswer?: string;
+}
+
+const VERIFIER_PROMPT = `You are a factual verification assistant. Given an ANSWER and SOURCE DOCUMENTS, identify every factual claim in the answer and check whether it is supported by the source documents.
+
+A claim is SUPPORTED if the source documents contain the information stated or it is a reasonable paraphrase. A claim is UNSUPPORTED if the source documents do not contain that information, or the answer states something that contradicts the sources.
+
+Focus on: dollar amounts, dates, thresholds, visit limits, eligibility criteria, policy numbers, and specific requirements. Ignore narrative transitions, hedging language, and meta-commentary about the research process.
+
+If any claims are unsupported, produce a CORRECTED VERSION of the full answer where each unsupported claim is wrapped in [unverified: ...] markers. Keep all supported content unchanged. The corrected version must be the complete answer, not a diff.
+
+Respond with JSON only matching this schema:
+{
+  "supported": boolean,
+  "unsupportedClaims": [{"claim": "string", "reason": "string"}],
+  "correctedAnswer": "string or omit if supported is true"
+}`;
+
+function stripCodeFences(text: string): string {
+  return text
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```\s*$/, '')
+    .trim();
+}
+
+export async function verifyAnswer(
+  answerText: string,
+  sourceText: string,
+): Promise<VerificationResult> {
+  const failOpen: VerificationResult = { supported: true, unsupportedClaims: [] };
+
+  try {
+    const anthropic = createAnthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const { text } = await generateText({
+      model: anthropic(getConfig().model),
+      system: VERIFIER_PROMPT,
+      messages: [
+        {
+          role: 'user',
+          content: `## ANSWER\n\n${answerText}\n\n## SOURCE DOCUMENTS\n\n${sourceText}`,
+        },
+      ],
+    });
+
+    const stripped = stripCodeFences(text);
+    const parsed = JSON.parse(stripped) as unknown;
+
+    if (
+      typeof parsed !== 'object' ||
+      parsed === null ||
+      typeof (parsed as Record<string, unknown>).supported !== 'boolean' ||
+      !Array.isArray((parsed as Record<string, unknown>).unsupportedClaims)
+    ) {
+      console.error('[HallucinationVerifier] Malformed response structure, failing open');
+      return failOpen;
+    }
+
+    return parsed as VerificationResult;
+  } catch (err) {
+    console.error('[HallucinationVerifier] Error during verification, failing open:', err);
+    return failOpen;
+  }
 }

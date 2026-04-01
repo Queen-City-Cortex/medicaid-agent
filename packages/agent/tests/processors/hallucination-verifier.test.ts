@@ -1,5 +1,10 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { extractSources, buildSourceText, SourceEntry } from '../../src/processors/hallucination-verifier.js';
+import { describe, it, expect, vi } from 'vitest';
+import { extractSources, buildSourceText, verifyAnswer, VerificationResult, SourceEntry } from '../../src/processors/hallucination-verifier.js';
+
+vi.mock('ai', () => ({
+  generateText: vi.fn(),
+}));
+import { generateText } from 'ai';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -448,5 +453,79 @@ describe('buildSourceText', () => {
     expect(result).toContain('Short A');
     expect(result).toContain('Short B');
     expect(result).not.toContain('truncated');
+  });
+});
+
+// ── verifyAnswer ──────────────────────────────────────────────────────────────
+
+describe('verifyAnswer', () => {
+  it('returns supported: true when all claims are supported', async () => {
+    vi.mocked(generateText).mockResolvedValueOnce({
+      text: JSON.stringify({ supported: true, unsupportedClaims: [] }),
+    } as Awaited<ReturnType<typeof generateText>>);
+
+    const result = await verifyAnswer('The benefit cap is $500.', 'The benefit cap is $500 per month.');
+
+    expect(result.supported).toBe(true);
+    expect(result.unsupportedClaims).toHaveLength(0);
+  });
+
+  it('returns unsupported claims with reasons and correctedAnswer', async () => {
+    const mockResult: VerificationResult = {
+      supported: false,
+      unsupportedClaims: [
+        { claim: 'The visit limit is 20 visits per year.', reason: 'Source states 30 visits per year.' },
+      ],
+      correctedAnswer: 'The visit limit is [unverified: 20 visits per year].',
+    };
+    vi.mocked(generateText).mockResolvedValueOnce({
+      text: JSON.stringify(mockResult),
+    } as Awaited<ReturnType<typeof generateText>>);
+
+    const result = await verifyAnswer(
+      'The visit limit is 20 visits per year.',
+      'Physical therapy is covered for up to 30 visits per year.',
+    );
+
+    expect(result.supported).toBe(false);
+    expect(result.unsupportedClaims).toHaveLength(1);
+    expect(result.unsupportedClaims[0].claim).toBe('The visit limit is 20 visits per year.');
+    expect(result.unsupportedClaims[0].reason).toContain('30 visits');
+    expect(result.correctedAnswer).toContain('[unverified:');
+  });
+
+  it('returns supported: true on verifier LLM error (fail-open)', async () => {
+    vi.mocked(generateText).mockRejectedValueOnce(new Error('Network timeout'));
+
+    const result = await verifyAnswer('Some answer.', 'Some source.');
+
+    expect(result.supported).toBe(true);
+    expect(result.unsupportedClaims).toHaveLength(0);
+  });
+
+  it('returns supported: true on malformed JSON from verifier (fail-open)', async () => {
+    vi.mocked(generateText).mockResolvedValueOnce({
+      text: 'This is not JSON at all.',
+    } as Awaited<ReturnType<typeof generateText>>);
+
+    const result = await verifyAnswer('Some answer.', 'Some source.');
+
+    expect(result.supported).toBe(true);
+    expect(result.unsupportedClaims).toHaveLength(0);
+  });
+
+  it('handles response wrapped in markdown code fences', async () => {
+    const mockResult: VerificationResult = {
+      supported: true,
+      unsupportedClaims: [],
+    };
+    vi.mocked(generateText).mockResolvedValueOnce({
+      text: `\`\`\`json\n${JSON.stringify(mockResult)}\n\`\`\``,
+    } as Awaited<ReturnType<typeof generateText>>);
+
+    const result = await verifyAnswer('The policy covers dental.', 'Dental services are covered under this policy.');
+
+    expect(result.supported).toBe(true);
+    expect(result.unsupportedClaims).toHaveLength(0);
   });
 });
