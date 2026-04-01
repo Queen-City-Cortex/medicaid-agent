@@ -1,10 +1,12 @@
-import { describe, it, expect, vi } from 'vitest';
-import { extractSources, buildSourceText, verifyAnswer, VerificationResult, SourceEntry } from '../../src/processors/hallucination-verifier.js';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { extractSources, buildSourceText, verifyAnswer, VerificationResult, SourceEntry, HallucinationVerifier } from '../../src/processors/hallucination-verifier.js';
 
 vi.mock('ai', () => ({
   generateText: vi.fn(),
 }));
 import { generateText } from 'ai';
+
+import type { ProcessOutputStepArgs, ProcessInputStepArgs } from '@mastra/core/processors';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -527,5 +529,207 @@ describe('verifyAnswer', () => {
 
     expect(result.supported).toBe(true);
     expect(result.unsupportedClaims).toHaveLength(0);
+  });
+});
+
+// ── HallucinationVerifier class ──────────────────────────────────────────────
+
+function makeProcessOutputStepArgs(overrides: Partial<ProcessOutputStepArgs> = {}): ProcessOutputStepArgs {
+  return {
+    text: 'Some answer text',
+    finishReason: 'stop',
+    toolCalls: [],
+    steps: [],
+    messages: [{
+      id: 'msg-1',
+      role: 'assistant' as const,
+      content: { parts: [{ type: 'text' as const, text: 'Some answer text' }] },
+    }],
+    messageList: {} as any,
+    abort: vi.fn(() => { throw new Error('abort-called'); }) as any,
+    retryCount: 0,
+    state: {},
+    writer: { custom: vi.fn() } as any,
+    systemMessages: [],
+    stepNumber: 0,
+    ...overrides,
+  } as any;
+}
+
+function makeProcessInputStepArgs(overrides: Partial<ProcessInputStepArgs> = {}): ProcessInputStepArgs {
+  return {
+    messages: [],
+    messageList: {} as any,
+    abort: vi.fn() as any,
+    retryCount: 0,
+    state: {},
+    systemMessages: [],
+    stepNumber: 0,
+    steps: [],
+    model: {} as any,
+    ...overrides,
+  } as any;
+}
+
+describe('HallucinationVerifier.processOutputStep', () => {
+  const verifier = new HallucinationVerifier();
+  let savedEnv: string | undefined;
+
+  beforeEach(() => {
+    vi.mocked(generateText).mockClear();
+    savedEnv = process.env.VERIFIER_ENABLED;
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    // Restore VERIFIER_ENABLED env var
+    if (savedEnv === undefined) {
+      delete process.env.VERIFIER_ENABLED;
+    } else {
+      process.env.VERIFIER_ENABLED = savedEnv;
+    }
+  });
+
+  // Helper: mock generateText to make verifyAnswer return a specific result
+  function mockVerification(result: VerificationResult) {
+    vi.mocked(generateText).mockResolvedValueOnce({
+      text: JSON.stringify(result),
+    } as Awaited<ReturnType<typeof generateText>>);
+  }
+
+  // Test 1: Passes through when finishReason is 'tool-calls'
+  it('passes through when finishReason is tool-calls (not final answer)', async () => {
+    const args = makeProcessOutputStepArgs({
+      finishReason: 'tool-calls',
+      toolCalls: [{ toolName: 'searchSections', toolCallId: 'call-1', args: {} }],
+    });
+
+    const result = await verifier.processOutputStep!(args);
+
+    expect(result).toEqual(args.messages);
+    // generateText should not have been called since verifier skips non-final answers
+    expect(generateText).not.toHaveBeenCalled();
+  });
+
+  // Test 2: Passes through when claims are all supported
+  it('passes through when claims are all supported', async () => {
+    mockVerification({ supported: true, unsupportedClaims: [] });
+
+    const args = makeProcessOutputStepArgs();
+    const result = await verifier.processOutputStep!(args);
+
+    expect(result).toEqual(args.messages);
+    expect(generateText).toHaveBeenCalled();
+  });
+
+  // Test 3: Calls abort with retry when unsupported claims found and retryCount < 2
+  it('calls abort with retry:true when unsupported claims found and retryCount < 2', async () => {
+    mockVerification({
+      supported: false,
+      unsupportedClaims: [{ claim: 'The limit is $500', reason: 'Source says $300' }],
+      correctedAnswer: 'The limit is [unverified: $500].',
+    });
+
+    const state: Record<string, unknown> = {};
+    const args = makeProcessOutputStepArgs({ retryCount: 0, state });
+
+    try {
+      await verifier.processOutputStep!(args);
+      // Should not reach here because abort throws
+      expect.unreachable('abort should have thrown');
+    } catch (e: any) {
+      expect(e.message).toBe('abort-called');
+    }
+
+    expect(args.abort).toHaveBeenCalled();
+    const abortCall = vi.mocked(args.abort).mock.calls[0];
+    expect(abortCall[1]).toEqual(expect.objectContaining({ retry: true }));
+    expect(state.verificationRetryPending).toBe(true);
+  });
+
+  // Test 4: Rewrites assistant messages with correctedAnswer when retries exhausted
+  it('rewrites assistant messages with correctedAnswer when retries exhausted', async () => {
+    const corrected = 'The limit is [unverified: $500].';
+    mockVerification({
+      supported: false,
+      unsupportedClaims: [{ claim: 'The limit is $500', reason: 'Source says $300' }],
+      correctedAnswer: corrected,
+    });
+
+    const args = makeProcessOutputStepArgs({ retryCount: 2 });
+    const result = await verifier.processOutputStep!(args) as any[];
+
+    // Should NOT have called abort
+    expect(args.abort).not.toHaveBeenCalled();
+
+    // Assistant messages should have correctedAnswer text
+    const assistantMsg = result.find((m: any) => m.role === 'assistant');
+    expect(assistantMsg).toBeDefined();
+    const textPart = assistantMsg!.content.parts.find((p: any) => p.type === 'text');
+    expect(textPart.text).toBe(corrected);
+  });
+
+  // Test 5: Emits data-verification-rewrite via writer.custom() on final retry fallback
+  it('emits data-verification-rewrite via writer.custom() on final retry fallback', async () => {
+    const corrected = 'The limit is [unverified: $500].';
+    mockVerification({
+      supported: false,
+      unsupportedClaims: [{ claim: 'The limit is $500', reason: 'Source says $300' }],
+      correctedAnswer: corrected,
+    });
+
+    const writer = { custom: vi.fn() };
+    const args = makeProcessOutputStepArgs({ retryCount: 2, writer: writer as any });
+    await verifier.processOutputStep!(args);
+
+    expect(writer.custom).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'data-verification-rewrite' }),
+    );
+  });
+
+  // Test 6: Passes through when VERIFIER_ENABLED is 'false'
+  it('passes through when VERIFIER_ENABLED is false', async () => {
+    savedEnv = process.env.VERIFIER_ENABLED;
+    process.env.VERIFIER_ENABLED = 'false';
+
+    const args = makeProcessOutputStepArgs();
+    const result = await verifier.processOutputStep!(args);
+
+    expect(result).toEqual(args.messages);
+    expect(generateText).not.toHaveBeenCalled();
+  });
+
+  // Test 7: Passes through when text is empty
+  it('passes through when text is empty', async () => {
+    const args = makeProcessOutputStepArgs({ text: '' });
+    const result = await verifier.processOutputStep!(args);
+
+    expect(result).toEqual(args.messages);
+    expect(generateText).not.toHaveBeenCalled();
+  });
+});
+
+describe('HallucinationVerifier.processInputStep', () => {
+  const verifier = new HallucinationVerifier();
+
+  // Test 8: Returns toolChoice: 'none' when verificationRetryPending is true, then clears it
+  it('returns toolChoice none when verificationRetryPending is true, then clears the flag', async () => {
+    const state: Record<string, unknown> = { verificationRetryPending: true };
+    const args = makeProcessInputStepArgs({ state });
+
+    const result = await verifier.processInputStep!(args);
+
+    expect(result).toEqual(expect.objectContaining({ toolChoice: 'none' }));
+    expect(state.verificationRetryPending).toBe(false);
+  });
+
+  // Test 9: Returns empty object when no retry pending
+  it('returns empty object when no retry pending', async () => {
+    const state: Record<string, unknown> = {};
+    const args = makeProcessInputStepArgs({ state });
+
+    const result = await verifier.processInputStep!(args);
+
+    expect(result).toEqual({});
   });
 });

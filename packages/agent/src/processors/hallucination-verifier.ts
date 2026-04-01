@@ -1,5 +1,7 @@
 import { generateText } from 'ai';
 import { createAnthropic } from '@ai-sdk/anthropic';
+import type { Processor, ProcessOutputStepArgs, ProcessInputStepArgs, ProcessInputStepResult } from '@mastra/core/processors';
+import type { MastraDBMessage } from '@mastra/core/memory';
 
 // ── Config ───────────────────────────────────────────────────────────────────
 
@@ -367,5 +369,91 @@ export async function verifyAnswer(
   } catch (err) {
     console.error('[HallucinationVerifier] Error during verification, failing open:', err);
     return failOpen;
+  }
+}
+
+// ── Processor Class ─────────────────────────────────────────────────────────
+
+export class HallucinationVerifier implements Processor {
+  readonly id = 'hallucination-verifier';
+  readonly name = 'Hallucination Verifier';
+
+  async processInputStep({ state }: ProcessInputStepArgs): Promise<ProcessInputStepResult> {
+    if (state.verificationRetryPending) {
+      state.verificationRetryPending = false;
+      return { toolChoice: 'none' };
+    }
+    return {};
+  }
+
+  async processOutputStep({
+    text,
+    finishReason,
+    toolCalls,
+    steps,
+    messages,
+    abort,
+    retryCount,
+    state,
+    writer,
+  }: ProcessOutputStepArgs): Promise<MastraDBMessage[]> {
+    // 1. Skip if verifier disabled
+    if (!getConfig().enabled) {
+      return messages;
+    }
+
+    // 2. Skip if not final answer
+    if (finishReason !== 'stop' || (toolCalls && toolCalls.length > 0) || !text) {
+      return messages;
+    }
+
+    // 3. Extract sources from steps
+    const sources = extractSources(steps as any);
+
+    // 4. Build source text
+    const sourceText = buildSourceText(sources, text);
+
+    // 5. Call verifyAnswer
+    const verification = await verifyAnswer(text, sourceText);
+
+    // 6. If supported, return messages unchanged
+    if (verification.supported) {
+      return messages;
+    }
+
+    // 7. If unsupported and retryCount < 2: set state flag and abort with retry
+    if (retryCount < 2) {
+      state.verificationRetryPending = true;
+      abort(
+        `Unsupported claims found: ${verification.unsupportedClaims.map((c) => c.claim).join('; ')}`,
+        { retry: true },
+      );
+    }
+
+    // 8. If unsupported and retries exhausted: emit custom chunk and rewrite messages
+    if (writer) {
+      await writer.custom({
+        type: 'data-verification-rewrite' as const,
+        unsupportedClaims: verification.unsupportedClaims,
+        correctedAnswer: verification.correctedAnswer,
+      });
+    }
+
+    const corrected = verification.correctedAnswer ?? text;
+    return messages.map((msg) => {
+      if (msg.role !== 'assistant') return msg;
+      return {
+        ...msg,
+        content: {
+          ...msg.content,
+          parts: (msg.content as any).parts.map((part: any) => {
+            if (part.type === 'text') {
+              return { ...part, text: corrected };
+            }
+            return part;
+          }),
+        },
+      };
+    });
   }
 }
