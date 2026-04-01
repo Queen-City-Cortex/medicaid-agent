@@ -10,12 +10,21 @@ CONSTRAINTS = [
     "CREATE CONSTRAINT chunk_id IF NOT EXISTS FOR (ch:Chunk) REQUIRE ch.id IS UNIQUE",
 ]
 
+INDEXES = [
+    "CREATE INDEX doc_policy_number IF NOT EXISTS FOR (d:Document) ON (d.policy_number)",
+    "CREATE INDEX doc_document_type IF NOT EXISTS FOR (d:Document) ON (d.document_type)",
+    "CREATE INDEX doc_status IF NOT EXISTS FOR (d:Document) ON (d.status)",
+    "CREATE INDEX section_document_id_section_number IF NOT EXISTS FOR (s:Section) ON (s.document_id, s.section_number)",
+]
+
 
 def ensure_schema():
     """Create constraints and indexes if they don't exist."""
     with get_session() as session:
         for constraint in CONSTRAINTS:
             session.run(constraint)
+        for index in INDEXES:
+            session.run(index)
 
 
 def reset_database():

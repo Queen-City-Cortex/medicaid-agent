@@ -30,9 +30,29 @@ SET s.document_id = $document_id,
 RETURN s
 """
 
+MERGE_SECTIONS_BATCH = """
+UNWIND $sections AS section
+MERGE (s:Section {id: section.id})
+SET s.document_id = section.document_id,
+    s.section_number = section.section_number,
+    s.title = section.title,
+    s.level = section.level,
+    s.content_text = section.content_text,
+    s.content_length = section.content_length,
+    s.has_tables = section.has_tables,
+    s.has_definitions = section.has_definitions
+"""
+
 MERGE_HAS_SECTION = """
 MATCH (d:Document {id: $doc_id})
 MATCH (s:Section {id: $sec_id})
+MERGE (d)-[:HAS_SECTION]->(s)
+"""
+
+MERGE_HAS_SECTION_BATCH = """
+MATCH (d:Document {id: $doc_id})
+UNWIND $section_ids AS sec_id
+MATCH (s:Section {id: sec_id})
 MERGE (d)-[:HAS_SECTION]->(s)
 """
 
@@ -42,9 +62,23 @@ MATCH (child:Section {id: $child_id})
 MERGE (parent)-[:PARENT_OF]->(child)
 """
 
+MERGE_PARENT_OF_BATCH = """
+UNWIND $pairs AS pair
+MATCH (parent:Section {id: pair.parent_id})
+MATCH (child:Section {id: pair.child_id})
+MERGE (parent)-[:PARENT_OF]->(child)
+"""
+
 MERGE_NEXT_SIBLING = """
 MATCH (prev:Section {id: $prev_id})
 MATCH (next:Section {id: $next_id})
+MERGE (prev)-[:NEXT_SIBLING]->(next)
+"""
+
+MERGE_NEXT_SIBLING_BATCH = """
+UNWIND $pairs AS pair
+MATCH (prev:Section {id: pair.prev_id})
+MATCH (next:Section {id: pair.next_id})
 MERGE (prev)-[:NEXT_SIBLING]->(next)
 """
 
@@ -84,9 +118,25 @@ SET ch.section_id = $section_id,
 RETURN ch
 """
 
+MERGE_CHUNKS_BATCH = """
+UNWIND $chunks AS chunk
+MERGE (ch:Chunk {id: chunk.id})
+SET ch.section_id = chunk.section_id,
+    ch.chunk_index = chunk.chunk_index,
+    ch.content_text = chunk.content_text,
+    ch.content_length = chunk.content_length
+"""
+
 MERGE_HAS_CHUNK = """
 MATCH (s:Section {id: $section_id})
 MATCH (ch:Chunk {id: $chunk_id})
+MERGE (s)-[:HAS_CHUNK]->(ch)
+"""
+
+MERGE_HAS_CHUNK_BATCH = """
+MATCH (s:Section {id: $section_id})
+UNWIND $chunk_ids AS chunk_id
+MATCH (ch:Chunk {id: chunk_id})
 MERGE (s)-[:HAS_CHUNK]->(ch)
 """
 
@@ -120,4 +170,29 @@ MERGE_AMENDS = """
 MATCH (src:Document {id: $source_id})
 MATCH (tgt:Document {id: $target_id})
 MERGE (src)-[:AMENDS]->(tgt)
+"""
+
+MERGE_AMENDS_BATCH = """
+UNWIND $pairs AS pair
+MATCH (src:Document {id: pair.source_id})
+MATCH (tgt:Document {id: pair.target_id})
+MERGE (src)-[:AMENDS]->(tgt)
+"""
+
+SET_DOCUMENT_STATUS_BATCH = """
+UNWIND $doc_ids AS doc_id
+MATCH (d:Document {id: doc_id})
+SET d.status = $status
+"""
+
+SET_SECTION_EMBEDDINGS_BATCH = """
+UNWIND $rows AS row
+MATCH (s:Section {id: row.id})
+SET s.embedding = row.embedding
+"""
+
+SET_CHUNK_EMBEDDINGS_BATCH = """
+UNWIND $rows AS row
+MATCH (ch:Chunk {id: row.id})
+SET ch.embedding = row.embedding
 """

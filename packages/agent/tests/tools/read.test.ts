@@ -117,7 +117,7 @@ describe('getSection', () => {
 
     expect(result.section).not.toBeNull();
     expect(result.section!.content).toContain(
-      '[This is a container heading. Content from 2 child sections:]',
+      '[Container heading with 2 child sections:]',
     );
     expect(result.section!.content).toContain('### Child A');
     expect(result.section!.content).toContain('Child A content');
@@ -182,6 +182,7 @@ describe('getDocument', () => {
             policyNumber: '8C',
             effectiveDate: '2025-01-01',
             url: 'https://example.com/8C',
+            status: 'current',
             sections: [
               { id: 'sec-1', number: '1', title: 'Intro', chars: 100 },
               { id: null, number: null, title: null, chars: null }, // null entry from empty OPTIONAL MATCH
@@ -238,6 +239,7 @@ describe('getSectionContext', () => {
         // Siblings
         records: [
           mockRecord({ id: 'sec-sibling', title: 'Sibling', sectionNumber: '1.1.2' }),
+          mockRecord({ id: 'sec-sibling-2', title: 'Sibling 2', sectionNumber: '1.1.3' }),
         ],
       },
     ]);
@@ -254,6 +256,7 @@ describe('getSectionContext', () => {
     ]);
     expect(result.siblings).toEqual([
       { id: 'sec-sibling', title: 'Sibling', sectionNumber: '1.1.2' },
+      { id: 'sec-sibling-2', title: 'Sibling 2', sectionNumber: '1.1.3' },
     ]);
   });
 });

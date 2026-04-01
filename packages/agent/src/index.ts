@@ -60,6 +60,7 @@ When searching, route queries to the appropriate document types:
 
 ## Amendment awareness
 - Always check for amendments when analyzing a policy document. Use **getAmendments** on any document you cite.
+- Use the tool's **authoritativeDocument** field as the default document to cite when it differs from the document you started with.
 - If a change notice exists, read its sections to determine what was modified.
 - When a change notice removes a limit (e.g., eliminates a visit cap), state clearly: "No limit currently applies — the previous limit was removed by [amendment ID/date]."
 - Prefer the most recent effective date when multiple documents address the same topic.

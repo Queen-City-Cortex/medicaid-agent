@@ -5,6 +5,7 @@ from rich.console import Console
 from pipeline.config import CFR_PARTS
 from pipeline.federal.ecfr_client import fetch_part_xml
 from pipeline.federal.parser import parse_part_xml
+from pipeline.graph.bulk import write_sections
 from pipeline.graph.connection import get_session
 from pipeline.graph import queries
 from pipeline.graph.schema import ensure_schema
@@ -12,10 +13,19 @@ from pipeline.graph.schema import ensure_schema
 console = Console()
 
 
+def _add_sequential_siblings(sections: list[dict]) -> list[dict]:
+    """Annotate sequential sections with NEXT_SIBLING-compatible pointers."""
+    prev_section_id = None
+    for section in sections:
+        section["prev_sibling_id"] = prev_section_id
+        prev_section_id = section["id"]
+    return sections
+
+
 def load_cfr_part(title: int, part: int, refresh: bool = False) -> dict:
     """Fetch, parse, and load one CFR part into Neo4j. Returns stats."""
     xml_text = fetch_part_xml(title, part, refresh=refresh)
-    sections = parse_part_xml(xml_text, title, part)
+    sections = _add_sequential_siblings(parse_part_xml(xml_text, title, part))
 
     doc_id = f"doc:federal_regulation:{title}-CFR-{part}"
 
@@ -36,34 +46,7 @@ def load_cfr_part(title: int, part: int, refresh: bool = False) -> dict:
             "effective_date": None,
         })
 
-        # MERGE section nodes
-        prev_section_id = None
-        for section in sections:
-            session.run(queries.MERGE_SECTION, {
-                "id": section["id"],
-                "document_id": doc_id,
-                "section_number": section["section_number"],
-                "title": section["title"],
-                "level": section["level"],
-                "content_text": section["content_text"],
-                "content_length": section["content_length"],
-                "has_tables": section["has_tables"],
-                "has_definitions": section["has_definitions"],
-            })
-
-            # HAS_SECTION edge
-            session.run(queries.MERGE_HAS_SECTION, {
-                "doc_id": doc_id,
-                "sec_id": section["id"],
-            })
-
-            # NEXT_SIBLING edge
-            if prev_section_id:
-                session.run(queries.MERGE_NEXT_SIBLING, {
-                    "prev_id": prev_section_id,
-                    "next_id": section["id"],
-                })
-            prev_section_id = section["id"]
+        write_sections(session, doc_id, sections)
 
     return {
         "document_id": doc_id,
@@ -93,7 +76,7 @@ def load_ssa(refresh: bool = False) -> dict:
 
         try:
             html = fetch_usc_subchapter(title_num, refresh=refresh)
-            section_list = parse_usc_subchapter(html, title_num)
+            section_list = _add_sequential_siblings(parse_usc_subchapter(html, title_num))
 
             with get_session() as session:
                 session.run(queries.MERGE_DOCUMENT, {
@@ -111,31 +94,9 @@ def load_ssa(refresh: bool = False) -> dict:
                     "effective_date": None,
                 })
 
-            prev_section_id = None
-            for section in section_list:
-                try:
-                    with get_session() as session:
-                        session.run(queries.MERGE_SECTION, {
-                            "id": section["id"],
-                            "document_id": doc_id,
-                            "section_number": section["section_number"],
-                            "title": section["title"],
-                            "level": section["level"],
-                            "content_text": section["content_text"],
-                            "content_length": section["content_length"],
-                            "has_tables": section["has_tables"],
-                            "has_definitions": section["has_definitions"],
-                        })
-                        session.run(queries.MERGE_HAS_SECTION, {"doc_id": doc_id, "sec_id": section["id"]})
-
-                        if prev_section_id:
-                            session.run(queries.MERGE_NEXT_SIBLING, {"prev_id": prev_section_id, "next_id": section["id"]})
-                        prev_section_id = section["id"]
-
-                    stats["sections_total"] += 1
-                except Exception as e:
-                    console.print(f"[red]Error on Section {section['section_number']}: {e}[/red]")
-                    stats["errors"] += 1
+            with get_session() as session:
+                write_sections(session, doc_id, section_list)
+            stats["sections_total"] += len(section_list)
 
             console.print(f"[green]OK[/green] ({len(section_list)} sections)")
             stats["titles_loaded"] += 1

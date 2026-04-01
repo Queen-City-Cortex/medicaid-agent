@@ -1,6 +1,11 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { withSession } from '../neo4j.js';
+import {
+  DocumentMetadataSchema,
+  documentMetadataReturn,
+  mapDocumentMetadataRecord,
+} from './document-metadata.js';
 
 // ─── followReferences ──────────────────────────────────────────────────────────
 
@@ -38,7 +43,7 @@ export const followReferences = createTool({
            CASE WHEN target:Section THEN target.title ELSE target.title END AS targetTitle,
            CASE WHEN target:Section THEN d.policy_number ELSE target.policy_number END AS targetPolicyNumber,
            type(r) AS relationshipType,
-           r.text AS referenceText`,
+           r.reference_text AS referenceText`,
         { id: sectionId },
       );
 
@@ -61,97 +66,89 @@ export const followReferences = createTool({
 export const getAmendments = createTool({
   id: 'get-amendments',
   description:
-    'Find all amendments (change notices) that amend a given document, and check if the ' +
-    'document itself amends another base document. Use this to ensure you are looking at ' +
-    'the most current version of a policy and to identify superseded provisions.',
+    'Find all amendment-chain documents related to a given document. ' +
+    'Returns every newer document that supersedes it, the oldest reachable base document, ' +
+    'and the authoritative document to cite now.',
   inputSchema: z.object({
     documentId: z.string().describe('The document ID to look up amendments for'),
   }),
   outputSchema: z.object({
     amendments: z.array(
-      z.object({
-        id: z.string(),
-        title: z.string().nullable(),
-        documentType: z.string().nullable(),
-        policyNumber: z.string().nullable(),
-        effectiveDate: z.string().nullable(),
-        url: z.string().nullable(),
+      DocumentMetadataSchema.extend({
         changeSummary: z.string().nullable(),
       }),
     ),
-    baseDocument: z
-      .object({
-        id: z.string(),
-        title: z.string().nullable(),
-        documentType: z.string().nullable(),
-        policyNumber: z.string().nullable(),
-        effectiveDate: z.string().nullable(),
-        url: z.string().nullable(),
-      })
-      .nullable(),
+    baseDocument: DocumentMetadataSchema.nullable(),
+    authoritativeDocument: DocumentMetadataSchema.nullable(),
   }),
   execute: async (inputData) => {
     const { documentId } = inputData;
 
     return await withSession(async (session) => {
-      // Documents that amend this document, with a summary of changes
-      // from the amendment's first substantive section (where revisions
-      // are typically described, e.g. "MA-2180 is revised in: ...")
+      const currentResult = await session.run(
+        `MATCH (d:Document {id: $id})
+         RETURN
+           ${documentMetadataReturn('d')}`,
+        { id: documentId },
+      );
+      const currentDocument =
+        currentResult.records.length > 0 ? mapDocumentMetadataRecord(currentResult.records[0]) : null;
+
+      // All reachable newer documents that supersede this document.
       const amendResult = await session.run(
-        `MATCH (d:Document {id: $id})<-[:AMENDS]-(amend:Document)
+        `MATCH (d:Document {id: $id})
+         OPTIONAL MATCH path = (amend:Document)-[:AMENDS*1..]->(d)
+         WITH amend, min(length(path)) AS distance
+         WHERE amend IS NOT NULL
          OPTIONAL MATCH (amend)-[:HAS_SECTION]->(sec:Section)
          WHERE sec.content_length > 100
-         WITH amend, sec
+         WITH amend, distance, sec
          ORDER BY sec.content_length DESC
-         WITH amend, collect(substring(sec.content_text, 0, 500))[0] AS firstSectionText
+         WITH amend, distance, collect(substring(sec.content_text, 0, 500))[0] AS firstSectionText
          RETURN
-           amend.id AS id,
-           amend.title AS title,
-           amend.document_type AS documentType,
-           amend.policy_number AS policyNumber,
-           amend.effective_date AS effectiveDate,
-           amend.url AS url,
+           ${documentMetadataReturn('amend')},
+           distance,
            firstSectionText
-         ORDER BY amend.effective_date DESC`,
+         ORDER BY amend.effective_date DESC, distance ASC, amend.id ASC`,
         { id: documentId },
       );
 
       const amendments = amendResult.records.map((rec) => ({
-        id: rec.get('id') as string,
-        title: rec.get('title') as string | null,
-        documentType: rec.get('documentType') as string | null,
-        policyNumber: rec.get('policyNumber') as string | null,
-        effectiveDate: rec.get('effectiveDate') as string | null,
-        url: rec.get('url') as string | null,
+        ...mapDocumentMetadataRecord(rec),
         changeSummary: rec.get('firstSectionText') as string | null,
       }));
 
-      // Document that this document amends (outgoing AMENDS)
+      // Oldest reachable base document in the amendment chain.
       const baseResult = await session.run(
-        `MATCH (d:Document {id: $id})-[:AMENDS]->(base:Document)
+        `MATCH path = (d:Document {id: $id})-[:AMENDS*1..]->(base:Document)
+         WITH base, max(length(path)) AS distance
          RETURN
-           base.id AS id,
-           base.title AS title,
-           base.document_type AS documentType,
-           base.policy_number AS policyNumber,
-           base.effective_date AS effectiveDate,
-           base.url AS url`,
+           ${documentMetadataReturn('base')},
+           distance
+         ORDER BY distance DESC, base.effective_date ASC, base.id ASC
+         LIMIT 1`,
         { id: documentId },
       );
 
       const baseDocument =
         baseResult.records.length > 0
-          ? {
-              id: baseResult.records[0].get('id') as string,
-              title: baseResult.records[0].get('title') as string | null,
-              documentType: baseResult.records[0].get('documentType') as string | null,
-              policyNumber: baseResult.records[0].get('policyNumber') as string | null,
-              effectiveDate: baseResult.records[0].get('effectiveDate') as string | null,
-              url: baseResult.records[0].get('url') as string | null,
-            }
+          ? mapDocumentMetadataRecord(baseResult.records[0])
           : null;
 
-      return { amendments, baseDocument };
+      const latestAmendment = amendments[0];
+      const authoritativeDocument = latestAmendment
+        ? {
+            id: latestAmendment.id,
+            title: latestAmendment.title,
+            documentType: latestAmendment.documentType,
+            policyNumber: latestAmendment.policyNumber,
+            effectiveDate: latestAmendment.effectiveDate,
+            url: latestAmendment.url,
+            status: latestAmendment.status,
+          }
+        : currentDocument;
+
+      return { amendments, baseDocument, authoritativeDocument };
     });
   },
 });

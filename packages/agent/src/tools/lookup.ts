@@ -1,6 +1,11 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { withSession } from '../neo4j.js';
+import {
+  DocumentMetadataSchema,
+  documentMetadataReturn,
+  mapDocumentMetadataRecord,
+} from './document-metadata.js';
 
 export const lookupPolicy = createTool({
   id: 'lookup-policy',
@@ -13,13 +18,7 @@ export const lookupPolicy = createTool({
   }),
   outputSchema: z.object({
     documents: z.array(
-      z.object({
-        id: z.string(),
-        title: z.string().nullable(),
-        documentType: z.string().nullable(),
-        policyNumber: z.string().nullable(),
-        effectiveDate: z.string().nullable(),
-        url: z.string().nullable(),
+      DocumentMetadataSchema.extend({
         sections: z.array(
           z.object({
             id: z.string(),
@@ -41,12 +40,7 @@ export const lookupPolicy = createTool({
             OR d.policy_number STARTS WITH $pn
          OPTIONAL MATCH (d)-[:HAS_SECTION]->(s:Section)
          RETURN
-           d.id AS id,
-           d.title AS title,
-           d.document_type AS documentType,
-           d.policy_number AS policyNumber,
-           d.effective_date AS effectiveDate,
-           d.url AS url,
+           ${documentMetadataReturn('d')},
            collect({id: s.id, number: s.section_number, title: s.title}) AS sections
          ORDER BY d.effective_date DESC`,
         { pn: policyNumber },
@@ -69,12 +63,7 @@ export const lookupPolicy = createTool({
           }));
 
         return {
-          id: rec.get('id') as string,
-          title: rec.get('title') as string | null,
-          documentType: rec.get('documentType') as string | null,
-          policyNumber: rec.get('policyNumber') as string | null,
-          effectiveDate: rec.get('effectiveDate') as string | null,
-          url: rec.get('url') as string | null,
+          ...mapDocumentMetadataRecord(rec),
           sections,
         };
       });

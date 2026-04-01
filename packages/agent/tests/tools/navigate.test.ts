@@ -103,8 +103,32 @@ describe('getAmendments', () => {
   it('returns amendments and base document', async () => {
     setupSession([
       {
+        // Current document metadata
+        records: [
+          mockRecord({
+            id: 'doc-1',
+            title: 'Current Policy 8C',
+            documentType: 'dhhs_policy',
+            policyNumber: '8C',
+            effectiveDate: '2025-01-01',
+            url: 'https://example.com/8C',
+            status: 'current',
+          }),
+        ],
+      },
+      {
         // Amendments (incoming AMENDS)
         records: [
+          mockRecord({
+            id: 'amend-2',
+            title: 'Change Notice 2025-03',
+            documentType: 'change_notice',
+            policyNumber: '8C-CN-03',
+            effectiveDate: '2025-08-01',
+            url: 'https://example.com/cn-03',
+            status: 'amendment',
+            firstSectionText: 'This change notice supersedes the prior revision.',
+          }),
           mockRecord({
             id: 'amend-1',
             title: 'Change Notice 2025-01',
@@ -112,11 +136,13 @@ describe('getAmendments', () => {
             policyNumber: '8C-CN-01',
             effectiveDate: '2025-06-01',
             url: 'https://example.com/cn-01',
+            status: 'amendment',
+            firstSectionText: 'MA-2180 is revised in the following way...',
           }),
         ],
       },
       {
-        // Base document (outgoing AMENDS)
+        // Oldest reachable base document
         records: [
           mockRecord({
             id: 'doc-base',
@@ -125,6 +151,7 @@ describe('getAmendments', () => {
             policyNumber: '8C',
             effectiveDate: '2024-01-01',
             url: 'https://example.com/8C',
+            status: 'current',
           }),
         ],
       },
@@ -132,14 +159,26 @@ describe('getAmendments', () => {
 
     const result = await getAmendments.execute({ documentId: 'doc-1' }, {});
 
-    expect(result.amendments).toHaveLength(1);
+    expect(result.amendments).toHaveLength(2);
     expect(result.amendments[0]).toEqual({
+      id: 'amend-2',
+      title: 'Change Notice 2025-03',
+      documentType: 'change_notice',
+      policyNumber: '8C-CN-03',
+      effectiveDate: '2025-08-01',
+      url: 'https://example.com/cn-03',
+      status: 'amendment',
+      changeSummary: 'This change notice supersedes the prior revision.',
+    });
+    expect(result.amendments[1]).toEqual({
       id: 'amend-1',
       title: 'Change Notice 2025-01',
       documentType: 'change_notice',
       policyNumber: '8C-CN-01',
       effectiveDate: '2025-06-01',
       url: 'https://example.com/cn-01',
+      status: 'amendment',
+      changeSummary: 'MA-2180 is revised in the following way...',
     });
     expect(result.baseDocument).toEqual({
       id: 'doc-base',
@@ -148,11 +187,34 @@ describe('getAmendments', () => {
       policyNumber: '8C',
       effectiveDate: '2024-01-01',
       url: 'https://example.com/8C',
+      status: 'current',
+    });
+    expect(result.authoritativeDocument).toEqual({
+      id: 'amend-2',
+      title: 'Change Notice 2025-03',
+      documentType: 'change_notice',
+      policyNumber: '8C-CN-03',
+      effectiveDate: '2025-08-01',
+      url: 'https://example.com/cn-03',
+      status: 'amendment',
     });
   });
 
   it('returns null baseDocument when none exists', async () => {
     setupSession([
+      {
+        records: [
+          mockRecord({
+            id: 'doc-1',
+            title: 'Current Policy',
+            documentType: 'dhhs_policy',
+            policyNumber: '8C',
+            effectiveDate: '2025-01-01',
+            url: 'https://example.com/8C',
+            status: 'current',
+          }),
+        ],
+      },
       {
         records: [
           mockRecord({
@@ -162,6 +224,8 @@ describe('getAmendments', () => {
             policyNumber: '8C-CN',
             effectiveDate: '2025-01-01',
             url: null,
+            status: 'amendment',
+            firstSectionText: 'A short summary.',
           }),
         ],
       },
@@ -172,5 +236,6 @@ describe('getAmendments', () => {
 
     expect(result.amendments).toHaveLength(1);
     expect(result.baseDocument).toBeNull();
+    expect(result.authoritativeDocument?.id).toBe('amend-1');
   });
 });

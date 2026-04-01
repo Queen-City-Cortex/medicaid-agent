@@ -14,6 +14,7 @@ from pipeline.parse.post_process import (
     build_section_id,
     build_document_id,
 )
+from pipeline.graph.bulk import write_sections
 from pipeline.graph.connection import get_session
 from pipeline.graph import queries
 
@@ -319,40 +320,7 @@ def load_document(json_path: Path, source_type: str) -> dict:
             "section_count": len(sections),
             "effective_date": effective_date,
         })
-
-        # MERGE section nodes and edges
-        for section in sections:
-            session.run(queries.MERGE_SECTION, {
-                "id": section["id"],
-                "document_id": doc_id,
-                "section_number": section["section_number"],
-                "title": section["title"],
-                "level": section["level"],
-                "content_text": section["content_text"],
-                "content_length": section["content_length"],
-                "has_tables": section["has_tables"],
-                "has_definitions": section["has_definitions"],
-            })
-
-            # HAS_SECTION edge
-            session.run(queries.MERGE_HAS_SECTION, {
-                "doc_id": doc_id,
-                "sec_id": section["id"],
-            })
-
-            # PARENT_OF edge
-            if section["parent_id"]:
-                session.run(queries.MERGE_PARENT_OF, {
-                    "parent_id": section["parent_id"],
-                    "child_id": section["id"],
-                })
-
-            # NEXT_SIBLING edge
-            if section["prev_sibling_id"]:
-                session.run(queries.MERGE_NEXT_SIBLING, {
-                    "prev_id": section["prev_sibling_id"],
-                    "next_id": section["id"],
-                })
+        write_sections(session, doc_id, sections)
 
     return {
         "document_id": doc_id,

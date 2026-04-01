@@ -5,8 +5,10 @@ import re
 from rich.console import Console
 from rich.progress import track
 
+from pipeline.config import GRAPH_BATCH_SIZE
 from pipeline.graph.connection import get_session
 from pipeline.concepts.seed import SEED_CONCEPTS, slugify
+from pipeline.utils.batching import chunked
 
 console = Console()
 
@@ -55,7 +57,7 @@ def link_concepts() -> dict:
     console.print(f"Linking {len(search_map)} concepts to {len(sections)} sections...")
 
     # Collect all edges to create, then batch-write in a single session
-    edges_to_create: list[tuple[str, str, str]] = []  # (section_id, concept_id, rel_type)
+    edges_to_create: set[tuple[str, str, str]] = set()
 
     for record in track(sections, description="Scanning sections..."):
         section_id = record["s.id"]
@@ -84,16 +86,26 @@ def link_concepts() -> dict:
                         found = True
                         break
             if found:
-                edges_to_create.append((section_id, concept_id, rel_type))
+                edges_to_create.add((section_id, concept_id, rel_type))
 
     # Batch write all edges
     with get_session() as session:
-        for sid, cid, rel_type in edges_to_create:
-            session.run(f"""
-                MATCH (s:Section {{id: $sid}})
-                MATCH (c:PolicyConcept {{id: $cid}})
-                MERGE (s)-[:{rel_type}]->(c)
-            """, {"sid": sid, "cid": cid})
-            stats["edges_created"] += 1
+        for rel_type in ("COVERS", "DEFINES", "RESTRICTS"):
+            rel_edges = [
+                {"section_id": sid, "concept_id": cid}
+                for sid, cid, edge_rel_type in edges_to_create
+                if edge_rel_type == rel_type
+            ]
+            for batch in chunked(rel_edges, GRAPH_BATCH_SIZE):
+                session.run(
+                    f"""
+                    UNWIND $edges AS edge
+                    MATCH (s:Section {{id: edge.section_id}})
+                    MATCH (c:PolicyConcept {{id: edge.concept_id}})
+                    MERGE (s)-[:{rel_type}]->(c)
+                    """,
+                    {"edges": batch},
+                )
+            stats["edges_created"] += len(rel_edges)
 
     return stats

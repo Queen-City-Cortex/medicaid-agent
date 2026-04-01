@@ -9,6 +9,7 @@
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:integration": "RUN_NEO4J_INTEGRATION=1 vitest run tests/integration",
     "test:coverage": "vitest run --coverage",
     "cli": "tsx src/index.ts"
   },

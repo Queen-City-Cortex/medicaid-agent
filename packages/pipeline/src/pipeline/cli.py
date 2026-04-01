@@ -36,6 +36,17 @@ def load(source_type: str | None, reset: bool):
     console.print(f"\n[bold]Load complete:[/bold] {stats['loaded']} documents, {stats['sections_total']} sections, {stats['errors']} errors")
 
 
+@cli.command()
+def schema():
+    """Ensure Neo4j constraints and indexes exist."""
+    from pipeline.graph.schema import ensure_schema
+    from pipeline.embeddings.indexer import ensure_vector_index
+
+    ensure_schema()
+    ensure_vector_index()
+    console.print("[bold]Schema complete:[/bold] constraints and indexes ensured")
+
+
 @cli.command("extract-refs")
 @click.option("--llm-assist", is_flag=True, help="Use LLM to find implicit cross-references")
 def extract_refs(llm_assist: bool):
@@ -225,7 +236,12 @@ def search(query_text: str, top_k: int, doc_type: str | None):
     query_embedding = voyage_embed([query_text], model=EMBEDDING_MODEL, input_type="query")[0]
 
     document_types = [doc_type] if doc_type else None
-    results = vector_search(query_embedding, top_k=top_k, document_types=document_types)
+    results = vector_search(
+        query_embedding,
+        top_k=top_k,
+        document_types=document_types,
+        query_text=query_text,
+    )
     for r in results:
         console.print(
             f"[bold]{r['policy_number'] or ''}[/bold] "

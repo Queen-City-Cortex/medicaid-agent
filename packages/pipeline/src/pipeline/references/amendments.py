@@ -4,8 +4,10 @@ import re
 
 from rich.console import Console
 
+from pipeline.config import GRAPH_BATCH_SIZE
 from pipeline.graph.connection import get_session
 from pipeline.graph import queries
+from pipeline.utils.batching import chunked
 
 console = Console()
 
@@ -102,6 +104,28 @@ def detect_amendments() -> dict:
     edges_to_create: list[tuple[str, str]] = []
     change_notice_ids: list[str] = []
     revised_spa_ids: list[str] = []
+    change_notice_texts: dict[str, list[str]] = {}
+
+    change_notice_candidates = [
+        doc["doc_id"]
+        for doc in all_docs
+        if _is_change_notice(doc["title"])
+    ]
+    if change_notice_candidates:
+        with get_session() as session:
+            sec_result = session.run(
+                """
+                MATCH (d:Document)-[:HAS_SECTION]->(s:Section)
+                WHERE d.id IN $doc_ids
+                  AND s.content_text IS NOT NULL
+                RETURN d.id AS doc_id, collect(s.content_text) AS texts
+                """,
+                {"doc_ids": change_notice_candidates},
+            )
+            change_notice_texts = {
+                rec["doc_id"]: rec["texts"] or []
+                for rec in sec_result
+            }
 
     for doc in all_docs:
         title = doc["title"]
@@ -116,16 +140,8 @@ def detect_amendments() -> dict:
             ma_numbers = _extract_ma_numbers_from_text(title)
 
             # Also extract from all section content of this change notice
-            with get_session() as session:
-                sec_result = session.run(
-                    "MATCH (d:Document {id: $doc_id})-[:HAS_SECTION]->(s:Section) "
-                    "WHERE s.content_text IS NOT NULL "
-                    "RETURN s.content_text",
-                    {"doc_id": doc_id},
-                )
-                for rec in sec_result:
-                    content = rec["s.content_text"] or ""
-                    ma_numbers.update(_extract_ma_numbers_from_text(content))
+            for content in change_notice_texts.get(doc_id, []):
+                ma_numbers.update(_extract_ma_numbers_from_text(content or ""))
 
             # Create AMENDS edges to documents with matching policy_numbers
             for ma_num in ma_numbers:
@@ -152,7 +168,7 @@ def detect_amendments() -> dict:
                     edges_to_create.append((doc_id, target_id))
 
     # Deduplicate edges
-    edges_to_create = list(set(edges_to_create))
+    edges_to_create = sorted(set(edges_to_create))
 
     console.print(
         f"  Found {stats['change_notices']} change notices, "
@@ -162,18 +178,19 @@ def detect_amendments() -> dict:
 
     # Write edges and mark amendment documents
     with get_session() as session:
-        for source_id, target_id in edges_to_create:
-            session.run(queries.MERGE_AMENDS, {
-                "source_id": source_id,
-                "target_id": target_id,
-            })
-            stats["edges_created"] += 1
+        for batch in chunked(
+            [{"source_id": source_id, "target_id": target_id} for source_id, target_id in edges_to_create],
+            GRAPH_BATCH_SIZE,
+        ):
+            session.run(queries.MERGE_AMENDS_BATCH, {"pairs": batch})
+        stats["edges_created"] = len(edges_to_create)
 
         # Mark change notice documents as status='amendment'
-        for doc_id in change_notice_ids + revised_spa_ids:
+        amendment_doc_ids = sorted(set(change_notice_ids + revised_spa_ids))
+        for batch in chunked(amendment_doc_ids, GRAPH_BATCH_SIZE):
             session.run(
-                "MATCH (d:Document {id: $id}) SET d.status = 'amendment'",
-                {"id": doc_id},
+                queries.SET_DOCUMENT_STATUS_BATCH,
+                {"doc_ids": batch, "status": "amendment"},
             )
 
     return stats

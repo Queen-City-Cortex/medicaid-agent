@@ -4,6 +4,9 @@ import neo4j from 'neo4j-driver';
 import { withSession } from '../neo4j.js';
 import { VOYAGE_API_KEY, VOYAGE_MODEL, VOYAGE_API_URL, DEFAULT_TOP_K } from '../config.js';
 
+export const SEARCH_SNIPPET_CHARS = 300;
+const CONCEPT_MATCH_SCORE = 0.7;
+
 async function embedQuery(query: string): Promise<number[]> {
   const response = await fetch(VOYAGE_API_URL, {
     method: 'POST',
@@ -83,7 +86,7 @@ export const searchSections = createTool({
               title: record.get('title') as string | null,
               policyNumber: record.get('policyNumber') as string | null,
               documentType: record.get('documentType') as string | null,
-              contentSnippet: content ? content.slice(0, 300) : null,
+              contentSnippet: content ? content.slice(0, SEARCH_SNIPPET_CHARS) : null,
               score,
             });
           }
@@ -112,7 +115,7 @@ export const searchSections = createTool({
             s.title AS title,
             d.policy_number AS policyNumber,
             d.document_type AS documentType,
-            s.content AS content,
+            s.content_text AS content,
             score
           ORDER BY score DESC
           LIMIT $k
@@ -129,8 +132,8 @@ export const searchSections = createTool({
       // Concept-augmented retrieval: if the query matches a known PolicyConcept
       // name or alias, include concept-linked sections that vector search may miss.
       // This uses the concept graph (COVERS/DEFINES/RESTRICTS edges) we built
-      // during ingestion. Concept matches get a synthetic score of 0.75 so they
-      // appear in results but don't outrank strong vector matches.
+      // during ingestion. Concept matches get a conservative synthetic score so
+      // they can fill weak tails without displacing stronger semantic results.
       try {
         const conceptQuery = `
           MATCH (c:PolicyConcept)
@@ -140,14 +143,15 @@ export const searchSections = createTool({
           MATCH (s:Section)-[:COVERS|DEFINES|RESTRICTS]->(c)
           MATCH (d:Document)-[:HAS_SECTION]->(s)
           WHERE s.content_length > 200
+            AND s.section_number IS NOT NULL
           ${documentTypes && documentTypes.length > 0 ? 'AND d.document_type IN $docTypes' : ''}
           RETURN
             s.id AS sectionId,
             s.title AS title,
             d.policy_number AS policyNumber,
             d.document_type AS documentType,
-            s.content AS content,
-            0.75 AS score
+            s.content_text AS content,
+            ${CONCEPT_MATCH_SCORE} AS score
           ORDER BY s.content_length DESC
           LIMIT $k
         `;
@@ -175,7 +179,7 @@ export const searchSections = createTool({
             s.title AS title,
             d.policy_number AS policyNumber,
             d.document_type AS documentType,
-            s.content AS content,
+            s.content_text AS content,
             score
           ORDER BY score DESC
           LIMIT $k

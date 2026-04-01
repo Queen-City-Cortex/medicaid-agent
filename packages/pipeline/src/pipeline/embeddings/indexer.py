@@ -3,6 +3,13 @@
 from pipeline.config import EMBEDDING_DIMENSIONS
 from pipeline.graph.connection import get_session
 
+DEFAULT_DOCUMENT_TYPE_GROUPS = [
+    ["clinical_policy"],
+    ["dhhs_policy"],
+    ["federal_regulation", "federal_statute", "bulletin", "state_plan_amendment", "waiver", "provider_manual"],
+]
+CONCEPT_MATCH_SCORE = 0.70
+
 
 def ensure_vector_index():
     """Create vector indexes on Section.embedding and Chunk.embedding if they don't exist."""
@@ -33,6 +40,7 @@ def vector_search(
     query_embedding: list[float],
     top_k: int = 10,
     document_types: list[str] | None = None,
+    query_text: str | None = None,
 ) -> list[dict]:
     """Search for sections similar to a query embedding.
 
@@ -46,34 +54,74 @@ def vector_search(
         document_types: When provided, restrict results to documents whose
             ``document_type`` is in this list (e.g. ``["dhhs_policy"]``).
     """
-    # Build optional WHERE clause for document-type filtering
+    def add_rows(rows: list[dict], best: dict[str, dict]) -> None:
+        for row in rows:
+            sid = row["section_id"]
+            if sid not in best or row["score"] > best[sid]["score"]:
+                best[sid] = row
+
     type_filter = "WHERE doc.document_type IN $document_types" if document_types else ""
-    # For section queries, also filter out empty sections
-    section_type_filter = (
-        "WHERE section.content_length > 0 AND doc.document_type IN $document_types"
-        if document_types
-        else "WHERE section.content_length > 0"
-    )
+    best: dict[str, dict] = {}
 
     with get_session() as session:
-        # Search section index
-        section_results = session.run(f"""
-            CALL db.index.vector.queryNodes('section_embeddings', $k, $embedding)
-            YIELD node AS section, score
-            MATCH (section)<-[:HAS_SECTION]-(doc:Document)
-            {section_type_filter}
-            RETURN doc.title AS doc_title, doc.policy_number AS policy_number,
-                   doc.document_type AS document_type,
-                   section.id AS section_id,
-                   section.section_number AS section_number,
-                   section.title AS section_title,
-                   section.content_text AS content,
-                   score
-            ORDER BY score DESC
-        """, {"k": top_k, "embedding": query_embedding, "document_types": document_types})
-        section_rows = [dict(r) for r in section_results]
+        type_groups = [document_types] if document_types else DEFAULT_DOCUMENT_TYPE_GROUPS
+        per_group_k = top_k if document_types else max(top_k, 10)
 
-        # Search chunk index
+        for doc_types in type_groups:
+            section_results = session.run(
+                """
+                CALL db.index.vector.queryNodes('section_embeddings', $k, $embedding)
+                YIELD node AS section, score
+                MATCH (section)<-[:HAS_SECTION]-(doc:Document)
+                WHERE section.content_length > 0
+                  AND doc.document_type IN $doc_types
+                RETURN doc.title AS doc_title, doc.policy_number AS policy_number,
+                       doc.document_type AS document_type,
+                       section.id AS section_id,
+                       section.section_number AS section_number,
+                       section.title AS section_title,
+                       section.content_text AS content,
+                       score
+                ORDER BY score DESC
+                LIMIT $k
+                """,
+                {"k": per_group_k, "embedding": query_embedding, "doc_types": doc_types},
+            )
+            add_rows([dict(r) for r in section_results], best)
+
+        if query_text:
+            try:
+                concept_results = session.run(
+                    f"""
+                    MATCH (c:PolicyConcept)
+                    WHERE toLower($query) CONTAINS toLower(c.name)
+                       OR ANY(alias IN c.aliases WHERE toLower($query) CONTAINS toLower(alias))
+                    WITH c LIMIT 2
+                    MATCH (section:Section)-[:COVERS|DEFINES|RESTRICTS]->(c)
+                    MATCH (section)<-[:HAS_SECTION]-(doc:Document)
+                    WHERE section.content_length > 200
+                      AND section.section_number IS NOT NULL
+                    {type_filter if document_types else ''}
+                    RETURN doc.title AS doc_title, doc.policy_number AS policy_number,
+                           doc.document_type AS document_type,
+                           section.id AS section_id,
+                           section.section_number AS section_number,
+                           section.title AS section_title,
+                           section.content_text AS content,
+                           {CONCEPT_MATCH_SCORE} AS score
+                    ORDER BY section.content_length DESC
+                    LIMIT $k
+                    """,
+                    {
+                        "k": min(top_k, 5),
+                        "query": query_text,
+                        "document_types": document_types,
+                    },
+                )
+                add_rows([dict(r) for r in concept_results], best)
+            except Exception:
+                pass
+
         chunk_results = session.run(f"""
             CALL db.index.vector.queryNodes('chunk_embeddings', $k, $embedding)
             YIELD node AS chunk, score
@@ -89,15 +137,7 @@ def vector_search(
                    score
             ORDER BY score DESC
         """, {"k": top_k, "embedding": query_embedding, "document_types": document_types})
-        chunk_rows = [dict(r) for r in chunk_results]
+        add_rows([dict(r) for r in chunk_results], best)
 
-    # Merge and deduplicate: keep best score per section_id
-    best: dict[str, dict] = {}
-    for row in section_rows + chunk_rows:
-        sid = row["section_id"]
-        if sid not in best or row["score"] > best[sid]["score"]:
-            best[sid] = row
-
-    # Sort by score and return top_k
     merged = sorted(best.values(), key=lambda r: r["score"], reverse=True)
     return merged[:top_k]

@@ -24,7 +24,11 @@ def evaluate_retrieval(entries: list[dict], top_k: int | None = None) -> list[di
         query_embedding = voyage_embed([entry["question"]], model=EMBEDDING_MODEL, input_type="query")[0]
 
         # Run vector search — returns dicts with section_id, section_number, policy_number, etc.
-        search_results = vector_search(query_embedding, top_k=top_k)
+        search_results = vector_search(
+            query_embedding,
+            top_k=top_k,
+            query_text=entry["question"],
+        )
 
         # Build expected sets from evidence using section_id (document-scoped, not just section_number)
         primary_ids = {

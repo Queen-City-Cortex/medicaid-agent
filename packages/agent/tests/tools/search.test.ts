@@ -11,7 +11,7 @@ vi.mock('../../src/neo4j.js', () => ({
 }));
 
 import { withSession } from '../../src/neo4j.js';
-import { searchSections } from '../../src/tools/search.js';
+import { SEARCH_SNIPPET_CHARS, searchSections } from '../../src/tools/search.js';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -26,6 +26,29 @@ function setupSession(runs: Array<{ records: ReturnType<typeof mockRecord>[] }>)
       const result = runs[callIndex] ?? { records: [] };
       callIndex++;
       return result;
+    }),
+  };
+  vi.mocked(withSession).mockImplementation(async (fn) => fn(session as any));
+  return session;
+}
+
+function setupSearchSession(
+  handlers: Array<{
+    match: (query: string, params: Record<string, unknown>) => boolean;
+    result?: { records: ReturnType<typeof mockRecord>[] };
+    error?: Error;
+  }>,
+) {
+  const session = {
+    run: vi.fn(async (query: string, params: Record<string, unknown> = {}) => {
+      const handler = handlers.find((candidate) => candidate.match(query, params));
+      if (!handler) {
+        return { records: [] };
+      }
+      if (handler.error) {
+        throw handler.error;
+      }
+      return handler.result ?? { records: [] };
     }),
   };
   vi.mocked(withSession).mockImplementation(async (fn) => fn(session as any));
@@ -50,28 +73,45 @@ describe('searchSections', () => {
 
   it('returns sections from section_embeddings index', async () => {
     mockFetchEmbedding();
-    setupSession([
+    setupSearchSession([
       {
-        records: [
-          mockRecord({
-            sectionId: 'sec-1',
-            title: 'Title 1',
-            policyNumber: '8C',
-            documentType: 'dhhs_policy',
-            content: 'Content one',
-            score: 0.95,
-          }),
-          mockRecord({
-            sectionId: 'sec-2',
-            title: 'Title 2',
-            policyNumber: '1A',
-            documentType: 'clinical_policy',
-            content: 'Content two',
-            score: 0.90,
-          }),
-        ],
+        match: (_, params) => Array.isArray(params.docTypes) && (params.docTypes as string[]).includes('clinical_policy'),
+        result: {
+          records: [
+            mockRecord({
+              sectionId: 'sec-2',
+              title: 'Title 2',
+              policyNumber: '1A',
+              documentType: 'clinical_policy',
+              content: 'Content two',
+              score: 0.9,
+            }),
+          ],
+        },
       },
-      { records: [] }, // chunk_embeddings returns nothing
+      {
+        match: (_, params) => Array.isArray(params.docTypes) && (params.docTypes as string[]).includes('dhhs_policy'),
+        result: {
+          records: [
+            mockRecord({
+              sectionId: 'sec-1',
+              title: 'Title 1',
+              policyNumber: '8C',
+              documentType: 'dhhs_policy',
+              content: 'Content one',
+              score: 0.95,
+            }),
+          ],
+        },
+      },
+      {
+        match: (query) => query.includes('MATCH (c:PolicyConcept)'),
+        result: { records: [] },
+      },
+      {
+        match: (query) => query.includes("CALL db.index.vector.queryNodes('chunk_embeddings'"),
+        result: { records: [] },
+      },
     ]);
 
     const result = await searchSections.execute({ query: 'test query' }, {});
@@ -90,30 +130,40 @@ describe('searchSections', () => {
 
   it('deduplicates sections across indices, keeping higher score', async () => {
     mockFetchEmbedding();
-    setupSession([
+    setupSearchSession([
       {
-        records: [
-          mockRecord({
-            sectionId: 'sec-dup',
-            title: 'Dup Title',
-            policyNumber: '8C',
-            documentType: 'dhhs_policy',
-            content: 'Section content',
-            score: 0.80,
-          }),
-        ],
+        match: (_, params) => Array.isArray(params.docTypes) && (params.docTypes as string[]).includes('dhhs_policy'),
+        result: {
+          records: [
+            mockRecord({
+              sectionId: 'sec-dup',
+              title: 'Dup Title',
+              policyNumber: '8C',
+              documentType: 'dhhs_policy',
+              content: 'Section content',
+              score: 0.8,
+            }),
+          ],
+        },
       },
       {
-        records: [
-          mockRecord({
-            sectionId: 'sec-dup',
-            title: 'Dup Title',
-            policyNumber: '8C',
-            documentType: 'dhhs_policy',
-            content: 'Chunk content',
-            score: 0.95,
-          }),
-        ],
+        match: (query) => query.includes('MATCH (c:PolicyConcept)'),
+        result: { records: [] },
+      },
+      {
+        match: (query) => query.includes("CALL db.index.vector.queryNodes('chunk_embeddings'"),
+        result: {
+          records: [
+            mockRecord({
+              sectionId: 'sec-dup',
+              title: 'Dup Title',
+              policyNumber: '8C',
+              documentType: 'dhhs_policy',
+              content: 'Chunk content',
+              score: 0.95,
+            }),
+          ],
+        },
       },
     ]);
 
@@ -136,7 +186,20 @@ describe('searchSections', () => {
         score: 0.99 - i * 0.01,
       }),
     );
-    setupSession([{ records }, { records: [] }]);
+    setupSearchSession([
+      {
+        match: (_, params) => Array.isArray(params.docTypes) && (params.docTypes as string[]).includes('dhhs_policy'),
+        result: { records },
+      },
+      {
+        match: (query) => query.includes('MATCH (c:PolicyConcept)'),
+        result: { records: [] },
+      },
+      {
+        match: (query) => query.includes("CALL db.index.vector.queryNodes('chunk_embeddings'"),
+        result: { records: [] },
+      },
+    ]);
 
     const result = await searchSections.execute({ query: 'test', topK: 5 }, {});
 
@@ -146,57 +209,133 @@ describe('searchSections', () => {
   it('truncates content to 500 char snippet', async () => {
     mockFetchEmbedding();
     const longContent = 'A'.repeat(800);
-    setupSession([
+    setupSearchSession([
       {
-        records: [
-          mockRecord({
-            sectionId: 'sec-long',
-            title: 'Long',
-            policyNumber: '8C',
-            documentType: 'dhhs_policy',
-            content: longContent,
-            score: 0.9,
-          }),
-        ],
+        match: (_, params) => Array.isArray(params.docTypes) && (params.docTypes as string[]).includes('dhhs_policy'),
+        result: {
+          records: [
+            mockRecord({
+              sectionId: 'sec-long',
+              title: 'Long',
+              policyNumber: '8C',
+              documentType: 'dhhs_policy',
+              content: longContent,
+              score: 0.9,
+            }),
+          ],
+        },
       },
-      { records: [] },
+      {
+        match: (query) => query.includes('MATCH (c:PolicyConcept)'),
+        result: { records: [] },
+      },
+      {
+        match: (query) => query.includes("CALL db.index.vector.queryNodes('chunk_embeddings'"),
+        result: { records: [] },
+      },
     ]);
 
     const result = await searchSections.execute({ query: 'test' }, {});
 
-    expect(result.sections[0].contentSnippet).toHaveLength(500);
-    expect(result.sections[0].contentSnippet).toBe('A'.repeat(500));
+    expect(result.sections[0].contentSnippet).toHaveLength(SEARCH_SNIPPET_CHARS);
+    expect(result.sections[0].contentSnippet).toBe('A'.repeat(SEARCH_SNIPPET_CHARS));
   });
 
   it('handles chunk_embeddings index failure gracefully', async () => {
     mockFetchEmbedding();
-    let callIndex = 0;
-    const session = {
-      run: vi.fn(async () => {
-        callIndex++;
-        if (callIndex === 1) {
-          return {
-            records: [
-              mockRecord({
-                sectionId: 'sec-1',
-                title: 'Title 1',
-                policyNumber: '8C',
-                documentType: 'dhhs_policy',
-                content: 'Content',
-                score: 0.9,
-              }),
-            ],
-          };
-        }
-        throw new Error('chunk_embeddings index does not exist');
-      }),
-    };
-    vi.mocked(withSession).mockImplementation(async (fn) => fn(session as any));
+    setupSearchSession([
+      {
+        match: (_, params) => Array.isArray(params.docTypes) && (params.docTypes as string[]).includes('dhhs_policy'),
+        result: {
+          records: [
+            mockRecord({
+              sectionId: 'sec-1',
+              title: 'Title 1',
+              policyNumber: '8C',
+              documentType: 'dhhs_policy',
+              content: 'Content',
+              score: 0.9,
+            }),
+          ],
+        },
+      },
+      {
+        match: (query) => query.includes('MATCH (c:PolicyConcept)'),
+        result: { records: [] },
+      },
+      {
+        match: (query) => query.includes("CALL db.index.vector.queryNodes('chunk_embeddings'"),
+        error: new Error('chunk_embeddings index does not exist'),
+      },
+    ]);
 
     const result = await searchSections.execute({ query: 'test' }, {});
 
     expect(result.sections).toHaveLength(1);
     expect(result.sections[0].sectionId).toBe('sec-1');
+  });
+
+  it('filters generic concept hits so they do not displace numbered semantic sections', async () => {
+    mockFetchEmbedding();
+    setupSearchSession([
+      {
+        match: (_, params) => Array.isArray(params.docTypes) && (params.docTypes as string[]).includes('clinical_policy'),
+        result: {
+          records: [
+            mockRecord({
+              sectionId: 'sec-primary',
+              title: 'Primary',
+              policyNumber: '3K-2',
+              documentType: 'clinical_policy',
+              content: 'Primary content',
+              score: 0.9,
+            }),
+          ],
+        },
+      },
+      {
+        match: (query) =>
+          query.includes('MATCH (c:PolicyConcept)') && query.includes('s.section_number IS NOT NULL'),
+        result: { records: [] },
+      },
+      {
+        match: (query) => query.includes('MATCH (c:PolicyConcept)'),
+        result: {
+          records: [
+            mockRecord({
+              sectionId: 'sec-generic',
+              title: 'Revision Information:',
+              policyNumber: '3K-2',
+              documentType: 'clinical_policy',
+              content: 'Generic concept content',
+              score: 0.75,
+            }),
+          ],
+        },
+      },
+      {
+        match: (query) => query.includes("CALL db.index.vector.queryNodes('chunk_embeddings'"),
+        result: {
+          records: [
+            mockRecord({
+              sectionId: 'sec-supporting',
+              title: 'Supporting',
+              policyNumber: '3K-2',
+              documentType: 'clinical_policy',
+              content: 'Supporting semantic content',
+              score: 0.74,
+            }),
+          ],
+        },
+      },
+    ]);
+
+    const result = await searchSections.execute({ query: 'home modifications cap/da', topK: 2 }, {});
+
+    expect(result.sections.map((section) => section.sectionId)).toEqual([
+      'sec-primary',
+      'sec-supporting',
+    ]);
   });
 
   it('throws on Voyage API error', async () => {

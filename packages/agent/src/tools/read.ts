@@ -1,6 +1,11 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { withSession } from '../neo4j.js';
+import {
+  DocumentMetadataSchema,
+  documentMetadataReturn,
+  mapDocumentMetadataRecord,
+} from './document-metadata.js';
 
 // ─── getSection ────────────────────────────────────────────────────────────────
 
@@ -135,12 +140,7 @@ export const getDocument = createTool({
   outputSchema: z.object({
     document: z
       .object({
-        id: z.string(),
-        title: z.string().nullable(),
-        documentType: z.string().nullable(),
-        policyNumber: z.string().nullable(),
-        effectiveDate: z.string().nullable(),
-        url: z.string().nullable(),
+        ...DocumentMetadataSchema.shape,
         sections: z.array(
           z.object({
             id: z.string(),
@@ -161,12 +161,7 @@ export const getDocument = createTool({
          OPTIONAL MATCH (d)-[:HAS_SECTION]->(s:Section)
          WHERE s.content_length > 0
          RETURN
-           d.id AS id,
-           d.title AS title,
-           d.document_type AS documentType,
-           d.policy_number AS policyNumber,
-           d.effective_date AS effectiveDate,
-           d.source_url AS url,
+           ${documentMetadataReturn('d')},
            collect({id: s.id, number: s.section_number, title: s.title, chars: s.content_length}) AS sections`,
         { id: documentId },
       );
@@ -185,12 +180,7 @@ export const getDocument = createTool({
       const sections = rawSections.filter((s) => s.id != null);
 
       return {
-        id: rec.get('id') as string,
-        title: rec.get('title') as string | null,
-        documentType: rec.get('documentType') as string | null,
-        policyNumber: rec.get('policyNumber') as string | null,
-        effectiveDate: rec.get('effectiveDate') as string | null,
-        url: rec.get('url') as string | null,
+        ...mapDocumentMetadataRecord(rec),
         sections,
       };
     });
@@ -254,14 +244,42 @@ export const getSectionContext = createTool({
         sectionNumber: r.get('sectionNumber') as string | null,
       }));
 
-      // Siblings: sections with the same parent (via NEXT_SIBLING or shared parent)
+      // Siblings: all same-parent sections, ordered by NEXT_SIBLING when a chain exists
       const siblingResult = await session.run(
         `MATCH (s:Section {id: $id})
-         OPTIONAL MATCH (s)-[:NEXT_SIBLING]->(next:Section)
-         OPTIONAL MATCH (prev:Section)-[:NEXT_SIBLING]->(s)
-         WITH s, collect(DISTINCT next) + collect(DISTINCT prev) AS sibs
-         UNWIND sibs AS sibling
-         RETURN sibling.id AS id, sibling.title AS title, sibling.section_number AS sectionNumber`,
+         OPTIONAL MATCH (parent:Section)-[:PARENT_OF]->(s)
+         OPTIONAL MATCH (d:Document)-[:HAS_SECTION]->(s)
+         CALL {
+           WITH s, parent, d
+           OPTIONAL MATCH (parent)-[:PARENT_OF]->(parentSibling:Section)
+           WITH s, parent, d, [node IN collect(parentSibling) WHERE node IS NOT NULL] AS parentFamily
+           OPTIONAL MATCH (d)-[:HAS_SECTION]->(docSibling:Section)
+           WHERE parent IS NULL
+             AND NOT EXISTS { MATCH (:Section)-[:PARENT_OF]->(docSibling) }
+           WITH s, parent, parentFamily, [node IN collect(docSibling) WHERE node IS NOT NULL] AS docFamily
+           WITH s, CASE WHEN parent IS NOT NULL THEN parentFamily ELSE docFamily END AS family
+           UNWIND family AS sibling
+           WITH s, sibling, family
+           OPTIONAL MATCH path = (head:Section)-[:NEXT_SIBLING*0..]->(sibling)
+           WHERE head IN family
+             AND NOT EXISTS {
+               MATCH (prev:Section)-[:NEXT_SIBLING]->(head)
+               WHERE prev IN family
+             }
+           WITH s, sibling, min(length(path)) AS nextSiblingOrder
+           WHERE sibling.id <> s.id
+           RETURN
+             sibling.id AS id,
+             sibling.title AS title,
+             sibling.section_number AS sectionNumber,
+             nextSiblingOrder
+           ORDER BY
+             CASE WHEN nextSiblingOrder IS NULL THEN 1 ELSE 0 END,
+             nextSiblingOrder,
+             sibling.section_number,
+             sibling.id
+         }
+         RETURN id, title, sectionNumber`,
         { id: sectionId },
       );
 

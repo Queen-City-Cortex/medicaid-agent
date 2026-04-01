@@ -7,11 +7,18 @@ per-chunk. Small sections are embedded directly on the Section node.
 from rich.console import Console
 from rich.progress import track
 
-from pipeline.config import VOYAGE_API_KEY, EMBEDDING_MODEL, EMBED_BATCH_SIZE
+from pipeline.config import (
+    VOYAGE_API_KEY,
+    EMBEDDING_MODEL,
+    EMBED_BATCH_SIZE,
+    EMBED_WRITE_BATCH_SIZE,
+)
 from pipeline.embeddings.voyage_client import embed as voyage_embed
+from pipeline.graph.bulk import write_chunks
 from pipeline.graph.connection import get_session
 from pipeline.graph import queries
 from pipeline.embeddings.chunker import chunk_text, MAX_CHUNK_CHARS
+from pipeline.utils.batching import chunked
 
 console = Console()
 
@@ -59,26 +66,8 @@ def _create_chunks_in_neo4j(
     section_id: str, heading_prefix: str, chunks: list[str]
 ) -> list[str]:
     """Persist Chunk nodes linked to their Section. Returns list of chunk IDs."""
-    chunk_ids: list[str] = []
     with get_session() as session:
-        for idx, chunk_text_content in enumerate(chunks):
-            chunk_id = f"{section_id}:chunk:{idx}"
-            session.run(
-                queries.MERGE_CHUNK,
-                {
-                    "id": chunk_id,
-                    "section_id": section_id,
-                    "chunk_index": idx,
-                    "content_text": chunk_text_content,
-                    "content_length": len(chunk_text_content),
-                },
-            )
-            session.run(
-                queries.MERGE_HAS_CHUNK,
-                {"section_id": section_id, "chunk_id": chunk_id},
-            )
-            chunk_ids.append(chunk_id)
-    return chunk_ids
+        return write_chunks(session, section_id, chunks)
 
 
 def _flush_batch(
@@ -94,17 +83,20 @@ def _flush_batch(
     try:
         embeddings = voyage_embed(batch_texts, model=model, input_type="document")
         with get_session() as session:
-            for node_id, emb, kind in zip(batch_ids, embeddings, batch_kinds):
-                if kind == "section":
-                    session.run(
-                        "MATCH (s:Section {id: $id}) SET s.embedding = $embedding",
-                        {"id": node_id, "embedding": emb},
-                    )
-                else:  # chunk
-                    session.run(
-                        "MATCH (ch:Chunk {id: $id}) SET ch.embedding = $embedding",
-                        {"id": node_id, "embedding": emb},
-                    )
+            section_rows = [
+                {"id": node_id, "embedding": emb}
+                for node_id, emb, kind in zip(batch_ids, embeddings, batch_kinds)
+                if kind == "section"
+            ]
+            chunk_rows = [
+                {"id": node_id, "embedding": emb}
+                for node_id, emb, kind in zip(batch_ids, embeddings, batch_kinds)
+                if kind == "chunk"
+            ]
+            for batch in chunked(section_rows, EMBED_WRITE_BATCH_SIZE):
+                session.run(queries.SET_SECTION_EMBEDDINGS_BATCH, {"rows": batch})
+            for batch in chunked(chunk_rows, EMBED_WRITE_BATCH_SIZE):
+                session.run(queries.SET_CHUNK_EMBEDDINGS_BATCH, {"rows": batch})
         stats["embedded"] += len(batch_ids)
     except Exception as e:
         console.print(f"[red]Batch error: {e}[/red]")
@@ -238,8 +230,6 @@ def embed_all(model: str | None = None) -> dict:
 def _store_embeddings(section_ids: list[str], embeddings: list[list[float]]):
     """Write embeddings back to Neo4j Section nodes (legacy helper)."""
     with get_session() as session:
-        for sid, emb in zip(section_ids, embeddings):
-            session.run(
-                "MATCH (s:Section {id: $sid}) SET s.embedding = $embedding",
-                {"sid": sid, "embedding": emb},
-            )
+        rows = [{"id": sid, "embedding": emb} for sid, emb in zip(section_ids, embeddings)]
+        for batch in chunked(rows, EMBED_WRITE_BATCH_SIZE):
+            session.run(queries.SET_SECTION_EMBEDDINGS_BATCH, {"rows": batch})

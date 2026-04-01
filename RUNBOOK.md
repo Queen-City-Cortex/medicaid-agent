@@ -94,6 +94,7 @@ This runs all stages in order:
 
 Or run stages individually:
 ```bash
+.venv/bin/python -m pipeline.cli schema
 .venv/bin/python -m pipeline.cli parse
 .venv/bin/python -m pipeline.cli load
 .venv/bin/python -m pipeline.cli ingest-cfr
@@ -117,6 +118,7 @@ Federal regulations change slowly. The `--refresh` flag forces re-fetch even if 
 ## After Any Pipeline or Code Change: Run Eval
 
 ```bash
+.venv/bin/python -m pipeline.cli schema
 .venv/bin/python -m pipeline.cli eval --level retrieval
 .venv/bin/python -m pipeline.cli eval-runs --last 5
 .venv/bin/python -m pipeline.cli eval-compare <old_run_id> <new_run_id>
@@ -129,6 +131,7 @@ A regression is flagged if any metric drops more than 5%. Investigate failures b
 ```bash
 .venv/bin/python -m pipeline.cli eval-validate   # Check golden dataset refs exist in graph
 .venv/bin/python -m pipeline.cli stats            # Node/edge counts and embedding coverage
+cd packages/agent && npm run test:integration     # Opt-in real-Neo4j agent tool tests
 ```
 
 ## Full Rebuild (Nuclear Option)

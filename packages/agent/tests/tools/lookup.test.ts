@@ -50,6 +50,7 @@ describe('lookupPolicy', () => {
             policyNumber: '8C',
             effectiveDate: '2025-01-01',
             url: 'https://example.com/8C',
+            status: 'current',
             sections: [
               { id: 'sec-1', number: '1', title: 'Introduction' },
               { id: 'sec-2', number: '2', title: 'Coverage' },
@@ -83,6 +84,7 @@ describe('lookupPolicy', () => {
             policyNumber: '1A',
             effectiveDate: '2025-01-01',
             url: null,
+            status: 'current',
             sections: [
               { id: 'sec-valid', number: '1', title: 'Valid Section' },
               { id: null, number: null, title: null }, // null from empty OPTIONAL MATCH
