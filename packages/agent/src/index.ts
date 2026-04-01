@@ -11,6 +11,7 @@ import { followReferences, getAmendments } from './tools/navigate.js';
 import { findConceptSections } from './tools/concepts.js';
 import { lookupPolicy } from './tools/lookup.js';
 import { closeDriver } from './neo4j.js';
+import { HallucinationVerifier } from './processors/hallucination-verifier.js';
 
 const anthropic = createAnthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -97,6 +98,8 @@ When searching, route queries to the appropriate document types:
 - Distinguish between NC Medicaid Standard Plan and NC Medicaid Managed Care (NC HEALTH CHOICE / PHPs) where relevant.
 - Note when a policy may have been recently updated and recommend the user verify with DHHS if the stakes are high.`;
 
+const hallucinationVerifier = new HallucinationVerifier();
+
 const MAX_STEPS = 40;
 
 // Force synthesis when the agent is about to hit the step limit.
@@ -131,6 +134,9 @@ export const ncMedicaidAgent = new Agent({
     lookupPolicy,
   },
   memory,
+  inputProcessors: [hallucinationVerifier],
+  outputProcessors: [hallucinationVerifier],
+  maxProcessorRetries: 2,
 });
 
 export const mastra = new Mastra({
