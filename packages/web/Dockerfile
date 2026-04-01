@@ -8,6 +8,8 @@ COPY packages/web/package.json ./packages/web/
 RUN npm ci --workspace=@nc-medicaid/web
 
 # --- builder: build Next.js standalone output ---
+# NEXT_PUBLIC_* vars are inlined at build time by Next.js.
+# Railway injects env vars during docker build, so they are available here.
 FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
