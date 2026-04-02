@@ -5,6 +5,14 @@ node_modules/
 *.db-wal
 .mastra/
 .firecrawl/
+.codex/
+.mcp.json
+.playwright-mcp/
+.superpowers/
+AGENTS.md
+packages/agent/src/public/
+*.duckdb
+*.duckdb.wal
 .env
 .env.local
 coverage/
