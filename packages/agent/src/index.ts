@@ -12,6 +12,7 @@ import { findConceptSections } from './tools/concepts.js';
 import { lookupPolicy } from './tools/lookup.js';
 import { closeDriver } from './neo4j.js';
 import { HallucinationVerifier } from './processors/hallucination-verifier.js';
+import { PinoLogger } from '@mastra/loggers';
 
 const anthropic = createAnthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -175,9 +176,11 @@ export const ncMedicaidAgent = new Agent({
 export const mastra = new Mastra({
   agents: { ncMedicaidAgent },
   storage,
+  logger: new PinoLogger({ name: 'mastra', level: 'debug' }),
   server: {
     host: '0.0.0.0',
     port: parseInt(process.env.PORT || '4111'),
+    timeout: 10 * 60 * 1000, // 10 minutes — agent research can take many tool calls
     cors: {
       origin: (process.env.CORS_ORIGINS || 'http://localhost:3000').split(','),
       credentials: true,
