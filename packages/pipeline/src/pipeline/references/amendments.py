@@ -80,17 +80,30 @@ def _is_signal_section(sec_title: str, content: str) -> bool:
     return False
 
 
+def _is_sentence_boundary(text: str, pos: int) -> bool:
+    """Check if a period at `pos` is a sentence boundary (not part of a reference like MA-2180.IV)."""
+    if text[pos] == '\n':
+        return True
+    if text[pos] != '.':
+        return False
+    # Period followed by letter/digit is part of a reference (e.g., "MA-2180.IV.I")
+    if pos + 1 < len(text) and text[pos + 1].isalnum():
+        return False
+    return True
+
+
 def _extract_context(text: str, ma_number: str, max_chars: int = 300) -> str:
     """Extract the sentence/paragraph around an MA-number mention.
 
-    Grabs from the previous period/newline to the next, capped at max_chars.
+    Grabs from the previous sentence boundary to the next, capped at max_chars.
+    A period is only a boundary if followed by whitespace or end-of-string,
+    not when followed by a letter/digit (e.g., "MA-2180.IV.I").
     """
     pattern = re.compile(re.escape(ma_number), re.IGNORECASE)
     m = pattern.search(text)
     if not m:
         return ""
 
-    # Find sentence boundaries
     start = m.start()
     end = m.end()
 
@@ -100,7 +113,7 @@ def _extract_context(text: str, ma_number: str, max_chars: int = 300) -> str:
         if i < 0:
             sent_start = 0
             break
-        if text[i] in '.\n':
+        if _is_sentence_boundary(text, i):
             sent_start = i + 1
             break
     else:
@@ -109,7 +122,7 @@ def _extract_context(text: str, ma_number: str, max_chars: int = 300) -> str:
     # Walk forward to sentence end
     sent_end = end
     for i in range(end, min(end + max_chars, len(text))):
-        if text[i] in '.\n':
+        if _is_sentence_boundary(text, i):
             sent_end = i + 1
             break
     else:
