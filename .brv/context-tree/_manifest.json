@@ -3,20 +3,14 @@
     {
       "order": 3,
       "path": "_index.md",
-      "tokens": 781,
+      "tokens": 1945,
       "type": "summary"
     },
     {
-      "order": 2,
-      "path": "frontend_ui/_index.md",
-      "tokens": 515,
-      "type": "summary"
-    },
-    {
-      "order": 2,
-      "path": "qa/_index.md",
-      "tokens": 474,
-      "type": "summary"
+      "importance": 60,
+      "path": "agent_architecture/nc_medicaid_agent/cli_runner.md",
+      "tokens": 1143,
+      "type": "context"
     },
     {
       "importance": 50,
@@ -26,60 +20,66 @@
     },
     {
       "importance": 50,
-      "path": "frontend_ui/chat_page_scroll_stability/chat_page_scroll_stability.md",
-      "tokens": 720,
+      "path": "agent_architecture/amendment_pipeline_and_prompt/amendment_pipeline_and_prompt_guardrails.md",
+      "tokens": 1243,
       "type": "context"
     },
     {
       "importance": 50,
-      "path": "frontend_ui/chat_page_scroll_stability/context.md",
-      "tokens": 148,
+      "path": "agent_architecture/amendment_pipeline_and_prompt/context.md",
+      "tokens": 117,
       "type": "context"
     },
     {
       "importance": 50,
-      "path": "frontend_ui/context.md",
-      "tokens": 133,
-      "type": "context"
-    },
-    {
-      "importance": 50,
-      "path": "frontend_ui/scroll_area_sidebar_stability/chat_sidebar_scroll_fix.md",
-      "tokens": 634,
-      "type": "context"
-    },
-    {
-      "importance": 50,
-      "path": "frontend_ui/scroll_area_sidebar_stability/context.md",
-      "tokens": 85,
-      "type": "context"
-    },
-    {
-      "importance": 50,
-      "path": "qa/context.md",
+      "path": "agent_architecture/context.md",
       "tokens": 158,
       "type": "context"
     },
     {
       "importance": 50,
-      "path": "qa/playwright_e2e/context.md",
-      "tokens": 113,
+      "path": "agent_architecture/local_dev_setup/context.md",
+      "tokens": 109,
       "type": "context"
     },
     {
       "importance": 50,
-      "path": "qa/playwright_e2e/medicaid_agent_playwright_e2e_infrastructure.md",
-      "tokens": 794,
+      "path": "agent_architecture/local_dev_setup/local_development_setup.md",
+      "tokens": 756,
+      "type": "context"
+    },
+    {
+      "importance": 50,
+      "path": "agent_architecture/mastra_server_configuration/context.md",
+      "tokens": 106,
+      "type": "context"
+    },
+    {
+      "importance": 50,
+      "path": "agent_architecture/navigate_tools/context.md",
+      "tokens": 119,
+      "type": "context"
+    },
+    {
+      "importance": 50,
+      "path": "agent_architecture/nc_medicaid_agent/context.md",
+      "tokens": 140,
+      "type": "context"
+    },
+    {
+      "importance": 50,
+      "path": "database_operations/neo4j_auth/context.md",
+      "tokens": 93,
       "type": "context"
     }
   ],
-  "generated_at": "2026-03-29T22:42:40.668Z",
+  "generated_at": "2026-04-02T19:58:50.411Z",
   "lane_tokens": {
-    "contexts": 2787,
+    "contexts": 3986,
     "stubs": 0,
-    "summaries": 1770
+    "summaries": 1945
   },
-  "source_fingerprint": "fda723f158d012a14275b112772cd41f0ce6f025f3d2245c28dc590240bbf926",
-  "total_tokens": 4557,
+  "source_fingerprint": "b14533f96ec7d9cc4afc24f673bc721e52b26722402e1c1b47d9d1ee2ff5984e",
+  "total_tokens": 5931,
   "version": 1
 }
