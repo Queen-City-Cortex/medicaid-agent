@@ -1,12 +1,10 @@
 import { Mastra } from '@mastra/core';
 import { Agent } from '@mastra/core/agent';
-import { MastraCompositeStore } from '@mastra/core/storage';
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createOpenAI } from '@ai-sdk/openai';
 import { chatRoute } from '@mastra/ai-sdk';
 import { Memory } from '@mastra/memory';
 import { LibSQLStore } from '@mastra/libsql';
-import { DuckDBStore } from '@mastra/duckdb';
 import { Observability, DefaultExporter, SensitiveDataFilter } from '@mastra/observability';
 import { searchSections } from './tools/search.js';
 import { getSection, getDocument, getSectionContext } from './tools/read.js';
@@ -40,13 +38,7 @@ const libsql = new LibSQLStore({
   url: process.env.DATABASE_URL || 'file:./mastra.db',
 });
 
-const storage = new MastraCompositeStore({
-  id: 'composite-storage',
-  default: libsql,
-  domains: {
-    observability: await new DuckDBStore().getStore('observability'),
-  },
-});
+const storage = libsql;
 
 const memory = new Memory({
   storage: libsql,
