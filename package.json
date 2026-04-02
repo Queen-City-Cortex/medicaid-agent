@@ -12,7 +12,8 @@
     "test:e2e": "cd e2e && npx playwright test --project=mocked",
     "test:e2e:smoke": "cd e2e && npx playwright test --project=smoke",
     "test:e2e:all": "cd e2e && npx playwright test",
-    "test:e2e:ui": "cd e2e && npx playwright test --project=mocked --ui"
+    "test:e2e:ui": "cd e2e && npx playwright test --project=mocked --ui",
+    "deploy-data": "bash scripts/deploy-data.sh"
   },
   "devDependencies": {
     "turbo": "^2.0.0",
