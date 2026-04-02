@@ -27,6 +27,13 @@ _REVISED_SPA_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Signal section patterns — these sections describe what a change notice amends
+_SIGNAL_PATTERNS = [
+    "content of change",
+    "policy update",
+    "maintenance of manual",
+]
+
 
 def _normalize_spa_number(num: str) -> str:
     """Normalize SPA number: '14 047' -> '14-047'."""
@@ -55,23 +62,75 @@ def _extract_ma_numbers_from_text(text: str) -> set[str]:
     return {m.upper() for m in _MA_SERIES_RE.findall(text)}
 
 
+def _is_signal_section(sec_title: str, content: str) -> bool:
+    """Return True if a section is a signal section (describes amendments).
+
+    Signal sections are identified by:
+    1. Title or body containing CONTENT OF CHANGE, POLICY UPDATE, or MAINTENANCE OF MANUAL
+    2. Title containing an MA-series number (e.g., "A. MA-3550.VIII, Determining Need...")
+    """
+    title_lower = sec_title.lower()
+    content_lower = content.lower() if content else ""
+    for pattern in _SIGNAL_PATTERNS:
+        if pattern in title_lower or pattern in content_lower:
+            return True
+    # Section title contains an MA-number (per-policy subsections)
+    if _MA_SERIES_RE.search(sec_title):
+        return True
+    return False
+
+
+def _extract_context(text: str, ma_number: str, max_chars: int = 300) -> str:
+    """Extract the sentence/paragraph around an MA-number mention.
+
+    Grabs from the previous period/newline to the next, capped at max_chars.
+    """
+    pattern = re.compile(re.escape(ma_number), re.IGNORECASE)
+    m = pattern.search(text)
+    if not m:
+        return ""
+
+    # Find sentence boundaries
+    start = m.start()
+    end = m.end()
+
+    # Walk backward to sentence start
+    sent_start = start
+    for i in range(start - 1, max(start - max_chars, -1), -1):
+        if i < 0:
+            sent_start = 0
+            break
+        if text[i] in '.\n':
+            sent_start = i + 1
+            break
+    else:
+        sent_start = max(start - max_chars, 0)
+
+    # Walk forward to sentence end
+    sent_end = end
+    for i in range(end, min(end + max_chars, len(text))):
+        if text[i] in '.\n':
+            sent_end = i + 1
+            break
+    else:
+        sent_end = min(end + max_chars, len(text))
+
+    return text[sent_start:sent_end].strip()
+
+
 def detect_amendments() -> dict:
     """Detect amendment/change-notice relationships and write AMENDS edges.
 
-    For change notices, identifies the documents being amended by:
-    1. Extracting MA-series policy numbers from the change notice title and
-       section content (e.g., MA-2180, DMA-5097)
-    2. Creating AMENDS edges to documents with matching policy_number
+    Uses a two-tier approach for change notices:
+    - Tier 1: Extract MA-numbers from signal sections (CONTENT OF CHANGE,
+      POLICY UPDATE, MAINTENANCE OF MANUAL, MA-number titled sections)
+    - Tier 2: Fall back to all section text when no signal sections exist
 
-    Returns a dict with keys:
-      - change_notices: number of change-notice documents found
-      - revised_spas:   number of revised-SPA documents found
-      - edges_created:  total AMENDS edges created
+    Each AMENDS edge stores a change_description with the relevant excerpt.
     """
     stats = {"change_notices": 0, "revised_spas": 0, "edges_created": 0}
 
     with get_session() as session:
-        # Fetch all documents
         result = session.run(
             "MATCH (d:Document) "
             "RETURN d.id AS doc_id, d.title AS title, d.document_type AS doc_type, "
@@ -101,16 +160,19 @@ def detect_amendments() -> dict:
         (d["title"].lower(), d["doc_id"], d["doc_type"]) for d in all_docs
     ]
 
-    edges_to_create: list[tuple[str, str]] = []
+    # (source_id, target_id) -> list of excerpts
+    edge_descriptions: dict[tuple[str, str], list[str]] = {}
     change_notice_ids: list[str] = []
     revised_spa_ids: list[str] = []
-    change_notice_texts: dict[str, list[str]] = {}
 
+    # Fetch section titles + content for change notices (two-tier needs both)
     change_notice_candidates = [
         doc["doc_id"]
         for doc in all_docs
         if _is_change_notice(doc["title"])
     ]
+    # doc_id -> list of (sec_title, content, is_signal)
+    change_notice_sections: dict[str, list[tuple[str, str, bool]]] = {}
     if change_notice_candidates:
         with get_session() as session:
             sec_result = session.run(
@@ -118,14 +180,21 @@ def detect_amendments() -> dict:
                 MATCH (d:Document)-[:HAS_SECTION]->(s:Section)
                 WHERE d.id IN $doc_ids
                   AND s.content_text IS NOT NULL
-                RETURN d.id AS doc_id, collect(s.content_text) AS texts
+                RETURN d.id AS doc_id, s.title AS sec_title, s.content_text AS content
                 """,
                 {"doc_ids": change_notice_candidates},
             )
-            change_notice_texts = {
-                rec["doc_id"]: rec["texts"] or []
-                for rec in sec_result
-            }
+            for rec in sec_result:
+                doc_id = rec["doc_id"]
+                sec_title = rec["sec_title"] or ""
+                content = rec["content"] or ""
+                is_signal = _is_signal_section(sec_title, content)
+                change_notice_sections.setdefault(doc_id, []).append(
+                    (sec_title, content, is_signal)
+                )
+
+    # Build a lookup of doc titles for title-based descriptions
+    doc_titles: dict[str, str] = {d["doc_id"]: d["title"] for d in all_docs}
 
     for doc in all_docs:
         title = doc["title"]
@@ -136,19 +205,48 @@ def detect_amendments() -> dict:
             stats["change_notices"] += 1
             change_notice_ids.append(doc_id)
 
-            # Extract MA-series numbers from the title
-            ma_numbers = _extract_ma_numbers_from_text(title)
-
-            # Also extract from all section content of this change notice
-            for content in change_notice_texts.get(doc_id, []):
-                ma_numbers.update(_extract_ma_numbers_from_text(content or ""))
-
-            # Create AMENDS edges to documents with matching policy_numbers
-            for ma_num in ma_numbers:
-                target_doc_ids = pn_to_docs.get(ma_num, [])
-                for target_id in target_doc_ids:
+            # Title-based extraction (always unconditional)
+            title_ma_numbers = _extract_ma_numbers_from_text(title)
+            for ma_num in title_ma_numbers:
+                for target_id in pn_to_docs.get(ma_num, []):
                     if target_id != doc_id:
-                        edges_to_create.append((doc_id, target_id))
+                        key = (doc_id, target_id)
+                        edge_descriptions.setdefault(key, [])
+                        # Title match: use the full CN title as description
+                        # (only if no body excerpt is added later)
+
+            # Body-based extraction with two-tier logic
+            all_sections = change_notice_sections.get(doc_id, [])
+            signal_sections = [(t, c) for t, c, s in all_sections if s]
+            fallback_sections = [(t, c) for t, c, _ in all_sections]
+
+            # Tier 1: use signal sections if any exist
+            # Tier 2: fall back to all sections
+            sections_to_scan = signal_sections if signal_sections else fallback_sections
+
+            for sec_title, content in sections_to_scan:
+                # Extract MA numbers from both section title and body
+                body_ma_numbers = _extract_ma_numbers_from_text(content)
+                title_section_ma = _extract_ma_numbers_from_text(sec_title)
+                all_ma_in_section = body_ma_numbers | title_section_ma
+                for ma_num in all_ma_in_section:
+                    for target_id in pn_to_docs.get(ma_num, []):
+                        if target_id != doc_id:
+                            key = (doc_id, target_id)
+                            excerpt = _extract_context(content, ma_num)
+                            if not excerpt:
+                                # MA found only in section title, use title + content
+                                excerpt = f"{sec_title}: {content}".strip()
+                            if excerpt:
+                                edge_descriptions.setdefault(key, []).append(excerpt)
+
+            # For title-only matches with no body excerpts, use the CN title
+            for ma_num in title_ma_numbers:
+                for target_id in pn_to_docs.get(ma_num, []):
+                    if target_id != doc_id:
+                        key = (doc_id, target_id)
+                        if not edge_descriptions.get(key):
+                            edge_descriptions[key] = [title]
 
         # --- Revised SPAs ---
         elif _is_revised_spa(title):
@@ -165,10 +263,10 @@ def detect_amendments() -> dict:
                 if target_type != "state_plan_amendment":
                     continue
                 if spa_lower in target_title_lower and "revised" not in target_title_lower:
-                    edges_to_create.append((doc_id, target_id))
+                    key = (doc_id, target_id)
+                    edge_descriptions.setdefault(key, []).append(title)
 
-    # Deduplicate edges
-    edges_to_create = sorted(set(edges_to_create))
+    edges_to_create = sorted(edge_descriptions.keys())
 
     console.print(
         f"  Found {stats['change_notices']} change notices, "
@@ -176,12 +274,19 @@ def detect_amendments() -> dict:
         f"{len(edges_to_create)} AMENDS edges to create"
     )
 
-    # Write edges and mark amendment documents
+    # Write edges with change_description
     with get_session() as session:
-        for batch in chunked(
-            [{"source_id": source_id, "target_id": target_id} for source_id, target_id in edges_to_create],
-            GRAPH_BATCH_SIZE,
-        ):
+        pairs_with_desc = [
+            {
+                "source_id": src,
+                "target_id": tgt,
+                "change_description": "\n".join(
+                    dict.fromkeys(edge_descriptions[(src, tgt)])  # dedupe preserving order
+                ),
+            }
+            for src, tgt in edges_to_create
+        ]
+        for batch in chunked(pairs_with_desc, GRAPH_BATCH_SIZE):
             session.run(queries.MERGE_AMENDS_BATCH, {"pairs": batch})
         stats["edges_created"] = len(edges_to_create)
 

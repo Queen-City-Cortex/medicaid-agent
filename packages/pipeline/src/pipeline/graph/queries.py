@@ -176,7 +176,8 @@ MERGE_AMENDS_BATCH = """
 UNWIND $pairs AS pair
 MATCH (src:Document {id: pair.source_id})
 MATCH (tgt:Document {id: pair.target_id})
-MERGE (src)-[:AMENDS]->(tgt)
+MERGE (src)-[r:AMENDS]->(tgt)
+SET r.change_description = pair.change_description
 """
 
 SET_DOCUMENT_STATUS_BATCH = """
