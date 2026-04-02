@@ -14,32 +14,33 @@ The agent sometimes hedges or gives wrong answers when checking amendments, beca
 
 ## Design
 
-### 1. Pipeline: Restrict body extraction to amendment-signal sections
+### 1. Pipeline: Two-tier body extraction with signal-section preference
 
 **File**: `packages/pipeline/src/pipeline/references/amendments.py`
 
-Currently the Cypher query at lines 116-128 fetches ALL section texts for each change notice. Change the query to only return sections whose title or body contains "CONTENT OF CHANGE" or "MAINTENANCE OF MANUAL":
+Currently the Cypher query at lines 116-128 fetches ALL section texts for each change notice. Change to a two-tier approach:
 
-```
-WHERE s.content_text IS NOT NULL
-  AND (toLower(s.title) CONTAINS 'content of change'
-    OR toLower(s.title) CONTAINS 'maintenance of manual'
-    OR toLower(s.content_text) CONTAINS 'content of change'
-    OR toLower(s.content_text) CONTAINS 'maintenance of manual')
-```
+**Tier 1 — Signal sections** (preferred): Query sections whose title or body text matches any of these amendment-signal patterns:
+- "CONTENT OF CHANGE" (185/203 change notices)
+- "POLICY UPDATE" / "POLICY UPDATES" (newer COLA notices use this instead)
+- "MAINTENANCE OF MANUAL" (44/203)
+- Section titles containing an MA-number pattern (e.g., "A. MA-3550.VIII, Determining Need...") — these are per-policy subsections under POLICY UPDATE headings
 
-This covers 91% of change notices (185/203 have "CONTENT OF CHANGE" sections). The remaining 9% fall back to title-only matching, which is the right tradeoff since their body text generates false positives.
+**Tier 2 — Full body fallback**: If no signal sections are found for a given change notice, fall back to current behavior (extract from all section text). This prevents losing legitimate edges for the ~5% of change notices with non-standard headings.
 
-Title-based MA-number extraction (line 140) remains unconditional.
+Title-based MA-number extraction (line 140) remains unconditional in both tiers.
 
 ### 2. Pipeline: Store `change_description` on AMENDS edges
 
-For each AMENDS edge created from a body match, extract the sentence/paragraph around the MA-number mention and store it as a `change_description` property on the edge.
+For each AMENDS edge, extract context about what was changed in the target document and store it as a `change_description` property on the edge.
 
 **Extraction logic**:
-- Find the MA-number in the section text
-- Grab from the previous period/newline to the next period/newline (~300 char cap)
+- For each MA-number mention in the matched section text, extract the surrounding sentence/paragraph (from previous period/newline to next, ~300 char cap)
 - For "MAINTENANCE OF MANUAL" sections, grab the full "Remove: MA-XXXX..." line
+- When the same (source, target) pair has multiple excerpts (e.g., MA-2180 mentioned in both "CONTENT OF CHANGE" and "MAINTENANCE OF MANUAL"), **concatenate all excerpts** joined by newlines. The current deduplication at line 171 collapses to one edge per pair, so the `change_description` must capture all relevant context for that pair.
+- For title-only matches where no body context exists, `change_description` is set to the change notice title.
+
+**Implementation**: Build a `dict[tuple[str,str], list[str]]` keyed by `(source_id, target_id)` that accumulates excerpts. After deduplication, join each pair's excerpts into a single string for the edge property.
 
 **Cypher change**: `MERGE_AMENDS_BATCH` accepts `change_description` per pair:
 ```cypher
@@ -50,8 +51,6 @@ MERGE (src)-[r:AMENDS]->(tgt)
 SET r.change_description = pair.change_description
 ```
 
-For title-only matches where no body context exists, `change_description` is set to the change notice title.
-
 ### 3. Agent tool: Use `change_description` from the edge
 
 **File**: `packages/agent/src/tools/navigate.ts`
@@ -60,11 +59,11 @@ Replace the runtime section-text query in `getAmendments` (lines 98-114) with re
 
 The `changeSummary` field in the tool output now contains the pre-computed, target-specific excerpt instead of random section text.
 
-### 4. Agent prompt: Replace routing rules with document taxonomy context
+### 4. Agent prompt: Replace routing rules with taxonomy context and amendment guidance
 
 **File**: `packages/agent/src/index.ts`
 
-Remove the rigid document-type routing block (lines 88-93) and the program-specific routing rule (line 109). Replace with taxonomy context that lets the agent make its own routing decisions:
+**4a. Document-type routing**: Remove the rigid routing block (lines 88-93) and the program-specific routing rule (line 109). Replace with taxonomy context that lets the agent make its own routing decisions:
 
 ```
 ## Document types in the knowledge base
@@ -84,10 +83,27 @@ When unsure which type applies, search without a filter first, then refine based
 on what comes back.
 ```
 
+**4b. Amendment guidance**: Update the amendment awareness section (lines 96-100) to teach the agent to use `changeSummary` from the tool output. Replace line 98 ("If a change notice exists, read its sections to determine what was modified") with:
+
+```
+- Each amendment includes a **changeSummary** describing what was changed in the
+  target document. Use this to assess relevance before reading the full change
+  notice. Only use getSection on a change notice's sections when the changeSummary
+  indicates the amendment is relevant to the question at hand.
+```
+
+This prevents the agent from diving into unrelated change notice content and getting confused by titles like "Long Term Care Partnership Program."
+
 ### 5. Testing and verification
 
-- **Pipeline unit test**: Update `test_amendments.py` to verify body extraction is restricted to "CONTENT OF CHANGE" sections. Add a test with a change notice that mentions an MA-number only in a BACKGROUND section and confirm no AMENDS edge is created for it.
-- **Pipeline integration check**: After re-running `detect_amendments()`, verify edge count drops from 851 and spot-check that MA-2180's amendments retain the legitimate ones (01-14, 03-18, 03-25, etc.) with meaningful `change_description` values.
+- **Pipeline unit test** (`packages/pipeline/tests/test_amendments.py`):
+  - Test that signal sections (CONTENT OF CHANGE, POLICY UPDATE) are preferred over other body text when they exist.
+  - Test the Tier 2 fallback: when no signal sections exist, all body text is used (no regression).
+  - Test that a change notice mentioning an MA-number only in a BACKGROUND section (while having a CONTENT OF CHANGE section that doesn't mention it) does NOT create an AMENDS edge for it.
+  - Test that `change_description` concatenates multiple excerpts for the same (source, target) pair.
+- **Agent unit test** (`packages/agent/tests/tools/navigate.test.ts`): Update to mock the new Cypher shape — `change_description` comes from the AMENDS relationship instead of `firstSectionText` from a section query.
+- **Agent integration test** (`packages/agent/tests/integration/neo4j-tools.integration.test.ts`): Update amendment fixtures to include `change_description` on AMENDS edges. Add assertion that `changeSummary` in the tool output matches the edge property.
+- **Pipeline integration check**: After re-running `detect_amendments()`, verify edge count and spot-check that MA-2180's amendments retain the legitimate ones (01-14, 03-18, 03-25, etc.) with meaningful `change_description` values.
 - **Agent smoke test**: Run "What is the earned income limit for HCWD?" through the CLI runner and verify the agent answers definitively without hedging about unrelated amendments.
 
 ## Data
@@ -95,8 +111,10 @@ on what comes back.
 From investigation on 2026-04-02:
 - 851 total AMENDS edges; 13 from title, 838 from body
 - 203 change notices in the graph
-- 185/203 (91%) have "CONTENT OF CHANGE" sections
+- 185/203 (91%) have "CONTENT OF CHANGE" sections (titled or inline)
 - 44/203 (22%) have "MAINTENANCE OF MANUAL" sections
+- ~4 newer COLA notices (2024+) use "POLICY UPDATE" / "POLICY UPDATES" instead of "CONTENT OF CHANGE"
+- NEMT notices use per-policy subsection headings like "A. MA-3550.VIII, Determining Need..."
 - MA-2180 has 7 amendments; all are legitimate but one (02-11 LTC Partnership) confused the agent because its title seemed unrelated
 
 ## Non-goals
