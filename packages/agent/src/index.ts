@@ -1,10 +1,13 @@
 import { Mastra } from '@mastra/core';
 import { Agent } from '@mastra/core/agent';
+import { MastraCompositeStore } from '@mastra/core/storage';
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createOpenAI } from '@ai-sdk/openai';
 import { chatRoute } from '@mastra/ai-sdk';
 import { Memory } from '@mastra/memory';
 import { LibSQLStore } from '@mastra/libsql';
+import { DuckDBStore } from '@mastra/duckdb';
+import { Observability, DefaultExporter, SensitiveDataFilter } from '@mastra/observability';
 import { searchSections } from './tools/search.js';
 import { getSection, getDocument, getSectionContext } from './tools/read.js';
 import { followReferences, getAmendments } from './tools/navigate.js';
@@ -32,13 +35,21 @@ function createModel(modelId: string) {
   return anthropic(modelId);
 }
 
-const storage = new LibSQLStore({
+const libsql = new LibSQLStore({
   id: 'mastra-storage',
   url: process.env.DATABASE_URL || 'file:./mastra.db',
 });
 
+const storage = new MastraCompositeStore({
+  id: 'composite-storage',
+  default: libsql,
+  domains: {
+    observability: await new DuckDBStore().getStore('observability'),
+  },
+});
+
 const memory = new Memory({
-  storage,
+  storage: libsql,
   options: {
     observationalMemory: {
       model: 'openai/gpt-5.4-mini',
@@ -73,18 +84,18 @@ You have tools available:
 - **findConceptSections**: Find all sections governing a named policy concept
 - **lookupPolicy**: Look up a document by policy number (e.g. "8C", "1A-1")
 
-## Document-type routing
-When searching, route queries to the appropriate document types:
-- **Eligibility and enrollment questions** → documentTypes: ["dhhs_policy"]
-- **Coverage decisions and medical necessity** → documentTypes: ["clinical_policy"]
-- **Federal requirements and compliance** → documentTypes: ["federal_regulation"]
-- **Recent rule changes and updates** → documentTypes: ["change_notice"]
-- **Broad questions** → search without type filter, then refine
+## Document types in the knowledge base
+- **dhhs_policy** — MA-series manual sections covering eligibility, enrollment, financial rules, and program administration (e.g., MA-2180 HCWD, MA-2250 Income, MA-2280 CAP). This is the largest collection and the primary source for "who qualifies" and "how much" questions.
+- **clinical_policy** — Clinical Coverage Policies (CCPs) governing what services are covered, medical necessity criteria, and provider billing (e.g., CCP 1A-1 Dental, CCP 3L CAP/DA services). Use for "what's covered" and "is this medically necessary" questions.
+- **federal_regulation** — 42 CFR and other federal rules that NC policies implement.
+- **change_notice** — Amendments to the above. Usually found automatically via getAmendments; search directly only when asking about recent rule changes.
+
+When unsure which type applies, search without a filter first, then refine based on what comes back.
 
 ## Amendment awareness
 - Always check for amendments when analyzing a policy document. Use **getAmendments** on any document you cite.
 - Use the tool's **authoritativeDocument** field as the default document to cite when it differs from the document you started with.
-- If a change notice exists, read its sections to determine what was modified.
+- Each amendment includes a **changeSummary** describing what was changed in the target document. Use this to assess relevance before reading the full change notice. Only use getSection on a change notice's sections when the changeSummary indicates the amendment is relevant to the question at hand.
 - When a change notice removes a limit (e.g., eliminates a visit cap), state clearly: "No limit currently applies — the previous limit was removed by [amendment ID/date]."
 - Prefer the most recent effective date when multiple documents address the same topic.
 
@@ -95,16 +106,15 @@ When searching, route queries to the appropriate document types:
 
 ## Answering policy questions
 1. **If the question mentions a specific policy number** (e.g., "Policy 10A", "CCP 3K-2", "Policy 12B"), ALWAYS call **lookupPolicy** with that number first, then **getSection** on the relevant sections. Do not rely on vector search alone — it often returns sections from the wrong policy.
-2. **If the question asks about a specific program** (CAP/DA, HCWD, PACE, CAP/C), search with documentTypes: ["clinical_policy"] first. Only try ["dhhs_policy"] if clinical policy results are insufficient.
-3. Start with **searchSections** to find relevant sections.
-4. **ALWAYS use getSection to read the full content** of relevant sections before answering. Search results only contain short snippets — never base your answer on snippets alone, you will get details wrong.
-5. Use **getAmendments** to check for amendments on every document you cite. Change notices may have removed or modified policy provisions since the base document was published.
-6. Use **getSectionContext** or **followReferences** for cross-references if needed.
-7. When asked about specific dollar amounts, thresholds, or limits, always use **getSection** to read the full content — never rely solely on a snippet.
-8. **When search results include multiple policies with similar numbers** (e.g., 3L and 3L-1, or 2B-1 and 2B-2), these are related but distinct policies. Read key sections from each to compare their scope — one may cover a different setting, population, or service type than the other.
-9. Provide clear, plain-language answers with precise citations.
-9. If a policy is ambiguous or you cannot find a definitive answer, say so and cite what you did find.
-10. If your first search doesn't return relevant results, try different query terms, lookupPolicy with a specific policy number, or findConceptSections. After 3 unsuccessful searches, state what you found and what you could not find.
+2. Start with **searchSections** to find relevant sections.
+3. **ALWAYS use getSection to read the full content** of relevant sections before answering. Search results only contain short snippets — never base your answer on snippets alone, you will get details wrong.
+4. Use **getAmendments** to check for amendments on every document you cite. Change notices may have removed or modified policy provisions since the base document was published.
+5. Use **getSectionContext** or **followReferences** for cross-references if needed.
+6. When asked about specific dollar amounts, thresholds, or limits, always use **getSection** to read the full content — never rely solely on a snippet.
+7. **When search results include multiple policies with similar numbers** (e.g., 3L and 3L-1, or 2B-1 and 2B-2), these are related but distinct policies. Read key sections from each to compare their scope — one may cover a different setting, population, or service type than the other.
+8. Provide clear, plain-language answers with precise citations.
+8. If a policy is ambiguous or you cannot find a definitive answer, say so and cite what you did find.
+9. If your first search doesn't return relevant results, try different query terms, lookupPolicy with a specific policy number, or findConceptSections. After 3 unsuccessful searches, state what you found and what you could not find.
 
 ## Response format
 - **IMPORTANT: After every batch of tool calls, emit a short text message (1-2 sentences) explaining what you found and what you're doing next.** The user sees tool calls as icons — without your narration they have no idea what's happening. Never make more than 3 tool calls in a row without narrating.
@@ -176,6 +186,15 @@ export const ncMedicaidAgent = new Agent({
 export const mastra = new Mastra({
   agents: { ncMedicaidAgent },
   storage,
+  observability: new Observability({
+    configs: {
+      default: {
+        serviceName: 'nc-medicaid-navigator',
+        exporters: [new DefaultExporter()],
+        spanOutputProcessors: [new SensitiveDataFilter()],
+      },
+    },
+  }),
   logger: new PinoLogger({ name: 'mastra', level: 'info' }),
   server: {
     host: '0.0.0.0',
