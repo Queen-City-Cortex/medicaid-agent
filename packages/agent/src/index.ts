@@ -214,7 +214,7 @@ export const mastra = new Mastra({
 });
 
 // ─── CLI runner ────────────────────────────────────────────────────────────────
-// Usage: npx tsx src/index.ts "your question here"
+// Usage: npx tsx --env-file=.env src/index.ts "your question here"
 
 const question = process.argv[2];
 if (question) {
