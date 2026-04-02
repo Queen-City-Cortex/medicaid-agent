@@ -176,8 +176,15 @@ export const getDocument = createTool({
         chars: number | null;
       }>;
 
-      // Filter out null entries from empty OPTIONAL MATCH
-      const sections = rawSections.filter((s) => s.id != null);
+      // Filter out null entries from empty OPTIONAL MATCH and convert Neo4j Integers
+      const sections = rawSections
+        .filter((s) => s.id != null)
+        .map((s) => ({
+          ...s,
+          chars: s.chars != null && typeof s.chars === 'object' && 'toNumber' in s.chars
+            ? (s.chars as any).toNumber()
+            : s.chars,
+        }));
 
       return {
         ...mapDocumentMetadataRecord(rec),

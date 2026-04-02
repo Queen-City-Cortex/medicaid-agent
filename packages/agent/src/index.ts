@@ -176,7 +176,7 @@ export const ncMedicaidAgent = new Agent({
 export const mastra = new Mastra({
   agents: { ncMedicaidAgent },
   storage,
-  logger: new PinoLogger({ name: 'mastra', level: 'debug' }),
+  logger: new PinoLogger({ name: 'mastra', level: 'info' }),
   server: {
     host: '0.0.0.0',
     port: parseInt(process.env.PORT || '4111'),
