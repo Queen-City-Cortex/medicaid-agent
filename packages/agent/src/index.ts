@@ -36,12 +36,33 @@ const storage = new LibSQLStore({
   url: process.env.DATABASE_URL || 'file:./mastra.db',
 });
 
-const memory = new Memory({ storage });
+const memory = new Memory({
+  storage,
+  options: {
+    observationalMemory: {
+      model: 'openai/gpt-5.4-mini',
+    },
+    workingMemory: {
+      enabled: true,
+      scope: 'resource',
+      template: `# User Profile
+- Name:
+- Role: [e.g., Legal aid attorney, Case manager, Beneficiary, Family member]
+- Organization:
+- Counties/Region of interest:
+
+# Conversation Preferences
+- Detail level: [e.g., Technical/legal detail, Plain language summary]
+- Common topics of interest:
+`,
+    },
+  },
+});
 
 const SYSTEM_PROMPT = `You are an expert on North Carolina Medicaid policy, assisting legal aid attorneys, case managers, and beneficiaries. You have access to a comprehensive knowledge graph of NC Medicaid policy documents including DHHS policies, clinical policies, federal regulations, and change notices.
 
 ## Your capabilities
-You have 8 tools available:
+You have tools available:
 - **searchSections**: Semantic search over policy sections (use first for any new topic)
 - **getSection**: Read the full content of a specific section by ID
 - **getDocument**: Get document metadata and section list
@@ -100,7 +121,7 @@ When searching, route queries to the appropriate document types:
 
 const hallucinationVerifier = new HallucinationVerifier();
 
-const MAX_STEPS = 40;
+const MAX_STEPS = 99;
 
 // Force synthesis when the agent is about to hit the step limit.
 // Mastra's onIterationComplete injects feedback and gives one final step to respond.
@@ -121,7 +142,21 @@ const onIterationComplete = ({ iteration, finishReason }: {
 export const ncMedicaidAgent = new Agent({
   id: 'nc-medicaid-navigator',
   name: 'NC Medicaid Navigator',
-  instructions: SYSTEM_PROMPT,
+  instructions: () => {
+    const now = new Date();
+    const date = now.toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+    const time = now.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      timeZoneName: 'short',
+    });
+    return `Current date: ${date}. Current time: ${time}.\n\n${SYSTEM_PROMPT}`;
+  },
   model: createModel(AGENT_MODEL),
   tools: {
     searchSections,

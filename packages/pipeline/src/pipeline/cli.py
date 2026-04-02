@@ -153,18 +153,26 @@ def stats():
         for r in doc_breakdown:
             console.print(f"  {r['doc_type']}: {r['cnt']}")
 
-        # Check section embedding coverage
-        result = session.run("""
+        # Embedding coverage breakdown
+        emb_result = session.run("""
             MATCH (s:Section)
             WITH count(s) AS total,
-                 count(CASE WHEN s.embedding IS NOT NULL THEN 1 END) AS with_emb
-            RETURN total, with_emb
+                 count(CASE WHEN s.embedding IS NOT NULL THEN 1 END) AS embedded,
+                 count(CASE WHEN s.content_length IS NULL OR s.content_length = 0 THEN 1 END) AS empty,
+                 count(CASE WHEN s.embedding IS NULL AND s.content_length > 0 AND (s)-[:HAS_CHUNK]->() THEN 1 END) AS chunked
+            RETURN total, embedded, empty, chunked
         """)
-        r = result.single()
+        r = emb_result.single()
         if r:
-            console.print(f"\n[bold]Section embeddings:[/bold] {r['with_emb']}/{r['total']} sections")
+            covered = r['embedded'] + r['chunked']
+            with_content = r['total'] - r['empty']
+            console.print(f"\n[bold]Embedding coverage:[/bold]")
+            console.print(f"  Sections with content: {with_content}/{r['total']}")
+            console.print(f"  Directly embedded:     {r['embedded']}")
+            console.print(f"  Covered via chunks:    {r['chunked']}")
+            console.print(f"  Total covered:         {covered}/{with_content} ({100 * covered // with_content if with_content else 0}%)")
+            console.print(f"  Empty (structural):    {r['empty']}")
 
-        # Check chunk counts and embedding coverage
         chunk_result = session.run("""
             MATCH (ch:Chunk)
             WITH count(ch) AS total,
@@ -173,7 +181,7 @@ def stats():
         """)
         cr = chunk_result.single()
         if cr:
-            console.print(f"[bold]Chunk embeddings:[/bold] {cr['with_emb']}/{cr['total']} chunks")
+            console.print(f"  Chunks:                {cr['with_emb']}/{cr['total']}")
 
 
 @cli.command("ingest-cfr")
