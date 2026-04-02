@@ -311,8 +311,8 @@ const VerificationSchema = z.object({
     claim: z.string().describe('The unsupported claim text from the answer'),
     reason: z.string().describe('Why the claim is not supported by the sources'),
   })),
-  correctedAnswer: z.string().optional().describe(
-    'Full answer with [unverified: ...] markers around unsupported claims. Only present when supported is false.',
+  correctedAnswer: z.string().describe(
+    'Full answer with [unverified: ...] markers around unsupported claims. Empty string when supported is true.',
   ),
 });
 
@@ -381,7 +381,7 @@ export class HallucinationVerifier implements Processor {
 
     // Apply the verifier's correctedAnswer directly — no retry.
     // Retries cause the agent to over-correct and hedge everything.
-    const corrected = verification.correctedAnswer ?? text;
+    const corrected = verification.correctedAnswer || text;
 
     if (writer) {
       await writer.custom({
