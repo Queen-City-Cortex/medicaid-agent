@@ -55,7 +55,11 @@ SET r.change_description = pair.change_description
 
 **File**: `packages/agent/src/tools/navigate.ts`
 
-Replace the runtime section-text query in `getAmendments` (lines 98-114) with reading `change_description` directly from the AMENDS relationship. The complex `OPTIONAL MATCH` + aggregation for `firstSectionText` is replaced by accessing `r.change_description` on the relationship.
+Simplify the amendment query from variable-length paths (`[:AMENDS*1..]`) to direct edges (`-[r:AMENDS]->`) and read `r.change_description` from the relationship. The complex `OPTIONAL MATCH` + aggregation for `firstSectionText` is removed entirely.
+
+**Why depth-1 only**: The graph has only 2 multi-hop AMENDS chains, both artifacts from duplicate-crawled documents. There are no real transitive amendment chains. The variable-length path was over-engineered. Simplifying to depth-1 matches the actual data, eliminates the multi-hop summary composition problem, and makes `r.change_description` trivially accessible.
+
+The base-document query (lines 122-131) also simplifies to a single-hop traversal in the opposite direction.
 
 The `changeSummary` field in the tool output now contains the pre-computed, target-specific excerpt instead of random section text.
 
@@ -116,6 +120,7 @@ From investigation on 2026-04-02:
 - ~4 newer COLA notices (2024+) use "POLICY UPDATE" / "POLICY UPDATES" instead of "CONTENT OF CHANGE"
 - NEMT notices use per-policy subsection headings like "A. MA-3550.VIII, Determining Need..."
 - MA-2180 has 7 amendments; all are legitimate but one (02-11 LTC Partnership) confused the agent because its title seemed unrelated
+- Only 2 multi-hop AMENDS chains exist, both from duplicate-crawled documents — no real transitive chains
 
 ## Non-goals
 
