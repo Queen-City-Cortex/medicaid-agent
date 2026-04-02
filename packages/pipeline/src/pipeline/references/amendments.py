@@ -193,9 +193,6 @@ def detect_amendments() -> dict:
                     (sec_title, content, is_signal)
                 )
 
-    # Build a lookup of doc titles for title-based descriptions
-    doc_titles: dict[str, str] = {d["doc_id"]: d["title"] for d in all_docs}
-
     for doc in all_docs:
         title = doc["title"]
         doc_id = doc["doc_id"]
