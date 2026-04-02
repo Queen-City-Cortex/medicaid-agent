@@ -184,7 +184,6 @@ integration('agent tools against a real Neo4j graph', () => {
     const currentDocId = `${FIXTURE_PREFIX}doc:current`;
     const amendEarlyId = `${FIXTURE_PREFIX}doc:amend-early`;
     const amendLateId = `${FIXTURE_PREFIX}doc:amend-late`;
-    const summaryText = 'A'.repeat(140);
 
     await run(
       `
@@ -225,36 +224,18 @@ integration('agent tools against a real Neo4j graph', () => {
         status: 'amendment'
       })
       CREATE (current)-[:AMENDS]->(base)
-      CREATE (early)-[:AMENDS]->(current)
-      CREATE (late)-[:AMENDS]->(early)
-      CREATE (earlySec:Section {
-        id: $earlySectionId,
-        document_id: $amendEarlyId,
-        section_number: '1',
-        title: 'Summary',
-        content_text: $summaryText,
-        content_length: size($summaryText)
-      })
-      CREATE (lateSec:Section {
-        id: $lateSectionId,
-        document_id: $amendLateId,
-        section_number: '1',
-        title: 'Summary',
-        content_text: $lateSummaryText,
-        content_length: size($lateSummaryText)
-      })
-      CREATE (early)-[:HAS_SECTION]->(earlySec)
-      CREATE (late)-[:HAS_SECTION]->(lateSec)
+      CREATE (early)-[re:AMENDS]->(current)
+      CREATE (late)-[rl:AMENDS]->(current)
+      SET re.change_description = $earlyDesc
+      SET rl.change_description = $lateDesc
       `,
       {
         baseDocId,
         currentDocId,
         amendEarlyId,
         amendLateId,
-        earlySectionId: `${FIXTURE_PREFIX}sec:amend-early`,
-        lateSectionId: `${FIXTURE_PREFIX}sec:amend-late`,
-        summaryText,
-        lateSummaryText: `${summaryText} newer`,
+        earlyDesc: 'Updated eligibility criteria in section IV.A.',
+        lateDesc: 'Revised premium chart in section IV.I.',
       },
     );
 
@@ -264,6 +245,8 @@ integration('agent tools against a real Neo4j graph', () => {
     expect(result.amendments.map((doc) => doc.id)).toEqual([amendLateId, amendEarlyId]);
     expect(result.authoritativeDocument?.id).toBe(amendLateId);
     expect(result.authoritativeDocument?.url).toBe('https://example.com/late');
+    expect(result.amendments[0].changeSummary).toBe('Revised premium chart in section IV.I.');
+    expect(result.amendments[1].changeSummary).toBe('Updated eligibility criteria in section IV.A.');
   });
 
   it('returns all siblings for a section, not only adjacent NEXT_SIBLING nodes', async () => {
