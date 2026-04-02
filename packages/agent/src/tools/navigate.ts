@@ -106,10 +106,12 @@ export const getAmendments = createTool({
         { id: documentId },
       );
 
-      const amendments = amendResult.records.map((rec) => ({
-        ...mapDocumentMetadataRecord(rec),
-        changeSummary: rec.get('changeDescription') as string | null,
-      }));
+      const amendments = amendResult.records
+        .filter((rec) => rec.get('id') != null)
+        .map((rec) => ({
+          ...mapDocumentMetadataRecord(rec),
+          changeSummary: rec.get('changeDescription') as string | null,
+        }));
 
       // Base document: the document this one directly amends
       const baseResult = await session.run(
