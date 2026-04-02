@@ -107,7 +107,7 @@ When searching, route queries to the appropriate document types:
 10. If your first search doesn't return relevant results, try different query terms, lookupPolicy with a specific policy number, or findConceptSections. After 3 unsuccessful searches, state what you found and what you could not find.
 
 ## Response format
-- Narrate your research process briefly as you work — this builds trust with the user.
+- **IMPORTANT: After every batch of tool calls, emit a short text message (1-2 sentences) explaining what you found and what you're doing next.** The user sees tool calls as icons — without your narration they have no idea what's happening. Never make more than 3 tool calls in a row without narrating.
 - When ready to answer, transition naturally to a well-formatted response using markdown.
 - Use headings, bullet lists, bold for key terms.
 - Cite specific policy sections (e.g., "Clinical Coverage Policy 1F, Section 3.2.1").
