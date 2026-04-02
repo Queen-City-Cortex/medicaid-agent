@@ -66,9 +66,9 @@ export const followReferences = createTool({
 export const getAmendments = createTool({
   id: 'get-amendments',
   description:
-    'Find all amendment-chain documents related to a given document. ' +
-    'Returns every newer document that supersedes it, the oldest reachable base document, ' +
-    'and the authoritative document to cite now.',
+    'Find all change notices that directly amend a given document. ' +
+    'Returns each amendment with a changeSummary describing what was changed, ' +
+    'the base document this one amends, and the authoritative document to cite now.',
   inputSchema: z.object({
     documentId: z.string().describe('The document ID to look up amendments for'),
   }),
@@ -94,38 +94,28 @@ export const getAmendments = createTool({
       const currentDocument =
         currentResult.records.length > 0 ? mapDocumentMetadataRecord(currentResult.records[0]) : null;
 
-      // All reachable newer documents that supersede this document.
+      // Direct amendments: change notices that amend this document
       const amendResult = await session.run(
         `MATCH (d:Document {id: $id})
-         OPTIONAL MATCH path = (amend:Document)-[:AMENDS*1..]->(d)
-         WITH amend, min(length(path)) AS distance
+         OPTIONAL MATCH (amend:Document)-[r:AMENDS]->(d)
          WHERE amend IS NOT NULL
-         OPTIONAL MATCH (amend)-[:HAS_SECTION]->(sec:Section)
-         WHERE sec.content_length > 100
-         WITH amend, distance, sec
-         ORDER BY sec.content_length DESC
-         WITH amend, distance, collect(substring(sec.content_text, 0, 500))[0] AS firstSectionText
          RETURN
            ${documentMetadataReturn('amend')},
-           distance,
-           firstSectionText
-         ORDER BY amend.effective_date DESC, distance ASC, amend.id ASC`,
+           r.change_description AS changeDescription
+         ORDER BY amend.effective_date DESC, amend.id ASC`,
         { id: documentId },
       );
 
       const amendments = amendResult.records.map((rec) => ({
         ...mapDocumentMetadataRecord(rec),
-        changeSummary: rec.get('firstSectionText') as string | null,
+        changeSummary: rec.get('changeDescription') as string | null,
       }));
 
-      // Oldest reachable base document in the amendment chain.
+      // Base document: the document this one directly amends
       const baseResult = await session.run(
-        `MATCH path = (d:Document {id: $id})-[:AMENDS*1..]->(base:Document)
-         WITH base, max(length(path)) AS distance
+        `MATCH (d:Document {id: $id})-[:AMENDS]->(base:Document)
          RETURN
-           ${documentMetadataReturn('base')},
-           distance
-         ORDER BY distance DESC, base.effective_date ASC, base.id ASC
+           ${documentMetadataReturn('base')}
          LIMIT 1`,
         { id: documentId },
       );

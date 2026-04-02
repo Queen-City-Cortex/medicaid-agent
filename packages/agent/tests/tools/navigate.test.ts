@@ -117,7 +117,7 @@ describe('getAmendments', () => {
         ],
       },
       {
-        // Amendments (incoming AMENDS)
+        // Amendments (direct AMENDS edges with change_description)
         records: [
           mockRecord({
             id: 'amend-2',
@@ -127,7 +127,7 @@ describe('getAmendments', () => {
             effectiveDate: '2025-08-01',
             url: 'https://example.com/cn-03',
             status: 'amendment',
-            firstSectionText: 'This change notice supersedes the prior revision.',
+            changeDescription: 'This change notice supersedes the prior revision.',
           }),
           mockRecord({
             id: 'amend-1',
@@ -137,12 +137,12 @@ describe('getAmendments', () => {
             effectiveDate: '2025-06-01',
             url: 'https://example.com/cn-01',
             status: 'amendment',
-            firstSectionText: 'MA-2180 is revised in the following way...',
+            changeDescription: 'MA-2180 is revised in the following way...',
           }),
         ],
       },
       {
-        // Oldest reachable base document
+        // Base document (direct AMENDS in reverse)
         records: [
           mockRecord({
             id: 'doc-base',
@@ -225,7 +225,7 @@ describe('getAmendments', () => {
             effectiveDate: '2025-01-01',
             url: null,
             status: 'amendment',
-            firstSectionText: 'A short summary.',
+            changeDescription: 'A short summary.',
           }),
         ],
       },
@@ -235,6 +235,7 @@ describe('getAmendments', () => {
     const result = await getAmendments.execute({ documentId: 'doc-1' }, {});
 
     expect(result.amendments).toHaveLength(1);
+    expect(result.amendments[0].changeSummary).toBe('A short summary.');
     expect(result.baseDocument).toBeNull();
     expect(result.authoritativeDocument?.id).toBe('amend-1');
   });
