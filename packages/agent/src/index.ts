@@ -227,6 +227,7 @@ if (question) {
   try {
     const result = await agent.generate(question, {
       maxSteps: MAX_STEPS,
+      memory: { thread: `cli-${Date.now()}`, resource: 'cli' },
       onIterationComplete,
     } as any);
     console.log('\n---ANSWER---\n');
