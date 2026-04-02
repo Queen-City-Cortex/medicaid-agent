@@ -1,5 +1,5 @@
 import { generateObject } from 'ai';
-import { createAnthropic } from '@ai-sdk/anthropic';
+import { createOpenAI } from '@ai-sdk/openai';
 import { z } from 'zod';
 import type { Processor, ProcessOutputStepArgs } from '@mastra/core/processors';
 import type { MastraDBMessage } from '@mastra/core/memory';
@@ -10,7 +10,7 @@ function getConfig() {
   const maxTokens = parseInt(process.env.VERIFIER_MAX_SOURCE_TOKENS || '30000', 10);
   return {
     enabled: process.env.VERIFIER_ENABLED !== 'false',
-    model: process.env.VERIFIER_MODEL || 'claude-haiku-4-5-20251001',
+    model: process.env.VERIFIER_MODEL || 'gpt-5.4-mini',
     maxSourceChars: maxTokens * 4,
   };
 }
@@ -333,9 +333,9 @@ export async function verifyAnswer(
   const failOpen: VerificationResult = { supported: true, unsupportedClaims: [] };
 
   try {
-    const anthropic = createAnthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const { object } = await generateObject({
-      model: anthropic(getConfig().model),
+      model: openai(getConfig().model),
       schema: VerificationSchema,
       system: VERIFIER_PROMPT,
       messages: [
