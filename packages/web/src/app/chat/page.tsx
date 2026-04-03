@@ -3,7 +3,7 @@
 import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { PanelLeftOpen, PanelLeftClose } from 'lucide-react';
-import { useAuth } from '@workos-inc/authkit-nextjs/components';
+import { useAuth, useAccessToken } from '@workos-inc/authkit-nextjs/components';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import type { UIMessage } from 'ai';
@@ -19,7 +19,7 @@ import { useIsMobile } from '@/lib/use-is-mobile';
 import { generateUUID } from '@/lib/utils';
 import { convertThreadMessageToUIMessage } from '@/lib/parse-message';
 import { extractMessageParts } from '@/lib/message-parts';
-import { mastraClient } from '@/lib/mastra-client';
+import { useMastraClient } from '@/lib/use-mastra-client';
 
 const AGENT_ID = 'nc-medicaid-navigator';
 const MASTRA_URL = process.env.NEXT_PUBLIC_MASTRA_URL || 'http://localhost:4111';
@@ -34,6 +34,8 @@ const EXAMPLES = [
 
 export default function ChatPage() {
   const { user, loading: authLoading } = useAuth();
+  const { getAccessToken } = useAccessToken();
+  const mastraClient = useMastraClient();
   const [threadId, setThreadId] = useState<string>(() => generateUUID());
   const [threadVersion, setThreadVersion] = useState(0);
   const isMobile = useIsMobile();
@@ -44,6 +46,10 @@ export default function ChatPage() {
   const transport = useMemo(() => new DefaultChatTransport({
     api: `${MASTRA_URL}/chat`,
     credentials: 'include' as RequestCredentials,
+    headers: async () => {
+      const token = await getAccessToken();
+      return token ? { Authorization: `Bearer ${token}` } as Record<string, string> : {} as Record<string, string>;
+    },
     prepareSendMessagesRequest({ messages }) {
       return {
         body: {
@@ -52,7 +58,7 @@ export default function ChatPage() {
         },
       };
     },
-  }), [threadId, resourceId]);
+  }), [threadId, resourceId, getAccessToken]);
 
   const { messages, status, sendMessage, setMessages } = useChat({
     id: threadId,
@@ -118,7 +124,7 @@ export default function ChatPage() {
     } catch {
       // Thread may already exist — that's fine
     }
-  }, [resourceId]);
+  }, [resourceId, mastraClient]);
 
   const loadThread = useCallback(async (tid: string) => {
     try {

@@ -23,7 +23,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { mastraClient } from '@/lib/mastra-client';
+import { useMastraClient } from '@/lib/use-mastra-client';
 import { formatDate, getThreadTitle } from '@/lib/thread-helpers';
 import type { StorageThreadType } from '@mastra/core/memory';
 
@@ -39,6 +39,7 @@ interface ThreadSidebarProps {
 
 export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelectThread, onNewThread }: ThreadSidebarProps) {
   const { user } = useAuth();
+  const mastraClient = useMastraClient();
   const [threads, setThreads] = useState<StorageThreadType[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -67,7 +68,7 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
     } finally {
       setIsLoading(false);
     }
-  }, [resourceId]);
+  }, [resourceId, mastraClient]);
 
   // Fetch threads on mount and when currentThreadId changes (new thread created)
   useEffect(() => {
