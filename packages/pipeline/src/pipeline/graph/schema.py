@@ -15,6 +15,7 @@ INDEXES = [
     "CREATE INDEX doc_document_type IF NOT EXISTS FOR (d:Document) ON (d.document_type)",
     "CREATE INDEX doc_status IF NOT EXISTS FOR (d:Document) ON (d.status)",
     "CREATE INDEX section_document_id_section_number IF NOT EXISTS FOR (s:Section) ON (s.document_id, s.section_number)",
+    "CREATE FULLTEXT INDEX section_fulltext IF NOT EXISTS FOR (s:Section) ON EACH [s.title, s.content_text]",
 ]
 
 

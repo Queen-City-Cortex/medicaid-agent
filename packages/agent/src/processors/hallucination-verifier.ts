@@ -307,30 +307,47 @@ export function buildSourceText(
 
 const VerificationSchema = z.object({
   supported: z.boolean().describe('true if ALL factual claims are supported by the sources'),
+  relevant: z.boolean().describe('true if the answer addresses the specific question using the correct policy source'),
   unsupportedClaims: z.array(z.object({
     claim: z.string().describe('The unsupported claim text from the answer'),
     reason: z.string().describe('Why the claim is not supported by the sources'),
   })),
+  relevanceIssues: z.array(z.object({
+    issue: z.string().describe('Description of the relevance problem'),
+    severity: z.enum(['minor', 'major']).describe('minor = incomplete but directionally correct; major = wrong policy or contradicts question'),
+  })),
   correctedAnswer: z.string().describe(
-    'Full answer with [unverified: ...] markers around unsupported claims. Empty string when supported is true.',
+    'Full answer with [unverified: ...] markers around unsupported claims and [wrong source: ...] markers around content from the wrong policy. Empty string when both supported and relevant are true.',
   ),
 });
 
 export type VerificationResult = z.infer<typeof VerificationSchema>;
 
-const VERIFIER_PROMPT = `You are a factual verification assistant. Given an ANSWER and SOURCE DOCUMENTS, identify every factual claim in the answer and check whether it is supported by the source documents.
+const VERIFIER_PROMPT = `You are a factual verification and relevance assistant for NC Medicaid policy answers. Given a QUESTION, an ANSWER, and SOURCE DOCUMENTS, perform two checks:
 
-A claim is SUPPORTED if the source documents contain the information stated or it is a reasonable paraphrase. A claim is UNSUPPORTED if the source documents do not contain that information, or the answer states something that contradicts the sources.
+## 1. RELEVANCE CHECK
+Does the answer directly address the specific question asked?
+- If the question asks about a specific policy (e.g., "Policy 3L"), does the answer primarily use that policy?
+- If the question asks about a specific setting or population, does the answer address that setting/population?
+- Flag as MAJOR if the answer discusses a related-but-different policy (e.g., 3L-1 instead of 3L, MA-3540 instead of CCP 10A) or reaches the wrong conclusion by using the wrong source.
+- Flag as MINOR if the answer is directionally correct but incomplete or uses a secondary source.
 
-Focus on: dollar amounts, dates, thresholds, visit limits, eligibility criteria, policy numbers, and specific requirements. Ignore narrative transitions, hedging language, and meta-commentary about the research process.
+## 2. FACTUAL CHECK
+Identify every factual claim and check whether it is supported by the source documents.
+- A claim is SUPPORTED if the source documents contain the information stated or it is a reasonable paraphrase.
+- A claim is UNSUPPORTED if the source documents do not contain that information, or the answer contradicts the sources.
+- Focus on: dollar amounts, dates, thresholds, visit limits, eligibility criteria, policy numbers, and specific requirements.
+- Ignore narrative transitions, hedging language, and meta-commentary about the research process.
 
-If any claims are unsupported, produce a CORRECTED VERSION of the full answer where each unsupported claim is wrapped in [unverified: ...] markers. Keep all supported content unchanged. The corrected version must be the complete answer, not a diff.`;
+## CORRECTION
+If any claims are unsupported, wrap them in [unverified: ...] markers. If content comes from the wrong policy source, wrap it in [wrong source: ...] markers. Keep all correct content unchanged. The corrected version must be the complete answer, not a diff.`;
 
 export async function verifyAnswer(
+  question: string,
   answerText: string,
   sourceText: string,
 ): Promise<VerificationResult> {
-  const failOpen: VerificationResult = { supported: true, unsupportedClaims: [] };
+  const failOpen: VerificationResult = { supported: true, relevant: true, unsupportedClaims: [], relevanceIssues: [], correctedAnswer: '' };
 
   try {
     const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -341,7 +358,7 @@ export async function verifyAnswer(
       messages: [
         {
           role: 'user',
-          content: `## ANSWER\n\n${answerText}\n\n## SOURCE DOCUMENTS\n\n${sourceText}`,
+          content: `## QUESTION\n\n${question}\n\n## ANSWER\n\n${answerText}\n\n## SOURCE DOCUMENTS\n\n${sourceText}`,
         },
       ],
     });
@@ -373,11 +390,32 @@ export class HallucinationVerifier implements Processor {
       return messages;
     }
 
+    // Extract the user's original question from the first user message
+    let question = '';
+    for (const msg of messages) {
+      if (msg.role === 'user') {
+        const parts = (msg.content as any)?.parts ?? [];
+        for (const part of parts) {
+          if (part.type === 'text' && part.text) {
+            question = part.text;
+            break;
+          }
+        }
+        if (question) break;
+      }
+    }
+
     const sources = extractSources(messages as any);
     const sourceText = buildSourceText(sources, text);
-    const verification = await verifyAnswer(text, sourceText);
+    const verification = await verifyAnswer(question, text, sourceText);
 
-    if (verification.supported) return messages;
+    const hasMajorRelevanceIssue = verification.relevanceIssues?.some(
+      (issue) => issue.severity === 'major',
+    );
+
+    if (verification.supported && verification.relevant && !hasMajorRelevanceIssue) {
+      return messages;
+    }
 
     // Apply the verifier's correctedAnswer directly — no retry.
     // Retries cause the agent to over-correct and hedge everything.
@@ -385,10 +423,13 @@ export class HallucinationVerifier implements Processor {
 
     if (writer) {
       await writer.custom({
-        type: 'data-verification-rewrite' as const,
-        unsupportedClaims: verification.unsupportedClaims,
-        correctedAnswer: corrected,
-      });
+        type: 'data-verification-rewrite',
+        data: {
+          unsupportedClaims: verification.unsupportedClaims,
+          relevanceIssues: verification.relevanceIssues,
+          correctedAnswer: corrected,
+        },
+      } as any);
     }
 
     return messages.map((msg) => {

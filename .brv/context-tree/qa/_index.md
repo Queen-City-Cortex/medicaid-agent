@@ -1,28 +1,25 @@
 ---
-children_hash: d76b4d6c9a42dea259e74753379f8a7f4cb4f1ecee00082d3c7dcfc35cb214a2
-compression_ratio: 0.8464285714285714
+children_hash: 7d3be7812cf673355b85afdb61d8b58ead9420b8ea9502878e901c8a73241262
+compression_ratio: 0.7698483496877788
 condensation_order: 2
-covers: [context.md, playwright_e2e/_index.md]
-covers_token_total: 560
+covers: [context.md, hallucination_verifier/_index.md, playwright_e2e/_index.md]
+covers_token_total: 1121
 summary_level: d2
-token_count: 474
+token_count: 863
 type: summary
 ---
-# QA Domain Structure (d2 summary)
+# QA Domain Overview
+Captures Playwright-focused end-to-end testing patterns for the Medicaid navigator agent UI, owned by the QA/Automation team. Includes Playwright suite configs, Mastra stream/memory helpers, page objects for chat/thread interactions, and guidance for running/extending e2e coverage. Excludes non-Playwright unit/integration tests and backend implementation.
 
-## Context: `.brv/context-tree/qa/context.md`
-- **Purpose**: Capture end-to-end Playwright testing patterns specifically for the Medicaid navigator agent UI.
-- **Scope**:
-  - Includes Playwright configs, Mastra streaming/memory helper utilities, chat/thread page objects, and guidance for running/extending e2e suites.
-  - Excludes unit/integration work outside Playwright and backend service internals.
-- **Ownership & Usage**: Maintained by QA/Automation; update whenever Playwright suites, helpers, or page abstractions evolve.
+## Playwright e2e (qa/playwright_e2e)
+- **Configuration & Flow**: `e2e/playwright.config.ts` defines shared reporters/retries/baseURL, driving both the fast mocked suite (`e2e/tests/mocked`, 15 s timeouts, desktop Chrome) and the long-running smoke suite (`e2e/tests/smoke`, 120 s, exercises live agent + Neo4j). Both suites require the webserver (`npm run dev` from `../packages/web` to `http://localhost:3000`), with Playwright launching via the config and exercise flows orchestrated through helper layers.
+- **Helpers Layer** (`e2e/helpers`):
+  - `stream-builder.ts` (`MastraStreamBuilder`) emits Mastra-compliant SSE frames (prefixed `data:`, timeline tool markers, terminal `data: [DONE]`) to simulate streaming tool output.
+  - `mock-routes.ts` (`mockMastraAPI`) routes Playwright `page.route()` before `/chat` visits, intercepting `POST /api/agents/*/stream` (custom SSE), `GET/POST /api/memory/threads`, and `GET /api/memory/threads/*/messages` to control agent/memory responses.
+  - `chat-page.ts` provides selectors/actions for navigation, sending user messages, awaiting assistant replies, viewing assistant traces, and manipulating the thread sidebar, ensuring consistent interactions across suites.
 
-## Playwright e2e topic: `.brv/context-tree/qa/playwright_e2e/_index.md`
-- **Coverage**:
-  - `e2e/playwright.config.ts` centralizes configuration for two projects: mocked (`e2e/tests/mocked`) and smoke (`e2e/tests/smoke`).
-  - Shared settings: reporters, retries, baseURL; mocked suite keeps short timeouts and desktop Chrome, smoke suite extends to 120s to hit live agent plus Neo4j; requires `npm run dev` from `packages/web` targeting `http://localhost:3000`.
-- **Helpers (`e2e/helpers/`)**:
-  - `stream-builder.ts` (`MastraStreamBuilder`): builds Mastra SSE frames (`data:` lines, timeline markers, final `data: [DONE]`) for streaming responses.
-  - `mock-routes.ts` (`mockMastraAPI`): installs Playwright `page.route()` before visiting `/chat`, intercepting agent stream (`POST /api/agents/*/stream`), thread lifecycle (`GET/POST /api/memory/threads`), and thread messages (`GET /api/memory/threads/*/messages`).
-  - `chat-page.ts`: page-object centralizing selectors/actions for navigation, message sending, awaiting assistant replies, assistant trace lookups, and thread sidebar operations to avoid duplication across suites.
-- **Flow**: Playwright starts via config → helpers craft SSE/mocked endpoints → `ChatPage` drives interactions for both mocked and smoke scenarios, linking config, helpers, and page abstractions.
+## Hallucination Verifier Processor (qa/hallucination_verifier)
+- **Purpose & Task**: Documents the `HallucinationVerifier` processor that intercepts final Medicaid navigator answers and runs a two-step verification—relevance to the original question, then factual accuracy against sourced policies—before optionally rewriting the assistant response.
+- **Behavior & Flow**: `getConfig()` toggles the verifier with model/limit settings; `processOutputStep` triggers only on final assistant messages (`finishReason: stop`, no pending tools, non-empty text); extracts user question + cited tool sources; `buildSourceText` concatenates prioritized citations (cited first, uncited appended) and truncates at `maxSourceChars` with a notice; calls `verifyAnswer(question, text, sourceText)` using the extended schema; immediately applies `verification.correctedAnswer` via `writer.custom` when relevance issues, unsupported claims, or unsupported verification are detected.
+- **Structure & Dependencies**: Defines verifier configuration, evidence-source interfaces, metadata formatters, SourceEntry builders for `getSection`, `getDocument`, `getAmendments`, `lookupPolicy`, and `followReferences`, plus the Zod schema extension and `HallucinationVerifier` implementation of `Processor.processOutputStep`. Depends on `generateObject` (ai), `createOpenAI` (@ai-sdk/openai), Zod validation, Mastra processors/memory types, and `writer.custom` to emit `data-verification-rewrite`.
+- **Highlights & Rules**: Emphasizes the strict two-stage relevance + fact check, schema fields (`supported`, `relevant`, `unsupportedClaims`, `relevanceIssues`, `correctedAnswer`), char-limited prioritized source summaries, and policy of applying corrections immediately without retrying; verification only runs on final responses and halts further processing when unsupported or failing.
