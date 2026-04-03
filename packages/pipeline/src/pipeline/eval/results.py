@@ -15,13 +15,19 @@ def save_result(level: str, per_question: list[dict], config_overrides: dict | N
 
     run_id = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
 
-    # Compute aggregates
-    aggregate = {}
-    if per_question:
-        aggregate["precision_at_k"] = sum(q["precision"] for q in per_question) / len(per_question)
-        aggregate["recall_at_k"] = sum(q["recall"] for q in per_question) / len(per_question)
-        aggregate["mrr"] = sum(q["mrr"] for q in per_question) / len(per_question)
-        aggregate["primary_hit_rate"] = sum(1 for q in per_question if q.get("primary_hit")) / len(per_question)
+    # Compute aggregates — exclude entries with None scores (judge errors)
+    scorable = [q for q in per_question if q.get("precision") is not None]
+    judge_errors = len(per_question) - len(scorable)
+
+    aggregate: dict = {}
+    if scorable:
+        aggregate["precision_at_k"] = sum(q["precision"] for q in scorable) / len(scorable)
+        aggregate["recall_at_k"] = sum(q["recall"] for q in scorable) / len(scorable)
+        aggregate["mrr"] = sum(q["mrr"] for q in scorable) / len(scorable)
+        aggregate["primary_hit_rate"] = sum(1 for q in scorable if q.get("primary_hit")) / len(scorable)
+    if judge_errors:
+        aggregate["judge_errors"] = judge_errors
+        aggregate["scorable_count"] = len(scorable)
 
     # Compute by_difficulty
     by_difficulty: dict[str, dict] = {}

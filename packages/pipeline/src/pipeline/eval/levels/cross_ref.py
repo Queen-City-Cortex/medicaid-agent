@@ -31,17 +31,30 @@ def evaluate_cross_refs(entries: list[dict]) -> list[dict]:
                 missed_count += 1
                 continue
 
-            # Check whether a REFERENCES_DOCUMENT edge exists between the two documents
+            # Check whether any cross-document relationship exists:
+            # REFERENCES_DOCUMENT, AMENDS (either direction), or
+            # section-level REFERENCES path
             with get_session() as session:
                 result = session.run(
                     """
-                    MATCH (a:Document {id: $from_doc})-[:REFERENCES_DOCUMENT]->(b:Document {id: $to_doc})
+                    MATCH (a:Document {id: $from_doc})-[:REFERENCES_DOCUMENT|AMENDS]-(b:Document {id: $to_doc})
                     RETURN count(*) AS cnt
                     """,
                     {"from_doc": from_doc, "to_doc": to_doc},
                 )
-                record = result.single()
-                found = record and record["cnt"] > 0
+                found = result.single()["cnt"] > 0
+
+                if not found:
+                    # Fall back to section-level REFERENCES path
+                    result2 = session.run(
+                        """
+                        MATCH (a:Document {id: $from_doc})-[:HAS_SECTION]->()-[:REFERENCES]->()<-[:HAS_SECTION]-(b:Document {id: $to_doc})
+                        RETURN count(*) AS cnt
+                        LIMIT 1
+                        """,
+                        {"from_doc": from_doc, "to_doc": to_doc},
+                    )
+                    found = result2.single()["cnt"] > 0
 
             if found:
                 resolved_count += 1

@@ -132,6 +132,7 @@ def evaluate_answers(entries: list[dict]) -> list[dict]:
                 "citation_quality": 0,
                 "overall": 0,
                 "explanation": agent_error,
+                "error_type": "agent",
             }
         else:
             try:
@@ -143,13 +144,20 @@ def evaluate_answers(entries: list[dict]) -> list[dict]:
                 )
             except Exception as exc:
                 scores = {
-                    "factual_accuracy": 0,
-                    "completeness": 0,
-                    "hallucination": 0,
-                    "citation_quality": 0,
-                    "overall": 0,
+                    "factual_accuracy": None,
+                    "completeness": None,
+                    "hallucination": None,
+                    "citation_quality": None,
+                    "overall": None,
                     "explanation": f"Judge error: {exc}",
+                    "error_type": "judge",
                 }
+
+        # Judge errors get None scores — exclude from aggregates
+        is_judge_error = scores.get("error_type") == "judge"
+        overall = scores.get("overall")
+        completeness = scores.get("completeness")
+        factual = scores.get("factual_accuracy")
 
         results.append({
             "id": entry["id"],
@@ -159,11 +167,13 @@ def evaluate_answers(entries: list[dict]) -> list[dict]:
             "agent_answer": agent_answer,
             "agent_error": agent_error,
             "scores": scores,
+            "judge_error": is_judge_error,
             # Alias fields for results.py aggregate compatibility
-            "precision": scores.get("overall", 0) / 3.0,
-            "recall": scores.get("completeness", 0) / 3.0,
-            "mrr": scores.get("factual_accuracy", 0) / 3.0,
-            "primary_hit": scores.get("overall", 0) >= 2,
+            # None values signal "exclude from aggregates"
+            "precision": (overall / 3.0) if overall is not None else None,
+            "recall": (completeness / 3.0) if completeness is not None else None,
+            "mrr": (factual / 3.0) if factual is not None else None,
+            "primary_hit": (overall >= 2) if overall is not None else None,
         })
 
     return results
