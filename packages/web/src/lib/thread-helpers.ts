@@ -20,7 +20,7 @@ export function formatDate(date: string | Date | undefined): string {
 
 export function getThreadTitle(thread: StorageThreadType): string {
   if (thread.title && thread.title.trim()) {
-    return thread.title.length > 50 ? thread.title.slice(0, 50) + '...' : thread.title;
+    return thread.title;
   }
   return 'New conversation';
 }

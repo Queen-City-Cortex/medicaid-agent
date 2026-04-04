@@ -1,36 +1,26 @@
 'use client';
 
 import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
-import ReactMarkdown from 'react-markdown';
 import { PanelLeftOpen, PanelLeftClose } from 'lucide-react';
 import { useAuth, useAccessToken } from '@workos-inc/authkit-nextjs/components';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import type { UIMessage } from 'ai';
-import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { MessageActions } from '@/components/MessageActions';
-import { ResearchTrace } from '@/components/ResearchTrace';
+import { ChatInput } from '@/components/ChatInput';
+import { EmptyState } from '@/components/EmptyState';
+import { MessageList } from '@/components/MessageList';
 import { ScrollToBottom } from '@/components/ScrollToBottom';
 import { ThreadSidebar } from '@/components/ThreadSidebar';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useIsMobile } from '@/lib/use-is-mobile';
 import { generateUUID } from '@/lib/utils';
 import { convertThreadMessageToUIMessage } from '@/lib/parse-message';
-import { extractMessageParts } from '@/lib/message-parts';
 import { useMastraClient } from '@/lib/use-mastra-client';
 
 const AGENT_ID = 'nc-medicaid-navigator';
 const MASTRA_URL = process.env.NEXT_PUBLIC_MASTRA_URL || 'http://localhost:4111';
-
-const PROSE = 'prose prose-sm dark:prose-invert max-w-none prose-headings:font-heading prose-headings:tracking-tight prose-h2:text-lg prose-h3:text-base prose-p:leading-relaxed prose-li:leading-relaxed prose-strong:text-foreground';
-
-const EXAMPLES = [
-  'Does NC Medicaid cover chiropractic services?',
-  'What is the earned income limit for HCWD?',
-  'How many days of therapeutic leave are allowed for nursing facility residents?',
-];
 
 export default function ChatPage() {
   const { user, loading: authLoading } = useAuth();
@@ -103,7 +93,7 @@ export default function ChatPage() {
   useEffect(() => {
     const el = messagesEndRef.current?.closest('[data-slot="scroll-area-viewport"]');
     if (el) viewportRef.current = el as HTMLElement;
-  });
+  }, [messages]);
 
   // Reset textarea height when input is cleared
   useEffect(() => {
@@ -141,7 +131,7 @@ export default function ChatPage() {
       console.error('Failed to load thread messages:', err);
       setMessages([]);
     }
-  }, [setMessages]);
+  }, [setMessages, mastraClient]);
 
   const handleSelectThread = useCallback(async (tid: string) => {
     setThreadId(tid);
@@ -165,10 +155,8 @@ export default function ChatPage() {
     inputRef.current?.focus({ preventScroll: true });
   }, [messages.length, setMessages, ensureThreadExists, isMobile]);
 
-  const MAX_INPUT_LENGTH = 10_000;
-
   const handleSend = useCallback(async () => {
-    if (!input.trim() || input.length > MAX_INPUT_LENGTH) return;
+    if (!input.trim() || input.length > 10_000) return;
     const question = input;
     setInput('');
     if (messages.length === 0) {
@@ -177,7 +165,32 @@ export default function ChatPage() {
     await sendMessage({ text: question });
   }, [input, messages.length, threadId, ensureThreadExists, sendMessage]);
 
-  if (authLoading) return null;
+  const handleRerun = useCallback((messageIndex: number, userIndex: number) => {
+    const userText = messages[userIndex].parts
+      .filter(p => p.type === 'text')
+      .map(p => (p as { text: string }).text)
+      .join('');
+    const newMessages = messages.filter((_, idx) => idx !== messageIndex && idx !== userIndex);
+    setMessages(newMessages);
+    sendMessage({ text: userText });
+  }, [messages, setMessages, sendMessage]);
+
+  const handleSelectExample = useCallback((question: string) => {
+    setInput(question);
+    inputRef.current?.focus({ preventScroll: true });
+  }, []);
+
+  if (authLoading) return (
+    <div className="flex h-screen bg-background">
+      <div className="hidden md:block w-[280px] bg-sidebar border-r border-sidebar-border shrink-0" />
+      <div className="flex flex-col flex-1">
+        <div className="border-b border-border bg-card px-8 py-5 shrink-0">
+          <div className="max-w-3xl mx-auto h-8 rounded bg-muted animate-pulse" />
+        </div>
+        <div className="flex-1" />
+      </div>
+    </div>
+  );
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
@@ -231,150 +244,29 @@ export default function ChatPage() {
         <div className="flex-1 min-h-0 relative">
         <ScrollArea className="h-full bg-background">
           <div className="max-w-3xl mx-auto px-4 md:px-8 py-8 space-y-8">
-            {/* Empty state */}
             {messages.length === 0 && !isLoading && (
-              <div className="py-20 text-center">
-                <h2 data-testid="empty-state" className="font-heading text-3xl font-semibold tracking-tight text-foreground mb-2">
-                  What would you like to know?
-                </h2>
-                <p className="text-muted-foreground mb-10">
-                  Research NC Medicaid policy across 2,000+ documents
-                </p>
-                <div className="grid gap-3 max-w-lg mx-auto">
-                  {EXAMPLES.map((q, i) => (
-                    <button
-                      key={i}
-                      data-testid="example-card"
-                      onClick={() => { setInput(q); inputRef.current?.focus({ preventScroll: true }); }}
-                      className="text-left px-4 py-3 rounded-lg border border-border bg-card text-sm text-foreground hover:border-accent hover:bg-muted transition-colors"
-                    >
-                      {q}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <EmptyState onSelectExample={handleSelectExample} />
             )}
 
-            {/* Messages */}
-            {messages.map((msg, i) => (
-              <div key={msg.id} className="group">
-                {msg.role === 'user' && (
-                  <div className="flex justify-end mb-6 animate-in fade-in slide-in-from-bottom-2 duration-200">
-                    <div data-testid="user-message" className="bg-primary text-primary-foreground rounded-2xl rounded-br-sm px-5 py-3 max-w-[75%] shadow-sm">
-                      <p className="text-sm leading-relaxed">
-                        {msg.parts.filter(p => p.type === 'text').map(p => (p as { text: string }).text).join('')}
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {msg.role === 'assistant' && (() => {
-                  const { traceEntries, answerText } = extractMessageParts(msg);
-                  const isThisStreaming = isStreaming && i === messages.length - 1;
-
-                  return (
-                    <div data-testid="assistant-message" className="pl-2 mt-6 animate-in fade-in slide-in-from-bottom-2 duration-200">
-                      {traceEntries.length > 0 && (
-                        <div className={`border-l-2 ${isThisStreaming ? 'border-accent/30' : 'border-border'} pl-4 mb-4`}>
-                          <ResearchTrace entries={traceEntries} live={isThisStreaming} />
-                        </div>
-                      )}
-
-                      {answerText && (
-                        <div className={PROSE}>
-                          <ReactMarkdown>{answerText}</ReactMarkdown>
-                          {isThisStreaming && (
-                            <span className="inline-block w-0.5 h-5 bg-accent animate-pulse ml-0.5 -mb-1" />
-                          )}
-                        </div>
-                      )}
-
-                      {/* Loading indicator when no content yet */}
-                      {isThisStreaming && !answerText && traceEntries.length === 0 && (
-                        <div data-testid="loading-indicator" className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <span className="inline-block w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" />
-                          Starting research...
-                        </div>
-                      )}
-
-                      {!isThisStreaming && answerText && (
-                        <MessageActions
-                          content={answerText}
-                          onRerun={() => {
-                            let userIdx = -1;
-                            for (let j = i - 1; j >= 0; j--) {
-                              if (messages[j].role === 'user') { userIdx = j; break; }
-                            }
-                            if (userIdx === -1) return;
-                            const userText = messages[userIdx].parts
-                              .filter(p => p.type === 'text')
-                              .map(p => (p as { text: string }).text)
-                              .join('');
-                            const newMessages = messages.filter((_, idx) => idx !== i && idx !== userIdx);
-                            setMessages(newMessages);
-                            sendMessage({ text: userText });
-                          }}
-                        />
-                      )}
-                    </div>
-                  );
-                })()}
-              </div>
-            ))}
-
-            {/* Submitted but no assistant message yet */}
-            {status === 'submitted' && (messages.length === 0 || messages[messages.length - 1]?.role !== 'assistant') && (
-              <div className="pl-2 mt-6 animate-in fade-in slide-in-from-bottom-2 duration-200">
-                <div data-testid="loading-indicator" className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <span className="inline-block w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" />
-                  Starting research...
-                </div>
-              </div>
-            )}
-
-            <div ref={messagesEndRef} />
+            <MessageList
+              messages={messages}
+              isStreaming={isStreaming}
+              status={status}
+              onRerun={handleRerun}
+              messagesEndRef={messagesEndRef}
+            />
           </div>
         </ScrollArea>
         <ScrollToBottom viewportRef={viewportRef} hasMessages={messages.length > 0 || isLoading} />
         </div>
 
-        <footer className="border-t border-border bg-card px-4 md:px-8 py-5 shrink-0">
-          <div className="max-w-3xl mx-auto flex gap-3">
-            <textarea
-              ref={inputRef}
-              rows={1}
-              data-testid="chat-input"
-              value={input}
-              onChange={(e) => {
-                setInput(e.target.value);
-                e.target.style.height = 'auto';
-                e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSend();
-                }
-              }}
-              maxLength={MAX_INPUT_LENGTH}
-              placeholder="Ask about NC Medicaid policy..."
-              className="flex-1 rounded-lg border border-input bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-shadow resize-none overflow-y-auto scrollbar-none"
-              style={{ maxHeight: '120px' }}
-              disabled={isLoading}
-            />
-            <Button data-testid="send-button" onClick={handleSend} disabled={isLoading || !input.trim()} className="px-6 self-end">
-              {isLoading ? (
-                <span className="flex items-center gap-2">
-                  <span className="inline-block w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                  Researching
-                </span>
-              ) : 'Ask'}
-            </Button>
-          </div>
-          <p className="max-w-3xl mx-auto text-xs text-muted-foreground/70 mt-2">
-            Answers are AI-generated from NC Medicaid policy documents. Verify critical information with DHHS.
-          </p>
-        </footer>
+        <ChatInput
+          input={input}
+          setInput={setInput}
+          isLoading={isLoading}
+          onSend={handleSend}
+          inputRef={inputRef}
+        />
       </div>
     </div>
   );

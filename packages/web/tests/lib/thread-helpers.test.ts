@@ -57,11 +57,10 @@ describe('getThreadTitle', () => {
     expect(getThreadTitle({ title: 'My conversation' } as any)).toBe('My conversation');
   });
 
-  it('truncates long titles to 50 chars with ellipsis', () => {
+  it('returns full title for long titles (CSS handles overflow)', () => {
     const longTitle = 'A'.repeat(60);
     const result = getThreadTitle({ title: longTitle } as any);
-    expect(result).toBe('A'.repeat(50) + '...');
-    expect(result.length).toBe(53);
+    expect(result).toBe(longTitle);
   });
 
   it('returns "New conversation" for empty title', () => {

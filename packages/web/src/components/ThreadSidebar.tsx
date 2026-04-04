@@ -113,7 +113,7 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
   };
 
   return (
-    <div className="flex flex-col h-full bg-sidebar border-r border-sidebar-border">
+    <div className="flex flex-col h-full bg-sidebar">
       <div className="px-4 py-4 flex items-center justify-between shrink-0">
         <span className="text-xs font-semibold uppercase tracking-widest text-sidebar-foreground/50">
           Threads
@@ -168,8 +168,9 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
             const isEditing = editingThreadId === thread.id;
 
             return (
-              <div
+              <button
                 key={thread.id}
+                type="button"
                 data-testid="thread-item"
                 className={`group w-full text-left px-4 py-2.5 transition-colors cursor-pointer ${
                   isActive
@@ -234,7 +235,7 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
                     </>
                   )}
                 </div>
-              </div>
+              </button>
             );
           })}
         </div>

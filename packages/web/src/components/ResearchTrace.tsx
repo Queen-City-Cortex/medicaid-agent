@@ -1,16 +1,16 @@
 'use client';
 
-import { Wrench } from 'lucide-react';
+import { Search, FileText, ClipboardList, Link, ArrowUpRight, FilePen, Tag, BookOpen, Wrench, type LucideIcon } from 'lucide-react';
 
-const TOOLS: Record<string, { label: string; icon: string }> = {
-  searchSections: { label: 'Searching policies', icon: '🔍' },
-  getSection: { label: 'Reading section', icon: '📄' },
-  getDocument: { label: 'Loading document', icon: '📋' },
-  getSectionContext: { label: 'Checking hierarchy', icon: '🔗' },
-  followReferences: { label: 'Following references', icon: '↗' },
-  getAmendments: { label: 'Checking amendments', icon: '📝' },
-  findConceptSections: { label: 'Finding concepts', icon: '🏷' },
-  lookupPolicy: { label: 'Looking up policy', icon: '📖' },
+const TOOLS: Record<string, { label: string; Icon: LucideIcon }> = {
+  searchSections: { label: 'Searching policies', Icon: Search },
+  getSection: { label: 'Reading section', Icon: FileText },
+  getDocument: { label: 'Loading document', Icon: ClipboardList },
+  getSectionContext: { label: 'Checking hierarchy', Icon: Link },
+  followReferences: { label: 'Following references', Icon: ArrowUpRight },
+  getAmendments: { label: 'Checking amendments', Icon: FilePen },
+  findConceptSections: { label: 'Finding concepts', Icon: Tag },
+  lookupPolicy: { label: 'Looking up policy', Icon: BookOpen },
 };
 
 export type TraceEntry =
@@ -64,14 +64,13 @@ export function ResearchTrace({ entries, live = false }: ResearchTraceProps) {
       {entries.map((entry, i) => {
         if (entry.type === 'tool') {
           const isRunning = entry.state === 'input-streaming' || entry.state === 'input-available';
+          const ToolIcon = TOOLS[entry.toolName]?.Icon ?? Wrench;
           return (
             <div key={entry.toolCallId ?? i} className="flex items-center gap-1.5 text-xs text-muted-foreground">
               {isRunning && live ? (
                 <span className="inline-block w-3 h-3 border-2 border-accent border-t-transparent rounded-full animate-spin" />
-              ) : TOOLS[entry.toolName]?.icon ? (
-                <span>{TOOLS[entry.toolName].icon}</span>
               ) : (
-                <Wrench className="w-3 h-3 text-muted-foreground" />
+                <ToolIcon className="w-3 h-3" />
               )}
               <span>{TOOLS[entry.toolName]?.label || entry.toolName}</span>
             </div>

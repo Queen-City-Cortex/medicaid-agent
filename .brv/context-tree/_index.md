@@ -1,63 +1,97 @@
 ---
-children_hash: 4d6fb52f341595ede28eee0941d76fe53cc351da6f8f71745a1d918e4d9fac73
-compression_ratio: 0.22577724117114398
+children_hash: e72af59cac62e10cf238e84a4bdc2b092af9307eeecfffab35aba674442719a9
+compression_ratio: 0.4356318437407517
 condensation_order: 3
 covers: [README.md, agent_architecture/_index.md, amendment_detection/_index.md, auth_integration/_index.md, database_operations/_index.md, evaluation/_index.md, frontend_ui/_index.md, qa/_index.md]
-covers_token_total: 6626
+covers_token_total: 6758
 summary_level: d3
-token_count: 1496
+token_count: 2944
 type: summary
 ---
-# Project Structural Summary (Level d3)
+# Structural Knowledge Summary (Level D3)
 
-## README
-- **ByteRover**: Project banner; no additional structure.
+## ByteRover Overview
+- **README.md**: Anchor for ByteRover system identity; no additional structure provided beyond the root label.
 
-## Agent Architecture
-- **Domain purpose**: NC Medicaid policy agent bootstrapping, memory, and guardrails; audit-focused (see `agent_architecture/context.md`).
-- **Topics for deep dive**:
-  - `Amendment Pipeline & Guardrails`: Graph-first getAmendments traversal, regex change notice parsing, batch graph runs, and prompt guardrails demanding tool-first, citation-heavy policy comparisons; check `amendment_pipeline_and_prompt/_index.md` plus guardrail and pipeline detail files.
-  - `Local Dev Setup`: Docker Compose Neo4j + Mastra web/agent orchestration, `npm run dev` dependency order, root `.env` consolidation, and symlink hygiene ensuring consistent LLM/WorkOS secrets (`local_dev_setup/_index.md` and subfiles).
-  - `Mastra Server Configuration`: SSE timeout extension to 10 minutes in `packages/agent/src/index.ts` for stable navigator tool research (`mastra_server_configuration/_index.md`).
-  - `Navigate Tools`: Neo4j getAmendments filtering of null rows before `mapDocumentMetadataRecord`, ordered amendment selection, and tooling aligned with validation practices (`navigate_tools/_index.md`).
-  - `NC Medicaid Navigator Agent Surface`: Startup wiring of LibSQL + memory/template providers, toolset (searchSections, HallucinationVerifier, etc.), CLI mirroring chat guardrails, and Railway-friendly LibSQL migration (`nc_medicaid_agent/_index.md` and detailed files).
-  - `Neo4j Tool Output Validation`: Enforce numeric conversions, expand empty headings via child aggregation, and document ancestor/child/sibling queries (`neo4j_tool_output_validation/_index.md`).
-  - `Search Tooling`: Hybrid `searchSections` fusion of embeddings, chunking, concept graph, and keyword hits with deduplication, RRF fusion, Neo4j indexes, and input validation (`search_tooling/_index.md`).
+## Agent Architecture Domain (`agent_architecture/_index.md`)
+- **Domain Scope**: Frames NC Medicaid policy agent stack—bootstrapping of Mastra + Neo4j tooling, storage/memory (LibSQLStore, DuckDB fallback), hallucination verification, Mastra config, and CLI/web server guardrails; excludes unrelated agents/tutorials.
+- **Amendment Pipeline & Prompt Guardrails** (`amendment_pipeline_and_prompt/_index.md`, `amendment_pipeline_and_prompt_guardrails.md`, `context.md`)
+  - Graph signal detection prioritizes `getAmendments` traversals, enforces regex-driven notice parsing, batches via `GRAPH_BATCH_SIZE`, and delivers policy-difference summaries with citation requirements plus policy-specific guardrails.
+  - System prompt lists allowed tools, demands document-first reasoning, enforces citation structure (section IDs/policy refs/MA numbers), routes DHHS policy questions to MA-2180, warns on LTC Partnership amendments, and mandates plain-language policy differences.
+- **Local Development Environment** (`local_dev_setup/_index.md`, related entries)
+  - Docker Compose with Neo4j/volume setup, npm@11.11 workspaces (`dev`, `dev:infra`, `dev:web`, `dev:agent`) manage Neo4j + Mastra web+agent servers; commands must run from repo root.
+  - Centralized `.env` aggregates OpenAI/Anthropic/Voyage/WorkOS secrets; root-managed symlinks keep package env files in sync; stale symlinks removed before restarts.
+- **Mastra Server Tuning** (`mastra_server_configuration/_index.md`)
+  - `packages/agent/src/index.ts` raises `server.timeout` from 3 to 10 minutes to keep SSEs alive across long tool-assisted research flows.
+- **Navigate Tools** (`navigate_tools/_index.md`, `getamendments_optional_match_filtering.md`)
+  - `getAmendments` filters null optional matches before metadata mapping, orders amendments by `effective_date`/`id`, and aligns with Neo4j output validation.
+- **NC Medicaid Navigator Agent Surface** (`nc_medicaid_agent/_index.md`, multiple deep files)
+  - Startup wires LibSQL storage, observational/working memory, toolset (searchSections/getSection/getDocument/getSectionContext/followReferences/findConceptSections/getAmendments/lookupPolicy/HallucinationVerifier), and CLI runner mirroring chat guardrails.
+  - System prompt enforces tool-first actions, citation rules (section IDs, policy numbers, changelog awareness), MAX_STEPS (40) warnings, policy-difference statements, and plain-language answers; environment requires VOYAGE plus OpenAI or Anthropic keys; `/healthz` validates Neo4j; CLI uses `npx tsx src/index.ts`, emits `---ANSWER---`, and narrates tool usage.
+  - Memory backed by LibSQLStore replaces DuckDB (fixes Railway musl issues) for observational + working memory plus observability exports.
+- **Neo4j Tool Output Validation** (`neo4j_tool_output_validation/_index.md`)
+  - Numeric fields converted via `toNumber()` before Zod validation to avoid retries.
+  - `getSection` aggregates empty container headings with child text (up to 6k chars, truncated notes) for completeness.
+  - `getSectionContext` documents ancestor/child/sibling queries so clients can rely on hierarchical traversal.
+- **Search Tooling** (`search_tooling/_index.md`, `hybrid_policy_search_tool.md`)
+  - `searchSections` fuses Voyage embeddings, section/chunk vector searches, concept graph hits, and keyword lookups using Neo4j indexes (`section_embeddings`, `chunk_embeddings`, `PolicyConcept`, `section_fulltext`) with helper utilities (`recordToHit`, `dedup`, `rrfFuse`).
+  - Flow: Zod validation → `embedQuery` → per-type-group vector/chunk queries (filters default `clinical_policy`, `dhhs_policy`, `federal statute cluster`) → optional concept/full-text hits → dedup by `sectionId` → RRF fusion (`RRF_K=60`, per-group K = `topK` or `max(topK,10)`) → ranked metadata outputs.
+  - Constraints: Dedup before fusion; concept matches require `content_length > 200` and valid `section_number`; minimum per-group candidates enforced; depends on Voyage + Neo4j indexes for policy-accurate ranking.
 
-## Amendment Detection
-- **Domain focus**: Graph-based detection of DHHS amendments (sanitization, context extraction, AMENDS edges) per `amendment_detection/context.md`.
-- **Pipeline detection**: `packages/pipeline/src/pipeline/references/amendments.py` handles document queries, signal-section filtering, sentence extraction, MA/SPA ID capture, batch graph writes, deduped `change_description`, and `status="amendment"` markings, following `pipeline_detection/_index.md`.
+## Amendment Detection Domain (`amendment_detection/_index.md`)
+- **Purpose**: Graph-based detection of DHHS amendment relationships, focusing on sanitizing change notices, revised SPAs, and updating Neo4j AMENDS edges.
+- **Pipeline Detection** (`pipeline_detection/_index.md`)
+  - `packages/pipeline/src/pipeline/references/amendments.py`: Document query → section filtering via `_is_change_notice`, `_is_revised_spa`, `_is_signal_section`, `_is_sentence_boundary` → sentence context extraction → MA/SPA ID capture → deduplicated `change_description` edges.
+  - Architectural decisions: Signal sections take precedence (e.g., “CONTENT OF CHANGE”), sentence boundary handling preserves references like `MA-2180.IV.I`, batching via `pipeline.utils.batching.chunked`, Neo4j merges through `queries.MERGE_AMENDS_BATCH`/`SET_DOCUMENT_STATUS_BATCH`, and logging uses `rich.console.Console`.
+  - Linked to Neo4j validation (`agent_architecture/neo4j_tool_output_validation`) for ensuring reliable writes.
 
-## Auth Integration
-- **Purpose**: Deployment-specific WorkOS/authkit adjustments for constrained hosts (`auth_integration/context.md`).
-- **Topic** (`workos_authkit_nextjs`):
-  - Base URL resolution: fallback chain (`NEXT_PUBLIC_WORKOS_REDIRECT_URI` → `WORKOS_REDIRECT_URI` → `RAILWAY_PUBLIC_DOMAIN`) to derive callback origin (`callback_base_url_resolution.md`).
-  - Docker redirect fix: parse external host, override `handleAuth.baseURL`, redirect to `/chat` to prevent 0.0.0.0 callbacks (`handleauth_docker_redirect_fix.md`).
-  - See topic context for dependencies and method rationale.
+## Auth Integration Domain (`auth_integration/_index.md`)
+- **Purpose**: Deployment-specific fixes for auth handlers in constrained hosts (Docker/Railway); excludes general auth documentation.
+- **WorkOS AuthKit Next.js Topic** (`workos_authkit_nextjs/_index.md`)
+  - Context: `handleAuth` needs stable public origin before invocation; links callback behavior with deployment constraints.
+  - `callback_base_url_resolution.md`: GET `/auth/callback` uses `NEXT_PUBLIC_WORKOS_REDIRECT_URI`, falls back to `WORKOS_REDIRECT_URI`, then `RAILWAY_PUBLIC_DOMAIN`, supplying final origin to `handleAuth` so runtime-only vars remain valid and avoid `0.0.0.0`.
+  - `handleauth_docker_redirect_fix.md`: Docker/Railway fix parses redirect URIs for external host, overrides `handleAuth.baseURL`, and returns `/chat` to prevent callbacks hitting internal hostnames.
 
-## Database Operations
-- **Domain**: Database deploy/auth quirks and search indexing fixes (`database_operations/context.md`).
-- **Neo4j Auth**:
-  - Railway env decoding replaces `+`; require alphanumeric passwords and bolt TCP proxy for live `ALTER CURRENT USER SET PASSWORD` after mount (`neo4j_auth/_index.md`, `railway_neo4j_auth_handling.md`).
-- **Neo4j Hybrid Search**:
-  - Vector/chunk embeddings, concept matches, and keyword hits fused via RRF (`RRF_K=60`), per-type-group chunk sizing (`topK` ↔ `max(topK,10)`), and mandatory indexes (`section_embeddings`, `chunk_embeddings`, `section_fulltext`) plus schema/index helpers (`neo4j_hybrid_search/_index.md`, `neo4j_hybrid_search_indexing.md`).
-  - Dependencies include embedding configs, Neo4j sessions, and `PolicyConcept` filters.
+## Database Operations Domain (`database_operations/_index.md`)
+- **Purpose**: Document recovery paths for database auth/connectivity issues in constrained environments.
+- **Neo4j Auth** (`neo4j_auth/_index.md`)
+  - Railway decodes `+` to spaces, so use strictly alphanumeric passwords; `NEO4J_AUTH` only applies at volume boot—live rotation must run `ALTER CURRENT USER SET PASSWORD` via bolt TCP proxy.
+  - Password rotation workflow: deploy with env vars → Railway decodes `+` → rotation to safe string (e.g., `***REDACTED***`) via proxy command.
+- **Neo4j Hybrid Search** (`neo4j_hybrid_search/_index.md`)
+  - Hybrid pipeline fuses vector/chunk embeddings, concept matches (score ≥ 0.70, `max(top_k,5)`), and keyword hits, all merged through RRF (`RRF_K=60`, per-group k = `top_k` or `max(top_k,10)`).
+  - Schema ensures `section_fulltext` index; vector searches iterate document-type groups via `ensure_vector_index`, `vector_search`, `_rrf_fuse`, deduplicate by `section_id`, and rely on `PolicyConcept` filters (`content_length`, `section_number`).
+  - Implementation ties to `pipeline.config.EMBEDDING_DIMENSIONS`, Neo4j sessions (`pipeline.graph.connection.get_session`), embeddings indexer files, and schema definitions.
 
-## Evaluation
-- **Domain scope**: Level 2/3 answer quality, cross-reference resolution, Neo4j evidence checks, and pipeline instrumentation (`evaluation/context.md`).
-  - **Answer Quality (Level 3)**: `packages/pipeline/src/pipeline/eval/levels/answer.py` enforces 180s timeout, gathers Neo4j documents, and uses `judge_answer` with null handling for failures (`answer_quality/_index.md`).
-  - **Cross-reference Resolution (Level 2)**: Matches golden cross-refs via Neo4j edges, skips missing docs, and tracks unresolved (q-004, q-009, q-020) (`cross_reference_resolution/_index.md`).
-  - **Pipeline Overview**: Connects agents → Neo4j evidence → judge scoring → cross-ref checks; documents error handling and aggregate impacts (`pipeline_overview/_index.md`).
+## Evaluation Domain (`evaluation/_index.md`)
+- **Purpose**: Hosts Level 2/3 evaluation flows, heuristics, and instrumentation for answer/cross-reference scoring; owned by Evaluation Engineering.
+- **Level 3 Answer Quality** (`answer_quality/_index.md`)
+  - `packages/pipeline/src/pipeline/eval/levels/answer.py`: HTTP-first answering (CLI fallback), 180s timeout, passes `OPENAI_API_KEY/AGENT_MODEL` overrides; fetches Neo4j sections, scores via `judge_answer`, handles judge failures by returning `None`, treats agent/process errors as zeros.
+  - Primary hits flagged for score ≥ 2; non-available judge scores excluded from aggregates.
+- **Level 2 Cross-Reference Resolution** (`cross_reference_resolution/_index.md`)
+  - `packages/pipeline/src/pipeline/eval/levels/cross_ref.py`: Iterates `cross_refs`, skips missing IDs, matches Neo4j edges (`REFERENCES_DOCUMENT`, `AMENDS`, `HAS_SECTION`, `REFERENCES`) to count resolved/missed; precision/recall derived from resolved ÷ total; unresolved references persist for q-004, q-009, q-020.
+- **Pipeline Overview** (`pipeline_overview/_index.md`)
+  - Shows Level 2/3 sequence: golden entries → agent invocation → Neo4j evidence retrieval → judge scoring → cross-reference checks → aggregates; details error handling (judge timeouts/errors, missing docs), Neo4j dependency, and ties to QA metrics.
+  - Links to `qa/hallucination_verifier` for verification work.
 
-## Frontend UI
-- **Domain**: NC Medicaid Navigator UI layout and scroll behavior (`frontend_ui/context.md`).
-  - `chat_page_scroll_stability`: ScrollArea viewport targeted scrolling, focus handling, and layout rules to keep sidebar fixed (`chat_page_scroll_stability/_index.md`).
-  - `scroll_area_sidebar_stability`: TuneScrollArea smooth scroll ensures sidebar remains visible; flex container uses `overflow-clip` (`scroll_area_sidebar_stability/_index.md`).
-  - `proxy_handling`: Next.js 16 proxy migration with `authkitProxy`, matcher exclusions, and WorkOS integration (`proxy_handling/_index.md`).
+## Frontend UI Domain (`frontend_ui/_index.md`)
+- **Domain Focus**: Captures Navigator chat UI layout, scroll stabilization, sidebar behavior, and proxy handling for next.js frontend.
+- **Chat Page Review Fixes** (`chat_page_review_fixes/_index.md`)
+  - Layout tweaks: collapsible `ThreadSidebar`, `ScrollArea` maintenance, `ResearchTrace` for policy tool states, improved empty states, accessible actions, Lucide icon buttons, consistent emoji handling, and CSS adjustments.
+- **Chat Page Scroll Stability** (`chat_page_scroll_stability/_index.md`)
+  - Ensures ScrollArea viewport isolation, manual `scrollTo` operations, prevents `scrollIntoView` from shifting layout, maintains `overflow-hidden` ancestors, and integrates mastraClient lifecycle/focus hooks.
+- **Scroll Area Sidebar Stability** (`scroll_area_sidebar_stability/_index.md`)
+  - `TuneScrollArea` effect animates viewport scroll to bottom, flex container uses `overflow-clip`, works with `useAgentStream` data to keep sidebar visible despite ScrollArea updates.
+- **Proxy Handling** (`proxy_handling/_index.md`)
+  - Migrates to Next.js 16 `proxy.ts`: exported `proxy(NextRequest)` forwards to `authkitProxy`, includes authkit middleware logic, excludes `_next/static`, `_next/image`, `favicon.ico`, `sitemap.xml`, `robots.txt`, and aligns with WorkOS Authkit requirements for `/auth/callback`.
 
-## QA
-- **Domain**: Playwright-driven QA plus evaluation/tooling verification (`qa/context.md`).
-  - **Evaluation Pipeline**: Level 3 answer scoring feeding Level 2 cross-ref resolution, Neo4j evidence aggregation, and judge error handling (`evaluation_pipeline/_index.md` and child topics).
-  - **Hallucination Verifier**: Processor intercepts assistant outputs, builds source summaries, verifies via `verifyAnswer`, rewrites with `writer.custom`, and handles truncation/verification failures (`hallucination_verifier/_index.md`).
-  - **Launch Blockers**: Proxy middleware export fixes, Cypher relation whitelists, verifier constraints, and hardened search tests ahead of release (`launch_blockers/_index.md`).
-  - **Playwright E2E**: Mocked/smoke suites, stream builders, route mocking, and chat page helpers for SSE/API stubs (`playwright_e2e/_index.md`).
+## QA Domain (`qa/_index.md`)
+- **Purpose**: QA/Automation focus on Playwright-driven end-to-end tests for the Medicaid navigator agent UI.
+- **Evaluation Pipeline** (`evaluation_pipeline/_index.md`)
+  - Coordinates Level 3 answer quality and Level 2 cross-reference evaluations, shares Mastra dev server (localhost:4111), Neo4j sessions, and pipelines; docs cite persistent unresolved references and judge error handling logic.
+- **Hallucination Verifier** (`hallucination_verifier/_index.md`)
+  - Processor verifies terminal assistant outputs: builds prioritized source texts (`getSection`, `getDocument`, `getAmendments`, `lookupPolicy`, `followReferences`), runs `verifyAnswer`, rewrites via `writer.custom` when verification fails, caps source chars, and returns `VERIFICATION_UNAVAILABLE` upon errors; integrates with Mastra processor hooks.
+- **Launch Blockers** (`launch_blockers/_index.md`)
+  - Issues addressed pre-launch: proxy middleware signature alignment, Cypher relationship whitelists (`COVERS`, `DEFINES`, etc.), hallucination verifier limits/disclaimers, and search test robustness covering dedup, top-K constraints, snippet truncation, embedding failures, concept filters, and Voyage errors.
+- **Playwright E2E** (`playwright_e2e/_index.md`)
+  - Two suites: mocked (short timeouts, desktop Chrome) and smoke (120s timeouts hitting live agent + Neo4j); both depend on `npm run dev` for `http://localhost:3000`.
+  - Helpers: `MastraStreamBuilder` (`stream-builder.ts`) creates SSE frames; `mockMastraAPI` intercepts SSE/memory APIs; `chat-page.ts` centralizes selectors/actions for navigation, messaging, trace views, and thread sidebar interactions; suites stub streams/requests and exercise chat flows.
