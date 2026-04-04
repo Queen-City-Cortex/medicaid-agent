@@ -19,6 +19,7 @@
     "@mastra/ai-sdk": "^1.2.1",
     "@mastra/auth-workos": "^1.1.2",
     "@mastra/core": "^1.17.0",
+    "@mastra/duckdb": "^1.1.1",
     "@mastra/libsql": "^1.7.2",
     "@mastra/memory": "^1.10.0",
     "@mastra/observability": "^1.7.1",
