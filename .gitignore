@@ -1,4 +1,5 @@
 node_modules/
+dist/
 .turbo/
 *.db
 *.db-shm
