@@ -1,27 +1,15 @@
 {
   "active_context": [
     {
+      "order": 3,
+      "path": "_index.md",
+      "tokens": 1496,
+      "type": "summary"
+    },
+    {
       "order": 2,
       "path": "amendment_detection/_index.md",
       "tokens": 411,
-      "type": "summary"
-    },
-    {
-      "order": 2,
-      "path": "auth_integration/_index.md",
-      "tokens": 461,
-      "type": "summary"
-    },
-    {
-      "order": 2,
-      "path": "database_operations/_index.md",
-      "tokens": 809,
-      "type": "summary"
-    },
-    {
-      "order": 1,
-      "path": "database_operations/neo4j_auth/_index.md",
-      "tokens": 314,
       "type": "summary"
     },
     {
@@ -62,42 +50,30 @@
     },
     {
       "importance": 50,
-      "path": "agent_architecture/local_dev_setup/local_development_setup.md",
-      "tokens": 756,
+      "path": "agent_architecture/local_dev_setup/env_consolidation/context.md",
+      "tokens": 88,
       "type": "context"
     },
     {
       "importance": 50,
-      "path": "agent_architecture/mastra_server_configuration/context.md",
-      "tokens": 106,
+      "path": "agent_architecture/local_dev_setup/env_consolidation/root_environment_consolidation.md",
+      "tokens": 541,
       "type": "context"
     },
     {
       "importance": 50,
-      "path": "agent_architecture/navigate_tools/context.md",
-      "tokens": 119,
-      "type": "context"
-    },
-    {
-      "importance": 50,
-      "path": "agent_architecture/nc_medicaid_agent/context.md",
-      "tokens": 140,
-      "type": "context"
-    },
-    {
-      "importance": 50,
-      "path": "agent_architecture/search_tooling/context.md",
-      "tokens": 104,
+      "path": "agent_architecture/local_dev_setup/environment_variable_consolidation.md",
+      "tokens": 595,
       "type": "context"
     }
   ],
-  "generated_at": "2026-04-03T04:12:05.756Z",
+  "generated_at": "2026-04-04T04:50:47.551Z",
   "lane_tokens": {
-    "contexts": 3997,
+    "contexts": 3996,
     "stubs": 0,
-    "summaries": 1995
+    "summaries": 1907
   },
-  "source_fingerprint": "e4654f0a1036b7905db008a8dbf494094376692a4a437fde0a2b025fecab8e1d",
-  "total_tokens": 5992,
+  "source_fingerprint": "1259a39a6003ba4798faac147a232ce59ec5e527b9fb00f86a9c17379fe58631",
+  "total_tokens": 5903,
   "version": 1
 }
