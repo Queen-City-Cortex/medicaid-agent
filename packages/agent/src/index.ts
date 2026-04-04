@@ -249,6 +249,7 @@ export const mastra = new Mastra({
       chatRoute({
         path: '/chat',
         agent: 'ncMedicaidAgent',
+        version: 'v6',
       }),
       registerApiRoute('/healthz', {
         method: 'GET',
