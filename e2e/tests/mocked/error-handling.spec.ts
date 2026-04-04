@@ -6,8 +6,12 @@ test.describe('Error handling', () => {
   test('shows error message when agent returns 500', async ({ page }) => {
     await mockMastraAPI(page);
 
-    // Override the chat route to return an error
+    // Override the chat route to return an error (POST only — avoid intercepting page navigation)
     await page.route('**/chat', async (route) => {
+      if (route.request().method() !== 'POST') {
+        await route.fallback();
+        return;
+      }
       await route.fulfill({
         status: 500,
         contentType: 'application/json',
@@ -29,6 +33,10 @@ test.describe('Error handling', () => {
     await mockMastraAPI(page);
 
     await page.route('**/chat', async (route) => {
+      if (route.request().method() !== 'POST') {
+        await route.fallback();
+        return;
+      }
       await route.fulfill({
         status: 500,
         contentType: 'application/json',

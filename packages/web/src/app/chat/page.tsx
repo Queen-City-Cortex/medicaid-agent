@@ -50,7 +50,7 @@ export default function ChatPage() {
     },
   }), [threadId, resourceId, getAccessToken]);
 
-  const { messages, status, sendMessage, setMessages } = useChat({
+  const { messages, status, error, sendMessage, setMessages } = useChat({
     id: threadId,
     transport,
     onFinish: () => setThreadVersion(v => v + 1),
@@ -255,6 +255,14 @@ export default function ChatPage() {
               onRerun={handleRerun}
               messagesEndRef={messagesEndRef}
             />
+
+            {error && (
+              <div data-testid="assistant-message" className="pl-2 mt-6 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+                  Sorry, there was an error processing your question. Please try again.
+                </div>
+              </div>
+            )}
           </div>
         </ScrollArea>
         <ScrollToBottom viewportRef={viewportRef} hasMessages={messages.length > 0 || isLoading} />
