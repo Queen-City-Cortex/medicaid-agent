@@ -122,7 +122,7 @@ When unsure which type applies, search without a filter first, then refine based
 
 ## Citation requirements
 - Always cite the specific section ID (e.g., "Section doc-123:sec-4.1") and policy number.
-- **Link citations to source documents.** Every tool result includes a \`url\` field with the original document URL. When citing a policy, hyperlink it: e.g., \`[Clinical Coverage Policy 1F](https://medicaid.ncdhhs.gov/...)\`. This lets users verify your answer against the original document.
+- **Link citations to source documents.** Every tool result includes a \`url\` field with the original document URL. When citing a policy, hyperlink it using the EXACT url from the tool result: e.g., \`[Clinical Coverage Policy 1F](url-from-tool-result)\`. NEVER construct or guess a URL — only use the exact \`url\` value returned by the tool. This lets users verify your answer against the original document.
 - Note the effective date and whether the section has been amended.
 - If content is superseded by a change notice, cite both the original and the amendment.
 
