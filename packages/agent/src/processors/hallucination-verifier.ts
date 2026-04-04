@@ -263,6 +263,12 @@ export function extractSources(messages: Array<{ content?: { parts?: any[] } }>)
 
 const NO_SOURCES_TEXT = '(No source documents were retrieved.)';
 
+/** Sentinel reason used when the verifier API call fails. */
+export const VERIFICATION_UNAVAILABLE = 'Verification service unavailable';
+
+const VERIFICATION_DISCLAIMER =
+  '\n\n---\n*Note: This answer could not be verified against source documents. Please verify critical details with [NC DHHS](https://medicaid.ncdhhs.gov/).*';
+
 export function buildSourceText(
   sources: SourceEntry[],
   answerText: string,
@@ -347,8 +353,6 @@ export async function verifyAnswer(
   answerText: string,
   sourceText: string,
 ): Promise<VerificationResult> {
-  const failOpen: VerificationResult = { supported: true, relevant: true, unsupportedClaims: [], relevanceIssues: [], correctedAnswer: '' };
-
   try {
     const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const { object } = await generateObject({
@@ -365,8 +369,14 @@ export async function verifyAnswer(
 
     return object;
   } catch (err) {
-    console.error('[HallucinationVerifier] Error during verification, failing open:', err);
-    return failOpen;
+    console.error('[HallucinationVerifier] Error during verification, failing closed:', err);
+    return {
+      supported: false,
+      relevant: true,
+      unsupportedClaims: [{ claim: 'Full answer', reason: VERIFICATION_UNAVAILABLE }],
+      relevanceIssues: [],
+      correctedAnswer: '',
+    };
   }
 }
 
@@ -419,7 +429,11 @@ export class HallucinationVerifier implements Processor {
 
     // Apply the verifier's correctedAnswer directly — no retry.
     // Retries cause the agent to over-correct and hedge everything.
-    const corrected = verification.correctedAnswer || text;
+    const verifierUnavailable = verification.unsupportedClaims.some(
+      (c) => c.reason === VERIFICATION_UNAVAILABLE,
+    );
+    const corrected = verification.correctedAnswer
+      || (verifierUnavailable ? text + VERIFICATION_DISCLAIMER : text);
 
     if (writer) {
       await writer.custom({

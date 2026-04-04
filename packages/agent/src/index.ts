@@ -3,6 +3,7 @@ import { Agent } from '@mastra/core/agent';
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createOpenAI } from '@ai-sdk/openai';
 import { chatRoute } from '@mastra/ai-sdk';
+import { registerApiRoute } from '@mastra/core/server';
 import { Memory } from '@mastra/memory';
 import { LibSQLStore } from '@mastra/libsql';
 import { Observability, DefaultExporter, SensitiveDataFilter } from '@mastra/observability';
@@ -11,10 +12,28 @@ import { getSection, getDocument, getSectionContext } from './tools/read.js';
 import { followReferences, getAmendments } from './tools/navigate.js';
 import { findConceptSections } from './tools/concepts.js';
 import { lookupPolicy } from './tools/lookup.js';
-import { closeDriver } from './neo4j.js';
+import { closeDriver, getDriver } from './neo4j.js';
 import { HallucinationVerifier } from './processors/hallucination-verifier.js';
 import { MastraAuthWorkos } from '@mastra/auth-workos';
 import { PinoLogger } from '@mastra/loggers';
+
+// ── Startup validation ────────────────────────────────────────────────────────
+
+const REQUIRED_ENV = ['VOYAGE_API_KEY'] as const;
+
+function validateEnv() {
+  const missing: string[] = REQUIRED_ENV.filter((v) => !process.env[v]);
+  if (!process.env.OPENAI_API_KEY && !process.env.ANTHROPIC_API_KEY) {
+    missing.push('OPENAI_API_KEY or ANTHROPIC_API_KEY');
+  }
+  if (missing.length > 0) {
+    throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
+  }
+}
+
+validateEnv();
+
+// ── Model providers ──────────────────────────────────────────────────────────
 
 const anthropic = createAnthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -210,6 +229,25 @@ export const mastra = new Mastra({
       chatRoute({
         path: '/chat',
         agent: 'ncMedicaidAgent',
+      }),
+      registerApiRoute('/healthz', {
+        method: 'GET',
+        requiresAuth: false,
+        handler: async (c) => {
+          let neo4j: 'connected' | 'error' = 'error';
+          try {
+            const session = getDriver().session();
+            try {
+              await session.run('RETURN 1');
+              neo4j = 'connected';
+            } finally {
+              await session.close();
+            }
+          } catch { /* neo4j stays 'error' */ }
+
+          const ok = neo4j === 'connected';
+          return c.json({ status: ok ? 'ok' : 'degraded', neo4j }, ok ? 200 : 503);
+        },
       }),
     ],
   },

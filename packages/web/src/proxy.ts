@@ -1,4 +1,4 @@
-import type { NextRequest } from 'next/server';
+import type { NextRequest, NextFetchEvent } from 'next/server';
 import { authkitProxy } from '@workos-inc/authkit-nextjs';
 
 const auth = authkitProxy({
@@ -9,8 +9,8 @@ const auth = authkitProxy({
 });
 
 // Next.js 16 renamed middleware.ts → proxy.ts with a named `proxy` export.
-export function proxy(request: NextRequest) {
-  return auth(request);
+export function proxy(request: NextRequest, event: NextFetchEvent) {
+  return auth(request, event);
 }
 
 export const config = {

@@ -2,6 +2,14 @@ import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { withSession } from '../neo4j.js';
 
+const ALLOWED_RELATIONSHIPS = new Set([
+  'COVERS',
+  'DEFINES',
+  'RESTRICTS',
+  'GOVERNS',
+  'REFERENCES_CONCEPT',
+]);
+
 export const findConceptSections = createTool({
   id: 'find-concept-sections',
   description:
@@ -32,6 +40,10 @@ export const findConceptSections = createTool({
   }),
   execute: async (inputData) => {
     const { conceptName, relationshipType } = inputData;
+
+    if (relationshipType && !ALLOWED_RELATIONSHIPS.has(relationshipType)) {
+      return { sections: [] };
+    }
 
     return await withSession(async (session) => {
       const query = relationshipType

@@ -165,8 +165,10 @@ export default function ChatPage() {
     inputRef.current?.focus({ preventScroll: true });
   }, [messages.length, setMessages, ensureThreadExists, isMobile]);
 
+  const MAX_INPUT_LENGTH = 10_000;
+
   const handleSend = useCallback(async () => {
-    if (!input.trim()) return;
+    if (!input.trim() || input.length > MAX_INPUT_LENGTH) return;
     const question = input;
     setInput('');
     if (messages.length === 0) {
@@ -354,6 +356,7 @@ export default function ChatPage() {
                   handleSend();
                 }
               }}
+              maxLength={MAX_INPUT_LENGTH}
               placeholder="Ask about NC Medicaid policy..."
               className="flex-1 rounded-lg border border-input bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-shadow resize-none overflow-y-auto scrollbar-none"
               style={{ maxHeight: '120px' }}

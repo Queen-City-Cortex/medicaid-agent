@@ -120,4 +120,16 @@ describe('findConceptSections', () => {
     const queryArg = session.run.mock.calls[0][0] as string;
     expect(queryArg).toContain('DEFINES');
   });
+
+  it('rejects invalid relationship types to prevent injection', async () => {
+    const session = setupSession([{ records: [] }]);
+
+    const result = await findConceptSections.execute(
+      { conceptName: 'EPSDT', relationshipType: 'DEFINES}]->(x) DETACH DELETE x //' },
+      {},
+    );
+
+    expect(result.sections).toHaveLength(0);
+    expect(session.run).not.toHaveBeenCalled();
+  });
 });

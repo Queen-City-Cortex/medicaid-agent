@@ -75,6 +75,10 @@ describe('searchSections', () => {
     mockFetchEmbedding();
     setupSearchSession([
       {
+        match: (query) => query.includes('section_fulltext'),
+        result: { records: [] },
+      },
+      {
         match: (_, params) => Array.isArray(params.docTypes) && (params.docTypes as string[]).includes('clinical_policy'),
         result: {
           records: [
@@ -131,6 +135,10 @@ describe('searchSections', () => {
   it('deduplicates sections across indices, keeping higher score', async () => {
     mockFetchEmbedding();
     setupSearchSession([
+      {
+        match: (query) => query.includes('section_fulltext'),
+        result: { records: [] },
+      },
       {
         match: (_, params) => Array.isArray(params.docTypes) && (params.docTypes as string[]).includes('dhhs_policy'),
         result: {

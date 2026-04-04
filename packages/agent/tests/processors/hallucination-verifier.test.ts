@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { extractSources, buildSourceText, verifyAnswer, VerificationResult, SourceEntry, HallucinationVerifier } from '../../src/processors/hallucination-verifier.js';
+import { extractSources, buildSourceText, verifyAnswer, VerificationResult, SourceEntry, HallucinationVerifier, VERIFICATION_UNAVAILABLE } from '../../src/processors/hallucination-verifier.js';
 
 vi.mock('ai', () => ({
   generateObject: vi.fn(),
@@ -505,13 +505,14 @@ describe('verifyAnswer', () => {
     expect(result.correctedAnswer).toContain('[unverified:');
   });
 
-  it('returns supported: true on verifier LLM error (fail-open)', async () => {
+  it('returns supported: false on verifier LLM error (fail-closed)', async () => {
     vi.mocked(generateObject).mockRejectedValueOnce(new Error('Network timeout'));
 
     const result = await verifyAnswer('Some answer.', 'Some source.');
 
-    expect(result.supported).toBe(true);
-    expect(result.unsupportedClaims).toHaveLength(0);
+    expect(result.supported).toBe(false);
+    expect(result.unsupportedClaims).toHaveLength(1);
+    expect(result.unsupportedClaims[0].reason).toBe(VERIFICATION_UNAVAILABLE);
   });
 });
 
@@ -640,6 +641,20 @@ describe('HallucinationVerifier.processOutputStep', () => {
 
     expect(result).toEqual(args.messages);
     expect(generateObject).not.toHaveBeenCalled();
+  });
+
+  // Test: Appends disclaimer when verification service is unavailable
+  it('appends disclaimer when verification service is unavailable', async () => {
+    vi.mocked(generateObject).mockRejectedValueOnce(new Error('API timeout'));
+
+    const args = makeProcessOutputStepArgs();
+    const result = await verifier.processOutputStep!(args) as any[];
+
+    const assistantMsg = result.find((m: any) => m.role === 'assistant');
+    expect(assistantMsg).toBeDefined();
+    const textPart = assistantMsg!.content.parts.find((p: any) => p.type === 'text');
+    expect(textPart.text).toContain('could not be verified');
+    expect(textPart.text).toContain('NC DHHS');
   });
 
   // Test 7: Passes through when text is empty
