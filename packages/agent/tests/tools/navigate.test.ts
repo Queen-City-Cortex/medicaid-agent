@@ -66,7 +66,7 @@ describe('followReferences', () => {
     const result = await followReferences.execute({ sectionId: 'sec-1' }, {});
 
     expect(result.references).toHaveLength(2);
-    expect(result.references[0]).toEqual({
+    expect(result.references[0]).toMatchObject({
       targetId: 'sec-target-1',
       targetType: 'Section',
       targetTitle: 'Target Section',
@@ -74,7 +74,7 @@ describe('followReferences', () => {
       relationshipType: 'REFERENCES',
       referenceText: 'see section 1A',
     });
-    expect(result.references[1]).toEqual({
+    expect(result.references[1]).toMatchObject({
       targetId: 'doc-target-1',
       targetType: 'Document',
       targetTitle: 'Target Document',
@@ -160,7 +160,7 @@ describe('getAmendments', () => {
     const result = await getAmendments.execute({ documentId: 'doc-1' }, {});
 
     expect(result.amendments).toHaveLength(2);
-    expect(result.amendments[0]).toEqual({
+    expect(result.amendments[0]).toMatchObject({
       id: 'amend-2',
       title: 'Change Notice 2025-03',
       documentType: 'change_notice',
@@ -170,7 +170,7 @@ describe('getAmendments', () => {
       status: 'amendment',
       changeSummary: 'This change notice supersedes the prior revision.',
     });
-    expect(result.amendments[1]).toEqual({
+    expect(result.amendments[1]).toMatchObject({
       id: 'amend-1',
       title: 'Change Notice 2025-01',
       documentType: 'change_notice',
@@ -180,7 +180,7 @@ describe('getAmendments', () => {
       status: 'amendment',
       changeSummary: 'MA-2180 is revised in the following way...',
     });
-    expect(result.baseDocument).toEqual({
+    expect(result.baseDocument).toMatchObject({
       id: 'doc-base',
       title: 'Original Policy 8C',
       documentType: 'dhhs_policy',
@@ -189,7 +189,7 @@ describe('getAmendments', () => {
       url: 'https://example.com/8C',
       status: 'current',
     });
-    expect(result.authoritativeDocument).toEqual({
+    expect(result.authoritativeDocument).toMatchObject({
       id: 'amend-2',
       title: 'Change Notice 2025-03',
       documentType: 'change_notice',

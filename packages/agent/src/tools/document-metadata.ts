@@ -7,6 +7,8 @@ export const DocumentMetadataSchema = z.object({
   policyNumber: z.string().nullable(),
   effectiveDate: z.string().nullable(),
   url: z.string().nullable(),
+  /** Pre-built markdown link for citations — paste verbatim into answers. */
+  citationLink: z.string().nullable(),
   status: z.string().nullable(),
 });
 
@@ -29,13 +31,17 @@ export function documentMetadataReturn(alias: string): string {
 }
 
 export function mapDocumentMetadataRecord(record: RecordLike): DocumentMetadata {
+  const title = record.get('title') as string | null;
+  const url = record.get('url') as string | null;
+  const citationLink = title && url ? `[${title}](${url})` : null;
   return {
     id: record.get('id') as string,
-    title: record.get('title') as string | null,
+    title,
     documentType: record.get('documentType') as string | null,
     policyNumber: record.get('policyNumber') as string | null,
     effectiveDate: record.get('effectiveDate') as string | null,
-    url: record.get('url') as string | null,
+    url,
+    citationLink,
     status: record.get('status') as string | null,
   };
 }

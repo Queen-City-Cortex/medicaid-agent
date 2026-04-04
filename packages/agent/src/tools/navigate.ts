@@ -136,6 +136,7 @@ export const getAmendments = createTool({
             policyNumber: latestAmendment.policyNumber,
             effectiveDate: latestAmendment.effectiveDate,
             url: latestAmendment.url,
+            citationLink: latestAmendment.citationLink,
             status: latestAmendment.status,
           }
         : currentDocument;
