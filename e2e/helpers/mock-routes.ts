@@ -24,6 +24,8 @@ export interface MockMastraOptions {
   threads?: MockThread[];
   /** Messages to return from listMessages. Defaults to empty array. */
   threadMessages?: MockMessage[];
+  /** Feedback entries to return from GET /feedback. Defaults to empty array. */
+  feedbackEntries?: Array<{ id: string; messageId: string; threadId: string; rating: string; comment: string | null }>;
 }
 
 const MASTRA_BASE = '**/api/**';
@@ -110,5 +112,41 @@ export async function mockMastraAPI(page: Page, options: MockMastraOptions = {})
         hasMore: false,
       }),
     });
+  });
+
+  // 5. GET /feedback?threadId=... — getFeedbackByThread
+  await page.route('**/feedback?*', async (route) => {
+    if (route.request().method() !== 'GET') {
+      await route.fallback();
+      return;
+    }
+    const entries = options.feedbackEntries ?? [];
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ feedback: entries }),
+    });
+  });
+
+  // 6. POST /feedback — submitFeedback
+  await page.route('**/feedback', async (route) => {
+    if (route.request().method() !== 'POST') {
+      await route.fallback();
+      return;
+    }
+    await route.fulfill({
+      status: 201,
+      contentType: 'application/json',
+      body: JSON.stringify({ id: crypto.randomUUID() }),
+    });
+  });
+
+  // 7. DELETE /feedback/* — deleteFeedback
+  await page.route('**/feedback/*', async (route) => {
+    if (route.request().method() !== 'DELETE') {
+      await route.fallback();
+      return;
+    }
+    await route.fulfill({ status: 204 });
   });
 }
