@@ -17,8 +17,14 @@ export function convertThreadMessageToUIMessage(msg: {
   const text = extractText(msg.content);
   if (!text.trim()) return null;
 
+  const id = msg.id ?? (() => {
+    const fallback = generateUUID();
+    console.warn(`[feedback] Message missing ID, generated fallback: ${fallback}. Feedback for this message won't survive reload.`);
+    return fallback;
+  })();
+
   return {
-    id: msg.id ?? generateUUID(),
+    id,
     role: role as 'user' | 'assistant',
     parts: [{ type: 'text' as const, text: text.trim() }],
   };

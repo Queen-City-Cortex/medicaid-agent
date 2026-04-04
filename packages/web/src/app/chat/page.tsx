@@ -18,6 +18,7 @@ import { useIsMobile } from '@/lib/use-is-mobile';
 import { generateUUID } from '@/lib/utils';
 import { convertThreadMessageToUIMessage } from '@/lib/parse-message';
 import { useMastraClient } from '@/lib/use-mastra-client';
+import { submitFeedback, deleteFeedback, getFeedbackByThread } from '@/lib/feedback-client';
 
 const AGENT_ID = 'nc-medicaid-navigator';
 const MASTRA_URL = process.env.NEXT_PUBLIC_MASTRA_URL || 'http://localhost:4111';
@@ -31,6 +32,8 @@ export default function ChatPage() {
   const isMobile = useIsMobile();
 
   const resourceId = user?.id ?? 'anonymous';
+
+  const [feedbackMap, setFeedbackMap] = useState<Record<string, { id: string; rating: 'up' | 'down'; comment: string | null }>>({});
 
   // Transport re-creates when threadId/resourceId change — this also resets useChat state
   const transport = useMemo(() => new DefaultChatTransport({
@@ -129,15 +132,29 @@ export default function ChatPage() {
         if (uiMsg) converted.push(uiMsg);
       }
       setMessages(converted);
+      try {
+        const token = await getAccessToken();
+        if (token) {
+          const entries = await getFeedbackByThread(tid, MASTRA_URL, token);
+          const map: Record<string, { id: string; rating: 'up' | 'down'; comment: string | null }> = {};
+          for (const entry of entries) {
+            map[entry.messageId] = { id: entry.id, rating: entry.rating, comment: entry.comment };
+          }
+          setFeedbackMap(map);
+        }
+      } catch (err) {
+        console.error('Failed to load feedback:', err);
+      }
     } catch (err) {
       console.error('Failed to load thread messages:', err);
       setMessages([]);
     }
-  }, [setMessages, mastraClient]);
+  }, [setMessages, mastraClient, getAccessToken]);
 
   const handleSelectThread = useCallback(async (tid: string) => {
     setThreadId(tid);
     setMessages([]);
+    setFeedbackMap({});
     if (isMobile) setSidebarCollapsed(true);
     await loadThread(tid);
     inputRef.current?.focus({ preventScroll: true });
@@ -152,6 +169,7 @@ export default function ChatPage() {
     const newId = generateUUID();
     setThreadId(newId);
     setMessages([]);
+    setFeedbackMap({});
     if (isMobile) setSidebarCollapsed(true);
     await ensureThreadExists(newId);
     inputRef.current?.focus({ preventScroll: true });
@@ -181,6 +199,50 @@ export default function ChatPage() {
     setInput(question);
     inputRef.current?.focus({ preventScroll: true });
   }, []);
+
+  const handleRate = useCallback(async (messageId: string, rating: 'up' | 'down') => {
+    const prev = feedbackMap[messageId];
+    const optimistic = { id: prev?.id ?? messageId, rating, comment: null };
+    setFeedbackMap(m => ({ ...m, [messageId]: optimistic }));
+
+    try {
+      const token = await getAccessToken();
+      if (!token) return;
+      const result = await submitFeedback({ messageId, threadId, rating }, MASTRA_URL, token);
+      setFeedbackMap(m => ({ ...m, [messageId]: { ...m[messageId], id: result.id } }));
+    } catch {
+      if (prev) setFeedbackMap(m => ({ ...m, [messageId]: prev }));
+      else setFeedbackMap(m => { const { [messageId]: _, ...rest } = m; return rest; });
+    }
+  }, [feedbackMap, threadId, getAccessToken]);
+
+  const handleClearRating = useCallback(async (messageId: string) => {
+    const prev = feedbackMap[messageId];
+    if (!prev) return;
+    setFeedbackMap(m => { const { [messageId]: _, ...rest } = m; return rest; });
+
+    try {
+      const token = await getAccessToken();
+      if (!token) return;
+      await deleteFeedback(prev.id, MASTRA_URL, token);
+    } catch {
+      setFeedbackMap(m => ({ ...m, [messageId]: prev }));
+    }
+  }, [feedbackMap, getAccessToken]);
+
+  const handleComment = useCallback(async (messageId: string, comment: string) => {
+    const prev = feedbackMap[messageId];
+    if (!prev) return;
+    setFeedbackMap(m => ({ ...m, [messageId]: { ...m[messageId], comment } }));
+
+    try {
+      const token = await getAccessToken();
+      if (!token) return;
+      await submitFeedback({ messageId, threadId, rating: 'down', comment }, MASTRA_URL, token);
+    } catch {
+      setFeedbackMap(m => ({ ...m, [messageId]: prev }));
+    }
+  }, [feedbackMap, threadId, getAccessToken]);
 
   if (authLoading) return (
     <div className="flex h-screen bg-background">
@@ -256,6 +318,11 @@ export default function ChatPage() {
               status={status}
               onRerun={handleRerun}
               messagesEndRef={messagesEndRef}
+              feedbackMap={feedbackMap}
+              threadId={threadId}
+              onRate={handleRate}
+              onClearRating={handleClearRating}
+              onComment={handleComment}
             />
 
             {error && (

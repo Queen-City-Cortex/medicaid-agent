@@ -15,9 +15,14 @@ interface MessageListProps {
   status: string;
   onRerun: (messageIndex: number, userIndex: number) => void;
   messagesEndRef: RefObject<HTMLDivElement | null>;
+  feedbackMap: Record<string, { id: string; rating: 'up' | 'down'; comment: string | null }>;
+  threadId: string;
+  onRate: (messageId: string, rating: 'up' | 'down') => void;
+  onClearRating: (messageId: string) => void;
+  onComment: (messageId: string, comment: string) => void;
 }
 
-export function MessageList({ messages, isStreaming, status, onRerun, messagesEndRef }: MessageListProps) {
+export function MessageList({ messages, isStreaming, status, onRerun, messagesEndRef, feedbackMap, threadId, onRate, onClearRating, onComment }: MessageListProps) {
   return (
     <>
       {messages.map((msg, i) => (
@@ -72,6 +77,12 @@ export function MessageList({ messages, isStreaming, status, onRerun, messagesEn
                       if (userIdx === -1) return;
                       onRerun(i, userIdx);
                     }}
+                    messageId={msg.id}
+                    threadId={threadId}
+                    feedback={feedbackMap[msg.id] ?? null}
+                    onRate={(rating) => onRate(msg.id, rating)}
+                    onClearRating={() => onClearRating(msg.id)}
+                    onComment={(comment) => onComment(msg.id, comment)}
                   />
                 )}
               </div>
