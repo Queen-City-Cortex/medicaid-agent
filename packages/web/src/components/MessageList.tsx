@@ -46,7 +46,7 @@ export function MessageList({ messages, isStreaming, status, onRerun, messagesEn
 
                 {answerText && (
                   <div className={PROSE}>
-                    <ReactMarkdown>{answerText}</ReactMarkdown>
+                    <ReactMarkdown components={{ a: ({ children, href }) => <a href={href} target="_blank" rel="noopener noreferrer" className="text-accent underline underline-offset-2">{children}</a> }}>{answerText}</ReactMarkdown>
                     {isThisStreaming && (
                       <span className="inline-block w-0.5 h-5 bg-accent animate-pulse ml-0.5 -mb-1" />
                     )}
