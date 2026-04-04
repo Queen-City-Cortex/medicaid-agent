@@ -10,7 +10,7 @@ export interface Feedback {
   createdAt: string;
 }
 
-export type FeedbackInput = Omit<Feedback, 'createdAt'>;
+export type FeedbackInput = Omit<Feedback, 'createdAt'> & { comment?: string | null };
 
 export class FeedbackRepository {
   private client: Client;

@@ -19,6 +19,8 @@ import { closeDriver, getDriver } from './neo4j.js';
 import { HallucinationVerifier } from './processors/hallucination-verifier.js';
 import { MastraAuthWorkos } from '@mastra/auth-workos';
 import { PinoLogger } from '@mastra/loggers';
+import { FeedbackRepository } from './feedback/repository.js';
+import { feedbackApiRoutes } from './feedback/routes.js';
 
 // ── Startup validation ────────────────────────────────────────────────────────
 
@@ -60,6 +62,8 @@ const libsql = new LibSQLStore({
   id: 'mastra-storage',
   url: process.env.DATABASE_URL || 'file:./mastra.db',
 });
+
+const feedbackRepo = new FeedbackRepository(process.env.DATABASE_URL || 'file:./mastra.db');
 
 const storage = new MastraCompositeStore({
   id: 'composite-storage',
@@ -253,6 +257,7 @@ export const mastra = new Mastra({
         agent: 'ncMedicaidAgent',
         version: 'v6',
       }),
+      ...feedbackApiRoutes(feedbackRepo),
       registerApiRoute('/healthz', {
         method: 'GET',
         requiresAuth: false,
