@@ -14,3 +14,9 @@ export function useMastraClient() {
   const { accessToken } = useAccessToken();
   return useMemo(() => createMastraClient(accessToken ?? undefined), [accessToken]);
 }
+
+/** True once the WorkOS access token is available. */
+export function useMastraReady(): boolean {
+  const { accessToken } = useAccessToken();
+  return !!accessToken;
+}

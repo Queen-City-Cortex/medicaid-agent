@@ -23,7 +23,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { useMastraClient } from '@/lib/use-mastra-client';
+import { useMastraClient, useMastraReady } from '@/lib/use-mastra-client';
 import { formatDate, getThreadTitle } from '@/lib/thread-helpers';
 import type { StorageThreadType } from '@mastra/core/memory';
 
@@ -40,6 +40,7 @@ interface ThreadSidebarProps {
 export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelectThread, onNewThread }: ThreadSidebarProps) {
   const { user } = useAuth();
   const mastraClient = useMastraClient();
+  const ready = useMastraReady();
   const [threads, setThreads] = useState<StorageThreadType[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -49,7 +50,7 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
   const [deleteThreadId, setDeleteThreadId] = useState<string | null>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
 
-  const fetchThreads = useCallback(async () => {
+  const fetchThreads = useCallback(async (signal?: AbortSignal) => {
     setIsLoading(true);
     setError(null);
     try {
@@ -60,19 +61,26 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
         sortDirection: 'DESC',
         perPage: 50,
       });
+      if (signal?.aborted) return;
       setThreads(result.threads ?? []);
     } catch (err) {
+      if (signal?.aborted) return;
+      // Silently ignore 401 — token may not be ready yet; will retry when mastraClient updates
+      const is401 = err instanceof Error && err.message.includes('401');
+      if (is401 && !ready) return;
       console.error('Failed to fetch threads:', err);
       setThreads([]);
       setError('Failed to load threads');
     } finally {
-      setIsLoading(false);
+      if (!signal?.aborted) setIsLoading(false);
     }
-  }, [resourceId, mastraClient]);
+  }, [resourceId, mastraClient, ready]);
 
-  // Fetch threads on mount and when currentThreadId changes (new thread created)
+  // Fetch threads on mount and when dependencies change; abort stale requests
   useEffect(() => {
-    fetchThreads();
+    const ac = new AbortController();
+    fetchThreads(ac.signal);
+    return () => ac.abort();
   }, [fetchThreads, currentThreadId, refreshKey]);
 
   // Focus the rename input when editing starts
@@ -151,7 +159,7 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
             <div className="px-4 py-3">
               <p className="text-xs text-red-400 mb-2">{error}</p>
               <button
-                onClick={fetchThreads}
+                onClick={() => fetchThreads()}
                 className="text-xs text-sidebar-foreground/70 hover:text-sidebar-foreground underline underline-offset-2"
               >
                 Retry
