@@ -34,4 +34,70 @@ describe('MessageActions', () => {
     rerender(<MessageActions content="test" onRerun={() => {}} />);
     expect(screen.getByLabelText('Re-run query')).toBeInTheDocument();
   });
+
+  it('renders thumbs-up and thumbs-down buttons when messageId is provided', () => {
+    render(<MessageActions content="test" messageId="msg-1" threadId="t-1" onRate={() => {}} />);
+    expect(screen.getByLabelText('Rate helpful')).toBeInTheDocument();
+    expect(screen.getByLabelText('Rate unhelpful')).toBeInTheDocument();
+  });
+
+  it('does not render thumbs buttons when messageId is absent', () => {
+    render(<MessageActions content="test" />);
+    expect(screen.queryByLabelText('Rate helpful')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Rate unhelpful')).not.toBeInTheDocument();
+  });
+
+  it('calls onRate with "up" when thumbs-up clicked', async () => {
+    const onRate = vi.fn();
+    render(<MessageActions content="test" messageId="msg-1" threadId="t-1" onRate={onRate} />);
+    await userEvent.click(screen.getByLabelText('Rate helpful'));
+    expect(onRate).toHaveBeenCalledWith('up');
+  });
+
+  it('calls onClearRating when active thumb clicked again', async () => {
+    const onClearRating = vi.fn();
+    render(
+      <MessageActions
+        content="test"
+        messageId="msg-1"
+        threadId="t-1"
+        feedback={{ id: 'fb-1', rating: 'up', comment: null }}
+        onRate={() => {}}
+        onClearRating={onClearRating}
+      />,
+    );
+    await userEvent.click(screen.getByLabelText('Rate helpful'));
+    expect(onClearRating).toHaveBeenCalled();
+  });
+
+  it('shows comment input when rated down', () => {
+    render(
+      <MessageActions
+        content="test"
+        messageId="msg-1"
+        threadId="t-1"
+        feedback={{ id: 'fb-1', rating: 'down', comment: null }}
+        onRate={() => {}}
+        onComment={() => {}}
+      />,
+    );
+    expect(screen.getByPlaceholderText('What went wrong?')).toBeInTheDocument();
+  });
+
+  it('calls onComment when comment submitted', async () => {
+    const onComment = vi.fn();
+    render(
+      <MessageActions
+        content="test"
+        messageId="msg-1"
+        threadId="t-1"
+        feedback={{ id: 'fb-1', rating: 'down', comment: null }}
+        onRate={() => {}}
+        onComment={onComment}
+      />,
+    );
+    await userEvent.type(screen.getByPlaceholderText('What went wrong?'), 'Wrong policy');
+    await userEvent.click(screen.getByLabelText('Submit comment'));
+    expect(onComment).toHaveBeenCalledWith('Wrong policy');
+  });
 });
