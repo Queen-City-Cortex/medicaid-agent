@@ -250,22 +250,6 @@ export const mastra = new Mastra({
         path: '/chat',
         agent: 'ncMedicaidAgent',
       }),
-      registerApiRoute('/debug/thread/:threadId', {
-        method: 'GET',
-        requiresAuth: false,
-        handler: async (c) => {
-          const mastra = c.get('mastra');
-          const threadId = c.req.param('threadId');
-          const memory = await mastra.getAgentById('ncMedicaidAgent')?.getMemory?.();
-          if (!memory) return c.json({ error: 'no memory' }, 500);
-          try {
-            const thread = await memory.getThreadById({ threadId });
-            return c.json({ thread });
-          } catch (e: unknown) {
-            return c.json({ error: String(e) }, 404);
-          }
-        },
-      }),
       registerApiRoute('/healthz', {
         method: 'GET',
         requiresAuth: false,

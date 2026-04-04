@@ -50,8 +50,10 @@ export default function ChatPage() {
     },
   }), [threadId, resourceId, getAccessToken]);
 
+  // Include resourceId in the chat ID so the Chat instance is recreated when
+  // auth loads — otherwise the old transport (with resource: 'anonymous') persists
   const { messages, status, error, sendMessage, setMessages } = useChat({
-    id: threadId,
+    id: `${threadId}:${resourceId}`,
     transport,
     onFinish: () => setThreadVersion(v => v + 1),
   });
