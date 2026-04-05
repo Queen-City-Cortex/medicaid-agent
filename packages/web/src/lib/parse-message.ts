@@ -59,7 +59,6 @@ export function convertThreadMessageToUIMessage(msg: {
     if (v2.format === 2 && Array.isArray(v2.parts) && v2.parts.length > 0) {
       const parts = convertV4PartsToV5(v2.parts);
       if (parts.length > 0) {
-        console.log('[parse-message] V2 message', id, '→', parts.length, 'V5 parts:', parts.map((p: any) => p.type === 'text' ? `text(${p.text?.length})` : p.type).join(', '));
         return { id, role: role as 'user' | 'assistant', parts };
       }
     }

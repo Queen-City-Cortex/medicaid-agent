@@ -35,6 +35,10 @@ export default function ChatPage() {
 
   const [feedbackMap, setFeedbackMap] = useState<Record<string, { id: string; rating: 'up' | 'down'; comment: string | null }>>({});
 
+  // Cache the last thread's messages to avoid race condition with savePerStep DB writes.
+  // When user clicks "+New" then immediately back, the DB may not have the final answer yet.
+  const messageCache = useRef<Map<string, UIMessage[]>>(new Map());
+
   // Transport re-creates when threadId/resourceId change — this also resets useChat state
   const transport = useMemo(() => new DefaultChatTransport({
     api: `${MASTRA_URL}/chat`,
@@ -58,7 +62,12 @@ export default function ChatPage() {
   const { messages, status, error, sendMessage, setMessages } = useChat({
     id: `${threadId}:${resourceId}`,
     transport,
-    onFinish: () => setThreadVersion(v => v + 1),
+    onFinish: () => {
+      setThreadVersion(v => v + 1);
+      // Cache messages so switching away and back doesn't lose the final answer
+      // (savePerStep DB write may not have completed yet)
+      messageCache.current.set(threadId, messages);
+    },
   });
 
   const isStreaming = status === 'streaming';
@@ -153,9 +162,18 @@ export default function ChatPage() {
 
   const handleSelectThread = useCallback(async (tid: string) => {
     setThreadId(tid);
-    setMessages([]);
     setFeedbackMap({});
     if (isMobile) setSidebarCollapsed(true);
+
+    // Use cached messages if available (avoids race condition with savePerStep DB writes)
+    const cached = messageCache.current.get(tid);
+    if (cached && cached.length > 0) {
+      setMessages(cached);
+      messageCache.current.delete(tid);
+    } else {
+      setMessages([]);
+    }
+
     await loadThread(tid);
     inputRef.current?.focus({ preventScroll: true });
   }, [loadThread, setMessages, isMobile]);
