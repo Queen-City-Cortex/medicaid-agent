@@ -6,16 +6,16 @@ describe('extractText', () => {
     expect(extractText('hello world')).toBe('hello world');
   });
 
-  it('joins array of strings', () => {
-    expect(extractText(['hello', ' ', 'world'])).toBe('hello world');
+  it('joins array of strings with paragraph breaks', () => {
+    expect(extractText(['hello', 'world'])).toBe('hello\n\nworld');
   });
 
   it('extracts text from array of objects with text property', () => {
-    expect(extractText([{ text: 'foo' }, { text: 'bar' }])).toBe('foobar');
+    expect(extractText([{ text: 'foo' }, { text: 'bar' }])).toBe('foo\n\nbar');
   });
 
   it('handles mixed arrays of strings and objects', () => {
-    expect(extractText(['prefix ', { text: 'suffix' }])).toBe('prefix suffix');
+    expect(extractText(['prefix', { text: 'suffix' }])).toBe('prefix\n\nsuffix');
   });
 
   it('extracts from object with parts containing text type', () => {
@@ -23,10 +23,10 @@ describe('extractText', () => {
       parts: [
         { type: 'text', text: 'hello' },
         { type: 'image', url: 'img.png' },
-        { type: 'text', text: ' world' },
+        { type: 'text', text: 'world' },
       ],
     };
-    expect(extractText(content)).toBe('hello world');
+    expect(extractText(content)).toBe('hello\n\nworld');
   });
 
   it('returns empty string for null/undefined/number', () => {
@@ -89,5 +89,132 @@ describe('convertThreadMessageToUIMessage', () => {
     });
 
     expect(result!.parts).toEqual([{ type: 'text', text: 'hello' }]);
+  });
+
+  describe('V2 format (MastraMessageContentV2)', () => {
+    it('converts tool-invocation parts to dynamic-tool parts', () => {
+      const result = convertThreadMessageToUIMessage({
+        id: 'msg-v2',
+        role: 'assistant',
+        content: {
+          format: 2,
+          parts: [
+            { type: 'text', text: 'Let me search for that.' },
+            {
+              type: 'tool-invocation',
+              toolInvocation: {
+                toolCallId: 'tc-1',
+                toolName: 'searchSections',
+                args: { query: 'chiropractic' },
+                result: { sections: [] },
+                state: 'result',
+              },
+            },
+            { type: 'text', text: '## Answer\n\nChiropractic services are...' },
+          ],
+        },
+      });
+
+      expect(result).not.toBeNull();
+      expect(result!.id).toBe('msg-v2');
+      expect(result!.parts).toHaveLength(3);
+      expect(result!.parts[0]).toEqual({ type: 'text', text: 'Let me search for that.' });
+      expect(result!.parts[1]).toEqual({
+        type: 'dynamic-tool',
+        toolName: 'searchSections',
+        toolCallId: 'tc-1',
+        state: 'output-available',
+        input: { query: 'chiropractic' },
+        output: { sections: [] },
+      });
+      expect(result!.parts[2]).toEqual({ type: 'text', text: '## Answer\n\nChiropractic services are...' });
+    });
+
+    it('preserves text-only V2 messages', () => {
+      const result = convertThreadMessageToUIMessage({
+        id: 'msg-text',
+        role: 'assistant',
+        content: {
+          format: 2,
+          parts: [
+            { type: 'text', text: 'Hello there.' },
+          ],
+        },
+      });
+
+      expect(result).not.toBeNull();
+      expect(result!.parts).toEqual([{ type: 'text', text: 'Hello there.' }]);
+    });
+
+    it('handles step-start parts', () => {
+      const result = convertThreadMessageToUIMessage({
+        id: 'msg-steps',
+        role: 'assistant',
+        content: {
+          format: 2,
+          parts: [
+            { type: 'step-start' },
+            { type: 'text', text: 'Searching...' },
+            {
+              type: 'tool-invocation',
+              toolInvocation: {
+                toolCallId: 'tc-2',
+                toolName: 'getSection',
+                args: { id: 'sec-1' },
+                result: { text: 'Policy text' },
+                state: 'result',
+              },
+            },
+          ],
+        },
+      });
+
+      expect(result).not.toBeNull();
+      expect(result!.parts).toHaveLength(3);
+      expect(result!.parts[0]).toEqual({ type: 'step-start' });
+    });
+
+    it('falls through to legacy when V2 parts array is empty', () => {
+      const result = convertThreadMessageToUIMessage({
+        id: 'msg-empty',
+        role: 'assistant',
+        content: {
+          format: 2,
+          parts: [],
+        },
+      });
+
+      // Empty parts → falls to extractText → empty string → null
+      expect(result).toBeNull();
+    });
+
+    it('maps non-result tool state to input-available', () => {
+      const result = convertThreadMessageToUIMessage({
+        id: 'msg-call',
+        role: 'assistant',
+        content: {
+          format: 2,
+          parts: [
+            {
+              type: 'tool-invocation',
+              toolInvocation: {
+                toolCallId: 'tc-3',
+                toolName: 'lookupPolicy',
+                args: { policyNumber: '1F' },
+                state: 'call',
+              },
+            },
+          ],
+        },
+      });
+
+      expect(result).not.toBeNull();
+      expect(result!.parts[0]).toMatchObject({
+        type: 'dynamic-tool',
+        toolName: 'lookupPolicy',
+        state: 'input-available',
+        output: undefined,
+      });
+    });
   });
 });

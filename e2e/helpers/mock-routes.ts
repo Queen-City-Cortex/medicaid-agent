@@ -13,7 +13,7 @@ interface MockThread {
 interface MockMessage {
   id?: string;
   role: string;
-  content: string;
+  content: string | Record<string, unknown>;
   createdAt?: string;
 }
 

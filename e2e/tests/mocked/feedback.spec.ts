@@ -84,4 +84,51 @@ test.describe('Message Feedback', () => {
     const thumbsUp = page.getByLabel('Rate helpful');
     await expect(thumbsUp).toBeVisible();
   });
+
+  test('research trace renders from V2 format messages on thread reload', async ({ page }) => {
+    const threadId = 'thread-with-tools';
+
+    await mockMastraAPI(page, {
+      threads: [
+        { id: threadId, title: 'Chiropractic coverage' },
+      ],
+      threadMessages: [
+        { id: 'msg-q', role: 'user', content: 'Does NC Medicaid cover chiropractic?' },
+        {
+          id: 'msg-a',
+          role: 'assistant',
+          content: {
+            format: 2,
+            parts: [
+              { type: 'text', text: 'Let me search for that policy.' },
+              {
+                type: 'tool-invocation',
+                toolInvocation: {
+                  toolCallId: 'tc-1',
+                  toolName: 'searchSections',
+                  args: { query: 'chiropractic' },
+                  result: { sections: [{ id: 's1', title: 'Chiropractic Services' }] },
+                  state: 'result',
+                },
+              },
+              { type: 'text', text: '## Answer\n\nYes, NC Medicaid covers chiropractic services under Policy 1F.' },
+            ],
+          },
+        },
+      ],
+    });
+
+    await page.goto('/chat');
+    await page.getByText('Chiropractic coverage').click();
+
+    // Wait for assistant message to load
+    await expect(page.getByTestId('assistant-message')).toBeVisible();
+
+    // Research trace should show the tool call
+    await expect(page.getByText('Searching policies')).toBeVisible();
+
+    // Answer should render as markdown with heading
+    await expect(page.getByRole('heading', { name: 'Answer' })).toBeVisible();
+    await expect(page.getByText('Yes, NC Medicaid covers chiropractic services under Policy 1F.')).toBeVisible();
+  });
 });
