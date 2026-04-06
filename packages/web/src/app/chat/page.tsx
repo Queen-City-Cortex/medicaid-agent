@@ -61,20 +61,31 @@ export default function ChatPage() {
     id: `${threadId}:${resourceId}`,
     transport,
     onFinish: () => setThreadVersion(v => v + 1),
+    onError: (err) => console.error('[chat] stream error:', err),
   });
 
   const isStreaming = status === 'streaming';
   const isLoading = status === 'streaming' || status === 'submitted';
 
-  // Cache messages when streaming completes so switching away and back
-  // doesn't lose the final answer (savePerStep DB writes are async).
+  // Log status transitions and cache messages when streaming completes.
   const prevStatus = useRef(status);
   useEffect(() => {
-    if (prevStatus.current === 'streaming' && status === 'ready' && messages.length > 0) {
-      messageCache.current.set(threadId, messages);
+    if (prevStatus.current !== status) {
+      const parts = messages.filter(m => m.role === 'assistant').flatMap(m => m.parts);
+      const textLen = parts.filter(p => p.type === 'text').reduce((n, p) => n + ((p as { text: string }).text?.length ?? 0), 0);
+      const toolCount = parts.filter(p => p.type !== 'text' && p.type !== 'step-start').length;
+      console.log(`[chat] status: ${prevStatus.current} → ${status} | msgs: ${messages.length} | parts: ${parts.length} (text: ${textLen} chars, tools: ${toolCount})`);
+
+      if (prevStatus.current === 'streaming' && status === 'ready' && messages.length > 0) {
+        messageCache.current.set(threadId, messages);
+        console.log(`[chat] cached ${messages.length} messages for thread ${threadId.slice(0, 8)}…`);
+      }
+      if (status === 'error') {
+        console.error('[chat] entered error state', error);
+      }
     }
     prevStatus.current = status;
-  }, [status, threadId, messages]);
+  }, [status, threadId, messages, error]);
 
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -143,6 +154,8 @@ export default function ChatPage() {
         const uiMsg = convertThreadMessageToUIMessage(msg as { id?: string; role: string; content: unknown });
         if (uiMsg) converted.push(uiMsg);
       }
+      const assistantParts = converted.filter(m => m.role === 'assistant').flatMap(m => m.parts);
+      console.log(`[chat] loadThread ${tid.slice(0, 8)}… | ${dbMessages.length} db msgs → ${converted.length} ui msgs | assistant parts: ${assistantParts.length} (types: ${[...new Set(assistantParts.map(p => p.type))].join(',')})`);
       setMessages(converted);
       try {
         const token = await getAccessToken();
@@ -164,6 +177,8 @@ export default function ChatPage() {
   }, [setMessages, mastraClient, getAccessToken]);
 
   const handleSelectThread = useCallback(async (tid: string) => {
+    const hasCached = messageCache.current.has(tid);
+    console.log(`[chat] selectThread ${tid.slice(0, 8)}… | cached: ${hasCached}`);
     setThreadId(tid);
     setFeedbackMap({});
     if (isMobile) setSidebarCollapsed(true);
