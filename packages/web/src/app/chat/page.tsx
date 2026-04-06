@@ -38,6 +38,7 @@ export default function ChatPage() {
   // Bridges savePerStep's async DB writes: caches messages when streaming ends
   // so clicking "+New" then back shows the complete response, not a partial DB snapshot.
   const messageCache = useRef<Map<string, UIMessage[]>>(new Map());
+  const pendingRestore = useRef<UIMessage[] | null>(null);
 
   // Transport re-creates when threadId/resourceId change — this also resets useChat state
   const transport = useMemo(() => new DefaultChatTransport({
@@ -66,6 +67,17 @@ export default function ChatPage() {
 
   const isStreaming = status === 'streaming';
   const isLoading = status === 'streaming' || status === 'submitted';
+
+  // Restore cached messages after useChat recreates its Chat instance.
+  // setMessages in handleSelectThread writes to the old instance; this effect
+  // fires after the new instance mounts and applies the pending restore.
+  useEffect(() => {
+    if (pendingRestore.current) {
+      console.log(`[chat] restoring ${pendingRestore.current.length} cached messages`);
+      setMessages(pendingRestore.current);
+      pendingRestore.current = null;
+    }
+  }, [threadId, setMessages]);
 
   // Log status transitions and cache messages when streaming completes.
   const prevStatus = useRef(status);
@@ -185,10 +197,10 @@ export default function ChatPage() {
 
     const cached = messageCache.current.get(tid);
     if (cached && cached.length > 0) {
-      setMessages(cached);
+      pendingRestore.current = cached;
       messageCache.current.delete(tid);
     } else {
-      setMessages([]);
+      pendingRestore.current = null;
       await loadThread(tid);
     }
 
