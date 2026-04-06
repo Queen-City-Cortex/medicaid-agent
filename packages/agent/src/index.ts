@@ -256,7 +256,15 @@ export const mastra = new Mastra({
         path: '/chat',
         agent: 'ncMedicaidAgent',
         version: 'v6',
-        // savePerStep removed: caused silent stream aborts on production DB writes
+        defaultOptions: {
+          savePerStep: true,
+          onStepFinish: async (step) => {
+            console.log(`[chat] step finished: ${step.stepType} | text: ${step.text?.length ?? 0} chars | tools: ${step.toolCalls?.length ?? 0}`);
+          },
+          onError: (err) => {
+            console.error('[chat] stream error:', err);
+          },
+        },
       }),
       ...feedbackApiRoutes(feedbackRepo),
       registerApiRoute('/healthz', {
