@@ -256,7 +256,7 @@ export const mastra = new Mastra({
         path: '/chat',
         agent: 'ncMedicaidAgent',
         version: 'v6',
-        defaultOptions: { savePerStep: true },
+        // savePerStep removed: caused silent stream aborts on production DB writes
       }),
       ...feedbackApiRoutes(feedbackRepo),
       registerApiRoute('/healthz', {
