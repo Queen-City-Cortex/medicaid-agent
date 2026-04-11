@@ -1,0 +1,55 @@
+{
+  "run_id": "2026-04-11T04:12:43",
+  "level": "answer",
+  "config": {
+    "embedding_model": "voyage-law-2",
+    "top_k": 10,
+    "dataset_count": 1,
+    "git_sha": "df5a5f9",
+    "judge_model": "claude-sonnet-4-6"
+  },
+  "aggregate": {
+    "judge_errors": 1,
+    "scorable_count": 0
+  },
+  "by_difficulty": {},
+  "by_category": {},
+  "per_question": [
+    {
+      "id": "q-019",
+      "difficulty": "moderate",
+      "reasoning_type": "single_lookup",
+      "question": "Under what conditions can speech therapy be provided via telehealth under NC Medicaid?",
+      "agent_answer": "Speech therapy may be provided by telehealth under NC Medicaid only in a limited set of circumstances, and it must still meet the usual speech-language therapy medical-necessity rules.\n\n## Telehealth conditions\n\nNC Medicaid says a select set of speech and language evaluation and treatment interventions may be delivered by telehealth. Telehealth may be medically necessary when:\n\n- the beneficiary\u2019s medical condition is such that exposure to others should be avoided, or\n- the beneficiary is in a remote or underserved location where access to appropriately qualified providers is limited. [[Clinical Coverage Policy 10A](https://medicaid.ncdhhs.gov/10a-outpatient-specialized-therapies/download?attachment)]\n\nNC Medicaid also sets these limits:\n\n- **Telehealth must generally be adjunct to in-person care, not a replacement**, unless in-person care is contraindicated or unavailable.\n- **Telehealth must be in the beneficiary\u2019s best interest**, not for the therapist\u2019s convenience.\n- **Telehealth can never be used solely to increase therapist productivity.** [[Clinical Coverage Policy 10A](https://medicaid.ncdhhs.gov/10a-outpatient-specialized-therapies/download?attachment)]\n\n## Usual speech therapy rules still apply\n\nEven when telehealth is allowed, the service still has to satisfy the ordinary coverage and medical-necessity standards for speech-language therapy under Policy 10A, including any applicable documented findings and service-specific criteria. [[Clinical Coverage Policy 10A](https://medicaid.ncdhhs.gov/10a-outpatient-specialized-therapies/download?attachment)]\n\n## Current policy status\n\nI checked amendments for Policy 10A and the current authoritative document is **Clinical Coverage Policy 10A**, effective **February 1, 2025**. [[Clinical Coverage Policy 10A](https://medicaid.ncdhhs.gov/10a-outpatient-specialized-therapies/download?attachment)]\n\nIf you want, I can also pull out **which speech-language services are included in the \u201cselect set\u201d that may be done by telehealth** or summarize the documentation points providers should have in the chart.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 2,
+        "completeness": 3,
+        "hallucination": 2,
+        "citation_quality": 2,
+        "explanation": "The agent's answer correctly captures the core telehealth conditions from Clinical Coverage Policy 10A: medical condition requiring avoidance of exposure, remote/underserved location, adjunct to in-person care requirement, beneficiary best interest, and prohibition on using telehealth solely for productivity. These match the evidence sections well. However, the reference answer mentions that providers must document why telehealth is appropriate for the specific beneficiary's needs, which the agent omits. The agent also adds that telehealth must meet 'the same clinical standards as in-person services' which isn't explicitly stated in the evidence. The agent references Clinical Coverage Policy 1H (Telehealth, Virtual Communications and Remote Patient Monitoring) implicitly in the broader context, which aligns with the evidence. Citation quality is decent but only links to the policy document generally rather than citing specific section numbers. The slight hallucination mark comes from stating 'telehealth must generally be adjunct to in-person care, not a replacement' as a separate highlighted principle when the actual policy says 'Unless in-person care is contraindicated or unavailable' - the agent's framing is slightly imprecise but not materially wrong. Overall the answer is thorough and would be acceptable to a Medicaid policy expert."
+      },
+      "judge_error": false,
+      "route_lane": "baseline_hybrid",
+      "route_rationale": "single_document_coverage",
+      "route_widening_policy": "one_step",
+      "route_determinism_hints": {
+        "numeric_evidence_only": false,
+        "latest_revision_only": false,
+        "cite_scope_and_not_covered": false
+      },
+      "route_authoritative_document": {
+        "id": "doc:clinical_policy:10A",
+        "policy_number": "10A",
+        "title": "Clinical Coverage Policy 10A"
+      },
+      "route_widened": true,
+      "route_inspection_error": null,
+      "agent_elapsed_seconds": 20.162,
+      "precision": null,
+      "recall": 1.0,
+      "mrr": 0.6666666666666666,
+      "primary_hit": null
+    }
+  ]
+}

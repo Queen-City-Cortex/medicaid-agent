@@ -1,0 +1,74 @@
+{
+  "run_id": "2026-04-10T17:51:23",
+  "level": "answer",
+  "config": {
+    "embedding_model": "voyage-law-2",
+    "top_k": 10,
+    "dataset_count": 1,
+    "git_sha": "df5a5f9",
+    "judge_model": "claude-sonnet-4-6"
+  },
+  "aggregate": {
+    "precision_at_k": 1.0,
+    "recall_at_k": 1.0,
+    "mrr": 1.0,
+    "primary_hit_rate": 1.0
+  },
+  "by_difficulty": {
+    "moderate": {
+      "precision_at_k": 1.0,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "by_category": {
+    "single_lookup": {
+      "precision_at_k": 1.0,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "per_question": [
+    {
+      "id": "q-019",
+      "difficulty": "moderate",
+      "reasoning_type": "single_lookup",
+      "question": "Under what conditions can speech therapy be provided via telehealth under NC Medicaid?",
+      "agent_answer": "Speech therapy can be provided by telehealth under NC Medicaid **only for a select set of speech/language evaluation and treatment services**, and only when the telehealth use meets specific beneficiary-centered conditions. In particular:\n\n- Telehealth **may be medically necessary** when the beneficiary\u2019s medical condition means **exposure to others should be avoided**, or when the beneficiary is in a **remote or underserved location** with limited access to appropriately qualified providers.\n- **Unless in-person care is contraindicated or unavailable**, telehealth must be used **as an adjunct to in-person care, not a replacement**.\n- Telehealth must be used **in the beneficiary\u2019s best interest**, **not for therapist convenience**.\n- Telehealth **cannot be used solely to increase therapist productivity**. [Clinical Coverage Policy 10A](https://medicaid.ncdhhs.gov/10a-outpatient-specialized-therapies/download?attachment) (effective 2025-02-01), section \u201ce. Telehealth\u201d\n\n## Which speech-language services are telehealth-eligible\n\nNC Medicaid\u2019s speech/language telehealth eligibility table shows these services as telehealth-eligible:\n\n### Evaluations\n- **92521** \u2014 Yes\n- **92522** \u2014 Yes\n- **92523** \u2014 Yes\n- **92524** \u2014 Yes\n- **92607** \u2014 Yes\n- **92608** \u2014 Yes\n\nNot telehealth-eligible in that table include:\n- **92551**\n- **92610**\n- **92612**\n- **92626**\n- **92627**\n- **96125**  \n[Clinical Coverage Policy 10A](https://medicaid.ncdhhs.gov/10a-outpatient-specialized-therapies/download?attachment) (effective 2025-02-01), \u201cSpeech/Language Evaluation\u201d\n\n### Treatment\n- **92507** \u2014 Yes\n- **92526** \u2014 **Yes (oral motor only)**\n- **92609** \u2014 Yes\n\nNot telehealth-eligible in that table include:\n- **92508**\n- **92630**\n- **92633**  \n[Clinical Coverage Policy 10A](https://medicaid.ncdhhs.gov/10a-outpatient-specialized-therapies/download?attachment) (effective 2025-02-01), \u201cSpeech/Language Treatment\u201d\n\n## Other ordinary speech-therapy rules still apply\n\nTelehealth availability does **not** remove the ordinary medical-necessity requirements for speech-language therapy. For example, the policy\u2019s speech-language therapy section requires medically necessary treatment to be supported by documented findings and sets service-specific criteria. [Clinical Coverage Policy 10A](https://medicaid.ncdhhs.gov/10a-outpatient-specialized-therapies/download?attachment) (effective 2025-02-01), \u00a7 3.2.1.3\n\n## Current-policy note\n\nI checked amendments for Clinical Coverage Policy 10A, and the authoritative current document is still **Clinical Coverage Policy 10A**, effective **2025-02-01**.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 3,
+        "completeness": 3,
+        "hallucination": 2,
+        "citation_quality": 3,
+        "overall": 3,
+        "explanation": "The agent's answer accurately captures all key conditions from the reference policy: medical necessity when exposure to others should be avoided or location is remote/underserved, telehealth as adjunct (not replacement) unless in-person is contraindicated or unavailable, beneficiary-centered use, and prohibition on using telehealth solely for therapist productivity. The agent goes substantially beyond the reference answer by providing specific CPT code-level eligibility tables, which adds value but also introduces some risk of hallucination since these tables cannot be fully verified from the provided evidence sections. The CPT code details are stated as fact without unverified markers, which is a slight concern, but the core policy conditions are accurately represented. Citation quality is strong, with specific references to Clinical Coverage Policy 10A section 'e. Telehealth' and section 3.2.1.3, with effective date noted. The reference answer mentioned provider documentation requirements that the agent does not explicitly address, but the agent's answer is otherwise more comprehensive than the reference. Overall, a Medicaid policy expert would find this answer well-researched and useful."
+      },
+      "judge_error": false,
+      "route_lane": "baseline_hybrid",
+      "route_rationale": "single_document_coverage",
+      "route_widening_policy": "one_step",
+      "route_determinism_hints": {
+        "numeric_evidence_only": false,
+        "latest_revision_only": false,
+        "cite_scope_and_not_covered": false
+      },
+      "route_authoritative_document": {
+        "id": "doc:clinical_policy:10A",
+        "policy_number": "10A",
+        "title": "Clinical Coverage Policy 10A"
+      },
+      "route_widened": true,
+      "route_inspection_error": null,
+      "agent_elapsed_seconds": 20.168,
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "primary_hit": true
+    }
+  ]
+}

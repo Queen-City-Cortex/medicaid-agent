@@ -1,0 +1,58 @@
+{
+  "run_id": "2026-04-10T02:18:48",
+  "level": "answer",
+  "config": {
+    "embedding_model": "voyage-law-2",
+    "top_k": 10,
+    "dataset_count": 1,
+    "git_sha": "df5a5f9",
+    "judge_model": "claude-sonnet-4-6"
+  },
+  "aggregate": {
+    "precision_at_k": 1.0,
+    "recall_at_k": 1.0,
+    "mrr": 1.0,
+    "primary_hit_rate": 1.0
+  },
+  "by_difficulty": {
+    "complex": {
+      "precision_at_k": 1.0,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "by_category": {
+    "cross_document": {
+      "precision_at_k": 1.0,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "per_question": [
+    {
+      "id": "q-009",
+      "difficulty": "complex",
+      "reasoning_type": "cross_document",
+      "question": "Is there a maximum earned income limit for people on HCWD (Health Coverage for Workers with Disabilities), and what premiums apply?",
+      "agent_answer": "Yes. Under HCWD, **there is not a maximum total earned/countable income limit that makes someone ineligible solely because earnings are too high**. Instead, HCWD uses **cost-sharing that rises with income**. The important income cutoff for eligibility is different: **a person with unearned income over 150% of FPL is not eligible for HCWD**. [MA-2180 HEALTH COVERAGE FOR WORKERS WITH DISABILITIES](https://policies.ncdhhs.gov/wp-content/uploads/ma-2180-3.pdf); [CHANGE NOTICE FOR MANUAL NO. 01-14, HCWD Phase III](https://policies.ncdhhs.gov/wp-content/uploads/ma_cn01-14.pdf)\n\n## Income limit\n\nHCWD eligibility generally requires the person to meet the program\u2019s income rules, but the HCWD policy change notice specifically says HCWD was revised **\u201cto state that HCWD covers individuals regardless of total countable income\u201d** and **\u201cto remove limits on countable income except for the 150% of Federal Poverty Level (FPL) cap on unearned income and provide information about sliding scale premiums.\u201d** [CHANGE NOTICE FOR MANUAL NO. 01-14, HCWD Phase III](https://policies.ncdhhs.gov/wp-content/uploads/ma_cn01-14.pdf)\n\nThe current MA-2180 income section states:\n\n- **Unearned income over 150% FPL:** not eligible for HCWD.\n- **Total countable income at or below 150% FPL:** no cost-sharing other than applicable copays.\n- **Total countable income over 150% FPL:** $50 annual enrollment fee.\n- **Total countable monthly income over 200% FPL:** monthly premium in addition to the enrollment fee.\n- Premiums increase with income, and once income is **over 450% FPL**, the person pays a **full premium**. [MA-2180 HEALTH COVERAGE FOR WORKERS WITH DISABILITIES](https://policies.ncdhhs.gov/wp-content/uploads/ma-2180-3.pdf)\n\nSo, if by \u201cmaximum earned income limit\u201d you mean a ceiling on wages/earned income for HCWD eligibility, **the retrieved policy does not show a hard earned-income cutoff**. Instead, higher income leads to an enrollment fee and then higher monthly premiums. The policy does **not** say a person becomes ineligible just because earned income exceeds a set maximum. [CHANGE NOTICE FOR MANUAL NO. 01-14, HCWD Phase III](https://policies.ncdhhs.gov/wp-content/uploads/ma_cn01-14.pdf); [MA-2180 HEALTH COVERAGE FOR WORKERS WITH DISABILITIES](https://policies.ncdhhs.gov/wp-content/uploads/ma-2180-3.pdf)\n\n## Premiums that apply\n\nThe MA-2180 premium chart in the base HCWD manual has been amended; the current amendment says **\u201cMA-2180.IV.I - HCWD Premiums Income chart has been updated.\u201d** effective **January 1, 2025**. The change notice confirms the chart was updated, but the retrieved amendment text does **not include the new dollar figures**. [CHANGE NOTICE FOR MANUAL NO. 03-25, 2025 Federal Poverty Level Changes (FPL) Income Changes](https://policies.ncdhhs.gov/wp-content/uploads/CN-NO-03-25.docx.pdf)\n\nFrom the HCWD manual text I was able to verify, the premium structure is:\n\n- **0\u2013150% FPL:** $0 monthly premium\n- **151\u2013200% FPL:** $0 monthly premium\n- **201\u2013250% FPL:** $196 individual / $265 couple\n- **251\u2013300% FPL:** $235 individual / $318 couple\n- **301\u2013350% FPL:** $274 individual / $370 couple\n- **351\u2013400% FPL:** $313 individual / $423 couple\n- **401\u2013450% FPL:** $352 individual / $476 couple\n- **451% FPL and above:** **$875** full premium for both individual and couple [MA-2180 HEALTH COVERAGE FOR WORKERS WITH DISABILITIES](https://policies.ncdhhs.gov/wp-content/uploads/ma-2180-3.pdf)\n\n## Important caution on the dollar ranges\n\nI can verify that the **premium amounts** above appear in MA-2180, but I **cannot confirm from the retrieved materials that the income-dollar ranges in that chart are still current**, because the 2025 change notice says the HCWD premium income chart was updated. So the safest reading is:\n\n- the **structure** remains:\n  - no premium through 200% FPL,\n  - $50 annual enrollment fee above 150% FPL,\n  - monthly premium above 200% FPL,\n  - full premium above 450% FPL;\n- but the **exact monthly income bracket dollar thresholds** should be taken from the **current post-2025 HCWD premium chart**. [CHANGE NOTICE FOR MANUAL NO. 03-25, 2025 Federal Poverty Level Changes (FPL) Income Changes](https://policies.ncdhhs.gov/wp-content/uploads/CN-NO-03-25.docx.pdf); [MA-2180 HEALTH COVERAGE FOR WORKERS WITH DISABILITIES](https://policies.ncdhhs.gov/wp-content/uploads/ma-2180-3.pdf)\n\n## Bottom line\n\n- **No hard maximum earned income limit** was verified in the retrieved HCWD policy.\n- **Unearned income over 150% FPL makes the person ineligible.**\n- **Over 150% FPL:** $50 annual enrollment fee.\n- **Over 200% FPL:** monthly premium, increasing with income.\n- **Over 450% FPL:** full premium. [MA-2180 HEALTH COVERAGE FOR WORKERS WITH DISABILITIES](https://policies.ncdhhs.gov/wp-content/uploads/ma-2180-3.pdf); [CHANGE NOTICE FOR MANUAL NO. 01-14, HCWD Phase III](https://policies.ncdhhs.gov/wp-content/uploads/ma_cn01-14.pdf); [CHANGE NOTICE FOR MANUAL NO. 03-25, 2025 Federal Poverty Level Changes (FPL) Income Changes](https://policies.ncdhhs.gov/wp-content/uploads/CN-NO-03-25.docx.pdf)\n\nIf you want, I can next help translate this into a practical rule like: \u201cIf a client has X wages and Y unearned income, what HCWD charges should they expect?\u201d",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 3,
+        "completeness": 3,
+        "hallucination": 2,
+        "citation_quality": 3,
+        "overall": 3,
+        "explanation": "The agent's answer correctly identifies all key facts: no maximum earned income limit, 150% FPL cap only on unearned income, $50 per certification period enrollment fee above 150% FPL, sliding-scale monthly premiums above 200% FPL, and full premium above 450% FPL. These align precisely with the reference answer and evidence sections. The agent provides specific premium figures (e.g., $196/$265 at 201-250% FPL) which are presented as coming from MA-2180 but flagged with an honest caveat that 2025 updates may have changed the dollar thresholds - this is appropriate disclosure rather than hallucination. The slight hallucination deduction is for presenting specific dollar premium amounts as facts from the policy without the [unverified] marker, though the agent does add a cautionary note. Citations are precise, referencing specific policy documents (MA-2180, Change Notice 01-14, Change Notice 03-25) with URLs. The answer is thorough, well-structured, and a Medicaid policy expert would find it accurate and useful."
+      },
+      "judge_error": false,
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "primary_hit": true
+    }
+  ]
+}

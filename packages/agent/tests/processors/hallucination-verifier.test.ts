@@ -250,6 +250,72 @@ describe('extractSources', () => {
     expect(sources[0].text).toContain('REFERENCES_DOCUMENT');
   });
 
+  it('extracts resolveAnswerFrame structured evidence', () => {
+    const msgs = [
+      makeToolMessage([
+        {
+          toolCallId: 'call-frame',
+          toolName: 'resolveAnswerFrame',
+          output: {
+            frame: {
+              questionType: 'coverage',
+              route: {
+                lane: 'baseline_hybrid',
+                rationale: 'single_document_coverage',
+                widening_policy: 'one_step',
+                determinism_hints: {
+                  numeric_evidence_only: false,
+                  latest_revision_only: false,
+                  cite_scope_and_not_covered: false,
+                },
+              },
+              authoritativeDocuments: [
+                {
+                  id: 'doc-10a',
+                  title: 'Clinical Coverage Policy 10A',
+                  documentType: 'clinical_policy',
+                  policyNumber: '10A',
+                  effectiveDate: '2025-01-01',
+                  url: 'https://example.com/10A',
+                  status: 'current',
+                  reason: 'Preferred service-specific policy.',
+                },
+              ],
+              primarySections: [
+                {
+                  id: 'sec-10a-coverage',
+                  title: 'Coverage Criteria',
+                  sectionNumber: '3.1',
+                  content: 'Speech therapy is covered when medically necessary.',
+                  effectiveDate: '2025-01-01',
+                  documentId: 'doc-10a',
+                  documentTitle: 'Clinical Coverage Policy 10A',
+                  documentType: 'clinical_policy',
+                  policyNumber: '10A',
+                  reason: 'Primary coverage evidence.',
+                },
+              ],
+              supportingSections: [],
+              avoidSections: [],
+              latestRevision: null,
+              variantReasoning: null,
+            },
+          },
+        },
+      ]),
+    ];
+
+    const sources = extractSources(msgs);
+
+    expect(sources).toHaveLength(1);
+    expect(sources[0].toolName).toBe('resolveAnswerFrame');
+    expect(sources[0].key).toBe('sec-10a-coverage');
+    expect(sources[0].text).toContain('Question type: coverage');
+    expect(sources[0].text).toContain('Route lane: baseline_hybrid');
+    expect(sources[0].text).toContain('Clinical Coverage Policy 10A');
+    expect(sources[0].text).toContain('Speech therapy is covered when medically necessary.');
+  });
+
   // Test 6: ignored tools
   it('ignores searchSections, getSectionContext, and findConceptSections', () => {
     const msgs = [
@@ -666,4 +732,3 @@ describe('HallucinationVerifier.processOutputStep', () => {
     expect(generateObject).not.toHaveBeenCalled();
   });
 });
-

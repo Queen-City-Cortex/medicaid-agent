@@ -1,5 +1,6 @@
 """Post-processing for Docling output: section number extraction and hierarchy repair."""
 
+import hashlib
 import re
 
 
@@ -45,9 +46,16 @@ def infer_level_from_number(section_number: str | None) -> int | None:
     return len(parts)
 
 
-def build_section_id(document_id: str, section_number: str | None, index: int) -> str:
+def build_section_id(
+    document_id: str,
+    section_number: str | None,
+    index: int,
+    occurrence: int = 0,
+) -> str:
     """Build a unique section ID for the graph."""
     if section_number:
+        if occurrence > 0:
+            return f"sec:{document_id}:{section_number}:dup{occurrence}"
         return f"sec:{document_id}:{section_number}"
     return f"sec:{document_id}:_s{index}"
 
@@ -55,14 +63,29 @@ def build_section_id(document_id: str, section_number: str | None, index: int) -
 def build_document_id(source_type: str, policy_number: str | None, slug: str, source_url: str | None = None) -> str:
     """Build a unique document ID for the graph.
 
-    Uses policy_number when available (stable across renames).
-    Falls back to source_url hash (stable across filename changes),
-    then slug as last resort.
+    Most source types can key directly on policy_number when present.
+    DHHS policies cannot: change notices, translations, and annual revisions
+    often share the same policy_number but are still distinct documents.
+
+    For DHHS policies, use the source URL as the primary unique discriminator and
+    keep the policy number only as a readable prefix when available. This keeps
+    IDs stable across filename changes without collapsing distinct documents.
+
+    Other source types fall back from policy_number -> source_url hash -> slug.
     """
+    if source_type == "dhhs_policy":
+        if source_url:
+            url_hash = hashlib.sha256(source_url.encode()).hexdigest()[:12]
+            if policy_number:
+                return f"doc:{source_type}:{policy_number}:url-{url_hash}"
+            return f"doc:{source_type}:url-{url_hash}"
+        if policy_number:
+            return f"doc:{source_type}:{policy_number}:{slug}"
+        return f"doc:{source_type}:{slug}"
+
     if policy_number:
         return f"doc:{source_type}:{policy_number}"
     if source_url:
-        import hashlib
         url_hash = hashlib.sha256(source_url.encode()).hexdigest()[:12]
         return f"doc:{source_type}:url-{url_hash}"
     return f"doc:{source_type}:{slug}"

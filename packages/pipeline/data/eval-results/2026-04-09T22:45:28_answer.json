@@ -1,0 +1,58 @@
+{
+  "run_id": "2026-04-09T22:45:28",
+  "level": "answer",
+  "config": {
+    "embedding_model": "voyage-law-2",
+    "top_k": 10,
+    "dataset_count": 1,
+    "git_sha": "df5a5f9",
+    "judge_model": "claude-sonnet-4-6"
+  },
+  "aggregate": {
+    "precision_at_k": 0.6666666666666666,
+    "recall_at_k": 0.6666666666666666,
+    "mrr": 0.6666666666666666,
+    "primary_hit_rate": 1.0
+  },
+  "by_difficulty": {
+    "complex": {
+      "precision_at_k": 0.6666666666666666,
+      "recall_at_k": 0.6666666666666666,
+      "mrr": 0.6666666666666666,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "by_category": {
+    "cross_document": {
+      "precision_at_k": 0.6666666666666666,
+      "recall_at_k": 0.6666666666666666,
+      "mrr": 0.6666666666666666,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "per_question": [
+    {
+      "id": "q-021",
+      "difficulty": "complex",
+      "reasoning_type": "cross_document",
+      "question": "What medical loss ratio (MLR) must Medicaid managed care organizations meet under federal law, and how does NC implement this requirement?",
+      "agent_answer": "Under federal Medicaid managed care rules, a state may require its Medicaid managed care organizations to meet a **minimum MLR of at least 85%**. Federal law does **not** set a lower mandatory nationwide floor that automatically applies in every state; rather, if the state chooses to impose a minimum MLR, that minimum \u201cmust be equal to or higher than 85 percent.\u201d The state must also ensure that each MCO, PIHP, and PAHP **calculates and reports** its MLR in accordance with the federal methodology. [42 CFR Part 438, \u00a7 438.8(c)](https://www.ecfr.gov/current/title-42/part-438), [42 CFR Part 438](https://www.ecfr.gov/current/title-42/part-438)\n\n### Federal rule\nThe governing provision is **42 C.F.R. \u00a7 438.8, Medical loss ratio (MLR) standards**. It says:\n\n- The state must ensure, through its managed care contracts, that each MCO, PIHP, and PAHP **calculates and reports** an MLR in accordance with the regulation. [42 CFR Part 438, \u00a7 438.8(a)](https://www.ecfr.gov/current/title-42/part-438)\n- **If** the state elects to require a minimum MLR, the minimum must be **85% or higher**. [42 CFR Part 438, \u00a7 438.8(c)](https://www.ecfr.gov/current/title-42/part-438)\n- The MLR is calculated as a ratio of specified spending for claims, quality improvement activities, and fraud prevention activities over the denominator defined in the rule, with possible credibility adjustments. [42 CFR Part 438, \u00a7 438.8(d)-(h)](https://www.ecfr.gov/current/title-42/part-438)\n\nI checked amendments for **42 CFR Part 438**, and the knowledge base identifies **42 CFR Part 438** as the current authoritative document.\n\n### How North Carolina implements it\nIn the materials I could verify here, North Carolina\u2019s implementation is reflected primarily through the **federal managed care framework that requires state oversight, contracting, reporting, and quality review**, rather than through a clearly retrieved NC-specific MLR manual section.\n\nWhat I could confirm from the federal implementation structure is:\n\n- North Carolina must implement MLR requirements **through its managed care contracts** with plans. [42 CFR Part 438, \u00a7 438.8(a)](https://www.ecfr.gov/current/title-42/part-438)\n- North Carolina, as the state Medicaid agency, is subject to federal managed care oversight and reporting requirements, including annual reporting in certain managed care quality contexts. [42 CFR Part 438, \u00a7 438.535](https://www.ecfr.gov/current/title-42/part-438)\n- External quality review organizations used in the state must meet federal qualification and independence standards. [42 CFR Part 438, \u00a7 438.354](https://www.ecfr.gov/current/title-42/part-438)\n- Federal contract requirements also include special provisions for Indian health care providers and Indian enrollees where applicable. [42 CFR Part 438, \u00a7 438.14](https://www.ecfr.gov/current/title-42/part-438)\n\n### Important limit on what I could verify\nI could **not verify, from retrieved North Carolina policy text in this corpus, a separate NC manual or contract provision stating a different MLR percentage or describing NC\u2019s remittance/enforcement mechanics in detail**. So the safest answer from the sources I reviewed is:\n\n- **Federal floor for a state-imposed minimum MLR:** **85%**\n- **NC implementation I could verify:** NC must enforce MLR through its Medicaid managed care contracts and related federal oversight/reporting structures under **42 C.F.R. Part 438**, but I could not confirm a more specific NC-only operational provision from retrieved state policy text here.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 2,
+        "completeness": 2,
+        "hallucination": 3,
+        "citation_quality": 2,
+        "overall": 2,
+        "explanation": "The agent correctly identifies the 85% minimum MLR threshold, the conditional nature of state election to impose minimums, the federal methodology under 42 CFR 438.8, and the requirement for states to enforce through contracts. The agent accurately notes it could not verify NC-specific implementation details, which is honest disclosure rather than hallucination. The answer covers the main federal framework well but is less complete on NC-specific implementation details (matching the reference answer's own limitations). The agent correctly explains calculation components (incurred claims, quality improvement, fraud prevention in numerator; adjusted premium revenue in denominator) and credibility adjustments. Citations reference 42 CFR Part 438 and \u00a7 438.8 specifically, though some subsection-level citations could be more precise. The answer slightly overstates by saying federal law does NOT set a mandatory floor - actually 42 CFR 438.8(a) requires all states to ensure MCOs calculate and report MLR, making reporting mandatory, while the minimum MLR percentage is only required if states elect to mandate one. The NC implementation section is appropriately hedged and accurate in its general statements about contract-based enforcement."
+      },
+      "judge_error": false,
+      "precision": 0.6666666666666666,
+      "recall": 0.6666666666666666,
+      "mrr": 0.6666666666666666,
+      "primary_hit": true
+    }
+  ]
+}

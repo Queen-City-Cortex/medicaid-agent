@@ -1,0 +1,58 @@
+{
+  "run_id": "2026-04-09T17:28:40",
+  "level": "answer",
+  "config": {
+    "embedding_model": "voyage-law-2",
+    "top_k": 10,
+    "dataset_count": 1,
+    "git_sha": "df5a5f9",
+    "judge_model": "claude-sonnet-4-6"
+  },
+  "aggregate": {
+    "precision_at_k": 0.6666666666666666,
+    "recall_at_k": 0.6666666666666666,
+    "mrr": 0.6666666666666666,
+    "primary_hit_rate": 1.0
+  },
+  "by_difficulty": {
+    "complex": {
+      "precision_at_k": 0.6666666666666666,
+      "recall_at_k": 0.6666666666666666,
+      "mrr": 0.6666666666666666,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "by_category": {
+    "cross_document": {
+      "precision_at_k": 0.6666666666666666,
+      "recall_at_k": 0.6666666666666666,
+      "mrr": 0.6666666666666666,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "per_question": [
+    {
+      "id": "q-021",
+      "difficulty": "complex",
+      "reasoning_type": "cross_document",
+      "question": "What medical loss ratio (MLR) must Medicaid managed care organizations meet under federal law, and how does NC implement this requirement?",
+      "agent_answer": "I\u2019m going to pull the federal MLR rule first, then find North Carolina\u2019s managed care implementation provisions and check for any amendments before answering.I found the core federal provision: 42 CFR 438.8 is the MLR standards rule. The NC-specific search was noisy, so I\u2019m going to target North Carolina managed care statutes/manual sections more directly and then read the full text of the federal rule.The federal text is clear that the minimum MLR, if the state mandates one, must be at least 85%. I still need NC\u2019s own implementation source, so I\u2019m shifting to North Carolina managed care statutes and contract-language proxies in the corpus.The NC policy corpus is not surfacing a clean state MLR manual section. I\u2019m going to use the federal managed care regulation as the legal floor and then look for NC statutory authority governing prepaid health plans and contract oversight, plus amendment status for what I cite.Under **federal Medicaid managed care law**, the key number is **85%**.\n\n## Federal requirement\n\n**42 CFR 438.8** says:\n\n- the **state must ensure, through its managed care contracts**, that each Medicaid **MCO, PIHP, and PAHP calculates and reports an MLR**; and\n- **if a state chooses to require a minimum MLR**, that minimum **\u201cmust be equal to or higher than 85 percent.\u201d**  \n  See **42 CFR Part 438, Section 438.8 \u2014 \u201cMedical loss ratio (MLR) standards\u201d** [42 CFR Part 438](https://www.ecfr.gov/current/title-42/part-438).\n\nThe same section also defines **how the MLR is calculated**: it is the ratio of a **numerator** to a **denominator**, with possible credibility adjustment. The retrieved text states that the numerator includes:\n- **incurred claims**,\n- **expenditures for activities that improve health care quality**, and\n- **fraud prevention activities**.  \nSee **42 CFR Part 438, Section 438.8 \u2014 \u201cMedical loss ratio (MLR) standards\u201d** [42 CFR Part 438](https://www.ecfr.gov/current/title-42/part-438).\n\nSo, in plain language: **federal law does not itself say every state must impose a minimum MLR above all else; it says that if the state imposes a minimum MLR in its Medicaid managed care contracts, that minimum cannot be below 85%.**\n\n## How North Carolina implements it\n\nThe federal rule makes implementation a **contracting and oversight obligation of the state**.\n\nThe strongest implementation text I retrieved is:\n\n- **42 CFR 438.3 \u2014 \u201cStandard contract requirements\u201d**, which requires **CMS review and approval of all MCO/PIHP/PAHP contracts**, and requires final capitation rates to be specifically identified in the contract.  \n  See **42 CFR Part 438, Section 438.3 \u2014 \u201cStandard contract requirements\u201d** [42 CFR Part 438](https://www.ecfr.gov/current/title-42/part-438).\n\n- **42 CFR 438.74 \u2014 \u201cState oversight of the minimum MLR requirement\u201d**, which says that when the state has a minimum MLR requirement, the state must **annually submit to CMS a summary** for each managed care plan that includes at least:\n  - the **numerator amount**,\n  - the **denominator amount**,\n  - the **MLR percentage achieved**,\n  - the **number of member months**, and\n  - **any remittances owed** for that reporting year.  \n  It also says that if the state requires plans to make **remittances** for failing to meet the minimum MLR, the state must **reimburse CMS for the federal share** of those remittances.  \n  See **42 CFR Part 438, Section 438.74 \u2014 \u201cState oversight of the minimum MLR requirement\u201d** [42 CFR Part 438](https://www.ecfr.gov/current/title-42/part-438).\n\n### Bottom line for NC\nBased on the policy text I retrieved, **North Carolina implements the MLR requirement through its prepaid health plan/managed care contracts and through annual reporting and remittance oversight to CMS**, consistent with **42 CFR Part 438**.\n\n## What I can say confidently from the retrieved texts\n\n- **Federal floor:** **85% minimum MLR**, if the state mandates a minimum.  \n- **Mechanism:** the requirement is implemented **through state contracts** with Medicaid managed care entities.  \n- **NC\u2019s implementation structure:** **contract-based plan obligations + state annual reporting to CMS + remittance handling if plans fall below the required minimum**.\n\n## What I could not confirm from this corpus\nI **did not retrieve a North Carolina-specific contract provision or state manual section** stating whether NC sets:\n- exactly **85%**, or\n- a **higher contractual target** for its PHPs.\n\nSo I can answer the legal framework, but I cannot responsibly give you an NC-specific percentage above 85% unless I retrieve the actual NC PHP contract or state-specific managed care authority text.\n\nIf you want, I can next dig specifically for the **North Carolina PHP contract language** to see whether NC uses **85% exactly** or a higher threshold in its contracts.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 2,
+        "completeness": 2,
+        "hallucination": 3,
+        "citation_quality": 3,
+        "overall": 2,
+        "explanation": "The agent correctly identifies 42 CFR 438.8 as the governing regulation, accurately states the 85% minimum MLR floor, correctly describes the numerator components (incurred claims, quality improvement activities, fraud prevention), and correctly explains that states implement this through contracts. The agent also correctly cites 42 CFR 438.74 on state oversight reporting. However, the agent slightly mischaracterizes the federal requirement - it frames the MLR as optional ('if a State elects to mandate'), when in fact states MUST require calculation and reporting under 42 CFR 438.8(a), with the 85% minimum applying when states choose to mandate a minimum threshold. The NC-specific implementation details are thin, honestly acknowledged as unconfirmed rather than fabricated. The agent does not hallucinate - it appropriately flags uncertainty about NC-specific percentages above 85%. Citation quality is strong with specific CFR section references. The answer is incomplete regarding NC's specific implementation but appropriately discloses this limitation rather than inventing details."
+      },
+      "judge_error": false,
+      "precision": 0.6666666666666666,
+      "recall": 0.6666666666666666,
+      "mrr": 0.6666666666666666,
+      "primary_hit": true
+    }
+  ]
+}

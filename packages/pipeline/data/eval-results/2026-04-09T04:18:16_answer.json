@@ -1,0 +1,58 @@
+{
+  "run_id": "2026-04-09T04:18:16",
+  "level": "answer",
+  "config": {
+    "embedding_model": "voyage-law-2",
+    "top_k": 10,
+    "dataset_count": 1,
+    "git_sha": "df5a5f9",
+    "judge_model": "claude-sonnet-4-6"
+  },
+  "aggregate": {
+    "precision_at_k": 0.3333333333333333,
+    "recall_at_k": 0.0,
+    "mrr": 0.0,
+    "primary_hit_rate": 0.0
+  },
+  "by_difficulty": {
+    "moderate": {
+      "precision_at_k": 0.3333333333333333,
+      "recall_at_k": 0.0,
+      "mrr": 0.0,
+      "primary_hit_rate": 0.0,
+      "count": 1
+    }
+  },
+  "by_category": {
+    "temporal": {
+      "precision_at_k": 0.3333333333333333,
+      "recall_at_k": 0.0,
+      "mrr": 0.0,
+      "primary_hit_rate": 0.0,
+      "count": 1
+    }
+  },
+  "per_question": [
+    {
+      "id": "q-020",
+      "difficulty": "moderate",
+      "reasoning_type": "temporal",
+      "question": "The Non-Emergency Medical Transportation (NEMT) policy has been amended multiple times. Which change notice is the most recent, and what did it change?",
+      "agent_answer": "I hit a connection error on the policy database, so I can\u2019t yet verify the latest NEMT change notice from the source documents. I\u2019ll try a more direct lookup approach next.The direct lookup also failed because the database connection is unavailable. Since I can\u2019t read the current policy graph, I can\u2019t responsibly identify the latest NEMT change notice or summarize what it changed from the official source.I can\u2019t verify that right now because the NC Medicaid policy database tool is currently unavailable.\n\n**What I can say reliably:**\n- I was **not able to access the source documents**, so I **cannot confirm** which NEMT change notice is the most recent.\n- I also **cannot safely summarize what it changed** without reading the actual amendment metadata or notice text.\n\n**Why I\u2019m stopping there:**\nYour question asks for the **latest change notice/date**, and my instructions require me to answer that from the policy corpus itself. Because the database connection failed, anything more specific would risk giving you the wrong notice.\n\n**Best next step**\nIf you want, send me:\n- the **policy number** for the NEMT manual/policy, or\n- a **list of the NEMT change notices** you have,\n\nand I can help you compare them. Or retry once the policy database connection is restored, and I can identify:\n1. the **most recent change notice**, and  \n2. whether the corpus shows a readable summary of **what it changed**.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 0,
+        "completeness": 0,
+        "hallucination": 3,
+        "citation_quality": 0,
+        "overall": 1,
+        "explanation": "The agent failed to retrieve any information from the policy database and provided no factual content about the NEMT change notices. It correctly identified Change No. 04-26 as the most recent change... wait, it did NOT identify this - it provided no specific facts at all. The agent scores 0 on factual accuracy and completeness because it gave no relevant policy information. However, it scores 3 on hallucination because it honestly disclosed its inability to access the database rather than fabricating information. It has no citations. Overall it gets a 1 (poor) because while intellectual honesty is commendable, the agent completely failed to answer the question, which is the primary purpose."
+      },
+      "judge_error": false,
+      "precision": 0.3333333333333333,
+      "recall": 0.0,
+      "mrr": 0.0,
+      "primary_hit": false
+    }
+  ]
+}

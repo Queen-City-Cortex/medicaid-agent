@@ -5,10 +5,10 @@ import re
 from rich.console import Console
 from rich.progress import track
 
-from pipeline.config import GRAPH_BATCH_SIZE
 from pipeline.graph.connection import get_session
+from pipeline.graph.corpus_types import ConceptLink
+from pipeline.graph.corpus_writer import graph_writer
 from pipeline.concepts.seed import SEED_CONCEPTS, slugify
-from pipeline.utils.batching import chunked
 
 console = Console()
 
@@ -88,24 +88,10 @@ def link_concepts() -> dict:
             if found:
                 edges_to_create.add((section_id, concept_id, rel_type))
 
-    # Batch write all edges
-    with get_session() as session:
-        for rel_type in ("COVERS", "DEFINES", "RESTRICTS"):
-            rel_edges = [
-                {"section_id": sid, "concept_id": cid}
-                for sid, cid, edge_rel_type in edges_to_create
-                if edge_rel_type == rel_type
-            ]
-            for batch in chunked(rel_edges, GRAPH_BATCH_SIZE):
-                session.run(
-                    f"""
-                    UNWIND $edges AS edge
-                    MATCH (s:Section {{id: edge.section_id}})
-                    MATCH (c:PolicyConcept {{id: edge.concept_id}})
-                    MERGE (s)-[:{rel_type}]->(c)
-                    """,
-                    {"edges": batch},
-                )
-            stats["edges_created"] += len(rel_edges)
+    concept_links = [
+        ConceptLink(section_id=sid, concept_id=cid, relationship_type=edge_rel_type)
+        for sid, cid, edge_rel_type in sorted(edges_to_create)
+    ]
+    stats["edges_created"] = graph_writer.merge_concept_links(concept_links)
 
     return stats

@@ -1,7 +1,14 @@
 """Test metric computation."""
 
 import pytest
-from pipeline.eval.metrics import precision_at_k, recall_at_k, mrr, primary_hit_rate, compare_runs
+from pipeline.eval.metrics import (
+    precision_at_k,
+    recall_at_k,
+    mrr,
+    primary_hit_rate,
+    compare_runs,
+    summarize_answer_stability,
+)
 
 
 class TestPrecisionAtK:
@@ -71,3 +78,91 @@ class TestCompareRuns:
         run_b = {"aggregate": {"precision_at_k": 0.78}}
         diff = compare_runs(run_a, run_b, threshold=0.05)
         assert not any(d.get("regression") for d in diff)
+
+
+class TestSummarizeAnswerStability:
+    def test_flags_stable_misses_and_variance(self):
+        runs = [
+            {
+                "run_id": "2026-04-11T05:55:38",
+                "level": "answer",
+                "per_question": [
+                    {
+                        "id": "q-001",
+                        "difficulty": "simple",
+                        "reasoning_type": "single_lookup",
+                        "route_lane": "baseline_hybrid",
+                        "route_widening_policy": "one_step",
+                        "scores": {"overall": 2, "explanation": "still incomplete"},
+                    },
+                    {
+                        "id": "q-002",
+                        "difficulty": "simple",
+                        "reasoning_type": "single_lookup",
+                        "route_lane": "baseline_hybrid",
+                        "route_widening_policy": "none",
+                        "scores": {"overall": 3, "explanation": "green"},
+                    },
+                ],
+            },
+            {
+                "run_id": "2026-04-11T05:40:42",
+                "level": "answer",
+                "per_question": [
+                    {
+                        "id": "q-001",
+                        "difficulty": "simple",
+                        "reasoning_type": "single_lookup",
+                        "route_lane": "baseline_hybrid",
+                        "route_widening_policy": "one_step",
+                        "scores": {"overall": 2, "explanation": "still incomplete"},
+                    },
+                    {
+                        "id": "q-002",
+                        "difficulty": "simple",
+                        "reasoning_type": "single_lookup",
+                        "route_lane": "baseline_hybrid",
+                        "route_widening_policy": "none",
+                        "scores": {"overall": 2, "explanation": "wobbled"},
+                    },
+                ],
+            },
+            {
+                "run_id": "2026-04-11T05:01:39",
+                "level": "answer",
+                "per_question": [
+                    {
+                        "id": "q-001",
+                        "difficulty": "simple",
+                        "reasoning_type": "single_lookup",
+                        "route_lane": "baseline_hybrid",
+                        "route_widening_policy": "one_step",
+                        "scores": {"overall": 3, "explanation": "green"},
+                    },
+                    {
+                        "id": "q-002",
+                        "difficulty": "simple",
+                        "reasoning_type": "single_lookup",
+                        "route_lane": "baseline_hybrid",
+                        "route_widening_policy": "none",
+                        "scores": {"overall": 3, "explanation": "green"},
+                    },
+                ],
+            },
+        ]
+
+        summary = summarize_answer_stability(runs)
+
+        q001 = next(question for question in summary["questions"] if question["id"] == "q-001")
+        q002 = next(question for question in summary["questions"] if question["id"] == "q-002")
+
+        assert q001["stable_miss"] is True
+        assert q001["miss_count"] == 2
+        assert q001["mean_overall"] == pytest.approx(7 / 3)
+        assert q001["latest_overall"] == 2
+
+        assert q002["stable_miss"] is False
+        assert q002["high_variance"] is True
+        assert q002["score_range"] == 1
+        assert summary["stable_miss_ids"] == ["q-001"]
+        assert summary["latest_miss_ids"] == ["q-001"]

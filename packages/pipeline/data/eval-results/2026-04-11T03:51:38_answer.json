@@ -1,0 +1,74 @@
+{
+  "run_id": "2026-04-11T03:51:38",
+  "level": "answer",
+  "config": {
+    "embedding_model": "voyage-law-2",
+    "top_k": 10,
+    "dataset_count": 1,
+    "git_sha": "df5a5f9",
+    "judge_model": "claude-sonnet-4-6"
+  },
+  "aggregate": {
+    "precision_at_k": 1.0,
+    "recall_at_k": 1.0,
+    "mrr": 1.0,
+    "primary_hit_rate": 1.0
+  },
+  "by_difficulty": {
+    "complex": {
+      "precision_at_k": 1.0,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "by_category": {
+    "cross_document": {
+      "precision_at_k": 1.0,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "per_question": [
+    {
+      "id": "q-021",
+      "difficulty": "complex",
+      "reasoning_type": "cross_document",
+      "question": "What medical loss ratio (MLR) must Medicaid managed care organizations meet under federal law, and how does NC implement this requirement?",
+      "agent_answer": "Under federal law, Medicaid managed care plans do **not automatically have a universal federal minimum MLR they must meet**. Instead, federal law requires states to make each MCO/PIHP/PAHP **calculate and report** its MLR, and **if** a state chooses to impose a minimum MLR, that state-set minimum must be **at least 85%**. North Carolina goes further: its managed care contract sets a **minimum MLR threshold of 88% in aggregate across all contracted PHPs**, with each PHP\u2019s threshold calculated based on its capitation revenue mix. [[42 CFR Part 438](https://www.ecfr.gov/current/title-42/part-438)] [[Contract--30-190029-DHB-Prepaid-Health-Plan-Services RFP](https://medicaid.ncdhhs.gov/contract-30-190029-dhb-prepaid-health-plan-services-rfp/download?attachment)]\n\n## Federal rule\n\n### 1) What federal law requires\nFor contracts starting on or after July 1, 2017, the state must ensure that each Medicaid MCO, PIHP, and PAHP **calculates and reports** an MLR under the federal methodology. [[42 CFR Part 438](https://www.ecfr.gov/current/title-42/part-438)]\n\n### 2) Minimum threshold under federal law\nFederal law says:\n\n- **If a state elects to mandate a minimum MLR**, that minimum must be **equal to or higher than 85%**. [[42 CFR Part 438](https://www.ecfr.gov/current/title-42/part-438)]\n- So **85% is the federal floor for any state-imposed minimum**, not a standalone nationwide minimum automatically imposed by the regulation itself. [[42 CFR Part 438](https://www.ecfr.gov/current/title-42/part-438)]\n\n### 3) How the federal MLR is calculated\nFederal law defines MLR as the ratio of:\n\n- **Numerator**: incurred claims + expenditures for activities that improve health care quality + fraud prevention activities. [[42 CFR Part 438](https://www.ecfr.gov/current/title-42/part-438)]\n- **Denominator**: adjusted premium revenue, with taxes and licensing/regulatory fees treated under the federal denominator rules. [[42 CFR Part 438](https://www.ecfr.gov/current/title-42/part-438)]\n\nThe federal regulation also specifies key inclusions/exclusions, including:\n\n- incurred claims include direct provider claims, unpaid claim liabilities, certain withholds, reserve changes, and some provider incentive/bonus payments tied to defined clinical or quality standards; [[42 CFR Part 438](https://www.ecfr.gov/current/title-42/part-438)]\n- incurred claims must deduct overpayment recoveries and prescription drug rebates; and [[42 CFR Part 438](https://www.ecfr.gov/current/title-42/part-438)]\n- non-claims administrative costs are excluded. [[42 CFR Part 438](https://www.ecfr.gov/current/title-42/part-438)]\n\nA plan\u2019s MLR may also be adjusted through a **credibility adjustment** under the federal rule. [[42 CFR Part 438](https://www.ecfr.gov/current/title-42/part-438)]\n\n### 4) Federal reporting and remittance oversight\nIf a state uses a minimum MLR requirement, the state must annually report to CMS, for each plan, at least:\n\n- numerator amount,\n- denominator amount,\n- MLR percentage,\n- member months, and\n- any remittances owed. [[42 CFR Part 438](https://www.ecfr.gov/current/title-42/part-438)]\n\nAnd if the state requires remittances for failing to meet the state\u2019s minimum MLR, the state must reimburse CMS for the federal share of the remittance. [[42 CFR Part 438](https://www.ecfr.gov/current/title-42/part-438)]\n\n## North Carolina implementation\n\nNorth Carolina implements the federal requirement in its PHP contract by requiring annual MLR calculation and reporting on **two bases**:\n\n1. a **CMS-defined MLR** under 42 C.F.R. \u00a7 438.8; and  \n2. a **Department-defined MLR** with North Carolina-specific adjustments. [[Contract--30-190029-DHB-Prepaid-Health-Plan-Services RFP](https://medicaid.ncdhhs.gov/contract-30-190029-dhb-prepaid-health-plan-services-rfp/download?attachment)]\n\n### 1) CMS-defined MLR in NC\nThe contract tracks the federal framework:\n\n- numerator = incurred claims + expenditures for activities that improve health care quality + the lesser of fraud reduction expenditures or fraud reduction recoveries; [[Contract--30-190029-DHB-Prepaid-Health-Plan-Services RFP](https://medicaid.ncdhhs.gov/contract-30-190029-dhb-prepaid-health-plan-services-rfp/download?attachment)]\n- denominator = premium revenue minus federal, state, and local taxes and licensing/regulatory fees. [[Contract--30-190029-DHB-Prepaid-Health-Plan-Services RFP](https://medicaid.ncdhhs.gov/contract-30-190029-dhb-prepaid-health-plan-services-rfp/download?attachment)]\n\n### 2) Department-defined MLR in NC\nNC then modifies that formula for its own contractual enforcement. The contract says the Department-defined numerator may include certain **voluntary contributions to health-related resources** that align with the Department\u2019s Quality Strategy and meet specified community-engagement and beneficiary-outcome conditions. [[Contract--30-190029-DHB-Prepaid-Health-Plan-Services RFP](https://medicaid.ncdhhs.gov/contract-30-190029-dhb-prepaid-health-plan-services-rfp/download?attachment)]\n\nBut NC excludes certain items from that numerator, including:\n\n- certain required additional directed provider payments reimbursed separately by the Department, and\n- payments to related providers that violate contractual payment limitations. [[Contract--30-190029-DHB-Prepaid-Health-Plan-Services RFP](https://medicaid.ncdhhs.gov/contract-30-190029-dhb-prepaid-health-plan-services-rfp/download?attachment)]\n\nThe Department-defined denominator is similarly adjusted to subtract Department reimbursements for certain required additional directed payments, along with associated taxes and fees. [[Contract--30-190029-DHB-Prepaid-Health-Plan-Services RFP](https://medicaid.ncdhhs.gov/contract-30-190029-dhb-prepaid-health-plan-services-rfp/download?attachment)]\n\n### 3) NC-specific exclusions and adjustments\nThe NC contract also states that for both CMS-defined and Department-defined MLR:\n\n- the Department reviews and approves the PHP\u2019s classification of quality-improvement activities;\n- the numerator must exclude, among other things, interest or penalty payments for prompt-pay failures;\n- the numerator must exclude non-claims costs under 42 C.F.R. \u00a7 438.8(e)(2)(v)(A), PBM fees and spread pricing, marketing/branding material, related-party administrative payments and margin, and administrative costs not allowed as HCQI, including corporate allocations; and\n- plans with fewer than **380,000 member months** must use a credibility adjustment as defined in 42 C.F.R. \u00a7 438.8(h)(1)-(3). [[Contract--30-190029-DHB-Prepaid-Health-Plan-Services RFP](https://medicaid.ncdhhs.gov/contract-30-190029-dhb-prepaid-health-plan-services-rfp/download?attachment)]\n\n### 4) NC\u2019s minimum threshold and consequence\nNorth Carolina\u2019s contract states:\n\n- the **minimum MLR threshold in aggregate across all contracted PHPs shall be exactly 88%**; and\n- if a PHP\u2019s **Department-defined MLR** is below the minimum threshold, the PHP must either:\n  - remit a rebate to the Department,\n  - make approved contributions to health-related resources, or\n  - split the obligation between the two. [[Contract--30-190029-DHB-Prepaid-Health-Plan-Services RFP](https://medicaid.ncdhhs.gov/contract-30-190029-dhb-prepaid-health-plan-services-rfp/download?attachment)]\n\n## Bottom line\n\n- **Federal law:** states must require Medicaid managed care plans to **calculate and report** MLR; if a state imposes a minimum, it must be **at least 85%**. [[42 CFR Part 438](https://www.ecfr.gov/current/title-42/part-438)]\n- **North Carolina:** NC contractually implements that framework and sets a stricter **88% minimum MLR threshold in aggregate across contracted PHPs**, enforced through rebates and/or approved health-related resource contributions when a PHP\u2019s Department-defined MLR falls short. [[Contract--30-190029-DHB-Prepaid-Health-Plan-Services RFP](https://medicaid.ncdhhs.gov/contract-30-190029-dhb-prepaid-health-plan-services-rfp/download?attachment)]\n\nAmendment status checked for both cited documents in the corpus: both were returned as the authoritative current documents for this answer.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 3,
+        "completeness": 3,
+        "hallucination": 3,
+        "citation_quality": 3,
+        "overall": 3,
+        "explanation": "The agent's answer is highly accurate and comprehensive. It correctly identifies that federal law (42 CFR 438.8) requires MLR calculation and reporting, that the 85% floor applies only when states elect to mandate a minimum MLR, and accurately describes the numerator/denominator calculation methodology including incurred claims components, quality improvement activities, fraud prevention, and credibility adjustments. The NC-specific implementation details (88% aggregate threshold, dual CMS-defined and Department-defined MLR calculations, remittance requirements) are specific and consistent with the evidence. Citations are precise, referencing 42 CFR Part 438 and the NC contract document. The answer goes beyond the reference answer in depth and detail while remaining accurate, and a Medicaid policy expert would find this thorough and reliable."
+      },
+      "judge_error": false,
+      "route_lane": "graph_reasoning",
+      "route_rationale": "federal_multi_hop",
+      "route_widening_policy": "family_expansion",
+      "route_determinism_hints": {
+        "numeric_evidence_only": false,
+        "latest_revision_only": false,
+        "cite_scope_and_not_covered": false
+      },
+      "route_authoritative_document": {
+        "id": "doc:federal_regulation:42-CFR-438",
+        "policy_number": "42-CFR-438",
+        "title": "42 CFR Part 438"
+      },
+      "route_widened": true,
+      "route_inspection_error": null,
+      "agent_elapsed_seconds": 40.082,
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "primary_hit": true
+    }
+  ]
+}

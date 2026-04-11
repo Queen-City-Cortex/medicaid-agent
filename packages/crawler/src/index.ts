@@ -3,6 +3,7 @@ import Database from 'better-sqlite3';
 import fs from 'node:fs';
 import path from 'node:path';
 import { config, SOURCE_TYPE_DIRS } from './config.js';
+import { MANIFEST_SOURCE_TYPES } from './corpus-manifest.js';
 import { initializeSchema } from './db/schema.js';
 import { createRegistry } from './db/registry.js';
 import { createFetcher } from './crawl/fetcher.js';
@@ -12,14 +13,7 @@ import { downloadDocument } from './crawl/downloader.js';
 import { logger } from './utils/logger.js';
 import type { SourceType } from './sources/types.js';
 
-const VALID_SOURCE_TYPES: SourceType[] = [
-  'clinical_policy',
-  'bulletin',
-  'state_plan_amendment',
-  'waiver',
-  'provider_manual',
-  'dhhs_policy',
-];
+const VALID_SOURCE_TYPES: SourceType[] = [...MANIFEST_SOURCE_TYPES];
 
 function initDb(): ReturnType<typeof createRegistry> & { close: () => void } {
   fs.mkdirSync(path.dirname(config.dbPath), { recursive: true });
@@ -82,6 +76,11 @@ program
       const src = config.sources[st as keyof typeof config.sources];
       if ('indexUrl' in src) {
         domains.add(new URL(src.indexUrl).hostname);
+      }
+      if ('landingPages' in src) {
+        for (const u of src.landingPages) {
+          domains.add(new URL(u).hostname);
+        }
       }
       if ('seedUrls' in src) {
         for (const u of src.seedUrls) {

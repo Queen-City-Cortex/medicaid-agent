@@ -1,0 +1,66 @@
+{
+  "run_id": "2026-04-10T03:46:23",
+  "level": "answer",
+  "config": {
+    "embedding_model": "voyage-law-2",
+    "top_k": 10,
+    "dataset_count": 1,
+    "git_sha": "df5a5f9",
+    "judge_model": "claude-sonnet-4-6"
+  },
+  "aggregate": {
+    "precision_at_k": 1.0,
+    "recall_at_k": 0.6666666666666666,
+    "mrr": 1.0,
+    "primary_hit_rate": 1.0
+  },
+  "by_difficulty": {
+    "moderate": {
+      "precision_at_k": 1.0,
+      "recall_at_k": 0.6666666666666666,
+      "mrr": 1.0,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "by_category": {
+    "single_lookup": {
+      "precision_at_k": 1.0,
+      "recall_at_k": 0.6666666666666666,
+      "mrr": 1.0,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "per_question": [
+    {
+      "id": "q-005",
+      "difficulty": "moderate",
+      "reasoning_type": "single_lookup",
+      "question": "Does NC Medicaid cover Personal Care Services for beneficiaries who live in an assisted living facility?",
+      "agent_answer": "Yes \u2014 NC Medicaid **can cover Personal Care Services (PCS) for a beneficiary who lives in an assisted living facility**, if the beneficiary meets the congregate-setting PCS eligibility criteria.\n\nUnder NC Medicaid\u2019s congregate PCS policy, coverage includes beneficiaries who reside in **\u201ca congregate facility licensed by the State of North Carolina as an Adult Care Home (ACH)\u201d** or certain licensed group homes, along with specified functional and medical-necessity criteria. That is the governing coverage rule for facility-based PCS. [State Plan Personal Care Services (PCS) Provided in Congregate Settings, \u00a7 3.2.1](https://medicaid.ncdhhs.gov/media/14986/download?attachment)\n\nBut coverage is **not automatic** just because the person lives in assisted living. PCS is not covered if, for example, the person does not meet the policy criteria, the initial independent assessment has not been completed, the service is provided somewhere other than the beneficiary\u2019s primary congregate living setting, the service exceeds the approved amount, or family/informal caregivers are regularly available to meet the need. [State Plan Personal Care Services (PCS) Provided in Congregate Settings, \u00a7 4.2](https://medicaid.ncdhhs.gov/media/14986/download?attachment); [State Plan Personal Care Services (PCS) Provided in Congregate Settings, \u00a7 4.1](https://medicaid.ncdhhs.gov/media/14986/download?attachment)\n\nTwo important limits:\n- The beneficiary must satisfy the functional eligibility rules in the congregate PCS policy, including required ADL assistance thresholds and other medical/stability criteria. [State Plan Personal Care Services (PCS) Provided in Congregate Settings, \u00a7 3.2.1](https://medicaid.ncdhhs.gov/media/14986/download?attachment)\n- **Room and board are not covered** as PCS. [State Plan Personal Care Services (PCS) Provided in Congregate Settings, \u00a7 4.2.1.2](https://medicaid.ncdhhs.gov/media/14986/download?attachment)\n\nIf you want, I can also answer the narrower follow-up: **what counts as an assisted living/adult care home for this policy, or what exact eligibility criteria a resident must meet to get PCS approved.**",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 3,
+        "completeness": 2,
+        "hallucination": 3,
+        "citation_quality": 3,
+        "overall": 3,
+        "explanation": "The agent's answer is factually accurate and well-aligned with the reference answer. It correctly identifies that NC Medicaid covers PCS in congregate/assisted living settings under a separate policy (Clinical Coverage Policy 3L-1 for congregate settings), cites the correct sections (3.2.1, 4.2, 4.2.1.2), accurately describes the Adult Care Home licensing requirement, notes that room and board are not covered, and explains that eligibility is not automatic. Citations are precise with specific section numbers and linked to the actual policy document. The answer loses a point on completeness for not fully detailing the specific ADL thresholds from section 3.2.1 (e.g., three of five qualifying ADLs with limited hands-on assistance, or two ADLs with extensive/full dependence assistance) and not explicitly mentioning the covered services enumerated in section 3.3. However, it does note that functional and medical-necessity criteria must be met and invites follow-up. No hallucinations are present \u2014 all claims are supported by the evidence. Overall, a Medicaid policy expert would find this a good, reliable answer."
+      },
+      "judge_error": false,
+      "route_lane": null,
+      "route_rationale": null,
+      "route_widening_policy": null,
+      "route_determinism_hints": null,
+      "route_authoritative_document": null,
+      "route_widened": false,
+      "route_inspection_error": "Route inspection error: Command '['npx', 'tsx', '-e', \"(async () => {\\n  const question = process.argv[1];\\n  const { policyCorpus } = await import('./src/policy-corpus.ts');\\n  const frame = await policyCorpus.resolveAnswerFrame({ query: question });\\n  const authoritative = frame.authoritativeDocuments[0] ?? null;\\n  console.log(JSON.stringify({\\n    route: frame.route,\\n    authoritative_document: authoritative\\n      ? {\\n          id: authoritative.id ?? null,\\n          policy_number: authoritative.policyNumber ?? null,\\n          title: authoritative.title ?? null,\\n        }\\n      : null,\\n  }));\\n})().catch((error) => {\\n  console.error(error);\\n  process.exit(1);\\n});\", 'Does NC Medicaid cover Personal Care Services for beneficiaries who live in an assisted living facility?']' timed out after 60 seconds",
+      "agent_elapsed_seconds": 28.738,
+      "precision": 1.0,
+      "recall": 0.6666666666666666,
+      "mrr": 1.0,
+      "primary_hit": true
+    }
+  ]
+}

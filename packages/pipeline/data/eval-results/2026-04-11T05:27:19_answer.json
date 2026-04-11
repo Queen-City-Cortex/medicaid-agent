@@ -1,0 +1,74 @@
+{
+  "run_id": "2026-04-11T05:27:19",
+  "level": "answer",
+  "config": {
+    "embedding_model": "voyage-law-2",
+    "top_k": 10,
+    "dataset_count": 1,
+    "git_sha": "df5a5f9",
+    "judge_model": "claude-sonnet-4-6"
+  },
+  "aggregate": {
+    "precision_at_k": 1.0,
+    "recall_at_k": 1.0,
+    "mrr": 1.0,
+    "primary_hit_rate": 1.0
+  },
+  "by_difficulty": {
+    "simple": {
+      "precision_at_k": 1.0,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "by_category": {
+    "single_lookup": {
+      "precision_at_k": 1.0,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "per_question": [
+    {
+      "id": "q-001",
+      "difficulty": "simple",
+      "reasoning_type": "single_lookup",
+      "question": "What are the general eligibility criteria for CAP/DA services under NC Medicaid?",
+      "agent_answer": "Under NC Medicaid, the **general eligibility criteria for CAP/DA services** are that the person must first be a **current NC Medicaid beneficiary**, and then must meet both the policy\u2019s **general coverage standards** and the **CAP/DA-specific waiver criteria**. The current CAP/DA clinical policy is effective **September 1, 2025**. [Community Alternatives Program for Disabled Adults (CAP/DA)](https://medicaid.ncdhhs.gov/3k-2-community-alternatives-program-disabled-adults-capda/download?attachment)\n\n## 1) Basic Medicaid eligibility\nA beneficiary must be **enrolled in NC Medicaid**. The policy also notes that a beneficiary\u2019s **eligibility category may carry service restrictions** that can make the person ineligible for CAP/DA services. [Community Alternatives Program for Disabled Adults (CAP/DA)](https://medicaid.ncdhhs.gov/3k-2-community-alternatives-program-disabled-adults-capda/download?attachment) \u00a7 2.1.1\n\n## 2) General coverage standards\nCAP/DA services must satisfy NC Medicaid\u2019s general \u201ccovered\u201d criteria. In general, the service must be:\n\n- **individualized, specific, and consistent** with the person\u2019s symptoms or confirmed diagnosis, and **not more than the person needs**;\n- able to be **safely furnished**, with **no equally effective and more conservative or less costly treatment available statewide**; and\n- provided in a way **not primarily for the convenience** of the beneficiary, the caregiver, or the provider. [Community Alternatives Program for Disabled Adults (CAP/DA)](https://medicaid.ncdhhs.gov/3k-2-community-alternatives-program-disabled-adults-capda/download?attachment) \u00a7 3.1\n\n## 3) CAP/DA-specific eligibility criteria\nMedicaid covers CAP/DA when the beneficiary also meets these specific criteria:\n\n- **Meets the required HCBS nursing facility level of care (LOC)** as determined by NC Medicaid, and needs long-term care support at a level typically provided in an institution, related to a documented medical diagnosis and functional care need, **assessed quarterly**;\n- a completed **CAP assessment** shows a **reasonable indication** the person will need at least one CAP/DA HCBS service within **30 calendar days** of the evaluation;\n- has a **signed service plan** authorizing one or more waiver services to be provided monthly, to help prevent institutionalization through coordinated case management;\n- or has a signed service plan authorizing short-term **equipment, modification, or technology** needed to return to or remain in the primary private residence and prevent institutional placement, with installation completed within **three calendar months** of service plan approval;\n- is **able to maintain health, safety, and well-being** at the primary private residence or another approved location using both **formal and informal supports**;\n- the person\u2019s **paid care needs can be maintained within the average institutional cost** of the CAP/DA waiver;\n- has a **primary physician** who can link and coordinate medical services; and\n- has an **emergency back-up and disaster plan** identifying who will provide care when key staff or a primary caregiver cannot do so, including during public health emergencies. [Community Alternatives Program for Disabled Adults (CAP/DA)](https://medicaid.ncdhhs.gov/3k-2-community-alternatives-program-disabled-adults-capda/download?attachment) \u00a7 3.2.1\n\n## 4) Age/scope point\nThe policy materials surfaced for this question indicate CAP/DA case-management entity requirements include experience serving **adults age 18 and older**, which is consistent with CAP/DA being the program for disabled adults. [Community Alternatives Program for Disabled Adults (CAP/DA)](https://medicaid.ncdhhs.gov/3k-2-community-alternatives-program-disabled-adults-capda/download?attachment) \u00a7 6.4.1\n\n## Bottom line\nA person is generally eligible for CAP/DA services if they:\n\n1. are **enrolled in NC Medicaid** and not barred by their eligibility category;\n2. need services that meet NC Medicaid\u2019s general coverage standards;\n3. meet the **HCBS nursing facility level of care** and other waiver-specific CAP/DA requirements; and\n4. can be safely maintained in the community with an approved service plan and available supports.  \n\nIf you want, I can also give you the **short advocate version** of this answer or break out the **reasons CAP/DA can be denied even when someone has Medicaid**.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 3,
+        "completeness": 3,
+        "hallucination": 3,
+        "citation_quality": 3,
+        "overall": 3,
+        "explanation": "The agent's answer accurately captures all key eligibility criteria from the reference and evidence sections, including Medicaid enrollment requirement, general coverage standards (\u00a73.1), and all CAP/DA-specific criteria (\u00a73.2.1) such as HCBS nursing facility LOC, CAP assessment, signed service plan, health/safety maintenance, cost containment, primary physician, and emergency backup plan. The age 18+ requirement is correctly noted. The answer cites specific policy sections (\u00a72.1.1, \u00a73.1, \u00a73.2.1, \u00a76.4.1) with direct links to the source document. No hallucinated facts are present - all claims align with the evidence sections provided. The answer is comprehensive and well-structured, going beyond the reference answer to include the detailed specific criteria from the policy, which a Medicaid policy expert would find valuable and accurate."
+      },
+      "judge_error": false,
+      "route_lane": "baseline_hybrid",
+      "route_rationale": "single_document_coverage",
+      "route_widening_policy": "one_step",
+      "route_determinism_hints": {
+        "numeric_evidence_only": false,
+        "latest_revision_only": false,
+        "cite_scope_and_not_covered": false
+      },
+      "route_authoritative_document": {
+        "id": "doc:clinical_policy:3K-2",
+        "policy_number": "3K-2",
+        "title": "Community Alternatives Program for Disabled Adults (CAP/DA)"
+      },
+      "route_widened": true,
+      "route_inspection_error": null,
+      "agent_elapsed_seconds": 28.419,
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "primary_hit": true
+    }
+  ]
+}

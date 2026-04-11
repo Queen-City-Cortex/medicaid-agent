@@ -1,0 +1,58 @@
+{
+  "run_id": "2026-04-09T05:13:09",
+  "level": "answer",
+  "config": {
+    "embedding_model": "voyage-law-2",
+    "top_k": 10,
+    "dataset_count": 1,
+    "git_sha": "df5a5f9",
+    "judge_model": "claude-sonnet-4-6"
+  },
+  "aggregate": {
+    "precision_at_k": 1.0,
+    "recall_at_k": 1.0,
+    "mrr": 1.0,
+    "primary_hit_rate": 1.0
+  },
+  "by_difficulty": {
+    "moderate": {
+      "precision_at_k": 1.0,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "by_category": {
+    "temporal": {
+      "precision_at_k": 1.0,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "per_question": [
+    {
+      "id": "q-020",
+      "difficulty": "moderate",
+      "reasoning_type": "temporal",
+      "question": "The Non-Emergency Medical Transportation (NEMT) policy has been amended multiple times. Which change notice is the most recent, and what did it change?",
+      "agent_answer": "I found several NEMT-related change notices, including two entries labeled Manual No. 02-26 and older notices like 04-22 and 05-22. Next I\u2019m going to identify the actual NEMT manual/policy document and check its amendment history so I can determine the most recent authoritative change notice.The main NEMT manual appears to be **DHHS Policy MA-3550**. I\u2019m now pulling the document record and amendment history, because the current manual\u2019s own revision header controls the \u201cmost recent change\u201d answer if it differs from standalone notice titles.The amendment tool only surfaced older notices through 2022, but the current MA-3550 manual itself is stamped **\u201cREVISED 03/16/2026 \u2013 CHANGE NO. 04-26.\u201d** Per the revision-header rule, that is the most recent change marker. I\u2019m now reading that header and the available 2026 change-notice entries to see whether the corpus actually contains a reliable description of what 04-26 changed.**Most recent change notice:** the current NEMT manual, **DHHS Policy MA-3550**, is stamped **\u201cRevised 03/16/2026 \u2013 Change No. 04-26.\u201d** Under the policy corpus rules, that **current manual revision header is the controlling source for recency**, even though the amendment tool only surfaced older standalone notices through 2022. See **DHHS Policy MA-3550 \u2014 \u201cRevised 03/16/2026 \u2013 Change No. 04-26\u201d**: [MA-3550 NON-EMERGENCY MEDICAL TRANSPORTATION (NEMT)](https://policies.ncdhhs.gov/wp-content/uploads/MA-3550-.pdf).\n\n**What it changed:** I **could not reliably determine from this corpus what Change No. 04-26 changed.** The graph shows the 2026 revision marker in the current MA-3550 manual, but the available 2026 change-notice entries I found were **\u201cChange Notice for Manual No. 02-26\u201d** and their bodies are blank/title-only in the database, so I can\u2019t safely summarize the substantive edits without guessing. See:\n- **Change Notice for Manual No. 02-26, Non-Emergency Medical Transportation (NEMT)**: [CN-02-26-abd](https://policies.ncdhhs.gov/wp-content/uploads/CN-02-26-abd.pdf)\n- **Change Notice for Manual No. 02-26, Non-Emergency Medical Transportation (NEMT)**: [CN-02-26-fc](https://policies.ncdhhs.gov/wp-content/uploads/CN-02-26-fc.pdf)\n\n**Secondary history:** the most recent **readable** amendment I could confirm is **Change Notice No. 04-22**, effective **01/01/2022**. Its change summary says it:\n- reorganized **MA-3550.VIII, Determining Need for Transportation Services**;\n- updated language;\n- added subsections to make topics easier to find; and\n- moved information about failure to complete the assessment from subsection A to new subsection E.  \nCitation: **Change Notice for Manual No. 04-22, MA-3550 Non-Emergency Medical Transportation (NEMT)**: [CHANGE NOTICE FOR MANUAL NO. 04-22, Non-Emergency Medical Transportation (NEMT)](https://policies.ncdhhs.gov/wp-content/uploads/cn-04-22.pdf)\n\nSo the short answer is:\n\n- **Latest change marker:** **Change No. 04-26 (revised 03/16/2026)**\n- **Substance of that latest change:** **not reliably available in this corpus**\n- **Latest amendment with readable change description:** **Change Notice No. 04-22 (effective 01/01/2022)**\n\nIf you want, I can next give you a **full amendment timeline for MA-3550/NEMT** with each notice and its summarized changes.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 3,
+        "completeness": 3,
+        "hallucination": 2,
+        "citation_quality": 3,
+        "overall": 3,
+        "explanation": "The agent correctly identifies Change No. 04-26 (03/16/2026) as the most recent NEMT amendment, matching the reference answer exactly. It also correctly notes that the substance of 04-26 cannot be reliably determined from the corpus, which aligns with the reference. The agent provides specific citations including the MA-3550 PDF URL and change notice URLs. Minor concern: the agent presents detailed information about Change Notice 04-22 (reorganization of MA-3550.VIII, subsection changes) as fact - this may be accurate but isn't verified by the reference evidence provided. However, these claims are presented as 'the most recent readable amendment' rather than the answer to the primary question, and they appear to be drawn from actual corpus documents. The agent's transparency about corpus limitations and its distinction between the revision header and available change descriptions is exemplary and matches the reference answer's approach."
+      },
+      "judge_error": false,
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "primary_hit": true
+    }
+  ]
+}

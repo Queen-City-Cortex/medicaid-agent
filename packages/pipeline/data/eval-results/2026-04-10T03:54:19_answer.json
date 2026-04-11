@@ -1,0 +1,74 @@
+{
+  "run_id": "2026-04-10T03:54:19",
+  "level": "answer",
+  "config": {
+    "embedding_model": "voyage-law-2",
+    "top_k": 10,
+    "dataset_count": 1,
+    "git_sha": "df5a5f9",
+    "judge_model": "claude-sonnet-4-6"
+  },
+  "aggregate": {
+    "precision_at_k": 1.0,
+    "recall_at_k": 0.6666666666666666,
+    "mrr": 1.0,
+    "primary_hit_rate": 1.0
+  },
+  "by_difficulty": {
+    "complex": {
+      "precision_at_k": 1.0,
+      "recall_at_k": 0.6666666666666666,
+      "mrr": 1.0,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "by_category": {
+    "cross_document": {
+      "precision_at_k": 1.0,
+      "recall_at_k": 0.6666666666666666,
+      "mrr": 1.0,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "per_question": [
+    {
+      "id": "q-021",
+      "difficulty": "complex",
+      "reasoning_type": "cross_document",
+      "question": "What medical loss ratio (MLR) must Medicaid managed care organizations meet under federal law, and how does NC implement this requirement?",
+      "agent_answer": "Under federal law, Medicaid managed care plans do **not automatically have to meet a fixed minimum MLR**. The federal rule requires states to ensure that each MCO, PIHP, and PAHP **calculates and reports** its MLR. If a state chooses to impose a minimum MLR, that minimum must be **at least 85%**. NC\u2019s implementation evidence I could verify shows the state incorporates the federal reporting/remittance framework and assures CMS that, if it requires remittances for failing the minimum MLR, it will return the federal share and report that methodology to CMS. [42 CFR Part 438, \u00a7 438.8](https://www.ecfr.gov/current/title-42/part-438); [42 CFR Part 438, \u00a7 438.74](https://www.ecfr.gov/current/title-42/part-438); [SPA 22-0013 Proposed Amendments CHIP-Managed Care, \u00a7 3.3](https://medicaid.ncdhhs.gov/22-0013-proposed-amendment-chip-managed-care/download?attachment)\n\n## Federal rule\n\n### 1) What federal law requires\n42 C.F.R. \u00a7 438.8 says the state must ensure, through its managed care contracts, that each MCO, PIHP, and PAHP **calculates and reports an MLR** according to the regulation. That reporting duty applies even apart from any minimum threshold. [42 CFR Part 438, \u00a7 438.8(a)](https://www.ecfr.gov/current/title-42/part-438)\n\n### 2) Minimum threshold\nThe same section makes the minimum-threshold rule conditional: **if a state elects to mandate a minimum MLR**, the minimum must be **\u201cequal to or higher than 85 percent.\u201d** [42 CFR Part 438, \u00a7 438.8(c)](https://www.ecfr.gov/current/title-42/part-438)\n\nSo the federal answer is:\n\n- **Mandatory federal floor only if the state chooses to impose one**\n- When imposed, it must be **at least 85%**\n- Regardless, plans must **calculate and report** the MLR annually under the federal formula [42 CFR Part 438, \u00a7 438.8](https://www.ecfr.gov/current/title-42/part-438)\n\n### 3) Oversight and remittances\nIf a state requires remittances when a plan fails the state\u2019s minimum MLR, the state must annually submit to CMS a summary including the MLR percentage achieved and any remittances owed. If remittances are collected, the state must reimburse CMS for the federal share. [42 CFR Part 438, \u00a7 438.74](https://www.ecfr.gov/current/title-42/part-438)\n\n## NC implementation\n\nThe NC-specific implementation text I could verify is in **SPA 22-0013**, which states in section 3.3 that North Carolina assures CMS that:\n\n- its rates are designed to reasonably achieve a medical loss ratio; and\n- if an MCO, PIHP, or PAHP owes a remittance for not meeting the minimum MLR required by the state, NC will:\n  - reimburse CMS for the federal share of the remittance, and\n  - submit a separate report describing the methodology used to determine the state and federal share with the annual report summarizing plan reports. [SPA 22-0013 Proposed Amendments CHIP-Managed Care, \u00a7 3.3](https://medicaid.ncdhhs.gov/22-0013-proposed-amendment-chip-managed-care/download?attachment)\n\nThat NC evidence matches the federal oversight rule in \u00a7 438.74. [42 CFR Part 438, \u00a7 438.74](https://www.ecfr.gov/current/title-42/part-438)\n\n## Bottom line\n\n- **Federal law:** plans must **calculate and report** MLR; a **minimum MLR is optional for the state**, but if imposed it must be **at least 85%**. [42 CFR Part 438, \u00a7 438.8](https://www.ecfr.gov/current/title-42/part-438)\n- **North Carolina:** the materials I verified show NC has adopted the federal reporting/remittance structure and assures CMS it will handle remittances and federal-share repayment consistent with federal law. [SPA 22-0013 Proposed Amendments CHIP-Managed Care, \u00a7 3.3](https://medicaid.ncdhhs.gov/22-0013-proposed-amendment-chip-managed-care/download?attachment)\n\n## Current-status note\n\nI checked amendment history for both cited documents in the policy corpus, and the authoritative documents returned were:\n- [42 CFR Part 438](https://www.ecfr.gov/current/title-42/part-438)\n- [SPA 22-0013 Proposed Amendments CHIP-Managed Care](https://medicaid.ncdhhs.gov/22-0013-proposed-amendment-chip-managed-care/download?attachment)\n\nIf you want, I can next look for the **specific NC managed care contract language** showing whether NC currently requires an 85% minimum MLR for Medicaid MCOs in practice, as opposed to the SPA assurance/remittance framework.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 3,
+        "completeness": 2,
+        "hallucination": 3,
+        "citation_quality": 3,
+        "overall": 3,
+        "explanation": "The agent's answer is factually accurate and well-structured. It correctly identifies that: (1) all MCOs must calculate and report MLR under 42 CFR 438.8(a); (2) the 85% minimum is conditional on state election per 438.8(c); (3) remittance requirements under 438.74; and (4) NC's implementation via SPA 22-0013. The agent correctly clarifies the nuance that the 85% floor is not automatically mandatory federally - states must elect to impose it, which is technically accurate and supported by the evidence. Citations are precise at the section level. The answer is slightly incomplete regarding NC's specific implementation details (the reference answer notes NC monitors compliance through reporting requirements, and the agent acknowledges it could not fully verify NC's current contract language requiring the 85% minimum). The agent transparently flags what it could and could not verify about NC implementation, which is honest rather than hallucinated. The answer would be well-received by a Medicaid policy expert as accurate and appropriately nuanced."
+      },
+      "judge_error": false,
+      "route_lane": "graph_reasoning",
+      "route_rationale": "federal_multi_hop",
+      "route_widening_policy": "family_expansion",
+      "route_determinism_hints": {
+        "numeric_evidence_only": false,
+        "latest_revision_only": false,
+        "cite_scope_and_not_covered": false
+      },
+      "route_authoritative_document": {
+        "id": "doc:federal_regulation:42-CFR-438",
+        "policy_number": "42-CFR-438",
+        "title": "42 CFR Part 438"
+      },
+      "route_widened": true,
+      "route_inspection_error": null,
+      "agent_elapsed_seconds": 29.407,
+      "precision": 1.0,
+      "recall": 0.6666666666666666,
+      "mrr": 1.0,
+      "primary_hit": true
+    }
+  ]
+}

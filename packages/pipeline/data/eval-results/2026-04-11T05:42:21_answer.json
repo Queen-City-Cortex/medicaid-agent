@@ -1,0 +1,74 @@
+{
+  "run_id": "2026-04-11T05:42:21",
+  "level": "answer",
+  "config": {
+    "embedding_model": "voyage-law-2",
+    "top_k": 10,
+    "dataset_count": 1,
+    "git_sha": "df5a5f9",
+    "judge_model": "claude-sonnet-4-6"
+  },
+  "aggregate": {
+    "precision_at_k": 1.0,
+    "recall_at_k": 1.0,
+    "mrr": 1.0,
+    "primary_hit_rate": 1.0
+  },
+  "by_difficulty": {
+    "moderate": {
+      "precision_at_k": 1.0,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "by_category": {
+    "multi_hop": {
+      "precision_at_k": 1.0,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "per_question": [
+    {
+      "id": "q-018",
+      "difficulty": "moderate",
+      "reasoning_type": "multi_hop",
+      "question": "Are there quantity limits on prescription drugs under NC Medicaid, and when is prior authorization required for pharmacy claims?",
+      "agent_answer": "Yes. Under **NC Medicaid Clinical Coverage Policy 9**, NC Medicaid may impose **quantity limitations for episodic drugs**. The surfaced policy text says this in the section on **\u201cQuantity and Episodic Drugs,\u201d** which also addresses **prior authorization criteria and requirements**. The surfaced evidence does **not** give specific current numeric quantity limits, so I cannot verify dollar amounts, day-supply numbers, or other exact thresholds from the text retrieved here. [Lock-in Program](https://medicaid.ncdhhs.gov/9-outpatient-pharmacy-program/download?attachment) (Policy 9, \u00a7 5.4; \u00a7 5.4.3, effective 2024-07-15; current authoritative document per amendment check)\n\n## When prior authorization is required for pharmacy claims\n\nPrior authorization is required for the **drugs or drug categories listed in NC Medicaid\u2019s pharmacy prior-approval criteria**. In the surfaced Policy 9 material, the **\u201cPharmacy Prior Approval Drugs and Criteria\u201d** section lists the products/categories subject to prior approval, and **Attachment K** is identified as **\u201cPharmacy Prior Approval Criteria.\u201d** [Lock-in Program](https://medicaid.ncdhhs.gov/9-outpatient-pharmacy-program/download?attachment) (Policy 9, \u201cPharmacy Prior Approval Drugs and Criteria\u201d; Attachment K, effective 2024-07-15; current authoritative document per amendment check)\n\nExamples named in the surfaced prior-approval list include:\n- GLP-1 receptor agonists and combinations\n- Growth hormones\n- Hepatitis C medications\n- Opioid analgesics\n- PCSK9 inhibitors\n- Triptans\n- Synagis\n- Therapeutic continuous glucose monitoring systems (CGM) and related supplies\n- Various named drugs and specialty categories such as Aduhelm, Camzyos, Epidiolex, Evrysdi, Lequembi, and Zolgensma  \n[Lock-in Program](https://medicaid.ncdhhs.gov/9-outpatient-pharmacy-program/download?attachment) (Policy 9, \u201cPharmacy Prior Approval Drugs and Criteria,\u201d effective 2024-07-15; current authoritative document per amendment check)\n\n## Bottom line\n\n- **Quantity limits:** **Yes**, NC Medicaid may apply quantity limits for episodic drugs. [Lock-in Program](https://medicaid.ncdhhs.gov/9-outpatient-pharmacy-program/download?attachment) (Policy 9, \u00a7 5.4.3)\n- **Prior authorization:** Required when the claim is for a drug/category included in NC Medicaid\u2019s **pharmacy prior-approval criteria**. [Lock-in Program](https://medicaid.ncdhhs.gov/9-outpatient-pharmacy-program/download?attachment) (Policy 9, \u201cPharmacy Prior Approval Drugs and Criteria\u201d; Attachment K)\n\nIf you want, I can next help identify whether a **specific medication** is on NC Medicaid\u2019s prior-approval list.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 3,
+        "completeness": 3,
+        "hallucination": 3,
+        "citation_quality": 3,
+        "overall": 3,
+        "explanation": "The agent's answer accurately covers both key aspects of the question: quantity limits (referencing Section 5.4.3 and episodic drug limits) and prior authorization requirements (referencing Attachment K and the Pharmacy Prior Approval Drugs and Criteria section). The agent provides a substantial list of specific drug categories requiring prior authorization that aligns well with the evidence sections. Citations are precise, referencing specific policy sections (\u00a75.4.3, Attachment K, effective dates). The agent appropriately acknowledges it cannot confirm specific numeric thresholds, which is honest disclosure rather than hallucination. The prior approval drug list provided is largely accurate and drawn from the evidence, though not exhaustive - but the agent doesn't claim it is exhaustive. The link text '[Lock-in Program]' appears to be a display artifact but the underlying citations are valid. No material hallucinations are present."
+      },
+      "judge_error": false,
+      "route_lane": "deterministic_evidence",
+      "route_rationale": "numeric_thresholds",
+      "route_widening_policy": "one_step",
+      "route_determinism_hints": {
+        "numeric_evidence_only": true,
+        "latest_revision_only": false,
+        "cite_scope_and_not_covered": false
+      },
+      "route_authoritative_document": {
+        "id": "doc:clinical_policy:9",
+        "policy_number": "9",
+        "title": "Lock-in Program"
+      },
+      "route_widened": true,
+      "route_inspection_error": null,
+      "agent_elapsed_seconds": 24.429,
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "primary_hit": true
+    }
+  ]
+}

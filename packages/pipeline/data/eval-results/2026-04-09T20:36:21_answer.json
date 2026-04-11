@@ -1,0 +1,58 @@
+{
+  "run_id": "2026-04-09T20:36:21",
+  "level": "answer",
+  "config": {
+    "embedding_model": "voyage-law-2",
+    "top_k": 10,
+    "dataset_count": 1,
+    "git_sha": "df5a5f9",
+    "judge_model": "claude-sonnet-4-6"
+  },
+  "aggregate": {
+    "precision_at_k": 1.0,
+    "recall_at_k": 1.0,
+    "mrr": 1.0,
+    "primary_hit_rate": 1.0
+  },
+  "by_difficulty": {
+    "moderate": {
+      "precision_at_k": 1.0,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "by_category": {
+    "single_lookup": {
+      "precision_at_k": 1.0,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "per_question": [
+    {
+      "id": "q-013",
+      "difficulty": "moderate",
+      "reasoning_type": "single_lookup",
+      "question": "If a Private Duty Nursing provider terminates services for a Medicaid beneficiary, what notification requirements must they follow?",
+      "agent_answer": "I found a directly on-point section in the Private Duty Nursing clinical policy for adults and confirmed, via the amendments lookup, that this document is the authoritative current source in the corpus. Next I\u2019ll answer from that section only, since it squarely addresses provider termination/discharge notification.Under NC Medicaid\u2019s Private Duty Nursing policy, if the **PDN provider discharges/terminates services**, the provider must notify **NC Medicaid within 5 business days**.\n\n### Required notification\n- **If the PDN provider discharges the beneficiary:**  \n  The provider must **submit the DMA-3513 (PDN Discharge Summary Form) to NC Medicaid within five (5) business days**.  \n  [3G-1 Private Duty Nursing for Beneficiaries Age 21 and Older](https://medicaid.ncdhhs.gov/3g-1-private-duty-nursing-beneficiaries-age-21-and-older/download?attachment), \u00a7 5.2.4.1.\n\n- **If the provider discharges the beneficiary because another source of nursing coverage is available:**  \n  The provider must **notify NC Medicaid and submit the DMA-3513 within five (5) business days**. The notice must include:\n  - **the last date PDN services were provided and billable to Medicaid**, and\n  - **the name of the other source of coverage**.  \n  [3G-1 Private Duty Nursing for Beneficiaries Age 21 and Older](https://medicaid.ncdhhs.gov/3g-1-private-duty-nursing-beneficiaries-age-21-and-older/download?attachment), \u00a7 5.2.4.1.\n\n- **If the attending physician, rather than the provider, discharges the beneficiary:**  \n  The PDN provider must send NC Medicaid, **within five (5) business days**, both:\n  - **the attending physician\u2019s order terminating PDN services**, and\n  - **the DMA-3513 (PDN Discharge Summary Form)**.  \n  [3G-1 Private Duty Nursing for Beneficiaries Age 21 and Older](https://medicaid.ncdhhs.gov/3g-1-private-duty-nursing-beneficiaries-age-21-and-older/download?attachment), \u00a7 5.2.4.1.\n\n### Related rule after termination\nIf termination happens because the beneficiary **loses NC Medicaid eligibility**, or if **no PDN services are provided for 30 consecutive days** for any reason, including hospitalization, **the prior approval process must be started again**.  \n[3G-1 Private Duty Nursing for Beneficiaries Age 21 and Older](https://medicaid.ncdhhs.gov/3g-1-private-duty-nursing-beneficiaries-age-21-and-older/download?attachment), \u00a7 5.2.4.1.\n\n### Appeal point\nThe policy also says that **a decision by the attending physician and/or the PDN provider to discharge the beneficiary cannot be appealed to NC Medicaid**.  \nBut if **NC Medicaid** terminates PDN because eligibility, policy criteria, or medical necessity is not met, **NC Medicaid (or its designee) must give written adverse-notice with appeal-rights information to the beneficiary/legal representative**.  \n[3G-1 Private Duty Nursing for Beneficiaries Age 21 and Older](https://medicaid.ncdhhs.gov/3g-1-private-duty-nursing-beneficiaries-age-21-and-older/download?attachment), \u00a7 5.2.4.1.\n\nI checked amendments for 3G-1, and the corpus shows **no amending change notice**, with **3G-1** as the authoritative current document.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 3,
+        "completeness": 3,
+        "hallucination": 3,
+        "citation_quality": 3,
+        "overall": 3,
+        "explanation": "The agent's answer is comprehensive and accurate, covering all scenarios in section 5.2.4.1: provider-initiated discharge, discharge due to other coverage source, physician-initiated discharge, the 30-day/eligibility loss rule, and the appeal limitations. All facts align precisely with the reference evidence. No hallucinations are present - every claim matches the policy text. Citations are precise, referencing the specific policy document and section (\u00a7 5.2.4.1) consistently. The answer actually exceeds the reference answer in completeness by including the physician-discharge scenario, the 30-consecutive-day rule, and the NC Medicaid termination/appeal rights provisions, all of which are supported by the evidence sections provided."
+      },
+      "judge_error": false,
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "primary_hit": true
+    }
+  ]
+}

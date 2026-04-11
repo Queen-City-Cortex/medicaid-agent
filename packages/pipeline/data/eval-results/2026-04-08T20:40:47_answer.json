@@ -1,0 +1,58 @@
+{
+  "run_id": "2026-04-08T20:40:47",
+  "level": "answer",
+  "config": {
+    "embedding_model": "voyage-law-2",
+    "top_k": 10,
+    "dataset_count": 1,
+    "git_sha": "df5a5f9",
+    "judge_model": "claude-sonnet-4-6"
+  },
+  "aggregate": {
+    "precision_at_k": 1.0,
+    "recall_at_k": 1.0,
+    "mrr": 1.0,
+    "primary_hit_rate": 1.0
+  },
+  "by_difficulty": {
+    "moderate": {
+      "precision_at_k": 1.0,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "by_category": {
+    "single_lookup": {
+      "precision_at_k": 1.0,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "per_question": [
+    {
+      "id": "q-005",
+      "difficulty": "moderate",
+      "reasoning_type": "single_lookup",
+      "question": "Does NC Medicaid cover Personal Care Services for beneficiaries who live in an assisted living facility?",
+      "agent_answer": "I found the congregate-settings PCS policy right away: Clinical Coverage Policy **3L-1** appears to govern PCS in assisted living and similar facilities. Next I\u2019m pulling the scope and coverage sections, and I\u2019ll also check whether there are amendments so I can cite the current authority.The full text confirms that assisted living-type settings are covered under the congregate PCS policy, but only if the beneficiary meets the functional and other Medicaid criteria. I\u2019m now checking the policy\u2019s scope section and any amendments so I can answer carefully and note whether there have been later changes.The full text confirms that assisted living-type settings are covered under the congregate PCS policy, but only if the beneficiary meets the functional and other Medicaid criteria. I\u2019m now checking the policy\u2019s scope section and any amendments so I can answer carefully and note whether there have been later changes.## Yes \u2014 NC Medicaid can cover Personal Care Services for someone living in an assisted living facility, but **only under the congregate-settings PCS policy and only if the person meets the eligibility criteria**.\n\n### Which policy applies?\nFor **assisted living / adult care home** residents, the relevant policy is **Clinical Coverage Policy 3L-1, State Plan Personal Care Services (PCS) Provided in Congregate Settings**, not the general in-home PCS policy **3L**.\n\n- **Policy 3L-1** applies because it covers PCS for people who reside in:\n  - \u201c**a congregate facility licensed by the State of North Carolina as an Adult Care Home (ACH)**,\u201d or\n  - certain licensed group homes.  \n  See **Clinical Coverage Policy 3L-1, Section 3.2.1 \u2014 \u201cSpecific criteria covered by Medicaid\u201d**: [State Plan Personal Care Services (PCS) Provided in Congregate Settings](https://medicaid.ncdhhs.gov/media/14986/download?attachment)\n\n- I am **not** using **Policy 3L** as the main source because that policy is for PCS in **in-home settings**. Its section list specifically includes **\u201c3.3 Personal Care Services in In-Home Settings.\u201d**  \n  See **Clinical Coverage Policy 3L \u2014 \u201cState Plan Personal Care Services (PCS)\u201d** (current, effective 2026-01-01): [State Plan Personal Care Services (PCS)](https://medicaid.ncdhhs.gov/3l-state-plan-personal-care-services-pcs/download?attachment)\n\n### What must the beneficiary show?\nUnder **Clinical Coverage Policy 3L-1, Section 3.2.1**, the beneficiary must have \u201c**a medical or mental condition, disability, or cognitive impairment**\u201d and demonstrate unmet needs for at least:\n\n- **three of the five qualifying ADLs with limited hands-on assistance**, or\n- **two ADLs, one of which requires extensive assistance**, or\n- **two ADLs, one of which requires assistance at the full dependence level**.  \n\nThat same section also requires, among other things, that:\n\n- the congregate setting be safe,\n- the facility have the required inspection,\n- **no other third-party payer** be responsible for PCS,\n- **no family/household member or other informal caregiver** be available, willing, and able to provide the services during the relevant periods,\n- the PCS be directly linked to a documented medical, mental, physical, or cognitive condition,\n- the beneficiary be under the ongoing direct care of a physician, and\n- the beneficiary be **medically stable** and **not require continuous care, monitoring, or supervision by a licensed nurse or other licensed health care professional**.  \nSee **Clinical Coverage Policy 3L-1, Section 3.2.1 \u2014 \u201cSpecific criteria covered by Medicaid\u201d**: [State Plan Personal Care Services (PCS) Provided in Congregate Settings](https://medicaid.ncdhhs.gov/media/14986/download?attachment)\n\n### What services are covered?\nUnder **Clinical Coverage Policy 3L-1, Section 3.3 \u2014 \u201cPersonal Care Services,\u201d** Medicaid covers PCS that occur at minimum once per week, including:\n\n- hands-on assistance with qualifying ADLs,\n- related cueing, prompting, guiding, and supervision when part of hands-on assistance,\n- some home-management IADLs directly related to qualifying ADLs,\n- medication assistance tied to a documented condition or impairment,\n- help with adaptive/assistive devices,\n- help with durable medical equipment related to qualifying ADLs, and\n- certain special assistance / delegated medical monitoring tasks.  \nSee **Clinical Coverage Policy 3L-1, Section 3.3 \u2014 \u201cPersonal Care Services\u201d**: [State Plan Personal Care Services (PCS) Provided in Congregate Settings](https://medicaid.ncdhhs.gov/media/14986/download?attachment)\n\n### Important limits\nPCS in assisted living does **not** mean Medicaid pays for everything connected with living there. Under **Clinical Coverage Policy 3L-1, Section 4.2.1.2 \u2014 \u201cServices not covered by Medicaid,\u201d** Medicaid does **not** cover, among other things:\n\n- skilled nursing by an RN or LPN,\n- services by other licensed health professionals,\n- respite,\n- transportation,\n- errands,\n- financial management,\n- companion sitting/leisure activities,\n- ongoing supervision/monitoring,\n- and **room and board**.  \nSee **Clinical Coverage Policy 3L-1, Section 4.2.1.2 \u2014 \u201cServices not covered by Medicaid\u201d**: [State Plan Personal Care Services (PCS) Provided in Congregate Settings](https://medicaid.ncdhhs.gov/media/14986/download?attachment)\n\n## Bottom line\n**Yes.** NC Medicaid **does cover PCS for some beneficiaries who live in an assisted living facility / adult care home**, but coverage is **not automatic** just because the person lives there. The beneficiary must meet the **3L-1 congregate-settings PCS criteria**, including ADL need and the other medical/setting requirements.\n\n### Amendment status\nI checked for amendments to both **Policy 3L** and **Policy 3L-1** in the database, and **no direct amendments were returned**. The authoritative documents appear to be the current base policies cited above.\n\nIf you want, I can also pull the **monthly hour limits**, **prior approval rules**, or **reconsideration/appeal language** for PCS in assisted living under Policy 3L-1.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 3,
+        "completeness": 3,
+        "hallucination": 3,
+        "citation_quality": 3,
+        "overall": 3,
+        "explanation": "The agent's answer is comprehensive and accurate. It correctly identifies Clinical Coverage Policy 3L-1 as the governing policy for PCS in congregate/assisted living settings, distinguishes it from the in-home 3L policy, cites the correct sections (3.2.1, 3.3, 4.2.1.2), accurately describes the ADL eligibility criteria, the facility type requirements (Adult Care Home, group homes), the additional qualifying criteria, the covered services, and the non-covered services including room and board. All key facts from the reference answer are present and correctly attributed. The agent provides precise section-level citations with links, and no hallucinated facts are present. The answer even notes the SMI screening requirement and offers to provide additional details, demonstrating thoroughness. A Medicaid policy expert would find this answer well-structured, accurate, and useful."
+      },
+      "judge_error": false,
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "primary_hit": true
+    }
+  ]
+}

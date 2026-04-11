@@ -1,0 +1,58 @@
+{
+  "run_id": "2026-04-08T03:58:55",
+  "level": "answer",
+  "config": {
+    "embedding_model": "voyage-law-2",
+    "top_k": 10,
+    "dataset_count": 1,
+    "git_sha": "df5a5f9",
+    "judge_model": "claude-sonnet-4-6"
+  },
+  "aggregate": {
+    "precision_at_k": 0.6666666666666666,
+    "recall_at_k": 0.6666666666666666,
+    "mrr": 0.6666666666666666,
+    "primary_hit_rate": 1.0
+  },
+  "by_difficulty": {
+    "complex": {
+      "precision_at_k": 0.6666666666666666,
+      "recall_at_k": 0.6666666666666666,
+      "mrr": 0.6666666666666666,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "by_category": {
+    "cross_document": {
+      "precision_at_k": 0.6666666666666666,
+      "recall_at_k": 0.6666666666666666,
+      "mrr": 0.6666666666666666,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "per_question": [
+    {
+      "id": "q-004",
+      "difficulty": "complex",
+      "reasoning_type": "cross_document",
+      "question": "How does the EPSDT special provision affect coverage for outpatient therapy services, and what ordering practitioner requirements apply to beneficiaries under 21?",
+      "agent_answer": "I\u2019m going to pull the EPSDT-related sections and the outpatient therapy policy sections, then read the full text and check for any amendments before answering.I found an EPSDT special provision section in Clinical Coverage Policy 10A, which is the outpatient specialized therapies policy. Next I\u2019m reading that section and the ordering/referral sections in full, and I\u2019ll check whether 10A has been amended.Policy 10A is current as of 2025-02-01 with no listed amendments. The EPSDT section in the extract appears truncated, so I\u2019m pulling the surrounding context and the exact ordering-practitioner section to avoid overreading a snippet.I have the ordering-practitioner list, but the EPSDT and under-21 limitation sections are stored mostly in child subsections. I\u2019m pulling the children under those headings, plus prior-approval language, so I can answer exactly how EPSDT changes coverage limits for outpatient therapy.I found the under-21 medical-necessity visit guideline for speech-language/audiology. To explain the EPSDT override correctly, I still need the prior-approval language and any child text under the EPSDT heading or related requirements.## Short answer\n\nFor **beneficiaries under 21**, the **EPSDT special provision** can allow NC Medicaid to cover outpatient therapy services **even when the service would otherwise fall outside a policy limitation**, so long as the service is within the federal EPSDT benefit and is **medically necessary**. But EPSDT **does not waive prior-approval requirements** if the service normally requires prior approval.\n\nFor **ordering practitioners**, Clinical Coverage Policy 10A lists the following as authorized ordering practitioners for outpatient specialized therapies: **MD, DO, DPM, CNM, PA, and NP**.\n\n## What the policy says\n\n### 1) EPSDT can override policy limitations for beneficiaries under 21\n\nClinical Coverage Policy 10A includes an **\u201cEPSDT Special Provision: Exception to Policy Limitations for a Medicaid Beneficiary under 21 Years of Age.\u201d** The retrieved text identifies the federal authority as **42 U.S.C. \u00a7 1396d(r) [1905(r) of the Social Security Act]** and states that EPSDT does **not** require coverage of services that are:\n\n- **unsafe, ineffective, or experimental/investigational**; or\n- **not medical in nature** or **not generally recognized as an accepted method of medical practice or treatment**.\n\nThat means EPSDT functions as an **exception to policy limitations**, but **not** as a blanket entitlement to anything requested. The service still must be medically appropriate under EPSDT.  \n**Citation:** **Clinical Coverage Policy 10A, Section 2.2.1 \u2014 \u201cEPSDT Special Provision: Exception to Policy Limitations for a Medicaid Beneficiary under 21 Years of Age\u201d** (effective 2025-02-01; current; no amendments found) [Clinical Coverage Policy 10A](https://medicaid.ncdhhs.gov/10a-outpatient-specialized-therapies/download?attachment)\n\n### 2) EPSDT does not eliminate prior approval\n\nThe policy search also returned the 10A subsection titled **\u201cb. EPSDT and Prior Approval Requirements,\u201d** which states:\n\n- **If the service, product, or procedure requires prior approval, being under 21 does NOT eliminate the prior-approval requirement.**\n\nSo, if outpatient therapy requires authorization under Policy 10A, a child or youth under 21 may still qualify for more coverage through EPSDT, but the provider must still go through the prior-approval process where required.  \n**Citation:** **Clinical Coverage Policy 10A, subsection \u201cb. EPSDT and Prior Approval Requirements\u201d** (same document link as above) [Clinical Coverage Policy 10A](https://medicaid.ncdhhs.gov/10a-outpatient-specialized-therapies/download?attachment)\n\n### 3) Under-21 outpatient therapy is governed by medical-necessity visit guidelines, not just adult-style caps\n\nPolicy 10A distinguishes under-21 beneficiaries from adults. For example, for **speech-language and audiology therapy**, the policy states that services for beneficiaries under 21 are limited based on **severity of deficit**, with ranges such as:\n\n- **Mild impairment:** 6 to 26 visits\n- **Moderate impairment:** up to 46 visits\n- **Severe impairment:** up to 52 visits\n\nIt also states these services are limited to the number of **medically necessary visits within an authorization period**, and an authorization period **cannot exceed six calendar months**.  \n**Citation:** **Clinical Coverage Policy 10A, Section 5.4.2 \u2014 \u201cSpeech-Language-Audiology Therapy\u201d** (effective 2025-02-01; current; no amendments found) [Clinical Coverage Policy 10A](https://medicaid.ncdhhs.gov/10a-outpatient-specialized-therapies/download?attachment)\n\nBy contrast, the policy search indicates that **beneficiaries 21 and older** are subject to explicit visit limitations in Section 5.3. So for children, EPSDT matters because it can support coverage beyond ordinary policy limitations when medically necessary, while the policy still uses under-21 medical-necessity guidelines and authorization rules.\n\n## Ordering practitioner requirements for beneficiaries under 21\n\nPolicy 10A\u2019s ordering-practitioner section does **not** create a separate under-21-only list. The ordering practitioners authorized under the outpatient specialized therapies policy are:\n\n- **Medical Doctor (MD)**\n- **Doctor of Osteopathic Medicine (DO)**\n- **Doctor of Podiatric Medicine (DPM)**\n- **Certified Nurse Midwife (CNM)**\n- **Physician Assistant (PA)**\n- **Nurse Practitioner (NP)**\n\n**Citation:** **Clinical Coverage Policy 10A, Section 3.1.2 \u2014 \u201cOrdering Practitioners\u201d** (effective 2025-02-01; current; no amendments found) [Clinical Coverage Policy 10A](https://medicaid.ncdhhs.gov/10a-outpatient-specialized-therapies/download?attachment)\n\n## Practical takeaway\n\nFor a beneficiary **under 21** seeking outpatient therapy:\n\n- **EPSDT may allow coverage beyond a normal policy limitation** if the therapy is medically necessary and fits within EPSDT.\n- **EPSDT does not remove prior-authorization requirements.**\n- The therapy still must satisfy Policy 10A\u2019s clinical requirements.\n- The order must come from one of the practitioners listed in **Section 3.1.2**.\n\n## Important limitation\n\nI could confirm the **existence and effect** of the EPSDT special provision, the **prior-approval point**, the **under-21 visit-guideline language for speech-language/audiology**, and the **ordering-practitioner list**. But some 10A sections in the database are only partially extracted, so I am being careful **not** to overstate details that were not fully visible in the retrieved text.\n\nIf you want, I can next pull the **specific PT/OT ordering and documentation language in Policy 10A** or help frame this as an **appeal argument** for a denied outpatient therapy request under EPSDT.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 2,
+        "completeness": 2,
+        "hallucination": 1,
+        "citation_quality": 3,
+        "overall": 2,
+        "explanation": "The agent correctly identifies Section 2.2.1 (EPSDT Special Provision), the federal authority (42 U.S.C. \u00a7 1396d(r)), the two exclusions (unsafe/experimental and non-medical/unrecognized), and Section 3.1.2 ordering practitioners (MD, DO, DPM, CNM, PA, NP). It also correctly references Speech-Language Therapy (3.2.1.3) and Audiology (3.2.1.4). Citation quality is strong with precise section references. However, the agent introduces visit-range numbers (6-26 mild, up to 46 moderate, up to 52 severe) attributed to 'Section 5.4.2' - these specific figures and section numbers are not supported by the evidence provided and appear to be fabricated or misattributed, constituting a minor hallucination stated as fact. The agent also partially misattributes EPSDT's function, framing it somewhat as a prior-approval discussion that goes beyond what the reference answer emphasizes. The completeness is mostly good - covering EPSDT override function, ordering practitioners, and therapy-specific criteria - but the deep detail on ST/Audiology criteria from 3.2.1.3 and 3.2.1.4 is not fully explored. The answer would be acceptable to a Medicaid policy expert but the unsupported visit-count specifics would raise concern."
+      },
+      "judge_error": false,
+      "precision": 0.6666666666666666,
+      "recall": 0.6666666666666666,
+      "mrr": 0.6666666666666666,
+      "primary_hit": true
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+{
+  "run_id": "2026-04-09T17:27:27",
+  "level": "answer",
+  "config": {
+    "embedding_model": "voyage-law-2",
+    "top_k": 10,
+    "dataset_count": 1,
+    "git_sha": "df5a5f9",
+    "judge_model": "claude-sonnet-4-6"
+  },
+  "aggregate": {
+    "precision_at_k": 0.6666666666666666,
+    "recall_at_k": 1.0,
+    "mrr": 0.6666666666666666,
+    "primary_hit_rate": 1.0
+  },
+  "by_difficulty": {
+    "moderate": {
+      "precision_at_k": 0.6666666666666666,
+      "recall_at_k": 1.0,
+      "mrr": 0.6666666666666666,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "by_category": {
+    "multi_hop": {
+      "precision_at_k": 0.6666666666666666,
+      "recall_at_k": 1.0,
+      "mrr": 0.6666666666666666,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "per_question": [
+    {
+      "id": "q-018",
+      "difficulty": "moderate",
+      "reasoning_type": "multi_hop",
+      "question": "Are there quantity limits on prescription drugs under NC Medicaid, and when is prior authorization required for pharmacy claims?",
+      "agent_answer": "I\u2019m going to pull the pharmacy policy sections that address quantity limits and prior approval criteria, and then I\u2019ll check whether the governing document has any amendments.I found the pharmacy clinical policy and the two most relevant parts: the section on quantity/episodic drugs and the attachment listing prior approval drugs and criteria. Next I\u2019m reading those full sections and checking for amendments to the pharmacy policy.The first results are clearly from Clinical Coverage Policy 9, but that document title appears in the graph as \u201cLock-in Program,\u201d and the quantity-limit section is sparse. I\u2019m going to verify the broader pharmacy policy structure and pull the sections that explain when prior authorization applies, plus any section that more directly addresses quantity limits.I confirmed the main source is Clinical Coverage Policy 9, \u201cNC Medicaid Outpatient Pharmacy,\u201d despite the document title oddity in the graph. I still need the full text of the general prior authorization section and the dispensing/maximum-supply sections so I can answer your question without guessing.## Short answer\n\n**Yes.** NC Medicaid\u2019s outpatient pharmacy policy recognizes **quantity limitations** for at least some prescription drugs, especially **\u201cquantity and episodic drugs.\u201d** It also uses **prior authorization / prior approval** for certain drugs and criteria categories.\n\n## What the policy says\n\n### 1) Are there quantity limits on prescription drugs?\n\nThe policy does indicate that **quantity limits exist**.\n\n- **Clinical Coverage Policy 9, Section 5.4.3 \u2014 \u201cQuantity and Episodic Drugs\u201d** says NC Medicaid addresses:\n  - \u201c**quantity limitations of episodic drugs**\u201d for beneficiaries who receive medications in specialized distribution systems,\n  - \u201c**prior authorization criteria and requirements**,\u201d and\n  - actions to minimize dispensing fees for drugs prescribed in limited quantities.  \n  Source: [Lock-in Program](https://medicaid.ncdhhs.gov/9-outpatient-pharmacy-program/download?attachment)  \n  Effective date: **July 15, 2024**\n\n- **Clinical Coverage Policy 9, Section 5.4 \u2014 \u201cDispensing and Maximum Supply\u201d** also places this within the broader heading of **dispensing and maximum supply**, which supports that NC Medicaid imposes supply/quantity limits in at least some situations.  \n  Source: [Lock-in Program](https://medicaid.ncdhhs.gov/9-outpatient-pharmacy-program/download?attachment)  \n  Effective date: **July 15, 2024**\n\n### Important limitation\n\nI **could not find a retrieved section that states a universal numeric cap** like \u201c30 days,\u201d \u201c34 days,\u201d or a specific unit limit for all prescription drugs. The graph text for the relevant pharmacy sections is sparse/incomplete. So the most accurate answer is:\n\n- **NC Medicaid does have quantity limitations for some drugs**, but\n- I **cannot confirm a single across-the-board quantity limit** from the policy text I retrieved.\n\n## 2) When is prior authorization required for pharmacy claims?\n\n### A. When the drug is on the prior-approval criteria list\n\nNC Medicaid maintains a section called:\n\n- **Clinical Coverage Policy 9 \u2014 \u201cPharmacy Prior Approval Drugs and Criteria\u201d**\n\nThat section lists categories of drugs subject to prior approval criteria, including examples such as:\n\n- GLP-1 receptor agonists and combinations\n- Hepatitis C medications\n- Growth hormones\n- PCSK9 inhibitors\n- Opioid analgesics\n- Triptans\n- CGM systems and related supplies\n- various behavioral health clinical edits\n- and many other listed categories\n\nSource: [Lock-in Program](https://medicaid.ncdhhs.gov/9-outpatient-pharmacy-program/download?attachment)  \nEffective date: **July 15, 2024**\n\nSo, **prior authorization is required when the prescribed drug falls within NC Medicaid\u2019s listed \u201cPharmacy Prior Approval Drugs and Criteria.\u201d**\n\n### B. When the point-of-sale claim rejects for PA\n\n- **Clinical Coverage Policy 9, Attachment C \u2014 \u201cRequesting Prior Authorization for Prescription Drugs\u201d** says:\n  - the **prescriber** requests prior authorization through NCTracks/CSC,\n  - if approved, CSC updates the system and the POS system manages the PA information,\n  - if prior authorization has **not** been obtained, the POS system returns either:\n    - **\u201cPA REQ. PRESCRIBER CALL CSC\u201d**, or\n    - **\u201cCLAIM DENIED. PA LIMITS EXCEEDED.\u201d**\n\nSource: [Lock-in Program](https://medicaid.ncdhhs.gov/9-outpatient-pharmacy-program/download?attachment)  \nEffective date: **July 15, 2024**\n\nIn plain language: if the pharmacy submits a claim and gets one of those PA messages, the claim requires prior authorization or has exceeded PA-related limits.\n\n## Practical takeaway\n\n**NC Medicaid pharmacy claims are subject to both:**\n\n- **quantity/supply limits** for at least some drugs, and\n- **prior authorization requirements** for drugs on NC Medicaid\u2019s prior-approval list or when the POS system indicates PA is required.\n\n## What I can say confidently vs. what I cannot\n\n### Confirmed from retrieved policy text\n- Quantity limitations exist for at least some outpatient prescription drugs.\n- Prior authorization applies to listed drug categories.\n- The prescriber requests PA through NCTracks/CSC.\n- POS messages identify when PA is required or limits are exceeded.\n\n### Not confirmed from retrieved text\n- A single **numeric quantity limit** that applies to all drugs.\n- The exact rule for **which drugs have which quantity cap**, unless we pull the specific drug\u2019s criteria.\n\n## Bottom line\n\n**Yes, NC Medicaid does impose quantity limits on some prescription drugs, and prior authorization is required when the drug falls under NC Medicaid\u2019s \u201cPharmacy Prior Approval Drugs and Criteria\u201d or when the POS claim returns a PA-required denial/message.**\n\nIf you want, I can do a follow-up on either of these:\n1. **general early refill / days\u2019 supply rules**, or  \n2. **a specific drug or drug class** to see its exact quantity limit and PA criteria.The graph\u2019s text extraction is incomplete for some key pharmacy sections, so I\u2019m going to answer only from what the retrieved sections actually say: yes, NC Medicaid applies quantity limitations to at least some drugs, and prior authorization is required for drugs listed in the pharmacy prior-approval criteria and when the POS system returns a PA-required message.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 2,
+        "completeness": 3,
+        "hallucination": 2,
+        "citation_quality": 2,
+        "overall": 2,
+        "explanation": "The agent correctly identifies Clinical Coverage Policy 9, Section 5.4.3 for quantity limits and the Pharmacy Prior Approval Drugs and Criteria list, matching the reference answer's key points. The prior approval drug list provided is extensive and largely accurate. However, the agent incorrectly references 'Attachment C' for requesting prior authorization when the evidence indicates it should be 'Attachment K' for Pharmacy Prior Approval Criteria - this is a citation error. The agent also confusingly labels source URLs as 'Lock-in Program' which is misleading. The agent appropriately hedges on details it couldn't confirm (like universal numeric quantity limits), which is honest rather than hallucinatory. Some drug examples listed (GLP-1s, Hepatitis C, PCSK9 inhibitors, etc.) match the evidence sections well. The answer is verbose but does cover both parts of the question - quantity limits and prior authorization triggers - making it relatively complete. The citation quality is mixed: correct section numbers for 5.4.3 but wrong attachment letter, and the source URL labeling is confusing."
+      },
+      "judge_error": false,
+      "precision": 0.6666666666666666,
+      "recall": 1.0,
+      "mrr": 0.6666666666666666,
+      "primary_hit": true
+    }
+  ]
+}

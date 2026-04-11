@@ -1,0 +1,58 @@
+{
+  "run_id": "2026-04-09T17:25:04",
+  "level": "answer",
+  "config": {
+    "embedding_model": "voyage-law-2",
+    "top_k": 10,
+    "dataset_count": 1,
+    "git_sha": "df5a5f9",
+    "judge_model": "claude-sonnet-4-6"
+  },
+  "aggregate": {
+    "precision_at_k": 0.6666666666666666,
+    "recall_at_k": 1.0,
+    "mrr": 0.6666666666666666,
+    "primary_hit_rate": 1.0
+  },
+  "by_difficulty": {
+    "complex": {
+      "precision_at_k": 0.6666666666666666,
+      "recall_at_k": 1.0,
+      "mrr": 0.6666666666666666,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "by_category": {
+    "cross_document": {
+      "precision_at_k": 0.6666666666666666,
+      "recall_at_k": 1.0,
+      "mrr": 0.6666666666666666,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "per_question": [
+    {
+      "id": "q-009",
+      "difficulty": "complex",
+      "reasoning_type": "cross_document",
+      "question": "Is there a maximum earned income limit for people on HCWD (Health Coverage for Workers with Disabilities), and what premiums apply?",
+      "agent_answer": "I found the HCWD manual and the sections that appear to govern income and premiums. Next I\u2019m pulling the full text of the income and premium sections and checking whether the current MA-2180 manual has any amendments that affect the answer.The full text confirms that HCWD does not impose a maximum earned income cap in the way it caps unearned income; instead, higher countable income triggers fees and then a sliding-scale premium, with a \u201cfull premium\u201d above 450% FPL. I also confirmed the current premium chart was updated by Change Notice 03-25 effective January 1, 2025.Yes \u2014 **I did not find a maximum earned income limit for HCWD** in the current policy.\n\nWhat the policy **does** say is:\n\n- **Unearned income over 150% of FPL makes a person ineligible for HCWD**\n- **Total countable income over 150% of FPL triggers a $50 annual enrollment fee**\n- **Total countable monthly income over 200% of FPL triggers a monthly premium**\n- The premium **increases with income** up to **over 450% of FPL**, where the person pays a **full premium**\n\nThat is different from saying there is a hard earned-income cutoff. The current MA-2180 language says HCWD premiums increase as income rises \u201c**until countable income exceeds 450% of FPL, at which point these individuals must pay a full premium**,\u201d not that eligibility ends at that level. See **DHHS Policy MA-2180 \u2014 \u201cF. Income\u201d** and **\u201c2. Determine if a Premium is due\u201d**: [MA-2180 HEALTH COVERAGE FOR WORKERS WITH DISABILITIES](https://policies.ncdhhs.gov/wp-content/uploads/ma-2180-3.pdf). The current premium chart was updated by **Change Notice 03-25, effective January 1, 2025**: [CHANGE NOTICE FOR MANUAL NO. 03-25, 2025 Federal Poverty Level Changes (FPL) Income Changes](https://policies.ncdhhs.gov/wp-content/uploads/CN-NO-03-25.docx.pdf).\n\n## Premiums under current MA-2180\n\nPer **DHHS Policy MA-2180 \u2014 \u201cI. Premiums\u201d**: [MA-2180 HEALTH COVERAGE FOR WORKERS WITH DISABILITIES](https://policies.ncdhhs.gov/wp-content/uploads/ma-2180-3.pdf)\n\n### Individual\n- **0\u2013150% FPL:** $0 monthly premium\n- **151\u2013200% FPL:** $0 monthly premium\n- **201\u2013250% FPL:** **$196/month**\n- **251\u2013300% FPL:** **$235/month**\n- **301\u2013350% FPL:** **$274/month**\n- **351\u2013400% FPL:** **$313/month**\n- **401\u2013450% FPL:** **$352/month**\n- **451% FPL and above:** **$875/month**\n\n### Couple\n- **0\u2013150% FPL:** $0 monthly premium\n- **151\u2013200% FPL:** $0 monthly premium\n- **201\u2013250% FPL:** **$265/month**\n- **251\u2013300% FPL:** **$318/month**\n- **301\u2013350% FPL:** **$370/month**\n- **351\u2013400% FPL:** **$423/month**\n- **401\u2013450% FPL:** **$476/month**\n- **451% FPL and above:** **$875/month**\n\n## Other HCWD cost-sharing in the same policy\nPer **DHHS Policy MA-2180 \u2014 \u201cF. Income\u201d**:\n- If **total countable income is greater than 150% FPL**, the person must pay a **$50 annual enrollment fee**\n- If **total countable monthly income exceeds 200% FPL**, the person must also pay the **monthly premium**\n- If **total countable income is at or below 150% FPL**, there is **no cost sharing other than applicable co-payments**\n\n## Bottom line\n**No maximum earned income limit appears in the current HCWD policy.**  \nInstead, HCWD uses:\n1. an **unearned-income eligibility cap** at **150% FPL**, and  \n2. a **sliding enrollment fee/premium structure** based on **total countable income**.\n\nIf you want, I can also pull the exact MA-2180 language that supports the common shorthand statement: **\u201cno maximum earned income limit, but unearned income above 150% FPL disqualifies.\u201d**",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 2,
+        "completeness": 3,
+        "hallucination": 1,
+        "citation_quality": 2,
+        "overall": 2,
+        "explanation": "The agent correctly identifies no maximum earned income limit, the 150% FPL unearned income cap, the $50 enrollment fee above 150% FPL, and the sliding-scale premium structure above 200% FPL. The detailed premium tables (e.g., $196/month at 201-250% FPL) appear to come from a specific 2025 update (CN 03-25) and are presented as facts - these specific dollar amounts are not in the reference materials provided for verification, creating a minor hallucination concern. The agent slightly mischaracterizes the enrollment fee as 'annual' when the reference specifies 'per certification period.' The agent references MA-2180 sections but doesn't cite the specific subsection numbers (IV.E., IV.G., IV.H.) from the change notice that are most relevant. The answer is comprehensive and would generally be acceptable to a policy expert, though the specific premium dollar amounts cannot be verified against the provided evidence sections."
+      },
+      "judge_error": false,
+      "precision": 0.6666666666666666,
+      "recall": 1.0,
+      "mrr": 0.6666666666666666,
+      "primary_hit": true
+    }
+  ]
+}

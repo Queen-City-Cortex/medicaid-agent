@@ -1,0 +1,58 @@
+{
+  "run_id": "2026-04-10T00:21:44",
+  "level": "answer",
+  "config": {
+    "embedding_model": "voyage-law-2",
+    "top_k": 10,
+    "dataset_count": 1,
+    "git_sha": "df5a5f9",
+    "judge_model": "claude-sonnet-4-6"
+  },
+  "aggregate": {
+    "precision_at_k": 0.3333333333333333,
+    "recall_at_k": 0.3333333333333333,
+    "mrr": 0.3333333333333333,
+    "primary_hit_rate": 0.0
+  },
+  "by_difficulty": {
+    "moderate": {
+      "precision_at_k": 0.3333333333333333,
+      "recall_at_k": 0.3333333333333333,
+      "mrr": 0.3333333333333333,
+      "primary_hit_rate": 0.0,
+      "count": 1
+    }
+  },
+  "by_category": {
+    "multi_hop": {
+      "precision_at_k": 0.3333333333333333,
+      "recall_at_k": 0.3333333333333333,
+      "mrr": 0.3333333333333333,
+      "primary_hit_rate": 0.0,
+      "count": 1
+    }
+  },
+  "per_question": [
+    {
+      "id": "q-003",
+      "difficulty": "moderate",
+      "reasoning_type": "multi_hop",
+      "question": "What are the entrance, continued service, and discharge criteria for outpatient behavioral health services in NC Medicaid?",
+      "agent_answer": "NC Medicaid does **not use one single entrance/continued-service/discharge standard for all outpatient behavioral health services**. The criteria depend on the specific covered service. The governing rule is that any covered behavioral health service must be **individualized, specific, consistent with the beneficiary\u2019s symptoms or confirmed diagnosis, safe to furnish, not more than needed, not duplicative of an equally effective more conservative or less costly statewide alternative, and not provided mainly for convenience**. [Clinical Coverage Policy 8A, \u00a7 3.1, effective Jan. 2, 2026](https://medicaid.ncdhhs.gov/8a-enhanced-mental-health-and-substance-abuse-services/download?attachment)\n\n## General rule for outpatient behavioral health services\nUnder current **Clinical Coverage Policy 8A** (effective Jan. 2, 2026; no amendment returned), a service is covered only if it meets the general medical-necessity/coverage standard above. [Clinical Coverage Policy 8A, \u00a7 3.1](https://medicaid.ncdhhs.gov/8a-enhanced-mental-health-and-substance-abuse-services/download?attachment)\n\n## Service-specific criteria in outpatient behavioral health\n\n### Psychosocial Rehabilitation\nFor **Psychosocial Rehabilitation**, the section available in Policy 8A gives clear **continued service** and **discharge** criteria, but I could not verify the full text of the corresponding entrance criteria from the retrieved section text.\n\n**Continued service criteria**\nA beneficiary continues to meet criteria when one of these applies:\n- the beneficiary has achieved initial rehabilitation goals in the PCP and continued services are needed to achieve additional goals;\n- the beneficiary is making satisfactory progress toward rehabilitation goals;\n- the beneficiary is making some progress, but interventions need to be modified; or\n- the beneficiary is not making progress or is regressing, but the person has the capacity to resolve the problems and the PCP should be modified to identify more effective interventions.  \n[Clinical Coverage Policy 8A, Psychosocial Rehabilitation, \u201cContinued Service Criteria,\u201d effective Jan. 2, 2026](https://medicaid.ncdhhs.gov/8a-enhanced-mental-health-and-substance-abuse-services/download?attachment)\n\n**Discharge criteria**\nDischarge is indicated when:\n- rehabilitation goals have been achieved and a lower level of care is appropriate;\n- the beneficiary is not making progress, or is regressing, and all realistic treatment options in that modality have been exhausted; or\n- the beneficiary requires a more intensive level of care or service.  \n[Clinical Coverage Policy 8A, Psychosocial Rehabilitation, \u201cDischarge Criteria,\u201d effective Jan. 2, 2026](https://medicaid.ncdhhs.gov/8a-enhanced-mental-health-and-substance-abuse-services/download?attachment)\n\n### Partial Hospitalization\nFor **Partial Hospitalization**, the retrieved Policy 8A text gives **discharge criteria**, but I could not verify the full entrance and continued-service language from the retrieved full text.\n\n**Discharge criteria**\nDischarge is indicated when:\n- the beneficiary has achieved 75% of PCP goals, so step-down to a lower level of care is appropriate;\n- the beneficiary is not making progress or is regressing, and all realistic treatment options within the modality have been exhausted;\n- the beneficiary or family requests discharge and the beneficiary is not imminently dangerous to self or others; or\n- the beneficiary requires a higher level of care, such as inpatient hospitalization or PRTF.  \n[Clinical Coverage Policy 8A, Partial Hospitalization, \u201cDischarge Criteria,\u201d effective Jan. 2, 2026](https://medicaid.ncdhhs.gov/8a-enhanced-mental-health-and-substance-abuse-services/download?attachment)\n\n### Intensive In-Home Services\nAlthough typically more intensive than ordinary outpatient therapy, it is still in Policy 8A\u2019s behavioral health continuum.\n\n**Discharge criteria**\nDischarge is indicated when:\n- the beneficiary has achieved goals and no longer needs IIH;\n- functioning has improved toward PCP goals, including a transition plan to a lower level of care;\n- the beneficiary is not making progress or is regressing and all reasonable strategies/interventions have been exhausted, showing need for more intensive services;\n- the beneficiary or legally responsible person no longer wants IIH; or\n- the beneficiary needs a more appropriate best-practice treatment modality.  \n[Clinical Coverage Policy 8A, Intensive In-Home Services, \u201cDischarge Criteria,\u201d effective Jan. 2, 2026](https://medicaid.ncdhhs.gov/8a-enhanced-mental-health-and-substance-abuse-services/download?attachment)\n\n### Child and Adolescent Day Treatment\n**Discharge criteria**\nDischarge is indicated when:\n- goals are achieved and the beneficiary no longer needs day treatment;\n- functioning has improved toward PCP goals, including a plan to transition to a lower level of care or appropriate educational setting;\n- the beneficiary is not making progress or is regressing and all reasonable strategies/interventions have been exhausted, indicating a need for more intensive services; or\n- the beneficiary requires a more appropriate treatment modality.  \n[Clinical Coverage Policy 8A, Child and Adolescent Day Treatment, \u201cDischarge Criteria,\u201d effective Jan. 2, 2026](https://medicaid.ncdhhs.gov/8a-enhanced-mental-health-and-substance-abuse-services/download?attachment)\n\n## Substance use outpatient example: SACOT\nFor **Substance Abuse Comprehensive Outpatient Treatment (SACOT)** under current **Policy 8A-13** (effective Jan. 1, 2026; no amendment returned), the retrieved text clearly states **continued stay** and **discharge** criteria, but I could not verify separate admission text from the full numbered section retrieved.\n\n**Continued stay criteria**\nContinued stay is met if any one applies:\n- initial PCP goals have been achieved and the present level of care is still needed to meet additional goals;\n- the beneficiary is making some progress but has not yet achieved goals;\n- the beneficiary is not making progress, is regressing, or has new symptoms, but has the capacity to resolve the problems; or\n- the beneficiary is actively working toward goals, and the PCP should be modified to identify more effective interventions.  \n[8A-13 \u2013 Substance Abuse Comprehensive Outpatient Treatment (SACOT) (ASAM Level 2.5), \u00a7 3.2.3, effective Jan. 1, 2026](https://medicaid.ncdhhs.gov/media/15769/download?attachment)\n\n**Discharge criteria**\nDischarge is met if any one applies:\n- SUD signs and symptoms are resolved enough that the beneficiary can participate in self-directed recovery or ongoing treatment without SACOT;\n- SUD signs and symptoms failed to respond and intensified, so transfer to a more intensive SUD treatment level is indicated; or\n- the beneficiary or legally responsible person requests discharge.  \n[8A-13 \u2013 Substance Abuse Comprehensive Outpatient Treatment (SACOT) (ASAM Level 2.5), \u00a7 3.2.3, effective Jan. 1, 2026](https://medicaid.ncdhhs.gov/media/15769/download?attachment)\n\n## Bottom line\nIf by \u201coutpatient behavioral health services\u201d you mean **all outpatient BH services generally**, NC Medicaid\u2019s answer is:\n\n1. **Start with Policy 8A\u2019s general coverage rule** in \u00a7 3.1.  \n2. Then apply the **service-specific criteria** for the particular service code/policy, because entrance, continued-service, and discharge standards vary by service.  \n3. In the text I could verify, the common pattern is:\n   - **Entrance/admission**: service-specific eligibility and medical-necessity criteria must be met;\n   - **Continued service**: progress is being made, or there is still a reasonable basis to continue with modifications;\n   - **Discharge**: goals are met, the service is ineffective despite reasonable efforts, the person needs either a lower or higher level of care, or the person requests discharge.\n\nIf you want, I can give you a **service-by-service chart** for the main outpatient behavioral health services in NC Medicaid\u2014such as outpatient therapy, CST, ACT, IIH, psychosocial rehabilitation, day treatment, SAIOP, and SACOT\u2014with the exact entrance, continued-stay, and discharge criteria for each.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 1,
+        "completeness": 1,
+        "hallucination": 2,
+        "citation_quality": 2,
+        "overall": 1,
+        "explanation": "The agent's answer focuses primarily on Policy 8A (enhanced/community BH services) rather than Clinical Coverage Policy 8C, which is the specific policy governing outpatient behavioral health services with the exact entrance/continued service/discharge criteria asked about. The reference answer points to Policy 8C sections 3.2.1.1, 3.2.1.2, and 3.2.1.3, which contain specific criteria like DSM-5 diagnosis requirements, functional impairment standards, relapse risk criteria, and specific discharge triggers. The agent missed these entirely and instead cited Policy 8A with service-specific criteria for PSR, partial hospitalization, IIH, day treatment, and SACOT - none of which directly answer the question about outpatient BH services under 8C. The agent correctly identified the general medical necessity framework (\u00a73.1) and the conceptual structure (entrance/continued/discharge), and the general pattern it describes is roughly accurate, but the specific criteria from 8C sections 3.2.1.1-3.2.1.3 are absent. The discharge criteria pattern partially overlaps. No major hallucinations are present as the agent appropriately flagged uncertainty, but citing Policy 8A for a Policy 8C question represents a significant policy identification error. A Medicaid policy expert would find this answer unhelpful for the specific question asked."
+      },
+      "judge_error": false,
+      "precision": 0.3333333333333333,
+      "recall": 0.3333333333333333,
+      "mrr": 0.3333333333333333,
+      "primary_hit": false
+    }
+  ]
+}

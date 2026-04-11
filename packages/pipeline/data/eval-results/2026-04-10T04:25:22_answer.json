@@ -1,0 +1,74 @@
+{
+  "run_id": "2026-04-10T04:25:22",
+  "level": "answer",
+  "config": {
+    "embedding_model": "voyage-law-2",
+    "top_k": 10,
+    "dataset_count": 1,
+    "git_sha": "df5a5f9",
+    "judge_model": "claude-sonnet-4-6"
+  },
+  "aggregate": {
+    "precision_at_k": 1.0,
+    "recall_at_k": 1.0,
+    "mrr": 1.0,
+    "primary_hit_rate": 1.0
+  },
+  "by_difficulty": {
+    "complex": {
+      "precision_at_k": 1.0,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "by_category": {
+    "cross_document": {
+      "precision_at_k": 1.0,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "per_question": [
+    {
+      "id": "q-009",
+      "difficulty": "complex",
+      "reasoning_type": "cross_document",
+      "question": "Is there a maximum earned income limit for people on HCWD (Health Coverage for Workers with Disabilities), and what premiums apply?",
+      "agent_answer": "No\u2014NC Medicaid HCWD does **not** impose a maximum **earned** income limit in the surfaced policy text. But there **is** a limit on **unearned** income, and there are cost-sharing rules tied to total countable income.\n\n## HCWD income limit rule\n\nTo qualify for HCWD, the person must \u201cmeet the income requirements for his coverage group.\u201d The HCWD change notice says HCWD was revised \u201cto state that HCWD covers individuals regardless of total countable income,\u201d while keeping \u201cthe **150% of Federal Poverty Level (FPL) cap on unearned income**\u201d and adding sliding-scale premiums. [MA-2180 HEALTH COVERAGE FOR WORKERS WITH DISABILITIES](https://policies.ncdhhs.gov/wp-content/uploads/ma-2180-3.pdf); [CHANGE NOTICE FOR MANUAL NO. 01-14, HCWD Phase III](https://policies.ncdhhs.gov/wp-content/uploads/ma_cn01-14.pdf)\n\nThe current MA-2180 income section states:\n\n- \u201cThose who have **unearned incomes greater than 150% of FPL are not eligible for HCWD**.\u201d\n- If total countable income is at or below 150% FPL, there is no cost sharing other than applicable copayments.\n- If total countable income is above 150% FPL, a **$50 annual enrollment fee** applies.\n- If total countable monthly income is above 200% FPL, a **monthly premium** also applies. [MA-2180 HEALTH COVERAGE FOR WORKERS WITH DISABILITIES](https://policies.ncdhhs.gov/wp-content/uploads/ma-2180-3.pdf)\n\n## Premiums and fees\n\nUsing the surfaced HCWD premium chart in MA-2180:\n\n- **0\u2013150% FPL**: **$0 monthly premium**\n- **151\u2013200% FPL**: **$0 monthly premium**\n- **201\u2013250% FPL**: **$196 individual / $265 couple**\n- **251\u2013300% FPL**: **$235 individual / $318 couple**\n- **301\u2013350% FPL**: **$274 individual / $370 couple**\n- **351\u2013400% FPL**: **$313 individual / $423 couple**\n- **401\u2013450% FPL**: **$352 individual / $476 couple**\n- **451% FPL and above**: **$875 individual / $875 couple** [MA-2180 HEALTH COVERAGE FOR WORKERS WITH DISABILITIES](https://policies.ncdhhs.gov/wp-content/uploads/ma-2180-3.pdf)\n\nAnd separately:\n\n- **Above 150% FPL total countable income**: **$50 annual enrollment fee**\n- **Above 200% FPL total countable monthly income**: monthly premium owed **in addition to** the enrollment fee. [MA-2180 HEALTH COVERAGE FOR WORKERS WITH DISABILITIES](https://policies.ncdhhs.gov/wp-content/uploads/ma-2180-3.pdf)\n\n## Important amendment note\n\nThe MA-2180 document has later amendments. The amendment history shows that **MA-2180.IV.I \u2013 HCWD Premiums Income chart has been updated** by **CHANGE NOTICE FOR MANUAL NO. 03-25, 2025 Federal Poverty Level Changes (FPL) Income Changes**, effective **January 1, 2025**. [CHANGE NOTICE FOR MANUAL NO. 03-25, 2025 Federal Poverty Level Changes (FPL) Income Changes](https://policies.ncdhhs.gov/wp-content/uploads/CN-NO-03-25.docx.pdf)\n\nSo the **rule** I can verify is:\n\n- **No maximum earned income limit** is stated in the surfaced HCWD policy text.\n- **Unearned income over 150% FPL makes the person ineligible.**\n- **Premiums are sliding-scale and begin once total countable monthly income exceeds 200% FPL;**\n- **A $50 annual enrollment fee applies once total countable income exceeds 150% FPL.**\n\nBut the **current post-2025 dollar income ranges** for each FPL band were **not verified in the surfaced evidence here**, because the amendment says the premium income chart was updated.\n\nIf you want, I can next pull the **2025 amended HCWD premium chart** so I can give you the **current exact income brackets and premium amounts**.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 3,
+        "completeness": 3,
+        "hallucination": 2,
+        "citation_quality": 3,
+        "overall": 3,
+        "explanation": "The agent correctly identifies all key policy facts: no maximum earned income limit, 150% FPL cap on unearned income, $50 per certification period enrollment fee above 150% FPL, and sliding-scale premiums above 200% FPL. The agent provides specific premium amounts which appear to come from the policy document (not flagged as unverified), and these specific dollar figures cannot be fully verified from the provided evidence sections - this is a slight concern, but the agent appropriately notes the 2025 amendment may have updated the premium chart. The reference mentions '$50 per certification period' while the agent says '$50 annual enrollment fee' - these are equivalent. The agent cites specific policy documents (MA-2180 and Change Notice 01-14) with URLs, matching section-level citation quality. The answer is comprehensive, well-structured, and would be acceptable to a Medicaid policy expert, with the appropriate caveat about 2025 FPL updates."
+      },
+      "judge_error": false,
+      "route_lane": "deterministic_evidence",
+      "route_rationale": "numeric_thresholds",
+      "route_widening_policy": "none",
+      "route_determinism_hints": {
+        "numeric_evidence_only": true,
+        "latest_revision_only": false,
+        "cite_scope_and_not_covered": false
+      },
+      "route_authoritative_document": {
+        "id": "doc:dhhs_policy:MA-2180:url-08aa92cd33e7",
+        "policy_number": "MA-2180",
+        "title": "MA-2180 HEALTH COVERAGE FOR WORKERS WITH DISABILITIES"
+      },
+      "route_widened": false,
+      "route_inspection_error": null,
+      "agent_elapsed_seconds": 29.41,
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "primary_hit": true
+    }
+  ]
+}

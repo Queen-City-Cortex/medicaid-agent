@@ -1,0 +1,58 @@
+{
+  "run_id": "2026-04-09T17:25:31",
+  "level": "answer",
+  "config": {
+    "embedding_model": "voyage-law-2",
+    "top_k": 10,
+    "dataset_count": 1,
+    "git_sha": "df5a5f9",
+    "judge_model": "claude-sonnet-4-6"
+  },
+  "aggregate": {
+    "precision_at_k": 0.6666666666666666,
+    "recall_at_k": 0.6666666666666666,
+    "mrr": 0.6666666666666666,
+    "primary_hit_rate": 1.0
+  },
+  "by_difficulty": {
+    "moderate": {
+      "precision_at_k": 0.6666666666666666,
+      "recall_at_k": 0.6666666666666666,
+      "mrr": 0.6666666666666666,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "by_category": {
+    "cross_document": {
+      "precision_at_k": 0.6666666666666666,
+      "recall_at_k": 0.6666666666666666,
+      "mrr": 0.6666666666666666,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "per_question": [
+    {
+      "id": "q-015",
+      "difficulty": "moderate",
+      "reasoning_type": "cross_document",
+      "question": "What does federal law define as 'home health services' under Medicaid, and where must they be provided?",
+      "agent_answer": "I\u2019m going to pull the federal regulation that defines Medicaid \u201chome health services\u201d and then read the full section and any related cross-references so I can answer precisely.That first search was too broad, so I\u2019m narrowing to the Medicaid home health regulation itself, which is usually in 42 CFR Part 440. Then I\u2019ll read the full text and check its context.I found the key federal section: 42 CFR 440.70. I\u2019m reading the full regulation and its structural context now so I can give you the exact definition and the location requirements.Under federal Medicaid law, **\u201chome health services\u201d** are the services listed in **42 CFR 440.70(b)** when they are provided:\n\n1. **At the beneficiary\u2019s place of residence**; and  \n2. **Pursuant to written practitioner orders and a written plan of care**, with review requirements that vary by service type.  \nSee **42 CFR 440.70 \u2014 \u201cHome health services\u201d** ([42 CFR Part 440](https://www.ecfr.gov/current/title-42/part-440)).\n\n## What counts as \u201chome health services\u201d\nFederal law says home health services include:\n\n- **Nursing services** provided on a part-time or intermittent basis\n- **Home health aide services**\n- **Medical supplies, equipment, and appliances**\n- **Physical therapy, occupational therapy, or speech pathology and audiology services** (as an optional home health service category for state coverage)\n\nThis appears in **42 CFR 440.70(b) \u2014 \u201cHome health services\u201d** ([42 CFR Part 440](https://www.ecfr.gov/current/title-42/part-440)).\n\n## Where they must be provided\nThe regulation says they must be provided at the beneficiary\u2019s **\u201cplace of residence.\u201d**  \nBut federal law also says what **does not** count as a place of residence for this purpose.\n\n### Not considered the beneficiary\u2019s place of residence\nFor home health services, the place of residence **does not include**:\n\n- a **hospital**\n- a **nursing facility**\n- an **intermediate care facility for individuals with intellectual disabilities (ICF/IID)**\n\nThere is a narrow exception for certain home health services in an ICF/IID that the facility itself is not required to provide.  \nSee **42 CFR 440.70(c) \u2014 \u201cHome health services\u201d** ([42 CFR Part 440](https://www.ecfr.gov/current/title-42/part-440)).\n\n### Where home health services can be furnished\nThe regulation also says nothing in the section should be read to prohibit home health services in **\u201cany setting in which normal life activities take place,\u201d** except:\n\n- a hospital,\n- a nursing facility,\n- an ICF/IID, or\n- **any setting where Medicaid payment is or could be made for inpatient services that include room and board.**\n\nIt also expressly says **home health services cannot be limited to beneficiaries who are homebound**.  \nSee **42 CFR 440.70(c)(1) \u2014 \u201cHome health services\u201d** ([42 CFR Part 440](https://www.ecfr.gov/current/title-42/part-440)).\n\n## Bottom line\nIn plain language:\n\n- Federal Medicaid law defines **home health services** as certain nursing, aide, therapy, and medical-supply/equipment services described in **42 CFR 440.70(b)**.\n- They must be provided at the beneficiary\u2019s **place of residence**.\n- That can include settings where **normal life activities take place**, but **not** hospitals, nursing facilities, ICF/IIDs, or other inpatient room-and-board settings covered by Medicaid.\n\n**Authority:** **42 CFR 440.70 \u2014 \u201cHome health services\u201d** ([42 CFR Part 440](https://www.ecfr.gov/current/title-42/part-440)); current federal regulation, no amendments were returned by the corpus for this document.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 2,
+        "completeness": 2,
+        "hallucination": 3,
+        "citation_quality": 3,
+        "overall": 2,
+        "explanation": "The agent correctly identifies 42 CFR 440.70 and accurately describes the place-of-residence requirement, the exclusions (hospital, NF, ICF/IID), and the 'normal life activities' language. It correctly lists the service categories. However, it omits the specific 60-day plan-of-care review requirement mentioned in the reference and evidence, and misses the detail that orders must be written by a physician, nurse practitioner, clinical nurse specialist, or physician assistant working in accordance with state law. The agent also does not mention SSA Section 1905(a)(7) as the statutory basis or the NC Clinical Coverage Policy 3A implementation context. Citation quality is strong with precise regulatory references. No hallucinations detected - all stated facts are supported by the evidence sections."
+      },
+      "judge_error": false,
+      "precision": 0.6666666666666666,
+      "recall": 0.6666666666666666,
+      "mrr": 0.6666666666666666,
+      "primary_hit": true
+    }
+  ]
+}

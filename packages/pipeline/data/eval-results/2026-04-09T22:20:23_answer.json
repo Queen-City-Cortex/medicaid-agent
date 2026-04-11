@@ -1,0 +1,58 @@
+{
+  "run_id": "2026-04-09T22:20:23",
+  "level": "answer",
+  "config": {
+    "embedding_model": "voyage-law-2",
+    "top_k": 10,
+    "dataset_count": 1,
+    "git_sha": "df5a5f9",
+    "judge_model": "claude-sonnet-4-6"
+  },
+  "aggregate": {
+    "precision_at_k": 0.6666666666666666,
+    "recall_at_k": 0.6666666666666666,
+    "mrr": 0.6666666666666666,
+    "primary_hit_rate": 1.0
+  },
+  "by_difficulty": {
+    "complex": {
+      "precision_at_k": 0.6666666666666666,
+      "recall_at_k": 0.6666666666666666,
+      "mrr": 0.6666666666666666,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "by_category": {
+    "cross_document": {
+      "precision_at_k": 0.6666666666666666,
+      "recall_at_k": 0.6666666666666666,
+      "mrr": 0.6666666666666666,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "per_question": [
+    {
+      "id": "q-004",
+      "difficulty": "complex",
+      "reasoning_type": "cross_document",
+      "question": "How does the EPSDT special provision affect coverage for outpatient therapy services, and what ordering practitioner requirements apply to beneficiaries under 21?",
+      "agent_answer": "I found the preferred policy and the frame points directly to Clinical Coverage Policy 10A, especially the EPSDT provision and the pediatric therapy sections. Next I\u2019m checking the document\u2019s amendment status and pulling the full text of the key sections so I can answer the EPSDT coverage effect and the ordering-practitioner rule accurately.The amendment check shows 10A is current in the corpus with no listed change notices. I also found the specific \u201cOrdering Practitioners\u201d section, which looks like the right place for who can order therapy services. I\u2019m pulling that full text, plus nearby coverage sections for children under 21, to tie EPSDT to the ordering rule without overreading the snippets.## Answer\n\nFor outpatient therapy services, the **EPSDT special provision can expand coverage for beneficiaries under 21 beyond ordinary policy limits**, but it **does not waive prior approval requirements** when the service otherwise requires prior approval under Clinical Coverage Policy 10A. [Clinical Coverage Policy 10A](https://medicaid.ncdhhs.gov/10a-outpatient-specialized-therapies/download?attachment) (effective Feb. 1, 2025), \u00a7 2.2.1, \u201cb. EPSDT and Prior Approval Requirements,\u201d \u00a7 5.4; amendment check performed for Policy 10A and the corpus shows the policy as current with no listed amendments.\n\n### 1) Effect of the EPSDT special provision\nPolicy 10A includes an **\u201cEPSDT Special Provision: Exception to Policy Limitations for a Medicaid Beneficiary under 21 Years of Age\u201d** in \u00a7 2.2.1, tied to **42 U.S.C. \u00a7 1396d(r)**. The text retrieved in the corpus is truncated, but it clearly frames EPSDT as an **exception to policy limitations** for Medicaid beneficiaries under 21, while still excluding services that are:\n- **unsafe, ineffective, or experimental/investigational**, or\n- **not medical in nature or not generally recognized as an accepted method of medical practice or treatment**.  \n[Clinical Coverage Policy 10A](https://medicaid.ncdhhs.gov/10a-outpatient-specialized-therapies/download?attachment), \u00a7 2.2.1.\n\nIn practice, within this policy, that means a child or youth under 21 is **not restricted to the adult visit-limit framework** in \u00a7 5.3. Section 5.3 sets fixed annual visit caps for beneficiaries **21 and older**, while \u00a7 5.4 separately governs beneficiaries **under 21** based on **medical necessity and severity of deficit**. For speech-language and audiology therapy, \u00a7 5.4.2 gives pediatric visit ranges tied to severity and says services are limited to the number of **medically necessary visits within an authorization period**, which cannot exceed six calendar months. [Clinical Coverage Policy 10A](https://medicaid.ncdhhs.gov/10a-outpatient-specialized-therapies/download?attachment), \u00a7\u00a7 5.3, 5.4.\n\nSo, for beneficiaries under 21, EPSDT affects coverage by allowing medically necessary outpatient therapy services to be considered **notwithstanding ordinary policy limitations**, but only so long as the service is not excluded on the grounds above and all other applicable requirements are met.\n\n### 2) Prior approval still applies under EPSDT\nPolicy 10A is explicit on this point:\n\n> \u201cIf the service, product, or procedure requires prior approval, the fact that the beneficiary is under 21 years of age does NOT eliminate the requirement for prior approval.\u201d  \n[Clinical Coverage Policy 10A](https://medicaid.ncdhhs.gov/10a-outpatient-specialized-therapies/download?attachment), \u201cb. EPSDT and Prior Approval Requirements.\u201d\n\nThe policy also states, in the treatment-services requirements, that **\u201cPrior approval is required prior to the start of treatment services.\u201d** [Clinical Coverage Policy 10A](https://medicaid.ncdhhs.gov/10a-outpatient-specialized-therapies/download?attachment), treatment-services requirements section.\n\n### 3) Ordering practitioner requirements for beneficiaries under 21\nFor outpatient therapy services under Policy 10A, an order must be obtained before services begin, and the policy identifies who may serve as the ordering practitioner.\n\n#### Who may order\nSection 3.1.2 lists the authorized ordering practitioners as:\n- **Medical Doctor (MD)**\n- **Doctor of Osteopathic Medicine (DO)**\n- **Doctor of Podiatric Medicine (DPM)**\n- **Certified Nurse Midwife (CNM)**\n- **Physician Assistant (PA)**\n- **Nurse Practitioner (NP)**  \n[Clinical Coverage Policy 10A](https://medicaid.ncdhhs.gov/10a-outpatient-specialized-therapies/download?attachment), \u00a7 3.1.2.\n\n#### Form and timing of the order\nThe treatment-services requirements state:\n- **A verbal or written order must be obtained before the start of services**.\n- **Verbal orders** must include the date and signature of the person receiving the order, be recorded in the beneficiary\u2019s health record, and be **countersigned by the physician within 60 calendar days**.\n- **Verbal orders are valid up to six months** from the documented date received.\n- **Written orders are valid up to six months** from the physician\u2019s signature date.\n- **Backdating is not allowed**.  \n[Clinical Coverage Policy 10A](https://medicaid.ncdhhs.gov/10a-outpatient-specialized-therapies/download?attachment), treatment-services requirements section.\n\n### Bottom line\nFor beneficiaries **under 21**, EPSDT can allow outpatient therapy coverage **beyond ordinary policy limits when medically necessary**, but:\n1. the service still must be medically appropriate and not experimental/unsafe/nonmedical;\n2. **prior approval is still required** if the service requires it; and\n3. services must start only after a proper order from an authorized ordering practitioner under \u00a7 3.1.2, with the order documented under the policy\u2019s ordering rules.  \n\nIf you want, I can also turn this into a short advocacy-ready paragraph for a prior-authorization appeal or denial response.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 2,
+        "completeness": 2,
+        "hallucination": 1,
+        "citation_quality": 3,
+        "overall": 2,
+        "explanation": "The agent correctly identifies the core EPSDT provision (\u00a72.2.1), the 42 U.S.C. \u00a71396d(r) statutory basis, the exclusions for unsafe/experimental/non-medical services, and the ordering practitioner list from \u00a73.1.2. It also correctly notes that EPSDT overrides ordinary policy limitations for under-21 beneficiaries. However, the agent introduces several claims not clearly supported by the evidence sections: specific details about \u00a75.3 visit caps for adults vs \u00a75.4 pediatric ranges with six-month authorization periods, and detailed verbal/written order rules (60-day countersignature, backdating prohibition) that, while plausible, are stated as confirmed facts without verification markers. The agent also does not adequately address the specific Speech-Language (\u00a73.2.1.3) and Audiology (\u00a73.2.1.4) criteria that the reference answer flags as important components. The prior approval emphasis, while likely accurate, is presented with confidence beyond what the truncated evidence confirms. Citation quality is strong with specific section references throughout. Overall the answer is acceptable but contains minor hallucinations from unverified specifics stated as confirmed policy text."
+      },
+      "judge_error": false,
+      "precision": 0.6666666666666666,
+      "recall": 0.6666666666666666,
+      "mrr": 0.6666666666666666,
+      "primary_hit": true
+    }
+  ]
+}

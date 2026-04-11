@@ -5,8 +5,63 @@ import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 
-from pipeline.config import EVAL_RESULTS_DIR, EMBEDDING_MODEL, EVAL_DEFAULT_TOP_K, EVAL_REGRESSION_THRESHOLD
-from pipeline.eval.metrics import precision_at_k, recall_at_k, mrr, primary_hit_rate, compare_runs
+from pipeline.config import EVAL_RESULTS_DIR, EMBEDDING_MODEL, EVAL_DEFAULT_TOP_K
+
+ANSWER_SCORE_DIMENSIONS = (
+    "factual_accuracy",
+    "completeness",
+    "hallucination",
+    "citation_quality",
+    "overall",
+)
+
+
+def _compute_retrieval_rollup(rows: list[dict]) -> tuple[dict, int, int]:
+    """Compute retrieval-style aggregates for a run subset."""
+    scorable = [q for q in rows if q.get("precision") is not None]
+    judge_errors = len(rows) - len(scorable)
+
+    rollup: dict = {}
+    if scorable:
+        rollup["precision_at_k"] = sum(q["precision"] for q in scorable) / len(scorable)
+        rollup["recall_at_k"] = sum(q["recall"] for q in scorable) / len(scorable)
+        rollup["mrr"] = sum(q["mrr"] for q in scorable) / len(scorable)
+        rollup["primary_hit_rate"] = sum(1 for q in scorable if q.get("primary_hit")) / len(scorable)
+
+    return rollup, len(scorable), judge_errors
+
+
+def _compute_answer_rollup(rows: list[dict]) -> dict:
+    """Compute answer-score aggregates for a run subset when score data exists."""
+    rollup: dict = {}
+    for dim in ANSWER_SCORE_DIMENSIONS:
+        values = [
+            q["scores"].get(dim)
+            for q in rows
+            if q.get("scores") and q["scores"].get(dim) is not None
+        ]
+        if values:
+            rollup[dim] = sum(values) / len(values)
+
+    return rollup
+
+
+def _compute_rollup(rows: list[dict]) -> dict:
+    """Compute all persisted aggregates for a run subset."""
+    retrieval_rollup, scorable_count, judge_errors = _compute_retrieval_rollup(rows)
+    answer_rollup = _compute_answer_rollup(rows)
+
+    rollup = {**retrieval_rollup, **answer_rollup}
+    if judge_errors:
+        rollup["judge_errors"] = judge_errors
+        rollup["scorable_count"] = scorable_count
+
+    return rollup
+
+
+def _has_metric_values(rollup: dict) -> bool:
+    """Whether a rollup contains actual score metrics, not just error counters."""
+    return any(key not in {"judge_errors", "scorable_count"} for key in rollup)
 
 
 def save_result(level: str, per_question: list[dict], config_overrides: dict | None = None) -> Path:
@@ -15,30 +70,16 @@ def save_result(level: str, per_question: list[dict], config_overrides: dict | N
 
     run_id = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
 
-    # Compute aggregates — exclude entries with None scores (judge errors)
-    scorable = [q for q in per_question if q.get("precision") is not None]
-    judge_errors = len(per_question) - len(scorable)
-
-    aggregate: dict = {}
-    if scorable:
-        aggregate["precision_at_k"] = sum(q["precision"] for q in scorable) / len(scorable)
-        aggregate["recall_at_k"] = sum(q["recall"] for q in scorable) / len(scorable)
-        aggregate["mrr"] = sum(q["mrr"] for q in scorable) / len(scorable)
-        aggregate["primary_hit_rate"] = sum(1 for q in scorable if q.get("primary_hit")) / len(scorable)
-    if judge_errors:
-        aggregate["judge_errors"] = judge_errors
-        aggregate["scorable_count"] = len(scorable)
+    aggregate = _compute_rollup(per_question)
 
     # Compute by_difficulty
     by_difficulty: dict[str, dict] = {}
     for diff in ["simple", "moderate", "complex"]:
         subset = [q for q in per_question if q.get("difficulty") == diff]
-        if subset:
+        rollup = _compute_rollup(subset)
+        if _has_metric_values(rollup):
             by_difficulty[diff] = {
-                "precision_at_k": sum(q["precision"] for q in subset) / len(subset),
-                "recall_at_k": sum(q["recall"] for q in subset) / len(subset),
-                "mrr": sum(q["mrr"] for q in subset) / len(subset),
-                "primary_hit_rate": sum(1 for q in subset if q.get("primary_hit")) / len(subset),
+                **rollup,
                 "count": len(subset),
             }
 
@@ -49,12 +90,10 @@ def save_result(level: str, per_question: list[dict], config_overrides: dict | N
         if not cat:
             continue
         subset = [q for q in per_question if q.get("reasoning_type") == cat]
-        if subset:
+        rollup = _compute_rollup(subset)
+        if _has_metric_values(rollup):
             by_category[cat] = {
-                "precision_at_k": sum(q["precision"] for q in subset) / len(subset),
-                "recall_at_k": sum(q["recall"] for q in subset) / len(subset),
-                "mrr": sum(q["mrr"] for q in subset) / len(subset),
-                "primary_hit_rate": sum(1 for q in subset if q.get("primary_hit")) / len(subset),
+                **rollup,
                 "count": len(subset),
             }
 

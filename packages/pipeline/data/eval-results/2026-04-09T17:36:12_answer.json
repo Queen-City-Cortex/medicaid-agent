@@ -1,0 +1,58 @@
+{
+  "run_id": "2026-04-09T17:36:12",
+  "level": "answer",
+  "config": {
+    "embedding_model": "voyage-law-2",
+    "top_k": 10,
+    "dataset_count": 1,
+    "git_sha": "df5a5f9",
+    "judge_model": "claude-sonnet-4-6"
+  },
+  "aggregate": {
+    "precision_at_k": 0.6666666666666666,
+    "recall_at_k": 0.6666666666666666,
+    "mrr": 0.6666666666666666,
+    "primary_hit_rate": 1.0
+  },
+  "by_difficulty": {
+    "complex": {
+      "precision_at_k": 0.6666666666666666,
+      "recall_at_k": 0.6666666666666666,
+      "mrr": 0.6666666666666666,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "by_category": {
+    "cross_document": {
+      "precision_at_k": 0.6666666666666666,
+      "recall_at_k": 0.6666666666666666,
+      "mrr": 0.6666666666666666,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "per_question": [
+    {
+      "id": "q-021",
+      "difficulty": "complex",
+      "reasoning_type": "cross_document",
+      "question": "What medical loss ratio (MLR) must Medicaid managed care organizations meet under federal law, and how does NC implement this requirement?",
+      "agent_answer": "I\u2019m going to pull the federal MLR rule first, then look for North Carolina\u2019s implementation in Medicaid managed care contract or policy materials so I can answer both parts of your question.I found the main federal Medicaid managed care MLR regulation: 42 CFR 438.8. Next I\u2019m going to read that full section and then identify North Carolina\u2019s managed care implementation materials.The federal source is clear on the minimum threshold and the calculation framework, but the first NC search was noisy. I\u2019m narrowing to NC Medicaid managed care contract/reporting language, which is usually where the state operationalizes federal MLR requirements.The NC policy corpus isn\u2019t surfacing a clean managed care MLR section, so I\u2019m going to use the federal rule as the primary legal source and then look for NC materials that at least confirm the state implements MLR through PHP contracts and required reporting.## Short answer\n\nUnder **federal Medicaid managed care law**, the key MLR floor is **85%**\u2014but only if the state chooses to impose a minimum MLR. Federal law requires the state to make each Medicaid managed care organization calculate and report an MLR through its contracts, and if the state mandates a minimum, that minimum must be **\u201cequal to or higher than 85 percent.\u201d** See **42 CFR Part 438, Section 438.8 \u2014 \u201cMedical loss ratio (MLR) standards\u201d**: [42 CFR Part 438](https://www.ecfr.gov/current/title-42/part-438).\n\nFor **North Carolina**, the clearest implementation point I could confirm in the materials I retrieved is that NC operates Medicaid managed care through **Prepaid Health Plans (PHPs)**, and federal law requires the state to enforce MLR calculation/reporting **through those contracts**. I did **not** locate a standalone NC policy section in this corpus that spells out the state\u2019s own MLR contract clause or reporting mechanics in detail, so I can only say confidently that NC implements the federal requirement through its managed care/PHP contract structure and required reporting, rather than through the eligibility manuals I searched.\n\n## Federal rule: what it requires\n\n**42 CFR 438.8(a)** says the state must ensure, **through its contracts**, that each **MCO, PIHP, and PAHP** calculates and reports an MLR in accordance with that section.  \n**42 CFR 438.8(c)** says that **if a state elects to mandate a minimum MLR**, the minimum must be **equal to or higher than 85 percent**.  \nSee **42 CFR Part 438, Section 438.8 \u2014 \u201cMedical loss ratio (MLR) standards\u201d**: [42 CFR Part 438](https://www.ecfr.gov/current/title-42/part-438).\n\n## How the federal MLR is structured\n\nThe regulation does **not** just create an 85% floor; it also defines **how MLR is calculated**.\n\nUnder **42 CFR 438.8(d)**, MLR is the ratio of:\n\n- **Numerator**: defined in **42 CFR 438.8(e)**\n- **Denominator**: defined in **42 CFR 438.8(f)**\n\nThe retrieved text for **42 CFR 438.8(e)(1)** says the numerator includes:\n\n- **incurred claims**\n- **expenditures for activities that improve health care quality**\n- **fraud prevention activities**\n\nThe retrieved text for **42 CFR 438.8(e)(2)** further shows that \u201cincurred claims\u201d includes items like:\n\n- direct provider claims paid for covered services\n- unpaid claims liabilities\n- withholds from payments to network providers\n- certain provider incentive/bonus payments tied to clinical or quality standards\n- state directed payments\n\nand requires deduction of some amounts, including:\n\n- **overpayment recoveries**\n- **prescription drug rebates**\n\nSo, in plain language, the federal MLR rule measures **how much of plan revenue is being spent on care and specified quality-related activities, rather than administrative overhead**.  \nSource: **42 CFR Part 438, Section 438.8 \u2014 \u201cMedical loss ratio (MLR) standards\u201d**: [42 CFR Part 438](https://www.ecfr.gov/current/title-42/part-438).\n\n## How North Carolina implements it\n\nWhat I could confirm from NC materials is:\n\n- NC Medicaid managed care uses **Prepaid Health Plans (PHPs)**.\n- NC\u2019s eligibility manuals describe enrollment into **PHPs** for managed care beneficiaries.\n\nFor example:\n\n- **DHHS Policy MA-2320, Section A \u2014 \u201cEnrollment in Prepaid Health Plan\u201d** states that most categorically needy beneficiaries are required to enroll in a **Prepaid Health Plan (PHP)**.\n- **DHHS Policy MA-3421, Section A \u2014 \u201cEnrollment in Prepaid Health Plan\u201d** likewise states that most categorically needy beneficiaries are required to enroll in a **Managed Care Prepaid Health Plan (PHP)**.\n\nThose sections support the point that NC\u2019s Medicaid managed care delivery system is organized around **PHP contracts**. Because **42 CFR 438.8(a)** requires the state to ensure MLR calculation and reporting **through its contracts**, the NC implementation mechanism is the **PHP contract/reporting framework**.\n\n## Limits of what I could confirm from this corpus\n\nI could **not** find, in the retrieved NC policy sections, a specific North Carolina section that says, for example:\n\n- \u201cNC requires PHPs to meet an 85% MLR,\u201d or\n- \u201cPHPs must submit annual MLR reports to NC Medicaid/CMS\u201d  \n\neven though that would be consistent with the federal contract-based framework.\n\nSo the most precise answer I can support from the documents I actually retrieved is:\n\n1. **Federal law:** the relevant MLR threshold is **85%** if the state imposes a minimum MLR, and the state must require managed care plans to **calculate and report** MLR through their contracts.  \n   Source: **42 CFR Part 438, Section 438.8 \u2014 \u201cMedical loss ratio (MLR) standards\u201d**: [42 CFR Part 438](https://www.ecfr.gov/current/title-42/part-438).\n\n2. **North Carolina implementation:** NC implements Medicaid managed care through **PHPs**, so the federal MLR requirement is operationalized in NC via the **PHP contract structure and associated reporting obligations**.  \n   Supporting NC sources:\n   - **DHHS Policy MA-2320, Section A \u2014 \u201cEnrollment in Prepaid Health Plan\u201d**\n   - **DHHS Policy MA-3421, Section A \u2014 \u201cEnrollment in Prepaid Health Plan\u201d**\n\n## Bottom line\n\n- **Federal MLR standard:** **85% minimum**, if the state chooses to impose a minimum MLR.  \n- **Federal mechanism:** states must enforce MLR **calculation and reporting through managed care contracts**.  \n- **NC implementation:** through its **Prepaid Health Plan (PHP)** managed care system; however, I could not retrieve the specific NC contract/reporting clause in this corpus.\n\nIf you want, I can do a follow-up focused specifically on **North Carolina\u2019s PHP contract language or external CMS/NC Medicaid managed care contract documents** to try to find the exact NC operational MLR provision.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 2,
+        "completeness": 2,
+        "hallucination": 3,
+        "citation_quality": 2,
+        "overall": 2,
+        "explanation": "The agent correctly identifies 42 CFR 438.8 as the governing regulation and accurately states the 85% minimum MLR threshold if a state elects to mandate one. It correctly describes the numerator/denominator framework and key components. The agent is appropriately transparent about not finding specific NC implementation details, instead reasonably inferring NC implements through PHP contracts. The answer doesn't hallucinate - it clearly flags uncertainty about NC specifics. However, it misses some nuance: the federal rule doesn't require states to mandate an 85% MLR floor (states must require calculation/reporting, but the minimum only applies IF the state elects to mandate one - which the agent does capture). The agent correctly notes the contract-based implementation mechanism. NC-specific details are limited but honestly disclosed as unconfirmed. Citation quality is decent with 42 CFR 438.8 cited but lacks subsection-level precision for all claims. The NC policy citations (MA-2320, MA-3421) are tangential enrollment policies rather than MLR-specific sources."
+      },
+      "judge_error": false,
+      "precision": 0.6666666666666666,
+      "recall": 0.6666666666666666,
+      "mrr": 0.6666666666666666,
+      "primary_hit": true
+    }
+  ]
+}

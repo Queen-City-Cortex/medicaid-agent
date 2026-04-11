@@ -1,0 +1,58 @@
+{
+  "run_id": "2026-04-09T22:20:07",
+  "level": "answer",
+  "config": {
+    "embedding_model": "voyage-law-2",
+    "top_k": 10,
+    "dataset_count": 1,
+    "git_sha": "df5a5f9",
+    "judge_model": "claude-sonnet-4-6"
+  },
+  "aggregate": {
+    "precision_at_k": 1.0,
+    "recall_at_k": 1.0,
+    "mrr": 1.0,
+    "primary_hit_rate": 1.0
+  },
+  "by_difficulty": {
+    "moderate": {
+      "precision_at_k": 1.0,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "by_category": {
+    "temporal": {
+      "precision_at_k": 1.0,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "per_question": [
+    {
+      "id": "q-020",
+      "difficulty": "moderate",
+      "reasoning_type": "temporal",
+      "question": "The Non-Emergency Medical Transportation (NEMT) policy has been amended multiple times. Which change notice is the most recent, and what did it change?",
+      "agent_answer": "I confirmed the current MA-3550 manual carries the latest revision marker, **REVISED 03/16/2026 - CHANGE NO. 04-26**, and I also checked the amendment history tool for MA-3550. The amendment history tool lists older change notices through 04-22, but it does not yet provide a parsed change summary for 04-26. I\u2019ll answer by distinguishing what is verified from the revision header versus what the amendment-history data actually describes.## Most recent change notice\n\nThe most recent NEMT change notice I could verify is **Change No. 04-26**, shown in the current MA-3550 manual header as:\n\n- **\u201cREVISED 03/16/2026 - CHANGE NO. 04-26\u201d** in [MA-3550 NON-EMERGENCY MEDICAL TRANSPORTATION (NEMT)](https://policies.ncdhhs.gov/wp-content/uploads/MA-3550-.pdf)\n\n## What it changed\n\nI could **verify the latest revision marker**, but I **could not verify the specific substantive changes made by Change No. 04-26 from the parsed text available in the corpus**. The revision entry appears as a title/header only, without accompanying change-detail text in the retrieved section.\n\nSo, the best supported answer is:\n\n- **Most recent notice:** **Change No. 04-26**\n- **Revision date shown in the manual:** **03/16/2026**\n- **What it changed:** **Unconfirmed from the retrieved parsed text**; I could not verify a section-by-section change summary for 04-26 in the available corpus.\n\n## Older verified amendment details\n\nThe amendment-history tool does provide a substantive summary for the next clearly described notice:\n\n- **Change Notice 04-22** \u2014 [CHANGE NOTICE FOR MANUAL NO. 04-22, Non-Emergency Medical Transportation (NEMT)](https://policies.ncdhhs.gov/wp-content/uploads/cn-04-22.pdf)\n\nVerified change summary for 04-22 includes:\n\n- **MA-3550.VIII, Determining Need for Transportation Services** was **reorganized**\n- language in that section was **updated**\n- **additional subsections were added** to make topics easier to locate\n- information about **failure to complete the assessment** was moved from subsection A to new **subsection E**\n- **MA-3550.XI.A.13.D, Driving Records** was also amended, though the retrieved summary is truncated and does not show the full detail\n\n## Bottom line\n\nIf your question is **which notice is latest**, the answer is **Change No. 04-26**.  \nIf your question is **what that latest notice changed**, I can only say that **the corpus confirms the existence of the 03/16/2026 revision marker but does not provide a parsed substantive summary of the 04-26 changes**.\n\nIf you want, I can next help you **compare the current MA-3550 text against the 04-22 change notice** to infer which sections were likely revised after 04-22.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 3,
+        "completeness": 3,
+        "hallucination": 3,
+        "citation_quality": 3,
+        "overall": 3,
+        "explanation": "The agent's answer is fully aligned with the reference answer. It correctly identifies Change No. 04-26 as the most recent NEMT change notice, cites the exact revision marker 'REVISED 03/16/2026 - CHANGE NO. 04-26,' and honestly acknowledges that the parsed body of the 04-26 notice is not available in the corpus for substantive detail - exactly matching the reference conclusion. The agent provides specific citations including the MA-3550 PDF URL and the change notice URL, and even adds helpful context about what 04-22 changed (without fabricating details about 04-26). No hallucinated facts are present - the agent is transparent about what is and isn't verifiable. A Medicaid policy expert would find this answer accurate, honest, and well-documented."
+      },
+      "judge_error": false,
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "primary_hit": true
+    }
+  ]
+}

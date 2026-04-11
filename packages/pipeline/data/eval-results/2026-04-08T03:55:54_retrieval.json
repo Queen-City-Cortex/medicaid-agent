@@ -1,0 +1,750 @@
+{
+  "run_id": "2026-04-08T03:55:54",
+  "level": "retrieval",
+  "config": {
+    "embedding_model": "voyage-law-2",
+    "top_k": 10,
+    "dataset_count": 25,
+    "git_sha": "df5a5f9"
+  },
+  "aggregate": {
+    "precision_at_k": 0.14,
+    "recall_at_k": 0.6559999999999999,
+    "mrr": 0.58,
+    "primary_hit_rate": 1.0
+  },
+  "by_difficulty": {
+    "simple": {
+      "precision_at_k": 0.14285714285714285,
+      "recall_at_k": 0.7619047619047619,
+      "mrr": 0.5761904761904761,
+      "primary_hit_rate": 1.0,
+      "count": 7
+    },
+    "moderate": {
+      "precision_at_k": 0.14615384615384616,
+      "recall_at_k": 0.6602564102564104,
+      "mrr": 0.5435897435897435,
+      "primary_hit_rate": 1.0,
+      "count": 13
+    },
+    "complex": {
+      "precision_at_k": 0.12000000000000002,
+      "recall_at_k": 0.4966666666666667,
+      "mrr": 0.6799999999999999,
+      "primary_hit_rate": 1.0,
+      "count": 5
+    }
+  },
+  "by_category": {
+    "multi_hop": {
+      "precision_at_k": 0.2,
+      "recall_at_k": 0.6,
+      "mrr": 0.45666666666666667,
+      "primary_hit_rate": 1.0,
+      "count": 5
+    },
+    "single_lookup": {
+      "precision_at_k": 0.1285714285714286,
+      "recall_at_k": 0.755952380952381,
+      "mrr": 0.6059523809523809,
+      "primary_hit_rate": 1.0,
+      "count": 14
+    },
+    "temporal": {
+      "precision_at_k": 0.1,
+      "recall_at_k": 1.0,
+      "mrr": 0.3333333333333333,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    },
+    "cross_document": {
+      "precision_at_k": 0.12000000000000002,
+      "recall_at_k": 0.36333333333333334,
+      "mrr": 0.6799999999999999,
+      "primary_hit_rate": 1.0,
+      "count": 5
+    }
+  },
+  "per_question": [
+    {
+      "id": "q-001",
+      "difficulty": "simple",
+      "reasoning_type": "single_lookup",
+      "precision": 0.2,
+      "recall": 0.6666666666666666,
+      "mrr": 0.2,
+      "primary_hit": true,
+      "retrieved": [
+        "sec:doc:clinical_policy:3K-2:3.2.1",
+        "sec:doc:clinical_policy:3K-2:_s17",
+        "sec:doc:clinical_policy:3K-2:3.2.4",
+        "sec:doc:clinical_policy:3K-2:_s210",
+        "sec:doc:clinical_policy:3K-2:2.1.1",
+        "sec:doc:clinical_policy:3K-2:4.2.1",
+        "sec:doc:clinical_policy:3K-2:6.6",
+        "sec:doc:clinical_policy:3K-2:_s304",
+        "sec:doc:clinical_policy:3K-2:_s255",
+        "sec:doc:clinical_policy:3K-2:_s324"
+      ],
+      "expected_primary": [
+        "sec:doc:clinical_policy:3K-2:2.1.1",
+        "sec:doc:clinical_policy:3K-2:3.1"
+      ],
+      "expected_supporting": [
+        "sec:doc:clinical_policy:3K-2:3.2.1"
+      ]
+    },
+    {
+      "id": "q-002",
+      "difficulty": "moderate",
+      "reasoning_type": "multi_hop",
+      "precision": 0.4,
+      "recall": 1.0,
+      "mrr": 0.3333333333333333,
+      "primary_hit": true,
+      "retrieved": [
+        "sec:doc:clinical_policy:5B:Attachment E",
+        "sec:doc:clinical_policy:3A:_s100",
+        "sec:doc:clinical_policy:5B:4.1",
+        "sec:doc:clinical_policy:5B:4.2.1",
+        "sec:doc:clinical_policy:5B:3.2.1",
+        "sec:doc:clinical_policy:5B:3.1",
+        "sec:doc:clinical_policy:8P:4.2.1",
+        "sec:doc:clinical_policy:8P:4.1",
+        "sec:doc:clinical_policy:3A:4.1",
+        "sec:doc:clinical_policy:5B:Attachment C"
+      ],
+      "expected_primary": [
+        "sec:doc:clinical_policy:5B:4.2.1",
+        "sec:doc:clinical_policy:5B:4.1"
+      ],
+      "expected_supporting": [
+        "sec:doc:clinical_policy:5B:3.1",
+        "sec:doc:clinical_policy:5B:3.2.1"
+      ]
+    },
+    {
+      "id": "q-003",
+      "difficulty": "moderate",
+      "reasoning_type": "multi_hop",
+      "precision": 0.2,
+      "recall": 0.5,
+      "mrr": 1.0,
+      "primary_hit": true,
+      "retrieved": [
+        "sec:doc:clinical_policy:8C:3.2.1.1",
+        "sec:doc:clinical_policy:8C:3.2.1.3",
+        "sec:doc:clinical_policy:8C:4.2.1.1",
+        "sec:doc:state_plan_amendment:SPA 25-0001:_s13",
+        "sec:doc:clinical_policy:8B:_s86",
+        "sec:doc:clinical_policy:8B:_s103",
+        "sec:doc:clinical_policy:8B:_s73",
+        "sec:doc:state_plan_amendment:url-384e030e27c2:_s594",
+        "sec:doc:clinical_policy:8C:_s74",
+        "sec:doc:clinical_policy:8A:_s113"
+      ],
+      "expected_primary": [
+        "sec:doc:clinical_policy:8C:3.2.1.3",
+        "sec:doc:clinical_policy:8C:3.2.1.2",
+        "sec:doc:clinical_policy:8C:3.2.1.1"
+      ],
+      "expected_supporting": [
+        "sec:doc:clinical_policy:8C:3.1"
+      ]
+    },
+    {
+      "id": "q-004",
+      "difficulty": "complex",
+      "reasoning_type": "cross_document",
+      "precision": 0.2,
+      "recall": 0.4,
+      "mrr": 1.0,
+      "primary_hit": true,
+      "retrieved": [
+        "sec:doc:clinical_policy:10A:2.2.1",
+        "sec:doc:clinical_policy:10A:_s17",
+        "sec:doc:clinical_policy:3G-1:2.2.1",
+        "sec:doc:federal_statute:ssa-title-19:1932",
+        "sec:doc:clinical_policy:10A:3.2.1.3",
+        "sec:doc:federal_statute:ssa-title-19:1919",
+        "sec:doc:clinical_policy:10A:_s73",
+        "sec:doc:clinical_policy:10A:_s36",
+        "sec:doc:clinical_policy:6A:2.2.1",
+        "sec:doc:clinical_policy:10D:2.2.1"
+      ],
+      "expected_primary": [
+        "sec:doc:clinical_policy:10A:2.2.1",
+        "sec:doc:clinical_policy:10A:3.1.2"
+      ],
+      "expected_supporting": [
+        "sec:doc:clinical_policy:10A:3.2.1.3",
+        "sec:doc:clinical_policy:3K-2:2.2.1",
+        "sec:doc:clinical_policy:10A:3.2.1.4"
+      ]
+    },
+    {
+      "id": "q-005",
+      "difficulty": "moderate",
+      "reasoning_type": "single_lookup",
+      "precision": 0.1,
+      "recall": 0.25,
+      "mrr": 0.5,
+      "primary_hit": true,
+      "retrieved": [
+        "sec:doc:clinical_policy:3L-1:3.3",
+        "sec:doc:clinical_policy:3L:3.3",
+        "sec:doc:state_plan_amendment:url-384e030e27c2:_s955",
+        "sec:doc:state_plan_amendment:url-384e030e27c2:_s956",
+        "sec:doc:state_plan_amendment:url-384e030e27c2:_s959",
+        "sec:doc:clinical_policy:3L-1:3.2.1",
+        "sec:doc:state_plan_amendment:url-384e030e27c2:_s958",
+        "sec:doc:state_plan_amendment:url-384e030e27c2:_s947",
+        "sec:doc:clinical_policy:3L:_s73",
+        "sec:doc:state_plan_amendment:url-384e030e27c2:_s957"
+      ],
+      "expected_primary": [
+        "sec:doc:clinical_policy:3L:3.2.2",
+        "sec:doc:clinical_policy:3L:3.3"
+      ],
+      "expected_supporting": [
+        "sec:doc:clinical_policy:3L:3.1",
+        "sec:doc:clinical_policy:3L:4.1"
+      ]
+    },
+    {
+      "id": "q-006",
+      "difficulty": "simple",
+      "reasoning_type": "single_lookup",
+      "precision": 0.2,
+      "recall": 1.0,
+      "mrr": 0.16666666666666666,
+      "primary_hit": true,
+      "retrieved": [
+        "sec:doc:clinical_policy:5B:7.1",
+        "sec:doc:clinical_policy:5B:2.1.1",
+        "sec:doc:clinical_policy:5B:4.2.1",
+        "sec:doc:clinical_policy:5B:3.2.1",
+        "sec:doc:clinical_policy:5B:3.1",
+        "sec:doc:clinical_policy:5B:4.1",
+        "sec:doc:clinical_policy:5B:_s8",
+        "sec:doc:clinical_policy:5B:_s83",
+        "sec:doc:clinical_policy:5B:_s101",
+        "sec:doc:clinical_policy:5B:_s105"
+      ],
+      "expected_primary": [
+        "sec:doc:clinical_policy:5B:4.1"
+      ],
+      "expected_supporting": [
+        "sec:doc:clinical_policy:5B:2.1.1"
+      ]
+    },
+    {
+      "id": "q-007",
+      "difficulty": "simple",
+      "reasoning_type": "single_lookup",
+      "precision": 0.1,
+      "recall": 0.5,
+      "mrr": 1.0,
+      "primary_hit": true,
+      "retrieved": [
+        "sec:doc:clinical_policy:10A:3.2.1.6",
+        "sec:doc:clinical_policy:10A:_s36",
+        "sec:doc:clinical_policy:10A:_s73",
+        "sec:doc:clinical_policy:10A:_s39",
+        "sec:doc:clinical_policy:10A:4.2.1",
+        "sec:doc:clinical_policy:10A:_s86",
+        "sec:doc:clinical_policy:10A:_s84",
+        "sec:doc:clinical_policy:10A:7.2",
+        "sec:doc:clinical_policy:10A:1.0",
+        "sec:doc:clinical_policy:10A:7.1"
+      ],
+      "expected_primary": [
+        "sec:doc:clinical_policy:10A:3.2.1.6"
+      ],
+      "expected_supporting": [
+        "sec:doc:clinical_policy:10A:3.1"
+      ]
+    },
+    {
+      "id": "q-008",
+      "difficulty": "moderate",
+      "reasoning_type": "single_lookup",
+      "precision": 0.2,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "primary_hit": true,
+      "retrieved": [
+        "sec:doc:clinical_policy:3K-2:3.3",
+        "sec:doc:clinical_policy:3K-2:5.4.2:dup1",
+        "sec:doc:clinical_policy:3K-2:3.2.4",
+        "sec:doc:clinical_policy:3K-2:6.5",
+        "sec:doc:clinical_policy:3K-2:6.4.1",
+        "sec:doc:clinical_policy:3K-2:_s189",
+        "sec:doc:clinical_policy:3K-2:_s255",
+        "sec:doc:clinical_policy:3K-2:6.0",
+        "sec:doc:clinical_policy:3K-1:3.2.5",
+        "sec:doc:clinical_policy:3K-2:_s188"
+      ],
+      "expected_primary": [
+        "sec:doc:clinical_policy:3K-2:3.3"
+      ],
+      "expected_supporting": [
+        "sec:doc:clinical_policy:3K-2:3.2.4"
+      ]
+    },
+    {
+      "id": "q-009",
+      "difficulty": "complex",
+      "reasoning_type": "cross_document",
+      "precision": 0.1,
+      "recall": 0.3333333333333333,
+      "mrr": 0.2,
+      "primary_hit": true,
+      "retrieved": [
+        "sec:doc:dhhs_policy:MA-2180:url-eb764e08d287:_s1",
+        "sec:doc:dhhs_policy:url-117380a225c7:_s0",
+        "sec:doc:dhhs_policy:url-cf4ad1caa5a1:_s0",
+        "sec:doc:dhhs_policy:url-e60ea87e9c66:_s2",
+        "sec:doc:dhhs_policy:url-11e0d9a442ce:_s6",
+        "sec:doc:dhhs_policy:url-e95074c3676e:_s5",
+        "sec:doc:dhhs_policy:url-60b4fb3734c2:_s5",
+        "sec:doc:dhhs_policy:MA-2180:url-08aa92cd33e7:_s15",
+        "sec:doc:dhhs_policy:MA-2180:url-08aa92cd33e7:_s21",
+        "sec:doc:dhhs_policy:MA-2180:url-08aa92cd33e7:_s23"
+      ],
+      "expected_primary": [
+        "sec:doc:dhhs_policy:url-11e0d9a442ce:_s6"
+      ],
+      "expected_supporting": [
+        "sec:doc:dhhs_policy:url-11e0d9a442ce:_s16",
+        "sec:doc:dhhs_policy:url-11e0d9a442ce:_s3"
+      ]
+    },
+    {
+      "id": "q-010",
+      "difficulty": "complex",
+      "reasoning_type": "cross_document",
+      "precision": 0.1,
+      "recall": 0.25,
+      "mrr": 0.2,
+      "primary_hit": true,
+      "retrieved": [
+        "sec:doc:state_plan_amendment:url-7e50b053be3d:_s11",
+        "sec:doc:state_plan_amendment:url-b4d4686281d4:_s9",
+        "sec:doc:state_plan_amendment:url-7e50b053be3d:_s8",
+        "sec:doc:state_plan_amendment:url-b4d4686281d4:_s6",
+        "sec:doc:federal_statute:ssa-title-19:1915",
+        "sec:doc:federal_statute:ssa-title-21:2105",
+        "sec:doc:federal_statute:ssa-title-19:1903",
+        "sec:doc:federal_statute:ssa-title-19:1937",
+        "sec:doc:federal_statute:ssa-title-19:1946",
+        "sec:doc:federal_statute:ssa-title-19:1902"
+      ],
+      "expected_primary": [
+        "sec:doc:federal_regulation:42-CFR-441:441.301",
+        "sec:doc:federal_statute:ssa-title-19:1915"
+      ],
+      "expected_supporting": [
+        "sec:doc:federal_regulation:42-CFR-441:441.303",
+        "sec:doc:clinical_policy:3K-2:3.1"
+      ]
+    },
+    {
+      "id": "q-011",
+      "difficulty": "moderate",
+      "reasoning_type": "single_lookup",
+      "precision": 0.1,
+      "recall": 0.5,
+      "mrr": 0.2,
+      "primary_hit": true,
+      "retrieved": [
+        "sec:doc:clinical_policy:3K-2:_s275",
+        "sec:doc:clinical_policy:3K-2:5.4.2:dup1",
+        "sec:doc:clinical_policy:3K-2:6.4.1",
+        "sec:doc:clinical_policy:3K-2:_s199",
+        "sec:doc:clinical_policy:3K-2:5.9.1",
+        "sec:doc:clinical_policy:3K-2:_s285",
+        "sec:doc:clinical_policy:3K-1:5.7.1",
+        "sec:doc:clinical_policy:3K-2:_s255",
+        "sec:doc:clinical_policy:3K-2:_s312",
+        "sec:doc:clinical_policy:3K-2:6.5"
+      ],
+      "expected_primary": [
+        "sec:doc:clinical_policy:3K-2:5.9.1"
+      ],
+      "expected_supporting": [
+        "sec:doc:clinical_policy:3K-2:3.4.5"
+      ]
+    },
+    {
+      "id": "q-012",
+      "difficulty": "moderate",
+      "reasoning_type": "multi_hop",
+      "precision": 0.1,
+      "recall": 0.3333333333333333,
+      "mrr": 0.5,
+      "primary_hit": true,
+      "retrieved": [
+        "sec:doc:clinical_policy:2B-1:_s27",
+        "sec:doc:clinical_policy:2B-1:5.8",
+        "sec:doc:state_plan_amendment:url-384e030e27c2:_s1644",
+        "sec:doc:federal_regulation:42-CFR-410:410.170",
+        "sec:doc:federal_regulation:42-CFR-413:413.338",
+        "sec:doc:state_plan_amendment:url-384e030e27c2:_s653",
+        "sec:doc:federal_regulation:42-CFR-410:410.15",
+        "sec:doc:federal_regulation:42-CFR-410:410.27",
+        "sec:doc:federal_regulation:42-CFR-413:413.350",
+        "sec:doc:state_plan_amendment:SPA 22-0011:_s2"
+      ],
+      "expected_primary": [
+        "sec:doc:clinical_policy:2B-1:5.8"
+      ],
+      "expected_supporting": [
+        "sec:doc:clinical_policy:2B-1:5.2.2",
+        "sec:doc:clinical_policy:2B-1:5.2.3"
+      ]
+    },
+    {
+      "id": "q-013",
+      "difficulty": "moderate",
+      "reasoning_type": "single_lookup",
+      "precision": 0.1,
+      "recall": 1.0,
+      "mrr": 0.5,
+      "primary_hit": true,
+      "retrieved": [
+        "sec:doc:clinical_policy:3G-2:5.2.4.1",
+        "sec:doc:clinical_policy:3G-1:5.2.4.1",
+        "sec:doc:federal_statute:ssa-title-19:1919",
+        "sec:doc:federal_regulation:42-CFR-438:438.14",
+        "sec:doc:federal_regulation:42-CFR-438:438.10",
+        "sec:doc:clinical_policy:3G-2:_s97",
+        "sec:doc:clinical_policy:3G-1:5.2.4.2",
+        "sec:doc:clinical_policy:3G-2:5.2.4.2",
+        "sec:doc:federal_regulation:42-CFR-438:438.16",
+        "sec:doc:federal_regulation:42-CFR-438:438.3"
+      ],
+      "expected_primary": [
+        "sec:doc:clinical_policy:3G-1:5.2.4.1"
+      ],
+      "expected_supporting": []
+    },
+    {
+      "id": "q-014",
+      "difficulty": "simple",
+      "reasoning_type": "single_lookup",
+      "precision": 0.1,
+      "recall": 1.0,
+      "mrr": 0.3333333333333333,
+      "primary_hit": true,
+      "retrieved": [
+        "sec:doc:dhhs_policy:url-ac3a6593c3fe:_s4",
+        "sec:doc:clinical_policy:3L:5.6",
+        "sec:doc:clinical_policy:3L-1:5.6",
+        "sec:doc:clinical_policy:3L:3.3",
+        "sec:doc:clinical_policy:3L:5.3.1",
+        "sec:doc:clinical_policy:3L-1:5.3.1",
+        "sec:doc:state_plan_amendment:url-384e030e27c2:_s958",
+        "sec:doc:clinical_policy:3L-1:5.4.4",
+        "sec:doc:clinical_policy:3L:_s73",
+        "sec:doc:clinical_policy:3L-1:3.3"
+      ],
+      "expected_primary": [
+        "sec:doc:clinical_policy:3L-1:5.6"
+      ],
+      "expected_supporting": []
+    },
+    {
+      "id": "q-015",
+      "difficulty": "moderate",
+      "reasoning_type": "cross_document",
+      "precision": 0.1,
+      "recall": 0.3333333333333333,
+      "mrr": 1.0,
+      "primary_hit": true,
+      "retrieved": [
+        "sec:doc:federal_regulation:42-CFR-440:440.70",
+        "sec:doc:federal_regulation:42-CFR-441:441.15",
+        "sec:doc:federal_statute:ssa-title-19:1944",
+        "sec:doc:federal_regulation:42-CFR-484:484.80",
+        "sec:doc:federal_regulation:42-CFR-441:441.16",
+        "sec:doc:federal_statute:ssa-title-19:1929",
+        "sec:doc:federal_regulation:42-CFR-440:440.20",
+        "sec:doc:federal_regulation:42-CFR-440:440.181",
+        "sec:doc:federal_statute:ssa-title-19:1938",
+        "sec:doc:federal_statute:ssa-title-19:1908"
+      ],
+      "expected_primary": [
+        "sec:doc:federal_regulation:42-CFR-440:440.70"
+      ],
+      "expected_supporting": [
+        "sec:doc:clinical_policy:3A:3.2.1",
+        "sec:doc:federal_statute:ssa-title-19:1905"
+      ]
+    },
+    {
+      "id": "q-016",
+      "difficulty": "simple",
+      "reasoning_type": "single_lookup",
+      "precision": 0.2,
+      "recall": 0.6666666666666666,
+      "mrr": 0.3333333333333333,
+      "primary_hit": true,
+      "retrieved": [
+        "sec:doc:federal_regulation:42-CFR-418:418.22",
+        "sec:doc:clinical_policy:3D:8.0",
+        "sec:doc:clinical_policy:3D:5.4.1",
+        "sec:doc:clinical_policy:3D:5.2.2.2",
+        "sec:doc:federal_regulation:42-CFR-418:418.20",
+        "sec:doc:federal_regulation:42-CFR-418:418.25",
+        "sec:doc:clinical_policy:3D:6.2",
+        "sec:doc:clinical_policy:3D:5.4.3",
+        "sec:doc:federal_regulation:42-CFR-418:418.200",
+        "sec:doc:federal_regulation:42-CFR-418:418.205"
+      ],
+      "expected_primary": [
+        "sec:doc:clinical_policy:3D:5.4.3",
+        "sec:doc:clinical_policy:3D:5.4.1"
+      ],
+      "expected_supporting": [
+        "sec:doc:clinical_policy:3D:3.2.1"
+      ]
+    },
+    {
+      "id": "q-017",
+      "difficulty": "simple",
+      "reasoning_type": "single_lookup",
+      "precision": 0.1,
+      "recall": 0.5,
+      "mrr": 1.0,
+      "primary_hit": true,
+      "retrieved": [
+        "sec:doc:clinical_policy:15:4.2.1.4",
+        "sec:doc:clinical_policy:8P:4.2.1",
+        "sec:doc:clinical_policy:15:6.5",
+        "sec:doc:clinical_policy:2A-3:4.2.2",
+        "sec:doc:clinical_policy:15:4.1",
+        "sec:doc:clinical_policy:1S-1:4.2.1",
+        "sec:doc:clinical_policy:1N-2:4.1",
+        "sec:doc:clinical_policy:1S-1:4.1",
+        "sec:doc:clinical_policy:15:_s75",
+        "sec:doc:clinical_policy:1N-2:4.2.1"
+      ],
+      "expected_primary": [
+        "sec:doc:clinical_policy:15:4.2.1.4"
+      ],
+      "expected_supporting": [
+        "sec:doc:clinical_policy:15:3.2.1.1"
+      ]
+    },
+    {
+      "id": "q-018",
+      "difficulty": "moderate",
+      "reasoning_type": "multi_hop",
+      "precision": 0.2,
+      "recall": 0.6666666666666666,
+      "mrr": 0.2,
+      "primary_hit": true,
+      "retrieved": [
+        "sec:doc:clinical_policy:9:Attachment C",
+        "sec:doc:federal_regulation:42-CFR-447:447.514",
+        "sec:doc:federal_regulation:42-CFR-447:447.512",
+        "sec:doc:federal_regulation:42-CFR-447:447.516",
+        "sec:doc:clinical_policy:9:5.4.3",
+        "sec:doc:state_plan_amendment:url-384e030e27c2:_s773",
+        "sec:doc:federal_statute:ssa-title-19:1927",
+        "sec:doc:clinical_policy:9:_s260",
+        "sec:doc:state_plan_amendment:url-384e030e27c2:_s774",
+        "sec:doc:federal_statute:ssa-title-19:1935"
+      ],
+      "expected_primary": [
+        "sec:doc:clinical_policy:9:5.4.3",
+        "sec:doc:clinical_policy:9:_s260"
+      ],
+      "expected_supporting": [
+        "sec:doc:clinical_policy:9:Attachment K"
+      ]
+    },
+    {
+      "id": "q-019",
+      "difficulty": "moderate",
+      "reasoning_type": "single_lookup",
+      "precision": 0.1,
+      "recall": 0.5,
+      "mrr": 0.25,
+      "primary_hit": true,
+      "retrieved": [
+        "sec:doc:federal_regulation:42-CFR-410:410.60",
+        "sec:doc:federal_regulation:42-CFR-410:410.59",
+        "sec:doc:federal_regulation:42-CFR-410:410.62",
+        "sec:doc:clinical_policy:10A:_s31",
+        "sec:doc:federal_regulation:42-CFR-410:410.38",
+        "sec:doc:federal_statute:ssa-title-19:1944",
+        "sec:doc:clinical_policy:10C:_s72",
+        "sec:doc:clinical_policy:10C:_s71",
+        "sec:doc:federal_regulation:42-CFR-410:410.32",
+        "sec:doc:clinical_policy:10C:8.0"
+      ],
+      "expected_primary": [
+        "sec:doc:clinical_policy:10A:_s31"
+      ],
+      "expected_supporting": [
+        "sec:doc:clinical_policy:10A:3.2.1.3"
+      ]
+    },
+    {
+      "id": "q-020",
+      "difficulty": "moderate",
+      "reasoning_type": "temporal",
+      "precision": 0.1,
+      "recall": 1.0,
+      "mrr": 0.3333333333333333,
+      "primary_hit": true,
+      "retrieved": [
+        "sec:doc:dhhs_policy:MA-3550:url-54185ce6f688:_s78",
+        "sec:doc:dhhs_policy:MA-2910:url-38e3dfdc4566:_s78",
+        "sec:doc:dhhs_policy:MA-3550:url-54185ce6f688:_s2",
+        "sec:doc:clinical_policy:8D-5:8.0",
+        "sec:doc:clinical_policy:8A-11:8.0",
+        "sec:doc:clinical_policy:8D-6:8.0",
+        "sec:doc:state_plan_amendment:url-384e030e27c2:_s166",
+        "sec:doc:state_plan_amendment:url-384e030e27c2:_s167",
+        "sec:doc:state_plan_amendment:url-384e030e27c2:_s168",
+        "sec:doc:state_plan_amendment:url-384e030e27c2:_s2168"
+      ],
+      "expected_primary": [
+        "sec:doc:dhhs_policy:MA-3550:url-54185ce6f688:_s2"
+      ],
+      "expected_supporting": []
+    },
+    {
+      "id": "q-021",
+      "difficulty": "complex",
+      "reasoning_type": "cross_document",
+      "precision": 0.1,
+      "recall": 0.5,
+      "mrr": 1.0,
+      "primary_hit": true,
+      "retrieved": [
+        "sec:doc:federal_regulation:42-CFR-438:438.8",
+        "sec:doc:federal_regulation:45-CFR-158:158.221",
+        "sec:doc:federal_statute:ssa-title-19:1932",
+        "sec:doc:federal_regulation:45-CFR-158:158.240",
+        "sec:doc:federal_regulation:45-CFR-158:158.211",
+        "sec:doc:federal_statute:ssa-title-19:1944",
+        "sec:doc:federal_regulation:42-CFR-438:438.510",
+        "sec:doc:federal_regulation:42-CFR-438:438.14",
+        "sec:doc:federal_regulation:42-CFR-438:438.354",
+        "sec:doc:federal_regulation:45-CFR-158:158.210"
+      ],
+      "expected_primary": [
+        "sec:doc:federal_regulation:42-CFR-438:438.8"
+      ],
+      "expected_supporting": [
+        "sec:doc:federal_regulation:42-CFR-438:438.2"
+      ]
+    },
+    {
+      "id": "q-022",
+      "difficulty": "moderate",
+      "reasoning_type": "single_lookup",
+      "precision": 0.1,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "primary_hit": true,
+      "retrieved": [
+        "sec:doc:clinical_policy:11A-17:3.2.1",
+        "sec:doc:clinical_policy:11A-17:4.2.1",
+        "sec:doc:clinical_policy:11A-17:5.2.2",
+        "sec:doc:clinical_policy:11A-17:_s34",
+        "sec:doc:clinical_policy:11A-17:1.1",
+        "sec:doc:clinical_policy:11A-17:_s38",
+        "sec:doc:clinical_policy:11A-17:_s37",
+        "sec:doc:clinical_policy:11A-17:2.1.2",
+        "sec:doc:clinical_policy:11A-17:3.1",
+        "sec:doc:clinical_policy:1S-13:4.2.1"
+      ],
+      "expected_primary": [
+        "sec:doc:clinical_policy:11A-17:3.2.1"
+      ],
+      "expected_supporting": []
+    },
+    {
+      "id": "q-023",
+      "difficulty": "simple",
+      "reasoning_type": "single_lookup",
+      "precision": 0.1,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "primary_hit": true,
+      "retrieved": [
+        "sec:doc:clinical_policy:1A-23:7.2",
+        "sec:doc:clinical_policy:1A-23:5.3.2",
+        "sec:doc:clinical_policy:1A-23:5.3.1",
+        "sec:doc:clinical_policy:1A-23:_s19",
+        "sec:doc:clinical_policy:1A-23:_s49",
+        "sec:doc:federal_regulation:42-CFR-410:410.23",
+        "sec:doc:federal_regulation:42-CFR-410:410.19",
+        "sec:doc:clinical_policy:1A-23:2.1.2",
+        "sec:doc:clinical_policy:4A:5.3.3.2",
+        "sec:doc:clinical_policy:8C:_s67"
+      ],
+      "expected_primary": [
+        "sec:doc:clinical_policy:1A-23:7.2"
+      ],
+      "expected_supporting": []
+    },
+    {
+      "id": "q-024",
+      "difficulty": "complex",
+      "reasoning_type": "single_lookup",
+      "precision": 0.1,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "primary_hit": true,
+      "retrieved": [
+        "sec:doc:clinical_policy:8P:_s564",
+        "sec:doc:state_plan_amendment:url-966bfd62c71e:_s20",
+        "sec:doc:state_plan_amendment:url-966bfd62c71e:_s538",
+        "sec:doc:dhhs_policy:MA-2282:url-d4e2571ca544:_s9",
+        "sec:doc:federal_regulation:42-CFR-435:435.726",
+        "sec:doc:federal_regulation:42-CFR-435:435.735",
+        "sec:doc:state_plan_amendment:url-966bfd62c71e:_s536",
+        "sec:doc:clinical_policy:8P:_s102",
+        "sec:doc:clinical_policy:8P:_s157",
+        "sec:doc:state_plan_amendment:url-966bfd62c71e:_s542"
+      ],
+      "expected_primary": [
+        "sec:doc:clinical_policy:8P:_s564"
+      ],
+      "expected_supporting": []
+    },
+    {
+      "id": "q-025",
+      "difficulty": "moderate",
+      "reasoning_type": "multi_hop",
+      "precision": 0.1,
+      "recall": 0.5,
+      "mrr": 0.25,
+      "primary_hit": true,
+      "retrieved": [
+        "sec:doc:dhhs_policy:url-73240ea1e448:_s1",
+        "sec:doc:dhhs_policy:url-b43897769315:_s8",
+        "sec:doc:dhhs_policy:url-73240ea1e448:_s2",
+        "sec:doc:clinical_policy:12B:6.2.1",
+        "sec:doc:clinical_policy:12B:_s66",
+        "sec:doc:state_plan_amendment:url-384e030e27c2:_s535",
+        "sec:doc:clinical_policy:3K-2:6.4.1",
+        "sec:doc:clinical_policy:12B:_s4",
+        "sec:doc:clinical_policy:12B:6.1",
+        "sec:doc:clinical_policy:12B:_s65"
+      ],
+      "expected_primary": [
+        "sec:doc:clinical_policy:12B:6.2.1",
+        "sec:doc:clinical_policy:12B:6.2.5"
+      ],
+      "expected_supporting": []
+    }
+  ]
+}

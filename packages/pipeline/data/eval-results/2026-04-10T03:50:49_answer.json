@@ -1,0 +1,74 @@
+{
+  "run_id": "2026-04-10T03:50:49",
+  "level": "answer",
+  "config": {
+    "embedding_model": "voyage-law-2",
+    "top_k": 10,
+    "dataset_count": 1,
+    "git_sha": "df5a5f9",
+    "judge_model": "claude-sonnet-4-6"
+  },
+  "aggregate": {
+    "precision_at_k": 0.6666666666666666,
+    "recall_at_k": 0.6666666666666666,
+    "mrr": 0.6666666666666666,
+    "primary_hit_rate": 1.0
+  },
+  "by_difficulty": {
+    "moderate": {
+      "precision_at_k": 0.6666666666666666,
+      "recall_at_k": 0.6666666666666666,
+      "mrr": 0.6666666666666666,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "by_category": {
+    "single_lookup": {
+      "precision_at_k": 0.6666666666666666,
+      "recall_at_k": 0.6666666666666666,
+      "mrr": 0.6666666666666666,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "per_question": [
+    {
+      "id": "q-005",
+      "difficulty": "moderate",
+      "reasoning_type": "single_lookup",
+      "question": "Does NC Medicaid cover Personal Care Services for beneficiaries who live in an assisted living facility?",
+      "agent_answer": "Yes \u2014 NC Medicaid **does cover Personal Care Services (PCS) for some beneficiaries who live in an assisted living-type setting**, but only if they meet the policy\u2019s eligibility criteria.\n\nUnder NC Medicaid\u2019s congregate-settings PCS policy, coverage applies to a beneficiary who, among other things, **resides in** a North Carolina-licensed **Adult Care Home (ACH)**, combination home, or certain licensed group homes, and who meets the required functional and medical criteria. That section specifically treats PCS in these congregate facilities as covered when the listed criteria are met. [3L-1 \u00a7 3.2.1, State Plan Personal Care Services (PCS) Provided in Congregate Settings](https://medicaid.ncdhhs.gov/media/14986/download?attachment)\n\nBut coverage is **not automatic** just because the person lives in an assisted living facility. PCS is not covered if, for example, the beneficiary does not meet the Section 3 criteria, the required assessment has not been completed, the service is provided somewhere other than the beneficiary\u2019s primary congregate living setting, the service exceeds the approved amount, or informal caregivers are available and able to meet the need. [3L-1 \u00a7 4.1; \u00a7 4.2, State Plan Personal Care Services (PCS) Provided in Congregate Settings](https://medicaid.ncdhhs.gov/media/14986/download?attachment)\n\nSo the short answer is:\n\n- **Yes, potentially covered** in an assisted living/adult care home setting;\n- **Only if** the beneficiary meets the congregate PCS eligibility rules and authorization requirements;\n- **No**, if one of the policy\u2019s non-covered criteria applies.\n\nI checked amendments for Policy **3L-1** and did not find a change notice superseding it in the corpus; the authoritative document returned was the current [State Plan Personal Care Services (PCS) Provided in Congregate Settings](https://medicaid.ncdhhs.gov/media/14986/download?attachment).\n\nIf you want, I can also answer the follow-up question: **what exact eligibility criteria must an assisted living resident meet to qualify for PCS?**",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 2,
+        "completeness": 2,
+        "hallucination": 3,
+        "citation_quality": 2,
+        "overall": 2,
+        "explanation": "The agent correctly identifies that NC Medicaid covers PCS in assisted living/Adult Care Home settings under policy 3L-1, correctly cites sections 3.2.1 and 4.1/4.2, and correctly notes the congregate setting policy distinction. However, it doesn't fully enumerate the specific functional criteria (3 of 5 ADLs with limited hands-on assistance, or 2 ADLs with one requiring extensive or full dependence assistance), misses the SMI screening requirement for ACHs licensed under G.S. 131D-2.4, and doesn't detail section 3.3's covered services list or 4.2.1.2's non-covered services. The answer is accurate in what it states but incomplete in specific details. No hallucinations are present - all claims are supported by the evidence. Citation quality is decent with section-level references but could be more precise in listing all relevant subsections."
+      },
+      "judge_error": false,
+      "route_lane": "baseline_hybrid",
+      "route_rationale": "single_document_coverage",
+      "route_widening_policy": "one_step",
+      "route_determinism_hints": {
+        "numeric_evidence_only": false,
+        "latest_revision_only": false,
+        "cite_scope_and_not_covered": true
+      },
+      "route_authoritative_document": {
+        "id": "doc:clinical_policy:3L-1",
+        "policy_number": "3L-1",
+        "title": "State Plan Personal Care Services (PCS) Provided in Congregate Settings"
+      },
+      "route_widened": true,
+      "route_inspection_error": null,
+      "agent_elapsed_seconds": 24.385,
+      "precision": 0.6666666666666666,
+      "recall": 0.6666666666666666,
+      "mrr": 0.6666666666666666,
+      "primary_hit": true
+    }
+  ]
+}

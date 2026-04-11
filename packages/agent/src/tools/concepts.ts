@@ -1,14 +1,6 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
-import { withSession } from '../neo4j.js';
-
-const ALLOWED_RELATIONSHIPS = new Set([
-  'COVERS',
-  'DEFINES',
-  'RESTRICTS',
-  'GOVERNS',
-  'REFERENCES_CONCEPT',
-]);
+import { policyCorpus } from '../policy-corpus.js';
 
 export const findConceptSections = createTool({
   id: 'find-concept-sections',
@@ -39,50 +31,6 @@ export const findConceptSections = createTool({
     ),
   }),
   execute: async (inputData) => {
-    const { conceptName, relationshipType } = inputData;
-
-    if (relationshipType && !ALLOWED_RELATIONSHIPS.has(relationshipType)) {
-      return { sections: [] };
-    }
-
-    return await withSession(async (session) => {
-      const query = relationshipType
-        ? `MATCH (s:Section)-[r:${relationshipType}]->(c:PolicyConcept)
-           WHERE c.name = $name OR toLower(c.name) = toLower($name)
-           OPTIONAL MATCH (d:Document)-[:HAS_SECTION]->(s)
-           RETURN
-             s.id AS sectionId,
-             s.title AS sectionTitle,
-             s.section_number AS sectionNumber,
-             d.id AS documentId,
-             d.document_type AS documentType,
-             d.policy_number AS policyNumber,
-             type(r) AS relationshipType`
-        : `MATCH (s:Section)-[r]->(c:PolicyConcept)
-           WHERE c.name = $name OR toLower(c.name) = toLower($name)
-           OPTIONAL MATCH (d:Document)-[:HAS_SECTION]->(s)
-           RETURN
-             s.id AS sectionId,
-             s.title AS sectionTitle,
-             s.section_number AS sectionNumber,
-             d.id AS documentId,
-             d.document_type AS documentType,
-             d.policy_number AS policyNumber,
-             type(r) AS relationshipType`;
-
-      const result = await session.run(query, { name: conceptName });
-
-      const sections = result.records.map((rec) => ({
-        sectionId: rec.get('sectionId') as string,
-        sectionTitle: rec.get('sectionTitle') as string | null,
-        sectionNumber: rec.get('sectionNumber') as string | null,
-        documentId: rec.get('documentId') as string | null,
-        documentType: rec.get('documentType') as string | null,
-        policyNumber: rec.get('policyNumber') as string | null,
-        relationshipType: rec.get('relationshipType') as string,
-      }));
-
-      return { sections };
-    });
+    return { sections: await policyCorpus.findConceptSections(inputData) };
   },
 });

@@ -40,7 +40,7 @@ The graph contains multiple document types. The agent should route questions to 
 | Federal baseline / statutory override | `cfr` | eCFR sections establish federal floor requirements |
 | SPA amendments / state plan | `spa` | State Plan Amendments define NC-specific deviations |
 
-**Implementation note:** The `vector_search()` function now accepts a `document_types` list parameter. The agent should pass the appropriate type list before broadening to an unfiltered search if the filtered result is insufficient.
+**Implementation note:** The canonical retrieval layer accepts a `document_types` list parameter. The agent should pass the appropriate type list before broadening to an unfiltered search if the filtered result is insufficient.
 
 ---
 

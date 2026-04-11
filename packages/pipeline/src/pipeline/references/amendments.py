@@ -4,10 +4,9 @@ import re
 
 from rich.console import Console
 
-from pipeline.config import GRAPH_BATCH_SIZE
 from pipeline.graph.connection import get_session
-from pipeline.graph import queries
-from pipeline.utils.batching import chunked
+from pipeline.graph.corpus_types import AmendmentEdge
+from pipeline.graph.corpus_writer import graph_writer
 
 console = Console()
 
@@ -284,28 +283,19 @@ def detect_amendments() -> dict:
         f"{len(edges_to_create)} AMENDS edges to create"
     )
 
-    # Write edges with change_description
-    with get_session() as session:
-        pairs_with_desc = [
-            {
-                "source_id": src,
-                "target_id": tgt,
-                "change_description": "\n".join(
-                    dict.fromkeys(edge_descriptions[(src, tgt)])  # dedupe preserving order
-                ),
-            }
-            for src, tgt in edges_to_create
-        ]
-        for batch in chunked(pairs_with_desc, GRAPH_BATCH_SIZE):
-            session.run(queries.MERGE_AMENDS_BATCH, {"pairs": batch})
-        stats["edges_created"] = len(edges_to_create)
-
-        # Mark change notice documents as status='amendment'
-        amendment_doc_ids = sorted(set(change_notice_ids + revised_spa_ids))
-        for batch in chunked(amendment_doc_ids, GRAPH_BATCH_SIZE):
-            session.run(
-                queries.SET_DOCUMENT_STATUS_BATCH,
-                {"doc_ids": batch, "status": "amendment"},
-            )
+    amendment_edges = [
+        AmendmentEdge(
+            source_id=src,
+            target_id=tgt,
+            change_description="\n".join(
+                dict.fromkeys(edge_descriptions[(src, tgt)])  # dedupe preserving order
+            ),
+        )
+        for src, tgt in edges_to_create
+    ]
+    stats["edges_created"] = graph_writer.merge_amendments(
+        amendment_edges,
+        sorted(set(change_notice_ids + revised_spa_ids)),
+    )
 
     return stats

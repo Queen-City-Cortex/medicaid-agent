@@ -1,0 +1,58 @@
+{
+  "run_id": "2026-04-08T21:15:19",
+  "level": "answer",
+  "config": {
+    "embedding_model": "voyage-law-2",
+    "top_k": 10,
+    "dataset_count": 1,
+    "git_sha": "df5a5f9",
+    "judge_model": "claude-sonnet-4-6"
+  },
+  "aggregate": {
+    "precision_at_k": 1.0,
+    "recall_at_k": 1.0,
+    "mrr": 0.6666666666666666,
+    "primary_hit_rate": 1.0
+  },
+  "by_difficulty": {
+    "moderate": {
+      "precision_at_k": 1.0,
+      "recall_at_k": 1.0,
+      "mrr": 0.6666666666666666,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "by_category": {
+    "single_lookup": {
+      "precision_at_k": 1.0,
+      "recall_at_k": 1.0,
+      "mrr": 0.6666666666666666,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "per_question": [
+    {
+      "id": "q-019",
+      "difficulty": "moderate",
+      "reasoning_type": "single_lookup",
+      "question": "Under what conditions can speech therapy be provided via telehealth under NC Medicaid?",
+      "agent_answer": "I\u2019m going to pull both the speech therapy coverage policy and the general telehealth policy, then read the full telehealth sections and check for any amendments before answering.The search points to Clinical Coverage Policy 10A and 10C. I\u2019m going to identify which policy governs the setting/population for your question, read the telehealth framework, and then check whether either policy has been amended.Policy 10A is the general outpatient specialized therapies policy, while 10C is limited to Local Education Agencies, so I\u2019m using 10A as the primary speech therapy source and not 10C unless the school-based context becomes relevant. Next I\u2019m reading the full telehealth sections in 10A and 1-H and checking for amendments to both documents.The service-specific telehealth language is in an unnumbered \u201cTelehealth\u201d subsection within Policy 10A, and it gives the actual conditions. I still need the general telehealth framework from Policy 1-H, so I\u2019m searching within 1-H for the sections that contain the operative telehealth requirements rather than empty headers.Yes \u2014 **speech therapy can be provided via telehealth under NC Medicaid, but only in limited circumstances and subject to both the speech therapy policy and the general telehealth policy.**\n\n## Short answer\n\nUnder **Clinical Coverage Policy 10A**, a **select set of speech and language evaluation and treatment interventions** may be delivered by telehealth. Telehealth is allowed when it is **medically necessary**, such as when:\n\n- the beneficiary\u2019s **medical condition makes exposure to others something that should be avoided**, or\n- the beneficiary is in a **remote or underserved location** and access to appropriately qualified providers is limited.\n\nBut NC Medicaid says telehealth for speech therapy:\n\n- **should generally be an adjunct to in-person care, not a replacement**, unless in-person care is contraindicated or unavailable;\n- must be **in the beneficiary\u2019s best interest**;\n- **cannot be used just for therapist convenience**; and\n- **cannot be used solely to increase therapist productivity**.\n\nThat comes from **Clinical Coverage Policy 10A, unnumbered subsection \u201ce. Telehealth\u201d** (effective **2025-02-01**): [Clinical Coverage Policy 10A](https://medicaid.ncdhhs.gov/10a-outpatient-specialized-therapies/download?attachment)\n\n## General telehealth conditions that also apply\n\nNC Medicaid\u2019s general telehealth policy adds several requirements. Providers must ensure that the service can be **safely and effectively** delivered by telehealth, and they must consider:\n\n- the beneficiary\u2019s **behavioral, physical, and cognitive abilities** to participate;\n- the beneficiary\u2019s **safety** given the complexity of the service;\n- if a caregiver or facilitator is needed, that person\u2019s **ability and safety** as well.\n\nProviders also must:\n\n- follow **professional standards of care**, scope of practice, and licensing rules;\n- **obtain and document verbal or written consent** (or document why consent could not be obtained in extenuating circumstances);\n- allow the beneficiary access to **in-person services if the beneficiary requests**;\n- **verify the beneficiary\u2019s identity using two points of identification** before starting telehealth; and\n- protect **privacy and confidentiality** to the best of their ability.\n\nThat comes from **Clinical Coverage Policy 1-H, Section 3.2.1 \u2014 \u201cSpecific criteria covered by Medicaid\u201d** (effective **2025-02-01**): [Clinical Coverage Policy 1-H](https://medicaid.ncdhhs.gov/1h-telehealth-virtual-communications-and-remote-patient-monitoring/download?attachment)\n\n## Modality\n\nFor telehealth services under Policy 1-H, NC Medicaid indicates use of **modifier GT** to show the service was provided via **interactive audio-visual communication**. Policy 1-H says GT **should not** be used for virtual patient communications or remote patient monitoring.\n\nSource: **Clinical Coverage Policy 1-H, unnumbered subsection \u201cD. Modifiers\u201d** (effective **2025-02-01**): [Clinical Coverage Policy 1-H](https://medicaid.ncdhhs.gov/1h-telehealth-virtual-communications-and-remote-patient-monitoring/download?attachment)\n\n## Which speech policy applies?\n\nI am using **Clinical Coverage Policy 10A** as the primary source because it governs **outpatient specialized therapies**, including speech-language therapy. I am **not** using **Clinical Coverage Policy 10C** as the primary source because **10C is for Local Education Agencies (school-based services)**, not general outpatient speech therapy.\n\n## Practical bottom line\n\nSpeech therapy via telehealth is permitted under NC Medicaid **only if**:\n\n1. the particular speech-language service is one of the **select evaluation or treatment interventions** allowed by the policy;\n2. telehealth is **medically necessary**;\n3. telehealth is **clinically appropriate and safe** for that beneficiary;\n4. it is used **primarily as a supplement to in-person care**, unless in-person care is contraindicated or unavailable; and\n5. the provider meets the **general telehealth requirements** on consent, identity verification, privacy, and access to in-person care.\n\n## One caution\n\nThe sections I retrieved do **not list in the text I reviewed which specific speech-language CPT codes or interventions are telehealth-eligible** under 10A. So I can say telehealth is allowed for a **select set** of speech-language evaluation and treatment services, but I **could not confirm from the retrieved text** the full code-by-code list of which speech therapy services qualify.\n\nIf you want, I can next pull the **10A billing/code attachment** and identify **which speech-language evaluation and treatment codes are actually telehealth-eligible**.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 2,
+        "completeness": 3,
+        "hallucination": 2,
+        "citation_quality": 3,
+        "overall": 3,
+        "explanation": "The agent's answer accurately captures the key conditions from Clinical Coverage Policy 10A: medical necessity, remote/underserved location, medical condition requiring avoidance of exposure to others, adjunct to in-person care (not replacement), beneficiary's best interest, and not for therapist convenience or productivity. It correctly cites Policy 10A and adds the general telehealth framework from Policy 1-H with specific section references. The answer goes beyond the reference answer in useful ways (consent, identity verification, modifiers) without fabricating facts. Minor issue: the agent mentions 'select set of interventions' but honestly flags it cannot confirm the full code list - this is appropriate epistemic humility, not hallucination. The reference answer mentions documentation of why telehealth is appropriate for the specific beneficiary, which the agent captures implicitly through the 1-H criteria but doesn't state as explicitly as the reference. Citations are precise with policy numbers and effective dates. A Medicaid policy expert would find this thorough and accurate."
+      },
+      "judge_error": false,
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 0.6666666666666666,
+      "primary_hit": true
+    }
+  ]
+}

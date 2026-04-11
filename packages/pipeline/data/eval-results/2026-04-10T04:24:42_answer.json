@@ -1,0 +1,74 @@
+{
+  "run_id": "2026-04-10T04:24:42",
+  "level": "answer",
+  "config": {
+    "embedding_model": "voyage-law-2",
+    "top_k": 10,
+    "dataset_count": 1,
+    "git_sha": "df5a5f9",
+    "judge_model": "claude-sonnet-4-6"
+  },
+  "aggregate": {
+    "precision_at_k": 1.0,
+    "recall_at_k": 1.0,
+    "mrr": 1.0,
+    "primary_hit_rate": 1.0
+  },
+  "by_difficulty": {
+    "moderate": {
+      "precision_at_k": 1.0,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "by_category": {
+    "multi_hop": {
+      "precision_at_k": 1.0,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "per_question": [
+    {
+      "id": "q-002",
+      "difficulty": "moderate",
+      "reasoning_type": "multi_hop",
+      "question": "What DME items are specifically NOT covered by NC Medicaid under the Orthotics and Prosthetics policy, and what general criteria must be met for coverage?",
+      "agent_answer": "Under NC Medicaid\u2019s **Orthotics & Prosthetics** policy, the specifically **not covered** items are certain **devices/equipment/supplies**, and coverage generally requires that the orthotic or prosthetic meet medical-necessity and ordering requirements.\n\n## Items specifically not covered\n\nNC Medicaid specifically does **not** cover the following under this policy:\n\n- **Devices for the beneficiary\u2019s comfort or convenience**, or for the convenience of the beneficiary\u2019s caregiver(s)\n- **Backup devices** or **duplicates** kept available at different locations\n- **Devices and supplies for residents of nursing facilities**\n- **Devices or supplies covered by another agency**\n- **Equipment or supplies for beneficiaries receiving hospice care**  \n  ([Orthotics & Prosthetics, \u00a7 4.2.1](https://medicaid.ncdhhs.gov/5b-orthotics-prosthetics/download?attachment))\n\nThere are also broader **general noncoverage rules**. A device/service is not covered if:\n\n- the beneficiary does not meet the eligibility requirements in Section 2.0;\n- the beneficiary does not meet the coverage criteria in Section 3.0;\n- the procedure, product, or service duplicates another provider\u2019s procedure, product, or service; or\n- the procedure, product, or service is experimental, investigational, or part of a clinical trial.  \n  ([Orthotics & Prosthetics, \u00a7 4.1](https://medicaid.ncdhhs.gov/5b-orthotics-prosthetics/download?attachment))\n\n## General criteria that must be met for coverage\n\nFor coverage, the policy says the orthotic or prosthetic must meet these general criteria:\n\n- It must be **ordered by a physician, physician assistant, or nurse practitioner**.\n- It must be **medically necessary** to maintain or improve the beneficiary\u2019s medical, physical, or functional level.\n- It must be **appropriate for use in a noninstitutional setting** where normal life activities take place.\n- There must have been a **documented face-to-face encounter** with the beneficiary and the ordering physician/PA/NP **within 6 months before initiation** of the orthotic or prosthetic.\n- The beneficiary\u2019s need for the device must be **reviewed at least annually** by the ordering physician/PA/NP.  \n  ([Orthotics & Prosthetics, \u00a7 3.2.1](https://medicaid.ncdhhs.gov/5b-orthotics-prosthetics/download?attachment))\n\nThe policy adds these device-specific standards:\n\n### For orthotic devices\nThey are medically necessary when required to:\n\n- **correct or prevent skeletal deformities**;\n- **support or align movable body parts**; or\n- **preserve or improve physical function**.  \n  ([Orthotics & Prosthetics, \u00a7 3.2.1](https://medicaid.ncdhhs.gov/5b-orthotics-prosthetics/download?attachment))\n\n### For prosthetic devices\nThey are medically necessary as a replacement for all or part of the function of a:\n\n- **permanently inoperative**,\n- **absent**, or\n- **malfunctioning** body part,\n\nand the beneficiary must need the prosthesis for:\n\n- **mobility**,\n- **daily care**, or\n- **rehabilitation purposes**.  \n  ([Orthotics & Prosthetics, \u00a7 3.2.1](https://medicaid.ncdhhs.gov/5b-orthotics-prosthetics/download?attachment))\n\n### Additional general coverage requirements\nOrthotic and prosthetic devices also must be:\n\n- a **reasonable and medically necessary** part of the beneficiary\u2019s treatment plan;\n- **consistent with the beneficiary\u2019s diagnosis and medical condition**, especially functional limitations and symptoms; and\n- **of high quality**, with replacement parts available and obtainable.  \n  ([Orthotics & Prosthetics, \u00a7 3.2.1](https://medicaid.ncdhhs.gov/5b-orthotics-prosthetics/download?attachment))\n\n## Documentation-related criteria\n\nFor requests under the policy, supporting documentation standards include that the device must:\n\n- fit the definition of an orthotic or prosthetic;\n- be for an eligible NC Medicaid beneficiary;\n- be provided by an enrolled provider with appropriate taxonomy;\n- be **safe, effective, and economical**;\n- **not be intended for convenience** of the beneficiary, caregiver, or provider; and\n- **not be experimental or investigational**.  \n  ([Orthotics & Prosthetics, Attachment E](https://medicaid.ncdhhs.gov/5b-orthotics-prosthetics/download?attachment))\n\n## Bottom line\n\nThe main specifically excluded items are **comfort/convenience devices, backup or duplicate devices, nursing-facility devices/supplies, items covered by another agency, and hospice equipment/supplies**. For coverage, the device must be **properly ordered, medically necessary, tied to functional or treatment needs, supported by a recent face-to-face encounter, and reviewed at least annually**, with additional standards depending on whether it is an orthotic or prosthetic. The document I cited is the current authoritative policy, and I did not find any separate amendment superseding it.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 3,
+        "completeness": 3,
+        "hallucination": 3,
+        "citation_quality": 3,
+        "overall": 3,
+        "explanation": "The agent's answer accurately captures all key content from the reference evidence sections. For items not covered, it correctly lists all five specific exclusions from 4.2.1 (comfort/convenience devices, backup/duplicates, nursing facility residents, items covered by another agency, hospice recipients) and all four general exclusions from 4.1. For general coverage criteria, it accurately reproduces the 3.1 general criteria and the detailed 3.2.1 specific criteria including ordering requirements, face-to-face encounter within 6 months, annual review, orthotic-specific standards, and prosthetic-specific standards. The answer cites specific policy sections (3.1, 3.2.1, 4.1, 4.2.1, Attachment E) with section-level precision. No hallucinated facts are present - all claims are supported by the evidence sections. The answer is well-organized and comprehensive, going beyond the reference answer's level of detail while remaining accurate. A Medicaid policy expert would find this answer thorough and reliable."
+      },
+      "judge_error": false,
+      "route_lane": "baseline_hybrid",
+      "route_rationale": "single_document_coverage",
+      "route_widening_policy": "one_step",
+      "route_determinism_hints": {
+        "numeric_evidence_only": false,
+        "latest_revision_only": false,
+        "cite_scope_and_not_covered": false
+      },
+      "route_authoritative_document": {
+        "id": "doc:clinical_policy:5B",
+        "policy_number": "5B",
+        "title": "Orthotics & Prosthetics"
+      },
+      "route_widened": true,
+      "route_inspection_error": null,
+      "agent_elapsed_seconds": 32.463,
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "primary_hit": true
+    }
+  ]
+}

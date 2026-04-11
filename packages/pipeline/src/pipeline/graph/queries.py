@@ -13,6 +13,14 @@ SET d.title = $title,
     d.page_count = $page_count,
     d.section_count = $section_count,
     d.effective_date = $effective_date,
+    d.authority_tier = $authority_tier,
+    d.answer_role = $answer_role,
+    d.source_format = $source_format,
+    d.answer_ready = $answer_ready,
+    d.corpus_bucket = $corpus_bucket,
+    d.variant_group = $variant_group,
+    d.variant_date = $variant_date,
+    d.retrieval_ready = $retrieval_ready,
     d.last_indexed = datetime()
 RETURN d
 """
@@ -91,12 +99,31 @@ SET r.reference_text = $reference_text,
     r.extraction_method = $extraction_method
 """
 
+MERGE_REFERENCES_BATCH = """
+UNWIND $edges AS edge
+MATCH (src:Section {id: edge.source_id})
+MATCH (tgt:Section {id: edge.target_id})
+MERGE (src)-[r:REFERENCES]->(tgt)
+SET r.reference_text = edge.reference_text,
+    r.reference_type = edge.reference_type,
+    r.extraction_method = edge.extraction_method
+"""
+
 MERGE_REFERENCES_DOCUMENT = """
 MATCH (src:Section {id: $source_id})
 MATCH (tgt:Document {id: $target_id})
 MERGE (src)-[r:REFERENCES_DOCUMENT]->(tgt)
 SET r.reference_text = $reference_text,
     r.extraction_method = $extraction_method
+"""
+
+MERGE_REFERENCES_DOCUMENT_BATCH = """
+UNWIND $edges AS edge
+MATCH (src:Section {id: edge.source_id})
+MATCH (tgt:Document {id: edge.target_id})
+MERGE (src)-[r:REFERENCES_DOCUMENT]->(tgt)
+SET r.reference_text = edge.reference_text,
+    r.extraction_method = edge.extraction_method
 """
 
 MERGE_CONCEPT = """

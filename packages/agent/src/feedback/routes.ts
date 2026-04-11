@@ -40,7 +40,7 @@ export function createFeedbackRoutes(repo: FeedbackRepository) {
       threadId: parsed.data.threadId,
       resourceId,
       rating: parsed.data.rating,
-      comment: parsed.data.comment,
+      comment: parsed.data.comment ?? null,
     });
 
     return c.json({ id: result.id }, result.isNew ? 201 : 200);

@@ -1,0 +1,58 @@
+{
+  "run_id": "2026-04-10T03:18:33",
+  "level": "answer",
+  "config": {
+    "embedding_model": "voyage-law-2",
+    "top_k": 10,
+    "dataset_count": 1,
+    "git_sha": "df5a5f9",
+    "judge_model": "claude-sonnet-4-6"
+  },
+  "aggregate": {
+    "precision_at_k": 1.0,
+    "recall_at_k": 1.0,
+    "mrr": 1.0,
+    "primary_hit_rate": 1.0
+  },
+  "by_difficulty": {
+    "simple": {
+      "precision_at_k": 1.0,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "by_category": {
+    "single_lookup": {
+      "precision_at_k": 1.0,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "per_question": [
+    {
+      "id": "q-006",
+      "difficulty": "simple",
+      "reasoning_type": "single_lookup",
+      "question": "Does NC Medicaid cover chiropractic services under Clinical Coverage Policy 5B?",
+      "agent_answer": "No. **Clinical Coverage Policy 5B does not cover chiropractic services as such**; Policy 5B is the NC Medicaid policy for **orthotics and prosthetics**, and its coverage criteria apply to covered **devices/products/services within that policy scope**, not chiropractic treatment. The policy\u2019s general covered-service criteria require that the \u201cprocedure, product, or service\u201d meet medical-necessity and related standards, and the specific covered criteria focus on **orthotic and prosthetic devices** ordered by a physician, physician assistant, or nurse practitioner. [Orthotics & Prosthetics](https://medicaid.ncdhhs.gov/5b-orthotics-prosthetics/download?attachment), \u00a7\u00a7 3.1, 3.2.1.\n\nPolicy 5B also states Medicaid does **not** cover items when, among other things, the beneficiary does not meet the policy\u2019s criteria, the service duplicates another provider\u2019s service, or the service is experimental/investigational. Its specific \u201cnot covered\u201d section likewise addresses excluded **devices/supplies**, reinforcing that this policy governs orthotics and prosthetics rather than chiropractic services. [Orthotics & Prosthetics](https://medicaid.ncdhhs.gov/5b-orthotics-prosthetics/download?attachment), \u00a7\u00a7 4.1, 4.2, 4.2.1.\n\nI also checked for amendments, and the knowledge base identifies **Clinical Coverage Policy 5B, Orthotics & Prosthetics** as the current authoritative document. If you want, I can next check whether **chiropractic services are covered under any other NC Medicaid policy** or whether Medicaid may cover a **brace or orthotic ordered in connection with chiropractic care** under 5B.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 3,
+        "completeness": 3,
+        "hallucination": 3,
+        "citation_quality": 2,
+        "overall": 3,
+        "explanation": "The agent correctly identifies that Policy 5B covers orthotics and prosthetics, not chiropractic services, matching the reference answer. The answer is complete, addressing why chiropractic is not covered and offering further assistance. No hallucinations are present - all claims are supported by the policy. Citations reference specific sections (3.1, 3.2.1, 4.1, 4.2, 4.2.1) with document links, though the section numbers could be more precisely tied to specific quoted language. The answer would be acceptable to a Medicaid policy expert."
+      },
+      "judge_error": false,
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "primary_hit": true
+    }
+  ]
+}

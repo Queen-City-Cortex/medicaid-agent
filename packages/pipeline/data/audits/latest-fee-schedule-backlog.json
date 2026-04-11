@@ -1,0 +1,1058 @@
+{
+  "summary": {
+    "documents_total": 1998,
+    "discovered_total": 1837,
+    "downloaded_total": 161,
+    "discovered_retrieval_ready": 279,
+    "downloaded_retrieval_ready": 57,
+    "discovered_non_retrieval_ready": 1558,
+    "groups_with_discovered_retrieval_ready": 161,
+    "groups_missing_downloaded_retrieval_ready": 151,
+    "groups_with_new_primary_candidates": 4,
+    "groups_with_history_candidates_only": 6
+  },
+  "groups": [
+    {
+      "priority": "critical",
+      "variant_group": "ambulatory surgical center dentist fee schedule",
+      "downloaded_retrieval_ready": 0,
+      "discovered_retrieval_ready": 3,
+      "downloaded_primary": 0,
+      "discovered_primary": 1,
+      "downloaded_history": 0,
+      "discovered_history": 2,
+      "candidates": [
+        {
+          "title": "Ambulatory Surgical Center Dentist Fee Schedule - Dec. 21, 2021 - Excel",
+          "source_url": "https://medicaid.ncdhhs.gov/ambulatory-surgical-center-dentist-fee-schedule-dec-21-2021-excel/download?attachment",
+          "source_format": null,
+          "variant_group": "ambulatory surgical center dentist fee schedule",
+          "variant_date": "2021-12-21",
+          "corpus_bucket": "primary"
+        },
+        {
+          "title": "Ambulatory Surgical Center Dentist Fee Schedule - May 20, 2021 - EXCEL",
+          "source_url": "https://medicaid.ncdhhs.gov/documents/providers/bulletins/archives/dental/asc-dental-fee-schedule-5-20-21-0/download",
+          "source_format": null,
+          "variant_group": "ambulatory surgical center dentist fee schedule",
+          "variant_date": "2021-05-20",
+          "corpus_bucket": "history"
+        },
+        {
+          "title": "Ambulatory Surgical Center Dentist Fee Schedule - June 15, 2020 - PDF",
+          "source_url": "https://medicaid.ncdhhs.gov/documents/providers/bulletins/archives/dental/asc-dental-fee-schedule-6-15-2020-0/download",
+          "source_format": null,
+          "variant_group": "ambulatory surgical center dentist fee schedule",
+          "variant_date": "2020-06-15",
+          "corpus_bucket": "history"
+        }
+      ]
+    },
+    {
+      "priority": "critical",
+      "variant_group": "anesthesiology base units fee schedule",
+      "downloaded_retrieval_ready": 0,
+      "discovered_retrieval_ready": 3,
+      "downloaded_primary": 0,
+      "discovered_primary": 1,
+      "downloaded_history": 0,
+      "discovered_history": 2,
+      "candidates": [
+        {
+          "title": "Anesthesiology Base Units -Jan. 22, 2022 - EXCEL",
+          "source_url": "https://medicaid.ncdhhs.gov/anesthesiology-base-units-jan-22-2022-excel/download?attachment",
+          "source_format": null,
+          "variant_group": "anesthesiology base units fee schedule",
+          "variant_date": "2022-01-22",
+          "corpus_bucket": "primary"
+        },
+        {
+          "title": "Anesthesiology Base Units - Aug. 27, 2021 - EXCEL",
+          "source_url": "https://medicaid.ncdhhs.gov/anesthesiology-base-units-aug-27-2021-excel/download?attachment",
+          "source_format": null,
+          "variant_group": "anesthesiology base units fee schedule",
+          "variant_date": "2021-08-27",
+          "corpus_bucket": "history"
+        },
+        {
+          "title": "Anesthesiology Base Units - July 22, 2021 - EXCEL",
+          "source_url": "https://medicaid.ncdhhs.gov/anesthesiology-base-units-july-22-2021-excel/download?attachment",
+          "source_format": null,
+          "variant_group": "anesthesiology base units fee schedule",
+          "variant_date": "2021-07-22",
+          "corpus_bucket": "history"
+        }
+      ]
+    },
+    {
+      "priority": "critical",
+      "variant_group": "anesthesiology fee schedule",
+      "downloaded_retrieval_ready": 0,
+      "discovered_retrieval_ready": 3,
+      "downloaded_primary": 0,
+      "discovered_primary": 1,
+      "downloaded_history": 0,
+      "discovered_history": 2,
+      "candidates": [
+        {
+          "title": "Anesthesiology Fee Schedule - Dec. 21, 2021 - Excel",
+          "source_url": "https://medicaid.ncdhhs.gov/anesthesiology-fee-schedule-dec-21-2021-excel/download?attachment",
+          "source_format": null,
+          "variant_group": "anesthesiology fee schedule",
+          "variant_date": "2021-12-21",
+          "corpus_bucket": "primary"
+        },
+        {
+          "title": "Anesthesiology Fee Schedule - March 1, 2020 - PDF",
+          "source_url": "https://medicaid.ncdhhs.gov/documents/fee-schedules/anesthesia/anesthesiology-fee-schedule-20200301-0/download",
+          "source_format": null,
+          "variant_group": "anesthesiology fee schedule",
+          "variant_date": "2020-03-01",
+          "corpus_bucket": "history"
+        },
+        {
+          "title": "Anesthesiology Fee Schedule - July 1, 2012 - EXCEL",
+          "source_url": "https://medicaid.ncdhhs.gov/documents/fee-schedules/anesthesia/anesth-fee-0712-0/download",
+          "source_format": null,
+          "variant_group": "anesthesiology fee schedule",
+          "variant_date": "2012-07-01",
+          "corpus_bucket": "history"
+        }
+      ]
+    },
+    {
+      "priority": "critical",
+      "variant_group": "cap c fee schedule",
+      "downloaded_retrieval_ready": 0,
+      "discovered_retrieval_ready": 3,
+      "downloaded_primary": 0,
+      "discovered_primary": 1,
+      "downloaded_history": 0,
+      "discovered_history": 2,
+      "candidates": [
+        {
+          "title": "CAP/C Fee Schedule - July 15, 2022 - Excel",
+          "source_url": "https://medicaid.ncdhhs.gov/capc-fee-schedule-july-15-2022-excel/download?attachment",
+          "source_format": null,
+          "variant_group": "cap c fee schedule",
+          "variant_date": "2022-07-15",
+          "corpus_bucket": "primary"
+        },
+        {
+          "title": "CAP/C Fee Schedule - June 28, 2022 - PDF",
+          "source_url": "https://medicaid.ncdhhs.gov/cap-cfeescheduleupdated20220620-pdf/download?attachment",
+          "source_format": null,
+          "variant_group": "cap c fee schedule",
+          "variant_date": "2022-06-28",
+          "corpus_bucket": "history"
+        },
+        {
+          "title": "CAP/C Fee Schedule - March 30, 2022 - PDF",
+          "source_url": "https://medicaid.ncdhhs.gov/cap-chfeescheduleupdated20220329pdf/download?attachment",
+          "source_format": null,
+          "variant_group": "cap c fee schedule",
+          "variant_date": "2022-03-30",
+          "corpus_bucket": "history"
+        }
+      ]
+    },
+    {
+      "priority": "critical",
+      "variant_group": "cap cd fee schedule",
+      "downloaded_retrieval_ready": 0,
+      "discovered_retrieval_ready": 3,
+      "downloaded_primary": 0,
+      "discovered_primary": 1,
+      "downloaded_history": 0,
+      "discovered_history": 2,
+      "candidates": [
+        {
+          "title": "CAP/CD Fee Schedule - July 15, 2022 - Excel",
+          "source_url": "https://medicaid.ncdhhs.gov/capcd-fee-schedule-july-15-2022-excel/download?attachment",
+          "source_format": null,
+          "variant_group": "cap cd fee schedule",
+          "variant_date": "2022-07-15",
+          "corpus_bucket": "primary"
+        },
+        {
+          "title": "CAP/CD Fee Schedule - June 28, 2022 - PDF",
+          "source_url": "https://medicaid.ncdhhs.gov/cap-cdfeescheduleupdated20220620-pdf/download?attachment",
+          "source_format": null,
+          "variant_group": "cap cd fee schedule",
+          "variant_date": "2022-06-28",
+          "corpus_bucket": "history"
+        },
+        {
+          "title": "CAP/CD Fee Schedule - March 30, 2022 - PDF",
+          "source_url": "https://medicaid.ncdhhs.gov/cap-cdfeescheduleupdated20220329pdf/download?attachment",
+          "source_format": null,
+          "variant_group": "cap cd fee schedule",
+          "variant_date": "2022-03-30",
+          "corpus_bucket": "history"
+        }
+      ]
+    },
+    {
+      "priority": "critical",
+      "variant_group": "cap ch fee schedule",
+      "downloaded_retrieval_ready": 0,
+      "discovered_retrieval_ready": 3,
+      "downloaded_primary": 0,
+      "discovered_primary": 1,
+      "downloaded_history": 0,
+      "discovered_history": 2,
+      "candidates": [
+        {
+          "title": "CAP/CH Fee Schedule - Jan. 22, 2022 - Excel",
+          "source_url": "https://medicaid.ncdhhs.gov/capch-fee-schedule-jan-22-2022-excel/download?attachment",
+          "source_format": null,
+          "variant_group": "cap ch fee schedule",
+          "variant_date": "2022-01-22",
+          "corpus_bucket": "primary"
+        },
+        {
+          "title": "CAP/CH Fee Schedule - Dec. 22, 2021 - Excel",
+          "source_url": "https://medicaid.ncdhhs.gov/capch-fee-schedule-dec-22-2021-excel/download?attachment",
+          "source_format": null,
+          "variant_group": "cap ch fee schedule",
+          "variant_date": "2021-12-22",
+          "corpus_bucket": "history"
+        },
+        {
+          "title": "CAP/CH Fee Schedule - Nov. 19, 2021 - EXCEL",
+          "source_url": "https://medicaid.ncdhhs.gov/capch-fee-schedule-nov-19-2021-excel/download?attachment",
+          "source_format": null,
+          "variant_group": "cap ch fee schedule",
+          "variant_date": "2021-11-19",
+          "corpus_bucket": "history"
+        }
+      ]
+    },
+    {
+      "priority": "critical",
+      "variant_group": "cap choice fee schedule",
+      "downloaded_retrieval_ready": 0,
+      "discovered_retrieval_ready": 3,
+      "downloaded_primary": 0,
+      "discovered_primary": 1,
+      "downloaded_history": 0,
+      "discovered_history": 2,
+      "candidates": [
+        {
+          "title": "CAP/Choice Fee Schedule - Jan. 1, 2019 - EXCEL",
+          "source_url": "https://medicaid.ncdhhs.gov/revised-capco-fee-schedule-2019-01-0/download",
+          "source_format": null,
+          "variant_group": "cap choice fee schedule",
+          "variant_date": "2019-01-01",
+          "corpus_bucket": "primary"
+        },
+        {
+          "title": "CAP/Choice Fee Schedule - April 3, 2018 - EXCEL",
+          "source_url": "https://medicaid.ncdhhs.gov/fee-schedule-cap-co-04-03-18/download",
+          "source_format": null,
+          "variant_group": "cap choice fee schedule",
+          "variant_date": "2018-04-03",
+          "corpus_bucket": "history"
+        },
+        {
+          "title": "CAP/Choice Fee Schedule - July 1, 2012 - EXCEL",
+          "source_url": "https://medicaid.ncdhhs.gov/documents/providers/bulletins/archives/cap/cap-choice/cap-choice-120701-0/download",
+          "source_format": null,
+          "variant_group": "cap choice fee schedule",
+          "variant_date": "2012-07-01",
+          "corpus_bucket": "history"
+        }
+      ]
+    },
+    {
+      "priority": "critical",
+      "variant_group": "cap da fee schedule",
+      "downloaded_retrieval_ready": 0,
+      "discovered_retrieval_ready": 3,
+      "downloaded_primary": 0,
+      "discovered_primary": 1,
+      "downloaded_history": 0,
+      "discovered_history": 2,
+      "candidates": [
+        {
+          "title": "CAP/DA Fee Schedule - July 15, 2022 - Excel",
+          "source_url": "https://medicaid.ncdhhs.gov/capda-fee-schedule-july-15-2022-excel/download?attachment",
+          "source_format": null,
+          "variant_group": "cap da fee schedule",
+          "variant_date": "2022-07-15",
+          "corpus_bucket": "primary"
+        },
+        {
+          "title": "CAP/DA Fee Schedule - June 28, 2022 - PDF",
+          "source_url": "https://medicaid.ncdhhs.gov/cap-dafeescheduleupdated20220620-pdf/download?attachment",
+          "source_format": null,
+          "variant_group": "cap da fee schedule",
+          "variant_date": "2022-06-28",
+          "corpus_bucket": "history"
+        },
+        {
+          "title": "CAP/DA Fee Schedule - March 30, 2022 - PDF",
+          "source_url": "https://medicaid.ncdhhs.gov/cap-dafeescheduleupdated20220329pdf/download?attachment",
+          "source_format": null,
+          "variant_group": "cap da fee schedule",
+          "variant_date": "2022-03-30",
+          "corpus_bucket": "history"
+        }
+      ]
+    },
+    {
+      "priority": "critical",
+      "variant_group": "chiropractic services fee schedule",
+      "downloaded_retrieval_ready": 0,
+      "discovered_retrieval_ready": 3,
+      "downloaded_primary": 0,
+      "discovered_primary": 1,
+      "downloaded_history": 0,
+      "discovered_history": 2,
+      "candidates": [
+        {
+          "title": "Chiropractic Services Fee Schedule - Sept. 17, 2020 - PDF",
+          "source_url": "https://medicaid.ncdhhs.gov/documents/fee-schedules/chiropactor-fee-schedule-9-17-20-0/download",
+          "source_format": null,
+          "variant_group": "chiropractic services fee schedule",
+          "variant_date": "2020-09-17",
+          "corpus_bucket": "primary"
+        },
+        {
+          "title": "Chiropractic Services Fee Schedule - July 6, 2020 - EXCEL",
+          "source_url": "https://medicaid.ncdhhs.gov/chiropractic-services-fee-schedule-july-6-2021-excel/download?attachment",
+          "source_format": null,
+          "variant_group": "chiropractic services fee schedule",
+          "variant_date": "2020-07-06",
+          "corpus_bucket": "history"
+        },
+        {
+          "title": "Chiropractic Services Fee Schedule - Jan. 1, 2014 - EXCEL",
+          "source_url": "https://medicaid.ncdhhs.gov/chiropractic-services-fee-schedule-jan-1-2014-excel/open",
+          "source_format": null,
+          "variant_group": "chiropractic services fee schedule",
+          "variant_date": "2014-01-01",
+          "corpus_bucket": "history"
+        }
+      ]
+    },
+    {
+      "priority": "critical",
+      "variant_group": "clinical pharmacist practitioner fee schedule",
+      "downloaded_retrieval_ready": 0,
+      "discovered_retrieval_ready": 3,
+      "downloaded_primary": 0,
+      "discovered_primary": 1,
+      "downloaded_history": 0,
+      "discovered_history": 2,
+      "candidates": [
+        {
+          "title": "Clinical Pharmacist Practitioner Fee Schedule - Feb. 11, 2022 - PDF",
+          "source_url": "https://medicaid.ncdhhs.gov/clinical-pharmacist-practitioner-cpp-fee-schedule-20220210pdf/download?attachment",
+          "source_format": null,
+          "variant_group": "clinical pharmacist practitioner fee schedule",
+          "variant_date": "2022-02-11",
+          "corpus_bucket": "primary"
+        },
+        {
+          "title": "Clinical Pharmacist Practitioner Fee Schedule - Feb. 1, 2022 - PDF",
+          "source_url": "https://medicaid.ncdhhs.gov/clinical-pharmacist-practitioner-cpp-fee-schedule-20220127pdf/download?attachment",
+          "source_format": null,
+          "variant_group": "clinical pharmacist practitioner fee schedule",
+          "variant_date": "2022-02-01",
+          "corpus_bucket": "history"
+        },
+        {
+          "title": "Clinical Pharmacist Practitioner Fee Schedule - Jan. 22, 2022 - EXCEL",
+          "source_url": "https://medicaid.ncdhhs.gov/clinical-pharmacist-practitioner-fee-schedule-jan-22-2022-excel/download?attachment",
+          "source_format": null,
+          "variant_group": "clinical pharmacist practitioner fee schedule",
+          "variant_date": "2022-01-22",
+          "corpus_bucket": "history"
+        }
+      ]
+    },
+    {
+      "priority": "critical",
+      "variant_group": "covid 19 vac mab administration fee schedule for outpatient",
+      "downloaded_retrieval_ready": 0,
+      "discovered_retrieval_ready": 3,
+      "downloaded_primary": 0,
+      "discovered_primary": 1,
+      "downloaded_history": 0,
+      "discovered_history": 2,
+      "candidates": [
+        {
+          "title": "COVID-19 VAC & MAB Administration Fee Schedule for Outpatient \u2013 Oct. 5, 2022 EXCEL",
+          "source_url": "https://medicaid.ncdhhs.gov/covid-19-vac-mab-administration-fee-schedule-outpatient-oct-5-2022-excel/download?attachment",
+          "source_format": null,
+          "variant_group": "covid 19 vac mab administration fee schedule for outpatient",
+          "variant_date": "2022-10-05",
+          "corpus_bucket": "primary"
+        },
+        {
+          "title": "COVID-19 VAC & MAB Administration Fee Schedule for Outpatient \u2013 July 29, 2022 (PDF)",
+          "source_url": "https://medicaid.ncdhhs.gov/documents/covid-19-vac-mab-admin-fee-schedule-outpatient-last-updated-07-27-2022v2pdf/download?attachment",
+          "source_format": null,
+          "variant_group": "covid 19 vac mab administration fee schedule for outpatient",
+          "variant_date": "2022-07-29",
+          "corpus_bucket": "history"
+        },
+        {
+          "title": "COVID-19 VAC & MAB Administration Fee Schedule for Outpatient - July 15, 2022 - EXCEL",
+          "source_url": "https://medicaid.ncdhhs.gov/covid-19-vac-mab-administration-fee-schedule-outpatient-july-15-2022-excel/download?attachment",
+          "source_format": null,
+          "variant_group": "covid 19 vac mab administration fee schedule for outpatient",
+          "variant_date": "2022-07-15",
+          "corpus_bucket": "history"
+        }
+      ]
+    },
+    {
+      "priority": "critical",
+      "variant_group": "dialysis services fee schedule",
+      "downloaded_retrieval_ready": 0,
+      "discovered_retrieval_ready": 3,
+      "downloaded_primary": 0,
+      "discovered_primary": 1,
+      "downloaded_history": 0,
+      "discovered_history": 2,
+      "candidates": [
+        {
+          "title": "Dialysis Services Fee Schedule - April 27, 2022 - PDF",
+          "source_url": "https://medicaid.ncdhhs.gov/dialysisservicesfeeschedulev0420220426pdf/download?attachment",
+          "source_format": null,
+          "variant_group": "dialysis services fee schedule",
+          "variant_date": "2022-04-27",
+          "corpus_bucket": "primary"
+        },
+        {
+          "title": "Dialysis Services Fee Schedule - April 20, 2022 - EXCEL",
+          "source_url": "https://medicaid.ncdhhs.gov/dialysisservicesfeeschedulev0320220328pdf/download?attachment",
+          "source_format": null,
+          "variant_group": "dialysis services fee schedule",
+          "variant_date": "2022-04-20",
+          "corpus_bucket": "history"
+        },
+        {
+          "title": "Dialysis Services Fee Schedule - Dec. 21, 2021 - EXCEL",
+          "source_url": "https://medicaid.ncdhhs.gov/dialysis-services-fee-schedule-dec-21-2021-excel/download?attachment",
+          "source_format": null,
+          "variant_group": "dialysis services fee schedule",
+          "variant_date": "2021-12-21",
+          "corpus_bucket": "history"
+        }
+      ]
+    },
+    {
+      "priority": "critical",
+      "variant_group": "enhanced mental health services fee schedule",
+      "downloaded_retrieval_ready": 0,
+      "discovered_retrieval_ready": 3,
+      "downloaded_primary": 0,
+      "discovered_primary": 1,
+      "downloaded_history": 0,
+      "discovered_history": 2,
+      "candidates": [
+        {
+          "title": "Enhanced Mental Health Services Fee Schedules - April 27, 2022 - PDF",
+          "source_url": "https://medicaid.ncdhhs.gov/enhancedservicesfeeschedule20220427pdf/download?attachment",
+          "source_format": null,
+          "variant_group": "enhanced mental health services fee schedule",
+          "variant_date": "2022-04-27",
+          "corpus_bucket": "primary"
+        },
+        {
+          "title": "Enhanced Mental Health Services Fee Schedule - July 21, 2021 - EXCEL",
+          "source_url": "https://medicaid.ncdhhs.gov/enhanced-mental-health-services-fee-schedule-july-21-2021-excel/download?attachment",
+          "source_format": null,
+          "variant_group": "enhanced mental health services fee schedule",
+          "variant_date": "2021-07-21",
+          "corpus_bucket": "history"
+        },
+        {
+          "title": "Enhanced Mental Health Services Fee Schedule - Sept. 24, 2019 - EXCEL",
+          "source_url": "https://medicaid.ncdhhs.gov/enhanced-services-fee-schedule-2019-09-23-0/download",
+          "source_format": null,
+          "variant_group": "enhanced mental health services fee schedule",
+          "variant_date": "2019-09-24",
+          "corpus_bucket": "history"
+        }
+      ]
+    },
+    {
+      "priority": "critical",
+      "variant_group": "federally qualified health center dentist fee schedule",
+      "downloaded_retrieval_ready": 0,
+      "discovered_retrieval_ready": 3,
+      "downloaded_primary": 0,
+      "discovered_primary": 1,
+      "downloaded_history": 0,
+      "discovered_history": 2,
+      "candidates": [
+        {
+          "title": "Federally Qualified Health Center Dentist Fee schedule - Dec. 22, 2021 - EXCEL",
+          "source_url": "https://medicaid.ncdhhs.gov/federally-qualified-health-center-dentist-fee-schedule-dec-22-2021-excel/download?attachment",
+          "source_format": null,
+          "variant_group": "federally qualified health center dentist fee schedule",
+          "variant_date": "2021-12-22",
+          "corpus_bucket": "primary"
+        },
+        {
+          "title": "Federally Qualified Health Center Dentist Fee schedule - Jan. 14, 2021 - PDF",
+          "source_url": "https://medicaid.ncdhhs.gov/documents/providers/bulletins/archives/dental/dental-fee-scedule-fqhc-1-14-21-0/download",
+          "source_format": null,
+          "variant_group": "federally qualified health center dentist fee schedule",
+          "variant_date": "2021-01-14",
+          "corpus_bucket": "history"
+        },
+        {
+          "title": "Federally Qualified Health Center Dentist Fee schedule - June 15, 2020 - PDF",
+          "source_url": "https://medicaid.ncdhhs.gov/documents/fee-schedules/dental-fee-scedule-fqhc-6-15-2020-0/download",
+          "source_format": null,
+          "variant_group": "federally qualified health center dentist fee schedule",
+          "variant_date": "2020-06-15",
+          "corpus_bucket": "history"
+        }
+      ]
+    },
+    {
+      "priority": "critical",
+      "variant_group": "freestanding birth center fee schedule",
+      "downloaded_retrieval_ready": 0,
+      "discovered_retrieval_ready": 3,
+      "downloaded_primary": 0,
+      "discovered_primary": 1,
+      "downloaded_history": 0,
+      "discovered_history": 2,
+      "candidates": [
+        {
+          "title": "Freestanding Birth Center Fee Schedule - Dec. 21, 2021 - EXCEL",
+          "source_url": "https://medicaid.ncdhhs.gov/freestanding-birth-center-fee-schedule-dec-21-2021-excel/download?attachment",
+          "source_format": null,
+          "variant_group": "freestanding birth center fee schedule",
+          "variant_date": "2021-12-21",
+          "corpus_bucket": "primary"
+        },
+        {
+          "title": "Freestanding Birth Center Fee Schedule - May 2020 - PDF",
+          "source_url": "https://medicaid.ncdhhs.gov/documents/fee-schedules/freestanding-birth-centers/fsbc-fee-schedule-may-2020-covid-19-0/download",
+          "source_format": null,
+          "variant_group": "freestanding birth center fee schedule",
+          "variant_date": "2020-05-20",
+          "corpus_bucket": "history"
+        },
+        {
+          "title": "Freestanding Birth Center Fee Schedule - Jan. 2018 - EXCEL",
+          "source_url": "https://medicaid.ncdhhs.gov/documents/fee-schedules/freestanding-birth-centers/freestanding-birth-centers-fee-18-01-0/download",
+          "source_format": null,
+          "variant_group": "freestanding birth center fee schedule",
+          "variant_date": "2018-01-20",
+          "corpus_bucket": "history"
+        }
+      ]
+    },
+    {
+      "priority": "critical",
+      "variant_group": "general dentist oral surgeon pediatric dentist periodontist orthodontist fee schedule",
+      "downloaded_retrieval_ready": 0,
+      "discovered_retrieval_ready": 3,
+      "downloaded_primary": 0,
+      "discovered_primary": 1,
+      "downloaded_history": 0,
+      "discovered_history": 2,
+      "candidates": [
+        {
+          "title": "General Dentist, Oral Surgeon, Pediatric Dentist, Periodontist & Orthodontist Fee Schedule - Feb. 17, 2022 - PDF",
+          "source_url": "https://medicaid.ncdhhs.gov/dental-fee-schedule-general-2-10-2022pdf/download?attachment",
+          "source_format": null,
+          "variant_group": "general dentist oral surgeon pediatric dentist periodontist orthodontist fee schedule",
+          "variant_date": "2022-02-17",
+          "corpus_bucket": "primary"
+        },
+        {
+          "title": "General Dentist, Oral Surgeon, Pediatric Dentist, Periodontist, & Orthodontist Fee schedule - Dec. 21, 2021 - PDF",
+          "source_url": "https://medicaid.ncdhhs.gov/general-dentist-oral-surgeon-pediatric-dentist-periodontist-orthodontist-fee-schedule-dec-21-2021-0/download?attachment",
+          "source_format": null,
+          "variant_group": "general dentist oral surgeon pediatric dentist periodontist orthodontist fee schedule",
+          "variant_date": "2021-12-21",
+          "corpus_bucket": "history"
+        },
+        {
+          "title": "General Dentist, Oral Surgeon, Pediatric Dentist, Periodontist, & Orthodontist Fee schedule - April 19, 2021 - PDF",
+          "source_url": "https://medicaid.ncdhhs.gov/documents/providers/bulletins/archives/dental/dental-fee-schedule-general-4-19-2021-0/download",
+          "source_format": null,
+          "variant_group": "general dentist oral surgeon pediatric dentist periodontist orthodontist fee schedule",
+          "variant_date": "2021-04-19",
+          "corpus_bucket": "history"
+        }
+      ]
+    },
+    {
+      "priority": "critical",
+      "variant_group": "hiv fee schedule",
+      "downloaded_retrieval_ready": 0,
+      "discovered_retrieval_ready": 3,
+      "downloaded_primary": 0,
+      "discovered_primary": 1,
+      "downloaded_history": 0,
+      "discovered_history": 2,
+      "candidates": [
+        {
+          "title": "HIV Fee Schedule - Feb. 9, 2021 - PDF",
+          "source_url": "https://medicaid.ncdhhs.gov/documents/fee-schedules/copy-hiv-cm-fee-schedule-2-9-2020-0/download",
+          "source_format": null,
+          "variant_group": "hiv fee schedule",
+          "variant_date": "2021-02-09",
+          "corpus_bucket": "primary"
+        },
+        {
+          "title": "HIV Fee Schedule - June 2, 2020 - PDF",
+          "source_url": "https://medicaid.ncdhhs.gov/documents/fee-schedules/hiv-cm-fee-schedule-3-1-2020-0/download",
+          "source_format": null,
+          "variant_group": "hiv fee schedule",
+          "variant_date": "2020-06-02",
+          "corpus_bucket": "history"
+        },
+        {
+          "title": "HIV Fee Schedule - July 1, 2012 - EXCEL",
+          "source_url": "https://medicaid.ncdhhs.gov/tcm-hiv-fee-taxonomy-0/download",
+          "source_format": null,
+          "variant_group": "hiv fee schedule",
+          "variant_date": "2012-07-01",
+          "corpus_bucket": "history"
+        }
+      ]
+    },
+    {
+      "priority": "critical",
+      "variant_group": "home health fee schedule",
+      "downloaded_retrieval_ready": 0,
+      "discovered_retrieval_ready": 3,
+      "downloaded_primary": 0,
+      "discovered_primary": 1,
+      "downloaded_history": 0,
+      "discovered_history": 2,
+      "candidates": [
+        {
+          "title": "Home Health Fee Schedule - March 30, 2022 - PDF",
+          "source_url": "https://medicaid.ncdhhs.gov/home-health-fee-schedule-4-1-22pdf/download?attachment",
+          "source_format": null,
+          "variant_group": "home health fee schedule",
+          "variant_date": "2022-03-30",
+          "corpus_bucket": "primary"
+        },
+        {
+          "title": "Home Health Services Fee Schedule \u2013 Jan. 3, 2022 \u2013 PDF",
+          "source_url": "https://medicaid.ncdhhs.gov/homehealthfeeschedulev220220101pdf/download?attachment",
+          "source_format": null,
+          "variant_group": "home health fee schedule",
+          "variant_date": "2022-01-03",
+          "corpus_bucket": "history"
+        },
+        {
+          "title": "Home Health Fee Schedule - Jan. 1, 2022 - PDF",
+          "source_url": "https://medicaid.ncdhhs.gov/homehealthfeeschedule20220101pdf-0/download?attachment",
+          "source_format": null,
+          "variant_group": "home health fee schedule",
+          "variant_date": "2022-01-01",
+          "corpus_bucket": "history"
+        }
+      ]
+    },
+    {
+      "priority": "critical",
+      "variant_group": "hospice fee schedule",
+      "downloaded_retrieval_ready": 0,
+      "discovered_retrieval_ready": 3,
+      "downloaded_primary": 0,
+      "discovered_primary": 1,
+      "downloaded_history": 0,
+      "discovered_history": 2,
+      "candidates": [
+        {
+          "title": "Hospice Fee Schedule - Oct. 1, 2017 - PDF",
+          "source_url": "https://medicaid.ncdhhs.gov/documents/providers/bulletins/archives/hospice/hospice-fee-schedule-2017-10-01-0/download",
+          "source_format": null,
+          "variant_group": "hospice fee schedule",
+          "variant_date": "2017-10-01",
+          "corpus_bucket": "primary"
+        },
+        {
+          "title": "Hospice Fee Schedule - Oct. 1, 2016 - EXCEL",
+          "source_url": "https://medicaid.ncdhhs.gov/documents/providers/bulletins/archives/hospice/hospice-fee-schedule-2016-10-01/download",
+          "source_format": null,
+          "variant_group": "hospice fee schedule",
+          "variant_date": "2016-10-01",
+          "corpus_bucket": "history"
+        },
+        {
+          "title": "Hospice Fee Schedule - Jan 1, 2009 - EXCEL",
+          "source_url": "https://medicaid.ncdhhs.gov/documents/providers/bulletins/archives/hospice/hospice-fee-010109-0/download",
+          "source_format": null,
+          "variant_group": "hospice fee schedule",
+          "variant_date": "2009-01-01",
+          "corpus_bucket": "history"
+        }
+      ]
+    },
+    {
+      "priority": "critical",
+      "variant_group": "hospice fee schedule oct",
+      "downloaded_retrieval_ready": 0,
+      "discovered_retrieval_ready": 3,
+      "downloaded_primary": 0,
+      "discovered_primary": 1,
+      "downloaded_history": 0,
+      "discovered_history": 2,
+      "candidates": [
+        {
+          "title": "Hospice Fee Schedule - Oct. - Sept. 30, 2015 - EXCEL",
+          "source_url": "https://medicaid.ncdhhs.gov/documents/providers/bulletins/archives/hospice/hospice-fee-100114-0/download",
+          "source_format": null,
+          "variant_group": "hospice fee schedule oct",
+          "variant_date": "2015-09-30",
+          "corpus_bucket": "primary"
+        },
+        {
+          "title": "Hospice Fee Schedule - Oct. - Sept. 30, 2014 - EXCEL",
+          "source_url": "https://medicaid.ncdhhs.gov/documents/providers/bulletins/archives/hospice/hospice-fee-100113-0/download",
+          "source_format": null,
+          "variant_group": "hospice fee schedule oct",
+          "variant_date": "2014-09-30",
+          "corpus_bucket": "history"
+        },
+        {
+          "title": "Hospice Fee Schedule - Oct. - Sept. 30, 2013 - EXCEL",
+          "source_url": "https://medicaid.ncdhhs.gov/documents/providers/bulletins/archives/hospice/hospice-fee-091912-0/download",
+          "source_format": null,
+          "variant_group": "hospice fee schedule oct",
+          "variant_date": "2013-09-30",
+          "corpus_bucket": "history"
+        }
+      ]
+    }
+  ],
+  "top_candidates": [
+    {
+      "title": "Nurse Practitioner Fee Schedule - Aug. 16, 6022 - PDF",
+      "source_url": "https://medicaid.ncdhhs.gov/nurse-practitioner-fee-schedule-aug-16-6022-pdf/download?attachment",
+      "source_format": null,
+      "variant_group": "nurse practitioner fee schedule",
+      "variant_date": "6022-08-16",
+      "corpus_bucket": "primary"
+    },
+    {
+      "title": "Respiratory Therapists - Feb, 25, 2021 - EXCEL",
+      "source_url": "https://medicaid.ncdhhs.gov/documents/fee-schedules/rt-fee-schedule-covid-end-date/download",
+      "source_format": null,
+      "variant_group": "respiratory therapists fee schedule",
+      "variant_date": "2025-02-01",
+      "corpus_bucket": "primary"
+    },
+    {
+      "title": "Physician Assistant Fee Schedule - Jan.24, 2019 - PDF",
+      "source_url": "https://medicaid.ncdhhs.gov/physician-assistants-fee-schedule20190124/download",
+      "source_format": null,
+      "variant_group": "physician assistant fee schedule",
+      "variant_date": "2024-01-01",
+      "corpus_bucket": "primary"
+    },
+    {
+      "title": "Physician Administered Drug Program - Oct. 19, 2022 - EXCEL",
+      "source_url": "https://medicaid.ncdhhs.gov/physician-administered-drug-program-oct-19-2022-excel/download?attachment",
+      "source_format": null,
+      "variant_group": "physician administered drug program fee schedule",
+      "variant_date": "2022-10-19",
+      "corpus_bucket": "primary"
+    },
+    {
+      "title": "Federally Qualified Health Centers (FQHC) Fee Schedules - Oct. 17, 2022 - EXCEL",
+      "source_url": "https://medicaid.ncdhhs.gov/federally-qualified-health-centers-fqhc-fee-schedules-oct-17-2022-excel/download?attachment",
+      "source_format": null,
+      "variant_group": "federally qualified health center fee schedule",
+      "variant_date": "2022-10-17",
+      "corpus_bucket": "primary"
+    },
+    {
+      "title": "Rural Health Clinical Fee Schedule - Oct. 17, 2022 (EXCEL)",
+      "source_url": "https://medicaid.ncdhhs.gov/rural-health-clinical-fee-schedule-oct-17-2022-excel/download?attachment",
+      "source_format": null,
+      "variant_group": "rural health clinical fee schedule",
+      "variant_date": "2022-10-17",
+      "corpus_bucket": "primary"
+    },
+    {
+      "title": "Grouper 40 DRG Weight Table - EXCEL - Oct. 6, 2022",
+      "source_url": "https://medicaid.ncdhhs.gov/grouper-40-drg-weight-table-excel-oct-6-2022/download?attachment",
+      "source_format": null,
+      "variant_group": "grouper 40 drg weight table fee schedule",
+      "variant_date": "2022-10-06",
+      "corpus_bucket": "primary"
+    },
+    {
+      "title": "COVID-19 VAC & MAB Administration Fee Schedule for Outpatient \u2013 Oct. 5, 2022 EXCEL",
+      "source_url": "https://medicaid.ncdhhs.gov/covid-19-vac-mab-administration-fee-schedule-outpatient-oct-5-2022-excel/download?attachment",
+      "source_format": null,
+      "variant_group": "covid 19 vac mab administration fee schedule for outpatient",
+      "variant_date": "2022-10-05",
+      "corpus_bucket": "primary"
+    },
+    {
+      "title": "Radiological/Imaging Fee Schedule - Oct. 4, 2022 - EXCEL",
+      "source_url": "https://medicaid.ncdhhs.gov/radiologicalimaging-fee-schedule-oct-4-2022-excel/download?attachment",
+      "source_format": null,
+      "variant_group": "radiological imaging fee schedule",
+      "variant_date": "2022-10-04",
+      "corpus_bucket": "primary"
+    },
+    {
+      "title": "NC Hospitals Fee Schedules - Sept. 30, 2022 - EXCEL",
+      "source_url": "https://medicaid.ncdhhs.gov/nc-hospitals-fee-schedules-sept-30-2022-excel/download?attachment",
+      "source_format": null,
+      "variant_group": "nc hospitals fee schedule",
+      "variant_date": "2022-09-30",
+      "corpus_bucket": "primary"
+    },
+    {
+      "title": "Local Health Department Fee Schedule - Sept. 20, 2022 - EXCEL",
+      "source_url": "https://medicaid.ncdhhs.gov/local-health-department-fee-schedule-sept-20-2022-excel/download?attachment",
+      "source_format": null,
+      "variant_group": "lhd fee schedule",
+      "variant_date": "2022-09-20",
+      "corpus_bucket": "primary"
+    },
+    {
+      "title": "PHP Managed Care Hospital Outpatient Laboratory Fee Schedule - Sept. 19, 2022 - EXCEL",
+      "source_url": "https://medicaid.ncdhhs.gov/php-managed-care-hospital-outpatient-laboratory-fee-schedule-sept-19-2022-excel/download?attachment",
+      "source_format": null,
+      "variant_group": "php managed care hospital outpatient laboratory fee schedule",
+      "variant_date": "2022-09-19",
+      "corpus_bucket": "primary"
+    },
+    {
+      "title": "Optometry Services Fee Schedule - Sept. 12, 2022 - EXCEL",
+      "source_url": "https://medicaid.ncdhhs.gov/optometry-services-fee-schedule-sept-12-2022-excel/download?attachment",
+      "source_format": null,
+      "variant_group": "optometry services fee schedule",
+      "variant_date": "2022-09-12",
+      "corpus_bucket": "primary"
+    },
+    {
+      "title": "LEA Fee Schedule - Sept. 8, 2022 - EXCEL",
+      "source_url": "https://medicaid.ncdhhs.gov/lea-fee-schedule-sept-8-2022-excel/download?attachment",
+      "source_format": null,
+      "variant_group": "local education agency fee schedule",
+      "variant_date": "2022-09-08",
+      "corpus_bucket": "primary"
+    },
+    {
+      "title": "Personal Care Services Fee Schedule - Sept. 8, 2022 - EXCEL",
+      "source_url": "https://medicaid.ncdhhs.gov/personal-care-services-fee-schedule-sept-8-2022-excel/download?attachment",
+      "source_format": null,
+      "variant_group": "personal care services fee schedule",
+      "variant_date": "2022-09-08",
+      "corpus_bucket": "primary"
+    },
+    {
+      "title": "Podiatry Services Fee Schedule - Sept. 6, 2022 - EXCEL",
+      "source_url": "https://medicaid.ncdhhs.gov/podiatry-services-fee-schedule-sept-6-2022-excel/download?attachment",
+      "source_format": null,
+      "variant_group": "podiatry services fee schedule",
+      "variant_date": "2022-09-06",
+      "corpus_bucket": "primary"
+    },
+    {
+      "title": "CAP/C Fee Schedule - July 15, 2022 - Excel",
+      "source_url": "https://medicaid.ncdhhs.gov/capc-fee-schedule-july-15-2022-excel/download?attachment",
+      "source_format": null,
+      "variant_group": "cap c fee schedule",
+      "variant_date": "2022-07-15",
+      "corpus_bucket": "primary"
+    },
+    {
+      "title": "CAP/CD Fee Schedule - July 15, 2022 - Excel",
+      "source_url": "https://medicaid.ncdhhs.gov/capcd-fee-schedule-july-15-2022-excel/download?attachment",
+      "source_format": null,
+      "variant_group": "cap cd fee schedule",
+      "variant_date": "2022-07-15",
+      "corpus_bucket": "primary"
+    },
+    {
+      "title": "CAP/DA Fee Schedule - July 15, 2022 - Excel",
+      "source_url": "https://medicaid.ncdhhs.gov/capda-fee-schedule-july-15-2022-excel/download?attachment",
+      "source_format": null,
+      "variant_group": "cap da fee schedule",
+      "variant_date": "2022-07-15",
+      "corpus_bucket": "primary"
+    },
+    {
+      "title": "Vent Facility Rates Jan. 1, 2022-June 30, 2022 - PDF",
+      "source_url": "https://medicaid.ncdhhs.gov/vent-facility-rates-jan-1-2022-june-30-2022-pdf/download?attachment",
+      "source_format": null,
+      "variant_group": "vent facility rates",
+      "variant_date": "2022-06-30",
+      "corpus_bucket": "primary"
+    },
+    {
+      "title": "Research-based Intensive Behavioral Health Treatment Fee Schedule - June 28, 2022 - PDF",
+      "source_url": "https://medicaid.ncdhhs.gov/rbi-bht-rate-sheet20220628pdf/download?attachment",
+      "source_format": null,
+      "variant_group": "research based intensive behavioral health treatment fee schedule",
+      "variant_date": "2022-06-28",
+      "corpus_bucket": "primary"
+    },
+    {
+      "title": "Rural Health Clinic Fee Schedule - June 23, 2022 - EXCEL",
+      "source_url": "https://medicaid.ncdhhs.gov/rural-health-clinic-fee-schedule-june-23-2022-excel/download?attachment",
+      "source_format": null,
+      "variant_group": "rural health clinic fee schedule",
+      "variant_date": "2022-06-23",
+      "corpus_bucket": "primary"
+    },
+    {
+      "title": "Speech Therapy and Audiology - June 6, 2022 - PDF",
+      "source_url": "https://medicaid.ncdhhs.gov/speech-audiology-fee-schedule-6-3-2022pdf/download?attachment",
+      "source_format": null,
+      "variant_group": "speech therapy and audiology fee schedule",
+      "variant_date": "2022-06-06",
+      "corpus_bucket": "primary"
+    },
+    {
+      "title": "Indian Tribal (I/T/U) Pharmacy Fee Schedules - May 23, 2022 - PDF",
+      "source_url": "https://medicaid.ncdhhs.gov/itupharmacyomberfeeschedule20220505pdf/download?attachment",
+      "source_format": null,
+      "variant_group": "indian tribal pharmacy fee schedule",
+      "variant_date": "2022-05-23",
+      "corpus_bucket": "primary"
+    },
+    {
+      "title": "Dialysis Services Fee Schedule - April 27, 2022 - PDF",
+      "source_url": "https://medicaid.ncdhhs.gov/dialysisservicesfeeschedulev0420220426pdf/download?attachment",
+      "source_format": null,
+      "variant_group": "dialysis services fee schedule",
+      "variant_date": "2022-04-27",
+      "corpus_bucket": "primary"
+    },
+    {
+      "title": "Enhanced Mental Health Services Fee Schedules - April 27, 2022 - PDF",
+      "source_url": "https://medicaid.ncdhhs.gov/enhancedservicesfeeschedule20220427pdf/download?attachment",
+      "source_format": null,
+      "variant_group": "enhanced mental health services fee schedule",
+      "variant_date": "2022-04-27",
+      "corpus_bucket": "primary"
+    },
+    {
+      "title": "Home Health Fee Schedule - March 30, 2022 - PDF",
+      "source_url": "https://medicaid.ncdhhs.gov/home-health-fee-schedule-4-1-22pdf/download?attachment",
+      "source_format": null,
+      "variant_group": "home health fee schedule",
+      "variant_date": "2022-03-30",
+      "corpus_bucket": "primary"
+    },
+    {
+      "title": "HIV CM Fee Schedule - March 29, 2022 - PDF",
+      "source_url": "https://medicaid.ncdhhs.gov/hiv-cm-fee-schedule-4-1-2022pdf/download?attachment",
+      "source_format": null,
+      "variant_group": "hiv cm fee schedule",
+      "variant_date": "2022-03-29",
+      "corpus_bucket": "primary"
+    },
+    {
+      "title": "Occupational Therapy COVID Rate Reversion - March 29, 2022 - PDF",
+      "source_url": "https://medicaid.ncdhhs.gov/occupational-therapy-covid-rate-reversion-fs-4-1-22pdf/download?attachment",
+      "source_format": null,
+      "variant_group": "occupational therapy covid rate reversion",
+      "variant_date": "2022-03-29",
+      "corpus_bucket": "primary"
+    },
+    {
+      "title": "Physical Therapy - March 29, 2022 - PDF",
+      "source_url": "https://medicaid.ncdhhs.gov/physical-therapy-fee-schedule-4-1-22pdf/download?attachment",
+      "source_format": null,
+      "variant_group": "physical therapy fee schedule",
+      "variant_date": "2022-03-29",
+      "corpus_bucket": "primary"
+    },
+    {
+      "title": "Respiratory Therapy - March 29, 2022 - PDF",
+      "source_url": "https://medicaid.ncdhhs.gov/respiratory-therapy-covid19-rate-reversion-fs-4-1-22pdf/download?attachment",
+      "source_format": null,
+      "variant_group": "respiratory therapy fee schedule",
+      "variant_date": "2022-03-29",
+      "corpus_bucket": "primary"
+    },
+    {
+      "title": "Independent Diagnostic Testing Facility Services Fee Schedules- Feb. 28, 2022 - PDF",
+      "source_url": "https://medicaid.ncdhhs.gov/idtf-fee-schedule-update-2-25-2022pdf/download?attachment",
+      "source_format": null,
+      "variant_group": "independent diagnostic testing facility fee schedule",
+      "variant_date": "2022-02-28",
+      "corpus_bucket": "primary"
+    },
+    {
+      "title": "Private Duty Nursing Fee Schedule - Feb. 28, 2022 - PDF",
+      "source_url": "https://medicaid.ncdhhs.gov/privatedutynursingfeeschedule20220301pdf/download?attachment",
+      "source_format": null,
+      "variant_group": "private duty nursing fee schedule",
+      "variant_date": "2022-02-28",
+      "corpus_bucket": "primary"
+    },
+    {
+      "title": "Ambulatory Surgery Center Dental Fee Schedule - Feb. 21, 2022 - EXCEL",
+      "source_url": "https://medicaid.ncdhhs.gov/asc-dental-fee-schedule-1-1-22xlsx/download?attachment",
+      "source_format": null,
+      "variant_group": "ambulatory surgery center dental fee schedule",
+      "variant_date": "2022-02-21",
+      "corpus_bucket": "primary"
+    },
+    {
+      "title": "Federally Qualified Health Centers Dental Fee Schedule - Feb. 18, 2022 - PDF",
+      "source_url": "https://medicaid.ncdhhs.gov/dental-fee-scedule-fqhc-2-10-22pdf/download?attachment",
+      "source_format": null,
+      "variant_group": "federally qualified health center dental fee schedule",
+      "variant_date": "2022-02-18",
+      "corpus_bucket": "primary"
+    },
+    {
+      "title": "Rural Health Center Dental Fee Schedule - Feb. 18, 2022 - PDF",
+      "source_url": "https://medicaid.ncdhhs.gov/dental-fee-schedule-rural-health-centers-2-10-22pdf/download?attachment",
+      "source_format": null,
+      "variant_group": "rural health center dental fee schedule",
+      "variant_date": "2022-02-18",
+      "corpus_bucket": "primary"
+    },
+    {
+      "title": "General Dentist, Oral Surgeon, Pediatric Dentist, Periodontist & Orthodontist Fee Schedule - Feb. 17, 2022 - PDF",
+      "source_url": "https://medicaid.ncdhhs.gov/dental-fee-schedule-general-2-10-2022pdf/download?attachment",
+      "source_format": null,
+      "variant_group": "general dentist oral surgeon pediatric dentist periodontist orthodontist fee schedule",
+      "variant_date": "2022-02-17",
+      "corpus_bucket": "primary"
+    },
+    {
+      "title": "Clinical Pharmacist Practitioner Fee Schedule - Feb. 11, 2022 - PDF",
+      "source_url": "https://medicaid.ncdhhs.gov/clinical-pharmacist-practitioner-cpp-fee-schedule-20220210pdf/download?attachment",
+      "source_format": null,
+      "variant_group": "clinical pharmacist practitioner fee schedule",
+      "variant_date": "2022-02-11",
+      "corpus_bucket": "primary"
+    },
+    {
+      "title": "(FQHC) Fee Schedules - Feb. 7 2022 - PDF",
+      "source_url": "https://medicaid.ncdhhs.gov/fqhcpsratefee-schedule20220128pdf/download?attachment",
+      "source_format": null,
+      "variant_group": "fee schedule",
+      "variant_date": "2022-02-07",
+      "corpus_bucket": "primary"
+    },
+    {
+      "title": "ICF-MR Fee Schedule - Feb. 7, 2022 - EXCEL - REVISED",
+      "source_url": "https://medicaid.ncdhhs.gov/copy-icf-revised-fee-schedule-rev-292022xlsx/download?attachment",
+      "source_format": null,
+      "variant_group": "icf mr fee schedule",
+      "variant_date": "2022-02-07",
+      "corpus_bucket": "primary"
+    }
+  ]
+}

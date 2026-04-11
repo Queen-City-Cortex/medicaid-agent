@@ -1,0 +1,619 @@
+{
+  "run_id": "2026-04-09T20:07:32",
+  "level": "answer",
+  "config": {
+    "embedding_model": "voyage-law-2",
+    "top_k": 10,
+    "dataset_count": 25,
+    "git_sha": "df5a5f9",
+    "judge_model": "claude-sonnet-4-6"
+  },
+  "aggregate": {
+    "precision_at_k": 0.12,
+    "recall_at_k": 0.12,
+    "mrr": 0.12,
+    "primary_hit_rate": 0.12
+  },
+  "by_difficulty": {
+    "simple": {
+      "precision_at_k": 0.14285714285714285,
+      "recall_at_k": 0.14285714285714285,
+      "mrr": 0.14285714285714285,
+      "primary_hit_rate": 0.14285714285714285,
+      "count": 7
+    },
+    "moderate": {
+      "precision_at_k": 0.15384615384615385,
+      "recall_at_k": 0.15384615384615385,
+      "mrr": 0.15384615384615385,
+      "primary_hit_rate": 0.15384615384615385,
+      "count": 13
+    },
+    "complex": {
+      "precision_at_k": 0.0,
+      "recall_at_k": 0.0,
+      "mrr": 0.0,
+      "primary_hit_rate": 0.0,
+      "count": 5
+    }
+  },
+  "by_category": {
+    "cross_document": {
+      "precision_at_k": 0.0,
+      "recall_at_k": 0.0,
+      "mrr": 0.0,
+      "primary_hit_rate": 0.0,
+      "count": 5
+    },
+    "multi_hop": {
+      "precision_at_k": 0.4,
+      "recall_at_k": 0.4,
+      "mrr": 0.4,
+      "primary_hit_rate": 0.4,
+      "count": 5
+    },
+    "single_lookup": {
+      "precision_at_k": 0.07142857142857142,
+      "recall_at_k": 0.07142857142857142,
+      "mrr": 0.07142857142857142,
+      "primary_hit_rate": 0.07142857142857142,
+      "count": 14
+    },
+    "temporal": {
+      "precision_at_k": 0.0,
+      "recall_at_k": 0.0,
+      "mrr": 0.0,
+      "primary_hit_rate": 0.0,
+      "count": 1
+    }
+  },
+  "per_question": [
+    {
+      "id": "q-001",
+      "difficulty": "simple",
+      "reasoning_type": "single_lookup",
+      "question": "What are the general eligibility criteria for CAP/DA services under NC Medicaid?",
+      "agent_answer": "I found the current CAP/DA clinical policy, effective September 1, 2025, and confirmed via the amendments tool that this document is the authoritative current version. The key eligibility language is in the general Medicaid eligibility section plus the CAP/DA-specific coverage criteria. Next I\u2019ll summarize the general eligibility criteria and distinguish basic Medicaid enrollment rules from CAP/DA waiver-specific requirements.## General eligibility criteria for CAP/DA under NC Medicaid\n\nUnder current NC Medicaid Clinical Coverage Policy **3K-2, Community Alternatives Program for Disabled Adults (CAP/DA)**, a person generally must meet both **basic Medicaid eligibility requirements** and **CAP/DA-specific waiver criteria**. The current policy is effective **September 1, 2025** and I checked for amendments; the policy document itself is the authoritative current version. [Community Alternatives Program for Disabled Adults (CAP/DA)](https://medicaid.ncdhhs.gov/3k-2-community-alternatives-program-disabled-adults-capda/download?attachment)\n\n### 1. Basic Medicaid eligibility\nThe policy says the beneficiary must:\n- be **enrolled in the NC Medicaid Program**;\n- have eligibility verified when services are rendered; and\n- not have an eligibility category restriction that makes them ineligible for CAP/DA services.  \nSource: Policy \u00a7 **2.1.1 General**, [Community Alternatives Program for Disabled Adults (CAP/DA)](https://medicaid.ncdhhs.gov/3k-2-community-alternatives-program-disabled-adults-capda/download?attachment)\n\n### 2. CAP/DA program-specific eligibility\nFor CAP/DA, the policy indicates the person must generally:\n- be **enrolled in fee-for-service Medicaid (Medicaid Direct)**;\n- be determined to require an **institutional level of care** under the NC State Medicaid Plan;\n- be part of a **target group** documented in the approved waiver application;\n- meet applicable Medicaid eligibility criteria referenced in the policy;\n- **choose** waiver participation (freedom of choice);\n- be assigned a **CAP/DA waiver slot**;\n- be able to have health, safety, and well-being maintained at their **primary residence or approved location** with formal and informal supports; and\n- be **age 18 or older**.  \nSource: CAP/DA eligibility subsection in Policy 3K-2, [Community Alternatives Program for Disabled Adults (CAP/DA)](https://medicaid.ncdhhs.gov/3k-2-community-alternatives-program-disabled-adults-capda/download?attachment)\n\n### 3. Additional coverage/participation requirements\nThe policy\u2019s specific coverage criteria further require that the beneficiary:\n- meet the required **HCBS nursing facility level of care** as determined by NC Medicaid;\n- have a CAP assessment showing a **reasonable indication of need** for at least one CAP/DA HCBS service within 30 days of evaluation;\n- have a **signed service plan** authorizing one or more waiver services;\n- be able to remain safely in the home or approved location with needed supports;\n- have paid care needs that can be met **within the average institutional cost** of the CAP/DA waiver;\n- have a **primary physician** who can link and coordinate medical services; and\n- have an **emergency back-up and disaster plan**.  \nSource: Policy \u00a7 **3.2.1 Specific criteria covered by Medicaid**, [Community Alternatives Program for Disabled Adults (CAP/DA)](https://medicaid.ncdhhs.gov/3k-2-community-alternatives-program-disabled-adults-capda/download?attachment)\n\n## Short version\nA person is generally eligible for CAP/DA if they are:\n- on **NC Medicaid**,\n- in **Medicaid Direct**,\n- **18 or older**,\n- need a **nursing-facility level of care**,\n- can be safely served **at home or an approved setting**,\n- need at least one CAP/DA waiver service,\n- have an approved **service plan**,\n- fit within waiver and cost rules, and\n- have an available **waiver slot**.  \nSource: Policy \u00a7\u00a7 **2.1.1** and **3.2.1**, plus the CAP/DA Medicaid eligibility subsection, [Community Alternatives Program for Disabled Adults (CAP/DA)](https://medicaid.ncdhhs.gov/3k-2-community-alternatives-program-disabled-adults-capda/download?attachment)\n\nIf you want, I can also break this down into:\n1. a **screening checklist for advocates**, or  \n2. the **most common denial reasons** for CAP/DA eligibility.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 3,
+        "completeness": 3,
+        "hallucination": 3,
+        "citation_quality": 3,
+        "overall": 3,
+        "explanation": "The agent's answer accurately captures all key eligibility criteria from the reference answer and the evidence sections: age 18+, NC Medicaid enrollment, institutional/nursing facility level of care, ability to be safely served in community/home setting, functional need for CAP/DA services, signed service plan, waiver slot availability, cost requirements, primary physician, and emergency backup plan. The answer correctly cites specific policy sections (2.1.1, 3.1, 3.2.1) with links to the actual policy document. No hallucinated facts are present - all claims align with the evidence sections provided. The answer goes beyond the reference answer in a positive way by including additional detail from the actual policy text (consumer-directed services criteria, cost containment requirements, emergency backup plans) that enriches the response. The structured format with a short summary version is particularly helpful for practical use."
+      },
+      "judge_error": false,
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "primary_hit": true
+    },
+    {
+      "id": "q-002",
+      "difficulty": "moderate",
+      "reasoning_type": "multi_hop",
+      "question": "What DME items are specifically NOT covered by NC Medicaid under the Orthotics and Prosthetics policy, and what general criteria must be met for coverage?",
+      "agent_answer": "I found the main Orthotics & Prosthetics policy (Clinical Policy 5B) and the core coverage/not-covered sections. Next I\u2019m checking whether 5B has amendments and looking for any section that lists specific non-covered DME-type items under that policy, rather than just the general \u201cnot covered\u201d criteria.I confirmed 5B is the current authoritative document and found a likely key section: 4.2.1 \u201cSpecific Criteria Not Covered by Medicaid.\u201d I\u2019m pulling the full text of that section now so I can answer with the exact non-covered item categories and pair them with the general coverage criteria.Under NC Medicaid\u2019s **Orthotics & Prosthetics Clinical Coverage Policy 5B**, the policy does **not** list brand-by-brand DME products, but it does identify these **specific categories of items/devices that are not covered**:\n\n### Specifically not covered under Policy 5B\n- **Devices for the beneficiary\u2019s comfort or convenience**, or for the convenience of the beneficiary\u2019s caregiver(s)\n- **Backup or duplicate devices** kept on hand or available at different locations\n- **Devices and supplies for residents of nursing facilities**\n- **Devices or supplies covered by another agency**\n- **Equipment or supplies for beneficiaries receiving hospice care**, as defined in the policy\u2019s coordination-of-care subsection  \n  \u2014 [Orthotics & Prosthetics](https://medicaid.ncdhhs.gov/5b-orthotics-prosthetics/download?attachment), \u00a7 4.2.1\n\n### General criteria that must be met for coverage\nFor an orthotic or prosthetic item to be covered, NC Medicaid requires that it meet the policy\u2019s general and specific coverage standards, including:\n\n#### General coverage criteria\nThe procedure, product, or service must be:\n- **Individualized and specific** to the beneficiary\u2019s symptoms or confirmed diagnosis, and **not more than the beneficiary needs**\n- Able to be **safely furnished**\n- Such that **no equally effective, more conservative, or less costly treatment is available statewide**\n- **Not primarily for convenience** of the beneficiary, caregiver, or provider  \n  \u2014 [Orthotics & Prosthetics](https://medicaid.ncdhhs.gov/5b-orthotics-prosthetics/download?attachment), \u00a7 3.1\n\n#### Specific orthotics/prosthetics coverage criteria\nThe item must also be:\n- **Ordered by a physician, physician assistant, or nurse practitioner**\n- **Medically necessary** to maintain or improve the beneficiary\u2019s medical, physical, or functional level\n- **Appropriate for use in a noninstitutional setting** where normal life activities occur\n- Supported by a **face-to-face encounter within 6 months** before initiation\n- Subject to an **annual review of need** by the ordering clinician\n\nIn addition:\n- **Orthotic devices** must be needed to correct/prevent skeletal deformities, support or align movable body parts, or preserve/improve function\n- **Prosthetic devices** must replace all or part of the function of a permanently inoperative, absent, or malfunctioning body part, and be needed for **mobility, daily care, or rehabilitation**\n- Devices must be a **reasonable and medically necessary part of the treatment plan**, consistent with diagnosis and functional limitations, and of **high quality with obtainable replacement parts**\n- To be reimbursed, the provider must be enrolled as the **appropriate board-certified provider** for the device  \n  \u2014 [Orthotics & Prosthetics](https://medicaid.ncdhhs.gov/5b-orthotics-prosthetics/download?attachment), \u00a7 3.2.1\n\n### Other general noncoverage rules\nEven aside from the specific excluded categories above, Medicaid will not cover the item if:\n- the beneficiary is not eligible,\n- the beneficiary does not meet the Section 3 criteria,\n- the item duplicates another provider\u2019s product/service, or\n- the item is experimental, investigational, or part of a clinical trial  \n  \u2014 [Orthotics & Prosthetics](https://medicaid.ncdhhs.gov/5b-orthotics-prosthetics/download?attachment), \u00a7 4.1\n\n### Bottom line\nUnder the Orthotics & Prosthetics policy, the main specifically excluded \u201cDME-type\u201d items are **comfort/convenience items, duplicates/backups, nursing-facility devices/supplies, items covered by another agency, and hospice-related equipment/supplies**. Coverage generally requires a **medical order, medical necessity, suitability for noninstitutional use, timely face-to-face evaluation, annual review, and compliance with the policy\u2019s general medical-necessity standards**.\n\nI also checked amendments, and the knowledge base shows **Policy 5B itself as the current authoritative document with no listed amending change notice returned for this query**.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 3,
+        "completeness": 3,
+        "hallucination": 3,
+        "citation_quality": 3,
+        "overall": 3,
+        "explanation": "The agent's answer accurately reproduces all key facts from the evidence sections verbatim or near-verbatim. It correctly identifies all 5 specific non-covered items from \u00a74.2.1, all 4 general non-coverage criteria from \u00a74.1, all 3 general coverage criteria from \u00a73.1, and the detailed specific coverage criteria from \u00a73.2.1 including ordering requirements, face-to-face encounter timing, annual review, orthotic/prosthetic definitions, and provider certification requirements. The answer is fully complete, addressing both the 'not covered' and 'general criteria' parts of the question. No hallucinations are present - every claim matches the evidence. Citations are precise, referencing specific section numbers (\u00a73.1, \u00a73.2.1, \u00a74.1, \u00a74.2.1) throughout. A Medicaid policy expert would find this answer comprehensive and accurate."
+      },
+      "judge_error": false,
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "primary_hit": true
+    },
+    {
+      "id": "q-003",
+      "difficulty": "moderate",
+      "reasoning_type": "multi_hop",
+      "question": "What are the entrance, continued service, and discharge criteria for outpatient behavioral health services in NC Medicaid?",
+      "agent_answer": "I found the likely governing document: Clinical Coverage Policy 8C for outpatient behavioral health services. I also checked amendments, and the tool indicates 8C itself is the current authoritative document with an effective date of April 15, 2025. Next I\u2019m pulling the full text of the specific entrance, continued service, and discharge sections so I can quote the exact criteria rather than rely on search snippets.I now have the full entrance and discharge sections, and I found the continued-service section, but its retrieved text appears truncated at the end. I\u2019m going one step further to inspect the section\u2019s structural context and nearby sections in case the corpus split or formatting affected the full text. That will let me confirm whether the continued-service criteria have additional required elements.## Outpatient behavioral health criteria in NC Medicaid\n\nFor **outpatient behavioral health services provided by direct-enrolled providers**, the governing policy is **Clinical Coverage Policy 8C**, which the amendment tool indicates is the **current authoritative document** with an **effective date of April 15, 2025**. See [8C, Outpatient Behavioral Health Services Provided by Direct-Enrolled Providers](https://medicaid.ncdhhs.gov/8c-outpatient-behavioral-health-services-provided-direct-enrolled-providers/download?attachment).\n\n### 1. Entrance criteria\nNC Medicaid Policy 8C section **3.2.1.1** states the beneficiary must meet these criteria:\n\n- Have a **current DSM-5 diagnosis** (or subsequent edition);\n- Present with **behavioral, psychological, or biological dysfunction and functional impairment** consistent with that diagnosis;\n- If a **higher level of care is indicated but unavailable**, or the beneficiary is refusing it, outpatient services may be provided until that level is available or to support the beneficiary in participating in that higher level of care;\n- Be **capable of developing skills** to manage symptoms, make behavioral changes, and respond favorably to therapeutic interventions; and\n- There is **no evidence that alternative interventions would be more effective**, based on North Carolina community practice standards.  \n  Citation: section 3.2.1.1 in [8C, Outpatient Behavioral Health Services Provided by Direct-Enrolled Providers](https://medicaid.ncdhhs.gov/8c-outpatient-behavioral-health-services-provided-direct-enrolled-providers/download?attachment).\n\n### 2. Continued service criteria\nPolicy 8C section **3.2.1.2** provides continued-service criteria. The retrieved text shows this structure:\n\nFirst, **any one** of the following:\n- The desired outcome or level of functioning has **not been restored, improved, or sustained** within the timeframe in the treatment plan;\n- The beneficiary **continues to be at risk for relapse** based on current clinical assessment and history; or\n- There is a **tenuous nature of the functional gains**.\n\nThen, **in addition to the above**, **any one** of the following:\n- The beneficiary has **achieved current treatment plan goals**, and **additional goals are indicated** by documented symptoms; or\n- The beneficiary is **making satisfactory progress toward meeting goals** and there is documentation supporting that.\n\nCitation: section 3.2.1.2 in [8C, Outpatient Behavioral Health Services Provided by Direct-Enrolled Providers](https://medicaid.ncdhhs.gov/8c-outpatient-behavioral-health-services-provided-direct-enrolled-providers/download?attachment).\n\n### 3. Discharge criteria\nPolicy 8C section **3.2.1.3** states discharge is appropriate when:\n\n- The beneficiary\u2019s **level of functioning has improved** with respect to the goals in the treatment plan;\n- The beneficiary or legally responsible person **no longer wishes to receive services**; or\n- The beneficiary, because of presentation and **failure to improve despite treatment plan modifications**, needs a **more appropriate best practice or evidence-based treatment modality** based on North Carolina community practice standards.  \n  Citation: section 3.2.1.3 in [8C, Outpatient Behavioral Health Services Provided by Direct-Enrolled Providers](https://medicaid.ncdhhs.gov/8c-outpatient-behavioral-health-services-provided-direct-enrolled-providers/download?attachment).\n\n## Important limitation\nI could verify the **structure and most of the text** of the continued-service criteria from the policy corpus, but the tool\u2019s copy of section **3.2.1.2** appears **truncated at the end**. So I can confirm the criteria above as retrieved, but I **could not verify whether the final clause after \u201cthere is documentation that supports that\u201d contains additional wording** in the source PDF.\n\nIf you want, I can next help with either:\n- a **plain-English version** for advocates/case managers, or\n- whether these services require **prior authorization** under Policy 8C.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 3,
+        "completeness": 3,
+        "hallucination": 3,
+        "citation_quality": 3,
+        "overall": 3,
+        "explanation": "The agent's answer accurately reproduces all three sets of criteria (entrance, continued service, discharge) from Policy 8C sections 3.2.1.1, 3.2.1.2, and 3.2.1.3, matching the reference evidence almost verbatim. The continued-service criteria correctly capture the two-part 'any one of a, plus any one of b' structure. The agent appropriately flags uncertainty about potential truncation of section 3.2.1.2 rather than fabricating content. Citations are precise at the section level with a direct URL to the policy document. The answer is more detailed than the reference answer but entirely consistent with the verified evidence sections. No hallucinations are present - all claims are supported by the evidence."
+      },
+      "judge_error": false,
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "primary_hit": true
+    },
+    {
+      "id": "q-004",
+      "difficulty": "complex",
+      "reasoning_type": "cross_document",
+      "question": "How does the EPSDT special provision affect coverage for outpatient therapy services, and what ordering practitioner requirements apply to beneficiaries under 21?",
+      "agent_answer": "",
+      "agent_error": "Agent error: Agent exited with code 1: \nnode:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\nError [TransformError]: Transform failed with 1 error:\n/Users/jkh/src/tries/2026-03-26-medicaid-agent/packages/agent/src/prompt.ts:43:3: ERROR: Expected \";\" but found \"resolveAnswerFrame\"\n    at failureErrorWithLog (/Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1748:15)\n    at /Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1017:50\n    at responseCallbacks.<co",
+      "scores": {
+        "factual_accuracy": 0,
+        "completeness": 0,
+        "hallucination": 0,
+        "citation_quality": 0,
+        "overall": 0,
+        "explanation": "Agent error: Agent exited with code 1: \nnode:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\nError [TransformError]: Transform failed with 1 error:\n/Users/jkh/src/tries/2026-03-26-medicaid-agent/packages/agent/src/prompt.ts:43:3: ERROR: Expected \";\" but found \"resolveAnswerFrame\"\n    at failureErrorWithLog (/Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1748:15)\n    at /Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1017:50\n    at responseCallbacks.<co",
+        "error_type": "agent"
+      },
+      "judge_error": false,
+      "precision": 0.0,
+      "recall": 0.0,
+      "mrr": 0.0,
+      "primary_hit": false
+    },
+    {
+      "id": "q-005",
+      "difficulty": "moderate",
+      "reasoning_type": "single_lookup",
+      "question": "Does NC Medicaid cover Personal Care Services for beneficiaries who live in an assisted living facility?",
+      "agent_answer": "",
+      "agent_error": "Agent error: Agent exited with code 1: \nnode:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\nError [TransformError]: Transform failed with 1 error:\n/Users/jkh/src/tries/2026-03-26-medicaid-agent/packages/agent/src/prompt.ts:43:3: ERROR: Expected \";\" but found \"resolveAnswerFrame\"\n    at failureErrorWithLog (/Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1748:15)\n    at /Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1017:50\n    at responseCallbacks.<co",
+      "scores": {
+        "factual_accuracy": 0,
+        "completeness": 0,
+        "hallucination": 0,
+        "citation_quality": 0,
+        "overall": 0,
+        "explanation": "Agent error: Agent exited with code 1: \nnode:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\nError [TransformError]: Transform failed with 1 error:\n/Users/jkh/src/tries/2026-03-26-medicaid-agent/packages/agent/src/prompt.ts:43:3: ERROR: Expected \";\" but found \"resolveAnswerFrame\"\n    at failureErrorWithLog (/Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1748:15)\n    at /Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1017:50\n    at responseCallbacks.<co",
+        "error_type": "agent"
+      },
+      "judge_error": false,
+      "precision": 0.0,
+      "recall": 0.0,
+      "mrr": 0.0,
+      "primary_hit": false
+    },
+    {
+      "id": "q-006",
+      "difficulty": "simple",
+      "reasoning_type": "single_lookup",
+      "question": "Does NC Medicaid cover chiropractic services under Clinical Coverage Policy 5B?",
+      "agent_answer": "",
+      "agent_error": "Agent error: Agent exited with code 1: \nnode:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\nError [TransformError]: Transform failed with 1 error:\n/Users/jkh/src/tries/2026-03-26-medicaid-agent/packages/agent/src/prompt.ts:43:3: ERROR: Expected \";\" but found \"resolveAnswerFrame\"\n    at failureErrorWithLog (/Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1748:15)\n    at /Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1017:50\n    at responseCallbacks.<co",
+      "scores": {
+        "factual_accuracy": 0,
+        "completeness": 0,
+        "hallucination": 0,
+        "citation_quality": 0,
+        "overall": 0,
+        "explanation": "Agent error: Agent exited with code 1: \nnode:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\nError [TransformError]: Transform failed with 1 error:\n/Users/jkh/src/tries/2026-03-26-medicaid-agent/packages/agent/src/prompt.ts:43:3: ERROR: Expected \";\" but found \"resolveAnswerFrame\"\n    at failureErrorWithLog (/Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1748:15)\n    at /Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1017:50\n    at responseCallbacks.<co",
+        "error_type": "agent"
+      },
+      "judge_error": false,
+      "precision": 0.0,
+      "recall": 0.0,
+      "mrr": 0.0,
+      "primary_hit": false
+    },
+    {
+      "id": "q-007",
+      "difficulty": "simple",
+      "reasoning_type": "single_lookup",
+      "question": "What is the treatment plan (plan of care) requirement for outpatient therapy services under NC Medicaid policy 10A?",
+      "agent_answer": "",
+      "agent_error": "Agent error: Agent exited with code 1: \nnode:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\nError [TransformError]: Transform failed with 1 error:\n/Users/jkh/src/tries/2026-03-26-medicaid-agent/packages/agent/src/prompt.ts:43:3: ERROR: Expected \";\" but found \"resolveAnswerFrame\"\n    at failureErrorWithLog (/Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1748:15)\n    at /Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1017:50\n    at responseCallbacks.<co",
+      "scores": {
+        "factual_accuracy": 0,
+        "completeness": 0,
+        "hallucination": 0,
+        "citation_quality": 0,
+        "overall": 0,
+        "explanation": "Agent error: Agent exited with code 1: \nnode:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\nError [TransformError]: Transform failed with 1 error:\n/Users/jkh/src/tries/2026-03-26-medicaid-agent/packages/agent/src/prompt.ts:43:3: ERROR: Expected \";\" but found \"resolveAnswerFrame\"\n    at failureErrorWithLog (/Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1748:15)\n    at /Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1017:50\n    at responseCallbacks.<co",
+        "error_type": "agent"
+      },
+      "judge_error": false,
+      "precision": 0.0,
+      "recall": 0.0,
+      "mrr": 0.0,
+      "primary_hit": false
+    },
+    {
+      "id": "q-008",
+      "difficulty": "moderate",
+      "reasoning_type": "single_lookup",
+      "question": "Can a CAP/DA beneficiary transfer between service providers, and what rules govern transfers of eligible beneficiaries?",
+      "agent_answer": "",
+      "agent_error": "Agent error: Agent exited with code 1: \nnode:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\nError [TransformError]: Transform failed with 1 error:\n/Users/jkh/src/tries/2026-03-26-medicaid-agent/packages/agent/src/prompt.ts:43:3: ERROR: Expected \";\" but found \"resolveAnswerFrame\"\n    at failureErrorWithLog (/Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1748:15)\n    at /Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1017:50\n    at responseCallbacks.<co",
+      "scores": {
+        "factual_accuracy": 0,
+        "completeness": 0,
+        "hallucination": 0,
+        "citation_quality": 0,
+        "overall": 0,
+        "explanation": "Agent error: Agent exited with code 1: \nnode:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\nError [TransformError]: Transform failed with 1 error:\n/Users/jkh/src/tries/2026-03-26-medicaid-agent/packages/agent/src/prompt.ts:43:3: ERROR: Expected \";\" but found \"resolveAnswerFrame\"\n    at failureErrorWithLog (/Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1748:15)\n    at /Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1017:50\n    at responseCallbacks.<co",
+        "error_type": "agent"
+      },
+      "judge_error": false,
+      "precision": 0.0,
+      "recall": 0.0,
+      "mrr": 0.0,
+      "primary_hit": false
+    },
+    {
+      "id": "q-009",
+      "difficulty": "complex",
+      "reasoning_type": "cross_document",
+      "question": "Is there a maximum earned income limit for people on HCWD (Health Coverage for Workers with Disabilities), and what premiums apply?",
+      "agent_answer": "",
+      "agent_error": "Agent error: Agent exited with code 1: \nnode:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\nError [TransformError]: Transform failed with 1 error:\n/Users/jkh/src/tries/2026-03-26-medicaid-agent/packages/agent/src/prompt.ts:43:3: ERROR: Expected \";\" but found \"resolveAnswerFrame\"\n    at failureErrorWithLog (/Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1748:15)\n    at /Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1017:50\n    at responseCallbacks.<co",
+      "scores": {
+        "factual_accuracy": 0,
+        "completeness": 0,
+        "hallucination": 0,
+        "citation_quality": 0,
+        "overall": 0,
+        "explanation": "Agent error: Agent exited with code 1: \nnode:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\nError [TransformError]: Transform failed with 1 error:\n/Users/jkh/src/tries/2026-03-26-medicaid-agent/packages/agent/src/prompt.ts:43:3: ERROR: Expected \";\" but found \"resolveAnswerFrame\"\n    at failureErrorWithLog (/Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1748:15)\n    at /Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1017:50\n    at responseCallbacks.<co",
+        "error_type": "agent"
+      },
+      "judge_error": false,
+      "precision": 0.0,
+      "recall": 0.0,
+      "mrr": 0.0,
+      "primary_hit": false
+    },
+    {
+      "id": "q-010",
+      "difficulty": "complex",
+      "reasoning_type": "cross_document",
+      "question": "What is the federal statutory authority for NC's CAP/DA waiver, and what does the state need to demonstrate in its waiver application?",
+      "agent_answer": "",
+      "agent_error": "Agent error: Agent exited with code 1: \nnode:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\nError [TransformError]: Transform failed with 1 error:\n/Users/jkh/src/tries/2026-03-26-medicaid-agent/packages/agent/src/prompt.ts:43:3: ERROR: Expected \";\" but found \"resolveAnswerFrame\"\n    at failureErrorWithLog (/Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1748:15)\n    at /Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1017:50\n    at responseCallbacks.<co",
+      "scores": {
+        "factual_accuracy": 0,
+        "completeness": 0,
+        "hallucination": 0,
+        "citation_quality": 0,
+        "overall": 0,
+        "explanation": "Agent error: Agent exited with code 1: \nnode:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\nError [TransformError]: Transform failed with 1 error:\n/Users/jkh/src/tries/2026-03-26-medicaid-agent/packages/agent/src/prompt.ts:43:3: ERROR: Expected \";\" but found \"resolveAnswerFrame\"\n    at failureErrorWithLog (/Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1748:15)\n    at /Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1017:50\n    at responseCallbacks.<co",
+        "error_type": "agent"
+      },
+      "judge_error": false,
+      "precision": 0.0,
+      "recall": 0.0,
+      "mrr": 0.0,
+      "primary_hit": false
+    },
+    {
+      "id": "q-011",
+      "difficulty": "moderate",
+      "reasoning_type": "single_lookup",
+      "question": "What are the requirements for home modifications under CAP/DA, and what documentation must the Multidisciplinary Team provide?",
+      "agent_answer": "",
+      "agent_error": "Agent error: Agent exited with code 1: \nnode:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\nError [TransformError]: Transform failed with 1 error:\n/Users/jkh/src/tries/2026-03-26-medicaid-agent/packages/agent/src/prompt.ts:43:3: ERROR: Expected \";\" but found \"resolveAnswerFrame\"\n    at failureErrorWithLog (/Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1748:15)\n    at /Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1017:50\n    at responseCallbacks.<co",
+      "scores": {
+        "factual_accuracy": 0,
+        "completeness": 0,
+        "hallucination": 0,
+        "citation_quality": 0,
+        "overall": 0,
+        "explanation": "Agent error: Agent exited with code 1: \nnode:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\nError [TransformError]: Transform failed with 1 error:\n/Users/jkh/src/tries/2026-03-26-medicaid-agent/packages/agent/src/prompt.ts:43:3: ERROR: Expected \";\" but found \"resolveAnswerFrame\"\n    at failureErrorWithLog (/Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1748:15)\n    at /Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1017:50\n    at responseCallbacks.<co",
+        "error_type": "agent"
+      },
+      "judge_error": false,
+      "precision": 0.0,
+      "recall": 0.0,
+      "mrr": 0.0,
+      "primary_hit": false
+    },
+    {
+      "id": "q-012",
+      "difficulty": "moderate",
+      "reasoning_type": "multi_hop",
+      "question": "How many days of therapeutic leave from a nursing facility does NC Medicaid allow per year, and what conditions must be met?",
+      "agent_answer": "",
+      "agent_error": "Agent error: Agent exited with code 1: \nnode:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\nError [TransformError]: Transform failed with 1 error:\n/Users/jkh/src/tries/2026-03-26-medicaid-agent/packages/agent/src/prompt.ts:43:3: ERROR: Expected \";\" but found \"resolveAnswerFrame\"\n    at failureErrorWithLog (/Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1748:15)\n    at /Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1017:50\n    at responseCallbacks.<co",
+      "scores": {
+        "factual_accuracy": 0,
+        "completeness": 0,
+        "hallucination": 0,
+        "citation_quality": 0,
+        "overall": 0,
+        "explanation": "Agent error: Agent exited with code 1: \nnode:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\nError [TransformError]: Transform failed with 1 error:\n/Users/jkh/src/tries/2026-03-26-medicaid-agent/packages/agent/src/prompt.ts:43:3: ERROR: Expected \";\" but found \"resolveAnswerFrame\"\n    at failureErrorWithLog (/Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1748:15)\n    at /Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1017:50\n    at responseCallbacks.<co",
+        "error_type": "agent"
+      },
+      "judge_error": false,
+      "precision": 0.0,
+      "recall": 0.0,
+      "mrr": 0.0,
+      "primary_hit": false
+    },
+    {
+      "id": "q-013",
+      "difficulty": "moderate",
+      "reasoning_type": "single_lookup",
+      "question": "If a Private Duty Nursing provider terminates services for a Medicaid beneficiary, what notification requirements must they follow?",
+      "agent_answer": "",
+      "agent_error": "Agent error: Agent exited with code 1: \nnode:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\nError [TransformError]: Transform failed with 1 error:\n/Users/jkh/src/tries/2026-03-26-medicaid-agent/packages/agent/src/prompt.ts:43:3: ERROR: Expected \";\" but found \"resolveAnswerFrame\"\n    at failureErrorWithLog (/Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1748:15)\n    at /Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1017:50\n    at responseCallbacks.<co",
+      "scores": {
+        "factual_accuracy": 0,
+        "completeness": 0,
+        "hallucination": 0,
+        "citation_quality": 0,
+        "overall": 0,
+        "explanation": "Agent error: Agent exited with code 1: \nnode:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\nError [TransformError]: Transform failed with 1 error:\n/Users/jkh/src/tries/2026-03-26-medicaid-agent/packages/agent/src/prompt.ts:43:3: ERROR: Expected \";\" but found \"resolveAnswerFrame\"\n    at failureErrorWithLog (/Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1748:15)\n    at /Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1017:50\n    at responseCallbacks.<co",
+        "error_type": "agent"
+      },
+      "judge_error": false,
+      "precision": 0.0,
+      "recall": 0.0,
+      "mrr": 0.0,
+      "primary_hit": false
+    },
+    {
+      "id": "q-014",
+      "difficulty": "simple",
+      "reasoning_type": "single_lookup",
+      "question": "After receiving an initial PCS (Personal Care Services) approval for fewer than 80 hours per month, how long must a beneficiary wait before requesting a reconsideration for more hours?",
+      "agent_answer": "",
+      "agent_error": "Agent error: Agent exited with code 1: \nnode:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\nError [TransformError]: Transform failed with 1 error:\n/Users/jkh/src/tries/2026-03-26-medicaid-agent/packages/agent/src/prompt.ts:43:3: ERROR: Expected \";\" but found \"resolveAnswerFrame\"\n    at failureErrorWithLog (/Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1748:15)\n    at /Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1017:50\n    at responseCallbacks.<co",
+      "scores": {
+        "factual_accuracy": 0,
+        "completeness": 0,
+        "hallucination": 0,
+        "citation_quality": 0,
+        "overall": 0,
+        "explanation": "Agent error: Agent exited with code 1: \nnode:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\nError [TransformError]: Transform failed with 1 error:\n/Users/jkh/src/tries/2026-03-26-medicaid-agent/packages/agent/src/prompt.ts:43:3: ERROR: Expected \";\" but found \"resolveAnswerFrame\"\n    at failureErrorWithLog (/Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1748:15)\n    at /Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1017:50\n    at responseCallbacks.<co",
+        "error_type": "agent"
+      },
+      "judge_error": false,
+      "precision": 0.0,
+      "recall": 0.0,
+      "mrr": 0.0,
+      "primary_hit": false
+    },
+    {
+      "id": "q-015",
+      "difficulty": "moderate",
+      "reasoning_type": "cross_document",
+      "question": "What does federal law define as 'home health services' under Medicaid, and where must they be provided?",
+      "agent_answer": "",
+      "agent_error": "Agent error: Agent exited with code 1: \nnode:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\nError [TransformError]: Transform failed with 1 error:\n/Users/jkh/src/tries/2026-03-26-medicaid-agent/packages/agent/src/prompt.ts:43:3: ERROR: Expected \";\" but found \"resolveAnswerFrame\"\n    at failureErrorWithLog (/Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1748:15)\n    at /Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1017:50\n    at responseCallbacks.<co",
+      "scores": {
+        "factual_accuracy": 0,
+        "completeness": 0,
+        "hallucination": 0,
+        "citation_quality": 0,
+        "overall": 0,
+        "explanation": "Agent error: Agent exited with code 1: \nnode:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\nError [TransformError]: Transform failed with 1 error:\n/Users/jkh/src/tries/2026-03-26-medicaid-agent/packages/agent/src/prompt.ts:43:3: ERROR: Expected \";\" but found \"resolveAnswerFrame\"\n    at failureErrorWithLog (/Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1748:15)\n    at /Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1017:50\n    at responseCallbacks.<co",
+        "error_type": "agent"
+      },
+      "judge_error": false,
+      "precision": 0.0,
+      "recall": 0.0,
+      "mrr": 0.0,
+      "primary_hit": false
+    },
+    {
+      "id": "q-016",
+      "difficulty": "simple",
+      "reasoning_type": "single_lookup",
+      "question": "How does NC Medicaid define 'terminally ill' for purposes of hospice eligibility, and what certification is required?",
+      "agent_answer": "",
+      "agent_error": "Agent error: Agent exited with code 1: \nnode:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\nError [TransformError]: Transform failed with 1 error:\n/Users/jkh/src/tries/2026-03-26-medicaid-agent/packages/agent/src/prompt.ts:43:3: ERROR: Expected \";\" but found \"resolveAnswerFrame\"\n    at failureErrorWithLog (/Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1748:15)\n    at /Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1017:50\n    at responseCallbacks.<co",
+      "scores": {
+        "factual_accuracy": 0,
+        "completeness": 0,
+        "hallucination": 0,
+        "citation_quality": 0,
+        "overall": 0,
+        "explanation": "Agent error: Agent exited with code 1: \nnode:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\nError [TransformError]: Transform failed with 1 error:\n/Users/jkh/src/tries/2026-03-26-medicaid-agent/packages/agent/src/prompt.ts:43:3: ERROR: Expected \";\" but found \"resolveAnswerFrame\"\n    at failureErrorWithLog (/Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1748:15)\n    at /Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1017:50\n    at responseCallbacks.<co",
+        "error_type": "agent"
+      },
+      "judge_error": false,
+      "precision": 0.0,
+      "recall": 0.0,
+      "mrr": 0.0,
+      "primary_hit": false
+    },
+    {
+      "id": "q-017",
+      "difficulty": "simple",
+      "reasoning_type": "single_lookup",
+      "question": "What ambulance services are NOT covered by NC Medicaid?",
+      "agent_answer": "",
+      "agent_error": "Agent error: Agent exited with code 1: \nnode:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\nError [TransformError]: Transform failed with 1 error:\n/Users/jkh/src/tries/2026-03-26-medicaid-agent/packages/agent/src/prompt.ts:43:3: ERROR: Expected \";\" but found \"resolveAnswerFrame\"\n    at failureErrorWithLog (/Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1748:15)\n    at /Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1017:50\n    at responseCallbacks.<co",
+      "scores": {
+        "factual_accuracy": 0,
+        "completeness": 0,
+        "hallucination": 0,
+        "citation_quality": 0,
+        "overall": 0,
+        "explanation": "Agent error: Agent exited with code 1: \nnode:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\nError [TransformError]: Transform failed with 1 error:\n/Users/jkh/src/tries/2026-03-26-medicaid-agent/packages/agent/src/prompt.ts:43:3: ERROR: Expected \";\" but found \"resolveAnswerFrame\"\n    at failureErrorWithLog (/Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1748:15)\n    at /Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1017:50\n    at responseCallbacks.<co",
+        "error_type": "agent"
+      },
+      "judge_error": false,
+      "precision": 0.0,
+      "recall": 0.0,
+      "mrr": 0.0,
+      "primary_hit": false
+    },
+    {
+      "id": "q-018",
+      "difficulty": "moderate",
+      "reasoning_type": "multi_hop",
+      "question": "Are there quantity limits on prescription drugs under NC Medicaid, and when is prior authorization required for pharmacy claims?",
+      "agent_answer": "",
+      "agent_error": "Agent error: Agent exited with code 1: \nnode:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\nError [TransformError]: Transform failed with 1 error:\n/Users/jkh/src/tries/2026-03-26-medicaid-agent/packages/agent/src/prompt.ts:43:3: ERROR: Expected \";\" but found \"resolveAnswerFrame\"\n    at failureErrorWithLog (/Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1748:15)\n    at /Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1017:50\n    at responseCallbacks.<co",
+      "scores": {
+        "factual_accuracy": 0,
+        "completeness": 0,
+        "hallucination": 0,
+        "citation_quality": 0,
+        "overall": 0,
+        "explanation": "Agent error: Agent exited with code 1: \nnode:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\nError [TransformError]: Transform failed with 1 error:\n/Users/jkh/src/tries/2026-03-26-medicaid-agent/packages/agent/src/prompt.ts:43:3: ERROR: Expected \";\" but found \"resolveAnswerFrame\"\n    at failureErrorWithLog (/Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1748:15)\n    at /Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1017:50\n    at responseCallbacks.<co",
+        "error_type": "agent"
+      },
+      "judge_error": false,
+      "precision": 0.0,
+      "recall": 0.0,
+      "mrr": 0.0,
+      "primary_hit": false
+    },
+    {
+      "id": "q-019",
+      "difficulty": "moderate",
+      "reasoning_type": "single_lookup",
+      "question": "Under what conditions can speech therapy be provided via telehealth under NC Medicaid?",
+      "agent_answer": "",
+      "agent_error": "Agent error: Agent exited with code 1: \nnode:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\nError [TransformError]: Transform failed with 1 error:\n/Users/jkh/src/tries/2026-03-26-medicaid-agent/packages/agent/src/prompt.ts:43:3: ERROR: Expected \";\" but found \"resolveAnswerFrame\"\n    at failureErrorWithLog (/Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1748:15)\n    at /Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1017:50\n    at responseCallbacks.<co",
+      "scores": {
+        "factual_accuracy": 0,
+        "completeness": 0,
+        "hallucination": 0,
+        "citation_quality": 0,
+        "overall": 0,
+        "explanation": "Agent error: Agent exited with code 1: \nnode:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\nError [TransformError]: Transform failed with 1 error:\n/Users/jkh/src/tries/2026-03-26-medicaid-agent/packages/agent/src/prompt.ts:43:3: ERROR: Expected \";\" but found \"resolveAnswerFrame\"\n    at failureErrorWithLog (/Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1748:15)\n    at /Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1017:50\n    at responseCallbacks.<co",
+        "error_type": "agent"
+      },
+      "judge_error": false,
+      "precision": 0.0,
+      "recall": 0.0,
+      "mrr": 0.0,
+      "primary_hit": false
+    },
+    {
+      "id": "q-020",
+      "difficulty": "moderate",
+      "reasoning_type": "temporal",
+      "question": "The Non-Emergency Medical Transportation (NEMT) policy has been amended multiple times. Which change notice is the most recent, and what did it change?",
+      "agent_answer": "",
+      "agent_error": "Agent error: Agent exited with code 1: \nnode:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\nError [TransformError]: Transform failed with 1 error:\n/Users/jkh/src/tries/2026-03-26-medicaid-agent/packages/agent/src/prompt.ts:43:3: ERROR: Expected \";\" but found \"resolveAnswerFrame\"\n    at failureErrorWithLog (/Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1748:15)\n    at /Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1017:50\n    at responseCallbacks.<co",
+      "scores": {
+        "factual_accuracy": 0,
+        "completeness": 0,
+        "hallucination": 0,
+        "citation_quality": 0,
+        "overall": 0,
+        "explanation": "Agent error: Agent exited with code 1: \nnode:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\nError [TransformError]: Transform failed with 1 error:\n/Users/jkh/src/tries/2026-03-26-medicaid-agent/packages/agent/src/prompt.ts:43:3: ERROR: Expected \";\" but found \"resolveAnswerFrame\"\n    at failureErrorWithLog (/Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1748:15)\n    at /Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1017:50\n    at responseCallbacks.<co",
+        "error_type": "agent"
+      },
+      "judge_error": false,
+      "precision": 0.0,
+      "recall": 0.0,
+      "mrr": 0.0,
+      "primary_hit": false
+    },
+    {
+      "id": "q-021",
+      "difficulty": "complex",
+      "reasoning_type": "cross_document",
+      "question": "What medical loss ratio (MLR) must Medicaid managed care organizations meet under federal law, and how does NC implement this requirement?",
+      "agent_answer": "",
+      "agent_error": "Agent error: Agent exited with code 1: \nnode:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\nError [TransformError]: Transform failed with 1 error:\n/Users/jkh/src/tries/2026-03-26-medicaid-agent/packages/agent/src/prompt.ts:43:3: ERROR: Expected \";\" but found \"resolveAnswerFrame\"\n    at failureErrorWithLog (/Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1748:15)\n    at /Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1017:50\n    at responseCallbacks.<co",
+      "scores": {
+        "factual_accuracy": 0,
+        "completeness": 0,
+        "hallucination": 0,
+        "citation_quality": 0,
+        "overall": 0,
+        "explanation": "Agent error: Agent exited with code 1: \nnode:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\nError [TransformError]: Transform failed with 1 error:\n/Users/jkh/src/tries/2026-03-26-medicaid-agent/packages/agent/src/prompt.ts:43:3: ERROR: Expected \";\" but found \"resolveAnswerFrame\"\n    at failureErrorWithLog (/Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1748:15)\n    at /Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1017:50\n    at responseCallbacks.<co",
+        "error_type": "agent"
+      },
+      "judge_error": false,
+      "precision": 0.0,
+      "recall": 0.0,
+      "mrr": 0.0,
+      "primary_hit": false
+    },
+    {
+      "id": "q-022",
+      "difficulty": "moderate",
+      "reasoning_type": "single_lookup",
+      "question": "What are the specific criteria for NC Medicaid coverage of CAR-T cell therapy?",
+      "agent_answer": "",
+      "agent_error": "Agent error: Agent exited with code 1: \nnode:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\nError [TransformError]: Transform failed with 1 error:\n/Users/jkh/src/tries/2026-03-26-medicaid-agent/packages/agent/src/prompt.ts:43:3: ERROR: Expected \";\" but found \"resolveAnswerFrame\"\n    at failureErrorWithLog (/Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1748:15)\n    at /Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1017:50\n    at responseCallbacks.<co",
+      "scores": {
+        "factual_accuracy": 0,
+        "completeness": 0,
+        "hallucination": 0,
+        "citation_quality": 0,
+        "overall": 0,
+        "explanation": "Agent error: Agent exited with code 1: \nnode:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\nError [TransformError]: Transform failed with 1 error:\n/Users/jkh/src/tries/2026-03-26-medicaid-agent/packages/agent/src/prompt.ts:43:3: ERROR: Expected \";\" but found \"resolveAnswerFrame\"\n    at failureErrorWithLog (/Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1748:15)\n    at /Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1017:50\n    at responseCallbacks.<co",
+        "error_type": "agent"
+      },
+      "judge_error": false,
+      "precision": 0.0,
+      "recall": 0.0,
+      "mrr": 0.0,
+      "primary_hit": false
+    },
+    {
+      "id": "q-023",
+      "difficulty": "simple",
+      "reasoning_type": "single_lookup",
+      "question": "Until what age should physicians provide fluoride varnish applications for Medicaid beneficiaries, and what oral screening requirements apply?",
+      "agent_answer": "",
+      "agent_error": "Agent error: Agent exited with code 1: \nnode:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\nError [TransformError]: Transform failed with 1 error:\n/Users/jkh/src/tries/2026-03-26-medicaid-agent/packages/agent/src/prompt.ts:43:3: ERROR: Expected \";\" but found \"resolveAnswerFrame\"\n    at failureErrorWithLog (/Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1748:15)\n    at /Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1017:50\n    at responseCallbacks.<co",
+      "scores": {
+        "factual_accuracy": 0,
+        "completeness": 0,
+        "hallucination": 0,
+        "citation_quality": 0,
+        "overall": 0,
+        "explanation": "Agent error: Agent exited with code 1: \nnode:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\nError [TransformError]: Transform failed with 1 error:\n/Users/jkh/src/tries/2026-03-26-medicaid-agent/packages/agent/src/prompt.ts:43:3: ERROR: Expected \";\" but found \"resolveAnswerFrame\"\n    at failureErrorWithLog (/Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1748:15)\n    at /Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1017:50\n    at responseCallbacks.<co",
+        "error_type": "agent"
+      },
+      "judge_error": false,
+      "precision": 0.0,
+      "recall": 0.0,
+      "mrr": 0.0,
+      "primary_hit": false
+    },
+    {
+      "id": "q-024",
+      "difficulty": "complex",
+      "reasoning_type": "single_lookup",
+      "question": "Can an NC Innovations waiver participant request services that exceed their individual base budget, and what happens if they believe their needs cannot be met within the budget?",
+      "agent_answer": "",
+      "agent_error": "Agent error: Agent exited with code 1: \nnode:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\nError [TransformError]: Transform failed with 1 error:\n/Users/jkh/src/tries/2026-03-26-medicaid-agent/packages/agent/src/prompt.ts:43:3: ERROR: Expected \";\" but found \"resolveAnswerFrame\"\n    at failureErrorWithLog (/Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1748:15)\n    at /Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1017:50\n    at responseCallbacks.<co",
+      "scores": {
+        "factual_accuracy": 0,
+        "completeness": 0,
+        "hallucination": 0,
+        "citation_quality": 0,
+        "overall": 0,
+        "explanation": "Agent error: Agent exited with code 1: \nnode:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\nError [TransformError]: Transform failed with 1 error:\n/Users/jkh/src/tries/2026-03-26-medicaid-agent/packages/agent/src/prompt.ts:43:3: ERROR: Expected \";\" but found \"resolveAnswerFrame\"\n    at failureErrorWithLog (/Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1748:15)\n    at /Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1017:50\n    at responseCallbacks.<co",
+        "error_type": "agent"
+      },
+      "judge_error": false,
+      "precision": 0.0,
+      "recall": 0.0,
+      "mrr": 0.0,
+      "primary_hit": false
+    },
+    {
+      "id": "q-025",
+      "difficulty": "moderate",
+      "reasoning_type": "multi_hop",
+      "question": "What are the certification requirements for HIV case management providers under NC Medicaid, and under what conditions can a provider be decertified?",
+      "agent_answer": "",
+      "agent_error": "Agent error: Agent exited with code 1: \nnode:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\nError [TransformError]: Transform failed with 1 error:\n/Users/jkh/src/tries/2026-03-26-medicaid-agent/packages/agent/src/prompt.ts:43:3: ERROR: Expected \";\" but found \"resolveAnswerFrame\"\n    at failureErrorWithLog (/Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1748:15)\n    at /Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1017:50\n    at responseCallbacks.<co",
+      "scores": {
+        "factual_accuracy": 0,
+        "completeness": 0,
+        "hallucination": 0,
+        "citation_quality": 0,
+        "overall": 0,
+        "explanation": "Agent error: Agent exited with code 1: \nnode:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\nError [TransformError]: Transform failed with 1 error:\n/Users/jkh/src/tries/2026-03-26-medicaid-agent/packages/agent/src/prompt.ts:43:3: ERROR: Expected \";\" but found \"resolveAnswerFrame\"\n    at failureErrorWithLog (/Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1748:15)\n    at /Users/jkh/src/tries/2026-03-26-medicaid-agent/node_modules/esbuild/lib/main.js:1017:50\n    at responseCallbacks.<co",
+        "error_type": "agent"
+      },
+      "judge_error": false,
+      "precision": 0.0,
+      "recall": 0.0,
+      "mrr": 0.0,
+      "primary_hit": false
+    }
+  ]
+}

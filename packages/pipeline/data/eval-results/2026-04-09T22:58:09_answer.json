@@ -1,0 +1,58 @@
+{
+  "run_id": "2026-04-09T22:58:09",
+  "level": "answer",
+  "config": {
+    "embedding_model": "voyage-law-2",
+    "top_k": 10,
+    "dataset_count": 1,
+    "git_sha": "df5a5f9",
+    "judge_model": "claude-sonnet-4-6"
+  },
+  "aggregate": {
+    "precision_at_k": 0.6666666666666666,
+    "recall_at_k": 0.6666666666666666,
+    "mrr": 1.0,
+    "primary_hit_rate": 1.0
+  },
+  "by_difficulty": {
+    "complex": {
+      "precision_at_k": 0.6666666666666666,
+      "recall_at_k": 0.6666666666666666,
+      "mrr": 1.0,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "by_category": {
+    "cross_document": {
+      "precision_at_k": 0.6666666666666666,
+      "recall_at_k": 0.6666666666666666,
+      "mrr": 1.0,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "per_question": [
+    {
+      "id": "q-021",
+      "difficulty": "complex",
+      "reasoning_type": "cross_document",
+      "question": "What medical loss ratio (MLR) must Medicaid managed care organizations meet under federal law, and how does NC implement this requirement?",
+      "agent_answer": "Under federal law, Medicaid managed care organizations do **not automatically have to meet a federally fixed minimum MLR** in every state. What federal law **does require** is that states ensure each MCO, PIHP, and PAHP **calculates and reports** an MLR under the federal methodology. If a state chooses to impose a minimum MLR by contract, that minimum must be **at least 85%**. See **42 C.F.R. \u00a7 438.8(a), (c)** in [42 CFR Part 438](https://www.ecfr.gov/current/title-42/part-438) (current; I checked amendments in the corpus and the authoritative document remains 42 CFR Part 438).\n\n## Federal requirement\n\n### 1) Calculation and reporting are mandatory\nFederal regulations require the state, through its managed care contracts, to ensure that each MCO, PIHP, and PAHP **calculates and reports** an MLR for each MLR reporting year using the method in \u00a7 438.8. That is the unconditional federal requirement. **42 C.F.R. \u00a7 438.8(a)**, [42 CFR Part 438](https://www.ecfr.gov/current/title-42/part-438).\n\n### 2) An 85% floor applies only if the state imposes a minimum\nSection 438.8 then says: **if a state elects to mandate a minimum MLR**, that minimum must be **equal to or higher than 85 percent**. So the federal rule is:\n\n- **Mandatory everywhere:** MLR must be calculated and reported.\n- **Mandatory only if the state adopts it:** a minimum MLR, which cannot be set below **85%**.\n\nSee **42 C.F.R. \u00a7 438.8(c)**, [42 CFR Part 438](https://www.ecfr.gov/current/title-42/part-438).\n\n### 3) Federal oversight/reporting context\nThe broader Part 438 reporting and oversight structure includes state reporting duties to CMS and quality oversight mechanisms, but those sections do **not** change the core MLR rule above. See **42 C.F.R. \u00a7 438.535** and **\u00a7 438.354**, [42 CFR Part 438](https://www.ecfr.gov/current/title-42/part-438).\n\n## How North Carolina implements it\n\nBased on the NC Medicaid policy corpus I could verify, I **could not locate a North Carolina DHHS or clinical policy section in this corpus that sets out the state's MLR implementation terms for PHP/MCO contracts**. So I cannot confirm from the retrieved NC policy text here whether North Carolina:\n- expressly imposes an **85% minimum MLR** by contract,\n- requires remittances for falling below that minimum, or\n- states its MLR enforcement terms in a publicly retrievable DHHS manual section in this corpus.\n\nWhat I *can* say from the verified sources is that North Carolina, like any state operating Medicaid managed care under Part 438, must ensure through its contracts that managed care plans **calculate and report** MLR in accordance with **42 C.F.R. \u00a7 438.8**. [42 CFR Part 438](https://www.ecfr.gov/current/title-42/part-438).\n\n## Bottom line\n\n- **Federal law:** Medicaid managed care plans must **calculate and report** MLR; a plan must meet **at least 85% only if the state has chosen to require a minimum MLR**. **42 C.F.R. \u00a7 438.8(a), (c)**, [42 CFR Part 438](https://www.ecfr.gov/current/title-42/part-438).\n- **North Carolina:** I could verify NC is bound to implement the federal calculation/reporting requirement through managed care contracts, but I **could not verify from the NC policy documents retrieved here** the exact state contract term or public NC policy text establishing a minimum MLR or remittance mechanism.\n\nIf you want, I can next help locate the **North Carolina managed care contract language** or **state plan / waiver materials** that show whether NC sets the minimum at 85% and how remittances are handled.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 3,
+        "completeness": 2,
+        "hallucination": 3,
+        "citation_quality": 3,
+        "overall": 2,
+        "explanation": "The agent's answer is factually accurate and more precise than the reference answer - correctly distinguishing that calculation/reporting is mandatory while the 85% minimum MLR is only required IF the state elects to mandate one. This nuance is actually better than the reference answer which implies states must set an MLR standard. The agent properly cites 42 CFR 438.8(a) and (c). The answer is honest about not being able to verify NC-specific implementation details, which is appropriate epistemic humility rather than hallucination. The main weakness is incompleteness regarding NC implementation - the agent couldn't confirm NC-specific contract terms, whereas the reference answer (while vague) asserts NC implements through contracts and monitoring requirements. The citation quality is good with specific section references. A Medicaid policy expert would find this acceptable and even appreciate the precision about the conditional nature of the 85% floor, though they might want more NC-specific detail."
+      },
+      "judge_error": false,
+      "precision": 0.6666666666666666,
+      "recall": 0.6666666666666666,
+      "mrr": 1.0,
+      "primary_hit": true
+    }
+  ]
+}

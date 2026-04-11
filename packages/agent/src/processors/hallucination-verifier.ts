@@ -82,6 +82,45 @@ interface FollowReferencesResult {
   }>;
 }
 
+interface AnswerFrameSection {
+  id: string;
+  title: string | null;
+  sectionNumber: string | null;
+  content: string | null;
+  effectiveDate: string | null;
+  documentId: string | null;
+  documentTitle: string | null;
+  documentType: string | null;
+  policyNumber: string | null;
+  reason: string | null;
+}
+
+interface ResolveAnswerFrameResult {
+  frame: {
+    questionType: string;
+    route: {
+      lane: string;
+      rationale: string;
+      widening_policy: string;
+      determinism_hints: {
+        numeric_evidence_only: boolean;
+        latest_revision_only: boolean;
+        cite_scope_and_not_covered: boolean;
+      };
+    };
+    authoritativeDocuments: Array<DocumentMetadata & { reason: string | null }>;
+    primarySections: AnswerFrameSection[];
+    supportingSections: AnswerFrameSection[];
+    avoidSections: AnswerFrameSection[];
+    latestRevision: {
+      marker: string | null;
+      document: (DocumentMetadata & { reason: string | null }) | null;
+      section: AnswerFrameSection | null;
+    } | null;
+    variantReasoning: string | null;
+  };
+}
+
 // ── Evidence tools ───────────────────────────────────────────────────────────
 
 const EVIDENCE_TOOLS = new Set([
@@ -90,6 +129,7 @@ const EVIDENCE_TOOLS = new Set([
   'getAmendments',
   'lookupPolicy',
   'followReferences',
+  'resolveAnswerFrame',
 ]);
 
 // ── Formatters ───────────────────────────────────────────────────────────────
@@ -211,6 +251,78 @@ function extractFollowReferences(result: FollowReferencesResult, toolCallId: str
   return { toolName: 'followReferences', key, text: lines.join('\n') };
 }
 
+function formatFrameSection(section: AnswerFrameSection): string {
+  const lines: string[] = [`ID: ${section.id}`];
+  if (section.title) lines.push(`Title: ${section.title}`);
+  if (section.sectionNumber) lines.push(`Section: ${section.sectionNumber}`);
+  if (section.policyNumber) lines.push(`Policy: ${section.policyNumber}`);
+  if (section.documentType) lines.push(`Type: ${section.documentType}`);
+  if (section.reason) lines.push(`Reason: ${section.reason}`);
+  if (section.content) lines.push(`Content:\n${section.content}`);
+  return lines.join('\n');
+}
+
+function extractResolveAnswerFrame(result: ResolveAnswerFrameResult, toolCallId: string): SourceEntry | null {
+  const frame = result?.frame;
+  if (!frame) return null;
+
+  const key = frame.primarySections[0]?.id ?? frame.authoritativeDocuments[0]?.id ?? `resolveAnswerFrame:${toolCallId}`;
+  const lines: string[] = [`[resolveAnswerFrame]`, `Question type: ${frame.questionType}`];
+  lines.push(`Route lane: ${frame.route.lane}`);
+  lines.push(`Route rationale: ${frame.route.rationale}`);
+  lines.push(`Widening policy: ${frame.route.widening_policy}`);
+
+  const trueHints = Object.entries(frame.route.determinism_hints)
+    .filter(([, value]) => value)
+    .map(([key]) => key);
+  if (trueHints.length > 0) {
+    lines.push(`Determinism hints: ${trueHints.join(', ')}`);
+  }
+
+  if (frame.variantReasoning) {
+    lines.push(`Variant reasoning: ${frame.variantReasoning}`);
+  }
+
+  if (frame.authoritativeDocuments.length > 0) {
+    lines.push('\nAuthoritative documents:');
+    for (const document of frame.authoritativeDocuments) {
+      lines.push(formatDocMeta(document));
+      if (document.reason) lines.push(`Reason: ${document.reason}`);
+      lines.push('');
+    }
+  }
+
+  if (frame.latestRevision) {
+    lines.push(`Latest revision marker: ${frame.latestRevision.marker ?? '(unknown)'}`);
+  }
+
+  if (frame.primarySections.length > 0) {
+    lines.push('\nPrimary sections:');
+    for (const section of frame.primarySections) {
+      lines.push(formatFrameSection(section));
+      lines.push('');
+    }
+  }
+
+  if (frame.supportingSections.length > 0) {
+    lines.push('Supporting sections:');
+    for (const section of frame.supportingSections) {
+      lines.push(formatFrameSection(section));
+      lines.push('');
+    }
+  }
+
+  if (frame.avoidSections.length > 0) {
+    lines.push('Avoid sections:');
+    for (const section of frame.avoidSections) {
+      lines.push(formatFrameSection(section));
+      lines.push('');
+    }
+  }
+
+  return { toolName: 'resolveAnswerFrame', key, text: lines.join('\n').trimEnd() };
+}
+
 // ── extractSources ───────────────────────────────────────────────────────────
 
 /**
@@ -249,6 +361,9 @@ export function extractSources(messages: Array<{ content?: { parts?: any[] } }>)
           break;
         case 'followReferences':
           entry = extractFollowReferences(result as FollowReferencesResult, toolCallId);
+          break;
+        case 'resolveAnswerFrame':
+          entry = extractResolveAnswerFrame(result as ResolveAnswerFrameResult, toolCallId);
           break;
       }
 

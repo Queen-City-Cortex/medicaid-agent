@@ -5,9 +5,8 @@ from rich.console import Console
 from pipeline.config import CFR_PARTS
 from pipeline.federal.ecfr_client import fetch_part_xml
 from pipeline.federal.parser import parse_part_xml
-from pipeline.graph.bulk import write_sections
-from pipeline.graph.connection import get_session
-from pipeline.graph import queries
+from pipeline.graph.corpus_types import DocumentBundle, DocumentNode, SectionNode
+from pipeline.graph.corpus_writer import graph_writer
 from pipeline.graph.schema import ensure_schema
 
 console = Console()
@@ -22,31 +21,71 @@ def _add_sequential_siblings(sections: list[dict]) -> list[dict]:
     return sections
 
 
+def _build_federal_document_bundle(
+    *,
+    document_id: str,
+    title: str,
+    document_type: str,
+    policy_number: str,
+    source_url: str,
+    sections: list[dict],
+) -> DocumentBundle:
+    section_nodes = [
+        SectionNode(
+            id=section["id"],
+            document_id=document_id,
+            section_number=section.get("section_number"),
+            title=section.get("title"),
+            level=section.get("level", 0),
+            content_text=section.get("content_text", ""),
+            content_length=section.get("content_length", 0),
+            has_tables=section.get("has_tables", False),
+            has_definitions=section.get("has_definitions", False),
+            parent_id=section.get("parent_id"),
+            prev_sibling_id=section.get("prev_sibling_id"),
+        )
+        for section in sections
+    ]
+
+    return DocumentBundle(
+        document=DocumentNode(
+            id=document_id,
+            title=title,
+            document_type=document_type,
+            policy_number=policy_number,
+            category="federal",
+            status="current",
+            source_url=source_url,
+            local_path="",
+            pdf_path="",
+            page_count=0,
+            section_count=len(section_nodes),
+            effective_date=None,
+            authority_tier="authoritative",
+            answer_role="federal_authority",
+            source_format="xml",
+            answer_ready=True,
+        ),
+        sections=section_nodes,
+    )
+
+
 def load_cfr_part(title: int, part: int, refresh: bool = False) -> dict:
     """Fetch, parse, and load one CFR part into Neo4j. Returns stats."""
     xml_text = fetch_part_xml(title, part, refresh=refresh)
     sections = _add_sequential_siblings(parse_part_xml(xml_text, title, part))
 
     doc_id = f"doc:federal_regulation:{title}-CFR-{part}"
-
-    with get_session() as session:
-        # MERGE document node
-        session.run(queries.MERGE_DOCUMENT, {
-            "id": doc_id,
-            "title": f"{title} CFR Part {part}",
-            "document_type": "federal_regulation",
-            "policy_number": f"{title}-CFR-{part}",
-            "category": "federal",
-            "status": "current",
-            "source_url": f"https://www.ecfr.gov/current/title-{title}/part-{part}",
-            "local_path": "",
-            "pdf_path": "",
-            "page_count": 0,
-            "section_count": len(sections),
-            "effective_date": None,
-        })
-
-        write_sections(session, doc_id, sections)
+    graph_writer.upsert_document_bundle(
+        _build_federal_document_bundle(
+            document_id=doc_id,
+            title=f"{title} CFR Part {part}",
+            document_type="federal_regulation",
+            policy_number=f"{title}-CFR-{part}",
+            source_url=f"https://www.ecfr.gov/current/title-{title}/part-{part}",
+            sections=sections,
+        )
+    )
 
     return {
         "document_id": doc_id,
@@ -77,25 +116,16 @@ def load_ssa(refresh: bool = False) -> dict:
         try:
             html = fetch_usc_subchapter(title_num, refresh=refresh)
             section_list = _add_sequential_siblings(parse_usc_subchapter(html, title_num))
-
-            with get_session() as session:
-                session.run(queries.MERGE_DOCUMENT, {
-                    "id": doc_id,
-                    "title": f"Social Security Act — Title {title_name} ({program})",
-                    "document_type": "federal_statute",
-                    "policy_number": f"SSA-Title-{title_num}",
-                    "category": "federal",
-                    "status": "current",
-                    "source_url": f"https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title42-chapter7-subchapter{title_num}",
-                    "local_path": "",
-                    "pdf_path": "",
-                    "page_count": 0,
-                    "section_count": len(section_list),
-                    "effective_date": None,
-                })
-
-            with get_session() as session:
-                write_sections(session, doc_id, section_list)
+            graph_writer.upsert_document_bundle(
+                _build_federal_document_bundle(
+                    document_id=doc_id,
+                    title=f"Social Security Act — Title {title_name} ({program})",
+                    document_type="federal_statute",
+                    policy_number=f"SSA-Title-{title_num}",
+                    source_url=f"https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title42-chapter7-subchapter{title_num}",
+                    sections=section_list,
+                )
+            )
             stats["sections_total"] += len(section_list)
 
             console.print(f"[green]OK[/green] ({len(section_list)} sections)")

@@ -1,0 +1,154 @@
+{
+  "source_families": [
+    {
+      "source_type": "clinical_policy",
+      "directory_name": "clinical-policies",
+      "authority_tier": "authoritative",
+      "answer_role": "coverage",
+      "required_for_answering": true,
+      "freshness_expectation": "weekly",
+      "allowed_domains": ["medicaid.ncdhhs.gov"],
+      "allowed_file_formats": [".pdf"],
+      "landing_pages": [
+        "https://medicaid.ncdhhs.gov/providers/program-specific-clinical-coverage-policies"
+      ],
+      "seed_urls": []
+    },
+    {
+      "source_type": "bulletin",
+      "directory_name": "bulletins",
+      "authority_tier": "supporting",
+      "answer_role": "implementation",
+      "required_for_answering": true,
+      "freshness_expectation": "daily",
+      "allowed_domains": ["medicaid.ncdhhs.gov"],
+      "allowed_file_formats": [".pdf", ".docx"],
+      "landing_pages": [
+        "https://medicaid.ncdhhs.gov/providers/medicaid-bulletin",
+        "https://medicaid.ncdhhs.gov/blog-category/bulletins",
+        "https://medicaid.ncdhhs.gov/providers/medicaid-bulletin/medicaid-bulletin-digests",
+        "https://medicaid.ncdhhs.gov/providers/medicaid-bulletin/medicaid-bulletin-archive"
+      ],
+      "seed_urls": []
+    },
+    {
+      "source_type": "state_plan_amendment",
+      "directory_name": "state-plan-amendments",
+      "authority_tier": "authoritative",
+      "answer_role": "federal_authority",
+      "required_for_answering": true,
+      "freshness_expectation": "weekly",
+      "allowed_domains": ["medicaid.ncdhhs.gov"],
+      "allowed_file_formats": [".pdf"],
+      "landing_pages": [
+        "https://medicaid.ncdhhs.gov/meetingsnotices/medicaid-state-plan-public-notices"
+      ],
+      "seed_urls": []
+    },
+    {
+      "source_type": "waiver",
+      "directory_name": "waivers",
+      "authority_tier": "authoritative",
+      "answer_role": "coverage",
+      "required_for_answering": true,
+      "freshness_expectation": "weekly",
+      "allowed_domains": ["medicaid.ncdhhs.gov"],
+      "allowed_file_formats": [".pdf"],
+      "landing_pages": [
+        "https://medicaid.ncdhhs.gov/beneficiaries/nc-innovations-waiver/information-providers-nc-innovations-waiver",
+        "https://medicaid.ncdhhs.gov/beneficiaries/1915i"
+      ],
+      "seed_urls": [
+        "https://medicaid.ncdhhs.gov/beneficiaries/nc-innovations-waiver/information-providers-nc-innovations-waiver",
+        "https://medicaid.ncdhhs.gov/beneficiaries/1915i"
+      ]
+    },
+    {
+      "source_type": "provider_manual",
+      "directory_name": "provider-manuals",
+      "authority_tier": "operational",
+      "answer_role": "billing",
+      "required_for_answering": false,
+      "freshness_expectation": "weekly",
+      "allowed_domains": ["www.nctracks.nc.gov", "nctracks.nc.gov"],
+      "allowed_file_formats": [".pdf", ".docx", ".xlsx"],
+      "landing_pages": [
+        "https://www.nctracks.nc.gov/content/public/providers/provider-manuals.html"
+      ],
+      "seed_urls": []
+    },
+    {
+      "source_type": "dhhs_policy",
+      "directory_name": "dhhs-policies",
+      "authority_tier": "authoritative",
+      "answer_role": "eligibility",
+      "required_for_answering": true,
+      "freshness_expectation": "weekly",
+      "allowed_domains": ["policies.ncdhhs.gov"],
+      "allowed_file_formats": [".pdf", ".doc", ".docx", ".xls", ".xlsx"],
+      "landing_pages": [
+        "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+      ],
+      "seed_urls": []
+    },
+    {
+      "source_type": "fee_schedule",
+      "directory_name": "fee-schedules",
+      "authority_tier": "supporting",
+      "answer_role": "reimbursement",
+      "required_for_answering": false,
+      "freshness_expectation": "weekly",
+      "allowed_domains": ["medicaid.ncdhhs.gov"],
+      "allowed_file_formats": [".pdf", ".xlsx", ".xls"],
+      "landing_pages": [
+        "https://medicaid.ncdhhs.gov/document-collection/fee-schedules",
+        "https://medicaid.ncdhhs.gov/providers/fee-schedules-archive"
+      ],
+      "seed_urls": []
+    },
+    {
+      "source_type": "billing_guidance",
+      "directory_name": "billing-guidance",
+      "authority_tier": "operational",
+      "answer_role": "billing",
+      "required_for_answering": false,
+      "freshness_expectation": "weekly",
+      "allowed_domains": ["medicaid.ncdhhs.gov", "www.nctracks.nc.gov", "nctracks.nc.gov"],
+      "allowed_file_formats": [".pdf", ".docx", ".xlsx"],
+      "landing_pages": [
+        "https://medicaid.ncdhhs.gov/providers/claims-and-billing",
+        "https://medicaid.ncdhhs.gov/providers/health-plan-billing-guidance"
+      ],
+      "seed_urls": []
+    },
+    {
+      "source_type": "managed_care_guidance",
+      "directory_name": "managed-care-guidance",
+      "authority_tier": "supporting",
+      "answer_role": "managed_care",
+      "required_for_answering": false,
+      "freshness_expectation": "weekly",
+      "allowed_domains": ["medicaid.ncdhhs.gov"],
+      "allowed_file_formats": [".pdf", ".docx", ".xlsx"],
+      "landing_pages": [
+        "https://medicaid.ncdhhs.gov/providers",
+        "https://medicaid.ncdhhs.gov/providers/provider-playbook-nc-medicaid-managed-care"
+      ],
+      "seed_urls": []
+    },
+    {
+      "source_type": "managed_care_contract",
+      "directory_name": "managed-care-contracts",
+      "authority_tier": "supporting",
+      "answer_role": "managed_care_contract",
+      "required_for_answering": false,
+      "freshness_expectation": "weekly",
+      "allowed_domains": ["medicaid.ncdhhs.gov"],
+      "allowed_file_formats": [".pdf", ".docx", ".xlsx"],
+      "landing_pages": [
+        "https://medicaid.ncdhhs.gov/providers/provider-contracting-health-plans"
+      ],
+      "seed_urls": []
+    }
+  ]
+}

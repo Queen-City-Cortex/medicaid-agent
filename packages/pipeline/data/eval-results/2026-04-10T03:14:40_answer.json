@@ -1,0 +1,59 @@
+{
+  "run_id": "2026-04-10T03:14:40",
+  "level": "answer",
+  "config": {
+    "embedding_model": "voyage-law-2",
+    "top_k": 10,
+    "dataset_count": 1,
+    "git_sha": "df5a5f9",
+    "judge_model": "claude-sonnet-4-6"
+  },
+  "aggregate": {
+    "precision_at_k": 0.0,
+    "recall_at_k": 0.0,
+    "mrr": 0.0,
+    "primary_hit_rate": 0.0
+  },
+  "by_difficulty": {
+    "simple": {
+      "precision_at_k": 0.0,
+      "recall_at_k": 0.0,
+      "mrr": 0.0,
+      "primary_hit_rate": 0.0,
+      "count": 1
+    }
+  },
+  "by_category": {
+    "single_lookup": {
+      "precision_at_k": 0.0,
+      "recall_at_k": 0.0,
+      "mrr": 0.0,
+      "primary_hit_rate": 0.0,
+      "count": 1
+    }
+  },
+  "per_question": [
+    {
+      "id": "q-006",
+      "difficulty": "simple",
+      "reasoning_type": "single_lookup",
+      "question": "Does NC Medicaid cover chiropractic services under Clinical Coverage Policy 5B?",
+      "agent_answer": "",
+      "agent_error": "Agent error: Agent exited with code 1 (stderr_tail=...ob.run (node:internal/modules/esm/module_job:430:25)\n    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:639:26)\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)\n\nNode.js v25.8.2)",
+      "scores": {
+        "factual_accuracy": 0,
+        "completeness": 0,
+        "hallucination": 0,
+        "citation_quality": 0,
+        "overall": 0,
+        "explanation": "Agent error: Agent exited with code 1 (stderr_tail=...ob.run (node:internal/modules/esm/module_job:430:25)\n    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:639:26)\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)\n\nNode.js v25.8.2)",
+        "error_type": "agent"
+      },
+      "judge_error": false,
+      "precision": 0.0,
+      "recall": 0.0,
+      "mrr": 0.0,
+      "primary_hit": false
+    }
+  ]
+}

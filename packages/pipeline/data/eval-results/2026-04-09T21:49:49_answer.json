@@ -1,0 +1,58 @@
+{
+  "run_id": "2026-04-09T21:49:49",
+  "level": "answer",
+  "config": {
+    "embedding_model": "voyage-law-2",
+    "top_k": 10,
+    "dataset_count": 1,
+    "git_sha": "df5a5f9",
+    "judge_model": "claude-sonnet-4-6"
+  },
+  "aggregate": {
+    "precision_at_k": 0.6666666666666666,
+    "recall_at_k": 0.6666666666666666,
+    "mrr": 0.6666666666666666,
+    "primary_hit_rate": 1.0
+  },
+  "by_difficulty": {
+    "complex": {
+      "precision_at_k": 0.6666666666666666,
+      "recall_at_k": 0.6666666666666666,
+      "mrr": 0.6666666666666666,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "by_category": {
+    "cross_document": {
+      "precision_at_k": 0.6666666666666666,
+      "recall_at_k": 0.6666666666666666,
+      "mrr": 0.6666666666666666,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "per_question": [
+    {
+      "id": "q-021",
+      "difficulty": "complex",
+      "reasoning_type": "cross_document",
+      "question": "What medical loss ratio (MLR) must Medicaid managed care organizations meet under federal law, and how does NC implement this requirement?",
+      "agent_answer": "I found the core federal authority: 42 CFR 438.8 governs Medicaid managed care MLR. It says states must require plans to calculate and report MLR, and if a state sets a minimum MLR, it must be at least 85%. I also checked amendments for 42 CFR Part 438; the tool returns the current part as authoritative.\n\nNext I\u2019m looking for North Carolina implementation evidence\u2014ideally state contract/SPA language showing whether NC requires remittances or otherwise operationalizes the federal MLR standard.The NC-specific search in the manual corpus did not surface a clear DHHS or clinical policy section on managed care MLR. The strongest NC implementation evidence in the retrieved materials is the North Carolina CHIP managed care SPA referenced in the frame, plus the federal oversight/remittance provisions in 42 CFR 438.74.\n\nI\u2019m now pulling the full federal oversight section and the NC SPA section text so I can answer how NC implements the requirement without relying on snippets.## Short answer\n\nUnder federal Medicaid managed care law, **there is not a universal federally mandated minimum MLR that every Medicaid managed care organization must hit**. Instead, the state must require each MCO/PIHP/PAHP to **calculate and report** an MLR, and **if the state chooses to impose a minimum MLR, that minimum must be at least 85%**. [42 CFR Part 438, \u00a7 438.8](https://www.ecfr.gov/current/title-42/part-438)\n\nFor North Carolina, the retrieved implementation evidence shows NC has adopted the federal framework by requiring rates to be designed to reasonably achieve a medical loss ratio and by recognizing the federal remittance/reporting rules if a plan owes money for missing the state\u2019s minimum MLR. [SPA 22-0013 Proposed Amendments CHIP-Managed Care, \u00a7 3.3](https://medicaid.ncdhhs.gov/22-0013-proposed-amendment-chip-managed-care/download?attachment)\n\n## Federal rule\n\n### 1) Reporting is mandatory\nFederal law requires the state to ensure, through its managed care contracts, that each MCO, PIHP, and PAHP **calculates and reports** an MLR. [42 CFR Part 438, \u00a7 438.8(a)](https://www.ecfr.gov/current/title-42/part-438)\n\n### 2) A minimum MLR is optional for the state, but if adopted it must be at least 85%\nThe key rule is:\n\n- \u201c**If a State elects to mandate a minimum MLR** ... that minimum MLR **must be equal to or higher than 85 percent**.\u201d [42 CFR Part 438, \u00a7 438.8(c)](https://www.ecfr.gov/current/title-42/part-438)\n\nSo the federal floor is **85%**, but only **when the state chooses to set a minimum MLR requirement**.\n\n### 3) Federal oversight if a state requires remittances\nIf a state contract requires plans to pay remittances for failing to meet the state minimum MLR, the state must:\n\n- report each plan\u2019s MLR data annually to CMS, including any remittances owed; and\n- reimburse CMS for the **federal share** of remittances. [42 CFR Part 438, \u00a7 438.74](https://www.ecfr.gov/current/title-42/part-438)\n\n## How North Carolina implements it\n\nBased on the NC materials I could verify, NC implements the requirement by incorporating the federal managed care MLR structure into its program documents.\n\nThe clearest NC text I found says:\n\n- **\u201cThe State assures that its rates are designed to reasonably achieve a medical loss\u201d** ratio; and\n- if an MCO/PIHP/PAHP owes a remittance for not meeting the minimum MLR required by the state, NC will:\n  - reimburse CMS for the federal share, and\n  - submit a separate report describing the state/federal share methodology with the annual MLR summary report. [SPA 22-0013 Proposed Amendments CHIP-Managed Care, \u00a7 3.3](https://medicaid.ncdhhs.gov/22-0013-proposed-amendment-chip-managed-care/download?attachment)\n\nThat aligns directly with the federal oversight/remittance rule in **42 CFR 438.74(b)**. [42 CFR Part 438, \u00a7 438.74](https://www.ecfr.gov/current/title-42/part-438)\n\n## Bottom line\n\n- **Federal law:** Medicaid managed care plans must calculate and report MLR; if a state imposes a minimum MLR, it must be **at least 85%**. [42 CFR Part 438, \u00a7 438.8](https://www.ecfr.gov/current/title-42/part-438)\n- **North Carolina implementation:** NC\u2019s retrieved managed care SPA language shows the state uses that federal framework by designing rates to reasonably achieve an MLR and by following the federal remittance/reporting rules when a remittance is owed. [SPA 22-0013 Proposed Amendments CHIP-Managed Care, \u00a7 3.3](https://medicaid.ncdhhs.gov/22-0013-proposed-amendment-chip-managed-care/download?attachment)\n\n## Limits / what I could not verify\nI **could not verify from the retrieved NC policy corpus** a separate NC manual or contract provision expressly stating, in the text I reviewed, \u201cNorth Carolina sets the minimum MLR at 85%\u201d for all Medicaid MCOs. The federal rule clearly permits a state minimum of **85% or higher**, and the NC SPA text confirms NC\u2019s use of the federal remittance/reporting structure, but the corpus I searched did not return a clearer NC contract section naming the exact percentage for standard Medicaid managed care contracts.  \n\nI checked amendments for both cited documents, and the tools returned:\n- **42 CFR Part 438** as current and authoritative; and\n- **SPA 22-0013** as current in the corpus.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 2,
+        "completeness": 2,
+        "hallucination": 3,
+        "citation_quality": 2,
+        "overall": 2,
+        "explanation": "The agent correctly identifies 42 CFR 438.8 as the governing authority, accurately states the 85% minimum MLR floor when states elect to mandate one, correctly describes the reporting requirements, and mentions credibility adjustments and remittance provisions. The agent appropriately distinguishes between mandatory reporting and optional minimum MLR standards. However, the answer is somewhat incomplete on the calculation methodology details (numerator/denominator components, credibility adjustments, aggregation rules) that are in the reference evidence. The NC-specific implementation detail is thin - the agent honestly acknowledges it could not find clear NC contract language setting an explicit percentage, relying instead on a CHIP SPA reference. The agent does not hallucinate - it explicitly flags uncertainty about NC specifics rather than fabricating details. Citations are specific to 42 CFR 438.8 and 438.74 subsections, which is good, though the NC citations rely on a CHIP SPA that may not be the strongest evidence for standard Medicaid managed care implementation. The reference answer is fairly general about NC implementation, so the agent's honest acknowledgment of limited NC evidence is appropriate. Overall acceptable for a Medicaid policy audience, with appropriate epistemic humility about NC-specific details."
+      },
+      "judge_error": false,
+      "precision": 0.6666666666666666,
+      "recall": 0.6666666666666666,
+      "mrr": 0.6666666666666666,
+      "primary_hit": true
+    }
+  ]
+}

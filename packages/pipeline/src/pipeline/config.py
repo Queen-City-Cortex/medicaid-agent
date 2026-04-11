@@ -2,6 +2,7 @@ from pathlib import Path
 import os
 
 from dotenv import load_dotenv
+from pipeline.corpus_manifest import CORPUS_MANIFEST
 
 # Project root is packages/pipeline/
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -16,6 +17,7 @@ CRAWLER_DB_PATH = PROJECT_ROOT.parent / "crawler" / "data" / "crawler.db"
 
 # Pipeline output
 PARSED_DATA_DIR = PROJECT_ROOT / "data" / "parsed"
+AUDIT_DATA_DIR = PROJECT_ROOT / "data" / "audits"
 
 # Neo4j
 NEO4J_URI = os.environ.get("NEO4J_URI", "bolt://localhost:7687")
@@ -41,13 +43,10 @@ EMBED_WRITE_BATCH_SIZE = 100
 
 # Source type directory mapping (must match crawler's SOURCE_TYPE_DIRS)
 SOURCE_TYPE_DIRS = {
-    "clinical_policy": "clinical-policies",
-    "bulletin": "bulletins",
-    "state_plan_amendment": "state-plan-amendments",
-    "waiver": "waivers",
-    "provider_manual": "provider-manuals",
-    "dhhs_policy": "dhhs-policies",
+    family.source_type: family.directory_name
+    for family in CORPUS_MANIFEST.source_families
 }
+PARSE_SUPPORTED_FILE_FORMATS = frozenset({".pdf", ".docx", ".xlsx"})
 
 # eCFR (Federal Regulations)
 ECFR_API_BASE = "https://www.ecfr.gov/api/versioner/v1"

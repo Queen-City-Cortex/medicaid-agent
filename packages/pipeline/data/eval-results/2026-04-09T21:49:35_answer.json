@@ -1,0 +1,58 @@
+{
+  "run_id": "2026-04-09T21:49:35",
+  "level": "answer",
+  "config": {
+    "embedding_model": "voyage-law-2",
+    "top_k": 10,
+    "dataset_count": 1,
+    "git_sha": "df5a5f9",
+    "judge_model": "claude-sonnet-4-6"
+  },
+  "aggregate": {
+    "precision_at_k": 1.0,
+    "recall_at_k": 1.0,
+    "mrr": 1.0,
+    "primary_hit_rate": 1.0
+  },
+  "by_difficulty": {
+    "moderate": {
+      "precision_at_k": 1.0,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "by_category": {
+    "multi_hop": {
+      "precision_at_k": 1.0,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "per_question": [
+    {
+      "id": "q-002",
+      "difficulty": "moderate",
+      "reasoning_type": "multi_hop",
+      "question": "What DME items are specifically NOT covered by NC Medicaid under the Orthotics and Prosthetics policy, and what general criteria must be met for coverage?",
+      "agent_answer": "I found the main NC Medicaid clinical policy: Policy 5B, Orthotics & Prosthetics. The frame points to the general coverage criteria in sections 3.1 and 3.2.1, and the non-covered items in section 4.2. I still need to verify whether Policy 5B has any amendments or change notices before I present it as current, so I\u2019m checking the document record and amendment history next.I confirmed that Policy 5B is the authoritative current document in the corpus, and the amendment lookup did not return any separate change notices. I have enough to answer the core question, but I want to read the full non-covered subsections directly\u2014especially 4.2.1 and 4.2.2, plus 4.1\u2014so I can distinguish general noncoverage rules from the specific list the user asked about.## NC Medicaid Orthotics & Prosthetics: items specifically not covered, and general coverage criteria\n\nUnder **NC Medicaid Clinical Coverage Policy 5B, Orthotics & Prosthetics**, the policy lists these **specific categories not covered**:\n\n- **Devices for the beneficiary\u2019s comfort or convenience**, or for the convenience of the beneficiary\u2019s caregiver(s)\n- **Backup or duplicate devices** kept on hand or available at different locations\n- **Devices and supplies for residents of nursing facilities**\n- **Devices or supplies covered by another agency**\n- **Equipment or supplies for beneficiaries receiving hospice care**, as described in the policy\u2019s care-coordination section  \n  ([Orthotics & Prosthetics](https://medicaid.ncdhhs.gov/5b-orthotics-prosthetics/download?attachment), \u00a7 4.2.1)\n\n### General noncoverage rules\nThe same policy also says orthotics/prosthetics are **not covered** if:\n\n- the beneficiary does **not** meet the eligibility requirements in Section 2.0;\n- the beneficiary does **not** meet the coverage criteria in Section 3.0;\n- the item or service **duplicates another provider\u2019s** procedure, product, or service; or\n- the item or service is **experimental, investigational, or part of a clinical trial**  \n  ([Orthotics & Prosthetics](https://medicaid.ncdhhs.gov/5b-orthotics-prosthetics/download?attachment), \u00a7 4.1)\n\n## General criteria that must be met for coverage\n\n### 1) General covered-service criteria\nFor coverage, the procedure, product, or service must be:\n\n- **individualized, specific, and consistent** with the beneficiary\u2019s symptoms or confirmed diagnosis, and **not more than the beneficiary needs**;\n- able to be **safely furnished**, with **no equally effective and more conservative or less costly treatment available statewide**; and\n- furnished in a way **not primarily intended for the convenience** of the beneficiary, caregiver, or provider  \n  ([Orthotics & Prosthetics](https://medicaid.ncdhhs.gov/5b-orthotics-prosthetics/download?attachment), \u00a7 3.1)\n\n### 2) Orthotics/prosthetics-specific coverage criteria\nThe policy also requires that orthotic/prosthetic items:\n\n- be **ordered by a physician, physician assistant, or nurse practitioner**;\n- be **medically necessary** to maintain or improve the beneficiary\u2019s medical, physical, or functional level, and be appropriate for use in a **noninstitutional setting** where normal life activities occur;\n- be supported by a **face-to-face encounter** with the ordering physician, PA, or NP **within 6 months before initiation** of the orthotic/prosthetic item; and\n- have the beneficiary\u2019s need **reviewed at least annually** by the ordering physician, PA, or NP  \n  ([Orthotics & Prosthetics](https://medicaid.ncdhhs.gov/5b-orthotics-prosthetics/download?attachment), \u00a7 3.2.1)\n\nThe policy further explains:\n\n- **Orthotic devices** are medically necessary when required to **correct or prevent skeletal deformities**, **support or align movable body parts**, or **preserve or improve physical function**.\n- **Prosthetic devices** are medically necessary when replacing all or part of the function of a **permanently inoperative, absent, or malfunctioning body part**, and the beneficiary must need the prosthesis for **mobility, daily care, or rehabilitation**.\n- Orthotic and prosthetic devices also must be:\n  - a **reasonable and medically necessary** part of the treatment plan;\n  - **consistent with the beneficiary\u2019s diagnosis and medical condition**, especially the functional limitations and symptoms; and\n  - of **high quality**, with replacement parts available  \n  ([Orthotics & Prosthetics](https://medicaid.ncdhhs.gov/5b-orthotics-prosthetics/download?attachment), \u00a7 3.2.1)\n\n## Bottom line\nThe policy\u2019s **specific \u201cnot covered\u201d list** is mostly about items that are for comfort/convenience, duplicates/backups, nursing-facility residents, items covered elsewhere, and hospice-related equipment/supplies. Coverage generally requires **medical necessity, an appropriate order, recent face-to-face evaluation, annual review, and that the item be tailored to the beneficiary\u2019s condition rather than convenience**.\n\nI checked the amendment history in the corpus, and **Policy 5B is the authoritative current document with no separate amendments returned by the amendment tool**. If you want, I can also pull out any **DME-like items within 5B that are limited or excluded by subtype**\u2014for example helmets, orthopedic shoes, elastic supports, or supplies.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 3,
+        "completeness": 3,
+        "hallucination": 3,
+        "citation_quality": 3,
+        "overall": 3,
+        "explanation": "The agent's answer accurately reproduces all key facts from the reference evidence sections, including all five specific non-covered items in 4.2.1 (comfort/convenience devices, backup/duplicates, nursing facility residents, items covered by another agency, hospice-related equipment), all four general non-coverage criteria in 4.1, all three general coverage criteria in 3.1, and all specific coverage criteria in 3.2.1 including ordering requirements, face-to-face encounter within 6 months, annual review, and the orthotic/prosthetic-specific medical necessity definitions. Citations are precise and reference specific section numbers (3.1, 3.2.1, 4.1, 4.2.1). No hallucinated facts are present - all claims are supported by the evidence. The answer is more detailed than the reference answer but that is appropriate given the question's scope. A Medicaid policy expert would find this answer comprehensive, accurate, and well-organized."
+      },
+      "judge_error": false,
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "primary_hit": true
+    }
+  ]
+}

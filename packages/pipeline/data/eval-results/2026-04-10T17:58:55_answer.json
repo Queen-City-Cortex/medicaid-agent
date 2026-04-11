@@ -1,0 +1,55 @@
+{
+  "run_id": "2026-04-10T17:58:55",
+  "level": "answer",
+  "config": {
+    "embedding_model": "voyage-law-2",
+    "top_k": 10,
+    "dataset_count": 1,
+    "git_sha": "df5a5f9",
+    "judge_model": "claude-sonnet-4-6"
+  },
+  "aggregate": {
+    "judge_errors": 1,
+    "scorable_count": 0
+  },
+  "by_difficulty": {},
+  "by_category": {},
+  "per_question": [
+    {
+      "id": "q-006",
+      "difficulty": "simple",
+      "reasoning_type": "single_lookup",
+      "question": "Does NC Medicaid cover chiropractic services under Clinical Coverage Policy 5B?",
+      "agent_answer": "No. Clinical Coverage Policy 5B does **not** cover chiropractic services.\n\nPolicy 5B governs **orthotics and prosthetics**, not chiropractic treatment. Its coverage criteria in Section 3.1 apply to a covered \u201cprocedure, product, or service\u201d under that orthotics/prosthetics policy, and Section 4.1 says a service is not covered if the beneficiary does not meet Section 3.0 criteria. Section 4.2/4.2.1 then lists specific non-covered items, all framed as **devices, equipment, and supplies**, which reinforces that this policy addresses orthotics/prosthetics rather than chiropractic care. [Orthotics & Prosthetics](https://medicaid.ncdhhs.gov/5b-orthotics-prosthetics/download?attachment) \u00a7\u00a7 3.1, 4.1, 4.2, 4.2.1.\n\nI also checked for amendments, and the authoritative current document remains **Clinical Coverage Policy 5B, Orthotics & Prosthetics**. [Orthotics & Prosthetics](https://medicaid.ncdhhs.gov/5b-orthotics-prosthetics/download?attachment)\n\nIf you want, I can also check whether chiropractic services are covered elsewhere in NC Medicaid under a different policy.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 3,
+        "completeness": 3,
+        "hallucination": 2,
+        "citation_quality": 2,
+        "explanation": "The agent correctly identifies that Policy 5B covers orthotics and prosthetics, not chiropractic services, matching the reference answer. The answer is complete and even offers to check other policies. However, the agent makes some specific claims about section contents (e.g., 'Section 4.2/4.2.1 lists specific non-covered items, all framed as devices, equipment, and supplies') that go slightly beyond what the evidence sections provided support - this is minor embellishment rather than major hallucination. Citation quality is decent with specific section references (3.1, 4.1, 4.2, 4.2.1) but the citations don't precisely align with the evidence sections provided (which focus on 4.1 and 2.1.1), and the URL citations are somewhat generic. Overall, a Medicaid policy expert would find this answer acceptable and helpful."
+      },
+      "judge_error": false,
+      "route_lane": "baseline_hybrid",
+      "route_rationale": "single_document_coverage",
+      "route_widening_policy": "one_step",
+      "route_determinism_hints": {
+        "numeric_evidence_only": false,
+        "latest_revision_only": false,
+        "cite_scope_and_not_covered": true
+      },
+      "route_authoritative_document": {
+        "id": "doc:clinical_policy:5B",
+        "policy_number": "5B",
+        "title": "Orthotics & Prosthetics"
+      },
+      "route_widened": true,
+      "route_inspection_error": null,
+      "agent_elapsed_seconds": 17.654,
+      "precision": null,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "primary_hit": null
+    }
+  ]
+}

@@ -84,7 +84,7 @@ describe('searchSections', () => {
           records: [
             mockRecord({
               sectionId: 'sec-2',
-              title: 'Title 2',
+              sectionTitle: 'Title 2',
               policyNumber: '1A',
               documentType: 'clinical_policy',
               content: 'Content two',
@@ -99,7 +99,7 @@ describe('searchSections', () => {
           records: [
             mockRecord({
               sectionId: 'sec-1',
-              title: 'Title 1',
+              sectionTitle: 'Title 1',
               policyNumber: '8C',
               documentType: 'dhhs_policy',
               content: 'Content one',
@@ -145,7 +145,7 @@ describe('searchSections', () => {
           records: [
             mockRecord({
               sectionId: 'sec-dup',
-              title: 'Dup Title',
+              sectionTitle: 'Dup Title',
               policyNumber: '8C',
               documentType: 'dhhs_policy',
               content: 'Section content',
@@ -164,7 +164,7 @@ describe('searchSections', () => {
           records: [
             mockRecord({
               sectionId: 'sec-dup',
-              title: 'Dup Title',
+              sectionTitle: 'Dup Title',
               policyNumber: '8C',
               documentType: 'dhhs_policy',
               content: 'Chunk content',
@@ -187,7 +187,7 @@ describe('searchSections', () => {
     const records = Array.from({ length: 15 }, (_, i) =>
       mockRecord({
         sectionId: `sec-${i}`,
-        title: `Title ${i}`,
+        sectionTitle: `Title ${i}`,
         policyNumber: '8C',
         documentType: 'dhhs_policy',
         content: `Content ${i}`,
@@ -224,7 +224,7 @@ describe('searchSections', () => {
           records: [
             mockRecord({
               sectionId: 'sec-long',
-              title: 'Long',
+              sectionTitle: 'Long',
               policyNumber: '8C',
               documentType: 'dhhs_policy',
               content: longContent,
@@ -258,7 +258,7 @@ describe('searchSections', () => {
           records: [
             mockRecord({
               sectionId: 'sec-1',
-              title: 'Title 1',
+              sectionTitle: 'Title 1',
               policyNumber: '8C',
               documentType: 'dhhs_policy',
               content: 'Content',
@@ -292,7 +292,7 @@ describe('searchSections', () => {
           records: [
             mockRecord({
               sectionId: 'sec-primary',
-              title: 'Primary',
+              sectionTitle: 'Primary',
               policyNumber: '3K-2',
               documentType: 'clinical_policy',
               content: 'Primary content',
@@ -312,7 +312,7 @@ describe('searchSections', () => {
           records: [
             mockRecord({
               sectionId: 'sec-generic',
-              title: 'Revision Information:',
+              sectionTitle: 'Revision Information:',
               policyNumber: '3K-2',
               documentType: 'clinical_policy',
               content: 'Generic concept content',
@@ -327,7 +327,7 @@ describe('searchSections', () => {
           records: [
             mockRecord({
               sectionId: 'sec-supporting',
-              title: 'Supporting',
+              sectionTitle: 'Supporting',
               policyNumber: '3K-2',
               documentType: 'clinical_policy',
               content: 'Supporting semantic content',

@@ -1,11 +1,7 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
-import { withSession } from '../neo4j.js';
-import {
-  DocumentMetadataSchema,
-  documentMetadataReturn,
-  mapDocumentMetadataRecord,
-} from './document-metadata.js';
+import { policyCorpus } from '../policy-corpus.js';
+import { DocumentMetadataSchema } from './document-metadata.js';
 
 export const lookupPolicy = createTool({
   id: 'lookup-policy',
@@ -29,46 +25,5 @@ export const lookupPolicy = createTool({
       }),
     ),
   }),
-  execute: async (inputData) => {
-    const { policyNumber } = inputData;
-
-    return await withSession(async (session) => {
-      const result = await session.run(
-        `MATCH (d:Document)
-         WHERE d.policy_number = $pn
-            OR toLower(d.policy_number) = toLower($pn)
-            OR d.policy_number STARTS WITH $pn
-         OPTIONAL MATCH (d)-[:HAS_SECTION]->(s:Section)
-         RETURN
-           ${documentMetadataReturn('d')},
-           collect({id: s.id, number: s.section_number, title: s.title}) AS sections
-         ORDER BY d.effective_date DESC`,
-        { pn: policyNumber },
-      );
-
-      const documents = result.records.map((rec) => {
-        const rawSections = rec.get('sections') as Array<{
-          id: string | null;
-          number: string | null;
-          title: string | null;
-        }>;
-
-        // Filter null entries from empty OPTIONAL MATCH
-        const sections = rawSections
-          .filter((s) => s.id != null)
-          .map((s) => ({
-            id: s.id as string,
-            number: s.number,
-            title: s.title,
-          }));
-
-        return {
-          ...mapDocumentMetadataRecord(rec),
-          sections,
-        };
-      });
-
-      return { documents };
-    });
-  },
+  execute: async (inputData) => ({ documents: await policyCorpus.lookupPolicy(inputData) }),
 });

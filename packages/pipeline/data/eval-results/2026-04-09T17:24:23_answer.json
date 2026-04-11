@@ -1,0 +1,58 @@
+{
+  "run_id": "2026-04-09T17:24:23",
+  "level": "answer",
+  "config": {
+    "embedding_model": "voyage-law-2",
+    "top_k": 10,
+    "dataset_count": 1,
+    "git_sha": "df5a5f9",
+    "judge_model": "claude-sonnet-4-6"
+  },
+  "aggregate": {
+    "precision_at_k": 0.6666666666666666,
+    "recall_at_k": 0.6666666666666666,
+    "mrr": 0.6666666666666666,
+    "primary_hit_rate": 1.0
+  },
+  "by_difficulty": {
+    "complex": {
+      "precision_at_k": 0.6666666666666666,
+      "recall_at_k": 0.6666666666666666,
+      "mrr": 0.6666666666666666,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "by_category": {
+    "cross_document": {
+      "precision_at_k": 0.6666666666666666,
+      "recall_at_k": 0.6666666666666666,
+      "mrr": 0.6666666666666666,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "per_question": [
+    {
+      "id": "q-004",
+      "difficulty": "complex",
+      "reasoning_type": "cross_document",
+      "question": "How does the EPSDT special provision affect coverage for outpatient therapy services, and what ordering practitioner requirements apply to beneficiaries under 21?",
+      "agent_answer": "I\u2019m going to pull both the EPSDT rule and the outpatient therapy policy sections that address under-21 coverage and ordering requirements, then I\u2019ll check whether either policy has been amended.I found the service-specific policy: Clinical Coverage Policy 10A for outpatient specialized therapies. Next I\u2019m reading the full EPSDT section, the ordering-practitioner section, and the treatment-order requirements section, then I\u2019ll verify amendments to Policy 10A.I confirmed this is Policy 10A, which governs outpatient specialized therapies, and I have the core EPSDT and order language. I still need the fuller EPSDT text and the under-21 coverage/limits language, plus amendment status, before I answer precisely.**Short answer:** For beneficiaries **under 21**, EPSDT can require NC Medicaid to cover outpatient therapy services **even when the service would otherwise be outside a policy limitation**, so long as the service is medically necessary to **correct or ameliorate** the child\u2019s condition. But **EPSDT does not waive prior approval requirements**. For outpatient therapy under **Clinical Coverage Policy 10A**, the service must still be ordered by an approved ordering practitioner, and treatment must begin only after a valid verbal or written order is obtained.\n\n## 1) How EPSDT affects outpatient therapy coverage for beneficiaries under 21\n\nClinical Coverage Policy 10A is the service-specific policy for **outpatient specialized therapies** (physical therapy, occupational therapy, speech-language therapy, respiratory therapy, and audiology therapy). See **Clinical Coverage Policy 10A, Section 1.0 \u2014 \"Description of the Procedure, Product, or Service\"** ([Clinical Coverage Policy 10A](https://medicaid.ncdhhs.gov/10a-outpatient-specialized-therapies/download?attachment)), effective **2025-02-01**.\n\nThe policy includes an **EPSDT special provision** for Medicaid beneficiaries under 21: **Clinical Coverage Policy 10A, Section 2.2.1 \u2014 \"EPSDT Special Provision: Exception to Policy Limitations for a Medicaid Beneficiary under 21 Years of Age\"** ([Clinical Coverage Policy 10A](https://medicaid.ncdhhs.gov/10a-outpatient-specialized-therapies/download?attachment)), effective **2025-02-01**.\n\nThe retrieved text for Section 2.2.1 is truncated in the corpus, but it expressly identifies the EPSDT authority as **42 U.S.C. \u00a7 1396d(r) [1905(r) of the Social Security Act]** and includes the usual exclusions that EPSDT does **not** require coverage for services that are:\n\n- **unsafe, ineffective, or experimental or investigational**; or\n- **not medical in nature or not generally recognized as an accepted method of medical practice or treatment**.\n\nBased on that section title and text, the policy\u2019s EPSDT provision functions as an **exception to policy limitations** for under-21 beneficiaries. In plain language:\n\n- If outpatient therapy is **medically necessary** for a beneficiary under 21 to correct or ameliorate a condition, EPSDT may support coverage **beyond ordinary policy limitations**.\n- But EPSDT does **not** turn non-medical, unsafe, ineffective, or experimental services into covered services.\n\n### Important EPSDT limitation: prior approval still applies\nPolicy 10A separately states in **\"b. EPSDT and Prior Approval Requirements\"** that:\n\n> \u201cIf the service, product, or procedure requires prior approval, the fact that the beneficiary is under 21 years of age does NOT eliminate the requirement for prior approval.\u201d\n\nSee **Clinical Coverage Policy 10A \u2014 \"b. EPSDT and Prior Approval Requirements\"** ([Clinical Coverage Policy 10A](https://medicaid.ncdhhs.gov/10a-outpatient-specialized-therapies/download?attachment)), effective **2025-02-01**.\n\nSo the practical effect is:\n\n- **EPSDT can expand coverage** for medically necessary outpatient therapy for children.\n- **EPSDT does not eliminate utilization controls** like **prior approval** when the policy requires them.\n\n## 2) What ordering practitioner requirements apply to beneficiaries under 21\n\nPolicy 10A expressly identifies the allowed ordering practitioners in **Clinical Coverage Policy 10A, Section 3.1.2 \u2014 \"Ordering Practitioners\"** ([Clinical Coverage Policy 10A](https://medicaid.ncdhhs.gov/10a-outpatient-specialized-therapies/download?attachment)), effective **2025-02-01**.\n\nThe ordering practitioner may be a:\n\n- **Medical Doctor (MD)**\n- **Doctor of Osteopathic Medicine (DO)**\n- **Doctor of Podiatric Medicine (DPM)**\n- **Certified Nurse Midwife (CNM)**\n- **Physician Assistant (PA)**\n- **Nurse Practitioner (NP)**\n\n### Order timing and form requirements\nPolicy 10A also states, in the treatment-services requirements section, that:\n\n- **A verbal or written order must be obtained before services start**.\n- **Verbal orders** must:\n  - report the **date** and **signature of the person receiving the order**;\n  - be recorded in the beneficiary\u2019s **health record**; and\n  - be **countersigned by the physician within 60 calendar days**.\n- **Verbal orders are valid up to six months** from the documented date of receipt.\n- **Written orders are valid up to six months** from the date of the physician\u2019s signature.\n- **Backdating is not allowed**.\n- **Prior approval is required prior to the start of treatment services**.\n\nSee **Clinical Coverage Policy 10A \u2014 \"Treatment services must adhere to the following requirements:\"** ([Clinical Coverage Policy 10A](https://medicaid.ncdhhs.gov/10a-outpatient-specialized-therapies/download?attachment)), effective **2025-02-01**.\n\n## 3) Related treatment-plan requirements\n\nBecause you asked about ordering-practitioner requirements in the outpatient therapy context, the policy also ties services to a treatment plan. **Clinical Coverage Policy 10A, Section 3.2.1.6 \u2014 \"Treatment Plan (Plan of Care)\"** ([Clinical Coverage Policy 10A](https://medicaid.ncdhhs.gov/10a-outpatient-specialized-therapies/download?attachment)), effective **2025-02-01**, requires the plan to include:\n\n- duration of the therapy treatment plan, with **start and end date** (**no more than six months**);\n- **discipline-specific treatment diagnosis** and related medical diagnoses;\n- **rehabilitative or habilitative potential**;\n- **defined goals** for each discipline;\n- **skilled interventions, methodology, procedures, and specific programs** to be used;\n- **frequency of services**;\n- **length of each treatment visit in minutes**; and\n- **name, credentials, and signature** of the professional completing the treatment plan, dated on or before the start date.\n\n## Bottom line\n\nFor **beneficiaries under 21**, the **EPSDT special provision** in Policy 10A means outpatient therapy may be covered as an **exception to ordinary policy limitations** when medically necessary to correct or ameliorate a condition, but **EPSDT does not remove prior approval requirements**.  \nThe outpatient therapy service must still be ordered by one of the practitioners listed in **Section 3.1.2**\u2014MD, DO, DPM, CNM, PA, or NP\u2014and a **valid verbal or written order must be in place before services begin**, with the documentation and timing rules above.\n\n## Caveat\nI could not recover the full body text of Section 2.2.1 from the corpus\u2014only the section title and partial text\u2014so I have limited the answer to what the retrieved policy text expressly shows. If you want, I can next pull the federal EPSDT authority and pair it with Policy 10A\u2019s under-21 visit-guideline sections for a more complete litigation-ready explanation.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 2,
+        "completeness": 2,
+        "hallucination": 2,
+        "citation_quality": 3,
+        "overall": 2,
+        "explanation": "The agent correctly identifies the core elements: EPSDT Section 2.2.1 as an exception to policy limitations for under-21 beneficiaries, the 42 U.S.C. \u00a7 1396d(r) authority, the exclusions for unsafe/experimental/non-medical services, and the Section 3.1.2 ordering practitioner list (MD, DO, DPM, CNM, PA, NP). Citation quality is strong with precise section references. However, the agent's answer is incomplete relative to the evidence sections provided - it does not address the specific Speech-Language Therapy criteria (Section 3.2.1.3) or Audiology Therapy criteria (Section 3.2.1.4) that the reference answer and evidence sections highlight as relevant. The agent adds ordering mechanics (verbal order countersigning within 60 days, 6-month validity) and prior approval details that appear policy-consistent but go beyond what the reference answer covers - these are presented as facts without hedging markers, representing slight embellishment. The agent does acknowledge its EPSDT section text was truncated, which shows appropriate epistemic honesty. Overall the answer is acceptable but incomplete on the therapy-specific criteria dimensions."
+      },
+      "judge_error": false,
+      "precision": 0.6666666666666666,
+      "recall": 0.6666666666666666,
+      "mrr": 0.6666666666666666,
+      "primary_hit": true
+    }
+  ]
+}

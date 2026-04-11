@@ -1,0 +1,66 @@
+{
+  "run_id": "2026-04-10T03:49:09",
+  "level": "answer",
+  "config": {
+    "embedding_model": "voyage-law-2",
+    "top_k": 10,
+    "dataset_count": 1,
+    "git_sha": "df5a5f9",
+    "judge_model": "claude-sonnet-4-6"
+  },
+  "aggregate": {
+    "precision_at_k": 1.0,
+    "recall_at_k": 0.6666666666666666,
+    "mrr": 1.0,
+    "primary_hit_rate": 1.0
+  },
+  "by_difficulty": {
+    "moderate": {
+      "precision_at_k": 1.0,
+      "recall_at_k": 0.6666666666666666,
+      "mrr": 1.0,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "by_category": {
+    "single_lookup": {
+      "precision_at_k": 1.0,
+      "recall_at_k": 0.6666666666666666,
+      "mrr": 1.0,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "per_question": [
+    {
+      "id": "q-005",
+      "difficulty": "moderate",
+      "reasoning_type": "single_lookup",
+      "question": "Does NC Medicaid cover Personal Care Services for beneficiaries who live in an assisted living facility?",
+      "agent_answer": "Yes\u2014NC Medicaid can cover Personal Care Services for a beneficiary who lives in an assisted living facility, **if the facility is a qualifying congregate setting and the beneficiary meets the PCS eligibility criteria**.\n\nUnder Clinical Coverage Policy 3L-1, Medicaid covers PCS for a beneficiary who \u201cresides in\u201d a qualifying congregate facility, including **an Adult Care Home (ACH)** licensed by North Carolina or certain licensed group homes, and who also meets the medical/functional criteria in the policy. An assisted living facility is covered only to the extent it fits that qualifying licensed congregate setting category in the policy. See \u00a7 3.2.1 of [State Plan Personal Care Services (PCS) Provided in Congregate Settings](https://medicaid.ncdhhs.gov/media/14986/download?attachment).\n\nCoverage is **not** available if the beneficiary does not satisfy the policy requirements, and PCS is also not covered in certain circumstances such as when services are provided somewhere other than the beneficiary\u2019s primary congregate living setting, when family or informal caregivers are available and able to provide the care, or when required assessment/authorization conditions are not met. See \u00a7 4.1 and \u00a7 4.2 of [State Plan Personal Care Services (PCS) Provided in Congregate Settings](https://medicaid.ncdhhs.gov/media/14986/download?attachment).\n\n## Bottom line\n- **Yes, potentially covered** in an assisted living-type setting.\n- **But not automatically**\u2014the resident must be in a qualifying licensed congregate setting and meet the PCS medical, functional, and other policy criteria.  \n- I checked amendments for Policy 3L-1, and the tool returned **no amendments**, with 3L-1 as the authoritative current document.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 3,
+        "completeness": 2,
+        "hallucination": 3,
+        "citation_quality": 2,
+        "overall": 3,
+        "explanation": "The agent correctly identifies that NC Medicaid can cover PCS in assisted living-type settings under Clinical Coverage Policy 3L-1, correctly names Adult Care Homes as qualifying settings, references \u00a73.2.1 for eligibility criteria and \u00a74.1/4.2 for limitations, and notes that room and board are not covered. The answer is factually accurate and contains no hallucinations. However, it lacks specificity on the functional ADL criteria (e.g., the three-of-five ADL thresholds from \u00a73.2.1), does not detail \u00a73.3's covered services list, and omits some important criteria like the SMI screening requirement. Citation quality is good but could be more precise - it cites \u00a73.2.1 and \u00a74.1/4.2 but misses \u00a73.3 coverage details and \u00a74.2.1.2 specifically. Overall, a Medicaid policy expert would find this a solid, accurate answer that correctly directs to the right policy and framework, even if somewhat incomplete on details."
+      },
+      "judge_error": false,
+      "route_lane": null,
+      "route_rationale": null,
+      "route_widening_policy": null,
+      "route_determinism_hints": null,
+      "route_authoritative_document": null,
+      "route_widened": false,
+      "route_inspection_error": null,
+      "agent_elapsed_seconds": 23.194,
+      "precision": 1.0,
+      "recall": 0.6666666666666666,
+      "mrr": 1.0,
+      "primary_hit": true
+    }
+  ]
+}

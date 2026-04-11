@@ -1,0 +1,997 @@
+{
+  "run_id": "2026-04-11T05:40:42",
+  "level": "answer",
+  "config": {
+    "embedding_model": "voyage-law-2",
+    "top_k": 10,
+    "dataset_count": 25,
+    "git_sha": "df5a5f9",
+    "judge_model": "claude-sonnet-4-6"
+  },
+  "aggregate": {
+    "precision_at_k": 0.9733333333333333,
+    "recall_at_k": 0.9466666666666668,
+    "mrr": 0.9733333333333333,
+    "primary_hit_rate": 1.0
+  },
+  "by_difficulty": {
+    "simple": {
+      "precision_at_k": 1.0,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "primary_hit_rate": 1.0,
+      "count": 7
+    },
+    "moderate": {
+      "precision_at_k": 0.9487179487179488,
+      "recall_at_k": 0.9230769230769231,
+      "mrr": 0.9487179487179488,
+      "primary_hit_rate": 1.0,
+      "count": 13
+    },
+    "complex": {
+      "precision_at_k": 1.0,
+      "recall_at_k": 0.9333333333333333,
+      "mrr": 1.0,
+      "primary_hit_rate": 1.0,
+      "count": 5
+    }
+  },
+  "by_category": {
+    "cross_document": {
+      "precision_at_k": 1.0,
+      "recall_at_k": 0.9333333333333333,
+      "mrr": 1.0,
+      "primary_hit_rate": 1.0,
+      "count": 5
+    },
+    "temporal": {
+      "precision_at_k": 1.0,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    },
+    "single_lookup": {
+      "precision_at_k": 1.0,
+      "recall_at_k": 0.9761904761904762,
+      "mrr": 1.0,
+      "primary_hit_rate": 1.0,
+      "count": 14
+    },
+    "multi_hop": {
+      "precision_at_k": 0.8666666666666666,
+      "recall_at_k": 0.8666666666666666,
+      "mrr": 0.8666666666666666,
+      "primary_hit_rate": 1.0,
+      "count": 5
+    }
+  },
+  "per_question": [
+    {
+      "id": "q-001",
+      "difficulty": "simple",
+      "reasoning_type": "single_lookup",
+      "question": "What are the general eligibility criteria for CAP/DA services under NC Medicaid?",
+      "agent_answer": "Under NC Medicaid, a person is generally eligible for **CAP/DA services** if they:\n\n1. **Are enrolled in NC Medicaid**, and their eligibility category does not restrict this service;  \n2. **Meet the general Medicaid coverage standards** for the service; and  \n3. **Meet CAP/DA-specific waiver criteria**, including nursing-facility level of care and the ability to live safely in the community with supports.  \n([Community Alternatives Program for Disabled Adults (CAP/DA)](https://medicaid.ncdhhs.gov/3k-2-community-alternatives-program-disabled-adults-capda/download?attachment), effective Sept. 1, 2025, \u00a7\u00a7 2.1.1, 3.1, 3.2.1)\n\n## General eligibility criteria\n\n### 1) Basic Medicaid eligibility\nThe beneficiary must be **enrolled in the NC Medicaid Program**. The policy also notes that a beneficiary may have **service restrictions tied to their eligibility category** that make them ineligible for CAP/DA.  \n([Community Alternatives Program for Disabled Adults (CAP/DA)](https://medicaid.ncdhhs.gov/3k-2-community-alternatives-program-disabled-adults-capda/download?attachment), \u00a7 2.1.1, effective Sept. 1, 2025)\n\n### 2) General covered-service criteria\nCAP/DA services must meet NC Medicaid\u2019s general coverage standards. The service must be:\n\n- **Individualized, specific, and consistent** with the person\u2019s symptoms or confirmed diagnosis, and not more than the person needs;\n- Able to be **safely furnished**;\n- Not replaceable by an **equally effective and more conservative or less costly treatment** available statewide; and\n- Not provided mainly for the **convenience** of the beneficiary, caregiver, or provider.  \n([Community Alternatives Program for Disabled Adults (CAP/DA)](https://medicaid.ncdhhs.gov/3k-2-community-alternatives-program-disabled-adults-capda/download?attachment), \u00a7 3.1, effective Sept. 1, 2025)\n\n### 3) CAP/DA-specific criteria\nMedicaid covers CAP/DA when the beneficiary meets the following specific criteria:\n\n- **Meets the required HCBS nursing facility level of care**, as determined by NC Medicaid, and needs long-term care support at a level typically provided in an institution, tied to a documented medical diagnosis and functional care need;\n- A completed **CAP assessment** shows a reasonable indication the person will need at least one CAP/DA HCBS service within **30 calendar days** of evaluation;\n- Has a **signed service plan** authorizing one or more waiver services on a monthly basis to help prevent institutionalization through coordinated case management;\n- Or has a signed service plan authorizing short-term **equipment, modification, or technology** needed to return to or remain in the primary private residence and prevent institutional placement;\n- Is **able to maintain health, safety, and well-being** in the primary private residence or another approved location with formal and informal supports;\n- Has paid care needs that can be maintained **within the average institutional cost** of the CAP/DA waiver;\n- Has a **primary physician** who can link and coordinate medical services; and\n- Has an **emergency back-up and disaster plan** for situations when usual caregivers or staff are unavailable.  \n([Community Alternatives Program for Disabled Adults (CAP/DA)](https://medicaid.ncdhhs.gov/3k-2-community-alternatives-program-disabled-adults-capda/download?attachment), \u00a7 3.2.1, effective Sept. 1, 2025)\n\n## Scope context\nThe policy\u2019s case-management entity requirements refer to experience serving **adults 18 years of age and older** with medical complexities or physical disabilities. That supports the adult-focused scope of CAP/DA, though the core eligibility rules above are the direct governing criteria.  \n([Community Alternatives Program for Disabled Adults (CAP/DA)](https://medicaid.ncdhhs.gov/3k-2-community-alternatives-program-disabled-adults-capda/download?attachment), \u00a7 6.4.1, effective Sept. 1, 2025)\n\n## Bottom line\nIn practical terms, a person generally qualifies for CAP/DA if they are a **current NC Medicaid beneficiary**, **meet medical-necessity and coverage standards**, **meet nursing-facility level of care**, **need CAP/DA waiver services to avoid institutionalization**, can be **safely served in the community**, and have the required **service planning, physician coordination, and backup supports** in place.  \n([Community Alternatives Program for Disabled Adults (CAP/DA)](https://medicaid.ncdhhs.gov/3k-2-community-alternatives-program-disabled-adults-capda/download?attachment), effective Sept. 1, 2025, \u00a7\u00a7 2.1.1, 3.1, 3.2.1)\n\nIf you want, I can also break this down into a **plain-language client checklist** or explain **what documentation is usually needed to show CAP/DA eligibility**.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 3,
+        "completeness": 3,
+        "hallucination": 3,
+        "citation_quality": 3,
+        "overall": 3,
+        "explanation": "The agent's answer accurately captures all key eligibility criteria from the reference and evidence sections: Medicaid enrollment (\u00a72.1.1), general coverage standards (\u00a73.1), and CAP/DA-specific criteria including nursing facility level of care, CAP assessment findings, signed service plan, safety in community, cost within institutional average, primary physician, and emergency backup plan (\u00a73.2.1). The age reference (18+) is appropriately noted from \u00a76.4.1 context. All claims are supported by the cited policy sections, with no hallucinated facts. Citations are precise down to subsection level with effective dates. The answer exceeds the reference answer in completeness while remaining accurate, which a Medicaid policy expert would find comprehensive and reliable."
+      },
+      "judge_error": false,
+      "route_lane": "baseline_hybrid",
+      "route_rationale": "single_document_coverage",
+      "route_widening_policy": "one_step",
+      "route_determinism_hints": {
+        "numeric_evidence_only": false,
+        "latest_revision_only": false,
+        "cite_scope_and_not_covered": false
+      },
+      "route_authoritative_document": {
+        "id": "doc:clinical_policy:3K-2",
+        "policy_number": "3K-2",
+        "title": "Community Alternatives Program for Disabled Adults (CAP/DA)"
+      },
+      "route_widened": true,
+      "route_inspection_error": null,
+      "agent_elapsed_seconds": 26.906,
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "primary_hit": true
+    },
+    {
+      "id": "q-002",
+      "difficulty": "moderate",
+      "reasoning_type": "multi_hop",
+      "question": "What DME items are specifically NOT covered by NC Medicaid under the Orthotics and Prosthetics policy, and what general criteria must be met for coverage?",
+      "agent_answer": "Under NC Medicaid\u2019s **Orthotics & Prosthetics policy (5B)**, the policy specifically says the following are **not covered**:\n\n- devices for the beneficiary\u2019s **comfort or convenience**, or for the convenience of the beneficiary\u2019s caregiver;\n- **backup devices** or duplicate devices kept at different locations;\n- devices and supplies for **residents of nursing facilities**;\n- devices or supplies **covered by another agency**; and\n- equipment or supplies for beneficiaries receiving **hospice care**.  \n  [[Orthotics & Prosthetics](https://medicaid.ncdhhs.gov/5b-orthotics-prosthetics/download?attachment), \u00a7\u00a7 4.2, 4.2.1]\n\n## General criteria that must be met for coverage\n\nFor coverage under Policy 5B, orthotic or prosthetic items must generally meet these requirements:\n\n- be **ordered by a physician, physician assistant, or nurse practitioner**;\n- be **medically necessary** to maintain or improve the beneficiary\u2019s medical, physical, or functional level;\n- be appropriate for use in a **noninstitutional setting** where normal life activities take place;\n- be supported by a **documented face-to-face encounter** with the ordering clinician no more than **6 months** before initiation of the orthotic/prosthetic item; and\n- have the beneficiary\u2019s need **reviewed at least annually** by the ordering clinician.  \n  [[Orthotics & Prosthetics](https://medicaid.ncdhhs.gov/5b-orthotics-prosthetics/download?attachment), \u00a7\u00a7 3.2, 3.2.1]\n\nThe policy adds that:\n\n- **orthotic devices** are medically necessary when needed to correct or prevent skeletal deformities, support or align movable body parts, or preserve or improve physical function;\n- **prosthetic devices** are medically necessary when they replace all or part of the function of a permanently inoperative, absent, or malfunctioning body part, and the beneficiary requires the prosthesis for **mobility, daily care, or rehabilitation**;\n- the device must be a **reasonable and medically necessary** part of the treatment plan;\n- it must be **consistent with the diagnosis and medical condition**, especially the beneficiary\u2019s functional limitations and symptoms; and\n- it must be of **high quality**, with replacement parts available and obtainable.  \n  [[Orthotics & Prosthetics](https://medicaid.ncdhhs.gov/5b-orthotics-prosthetics/download?attachment), \u00a7\u00a7 3.2, 3.2.1]\n\n## Separate general exclusions\n\nEven if an item is otherwise the kind of device addressed by Policy 5B, it is not covered if:\n\n- the beneficiary does not meet the **eligibility requirements** in Section 2.0;\n- the beneficiary does not meet the **coverage criteria** in Section 3.0;\n- the item or service **duplicates** another provider\u2019s procedure, product, or service; or\n- it is **experimental, investigational, or part of a clinical trial**.  \n  [[Orthotics & Prosthetics](https://medicaid.ncdhhs.gov/5b-orthotics-prosthetics/download?attachment), \u00a7 4.1]\n\n## Practical bottom line\n\nNC Medicaid does **not** cover O&P items that are mainly for convenience, backup, nursing-facility residents, hospice beneficiaries, or items another agency covers. Coverage generally requires a proper order, medical necessity, recent face-to-face documentation, annual review, and consistency with the beneficiary\u2019s diagnosis and treatment plan. The current authoritative document is **Policy 5B, Orthotics & Prosthetics**; I checked for amendments and found none in the corpus for this document.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 3,
+        "completeness": 3,
+        "hallucination": 3,
+        "citation_quality": 3,
+        "overall": 3,
+        "explanation": "The agent's answer accurately captures all key elements from the reference policy sections. For non-covered items (4.2.1), it correctly lists all five specific exclusions: comfort/convenience devices, backup/duplicate devices, nursing facility residents, items covered by another agency, and hospice beneficiaries. For general exclusions (4.1), it correctly identifies the four criteria. For general coverage criteria (3.1 and 3.2.1), it accurately captures the medical necessity requirements, ordering requirements, face-to-face encounter documentation, annual review, and device-specific criteria for orthotics and prosthetics. The answer goes slightly beyond the reference answer's brevity but adds accurate, policy-supported detail. Citations are precise, referencing specific subsections (3.2, 3.2.1, 4.1, 4.2, 4.2.1). No hallucinations are present - all claims align with the evidence sections provided. A Medicaid policy expert would find this answer thorough, accurate, and well-organized."
+      },
+      "judge_error": false,
+      "route_lane": "baseline_hybrid",
+      "route_rationale": "single_document_coverage",
+      "route_widening_policy": "one_step",
+      "route_determinism_hints": {
+        "numeric_evidence_only": false,
+        "latest_revision_only": false,
+        "cite_scope_and_not_covered": false
+      },
+      "route_authoritative_document": {
+        "id": "doc:clinical_policy:5B",
+        "policy_number": "5B",
+        "title": "Orthotics & Prosthetics"
+      },
+      "route_widened": true,
+      "route_inspection_error": null,
+      "agent_elapsed_seconds": 22.849,
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "primary_hit": true
+    },
+    {
+      "id": "q-003",
+      "difficulty": "moderate",
+      "reasoning_type": "multi_hop",
+      "question": "What are the entrance, continued service, and discharge criteria for outpatient behavioral health services in NC Medicaid?",
+      "agent_answer": "For NC Medicaid outpatient behavioral health services, the policy does state **continued service** and **discharge** criteria. I could **not verify a separate, expressly labeled \u201centrance criteria\u201d section** from the text retrieved here, although the policy requires providers to document entrance criteria in the clinical record. The current policy is **Clinical Coverage Policy 8C, effective April 15, 2025**. [8C, Outpatient Behavioral Health Services Provided by Direct-Enrolled Providers](https://medicaid.ncdhhs.gov/8c-outpatient-behavioral-health-services-provided-direct-enrolled-providers/download?attachment)\n\n## Continued service criteria\nA beneficiary meets continued service criteria if:\n\n- **Any one** of the following is true:\n  - The desired outcome or level of functioning has **not been restored, improved, or sustained** within the timeframe in the treatment plan;\n  - The beneficiary **continues to be at risk for relapse** based on current clinical assessment and history; or\n  - There is a **tenuous nature of the functional gains**;\n\n**and**\n\n- **Any one** of the following additional criteria is true:\n  - The beneficiary has achieved current treatment plan goals, but **additional goals are indicated** by documented symptoms; or\n  - The beneficiary is **making satisfactory progress** toward meeting goals and documentation supports that.  \n  [8C, Outpatient Behavioral Health Services Provided by Direct-Enrolled Providers](https://medicaid.ncdhhs.gov/8c-outpatient-behavioral-health-services-provided-direct-enrolled-providers/download?attachment) \u00a7 3.2.1.2\n\n## Discharge criteria\nA beneficiary may be discharged when **any one** of the following applies:\n\n- The beneficiary\u2019s **level of functioning has improved** with respect to the goals in the treatment plan;\n- The beneficiary or legally responsible person **no longer wishes to receive services**; or\n- The beneficiary, based on presentation and lack of improvement despite treatment plan modifications, **needs a more appropriate best-practice or evidence-based treatment modality** consistent with North Carolina community practice standards.  \n  [8C, Outpatient Behavioral Health Services Provided by Direct-Enrolled Providers](https://medicaid.ncdhhs.gov/8c-outpatient-behavioral-health-services-provided-direct-enrolled-providers/download?attachment) \u00a7 3.2.1.3\n\n## Entrance criteria\nFrom the text I retrieved, I could confirm that the record must include **\u201cdocumentation of entrance criteria, continued service criteria, and discharge criteria.\u201d**  \n[8C, Outpatient Behavioral Health Services Provided by Direct-Enrolled Providers](https://medicaid.ncdhhs.gov/8c-outpatient-behavioral-health-services-provided-direct-enrolled-providers/download?attachment) \u00a7 7.3.1\n\nI could also confirm related intake/ordering requirements for **beneficiaries age 21 and over**, including:\n\n- the provider\u2019s signed treatment plan serves as the service order;\n- if an associate-level professional provides services, there must be a written order from a physician, licensed psychologist, nurse practitioner, or physician assistant;\n- services may be self-referred or referred by another source, with referrals documented if not self-referred;\n- ASAM results and recommendations for Level 0.5 or 1.0 must be documented where applicable.  \n  [8C, Outpatient Behavioral Health Services Provided by Direct-Enrolled Providers](https://medicaid.ncdhhs.gov/8c-outpatient-behavioral-health-services-provided-direct-enrolled-providers/download?attachment)\n\nBut I did **not retrieve a separate section explicitly listing entrance criteria** in the same way the policy lists continued service and discharge criteria. If you want, I can keep digging in Policy 8C for the exact entrance-criteria language or pull the surrounding subsections to see whether it appears in a nearby section not included in this first pass.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 2,
+        "completeness": 2,
+        "hallucination": 3,
+        "citation_quality": 2,
+        "overall": 2,
+        "explanation": "The agent accurately captured continued service and discharge criteria with specific section citations (3.2.1.2 and 3.2.1.3), matching the reference evidence closely. However, it failed to retrieve and present the explicit entrance criteria from section 3.2.1.1, which includes the DSM-5 diagnosis requirement, functional impairment, capacity for skill development, and no more effective alternatives - this is a significant gap. The agent was honest about this limitation rather than fabricating content, so no hallucination penalty applies. The discharge criteria omit the specific reference to national guidelines (NIDA, APA) compared to the reference evidence. Citation quality is moderate - sections 3.2.1.2 and 3.2.1.3 are cited but 3.2.1.1 is missing entirely, and 3.1 general criteria are not mentioned. Overall the answer is partially acceptable but incomplete on a key component of the question."
+      },
+      "judge_error": false,
+      "route_lane": "baseline_hybrid",
+      "route_rationale": "single_document_coverage",
+      "route_widening_policy": "one_step",
+      "route_determinism_hints": {
+        "numeric_evidence_only": false,
+        "latest_revision_only": false,
+        "cite_scope_and_not_covered": false
+      },
+      "route_authoritative_document": {
+        "id": "doc:clinical_policy:8C",
+        "policy_number": "8C",
+        "title": "8C, Outpatient Behavioral Health Services Provided by Direct-Enrolled Providers"
+      },
+      "route_widened": true,
+      "route_inspection_error": null,
+      "agent_elapsed_seconds": 24.398,
+      "precision": 0.6666666666666666,
+      "recall": 0.6666666666666666,
+      "mrr": 0.6666666666666666,
+      "primary_hit": true
+    },
+    {
+      "id": "q-004",
+      "difficulty": "complex",
+      "reasoning_type": "cross_document",
+      "question": "How does the EPSDT special provision affect coverage for outpatient therapy services, and what ordering practitioner requirements apply to beneficiaries under 21?",
+      "agent_answer": "For beneficiaries **under age 21**, the **EPSDT special provision can expand coverage for outpatient therapy services beyond ordinary policy limits when the service is medically necessary to correct or ameliorate a defect, physical or mental illness, or condition**. But **EPSDT does not waive prior approval requirements**: if the therapy service requires prior approval, the child\u2019s age does **not** eliminate that requirement. Also, services still cannot be covered if they are **unsafe, ineffective, experimental/investigational, not medical in nature, or not generally recognized as accepted medical practice**. [[Clinical Coverage Policy 10A](https://medicaid.ncdhhs.gov/10a-outpatient-specialized-therapies/download?attachment), \u00a7 2.2.1; b. EPSDT and Prior Approval Requirements]\n\n## Effect on outpatient therapy coverage under EPSDT\n\nIn Clinical Coverage Policy 10A, outpatient specialized therapies for children are governed by the usual medical-necessity rules, but EPSDT creates an **exception to policy limitations** for Medicaid beneficiaries under 21. The policy text ties this to **42 U.S.C. \u00a7 1396d(r)** and makes clear that EPSDT does **not** authorize services that are unsafe, ineffective, experimental/investigational, not medical in nature, or not generally accepted medical treatment. [[Clinical Coverage Policy 10A](https://medicaid.ncdhhs.gov/10a-outpatient-specialized-therapies/download?attachment), \u00a7 2.2.1]\n\nFor speech-language and audiology therapy specifically, the policy includes pediatric criteria and visit guidelines for beneficiaries under 21, including ranges based on severity and authorization periods not exceeding six calendar months. [[Clinical Coverage Policy 10A](https://medicaid.ncdhhs.gov/10a-outpatient-specialized-therapies/download?attachment), \u00a7 3.2.1.3; \u00a7 3.2.1.4; \u00a7 5.4]\n\n## Ordering practitioner requirements for beneficiaries under 21\n\nThe policy\u2019s ordering-practitioner section applies to outpatient specialized therapies and lists the practitioners who may order services. Those are:\n\n- **Medical Doctor (MD)**\n- **Doctor of Osteopathic Medicine (DO)**\n- **Doctor of Podiatric Medicine (DPM)**\n- **Certified Nurse Midwife (CNM)**\n- **Physician Assistant (PA)**\n- **Nurse Practitioner (NP)**\n\n[[Clinical Coverage Policy 10A](https://medicaid.ncdhhs.gov/10a-outpatient-specialized-therapies/download?attachment), \u00a7 3.1.2]\n\n## Bottom line\n\nFor a Medicaid beneficiary under 21:\n\n- **EPSDT may allow coverage beyond normal policy limits** if the outpatient therapy is medically necessary to correct or ameliorate the child\u2019s condition. [[Clinical Coverage Policy 10A](https://medicaid.ncdhhs.gov/10a-outpatient-specialized-therapies/download?attachment), \u00a7 2.2.1]\n- **Prior approval still applies when the service requires it**; EPSDT does not remove that requirement. [[Clinical Coverage Policy 10A](https://medicaid.ncdhhs.gov/10a-outpatient-specialized-therapies/download?attachment), b. EPSDT and Prior Approval Requirements]\n- The order must come from an authorized ordering practitioner listed in the policy: **MD, DO, DPM, CNM, PA, or NP**. [[Clinical Coverage Policy 10A](https://medicaid.ncdhhs.gov/10a-outpatient-specialized-therapies/download?attachment), \u00a7 3.1.2]\n\nI checked amendments for Policy 10A and the document returned as authoritative is **Clinical Coverage Policy 10A, effective 2025-02-01**.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 3,
+        "completeness": 2,
+        "hallucination": 3,
+        "citation_quality": 3,
+        "overall": 3,
+        "explanation": "The agent's answer accurately captures the key elements: EPSDT as an exception to policy limitations for beneficiaries under 21, the medical necessity standard tied to 42 U.S.C. \u00a7 1396d(r), the exclusions (unsafe, ineffective, experimental, not medical in nature), the ordering practitioner list (MD, DO, DPM, CNM, PA, NP), and specific references to Speech-Language (\u00a73.2.1.3) and Audiology (\u00a73.2.1.4) sections. The addition about prior approval not being waived by EPSDT is a valid and accurate policy point. Citations are precise at the section level. The answer is slightly less complete than it could be regarding the detailed pediatric criteria within \u00a73.2.1.3 and \u00a73.2.1.4, but the question did not require exhaustive detail on those subsections. No hallucinations are present - all stated facts align with the evidence sections provided. A Medicaid policy expert would find this answer accurate, well-cited, and responsive to the question."
+      },
+      "judge_error": false,
+      "route_lane": "baseline_hybrid",
+      "route_rationale": "single_document_coverage",
+      "route_widening_policy": "one_step",
+      "route_determinism_hints": {
+        "numeric_evidence_only": false,
+        "latest_revision_only": false,
+        "cite_scope_and_not_covered": false
+      },
+      "route_authoritative_document": {
+        "id": "doc:clinical_policy:10A",
+        "policy_number": "10A",
+        "title": "Clinical Coverage Policy 10A"
+      },
+      "route_widened": true,
+      "route_inspection_error": null,
+      "agent_elapsed_seconds": 27.398,
+      "precision": 1.0,
+      "recall": 0.6666666666666666,
+      "mrr": 1.0,
+      "primary_hit": true
+    },
+    {
+      "id": "q-005",
+      "difficulty": "moderate",
+      "reasoning_type": "single_lookup",
+      "question": "Does NC Medicaid cover Personal Care Services for beneficiaries who live in an assisted living facility?",
+      "agent_answer": "Yes \u2014 NC Medicaid can cover Personal Care Services for a beneficiary living in an assisted living\u2013type setting, but only under the congregate-setting PCS policy and only if the beneficiary meets that policy\u2019s eligibility criteria.\n\nNC Medicaid\u2019s congregate PCS policy applies to beneficiaries who reside in a North Carolina-licensed Adult Care Home, combination home, or certain licensed group homes. The policy section on covered criteria says the beneficiary must reside in one of those congregate settings and meet functional/medical criteria for PCS. An assisted living facility would need to fit within one of those licensed congregate categories for coverage under this policy. See \u00a7 3.2.1 of [State Plan Personal Care Services (PCS) Provided in Congregate Settings](https://medicaid.ncdhhs.gov/media/14986/download?attachment) (current authoritative document; no amendments returned in the corpus).\n\nThe same policy also shows PCS is assessed and delivered in the beneficiary\u2019s congregate facility, which confirms this policy is specifically designed for facility-based PCS rather than only in-home PCS. See \u00a7 5.4.3 of [State Plan Personal Care Services (PCS) Provided in Congregate Settings](https://medicaid.ncdhhs.gov/media/14986/download?attachment).\n\nImportant limits:\n- Coverage is not automatic just because the person lives in assisted living.\n- The beneficiary must meet the ADL/unmet-need criteria and the other conditions listed in \u00a7 3.2.1.\n- PCS is not covered if the beneficiary does not meet the policy\u2019s Section 3 criteria. See \u00a7 4.1 of [State Plan Personal Care Services (PCS) Provided in Congregate Settings](https://medicaid.ncdhhs.gov/media/14986/download?attachment).\n- PCS also is not covered in certain additional situations, including if it is provided somewhere other than the beneficiary\u2019s primary congregate living setting. See \u00a7 4.2.1 of [State Plan Personal Care Services (PCS) Provided in Congregate Settings](https://medicaid.ncdhhs.gov/media/14986/download?attachment).\n\nSo the short answer is: yes, NC Medicaid does cover PCS for some beneficiaries in assisted living/facility settings, if the facility is a qualifying licensed congregate setting and the beneficiary meets the medical and functional eligibility rules.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 3,
+        "completeness": 2,
+        "hallucination": 3,
+        "citation_quality": 3,
+        "overall": 3,
+        "explanation": "The agent's answer is factually accurate, correctly identifying that NC Medicaid covers PCS in congregate/assisted living settings under the congregate PCS policy (CCP 3L-1), with qualifying facility types (Adult Care Homes, combination homes, licensed group homes) and functional/medical eligibility criteria. It correctly cites \u00a73.2.1 for eligibility criteria and \u00a75.4.3 for assessment/delivery, and \u00a74.1 and \u00a74.2.1 for non-covered situations. The answer is mostly complete but slightly less detailed than the reference on \u00a73.3 covered services and \u00a74.2.1.2 exclusions (room and board, etc.), which the reference answer specifically highlights. No hallucinations are present - all claims are supported by the evidence. Citation quality is strong with precise section-level references. A Medicaid policy expert would find this answer acceptable and largely correct, though it could be more explicit about the covered services under \u00a73.3 and the specific exclusions like room and board under \u00a74.2.1.2."
+      },
+      "judge_error": false,
+      "route_lane": "baseline_hybrid",
+      "route_rationale": "single_document_coverage",
+      "route_widening_policy": "one_step",
+      "route_determinism_hints": {
+        "numeric_evidence_only": false,
+        "latest_revision_only": false,
+        "cite_scope_and_not_covered": true
+      },
+      "route_authoritative_document": {
+        "id": "doc:clinical_policy:3L-1",
+        "policy_number": "3L-1",
+        "title": "State Plan Personal Care Services (PCS) Provided in Congregate Settings"
+      },
+      "route_widened": true,
+      "route_inspection_error": null,
+      "agent_elapsed_seconds": 19.808,
+      "precision": 1.0,
+      "recall": 0.6666666666666666,
+      "mrr": 1.0,
+      "primary_hit": true
+    },
+    {
+      "id": "q-006",
+      "difficulty": "simple",
+      "reasoning_type": "single_lookup",
+      "question": "Does NC Medicaid cover chiropractic services under Clinical Coverage Policy 5B?",
+      "agent_answer": "No. Clinical Coverage Policy 5B does **not** cover chiropractic services as such, because Policy 5B governs **orthotics and prosthetics**, not chiropractic treatment. Its covered-services rule applies only to a \u201cprocedure, product, or service\u201d within that policy\u2019s scope that meets the policy\u2019s coverage criteria, and services outside that scope are not made covered by 5B. Also, 5B\u2019s non-covered section lists specific non-covered orthotics/prosthetics items and reinforces that items not meeting the policy\u2019s criteria are not covered. [[Orthotics & Prosthetics](https://medicaid.ncdhhs.gov/5b-orthotics-prosthetics/download?attachment), \u00a7 3.1; \u00a7 4.2; see also \u00a7 4.1]\n\nIn short: **chiropractic services are not covered under Clinical Coverage Policy 5B** because 5B is an **Orthotics & Prosthetics** policy, not a chiropractic-services policy. [[Orthotics & Prosthetics](https://medicaid.ncdhhs.gov/5b-orthotics-prosthetics/download?attachment)]\n\nI checked for amendments to Policy 5B in the corpus, and the authoritative document returned was still **Clinical Coverage Policy 5B, Orthotics & Prosthetics**.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 3,
+        "completeness": 3,
+        "hallucination": 3,
+        "citation_quality": 3,
+        "overall": 3,
+        "explanation": "The agent correctly identifies that Policy 5B covers orthotics and prosthetics, not chiropractic services, matching the reference answer exactly. The answer is complete, addressing why chiropractic services are not covered under this specific policy. No hallucinations are present - all claims are supported by the evidence. Citations are precise, referencing specific sections (3.1, 4.2, 4.1) and the actual policy document URL. A Medicaid policy expert would find this answer accurate and well-reasoned."
+      },
+      "judge_error": false,
+      "route_lane": "baseline_hybrid",
+      "route_rationale": "single_document_coverage",
+      "route_widening_policy": "one_step",
+      "route_determinism_hints": {
+        "numeric_evidence_only": false,
+        "latest_revision_only": false,
+        "cite_scope_and_not_covered": true
+      },
+      "route_authoritative_document": {
+        "id": "doc:clinical_policy:5B",
+        "policy_number": "5B",
+        "title": "Orthotics & Prosthetics"
+      },
+      "route_widened": true,
+      "route_inspection_error": null,
+      "agent_elapsed_seconds": 16.227,
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "primary_hit": true
+    },
+    {
+      "id": "q-007",
+      "difficulty": "simple",
+      "reasoning_type": "single_lookup",
+      "question": "What is the treatment plan (plan of care) requirement for outpatient therapy services under NC Medicaid policy 10A?",
+      "agent_answer": "Under **NC Medicaid Clinical Coverage Policy 10A**, outpatient therapy services must be provided under a **treatment plan (plan of care)** that includes all of the following:\n\n- the **start and end date** of the therapy treatment plan, with a duration of **no more than six months**;\n- the **discipline-specific treatment diagnosis** and any related medical diagnoses;\n- the beneficiary\u2019s **rehabilitative or habilitative potential**;\n- **defined goals** for each therapeutic discipline that are **specific, measurable, and reasonably expected to be achieved** within the plan period;\n- the **skilled interventions, methodology, procedures, and specific programs** to be used;\n- the **frequency of services**;\n- the **length of each treatment visit in minutes**; and\n- the **name, credentials, and signature** of the professional completing the treatment plan, **dated on or before the start date** of the treatment plan. [Clinical Coverage Policy 10A](https://medicaid.ncdhhs.gov/10a-outpatient-specialized-therapies/download?attachment)\n\nRelated 10A requirements also say:\n\n- **All services must be provided according to a treatment plan** that meets those requirements.\n- Providers must **review and renew or revise treatment plans and goals at least every six calendar months**. [Clinical Coverage Policy 10A](https://medicaid.ncdhhs.gov/10a-outpatient-specialized-therapies/download?attachment)\n\nFor documentation, the beneficiary record must include **a copy of the treatment plan**. [Clinical Coverage Policy 10A](https://medicaid.ncdhhs.gov/10a-outpatient-specialized-therapies/download?attachment)\n\nThis reflects the current authoritative version of **Policy 10A**, effective **February 1, 2025**.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 3,
+        "completeness": 3,
+        "hallucination": 3,
+        "citation_quality": 2,
+        "overall": 3,
+        "explanation": "The agent's answer accurately captures all the key elements from section 3.2.1.6 of Clinical Coverage Policy 10A, including start/end dates (no more than six months), discipline-specific treatment diagnosis, rehabilitative/habilitative potential, defined measurable goals, skilled interventions/methodology, frequency of services, length of each visit in minutes, and name/credentials/signature of the professional. The agent also correctly notes the six-month review/renewal requirement and documentation requirements. No hallucinated facts are present - all claims align with the evidence sections provided. Citation quality is good in that it references 'Clinical Coverage Policy 10A' with a link, but does not specify the precise section number (3.2.1.6) which would have elevated it to a 3. The reference answer is more general/summary-level while the agent's answer is more detailed and comprehensive, which is a strength rather than a weakness. A Medicaid policy expert would find this answer accurate, complete, and useful."
+      },
+      "judge_error": false,
+      "route_lane": "baseline_hybrid",
+      "route_rationale": "default_general",
+      "route_widening_policy": "none",
+      "route_determinism_hints": {
+        "numeric_evidence_only": false,
+        "latest_revision_only": false,
+        "cite_scope_and_not_covered": false
+      },
+      "route_authoritative_document": {
+        "id": "doc:clinical_policy:10A",
+        "policy_number": "10A",
+        "title": "Clinical Coverage Policy 10A"
+      },
+      "route_widened": false,
+      "route_inspection_error": null,
+      "agent_elapsed_seconds": 16.746,
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "primary_hit": true
+    },
+    {
+      "id": "q-008",
+      "difficulty": "moderate",
+      "reasoning_type": "single_lookup",
+      "question": "Can a CAP/DA beneficiary transfer between service providers, and what rules govern transfers of eligible beneficiaries?",
+      "agent_answer": "Yes. Under the current **CAP/DA policy, a beneficiary can transfer**, and **the Case Management Entity (CME) must coordinate the transfer to prevent gaps in services**. The governing rule is **Section 3.3, \u201cTransfers of Eligible Beneficiaries,\u201d** in **Clinical Coverage Policy 3K-2**. The document returned as the authoritative current version has an effective date of **September 1, 2025**. [Community Alternatives Program for Disabled Adults (CAP/DA)](https://medicaid.ncdhhs.gov/3k-2-community-alternatives-program-disabled-adults-capda/download?attachment)\n\n## Governing rule: transfers are allowed, with required coordination\n\nFor CAP/DA, transfers of eligible beneficiaries are expressly addressed in **Section 3.3**. That section says the **CME shall coordinate the transfer to prevent gaps in service provisions** and requires these steps **before the transfer**:\n\n- determine the anticipated start date of service;\n- coordinate a transition plan between provider agencies;\n- discuss and plan for the beneficiary\u2019s health, safety, and well-being;\n- initiate transfer of the electronic health record in the CAP Business System (e-CAP/DA) to the receiving county;\n- arrange a home visit by the receiving entity within **five business days** after the beneficiary moves to the new primary residence to assess the environment for health and welfare concerns and plan mitigation and safety; and\n- coordinate services to begin on the **first date of the transfer**.  \n  **Citation:** 3K-2, \u00a7 3.3, [Community Alternatives Program for Disabled Adults (CAP/DA)](https://medicaid.ncdhhs.gov/3k-2-community-alternatives-program-disabled-adults-capda/download?attachment)\n\n## Rule for transfers of eligible beneficiaries to a different county\n\nSection 3.3 gives more specific rules when a **CAP/DA beneficiary is transferring to a different county**:\n\n- the transferring CME and receiving CME coordinate the transfer on the agreed date, or within **less than 30 calendar days of the request to transfer**;\n- both agencies discuss and plan for the beneficiary\u2019s health, safety, and well-being;\n- the electronic health record is transferred to the receiving county;\n- the receiving CME arranges a home visit within **five business days** of the move to the new primary residence; and\n- services must start on the **first date of the transfer into the receiving county**.  \n  **Citation:** 3K-2, \u00a7 3.3, [Community Alternatives Program for Disabled Adults (CAP/DA)](https://medicaid.ncdhhs.gov/3k-2-community-alternatives-program-disabled-adults-capda/download?attachment)\n\n## Supporting context: beneficiary choice of providers\n\nThe transfer rule is supported by the person-centered service plan requirements in **Section 5.4.2**, which require the CME to:\n\n- document the authorized provider name, amount, frequency, and duration of each service; and\n- ensure the beneficiary\u2019s **right to choose among providers**, evidenced by a signed **Freedom of Choice** form.  \n  **Citation:** 3K-2, \u00a7 5.4.2, [Community Alternatives Program for Disabled Adults (CAP/DA)](https://medicaid.ncdhhs.gov/3k-2-community-alternatives-program-disabled-adults-capda/download?attachment)\n\nThat means the policy not only permits coordinated transfers, but also embeds **provider choice** in the service-planning process.\n\n## Implementation detail\n\nProviders participating in CAP/DA must use the **CAP Business System (e-CAP)** and must **accept, decline, or acknowledge service authorizations within three business days** of submission in e-CAP. That helps explain how transfers and reassignments are operationalized, though the transfer rule itself is still in **\u00a7 3.3**.  \n**Citation:** 3K-2, \u00a7 6.5, [Community Alternatives Program for Disabled Adults (CAP/DA)](https://medicaid.ncdhhs.gov/3k-2-community-alternatives-program-disabled-adults-capda/download?attachment)\n\n## Bottom line\n\nA CAP/DA beneficiary **may transfer between service providers/arrangements**, and **\u00a7 3.3 governs transfers of eligible beneficiaries**. The key requirements are coordinated transfer planning by the CME, no gap in services, transfer of records in e-CAP, a timely home visit after a move, and service start on the first date of transfer. Provider choice is reinforced by **\u00a7 5.4.2**.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 3,
+        "completeness": 3,
+        "hallucination": 3,
+        "citation_quality": 3,
+        "overall": 3,
+        "explanation": "The agent's answer is highly accurate and comprehensive. It correctly identifies Section 3.3 of Clinical Coverage Policy 3K-2 as governing transfers, accurately describes the CME coordination requirements, the five business day home visit requirement, the 30 calendar day timeline for county transfers, electronic health record transfer requirements, and service start on first date of transfer. The answer also correctly references Section 5.4.2 for provider choice/Freedom of Choice documentation and Section 6.5 for e-CAP operational details. All key facts from the evidence sections are present. The answer also mentions the CAP/C aging-out transition process which aligns with the evidence. No hallucinated facts are present - all claims are supported by the policy document. Citations are precise and section-level throughout."
+      },
+      "judge_error": false,
+      "route_lane": "graph_reasoning",
+      "route_rationale": "policy_variant_resolution",
+      "route_widening_policy": "family_expansion",
+      "route_determinism_hints": {
+        "numeric_evidence_only": false,
+        "latest_revision_only": false,
+        "cite_scope_and_not_covered": false
+      },
+      "route_authoritative_document": {
+        "id": "doc:clinical_policy:3K-2",
+        "policy_number": "3K-2",
+        "title": "Community Alternatives Program for Disabled Adults (CAP/DA)"
+      },
+      "route_widened": true,
+      "route_inspection_error": null,
+      "agent_elapsed_seconds": 26.387,
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "primary_hit": true
+    },
+    {
+      "id": "q-009",
+      "difficulty": "complex",
+      "reasoning_type": "cross_document",
+      "question": "Is there a maximum earned income limit for people on HCWD (Health Coverage for Workers with Disabilities), and what premiums apply?",
+      "agent_answer": "Yes. Under HCWD, North Carolina policy says there is **not a maximum total countable income limit for eligibility**, but there **is** a cap on **unearned income** and there are **cost-sharing requirements** as income rises. The surfaced policy states HCWD covers individuals \u201c**regardless of total countable income**,\u201d except for a **150% FPL cap on unearned income**. [[CHANGE NOTICE FOR MANUAL NO. 01-14, HCWD Phase III](https://policies.ncdhhs.gov/wp-content/uploads/ma_cn01-14.pdf)] [[MA-2180 HEALTH COVERAGE FOR WORKERS WITH DISABILITIES](https://policies.ncdhhs.gov/wp-content/uploads/ma-2180-3.pdf)]\n\n## Income limit rule\n\nTo qualify for HCWD, a person must \u201c**meet the income requirements for his coverage group**,\u201d and the HCWD policy\u2019s income section says:\n\n- \u201c**Those who have unearned incomes greater than 150% of FPL are not eligible for HCWD.**\u201d\n- It also states the policy removed \u201c**limits on countable income except for the 150% of Federal Poverty Level (FPL) cap on unearned income**.\u201d [[MA-2180 HEALTH COVERAGE FOR WORKERS WITH DISABILITIES](https://policies.ncdhhs.gov/wp-content/uploads/ma-2180-3.pdf)] [[CHANGE NOTICE FOR MANUAL NO. 01-14, HCWD Phase III](https://policies.ncdhhs.gov/wp-content/uploads/ma_cn01-14.pdf)]\n\nSo, **there is no maximum earned-income / total countable-income ceiling stated in the surfaced HCWD eligibility text**. Instead, higher countable income triggers fees and premiums. The policy also includes the note: \u201c**Refer to Job Aid: Forced Eligibility to process HCWD premium.**\u201d [[MA-2180 HEALTH COVERAGE FOR WORKERS WITH DISABILITIES](https://policies.ncdhhs.gov/wp-content/uploads/ma-2180-3.pdf)]\n\n## Premiums and enrollment fee\n\nThe policy says:\n\n- If **total countable income is at or below 150% FPL**: **no cost sharing** other than applicable copayments.\n- If **total countable income is greater than 150% FPL**: **$50 annual enrollment fee**.\n- If **total countable monthly income exceeds 200% FPL**: **monthly premium** is due **in addition to** the $50 annual enrollment fee.\n- Premiums increase by income range, and when income **exceeds 450% FPL**, the person must pay a **full premium**. [[MA-2180 HEALTH COVERAGE FOR WORKERS WITH DISABILITIES](https://policies.ncdhhs.gov/wp-content/uploads/ma-2180-3.pdf)] [[CHANGE NOTICE FOR MANUAL NO. 01-14, HCWD Phase III](https://policies.ncdhhs.gov/wp-content/uploads/ma_cn01-14.pdf)]\n\n## Premium amounts in the surfaced MA-2180 chart\n\nThe MA-2180 premium chart currently surfaced in the evidence lists these amounts:\n\n| FPL range | Individual monthly premium | Couple monthly premium |\n|---|---:|---:|\n| 0\u2013150% | $0 | $0 |\n| 151\u2013200% | $0 | $0 |\n| 201\u2013250% | $196 | $265 |\n| 251\u2013300% | $235 | $318 |\n| 301\u2013350% | $274 | $370 |\n| 351\u2013400% | $313 | $423 |\n| 401\u2013450% | $352 | $476 |\n| 451% and above | $875 | $875 |\n\nThe same surfaced chart gives these income ranges:\n\n- **Individual**\n  - 0\u2013150%: **$0\u20131,957**\n  - 151\u2013200%: **$1,957.01\u20132,609**\n  - 201\u2013250%: **$2,609.01\u20133,261**\n  - 251\u2013300%: **$3,261.01\u20133,913**\n  - 301\u2013350%: **$3,913.01\u20134,565**\n  - 351\u2013400%: **$4,565.01\u20135,217**\n  - 401\u2013450%: **$5,217.01\u20135,869**\n  - 451% and above: **$5,869.01 and up**\n\n- **Couple**\n  - 0\u2013150%: **$0\u20132,644**\n  - 151\u2013200%: **$2,644.01\u20133,525**\n  - 201\u2013250%: **$3,525.01\u20134,407**\n  - 251\u2013300%: **$4,407.01\u20135,288**\n  - 301\u2013350%: **$5,288.01\u20136,169**\n  - 351\u2013400%: **$6,169.01\u20137,050**\n  - 401\u2013450%: **$7,050.01\u20137,932**\n  - 451% and above: **$7,932.01 and up** [[MA-2180 HEALTH COVERAGE FOR WORKERS WITH DISABILITIES](https://policies.ncdhhs.gov/wp-content/uploads/ma-2180-3.pdf)]\n\n## Important amendment note\n\nMA-2180 has later amendments, and the amendment history identifies **[CHANGE NOTICE FOR MANUAL NO. 03-25, 2025 Federal Poverty Level Changes (FPL) Income Changes](https://policies.ncdhhs.gov/wp-content/uploads/CN-NO-03-25.docx.pdf)** as the authoritative amendment, stating that **\u201cMA-2180.IV.I - HCWD Premiums Income chart has been updated.\u201d** Because that updated 2025 chart was not surfaced in the evidence sections provided here, **I can verify the premium structure and the charted amounts above from the surfaced MA-2180 text, but I cannot confirm from surfaced section text that those exact dollar thresholds are the latest current 2025 amounts**. The underlying rule\u2014no overall total countable income cap, a 150% FPL cap on unearned income, a $50 annual enrollment fee above 150% FPL, and monthly premiums above 200% FPL\u2014*is* verified. [[CHANGE NOTICE FOR MANUAL NO. 03-25, 2025 Federal Poverty Level Changes (FPL) Income Changes](https://policies.ncdhhs.gov/wp-content/uploads/CN-NO-03-25.docx.pdf)] [[MA-2180 HEALTH COVERAGE FOR WORKERS WITH DISABILITIES](https://policies.ncdhhs.gov/wp-content/uploads/ma-2180-3.pdf)]\n\nIf you want, I can next help translate this into a practical rule like: \u201cCan someone stay on HCWD if their wages go over X?\u201d",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 3,
+        "completeness": 3,
+        "hallucination": 2,
+        "citation_quality": 3,
+        "overall": 3,
+        "explanation": "The agent's answer accurately captures all key facts from the reference: no maximum earned income limit, 150% FPL cap on unearned income, $50 per certification period enrollment fee above 150% FPL, sliding-scale monthly premiums above 200% FPL, and coverage regardless of total countable income. The agent correctly cites Change Notice 01-14 and MA-2180 with section-level references. The premium table with specific dollar amounts is presented but appropriately flagged with a caveat that the 2025 FPL update (CN-03-25) may have changed the exact thresholds - this is honest disclosure rather than hallucination. The slight embellishment concern is the detailed premium table (specific dollar figures like $196, $875, etc.) which are stated as facts from the surfaced evidence without unverified markers, though these appear to be from actual policy documents. The answer goes beyond the reference in helpful ways (providing the full premium schedule) while correctly capturing the core policy rules. A Medicaid policy expert would find this answer thorough, well-cited, and accurate."
+      },
+      "judge_error": false,
+      "route_lane": "deterministic_evidence",
+      "route_rationale": "numeric_thresholds",
+      "route_widening_policy": "none",
+      "route_determinism_hints": {
+        "numeric_evidence_only": true,
+        "latest_revision_only": false,
+        "cite_scope_and_not_covered": false
+      },
+      "route_authoritative_document": {
+        "id": "doc:dhhs_policy:MA-2180:url-08aa92cd33e7",
+        "policy_number": "MA-2180",
+        "title": "MA-2180 HEALTH COVERAGE FOR WORKERS WITH DISABILITIES"
+      },
+      "route_widened": false,
+      "route_inspection_error": null,
+      "agent_elapsed_seconds": 30.939,
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "primary_hit": true
+    },
+    {
+      "id": "q-010",
+      "difficulty": "complex",
+      "reasoning_type": "cross_document",
+      "question": "What is the federal statutory authority for NC's CAP/DA waiver, and what does the state need to demonstrate in its waiver application?",
+      "agent_answer": "NC\u2019s CAP/DA waiver rests on the federal **home- and community-based services waiver authority in section 1915(c) of the Social Security Act**, as implemented in **42 CFR Part 441, Subpart G**. In the federal regulations governing waiver requests, CMS requires the state\u2019s application to include the waiver assurances, supporting documentation, and\u2014if applicable\u2014requested waivers of certain Medicaid state plan rules such as statewide application, comparability, and medically needy income/resource rules. [42 CFR Part 441](https://www.ecfr.gov/current/title-42/part-441), \u00a7 441.301.\n\n## Federal authority\n\nFor the CAP/DA program specifically, the relevant federal authority is the **1915(c) HCBS waiver framework** reflected in **42 CFR \u00a7 441.301** and **\u00a7 441.303**. Section 441.301 describes what must be in a waiver request, and it expressly references possible waivers of:\n- **section 1902(a)(1)** of the Act (statewide application),\n- **section 1902(a)(10)(B)** (comparability of services), and\n- **section 1902(a)(10)(C)(i)(III)** (certain income/resource rules for medically needy individuals living in the community), when applicable. [42 CFR Part 441](https://www.ecfr.gov/current/title-42/part-441), \u00a7 441.301(a)(2).\n\n## What the state must demonstrate in its waiver application\n\nUnder **42 CFR \u00a7 441.301**, the state\u2019s application must show, at minimum, that:\n\n- it includes the **assurances required by \u00a7 441.302** and the **supporting documentation required by \u00a7 441.303**;\n- services will be provided under a **written person-centered service plan** approved by the Medicaid agency;\n- waiver services will be furnished only to people who are **not inpatients** of a hospital, nursing facility, or ICF/IID;\n- beneficiaries served are individuals whom the state determines would, **without waiver services, require an institutional level of care** in a hospital, nursing facility, or ICF/IID, as applicable;\n- the application identifies who is qualified to develop the **plan of care/person-centered service plan**;\n- the application describes the **target group** to be served;\n- the application separately defines each **waiver service**; and\n- the waiver is limited to one or more permissible **target groups**, including \u201caged or disabled, or both,\u201d which is the category most relevant to CAP/DA. [42 CFR Part 441](https://www.ecfr.gov/current/title-42/part-441), \u00a7 441.301(b).\n\nSection 441.301 also requires the application to address the **person-centered planning process** and the **person-centered service plan**, including informed choice, conflict-of-interest protections, and the individual\u2019s role in directing planning. [42 CFR Part 441](https://www.ecfr.gov/current/title-42/part-441), \u00a7 441.301(c).\n\nUnder **42 CFR \u00a7 441.303**, the state must provide supporting documentation sufficient to back up those assurances, including:\n\n- **health and welfare safeguards** for beneficiaries;\n- the **records and information** the state will maintain for **financial accountability**;\n- the state\u2019s plan for **evaluation and reevaluation** of beneficiaries, including:\n  - who performs the evaluations,\n  - how they are done,\n  - the evaluation form used,\n  - how the state ensures written documentation is maintained, and\n  - how reevaluations occur at regular intervals;\n- how the state will inform eligible beneficiaries of **feasible alternatives** and allow them to choose between institutional care and HCBS;\n- how the state will apply the rules on **post-eligibility treatment of income and resources** for certain beneficiaries; and\n- documentation showing **cost neutrality**\u2014that average per-capita Medicaid expenditures under the waiver will not exceed what Medicaid would have spent without the waiver. [42 CFR Part 441](https://www.ecfr.gov/current/title-42/part-441), \u00a7 441.303(a)-(f).\n\nSection 441.303 also requires the state to specify the **number of unduplicated beneficiaries** it intends to serve each year; that number becomes the waiver\u2019s enrollment cap unless CMS approves an increase by amendment. [42 CFR Part 441](https://www.ecfr.gov/current/title-42/part-441), \u00a7 441.303(f)(6).\n\n## NC implementation context for CAP/DA\n\nNorth Carolina\u2019s CAP/DA clinical policy is the current state implementation document in the corpus, effective **September 1, 2025**. It reflects the state\u2019s operation of the waiver and identifies CAP/DA as a home- and community-based waiver program with three participation options:\n- provider-led,\n- consumer-led, and\n- coordinated caregiving. [Community Alternatives Program for Disabled Adults (CAP/DA)](https://medicaid.ncdhhs.gov/3k-2-community-alternatives-program-disabled-adults-capda/download?attachment).\n\nThe NC policy also reflects the federal level-of-care and individualized-service concepts by requiring that covered services be individualized, consistent with the beneficiary\u2019s needs, safely furnished, and not more than necessary. [Community Alternatives Program for Disabled Adults (CAP/DA)](https://medicaid.ncdhhs.gov/3k-2-community-alternatives-program-disabled-adults-capda/download?attachment), \u00a7 3.1.\n\n## Bottom line\n\nThe federal authority for NC\u2019s CAP/DA waiver is **Social Security Act \u00a7 1915(c)**, implemented through **42 CFR Part 441, especially \u00a7\u00a7 441.301 and 441.303**. In its waiver application, North Carolina must demonstrate that the waiver:\n- serves an allowable target group,\n- limits services to people who meet the required **institutional level of care** absent HCBS,\n- uses **person-centered planning** and service plans,\n- clearly defines waiver services and provider/planner qualifications,\n- protects beneficiary **health and welfare**,\n- maintains financial accountability,\n- provides beneficiary **choice** between institutional and community services, and\n- is **cost-neutral** to Medicaid.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 3,
+        "completeness": 3,
+        "hallucination": 3,
+        "citation_quality": 3,
+        "overall": 3,
+        "explanation": "The agent's answer is comprehensive and accurate. It correctly identifies Section 1915(c) of the Social Security Act as the federal statutory authority, properly cites 42 CFR Part 441, Subpart G, specifically \u00a7\u00a7 441.301 and 441.303. The answer accurately describes what the state must demonstrate in its waiver application, including: allowable target groups, institutional level of care requirement, person-centered planning, service definitions, health and welfare safeguards, financial accountability, beneficiary choice, cost-neutrality, and the enrollment cap requirement. The agent goes beyond the reference answer by providing detailed information about person-centered service plans, HCBS settings requirements, and the specific regulatory text of \u00a7\u00a7 441.301 and 441.303 - all of which are supported by the evidence sections provided. The NC Clinical Coverage Policy 3K-2 is referenced correctly. Citations are precise and section-level throughout. No unsupported factual claims are made. The answer is more detailed than the reference but all added detail is verified by the evidence provided."
+      },
+      "judge_error": false,
+      "route_lane": "graph_reasoning",
+      "route_rationale": "federal_multi_hop",
+      "route_widening_policy": "family_expansion",
+      "route_determinism_hints": {
+        "numeric_evidence_only": false,
+        "latest_revision_only": false,
+        "cite_scope_and_not_covered": false
+      },
+      "route_authoritative_document": {
+        "id": "doc:federal_regulation:42-CFR-441",
+        "policy_number": "42-CFR-441",
+        "title": "42 CFR Part 441"
+      },
+      "route_widened": true,
+      "route_inspection_error": null,
+      "agent_elapsed_seconds": 32.47,
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "primary_hit": true
+    },
+    {
+      "id": "q-011",
+      "difficulty": "moderate",
+      "reasoning_type": "single_lookup",
+      "question": "What are the requirements for home modifications under CAP/DA, and what documentation must the Multidisciplinary Team provide?",
+      "agent_answer": "Under CAP/DA, home modifications must be tied to the beneficiary\u2019s assessed needs and service plan, and they must be aimed at improving the beneficiary\u2019s mobility, safety, independence, community integration, environmental/community accessibility, or addressing 24/7 coverage concerns. The beneficiary also agrees to work collaboratively with the multidisciplinary team to identify needs for equipment, modification, and technology. Current authority is the 9/1/2025 version of Policy 3K-2, with no later amendment returned in the amendment check. [Community Alternatives Program for Disabled Adults (CAP/DA)](https://medicaid.ncdhhs.gov/3k-2-community-alternatives-program-disabled-adults-capda/download?attachment)\n\n## Home modification requirements under CAP/DA\n\nCAP/DA covers equipment, modification, and technology when it is intended to:\n\n- improve, maximize, or enhance the beneficiary\u2019s mobility, safety, or independence;\n- improve integration into the community;\n- improve the beneficiary\u2019s environmental and community accessibility; or\n- address the beneficiary\u2019s 24-hours-a-day, 7-days-a-week coverage concerns.  \n  [Community Alternatives Program for Disabled Adults (CAP/DA)](https://medicaid.ncdhhs.gov/3k-2-community-alternatives-program-disabled-adults-capda/download?attachment)\n\nThe policy\u2019s home-modification examples include, among other things:\n\n- ramps, grab bars, safety rails, and handrails;\n- widening doorways or passages for wheelchair or walker access;\n- medically necessary emergency egress modifications;\n- bathroom modifications for accessibility;\n- bedroom and kitchen modifications to accommodate disability-related needs;\n- certain non-skid surfaces, lifts, door modifications, and vehicle-related accessibility modifications;\n- smart-home devices when the beneficiary lives alone and the need is identified in the assessment and person-centered service plan;\n- certain air filtration systems and backup generators when specific medical criteria are met.  \n  [Community Alternatives Program for Disabled Adults (CAP/DA)](https://medicaid.ncdhhs.gov/3k-2-community-alternatives-program-disabled-adults-capda/download?attachment)\n\nThe residence/vehicle limits in the policy are also important. Modifications may apply to:\n\n- the beneficiary\u2019s primary private residence if owned by the beneficiary or family;\n- a rented residence when the modifications are portable;\n- a rented residence when the owner allows the modification; and\n- the beneficiary\u2019s primary vehicle, or the primary vehicle of the documented legal guardian or primary caregiver.  \n  [Community Alternatives Program for Disabled Adults (CAP/DA)](https://medicaid.ncdhhs.gov/3k-2-community-alternatives-program-disabled-adults-capda/download?attachment)\n\n## What the Multidisciplinary Team must provide\n\nFor equipment, technology, and home modification requests, the MDT/documentation must include:\n\n- **A recommendation by the MDT** identifying the beneficiary\u2019s need for the requested assistive technology, equipment, or home modification.\n- **The cost of the item** in the recommendation.\n- **A plan for training** the beneficiary and family on use of the equipment; the case manager must document that training was completed, and it must be signed by the CAP/DA beneficiary or responsible party.\n- **A statement of need in the service plan.**\n- **Evidence of medical need** recommended by the MDT or by a physician, when applicable.\n- **Itemized shipping costs** in the proposal request.\n- **Any other information required for the specific equipment requested.**\n- **Quotes**, when required for purchase, adaptation, or modification, in the number required by NC Medicaid.\n- **Written recommendations from appropriate professionals** when NC Medicaid or its designee determines special circumstances require them.  \n  [Community Alternatives Program for Disabled Adults (CAP/DA)](https://medicaid.ncdhhs.gov/3k-2-community-alternatives-program-disabled-adults-capda/download?attachment)\n\nThe policy also specifically requires documentation maintained for equipment/supply/adaptation/modification requests, including:\n\n- **a comprehensive multidisciplinary declaration-of-need assessment** completed by the case manager identifying equipment, supply, adaptation, or modification needs;\n- **a copy of the physician\u2019s order**, when applicable;\n- **a recommendation by an appropriate professional** identifying the beneficiary\u2019s need for the requested equipment, supply, adaptation, or modification;\n- **the estimated life of the equipment** and the expected length of time the beneficiary will benefit from it; and\n- **an invoice from the supplier** showing the date provided and the cost, with related charges, maintained in the CAP Business system.  \n  [Community Alternatives Program for Disabled Adults (CAP/DA)](https://medicaid.ncdhhs.gov/3k-2-community-alternatives-program-disabled-adults-capda/download?attachment)\n\n## Practical summary\n\nFor a CAP/DA home modification to be approved, the record should show:\n\n1. the modification is disability-related and fits one of the program purposes;\n2. it is for an allowable home/vehicle setting;\n3. the need is identified by the MDT and reflected in the service plan;\n4. medical necessity/supporting professional documentation is included when applicable; and\n5. required cost, quote, training, and supplier documentation is provided.  \n   [Community Alternatives Program for Disabled Adults (CAP/DA)](https://medicaid.ncdhhs.gov/3k-2-community-alternatives-program-disabled-adults-capda/download?attachment)\n\nIf you want, I can also pull out the **non-covered/excluded home modification items** under CAP/DA into a short checklist.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 3,
+        "completeness": 3,
+        "hallucination": 2,
+        "citation_quality": 2,
+        "overall": 3,
+        "explanation": "The agent's answer accurately captures all key MDT documentation requirements from Section 5.9.1 (recommendation identifying need, cost statement, training plan with signed completion, statement of need in service plan, evidence of medical need, itemized shipping, quotes, professional recommendations) and the coverage criteria from Section 3.4.5. The answer goes beyond the reference by adding details about residence/vehicle eligibility, specific modification examples, and additional documentation requirements (comprehensive MDT declaration-of-need assessment, physician's order copy, estimated equipment life, supplier invoice) \u2014 these appear to be drawn from the actual policy document and are plausible, though not verified against the evidence sections provided. This constitutes slight embellishment rather than hallucination since the details align with CAP/DA policy structure. Citation quality is good in that the agent references Policy 3K-2 and links to the document, but section numbers (3.4.5 and 5.9.1) are not explicitly called out in the body of the answer, which is a minor weakness. Overall, a Medicaid policy expert would find this answer comprehensive, well-organized, and largely accurate."
+      },
+      "judge_error": false,
+      "route_lane": "baseline_hybrid",
+      "route_rationale": "single_document_coverage",
+      "route_widening_policy": "one_step",
+      "route_determinism_hints": {
+        "numeric_evidence_only": false,
+        "latest_revision_only": false,
+        "cite_scope_and_not_covered": false
+      },
+      "route_authoritative_document": {
+        "id": "doc:clinical_policy:3K-2",
+        "policy_number": "3K-2",
+        "title": "Community Alternatives Program for Disabled Adults (CAP/DA)"
+      },
+      "route_widened": true,
+      "route_inspection_error": null,
+      "agent_elapsed_seconds": 29.451,
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "primary_hit": true
+    },
+    {
+      "id": "q-012",
+      "difficulty": "moderate",
+      "reasoning_type": "multi_hop",
+      "question": "How many days of therapeutic leave from a nursing facility does NC Medicaid allow per year, and what conditions must be met?",
+      "agent_answer": "NC Medicaid allows **up to 60 days of therapeutic leave per calendar year** from a nursing facility bed, subject to specific limits and documentation requirements. No more than **15 consecutive therapeutic leave days** may be taken **without NC Medicaid approval**. [[Nursing Facilities](https://medicaid.ncdhhs.gov/2b-1-nursing-facilities/download?attachment), \u00a7 5.8, effective 2024-08-07]\n\n## Conditions that must be met\n\nTherapeutic leave must meet all of these conditions:\n\n- It must be **for therapeutic purposes only**.\n- It must be **ordered by the resident\u2019s attending physician**.\n- The **necessity for the leave must be documented in the resident\u2019s plan of care**.\n- A **therapeutic justification for each instance of leave must be entered in the resident\u2019s health record**. [[Nursing Facilities](https://medicaid.ncdhhs.gov/2b-1-nursing-facilities/download?attachment), \u00a7 5.8]\n\n## Other important limits\n\n- The nursing facility must **reserve the resident\u2019s bed** during the therapeutic leave.\n- The facility may not receive any other Medicaid revenue for that resident during the absence besides the bed reimbursement.\n- The facility is **not reimbursed for therapeutic leave days that exceed the legal limit**.\n- The therapeutic justification is **subject to State review**.\n- Facilities must keep a **cumulative record** of therapeutic leave days for each resident, note therapeutic leave status on the **midnight census**, and bill approved leave days as **regular residence days**. [[Nursing Facilities](https://medicaid.ncdhhs.gov/2b-1-nursing-facilities/download?attachment), \u00a7 5.8]\n\n## When therapeutic leave does not apply\n\nTherapeutic leave is **not available** when the resident is away **to receive inpatient or nursing services paid for by Medicaid**, whether:\n- at another location, or\n- at a different level of care in the same facility. [[Nursing Facilities](https://medicaid.ncdhhs.gov/2b-1-nursing-facilities/download?attachment), \u00a7 5.8]\n\n## Bottom line\n\n**60 days per calendar year**, with:\n- **physician order**,\n- **therapeutic purpose**,\n- **plan-of-care documentation**,\n- **case-specific justification in the health record**, and\n- **NC Medicaid approval if more than 15 consecutive days** are needed. [[Nursing Facilities](https://medicaid.ncdhhs.gov/2b-1-nursing-facilities/download?attachment), \u00a7 5.8]\n\nI checked amendments for Policy 2B-1, and the tool returned **2B-1 itself as the authoritative current document** with **no listed amendments**.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 3,
+        "completeness": 3,
+        "hallucination": 3,
+        "citation_quality": 3,
+        "overall": 3,
+        "explanation": "The agent's answer is comprehensive and accurate. It correctly states the 60-day annual limit, all four core conditions (therapeutic purpose, physician order, plan-of-care documentation, health record justification), and the 15 consecutive day limit requiring NC Medicaid approval. The agent also correctly captures additional policy details including bed reservation requirements, prohibition on other Medicaid revenue during absence, cumulative record-keeping, midnight census notation, billing as regular residence days, State review of justifications, and the exclusion when leave is for inpatient/nursing services paid by Medicaid. All claims match the evidence sections precisely. Citations are specific to Section 5.8 of Clinical Coverage Policy 2B-1 with a dated version reference. No hallucinations are present - every stated fact is supported by the policy text."
+      },
+      "judge_error": false,
+      "route_lane": "baseline_hybrid",
+      "route_rationale": "single_document_coverage",
+      "route_widening_policy": "one_step",
+      "route_determinism_hints": {
+        "numeric_evidence_only": false,
+        "latest_revision_only": false,
+        "cite_scope_and_not_covered": false
+      },
+      "route_authoritative_document": {
+        "id": "doc:clinical_policy:2B-1",
+        "policy_number": "2B-1",
+        "title": "Nursing Facilities"
+      },
+      "route_widened": true,
+      "route_inspection_error": null,
+      "agent_elapsed_seconds": 20.791,
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "primary_hit": true
+    },
+    {
+      "id": "q-013",
+      "difficulty": "moderate",
+      "reasoning_type": "single_lookup",
+      "question": "If a Private Duty Nursing provider terminates services for a Medicaid beneficiary, what notification requirements must they follow?",
+      "agent_answer": "A PDN provider that ends services must notify **NC Medicaid within 5 business days**, and what they must send depends on why services ended.\n\n## Required notice when the PDN provider terminates services\n\nUnder **Section 5.2.4.1, \u201cNotification of Termination,\u201d** of **[3G-1 Private Duty Nursing for Beneficiaries Age 21 and Older](https://medicaid.ncdhhs.gov/3g-1-private-duty-nursing-beneficiaries-age-21-and-older/download?attachment)**, which the amendment record returned as the authoritative current document:\n\n- **If the PDN service provider discharges the beneficiary:**  \n  the provider **must submit the DMA-3513 (PDN Discharge Summary Form) to NC Medicaid within five (5) business days**.\n\n- **If the provider discharges the beneficiary because there is another source of nursing coverage:**  \n  the provider must **notify NC Medicaid and submit the DMA-3513 within five (5) business days**.  \n  That notice must include:\n  - **the last date PDN services were provided and can be billed to Medicaid**, and\n  - **the name of the other source of coverage**.\n\n- **If the attending physician discharges the beneficiary:**  \n  the PDN provider must give NC Medicaid, **within five (5) business days**:\n  - **the physician\u2019s order terminating PDN services**, and\n  - **the DMA-3513**.  \n  The policy also says that **the decision of the attending physician and/or the PDN provider to discharge the beneficiary cannot be appealed to NC Medicaid**.  \n  Citation: **3G-1, \u00a7 5.2.4.1** in [3G-1 Private Duty Nursing for Beneficiaries Age 21 and Older](https://medicaid.ncdhhs.gov/3g-1-private-duty-nursing-beneficiaries-age-21-and-older/download?attachment).\n\n## If services stop for Medicaid eligibility or a long interruption\n\nThe same section says:\n\n- If services end because the beneficiary **loses NC Medicaid eligibility**, or\n- if **no PDN services are provided for 30 consecutive days** for any reason, including hospitalization,\n\nthen **the prior approval process must be started again** under Sections 5.1 and 5.2.  \nCitation: **3G-1, \u00a7 5.2.4.1** in [3G-1 Private Duty Nursing for Beneficiaries Age 21 and Older](https://medicaid.ncdhhs.gov/3g-1-private-duty-nursing-beneficiaries-age-21-and-older/download?attachment).\n\n## If NC Medicaid terminates PDN instead of the provider\n\nWhen **NC Medicaid** terminates PDN because eligibility, policy criteria, or medical necessity are not met, the policy says **NC Medicaid or its designee must provide written notice of an adverse decision to the beneficiary/legal representative, including appeal rights**.  \nCitation: **3G-1, \u00a7 5.2.4.1** in [3G-1 Private Duty Nursing for Beneficiaries Age 21 and Older](https://medicaid.ncdhhs.gov/3g-1-private-duty-nursing-beneficiaries-age-21-and-older/download?attachment).\n\nIf the beneficiary is in **managed care**, federal rules require written, timely, and adequate notice of an adverse benefit determination, including:\n- the action taken,\n- the reasons,\n- appeal rights,\n- procedures for appeal,\n- expedited appeal information, and\n- continuation-of-benefits information.  \nCitations: **42 CFR 438.404** and **42 CFR 438.10** in [42 CFR Part 438](https://www.ecfr.gov/current/title-42/part-438).\n\n## Bottom line\n\nFor a **provider-initiated PDN termination**, the clearest NC Medicaid requirement is:\n\n- **notify NC Medicaid within 5 business days**, and\n- submit the **DMA-3513 PDN Discharge Summary Form**,\n- plus any extra required information depending on the reason for discharge.\n\nIf you want, I can also give you a **one-paragraph advocacy summary** distinguishing:\n1. provider discharge,  \n2. physician-ordered termination, and  \n3. Medicaid adverse action with appeal rights.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 3,
+        "completeness": 3,
+        "hallucination": 3,
+        "citation_quality": 3,
+        "overall": 3,
+        "explanation": "The agent's answer is comprehensive and accurate. It correctly identifies all four termination scenarios from Section 5.2.4.1: provider discharge, discharge due to other coverage source, physician discharge, and loss of Medicaid eligibility/30-day gap. All key facts match the reference evidence including the 5 business day requirement, DMA-3513 form, required notification contents (last billing date and other coverage name), physician's order requirement, non-appealability of provider/physician discharge decisions, and the prior approval restart requirement. The agent also correctly adds information about NC Medicaid-initiated terminations and managed care appeal rights, which are supported by the evidence section. Citations are precise, referencing the specific section (5.2.4.1) and the policy document with links. No hallucinations are present - all stated facts are supported by the evidence provided."
+      },
+      "judge_error": false,
+      "route_lane": "baseline_hybrid",
+      "route_rationale": "default_general",
+      "route_widening_policy": "none",
+      "route_determinism_hints": {
+        "numeric_evidence_only": false,
+        "latest_revision_only": false,
+        "cite_scope_and_not_covered": false
+      },
+      "route_authoritative_document": {
+        "id": "doc:federal_regulation:42-CFR-438",
+        "policy_number": "42-CFR-438",
+        "title": "42 CFR Part 438"
+      },
+      "route_widened": false,
+      "route_inspection_error": null,
+      "agent_elapsed_seconds": 27.913,
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "primary_hit": true
+    },
+    {
+      "id": "q-014",
+      "difficulty": "simple",
+      "reasoning_type": "single_lookup",
+      "question": "After receiving an initial PCS (Personal Care Services) approval for fewer than 80 hours per month, how long must a beneficiary wait before requesting a reconsideration for more hours?",
+      "agent_answer": "A beneficiary must wait **30 calendar days from the date of the approval notice** before submitting a reconsideration request for more PCS hours.\n\nMore precisely, NC Medicaid says the reconsideration request must be filed **no earlier than day 31 and no later than day 60** from the date of the initial approval notification, when the initial approval was for **less than 80 hours per month**. That 30-day waiting period **does not apply** if the beneficiary instead qualifies to file a **Change of Status** request, which may be submitted at any time if the change-of-status criteria are met.  \nCited source: [State Plan Personal Care Services (PCS) Provided in Congregate Settings](https://medicaid.ncdhhs.gov/media/14986/download?attachment), \u00a7 5.6 (current authoritative document; no amendments returned for this document).\n\nIf you want, I can also give you the exact reconsideration language for standard PCS policy **3L** versus congregate-settings policy **3L-1**.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 3,
+        "completeness": 3,
+        "hallucination": 3,
+        "citation_quality": 3,
+        "overall": 3,
+        "explanation": "The agent's answer is highly accurate and complete. It correctly states the 30-calendar-day waiting period, the no-earlier-than-day-31 and no-later-than-day-60 filing window, and the Change of Status exception. All key facts match the reference answer and evidence sections precisely. No hallucinations are present - all stated facts are supported by the policy text. The citation references Section 5.6 of Clinical Coverage Policy 3L-1 specifically, which is the correct policy section. The answer is slightly more verbose than necessary but adds no incorrect information. A Medicaid policy expert would find this answer accurate and well-cited."
+      },
+      "judge_error": false,
+      "route_lane": "baseline_hybrid",
+      "route_rationale": "single_document_prior_auth",
+      "route_widening_policy": "one_step",
+      "route_determinism_hints": {
+        "numeric_evidence_only": false,
+        "latest_revision_only": false,
+        "cite_scope_and_not_covered": false
+      },
+      "route_authoritative_document": {
+        "id": "doc:clinical_policy:3L-1",
+        "policy_number": "3L-1",
+        "title": "State Plan Personal Care Services (PCS) Provided in Congregate Settings"
+      },
+      "route_widened": true,
+      "route_inspection_error": null,
+      "agent_elapsed_seconds": 15.231,
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "primary_hit": true
+    },
+    {
+      "id": "q-015",
+      "difficulty": "moderate",
+      "reasoning_type": "cross_document",
+      "question": "What does federal law define as 'home health services' under Medicaid, and where must they be provided?",
+      "agent_answer": "Under federal Medicaid law, **\u201chome health services\u201d** are the services listed in **42 C.F.R. \u00a7 440.70(b)** when they are provided to a beneficiary **at the beneficiary\u2019s place of residence** and under the required practitioner orders and plan-of-care rules. Those services include:\n\n- **Nursing services** provided on a part-time or intermittent basis,\n- **Home health aide services**,\n- **Medical supplies, equipment, and appliances** suitable for use in normal life settings, and\n- **Physical therapy, occupational therapy, or speech pathology/audiology services** as an optional home health service category.  \nCited in [42 CFR Part 440](https://www.ecfr.gov/current/title-42/part-440), \u00a7 440.70(b).\n\n## Core federal conditions\n\nFor home health services under \u00a7 440.70:\n\n- Services must be provided **on written orders** by a **physician, nurse practitioner, clinical nurse specialist, or physician assistant**, working in accordance with state law, for the services described in \u00a7 440.70(b)(1), (2), and (4).\n- Those services must be part of a **written plan of care** that the ordering practitioner **reviews every 60 days**.\n- For **medical supplies, equipment, and appliances** under \u00a7 440.70(b)(3), services/items must be ordered under the separate ordering and plan-of-care standards in \u00a7 440.70(a)(3), and the beneficiary\u2019s need must be reviewed at least **annually**, with further review on a case-by-case basis.  \nCited in [42 CFR Part 440](https://www.ecfr.gov/current/title-42/part-440), \u00a7 440.70(a), (b)(3).\n\n## Where they must be provided\n\nFederal law says home health services must be provided **at the beneficiary\u2019s place of residence**. But the regulation also makes clear that \u201cplace of residence\u201d is **not limited to a private home**.\n\nA beneficiary\u2019s place of residence **does not include**:\n\n- a **hospital**,\n- a **nursing facility**, or\n- an **intermediate care facility for individuals with intellectual disabilities (ICF/IID)**,\n\nwith a narrow exception for certain home health services in an ICF/IID that the facility itself is not required to provide.  \nCited in [42 CFR Part 440](https://www.ecfr.gov/current/title-42/part-440), \u00a7 440.70(c).\n\nFederal law further states that nothing in the section should be read to prohibit home health services in **\u201cany setting in which normal life activities take place,\u201d** other than:\n\n- a hospital,\n- a nursing facility,\n- an ICF/IID, or\n- **any setting where Medicaid payment is or could be made for inpatient services that include room and board**.\n\nIt also expressly says **home health services cannot be limited to beneficiaries who are homebound**.  \nCited in [42 CFR Part 440](https://www.ecfr.gov/current/title-42/part-440), \u00a7 440.70(c)(1).\n\n## Bottom line\n\nFederal Medicaid law defines home health services as specified nursing, aide, medical supply/equipment/appliance, and certain therapy services furnished under the ordering and plan-of-care requirements in **42 C.F.R. \u00a7 440.70**. They must be provided at the beneficiary\u2019s **place of residence**, meaning a setting where **normal life activities take place**, but **not** a hospital, nursing facility, ICF/IID (subject to a narrow exception), or another setting paid as inpatient room-and-board care under Medicaid. Current authority: [42 CFR Part 440](https://www.ecfr.gov/current/title-42/part-440), \u00a7 440.70.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 3,
+        "completeness": 3,
+        "hallucination": 3,
+        "citation_quality": 3,
+        "overall": 3,
+        "explanation": "The agent's answer is comprehensive and accurate. It correctly identifies 42 CFR 440.70 as the governing regulation, accurately lists all four categories of home health services (nursing, aide, medical supplies/equipment/appliances, and optional therapy services), correctly states the practitioner ordering requirements (physician, NP, CNS, PA), the 60-day plan of care review requirement, and the annual review for medical equipment. The answer accurately describes the 'place of residence' requirements including the exclusions (hospitals, nursing facilities, ICF/IID) and the 'normal life activities' standard. It also correctly notes that homebound status cannot be a condition of eligibility. The agent goes beyond the reference answer in helpful ways by noting the annual review requirement for medical equipment and the prohibition on homebound restrictions. Citations are precise and section-level throughout. The only notable omission compared to the reference is lack of mention of NC's Clinical Coverage Policy 3A, but the question asked about federal law specifically, so this is not a deficiency. No hallucinations detected."
+      },
+      "judge_error": false,
+      "route_lane": "graph_reasoning",
+      "route_rationale": "federal_multi_hop",
+      "route_widening_policy": "family_expansion",
+      "route_determinism_hints": {
+        "numeric_evidence_only": false,
+        "latest_revision_only": false,
+        "cite_scope_and_not_covered": false
+      },
+      "route_authoritative_document": {
+        "id": "doc:federal_regulation:42-CFR-440",
+        "policy_number": "42-CFR-440",
+        "title": "42 CFR Part 440"
+      },
+      "route_widened": true,
+      "route_inspection_error": null,
+      "agent_elapsed_seconds": 23.831,
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "primary_hit": true
+    },
+    {
+      "id": "q-016",
+      "difficulty": "simple",
+      "reasoning_type": "single_lookup",
+      "question": "How does NC Medicaid define 'terminally ill' for purposes of hospice eligibility, and what certification is required?",
+      "agent_answer": "For NC Medicaid hospice eligibility, **\u201cterminally ill\u201d means the beneficiary has a life expectancy of six months or less**. The hospice certification/recertification materials must support that prognosis with individualized clinical information, and for later recertifications the narrative must explain why the face-to-face clinical findings support **a life expectancy of six months or less**. [Hospice Services](https://medicaid.ncdhhs.gov/3d-hospice-services/download?attachment) (effective Mar. 15, 2024), section D, \u201cCertification and Recertification of Terminal Illness.\u201d\n\n## Required certification\n\nNC Medicaid requires **written certification of terminal illness for each benefit period**. The hospice provider must obtain the written certification **before submitting a claim for payment**. If the written certification cannot be obtained within two calendar days after a benefit period begins, an **oral certification** must be obtained within those two calendar days, and the **written certification still must be obtained before billing**. [Hospice Services](https://medicaid.ncdhhs.gov/3d-hospice-services/download?attachment) (effective Mar. 15, 2024), \u00a7 5.4.1.\n\n### Who must sign it\n- **Initial 90-day period:** certification must come from:\n  - the **medical director of the hospice** or the **physician member of the hospice interdisciplinary group (IDG)**; and\n  - the beneficiary\u2019s **attending physician**, if the beneficiary has one.  \n  [Hospice Services](https://medicaid.ncdhhs.gov/3d-hospice-services/download?attachment) (effective Mar. 15, 2024), \u00a7 5.4.3.\n\n- **Subsequent benefit periods:** only the **medical director of the hospice** or the **physician member of the hospice IDG** must certify.  \n  [Hospice Services](https://medicaid.ncdhhs.gov/3d-hospice-services/download?attachment) (effective Mar. 15, 2024), \u00a7 5.4.3.\n\n### What the certification must contain\nThe certification or recertification must:\n- include a **physician narrative** briefly synthesizing the clinical information supporting the terminal diagnosis;\n- include the physician\u2019s attestation that the narrative was composed after reviewing the clinical information and, where applicable, examining the beneficiary;\n- reflect the beneficiary\u2019s **individual clinical circumstances**;\n- include the **election period dates** it applies to; and\n- be **signed and dated** by the certifying or recertifying physician.  \n[Hospice Services](https://medicaid.ncdhhs.gov/3d-hospice-services/download?attachment) (effective Mar. 15, 2024), section D, \u201cCertification and Recertification of Terminal Illness.\u201d\n\n### Timing rules\n- Initial certifications may be completed **no more than 15 calendar days before** the effective date of election.\n- Recertifications may be completed **no more than 15 calendar days before** the start of the next benefit period.  \n[Hospice Services](https://medicaid.ncdhhs.gov/3d-hospice-services/download?attachment) (effective Mar. 15, 2024), \u00a7 5.4.1; section D, \u201cCertification and Recertification of Terminal Illness.\u201d\n\n### Face-to-face requirement for later recertifications\nBefore the **third benefit period recertification and every recertification after that**, a hospice physician or hospice nurse practitioner must have a **face-to-face encounter** with the beneficiary, occurring **no more than 30 calendar days before** that recertification, to gather clinical findings supporting continued hospice eligibility.  \n[Hospice Services](https://medicaid.ncdhhs.gov/3d-hospice-services/download?attachment) (effective Mar. 15, 2024), \u00a7 5.4.1.\n\nI checked for amendments, and the current authoritative document returned was **Clinical Coverage Policy 3D, Hospice Services**, effective **March 15, 2024**.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 3,
+        "completeness": 3,
+        "hallucination": 3,
+        "citation_quality": 3,
+        "overall": 3,
+        "explanation": "The agent's answer is comprehensive and accurate. It correctly defines 'terminally ill' as having a life expectancy of six months or less, matches the reference on certification requirements (written certification per benefit period, initial 90-day period requiring both hospice medical director/IDG physician AND attending physician, subsequent periods requiring only hospice medical director/IDG physician). The agent goes beyond the reference answer by including additional accurate details from the policy: oral certification exception, 15-day advance certification windows, face-to-face encounter requirement before 3rd benefit period recertification, physician narrative requirements, and signing/dating requirements. All of these match the evidence sections provided. Citations are precise, referencing specific sections (\u00a75.4.1, \u00a75.4.3) and the specific policy document (Clinical Coverage Policy 3D, effective March 15, 2024). No hallucinations are detected - all stated facts align with the evidence provided."
+      },
+      "judge_error": false,
+      "route_lane": "baseline_hybrid",
+      "route_rationale": "single_document_coverage",
+      "route_widening_policy": "one_step",
+      "route_determinism_hints": {
+        "numeric_evidence_only": false,
+        "latest_revision_only": false,
+        "cite_scope_and_not_covered": false
+      },
+      "route_authoritative_document": {
+        "id": "doc:clinical_policy:3D",
+        "policy_number": "3D",
+        "title": "Hospice Services"
+      },
+      "route_widened": true,
+      "route_inspection_error": null,
+      "agent_elapsed_seconds": 23.819,
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "primary_hit": true
+    },
+    {
+      "id": "q-017",
+      "difficulty": "simple",
+      "reasoning_type": "single_lookup",
+      "question": "What ambulance services are NOT covered by NC Medicaid?",
+      "agent_answer": "NC Medicaid does **not** cover certain ambulance services, even under the Ambulance Services policy.\n\n## Not-covered ambulance services\nUnder **Section 4.2.1.4**, NC Medicaid does **not** cover:\n\n- an ambulance call where **no treatment is needed**\n- a **false alarm** ambulance response\n- situations where **the beneficiary refuses all medical services**\n- ambulance transport for a **medical service that is not itself covered by Medicaid**\n- **commercial airline tickets**\n- **airstrip fees**\n- **taxes** charged separately\n- **separate additional charges for nursing personnel** who are employees of a facility or ambulance service\n- **waiting fees**\n- separate reimbursement for **oxygen and other items/supplies**, because those are included in the base rate\n- **services other than those listed in Section 3.2**  \nCite: [Ambulance Services](https://medicaid.ncdhhs.gov/15-ambulance-services/download?attachment) \u00a7 4.2.1.4, effective 12/15/2023.\n\n## Other ambulance-related limits that are not covered\nUnder **Section 4.2.1**, NC Medicaid also does not reimburse:\n\n- **loaded mileage to a facility that is not the nearest appropriate facility**\n- transport based on a physician\u2019s staff privileges rather than medical appropriateness\n- transport based on the beneficiary\u2019s preference for a different facility  \nCite: [Ambulance Services](https://medicaid.ncdhhs.gov/15-ambulance-services/download?attachment) \u00a7 4.2.1, effective 12/15/2023.\n\n## General exclusions\nSeparately, under **Section 4.1**, ambulance services are not covered if:\n\n- the beneficiary does not meet the **eligibility requirements** in Section 2.0\n- the beneficiary does not meet the **coverage criteria** in Section 3.0\n- the service **duplicates another provider\u2019s service**\n- the service is **experimental, investigational, or part of a clinical trial**  \nCite: [Ambulance Services](https://medicaid.ncdhhs.gov/15-ambulance-services/download?attachment) \u00a7 4.1, effective 12/15/2023.\n\n## Governing coverage rule\nThe policy also says that services **other than those listed in Section 3.2 are not covered**, and Section 3.2 ties coverage to covered emergency ambulance criteria.  \nCite: [Ambulance Services](https://medicaid.ncdhhs.gov/15-ambulance-services/download?attachment) \u00a7\u00a7 3.2, 4.2.1.4, effective 12/15/2023.\n\nI checked the amendment record for Policy 15, and the tool returned **no separate amending change notices**; the authoritative current document returned was **Ambulance Services**, effective **12/15/2023**.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 3,
+        "completeness": 3,
+        "hallucination": 3,
+        "citation_quality": 3,
+        "overall": 3,
+        "explanation": "The agent's answer is exceptionally thorough and accurate. It correctly identifies all items listed in Section 4.2.1.4 verbatim (false alarms, no treatment needed, refusal of services, non-covered medical services, commercial airline tickets, airstrip fees, taxes, nursing personnel charges, waiting fees, oxygen/supplies in base rate, services outside 3.2). It goes beyond the reference answer by also covering Section 4.2.1 facility-selection limitations and Section 4.1 general exclusions, which are legitimate policy content. The agent also addresses air ambulance coverage criteria from Section 3.2.1.1, which contextualizes when ambulance IS covered. All claims are supported by the actual policy evidence sections provided. Citations are precise, including specific subsection numbers and effective dates. No hallucinations are present - every claim maps to verifiable policy content. The reference answer was less complete than the agent's answer, which is a positive indicator. A Medicaid policy expert would find this answer authoritative and useful."
+      },
+      "judge_error": false,
+      "route_lane": "baseline_hybrid",
+      "route_rationale": "single_document_coverage",
+      "route_widening_policy": "one_step",
+      "route_determinism_hints": {
+        "numeric_evidence_only": false,
+        "latest_revision_only": false,
+        "cite_scope_and_not_covered": false
+      },
+      "route_authoritative_document": {
+        "id": "doc:clinical_policy:15",
+        "policy_number": "15",
+        "title": "Ambulance Services"
+      },
+      "route_widened": true,
+      "route_inspection_error": null,
+      "agent_elapsed_seconds": 21.825,
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "primary_hit": true
+    },
+    {
+      "id": "q-018",
+      "difficulty": "moderate",
+      "reasoning_type": "multi_hop",
+      "question": "Are there quantity limits on prescription drugs under NC Medicaid, and when is prior authorization required for pharmacy claims?",
+      "agent_answer": "Yes. NC Medicaid policy says quantity limits may be imposed for episodic drugs, and prior authorization is required when the drug falls within the pharmacy prior-approval criteria list. The currently surfaced policy is the **Lock-in Program**, effective **July 15, 2024**, and no amendments were returned for that document in the amendment check. [Lock-in Program](https://medicaid.ncdhhs.gov/9-outpatient-pharmacy-program/download?attachment)\n\n## Quantity limits\n\nSection **5.4.3, \u201cQuantity and Episodic Drugs,\u201d** states that NC Medicaid evaluates the applicability of **quantity limitations of episodic drugs** and addresses drugs prescribed in limited quantities. That confirms that quantity limits do exist under the surfaced pharmacy policy. [Lock-in Program](https://medicaid.ncdhhs.gov/9-outpatient-pharmacy-program/download?attachment)\n\nThe surfaced evidence does **not** reproduce a numeric quantity-limit table or specific day-supply amounts here, so I could not verify any current dollar, unit, or day-limit figures from the text surfaced for this answer. [Lock-in Program](https://medicaid.ncdhhs.gov/9-outpatient-pharmacy-program/download?attachment)\n\n## When prior authorization is required for pharmacy claims\n\nPrior authorization is required for drugs or drug categories that appear in NC Medicaid\u2019s **\u201cPharmacy Prior Approval Drugs and Criteria\u201d** / **Attachment K: Pharmacy Prior Approval Criteria**. The surfaced list includes many categories and products, such as:\n\n- GLP-1 receptor agonists and combinations\n- Hepatitis C medications\n- Growth hormones\n- Opioid analgesics\n- Synagis\n- Therapeutic continuous glucose monitoring systems and related supplies\n- certain behavioral health clinical edits\n- and many other listed drugs/categories\n\nThese are **examples only**, not a complete restatement of the full criteria. The detailed list and criteria are in the prior-approval section and Attachment K. [Lock-in Program](https://medicaid.ncdhhs.gov/9-outpatient-pharmacy-program/download?attachment)\n\n## Bottom line\n\n- **Yes**, NC Medicaid may apply **quantity limits** for episodic drugs. [Lock-in Program](https://medicaid.ncdhhs.gov/9-outpatient-pharmacy-program/download?attachment)\n- **Prior authorization is required** when the pharmacy claim involves a drug or category listed in NC Medicaid\u2019s **Pharmacy Prior Approval Drugs and Criteria / Attachment K**. [Lock-in Program](https://medicaid.ncdhhs.gov/9-outpatient-pharmacy-program/download?attachment)\n\nIf you want, I can next pull the current prior-approval categories into a cleaner list or help determine whether a specific drug requires PA.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 2,
+        "completeness": 2,
+        "hallucination": 2,
+        "citation_quality": 2,
+        "overall": 2,
+        "explanation": "The agent correctly identifies Section 5.4.3 for quantity limits and Attachment K/Pharmacy Prior Approval Drugs and Criteria for prior authorization requirements, aligning with the reference answer. The agent provides a solid list of PA-required drug categories that matches the evidence. However, there are some issues: (1) The agent repeatedly labels the source as 'Lock-in Program' which appears to be an incorrect or misleading document title for Clinical Coverage Policy 9 on Outpatient Pharmacy - this is a factual inaccuracy in attribution, though the section numbers cited are correct. (2) The agent does not explicitly reference 'Clinical Coverage Policy 9' by name as the reference answer does. (3) The PA drug list provided is representative but not complete, though the agent appropriately notes these are examples only. The 'Lock-in Program' label is stated as fact without an unverified marker, which constitutes a minor factual error in source identification. Overall, the answer is acceptable and would give a policy researcher the right direction, but the document title mislabeling is a notable flaw."
+      },
+      "judge_error": false,
+      "route_lane": "deterministic_evidence",
+      "route_rationale": "numeric_thresholds",
+      "route_widening_policy": "one_step",
+      "route_determinism_hints": {
+        "numeric_evidence_only": true,
+        "latest_revision_only": false,
+        "cite_scope_and_not_covered": false
+      },
+      "route_authoritative_document": {
+        "id": "doc:clinical_policy:9",
+        "policy_number": "9",
+        "title": "Lock-in Program"
+      },
+      "route_widened": true,
+      "route_inspection_error": null,
+      "agent_elapsed_seconds": 24.361,
+      "precision": 0.6666666666666666,
+      "recall": 0.6666666666666666,
+      "mrr": 0.6666666666666666,
+      "primary_hit": true
+    },
+    {
+      "id": "q-019",
+      "difficulty": "moderate",
+      "reasoning_type": "single_lookup",
+      "question": "Under what conditions can speech therapy be provided via telehealth under NC Medicaid?",
+      "agent_answer": "NC Medicaid allows some speech-language evaluation and treatment services to be provided by telehealth, but only under specific conditions.\n\n## When speech therapy can be provided by telehealth\n\nUnder **Clinical Coverage Policy 10A**, a select set of speech and language evaluation and treatment interventions may be delivered by telehealth. Telehealth may be **medically necessary** when:\n\n- the beneficiary\u2019s medical condition is such that **exposure to others should be avoided**, or\n- the beneficiary is in a **remote or underserved location** where access to appropriately qualified providers is limited.  \n  [Clinical Coverage Policy 10A](https://medicaid.ncdhhs.gov/10a-outpatient-specialized-therapies/download?attachment) (effective Feb. 1, 2025), section **e. Telehealth**\n\n## Required limits on telehealth use\n\nThe policy also says telehealth must meet these beneficiary-specific conditions:\n\n- **It must be an adjunct to in-person care, not a replacement**, unless in-person care is contraindicated or unavailable.\n- **It must be in the beneficiary\u2019s best interest**, not for the therapist\u2019s convenience.\n- **It cannot be used solely to increase therapist productivity.**  \n  [Clinical Coverage Policy 10A](https://medicaid.ncdhhs.gov/10a-outpatient-specialized-therapies/download?attachment) (effective Feb. 1, 2025), section **e. Telehealth**\n\n## Ordinary speech-therapy rules still apply\n\nTelehealth does not remove the usual medical-necessity requirements for speech-language therapy. The service still has to satisfy the underlying **speech-language therapy** criteria in Policy 10A, including applicable documentation and service-specific standards.  \n[Clinical Coverage Policy 10A](https://medicaid.ncdhhs.gov/10a-outpatient-specialized-therapies/download?attachment) (effective Feb. 1, 2025), section **3.2.1.3 Speech-Language Therapy (ST)**\n\n## Bottom line\n\nSpeech therapy may be provided via telehealth under NC Medicaid **only when telehealth is medically necessary and appropriate for the beneficiary**, remains generally **supplemental to in-person care**, and is **not used for therapist convenience or productivity**. It also must still meet the usual speech-therapy coverage criteria in Policy 10A.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 3,
+        "completeness": 3,
+        "hallucination": 3,
+        "citation_quality": 3,
+        "overall": 3,
+        "explanation": "The agent's answer accurately captures all key conditions from Clinical Coverage Policy 10A's telehealth section: medical necessity when exposure to others should be avoided or location is remote/underserved, telehealth as adjunct not replacement (unless contraindicated/unavailable), must be in beneficiary's best interest, and not used solely for therapist productivity. It also correctly notes that standard speech therapy medical necessity criteria still apply. The answer goes beyond the reference answer by including additional specific criteria from the actual policy text (the three bullet points about adjunct care, beneficiary interest, and productivity), making it more complete than the reference. Citations are precise, pointing to specific sections (section e. Telehealth and section 3.2.1.3). No hallucinations are present - all claims are supported by the evidence sections provided. The answer is well-organized and would be acceptable to a Medicaid policy expert."
+      },
+      "judge_error": false,
+      "route_lane": "baseline_hybrid",
+      "route_rationale": "single_document_coverage",
+      "route_widening_policy": "one_step",
+      "route_determinism_hints": {
+        "numeric_evidence_only": false,
+        "latest_revision_only": false,
+        "cite_scope_and_not_covered": false
+      },
+      "route_authoritative_document": {
+        "id": "doc:clinical_policy:10A",
+        "policy_number": "10A",
+        "title": "Clinical Coverage Policy 10A"
+      },
+      "route_widened": true,
+      "route_inspection_error": null,
+      "agent_elapsed_seconds": 18.771,
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "primary_hit": true
+    },
+    {
+      "id": "q-020",
+      "difficulty": "moderate",
+      "reasoning_type": "temporal",
+      "question": "The Non-Emergency Medical Transportation (NEMT) policy has been amended multiple times. Which change notice is the most recent, and what did it change?",
+      "agent_answer": "The most recent verified revision marker for the NEMT policy is **REVISED 03/16/2026 \u2013 CHANGE NO. 04-26** in **[MA-3550 NON-EMERGENCY MEDICAL TRANSPORTATION (NEMT)](https://policies.ncdhhs.gov/wp-content/uploads/MA-3550-.pdf)**.\n\nHowever, based on the parsed text available to me, I **could not verify the specific substantive changes made by Change No. 04-26**. The surfaced evidence confirms the latest change marker, but the associated section text is title-only and does not describe what was changed.\n\n## What I can verify\n- **Most recent change notice:** **Change No. 04-26**\n- **Revision date shown in the policy:** **03/16/2026**\n- **Source:** **[MA-3550 NON-EMERGENCY MEDICAL TRANSPORTATION (NEMT)](https://policies.ncdhhs.gov/wp-content/uploads/MA-3550-.pdf)**\n\n## Important limitation\nI also checked the amendment records tied to MA-3550. Those records list older amendment summaries, but they do **not** provide a parsed summary for **Change No. 04-26**. So I can confirm that **04-26 is the latest revision marker**, but **I cannot confirm from the retrieved policy text what that notice changed**.\n\nIf you want, I can next help with a **chronology of the earlier NEMT change notices and their verified change summaries**.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 3,
+        "completeness": 3,
+        "hallucination": 3,
+        "citation_quality": 3,
+        "overall": 3,
+        "explanation": "The agent's answer correctly identifies Change No. 04-26 as the most recent NEMT amendment with revision date 03/16/2026, matching the reference answer exactly. The agent also honestly acknowledges that the substantive details of what was changed cannot be determined from the parsed text - consistent with the reference answer's conclusion. No hallucinated facts are present; the agent appropriately flags its limitations. The answer cites the specific policy document MA-3550 with a URL and references the exact change marker, providing good citation quality. The answer aligns well with what a Medicaid policy expert would expect given the corpus limitations described in the reference."
+      },
+      "judge_error": false,
+      "route_lane": "deterministic_evidence",
+      "route_rationale": "latest_revision_marker",
+      "route_widening_policy": "none",
+      "route_determinism_hints": {
+        "numeric_evidence_only": false,
+        "latest_revision_only": true,
+        "cite_scope_and_not_covered": false
+      },
+      "route_authoritative_document": {
+        "id": "doc:dhhs_policy:MA-3550:url-54185ce6f688",
+        "policy_number": "MA-3550",
+        "title": "MA-3550 NON-EMERGENCY MEDICAL TRANSPORTATION (NEMT)"
+      },
+      "route_widened": false,
+      "route_inspection_error": null,
+      "agent_elapsed_seconds": 16.224,
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "primary_hit": true
+    },
+    {
+      "id": "q-021",
+      "difficulty": "complex",
+      "reasoning_type": "cross_document",
+      "question": "What medical loss ratio (MLR) must Medicaid managed care organizations meet under federal law, and how does NC implement this requirement?",
+      "agent_answer": "Under federal law, Medicaid managed care organizations do **not automatically have a universal minimum MLR to \u201cmeet.\u201d** The federal rule requires states to make each MCO/PIHP/PAHP **calculate and report** an MLR, and **if** a state chooses to impose a minimum MLR, that floor must be **at least 85%**. North Carolina implements that federal framework by requiring PHPs to calculate the federal/CMS-defined MLR and, in its contract, setting a **Department-defined minimum MLR threshold of 88% in aggregate across all contracted PHPs**, with plan-specific thresholds based on revenue mix. [42 CFR Part 438](https://www.ecfr.gov/current/title-42/part-438); [Contract--30-190029-DHB-Prepaid-Health-Plan-Services RFP](https://medicaid.ncdhhs.gov/contract-30-190029-dhb-prepaid-health-plan-services-rfp/download?attachment)\n\n## Federal rule\n\n### 1) What federal law requires\n42 C.F.R. \u00a7 438.8 says the state must ensure through its contracts that each Medicaid managed care plan calculates and reports an MLR. It then provides that **if a state elects to mandate a minimum MLR**, that minimum must be **equal to or higher than 85 percent**. So the federal floor is **85% for any state-imposed minimum**, not a standalone nationwide minimum imposed directly on every plan in every state. [42 CFR Part 438](https://www.ecfr.gov/current/title-42/part-438)\n\n### 2) How the federal MLR is calculated\nUnder 42 C.F.R. \u00a7 438.8, the MLR is the ratio of:\n\n- **Numerator:** incurred claims + expenditures for activities that improve health care quality + fraud prevention activities.\n- **Denominator:** adjusted premium revenue, with taxes and licensing/regulatory fees handled under the rule\u2019s denominator provisions.\n\nThe rule also allows a **credibility adjustment** for partially credible plans. [42 CFR Part 438](https://www.ecfr.gov/current/title-42/part-438)\n\nAt a high level, the federal numerator includes items like direct provider claims, unpaid claims liabilities, certain provider withholds, and specified incentive/bonus payments tied to measurable clinical or quality standards; it excludes non-claims administrative costs and requires certain deductions such as overpayment recoveries and prescription drug rebates. [42 CFR Part 438](https://www.ecfr.gov/current/title-42/part-438)\n\n### 3) Federal oversight if a state sets a minimum\nIf a state imposes a minimum MLR, 42 C.F.R. \u00a7 438.74 requires the state to report annually to CMS, for each plan, at least:\n\n- the numerator amount,\n- the denominator amount,\n- the MLR percentage,\n- member months, and\n- any remittances owed.\n\nIf remittances are required for failure to meet the state minimum, the state must reimburse CMS for the federal share of the remittance and submit a methodology report. The section reflects amendment authority noted as \u201cas amended at 89 FR 41276, May 10, 2024.\u201d [42 CFR Part 438](https://www.ecfr.gov/current/title-42/part-438)\n\n## North Carolina implementation\n\nNorth Carolina\u2019s PHP contract tracks the federal rule in two layers.\n\n### 1) NC requires calculation of the federal/CMS-defined MLR\nThe contract requires each PHP to calculate and report the **CMS-defined MLR** annually, aligned to the rating year, and defines it by reference to **42 C.F.R. \u00a7 438.8**. It states that:\n\n- the CMS-defined numerator is incurred claims, health care quality improvement expenditures, and the lesser of fraud reduction expenditures or fraud reduction recoveries, as defined in the federal rule; and\n- the CMS-defined denominator is adjusted premium revenue, meaning premium revenue minus federal, state, and local taxes and licensing/regulatory fees as defined in the federal rule. [Contract--30-190029-DHB-Prepaid-Health-Plan-Services RFP](https://medicaid.ncdhhs.gov/contract-30-190029-dhb-prepaid-health-plan-services-rfp/download?attachment)\n\n### 2) NC also uses a Department-defined MLR\nThe contract additionally requires a **Department-defined MLR**, calculated similarly to the CMS-defined MLR but with NC-specific adjustments. The contract allows certain voluntary contributions to health-related resources to count in the numerator if they align with the Department\u2019s Quality Strategy and meet specified conditions, and excludes certain other expenditures, including some separately reimbursed directed payments and certain related-party payments. It also removes from the denominator certain Department reimbursements for required additional directed payments, along with associated taxes and fees. [Contract--30-190029-DHB-Prepaid-Health-Plan-Services RFP](https://medicaid.ncdhhs.gov/contract-30-190029-dhb-prepaid-health-plan-services-rfp/download?attachment)\n\n### 3) NC\u2019s minimum threshold\nThe NC contract states:\n\n- \u201cThe minimum MLR threshold in aggregate across all contracted PHPs shall be exactly **eighty-eight percent (88%)**\u2026\u201d\n- and says the minimum MLR threshold for an individual PHP is calculated based on the PHP\u2019s **capitation revenue mix**, using a revenue-weighted approach across rate cells. [Contract--30-190029-DHB-Prepaid-Health-Plan-Services RFP](https://medicaid.ncdhhs.gov/contract-30-190029-dhb-prepaid-health-plan-services-rfp/download?attachment)\n\n### 4) What happens if a PHP falls below NC\u2019s threshold\nIf a PHP\u2019s **Department-defined MLR** is below the minimum threshold, the contract requires the PHP to do one of the following:\n\n- remit a rebate to the Department,\n- contribute to approved health-related resources targeted to improve outcomes and cost-effective care, or\n- split the obligation between a rebate and approved contributions. [Contract--30-190029-DHB-Prepaid-Health-Plan-Services RFP](https://medicaid.ncdhhs.gov/contract-30-190029-dhb-prepaid-health-plan-services-rfp/download?attachment)\n\n## Bottom line\n\n- **Federal law:** States must require Medicaid managed care plans to **calculate and report** MLR; **if** a state sets a minimum, it must be **at least 85%**. [42 CFR Part 438](https://www.ecfr.gov/current/title-42/part-438)\n- **North Carolina:** NC implements that requirement in its PHP contract by requiring annual calculation of the federal/CMS-defined MLR and by imposing a **Department-defined minimum threshold of 88% in aggregate**, with plan-specific thresholds based on revenue mix and contractual rebate/contribution consequences if a PHP falls short. [Contract--30-190029-DHB-Prepaid-Health-Plan-Services RFP](https://medicaid.ncdhhs.gov/contract-30-190029-dhb-prepaid-health-plan-services-rfp/download?attachment)\n\nAmendment check performed for both cited sources: the knowledge base identifies [42 CFR Part 438](https://www.ecfr.gov/current/title-42/part-438) and the [Contract--30-190029-DHB-Prepaid-Health-Plan-Services RFP](https://medicaid.ncdhhs.gov/contract-30-190029-dhb-prepaid-health-plan-services-rfp/download?attachment) as the authoritative current documents in corpus results for this answer.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 3,
+        "completeness": 3,
+        "hallucination": 3,
+        "citation_quality": 3,
+        "overall": 3,
+        "explanation": "The agent's answer is highly accurate and comprehensive. It correctly explains that federal law (42 CFR \u00a7438.8) requires MCOs to calculate and report MLR, with any state-imposed minimum needing to be at least 85%. It accurately describes the numerator (incurred claims, quality improvement expenditures, fraud prevention) and denominator (adjusted premium revenue). For NC implementation, it correctly identifies the 88% aggregate threshold, the Department-defined MLR variant, plan-specific thresholds based on revenue mix, and remittance/contribution consequences for non-compliance. Citations to 42 CFR Part 438 and the NC PHP contract are specific and appropriate. The answer goes beyond the reference answer in useful detail without introducing fabrications. The nuanced distinction between the federal reporting requirement and the optional minimum standard is technically correct and supported by the evidence text."
+      },
+      "judge_error": false,
+      "route_lane": "graph_reasoning",
+      "route_rationale": "federal_multi_hop",
+      "route_widening_policy": "family_expansion",
+      "route_determinism_hints": {
+        "numeric_evidence_only": false,
+        "latest_revision_only": false,
+        "cite_scope_and_not_covered": false
+      },
+      "route_authoritative_document": {
+        "id": "doc:federal_regulation:42-CFR-438",
+        "policy_number": "42-CFR-438",
+        "title": "42 CFR Part 438"
+      },
+      "route_widened": true,
+      "route_inspection_error": null,
+      "agent_elapsed_seconds": 34.005,
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "primary_hit": true
+    },
+    {
+      "id": "q-022",
+      "difficulty": "moderate",
+      "reasoning_type": "single_lookup",
+      "question": "What are the specific criteria for NC Medicaid coverage of CAR-T cell therapy?",
+      "agent_answer": "NC Medicaid covers CAR-T cell therapy when the beneficiary meets both the **general coverage standards** and the **CAR-T-specific standards** in Clinical Coverage Policy 11A-17, effective **April 1, 2025**, which appears to be the current authoritative version. [CAR-T Cell Therapy](https://medicaid.ncdhhs.gov/11a-17-car-t-cell-therapy/download?attachment)\n\n## Specific coverage criteria\n\n### 1) General Medicaid medical-necessity criteria must be met\nThe service must be:\n\n- **individualized, specific, and consistent** with the beneficiary\u2019s symptoms or confirmed diagnosis, and **not in excess of the beneficiary\u2019s needs**;\n- able to be **safely furnished**, with **no equally effective and more conservative or less costly treatment available statewide**; and\n- furnished in a manner **not primarily intended for the convenience** of the beneficiary, caretaker, or provider.  \n  *Policy 11A-17, \u00a7 3.1* \u2014 [CAR-T Cell Therapy](https://medicaid.ncdhhs.gov/11a-17-car-t-cell-therapy/download?attachment)\n\n### 2) CAR-T therapy must satisfy the policy\u2019s specific CAR-T requirements\nNC Medicaid specifically requires that:\n\n- the **CAR-T therapy has received FDA approval**;\n- it is administered **according to FDA-approved guidelines** for:\n  - indications and usage,\n  - dosage and administration,\n  - dosage forms and strengths, and\n  - warnings and precautions; and\n- it is administered at a **certified or authorized treatment center**. If the therapy is subject to a **REMS** program, the treatment center must be **enrolled in the REMS**, and providers must be **trained to manage cytokine release syndrome (CRS) and neurologic toxicities**.  \n  *Policy 11A-17, \u00a7 3.2.1* \u2014 [CAR-T Cell Therapy](https://medicaid.ncdhhs.gov/11a-17-car-t-cell-therapy/download?attachment)\n\n## When NC Medicaid says CAR-T is not covered\nThe same policy says CAR-T is **not covered** if, among other things:\n\n- the therapy is **not FDA-approved**;\n- it is being given **outside FDA guidelines** for indications/usage, dosage/administration, or dosage forms/strengths;\n- a therapy requiring **REMS** is given at a facility **not enrolled** in that REMS program;\n- it is a **repeat CAR-T treatment** for someone who has already received another CAR-T therapy;\n- the beneficiary\u2019s **psychosocial history** limits ability to comply with pre- and post-infusion care; or\n- current beneficiary or caretaker **non-compliance** makes adherence to the required medical regimen improbable.  \n  *Policy 11A-17, \u00a7 4.2.1* \u2014 [CAR-T Cell Therapy](https://medicaid.ncdhhs.gov/11a-17-car-t-cell-therapy/download?attachment)\n\nThe policy also says coverage is not available if the beneficiary does not meet the policy\u2019s eligibility or Section 3 criteria, if the service duplicates another provider\u2019s service, or if it is **experimental, investigational, or part of a clinical trial**.  \n*Policy 11A-17, \u00a7 4.1* \u2014 [CAR-T Cell Therapy](https://medicaid.ncdhhs.gov/11a-17-car-t-cell-therapy/download?attachment)\n\n## Bottom line\nIn practice, NC Medicaid coverage for CAR-T cell therapy turns on these core points:\n\n1. **Medical necessity under the general Medicaid standard**  \n2. **FDA-approved CAR-T product**  \n3. **Use exactly within FDA-approved parameters**  \n4. **Administration at a certified/authorized center**  \n5. **REMS compliance and trained providers when REMS applies**  \n6. **No disqualifying issues such as repeat CAR-T, noncompliance, or noncovered/experimental use**\n\nIf you want, I can also pull out the **prior authorization documentation requirements** for CAR-T under the same policy.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 3,
+        "completeness": 3,
+        "hallucination": 2,
+        "citation_quality": 3,
+        "overall": 3,
+        "explanation": "The agent's answer accurately captures all three specific criteria from Section 3.2.1 (FDA approval, FDA-approved guidelines compliance, certified treatment center with REMS requirements), plus correctly adds the general medical necessity criteria from Section 3.1 and non-coverage conditions from Section 4. Citations are precise at the section level (\u00a73.1, \u00a73.2.1, \u00a74.1, \u00a74.2.1). The slight embellishment concern is the detailed list of non-coverage conditions from \u00a74.2.1 which, while plausible and internally consistent, goes beyond what the evidence sections provided for scoring - however these appear to be genuine policy details rather than fabrications. The answer is well-organized, thorough, and would be highly acceptable to a Medicaid policy expert."
+      },
+      "judge_error": false,
+      "route_lane": "baseline_hybrid",
+      "route_rationale": "single_document_coverage",
+      "route_widening_policy": "one_step",
+      "route_determinism_hints": {
+        "numeric_evidence_only": false,
+        "latest_revision_only": false,
+        "cite_scope_and_not_covered": false
+      },
+      "route_authoritative_document": {
+        "id": "doc:clinical_policy:11A-17",
+        "policy_number": "11A-17",
+        "title": "CAR-T Cell Therapy"
+      },
+      "route_widened": true,
+      "route_inspection_error": null,
+      "agent_elapsed_seconds": 25.399,
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "primary_hit": true
+    },
+    {
+      "id": "q-023",
+      "difficulty": "simple",
+      "reasoning_type": "single_lookup",
+      "question": "Until what age should physicians provide fluoride varnish applications for Medicaid beneficiaries, and what oral screening requirements apply?",
+      "agent_answer": "Physicians should provide fluoride varnish **from tooth eruption until the beneficiary is 3\u00bd years old**. NC Medicaid also limits the fluoride varnish procedure to beneficiaries **under 3\u00bd years of age**, **once every 60 calendar days**, and **no more than six times before age 3\u00bd**. The policy remains current in the retrieved corpus, and its revision history notes that coverage through age **3\u00bd years** was added effective for dates of service **1/1/2007**; the posted policy also includes a 4/15/2023 update to template language. [Physician Fluoride Varnish Services](https://medicaid.ncdhhs.gov/1a-23-physician-fluoride-varnish-services/download?attachment)\n\n## Oral screening requirements\n\nNC Medicaid\u2019s physician fluoride varnish policy requires the following oral screening components:\n\n- **Early caries screening** and detection of notable findings in the oral cavity, including obvious pathology of hard and soft tissues, **using a dental mirror and directed light**.\n- **Counseling and educational materials** on good oral hygiene practices and nutrition for children.\n- **Prescribing a fluoride supplement, if indicated**, following American Academy of Pediatrics guidelines.\n- **Application of fluoride varnish to all erupted primary teeth**, beginning at tooth eruption until age **3\u00bd**. [Physician Fluoride Varnish Services](https://medicaid.ncdhhs.gov/1a-23-physician-fluoride-varnish-services/download?attachment)\n\n## Required documentation in the health record\n\nThe beneficiary\u2019s health record must document all of the following:\n\n- **An oral evaluation** and any notable findings;\n- **Preventive oral health and dietary counseling** with the primary caregiver;\n- **Application of fluoride varnish**; and\n- **Referral to a dentist, if appropriate**. [Physician Fluoride Varnish Services](https://medicaid.ncdhhs.gov/1a-23-physician-fluoride-varnish-services/download?attachment)\n\n## Billing limit tied to age\n\nFor the fluoride varnish procedure code **D1206**:\n\n- it must be billed with **D0145**,\n- is limited to beneficiaries **under 3\u00bd years of age**,\n- is allowed **once every 60 calendar days**, and\n- is limited to **six total applications before the beneficiary reaches 3\u00bd years of age**. [Physician Fluoride Varnish Services](https://medicaid.ncdhhs.gov/1a-23-physician-fluoride-varnish-services/download?attachment)\n\nIf you want, I can also pull the exact provider-qualification section for which physician or practice types may bill for these services.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 3,
+        "completeness": 3,
+        "hallucination": 2,
+        "citation_quality": 2,
+        "overall": 3,
+        "explanation": "The agent's answer is highly accurate and complete, covering all key elements from the reference: fluoride varnish from tooth eruption until age 3\u00bd, all four oral screening components (early caries screening with dental mirror/directed light, counseling/educational materials, fluoride supplement prescribing, varnish application), and all four documentation requirements. The agent adds extra details about billing limits (once every 60 days, max 6 applications, procedure code D1206 with D0145) that aren't in the reference evidence but appear to come from the same policy document, representing slight embellishment/additional detail rather than fabrication. The citation links to the policy document URL but doesn't cite specific section numbers like '7.2' from the reference, earning moderate citation quality. A Medicaid policy expert would find this answer comprehensive and accurate."
+      },
+      "judge_error": false,
+      "route_lane": "baseline_hybrid",
+      "route_rationale": "single_document_coverage",
+      "route_widening_policy": "one_step",
+      "route_determinism_hints": {
+        "numeric_evidence_only": false,
+        "latest_revision_only": false,
+        "cite_scope_and_not_covered": false
+      },
+      "route_authoritative_document": {
+        "id": "doc:clinical_policy:8P",
+        "policy_number": "8P",
+        "title": "Clinical Coverage Policy 8-P, North Carolina Innovations"
+      },
+      "route_widened": true,
+      "route_inspection_error": null,
+      "agent_elapsed_seconds": 27.928,
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "primary_hit": true
+    },
+    {
+      "id": "q-024",
+      "difficulty": "complex",
+      "reasoning_type": "single_lookup",
+      "question": "Can an NC Innovations waiver participant request services that exceed their individual base budget, and what happens if they believe their needs cannot be met within the budget?",
+      "agent_answer": "Yes. An NC Innovations participant may request services that cost more than the person\u2019s individual base budget if the participant believes their needs cannot be met within that budget. Under the policy, the SIS results and the base budget are \u201cguidelines\u201d and \u201cdo not constitute a binding limit\u201d on what may be requested or authorized. If the LME/MCO determines the services are medically necessary, they must be authorized even if they exceed the base budget. [Clinical Coverage Policy 8-P, North Carolina Innovations](https://medicaid.ncdhhs.gov/8-p-north-carolina-innovations/download?attachment) (effective Nov. 1, 2016; amendments check returned 8-P as the authoritative current document).\n\n## What happens if they believe the budget is not enough?\n\nThe policy says the participant:\n\n- **may request services above the base budget** if they believe their needs cannot be met within it;\n- must be told that the **base budget is not an absolute cap** on medically necessary services;\n- must receive notice of **the reasons for any denial** of a service authorization request and **how to appeal**; and\n- must be told **how to file a grievance regarding the base budget**. [Clinical Coverage Policy 8-P, North Carolina Innovations](https://medicaid.ncdhhs.gov/8-p-north-carolina-innovations/download?attachment)\n\n## If very high levels of service are requested\n\nFor at least some service requests under NC Innovations, the policy provides:\n\n- up to **12 hours daily** may be authorized for the full plan year;\n- up to **16 hours daily** may be authorized for a six-month timeframe within the plan year; and\n- **more than 16 hours daily** may be authorized for up to **90 days** within the plan year.\n\nIf authorization beyond that initial 90-day period is needed, the PIHP must decide based on **medical necessity**. The treatment team should then review the person\u2019s status and identify sustainable supports, including options **within** the Innovations Waiver and **outside** it, such as Medicaid State Plan services, with that information included in the ISP. [Clinical Coverage Policy 8-P, North Carolina Innovations](https://medicaid.ncdhhs.gov/8-p-north-carolina-innovations/download?attachment)\n\n## Bottom line\n\nAn NC Innovations base budget is **not a hard ceiling**. If a participant\u2019s needs cannot be met within that amount, they can ask for more services, and medically necessary services can be authorized above the budget. If the request is denied, the participant must be told why and how to **appeal**, and they may also file a **grievance** about the base budget.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 3,
+        "completeness": 3,
+        "hallucination": 2,
+        "citation_quality": 2,
+        "overall": 3,
+        "explanation": "The agent's answer accurately captures all key facts from the reference: participants may request services exceeding the base budget, the SIS and base budget are guidelines not binding limits, medically necessary services must be authorized regardless of budget, and participants must be notified of denial reasons and appeal/grievance rights. The answer is more complete than the reference, adding the daily hour authorization thresholds (12/16 hours, 90-day limits). These details about hourly limits appear to be from the actual policy document and are plausible policy specifics, but cannot be verified against the provided evidence sections - they are stated as fact without unverified markers, representing slight embellishment risk. However, the core policy content is fully accurate and well-presented. Citations point to Clinical Coverage Policy 8-P but lack specific section-level references (e.g., section numbers), earning a moderate citation score. Overall, a Medicaid policy expert would find this answer informative, accurate on the main points, and well-organized."
+      },
+      "judge_error": false,
+      "route_lane": "baseline_hybrid",
+      "route_rationale": "single_document_coverage",
+      "route_widening_policy": "one_step",
+      "route_determinism_hints": {
+        "numeric_evidence_only": false,
+        "latest_revision_only": false,
+        "cite_scope_and_not_covered": false
+      },
+      "route_authoritative_document": {
+        "id": "doc:clinical_policy:8P",
+        "policy_number": "8P",
+        "title": "Clinical Coverage Policy 8-P, North Carolina Innovations"
+      },
+      "route_widened": true,
+      "route_inspection_error": null,
+      "agent_elapsed_seconds": 22.338,
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "primary_hit": true
+    },
+    {
+      "id": "q-025",
+      "difficulty": "moderate",
+      "reasoning_type": "multi_hop",
+      "question": "What are the certification requirements for HIV case management providers under NC Medicaid, and under what conditions can a provider be decertified?",
+      "agent_answer": "Under NC Medicaid, an HIV case management provider must be certified and continue meeting both organizational and staffing standards; the provider can be decertified for specified compliance, staffing, documentation, billing, confidentiality, and legal violations.\n\n## Certification requirements\n\nNC Medicaid policy requires an HIV case management provider to:\n\n- have a **documented successful record of 3 years** providing or managing HIV case management programs;\n- ensure services are provided by **qualified case managers** meeting the policy\u2019s staff qualifications;\n- ensure HIV case managers are supervised by **qualified supervisors** meeting the policy\u2019s supervisor qualifications;\n- **enroll each physical site** with NC Medicaid as an HIV case management provider;\n- meet all applicable **state and federal laws** governing Medicaid participation;\n- **maintain certification** as a qualified HIV case management provider;\n- demonstrate compliance with **initial and ongoing certification processes**;\n- show compliance with **monitoring and evaluation of case management records through a quality improvement plan**;\n- allow NC Medicaid or its designated contractor to **review beneficiary records** and inspect agency operations and financial records; and\n- notify NC Medicaid or its designated contractor of proposed business changes within **30 calendar days of the proposed change** and no later than **5 business days after the actual change**.  \nIn addition, within **1 year of Medicaid enrollment**, the provider must achieve national accreditation from one of the designated accrediting bodies listed in the policy. [Human Immunodeficiency Virus (HIV) Case Management](https://medicaid.ncdhhs.gov/12b-human-immunodeficiency-virus-hiv-case-management/download?attachment) \u00a7 6.2.1, effective 2020-01-15, current per amendment check.\n\n### Recertification\nFor recertification, the provider must:\n\n- submit a **complete and signed Recertification Application** within **60 calendar days of receipt**;\n- submit copies of items from the initial certification packet that have changed;\n- submit copies of all HIV case manager and supervisor credentials;\n- submit annual summaries of **quality improvement activities**, including outcome metrics; and\n- undergo a **recertification on-site visit**, including review of beneficiary records or other business/clinical documentation as needed.  \n[Human Immunodeficiency Virus (HIV) Case Management](https://medicaid.ncdhhs.gov/12b-human-immunodeficiency-virus-hiv-case-management/download?attachment) \u00a7 6.2.4, effective 2020-01-15, current per amendment check.\n\n### What the recertification checklist specifically asks for\nThe NC Medicaid recertification checklist reflects these operational requirements. It asks, among other things, whether the application:\n\n- covers **only one physical location**;\n- includes the title page and signed checklist;\n- lists all **case managers** and **supervisors** with employment dates;\n- lists all **counties served**;\n- lists all services provided;\n- states **operating hours** and the **emergency after-hours plan**;\n- gives the **accrediting agency name and dates** or an explanation;\n- states the frequency of the **satisfaction survey** and how results are used; and\n- lists the numbers of **Medicaid and Ryan White clients**.  \n[dma-3157 HIV Case Management Provider Recertification Application Checklist](https://policies.ncdhhs.gov/wp-content/uploads/dma-3157.pdf), current per amendment check.\n\n## When a provider can be decertified\n\nA provider may be decertified for any of the following reasons:\n\n- failure to provide **core service components**;\n- **fraudulent billing** practices;\n- owner conviction of a **felony**;\n- failure to develop, submit, and implement a **written plan of correction** for cited unmet requirements, or make recommended corrections, within **30 calendar days**;\n- **falsification of records**;\n- violation of a beneficiary\u2019s **confidentiality**;\n- employing staff who do not meet the qualifications in **Subsection 6.1**;\n- failure of staff to complete mandatory **basic training within 90 days of employment**;\n- failure of staff to obtain required **continuing education units** under the policy;\n- failure to provide case management staff with supervision sufficient to meet beneficiaries\u2019 needs;\n- failure to submit required documentation within the time required by the policy, NC Medicaid, or its designated contractor;\n- failure to maintain documentation sufficient to support billing, as required by **\u00a7 7.5**;\n- failure to implement and enforce a **quality improvement program**;\n- failure to timely notify NC Medicaid or its designated contractor of agency changes, resulting in inability to contact the provider;\n- failure to comply with applicable **federal and state laws, regulations, reimbursement plan, and Medicaid policies**;\n- failure to enroll any beneficiaries within **4 months of certification**; or\n- failure to achieve or maintain the certification requirements in **\u00a7 6.2**.  \n[Human Immunodeficiency Virus (HIV) Case Management](https://medicaid.ncdhhs.gov/12b-human-immunodeficiency-virus-hiv-case-management/download?attachment) \u00a7 6.2.5, effective 2020-01-15, current per amendment check.\n\n## Related documentation/training requirements tied to certification risk\n\nTwo related requirements matter because failure to meet them can support decertification:\n\n- The policy requires specific beneficiary record documentation, including proof of HIV status, assessments, care plans, progress notes, consent forms, physician orders showing diagnosis and medical necessity, and documentation supporting billed services. [Human Immunodeficiency Virus (HIV) Case Management](https://medicaid.ncdhhs.gov/12b-human-immunodeficiency-virus-hiv-case-management/download?attachment) \u00a7 7.5, effective 2020-01-15, current per amendment check.\n- Annual staff training includes confidentiality, cultural competency, HIV disease management trends, ethics, refresher training on core case management components, and treatment of people living with HIV; **6 of the 12 annual hours** must be clinically oriented. [Human Immunodeficiency Virus (HIV) Case Management](https://medicaid.ncdhhs.gov/12b-human-immunodeficiency-virus-hiv-case-management/download?attachment) \u00a7 6.1.7.2, effective 2020-01-15, current per amendment check.\n\n## Bottom line\n\nTo stay certified, an HIV case management provider must maintain qualified staff and supervision, site enrollment, accreditation, quality improvement, documentation, and timely reporting/compliance. Decertification can occur for failures in service delivery, staffing, training, supervision, documentation, billing integrity, confidentiality, legal compliance, corrective action, or maintaining the certification standards themselves.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 3,
+        "completeness": 3,
+        "hallucination": 3,
+        "citation_quality": 3,
+        "overall": 3,
+        "explanation": "The agent's answer is comprehensive and accurate, covering all certification requirements from \u00a76.2.1 and all decertification conditions from \u00a76.2.5 with near-perfect fidelity to the source text. The certification requirements listed match exactly: 3-year track record, qualified staff/supervisors, site enrollment, state/federal law compliance, certification maintenance, QI plan, record review access, 30-day/5-business-day change notification, and 1-year accreditation requirement. All 17 decertification grounds are accurately enumerated. The agent also adds useful context about recertification (\u00a76.2.4) and training requirements (\u00a76.1.7.2), which are relevant and accurate extensions. Citations are precise, referencing specific policy sections (\u00a76.2.1, \u00a76.2.4, \u00a76.2.5, \u00a77.5, \u00a76.1.7.2) with effective dates. No hallucinations are present - all claims are supported by the evidence sections provided. The answer goes beyond the reference answer's level of detail while remaining accurate throughout."
+      },
+      "judge_error": false,
+      "route_lane": "baseline_hybrid",
+      "route_rationale": "default_general",
+      "route_widening_policy": "none",
+      "route_determinism_hints": {
+        "numeric_evidence_only": false,
+        "latest_revision_only": false,
+        "cite_scope_and_not_covered": false
+      },
+      "route_authoritative_document": {
+        "id": "doc:clinical_policy:12B",
+        "policy_number": "12B",
+        "title": "Human Immunodeficiency Virus (HIV) Case Management"
+      },
+      "route_widened": false,
+      "route_inspection_error": null,
+      "agent_elapsed_seconds": 33.016,
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "primary_hit": true
+    }
+  ]
+}

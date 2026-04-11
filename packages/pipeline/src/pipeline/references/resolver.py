@@ -2,10 +2,10 @@
 
 import json
 import re
-from pathlib import Path
 
 from pipeline.graph.connection import get_session
-from pipeline.graph import queries
+from pipeline.graph.corpus_types import ReferenceEdge
+from pipeline.graph.corpus_writer import graph_writer
 from pipeline.references.extractor import ReferenceMatch
 from pipeline.config import PARSED_DATA_DIR
 
@@ -20,6 +20,69 @@ CFR_CITATION_RE = re.compile(
 CFR_SUPERSESSIONS: dict[tuple[int, int], tuple[int, int]] = {
     (45, 74): (45, 75),
 }
+
+_CONTEXTUAL_DOCUMENT_REF_TYPES = {"cross_document", "spa", "waiver"}
+
+_CANONICAL_DOCUMENT_ORDER = (
+    "ORDER BY "
+    "CASE WHEN toUpper(COALESCE(d.title, '')) CONTAINS 'CHANGE NOTICE' THEN 1 ELSE 0 END, "
+    "CASE WHEN COALESCE(d.status, '') = 'amendment' THEN 1 ELSE 0 END, "
+    "CASE WHEN d.effective_date IS NULL THEN 1 ELSE 0 END, "
+    "d.effective_date DESC, "
+    "size(COALESCE(d.title, '')) ASC, "
+    "d.id ASC "
+    "LIMIT 1"
+)
+
+
+def _resolve_section_in_document(
+    session,
+    document_id: str,
+    section_number: str,
+    *,
+    title_hint: str | None = None,
+):
+    result = session.run(
+        "MATCH (s:Section {document_id: $doc_id, section_number: $sn}) "
+        "RETURN s.id ORDER BY s.id LIMIT 1",
+        {"doc_id": document_id, "sn": section_number},
+    )
+    record = result.single()
+    if record:
+        return record["s.id"]
+
+    if title_hint:
+        result = session.run(
+            "MATCH (s:Section {document_id: $doc_id}) "
+            "WHERE toLower(coalesce(s.title, '')) CONTAINS toLower($needle) "
+            "RETURN s.id ORDER BY s.id LIMIT 1",
+            {"doc_id": document_id, "needle": title_hint},
+        )
+        record = result.single()
+        if record:
+            return record["s.id"]
+
+    return None
+
+
+def _spa_candidates(target_id: str) -> list[str]:
+    raw = target_id.strip().upper()
+    normalized = re.sub(r"^SPA\s+", "", raw)
+    normalized = re.sub(r"\s+", "-", normalized).strip("-")
+
+    candidates = [raw]
+    if normalized:
+        candidates.extend([
+            normalized,
+            f"SPA {normalized}",
+            f"SPA NC {normalized}",
+        ])
+
+    deduped: list[str] = []
+    for candidate in candidates:
+        if candidate and candidate not in deduped:
+            deduped.append(candidate)
+    return deduped
 
 
 def parse_cfr_citation(text: str) -> dict | None:
@@ -56,6 +119,7 @@ def resolve_reference(
     ref: ReferenceMatch,
     source_section_id: str,
     source_document_id: str,
+    preferred_document_id: str | None = None,
 ) -> dict:
     """
     Attempt to resolve a reference to a graph node.
@@ -66,13 +130,14 @@ def resolve_reference(
         "target_node_id": str | None,
         "target_type": "section" | "document" | None,
         "edge_type": str,
-    }
+        }
     """
     with get_session() as session:
         if ref.ref_type == "cross_document":
             # 1. Exact match on policy_number
             result = session.run(
-                "MATCH (d:Document {policy_number: $pn}) RETURN d.id",
+                f"MATCH (d:Document {{policy_number: $pn}}) "
+                f"RETURN d.id {_CANONICAL_DOCUMENT_ORDER}",
                 {"pn": ref.target_id},
             )
             record = result.single()
@@ -89,7 +154,7 @@ def resolve_reference(
             result = session.run(
                 "MATCH (d:Document) "
                 "WHERE REPLACE(d.policy_number, '-', '') = $normalized "
-                "RETURN d.id LIMIT 1",
+                f"RETURN d.id {_CANONICAL_DOCUMENT_ORDER}",
                 {"normalized": normalized},
             )
             record = result.single()
@@ -106,7 +171,7 @@ def resolve_reference(
                 "MATCH (d:Document) "
                 "WHERE d.policy_number STARTS WITH $target "
                 "AND d.document_type = 'clinical_policy' "
-                "RETURN d.id ORDER BY d.policy_number LIMIT 1",
+                f"RETURN d.id {_CANONICAL_DOCUMENT_ORDER}",
                 {"target": ref.target_id},
             )
             record = result.single()
@@ -119,50 +184,59 @@ def resolve_reference(
                 }
 
         elif ref.ref_type == "section":
-            # 1. Exact section_number match within the same document
-            result = session.run(
-                "MATCH (s:Section {document_id: $doc_id, section_number: $sn}) RETURN s.id",
-                {"doc_id": source_document_id, "sn": ref.target_id},
-            )
-            record = result.single()
-            if record:
-                return {
-                    "resolved": True,
-                    "target_node_id": record["s.id"],
-                    "target_type": "section",
-                    "edge_type": "REFERENCES",
-                }
+            target_documents = []
+            if preferred_document_id and preferred_document_id != source_document_id:
+                target_documents.append(preferred_document_id)
+            target_documents.append(source_document_id)
 
-            # 2. Fallback: title contains the section number (Docling may have
-            #    generated a synthetic ID like _s73 instead of preserving the number)
-            result = session.run(
-                "MATCH (s:Section {document_id: $doc_id}) "
-                "WHERE s.title CONTAINS $sn "
-                "RETURN s.id LIMIT 1",
-                {"doc_id": source_document_id, "sn": ref.target_id},
-            )
-            record = result.single()
-            if record:
-                return {
-                    "resolved": True,
-                    "target_node_id": record["s.id"],
-                    "target_type": "section",
-                    "edge_type": "REFERENCES",
-                }
+            for target_document_id in target_documents:
+                section_id = _resolve_section_in_document(
+                    session,
+                    target_document_id,
+                    ref.target_id,
+                    title_hint=ref.target_id,
+                )
+                if section_id:
+                    return {
+                        "resolved": True,
+                        "target_node_id": section_id,
+                        "target_type": "section",
+                        "edge_type": "REFERENCES",
+                    }
 
         elif ref.ref_type == "attachment":
             section_num = f"Attachment {ref.target_id}"
+            section_id = _resolve_section_in_document(
+                session,
+                source_document_id,
+                section_num,
+                title_hint=section_num,
+            )
+            if section_id:
+                return {
+                    "resolved": True,
+                    "target_node_id": section_id,
+                    "target_type": "section",
+                    "edge_type": "REFERENCES",
+                }
+
+        elif ref.ref_type == "spa":
+            candidates = _spa_candidates(ref.target_id)
             result = session.run(
-                "MATCH (s:Section {document_id: $doc_id, section_number: $sn}) RETURN s.id",
-                {"doc_id": source_document_id, "sn": section_num},
+                "MATCH (d:Document) "
+                "WHERE d.document_type = 'state_plan_amendment' "
+                "AND (toUpper(coalesce(d.policy_number, '')) IN $candidates "
+                "     OR any(candidate IN $candidates WHERE toUpper(coalesce(d.title, '')) CONTAINS candidate)) "
+                f"RETURN d.id {_CANONICAL_DOCUMENT_ORDER}",
+                {"candidates": candidates},
             )
             record = result.single()
             if record:
                 return {
                     "resolved": True,
-                    "target_node_id": record["s.id"],
-                    "target_type": "section",
-                    "edge_type": "REFERENCES",
+                    "target_node_id": record["d.id"],
+                    "target_type": "document",
+                    "edge_type": "REFERENCES_DOCUMENT",
                 }
 
         elif ref.ref_type in ("federal_regulation", "federal_statute"):
@@ -252,7 +326,8 @@ def resolve_reference(
                 ref.target_id,
             )
             result = session.run(
-                "MATCH (d:Document {policy_number: $pn}) RETURN d.id LIMIT 1",
+                f"MATCH (d:Document {{policy_number: $pn}}) "
+                f"RETURN d.id {_CANONICAL_DOCUMENT_ORDER}",
                 {"pn": target},
             )
             record = result.single()
@@ -272,41 +347,41 @@ def resolve_reference(
     }
 
 
-def _resolve_and_create_edge(
+def _resolve_reference_edge(
     ref: ReferenceMatch,
     section_id: str,
     document_id: str,
     stats: dict,
     unresolved: list[dict],
-) -> None:
-    """Resolve a single reference and create the graph edge if successful."""
-    resolution = resolve_reference(ref, section_id, document_id)
+    *,
+    preferred_document_id: str | None = None,
+    resolution: dict | None = None,
+) -> ReferenceEdge | None:
+    """Resolve a single reference and return the edge payload if successful."""
+    resolution = resolution or resolve_reference(
+        ref,
+        section_id,
+        document_id,
+        preferred_document_id=preferred_document_id,
+    )
 
     if resolution["resolved"]:
         # Skip self-references (section linking back to its own document)
         target_id = resolution["target_node_id"]
         if resolution["target_type"] == "document" and target_id == document_id:
-            return
+            return None
         if resolution["target_type"] == "section" and target_id == section_id:
-            return
+            return None
 
         stats["resolved"] += 1
-        with get_session() as session:
-            if resolution["edge_type"] == "REFERENCES":
-                session.run(queries.MERGE_REFERENCES, {
-                    "source_id": section_id,
-                    "target_id": resolution["target_node_id"],
-                    "reference_text": ref.matched_text,
-                    "reference_type": ref.ref_type,
-                    "extraction_method": ref.extraction_method,
-                })
-            elif resolution["edge_type"] == "REFERENCES_DOCUMENT":
-                session.run(queries.MERGE_REFERENCES_DOCUMENT, {
-                    "source_id": section_id,
-                    "target_id": resolution["target_node_id"],
-                    "reference_text": ref.matched_text,
-                    "extraction_method": ref.extraction_method,
-                })
+        return ReferenceEdge(
+            source_id=section_id,
+            target_id=resolution["target_node_id"],
+            edge_type=resolution["edge_type"],
+            reference_text=ref.matched_text,
+            reference_type=ref.ref_type if resolution["edge_type"] == "REFERENCES" else None,
+            extraction_method=ref.extraction_method,
+        )
     else:
         stats["unresolved"] += 1
         unresolved.append({
@@ -316,6 +391,37 @@ def _resolve_and_create_edge(
             "matched_text": ref.matched_text,
             "extraction_method": ref.extraction_method,
         })
+        return None
+
+
+def _pick_contextual_target_document_id(
+    ref_index: int,
+    refs: list[ReferenceMatch],
+    contextual_documents: dict[int, str],
+) -> str | None:
+    ref = refs[ref_index]
+    if ref.ref_type != "section":
+        return None
+
+    candidates: list[tuple[int, int, int, str]] = []
+    for other_index, document_id in contextual_documents.items():
+        if other_index == ref_index:
+            continue
+
+        other = refs[other_index]
+        precedes = 0 if other.end <= ref.start else 1
+        distance = (
+            ref.start - other.end
+            if other.end <= ref.start
+            else abs(other.start - ref.end)
+        )
+        candidates.append((precedes, distance, abs(other_index - ref_index), document_id))
+
+    if not candidates:
+        return None
+
+    candidates.sort()
+    return candidates[0][3]
 
 
 def extract_and_resolve_all(llm_assist: bool = False) -> dict:
@@ -337,6 +443,7 @@ def extract_and_resolve_all(llm_assist: bool = False) -> dict:
 
     # Track which sections got regex-resolved refs (for LLM candidate selection)
     sections_with_refs: set[str] = set()
+    resolved_edges: list[ReferenceEdge] = []
 
     # Phase 1: Regex extraction
     for record in sections:
@@ -347,8 +454,32 @@ def extract_and_resolve_all(llm_assist: bool = False) -> dict:
         refs = extract_references(content)
         stats["extracted"] += len(refs)
 
-        for ref in refs:
-            _resolve_and_create_edge(ref, section_id, document_id, stats, unresolved)
+        precomputed_resolutions: dict[int, dict] = {}
+        contextual_documents: dict[int, str] = {}
+        for ref_index, ref in enumerate(refs):
+            if ref.ref_type in _CONTEXTUAL_DOCUMENT_REF_TYPES:
+                resolution = resolve_reference(ref, section_id, document_id)
+                precomputed_resolutions[ref_index] = resolution
+                if resolution["resolved"] and resolution["target_type"] == "document":
+                    contextual_documents[ref_index] = resolution["target_node_id"]
+
+        for ref_index, ref in enumerate(refs):
+            preferred_document_id = _pick_contextual_target_document_id(
+                ref_index,
+                refs,
+                contextual_documents,
+            )
+            edge = _resolve_reference_edge(
+                ref,
+                section_id,
+                document_id,
+                stats,
+                unresolved,
+                preferred_document_id=preferred_document_id,
+                resolution=precomputed_resolutions.get(ref_index),
+            )
+            if edge:
+                resolved_edges.append(edge)
             if ref.ref_type in ("cross_document", "federal_regulation", "ssa_section"):
                 sections_with_refs.add(section_id)
 
@@ -413,12 +544,16 @@ def extract_and_resolve_all(llm_assist: bool = False) -> dict:
             llm_stats["extracted"] += len(refs)
 
             for ref in refs:
-                _resolve_and_create_edge(ref, section_id, document_id, llm_stats, llm_unresolved)
+                edge = _resolve_reference_edge(ref, section_id, document_id, llm_stats, llm_unresolved)
+                if edge:
+                    resolved_edges.append(edge)
 
         stats["llm_extracted"] = llm_stats["extracted"]
         stats["llm_resolved"] = llm_stats["resolved"]
         stats["llm_unresolved"] = llm_stats["unresolved"]
         unresolved.extend(llm_unresolved)
+
+    graph_writer.merge_reference_edges(resolved_edges)
 
     # Save unresolved references
     unresolved_path = PARSED_DATA_DIR.parent / "unresolved-references.json"

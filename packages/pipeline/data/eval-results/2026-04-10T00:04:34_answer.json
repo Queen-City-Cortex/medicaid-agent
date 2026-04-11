@@ -1,0 +1,58 @@
+{
+  "run_id": "2026-04-10T00:04:34",
+  "level": "answer",
+  "config": {
+    "embedding_model": "voyage-law-2",
+    "top_k": 10,
+    "dataset_count": 1,
+    "git_sha": "df5a5f9",
+    "judge_model": "claude-sonnet-4-6"
+  },
+  "aggregate": {
+    "precision_at_k": 1.0,
+    "recall_at_k": 1.0,
+    "mrr": 1.0,
+    "primary_hit_rate": 1.0
+  },
+  "by_difficulty": {
+    "complex": {
+      "precision_at_k": 1.0,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "by_category": {
+    "cross_document": {
+      "precision_at_k": 1.0,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "per_question": [
+    {
+      "id": "q-010",
+      "difficulty": "complex",
+      "reasoning_type": "cross_document",
+      "question": "What is the federal statutory authority for NC's CAP/DA waiver, and what does the state need to demonstrate in its waiver application?",
+      "agent_answer": "NC\u2019s CAP/DA waiver is a **home- and community-based services waiver under section 1915(c) of the Social Security Act**, implemented through the federal HCBS waiver rules in **42 CFR Part 441, Subpart G**. The NC CAP/DA policy itself reflects that framework by requiring a **nursing-facility level of care**, a signed service plan, the ability to remain safely in the community, and that paid care needs stay within the **average institutional cost** of the waiver. [42 CFR Part 441](https://www.ecfr.gov/current/title-42/part-441); [Community Alternatives Program for Disabled Adults (CAP/DA)](https://medicaid.ncdhhs.gov/3k-2-community-alternatives-program-disabled-adults-capda/download?attachment)\n\n## Federal authority\n\nFor a 1915(c) HCBS waiver application, the governing federal regulation says the waiver request must include:\n\n- the required **state assurances** and supporting documentation;\n- any requested waivers of statewideness, comparability, or certain medically needy rules when applicable; and\n- a statement about whether the state will refuse HCBS where community costs would exceed the cost of equivalent institutional care.  \n  [42 CFR Part 441, \u00a7 441.301](https://www.ecfr.gov/current/title-42/part-441)\n\nThat means the relevant federal authority for CAP/DA is **section 1915(c)**, not the public-notice rule in 42 CFR 431.408. The public-notice rule may apply to certain demonstration projects, but the substantive HCBS waiver application requirements here are in **42 CFR Part 441**. I could not verify the underlying Social Security Act text itself in this corpus, but the federal regulations retrieved clearly treat this as a **1915(c) waiver**. [42 CFR Part 441](https://www.ecfr.gov/current/title-42/part-441)\n\n## What the state must demonstrate in its waiver application\n\nUnder the federal HCBS waiver rules, the state must provide **satisfactory assurances** and enough supporting documentation for CMS to approve the waiver.\n\n### 1. Required assurances\nThe state must assure CMS, among other things, that:\n\n- necessary **health and welfare safeguards** protect beneficiaries;\n- provider standards are adequate;\n- state licensure/certification requirements are met;\n- services are provided in **home and community-based settings**;\n- the state maintains an **incident management system**; and\n- there is **financial accountability** for waiver funds.  \n  [42 CFR Part 441, \u00a7 441.302](https://www.ecfr.gov/current/title-42/part-441)\n\n### 2. Supporting documentation\nThe state must furnish enough information to support those assurances, including at minimum:\n\n- a description of safeguards protecting health and welfare;\n- provider qualification standards;\n- administrative oversight mechanisms for quality of care;\n- records and information supporting **financial accountability** and an audit trail;\n- the plan for **evaluation and reevaluation** of level of care, including who performs it, what instrument is used, and the reevaluation intervals;\n- the plan for informing beneficiaries of **feasible alternatives** and allowing them to choose institutional care or HCBS; and\n- documentation of **free choice of providers** and fair-hearing protections.  \n  [42 CFR Part 441, \u00a7 441.353](https://www.ecfr.gov/current/title-42/part-441)\n\n### 3. Service and eligibility design the application must describe\nThe waiver request must also show that services will be:\n\n- furnished under a **written person-centered service plan** approved by the Medicaid agency;\n- limited to people who are **not institutional inpatients**; and\n- limited to people who, **without HCBS, would require Medicaid-covered institutional level of care** such as nursing-facility care.  \n  It also must describe the target group, the qualifications of the people developing the plan of care, and define each waiver service separately. [42 CFR Part 441, \u00a7 441.301](https://www.ecfr.gov/current/title-42/part-441)\n\n## How NC\u2019s CAP/DA policy reflects those federal requirements\n\nNC\u2019s current CAP/DA clinical policy is consistent with that 1915(c) structure. It says CAP/DA coverage requires, among other things, that the beneficiary:\n\n- meets the required **HCBS nursing facility level of care**;\n- has a completed CAP assessment showing a reasonable indication of need for waiver services;\n- has a signed service plan authorizing waiver services;\n- can maintain health, safety, and well-being in the home or approved setting with supports; and\n- has paid care needs that can be maintained within the **average institutional cost** of the CAP/DA waiver.  \n  [Community Alternatives Program for Disabled Adults (CAP/DA), \u00a7 3.2.1, eff. Sept. 1, 2025](https://medicaid.ncdhhs.gov/3k-2-community-alternatives-program-disabled-adults-capda/download?attachment)\n\n## Amendment status\n\nI checked amendments for both cited documents:\n\n- **42 CFR Part 441**: I did **not** retrieve amendment history for this document in this answer, so I cannot represent its amendment status beyond the section text retrieved from the current eCFR link.\n- **CAP/DA Policy 3K-2**: amendment check returned no separate amendments in the corpus, and the policy appears current with an effective date of **Sept. 1, 2025**. [Community Alternatives Program for Disabled Adults (CAP/DA)](https://medicaid.ncdhhs.gov/3k-2-community-alternatives-program-disabled-adults-capda/download?attachment)\n\n## Bottom line\n\n- **Federal statutory authority:** **section 1915(c) of the Social Security Act**, implemented in **42 CFR Part 441, Subpart G**.  \n- **What NC must demonstrate in its waiver application:** satisfactory assurances and documentation showing **health and welfare protections, provider standards, financial accountability, level-of-care evaluation, person-centered planning, beneficiary choice/free choice of providers, and that participants would otherwise require institutional care**.\n\nIf you want, I can next pull the exact NC CAP/DA sections on **free choice**, **level-of-care determination**, or **cost neutrality/institutional-cost limits** and turn this into a short citation-ready memo.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 3,
+        "completeness": 3,
+        "hallucination": 3,
+        "citation_quality": 3,
+        "overall": 3,
+        "explanation": "The agent correctly identifies Section 1915(c) of the Social Security Act as the federal statutory authority and 42 CFR Part 441, Subpart G as the implementing regulations. The answer accurately describes the waiver application requirements including: health and welfare safeguards, provider standards, financial accountability, level-of-care evaluation, person-centered planning, beneficiary choice, cost neutrality (average per capita expenditure not exceeding institutional costs), and that participants would otherwise require institutional care. These align precisely with the reference answer and the evidence sections (42 CFR 441.301, 441.302, 441.303). The agent correctly cites NC Clinical Coverage Policy 3K-2 with specific section references. The answer goes beyond the reference in useful ways (e.g., detailing person-centered service plan requirements from 441.301(c), HCBS setting requirements) without fabricating facts. The agent appropriately flags one uncertainty ('I could not verify the underlying Social Security Act text itself in this corpus') which is honest disclosure rather than hallucination. Citations are precise and section-level throughout."
+      },
+      "judge_error": false,
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "primary_hit": true
+    }
+  ]
+}

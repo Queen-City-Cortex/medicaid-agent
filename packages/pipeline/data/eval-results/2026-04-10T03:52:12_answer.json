@@ -1,0 +1,74 @@
+{
+  "run_id": "2026-04-10T03:52:12",
+  "level": "answer",
+  "config": {
+    "embedding_model": "voyage-law-2",
+    "top_k": 10,
+    "dataset_count": 1,
+    "git_sha": "df5a5f9",
+    "judge_model": "claude-sonnet-4-6"
+  },
+  "aggregate": {
+    "precision_at_k": 0.6666666666666666,
+    "recall_at_k": 1.0,
+    "mrr": 0.6666666666666666,
+    "primary_hit_rate": 1.0
+  },
+  "by_difficulty": {
+    "complex": {
+      "precision_at_k": 0.6666666666666666,
+      "recall_at_k": 1.0,
+      "mrr": 0.6666666666666666,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "by_category": {
+    "cross_document": {
+      "precision_at_k": 0.6666666666666666,
+      "recall_at_k": 1.0,
+      "mrr": 0.6666666666666666,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "per_question": [
+    {
+      "id": "q-009",
+      "difficulty": "complex",
+      "reasoning_type": "cross_document",
+      "question": "Is there a maximum earned income limit for people on HCWD (Health Coverage for Workers with Disabilities), and what premiums apply?",
+      "agent_answer": "No\u2014HCWD does **not** have a maximum **earned income** limit stated in the policy. The policy says the bar is on **unearned income**, not earned income: people with **unearned income greater than 150% of FPL are not eligible for HCWD**. For total countable income, the policy instead uses income to determine cost-sharing: above **150% of FPL** there is a **$50 annual enrollment fee**, and above **200% of FPL** there is also a **monthly premium**. [[MA-2180 HEALTH COVERAGE FOR WORKERS WITH DISABILITIES](https://policies.ncdhhs.gov/wp-content/uploads/ma-2180-3.pdf)]\n\n## Premiums that apply\n\nUnder the current MA-2180 text available in the corpus, HCWD premiums are:\n\n| Federal Poverty Level | HCWD Individual monthly premium | HCWD Couple monthly premium |\n|---|---:|---:|\n| 0\u2013150% | $0 | $0 |\n| 151\u2013200% | $0 | $0 |\n| 201\u2013250% | $196 | $265 |\n| 251\u2013300% | $235 | $318 |\n| 301\u2013350% | $274 | $370 |\n| 351\u2013400% | $313 | $423 |\n| 401\u2013450% | $352 | $476 |\n| 451% and above | $875 | $875 |\n\nThese figures appear in the HCWD premium chart in MA-2180. [[MA-2180 HEALTH COVERAGE FOR WORKERS WITH DISABILITIES](https://policies.ncdhhs.gov/wp-content/uploads/ma-2180-3.pdf)]\n\n## Other HCWD cost-sharing rules\n\n- **No cost sharing** (other than applicable co-payments) when total countable income is **at or below 150% of FPL**. [[MA-2180 HEALTH COVERAGE FOR WORKERS WITH DISABILITIES](https://policies.ncdhhs.gov/wp-content/uploads/ma-2180-3.pdf)]\n- **$50 annual enrollment fee** when total countable income is **greater than 150% of FPL**. [[MA-2180 HEALTH COVERAGE FOR WORKERS WITH DISABILITIES](https://policies.ncdhhs.gov/wp-content/uploads/ma-2180-3.pdf)]\n- **Monthly premium** when total countable monthly income **exceeds 200% of FPL**. [[MA-2180 HEALTH COVERAGE FOR WORKERS WITH DISABILITIES](https://policies.ncdhhs.gov/wp-content/uploads/ma-2180-3.pdf)]\n\n## Amendment note\n\nMA-2180 has been amended, and the corpus shows a later change notice: **Change Notice No. 03-25, effective January 1, 2025**, stating that **\u201cMA-2180.IV.I - HCWD Premiums Income chart has been updated.\u201d** [[CHANGE NOTICE FOR MANUAL NO. 03-25, 2025 Federal Poverty Level Changes (FPL) Income Changes](https://policies.ncdhhs.gov/wp-content/uploads/CN-NO-03-25.docx.pdf)]  \n\nSo the governing rule is still: **no maximum earned-income cap is stated; unearned income above 150% FPL makes a person ineligible; premiums begin above 200% FPL**. But if you need the **latest post-2025 dollar chart**, I could not verify those updated dollar amounts from the change notice text itself in the retrieved materials.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 2,
+        "completeness": 3,
+        "hallucination": 1,
+        "citation_quality": 2,
+        "overall": 2,
+        "explanation": "The agent correctly identifies the core facts: no maximum earned income limit, 150% FPL cap on unearned income, $50 enrollment fee above 150% FPL, and sliding-scale premiums above 200% FPL. The answer is comprehensive and well-structured. However, the agent provides specific dollar amounts for the premium table (e.g., $196, $235, $875) that are stated as facts without verification markers, yet the agent itself acknowledges these may be outdated post-2025. The evidence sections don't confirm these specific dollar figures, making them potentially hallucinated or at least unverified facts stated without appropriate caveats throughout the table. The reference answer describes premiums as 'sliding-scale' without specific amounts, suggesting the agent went beyond what could be verified. Additionally, the agent calls it an 'annual enrollment fee' while the reference and evidence specify '$50 per certification period' \u2014 a minor but meaningful distinction. Citation quality is adequate (links to MA-2180) but lacks specific section-level references like IV.E, IV.G, IV.H that the evidence sections reveal. The answer would be mostly acceptable to a policy expert but the unverified premium table figures are a concern."
+      },
+      "judge_error": false,
+      "route_lane": "deterministic_evidence",
+      "route_rationale": "numeric_thresholds",
+      "route_widening_policy": "none",
+      "route_determinism_hints": {
+        "numeric_evidence_only": true,
+        "latest_revision_only": false,
+        "cite_scope_and_not_covered": true
+      },
+      "route_authoritative_document": {
+        "id": "doc:dhhs_policy:MA-2180:url-08aa92cd33e7",
+        "policy_number": "MA-2180",
+        "title": "MA-2180 HEALTH COVERAGE FOR WORKERS WITH DISABILITIES"
+      },
+      "route_widened": false,
+      "route_inspection_error": null,
+      "agent_elapsed_seconds": 32.962,
+      "precision": 0.6666666666666666,
+      "recall": 1.0,
+      "mrr": 0.6666666666666666,
+      "primary_hit": true
+    }
+  ]
+}

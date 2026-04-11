@@ -1,8 +1,20 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { CORPUS_MANIFEST, getSourceFamily } from './corpus-manifest.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, '..');
+
+const clinicalPolicySource = getSourceFamily('clinical_policy');
+const bulletinSource = getSourceFamily('bulletin');
+const statePlanSource = getSourceFamily('state_plan_amendment');
+const waiverSource = getSourceFamily('waiver');
+const providerManualSource = getSourceFamily('provider_manual');
+const dhhsPolicySource = getSourceFamily('dhhs_policy');
+const feeScheduleSource = getSourceFamily('fee_schedule');
+const billingGuidanceSource = getSourceFamily('billing_guidance');
+const managedCareGuidanceSource = getSourceFamily('managed_care_guidance');
+const managedCareContractSource = getSourceFamily('managed_care_contract');
 
 export const config = {
   // Paths (resolved relative to crawler/ root)
@@ -33,48 +45,55 @@ export const config = {
   // Sources
   sources: {
     clinical_policy: {
-      indexUrl:
-        'https://medicaid.ncdhhs.gov/providers/program-specific-clinical-coverage-policies',
+      indexUrl: clinicalPolicySource.landing_pages[0],
       enabled: true,
     },
     bulletin: {
-      indexUrl: 'https://medicaid.ncdhhs.gov/providers/medicaid-bulletin',
-      blogListingUrl: 'https://medicaid.ncdhhs.gov/blog-category/bulletins',
-      digestsUrl:
-        'https://medicaid.ncdhhs.gov/providers/medicaid-bulletin/medicaid-bulletin-digests',
-      archiveBaseUrl:
-        'https://medicaid.ncdhhs.gov/providers/medicaid-bulletin/medicaid-bulletin-archive',
+      indexUrl: bulletinSource.landing_pages[0],
+      blogListingUrl: bulletinSource.landing_pages[1],
+      digestsUrl: bulletinSource.landing_pages[2],
+      archiveBaseUrl: bulletinSource.landing_pages[3],
       enabled: true,
     },
     state_plan_amendment: {
-      indexUrl:
-        'https://medicaid.ncdhhs.gov/meetingsnotices/medicaid-state-plan-public-notices',
+      indexUrl: statePlanSource.landing_pages[0],
       enabled: true,
     },
     waiver: {
-      seedUrls: [
-        'https://medicaid.ncdhhs.gov/beneficiaries/nc-innovations-waiver/information-providers-nc-innovations-waiver',
-        'https://medicaid.ncdhhs.gov/beneficiaries/1915i',
-      ],
+      seedUrls: waiverSource.seed_urls,
       enabled: true,
     },
     provider_manual: {
-      indexUrl: 'https://www.nctracks.nc.gov/content/public/providers/provider-manuals.html',
+      indexUrl: providerManualSource.landing_pages[0],
       enabled: true,
     },
     dhhs_policy: {
-      indexUrl: 'https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/',
+      indexUrl: dhhsPolicySource.landing_pages[0],
+      enabled: true,
+    },
+    fee_schedule: {
+      landingPages: feeScheduleSource.landing_pages,
+      enabled: true,
+    },
+    billing_guidance: {
+      landingPages: billingGuidanceSource.landing_pages,
+      enabled: true,
+    },
+    managed_care_guidance: {
+      landingPages: managedCareGuidanceSource.landing_pages,
+      enabled: true,
+    },
+    managed_care_contract: {
+      landingPages: managedCareContractSource.landing_pages,
       enabled: true,
     },
   },
 } as const;
 
 // Source type directory mapping
-export const SOURCE_TYPE_DIRS: Record<string, string> = {
-  clinical_policy: 'clinical-policies',
-  bulletin: 'bulletins',
-  state_plan_amendment: 'state-plan-amendments',
-  waiver: 'waivers',
-  provider_manual: 'provider-manuals',
-  dhhs_policy: 'dhhs-policies',
-};
+export const SOURCE_TYPE_DIRS: Record<string, string> = Object.fromEntries(
+  CORPUS_MANIFEST.source_families.map((family) => [
+    family.source_type,
+    family.directory_name,
+  ]),
+);

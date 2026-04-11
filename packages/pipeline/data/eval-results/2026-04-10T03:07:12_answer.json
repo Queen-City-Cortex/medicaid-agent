@@ -1,0 +1,59 @@
+{
+  "run_id": "2026-04-10T03:07:12",
+  "level": "answer",
+  "config": {
+    "embedding_model": "voyage-law-2",
+    "top_k": 10,
+    "dataset_count": 1,
+    "git_sha": "df5a5f9",
+    "judge_model": "claude-sonnet-4-6"
+  },
+  "aggregate": {
+    "precision_at_k": 0.0,
+    "recall_at_k": 0.0,
+    "mrr": 0.0,
+    "primary_hit_rate": 0.0
+  },
+  "by_difficulty": {
+    "moderate": {
+      "precision_at_k": 0.0,
+      "recall_at_k": 0.0,
+      "mrr": 0.0,
+      "primary_hit_rate": 0.0,
+      "count": 1
+    }
+  },
+  "by_category": {
+    "single_lookup": {
+      "precision_at_k": 0.0,
+      "recall_at_k": 0.0,
+      "mrr": 0.0,
+      "primary_hit_rate": 0.0,
+      "count": 1
+    }
+  },
+  "per_question": [
+    {
+      "id": "q-005",
+      "difficulty": "moderate",
+      "reasoning_type": "single_lookup",
+      "question": "Does NC Medicaid cover Personal Care Services for beneficiaries who live in an assisted living facility?",
+      "agent_answer": "",
+      "agent_error": "Agent timed out after 1s",
+      "scores": {
+        "factual_accuracy": 0,
+        "completeness": 0,
+        "hallucination": 0,
+        "citation_quality": 0,
+        "overall": 0,
+        "explanation": "Agent timed out after 1s",
+        "error_type": "agent"
+      },
+      "judge_error": false,
+      "precision": 0.0,
+      "recall": 0.0,
+      "mrr": 0.0,
+      "primary_hit": false
+    }
+  ]
+}

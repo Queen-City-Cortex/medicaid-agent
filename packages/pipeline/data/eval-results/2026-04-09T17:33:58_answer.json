@@ -1,0 +1,58 @@
+{
+  "run_id": "2026-04-09T17:33:58",
+  "level": "answer",
+  "config": {
+    "embedding_model": "voyage-law-2",
+    "top_k": 10,
+    "dataset_count": 1,
+    "git_sha": "df5a5f9",
+    "judge_model": "claude-sonnet-4-6"
+  },
+  "aggregate": {
+    "precision_at_k": 1.0,
+    "recall_at_k": 1.0,
+    "mrr": 1.0,
+    "primary_hit_rate": 1.0
+  },
+  "by_difficulty": {
+    "moderate": {
+      "precision_at_k": 1.0,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "by_category": {
+    "cross_document": {
+      "precision_at_k": 1.0,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "per_question": [
+    {
+      "id": "q-015",
+      "difficulty": "moderate",
+      "reasoning_type": "cross_document",
+      "question": "What does federal law define as 'home health services' under Medicaid, and where must they be provided?",
+      "agent_answer": "I found the key federal regulation: **42 CFR 440.70**, which appears to define Medicaid \u201chome health services\u201d and specify where they must be provided. Next I\u2019m pulling the full text and related context so I can answer precisely and include the place-of-service language.The full regulation confirms both pieces of your question. It defines \u201chome health services\u201d by tying them to the listed service categories in 42 CFR 440.70(b), and it says they must be provided at the beneficiary\u2019s \u201cplace of residence,\u201d with an important clarification about what counts as that place.## Federal definition of \u201chome health services\u201d\n\nUnder federal Medicaid law, **\u201chome health services\u201d** are the services listed in **42 CFR 440.70(b)** when they are provided:\n\n1. **At the beneficiary\u2019s place of residence**; and  \n2. **Pursuant to the required written orders and plan-of-care rules** in the regulation. For nursing, home health aide, and therapy services, the regulation says the ordering practitioner must review the written plan of care **every 60 days**.  \n   **Citation:** **42 CFR 440.70 \u2014 \u201cHome health services\u201d** ([42 CFR Part 440](https://www.ecfr.gov/current/title-42/part-440))\n\nThe services included within \u201chome health services\u201d are:\n\n- **Nursing services** provided on a part-time or intermittent basis;\n- **Home health aide services**;\n- **Medical supplies, equipment, and appliances** suitable for use in settings where normal life activities take place; and\n- **Physical therapy, occupational therapy, or speech pathology and audiology services**.  \n  **Citation:** **42 CFR 440.70 \u2014 \u201cHome health services\u201d** ([42 CFR Part 440](https://www.ecfr.gov/current/title-42/part-440))\n\n## Where must they be provided?\n\nFederal law says home health services must be provided at the beneficiary\u2019s **\u201cplace of residence.\u201d**  \nBut the regulation also clarifies that this is **not limited to a private home**.\n\n### What counts\nThe rule states that nothing in the section prohibits a beneficiary from receiving home health services in **\u201cany setting in which normal life activities take place\u201d**, so long as the setting is not one of the excluded institutional settings below.  \n**Citation:** **42 CFR 440.70(c)(1) \u2014 \u201cHome health services\u201d** ([42 CFR Part 440](https://www.ecfr.gov/current/title-42/part-440))\n\n### What does *not* count as the beneficiary\u2019s place of residence\nFor purposes of home health services, the regulation says the beneficiary\u2019s place of residence **does not include**:\n\n- a **hospital**,\n- a **nursing facility**,\n- an **intermediate care facility for individuals with intellectual disabilities (ICF/IID)**,\n\nwith a narrow exception for certain home health services in an ICF/IID that the facility itself is not required to provide.  \n**Citation:** **42 CFR 440.70(c) \u2014 \u201cHome health services\u201d** ([42 CFR Part 440](https://www.ecfr.gov/current/title-42/part-440))\n\nIt also says home health services cannot be limited only to beneficiaries who are **homebound**.  \n**Citation:** **42 CFR 440.70(c)(1) \u2014 \u201cHome health services\u201d** ([42 CFR Part 440](https://www.ecfr.gov/current/title-42/part-440))\n\n## Bottom line\n\nIn plain language: federal Medicaid law defines **home health services** as the specific nursing, aide, therapy, and medical-supply/equipment services listed in **42 CFR 440.70(b)** when they are ordered as required and delivered at the beneficiary\u2019s **place of residence**. That place can be **any setting where normal life activities occur**, but **not** a hospital, nursing facility, or ICF/IID (subject to the narrow ICF/IID exception).\n\nIf you want, I can also give you the **North Carolina Medicaid implementation** of this federal rule or break down the **authorized order writers** and **plan-of-care requirements** in more detail.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 3,
+        "completeness": 3,
+        "hallucination": 3,
+        "citation_quality": 3,
+        "overall": 3,
+        "explanation": "The agent's answer is comprehensive and accurate. It correctly cites 42 CFR 440.70 and accurately describes the definition of home health services including all four service categories (nursing, home health aide, medical supplies/equipment, and therapy services). It correctly identifies the place of residence requirement, the 60-day plan of care review requirement, the exclusions (hospital, nursing facility, ICF/IID), and the important clarification that services can be provided in any setting where normal life activities take place. The answer also correctly notes that homebound status cannot be required. The reference answer mentions NC Clinical Coverage Policy 3A which the agent's answer doesn't cover in the main body (though it offers to provide it), but the question itself doesn't ask about NC-specific implementation. The agent provides precise section-level citations (42 CFR 440.70, with subsection references like 440.70(b), 440.70(c), 440.70(c)(1)). No hallucinations are present - all stated facts align with the regulatory text provided in evidence."
+      },
+      "judge_error": false,
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "primary_hit": true
+    }
+  ]
+}

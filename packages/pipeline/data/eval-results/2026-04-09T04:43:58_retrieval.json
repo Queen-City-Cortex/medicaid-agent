@@ -1,0 +1,61 @@
+{
+  "run_id": "2026-04-09T04:43:58",
+  "level": "retrieval",
+  "config": {
+    "embedding_model": "voyage-law-2",
+    "top_k": 10,
+    "dataset_count": 1,
+    "git_sha": "df5a5f9"
+  },
+  "aggregate": {
+    "precision_at_k": 0.1,
+    "recall_at_k": 1.0,
+    "mrr": 0.3333333333333333,
+    "primary_hit_rate": 1.0
+  },
+  "by_difficulty": {
+    "moderate": {
+      "precision_at_k": 0.1,
+      "recall_at_k": 1.0,
+      "mrr": 0.3333333333333333,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "by_category": {
+    "temporal": {
+      "precision_at_k": 0.1,
+      "recall_at_k": 1.0,
+      "mrr": 0.3333333333333333,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "per_question": [
+    {
+      "id": "q-020",
+      "difficulty": "moderate",
+      "reasoning_type": "temporal",
+      "precision": 0.1,
+      "recall": 1.0,
+      "mrr": 0.3333333333333333,
+      "primary_hit": true,
+      "retrieved": [
+        "sec:doc:dhhs_policy:MA-3550:url-54185ce6f688:_s78",
+        "sec:doc:dhhs_policy:MA-2910:url-38e3dfdc4566:_s78",
+        "sec:doc:dhhs_policy:MA-3550:url-54185ce6f688:_s2",
+        "sec:doc:clinical_policy:8D-5:8.0",
+        "sec:doc:clinical_policy:8A-11:8.0",
+        "sec:doc:clinical_policy:8D-6:8.0",
+        "sec:doc:state_plan_amendment:url-384e030e27c2:_s166",
+        "sec:doc:state_plan_amendment:url-384e030e27c2:_s167",
+        "sec:doc:state_plan_amendment:url-384e030e27c2:_s168",
+        "sec:doc:state_plan_amendment:url-384e030e27c2:_s2168"
+      ],
+      "expected_primary": [
+        "sec:doc:dhhs_policy:MA-3550:url-54185ce6f688:_s2"
+      ],
+      "expected_supporting": []
+    }
+  ]
+}

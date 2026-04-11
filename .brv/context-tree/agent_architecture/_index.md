@@ -1,53 +1,50 @@
 ---
-children_hash: 33998957bc24e79b4c3c71bab9327a0459f4f3e271256a03f046a8e406642cb7
-compression_ratio: 0.3694077545803153
+children_hash: e9802388e0e8897a4ce2e7d7856439e2d23fb51aeb178d3558cde56528f228d4
+compression_ratio: 0.3099848139711465
 condensation_order: 2
 covers: [amendment_pipeline_and_prompt/_index.md, context.md, local_dev_setup/_index.md, mastra_server_configuration/_index.md, navigate_tools/_index.md, nc_medicaid_agent/_index.md, neo4j_tool_output_validation/_index.md, search_tooling/_index.md]
-covers_token_total: 4694
+covers_token_total: 5268
 summary_level: d2
-token_count: 1734
+token_count: 1633
 type: summary
 ---
-## Agent Architecture Structural Summary (Domain-level)
+# Agent Architecture Structural Summary (d2)
 
-- **Domain purpose & scope**: `agent_architecture/context.md` frames the NC Medicaid policy agent’s architecture, covering bootstrapping (model/tool wiring), memory/storage, and policy-specific guardrails; excludes general Mastra tutorials or unrelated agents and is owned by the NC Medicaid Agent team for onboarding/auditing.
+## Domain Overview (`context.md`)
+- Captures NC Medicaid Navigator agent architecture: bootstrapping, memory/storage, policy guardrails, and citation rules; excludes unrelated Mastra tutorials and non-policy services.
+- Owned by NC Medicaid Agent team; serves onboarding and policy audit needs.
 
-### Amendment Pipeline & Guardrails
-- **Entry references**: `amendment_pipeline_and_prompt/_index.md`, `amendment_pipeline_and_prompt_guardrails.md`, `context.md`
-- **Pipeline decisions**: Graph builds now prioritize `getAmendments` traversals from depth-1 amendment signals, batch emits via `GRAPH_BATCH_SIZE`, and include regex-based change notice parsing (`_CHANGE_NOTICE_RE`/`_MA_SERIES_RE`/`_REVISED_SPA_RE`). Signal-first detection mitigates noisy body-only amendments (~98.5%); summaries include long sections plus `change_description`.
-- **Prompt guardrails**: System prompt enumerates tools, mandates `getAmendments`, prefers authoritative docs, enforces citation/verification, routes HCWD questions via dhhs_policy MA-2180, warns on LTC Partnership amendments, and demands plain-language answers with policy-difference callouts.
-- **Infrastructure dependencies**: Anthropic/OpenAI clients, LibSQLStore + DuckDB storage, Navigator helpers, memory templates, HallucinationVerifier, Mastra settings, and CLI runner behavior collaborate to deliver batch tool runs whose markdown responses cite policy differences and verification status.
+## Amendment Pipeline & Prompt Guardrails (`amendment_pipeline_and_prompt/_index.md`)
+- **Pipeline Flow**: Signals prefer depth-1 `getAmendments` traversals, aggregate long sections and `change_description`, sort doc hits by effective date/distance, and emit stats while filtering noisy body-only edges (`amendment_signal_extraction`, `get_amendments_selection`).
+- **System Prompt Rules**: Lists available tools, mandates `getAmendments`, routes HCWD questions to dhhs_policy MA-2180, cautions on LTC partnership amendments, and enforces plain-language, policy-difference, and verification messaging (`system_prompt_rules`).
+- **Infrastructure Dependencies**: Regex-driven change detection (`_CHANGE_NOTICE_RE`, `_MA_SERIES_RE`, `_REVISED_SPA_RE`), `GRAPH_BATCH_SIZE` batching, Navigator/metadata helpers, Anthropic/OpenAI clients, LibSQLStore/DuckDB storage, memory templates, HallucinationVerifier/Mastra settings, CLI runner flow that ends with markdown responses citing policy differences.
 
-### Local Development Setup
-- **Entry references**: `local_dev_setup/_index.md`, `context.md`, `local_development_setup.md`, `environment_variable_consolidation.md`, `env_consolidation/`
-- **Workflow & tooling**: Docker Compose (`neo4j:5` ports 7474/7687, `neo4j-data` volume) plus root package scripts (`npm run dev`, `dev:infra`, `dev:web`, `dev:agent`) in npm@11.11 workspaces manage Neo4j + Mastra web/agent dev servers; `npm run dev` must execute from repo root, starting Neo4j before both servers, while `dev:infra`/`dev:stop` control Docker lifecycle.
-- **Environment consolidation**: Central root `.env` now houses all LLM (OpenAI/Anthropic/Voyage) and WorkOS secrets (client credentials, `Testing@queencitycortex.com`, redirect URIs); logic deletes stale symlinks and ensures `packages/agent/.env` + `packages/web/.env.local` are absolute symlinks pointing to the root file, keeping updates synchronized before restarting services.
+## Local Development Setup (`local_dev_setup/_index.md`)
+- **Workflow**: Root `package.json` scripts (`npm run dev`, `dev:infra`, `dev:stop`, etc.) orchestrate Neo4j 5 (`ports 7474/7687`, `neo4j-data` volume) via Docker Compose and parallel @nc-medicaid web/agent dev servers using npm workspaces, Turbo, and TypeScript tooling.
+- **Environment Consolidation**: Root `.env` now centralizes LLM (OpenAI, Anthropic, Voyage) and WorkOS credentials (client ID/key/cookie/redirects), WorkOS test user `Testing@queencitycortex.com`, and shared secrets; agent/web `.env` files symlink to it to keep credentials synchronized, requiring root updates before restarts.
 
-### Mastra Server Configuration
-- **Entry references**: `mastra_server_configuration/_index.md`, `mastra_server_timeout_tuning.md`, `context.md`
-- **Architecture choice**: `packages/agent/src/index.ts` now sets `server.timeout` to `10 * 60 * 1000` (from 3 minutes) to keep SSE streams alive through NC Medicaid navigator’s multi-step tool research, preserving long-lived conversations without silent termination.
+## Mastra Server Configuration (`mastra_server_configuration/_index.md`)
+- **Timeout Tuning**: `packages/agent/src/index.ts` raises `server.timeout` from 3 minutes to `10 * 60 * 1000` to keep SSE streams alive during multi-step navigator research, documenting the safeguard in the server block alongside host/port/CORS/API routes.
 
-### Navigate Tools
-- **Entry references**: `navigate_tools/_index.md`, `getamendments_optional_match_filtering.md`, `context.md`
-- **Tooling structure**: `getAmendments` Neo4j queries emit optional matches whose null-`id` rows must be filtered before invoking `mapDocumentMetadataRecord`; ordered amendment rows (by `effective_date` desc, `id` asc) feed authoritative document selection, aligned with Neo4j output validation practices.
+## Navigate Tools (`navigate_tools/_index.md`)
+- **Neo4j Query Guardrails**: `packages/agent/src/tools/navigate.ts` filters null-`id` rows immediately after `OPTIONAL MATCH` to satisfy `mapDocumentMetadataRecord` and Zod schemas, ensuring authoritative document selection uses ordered amendment rows (`effective_date` desc, `id` asc) while preventing validation failures.
 
-### NC Medicaid Navigator Agent Surface
-- **Entry references**: `nc_medicaid_agent/_index.md`, multiple detailed files (`context.md`, `startup_and_web_ui_hardening.md`, `nc_medicaid_navigator_agent.md`, `mastra_nc_medicaid_navigator_configuration.md`, `observational_memory_and_policy_guidance.md`, `cli_runner*.md`, `libsql_storage_fix_for_railway.md`)
-- **Startup & guardrails**: Mastra server config wires LibSQL storage, observational/working memory, model providers, HallucinationVerifier, and the `nc-medicaid-navigator` agent; system prompt mandates tool-first search/actions, strict citation rules (section IDs, policy numbers/effective dates, amendment awareness), MAX_STEPS warnings, and plain-language policy-difference outputs. Environment checks require VOYAGE_API_KEY plus either OPENAI_API_KEY or ANTHROPIC_API_KEY; `/healthz` probes Neo4j; CLI mirrors chat behavior via `npx tsx src/index.ts` with synchronized memory payloads, forced answer narration, logging, and cleanup.
-- **Memory & tools**: Shared LibSQLStore backs observational memory (prefers openai/gpt-5.4-mini) and resource-scoped working memory seeded with Medicaid profiles; toolset includes searchSections, getSection, getDocument, getSectionContext, followReferences, findConceptSections, getAmendments, lookupPolicy, and HallucinationVerifier to enforce citation fidelity and policy-aware outputs.
-- **CLI guardrails**: Iterations warn near MAX_STEPS (40), require tool-call narration before resuming, and emit markdown answers (`---ANSWER---` marker) with citations, aligning with MastraAgentChatTransport behavior.
-- **Deployment fix**: Railway compatibility achieved by replacing DuckDB/MastraCompositeStore with LibSQLStore to avoid musl/glibc issues; LibSQL now powers memory, observational memory, and observability exporters.
+## NC Medicaid Navigator Agent (`nc_medicaid_agent/_index.md`)
+- **CLI Runner & Memory Guardrails** (`cli_runner.md`, `cli_runner_memory_guardrails.md`): `src/index.ts` binds Mastra, tools, LibSQL/DuckDB storage, Neo4j cleanup, and models (Anthropic/OpenAI); CLI runs via `npx tsx src/index.ts`, uses unique `cli-${Date.now()}` threads, enforces `maxSteps=99`, onIterationComplete finalization, Mastra-compliant memory payloads, and anti-hallucination guardrails.
+- **Agent Configuration & Prompting** (`nc_medicaid_navigator_agent.md`, `document_metadata_and_agent_prompt/_index.md`, `observational_memory_and_policy_guidance.md`, `mastra_nc_medicaid_navigator_configuration.md`):
+  - Memory built on LibSQL with observational memory (`gpt-5.4-mini`) plus resource-scoped templates seeded with Medicaid profile details.
+  - Instructions function rebuilds prompts per request, injecting current datetime, stripping hardcoded tool counts (Mastra provides tools), and enforcing tool-first workflows, citation duties (section IDs, policy numbers, effective dates, URLs), amendment checks, and forced synthesis warnings.
+  - Metadata helpers expose fields (`id`, `title`, `type`, `policy_number`, `effective_date`, `url`, `status`, `source_url`) for citations while system prompts demand `getAmendments` usage and markdown formatting.
+- **Observational Memory & UI** (`startup_and_web_ui_hardening.md`): Server exposes `/chat` and `/healthz`, validates Neo4j status, and configures web UI (`AGENT_ID=nc-medicaid-navigator`, `DefaultChatTransport` to `${MASTRA_URL}/chat`, AGENT_URL fallback, thread/memory metadata, input limits/auto-resize, spinner states). UI enforces tool-first policies, anti-hallucination mandates (verbatim facts, plan distinctions) and re-run behaviors.
+- **LibSQL Fix** (`libsql_storage_fix_for_railway.md`): Railway Alpine lacked `ld-linux-x86-64.so.2`, so DuckDB and MastraCompositeStore removed; LibSQLStore now handles persistence and observational memory, avoiding glibc dependencies.
 
-### Neo4j Tool Output Validation
-- **Entry references**: `neo4j_tool_output_validation/_index.md`, `neo4j_tool_output_validation.md`, `context.md`
-- **Architectural safeguards**:
-  - Numeric properties (e.g., `content_length`, `chars`) are converted from Neo4j `Integer` to JS numbers (`toNumber()`) before Zod validation to prevent silent retries.
-  - `getSection` expands container headings lacking text by aggregating child text (up to 6,000 chars) with truncation notes.
-  - `getSectionContext` documents ordered ancestor/child/sibling queries so clients can traverse hierarchy reliably.
-- **Outcome**: Eliminates Zod failures, surfaces child text for empty headings, and clarifies structural navigation in payloads.
+## Neo4j Tool Output Validation (`neo4j_tool_output_validation/_index.md`)
+- **Integer Normalization**: All numeric Neo4j properties (e.g., `content_length`, `chars`) convert from `Integer` to JS numbers before Zod validation to stop silent retries and satisfy `DocumentMetadataSchema`.
+- **Container Heading Expansion**: `getSection` aggregates up to 6,000 characters from child sections for empty headings and adds truncation notices when needed.
+- **Structural Context Queries**: `getSectionContext` retrieves ancestors (by path length), children (`section_number` order), and siblings (`NEXT_SIBLING`), documenting clear navigation relationships for agents.
 
-### Search Tooling
-- **Entry references**: `search_tooling/_index.md`, `hybrid_policy_search_tool.md`, `context.md`
-- **Signal architecture**: `searchSections` fuses Voyage embeddings, per-type-group vector searches, concept graph matches, and keyword lookups, relying on Neo4j indexes (`section_embeddings`, `chunk_embeddings`, `PolicyConcept`, `section_fulltext`) plus helper utilities (`recordToHit`, `dedup`, `rrfFuse`).
-- **Fusion flow**: Inputs validated via Zod → embeddings via `embedQuery` → per-type-group section/chunk searches (type group filters default to `clinical_policy`, `dhhs_policy`, `federal statute cluster`) → optional concept graph/full-text hits → deduplicate by `sectionId` → RRF (`RRF_K=60`, per-groupK = `topK` or `max(topK, 10)`) → top-K sorted outputs with metadata.
-- **Rules & constraints**: Deduplication before fusion, concept graph matches require `content_length > 200` and valid `section_number`, per-group minimum candidates enforced, and tool depends on Voyage API credentials plus Neo4j indexes to deliver policy-accurate rankings.
+## Search Tooling (`search_tooling/_index.md`)
+- **Hybrid Policy Search** (`hybrid_policy_search_tool.md`): `searchSections` (`packages/agent/src/tools/search.ts`) validates queries with Zod, obtains embeddings via `embedQuery`, executes per-type-group (clinical_policy, dhhs_policy, federal statutes) section/chunk vector searches, optionally adds concept graph/full-text hits, and dedupes by `sectionId` before `rrfFuse` with `RRF_K=60`. Per-group logic uses `perGroupK = max(topK, 10)` when type filters absent, and concept graph hits require `content_length > 200` plus non-null `section_number`. Dependencies include Voyage credentials, Neo4j indexes (`section_embeddings`, `chunk_embeddings`, `PolicyConcept`), and helper utilities (`recordToHit`, `dedup`, `rrfFuse`).
+
+## Relationships & Drill-Down Paths
+- Consult `agent_architecture/amendment_pipeline_and_prompt/_index.md`, `local_dev_setup/_index.md`, `mastra_server_configuration/_index.md`, `navigate_tools/_index.md`, `nc_medicaid_agent/_index.md`, `neo4j_tool_output_validation/_index.md`, and `search_tooling/_index.md` for detailed flows, guardrails, infrastructure, and tooling decisions.

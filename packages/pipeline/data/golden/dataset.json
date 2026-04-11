@@ -197,71 +197,65 @@
           "relevance": "EPSDT provision cross-reference in CAP/DA policy"
         }
       ],
-      "cross_references": [
-        {
-          "from_document_id": "doc:clinical_policy:10A",
-          "to_document_id": "doc:clinical_policy:3K-2",
-          "relationship": "EPSDT provision appears across multiple clinical policies"
-        }
-      ],
+      "cross_references": [],
       "federal_references": []
     },
     "source": "legal_aid",
-    "notes": "Complex cross-document question: EPSDT provision appears in 10A and 3K-2. Tests ability to synthesize across policies."
+    "notes": "Complex cross-document question: EPSDT provision appears in both 10A and 3K-2, but the current corpus does not encode that overlap as an explicit policy-to-policy reference edge. This question still tests cross-document retrieval and synthesis via supporting sections."
   },
   {
     "id": "q-005",
-    "version": 1,
+    "version": 2,
     "created": "2026-03-26",
-    "updated": "2026-03-26",
+    "updated": "2026-04-07",
     "question": "Does NC Medicaid cover Personal Care Services for beneficiaries who live in an assisted living facility?",
     "difficulty": "moderate",
     "reasoning_type": "single_lookup",
     "topics": ["personal_care", "pcs", "setting", "assisted_living"],
     "target_users": ["beneficiary", "care_coordinator"],
     "answer": {
-      "text": "NC Medicaid State Plan Personal Care Services (Clinical Coverage Policy 3L) covers personal care in in-home settings as defined in section 3.3. Section 3.2.2 specifies Medicaid-specific criteria including approved settings. Assisted living facilities are generally not qualifying in-home settings under the State Plan PCS benefit; beneficiaries in such facilities may need to look at other waiver programs. The general covered criteria in section 3.1 and specific criteria in 3.2.1 define the scope of covered services.",
+      "text": "Yes. NC Medicaid can cover Personal Care Services for beneficiaries who live in an assisted living-type setting, but the governing policy is Clinical Coverage Policy 3L-1 for PCS provided in congregate settings, not the in-home 3L policy. Section 3.2.1 requires the beneficiary to live in a qualifying congregate facility such as an Adult Care Home and to meet the policy's functional and medical criteria. Section 3.3 describes the PCS services covered in those congregate settings, while section 4.2.1.2 confirms that room and board and other non-PCS supports are not covered.",
       "confidence": "medium",
       "caveats": [
-        "Setting eligibility rules may have changed with benefit redesign",
-        "CAP/DA waiver (policy 3K-2) has different setting rules",
-        "Verify current policy version for assisted living facility rules"
+        "This question is about congregate-setting PCS under 3L-1, not in-home PCS under 3L",
+        "Room and board remain excluded even when PCS is covered in the facility",
+        "Beneficiary still must meet the policy's medical and functional criteria"
       ]
     },
     "evidence": {
       "primary_sections": [
         {
-          "document_id": "doc:clinical_policy:3L",
-          "section_id": "sec:doc:clinical_policy:3L:3.3",
-          "section_number": "3.3",
-          "relevance": "Personal Care Services in In-Home Settings — defines qualifying settings"
+          "document_id": "doc:clinical_policy:3L-1",
+          "section_id": "sec:doc:clinical_policy:3L-1:3.2.1",
+          "section_number": "3.2.1",
+          "relevance": "Specific Medicaid criteria for PCS in congregate settings, including Adult Care Home residency and functional thresholds"
         },
         {
-          "document_id": "doc:clinical_policy:3L",
-          "section_id": "sec:doc:clinical_policy:3L:3.2.2",
-          "section_number": "3.2.2",
-          "relevance": "Medicaid specific criteria including setting requirements"
+          "document_id": "doc:clinical_policy:3L-1",
+          "section_id": "sec:doc:clinical_policy:3L-1:3.3",
+          "section_number": "3.3",
+          "relevance": "Covered PCS services in congregate settings"
         }
       ],
       "supporting_sections": [
         {
-          "document_id": "doc:clinical_policy:3L",
-          "section_id": "sec:doc:clinical_policy:3L:3.1",
-          "section_number": "3.1",
-          "relevance": "General criteria covered for PCS"
+          "document_id": "doc:clinical_policy:3L-1",
+          "section_id": "sec:doc:clinical_policy:3L-1:4.2.1.2",
+          "section_number": "4.2.1.2",
+          "relevance": "Services not covered by Medicaid in congregate-setting PCS, including room and board"
         },
         {
           "document_id": "doc:clinical_policy:3L",
-          "section_id": "sec:doc:clinical_policy:3L:4.1",
-          "section_number": "4.1",
-          "relevance": "General criteria not covered — may address facility settings"
+          "section_id": "sec:doc:clinical_policy:3L:3.3",
+          "section_number": "3.3",
+          "relevance": "In-home PCS section used to distinguish 3L from 3L-1 and avoid mixing the policies"
         }
       ],
       "cross_references": [],
       "federal_references": []
     },
     "source": "lived_experience",
-    "notes": "Common setting question. Tests retrieval of section 3.3 (in-home settings) alongside 3.2.2."
+    "notes": "Updated after the corpus split between in-home PCS (3L) and congregate-setting PCS (3L-1) became explicit in the parsed policies. This question now tests whether the agent selects 3L-1 for assisted-living/Adult Care Home settings and distinguishes it from 3L."
   },
   {
     "id": "q-006",
@@ -419,13 +413,7 @@
           "relevance": "Premium schedule details for HCWD beneficiaries"
         }
       ],
-      "cross_references": [
-        {
-          "from_document_id": "doc:dhhs_policy:url-11e0d9a442ce",
-          "to_document_id": "doc:federal_statute:ssa-title-19",
-          "relationship": "HCWD implements Section 1902(a)(10)(A)(ii)(XV) of the Social Security Act (Ticket to Work)"
-        }
-      ],
+      "cross_references": [],
       "federal_references": [
         {
           "section_id": "sec:doc:federal_statute:ssa-title-19:1902",
@@ -434,7 +422,7 @@
       ]
     },
     "source": "lived_experience",
-    "notes": "Real beneficiary question. Answer requires DHHS eligibility manual + understanding that a change notice REMOVES a limit. Tests cross-document reasoning, negative answer pattern (no earned income limit), and the three-tier authority chain (SSA → CFR → state policy)."
+    "notes": "Real beneficiary question. Answer requires DHHS eligibility manual + understanding that a change notice REMOVES a limit. The current HCWD notice body does not explicitly cite Section 1902, so federal authority is tracked through federal evidence rather than a DHHS-to-SSA reference edge."
   },
   {
     "id": "q-010",
@@ -906,35 +894,29 @@
     "topics": ["nemt", "transportation", "amendments", "policy_history"],
     "target_users": ["policy_analyst", "provider"],
     "answer": {
-      "text": "The NEMT policy (originally DMA Administrative Letter NO. 04-15) has been amended by Change Notice for Manual No. 04-15 and subsequent change notices. The amendment chain is tracked via AMENDS relationships in the policy graph. The most recent change notice updates certification period requirements and other administrative provisions. To determine the currently effective rules, all change notices must be read in conjunction with the base manual.",
+      "text": "In the current DHHS corpus, the latest identifiable NEMT revision is Change No. 04-26, reflected in the MA-3550 manual header 'REVISED 03/16/2026 - CHANGE NO. 04-26.' The companion 04-26 change notice document is present, but its parsed body is title-only in the current graph, so the corpus does not expose a reliable section-level summary of the substantive edits. The retrievable conclusion is therefore that Change No. 04-26 is the most recent visible NEMT amendment, while the exact detailed changes require checking the source notice PDF.",
       "confidence": "medium",
       "caveats": [
-        "Multiple change notices may apply to the same base manual",
-        "The base manual number (04-15) appears in multiple amendment documents",
-        "Always check for the most recent change notice before relying on any specific provision"
+        "The parsed 04-26 change notice sections are title-only in the current graph",
+        "NEMT exists in both MA-3550 and MA-2910 manual variants in the corpus",
+        "Use the source change notice PDF if you need the exact text of the 04-26 edits"
       ]
     },
     "evidence": {
       "primary_sections": [
         {
-          "document_id": "doc:dhhs_policy:url-309d861173ab",
-          "section_id": "sec:doc:dhhs_policy:url-309d861173ab:_s2",
+          "document_id": "doc:dhhs_policy:MA-3550:url-54185ce6f688",
+          "section_id": "sec:doc:dhhs_policy:MA-3550:url-54185ce6f688:_s2",
           "section_number": null,
-          "relevance": "Implementation section of the original NEMT administrative letter"
+          "relevance": "Manual revision header showing the latest incorporated NEMT change notice (04-26) and revision date"
         }
       ],
       "supporting_sections": [],
-      "cross_references": [
-        {
-          "from_document_id": "doc:dhhs_policy:url-3aac8c378dc9",
-          "to_document_id": "doc:dhhs_policy:url-309d861173ab",
-          "relationship": "Change Notice for Manual 04-15 amends the original NEMT administrative letter"
-        }
-      ],
+      "cross_references": [],
       "federal_references": []
     },
     "source": "regression",
-    "notes": "Temporal reasoning question. Tests the agent's ability to traverse AMENDS edges and determine which version of a policy is current. The medium confidence reflects inherent difficulty of amendment chain tracking."
+    "notes": "Temporal reasoning question. Updated to track the latest identifiable NEMT revision in the current parsed corpus rather than a stale 2015 administrative-letter chain. The medium confidence reflects that the separate 04-26 change notice body is not currently extracted into section text."
   },
   {
     "id": "q-021",

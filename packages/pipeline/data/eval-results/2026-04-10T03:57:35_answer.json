@@ -1,0 +1,74 @@
+{
+  "run_id": "2026-04-10T03:57:35",
+  "level": "answer",
+  "config": {
+    "embedding_model": "voyage-law-2",
+    "top_k": 10,
+    "dataset_count": 1,
+    "git_sha": "df5a5f9",
+    "judge_model": "claude-sonnet-4-6"
+  },
+  "aggregate": {
+    "precision_at_k": 1.0,
+    "recall_at_k": 1.0,
+    "mrr": 1.0,
+    "primary_hit_rate": 1.0
+  },
+  "by_difficulty": {
+    "moderate": {
+      "precision_at_k": 1.0,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "by_category": {
+    "temporal": {
+      "precision_at_k": 1.0,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "per_question": [
+    {
+      "id": "q-020",
+      "difficulty": "moderate",
+      "reasoning_type": "temporal",
+      "question": "The Non-Emergency Medical Transportation (NEMT) policy has been amended multiple times. Which change notice is the most recent, and what did it change?",
+      "agent_answer": "The most recent **change marker** I could verify for NEMT is **REVISED 03/16/2026 \u2013 CHANGE NO. 04-26** in [MA-3550 NON-EMERGENCY MEDICAL TRANSPORTATION (NEMT)](https://policies.ncdhhs.gov/wp-content/uploads/MA-3550-.pdf).\n\nHowever, from the parsed text available to me, that 03/16/2026 entry appears only as a **revision header**, and I **could not verify the specific substantive changes** made by Change No. 04-26 from parsed section text.\n\n## What I could confirm\n- Latest verified revision marker: **REVISED 03/16/2026 \u2013 CHANGE NO. 04-26** in [MA-3550 NON-EMERGENCY MEDICAL TRANSPORTATION (NEMT)](https://policies.ncdhhs.gov/wp-content/uploads/MA-3550-.pdf).\n- The amendment records I could retrieve list earlier change notices such as:\n  - [CHANGE NOTICE FOR MANUAL NO. 04-22, Non-Emergency Medical Transportation (NEMT)](https://policies.ncdhhs.gov/wp-content/uploads/cn-04-22.pdf)\n  - [CHANGE NOTICE FOR MANUAL NO. 01-15, Non-Emergency Medicaid Transportation](https://policies.ncdhhs.gov/wp-content/uploads/ma_cn01-15-1.pdf)\n  - [CHANGE NOTICE FOR MANUAL NO. 13-11, F&C Manual Sections Impacted By Simplification Of Re-Enrollment For MIC/NCHC](https://policies.ncdhhs.gov/wp-content/uploads/ma_cn13-11-1.pdf)\n\n## What changed?\nI **could not confirm the contents of Change No. 04-26** from the parsed policy text or amendment summary available in the corpus. So the safest answer is:\n\n- **Most recent notice/change marker:** **Change No. 04-26**\n- **Date:** **03/16/2026**\n- **Substantive change:** **Not verifiable from the parsed text I retrieved**\n\nIf you want, I can next give you a **chronological amendment history of MA-3550** with the specific changes that *are* described in the older notices, especially **Change Notice 04-22**.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 3,
+        "completeness": 3,
+        "hallucination": 3,
+        "citation_quality": 3,
+        "overall": 3,
+        "explanation": "The agent's answer correctly identifies Change No. 04-26 dated 03/16/2026 as the most recent NEMT amendment, matching the reference answer exactly. The agent honestly acknowledges that the substantive content of the change notice could not be verified from parsed text, which aligns with the reference answer's conclusion that the corpus does not expose reliable section-level details. The agent provides specific URL citations to the MA-3550 policy document and related change notices. No hallucinated facts are present - the agent appropriately flags uncertainty rather than fabricating content details. The answer is complete in addressing both parts of the question (which change notice is most recent, and what it changed), with the honest caveat that the latter cannot be confirmed from available parsed text."
+      },
+      "judge_error": false,
+      "route_lane": "deterministic_evidence",
+      "route_rationale": "latest_revision_marker",
+      "route_widening_policy": "none",
+      "route_determinism_hints": {
+        "numeric_evidence_only": false,
+        "latest_revision_only": true,
+        "cite_scope_and_not_covered": false
+      },
+      "route_authoritative_document": {
+        "id": "doc:dhhs_policy:MA-3550:url-54185ce6f688",
+        "policy_number": "MA-3550",
+        "title": "MA-3550 NON-EMERGENCY MEDICAL TRANSPORTATION (NEMT)"
+      },
+      "route_widened": false,
+      "route_inspection_error": null,
+      "agent_elapsed_seconds": 20.661,
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "primary_hit": true
+    }
+  ]
+}

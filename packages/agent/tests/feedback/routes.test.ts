@@ -73,7 +73,7 @@ describe('POST /feedback handler', () => {
       threadId: 'thread-1',
       resourceId: 'user-123',
       rating: 'up',
-      comment: undefined,
+      comment: null,
     });
   });
 

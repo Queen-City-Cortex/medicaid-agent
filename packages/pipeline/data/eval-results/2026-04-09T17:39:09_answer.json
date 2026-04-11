@@ -1,0 +1,58 @@
+{
+  "run_id": "2026-04-09T17:39:09",
+  "level": "answer",
+  "config": {
+    "embedding_model": "voyage-law-2",
+    "top_k": 10,
+    "dataset_count": 1,
+    "git_sha": "df5a5f9",
+    "judge_model": "claude-sonnet-4-6"
+  },
+  "aggregate": {
+    "precision_at_k": 0.6666666666666666,
+    "recall_at_k": 0.6666666666666666,
+    "mrr": 0.6666666666666666,
+    "primary_hit_rate": 1.0
+  },
+  "by_difficulty": {
+    "complex": {
+      "precision_at_k": 0.6666666666666666,
+      "recall_at_k": 0.6666666666666666,
+      "mrr": 0.6666666666666666,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "by_category": {
+    "cross_document": {
+      "precision_at_k": 0.6666666666666666,
+      "recall_at_k": 0.6666666666666666,
+      "mrr": 0.6666666666666666,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "per_question": [
+    {
+      "id": "q-021",
+      "difficulty": "complex",
+      "reasoning_type": "cross_document",
+      "question": "What medical loss ratio (MLR) must Medicaid managed care organizations meet under federal law, and how does NC implement this requirement?",
+      "agent_answer": "I\u2019m going to pull the federal MLR rules first\u2014both the calculation rule and the state oversight/reporting rule\u2014then I\u2019ll look for North Carolina implementation language. After that I\u2019ll read the full sections and check for any amendments before answering.I found the two federal sections directly in 42 CFR 438, but the policy-number lookup didn\u2019t recognize the CFR section numbers as separate \u201cpolicies.\u201d Next I\u2019m opening the full text of the key federal sections and searching specifically for North Carolina implementation materials.The federal pieces are clear: 42 CFR 438.8 gives the MLR rule and calculation framework, and 42 CFR 438.74 gives the state reporting/remittance oversight rule. I didn\u2019t get a clean NC-specific policy hit from the first search, so I\u2019m narrowing to managed care contract language and state oversight provisions.I confirmed the federal source document and checked amendments for Part 438. I still don\u2019t have a directly on-point NC section in this corpus, so I\u2019m going to answer the NC-implementation piece carefully from the federal implementation rules I did retrieve and make clear that I did not locate a separate NC-specific clause.## Short answer\n\nUnder federal Medicaid managed care law, **an 85% MLR is the minimum only if the state chooses to impose a minimum MLR**. Federal law does **not** automatically require every Medicaid managed care organization to hit 85%; instead, it requires the state to make plans **calculate and report** MLR, and if the state elects to set a minimum, that minimum must be **at least 85%**.\n\n## Federal rule\n\n### 1) What MLR must plans meet?\n**42 CFR 438.8** says:\n\n- The state must ensure through its contracts that each **MCO, PIHP, and PAHP** **calculates and reports** an MLR.  \n- **If a state elects to mandate a minimum MLR**, that minimum must be **\u201cequal to or higher than 85 percent.\u201d**  \n- The MLR is calculated as a **ratio of a numerator to a denominator**, with possible **credibility adjustments**.\n\nThat is the key federal rule: **85% is the floor for any state-imposed minimum MLR, not a universal standalone federal minimum applicable without state action.**  \nCite: **42 CFR Part 438, Section 438.8 \u2014 \u201cMedical loss ratio (MLR) standards\u201d** ([42 CFR Part 438](https://www.ecfr.gov/current/title-42/part-438))\n\n### 2) How is the MLR calculated?\nThe same section states that the MLR is:\n\n- **Numerator**: incurred claims + expenditures for activities that improve health care quality + fraud prevention activities  \n- **Denominator**: set by the regulation\u2019s denominator provisions in the same section  \n- Subject to a **credibility adjustment** where applicable\n\nSo the federal rule is not just \u201c85%\u201d; it also prescribes the **calculation framework**.  \nCite: **42 CFR Part 438, Section 438.8 \u2014 \u201cMedical loss ratio (MLR) standards\u201d** ([42 CFR Part 438](https://www.ecfr.gov/current/title-42/part-438))\n\n## How NC implements it\n\nFrom the federal implementation rules I retrieved, North Carolina implements the MLR requirement by using its **managed care contracts** and **annual CMS reporting obligations**:\n\n### 1) Through contracts with managed care plans\n**42 CFR 438.8(a)** requires the state to ensure, **through its contracts**, that each managed care plan calculates and reports MLR in accordance with the federal rule. So NC\u2019s implementation mechanism is its **PHP/managed care contract structure**.  \nCite: **42 CFR Part 438, Section 438.8 \u2014 \u201cMedical loss ratio (MLR) standards\u201d** ([42 CFR Part 438](https://www.ecfr.gov/current/title-42/part-438))\n\n### 2) Through annual reporting to CMS\n**42 CFR 438.74(a)** requires the state to submit to CMS, annually, a **summary description** of each plan\u2019s MLR reporting. That summary must include at least:\n\n- the **numerator**\n- the **denominator**\n- the **MLR percentage achieved**\n- the **number of member months**\n- any **remittances owed**\n\nCite: **42 CFR Part 438, Section 438.74 \u2014 \u201cState oversight of the minimum MLR requirement\u201d** ([42 CFR Part 438](https://www.ecfr.gov/current/title-42/part-438))\n\n### 3) If NC requires remittances for falling below the minimum, the state must return the federal share\nUnder **42 CFR 438.74(b)**, if a state contract requires plans to pay **remittances** for failing to meet the state\u2019s minimum MLR, the state must reimburse CMS for the **federal share** of those remittances, and must report the methodology used to calculate the state and federal shares.  \nCite: **42 CFR Part 438, Section 438.74 \u2014 \u201cState oversight of the minimum MLR requirement\u201d** ([42 CFR Part 438](https://www.ecfr.gov/current/title-42/part-438))\n\n## Bottom line\n\n- **Federal law requires MLR calculation and reporting for Medicaid managed care plans.**\n- **If NC imposes a minimum MLR, it cannot be lower than 85%.**\n- NC implements that requirement through:\n  - its **managed care contracts** with plans, and\n  - **annual CMS reporting** on each plan\u2019s MLR and any remittances.\n\n## Important limitation\n\nI retrieved the federal implementation sections\u2014**42 CFR 438.8** and **42 CFR 438.74**\u2014but I **did not retrieve a directly on-point NC-specific contract/manual clause** in this corpus that separately states North Carolina\u2019s own MLR contract language. So the NC implementation summary above is grounded in the federal rules that require states, including NC, to operationalize MLR through contracts and annual CMS reporting.\n\nIf you want, I can do a follow-up search specifically for **NC Medicaid PHP contract language on MLR/remittances** and pull any NC-specific source I can find.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 2,
+        "completeness": 2,
+        "hallucination": 3,
+        "citation_quality": 3,
+        "overall": 2,
+        "explanation": "The agent's answer is largely accurate on the federal MLR framework under 42 CFR 438.8, correctly identifying the 85% minimum threshold, the numerator/denominator calculation structure, credibility adjustments, and the state's role in mandating MLR through contracts. It also correctly identifies 42 CFR 438.74 for state reporting/oversight. However, the agent somewhat mischaracterizes the federal requirement - it emphasizes that states optionally impose minimums, when in fact states are required to ensure plans calculate and report MLR (the optional piece is only whether to mandate a minimum floor). The NC implementation section is honest about limitations - the agent correctly notes it couldn't find NC-specific contract language and grounds its NC answer in the federal requirements that states must use contracts and reporting. No hallucinations are present; uncertain claims are appropriately flagged. Citations to specific CFR sections (438.8 and 438.74) are precise. The answer is slightly incomplete in not fully describing the detailed reporting requirements (paragraph k) or remittance provisions, and the NC-specific implementation detail is thin but honestly disclosed as such. A Medicaid policy expert would find this acceptable but would note the incomplete NC-specific implementation details."
+      },
+      "judge_error": false,
+      "precision": 0.6666666666666666,
+      "recall": 0.6666666666666666,
+      "mrr": 0.6666666666666666,
+      "primary_hit": true
+    }
+  ]
+}

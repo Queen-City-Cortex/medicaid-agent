@@ -1,0 +1,74 @@
+{
+  "run_id": "2026-04-10T17:57:53",
+  "level": "answer",
+  "config": {
+    "embedding_model": "voyage-law-2",
+    "top_k": 10,
+    "dataset_count": 1,
+    "git_sha": "df5a5f9",
+    "judge_model": "claude-sonnet-4-6"
+  },
+  "aggregate": {
+    "precision_at_k": 1.0,
+    "recall_at_k": 1.0,
+    "mrr": 1.0,
+    "primary_hit_rate": 1.0
+  },
+  "by_difficulty": {
+    "simple": {
+      "precision_at_k": 1.0,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "by_category": {
+    "single_lookup": {
+      "precision_at_k": 1.0,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "per_question": [
+    {
+      "id": "q-017",
+      "difficulty": "simple",
+      "reasoning_type": "single_lookup",
+      "question": "What ambulance services are NOT covered by NC Medicaid?",
+      "agent_answer": "NC Medicaid does **not** cover certain ambulance services even when an ambulance was dispatched. Under current **Policy 15, Ambulance Services** (effective **Dec. 15, 2023**), the main non-covered categories are:\n\n## General non-covered situations\nAmbulance services are not covered if:\n\n- the beneficiary does **not** meet the eligibility requirements in Section 2.0;\n- the beneficiary does **not** meet the coverage criteria in Section 3.0;\n- the service **duplicates** another provider\u2019s service; or\n- the service is **experimental, investigational, or part of a clinical trial**.  \n  [Ambulance Services](https://medicaid.ncdhhs.gov/15-ambulance-services/download?attachment), \u00a7 4.1 (effective Dec. 15, 2023; current per amendment check)\n\n## Ambulance-specific non-covered services\nPolicy 15 also specifically says NC Medicaid does **not** cover:\n\n- **Loaded mileage** to a facility that is **not the nearest appropriate facility**;\n- transport based on a **beneficiary\u2019s preference** for a different facility;\n- transport based on whether a physician **has staff privileges** at a hospital, because that does not determine whether the hospital is the appropriate facility;\n- when **an ambulance is called and no treatment is needed**;\n- **false alarm** ambulance responses;\n- when the beneficiary **refuses all medical services**;\n- ambulance transport for a medical service that is **not itself a Medicaid-covered service**;\n- **commercial airline tickets**;\n- **airstrip fees**;\n- **taxes** charged separately;\n- separate charges for **nursing personnel** who are employees of a facility or ambulance service;\n- **waiting fees**; and\n- separate charges for **oxygen, items, and supplies**, because those are included in the base rate and are not separately reimbursable.  \n  [Ambulance Services](https://medicaid.ncdhhs.gov/15-ambulance-services/download?attachment), \u00a7 4.2.1 and \u00a7 4.2.1.4 (effective Dec. 15, 2023; current per amendment check)\n\n## Important catch-all limitation\nThe policy also says that **services other than those listed in Section 3.2 are not covered**. Section 3.2 includes the covered ambulance service criteria, including emergency services as defined there.  \n[Ambulance Services](https://medicaid.ncdhhs.gov/15-ambulance-services/download?attachment), \u00a7 4.2.1.4; see also \u00a7 3.2 (effective Dec. 15, 2023; current per amendment check)\n\nIf you want, I can also turn this into a shorter **client-friendly checklist** or explain when NC Medicaid **will** cover ambulance transport.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 3,
+        "completeness": 3,
+        "hallucination": 2,
+        "citation_quality": 3,
+        "overall": 3,
+        "explanation": "The agent's answer is highly accurate and complete, correctly identifying all the specific non-covered services listed in Section 4.2.1.4 of Policy 15, including false alarms, refused services, non-Medicaid services, commercial airline tickets, airstrip fees, taxes, nursing personnel charges, waiting fees, and oxygen/supplies included in base rate. The agent also correctly notes the catch-all provision referencing Section 3.2. Citation quality is excellent with precise section-level references (\u00a74.2.1, \u00a74.2.1.4, \u00a73.2). The agent adds some general non-covered categories from \u00a74.1 that weren't in the reference answer but are consistent with policy. The slight embellishment issue is the mention of 'loaded mileage to a facility not the nearest appropriate facility' and 'beneficiary preference' as distinct items - these appear to be reasonable policy interpretations but weren't explicitly listed in the evidence sections provided, which could be minor hallucination. However, these are plausible policy provisions. The reference answer's mention of air ambulance being only covered when ground transport is contraindicated is captured implicitly through the \u00a73.2 reference. Overall, a Medicaid policy expert would find this answer thorough, well-organized, and accurate."
+      },
+      "judge_error": false,
+      "route_lane": "baseline_hybrid",
+      "route_rationale": "single_document_coverage",
+      "route_widening_policy": "one_step",
+      "route_determinism_hints": {
+        "numeric_evidence_only": false,
+        "latest_revision_only": false,
+        "cite_scope_and_not_covered": false
+      },
+      "route_authoritative_document": {
+        "id": "doc:clinical_policy:15",
+        "policy_number": "15",
+        "title": "Ambulance Services"
+      },
+      "route_widened": true,
+      "route_inspection_error": null,
+      "agent_elapsed_seconds": 21.679,
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "primary_hit": true
+    }
+  ]
+}

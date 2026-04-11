@@ -9,7 +9,7 @@ import { closeDriver } from '../../src/neo4j.js';
 import { searchSections } from '../../src/tools/search.js';
 import { followReferences, getAmendments } from '../../src/tools/navigate.js';
 import { lookupPolicy } from '../../src/tools/lookup.js';
-import { getSectionContext } from '../../src/tools/read.js';
+import { getSection, getSectionContext } from '../../src/tools/read.js';
 
 const integration = process.env.RUN_NEO4J_INTEGRATION === '1' ? describe : describe.skip;
 
@@ -177,6 +177,42 @@ integration('agent tools against a real Neo4j graph', () => {
     const lookup = await lookupPolicy.execute({ policyNumber: '8C' }, {});
     expect(lookup.documents[0]?.url).toBe('https://example.com/8C');
     expect(lookup.documents[0]?.status).toBe('current');
+  });
+
+  it('returns section-level citation metadata from the owning document', async () => {
+    const docId = `${FIXTURE_PREFIX}doc:get-section`;
+    const sectionId = `${FIXTURE_PREFIX}sec:get-section`;
+
+    await run(
+      `
+      CREATE (d:Document {
+        id: $docId,
+        title: 'Policy 8C',
+        document_type: 'dhhs_policy',
+        policy_number: '8C',
+        effective_date: '2025-01-01',
+        source_url: 'https://example.com/8C',
+        status: 'current'
+      })
+      CREATE (s:Section {
+        id: $sectionId,
+        document_id: $docId,
+        section_number: '4.1',
+        title: 'Eligibility',
+        content_text: 'Full section content here.',
+        content_length: 26
+      })
+      CREATE (d)-[:HAS_SECTION]->(s)
+      `,
+      { docId, sectionId },
+    );
+
+    const result = await getSection.execute({ sectionId }, {});
+
+    expect(result.section?.effectiveDate).toBe('2025-01-01');
+    expect(result.section?.documentTitle).toBe('Policy 8C');
+    expect(result.section?.citationLink).toBe('[Policy 8C](https://example.com/8C)');
+    expect(result.section?.status).toBe('current');
   });
 
   it('returns a full amendment chain and authoritative document', async () => {

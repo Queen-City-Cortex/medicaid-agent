@@ -1,0 +1,89 @@
+{
+  "run_id": "2026-04-11T18:49:29",
+  "level": "answer",
+  "config": {
+    "embedding_model": "voyage-law-2",
+    "top_k": 10,
+    "dataset_count": 1,
+    "git_sha": "df5a5f9",
+    "judge_model": "claude-sonnet-4-6"
+  },
+  "aggregate": {
+    "precision_at_k": 1.0,
+    "recall_at_k": 1.0,
+    "mrr": 1.0,
+    "primary_hit_rate": 1.0,
+    "factual_accuracy": 3.0,
+    "completeness": 3.0,
+    "hallucination": 3.0,
+    "citation_quality": 3.0,
+    "overall": 3.0
+  },
+  "by_difficulty": {
+    "moderate": {
+      "precision_at_k": 1.0,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "primary_hit_rate": 1.0,
+      "factual_accuracy": 3.0,
+      "completeness": 3.0,
+      "hallucination": 3.0,
+      "citation_quality": 3.0,
+      "overall": 3.0,
+      "count": 1
+    }
+  },
+  "by_category": {
+    "single_lookup": {
+      "precision_at_k": 1.0,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "primary_hit_rate": 1.0,
+      "factual_accuracy": 3.0,
+      "completeness": 3.0,
+      "hallucination": 3.0,
+      "citation_quality": 3.0,
+      "overall": 3.0,
+      "count": 1
+    }
+  },
+  "per_question": [
+    {
+      "id": "q-005",
+      "difficulty": "moderate",
+      "reasoning_type": "single_lookup",
+      "question": "Does NC Medicaid cover Personal Care Services for beneficiaries who live in an assisted living facility?",
+      "agent_answer": "Yes \u2014 NC Medicaid does cover Personal Care Services (PCS) for some beneficiaries who live in an assisted living-type setting, but only if they meet the congregate-setting eligibility criteria.\n\nUnder NC Medicaid\u2019s congregate PCS policy, coverage applies when the beneficiary lives in a qualifying congregate facility, including an Adult Care Home licensed by North Carolina or certain licensed group homes, and also meets the required functional and medical criteria. Those criteria include needing help with qualifying activities of daily living, having PCS needs directly linked to a documented medical, mental, physical, or cognitive condition, having no other payer responsible for the service, and being medically stable without a need for continuous licensed nursing care. See \u00a7 3.2.1 of [State Plan Personal Care Services (PCS) Provided in Congregate Settings](https://medicaid.ncdhhs.gov/media/14986/download?attachment).\n\nIf those criteria are met, Medicaid covers PCS in the congregate setting, including hands-on help with qualifying ADLs, related cueing or prompting, certain home-management IADLs tied to the beneficiary\u2019s ADLs, medication assistance linked to the condition, help with adaptive devices or durable medical equipment, and certain special assistance tasks. See \u00a7 3.3 of [State Plan Personal Care Services (PCS) Provided in Congregate Settings](https://medicaid.ncdhhs.gov/media/14986/download?attachment).\n\nBut Medicaid does not cover everything associated with living in assisted living. The policy specifically excludes, among other things, skilled nursing, transportation, errands, companion sitting, ongoing supervision/monitoring, and room and board. See \u00a7 4.2.1.2 of [State Plan Personal Care Services (PCS) Provided in Congregate Settings](https://medicaid.ncdhhs.gov/media/14986/download?attachment).\n\nSo the short answer is: PCS can be covered in an assisted living facility, but only for eligible beneficiaries and only for covered personal care tasks \u2014 not for room and board or general assisted living costs.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 3,
+        "completeness": 3,
+        "hallucination": 3,
+        "citation_quality": 3,
+        "overall": 3,
+        "explanation": "The agent's answer is highly accurate and complete. It correctly identifies that NC Medicaid covers PCS in congregate/assisted living settings under a separate congregate PCS policy, cites the correct policy document, and references the correct section numbers (3.2.1, 3.3, 4.2.1.2). The eligibility criteria mentioned (ADL needs, medical condition linkage, no other payer, medical stability, facility licensing) match the evidence sections precisely. The covered services and exclusions (room and board, transportation, errands, companion sitting, skilled nursing) are accurately described. No hallucinations are present - all claims are supported by the evidence. Citations are specific to section level with links to the actual policy document. A Medicaid policy expert would find this answer accurate, well-organized, and appropriately nuanced."
+      },
+      "judge_error": false,
+      "route_lane": "baseline_hybrid",
+      "route_rationale": "single_document_coverage",
+      "route_widening_policy": "one_step",
+      "route_determinism_hints": {
+        "numeric_evidence_only": false,
+        "latest_revision_only": false,
+        "cite_scope_and_not_covered": true
+      },
+      "route_authoritative_document": {
+        "id": "doc:clinical_policy:3L-1",
+        "policy_number": "3L-1",
+        "title": "State Plan Personal Care Services (PCS) Provided in Congregate Settings"
+      },
+      "route_widened": true,
+      "route_inspection_error": null,
+      "agent_elapsed_seconds": 22.212,
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "primary_hit": true
+    }
+  ]
+}

@@ -4,7 +4,11 @@ export type SourceType =
   | 'state_plan_amendment'
   | 'waiver'
   | 'provider_manual'
-  | 'dhhs_policy';
+  | 'dhhs_policy'
+  | 'fee_schedule'
+  | 'billing_guidance'
+  | 'managed_care_guidance'
+  | 'managed_care_contract';
 
 export interface DiscoveredDocument {
   source_url: string;

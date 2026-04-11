@@ -1,0 +1,58 @@
+{
+  "run_id": "2026-04-09T21:49:26",
+  "level": "answer",
+  "config": {
+    "embedding_model": "voyage-law-2",
+    "top_k": 10,
+    "dataset_count": 1,
+    "git_sha": "df5a5f9",
+    "judge_model": "claude-sonnet-4-6"
+  },
+  "aggregate": {
+    "precision_at_k": 0.6666666666666666,
+    "recall_at_k": 0.6666666666666666,
+    "mrr": 0.6666666666666666,
+    "primary_hit_rate": 1.0
+  },
+  "by_difficulty": {
+    "moderate": {
+      "precision_at_k": 0.6666666666666666,
+      "recall_at_k": 0.6666666666666666,
+      "mrr": 0.6666666666666666,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "by_category": {
+    "cross_document": {
+      "precision_at_k": 0.6666666666666666,
+      "recall_at_k": 0.6666666666666666,
+      "mrr": 0.6666666666666666,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "per_question": [
+    {
+      "id": "q-015",
+      "difficulty": "moderate",
+      "reasoning_type": "cross_document",
+      "question": "What does federal law define as 'home health services' under Medicaid, and where must they be provided?",
+      "agent_answer": "I found the primary federal authority: 42 CFR 440.70, which directly defines \u201chome health services\u201d and where they may be provided. Next I\u2019m going to verify the full section text and check whether there are any amendment records tied to the federal regulation in this corpus before answering.I verified the full text of 42 CFR 440.70 and checked for amendments in the corpus. No amendment records were returned here, and the authoritative document remains 42 CFR Part 440. I can now answer directly from the regulation.Under federal Medicaid law, **\u201chome health services\u201d** are the services listed in **42 CFR 440.70(b)**, provided to a beneficiary at the beneficiary\u2019s **place of residence** and pursuant to the required practitioner orders and plan of care. Those services include:\n\n- **Nursing services** provided on a part-time or intermittent basis\n- **Home health aide services**\n- **Medical supplies, equipment, and appliances** suitable for use in settings where normal life activities take place\n- **Physical therapy, occupational therapy, or speech pathology and audiology services** (these therapy services are optional under the federal rule)  \n  ([42 CFR Part 440](https://www.ecfr.gov/current/title-42/part-440), \u00a7 440.70(a)-(b))\n\n### Where must they be provided?\nFederal law says home health services must be provided at the beneficiary\u2019s **\u201cplace of residence.\u201d** But the regulation also explains what that means:\n\n- It **does not include** a:\n  - **hospital**\n  - **nursing facility**\n  - **intermediate care facility for individuals with intellectual disabilities (ICF/IID)**, except for certain home health services there that the facility itself is not required to provide  \n  ([42 CFR Part 440](https://www.ecfr.gov/current/title-42/part-440), \u00a7 440.70(c))\n\n- The rule further says home health services may be received in **\u201cany setting in which normal life activities take place,\u201d** except:\n  - a hospital,\n  - nursing facility,\n  - ICF/IID, or\n  - **any setting where Medicaid pays or could pay for inpatient services that include room and board**  \n  ([42 CFR Part 440](https://www.ecfr.gov/current/title-42/part-440), \u00a7 440.70(c)(1))\n\n### Important limitation\nFederal law also states that **home health services cannot be limited to beneficiaries who are homebound**.  \n([42 CFR Part 440](https://www.ecfr.gov/current/title-42/part-440), \u00a7 440.70(c)(1))\n\nIf you want, I can also give you a plain-English version of how this federal definition interacts with North Carolina Medicaid policy.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 2,
+        "completeness": 2,
+        "hallucination": 3,
+        "citation_quality": 3,
+        "overall": 2,
+        "explanation": "The agent correctly identifies 42 CFR 440.70 as the primary authority and accurately describes the services included (nursing, home health aide, medical supplies, therapy) and the place of residence requirement with its exclusions. The citation quality is good with specific section references. However, the answer omits the critical detail about physician/nurse practitioner/clinical nurse specialist/physician assistant orders as part of a written plan of care reviewed every 60 days, which is explicitly in 42 CFR 440.70(a)(2) and highlighted in the reference answer. The agent also doesn't mention the face-to-face encounter requirement (440.70(f)), though that's a secondary detail. The reference answer also notes NC's Clinical Coverage Policy 3A and SSA Section 1905(a), which the agent doesn't mention (though it offers to discuss NC policy). The answer contains no hallucinations - all stated facts are supported by the evidence. Overall acceptable but missing the plan of care/review cycle detail that the reference answer emphasizes as key."
+      },
+      "judge_error": false,
+      "precision": 0.6666666666666666,
+      "recall": 0.6666666666666666,
+      "mrr": 0.6666666666666666,
+      "primary_hit": true
+    }
+  ]
+}

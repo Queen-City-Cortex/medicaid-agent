@@ -1,0 +1,74 @@
+{
+  "run_id": "2026-04-11T05:27:26",
+  "level": "answer",
+  "config": {
+    "embedding_model": "voyage-law-2",
+    "top_k": 10,
+    "dataset_count": 1,
+    "git_sha": "df5a5f9",
+    "judge_model": "claude-sonnet-4-6"
+  },
+  "aggregate": {
+    "precision_at_k": 1.0,
+    "recall_at_k": 1.0,
+    "mrr": 1.0,
+    "primary_hit_rate": 1.0
+  },
+  "by_difficulty": {
+    "complex": {
+      "precision_at_k": 1.0,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "by_category": {
+    "cross_document": {
+      "precision_at_k": 1.0,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "primary_hit_rate": 1.0,
+      "count": 1
+    }
+  },
+  "per_question": [
+    {
+      "id": "q-010",
+      "difficulty": "complex",
+      "reasoning_type": "cross_document",
+      "question": "What is the federal statutory authority for NC's CAP/DA waiver, and what does the state need to demonstrate in its waiver application?",
+      "agent_answer": "**Federal authority:** NC\u2019s CAP/DA waiver is a **home- and community-based services waiver under Medicaid \u00a7 1915(c)**, implemented through **42 CFR Part 441, Subpart G**. In the federal regulations, the waiver request may seek waiver of Medicaid\u2019s **statewideness, comparability, and certain income/resource rules for medically needy individuals in the community**, and must include the assurances and supporting documentation required by CMS. See **42 CFR \u00a7 441.301** and **\u00a7 441.303** in [42 CFR Part 441](https://www.ecfr.gov/current/title-42/part-441).\n\n## What the state must demonstrate in its waiver application\n\nUnder **42 CFR \u00a7 441.301**, the waiver request must show, at minimum, that:\n\n- it includes the **assurances required by \u00a7 441.302** and the **supporting documentation required by \u00a7 441.303**;\n- if applicable, it requests waiver of:\n  - **statewideness**,\n  - **comparability of services**, and\n  - certain **income/resource rules** for medically needy people living in the community;\n- the state explains whether it will refuse HCBS when it can reasonably expect the **cost of community services would exceed institutional cost**;\n- services will be furnished under a **written person-centered service plan** approved by the Medicaid agency;\n- services will be provided only to individuals who are **not inpatients** of a hospital, nursing facility, or ICF/IID;\n- services will be limited to people who, **without HCBS, would require the Medicaid-covered institutional level of care** in a hospital, nursing facility, or ICF/IID;\n- the state describes the qualifications of the people who develop the plan of care;\n- the state identifies the **target group(s)** to be served; and\n- the state describes each waiver service **separately and specifically**, rather than using open-ended service definitions. [42 CFR Part 441](https://www.ecfr.gov/current/title-42/part-441)\n\nSection **441.301(c)** also requires the application to demonstrate a compliant **person-centered planning process**, including:\n- individual leadership of planning,\n- informed choice,\n- accessible communication,\n- conflict-of-interest protections, and\n- a person-centered service plan that reflects the individual\u2019s needs, preferences, and chosen setting. [42 CFR Part 441](https://www.ecfr.gov/current/title-42/part-441)\n\n## Required supporting documentation\n\nUnder **42 CFR \u00a7 441.303**, the state must provide enough information to support its assurances, including:\n\n- **health and welfare safeguards** for beneficiaries;\n- the **records and information** the state will maintain for **financial accountability**;\n- its process for **evaluation and reevaluation** of beneficiaries, including:\n  - who performs evaluations,\n  - how they are performed,\n  - the evaluation form used,\n  - how documentation will be maintained, and\n  - how regular reevaluations will occur;\n- how the state will inform eligible beneficiaries about **feasible alternatives** and allow them to choose either **institutional care or HCBS**;\n- how the state will apply **post-eligibility treatment of income and resources** for people eligible under the special income rule;\n- an explanation, with supporting documentation, of how it estimated **average per-capita expenditures**;\n- documentation showing **cost neutrality**: the average per-capita Medicaid cost of waiver plus other Medicaid services for participants must **not exceed** the estimated average per-capita cost that would have been incurred without the waiver; and\n- the number of **unduplicated beneficiaries** the state intends to serve each year. [42 CFR Part 441](https://www.ecfr.gov/current/title-42/part-441)\n\nFor people diverted from institutions rather than discharged from them, \u00a7 441.303 also requires a more detailed description of screening/evaluation procedures to ensure waiver services are limited to people who truly would otherwise need the institutional level of care. [42 CFR Part 441](https://www.ecfr.gov/current/title-42/part-441)\n\n## NC implementation context\n\nNC\u2019s current CAP/DA clinical policy is **Clinical Coverage Policy 3K-2**, effective **Sept. 1, 2025**, and the amendment check returned that document as the current authoritative state policy. That policy confirms CAP/DA is NC\u2019s waiver program and identifies three participation options:\n\n- **Provider-led**\n- **Consumer-led**\n- **Coordinated Caregiving**  \n[Community Alternatives Program for Disabled Adults (CAP/DA)](https://medicaid.ncdhhs.gov/3k-2-community-alternatives-program-disabled-adults-capda/download?attachment)\n\nThe NC policy also includes general coverage criteria requiring services to be individualized, necessary, safely furnished, and not primarily for convenience. [Community Alternatives Program for Disabled Adults (CAP/DA)](https://medicaid.ncdhhs.gov/3k-2-community-alternatives-program-disabled-adults-capda/download?attachment)\n\n## Bottom line\n\nThe governing federal authority in the materials I could verify is **Medicaid \u00a7 1915(c), as implemented by 42 CFR Part 441**, especially **\u00a7 441.301** and **\u00a7 441.303**. In its waiver application, NC must demonstrate **who it will serve, what services it will provide, that participants meet institutional level-of-care criteria, that planning is person-centered and conflict-free, that beneficiary health and welfare will be protected, and that the waiver is cost-neutral and properly documented**.  \n\nIf you want, I can also pull this into a **waiver-application checklist** or a **side-by-side federal vs. NC CAP/DA chart**.",
+      "agent_error": null,
+      "scores": {
+        "factual_accuracy": 3,
+        "completeness": 3,
+        "hallucination": 3,
+        "citation_quality": 3,
+        "overall": 3,
+        "explanation": "The agent's answer is comprehensive and accurate. It correctly identifies Section 1915(c) of the Social Security Act as the federal statutory authority, implemented through 42 CFR Part 441, Subpart G, specifically \u00a7\u00a7 441.301 and 441.303. The answer accurately describes what the state must demonstrate in its waiver application, including: the assurances and supporting documentation required, waivers of statewideness/comparability/income-resource rules, person-centered planning requirements, health and welfare safeguards, cost-neutrality demonstration, target population identification, and service descriptions. The agent also correctly identifies NC Clinical Coverage Policy 3K-2 as the state-level implementation document and accurately describes the three participation options (Provider-led, Consumer-led, Coordinated Caregiving). The level of detail on \u00a7441.303 documentation requirements (evaluation procedures, cost-neutrality formula, unduplicated beneficiary counts) matches the reference materials precisely. Citations are specific and accurate throughout. No material hallucinations are present - claims are supported by the evidence sections provided."
+      },
+      "judge_error": false,
+      "route_lane": "graph_reasoning",
+      "route_rationale": "federal_multi_hop",
+      "route_widening_policy": "family_expansion",
+      "route_determinism_hints": {
+        "numeric_evidence_only": false,
+        "latest_revision_only": false,
+        "cite_scope_and_not_covered": false
+      },
+      "route_authoritative_document": {
+        "id": "doc:federal_regulation:42-CFR-441",
+        "policy_number": "42-CFR-441",
+        "title": "42 CFR Part 441"
+      },
+      "route_widened": true,
+      "route_inspection_error": null,
+      "agent_elapsed_seconds": 34.036,
+      "precision": 1.0,
+      "recall": 1.0,
+      "mrr": 1.0,
+      "primary_hit": true
+    }
+  ]
+}

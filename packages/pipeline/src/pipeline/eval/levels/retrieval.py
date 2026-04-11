@@ -1,9 +1,10 @@
-"""Level 1: Retrieval evaluation — does vector search return the right sections?"""
+"""Level 1: Retrieval evaluation — does canonical retrieval return the right sections?"""
 
-from pipeline.config import VOYAGE_API_KEY, EMBEDDING_MODEL, EVAL_DEFAULT_TOP_K
-from pipeline.embeddings.indexer import vector_search
-from pipeline.embeddings.voyage_client import embed as voyage_embed
+from pipeline.config import EVAL_DEFAULT_TOP_K
 from pipeline.eval.metrics import precision_at_k, recall_at_k, mrr
+from pipeline.retrieval.agent_bridge import search_sections_batch_via_agent_cli
+
+RETRIEVAL_EVAL_BATCH_SIZE = 5
 
 
 def evaluate_retrieval(entries: list[dict], top_k: int | None = None) -> list[dict]:
@@ -14,21 +15,26 @@ def evaluate_retrieval(entries: list[dict], top_k: int | None = None) -> list[di
     """
     top_k = top_k or EVAL_DEFAULT_TOP_K
 
-    if not VOYAGE_API_KEY:
-        raise RuntimeError("VOYAGE_API_KEY not set")
-
     results: list[dict] = []
+    search_results_by_id: dict[str, list[dict]] = {}
+    total = len(entries)
+    for start in range(0, total, RETRIEVAL_EVAL_BATCH_SIZE):
+        batch_entries = entries[start:start + RETRIEVAL_EVAL_BATCH_SIZE]
+        end = start + len(batch_entries)
+        print(f"[retrieval eval] querying {start + 1}-{end} of {total}", flush=True)
+        batch_results = search_sections_batch_via_agent_cli([
+            {
+                "id": entry["id"],
+                "query": entry["question"],
+                "top_k": top_k,
+            }
+            for entry in batch_entries
+        ])
+        search_results_by_id.update(batch_results)
+        print(f"[retrieval eval] completed {end} of {total}", flush=True)
 
     for entry in entries:
-        # Embed the question
-        query_embedding = voyage_embed([entry["question"]], model=EMBEDDING_MODEL, input_type="query")[0]
-
-        # Run vector search — returns dicts with section_id, section_number, policy_number, etc.
-        search_results = vector_search(
-            query_embedding,
-            top_k=top_k,
-            query_text=entry["question"],
-        )
+        search_results = search_results_by_id.get(entry["id"], [])
 
         # Build expected sets from evidence using section_id (document-scoped, not just section_number)
         primary_ids = {

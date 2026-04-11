@@ -83,8 +83,14 @@ def print_answer_report(result: dict):
         console.print("\n  [bold]Aggregate Scores (mean, 0–3 scale)[/bold]")
         console.print(f"  {'─' * 50}")
         for dim in dims:
-            vals = [q["scores"].get(dim, 0) for q in per_q if "scores" in q]
-            mean = sum(vals) / len(vals) if vals else 0.0
+            mean = agg.get(dim)
+            if mean is None:
+                vals = [
+                    q["scores"].get(dim)
+                    for q in per_q
+                    if q.get("scores") and q["scores"].get(dim) is not None
+                ]
+                mean = sum(vals) / len(vals) if vals else 0.0
             bar = "█" * int(mean) + "░" * (3 - int(mean))
             console.print(f"  {dim:<20s} {mean:.2f} / 3.00  {bar}")
 
@@ -135,6 +141,97 @@ def print_answer_report(result: dict):
         for f in failures:
             expl = f.get("scores", {}).get("explanation", "")[:120]
             console.print(f"  {f['id']}  [{f['difficulty']}/{f['reasoning_type']}]  {expl}")
+
+    console.print()
+
+
+def print_answer_stability_report(summary: dict):
+    """Print a multi-run answer stability report."""
+    questions = summary.get("questions", [])
+    latest_run_id = summary.get("latest_run_id")
+    pass_threshold = summary.get("pass_threshold", 3)
+    stable_miss_threshold = summary.get("stable_miss_threshold", 2)
+    run_ids = summary.get("run_ids", [])
+
+    console.print(f"\n[bold]{'=' * 60}[/bold]")
+    console.print("  [bold]Answer Stability Report[/bold]")
+    console.print(
+        "  "
+        f"Runs analyzed: {summary.get('run_count', 0)}"
+        + (f" | Latest: {latest_run_id}" if latest_run_id else "")
+    )
+    console.print(
+        "  "
+        f"Miss threshold: overall < {pass_threshold}"
+        f" | Stable miss: {stable_miss_threshold}+ runs"
+    )
+    console.print(f"[bold]{'=' * 60}[/bold]")
+
+    if run_ids:
+        shown = ", ".join(run_ids[:5])
+        suffix = f" ... (+{len(run_ids) - 5} older)" if len(run_ids) > 5 else ""
+        console.print(f"  Runs: {shown}{suffix}")
+
+    stable_misses = [question for question in questions if question.get("stable_miss")]
+    if stable_misses:
+        console.print("\n  [bold red]Stable Misses[/bold red]")
+        console.print(f"  {'─' * 55}")
+        for question in stable_misses:
+            mean = question.get("mean_overall")
+            score_range = question.get("score_range")
+            console.print(
+                "  "
+                f"{question['id']}  "
+                f"[{question['difficulty']}/{question['reasoning_type']}]  "
+                f"latest={question.get('latest_overall', 'n/a')}/3  "
+                f"misses={question['miss_count']}/{question['scorable_runs']}  "
+                f"mean={mean:.2f}  "
+                f"range={score_range:.0f}"
+            )
+            explanation = (question.get("latest_explanation") or "").strip()
+            if explanation:
+                console.print(f"    [dim]{explanation[:140]}[/dim]")
+
+    high_variance = [
+        question
+        for question in questions
+        if question.get("high_variance") and not question.get("stable_miss")
+    ]
+    if high_variance:
+        console.print("\n  [bold yellow]High Variance[/bold yellow]")
+        console.print(f"  {'─' * 55}")
+        for question in high_variance:
+            console.print(
+                "  "
+                f"{question['id']}  "
+                f"latest={question.get('latest_overall', 'n/a')}/3  "
+                f"range={question['score_range']:.0f}  "
+                f"misses={question['miss_count']}/{question['scorable_runs']}  "
+                f"lane={question.get('latest_lane') or 'unknown'}"
+            )
+
+    latest_misses = [
+        question
+        for question in questions
+        if question.get("latest_run_id") == latest_run_id
+        and question.get("latest_overall") is not None
+        and question["latest_overall"] < pass_threshold
+    ]
+    if latest_misses:
+        console.print("\n  [bold]Latest Run Misses With History[/bold]")
+        console.print(f"  {'─' * 55}")
+        for question in latest_misses:
+            console.print(
+                "  "
+                f"{question['id']}  "
+                f"latest={question['latest_overall']}/3  "
+                f"misses={question['miss_count']}/{question['scorable_runs']}  "
+                f"mean={question['mean_overall']:.2f}  "
+                f"stable={'yes' if question['stable_miss'] else 'no'}"
+            )
+
+    if not stable_misses and not high_variance and not latest_misses:
+        console.print("\n  [green]No stable misses or high-variance questions found in the selected runs.[/green]")
 
     console.print()
 
