@@ -1,0 +1,52 @@
+import type { EmbedQuery, SearchSectionsInput, SessionExecutor } from '../types.js';
+import { analyzeQuery } from '../query/analysis.js';
+import { selectRetrievalProfile } from '../profiles/retrieval.js';
+import { debugSearch, timeSearchStep } from '../internal/shared.js';
+import { RETRIEVAL_BACKENDS } from './backend-registry.js';
+import { collectHybridHitMap, finalizeHybridHits } from './collector.js';
+
+export function createHybridRetriever({
+  withSession,
+  embedQuery,
+  defaultTopK = 10,
+}: {
+  withSession: SessionExecutor;
+  embedQuery: EmbedQuery;
+  defaultTopK?: number;
+}) {
+  const searchSectionsDetailed = async (input: SearchSectionsInput) => {
+    const topK = Math.round(input.topK ?? defaultTopK);
+    const queryInput = {
+      ...input,
+      topK,
+    };
+    const analysis = analyzeQuery(queryInput.query);
+    const profile = selectRetrievalProfile(queryInput, analysis);
+
+    debugSearch(`search start query="${queryInput.query}" topK=${topK}`);
+    const embedding = await timeSearchStep('embed query', () => embedQuery(queryInput.query));
+
+    return withSession(async (session) => {
+      debugSearch(`typeGroups=${profile.typeGroups.map((group) => group.join('+')).join(',')} perGroupK=${profile.perGroupK}`);
+      const sectionMap = await collectHybridHitMap({
+        session,
+        input: queryInput,
+        analysis,
+        profile,
+        embedding,
+        backends: RETRIEVAL_BACKENDS,
+      });
+      const finalHits = finalizeHybridHits({
+        sectionMap,
+        analysis,
+        topK,
+      });
+      debugSearch(`search end query="${queryInput.query}" hits=${finalHits.length}`);
+      return finalHits;
+    });
+  };
+
+  return {
+    searchSectionsDetailed,
+  };
+}
