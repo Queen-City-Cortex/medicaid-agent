@@ -1,7 +1,8 @@
 import './load-env.js';
-import { createNeo4jPolicyCorpus } from '@nc-medicaid/policy-corpus';
+import { createNeo4jPolicyCorpus, type CorpusReranker } from '@nc-medicaid/policy-corpus';
 import { DEFAULT_TOP_K, VOYAGE_API_KEY, VOYAGE_API_URL, VOYAGE_MODEL } from './config.js';
 import { withSession } from './neo4j.js';
+import { createPolicyCorpusReranker } from './policy-corpus-reranker.js';
 
 export async function embedQueries(queries: string[]): Promise<number[][]> {
   const response = await fetch(VOYAGE_API_URL, {
@@ -36,12 +37,15 @@ async function embedQuery(query: string): Promise<number[]> {
 
 export function createAgentPolicyCorpus({
   embedQuery: customEmbedQuery = embedQuery,
+  rerankHits: customRerankHits = createPolicyCorpusReranker(),
 }: {
   embedQuery?: (query: string) => Promise<number[]>;
+  rerankHits?: CorpusReranker;
 } = {}) {
   return createNeo4jPolicyCorpus({
     withSession,
     embedQuery: customEmbedQuery,
+    rerankHits: customRerankHits,
     defaultTopK: DEFAULT_TOP_K,
   });
 }

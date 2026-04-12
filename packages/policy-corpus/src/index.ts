@@ -1,4 +1,5 @@
 export { createNeo4jPolicyCorpus, SEARCH_SNIPPET_CHARS } from './policy-corpus.js';
+export type { CorpusReranker, CorpusRerankerArgs, CorpusRerankerResult } from './contracts.js';
 export {
   ANSWER_QUESTION_TYPES,
   ANSWER_ROUTE_LANES,

@@ -1,9 +1,16 @@
 export const LUCENE_SPECIAL = /[+\-&|!(){}[\]^"~*?:\\/]/g;
 export const SEARCH_DEBUG = process.env.POLICY_CORPUS_SEARCH_DEBUG === '1';
+export const RERANK_DEBUG = process.env.POLICY_CORPUS_RERANK_DEBUG === '1' || process.env.POLICY_CORPUS_RERANK_DEBUG === 'true';
 
 export function debugSearch(message: string): void {
   if (SEARCH_DEBUG) {
     console.error(`[policy-corpus] ${message}`);
+  }
+}
+
+export function debugRerank(message: string): void {
+  if (RERANK_DEBUG) {
+    console.error(`[policy-corpus:rerank] ${message}`);
   }
 }
 

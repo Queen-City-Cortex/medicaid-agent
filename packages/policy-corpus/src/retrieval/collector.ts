@@ -1,4 +1,4 @@
-import type { QueryAnalysis, RetrievalBackend, RetrievalProfile } from '../contracts.js';
+import type { CorpusReranker, QueryAnalysis, RetrievalBackend, RetrievalProfile } from '../contracts.js';
 import type { CorpusRetrievalHit, SearchSectionsInput, SessionLike } from '../types.js';
 import {
   FULLTEXT_BOOST,
@@ -15,6 +15,7 @@ import {
   retrieveDocumentExpansionHits,
 } from './backends/document-expansion.js';
 import { fulltextBackend } from './backends/fulltext.js';
+import { maybeRerankHits } from './rerank.js';
 
 type HitMap = Map<string, CorpusRetrievalHit>;
 
@@ -77,15 +78,21 @@ export async function collectHybridHitMap({
   return sectionMap;
 }
 
-export function finalizeHybridHits({
+export async function finalizeHybridHits({
+  input,
   sectionMap,
   analysis,
+  profile,
   topK,
+  rerankHits,
 }: {
+  input: SearchSectionsInput;
   sectionMap: HitMap;
   analysis: QueryAnalysis;
+  profile: RetrievalProfile;
   topK: number;
-}): CorpusRetrievalHit[] {
+  rerankHits?: CorpusReranker;
+}): Promise<CorpusRetrievalHit[]> {
   const documentCoverageBoosts = computeDocumentCoverageBoosts(Array.from(sectionMap.values()), analysis.searchTerms);
   const latestChangeMarkerValue = analysis.flags.isLatestChangeNoticeQuery
     ? Array.from(sectionMap.values()).reduce<number | null>((latest, hit) => {
@@ -95,7 +102,7 @@ export function finalizeHybridHits({
       }, null)
     : null;
 
-  return Array.from(sectionMap.values())
+  const baselineHits = Array.from(sectionMap.values())
     .map((hit) =>
       rerankRetrievalHit(
         hit,
@@ -108,8 +115,18 @@ export function finalizeHybridHits({
         latestChangeMarkerValue,
       ),
     )
-    .sort((left, right) => right.score - left.score)
-    .slice(0, topK);
+    .sort((left, right) => right.score - left.score);
+
+  const finalHits = await maybeRerankHits({
+    input,
+    analysis,
+    profile,
+    topK,
+    baselineHits,
+    rerankHits,
+  });
+
+  return finalHits.slice(0, topK);
 }
 
 async function mergeFulltextHits({
