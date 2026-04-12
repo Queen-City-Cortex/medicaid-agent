@@ -11,7 +11,6 @@ def print_retrieval_report(result: dict):
     config = result["config"]
     agg = result["aggregate"]
     by_diff = result.get("by_difficulty", {})
-    by_cat = result.get("by_category", {})
     per_q = result.get("per_question", [])
 
     console.print(f"\n[bold]{'=' * 50}[/bold]")
@@ -31,7 +30,7 @@ def print_retrieval_report(result: dict):
 
     # By difficulty
     if by_diff:
-        console.print(f"\n  [bold]By Difficulty[/bold]")
+        console.print("\n  [bold]By Difficulty[/bold]")
         console.print(f"  {'─' * 45}")
         table = Table(show_header=True, header_style="bold", box=None, padding=(0, 2))
         table.add_column("")
@@ -56,7 +55,7 @@ def print_retrieval_report(result: dict):
     # Failures
     failures = [q for q in per_q if not q.get("primary_hit")]
     if failures:
-        console.print(f"\n  [bold red]Failures (primary section not in top-k)[/bold red]")
+        console.print("\n  [bold red]Failures (primary section not in top-k)[/bold red]")
         console.print(f"  {'─' * 45}")
         for f in failures:
             console.print(f"  {f['id']}  [{f['difficulty']}/{f['reasoning_type']}]")
@@ -96,7 +95,7 @@ def print_answer_report(result: dict):
 
     # By difficulty
     if by_diff:
-        console.print(f"\n  [bold]By Difficulty (mean overall score)[/bold]")
+        console.print("\n  [bold]By Difficulty (mean overall score)[/bold]")
         console.print(f"  {'─' * 50}")
         table = Table(show_header=True, header_style="bold", box=None, padding=(0, 2))
         table.add_column("")
@@ -115,7 +114,7 @@ def print_answer_report(result: dict):
         console.print(table)
 
     # Per-question scores
-    console.print(f"\n  [bold]Per-Question Results[/bold]")
+    console.print("\n  [bold]Per-Question Results[/bold]")
     console.print(f"  {'─' * 50}")
     for q in per_q:
         scores = q.get("scores", {})
@@ -136,7 +135,7 @@ def print_answer_report(result: dict):
     # Failures
     failures = [q for q in per_q if q.get("scores", {}).get("overall", 0) < 2]
     if failures:
-        console.print(f"\n  [bold red]Failures (overall < 2)[/bold red]")
+        console.print("\n  [bold red]Failures (overall < 2)[/bold red]")
         console.print(f"  {'─' * 50}")
         for f in failures:
             expl = f.get("scores", {}).get("explanation", "")[:120]

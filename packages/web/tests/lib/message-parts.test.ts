@@ -43,6 +43,10 @@ describe('extractMessageParts', () => {
     return { id: 'msg-1', role: 'assistant', parts };
   }
 
+  function asPart(part: UIMessage['parts'][number]): UIMessage['parts'][number] {
+    return part;
+  }
+
   it('puts all text in answerText when no tool parts exist', () => {
     const result = extractMessageParts(makeMsg([
       { type: 'text', text: 'Hello ' },
@@ -55,9 +59,9 @@ describe('extractMessageParts', () => {
 
   it('splits text before last tool into reasoning, text after into answer', () => {
     const result = extractMessageParts(makeMsg([
-      { type: 'text', text: 'Let me search...' } as any,
-      { type: 'tool-searchSections', toolCallId: 'tc-1', state: 'output-available' } as any,
-      { type: 'text', text: 'Based on the results...' } as any,
+      asPart({ type: 'text', text: 'Let me search...' }),
+      asPart({ type: 'tool-searchSections', toolCallId: 'tc-1', state: 'output-available' }),
+      asPart({ type: 'text', text: 'Based on the results...' }),
     ]));
 
     expect(result.traceEntries).toHaveLength(2);
@@ -73,10 +77,10 @@ describe('extractMessageParts', () => {
 
   it('handles multiple tool parts', () => {
     const result = extractMessageParts(makeMsg([
-      { type: 'tool-searchSections', toolCallId: 'tc-1', state: 'output-available' } as any,
-      { type: 'text', text: 'Intermediate thought' } as any,
-      { type: 'tool-getSection', toolCallId: 'tc-2', state: 'output-available' } as any,
-      { type: 'text', text: 'Final answer' } as any,
+      asPart({ type: 'tool-searchSections', toolCallId: 'tc-1', state: 'output-available' }),
+      asPart({ type: 'text', text: 'Intermediate thought' }),
+      asPart({ type: 'tool-getSection', toolCallId: 'tc-2', state: 'output-available' }),
+      asPart({ type: 'text', text: 'Final answer' }),
     ]));
 
     const toolEntries = result.traceEntries.filter(e => e.type === 'tool');
@@ -90,9 +94,9 @@ describe('extractMessageParts', () => {
 
   it('skips whitespace-only text before tools', () => {
     const result = extractMessageParts(makeMsg([
-      { type: 'text', text: '   ' } as any,
-      { type: 'tool-searchSections', toolCallId: 'tc-1', state: 'output-available' } as any,
-      { type: 'text', text: 'Answer' } as any,
+      asPart({ type: 'text', text: '   ' }),
+      asPart({ type: 'tool-searchSections', toolCallId: 'tc-1', state: 'output-available' }),
+      asPart({ type: 'text', text: 'Answer' }),
     ]));
 
     // Whitespace-only text should not produce a reasoning entry
@@ -102,8 +106,8 @@ describe('extractMessageParts', () => {
 
   it('uses dynamic-tool parts', () => {
     const result = extractMessageParts(makeMsg([
-      { type: 'dynamic-tool', toolName: 'searchSections', toolCallId: 'tc-dyn', state: 'input-streaming' } as any,
-      { type: 'text', text: 'Done' } as any,
+      asPart({ type: 'dynamic-tool', toolName: 'searchSections', toolCallId: 'tc-dyn', state: 'input-streaming' }),
+      asPart({ type: 'text', text: 'Done' }),
     ]));
 
     expect(result.traceEntries[0]).toEqual({

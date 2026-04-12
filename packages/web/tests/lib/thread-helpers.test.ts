@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
+import type { StorageThreadType } from '@mastra/core/memory';
 import { formatDate, getThreadTitle } from '../../src/lib/thread-helpers';
 
 describe('formatDate', () => {
@@ -53,25 +54,29 @@ describe('formatDate', () => {
 });
 
 describe('getThreadTitle', () => {
+  function asThread(thread: Partial<StorageThreadType>): StorageThreadType {
+    return thread as StorageThreadType;
+  }
+
   it('returns thread title when present', () => {
-    expect(getThreadTitle({ title: 'My conversation' } as any)).toBe('My conversation');
+    expect(getThreadTitle(asThread({ title: 'My conversation' }))).toBe('My conversation');
   });
 
   it('returns full title for long titles (CSS handles overflow)', () => {
     const longTitle = 'A'.repeat(60);
-    const result = getThreadTitle({ title: longTitle } as any);
+    const result = getThreadTitle(asThread({ title: longTitle }));
     expect(result).toBe(longTitle);
   });
 
   it('returns "New conversation" for empty title', () => {
-    expect(getThreadTitle({ title: '' } as any)).toBe('New conversation');
+    expect(getThreadTitle(asThread({ title: '' }))).toBe('New conversation');
   });
 
   it('returns "New conversation" for whitespace-only title', () => {
-    expect(getThreadTitle({ title: '   ' } as any)).toBe('New conversation');
+    expect(getThreadTitle(asThread({ title: '   ' }))).toBe('New conversation');
   });
 
   it('returns "New conversation" for missing title', () => {
-    expect(getThreadTitle({} as any)).toBe('New conversation');
+    expect(getThreadTitle(asThread({}))).toBe('New conversation');
   });
 });

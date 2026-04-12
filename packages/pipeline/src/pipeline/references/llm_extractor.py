@@ -209,7 +209,6 @@ def _raw_to_reference_matches(raw_refs: list[dict]) -> list[ReferenceMatch]:
         ref_type = ref.get("ref_type")
         target_id = ref.get("target_id")
         matched_text = ref.get("matched_text", "")
-        section_id = ref.get("section_id", "")
 
         if not ref_type or not target_id:
             continue

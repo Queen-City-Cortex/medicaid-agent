@@ -32,38 +32,45 @@ function applyTheme(resolved: 'light' | 'dark') {
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>('system');
-  const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('light');
+  const [systemTheme, setSystemTheme] = useState<'light' | 'dark'>(() => getSystemTheme());
+  const resolvedTheme = theme === 'system' ? systemTheme : theme;
 
   // Load saved theme from WorkOS on mount
   useEffect(() => {
     getThemeAction().then(saved => {
       if (saved === 'light' || saved === 'dark' || saved === 'system') {
+        if (saved === 'system') {
+          setSystemTheme(getSystemTheme());
+        }
         setThemeState(saved);
       }
     });
   }, []);
 
-  // Resolve and apply theme whenever theme or system preference changes
+  // Apply the resolved theme to the document whenever it changes.
   useEffect(() => {
-    const resolved = theme === 'system' ? getSystemTheme() : theme;
-    setResolvedTheme(resolved);
-    applyTheme(resolved);
+    applyTheme(resolvedTheme);
+  }, [resolvedTheme]);
 
-    if (theme === 'system') {
-      const mq = window.matchMedia('(prefers-color-scheme: dark)');
-      const handler = () => {
-        const sys = mq.matches ? 'dark' : 'light';
-        setResolvedTheme(sys);
-        applyTheme(sys);
-      };
-      mq.addEventListener('change', handler);
-      return () => mq.removeEventListener('change', handler);
-    }
+  // Listen for system theme changes only while following the system preference.
+  useEffect(() => {
+    if (theme !== 'system') return;
+
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const handler = (event: MediaQueryListEvent) => {
+      setSystemTheme(event.matches ? 'dark' : 'light');
+    };
+
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
   }, [theme]);
 
   const setTheme = useCallback((t: Theme) => {
+    if (t === 'system') {
+      setSystemTheme(getSystemTheme());
+    }
     setThemeState(t);
-    setThemeAction(t);
+    void setThemeAction(t);
   }, []);
 
   return (

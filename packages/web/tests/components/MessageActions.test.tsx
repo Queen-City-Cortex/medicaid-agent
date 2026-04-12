@@ -1,3 +1,4 @@
+import type { ButtonHTMLAttributes, ReactNode } from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -6,9 +7,9 @@ import { MessageActions } from '../../src/components/MessageActions';
 // MessageActions uses Tooltip which needs a TooltipProvider ancestor.
 // Mock the tooltip components to render children directly.
 vi.mock('../../src/components/ui/tooltip', () => ({
-  Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  TooltipTrigger: ({ children, ...props }: any) => <button {...props}>{children}</button>,
-  TooltipContent: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
+  Tooltip: ({ children }: { children: ReactNode }) => <>{children}</>,
+  TooltipTrigger: ({ children, ...props }: ButtonHTMLAttributes<HTMLButtonElement>) => <button {...props}>{children}</button>,
+  TooltipContent: ({ children }: { children: ReactNode }) => <span>{children}</span>,
 }));
 
 describe('MessageActions', () => {

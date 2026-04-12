@@ -5,15 +5,18 @@ FROM base AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
 COPY packages/agent/package.json ./packages/agent/
-RUN npm ci --workspace=@nc-medicaid/agent
+COPY packages/policy-corpus/package.json ./packages/policy-corpus/
+RUN npm ci --workspace=@nc-medicaid/policy-corpus --workspace=@nc-medicaid/agent
 
 # --- builder: bundle with mastra build ---
 FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/packages/agent/node_modules ./packages/agent/node_modules
+COPY --from=deps /app/packages/policy-corpus ./packages/policy-corpus
 COPY package.json package-lock.json tsconfig.json turbo.json ./
 COPY packages/agent ./packages/agent
+COPY packages/policy-corpus ./packages/policy-corpus
 WORKDIR /app/packages/agent
 RUN npx mastra build --dir src
 
