@@ -16,5 +16,6 @@ packages/agent/src/public/
 *.duckdb.wal
 .env
 .env.local
-coverage/
+/coverage/
+/packages/*/coverage/
 packages/pipeline/data/eval-results/*.json
