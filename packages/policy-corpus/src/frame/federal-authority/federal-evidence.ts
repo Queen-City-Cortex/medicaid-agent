@@ -22,6 +22,24 @@ import {
 } from '../../internal/shared.js';
 import type { FederalAuthorityEvidence, FederalAuthoritySignals } from './types.js';
 
+function isWaiverAuthorityAnchorHit(hit: {
+  policyNumber?: string | null;
+  sectionNumber?: string | null;
+}): boolean {
+  const sectionNumber = normalizeSearchText(hit.sectionNumber);
+  const policyNumber = hit.policyNumber?.toUpperCase();
+
+  if (policyNumber === 'SSA-TITLE-19') {
+    return sectionNumber === '1915';
+  }
+
+  if (policyNumber === '42-CFR-441') {
+    return /^441\.(30\d|35\d)$/.test(sectionNumber);
+  }
+
+  return false;
+}
+
 export async function collectFederalAuthorityEvidence(
   context: FrameContext,
   query: string,
@@ -86,26 +104,41 @@ export async function collectFederalAuthorityEvidence(
         })
         .sort((left, right) => right.score - left.score)
     : rankedFederalHits;
-  const preferredFederalDocumentTitles = selectPreferredDocumentTitlesByFocus(
-    signals.waiverApplicationQuery ? waiverRankedFederalHits : mergedFederalHits,
-    signals.waiverApplicationQuery
-      ? dedupeTerms([...signals.focusTerms, ...WAIVER_APPLICATION_PRIMARY_TERMS])
-      : signals.focusTerms,
-    signals.quotedPhrases,
-    1,
-    0.08,
-  );
+  const waiverAnchorHits = signals.waiverApplicationQuery
+    ? waiverRankedFederalHits.filter((hit) => isWaiverAuthorityAnchorHit(hit))
+    : [];
+  const waiverPreferredFederalDocumentTitles = signals.waiverApplicationQuery
+    ? [
+        waiverAnchorHits.find((hit) => hit.policyNumber?.toUpperCase() === '42-CFR-441')?.documentTitle,
+        waiverAnchorHits.find((hit) => hit.policyNumber?.toUpperCase() === 'SSA-TITLE-19')?.documentTitle,
+      ].filter((title): title is string => Boolean(title))
+    : [];
+  const preferredFederalDocumentTitles =
+    waiverPreferredFederalDocumentTitles.length > 0
+      ? dedupeTerms(waiverPreferredFederalDocumentTitles)
+      : selectPreferredDocumentTitlesByFocus(
+          signals.waiverApplicationQuery ? waiverRankedFederalHits : mergedFederalHits,
+          signals.waiverApplicationQuery
+            ? dedupeTerms([...signals.focusTerms, ...WAIVER_APPLICATION_PRIMARY_TERMS])
+            : signals.focusTerms,
+          signals.quotedPhrases,
+          signals.waiverApplicationQuery ? 2 : 1,
+          0.08,
+        );
   const primaryFederalHits =
     preferredFederalDocumentTitles.length === 0
       ? signals.waiverApplicationQuery
-        ? waiverRankedFederalHits
+        ? uniqueBy([...waiverAnchorHits, ...waiverRankedFederalHits], (hit) => hit.sectionId)
         : rankedFederalHits
       : (() => {
           const candidateHits = signals.waiverApplicationQuery ? waiverRankedFederalHits : rankedFederalHits;
           const scoped = candidateHits.filter(
             (hit) => hit.documentTitle && preferredFederalDocumentTitles.includes(hit.documentTitle),
           );
-          return scoped.length > 0 ? scoped : candidateHits;
+          const baseHits = scoped.length > 0 ? scoped : candidateHits;
+          return signals.waiverApplicationQuery
+            ? uniqueBy([...waiverAnchorHits, ...baseHits], (hit) => hit.sectionId)
+            : baseHits;
         })();
   const scopedPrimaryFederalHits =
     signals.waiverApplicationQuery
@@ -124,13 +157,12 @@ export async function collectFederalAuthorityEvidence(
   const filteredPrimaryFederalHits =
     signals.waiverApplicationQuery
       ? (() => {
-          const focused = scopedPrimaryFederalHits.filter((hit) => {
+          const focused = primaryFederalHits.filter((hit) => {
             const text = buildHitText(hit);
-            const sectionNumber = normalizeSearchText(hit.sectionNumber);
             return (
               (hit.documentType === 'federal_regulation' || hit.documentType === 'federal_statute') &&
               !includesPhrase(text, WAIVER_APPLICATION_AVOID_TERMS) &&
-              (sectionNumber.startsWith('441.30') || sectionNumber === '440.180')
+              isWaiverAuthorityAnchorHit(hit)
             );
           });
           return focused.length > 0 ? focused : scopedPrimaryFederalHits;
@@ -163,10 +195,17 @@ export async function collectFederalAuthorityEvidence(
   const primaryFederalDocuments = (
     await Promise.all(primaryFederalDocumentIds.map((documentId) => context.getDocument(documentId)))
   ).filter((document): document is DocumentWithSectionsView => document != null);
+  const waiverPrimaryApplicationDocuments = signals.waiverApplicationQuery
+    ? primaryFederalDocuments.filter(
+        (document) =>
+          document.policyNumber?.toUpperCase() === '42-CFR-441' ||
+          normalizeSearchText(document.title).includes('42 cfr part 441'),
+      )
+    : [];
   const primaryDocumentCandidates = context.toSectionCandidates(
     signals.waiverApplicationQuery
       ? await context.collectDocumentSectionCandidates(
-          primaryFederalDocuments,
+          waiverPrimaryApplicationDocuments.length > 0 ? waiverPrimaryApplicationDocuments : primaryFederalDocuments,
           WAIVER_APPLICATION_DOCUMENT_SECTION_TERMS,
           signals.publicNoticeQuery ? [] : WAIVER_APPLICATION_AVOID_TERMS,
           'Primary federal waiver-authority or application-requirement section.',
@@ -183,8 +222,20 @@ export async function collectFederalAuthorityEvidence(
         : [],
     0.08,
   );
+  const waiverStatutoryCandidates =
+    signals.waiverApplicationQuery
+      ? buildSectionCandidates(
+          filteredPrimaryFederalHits.filter(
+            (hit) => hit.policyNumber?.toUpperCase() === 'SSA-TITLE-19' && normalizeSearchText(hit.sectionNumber) === '1915',
+          ),
+          primaryIncludeTerms,
+          [],
+          1,
+          'Primary federal statutory waiver authority section.',
+        )
+      : [];
   const primaryCandidates = uniqueBy(
-    [...primaryDocumentCandidates, ...initialPrimaryCandidates],
+    [...primaryDocumentCandidates, ...waiverStatutoryCandidates, ...initialPrimaryCandidates],
     (candidate) => candidate.sectionId,
   );
   const authoritativeCandidates = primaryFederalDocuments.map((document, index) => ({
@@ -192,7 +243,14 @@ export async function collectFederalAuthorityEvidence(
     reason: signals.waiverApplicationQuery
       ? 'Governing federal waiver authority document.'
       : 'Document containing primary federal evidence.',
-    score: 1.1 - index * 0.05,
+    score:
+      signals.waiverApplicationQuery &&
+      (
+        document.policyNumber?.toUpperCase() === '42-CFR-441' ||
+        normalizeSearchText(document.title).includes('42 cfr part 441')
+      )
+        ? 1.25 - index * 0.03
+        : 1.1 - index * 0.05,
   }));
 
   return {

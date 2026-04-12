@@ -6041,6 +6041,327 @@ describe('Neo4jPolicyCorpus', () => {
     expect(frame.avoidSections.map((section) => section.sectionNumber)).toContain('431.408');
   });
 
+  it('resolveFederalAuthorityFrame keeps Part 441 authoritative when mixed federal hits elevate SSA section 1915', async () => {
+    const { corpus } = createCorpusWithSearchHandlers([
+      {
+        match: (query, params) =>
+          query.includes("CALL db.index.vector.queryNodes('section_embeddings'") &&
+          Array.isArray(params.docTypes) &&
+          (params.docTypes as string[]).includes('federal_regulation'),
+        result: {
+          records: [
+            mockRecord({
+              sectionId: 'sec-441745',
+              sectionNumber: '441.745',
+              sectionTitle: 'State plan HCBS administration: State responsibilities and quality improvement',
+              documentTitle: '42 CFR Part 441',
+              policyNumber: '42-CFR-441',
+              documentType: 'federal_regulation',
+              content: 'The state must provide assurances and quality improvement information.',
+              score: 1.53,
+            }),
+            mockRecord({
+              sectionId: 'sec-441464',
+              sectionNumber: '441.464',
+              sectionTitle: 'State assurances',
+              documentTitle: '42 CFR Part 441',
+              policyNumber: '42-CFR-441',
+              documentType: 'federal_regulation',
+              content: 'The agency must provide state assurances for the HCBS program.',
+              score: 1.53,
+            }),
+            mockRecord({
+              sectionId: 'sec-441310',
+              sectionNumber: '441.310',
+              sectionTitle: 'Limits on Federal financial participation (FFP)',
+              documentTitle: '42 CFR Part 441',
+              policyNumber: '42-CFR-441',
+              documentType: 'federal_regulation',
+              content: 'The state must show cost and participation limits for waiver services.',
+              score: 1.375,
+            }),
+            mockRecord({
+              sectionId: 'sec-441300',
+              sectionNumber: '441.300',
+              sectionTitle: 'Basis and scope',
+              documentTitle: '42 CFR Part 441',
+              policyNumber: '42-CFR-441',
+              documentType: 'federal_regulation',
+              content: 'This subpart implements section 1915(c) waiver authority.',
+              score: 1.365,
+            }),
+            mockRecord({
+              sectionId: 'sec-440180',
+              sectionNumber: '440.180',
+              sectionTitle: 'Home and community-based waiver services',
+              documentTitle: '42 CFR Part 440',
+              policyNumber: '42-CFR-440',
+              documentType: 'federal_regulation',
+              content: 'This section describes HCBS waiver services under Medicaid.',
+              score: 1.275,
+            }),
+          ],
+        },
+      },
+      {
+        match: (query, params) =>
+          query.includes("CALL db.index.vector.queryNodes('section_embeddings'") &&
+          Array.isArray(params.docTypes) &&
+          (params.docTypes as string[]).includes('federal_statute'),
+        result: {
+          records: [
+            mockRecord({
+              sectionId: 'sec-1915',
+              sectionNumber: '1915',
+              sectionTitle: 'Section 1915. Compliance with State plan and payment provisions',
+              documentTitle: 'Social Security Act — Title XIX (Medicaid)',
+              policyNumber: 'SSA-Title-19',
+              documentType: 'federal_statute',
+              content: 'Section 1915(c) authorizes home and community-based services waivers.',
+              score: 1.54,
+            }),
+            mockRecord({
+              sectionId: 'sec-1929',
+              sectionNumber: '1929',
+              sectionTitle: 'Section 1929. Home and community care for functionally disabled elderly individuals',
+              documentTitle: 'Social Security Act — Title XIX (Medicaid)',
+              policyNumber: 'SSA-Title-19',
+              documentType: 'federal_statute',
+              content: 'This section describes community care services for elderly individuals.',
+              score: 1.19,
+            }),
+            mockRecord({
+              sectionId: 'sec-1902',
+              sectionNumber: '1902',
+              sectionTitle: 'Section 1902. State plans for medical assistance',
+              documentTitle: 'Social Security Act — Title XIX (Medicaid)',
+              policyNumber: 'SSA-Title-19',
+              documentType: 'federal_statute',
+              content: 'This section governs Medicaid state plan requirements.',
+              score: 1.095,
+            }),
+          ],
+        },
+      },
+      {
+        match: (query, params) =>
+          query.includes("CALL db.index.vector.queryNodes('section_embeddings'") &&
+          Array.isArray(params.docTypes) &&
+          ((params.docTypes as string[]).includes('clinical_policy') ||
+            (params.docTypes as string[]).includes('state_plan_amendment')),
+        result: { records: [] },
+      },
+      {
+        match: (query) => query.includes("CALL db.index.vector.queryNodes('chunk_embeddings'"),
+        result: { records: [] },
+      },
+      {
+        match: (query) => query.includes('MATCH (c:PolicyConcept)'),
+        result: { records: [] },
+      },
+      {
+        match: (query, params) => query.includes('MATCH (s:Section {id: $id})') && params.id === 'sec-1915',
+        result: {
+          records: [
+            mockRecord({
+              id: 'sec-1915',
+              title: 'Section 1915. Compliance with State plan and payment provisions',
+              sectionNumber: '1915',
+              content: 'Section 1915(c) authorizes home and community-based services waivers.',
+              documentId: 'doc-ssa',
+              documentTitle: 'Social Security Act — Title XIX (Medicaid)',
+              documentType: 'federal_statute',
+              policyNumber: 'SSA-Title-19',
+              effectiveDate: null,
+              url: 'https://example.com/ssa-title-19',
+              status: 'current',
+            }),
+          ],
+        },
+      },
+      {
+        match: (query, params) => query.includes('MATCH (s:Section {id: $id})') && params.id === 'sec-441310',
+        result: {
+          records: [
+            mockRecord({
+              id: 'sec-441310',
+              title: 'Limits on Federal financial participation (FFP)',
+              sectionNumber: '441.310',
+              content: 'The state must show cost and participation limits for waiver services.',
+              documentId: 'doc-441',
+              documentTitle: '42 CFR Part 441',
+              documentType: 'federal_regulation',
+              policyNumber: '42-CFR-441',
+              effectiveDate: '2024-07-01',
+              url: 'https://example.com/441',
+              status: 'current',
+            }),
+          ],
+        },
+      },
+      {
+        match: (query, params) => query.includes('MATCH (s:Section {id: $id})') && params.id === 'sec-441300',
+        result: {
+          records: [
+            mockRecord({
+              id: 'sec-441300',
+              title: 'Basis and scope',
+              sectionNumber: '441.300',
+              content: 'This subpart implements section 1915(c) waiver authority.',
+              documentId: 'doc-441',
+              documentTitle: '42 CFR Part 441',
+              documentType: 'federal_regulation',
+              policyNumber: '42-CFR-441',
+              effectiveDate: '2024-07-01',
+              url: 'https://example.com/441',
+              status: 'current',
+            }),
+          ],
+        },
+      },
+      {
+        match: (query, params) => query.includes('MATCH (s:Section {id: $id})') && params.id === 'sec-440180',
+        result: {
+          records: [
+            mockRecord({
+              id: 'sec-440180',
+              title: 'Home and community-based waiver services',
+              sectionNumber: '440.180',
+              content: 'This section describes HCBS waiver services under Medicaid.',
+              documentId: 'doc-440',
+              documentTitle: '42 CFR Part 440',
+              documentType: 'federal_regulation',
+              policyNumber: '42-CFR-440',
+              effectiveDate: '2024-07-01',
+              url: 'https://example.com/440',
+              status: 'current',
+            }),
+          ],
+        },
+      },
+      {
+        match: (query, params) =>
+          query.includes('MATCH (d:Document {id: $id})') &&
+          query.includes('collect({id: s.id') &&
+          params.id === 'doc-441',
+        result: {
+          records: [
+            mockRecord({
+              id: 'doc-441',
+              title: '42 CFR Part 441',
+              documentType: 'federal_regulation',
+              policyNumber: '42-CFR-441',
+              effectiveDate: '2024-07-01',
+              url: 'https://example.com/441',
+              status: 'current',
+              sections: [
+                { id: 'sec-441300', number: '441.300', title: 'Basis and scope', chars: 900 },
+                { id: 'sec-441301', number: '441.301', title: 'Contents of request for a waiver', chars: 900 },
+                { id: 'sec-441303', number: '441.303', title: 'Supporting documentation required', chars: 900 },
+              ],
+            }),
+          ],
+        },
+      },
+      {
+        match: (query, params) =>
+          query.includes('MATCH (d:Document {id: $id})') &&
+          query.includes('collect({id: s.id') &&
+          params.id === 'doc-440',
+        result: {
+          records: [
+            mockRecord({
+              id: 'doc-440',
+              title: '42 CFR Part 440',
+              documentType: 'federal_regulation',
+              policyNumber: '42-CFR-440',
+              effectiveDate: '2024-07-01',
+              url: 'https://example.com/440',
+              status: 'current',
+              sections: [
+                { id: 'sec-440180', number: '440.180', title: 'Home and community-based waiver services', chars: 900 },
+              ],
+            }),
+          ],
+        },
+      },
+      {
+        match: (query, params) =>
+          query.includes('MATCH (d:Document {id: $id})') &&
+          query.includes('collect({id: s.id') &&
+          params.id === 'doc-ssa',
+        result: {
+          records: [
+            mockRecord({
+              id: 'doc-ssa',
+              title: 'Social Security Act — Title XIX (Medicaid)',
+              documentType: 'federal_statute',
+              policyNumber: 'SSA-Title-19',
+              effectiveDate: null,
+              url: 'https://example.com/ssa-title-19',
+              status: 'current',
+              sections: [
+                { id: 'sec-1915', number: '1915', title: 'Section 1915. Compliance with State plan and payment provisions', chars: 900 },
+                { id: 'sec-1902', number: '1902', title: 'Section 1902. State plans for medical assistance', chars: 900 },
+                { id: 'sec-1929', number: '1929', title: 'Section 1929. Home and community care for functionally disabled elderly individuals', chars: 900 },
+              ],
+            }),
+          ],
+        },
+      },
+      {
+        match: (query, params) => query.includes('MATCH (s:Section {id: $id})') && params.id === 'sec-441301',
+        result: {
+          records: [
+            mockRecord({
+              id: 'sec-441301',
+              title: 'Contents of request for a waiver',
+              sectionNumber: '441.301',
+              content: 'A waiver request must include the required assurances and requested waivers.',
+              documentId: 'doc-441',
+              documentTitle: '42 CFR Part 441',
+              documentType: 'federal_regulation',
+              policyNumber: '42-CFR-441',
+              effectiveDate: '2024-07-01',
+              url: 'https://example.com/441',
+              status: 'current',
+            }),
+          ],
+        },
+      },
+      {
+        match: (query, params) => query.includes('MATCH (s:Section {id: $id})') && params.id === 'sec-441303',
+        result: {
+          records: [
+            mockRecord({
+              id: 'sec-441303',
+              title: 'Supporting documentation required',
+              sectionNumber: '441.303',
+              content: 'The state must document target groups, service definitions, estimates, and safeguards.',
+              documentId: 'doc-441',
+              documentTitle: '42 CFR Part 441',
+              documentType: 'federal_regulation',
+              policyNumber: '42-CFR-441',
+              effectiveDate: '2024-07-01',
+              url: 'https://example.com/441',
+              status: 'current',
+            }),
+          ],
+        },
+      },
+    ]);
+
+    const frame = await corpus.resolveFederalAuthorityFrame(
+      "What is the federal statutory authority for NC's CAP/DA waiver, and what does the state need to demonstrate in its waiver application?",
+    );
+
+    expect(frame.authoritativeDocuments[0]?.policyNumber).toBe('42-CFR-441');
+    expect(frame.primarySections.map((section) => section.sectionNumber)).toEqual(
+      expect.arrayContaining(['441.301', '441.303']),
+    );
+    expect(frame.primarySections.map((section) => section.sectionNumber)).not.toContain('1929');
+  });
+
   it('resolvePolicyVariantFrame picks the matching sibling policy and explains why', async () => {
     const { corpus } = createCorpusWithSearchHandlers([
       {

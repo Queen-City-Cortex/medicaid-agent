@@ -20,19 +20,20 @@ export function isPriorAuthorizationQuery(queryLower: string): boolean {
 }
 
 export function isReimbursementQuery(queryLower: string): boolean {
-  return includesAnyTerm(queryLower, [
-    'reimbursement',
-    'rate ',
-    ' rates',
-    'fee schedule',
-    'fee schedules',
-    'allowed amount',
-    'allowed amounts',
-    'hcpcs',
-    'cpt',
-    'payment amount',
-    'payments',
-  ]);
+  return (
+    /\breimbursement\b/.test(queryLower) ||
+    /\brates?\b/.test(queryLower) ||
+    /\bpayments?\b/.test(queryLower) ||
+    /\b(?:hcpcs|cpt)\b/.test(queryLower) ||
+    includesAnyTerm(queryLower, [
+      'fee schedule',
+      'fee schedules',
+      'allowed amount',
+      'allowed amounts',
+      'payment amount',
+      'payment amounts',
+    ])
+  );
 }
 
 export function extractRequestedYears(query: string): string[] {

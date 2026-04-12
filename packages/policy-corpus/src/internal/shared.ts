@@ -44,6 +44,7 @@ import {
   isFederalAuthorityQuery,
   isHistoricalReimbursementQuery,
   isHcwdQuery,
+  isHcwdIncomePremiumQuery,
   isLatestChangeNoticeQuery,
   isManagedCareContractQuery,
   isManagedCareOperationsQuery,
@@ -52,7 +53,9 @@ import {
   isPediatricQuery,
   isReimbursementQuery,
   isRequirementDetailQuery,
+  isWaiverApplicationQuery,
   isYesNoCoverageQuery,
+  asksForPublicNoticeDetails,
   queryMentionsPolicyNumber,
   variantDateMatchesRequestedYear,
 } from './query-intent.js';
@@ -452,7 +455,19 @@ export const WAIVER_APPLICATION_AVOID_TERMS = [
   'erroneous state payments',
   'perm review',
 ];
-export const WAIVER_APPLICATION_PRIMARY_SECTION_NUMBERS = new Set(['440.180', '441.300', '441.301', '441.302', '441.303']);
+export const WAIVER_APPLICATION_PRIMARY_SECTION_NUMBERS = new Set([
+  '440.180',
+  '441.300',
+  '441.301',
+  '441.302',
+  '441.303',
+  '441.350',
+  '441.351',
+  '441.352',
+  '441.353',
+  '441.354',
+  '441.355',
+]);
 export const MLR_FEDERAL_PRIMARY_SECTION_TERMS = [
   'medical loss ratio',
   'mlr',
@@ -718,6 +733,14 @@ export function isOperationalSourceHit(hit: CorpusRetrievalHit): boolean {
 }
 
 export function defaultTypeGroupsForQuery(queryLower: string): string[][] {
+  if (isFederalAuthorityQuery(queryLower)) {
+    return [
+      ['federal_regulation'],
+      ['federal_statute'],
+      federalImplementationDocumentTypes(queryLower),
+    ];
+  }
+
   return isOperationalRoutingQuery(queryLower)
     ? [...BASE_TYPE_GROUPS, ...OPERATIONAL_TYPE_GROUPS]
     : BASE_TYPE_GROUPS;
@@ -862,6 +885,11 @@ export function rerankRetrievalHit(
   );
   const federalAuthorityQuery = isFederalAuthorityQuery(queryLower);
   const managedCareContractQuery = isManagedCareContractQuery(queryLower);
+  const waiverApplicationQuery = isWaiverApplicationQuery(queryLower);
+  const publicNoticeQuery = asksForPublicNoticeDetails(queryLower);
+  const hcwdIncomePremiumQuery = isHcwdIncomePremiumQuery(queryLower);
+  const retrievalText = combineText(hit.sectionNumber, hit.sectionTitle, hit.documentTitle, hit.policyNumber, hit.content);
+  const sectionNumber = normalizeSearchText(hit.sectionNumber);
 
   let adjustedScore = hit.score;
   adjustedScore += titleMatches * TITLE_TERM_MATCH_BOOST;
@@ -976,6 +1004,40 @@ export function rerankRetrievalHit(
     adjustedScore += CHANGE_NOTICE_BOOST;
   }
 
+  if (waiverApplicationQuery) {
+    if (
+      hit.policyNumber?.toUpperCase() === '42-CFR-441' ||
+      normalizeSearchText(hit.documentTitle).includes('42 cfr part 441')
+    ) {
+      adjustedScore += 0.34;
+    } else if (normalizeSearchText(hit.documentTitle).includes('42 cfr part 440')) {
+      adjustedScore += 0.12;
+    }
+
+    if (sectionNumber === '1915') {
+      adjustedScore += 0.4;
+    }
+
+    if (WAIVER_APPLICATION_PRIMARY_SECTION_NUMBERS.has(sectionNumber)) {
+      adjustedScore += 0.45;
+    }
+
+    if (includesPhrase(retrievalText, WAIVER_APPLICATION_PRIMARY_TERMS)) {
+      adjustedScore += 0.18;
+    }
+
+    if (includesPhrase(retrievalText, ['1915(b)', '1915(b) waiver']) && !queryLower.includes('1915(b)')) {
+      adjustedScore -= 0.45;
+    }
+
+    if (
+      includesPhrase(retrievalText, WAIVER_APPLICATION_AVOID_TERMS) ||
+      (!publicNoticeQuery && sectionNumber === '431.408')
+    ) {
+      adjustedScore -= 0.55;
+    }
+  }
+
   if (queryLower.includes('cover') && normalizeSearchText(hit.content).includes('not covered')) {
     adjustedScore += COVERAGE_EXCLUSION_BOOST;
   }
@@ -994,6 +1056,36 @@ export function rerankRetrievalHit(
 
   if (isChangeNoticeQuery(queryLower) && isRevisionHeaderTitle(hit.sectionTitle)) {
     adjustedScore += REVISION_HEADER_BOOST;
+  }
+
+  if (hcwdIncomePremiumQuery) {
+    if (includesPhrase(retrievalText, HCWD_LIMIT_HISTORY_TERMS)) {
+      adjustedScore += 0.32;
+    }
+
+    if (normalizeSearchText(hit.documentTitle).includes('change notice')) {
+      adjustedScore += 0.12;
+    }
+
+    if (
+      (isYearSpecificPremiumTitle(hit.sectionTitle) || isYearSpecificPremiumTitle(hit.documentTitle)) &&
+      !includesCalendarYear(queryLower) &&
+      !queryLower.includes('chart')
+    ) {
+      adjustedScore -= 0.45;
+    }
+
+    if (isAdministrativeFormTitle(hit.sectionTitle) || isAdministrativeFormTitle(hit.documentTitle)) {
+      adjustedScore -= 0.35;
+    }
+
+    if (
+      (isHcwdProcessTitle(hit.sectionTitle) || isHcwdProcessTitle(hit.documentTitle)) &&
+      !queryLower.includes('procedure') &&
+      !queryLower.includes('payment')
+    ) {
+      adjustedScore -= 0.2;
+    }
   }
 
   if (
