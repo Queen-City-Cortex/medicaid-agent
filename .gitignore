@@ -17,3 +17,4 @@ packages/agent/src/public/
 .env
 .env.local
 coverage/
+packages/pipeline/data/eval-results/*.json
