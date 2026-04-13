@@ -1,9 +1,6 @@
 import { createTool } from '@mastra/core/tools';
-import { SEARCH_SNIPPET_CHARS } from '@nc-medicaid/policy-corpus';
 import { z } from 'zod';
 import { policyCorpus } from '../policy-corpus.js';
-
-export { SEARCH_SNIPPET_CHARS };
 
 const SectionResult = z.object({
   sectionId: z.string(),

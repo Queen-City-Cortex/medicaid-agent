@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { SEARCH_SNIPPET_CHARS } from '@nc-medicaid/policy-corpus';
 
 // ── Mocks ────────────────────────────────────────────────────────────────────
 
@@ -11,7 +12,7 @@ vi.mock('../../src/neo4j.js', () => ({
 }));
 
 import { withSession } from '../../src/neo4j.js';
-import { SEARCH_SNIPPET_CHARS, searchSections } from '../../src/tools/search.js';
+import { searchSections } from '../../src/tools/search.js';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
