@@ -24,7 +24,11 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useMastraClient, useMastraReady } from '@/lib/use-mastra-client';
-import { formatDate, getThreadTitle } from '@/lib/thread-helpers';
+import {
+  deriveThreadTitleFromMessages,
+  formatDate,
+  getThreadDisplayTitle,
+} from '@/lib/thread-helpers';
 import type { StorageThreadType } from '@mastra/core/memory';
 
 const AGENT_ID = 'nc-medicaid-navigator';
@@ -48,7 +52,9 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
   const [editTitle, setEditTitle] = useState('');
   const [menuOpenThreadId, setMenuOpenThreadId] = useState<string | null>(null);
   const [deleteThreadId, setDeleteThreadId] = useState<string | null>(null);
+  const [derivedTitles, setDerivedTitles] = useState<Record<string, string>>({});
   const editInputRef = useRef<HTMLInputElement>(null);
+  const requestedDerivedTitlesRef = useRef<Set<string>>(new Set());
 
   const fetchThreads = useCallback(async (signal?: AbortSignal) => {
     setIsLoading(true);
@@ -90,6 +96,48 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
       editInputRef.current?.select();
     }
   }, [editingThreadId]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const untitledThreads = threads.filter(
+      (thread) =>
+        (!thread.title || !thread.title.trim()) &&
+        !derivedTitles[thread.id] &&
+        !requestedDerivedTitlesRef.current.has(thread.id),
+    );
+
+    for (const thread of untitledThreads) {
+      requestedDerivedTitlesRef.current.add(thread.id);
+
+      void (async () => {
+        try {
+          const threadHandle = mastraClient.getMemoryThread({ threadId: thread.id, agentId: AGENT_ID });
+          const result = await threadHandle.listMessages();
+          if (cancelled) return;
+
+          const derivedTitle = deriveThreadTitleFromMessages(
+            (result.messages ?? []) as Array<{ role?: string; content?: unknown }>,
+          );
+
+          if (derivedTitle) {
+            setDerivedTitles((current) => {
+              if (current[thread.id] === derivedTitle) return current;
+              return { ...current, [thread.id]: derivedTitle };
+            });
+          }
+        } catch (err) {
+          if (!cancelled) {
+            console.error('Failed to derive thread title:', err);
+          }
+        }
+      })();
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [threads, derivedTitles, mastraClient]);
 
   const handleDelete = async (threadId: string) => {
     try {
@@ -174,53 +222,67 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
           {threads.map((thread) => {
             const isActive = thread.id === currentThreadId;
             const isEditing = editingThreadId === thread.id;
+            const displayTitle = getThreadDisplayTitle(thread, derivedTitles[thread.id]);
 
             return (
-              <button
+              <div
                 key={thread.id}
-                type="button"
-                data-testid="thread-item"
-                className={`group w-full text-left px-4 py-2.5 transition-colors cursor-pointer ${
+                className={`group px-4 py-2.5 transition-colors ${
                   isActive
                     ? 'bg-sidebar-accent text-sidebar-foreground'
                     : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground/90'
                 }`}
-                onClick={() => !isEditing && onSelectThread(thread.id)}
               >
                 <div className="flex items-start justify-between gap-2">
                   {isEditing ? (
-                    <input
-                      ref={editInputRef}
-                      value={editTitle}
-                      onChange={(e) => setEditTitle(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleRename(thread.id);
-                        if (e.key === 'Escape') setEditingThreadId(null);
-                      }}
-                      onBlur={() => handleRename(thread.id)}
-                      className="flex-1 min-w-0 text-xs bg-sidebar-accent border border-sidebar-border rounded px-1.5 py-0.5 text-sidebar-foreground outline-none focus:ring-1 focus:ring-ring"
-                    />
+                    <>
+                      <input
+                        ref={editInputRef}
+                        value={editTitle}
+                        aria-label={`Rename ${displayTitle}`}
+                        onChange={(e) => setEditTitle(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleRename(thread.id);
+                          if (e.key === 'Escape') setEditingThreadId(null);
+                        }}
+                        onBlur={() => handleRename(thread.id)}
+                        className="flex-1 min-w-0 text-xs bg-sidebar-accent border border-sidebar-border rounded px-1.5 py-0.5 text-sidebar-foreground outline-none focus:ring-1 focus:ring-ring"
+                      />
+                      <span className="text-[10px] text-sidebar-foreground/40 shrink-0 mt-0.5">
+                        {formatDate(thread.updatedAt)}
+                      </span>
+                    </>
                   ) : (
                     <>
-                      <span className="text-xs leading-snug line-clamp-2 flex-1 min-w-0">
-                        {getThreadTitle(thread)}
-                      </span>
+                      <button
+                        type="button"
+                        data-testid="thread-item"
+                        onClick={() => onSelectThread(thread.id)}
+                        className="flex-1 min-w-0 text-left rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+                      >
+                        <span className="text-xs leading-snug line-clamp-2 block">
+                          {displayTitle}
+                        </span>
+                      </button>
                       <div className="flex items-center gap-1 shrink-0 mt-0.5">
-                        <span className={`text-[10px] text-sidebar-foreground/40 ${menuOpenThreadId === thread.id ? 'hidden' : 'group-hover:hidden'}`}>
+                        <span className="text-[10px] text-sidebar-foreground/40">
                           {formatDate(thread.updatedAt)}
                         </span>
                         <DropdownMenu onOpenChange={(open) => setMenuOpenThreadId(open ? thread.id : null)}>
                           <DropdownMenuTrigger
-                            className={`${menuOpenThreadId === thread.id ? 'flex' : 'hidden group-hover:flex'} p-0.5 rounded text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors`}
-                            onClick={(e) => e.stopPropagation()}
+                            aria-label={`Thread actions for ${displayTitle}`}
+                            className={`flex p-0.5 rounded transition-colors ${
+                              menuOpenThreadId === thread.id
+                                ? 'text-sidebar-foreground bg-sidebar-accent'
+                                : 'text-sidebar-foreground/45 hover:text-sidebar-foreground hover:bg-sidebar-accent'
+                            }`}
                           >
                             <Ellipsis className="w-3.5 h-3.5" />
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" side="bottom">
                             <DropdownMenuItem
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setEditTitle(thread.title || 'New conversation');
+                              onClick={() => {
+                                setEditTitle(displayTitle);
                                 setEditingThreadId(thread.id);
                               }}
                             >
@@ -228,8 +290,7 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
                               Rename
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              onClick={(e) => {
-                                e.stopPropagation();
+                              onClick={() => {
                                 setDeleteThreadId(thread.id);
                               }}
                               className="text-destructive focus:text-destructive"
@@ -243,7 +304,7 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
                     </>
                   )}
                 </div>
-              </button>
+              </div>
             );
           })}
         </div>

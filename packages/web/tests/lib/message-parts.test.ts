@@ -57,51 +57,55 @@ describe('extractMessageParts', () => {
     expect(result.traceEntries).toEqual([]);
   });
 
-  it('splits text before last tool into reasoning, text after into answer', () => {
+  it('suppresses internal text before the last tool and keeps trailing text as the answer', () => {
     const result = extractMessageParts(makeMsg([
       asPart({ type: 'text', text: 'Let me search...' }),
       asPart({ type: 'tool-searchSections', toolCallId: 'tc-1', state: 'output-available' }),
       asPart({ type: 'text', text: 'Based on the results...' }),
     ]));
 
-    expect(result.traceEntries).toHaveLength(2);
-    expect(result.traceEntries[0]).toEqual({ type: 'reasoning', text: 'Let me search...' });
-    expect(result.traceEntries[1]).toEqual({
+    expect(result.traceEntries).toEqual([{
       type: 'tool',
       toolName: 'searchSections',
       toolCallId: 'tc-1',
       state: 'output-available',
-    });
+      count: 1,
+    }]);
     expect(result.answerText).toBe('Based on the results...');
   });
 
-  it('handles multiple tool parts', () => {
+  it('collapses repeated consecutive tool parts', () => {
     const result = extractMessageParts(makeMsg([
       asPart({ type: 'tool-searchSections', toolCallId: 'tc-1', state: 'output-available' }),
       asPart({ type: 'text', text: 'Intermediate thought' }),
-      asPart({ type: 'tool-getSection', toolCallId: 'tc-2', state: 'output-available' }),
+      asPart({ type: 'tool-searchSections', toolCallId: 'tc-2', state: 'output-available' }),
       asPart({ type: 'text', text: 'Final answer' }),
     ]));
 
-    const toolEntries = result.traceEntries.filter(e => e.type === 'tool');
-    expect(toolEntries).toHaveLength(2);
-    expect(result.traceEntries.find(e => e.type === 'reasoning')).toEqual({
-      type: 'reasoning',
-      text: 'Intermediate thought',
-    });
+    expect(result.traceEntries).toEqual([{
+      type: 'tool',
+      toolName: 'searchSections',
+      toolCallId: 'tc-1',
+      state: 'output-available',
+      count: 2,
+    }]);
     expect(result.answerText).toBe('Final answer');
   });
 
-  it('skips whitespace-only text before tools', () => {
+  it('ignores whitespace-only internal text before tools', () => {
     const result = extractMessageParts(makeMsg([
       asPart({ type: 'text', text: '   ' }),
       asPart({ type: 'tool-searchSections', toolCallId: 'tc-1', state: 'output-available' }),
       asPart({ type: 'text', text: 'Answer' }),
     ]));
 
-    // Whitespace-only text should not produce a reasoning entry
-    const reasoning = result.traceEntries.filter(e => e.type === 'reasoning');
-    expect(reasoning).toHaveLength(0);
+    expect(result.traceEntries).toEqual([{
+      type: 'tool',
+      toolName: 'searchSections',
+      toolCallId: 'tc-1',
+      state: 'output-available',
+      count: 1,
+    }]);
   });
 
   it('uses dynamic-tool parts', () => {
@@ -115,6 +119,7 @@ describe('extractMessageParts', () => {
       toolName: 'searchSections',
       toolCallId: 'tc-dyn',
       state: 'input-streaming',
+      count: 1,
     });
   });
 

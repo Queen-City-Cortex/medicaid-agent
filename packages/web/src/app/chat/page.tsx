@@ -23,6 +23,15 @@ import { submitFeedback, deleteFeedback, getFeedbackByThread } from '@/lib/feedb
 const AGENT_ID = 'nc-medicaid-navigator';
 const MASTRA_URL = process.env.NEXT_PUBLIC_MASTRA_URL || 'http://localhost:4111';
 
+function removeFeedbackEntry(
+  entries: Record<string, { id: string; rating: 'up' | 'down'; comment: string | null }>,
+  messageId: string,
+) {
+  const nextEntries = { ...entries };
+  delete nextEntries[messageId];
+  return nextEntries;
+}
+
 export default function ChatPage() {
   const { user, loading: authLoading } = useAuth();
   const { getAccessToken } = useAccessToken();
@@ -103,6 +112,9 @@ export default function ChatPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const viewportRef = useRef<HTMLElement | null>(null);
+  const sidebarRef = useRef<HTMLDivElement>(null);
+  const sidebarToggleRef = useRef<HTMLButtonElement>(null);
+  const previousSidebarCollapsedRef = useRef<boolean | null>(null);
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     if (typeof window === 'undefined') return true;
@@ -128,6 +140,42 @@ export default function ChatPage() {
   }, [messages, status]);
 
   useEffect(() => { inputRef.current?.focus({ preventScroll: true }); }, []);
+
+  useEffect(() => {
+    if (!isMobile || sidebarCollapsed) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setSidebarCollapsed(true);
+        localStorage.setItem('sidebar-collapsed', 'true');
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isMobile, sidebarCollapsed]);
+
+  useEffect(() => {
+    if (!isMobile) {
+      previousSidebarCollapsedRef.current = sidebarCollapsed;
+      return;
+    }
+
+    const previousValue = previousSidebarCollapsedRef.current;
+    previousSidebarCollapsedRef.current = sidebarCollapsed;
+
+    if (previousValue === null || previousValue === sidebarCollapsed) return;
+
+    if (!sidebarCollapsed) {
+      const firstFocusable = sidebarRef.current?.querySelector<HTMLElement>(
+        'button:not([disabled]), [href], input:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      );
+      firstFocusable?.focus();
+      return;
+    }
+
+    sidebarToggleRef.current?.focus();
+  }, [isMobile, sidebarCollapsed]);
 
   // Re-grab viewport ref whenever messages change
   useEffect(() => {
@@ -205,7 +253,7 @@ export default function ChatPage() {
     }
 
     inputRef.current?.focus({ preventScroll: true });
-  }, [loadThread, setMessages, isMobile]);
+  }, [loadThread, isMobile]);
 
   const handleNewThread = useCallback(async () => {
     if (messages.length === 0) {
@@ -259,14 +307,14 @@ export default function ChatPage() {
       setFeedbackMap(m => ({ ...m, [messageId]: { ...m[messageId], id: result.id } }));
     } catch {
       if (prev) setFeedbackMap(m => ({ ...m, [messageId]: prev }));
-      else setFeedbackMap(m => { const { [messageId]: _, ...rest } = m; return rest; });
+      else setFeedbackMap(m => removeFeedbackEntry(m, messageId));
     }
   }, [feedbackMap, threadId, getAccessToken]);
 
   const handleClearRating = useCallback(async (messageId: string) => {
     const prev = feedbackMap[messageId];
     if (!prev) return;
-    setFeedbackMap(m => { const { [messageId]: _, ...rest } = m; return rest; });
+    setFeedbackMap(m => removeFeedbackEntry(m, messageId));
 
     try {
       const token = await getAccessToken();
@@ -306,13 +354,19 @@ export default function ChatPage() {
   return (
     <div className="flex h-screen bg-background overflow-hidden">
       {/* Sidebar — fixed overlay on mobile, in-flow on desktop */}
-      <div className={[
+      <div
+        ref={sidebarRef}
+        id="thread-sidebar"
+        aria-hidden={sidebarCollapsed || undefined}
+        inert={sidebarCollapsed}
+        className={[
         'flex flex-col h-full bg-sidebar border-r border-sidebar-border',
         'fixed inset-y-0 left-0 z-40 w-[280px] transition-transform duration-200',
         sidebarCollapsed ? '-translate-x-full' : 'translate-x-0',
         'md:relative md:z-auto md:translate-x-0 md:transition-[width] md:shrink-0 md:overflow-hidden',
         sidebarCollapsed ? 'md:w-0' : 'md:w-[280px]',
-      ].join(' ')}>
+      ].join(' ')}
+      >
         <ThreadSidebar
           currentThreadId={threadId}
           resourceId={resourceId}
@@ -335,7 +389,10 @@ export default function ChatPage() {
         <header className="border-b border-border bg-card px-4 md:px-8 py-5 shrink-0">
           <div className="max-w-3xl mx-auto flex items-center gap-3">
             <button
+              ref={sidebarToggleRef}
               onClick={toggleSidebar}
+              aria-controls="thread-sidebar"
+              aria-expanded={!sidebarCollapsed}
               className="p-2 -ml-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
               aria-label={sidebarCollapsed ? 'Open sidebar' : 'Close sidebar'}
             >

@@ -1,6 +1,12 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import type { StorageThreadType } from '@mastra/core/memory';
-import { formatDate, getThreadTitle } from '../../src/lib/thread-helpers';
+import {
+  deriveThreadTitleFromMessages,
+  deriveThreadTitleFromText,
+  formatDate,
+  getThreadDisplayTitle,
+  getThreadTitle,
+} from '../../src/lib/thread-helpers';
 
 describe('formatDate', () => {
   afterEach(() => {
@@ -78,5 +84,69 @@ describe('getThreadTitle', () => {
 
   it('returns "New conversation" for missing title', () => {
     expect(getThreadTitle(asThread({}))).toBe('New conversation');
+  });
+});
+
+describe('getThreadDisplayTitle', () => {
+  function asThread(thread: Partial<StorageThreadType>): StorageThreadType {
+    return thread as StorageThreadType;
+  }
+
+  it('prefers the stored thread title', () => {
+    expect(getThreadDisplayTitle(asThread({ title: 'Stored title' }), 'Derived title')).toBe('Stored title');
+  });
+
+  it('uses a derived title for untitled threads', () => {
+    expect(getThreadDisplayTitle(asThread({ title: '   ' }), 'Derived title')).toBe('Derived title');
+  });
+
+  it('falls back to New conversation when no stored or derived title exists', () => {
+    expect(getThreadDisplayTitle(asThread({}), null)).toBe('New conversation');
+  });
+});
+
+describe('deriveThreadTitleFromText', () => {
+  it('normalizes whitespace before deriving a title', () => {
+    expect(deriveThreadTitleFromText('  What   is\nEPSDT?  ')).toBe('What is EPSDT?');
+  });
+
+  it('returns null for empty text', () => {
+    expect(deriveThreadTitleFromText('   ')).toBeNull();
+  });
+
+  it('truncates long text to match new-thread titles', () => {
+    const longText = 'A'.repeat(80);
+    expect(deriveThreadTitleFromText(longText)).toBe('A'.repeat(60));
+  });
+});
+
+describe('deriveThreadTitleFromMessages', () => {
+  it('uses the first user message', () => {
+    expect(deriveThreadTitleFromMessages([
+      { role: 'assistant', content: 'Hello' },
+      { role: 'user', content: 'Can EPSDT cover this?' },
+      { role: 'user', content: 'Another question' },
+    ])).toBe('Can EPSDT cover this?');
+  });
+
+  it('extracts text from structured content', () => {
+    expect(deriveThreadTitleFromMessages([
+      {
+        role: 'user',
+        content: {
+          parts: [
+            { type: 'text', text: 'First line' },
+            { type: 'text', text: 'Second line' },
+          ],
+        },
+      },
+    ])).toBe('First line Second line');
+  });
+
+  it('returns null when no user text exists', () => {
+    expect(deriveThreadTitleFromMessages([
+      { role: 'assistant', content: 'Hello' },
+      { role: 'user', content: '   ' },
+    ])).toBeNull();
   });
 });

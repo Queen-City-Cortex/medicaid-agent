@@ -42,16 +42,31 @@ export function extractMessageParts(msg: UIMessage): {
         state: (part as { state?: string }).state ?? 'output-available',
       });
     } else if (part.type === 'text') {
-      if (lastToolIndex >= 0 && i <= lastToolIndex) {
-        if ((part as { text: string }).text.trim()) {
-          traceEntries.push({ type: 'reasoning', text: (part as { text: string }).text.trim() });
-        }
-      } else {
+      if (lastToolIndex === -1 || i > lastToolIndex) {
         answerTexts.push((part as { text: string }).text);
       }
     }
     // Skip step-start and other non-text, non-tool parts
   }
 
-  return { traceEntries, answerText: answerTexts.join('') };
+  return {
+    traceEntries: collapseConsecutiveToolEntries(traceEntries),
+    answerText: answerTexts.join(''),
+  };
+}
+
+function collapseConsecutiveToolEntries(entries: TraceEntry[]): TraceEntry[] {
+  const collapsed: TraceEntry[] = [];
+
+  for (const entry of entries) {
+    const previous = collapsed[collapsed.length - 1];
+    if (previous && previous.toolName === entry.toolName) {
+      previous.count = (previous.count ?? 1) + (entry.count ?? 1);
+      previous.state = entry.state;
+      continue;
+    }
+    collapsed.push({ ...entry, count: entry.count ?? 1 });
+  }
+
+  return collapsed;
 }

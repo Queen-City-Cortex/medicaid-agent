@@ -1,4 +1,8 @@
 import type { StorageThreadType } from '@mastra/core/memory';
+import { extractText } from '@/lib/parse-message';
+
+const FALLBACK_THREAD_TITLE = 'New conversation';
+const THREAD_TITLE_MAX_LENGTH = 60;
 
 export function formatDate(date: string | Date | undefined): string {
   if (!date) return '';
@@ -22,5 +26,35 @@ export function getThreadTitle(thread: StorageThreadType): string {
   if (thread.title && thread.title.trim()) {
     return thread.title;
   }
-  return 'New conversation';
+  return FALLBACK_THREAD_TITLE;
+}
+
+export function getThreadDisplayTitle(thread: StorageThreadType, derivedTitle?: string | null): string {
+  if (thread.title && thread.title.trim()) {
+    return thread.title;
+  }
+
+  if (derivedTitle && derivedTitle.trim()) {
+    return derivedTitle;
+  }
+
+  return FALLBACK_THREAD_TITLE;
+}
+
+export function deriveThreadTitleFromText(text: string | null | undefined): string | null {
+  if (!text) return null;
+
+  const normalized = text.replace(/\s+/g, ' ').trim();
+  if (!normalized) return null;
+
+  return normalized.slice(0, THREAD_TITLE_MAX_LENGTH);
+}
+
+export function deriveThreadTitleFromMessages(
+  messages: Array<{ role?: string; content?: unknown }>,
+): string | null {
+  const firstUserMessage = messages.find((message) => message.role === 'user');
+  if (!firstUserMessage) return null;
+
+  return deriveThreadTitleFromText(extractText(firstUserMessage.content));
 }

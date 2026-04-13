@@ -10,27 +10,25 @@ describe('ResearchTrace', () => {
 
   it('renders known tool names with labels', () => {
     const entries: TraceEntry[] = [
-      { type: 'tool', toolName: 'searchSections', toolCallId: 'tc-1', state: 'output-available' },
+      { type: 'tool', toolName: 'searchSections', toolCallId: 'tc-1', state: 'output-available', count: 1 },
     ];
     render(<ResearchTrace entries={entries} />);
     expect(screen.getByText('Searching policies')).toBeInTheDocument();
   });
 
-  it('renders unknown tool name as-is', () => {
+  it('renders unknown tool names with a generic label', () => {
     const entries: TraceEntry[] = [
-      { type: 'tool', toolName: 'someNewTool', toolCallId: 'tc-2', state: 'output-available' },
+      { type: 'tool', toolName: 'someNewTool', toolCallId: 'tc-2', state: 'output-available', count: 1 },
     ];
     render(<ResearchTrace entries={entries} />);
-    expect(screen.getByText('someNewTool')).toBeInTheDocument();
+    expect(screen.getByText('Researching sources')).toBeInTheDocument();
   });
 
-  it('renders reasoning entries as italic text', () => {
+  it('shows tool counts when repeated steps are collapsed', () => {
     const entries: TraceEntry[] = [
-      { type: 'reasoning', text: 'Let me think about this...' },
+      { type: 'tool', toolName: 'getAmendments', toolCallId: 'tc-3', state: 'output-available', count: 2 },
     ];
     render(<ResearchTrace entries={entries} />);
-    const element = screen.getByText('Let me think about this...');
-    expect(element.tagName).toBe('P');
-    expect(element.classList.contains('italic')).toBe(true);
+    expect(screen.getByText('Checking amendments (2)')).toBeInTheDocument();
   });
 });

@@ -48,3 +48,12 @@ export function latestToolResult<T>(
   }
   return null;
 }
+
+export function openAIItemId(part: unknown): string | null {
+  if (!part || typeof part !== 'object') return null;
+  if (!('providerMetadata' in part) || !part.providerMetadata || typeof part.providerMetadata !== 'object') {
+    return null;
+  }
+  const metadata = part.providerMetadata as { openai?: { itemId?: unknown } };
+  return typeof metadata.openai?.itemId === 'string' ? metadata.openai.itemId : null;
+}

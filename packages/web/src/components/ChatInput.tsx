@@ -14,13 +14,20 @@ interface ChatInputProps {
 }
 
 export function ChatInput({ input, setInput, isLoading, onSend, inputRef }: ChatInputProps) {
+  const helperTextId = 'chat-input-helper-text';
+
   return (
     <footer className="border-t border-border bg-card px-4 md:px-8 py-5 shrink-0">
       <div className="max-w-3xl mx-auto flex gap-3">
+        <label htmlFor="chat-input" className="sr-only">
+          Ask a policy question
+        </label>
         <textarea
+          id="chat-input"
           ref={inputRef}
           rows={1}
           data-testid="chat-input"
+          aria-describedby={helperTextId}
           value={input}
           onChange={(e) => {
             setInput(e.target.value);
@@ -48,7 +55,7 @@ export function ChatInput({ input, setInput, isLoading, onSend, inputRef }: Chat
           ) : 'Ask'}
         </Button>
       </div>
-      <p className="max-w-3xl mx-auto text-xs text-muted-foreground mt-2">
+      <p id={helperTextId} className="max-w-3xl mx-auto text-xs text-muted-foreground mt-2">
         Answers are AI-generated from NC Medicaid policy documents. Verify critical information with DHHS.
       </p>
     </footer>

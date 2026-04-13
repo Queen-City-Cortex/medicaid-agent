@@ -21,6 +21,7 @@ import { closeDriver, getDriver } from './neo4j.js';
 import { HallucinationVerifier } from './processors/hallucination-verifier.js';
 import { AnswerFramePrefetchProcessor } from './processors/answer-frame-prefetch.js';
 import { AnswerFramePlanningProcessor } from './processors/answer-frame-planning.js';
+import { OpenAIResponsesDedupProcessor } from './processors/openai-responses-dedup.js';
 import { MastraAuthWorkos } from '@mastra/auth-workos';
 import { PinoLogger } from '@mastra/loggers';
 import { FeedbackRepository } from './feedback/repository.js';
@@ -112,8 +113,10 @@ const SYSTEM_PROMPT = buildSystemPrompt();
 const hallucinationVerifier = new HallucinationVerifier();
 const answerFramePrefetch = new AnswerFramePrefetchProcessor();
 const answerFramePlanning = new AnswerFramePlanningProcessor();
+const openAIResponsesDedup = new OpenAIResponsesDedupProcessor();
 const inputProcessors = IS_CLI_RUN
   ? [
+      openAIResponsesDedup,
       answerFramePrefetch,
       answerFramePlanning,
       new TokenLimiterProcessor({
@@ -127,6 +130,7 @@ const inputProcessors = IS_CLI_RUN
         strategy: 'block',
         detectionTypes: ['injection', 'jailbreak', 'system-override'],
       }),
+      openAIResponsesDedup,
       answerFramePrefetch,
       answerFramePlanning,
       new TokenLimiterProcessor({
