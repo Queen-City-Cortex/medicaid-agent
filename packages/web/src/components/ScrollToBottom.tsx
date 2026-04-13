@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { ArrowDown } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 
 interface ScrollToBottomProps {
   viewportRef: React.RefObject<HTMLElement | null>;
