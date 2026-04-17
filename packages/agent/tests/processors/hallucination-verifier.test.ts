@@ -732,3 +732,67 @@ describe('HallucinationVerifier.processOutputStep', () => {
     expect(generateObject).not.toHaveBeenCalled();
   });
 });
+
+
+// ── renderCorrectedAnswer ────────────────────────────────────────────────────
+
+import { renderCorrectedAnswer } from '../../src/processors/hallucination-verifier.js';
+
+describe('renderCorrectedAnswer', () => {
+  it('returns the input unchanged when there are no markers', () => {
+    const input = 'Regular answer with a [Policy 8C § 3.2.1](https://example.com) inline citation.';
+    expect(renderCorrectedAnswer(input)).toBe(input);
+  });
+
+  it('leaves [unverified: ...] markers inline', () => {
+    const input = 'The visit limit is [unverified: 20 visits per year].';
+    expect(renderCorrectedAnswer(input)).toContain('[unverified:');
+  });
+
+  it('leaves [wrong source: ...] markers inline', () => {
+    const input = 'The agent cited [wrong source: 42 CFR § 457.65] instead of § 430.12.';
+    expect(renderCorrectedAnswer(input)).toContain('[wrong source:');
+  });
+
+  it('moves [missing citation: simple-label] to a footer', () => {
+    const input = 'Benefits include X. [missing citation: Policy 1A-2 § 4.1]\nMore content.';
+    const output = renderCorrectedAnswer(input);
+    expect(output).not.toContain('[missing citation:');
+    expect(output).toContain('Benefits include X.');
+    expect(output).toContain('*Suggested citations for uncited claims above:*');
+    expect(output).toContain('- Policy 1A-2 § 4.1');
+  });
+
+  it('handles nested brackets in the suggested citation (markdown link form)', () => {
+    const input = 'Enrollment is 12,000 slots. [missing citation: [Policy 3K-2 § 2.1](https://medicaid.ncdhhs.gov/3k-2)]';
+    const output = renderCorrectedAnswer(input);
+    expect(output).not.toContain('[missing citation:');
+    expect(output).toContain('[Policy 3K-2 § 2.1](https://medicaid.ncdhhs.gov/3k-2)');
+    expect(output).toMatch(/Enrollment is 12,000 slots\./);
+  });
+
+  it('deduplicates repeated citations in the footer', () => {
+    const input = 'A. [missing citation: [Policy 9 § 4.1](u)] B. [missing citation: [Policy 9 § 4.1](u)] C.';
+    const output = renderCorrectedAnswer(input);
+    const matches = output.match(/\[Policy 9 § 4\.1\]\(u\)/g) ?? [];
+    expect(matches.length).toBe(1);
+  });
+
+  it('preserves both inline [unverified] and footer for [missing citation] in the same answer', () => {
+    const input = 'The cap is [unverified: $500]. Eligibility requires age 18+. [missing citation: [Policy 3K-2 § 2.1.1](https://x)]';
+    const output = renderCorrectedAnswer(input);
+    expect(output).toContain('[unverified: $500]');
+    expect(output).not.toContain('[missing citation:');
+    expect(output).toContain('*Suggested citations for uncited claims above:*');
+  });
+
+  it('returns empty string unchanged when input is empty', () => {
+    expect(renderCorrectedAnswer('')).toBe('');
+  });
+
+  it('leaves an unmatched marker untouched rather than dropping content', () => {
+    const input = 'Statement. [missing citation: unclosed content';
+    const output = renderCorrectedAnswer(input);
+    expect(output).toContain('unclosed content');
+  });
+});

@@ -24,6 +24,7 @@ import {
   extractSourcesFromToolResults,
   buildSourceText,
   verifyAnswer,
+  renderCorrectedAnswer,
   type ToolResultRecord,
 } from './processors/hallucination-verifier.js';
 import { getPolicyCorpusRerankerDiagnostics } from './policy-corpus-reranker.js';
@@ -357,7 +358,7 @@ if (CLI_QUESTION) {
         console.log(JSON.stringify(telemetry));
 
         if (rewrote && verification.correctedAnswer) {
-          finalAnswer = verification.correctedAnswer;
+          finalAnswer = renderCorrectedAnswer(verification.correctedAnswer);
         }
       } catch (err) {
         console.log('\n---VERIFIER---\n');

@@ -563,6 +563,83 @@ export async function verifyAnswer(
   }
 }
 
+// ── Rendering helpers ───────────────────────────────────────────────────────
+
+const MISSING_CITATION_MARKER = '[missing citation:';
+
+/**
+ * Parse `[missing citation: <content>]` markers out of the verifier's corrected
+ * answer, tracking bracket depth so the common payload shape
+ * `[missing citation: [Policy 8C § 3.2.1](https://...)]` doesn't stop at the
+ * inner `]`. Returns the body with markers stripped and the list of suggested
+ * citations in the order they appeared.
+ */
+function extractMissingCitations(text: string): { body: string; citations: string[] } {
+  const citations: string[] = [];
+  const segments: string[] = [];
+  let cursor = 0;
+
+  while (cursor < text.length) {
+    const idx = text.indexOf(MISSING_CITATION_MARKER, cursor);
+    if (idx === -1) {
+      segments.push(text.slice(cursor));
+      break;
+    }
+    segments.push(text.slice(cursor, idx));
+
+    // Find the marker's matching `]` while honoring nested brackets.
+    let depth = 1;
+    let j = idx + MISSING_CITATION_MARKER.length;
+    while (j < text.length) {
+      const ch = text[j];
+      if (ch === '[') depth++;
+      else if (ch === ']') {
+        depth--;
+        if (depth === 0) break;
+      }
+      j++;
+    }
+    if (j >= text.length) {
+      // Unmatched marker — keep the original substring so we don't silently
+      // drop content.
+      segments.push(text.slice(idx));
+      break;
+    }
+    const content = text.slice(idx + MISSING_CITATION_MARKER.length, j).trim();
+    if (content) citations.push(content);
+    cursor = j + 1;
+  }
+
+  let body = segments.join('');
+  // Clean up whitespace that the marker left behind (e.g., `sentence. <gap> `).
+  body = body.replace(/[ \t]+\n/g, '\n').replace(/ {2,}/g, ' ').trim();
+  return { body, citations };
+}
+
+/**
+ * Render the verifier's corrected answer for the user. `[unverified: ...]` and
+ * `[wrong source: ...]` markers stay inline because they carry factual
+ * uncertainty signal; `[missing citation: ...]` markers are moved to a short
+ * footer because they're grammatical annotations, not content claims, and they
+ * read poorly mid-sentence.
+ */
+export function renderCorrectedAnswer(corrected: string): string {
+  if (!corrected) return corrected;
+  const { body, citations } = extractMissingCitations(corrected);
+  if (citations.length === 0) return body;
+
+  const uniqueCitations: string[] = [];
+  const seen = new Set<string>();
+  for (const citation of citations) {
+    if (!seen.has(citation)) {
+      seen.add(citation);
+      uniqueCitations.push(citation);
+    }
+  }
+  const footer = uniqueCitations.map((citation) => `- ${citation}`).join('\n');
+  return `${body}\n\n---\n\n*Suggested citations for uncited claims above:*\n${footer}`;
+}
+
 // ── Processor Class ─────────────────────────────────────────────────────────
 
 export class HallucinationVerifier implements Processor {
@@ -641,8 +718,11 @@ export class HallucinationVerifier implements Processor {
     const verifierUnavailable = verification.unsupportedClaims.some(
       (c) => c.reason === VERIFICATION_UNAVAILABLE,
     );
-    const corrected = verification.correctedAnswer
+    const rawCorrected = verification.correctedAnswer
       || (verifierUnavailable ? text + VERIFICATION_DISCLAIMER : text);
+    // Move [missing citation: ...] markers out of sentence flow into a footer;
+    // keep [unverified: ...] / [wrong source: ...] inline (hallucination signal).
+    const corrected = renderCorrectedAnswer(rawCorrected);
 
     if (writer) {
       await writer.custom({
