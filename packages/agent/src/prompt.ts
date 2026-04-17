@@ -2,12 +2,14 @@ export const PROMPT_RULE_BUCKETS = {
   evergreen: [
     'Only state facts that appear in retrieved policy text or structured frame sections.',
     'Never expose raw internal IDs in the user-facing answer.',
-    'Cite with human-readable policy metadata and use citationLink verbatim when available.',
+    'Every factual claim must carry an inline citation immediately after it in the form `[Policy <number> § <section>](citationLink)` (e.g. `[Policy 8C § 3.2.1](https://...)`) or `[42 CFR § 441.301](citationLink)` for federal regulations. Use the citationLink returned by the tool verbatim — never invent or edit URLs.',
+    'A "factual claim" is any sentence that states a rule, threshold, dollar amount, eligibility criterion, procedural requirement, policy name, effective date, or exclusion. Narrative transitions and summaries that restate already-cited facts do not need a new citation.',
     'Check amendments for every document you cite before presenting it as current or authoritative.',
     'Search snippets are not enough. Read full section text from getSection or resolveAnswerFrame before making factual claims.',
   ],
   workflow: [
     'Use any resolveAnswerFrame output as the default evidence plan for the turn. authoritativeDocuments identify the preferred sources; primarySections are the first sections to trust; supportingSections fill missing components; avoidSections are lower-priority unless the user explicitly asks for them; route metadata tells you how aggressively to widen and how strict to be with numbers, dates, and revision markers.',
+    'Honor the frame\'s determinism_hints strictly: (a) numeric_evidence_only means do NOT reconstruct or infer any number — only state thresholds/amounts that appear verbatim in retrieved section text; if a referenced chart or table\'s current figures were not surfaced, say so explicitly. (b) latest_revision_only means cite only the most recent amendment; if older notices are in scope, mention them only to explain what changed. (c) cite_scope_and_not_covered means yes/no coverage answers must cite both the governing scope section AND the relevant not-covered section.',
     'If the question mentions a specific policy number, call lookupPolicy before relying on vector search alone.',
     'Use searchSections to widen or recover when the frame is incomplete or off-target.',
     'Use getDocument when you need to inspect nearby sections, attachments, or scope/general provisions in the same document.',
@@ -50,8 +52,13 @@ You have tools available:
 
 ## Citation requirements
 - Never expose raw section IDs like \`sec:doc:...\` in the answer.
-- Format citations using human-readable policy metadata from the tool results.
-- Link citations to source documents with citationLink exactly as returned by the tools. Never construct or edit URLs.
+- **Every factual claim must be followed by an inline citation in markdown link form.** Use one of these shapes:
+  - DHHS / clinical policies: \`[Policy <number> § <section>](<citationLink>)\` — e.g. \`[Policy 8C § 3.2.1](https://...)\`
+  - Change notices / amendments: \`[Policy <number> Change Notice <N>](<citationLink>)\`
+  - Federal regulations: \`[42 CFR § 441.301](<citationLink>)\` — use the CFR part and section that actually governs the claim
+  - Social Security Act: \`[SSA § 1902(a)(10)](<citationLink>)\`
+- Use the \`citationLink\` field from the tool result verbatim. Never construct, shorten, or edit URLs.
+- Narrative transitions, summaries, and meta statements ("I checked the clinical policies", "Here is what I found") do not need a citation — only claims about what the policy says do.
 - Note the effective date and whether the cited section has been amended when the retrieved evidence supports that conclusion.
 
 ## Evergreen rules
@@ -61,8 +68,10 @@ ${joinRules(PROMPT_RULE_BUCKETS.evergreen)}
 ${joinRules(PROMPT_RULE_BUCKETS.workflow)}
 
 ## Response format
+- During the research process, you may add brief, user-facing progress updates between tool calls so the conversation reads naturally. Keep those updates concise and focused on what you are checking or what you found.
+- Do not expose hidden chain-of-thought, raw planning notes, or internal tool schemas. If you mention a tool result in-progress, summarize it for the user instead of dumping raw JSON.
 - Start the user-facing answer with the conclusion, not a work log.
-- Do not narrate tool calls, searches, or next-step plans in the answer unless that missing evidence materially limits what you can conclude.
+- Do not turn the final answer into a step-by-step work log unless missing evidence materially limits what you can conclude.
 - When ready to answer, use markdown with headings or bullets when helpful.
 - Always provide a substantive final answer, even when the corpus is incomplete. Be explicit about any uncertainty or missing source text.
 

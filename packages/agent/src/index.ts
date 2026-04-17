@@ -18,7 +18,15 @@ import { findConceptSections } from './tools/concepts.js';
 import { lookupPolicy } from './tools/lookup.js';
 import { resolveAnswerFrame } from './tools/answer-frame.js';
 import { closeDriver, getDriver } from './neo4j.js';
-import { HallucinationVerifier } from './processors/hallucination-verifier.js';
+import {
+  HallucinationVerifier,
+  extractSources,
+  extractSourcesFromToolResults,
+  buildSourceText,
+  verifyAnswer,
+  type ToolResultRecord,
+} from './processors/hallucination-verifier.js';
+import { getPolicyCorpusRerankerDiagnostics } from './policy-corpus-reranker.js';
 import { AnswerFramePrefetchProcessor } from './processors/answer-frame-prefetch.js';
 import { AnswerFramePlanningProcessor } from './processors/answer-frame-planning.js';
 import { OpenAIResponsesDedupProcessor } from './processors/openai-responses-dedup.js';
@@ -137,7 +145,13 @@ const inputProcessors = IS_CLI_RUN
         limit: 128_000,
       }),
     ];
-const outputProcessors = IS_CLI_RUN ? [] : [hallucinationVerifier];
+// outputProcessors run in the web streaming path. In CLI/generate mode, Mastra's
+// processor chain doesn't emit the verifier's stdout telemetry, so the CLI runner
+// below calls `verifyAnswer` directly after `agent.generate()` completes. That
+// keeps eval scores aligned with what web users see while still letting
+// VERIFIER_ENABLED=false skip the extra cost for fast debug runs.
+const verifierEnabled = process.env.VERIFIER_ENABLED !== 'false';
+const outputProcessors = verifierEnabled && !IS_CLI_RUN ? [hallucinationVerifier] : [];
 
 const MAX_STEPS = 99;
 
@@ -265,14 +279,94 @@ if (CLI_QUESTION) {
     process.exit(1);
   }
 
+  // Accumulate tool-call results across generate() steps. We need raw
+  // {toolName, result} records rather than Mastra DB messages because the AI SDK
+  // response format the agent returns doesn't carry tool-invocation parts in a
+  // shape extractSources can parse.
+  const toolResults: ToolResultRecord[] = [];
+
   try {
     const result = await agent.generate(CLI_QUESTION, {
       maxSteps: MAX_STEPS,
       memory: { thread: `cli-${Date.now()}`, resource: 'cli' },
       onIterationComplete,
+      onStepFinish: (step: any) => {
+        // Mastra wraps each AI SDK tool-result into an envelope:
+        // { type: 'tool-result', runId, from, payload: { toolName, toolCallId, result, args } }
+        // Some callers / versions put those fields at the top level — accept both shapes.
+        const results = step?.toolResults ?? step?.response?.toolResults ?? [];
+        for (const r of results) {
+          if (!r) continue;
+          const payload = r.payload ?? r;
+          const toolName = payload.toolName ?? payload.tool_name ?? '';
+          if (!toolName) continue;
+          toolResults.push({
+            toolName,
+            toolCallId: payload.toolCallId ?? payload.tool_call_id,
+            result: payload.result ?? payload.output,
+          });
+        }
+      },
     } as any);
+
+    let finalAnswer = result.text ?? '';
+
+    if (verifierEnabled && finalAnswer) {
+      try {
+        // Prefer raw tool results (AI SDK shape); fall back to message parsing
+        // if extractSourcesFromToolResults returns nothing.
+        let sources = extractSourcesFromToolResults(toolResults);
+        if (sources.length === 0) {
+          const messages =
+            (result as any).response?.messages
+            ?? (result as any).messages
+            ?? [];
+          sources = extractSources(messages);
+        }
+        const sourceText = buildSourceText(sources, finalAnswer);
+        const verification = await verifyAnswer(CLI_QUESTION, finalAnswer, sourceText);
+        const hasMajorRelevanceIssue = verification.relevanceIssues?.some(
+          (i) => i.severity === 'major',
+        ) ?? false;
+        const citationsComplete = verification.citationsComplete !== false;
+        const rewrote = !(
+          verification.supported
+          && verification.relevant
+          && !hasMajorRelevanceIssue
+          && citationsComplete
+        );
+        const rerankerDiag = getPolicyCorpusRerankerDiagnostics();
+        const telemetry = {
+          rewrote,
+          supported: verification.supported,
+          relevant: verification.relevant,
+          citations_complete: citationsComplete,
+          unsupported_claim_count: verification.unsupportedClaims?.length ?? 0,
+          missing_citation_count: verification.missingCitationClaims?.length ?? 0,
+          relevance_issue_count: verification.relevanceIssues?.length ?? 0,
+          major_relevance_issue: hasMajorRelevanceIssue,
+          verifier_unavailable: verification.unsupportedClaims?.some(
+            (c) => c.reason === 'Verification service unavailable',
+          ) ?? false,
+          verifier_model: process.env.VERIFIER_MODEL || 'gpt-5.4-mini',
+          reranker_fallback_count: rerankerDiag.fallbackCount,
+          reranker_last_error: rerankerDiag.lastError,
+          source_entry_count: sources.length,
+        };
+        console.log('\n---VERIFIER---\n');
+        console.log(JSON.stringify(telemetry));
+
+        if (rewrote && verification.correctedAnswer) {
+          finalAnswer = verification.correctedAnswer;
+        }
+      } catch (err) {
+        console.log('\n---VERIFIER---\n');
+        console.log(JSON.stringify({ error: String(err), rewrote: false }));
+      }
+    }
+
     console.log('\n---ANSWER---\n');
-    console.log(result.text || 'I was unable to find sufficient information to answer this question. Please try rephrasing or asking about a more specific aspect of the policy.');
+    console.log(finalAnswer || 'I was unable to find sufficient information to answer this question. Please try rephrasing or asking about a more specific aspect of the policy.');
   } catch (err) {
     console.error('Agent error:', err);
     process.exitCode = 1;

@@ -33,10 +33,11 @@ def test_invoke_agent_cli_returns_extracted_answer_and_uses_in_memory_observabil
     monkeypatch.delenv("MASTRA_OBSERVABILITY_PATH", raising=False)
     monkeypatch.setattr(answer.subprocess, "Popen", fake_popen)
 
-    result, route = answer._invoke_agent_cli("What is CAP/DA?")
+    result, route, verifier = answer._invoke_agent_cli("What is CAP/DA?")
 
     assert result == "final answer"
     assert route is None
+    assert verifier is None
     assert observed["kwargs"]["start_new_session"] is True
     assert observed["kwargs"]["env"]["MASTRA_OBSERVABILITY_PATH"] == ":memory:"
 
@@ -114,3 +115,40 @@ def test_evaluate_answers_retries_transient_tool_failure_answer(monkeypatch):
 
     assert results[0]["agent_answer"] == "final policy answer"
     assert results[0]["scores"]["overall"] == 3
+
+
+# ── Marker extraction ──────────────────────────────────────────────────────
+
+
+def test_extract_route_metadata_stops_before_verifier_block():
+    """Route block must not greedily absorb the interleaved ---VERIFIER--- JSON."""
+    stdout = (
+        "prelude\n"
+        "---ROUTE---\n"
+        '{"route":{"lane":"baseline_hybrid"},"authoritative_document":{"policy_number":"8C"}}\n'
+        "\n"
+        "---VERIFIER---\n"
+        '{"rewrote":true,"supported":false,"unsupported_claim_count":2}\n'
+        "\n"
+        "---ANSWER---\n"
+        "final answer text\n"
+    )
+    route = answer.extract_route_metadata(stdout)
+    verifier = answer.extract_verifier_metadata(stdout)
+    assert route is not None
+    assert route["route"]["lane"] == "baseline_hybrid"
+    assert verifier is not None
+    assert verifier["rewrote"] is True
+    assert verifier["unsupported_claim_count"] == 2
+
+
+def test_extract_route_metadata_handles_missing_verifier():
+    stdout = (
+        "---ROUTE---\n"
+        '{"route":{"lane":"graph_reasoning"}}\n'
+        "---ANSWER---\n"
+        "text\n"
+    )
+    route = answer.extract_route_metadata(stdout)
+    assert route["route"]["lane"] == "graph_reasoning"
+    assert answer.extract_verifier_metadata(stdout) is None

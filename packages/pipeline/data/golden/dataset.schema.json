@@ -11,7 +11,7 @@
       "updated": { "type": "string", "format": "date" },
       "question": { "type": "string", "minLength": 10 },
       "difficulty": { "type": "string", "enum": ["simple", "moderate", "complex"] },
-      "reasoning_type": { "type": "string", "enum": ["single_lookup", "multi_hop", "cross_document", "temporal"] },
+      "reasoning_type": { "type": "string", "enum": ["single_lookup", "multi_hop", "cross_document", "temporal", "negative_answer", "federal_reference"] },
       "topics": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
       "target_users": { "type": "array", "items": { "type": "string" } },
       "answer": {

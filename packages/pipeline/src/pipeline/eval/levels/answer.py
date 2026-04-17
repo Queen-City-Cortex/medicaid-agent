@@ -13,11 +13,13 @@ import httpx
 from pipeline.config import ANTHROPIC_API_KEY, VOYAGE_API_KEY, AGENT_DIR
 from pipeline.graph.connection import get_session
 from pipeline.eval.judge import judge_answer
+from pipeline.eval.citation import score_citation_support
 
 logger = logging.getLogger(__name__)
 
 AGENT_API_URL = "http://localhost:4111/api/agents/ncMedicaidAgent/generate"
 ROUTE_MARKER = "---ROUTE---"
+VERIFIER_MARKER = "---VERIFIER---"
 ANSWER_EVAL_PREVIEW_CHARS = 72
 AGENT_EVAL_TIMEOUT_SECS = int(os.environ.get("AGENT_EVAL_TIMEOUT_SECS", "180"))
 AGENT_EVAL_MAX_RETRIES = int(os.environ.get("AGENT_EVAL_MAX_RETRIES", "2"))
@@ -54,24 +56,38 @@ def extract_answer(stdout: str) -> str:
     return stdout[idx + len(marker):].strip()
 
 
-def extract_route_metadata(stdout: str) -> dict | None:
-    idx = stdout.find(ROUTE_MARKER)
+def _extract_marker_block(stdout: str, start_marker: str, end_markers: tuple[str, ...]) -> dict | None:
+    """Parse the last JSON line in the stdout span between `start_marker` and the
+    earliest of `end_markers` that appears after it."""
+    idx = stdout.find(start_marker)
     if idx == -1:
         return None
-
-    start = idx + len(ROUTE_MARKER)
-    answer_idx = stdout.find("---ANSWER---", start)
-    block = stdout[start:answer_idx if answer_idx != -1 else None].strip()
+    start = idx + len(start_marker)
+    end = len(stdout)
+    for marker in end_markers:
+        candidate = stdout.find(marker, start)
+        if candidate != -1 and candidate < end:
+            end = candidate
+    block = stdout[start:end].strip()
     if not block:
         return None
-
     for line in reversed([line.strip() for line in block.splitlines() if line.strip()]):
         try:
             return json.loads(line)
         except json.JSONDecodeError:
             continue
-
     return None
+
+
+def extract_route_metadata(stdout: str) -> dict | None:
+    # Bound the search by the next marker so an interleaved `---VERIFIER---`
+    # block isn't accidentally parsed as the route JSON.
+    return _extract_marker_block(stdout, ROUTE_MARKER, (VERIFIER_MARKER, "---ANSWER---"))
+
+
+def extract_verifier_metadata(stdout: str) -> dict | None:
+    """Extract hallucination-verifier telemetry (printed as a `---VERIFIER---` block)."""
+    return _extract_marker_block(stdout, VERIFIER_MARKER, ("---ANSWER---",))
 
 
 def _is_retryable_agent_answer(answer: str) -> bool:
@@ -104,15 +120,19 @@ def _start_pipe_reader(stream: subprocess.PIPE) -> tuple[list[str], threading.Th
     return chunks, thread
 
 
-def _invoke_agent_http(question: str, *, progress_label: str | None = None) -> tuple[str, dict | None]:
-    """Call the agent via HTTP API (requires `mastra dev` running on port 4111)."""
+def _invoke_agent_http(question: str, *, progress_label: str | None = None) -> tuple[str, dict | None, dict | None]:
+    """Call the agent via HTTP API (requires `mastra dev` running on port 4111).
+
+    Returns (answer, route_info, verifier_info). HTTP path cannot read the ---VERIFIER---
+    stdout marker, so verifier_info is always None here — use CLI fallback for verifier telemetry.
+    """
     resp = httpx.post(
         AGENT_API_URL,
         json={"messages": [{"role": "user", "content": question}]},
         timeout=AGENT_EVAL_TIMEOUT_SECS,
     )
     resp.raise_for_status()
-    return resp.json().get("text", ""), None
+    return resp.json().get("text", ""), None, None
 
 
 def _build_agent_env() -> dict[str, str]:
@@ -130,8 +150,8 @@ def _build_agent_env() -> dict[str, str]:
     return agent_env
 
 
-def _invoke_agent_cli(question: str, *, progress_label: str | None = None) -> tuple[str, dict | None]:
-    """Fall back to CLI subprocess."""
+def _invoke_agent_cli(question: str, *, progress_label: str | None = None) -> tuple[str, dict | None, dict | None]:
+    """Fall back to CLI subprocess. Returns (answer, route_info, verifier_info)."""
     agent_env = _build_agent_env()
     agent_env["AGENT_EVAL_CAPTURE_ROUTE"] = "true"
 
@@ -168,7 +188,7 @@ def _invoke_agent_cli(question: str, *, progress_label: str | None = None) -> tu
                 details.append(f"stdout_tail={stdout_tail}")
             detail_suffix = f" ({'; '.join(details)})" if details else ""
             raise RuntimeError(f"Agent exited with code {proc.returncode}{detail_suffix}")
-        return extract_answer(stdout), extract_route_metadata(stdout)
+        return extract_answer(stdout), extract_route_metadata(stdout), extract_verifier_metadata(stdout)
 
     assert proc.stdout is not None
     assert proc.stderr is not None
@@ -221,9 +241,14 @@ def _invoke_agent_cli(question: str, *, progress_label: str | None = None) -> tu
             details.append(f"stdout_tail={stdout_tail}")
         detail_suffix = f" ({'; '.join(details)})" if details else ""
         raise RuntimeError(f"Agent exited with code {proc.returncode}{detail_suffix}")
-    return extract_answer(stdout), extract_route_metadata(stdout)
-def _invoke_agent(question: str, *, progress_label: str | None = None) -> tuple[str, dict | None]:
-    """Invoke agent via HTTP API, falling back to CLI subprocess."""
+    return extract_answer(stdout), extract_route_metadata(stdout), extract_verifier_metadata(stdout)
+
+
+def _invoke_agent(question: str, *, progress_label: str | None = None) -> tuple[str, dict | None, dict | None]:
+    """Invoke agent via HTTP API, falling back to CLI subprocess.
+
+    Returns (answer, route_info, verifier_info).
+    """
     try:
         return _invoke_agent_http(question, progress_label=progress_label)
     except (httpx.ConnectError, httpx.HTTPError):
@@ -231,8 +256,12 @@ def _invoke_agent(question: str, *, progress_label: str | None = None) -> tuple[
         return _invoke_agent_cli(question, progress_label=progress_label)
 
 
-def _invoke_agent_with_progress(question: str, progress_label: str | None = None) -> tuple[str, dict | None]:
-    """Compatibility wrapper for tests or callers that still monkeypatch a one-arg _invoke_agent."""
+def _invoke_agent_with_progress(question: str, progress_label: str | None = None) -> tuple[str, dict | None, dict | None]:
+    """Compatibility wrapper for tests or callers that still monkeypatch a one-arg _invoke_agent.
+
+    Returns (answer, route_info, verifier_info). Older monkeypatches that return 2-tuples
+    or plain strings are padded to the 3-tuple shape.
+    """
     try:
         result = _invoke_agent(question, progress_label=progress_label)
     except TypeError as exc:
@@ -241,8 +270,13 @@ def _invoke_agent_with_progress(question: str, progress_label: str | None = None
         result = _invoke_agent(question)
 
     if isinstance(result, tuple):
-        return result
-    return result, None
+        if len(result) == 3:
+            return result  # type: ignore[return-value]
+        if len(result) == 2:
+            return result[0], result[1], None
+        if len(result) == 1:
+            return result[0], None, None
+    return result, None, None  # type: ignore[return-value]
 
 
 def _fetch_evidence_texts(primary_sections: list[dict]) -> list[str]:
@@ -292,11 +326,16 @@ def evaluate_answers(entries: list[dict]) -> list[dict]:
         agent_error = None
         route_info: dict | None = None
         route_error: str | None = None
+        verifier_info: dict | None = None
         agent_started_at = time.monotonic()
 
         for attempt in range(AGENT_EVAL_MAX_RETRIES + 1):
             try:
-                candidate_answer, candidate_route_info = _invoke_agent_with_progress(
+                (
+                    candidate_answer,
+                    candidate_route_info,
+                    candidate_verifier_info,
+                ) = _invoke_agent_with_progress(
                     question,
                     progress_label=question_id,
                 )
@@ -305,6 +344,7 @@ def evaluate_answers(entries: list[dict]) -> list[dict]:
             except subprocess.TimeoutExpired as exc:
                 candidate_answer = ""
                 candidate_route_info = extract_route_metadata((getattr(exc, "stdout", "") or ""))
+                candidate_verifier_info = extract_verifier_metadata((getattr(exc, "stdout", "") or ""))
                 tails = []
                 stderr_tail = _tail_text(getattr(exc, "stderr", None))
                 stdout_tail = _tail_text(extract_answer(getattr(exc, "stdout", "") or getattr(exc, "stdout", "")))
@@ -318,6 +358,7 @@ def evaluate_answers(entries: list[dict]) -> list[dict]:
             except Exception as exc:
                 candidate_answer = ""
                 candidate_route_info = None
+                candidate_verifier_info = None
                 candidate_error = f"Agent error: {exc}"
                 candidate_route_error = None
 
@@ -338,6 +379,7 @@ def evaluate_answers(entries: list[dict]) -> list[dict]:
             agent_error = candidate_error
             route_info = candidate_route_info
             route_error = candidate_route_error
+            verifier_info = candidate_verifier_info
             break
 
         if agent_error:
@@ -363,6 +405,10 @@ def evaluate_answers(entries: list[dict]) -> list[dict]:
             evidence_texts = _fetch_evidence_texts(all_sections)
         except Exception:
             evidence_texts = []
+
+        # --- Blind citation-support detector (deterministic, no LLM) ---
+        # Runs even when the judge errors so we still have grounding signal.
+        citation_support = score_citation_support(agent_answer or "", evidence_texts)
 
         # --- Score with judge ---
         if agent_error:
@@ -417,6 +463,8 @@ def evaluate_answers(entries: list[dict]) -> list[dict]:
             "route_authoritative_document": (route_info or {}).get("authoritative_document"),
             "route_widened": (((route_info or {}).get("route") or {}).get("widening_policy") or "none") != "none",
             "route_inspection_error": route_error,
+            "verifier": verifier_info,
+            "citation_support": citation_support,
             "agent_elapsed_seconds": agent_elapsed_seconds,
             # Alias fields for results.py aggregate compatibility
             # None values signal "exclude from aggregates"

@@ -3,6 +3,7 @@ import { createOpenAI } from '@ai-sdk/openai';
 import { z } from 'zod';
 import type { Processor, ProcessOutputStepArgs } from '@mastra/core/processors';
 import type { MastraDBMessage } from '@mastra/core/memory';
+import { getPolicyCorpusRerankerDiagnostics } from '../policy-corpus-reranker.js';
 
 // ── Config ───────────────────────────────────────────────────────────────────
 
@@ -325,6 +326,50 @@ function extractResolveAnswerFrame(result: ResolveAnswerFrameResult, toolCallId:
 
 // ── extractSources ───────────────────────────────────────────────────────────
 
+export interface ToolResultRecord {
+  toolName: string;
+  toolCallId?: string;
+  result: unknown;
+}
+
+/**
+ * Convert a flat list of tool-call records into SourceEntry rows.
+ * Used by the CLI runner, which can only collect raw {toolName, result}
+ * from `onStepFinish` — the Mastra DB message shape isn't available there.
+ */
+export function extractSourcesFromToolResults(
+  toolResults: Array<ToolResultRecord>,
+): SourceEntry[] {
+  const sources: SourceEntry[] = [];
+  for (const tr of toolResults) {
+    if (!EVIDENCE_TOOLS.has(tr.toolName)) continue;
+    const toolCallId = tr.toolCallId ?? '';
+    let entry: SourceEntry | null = null;
+    switch (tr.toolName) {
+      case 'getSection':
+        entry = extractGetSection(tr.result as GetSectionResult);
+        break;
+      case 'getDocument':
+        entry = extractGetDocument(tr.result as GetDocumentResult);
+        break;
+      case 'getAmendments':
+        entry = extractGetAmendments(tr.result as GetAmendmentsResult, toolCallId);
+        break;
+      case 'lookupPolicy':
+        entry = extractLookupPolicy(tr.result as LookupPolicyResult, toolCallId);
+        break;
+      case 'followReferences':
+        entry = extractFollowReferences(tr.result as FollowReferencesResult, toolCallId);
+        break;
+      case 'resolveAnswerFrame':
+        entry = extractResolveAnswerFrame(tr.result as ResolveAnswerFrameResult, toolCallId);
+        break;
+    }
+    if (entry) sources.push(entry);
+  }
+  return sources;
+}
+
 /**
  * Extract evidence sources from conversation messages.
  * Tool results in Mastra messages live in `tool-invocation` parts with
@@ -429,9 +474,14 @@ export function buildSourceText(
 const VerificationSchema = z.object({
   supported: z.boolean().describe('true if ALL factual claims are supported by the sources'),
   relevant: z.boolean().describe('true if the answer addresses the specific question using the correct policy source'),
+  citationsComplete: z.boolean().describe('true if every factual claim carries an inline markdown citation link (e.g. [Policy 8C § 3.2.1](...)).'),
   unsupportedClaims: z.array(z.object({
     claim: z.string().describe('The unsupported claim text from the answer'),
     reason: z.string().describe('Why the claim is not supported by the sources'),
+  })),
+  missingCitationClaims: z.array(z.object({
+    claim: z.string().describe('Factual claim text that lacks an inline citation link'),
+    suggestedCitation: z.string().describe('Suggested citation in the form [Policy X § Y](citationLink) using the source documents provided'),
   })),
   relevanceIssues: z.array(z.object({
     issue: z.string().describe('Description of the relevance problem'),
@@ -444,7 +494,7 @@ const VerificationSchema = z.object({
 
 export type VerificationResult = z.infer<typeof VerificationSchema>;
 
-const VERIFIER_PROMPT = `You are a factual verification and relevance assistant for NC Medicaid policy answers. Given a QUESTION, an ANSWER, and SOURCE DOCUMENTS, perform two checks:
+const VERIFIER_PROMPT = `You are a factual verification and relevance assistant for NC Medicaid policy answers. Given a QUESTION, an ANSWER, and SOURCE DOCUMENTS, perform four checks:
 
 ## 1. RELEVANCE CHECK
 Does the answer directly address the specific question asked?
@@ -460,8 +510,24 @@ Identify every factual claim and check whether it is supported by the source doc
 - Focus on: dollar amounts, dates, thresholds, visit limits, eligibility criteria, policy numbers, and specific requirements.
 - Ignore narrative transitions, hedging language, and meta-commentary about the research process.
 
+## 3. CITATION COMPLETENESS CHECK
+Every factual claim must carry an inline markdown citation link immediately after it, such as \`[Policy 8C § 3.2.1](https://...)\` or \`[42 CFR § 441.301](https://...)\`.
+- citationsComplete = true if and only if every factual claim has such an inline link.
+- For each uncited factual claim, list the claim text and a suggestedCitation built from the SOURCE DOCUMENTS (pick the best-matching policy/section and quote its link). The suggestedCitation must use the real citationLink present in the sources, never a fabricated URL.
+- Ignore narrative transitions, summaries that restate already-cited claims, and meta-commentary.
+
+## 4. DETERMINISM-HINT ENFORCEMENT
+If the SOURCE DOCUMENTS contain a [resolveAnswerFrame] block with a "Determinism hints:" line, apply stricter checks based on which hints are listed:
+- **numeric_evidence_only**: Treat any numeric value (dollar amounts, visit limits, caps, age thresholds, dates) as UNSUPPORTED unless the exact figure appears verbatim in a non-frame source. If the frame flags a chart or table whose figures were not surfaced, the answer must say the current dollar amounts were not verified — otherwise mark the synthesized number as unsupported with reason "numeric_evidence_only hint violated".
+- **latest_revision_only**: If a cited section has been superseded by a change notice that also appears in the sources, mark the claim as unsupported with reason "latest_revision_only hint violated" unless the answer explicitly flags the supersession.
+- **cite_scope_and_not_covered**: If the question is a yes/no coverage question, the answer must explicitly cite both a scope section (e.g., 2.1.x) AND a not-covered section (e.g., 4.1). If either is missing, add a relevanceIssues entry with severity "minor" and the text "cite_scope_and_not_covered hint not satisfied".
+
 ## CORRECTION
-If any claims are unsupported, wrap them in [unverified: ...] markers. If content comes from the wrong policy source, wrap it in [wrong source: ...] markers. Keep all correct content unchanged. The corrected version must be the complete answer, not a diff.`;
+- Wrap unsupported claims in [unverified: ...] markers.
+- Wrap content from the wrong policy source in [wrong source: ...] markers.
+- Wrap uncited factual claims in [missing citation: <suggestedCitation>] markers placed immediately after the claim sentence; do not overwrite existing citations, and do not re-wrap narrative transitions.
+- Determinism-hint violations count as unsupported claims — wrap them in [unverified: ...] with the specific reason.
+- Keep all correct, cited content unchanged. The corrected version must be the complete answer, not a diff. Leave correctedAnswer empty only when supported, relevant, AND citationsComplete are all true with no major relevance issues.`;
 
 export async function verifyAnswer(
   question: string,
@@ -488,7 +554,9 @@ export async function verifyAnswer(
     return {
       supported: false,
       relevant: true,
+      citationsComplete: true,
       unsupportedClaims: [{ claim: 'Full answer', reason: VERIFICATION_UNAVAILABLE }],
+      missingCitationClaims: [],
       relevanceIssues: [],
       correctedAnswer: '',
     };
@@ -538,7 +606,33 @@ export class HallucinationVerifier implements Processor {
       (issue) => issue.severity === 'major',
     );
 
-    if (verification.supported && verification.relevant && !hasMajorRelevanceIssue) {
+    const rerankerDiagnostics = getPolicyCorpusRerankerDiagnostics();
+    const citationsComplete = verification.citationsComplete !== false;
+    const missingCitationCount = verification.missingCitationClaims?.length ?? 0;
+
+    if (
+      verification.supported
+      && verification.relevant
+      && !hasMajorRelevanceIssue
+      && citationsComplete
+    ) {
+      if (!writer) {
+        console.log('\n---VERIFIER---\n');
+        console.log(JSON.stringify({
+          rewrote: false,
+          supported: true,
+          relevant: true,
+          citations_complete: true,
+          unsupported_claim_count: 0,
+          missing_citation_count: 0,
+          relevance_issue_count: verification.relevanceIssues?.length ?? 0,
+          major_relevance_issue: false,
+          verifier_unavailable: false,
+          verifier_model: getConfig().model,
+          reranker_fallback_count: rerankerDiagnostics.fallbackCount,
+          reranker_last_error: rerankerDiagnostics.lastError,
+        }));
+      }
       return messages;
     }
 
@@ -555,10 +649,29 @@ export class HallucinationVerifier implements Processor {
         type: 'data-verification-rewrite',
         data: {
           unsupportedClaims: verification.unsupportedClaims,
+          missingCitationClaims: verification.missingCitationClaims,
           relevanceIssues: verification.relevanceIssues,
           correctedAnswer: corrected,
         },
       } as any);
+    } else {
+      // CLI / non-streaming path — emit telemetry marker so the eval harness can capture it.
+      const telemetry = {
+        rewrote: true,
+        supported: verification.supported,
+        relevant: verification.relevant,
+        citations_complete: citationsComplete,
+        unsupported_claim_count: verification.unsupportedClaims?.length ?? 0,
+        missing_citation_count: missingCitationCount,
+        relevance_issue_count: verification.relevanceIssues?.length ?? 0,
+        major_relevance_issue: hasMajorRelevanceIssue,
+        verifier_unavailable: verifierUnavailable,
+        verifier_model: getConfig().model,
+        reranker_fallback_count: rerankerDiagnostics.fallbackCount,
+        reranker_last_error: rerankerDiagnostics.lastError,
+      };
+      console.log('\n---VERIFIER---\n');
+      console.log(JSON.stringify(telemetry));
     }
 
     return messages.map((msg) => {

@@ -98,6 +98,37 @@ export function getPolicyCorpusRerankConfig(): PolicyCorpusRerankConfig {
   };
 }
 
+// Process-wide diagnostics so the agent / verifier / eval harness can tell when reranking
+// degraded to the raw vector order. Reset at process start; never reset mid-run.
+export interface PolicyCorpusRerankerDiagnostics {
+  fallbackCount: number;
+  lastError: string | null;
+  lastErrorAt: number | null;
+}
+
+const diagnostics: PolicyCorpusRerankerDiagnostics = {
+  fallbackCount: 0,
+  lastError: null,
+  lastErrorAt: null,
+};
+
+export function getPolicyCorpusRerankerDiagnostics(): PolicyCorpusRerankerDiagnostics {
+  return { ...diagnostics };
+}
+
+export function resetPolicyCorpusRerankerDiagnostics(): void {
+  diagnostics.fallbackCount = 0;
+  diagnostics.lastError = null;
+  diagnostics.lastErrorAt = null;
+}
+
+function recordRerankerFallback(err: unknown, context: string): void {
+  diagnostics.fallbackCount += 1;
+  diagnostics.lastError = `${context}: ${err instanceof Error ? err.message : String(err)}`;
+  diagnostics.lastErrorAt = Date.now();
+  console.error(`[agent:policy-corpus-rerank] fallback ${context}: ${diagnostics.lastError}`);
+}
+
 export function createPolicyCorpusReranker(
   config: PolicyCorpusRerankConfig = getPolicyCorpusRerankConfig(),
 ): CorpusReranker | undefined {
@@ -121,23 +152,31 @@ export function createPolicyCorpusReranker(
       config.maxCandidates,
     );
 
-    const { object } = await generateObject({
-      model: createModel(config.model),
-      temperature: 0,
-      abortSignal: buildAbortSignal(config.timeoutMs),
-      schema: RerankResponseSchema,
-      schemaName: 'policy_corpus_rerank',
-      schemaDescription: 'Ordered candidate section ids ranked by retrieval relevance.',
-      prompt,
-    });
+    try {
+      const { object } = await generateObject({
+        model: createModel(config.model),
+        temperature: 0,
+        abortSignal: buildAbortSignal(config.timeoutMs),
+        schema: RerankResponseSchema,
+        schemaName: 'policy_corpus_rerank',
+        schemaDescription: 'Ordered candidate section ids ranked by retrieval relevance.',
+        prompt,
+      });
 
-    debugReranker(
-      config.debug,
-      `success returned=${(object.sectionIds ?? []).join(',')} reason=${object.reason ?? 'none'}`,
-    );
-    return {
-      sectionIds: object.sectionIds,
-      reason: object.reason ?? null,
-    };
+      debugReranker(
+        config.debug,
+        `success returned=${(object.sectionIds ?? []).join(',')} reason=${object.reason ?? 'none'}`,
+      );
+      return {
+        sectionIds: object.sectionIds,
+        reason: object.reason ?? null,
+      };
+    } catch (err) {
+      // Returning null lets the caller use the original vector ranks.
+      // Diagnostics surface the fallback so eval + verifier can flag it.
+      const isAbort = err instanceof Error && (err.name === 'AbortError' || err.name === 'TimeoutError');
+      recordRerankerFallback(err, isAbort ? `timeout after ${config.timeoutMs}ms` : 'generateObject error');
+      return null;
+    }
   };
 }
