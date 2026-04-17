@@ -294,6 +294,22 @@ export function isWaiverApplicationQuery(queryLower: string): boolean {
   );
 }
 
+/**
+ * Queries like "what federal regulation authorizes NC Medicaid's 1915(c) HCBS
+ * waivers?" — distinct from waiver application-process questions. They should
+ * route to 42 CFR Part 441 Subpart G (§§ 441.300–441.310) rather than the
+ * 42 CFR § 430.25 cross-reference the focus-score picks by vocabulary overlap.
+ * Trailing `\b` doesn't match after `)`; use a negative lookahead.
+ */
+export function isWaiverAuthorityQuery(queryLower: string): boolean {
+  if (!/\b1915\s*\(c\)(?!\w)/.test(queryLower)) return false;
+  return (
+    /\bauthoriz(e|es|ed|ing|ation)\b/.test(queryLower) ||
+    /\bfederal (authority|regulation|rule|law)\b/.test(queryLower) ||
+    /\bwhat (?:regulation|rule|law|section|provision)\b/.test(queryLower)
+  );
+}
+
 export function asksForPublicNoticeDetails(queryLower: string): boolean {
   return (
     queryLower.includes('public notice') ||

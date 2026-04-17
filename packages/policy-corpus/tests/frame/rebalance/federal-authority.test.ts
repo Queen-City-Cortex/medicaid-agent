@@ -67,6 +67,53 @@ describe('rebalanceFederalAuthorityFrame — widened beyond waiver queries', () 
     expect(result.primarySections[0].id).toBe('sec:430.12');
   });
 
+  it('promotes 42 CFR Part 441 Subpart G on a 1915(c) authority question (q-046)', () => {
+    const authority441 = makeSection({
+      id: 'sec:441.301',
+      sectionNumber: '441.301',
+      policyNumber: '42-CFR-441',
+      documentId: 'doc:federal_regulation:42-CFR-441',
+    });
+    const crossRef430 = makeSection({
+      id: 'sec:430.25',
+      sectionNumber: '430.25',
+      policyNumber: '42-CFR-430',
+      documentId: 'doc:federal_regulation:42-CFR-430',
+    });
+    const frame = makeFrame([crossRef430, authority441]);
+
+    const result = rebalanceFederalAuthorityFrame(
+      frame,
+      'what federal regulation authorizes nc medicaid 1915(c) hcbs waivers such as cap/da',
+    );
+
+    expect(result.primarySections[0].id).toBe('sec:441.301');
+  });
+
+  it('does not fire WAIVER_AUTHORITY on a SPA-style question that lacks 1915(c)', () => {
+    const spa430 = makeSection({
+      id: 'sec:430.12',
+      sectionNumber: '430.12',
+      policyNumber: '42-CFR-430',
+      documentId: 'doc:federal_regulation:42-CFR-430',
+    });
+    const authority441 = makeSection({
+      id: 'sec:441.301',
+      sectionNumber: '441.301',
+      policyNumber: '42-CFR-441',
+      documentId: 'doc:federal_regulation:42-CFR-441',
+    });
+    const frame = makeFrame([authority441, spa430]);
+
+    const result = rebalanceFederalAuthorityFrame(
+      frame,
+      'which federal regulation governs timeliness for state medicaid plan amendments',
+    );
+
+    // SPA_HINT must win (no 1915(c) phrase → WAIVER_AUTHORITY doesn't match).
+    expect(result.primarySections[0].id).toBe('sec:430.12');
+  });
+
   it('promotes 42 CFR 441 Subpart B on an EPSDT federal-authority question', () => {
     const epsdt = makeSection({
       id: 'sec:441.56',

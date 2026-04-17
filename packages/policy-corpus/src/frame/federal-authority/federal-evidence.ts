@@ -104,13 +104,22 @@ export async function collectFederalAuthorityEvidence(
         })
         .sort((left, right) => right.score - left.score)
     : rankedFederalHits;
-  const waiverAnchorHits = signals.waiverApplicationQuery
-    ? waiverRankedFederalHits.filter((hit) => isWaiverAuthorityAnchorHit(hit))
+  const waiverAnchorHits = signals.waiverApplicationQuery || signals.waiverAuthorityQuery
+    ? (signals.waiverApplicationQuery ? waiverRankedFederalHits : mergedFederalHits)
+        .filter((hit) => isWaiverAuthorityAnchorHit(hit))
     : [];
   const waiverPreferredFederalDocumentTitles = signals.waiverApplicationQuery
     ? [
         waiverAnchorHits.find((hit) => hit.policyNumber?.toUpperCase() === '42-CFR-441')?.documentTitle,
         waiverAnchorHits.find((hit) => hit.policyNumber?.toUpperCase() === 'SSA-TITLE-19')?.documentTitle,
+      ].filter((title): title is string => Boolean(title))
+    : signals.waiverAuthorityQuery
+    ? [
+        // Authority questions must anchor on 42 CFR Part 441 Subpart G. If the
+        // part's title isn't in the retrieved hits at all, fall back to focus
+        // scoring — but typically it is (§§ 441.301–441.303 are strong hits
+        // for 1915(c) authority phrasing), just not top-1.
+        waiverAnchorHits.find((hit) => hit.policyNumber?.toUpperCase() === '42-CFR-441')?.documentTitle,
       ].filter((title): title is string => Boolean(title))
     : [];
   const preferredFederalDocumentTitles =

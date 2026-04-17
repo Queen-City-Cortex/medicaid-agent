@@ -58,6 +58,33 @@ const WAIVER_HINT: FederalQueryHint = {
   suppressProceduralUnlessPublicNotice: true,
 };
 
+// Distinct from WAIVER_HINT (application process) — WAIVER_AUTHORITY_HINT
+// handles questions like "what federal regulation authorizes 1915(c) HCBS
+// waivers?" that should route to the 42 CFR Part 441 Subpart G implementing
+// regulations (§§ 441.300–441.310) rather than 42 CFR § 430.25 which is only
+// a cross-reference into Part 441. Matches on 1915(c) + authority/authorize
+// phrasing so it doesn't over-fire on general 1915(b) managed-care questions.
+const WAIVER_AUTHORITY_HINT: FederalQueryHint = {
+  id: 'waiver-authority',
+  matches: (q) =>
+    // Trailing \b doesn't match after `)` (both `)` and space are non-word
+    // chars, so no boundary). Use a negative lookahead instead.
+    /\b1915\s*\(c\)(?!\w)/.test(q) &&
+    (
+      /\bauthoriz(e|es|ed|ing|ation)\b/.test(q) ||
+      /\bfederal (authority|regulation|rule|law)\b/.test(q) ||
+      /\bwhat (?:regulation|rule|law|section|provision)\b/.test(q)
+    ),
+  isPrimary: (section) => {
+    const policy = policyNumberUpper(section);
+    if (policy !== '42-CFR-441') return false;
+    const sn = normalizeSearchText(section.sectionNumber);
+    if (!sn.startsWith('441.')) return false;
+    const num = Number.parseFloat(sn);
+    return Number.isFinite(num) && num >= 441.300 && num <= 441.310;
+  },
+};
+
 const SPA_HINT: FederalQueryHint = {
   id: 'spa-timeliness',
   matches: (q) =>
@@ -90,7 +117,12 @@ const EPSDT_HINT: FederalQueryHint = {
 // 42-CFR-438 whitelist would either over-include (438.510 QRS) or strip those
 // supporting sections. The current upstream MLR handling already produces the
 // right frame; SPA and EPSDT are where the v5 failures concentrated.
+// Order matters: WAIVER_AUTHORITY_HINT ("what authorizes 1915(c) waivers?")
+// must run before WAIVER_HINT ("how does a state submit a waiver?") because
+// the authority phrasing is a narrower predicate — otherwise the broader
+// application-process hint wins on questions like q-046.
 const FEDERAL_QUERY_HINTS: readonly FederalQueryHint[] = [
+  WAIVER_AUTHORITY_HINT,
   WAIVER_HINT,
   SPA_HINT,
   EPSDT_HINT,

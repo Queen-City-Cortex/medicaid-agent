@@ -7,6 +7,7 @@ import {
   extractQuotedPhrases,
   isMlrQuery,
   isWaiverApplicationQuery,
+  isWaiverAuthorityQuery,
   normalizeSearchText,
 } from '../../internal/shared.js';
 import type { FederalAuthoritySignals } from './types.js';
@@ -18,6 +19,7 @@ export function buildFederalAuthoritySignals(query: string): FederalAuthoritySig
   return {
     queryLower,
     waiverApplicationQuery: isWaiverApplicationQuery(queryLower),
+    waiverAuthorityQuery: isWaiverAuthorityQuery(queryLower),
     publicNoticeQuery: asksForPublicNoticeDetails(queryLower),
     mlrQuery: isMlrQuery(queryLower),
     implementationQuery: asksForImplementation(queryLower),

@@ -4,6 +4,7 @@ import type { DocumentCandidate, SectionCandidate } from '../../internal/shared.
 export interface FederalAuthoritySignals {
   queryLower: string;
   waiverApplicationQuery: boolean;
+  waiverAuthorityQuery: boolean;
   publicNoticeQuery: boolean;
   mlrQuery: boolean;
   implementationQuery: boolean;
