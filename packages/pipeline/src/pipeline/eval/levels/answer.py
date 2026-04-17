@@ -57,8 +57,9 @@ def extract_answer(stdout: str) -> str:
 
 
 def _extract_marker_block(stdout: str, start_marker: str, end_markers: tuple[str, ...]) -> dict | None:
-    """Parse the last JSON line in the stdout span between `start_marker` and the
-    earliest of `end_markers` that appears after it."""
+    """Parse the last JSON object line in the stdout span between `start_marker`
+    and the earliest of `end_markers` that appears after it. Ignores lines that
+    decode to non-object values (bare strings, numbers, arrays)."""
     idx = stdout.find(start_marker)
     if idx == -1:
         return None
@@ -73,9 +74,11 @@ def _extract_marker_block(stdout: str, start_marker: str, end_markers: tuple[str
         return None
     for line in reversed([line.strip() for line in block.splitlines() if line.strip()]):
         try:
-            return json.loads(line)
+            parsed = json.loads(line)
         except json.JSONDecodeError:
             continue
+        if isinstance(parsed, dict):
+            return parsed
     return None
 
 
@@ -386,8 +389,18 @@ def evaluate_answers(entries: list[dict]) -> list[dict]:
             print(f"[answer eval] {question_id} agent error: {agent_error}", flush=True)
         else:
             print(f"[answer eval] {question_id} agent complete", flush=True)
+        # Be defensive: _extract_marker_block ought to return dict|None, but
+        # guard against upstream changes that yield strings or other shapes.
+        if not isinstance(route_info, dict):
+            route_info = None
+        if not isinstance(verifier_info, dict):
+            verifier_info = None
         route = (route_info or {}).get("route") or {}
+        if not isinstance(route, dict):
+            route = {}
         authoritative_document = (route_info or {}).get("authoritative_document") or {}
+        if not isinstance(authoritative_document, dict):
+            authoritative_document = {}
         if route.get("lane"):
             print(
                 f"[answer eval] {question_id} route lane={route.get('lane')} "
