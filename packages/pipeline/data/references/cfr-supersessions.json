@@ -3,9 +3,14 @@
   "description": "Map superseded CFR (title, part) pairs to their current replacements. Keys are strings of the form 'TITLE:PART' (e.g. '45:74'). Values name the replacement part and include provenance so future agents understand why the remap exists.",
   "supersessions": {
     "45:74": {
-      "replaces_with": { "title": 45, "part": 75 },
-      "effective": "2014-12-26",
-      "reason": "OMB Uniform Guidance codified at 2 CFR Part 200; HHS implementing rule at 45 CFR Part 75 superseded the pre-2014 45 CFR Part 74 administrative requirements for HHS grants."
+      "replaces_with": { "title": 2, "part": 200 },
+      "effective": "2025-10-01",
+      "reason": "45 CFR Part 74 was superseded by 45 CFR Part 75 in Dec 2014 when HHS implemented the OMB Uniform Guidance. In late 2025 HHS rescinded Part 75 (and Part 74) in favor of the core OMB text at 2 CFR Part 200 (Uniform Administrative Requirements, Cost Principles, and Audit Requirements for Federal Awards). Both 45 CFR 74 and 75 are [Reserved] in the current eCFR; citations should resolve to 2 CFR Part 200."
+    },
+    "45:75": {
+      "replaces_with": { "title": 2, "part": 200 },
+      "effective": "2025-10-01",
+      "reason": "HHS rescinded 45 CFR Part 75 in late 2025. The Uniform Administrative Requirements for federal awards now live at 2 CFR Part 200. Medicaid's cross-reference at 42 CFR § 430.30(e) points directly to 2 CFR parts 200 and 300."
     }
   }
 }

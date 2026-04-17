@@ -64,6 +64,12 @@ EVAL_REGRESSION_THRESHOLD = 0.05  # 5% drop = regression flag
 EVAL_JUDGE_MODEL = "claude-sonnet-4-6"
 
 CFR_PARTS = [
+    # 2 CFR — OMB / federal-wide grants. Part 200 is the Uniform Guidance
+    # (Uniform Administrative Requirements, Cost Principles, and Audit
+    # Requirements for Federal Awards) that Medicaid cross-references via
+    # 42 CFR § 430.30(e). It replaces the former 45 CFR Part 75 / pre-2014
+    # Part 74 codification, both of which are now [Reserved] in Title 45.
+    *[(2, p) for p in [200]],
     # 42 CFR — Medicaid, CHIP, Medicare (referenced by NC Medicaid policies)
     *[(42, p) for p in [
         405, 409, 410, 411, 412, 413, 418,
@@ -71,9 +77,10 @@ CFR_PARTS = [
         440, 441, 442, 447, 455, 456, 457,
         460, 482, 483, 484, 485, 488, 489,
     ]],
-    # 45 CFR — HHS administrative rules, nondiscrimination, health insurance
-    # Note: Part 74 is [Reserved] (superseded by Part 75 in 2014).
-    # Part 75 also not available via eCFR API. Part 248 doesn't exist in Title 45.
+    # 45 CFR — HHS administrative rules, nondiscrimination, health insurance.
+    # Parts 74 and 75 are both [Reserved] as of late 2025 (HHS replaced its
+    # Uniform Guidance implementation with cross-references to 2 CFR Part 200).
+    # Part 248 doesn't exist.
     *[(45, p) for p in [
         16, 92, 95,
         144, 146, 147, 155, 156, 158, 164, 170, 171,

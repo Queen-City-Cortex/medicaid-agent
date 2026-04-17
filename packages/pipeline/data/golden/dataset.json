@@ -1641,47 +1641,59 @@
   },
   {
     "id": "q-041",
-    "version": 1,
+    "version": 2,
     "created": "2026-04-16",
-    "updated": "2026-04-16",
+    "updated": "2026-04-17",
     "question": "What is the current governing federal regulation for grants administration applied to Medicaid — 45 CFR Part 74 or 45 CFR Part 75?",
     "difficulty": "moderate",
     "reasoning_type": "temporal",
-    "topics": ["federal_authority", "cfr_supersession", "grants", "administration"],
+    "topics": ["federal_authority", "cfr_supersession", "grants", "administration", "uniform_guidance"],
     "target_users": ["legal_aid", "provider"],
     "answer": {
-      "text": "45 CFR Part 75. Part 74 was superseded by Part 75 in 2014 when HHS adopted the Uniform Administrative Requirements, Cost Principles, and Audit Requirements for Federal Awards (the 'Uniform Guidance' in 2 CFR Part 200), with HHS's implementing codification at 45 CFR Part 75. Any NC Medicaid document that cites 45 CFR Part 74 is referring to a superseded framework; the current authority is 45 CFR Part 75.",
+      "text": "Neither is currently in force. 45 CFR Part 74 was superseded by 45 CFR Part 75 in December 2014 when HHS adopted the OMB Uniform Guidance, and in late 2025 HHS rescinded Part 75 as well — both 45 CFR Parts 74 and 75 are now [Reserved] in the current eCFR. The governing authority for Medicaid grants administration today is 2 CFR Part 200 (Uniform Administrative Requirements, Cost Principles, and Audit Requirements for Federal Awards), which Medicaid cross-references via 42 CFR § 430.30(e). The pipeline's CFR supersession resolver remaps both 45 CFR 74 and 45 CFR 75 citations to 2 CFR Part 200.",
       "confidence": "high",
-      "caveats": ["Pre-2014 documents still in the corpus may reference 45 CFR Part 74; the pipeline's CFR supersession resolver remaps 45 CFR 74 → 75"]
+      "caveats": ["NC Medicaid documents that predate late-2025 still cite 45 CFR Part 75; treat those as references to 2 CFR Part 200."]
     },
     "evidence": {
       "primary_sections": [
         {
-          "document_id": "doc:federal_regulation:45-CFR-92",
-          "section_id": "sec:doc:federal_regulation:45-CFR-92:92.1",
-          "section_number": "92.1",
-          "relevance": "45 CFR 92 — historical HHS uniform administrative requirements, predecessor framework ingested in the current corpus"
+          "document_id": "doc:federal_regulation:2-CFR-200",
+          "section_id": "sec:doc:federal_regulation:2-CFR-200:200.104",
+          "section_number": "200.104",
+          "relevance": "2 CFR § 200.104 Supersession — the current Uniform Guidance's own supersession provision"
+        },
+        {
+          "document_id": "doc:federal_regulation:2-CFR-200",
+          "section_id": "sec:doc:federal_regulation:2-CFR-200:200.100",
+          "section_number": "200.100",
+          "relevance": "2 CFR § 200.100 Purpose — establishes Part 200 as the federal-wide Uniform Guidance"
+        },
+        {
+          "document_id": "doc:federal_regulation:42-CFR-430",
+          "section_id": "sec:doc:federal_regulation:42-CFR-430:430.30",
+          "section_number": "430.30",
+          "relevance": "42 CFR § 430.30(e) — Medicaid's cross-reference to 2 CFR parts 200 and 300 for grants administration"
         }
       ],
       "supporting_sections": [],
       "cross_references": [],
       "federal_references": [
         {
+          "citation": "2 CFR Part 200",
+          "note": "Current Uniform Guidance; governing authority for Medicaid grants administration"
+        },
+        {
           "citation": "45 CFR Part 75",
-          "note": "Current Uniform Administrative Requirements (not ingested in corpus as of 2026-04-16)"
+          "note": "Rescinded late 2025; resolver remaps 45 CFR 75 → 2 CFR 200"
         },
         {
           "citation": "45 CFR Part 74",
-          "note": "Superseded 2014; pipeline resolver remaps 45 CFR 74 → 75"
-        },
-        {
-          "citation": "45 CFR Part 92",
-          "note": "Predecessor HHS uniform admin reqs; currently ingested anchor"
+          "note": "Superseded 2014; resolver remaps 45 CFR 74 → 2 CFR 200"
         }
       ]
     },
     "source": "regression",
-    "notes": "Temporal / supersession regression. Exercises packages/pipeline/src/pipeline/references/resolver.py CFR_SUPERSESSIONS mapping. The ideal anchor is 45 CFR 75 but that part is not currently ingested; 45 CFR 92 is used as the closest available corpus anchor. Re-anchor to 45-CFR-75 once that part is ingested."
+    "notes": "Temporal / supersession regression. 2 CFR Part 200 was ingested on 2026-04-17 to provide a concrete anchor now that 45 CFR Parts 74 and 75 are both [Reserved]. Exercises resolver.py CFR_SUPERSESSIONS map (both 45/74 and 45/75 → 2/200)."
   },
   {
     "id": "q-042",
