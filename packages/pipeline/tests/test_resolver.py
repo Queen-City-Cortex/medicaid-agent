@@ -233,3 +233,30 @@ def test_extract_and_resolve_all_uses_cross_document_context_for_section_refs(mo
         ("REFERENCES_DOCUMENT", "doc:clinical:3K-2"),
         ("REFERENCES", "sec:clinical:3K-2:5.1"),
     ]
+
+
+# ── CFR_SUPERSESSIONS data-file loader ─────────────────────────────────────
+
+
+def test_cfr_supersessions_loaded_from_data_file():
+    """Every entry in cfr-supersessions.json should round-trip through parse_cfr_citation."""
+    # Sanity: at least the 45 CFR 74 → 45 CFR 75 entry should be present.
+    assert resolver.CFR_SUPERSESSIONS, "CFR_SUPERSESSIONS loaded empty — check data file"
+    assert resolver.CFR_SUPERSESSIONS.get((45, 74)) == (45, 75)
+
+    # Every entry should correctly remap when given a citation to the old part.
+    for (old_title, old_part), (new_title, new_part) in resolver.CFR_SUPERSESSIONS.items():
+        parsed = resolver.parse_cfr_citation(f"{old_title} CFR {old_part}.101")
+        assert parsed is not None, f"Failed to parse {old_title} CFR {old_part}.101"
+        assert parsed["title"] == new_title
+        assert parsed["part"] == new_part
+        assert parsed["section"] == f"{new_part}.101"
+
+
+def test_parse_cfr_citation_non_superseded_passes_through():
+    parsed = resolver.parse_cfr_citation("42 CFR 441.301")
+    assert parsed == {"title": 42, "section": "441.301", "part": 441}
+
+
+def test_parse_cfr_citation_returns_none_for_non_cfr_text():
+    assert resolver.parse_cfr_citation("This sentence has no CFR citation.") is None

@@ -2,6 +2,7 @@
 
 import json
 import re
+from pathlib import Path
 
 from pipeline.graph.connection import get_session
 from pipeline.graph.corpus_types import ReferenceEdge
@@ -14,12 +15,43 @@ CFR_CITATION_RE = re.compile(
     r"(\d+)\s*CFR\s*§?\s*([\d]+(?:\.[\d]+)*)"
 )
 
-# Superseded CFR parts: old → current. Citations to the old part
-# resolve to the replacement part instead.
-# 45 CFR 74 was superseded by 45 CFR 75 in Dec 2014 (OMB Uniform Guidance).
-CFR_SUPERSESSIONS: dict[tuple[int, int], tuple[int, int]] = {
-    (45, 74): (45, 75),
-}
+_CFR_SUPERSESSIONS_PATH = (
+    Path(__file__).resolve().parents[3] / "data" / "references" / "cfr-supersessions.json"
+)
+
+
+def _load_cfr_supersessions() -> dict[tuple[int, int], tuple[int, int]]:
+    """Load the (title, part) → (title, part) supersession map from the data file.
+
+    The file format uses 'TITLE:PART' string keys and a `replaces_with` object so
+    entries can carry provenance (effective date, reason). Fails open to an empty
+    mapping if the file is missing or malformed so reference resolution still works.
+    """
+    try:
+        payload = json.loads(_CFR_SUPERSESSIONS_PATH.read_text())
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
+
+    raw = payload.get("supersessions") or {}
+    result: dict[tuple[int, int], tuple[int, int]] = {}
+    for key, entry in raw.items():
+        try:
+            old_title_str, old_part_str = key.split(":", 1)
+            old_title, old_part = int(old_title_str), int(old_part_str)
+            replacement = entry["replaces_with"]
+            new_title = int(replacement["title"])
+            new_part = int(replacement["part"])
+        except (ValueError, KeyError, TypeError):
+            continue
+        result[(old_title, old_part)] = (new_title, new_part)
+    return result
+
+
+# Superseded CFR parts: old → current. Citations to the old part resolve to the
+# replacement part instead. Data lives in packages/pipeline/data/references/
+# cfr-supersessions.json so additional supersessions can be added without code
+# changes.
+CFR_SUPERSESSIONS: dict[tuple[int, int], tuple[int, int]] = _load_cfr_supersessions()
 
 _CONTEXTUAL_DOCUMENT_REF_TYPES = {"cross_document", "spa", "waiver"}
 

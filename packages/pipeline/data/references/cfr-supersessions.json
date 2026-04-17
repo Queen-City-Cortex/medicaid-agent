@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "description": "Map superseded CFR (title, part) pairs to their current replacements. Keys are strings of the form 'TITLE:PART' (e.g. '45:74'). Values name the replacement part and include provenance so future agents understand why the remap exists.",
+  "supersessions": {
+    "45:74": {
+      "replaces_with": { "title": 45, "part": 75 },
+      "effective": "2014-12-26",
+      "reason": "OMB Uniform Guidance codified at 2 CFR Part 200; HHS implementing rule at 45 CFR Part 75 superseded the pre-2014 45 CFR Part 74 administrative requirements for HHS grants."
+    }
+  }
+}

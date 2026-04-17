@@ -776,7 +776,32 @@ def run_all(source_type: str | None, llm_assist: bool):
     link_stats = link_concepts()
     console.print(f"  {seed_count} concepts, {link_stats['edges_created']} links\n")
 
+    from pipeline.graph.schema_version import write_schema_version
+    schema_info = write_schema_version()
+    console.print(
+        f"  SchemaVersion updated: manifest_hash={schema_info['manifest_hash'][:12] or '(none)'} "
+        f"pipeline={schema_info['pipeline_version'] or '(unknown)'}\n"
+    )
+
     console.print("[bold green]Pipeline complete![/bold green]")
+
+
+@cli.command("schema-version")
+@click.option("--write", is_flag=True, help="Upsert the SchemaVersion node in Neo4j.")
+def schema_version_cmd(write: bool):
+    """Show or update the SchemaVersion node (manifest hash + load timestamp + pipeline version)."""
+    from pipeline.graph.schema_version import read_schema_version, write_schema_version
+
+    if write:
+        info = write_schema_version()
+        console.print(f"[green]Wrote SchemaVersion:[/green] {info}")
+        return
+
+    current = read_schema_version()
+    if current is None:
+        console.print("[yellow]No SchemaVersion node exists yet. Run `run-all` or `schema-version --write`.[/yellow]")
+        return
+    console.print(current)
 
 
 @cli.command("build-mixed-corpus")
