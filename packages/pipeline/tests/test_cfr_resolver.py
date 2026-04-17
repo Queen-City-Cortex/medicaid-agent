@@ -55,14 +55,20 @@ class TestParseCfrCitation:
         result = parse_cfr_citation("42 CFR 440.1")
         assert result == {"title": 42, "section": "440.1", "part": 440}
 
-    def test_superseded_part_74_redirects_to_75(self):
-        # 45 CFR Part 74 was superseded by Part 75 in Dec 2014
+    def test_superseded_part_74_redirects_to_2_cfr_200(self):
+        # 45 CFR Part 74 was superseded by Part 75 in 2014; HHS then rescinded
+        # Part 75 in late 2025 in favor of 2 CFR Part 200. Both 74 and 75 now
+        # resolve to 2 CFR 200 via the supersession map.
         result = parse_cfr_citation("45 CFR 74.1")
-        assert result == {"title": 45, "section": "75.1", "part": 75}
+        assert result == {"title": 2, "section": "200.1", "part": 200}
 
     def test_superseded_part_74_deep_section(self):
         result = parse_cfr_citation("45 CFR 74.21")
-        assert result == {"title": 45, "section": "75.21", "part": 75}
+        assert result == {"title": 2, "section": "200.21", "part": 200}
+
+    def test_superseded_part_75_redirects_to_2_cfr_200(self):
+        result = parse_cfr_citation("45 CFR 75.100")
+        assert result == {"title": 2, "section": "200.100", "part": 200}
 
     def test_non_superseded_part_unchanged(self):
         # 42 CFR 440 is not superseded — should pass through unchanged

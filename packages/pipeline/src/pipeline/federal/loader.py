@@ -43,6 +43,8 @@ def _build_federal_document_bundle(
             has_definitions=section.get("has_definitions", False),
             parent_id=section.get("parent_id"),
             prev_sibling_id=section.get("prev_sibling_id"),
+            federal_register_cite=section.get("federal_register_cite"),
+            last_revised=section.get("last_revised"),
         )
         for section in sections
     ]

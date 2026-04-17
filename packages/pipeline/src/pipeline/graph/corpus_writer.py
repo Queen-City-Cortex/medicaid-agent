@@ -143,6 +143,8 @@ class CorpusGraphWriter:
                 "content_length": section.content_length,
                 "has_tables": section.has_tables,
                 "has_definitions": section.has_definitions,
+                "federal_register_cite": section.federal_register_cite,
+                "last_revised": section.last_revised,
             }
             for section in sections
         ]

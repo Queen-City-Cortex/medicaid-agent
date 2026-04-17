@@ -49,6 +49,10 @@ export interface SectionView {
   sectionNumber: string | null;
   content: string | null;
   effectiveDate: string | null;
+  // Per-section revision metadata captured from eCFR `<CITA>` tags. Present for
+  // CFR sections that have been revised at least once; null for everything else.
+  lastRevised: string | null;
+  federalRegisterCite: string | null;
   documentId: string | null;
   documentTitle: string | null;
   documentType: string | null;

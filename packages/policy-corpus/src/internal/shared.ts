@@ -1227,6 +1227,8 @@ export function buildSectionView(record: SessionRecordLike, content: string | nu
     sectionNumber: (record.get('sectionNumber') as string | null | undefined) ?? null,
     content,
     effectiveDate: (record.get('effectiveDate') as string | null | undefined) ?? null,
+    lastRevised: (record.get('lastRevised') as string | null | undefined) ?? null,
+    federalRegisterCite: (record.get('federalRegisterCite') as string | null | undefined) ?? null,
     documentId: (record.get('documentId') as string | null | undefined) ?? null,
     documentTitle,
     documentType: (record.get('documentType') as string | null | undefined) ?? null,

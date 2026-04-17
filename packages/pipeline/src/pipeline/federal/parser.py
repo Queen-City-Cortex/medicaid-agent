@@ -2,6 +2,43 @@
 
 import re
 import xml.etree.ElementTree as ET
+from datetime import datetime
+
+# Parse dates from CITA text. eCFR uses a few forms:
+#   "Oct. 1, 1981"  /  "May 10, 2024"  /  "Jan. 16, 2014"
+_CITA_DATE_FORMATS = ["%b. %d, %Y", "%B %d, %Y", "%b %d, %Y"]
+
+# Matches "89 FR 40863, May 10, 2024" — FR volume + page + date phrase.
+_FR_CITATION_RE = re.compile(
+    r"(\d+)\s*FR\s*(\d+),?\s*([A-Z][a-z]+\.?\s+\d+,\s*\d{4})"
+)
+
+
+def _parse_cita(cita_text: str) -> tuple[str | None, str | None]:
+    """Extract (full_cite, last_revised_iso) from a `<CITA>` payload.
+
+    The full cite is returned trimmed to a single line. `last_revised_iso` is
+    the ISO-8601 date of the most recent FR citation in the list (the last
+    date parseable from the CITA text). Returns (None, None) when the input is
+    empty or unparseable.
+    """
+    text = (cita_text or "").strip()
+    if not text:
+        return None, None
+    # Normalize whitespace but keep semicolons/commas so the full-cite is readable.
+    full = re.sub(r"\s+", " ", text).strip().strip("[]").strip()
+    full = f"[{full}]"
+    last_iso: str | None = None
+    for match in _FR_CITATION_RE.finditer(text):
+        date_phrase = match.group(3).strip()
+        for fmt in _CITA_DATE_FORMATS:
+            try:
+                parsed = datetime.strptime(date_phrase, fmt)
+                last_iso = parsed.date().isoformat()
+                break
+            except ValueError:
+                continue
+    return full, last_iso
 
 
 def parse_part_xml(xml_text: str, title: int, part: int) -> list[dict]:
@@ -41,6 +78,7 @@ def parse_part_xml(xml_text: str, title: int, part: int) -> list[dict]:
         content_parts: list[str] = []
         has_tables = False
         has_definitions = False
+        cita_raw: str | None = None
 
         for child in el:
             tag = child.tag
@@ -60,10 +98,12 @@ def parse_part_xml(xml_text: str, title: int, part: int) -> list[dict]:
                     content_parts.append(table_text)
                     has_tables = True
             elif tag == "CITA":
-                # Citation/authority — include as content
+                # Federal Register citation history — keep as content for
+                # search hits AND capture as structured metadata on the node.
                 text = _extract_text(child)
                 if text:
                     content_parts.append(f"[Authority: {text}]")
+                    cita_raw = text
             else:
                 # Other elements — extract text content
                 text = _extract_text(child)
@@ -78,6 +118,8 @@ def parse_part_xml(xml_text: str, title: int, part: int) -> list[dict]:
 
         section_id = f"sec:{doc_id}:{section_number}"
 
+        federal_register_cite, last_revised = _parse_cita(cita_raw) if cita_raw else (None, None)
+
         sections.append({
             "id": section_id,
             "document_id": doc_id,
@@ -88,6 +130,8 @@ def parse_part_xml(xml_text: str, title: int, part: int) -> list[dict]:
             "content_length": len(content_text.strip()),
             "has_tables": has_tables,
             "has_definitions": has_definitions,
+            "federal_register_cite": federal_register_cite,
+            "last_revised": last_revised,
         })
 
     return sections

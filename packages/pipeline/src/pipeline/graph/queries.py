@@ -48,7 +48,9 @@ SET s.document_id = section.document_id,
     s.content_text = section.content_text,
     s.content_length = section.content_length,
     s.has_tables = section.has_tables,
-    s.has_definitions = section.has_definitions
+    s.has_definitions = section.has_definitions,
+    s.federal_register_cite = section.federal_register_cite,
+    s.last_revised = section.last_revised
 """
 
 MERGE_HAS_SECTION = """

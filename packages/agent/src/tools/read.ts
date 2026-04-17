@@ -21,6 +21,8 @@ export const getSection = createTool({
         sectionNumber: z.string().nullable(),
         content: z.string().nullable(),
         effectiveDate: z.string().nullable(),
+        lastRevised: z.string().nullable(),
+        federalRegisterCite: z.string().nullable(),
         documentId: z.string().nullable(),
         documentTitle: z.string().nullable(),
         documentType: z.string().nullable(),

@@ -45,6 +45,13 @@ class SectionNode:
     has_definitions: bool
     parent_id: str | None = None
     prev_sibling_id: str | None = None
+    # Federal Register citation history captured from eCFR `<CITA>` tags.
+    # `federal_register_cite` is the full citation string (e.g. "[46 FR 48541,
+    # Oct. 1, 1981, as amended at 50 FR 10026, Mar. 13, 1985; ...; 89 FR 40863,
+    # May 10, 2024]"). `last_revised` is the ISO date of the most recent entry
+    # in that list ("2024-05-10"). Both are None for non-CFR sections.
+    federal_register_cite: str | None = None
+    last_revised: str | None = None
 
 
 @dataclass(frozen=True)

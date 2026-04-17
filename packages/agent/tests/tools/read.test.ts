@@ -69,6 +69,8 @@ describe('getSection', () => {
       sectionNumber: '4.1',
       content: 'Full section content here.',
       effectiveDate: '2025-01-01',
+      lastRevised: null,
+      federalRegisterCite: null,
       documentId: 'doc-1',
       documentTitle: 'Policy 8C',
       documentType: 'dhhs_policy',

@@ -25,6 +25,8 @@ export function createSectionPrimitiveService({ withSession }: { withSession: Se
            s.section_number AS sectionNumber,
            s.content_text AS content,
            s.content_length AS contentLength,
+           s.last_revised AS lastRevised,
+           s.federal_register_cite AS federalRegisterCite,
            d.id AS documentId,
            d.title AS documentTitle,
            d.document_type AS documentType,
