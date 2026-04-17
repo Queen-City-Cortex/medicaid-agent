@@ -20,7 +20,13 @@ export interface DiscoveredDocument {
 }
 
 export interface SourceModule {
-  discover(fetcher: Fetcher, sinceYear?: number): Promise<DiscoveredDocument[]>;
+  /**
+   * Discover documents for this source. `sinceYear` is the inclusive lower
+   * bound — sources that publish dated content (bulletins, state plan
+   * amendments) must apply it; sources that only ever surface the current
+   * policy set (clinical policies, fee schedules) accept it and may ignore it.
+   */
+  discover(fetcher: Fetcher, sinceYear: number): Promise<DiscoveredDocument[]>;
 }
 
 // Forward reference — defined in fetcher.ts, imported by source modules

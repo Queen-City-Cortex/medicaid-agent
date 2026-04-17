@@ -108,7 +108,9 @@ export function parseDhhsPoliciesPage(
 }
 
 export const dhhsPoliciesSource = {
-  async discover(fetcher: Fetcher): Promise<DiscoveredDocument[]> {
+  // sinceYear ignored: the DHHS policies landing page enumerates the current
+  // MA-series policies; discovery has no year metadata to filter on.
+  async discover(fetcher: Fetcher, _sinceYear: number): Promise<DiscoveredDocument[]> {
     const indexUrl = config.sources.dhhs_policy.indexUrl;
     logger.info(`dhhs-policies: fetching index ${indexUrl}`);
 

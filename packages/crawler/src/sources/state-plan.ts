@@ -217,7 +217,10 @@ export function parseSubPage(
  * 3. Returns all discovered documents deduplicated by source_url.
  */
 export const statePlanSource = {
-  async discover(fetcher: Fetcher): Promise<DiscoveredDocument[]> {
+  // TODO: SPA pages carry filing dates; once the pagination becomes year-aware we
+  // can skip SPAs older than sinceYear. For now the signature accepts the arg so
+  // every SourceModule has a uniform shape.
+  async discover(fetcher: Fetcher, _sinceYear: number): Promise<DiscoveredDocument[]> {
     const indexUrl = config.sources.state_plan_amendment.indexUrl;
     logger.info(`state-plan: fetching index ${indexUrl}`);
 

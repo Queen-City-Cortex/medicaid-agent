@@ -85,7 +85,9 @@ export function deriveManagedCareContractDetailPageUrl(documentUrl: string): str
 }
 
 export const managedCareContractsSource = {
-  async discover(fetcher: Fetcher): Promise<DiscoveredDocument[]> {
+  // sinceYear ignored: managed-care contract discovery traverses current contract
+  // pages; amendment chains live inside the downloaded PDFs, not the index.
+  async discover(fetcher: Fetcher, _sinceYear: number): Promise<DiscoveredDocument[]> {
     const docs: DiscoveredDocument[] = [];
     const seenDocs = new Set<string>();
     const visitedPages = new Set<string>();

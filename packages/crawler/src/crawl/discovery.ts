@@ -13,7 +13,7 @@ import { logger } from '../utils/logger.js';
 
 // Source modules registered here — add new sources as they're implemented
 const sourceModules: Partial<
-  Record<SourceType, { discover: (fetcher: Fetcher, sinceYear?: number) => Promise<DiscoveredDocument[]> }>
+  Record<SourceType, { discover: (fetcher: Fetcher, sinceYear: number) => Promise<DiscoveredDocument[]> }>
 > = {
   clinical_policy: clinicalPoliciesSource,
   bulletin: bulletinsSource,
@@ -30,7 +30,7 @@ const sourceModules: Partial<
 export async function discoverDocuments(
   fetcher: Fetcher,
   sourceTypes: SourceType[],
-  sinceYear?: number,
+  sinceYear: number,
 ): Promise<DiscoveredDocument[]> {
   const allDocuments: DiscoveredDocument[] = [];
 

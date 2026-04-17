@@ -44,7 +44,9 @@ export function parseFeeScheduleDetailPage(
 }
 
 export const feeSchedulesSource = {
-  async discover(fetcher: Fetcher): Promise<DiscoveredDocument[]> {
+  // sinceYear ignored: the fee schedule index lists the full history; dated pruning
+  // is handled at the variant-selection stage, not at discovery.
+  async discover(fetcher: Fetcher, _sinceYear: number): Promise<DiscoveredDocument[]> {
     const docs: DiscoveredDocument[] = [];
     const visitedListingUrls = new Set<string>();
     const visitedDetailUrls = new Set<string>();

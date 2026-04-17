@@ -5,6 +5,7 @@ import os from 'node:os';
 import {
   parseContentDisposition,
   detectContentType,
+  detectedTypeMatchesAllowedFormats,
   archiveOldVersion,
 } from '../../src/crawl/downloader.js';
 
@@ -72,5 +73,36 @@ describe('archiveOldVersion', () => {
 
     // Cleanup
     fs.rmSync(tmpDir, { recursive: true });
+  });
+});
+
+describe('detectedTypeMatchesAllowedFormats', () => {
+  it('accepts a PDF when the manifest allows .pdf', () => {
+    expect(detectedTypeMatchesAllowedFormats('application/pdf', ['.pdf'])).toBe(true);
+  });
+
+  it('rejects an HTML payload when only .pdf is allowed', () => {
+    expect(detectedTypeMatchesAllowedFormats('text/html', ['.pdf'])).toBe(false);
+  });
+
+  it('accepts DOCX when manifest lists .docx', () => {
+    expect(
+      detectedTypeMatchesAllowedFormats(
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        ['.pdf', '.docx'],
+      ),
+    ).toBe(true);
+  });
+
+  it('is permissive when magic-byte detection returned null', () => {
+    expect(detectedTypeMatchesAllowedFormats(null, ['.pdf'])).toBe(true);
+  });
+
+  it('is permissive on unknown MIMEs so niche formats do not get dropped', () => {
+    expect(detectedTypeMatchesAllowedFormats('application/x-custom', ['.pdf'])).toBe(true);
+  });
+
+  it('is case-insensitive on extension comparison', () => {
+    expect(detectedTypeMatchesAllowedFormats('application/pdf', ['.PDF'])).toBe(true);
   });
 });

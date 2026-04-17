@@ -95,7 +95,9 @@ export function parseClinicalPoliciesPage(
 }
 
 export const clinicalPoliciesSource = {
-  async discover(fetcher: Fetcher): Promise<DiscoveredDocument[]> {
+  // sinceYear ignored: this index lists the current clinical coverage policy set;
+  // there is no year-level metadata on the listing page to filter on.
+  async discover(fetcher: Fetcher, _sinceYear: number): Promise<DiscoveredDocument[]> {
     const indexUrl = config.sources.clinical_policy.indexUrl;
     logger.info(`clinical-policies: fetching index ${indexUrl}`);
 

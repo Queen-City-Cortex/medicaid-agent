@@ -58,7 +58,7 @@ export function parseBulletinListingPage(
 export function parseDigestsPage(
   html: string,
   pageUrl: string,
-  sinceYear?: number,
+  sinceYear: number,
 ): DiscoveredDocument[] {
   const $ = cheerio.load(html);
   const docs: DiscoveredDocument[] = [];
@@ -69,7 +69,7 @@ export function parseDigestsPage(
     if (!yearMatch) return;
 
     const year = parseInt(yearMatch[1], 10);
-    if (sinceYear !== undefined && year < sinceYear) return;
+    if (year < sinceYear) return;
 
     $(el)
       .find('a[href*="/download?attachment"]')
@@ -163,7 +163,7 @@ function yearFromBlogUrl(url: string): number | null {
 export const bulletinsSource = {
   async discover(
     fetcher: Fetcher,
-    sinceYear?: number,
+    sinceYear: number,
   ): Promise<DiscoveredDocument[]> {
     const allDocs: DiscoveredDocument[] = [];
 
@@ -212,28 +212,23 @@ export const bulletinsSource = {
       }
 
       // Check if all posts on this page are older than sinceYear cutoff
-      if (sinceYear !== undefined) {
-        const allOld = postUrls.every((url) => {
-          const year = yearFromBlogUrl(url);
-          return year !== null && year < sinceYear;
-        });
-        if (allOld) {
-          logger.info(
-            `bulletins: all posts on page ${pageCount} are before ${sinceYear}, stopping`,
-          );
-          break;
-        }
+      const allOld = postUrls.every((url) => {
+        const year = yearFromBlogUrl(url);
+        return year !== null && year < sinceYear;
+      });
+      if (allOld) {
+        logger.info(
+          `bulletins: all posts on page ${pageCount} are before ${sinceYear}, stopping`,
+        );
+        break;
       }
 
       // ── Step 3: Fetch each post page for PDFs ─────────────────────────
       for (const postUrl of postUrls) {
-        // Apply sinceYear filter using URL year
-        if (sinceYear !== undefined) {
-          const year = yearFromBlogUrl(postUrl);
-          if (year !== null && year < sinceYear) {
-            logger.debug(`bulletins: skipping old post ${postUrl} (year ${year})`);
-            continue;
-          }
+        const postYear = yearFromBlogUrl(postUrl);
+        if (postYear !== null && postYear < sinceYear) {
+          logger.debug(`bulletins: skipping old post ${postUrl} (year ${postYear})`);
+          continue;
         }
 
         logger.debug(`bulletins: fetching post page ${postUrl}`);

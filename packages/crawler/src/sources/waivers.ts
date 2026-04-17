@@ -82,7 +82,9 @@ export function parseWaiverPage(
  * all download link documents.
  */
 export const waiversSource = {
-  async discover(fetcher: Fetcher): Promise<DiscoveredDocument[]> {
+  // sinceYear ignored: waiver landing pages always list the current waivers and
+  // their most recent amendments.
+  async discover(fetcher: Fetcher, _sinceYear: number): Promise<DiscoveredDocument[]> {
     const seedUrls = config.sources.waiver.seedUrls as readonly string[];
     const allDocs: DiscoveredDocument[] = [];
 

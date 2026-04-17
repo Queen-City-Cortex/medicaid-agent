@@ -31,7 +31,8 @@ export function extractManagedCareGuidanceSubpageUrls(
 }
 
 export const managedCareGuidanceSource = {
-  async discover(fetcher: Fetcher): Promise<DiscoveredDocument[]> {
+  // sinceYear ignored: managed-care guidance pages expose only the current set.
+  async discover(fetcher: Fetcher, _sinceYear: number): Promise<DiscoveredDocument[]> {
     const docs: DiscoveredDocument[] = [];
     const seenDocs = new Set<string>();
     const visitedPages = new Set<string>();

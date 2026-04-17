@@ -75,7 +75,8 @@ export function parseNcTracksPage(
 }
 
 export const ncTracksSource = {
-  async discover(fetcher: Fetcher): Promise<DiscoveredDocument[]> {
+  // sinceYear ignored: NCTracks surfaces only the current provider manuals.
+  async discover(fetcher: Fetcher, _sinceYear: number): Promise<DiscoveredDocument[]> {
     const indexUrl = config.sources.provider_manual.indexUrl;
     logger.info(`nctracks: fetching index ${indexUrl}`);
 

@@ -2,6 +2,7 @@ import { request } from 'undici';
 import type { Dispatcher } from 'undici';
 import fs from 'node:fs';
 import { pipeline } from 'node:stream/promises';
+import PQueue from 'p-queue';
 import { logger } from '../utils/logger.js';
 import type { Fetcher, FetchFileResult } from '../sources/types.js';
 
@@ -33,10 +34,23 @@ function sleep(ms: number): Promise<void> {
 export function createFetcher(options: FetcherOptions): RateLimitedFetcher {
   const domainDelays = new Map<string, number>();
   const lastRequestTime = new Map<string, number>();
+  // One queue per domain with concurrency=1 serializes requests to the same host.
+  // Without this, concurrent callers can race through `waitForRateLimit` and both
+  // fire a request simultaneously, tripping 429s on the target site.
+  const domainQueues = new Map<string, PQueue>();
   let runWide429Count = 0;
 
   function getDelay(domain: string): number {
     return domainDelays.get(domain) ?? options.defaultDelayMs;
+  }
+
+  function getDomainQueue(domain: string): PQueue {
+    let queue = domainQueues.get(domain);
+    if (!queue) {
+      queue = new PQueue({ concurrency: 1 });
+      domainQueues.set(domain, queue);
+    }
+    return queue;
   }
 
   async function waitForRateLimit(domain: string): Promise<void> {
@@ -62,12 +76,25 @@ export function createFetcher(options: FetcherOptions): RateLimitedFetcher {
     'accept-encoding': 'identity',
   };
 
-  async function fetchWithRetry(
+  function fetchWithRetry(
     url: string,
     extraHeaders: Record<string, string> = {},
     retries: number = options.maxRetries,
   ): Promise<{ statusCode: number; headers: Record<string, string | string[] | undefined>; body: BodyReadable }> {
     const domain = extractDomain(url);
+    return getDomainQueue(domain).add(async () => fetchWithRetryUnqueued(url, domain, extraHeaders, retries)) as Promise<{
+      statusCode: number;
+      headers: Record<string, string | string[] | undefined>;
+      body: BodyReadable;
+    }>;
+  }
+
+  async function fetchWithRetryUnqueued(
+    url: string,
+    domain: string,
+    extraHeaders: Record<string, string>,
+    retries: number,
+  ): Promise<{ statusCode: number; headers: Record<string, string | string[] | undefined>; body: BodyReadable }> {
     let lastError: Error | null = null;
 
     for (let attempt = 0; attempt <= retries; attempt++) {

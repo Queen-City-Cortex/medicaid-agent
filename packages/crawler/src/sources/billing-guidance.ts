@@ -16,7 +16,8 @@ export function parseBillingGuidancePage(
 }
 
 export const billingGuidanceSource = {
-  async discover(fetcher: Fetcher): Promise<DiscoveredDocument[]> {
+  // sinceYear ignored: billing guidance pages list only the current documents.
+  async discover(fetcher: Fetcher, _sinceYear: number): Promise<DiscoveredDocument[]> {
     const docs: DiscoveredDocument[] = [];
     const seenUrls = new Set<string>();
 

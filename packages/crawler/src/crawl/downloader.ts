@@ -5,8 +5,42 @@ import { hashFile } from '../utils/hash.js';
 import { buildFilename } from '../utils/naming.js';
 import { logger } from '../utils/logger.js';
 import { config, SOURCE_TYPE_DIRS } from '../config.js';
+import { getSourceFamily } from '../corpus-manifest.js';
 import type { DocumentRecord, DownloadedInfo } from '../db/registry.js';
-import type { Fetcher, FetchFileResult } from '../sources/types.js';
+import type { Fetcher, FetchFileResult, SourceType } from '../sources/types.js';
+
+// Map the MIME types `file-type` returns to the file extensions listed in
+// corpus-manifest.json#allowed_file_formats. Keep both the `.ext` and bare
+// `ext` forms since the manifest uses leading-dot form.
+const MIME_TO_EXTENSIONS: Record<string, string[]> = {
+  'application/pdf': ['.pdf'],
+  'application/msword': ['.doc'],
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+  'application/vnd.ms-excel': ['.xls'],
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
+  'application/vnd.ms-powerpoint': ['.ppt'],
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation': ['.pptx'],
+  'text/html': ['.html'],
+  'text/plain': ['.txt'],
+};
+
+export function detectedTypeMatchesAllowedFormats(
+  detectedMime: string | null,
+  allowedFormats: readonly string[],
+): boolean {
+  if (!detectedMime) {
+    // No magic-byte detection. Be permissive — the extension check at file-
+    // save time still filters the common cases.
+    return true;
+  }
+  const candidates = MIME_TO_EXTENSIONS[detectedMime] ?? [];
+  if (candidates.length === 0) {
+    // Unknown MIME — permissive; fallback to extension-only path.
+    return true;
+  }
+  const allowed = new Set(allowedFormats.map((format) => format.toLowerCase()));
+  return candidates.some((ext) => allowed.has(ext.toLowerCase()));
+}
 
 export function parseContentDisposition(
   header: string | undefined | null,
@@ -134,6 +168,24 @@ export async function downloadDocument(
 
     // Detect content type from magic bytes
     const detectedContentType = await detectContentType(tmpPath);
+
+    // Reject files whose detected magic bytes don't match the source family's
+    // allowed_file_formats. Catches HTML error pages masquerading as PDFs and
+    // the occasional surprise binary (see RUNBOOK troubleshooting note).
+    // doc.source_type is typed as `string` in the registry schema; narrow it
+    // back to SourceType for the manifest lookup.
+    const sourceFamily = getSourceFamily(doc.source_type as SourceType);
+    if (!detectedTypeMatchesAllowedFormats(detectedContentType, sourceFamily.allowed_file_formats)) {
+      fs.unlinkSync(tmpPath);
+      logger.warn(
+        `${doc.source_url} content-type ${detectedContentType ?? 'unknown'} not in ` +
+          `${doc.source_type}.allowed_file_formats (${sourceFamily.allowed_file_formats.join(', ')}) — rejected`,
+      );
+      return {
+        action: 'error',
+        error: `Content-type ${detectedContentType ?? 'unknown'} not allowed for source_type ${doc.source_type}`,
+      };
+    }
 
     // Parse Content-Disposition
     const contentDisposition = parseContentDisposition(
