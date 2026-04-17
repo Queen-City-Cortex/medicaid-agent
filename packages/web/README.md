@@ -1,6 +1,6 @@
 # NC Medicaid Navigator — Web
 
-Next.js 16 chat interface for the NC Medicaid Navigator agent. Provides streaming conversation with research trace visualization, thread management, and dark/light theme support.
+Next.js 16 chat interface for the NC Medicaid Navigator agent. Provides streaming conversation with an inline assistant timeline, thread management, and dark/light theme support.
 
 ## Development
 

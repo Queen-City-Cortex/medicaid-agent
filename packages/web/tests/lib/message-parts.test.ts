@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { UIMessage } from 'ai';
-import { isToolPart, getToolName, extractMessageParts } from '../../src/lib/message-parts';
+import { isToolPart, getToolName, getTrailingAssistantText, hasRenderableAssistantPart } from '../../src/lib/message-parts';
 
 describe('isToolPart', () => {
   it('returns true for dynamic-tool type', () => {
@@ -38,94 +38,52 @@ describe('getToolName', () => {
   });
 });
 
-describe('extractMessageParts', () => {
+describe('getTrailingAssistantText', () => {
   function makeMsg(parts: UIMessage['parts']): UIMessage {
     return { id: 'msg-1', role: 'assistant', parts };
   }
 
-  function asPart(part: UIMessage['parts'][number]): UIMessage['parts'][number] {
-    return part;
-  }
-
-  it('puts all text in answerText when no tool parts exist', () => {
-    const result = extractMessageParts(makeMsg([
+  it('returns all text when no tool parts exist', () => {
+    const result = getTrailingAssistantText(makeMsg([
       { type: 'text', text: 'Hello ' },
       { type: 'text', text: 'world' },
     ]));
 
-    expect(result.answerText).toBe('Hello world');
-    expect(result.traceEntries).toEqual([]);
+    expect(result).toBe('Hello world');
   });
 
-  it('suppresses internal text before the last tool and keeps trailing text as the answer', () => {
-    const result = extractMessageParts(makeMsg([
-      asPart({ type: 'text', text: 'Let me search...' }),
-      asPart({ type: 'tool-searchSections', toolCallId: 'tc-1', state: 'output-available' }),
-      asPart({ type: 'text', text: 'Based on the results...' }),
+  it('keeps only trailing text after the last tool', () => {
+    const result = getTrailingAssistantText(makeMsg([
+      { type: 'text', text: 'Let me search...' },
+      { type: 'tool-searchSections', toolCallId: 'tc-1', state: 'output-available' },
+      { type: 'text', text: 'Final answer' },
     ]));
 
-    expect(result.traceEntries).toEqual([{
-      type: 'tool',
-      toolName: 'searchSections',
-      toolCallId: 'tc-1',
-      state: 'output-available',
-      count: 1,
-    }]);
-    expect(result.answerText).toBe('Based on the results...');
+    expect(result).toBe('Final answer');
   });
 
-  it('collapses repeated consecutive tool parts', () => {
-    const result = extractMessageParts(makeMsg([
-      asPart({ type: 'tool-searchSections', toolCallId: 'tc-1', state: 'output-available' }),
-      asPart({ type: 'text', text: 'Intermediate thought' }),
-      asPart({ type: 'tool-searchSections', toolCallId: 'tc-2', state: 'output-available' }),
-      asPart({ type: 'text', text: 'Final answer' }),
+  it('returns empty string for messages with no trailing text after tools', () => {
+    const result = getTrailingAssistantText(makeMsg([
+      { type: 'dynamic-tool', toolName: 'searchSections', toolCallId: 'tc-dyn', state: 'input-streaming' },
     ]));
 
-    expect(result.traceEntries).toEqual([{
-      type: 'tool',
-      toolName: 'searchSections',
-      toolCallId: 'tc-1',
-      state: 'output-available',
-      count: 2,
-    }]);
-    expect(result.answerText).toBe('Final answer');
+    expect(result).toBe('');
+  });
+});
+
+describe('hasRenderableAssistantPart', () => {
+  it('returns true for non-empty text', () => {
+    expect(hasRenderableAssistantPart([{ type: 'text', text: 'hello' }])).toBe(true);
   });
 
-  it('ignores whitespace-only internal text before tools', () => {
-    const result = extractMessageParts(makeMsg([
-      asPart({ type: 'text', text: '   ' }),
-      asPart({ type: 'tool-searchSections', toolCallId: 'tc-1', state: 'output-available' }),
-      asPart({ type: 'text', text: 'Answer' }),
-    ]));
-
-    expect(result.traceEntries).toEqual([{
-      type: 'tool',
-      toolName: 'searchSections',
-      toolCallId: 'tc-1',
-      state: 'output-available',
-      count: 1,
-    }]);
+  it('returns true for tool parts', () => {
+    expect(hasRenderableAssistantPart([{ type: 'dynamic-tool', toolName: 'searchSections' }])).toBe(true);
   });
 
-  it('uses dynamic-tool parts', () => {
-    const result = extractMessageParts(makeMsg([
-      asPart({ type: 'dynamic-tool', toolName: 'searchSections', toolCallId: 'tc-dyn', state: 'input-streaming' }),
-      asPart({ type: 'text', text: 'Done' }),
-    ]));
-
-    expect(result.traceEntries[0]).toEqual({
-      type: 'tool',
-      toolName: 'searchSections',
-      toolCallId: 'tc-dyn',
-      state: 'input-streaming',
-      count: 1,
-    });
-  });
-
-  it('handles empty parts', () => {
-    const result = extractMessageParts(makeMsg([]));
-    expect(result.traceEntries).toEqual([]);
-    expect(result.answerText).toBe('');
+  it('ignores step-start and whitespace-only text', () => {
+    expect(hasRenderableAssistantPart([
+      { type: 'step-start' },
+      { type: 'text', text: '   ' },
+    ])).toBe(false);
   });
 });

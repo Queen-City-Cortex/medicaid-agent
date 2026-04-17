@@ -3,7 +3,7 @@ import { generateUUID } from './utils';
 
 /**
  * Convert V4 message parts (tool-invocation) to V5 format (dynamic-tool)
- * that extractMessageParts and ResearchTrace expect.
+ * that the chat timeline renderer expects.
  */
 function convertV4PartsToV5(v4Parts: Array<Record<string, unknown>>): UIMessage['parts'] {
   const result: Array<Record<string, unknown>> = [];
@@ -34,7 +34,7 @@ function convertV4PartsToV5(v4Parts: Array<Record<string, unknown>>): UIMessage[
 /**
  * Convert a Mastra memory thread message into a UIMessage for useChat.
  * Detects MastraMessageContentV2 format and preserves structured parts
- * (tool calls, text, step boundaries) for proper research trace rendering.
+ * (tool calls, text, step boundaries) for proper timeline rendering.
  */
 export function convertThreadMessageToUIMessage(msg: {
   id?: string;
