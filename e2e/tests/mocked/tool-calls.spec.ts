@@ -24,11 +24,11 @@ test.describe('Tool calls', () => {
     // Wait for the assistant message to confirm everything completed
     await chat.waitForAssistantMessage('coverage is available');
 
-    // Research trace should show the tool labels from ResearchTrace TOOLS map
-    const trace = page.getByTestId('research-trace');
-    await expect(trace.first()).toBeVisible();
-    await expect(trace.first()).toContainText('Searching policies');
-    await expect(trace.first()).toContainText('Reading section');
+    // One ToolStep renders per tool call, each with its own label.
+    const steps = page.getByTestId('tool-step');
+    await expect(steps).toHaveCount(2);
+    await expect(steps.nth(0)).toContainText('Searching policies');
+    await expect(steps.nth(1)).toContainText('Reading section');
   });
 
   test('stream with only text and no tools renders without trace', async ({ page }) => {
@@ -46,8 +46,8 @@ test.describe('Tool calls', () => {
 
     await chat.waitForAssistantMessage('Simple answer with no tools.');
 
-    // No research trace should be visible
-    const trace = page.getByTestId('research-trace');
-    await expect(trace).toHaveCount(0);
+    // No ToolStep should render when the stream has no tool calls.
+    const steps = page.getByTestId('tool-step');
+    await expect(steps).toHaveCount(0);
   });
 });

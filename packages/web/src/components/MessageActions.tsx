@@ -104,6 +104,7 @@ export function MessageActions({ content, onRerun, messageId, feedback, onRate, 
             onChange={e => setCommentText(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') handleCommentSubmit(); }}
             placeholder="What went wrong?"
+            aria-label="Feedback comment — describe what went wrong with this response"
             className="flex-1 text-xs px-3 py-1.5 rounded-md border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-accent"
           />
           <button

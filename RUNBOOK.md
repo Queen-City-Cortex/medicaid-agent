@@ -8,6 +8,8 @@
 - `VOYAGE_API_KEY` environment variable set (for embeddings and search)
 - `ANTHROPIC_API_KEY` environment variable set (for the agent)
 
+Copy `.env.example` to `.env` at the repo root and fill in keys. The agent and web packages pick up `.env` via `packages/agent/src/load-env.ts`. Note: the Mastra agent CLI does NOT get `.env` values from `tsx` / `npm exec` automatically when invoked ad-hoc — use the real entrypoints or export vars manually.
+
 ## Environment Variables
 
 | Variable | Required | Default | Description |

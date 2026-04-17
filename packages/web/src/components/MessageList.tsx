@@ -83,7 +83,17 @@ function AssistantMessage({
     .filter(({ part }) => isToolPart(part) || (isTextPart(part) && part.text.trim().length > 0));
 
   return (
-    <div data-testid="assistant-message" className="pl-2 mt-6 animate-in fade-in slide-in-from-bottom-2 duration-200">
+    <div
+      data-testid="assistant-message"
+      className="pl-2 mt-6 animate-in fade-in slide-in-from-bottom-2 duration-200"
+      // Screen readers get incremental updates while streaming; polite keeps it
+      // from interrupting the user's current focus. Once streaming completes
+      // (isStreaming=false) we drop live-region semantics so re-rendered
+      // content doesn't re-announce.
+      aria-live={isStreaming ? 'polite' : undefined}
+      aria-busy={isStreaming || undefined}
+      role={isStreaming ? 'status' : undefined}
+    >
       {visibleParts.map(({ part, index }, visibleIndex) => {
         const isLastVisiblePart = visibleIndex === visibleParts.length - 1;
         if (isToolPart(part)) {
