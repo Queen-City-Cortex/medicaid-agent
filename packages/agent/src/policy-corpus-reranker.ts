@@ -73,6 +73,7 @@ function buildPrompt(args: CorpusRerankerArgs, maxCandidates: number): string {
     'Return only sectionIds from the provided candidates.',
     'Do not invent new ids, citations, or facts.',
     'Prefer sections that directly govern the query, are more authoritative for the detected route, and are more specific to the user question.',
+    'For Medicaid questions that do not explicitly mention CHIP (Children\'s Health Insurance Program) or Title XXI, prefer base-Medicaid CFR parts (42 CFR 430, 431, 438, 440, 441, 442, 447, 455, 456, 460) over 42 CFR 457 (CHIP). CHIP sections often share vocabulary with Medicaid ("state plan", "amendment", "managed care") but are not authoritative for adult Medicaid questions.',
     '',
     `User query: ${args.query}`,
     `Detected question type: ${args.analysis.questionType}`,

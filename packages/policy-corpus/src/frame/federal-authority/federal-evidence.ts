@@ -124,6 +124,10 @@ export async function collectFederalAuthorityEvidence(
           signals.quotedPhrases,
           signals.waiverApplicationQuery ? 2 : 1,
           0.08,
+          // Pass the raw (lowercased) question so the CFR-part tiebreaker in
+          // selectPreferredDocumentTitlesByFocus can suppress itself when the
+          // query actually targets CHIP (42 CFR 457).
+          signals.queryLower,
         );
   const primaryFederalHits =
     preferredFederalDocumentTitles.length === 0
