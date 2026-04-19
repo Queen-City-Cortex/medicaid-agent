@@ -88,26 +88,68 @@ def judge_answer(
         lines = content.splitlines()
         content = "\n".join(lines[1:-1]) if len(lines) > 2 else content
 
-    try:
-        scores = json.loads(content)
-    except json.JSONDecodeError:
-        # Fallback 1: find the last JSON object in the response (some judge
-        # replies prepend markdown prose before emitting the JSON block).
-        match = re.search(r"\{[^{}]*\"overall\"[^{}]*\}", content, re.DOTALL)
-        if match:
-            try:
-                scores = json.loads(match.group(0))
-                return scores
-            except json.JSONDecodeError:
-                pass
-        # Fallback 2: zeroes with raw text as explanation.
-        scores = {
-            "factual_accuracy": 0,
-            "completeness": 0,
-            "hallucination": 0,
-            "citation_quality": 0,
-            "overall": 0,
-            "explanation": f"JSON parse error. Raw response: {content[:200]}",
-        }
+    def _ensure_overall(parsed: dict) -> dict:
+        """Ensure an `overall` key is present — some judge responses omit it
+        despite the prompt. Compute from the four dimensions as a fallback."""
+        if "overall" in parsed and parsed["overall"] is not None:
+            return parsed
+        dims = [
+            parsed.get(k)
+            for k in ("factual_accuracy", "completeness", "hallucination", "citation_quality")
+        ]
+        vals = [v for v in dims if isinstance(v, (int, float))]
+        if vals:
+            parsed["overall"] = round(sum(vals) / len(vals))
+        return parsed
 
-    return scores
+    try:
+        parsed = json.loads(content)
+        if isinstance(parsed, dict):
+            return _ensure_overall(parsed)
+    except json.JSONDecodeError:
+        pass
+
+    # Fallback: walk every `{` in the response and try to extract the first
+    # balanced object that parses as valid JSON. Handles the common case
+    # where the judge emits a markdown preamble followed by a JSON object
+    # whose "explanation" field contains braces/quotes.
+    for start in (i for i, ch in enumerate(content) if ch == "{"):
+        depth = 0
+        in_string = False
+        escape = False
+        for i in range(start, len(content)):
+            ch = content[i]
+            if escape:
+                escape = False
+                continue
+            if in_string:
+                if ch == "\\":
+                    escape = True
+                elif ch == '"':
+                    in_string = False
+                continue
+            if ch == '"':
+                in_string = True
+            elif ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    candidate = content[start : i + 1]
+                    try:
+                        parsed = json.loads(candidate)
+                        if isinstance(parsed, dict) and "factual_accuracy" in parsed:
+                            return _ensure_overall(parsed)
+                    except json.JSONDecodeError:
+                        pass
+                    break
+
+    # Last resort: zeroes with raw text as explanation.
+    return {
+        "factual_accuracy": 0,
+        "completeness": 0,
+        "hallucination": 0,
+        "citation_quality": 0,
+        "overall": 0,
+        "explanation": f"JSON parse error. Raw response: {content[:300]}",
+    }
