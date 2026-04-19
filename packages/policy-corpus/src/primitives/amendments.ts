@@ -13,6 +13,11 @@ export function createAmendmentPrimitiveService({ withSession }: { withSession: 
       const currentDocument =
         currentResult.records.length > 0 ? mapDocumentMetadataRecord(currentResult.records[0]) : null;
 
+      // Cap at 50 amendments — plenty to answer "most recent" / "any since
+      // 2024" questions while keeping the agent's tool response bounded.
+      // Clinical coverage policies with full revision-history tables can
+      // otherwise return 200+ amendments and blow through the agent's
+      // 180s turn budget.
       const amendmentResult = await session.run(
         `MATCH (d:Document {id: $id})
          OPTIONAL MATCH (amend:Document)-[r:AMENDS]->(d)
@@ -20,7 +25,8 @@ export function createAmendmentPrimitiveService({ withSession }: { withSession: 
          RETURN
            ${documentMetadataReturn('amend')},
            r.change_description AS changeDescription
-         ORDER BY amend.effective_date DESC, amend.id ASC`,
+         ORDER BY amend.effective_date DESC, amend.id ASC
+         LIMIT 50`,
         { id: documentId },
       );
 
