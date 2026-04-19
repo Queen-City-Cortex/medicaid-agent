@@ -93,6 +93,24 @@ export async function resolveAmendmentFrame(
     }
   }
 
+  // When the user explicitly names a policy (via lookupPolicy), those
+  // documents must outrank revision-header matches from *other* policies.
+  // Otherwise a query that explicitly asks about Policy 8C routes to some
+  // unrelated MA-series doc whose section titles happen to include
+  // "REVISED / CHANGE NO." (clinical coverage policies use "Revision
+  // Information:" which doesn't match the title heuristic). Only boost
+  // when the looked-up document isn't already represented in the
+  // authoritative candidates — otherwise we double-count.
+  const existingAuthoritativeIds = new Set(authoritativeCandidates.map((c) => c.document.id));
+  lookupDocuments.forEach((document, index) => {
+    if (existingAuthoritativeIds.has(document.id)) return;
+    authoritativeCandidates.push({
+      document,
+      reason: 'Explicit policy lookup (takes precedence over unrelated revision-header hits).',
+      score: 1.8 - index * 0.05,
+    });
+  });
+
   const primaryCandidates = uniqueBy(
     [
       ...latestRevisionPrimaryCandidates,

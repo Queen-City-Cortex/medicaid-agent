@@ -1,6 +1,8 @@
 """LLM-as-judge wrapper — calls Claude Sonnet via httpx to score agent answers."""
 
 import json
+import re
+
 import httpx
 
 from pipeline.config import ANTHROPIC_API_KEY, EVAL_JUDGE_MODEL
@@ -27,7 +29,9 @@ Score each dimension 0-3:
 - citation_quality: Does the answer cite specific policy sections? (0=no citations, 1=vague references, 2=some specific citations, 3=precise section-level citations)
 - overall: Would a Medicaid policy expert accept this answer? (0=unacceptable, 1=poor, 2=acceptable, 3=good)
 
-Respond in JSON format only:
+Your response MUST be a single JSON object and NOTHING ELSE — no preamble, no markdown fences, no prose before or after the JSON. The judging harness parses your response as strict JSON.
+
+Respond with exactly this shape:
 {{"factual_accuracy": N, "completeness": N, "hallucination": N, "citation_quality": N, "overall": N, "explanation": "brief reasoning"}}"""
 
 
@@ -65,7 +69,7 @@ def judge_answer(
         API_URL,
         json={
             "model": EVAL_JUDGE_MODEL,
-            "max_tokens": 512,
+            "max_tokens": 1024,
             "messages": [{"role": "user", "content": prompt}],
         },
         headers={
@@ -87,7 +91,16 @@ def judge_answer(
     try:
         scores = json.loads(content)
     except json.JSONDecodeError:
-        # Fallback: return zeroes with the raw text as explanation
+        # Fallback 1: find the last JSON object in the response (some judge
+        # replies prepend markdown prose before emitting the JSON block).
+        match = re.search(r"\{[^{}]*\"overall\"[^{}]*\}", content, re.DOTALL)
+        if match:
+            try:
+                scores = json.loads(match.group(0))
+                return scores
+            except json.JSONDecodeError:
+                pass
+        # Fallback 2: zeroes with raw text as explanation.
         scores = {
             "factual_accuracy": 0,
             "completeness": 0,

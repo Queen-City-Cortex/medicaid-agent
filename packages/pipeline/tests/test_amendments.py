@@ -256,3 +256,55 @@ def test_title_only_match_uses_title_as_description(monkeypatch):
     amendments.detect_amendments()
 
     assert fake_writer.edges[0].change_description == "CHANGE NOTICE FOR MANUAL NO. 03-18, MA-2180 Premiums"
+
+
+# ── Phase 5.4: Clinical-policy revision-table extraction ───────────────────
+
+
+def test_parse_revision_rows_handles_the_8c_table_format():
+    from pipeline.references.amendments import _parse_revision_rows
+
+    content = """\
+| Date       | Section Revised    | Change                       |
+|:-----------|:-------------------|:-----------------------------|
+| 05/01/2005 | Section 6.0        | Nurse practitioner changes.  |
+| 09/01/2005 | Section 2.0        | EPSDT special provision.     |
+| 06/01/2007 | Subsection 8.3     | Changed mental health codes. |
+| 06/01/2007 | Section 6.0        | Updated Licensed Clinical.   |
+"""
+    rows = _parse_revision_rows(content)
+    assert len(rows) == 4
+    assert rows[0] == {
+        "effective_date": "2005-05-01",
+        "section_revised": "Section 6.0",
+        "change_summary": "Nurse practitioner changes.",
+    }
+    # Same-date collisions are preserved — the caller disambiguates by index.
+    assert rows[2]["effective_date"] == "2007-06-01"
+    assert rows[3]["effective_date"] == "2007-06-01"
+
+
+def test_parse_revision_rows_skips_header_and_separator():
+    from pipeline.references.amendments import _parse_revision_rows
+
+    content = """\
+| Date | Section Revised | Change |
+|:---|:---|:---|
+| 01/15/2020 | 2.1 | First real row. |
+"""
+    rows = _parse_revision_rows(content)
+    assert len(rows) == 1
+    assert rows[0]["effective_date"] == "2020-01-15"
+
+
+def test_parse_revision_rows_skips_malformed_dates():
+    from pipeline.references.amendments import _parse_revision_rows
+
+    content = """\
+| 2020-01-15 | bad ISO | row |
+| not a date | also bad | row |
+| 03/15/2021 | good | row |
+"""
+    rows = _parse_revision_rows(content)
+    assert len(rows) == 1
+    assert rows[0]["effective_date"] == "2021-03-15"

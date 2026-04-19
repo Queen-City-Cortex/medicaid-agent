@@ -1728,18 +1728,18 @@
   },
   {
     "id": "q-043",
-    "version": 1,
+    "version": 2,
     "created": "2026-04-16",
-    "updated": "2026-04-16",
+    "updated": "2026-04-18",
     "question": "When was the most recent change notice issued for Clinical Coverage Policy 8C (Outpatient Behavioral Health)?",
     "difficulty": "moderate",
     "reasoning_type": "temporal",
     "topics": ["behavioral_health", "8C", "change_notice", "amendment_history"],
     "target_users": ["provider", "legal_aid"],
     "answer": {
-      "text": "The answer is the date of the most recent change notice attached to Policy 8C as returned by getAmendments. The agent must pull amendments for doc:clinical_policy:8C, identify the amendment with the latest effective date, and cite both the base policy and that amendment. Do not infer from nearby sections.",
-      "confidence": "medium",
-      "caveats": ["NEEDS_VALIDATION: exact amendment date should be filled in from live graph state"]
+      "text": "The most recent revision to Clinical Coverage Policy 8C has an effective date of April 15, 2025 (amending Section 3.2.2), as recorded in the policy's own revision-information table. The agent should pull amendments for doc:clinical_policy:8C via getAmendments, identify the latest effective date, and cite both Policy 8C and the revision. Acceptable variants: any specific revision date returned by getAmendments that is consistent with the revision-information section of the current Policy 8C PDF.",
+      "confidence": "high",
+      "caveats": ["Revision dates derive from the 'Revision Information' table embedded in the Policy 8C PDF. If the PDF is re-parsed, the latest date may change — validate against the live graph before rejecting an answer that cites a newer date."]
     },
     "evidence": {
       "primary_sections": [
@@ -1748,6 +1748,12 @@
           "section_id": "sec:doc:clinical_policy:8C:1.0",
           "section_number": "1.0",
           "relevance": "Base policy 8C header (effective date)"
+        },
+        {
+          "document_id": "doc:clinical_policy:8C",
+          "section_id": "sec:doc:clinical_policy:8C:_s74",
+          "section_number": "Revision Information",
+          "relevance": "Revision-information table listing all dated amendments to Policy 8C"
         }
       ],
       "supporting_sections": [],
@@ -1755,7 +1761,7 @@
       "federal_references": []
     },
     "source": "regression",
-    "notes": "Temporal regression exercising getAmendments. NEEDS_VALIDATION: fill current amendment date before scoring."
+    "notes": "Temporal regression exercising getAmendments. Answer reflects graph state after Phase 5.4 clinical-policy revision-table extraction."
   },
   {
     "id": "q-044",
