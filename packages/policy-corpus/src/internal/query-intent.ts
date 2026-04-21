@@ -254,7 +254,12 @@ export function asksForGeneralCriteria(queryLower: string): boolean {
 }
 
 export function isYesNoCoverageQuery(queryLower: string): boolean {
-  return /^(does|is|can)\b/.test(queryLower) && /\bcover\b/.test(queryLower);
+  if (!/^(does|is|can|are|will|under)\b/.test(queryLower)) return false;
+  return (
+    /\bcover(s|ed|ing|age)?\b/.test(queryLower) ||
+    /\bauthoriz(e|es|ed|ing|ation)\b/.test(queryLower) ||
+    /\beligible\b/.test(queryLower)
+  );
 }
 
 export function asksForNotCoveredDetails(queryLower: string): boolean {
