@@ -39,6 +39,20 @@ RETRYABLE_AGENT_FAILURE_PATTERNS = (
     "could not retrieve data from the policy corpus",
 )
 
+# Substrings in `candidate_error` that indicate a transient upstream API
+# failure (Vercel AI SDK / OpenAI / Anthropic), not a logic bug. These
+# produce a non-zero subprocess exit code with no usable answer text, so
+# the answer-text pattern match above doesn't catch them.
+RETRYABLE_AGENT_ERROR_PATTERNS = (
+    "ai_apicallerror",
+    '"isretryable": true',
+    "'isretryable': true",
+    "fetch failed",
+    "socket hang up",
+    "econnreset",
+    "etimedout",
+)
+
 
 def _question_preview(question: str) -> str:
     compact = " ".join(question.split())
@@ -96,6 +110,17 @@ def extract_verifier_metadata(stdout: str) -> dict | None:
 def _is_retryable_agent_answer(answer: str) -> bool:
     normalized = " ".join(answer.lower().split())
     return any(pattern in normalized for pattern in RETRYABLE_AGENT_FAILURE_PATTERNS)
+
+
+def _is_retryable_agent_error(error_message: str | None) -> bool:
+    """True when the subprocess error text looks like a transient upstream
+    API failure (Vercel AI SDK / provider hiccup). These should be retried
+    because the retry cost is bounded and the alternative is a 0/3 score
+    on a question that would otherwise succeed."""
+    if not error_message:
+        return False
+    normalized = error_message.lower()
+    return any(pattern in normalized for pattern in RETRYABLE_AGENT_ERROR_PATTERNS)
 
 
 def _tail_text(value: str | None, max_chars: int = AGENT_EVAL_ERROR_TAIL_CHARS) -> str:
@@ -365,14 +390,20 @@ def evaluate_answers(entries: list[dict]) -> list[dict]:
                 candidate_error = f"Agent error: {exc}"
                 candidate_route_error = None
 
-            should_retry = (
+            retryable_answer = (
                 candidate_error is None
                 and _is_retryable_agent_answer(candidate_answer)
-                and attempt < AGENT_EVAL_MAX_RETRIES
             )
+            retryable_error = _is_retryable_agent_error(candidate_error)
+            should_retry = (retryable_answer or retryable_error) and attempt < AGENT_EVAL_MAX_RETRIES
             if should_retry:
+                reason = (
+                    "transient tool failure in agent answer"
+                    if retryable_answer
+                    else "transient upstream API error"
+                )
                 print(
-                    f"[answer eval] {question_id} retrying after transient tool failure in agent answer",
+                    f"[answer eval] {question_id} retrying after {reason}",
                     flush=True,
                 )
                 time.sleep(AGENT_EVAL_RETRY_DELAY_SECS)

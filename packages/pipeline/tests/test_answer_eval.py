@@ -78,6 +78,26 @@ def test_is_retryable_agent_answer_detects_tool_connection_failure():
     )
 
 
+def test_is_retryable_agent_error_detects_vercel_ai_call_errors():
+    # The q-026 regression: agent exits code 1 with a Vercel AI_APICallError
+    # and isRetryable:true in stderr. The old harness didn't retry these.
+    assert answer._is_retryable_agent_error(
+        "Agent error: Agent exited with code 1 (stderr_tail=... "
+        "Symbol(vercel.ai.error.AI_APICallError): true ...)"
+    )
+    assert answer._is_retryable_agent_error(
+        'Agent error: Agent exited with code 1 (stderr_tail=... "isRetryable": true ...)'
+    )
+    assert answer._is_retryable_agent_error(
+        "Agent error: fetch failed"
+    )
+    assert not answer._is_retryable_agent_error(
+        "Agent error: RuntimeError: Schema mismatch in tool definition"
+    )
+    assert not answer._is_retryable_agent_error(None)
+    assert not answer._is_retryable_agent_error("")
+
+
 def test_evaluate_answers_retries_transient_tool_failure_answer(monkeypatch):
     calls = iter([
         "I can't verify that from the policy corpus right now because the policy database connection is down.",
