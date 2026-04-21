@@ -4,8 +4,9 @@ import { type RefObject } from 'react';
 import ReactMarkdown from 'react-markdown';
 import type { UIMessage } from 'ai';
 import { MessageActions } from '@/components/MessageActions';
+import { SourcesPanel } from '@/components/SourcesPanel';
 import { ToolStep } from '@/components/ToolStep';
-import { getTrailingAssistantText, hasRenderableAssistantPart, isTextPart, isToolPart } from '@/lib/message-parts';
+import { extractMessageSources, getTrailingAssistantText, hasRenderableAssistantPart, isTextPart, isToolPart } from '@/lib/message-parts';
 
 const PROSE = 'prose prose-sm dark:prose-invert max-w-none prose-headings:font-heading prose-headings:tracking-tight prose-h2:text-lg prose-h3:text-base prose-p:leading-relaxed prose-li:leading-relaxed prose-strong:text-foreground';
 const PROSE_PROGRESS = 'prose prose-sm dark:prose-invert max-w-none text-muted-foreground prose-headings:text-foreground prose-p:my-0 prose-li:leading-relaxed';
@@ -81,6 +82,7 @@ function AssistantMessage({
   const visibleParts = parts
     .map((part, index) => ({ part, index }))
     .filter(({ part }) => isToolPart(part) || (isTextPart(part) && part.text.trim().length > 0));
+  const sources = extractMessageSources(msg);
 
   return (
     <div
@@ -124,6 +126,8 @@ function AssistantMessage({
           Starting research...
         </div>
       )}
+
+      {!isStreaming && sources.length > 0 && <SourcesPanel sources={sources} />}
 
       {!isStreaming && finalAnswerText && (
         <MessageActions

@@ -1,0 +1,56 @@
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { describe, expect, it } from 'vitest';
+import { SourcesPanel } from '../../src/components/SourcesPanel';
+import type { MessageSource } from '../../src/lib/message-parts';
+
+const SAMPLE: MessageSource[] = [
+  {
+    key: 'a',
+    label: 'Policy 8C § 3.2.1',
+    title: 'Outpatient Behavioral Health',
+    url: 'https://medicaid.ncdhhs.gov/8c/download',
+    originTool: 'getSection',
+  },
+  {
+    key: 'b',
+    label: 'Policy 3K-2',
+    title: 'Community Alternatives Program',
+    url: 'https://medicaid.ncdhhs.gov/3k-2/download',
+    originTool: 'lookupPolicy',
+  },
+];
+
+describe('SourcesPanel', () => {
+  it('renders nothing when given an empty list', () => {
+    const { container } = render(<SourcesPanel sources={[]} />);
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it('shows the count and stays collapsed by default', () => {
+    render(<SourcesPanel sources={SAMPLE} />);
+    expect(screen.getByText('Sources')).toBeInTheDocument();
+    expect(screen.getByText('2 sources')).toBeInTheDocument();
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+  });
+
+  it('pluralizes correctly for a single source', () => {
+    render(<SourcesPanel sources={[SAMPLE[0]]} />);
+    expect(screen.getByText('1 source')).toBeInTheDocument();
+  });
+
+  it('expands to show clickable links with target=_blank for safe external navigation', async () => {
+    const user = userEvent.setup();
+    render(<SourcesPanel sources={SAMPLE} />);
+
+    await user.click(screen.getByTestId('sources-panel-trigger'));
+
+    const links = screen.getAllByRole('link');
+    expect(links).toHaveLength(2);
+    expect(links[0]).toHaveAttribute('href', SAMPLE[0].url);
+    expect(links[0]).toHaveAttribute('target', '_blank');
+    expect(links[0]).toHaveAttribute('rel', expect.stringContaining('noopener'));
+    expect(screen.getByText('Policy 8C § 3.2.1')).toBeInTheDocument();
+    expect(screen.getByText('Outpatient Behavioral Health')).toBeInTheDocument();
+  });
+});
