@@ -145,9 +145,29 @@ export async function resolveCoverageFrame(
     flags,
   });
   const primaryCandidateLimit = serviceFocusTerms.length > 0 ? 2 : FRAME_PRIMARY_LIMIT * 2;
+  const limitationCandidates = buildSectionCandidates(
+    limitationHits,
+    ['not covered', 'limitation', 'limitations', 'exclusion'],
+    [],
+    FRAME_SUPPORT_LIMIT * 4,
+    'Supporting limitation evidence.',
+  );
+  // When the route hint demands citing both scope and not-covered, promote up
+  // to 2 limitation candidates into the primary set so the agent treats them
+  // as first-class evidence rather than supporting. Without this, negative-
+  // coverage answers routinely fabricate exclusion section numbers because
+  // the §4.1-style section lives in supportingSections and the agent trusts
+  // primarySections first.
+  const promotedLimitationCandidates = route.determinism_hints.cite_scope_and_not_covered
+    ? limitationCandidates.slice(0, 2).map((candidate) => ({
+        ...candidate,
+        reason: 'Not-covered section required by cite_scope_and_not_covered hint.',
+      }))
+    : [];
   const primaryCandidates = uniqueBy(
     [
       ...context.toSectionCandidates(documentPrimaryHydrated, 0.35),
+      ...promotedLimitationCandidates,
       ...buildSectionCandidates(
         primarySeedHits,
         COVERAGE_PRIMARY_TERMS,
@@ -158,13 +178,6 @@ export async function resolveCoverageFrame(
     ],
     (candidate) => candidate.sectionId,
   ).slice(0, FRAME_PRIMARY_LIMIT * 2);
-  const limitationCandidates = buildSectionCandidates(
-    limitationHits,
-    ['not covered', 'limitation', 'limitations', 'exclusion'],
-    [],
-    FRAME_SUPPORT_LIMIT * 4,
-    'Supporting limitation evidence.',
-  );
   const numberedClusteredSupportingCandidates = serviceClusterTerms.length === 0
     ? []
     : buildSectionCandidates(
