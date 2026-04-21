@@ -795,4 +795,22 @@ describe('renderCorrectedAnswer', () => {
     const output = renderCorrectedAnswer(input);
     expect(output).toContain('unclosed content');
   });
+
+  it('falls back to the original text when rewrite is pure [missing citation] markers', () => {
+    // Regression: verifier's rewrite occasionally returns only marker text with
+    // no body, producing a user-visible "answer" that is just a footer (q-006 in
+    // the 2026-04-21 eval). Prefer the untouched original.
+    const rewrite = '[missing citation: [Policy 5B § 3.2.1](https://example.com)] [missing citation: [Policy 5B § 1.0](https://example.com)]';
+    const originalText = 'Chiropractic care is not covered under Policy 5B.';
+    const output = renderCorrectedAnswer(rewrite, originalText);
+    expect(output).toBe(originalText);
+  });
+
+  it('keeps the rewrite markers inline when body empty and no fallback given', () => {
+    const rewrite = '[missing citation: Policy 5B]';
+    const output = renderCorrectedAnswer(rewrite);
+    // Without a fallback we still avoid the bare-footer output; preserve markers.
+    expect(output).toContain('[missing citation:');
+    expect(output).not.toContain('*Suggested citations for uncited claims above:*');
+  });
 });

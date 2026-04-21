@@ -623,10 +623,19 @@ function extractMissingCitations(text: string): { body: string; citations: strin
  * footer because they're grammatical annotations, not content claims, and they
  * read poorly mid-sentence.
  */
-export function renderCorrectedAnswer(corrected: string): string {
+export function renderCorrectedAnswer(corrected: string, fallback?: string): string {
   if (!corrected) return corrected;
   const { body, citations } = extractMissingCitations(corrected);
   if (citations.length === 0) return body;
+
+  // If the verifier's rewrite is ENTIRELY [missing citation: ...] markers,
+  // extraction leaves the body empty. Returning just the citation footer
+  // produces a user-visible "answer" with no substance (observed with q-006
+  // in the 2026-04-21 eval, scored 0/3). Prefer the untouched original
+  // answer text when available; otherwise keep the markers inline.
+  if (!body.trim()) {
+    return (fallback ?? corrected).trim();
+  }
 
   const uniqueCitations: string[] = [];
   const seen = new Set<string>();
@@ -722,7 +731,9 @@ export class HallucinationVerifier implements Processor {
       || (verifierUnavailable ? text + VERIFICATION_DISCLAIMER : text);
     // Move [missing citation: ...] markers out of sentence flow into a footer;
     // keep [unverified: ...] / [wrong source: ...] inline (hallucination signal).
-    const corrected = renderCorrectedAnswer(rawCorrected);
+    // Pass the original text as a fallback so a rewrite that is pure markers
+    // (body empty after extraction) doesn't nuke the answer.
+    const corrected = renderCorrectedAnswer(rawCorrected, text);
 
     if (writer) {
       await writer.custom({
