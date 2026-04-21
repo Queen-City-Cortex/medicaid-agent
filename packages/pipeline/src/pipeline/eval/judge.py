@@ -70,6 +70,7 @@ def judge_answer(
         json={
             "model": EVAL_JUDGE_MODEL,
             "max_tokens": 1024,
+            "temperature": 0,
             "messages": [{"role": "user", "content": prompt}],
         },
         headers={
