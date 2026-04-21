@@ -10,6 +10,7 @@ def run_eval(
     reasoning_type: str | None = None,
     question_id: str | None = None,
     top_k: int | None = None,
+    from_result: str | None = None,
 ) -> dict:
     """Run an evaluation at the specified level. Returns the result dict."""
     entries = load_dataset()
@@ -32,8 +33,11 @@ def run_eval(
     elif level == "answer":
         from pipeline.eval.levels.answer import evaluate_answers
         per_question = evaluate_answers(entries)
+    elif level == "citation":
+        from pipeline.eval.levels.citation import evaluate_citations
+        per_question = evaluate_citations(entries, from_result=from_result)
     else:
-        return {"error": f"Unknown level: {level}. Available: retrieval, cross-ref, answer"}
+        return {"error": f"Unknown level: {level}. Available: retrieval, cross-ref, answer, citation"}
 
     # Save results
     config_overrides = {}
@@ -42,6 +46,8 @@ def run_eval(
     if level == "answer":
         from pipeline.config import EVAL_JUDGE_MODEL
         config_overrides["judge_model"] = EVAL_JUDGE_MODEL
+    if level == "citation" and from_result:
+        config_overrides["from_result"] = str(from_result)
 
     path = save_result(level, per_question, config_overrides)
 

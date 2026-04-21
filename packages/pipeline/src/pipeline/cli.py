@@ -24,6 +24,7 @@ def _run_eval_level(
     category: str | None = None,
     difficulty: str | None = None,
     question: str | None = None,
+    from_result: str | None = None,
 ) -> dict:
     from pipeline.eval.runner import run_eval
 
@@ -33,6 +34,7 @@ def _run_eval_level(
         reasoning_type=category,
         question_id=question,
         top_k=top_k,
+        from_result=from_result,
     )
 
 
@@ -54,6 +56,7 @@ def _run_eval_levels(
     category: str | None = None,
     difficulty: str | None = None,
     question: str | None = None,
+    from_result: str | None = None,
 ) -> dict[str, dict]:
     results: dict[str, dict] = {}
 
@@ -65,6 +68,7 @@ def _run_eval_levels(
             category=category,
             difficulty=difficulty,
             question=question,
+            from_result=from_result,
         )
         if "error" in result:
             console.print(f"[red]{result['error']}[/red]")
@@ -517,20 +521,36 @@ def search(query_text: str, top_k: int, doc_type: str | None):
 
 
 @cli.command()
-@click.option("--level", type=click.Choice(["retrieval", "cross-ref", "answer"]), help="Eval level to run")
+@click.option("--level", type=click.Choice(["retrieval", "cross-ref", "answer", "citation"]), help="Eval level to run")
 @click.option("--top-k", type=int, help="Top-k for retrieval eval")
 @click.option("--category", type=str, help="Filter by reasoning_type")
 @click.option("--difficulty", type=str, help="Filter by difficulty")
 @click.option("--question", type=str, help="Run single question by ID")
-def eval(level: str | None, top_k: int | None, category: str | None, difficulty: str | None, question: str | None):
+@click.option(
+    "--from-result",
+    "from_result",
+    type=click.Path(exists=True, dir_okay=False, path_type=str),
+    help="Path to a cached answer-eval result JSON. Required for --level citation; ignored elsewhere.",
+)
+def eval(
+    level: str | None,
+    top_k: int | None,
+    category: str | None,
+    difficulty: str | None,
+    question: str | None,
+    from_result: str | None,
+):
     """Run evaluation against the golden dataset."""
     levels = [level] if level else ["retrieval"]
+    if "citation" in levels and not from_result:
+        raise click.UsageError("--level citation requires --from-result <path/to/answer.json>")
     _run_eval_levels(
         levels,
         top_k=top_k,
         category=category,
         difficulty=difficulty,
         question=question,
+        from_result=from_result,
     )
 
 
