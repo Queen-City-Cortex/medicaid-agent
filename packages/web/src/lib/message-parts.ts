@@ -71,6 +71,8 @@ export type MessageSource = {
   url: string;
   /** Tool that surfaced this source — drives the small origin badge in the panel. */
   originTool: string;
+  /** Preserved section number (e.g. "3.2.1" or "Attachment A") when known. Null for doc-level entries. Used for natural-order sorting. */
+  sectionNumber: string | null;
 };
 
 type SectionLike = {
@@ -93,15 +95,96 @@ function str(value: unknown): string | null {
 }
 
 function sectionLabel(policy: string | null, section: string | null, title: string | null): string {
-  if (policy && section) return `Policy ${policy} § ${section}`;
+  if (policy && section) {
+    // `§` is the legal-typography section-sign — valid only for numeric
+    // section numbers. Non-numeric section handles like "Attachment A" take
+    // an em-dash instead so the label reads correctly to a policy reader.
+    const numeric = /^\d/.test(section);
+    return numeric ? `Policy ${policy} § ${section}` : `Policy ${policy} — ${section}`;
+  }
   if (policy) return `Policy ${policy}`;
-  if (section) return `§ ${section}`;
+  if (section) {
+    const numeric = /^\d/.test(section);
+    return numeric ? `§ ${section}` : section;
+  }
   return title ?? 'Policy section';
 }
 
 function documentLabel(policy: string | null, title: string | null): string {
   if (policy) return `Policy ${policy}`;
   return title ?? 'Policy document';
+}
+
+/**
+ * Two documents sharing the same label (e.g. both "Policy 8C" because 8C
+ * has a main PDF and a CPT-codes attachment) are legitimately distinct —
+ * they have different URLs — but a user can't tell them apart at a glance.
+ * Extract a short disambiguator from the URL path when labels collide.
+ */
+function urlDisambiguator(url: string): string | null {
+  try {
+    const parsed = new URL(url);
+    const segments = parsed.pathname.split('/').filter(Boolean);
+    if (segments.length === 0) return null;
+    // Walk from the end, skipping generic tail segments like "download".
+    for (let i = segments.length - 1; i >= 0; i--) {
+      const seg = segments[i];
+      if (seg.toLowerCase() === 'download') continue;
+      return seg;
+    }
+    return segments[segments.length - 1];
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Natural-ordering comparator for section numbers: "1.0" < "3.2.1" <
+ * "4.2.1.1" < "Attachment A". Document-level entries (null sectionNumber)
+ * sort LAST so the reader scans specific citations first.
+ */
+function compareSectionNumbers(a: string | null, b: string | null): number {
+  if (a === null && b === null) return 0;
+  if (a === null) return 1; // nulls (doc-level) last
+  if (b === null) return -1;
+
+  const aSegments = a.split('.');
+  const bSegments = b.split('.');
+  const len = Math.max(aSegments.length, bSegments.length);
+  for (let i = 0; i < len; i++) {
+    const aSeg = aSegments[i];
+    const bSeg = bSegments[i];
+    if (aSeg === undefined) return -1; // shorter path sorts first among matching prefix
+    if (bSeg === undefined) return 1;
+    const aNum = Number(aSeg);
+    const bNum = Number(bSeg);
+    const aIsNum = Number.isFinite(aNum);
+    const bIsNum = Number.isFinite(bNum);
+    if (aIsNum && bIsNum) {
+      if (aNum !== bNum) return aNum - bNum;
+    } else if (aIsNum !== bIsNum) {
+      return aIsNum ? -1 : 1; // numeric before non-numeric (so "4.1" before "Attachment A")
+    } else if (aSeg !== bSeg) {
+      return aSeg.localeCompare(bSeg);
+    }
+  }
+  return 0;
+}
+
+function disambiguateLabels(sources: MessageSource[]): MessageSource[] {
+  const byLabel = new Map<string, MessageSource[]>();
+  for (const source of sources) {
+    const bucket = byLabel.get(source.label) ?? [];
+    bucket.push(source);
+    byLabel.set(source.label, bucket);
+  }
+  return sources.map((source) => {
+    const colliders = byLabel.get(source.label) ?? [];
+    if (colliders.length < 2) return source;
+    const disambig = urlDisambiguator(source.url);
+    if (!disambig) return source;
+    return { ...source, label: `${source.label} (${disambig})` };
+  });
 }
 
 function addSectionSource(
@@ -124,6 +207,7 @@ function addSectionSource(
     title: title && title !== label ? title : null,
     url,
     originTool,
+    sectionNumber,
   });
 }
 
@@ -146,6 +230,7 @@ function addDocumentSource(
     title: title && title !== label ? title : null,
     url,
     originTool,
+    sectionNumber: null,
   });
 }
 
@@ -237,5 +322,8 @@ export function extractMessageSources(msg: UIMessage): MessageSource[] {
     }
   }
 
-  return Array.from(sources.values());
+  const sorted = Array.from(sources.values()).sort((a, b) =>
+    compareSectionNumbers(a.sectionNumber, b.sectionNumber),
+  );
+  return disambiguateLabels(sorted);
 }

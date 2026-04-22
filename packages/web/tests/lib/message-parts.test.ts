@@ -202,6 +202,102 @@ describe('extractMessageSources', () => {
     expect(sources).toEqual([]);
   });
 
+  it('labels numeric section numbers with § and non-numeric handles with em-dash', () => {
+    const sources = extractMessageSources(makeMsg([
+      {
+        type: 'dynamic-tool',
+        toolName: 'searchSections',
+        toolCallId: 'tc-1',
+        state: 'output-available',
+        output: {
+          sections: [
+            { id: 'sec:a', policyNumber: '8C', sectionNumber: '3.2.1', title: 'Covered', url: 'https://example.com/a' },
+            { id: 'sec:b', policyNumber: '8C', sectionNumber: 'Attachment A', title: 'Claims Info', url: 'https://example.com/b' },
+          ],
+        },
+      },
+    ]));
+
+    const labels = sources.map((s) => s.label);
+    expect(labels).toContain('Policy 8C § 3.2.1');
+    expect(labels).toContain('Policy 8C — Attachment A');
+    // No `§ Attachment A` — that's legal-typography garbage.
+    for (const l of labels) {
+      expect(l).not.toMatch(/§\s+Attachment/);
+    }
+  });
+
+  it('disambiguates duplicate doc-level labels using URL path', () => {
+    const sources = extractMessageSources(makeMsg([
+      {
+        type: 'dynamic-tool',
+        toolName: 'lookupPolicy',
+        toolCallId: 'tc-1',
+        state: 'output-available',
+        output: {
+          documents: [
+            { id: 'doc:a', policyNumber: '8C', title: 'Outpatient BH', url: 'https://medicaid.ncdhhs.gov/8c-main/download' },
+            { id: 'doc:b', policyNumber: '8C', title: 'CPT Codes Attachment', url: 'https://medicaid.ncdhhs.gov/8c-cpt-codes/download' },
+          ],
+        },
+      },
+    ]));
+
+    const labels = sources.map((s) => s.label).sort();
+    expect(labels).toEqual(['Policy 8C (8c-cpt-codes)', 'Policy 8C (8c-main)']);
+  });
+
+  it('does not disambiguate when only one source has a given label', () => {
+    const sources = extractMessageSources(makeMsg([
+      {
+        type: 'dynamic-tool',
+        toolName: 'lookupPolicy',
+        toolCallId: 'tc-1',
+        state: 'output-available',
+        output: {
+          documents: [
+            { id: 'doc:a', policyNumber: '8C', title: 'Outpatient BH', url: 'https://medicaid.ncdhhs.gov/8c-main/download' },
+          ],
+        },
+      },
+    ]));
+    expect(sources[0].label).toBe('Policy 8C');
+  });
+
+  it('sorts sections in natural order with document-level entries last', () => {
+    const sources = extractMessageSources(makeMsg([
+      {
+        type: 'dynamic-tool',
+        toolName: 'resolveAnswerFrame',
+        toolCallId: 'tc-1',
+        state: 'output-available',
+        output: {
+          frame: {
+            authoritativeDocuments: [
+              { id: 'doc:a', policyNumber: '8C', title: 'Policy 8C main', url: 'https://example.com/8c-main' },
+            ],
+            primarySections: [
+              { id: 'sec:d', policyNumber: '8C', sectionNumber: 'Attachment A', title: 'Att', url: 'https://example.com/a' },
+              { id: 'sec:c', policyNumber: '8C', sectionNumber: '4.2.1.1', title: 'D', url: 'https://example.com/c' },
+              { id: 'sec:a', policyNumber: '8C', sectionNumber: '1.0', title: 'A', url: 'https://example.com/d' },
+              { id: 'sec:b', policyNumber: '8C', sectionNumber: '3.1', title: 'B', url: 'https://example.com/e' },
+            ],
+          },
+        },
+      },
+    ]));
+
+    const labels = sources.map((s) => s.label);
+    // Numeric sections in natural order, then non-numeric, then doc-level last.
+    expect(labels).toEqual([
+      'Policy 8C § 1.0',
+      'Policy 8C § 3.1',
+      'Policy 8C § 4.2.1.1',
+      'Policy 8C — Attachment A',
+      'Policy 8C',
+    ]);
+  });
+
   it('handles lookupPolicy and getAmendments document arrays', () => {
     const sources = extractMessageSources(makeMsg([
       {
