@@ -170,4 +170,78 @@ describe('MessageList', () => {
     expect(firstNote.compareDocumentPosition(toolLabel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(toolLabel.compareDocumentPosition(finalAnswer) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
+
+  it('shows an explicit "ended without answer" notice + Rerun when tools ran but no final text was produced', () => {
+    // This is the symptom of a mid-stream API error: tools have "Done" state
+    // but no final text part was ever emitted. Without the notice the UI goes
+    // silent; MessageActions (including Rerun) were also hidden because they
+    // were gated on finalAnswerText.
+    renderMessageList([
+      {
+        id: 'assistant-empty',
+        role: 'assistant',
+        parts: [
+          {
+            type: 'dynamic-tool',
+            toolName: 'searchSections',
+            toolCallId: 'tc-1',
+            state: 'output-available',
+            input: { query: 'x' },
+            output: { sections: [] },
+          },
+        ],
+      },
+    ]);
+
+    expect(screen.getByTestId('ended-without-answer')).toBeInTheDocument();
+    expect(screen.getByText(/finished without a final answer/i)).toBeInTheDocument();
+    // MessageActions (Rerun etc.) must be reachable even though content is empty.
+    expect(screen.getByTestId('message-actions')).toBeInTheDocument();
+  });
+
+  it('does not show the "ended without answer" notice while streaming', () => {
+    renderMessageList(
+      [
+        {
+          id: 'assistant-streaming',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'dynamic-tool',
+              toolName: 'searchSections',
+              toolCallId: 'tc-1',
+              state: 'output-available',
+              input: { query: 'x' },
+              output: { sections: [] },
+            },
+          ],
+        },
+      ],
+      { isStreaming: true },
+    );
+
+    expect(screen.queryByTestId('ended-without-answer')).not.toBeInTheDocument();
+  });
+
+  it('does not show the "ended without answer" notice when a final text part exists', () => {
+    renderMessageList([
+      {
+        id: 'assistant-ok',
+        role: 'assistant',
+        parts: [
+          {
+            type: 'dynamic-tool',
+            toolName: 'searchSections',
+            toolCallId: 'tc-1',
+            state: 'output-available',
+            input: { query: 'x' },
+            output: { sections: [] },
+          },
+          { type: 'text', text: 'Here is the answer.' },
+        ],
+      },
+    ]);
+
+    expect(screen.queryByTestId('ended-without-answer')).not.toBeInTheDocument();
+  });
 });

@@ -21,9 +21,15 @@ const openai = createOpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+// `reason` must be `.nullable()` but NOT `.optional()`. OpenAI's structured-output
+// strict schema validator rejects any property that isn't listed in `required`;
+// `.optional()` excludes it from `required` and produces an AI_APICallError:
+// "'required' is required to be supplied and to be an array including every key
+//  in properties. Missing 'reason'." Nullable keeps it in required while still
+//  letting the model skip the field by returning null.
 const RerankResponseSchema = z.object({
   sectionIds: z.array(z.string()).min(1),
-  reason: z.string().nullable().optional(),
+  reason: z.string().nullable(),
 });
 
 export interface PolicyCorpusRerankConfig {

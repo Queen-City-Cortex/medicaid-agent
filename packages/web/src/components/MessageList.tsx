@@ -119,6 +119,15 @@ function AssistantMessage({
     .map((part, index) => ({ part, index }))
     .filter(({ part }) => isToolPart(part) || (isTextPart(part) && part.text.trim().length > 0));
   const sources = extractMessageSources(msg);
+  // Detect the "tools ran but agent gave up without a text answer" state. This
+  // happens when a mid-tool-loop model call throws (e.g. transient
+  // AI_APICallError) and Mastra terminates the stream with finishReason that
+  // isn't 'stop', so the verifier's text-replacement branch never runs and
+  // the persisted message has tool parts but no final text. Without a
+  // fallback, the UI renders silently (tools + Sources panel + blank space),
+  // which is indistinguishable from "finished". Show an explicit notice.
+  const endedWithoutAnswer =
+    !isStreaming && lastToolIndex !== -1 && finalAnswerText.trim().length === 0;
   const sourceIndex = buildSourceIndex(sources);
   const [panelOpen, setPanelOpen] = useState(false);
   const [highlightedKey, setHighlightedKey] = useState<string | null>(null);
@@ -185,6 +194,20 @@ function AssistantMessage({
         </div>
       )}
 
+      {endedWithoutAnswer && (
+        <div
+          data-testid="ended-without-answer"
+          role="alert"
+          className="my-4 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-foreground"
+        >
+          <p className="font-medium">The agent finished without a final answer.</p>
+          <p className="mt-1 text-muted-foreground">
+            This usually means a transient API error interrupted the synthesis step. The sources
+            below show what was retrieved. Use the rerun button to try again.
+          </p>
+        </div>
+      )}
+
       {!isStreaming && sources.length > 0 && (
         <SourcesPanel
           sources={sources}
@@ -195,7 +218,7 @@ function AssistantMessage({
         />
       )}
 
-      {!isStreaming && finalAnswerText && (
+      {!isStreaming && (finalAnswerText || endedWithoutAnswer) && (
         <MessageActions
           content={finalAnswerText}
           onRerun={() => {
