@@ -58,3 +58,44 @@ export function deriveThreadTitleFromMessages(
 
   return deriveThreadTitleFromText(extractText(firstUserMessage.content));
 }
+
+/**
+ * When the sidebar contains several threads that derive the same title
+ * (e.g. three "What is EPSDT?"), append a date suffix to disambiguate.
+ * Threads with explicit user-set titles are never rewritten — only the
+ * auto-derived collisions. Returns a Map keyed by thread id so the
+ * caller can render each thread's final display title in one lookup.
+ */
+export function buildThreadDisplayTitles(
+  threads: StorageThreadType[],
+  derivedTitles: Record<string, string | null | undefined> = {},
+): Map<string, string> {
+  const titles = new Map<string, string>();
+  const rawByThread = new Map<string, string>();
+  const colliders = new Map<string, string[]>(); // rawTitle -> threadIds sharing it (derived-only)
+
+  for (const thread of threads) {
+    const raw = getThreadDisplayTitle(thread, derivedTitles[thread.id]);
+    rawByThread.set(thread.id, raw);
+    // Only treat as a collision if the title was auto-derived. An
+    // explicit user-chosen title means the user accepted the clash.
+    const userTitled = Boolean(thread.title && thread.title.trim());
+    if (!userTitled && raw !== FALLBACK_THREAD_TITLE) {
+      const bucket = colliders.get(raw) ?? [];
+      bucket.push(thread.id);
+      colliders.set(raw, bucket);
+    }
+  }
+
+  for (const thread of threads) {
+    const raw = rawByThread.get(thread.id) ?? FALLBACK_THREAD_TITLE;
+    const bucket = colliders.get(raw);
+    if (!bucket || bucket.length < 2) {
+      titles.set(thread.id, raw);
+      continue;
+    }
+    const suffix = formatDate(thread.updatedAt ?? thread.createdAt);
+    titles.set(thread.id, suffix ? `${raw} (${suffix})` : raw);
+  }
+  return titles;
+}

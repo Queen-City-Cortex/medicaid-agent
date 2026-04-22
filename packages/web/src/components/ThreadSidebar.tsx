@@ -25,9 +25,9 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useMastraClient, useMastraReady } from '@/lib/use-mastra-client';
 import {
+  buildThreadDisplayTitles,
   deriveThreadTitleFromMessages,
   formatDate,
-  getThreadDisplayTitle,
 } from '@/lib/thread-helpers';
 import type { StorageThreadType } from '@mastra/core/memory';
 
@@ -168,6 +168,8 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
     }
   };
 
+  const displayTitles = buildThreadDisplayTitles(threads, derivedTitles);
+
   return (
     <div className="flex flex-col h-full bg-sidebar">
       <div className="px-4 py-4 flex items-center justify-between shrink-0">
@@ -222,7 +224,7 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
           {threads.map((thread) => {
             const isActive = thread.id === currentThreadId;
             const isEditing = editingThreadId === thread.id;
-            const displayTitle = getThreadDisplayTitle(thread, derivedTitles[thread.id]);
+            const displayTitle = displayTitles.get(thread.id) ?? '';
 
             return (
               <div

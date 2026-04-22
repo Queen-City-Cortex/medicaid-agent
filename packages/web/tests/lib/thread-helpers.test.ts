@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import type { StorageThreadType } from '@mastra/core/memory';
 import {
+  buildThreadDisplayTitles,
   deriveThreadTitleFromMessages,
   deriveThreadTitleFromText,
   formatDate,
@@ -148,5 +149,64 @@ describe('deriveThreadTitleFromMessages', () => {
       { role: 'assistant', content: 'Hello' },
       { role: 'user', content: '   ' },
     ])).toBeNull();
+  });
+});
+
+describe('buildThreadDisplayTitles', () => {
+  function makeThread(id: string, overrides: Partial<StorageThreadType> = {}): StorageThreadType {
+    const now = new Date();
+    return {
+      id,
+      title: null,
+      resourceId: 'r',
+      createdAt: now,
+      updatedAt: now,
+      metadata: null,
+      ...overrides,
+    } as StorageThreadType;
+  }
+
+  it('returns derived titles unchanged when there are no collisions', () => {
+    const threads = [
+      makeThread('t1'),
+      makeThread('t2'),
+    ];
+    const derived = { t1: 'What is EPSDT?', t2: 'How do I apply for CAP/DA?' };
+    const titles = buildThreadDisplayTitles(threads, derived);
+    expect(titles.get('t1')).toBe('What is EPSDT?');
+    expect(titles.get('t2')).toBe('How do I apply for CAP/DA?');
+  });
+
+  it('appends a date suffix when auto-derived titles collide', () => {
+    const threads = [
+      makeThread('t1', { updatedAt: new Date('2026-03-10T10:00:00Z') }),
+      makeThread('t2', { updatedAt: new Date('2026-04-01T10:00:00Z') }),
+      makeThread('t3', { updatedAt: new Date('2026-04-05T10:00:00Z') }),
+    ];
+    const derived = { t1: 'What is EPSDT?', t2: 'What is EPSDT?', t3: 'What is EPSDT?' };
+    const titles = buildThreadDisplayTitles(threads, derived);
+    // Each title must include a disambiguating suffix.
+    for (const id of ['t1', 't2', 't3']) {
+      expect(titles.get(id)!.startsWith('What is EPSDT? (')).toBe(true);
+    }
+    // And the three suffixes must be distinct.
+    const unique = new Set([titles.get('t1'), titles.get('t2'), titles.get('t3')]);
+    expect(unique.size).toBe(3);
+  });
+
+  it('never rewrites a user-set explicit title even if it collides', () => {
+    const threads = [
+      makeThread('t1', { title: 'Shared Title' }),
+      makeThread('t2', { title: 'Shared Title' }),
+    ];
+    const titles = buildThreadDisplayTitles(threads, {});
+    expect(titles.get('t1')).toBe('Shared Title');
+    expect(titles.get('t2')).toBe('Shared Title');
+  });
+
+  it('falls back to "New conversation" when no title or derived label exists', () => {
+    const threads = [makeThread('t1')];
+    const titles = buildThreadDisplayTitles(threads, {});
+    expect(titles.get('t1')).toBe('New conversation');
   });
 });
