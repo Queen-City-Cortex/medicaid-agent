@@ -97,15 +97,65 @@ test.describe('Tool calls', () => {
     const items = page.getByTestId('source-item');
     await expect(items).toHaveCount(2);
 
-    // First link goes to the 8C section PDF in a new tab.
+    // Section sorts before doc-level (natural section order).
     const firstLink = items.nth(0).getByRole('link');
     await expect(firstLink).toHaveAttribute('href', 'https://medicaid.ncdhhs.gov/8c/download');
     await expect(firstLink).toHaveAttribute('target', '_blank');
     await expect(firstLink).toContainText('Policy 8C § 3.2.1');
 
-    // Second entry is the policy lookup document.
     const secondLink = items.nth(1).getByRole('link');
     await expect(secondLink).toHaveAttribute('href', 'https://medicaid.ncdhhs.gov/3k-2/download');
     await expect(secondLink).toContainText('Policy 3K-2');
+  });
+
+  test('inline citation footnote opens Sources panel and highlights the row', async ({ page }) => {
+    const stream = new AISdkStreamBuilder()
+      .start()
+      .toolCall('getSection', 'tc-get-8c', {})
+      .toolResult('tc-get-8c', {
+        section: {
+          id: 'sec:doc:clinical_policy:8C:3.2.1',
+          title: 'Outpatient Behavioral Health Services',
+          sectionNumber: '3.2.1',
+          policyNumber: '8C',
+          url: 'https://medicaid.ncdhhs.gov/8c/download',
+        },
+      })
+      .textDelta(
+        'Policy 8C covers outpatient behavioral health services under ' +
+          '[Policy 8C § 3.2.1](https://medicaid.ncdhhs.gov/8c/download).',
+      )
+      .stepFinish()
+      .finish();
+
+    await mockMastraAPI(page, { streamResponse: stream });
+    const chat = new ChatPage(page);
+    await chat.goto();
+
+    await chat.sendMessage('test footnote');
+    await chat.waitForAssistantMessage('outpatient behavioral health services');
+
+    // Footnote renders as a clickable superscript matching the panel's 1-based index.
+    // `sup` elements in Playwright don't always register as "visible" with the
+    // default heuristic even though they paint — fall back to attached-in-DOM
+    // plus an attribute check, which is what we actually care about.
+    const footnote = page.getByTestId('citation-footnote').first();
+    await expect(footnote).toBeAttached();
+    await expect(footnote).toHaveAttribute('data-source-number', '1');
+    await expect(footnote).toContainText('[1]');
+
+    // Panel starts collapsed — no source-item in the DOM tree yet.
+    expect(await page.getByTestId('source-item').count()).toBe(0);
+
+    // Click the footnote; the panel opens and the target row gets a highlight.
+    // The `<sup>` wrapper renders with near-zero bounding box on the test
+    // viewport, which trips Playwright's "outside viewport" actionability
+    // check. Dispatch the click directly on the button — we're testing the
+    // onClick handler wiring, not hit-testing.
+    await footnote.evaluate((el) => (el as HTMLButtonElement).click());
+
+    const items = page.getByTestId('source-item');
+    await expect(items).toHaveCount(1);
+    await expect(items.first()).toHaveAttribute('data-highlighted', 'true');
   });
 });

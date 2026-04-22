@@ -94,6 +94,46 @@ function str(value: unknown): string | null {
   return typeof value === 'string' && value.trim().length > 0 ? value : null;
 }
 
+/**
+ * Canonicalize a citation URL so that "same document, different
+ * surface-form" URLs collapse to one key. Used for both source
+ * deduplication (via the key) and matching inline agent-emitted citation
+ * links to their Sources-panel entry (footnote numbering).
+ */
+export function normalizeCitationUrl(url: string | null | undefined): string | null {
+  if (typeof url !== 'string') return null;
+  const trimmed = url.trim();
+  if (!trimmed) return null;
+  try {
+    const parsed = new URL(trimmed);
+    const host = parsed.hostname.toLowerCase();
+    const path = parsed.pathname.replace(/\/+$/, '');
+    // DHHS policy PDFs sometimes carry `?attachment`; strip that flag so
+    // links with and without it collapse together.
+    let query = parsed.search;
+    if (query === '?attachment' || query.toLowerCase() === '?format=pdf') query = '';
+    return `${parsed.protocol}//${host}${path}${query}`;
+  } catch {
+    return trimmed.toLowerCase();
+  }
+}
+
+/**
+ * Build a `normalizedUrl -> 1-indexed source number` map so inline
+ * markdown citations in the answer body can be decorated with a footnote
+ * superscript that matches the Sources-panel row.
+ */
+export function buildSourceIndex(sources: MessageSource[]): Map<string, number> {
+  const index = new Map<string, number>();
+  sources.forEach((source, i) => {
+    const normalized = normalizeCitationUrl(source.url);
+    if (normalized && !index.has(normalized)) {
+      index.set(normalized, i + 1);
+    }
+  });
+  return index;
+}
+
 function sectionLabel(policy: string | null, section: string | null, title: string | null): string {
   if (policy && section) {
     // `§` is the legal-typography section-sign — valid only for numeric

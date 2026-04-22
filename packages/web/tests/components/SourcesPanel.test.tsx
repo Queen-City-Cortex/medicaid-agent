@@ -53,4 +53,25 @@ describe('SourcesPanel', () => {
     expect(screen.getByText('Policy 8C § 3.2.1')).toBeInTheDocument();
     expect(screen.getByText('Outpatient Behavioral Health')).toBeInTheDocument();
   });
+
+  it('reflects controlled open prop without a user click', () => {
+    render(<SourcesPanel sources={SAMPLE} open={true} onOpenChange={() => {}} />);
+    // With open=true, list items must be present immediately.
+    expect(screen.getAllByTestId('source-item')).toHaveLength(2);
+  });
+
+  it('assigns row ids scoped by messageId so footnote clicks can scroll to them', () => {
+    render(<SourcesPanel sources={SAMPLE} messageId="msg-42" open={true} onOpenChange={() => {}} />);
+    const first = document.getElementById('source-msg-42-a');
+    const second = document.getElementById('source-msg-42-b');
+    expect(first).not.toBeNull();
+    expect(second).not.toBeNull();
+  });
+
+  it('marks the highlighted row via data-highlighted', () => {
+    render(<SourcesPanel sources={SAMPLE} open={true} onOpenChange={() => {}} highlightedKey="b" />);
+    const items = screen.getAllByTestId('source-item');
+    expect(items[0]).not.toHaveAttribute('data-highlighted');
+    expect(items[1]).toHaveAttribute('data-highlighted');
+  });
 });

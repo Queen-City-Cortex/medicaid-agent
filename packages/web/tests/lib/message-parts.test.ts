@@ -1,11 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import type { UIMessage } from 'ai';
 import {
+  buildSourceIndex,
   extractMessageSources,
   getToolName,
   getTrailingAssistantText,
   hasRenderableAssistantPart,
   isToolPart,
+  normalizeCitationUrl,
+  type MessageSource,
 } from '../../src/lib/message-parts';
 
 describe('isToolPart', () => {
@@ -333,5 +336,60 @@ describe('extractMessageSources', () => {
     // 3K-2 doc is deduped across lookupPolicy + getAmendments; CN is separate.
     expect(sources.map((s) => s.label)).toContain('Policy 3K-2');
     expect(sources.map((s) => s.label)).toContain('Policy 3K-2 CN');
+  });
+});
+
+describe('normalizeCitationUrl', () => {
+  it('returns null for empty / missing', () => {
+    expect(normalizeCitationUrl(null)).toBeNull();
+    expect(normalizeCitationUrl(undefined)).toBeNull();
+    expect(normalizeCitationUrl('')).toBeNull();
+    expect(normalizeCitationUrl('   ')).toBeNull();
+  });
+
+  it('collapses trailing slash, case, and `?attachment` flag', () => {
+    const a = normalizeCitationUrl('https://Medicaid.NCDHHS.gov/8c/download/');
+    const b = normalizeCitationUrl('https://medicaid.ncdhhs.gov/8c/download?attachment');
+    expect(a).toBe(b);
+  });
+
+  it('keeps distinct URLs distinct', () => {
+    const a = normalizeCitationUrl('https://medicaid.ncdhhs.gov/8c-main/download');
+    const b = normalizeCitationUrl('https://medicaid.ncdhhs.gov/8c-cpt-codes/download');
+    expect(a).not.toBe(b);
+  });
+});
+
+describe('buildSourceIndex', () => {
+  const makeSource = (key: string, url: string): MessageSource => ({
+    key,
+    label: `Label ${key}`,
+    title: null,
+    url,
+    originTool: 'getSection',
+    sectionNumber: null,
+  });
+
+  it('indexes sources 1-based in array order', () => {
+    const sources = [
+      makeSource('a', 'https://example.com/a'),
+      makeSource('b', 'https://example.com/b'),
+      makeSource('c', 'https://example.com/c'),
+    ];
+    const index = buildSourceIndex(sources);
+    expect(index.get('https://example.com/a')).toBe(1);
+    expect(index.get('https://example.com/b')).toBe(2);
+    expect(index.get('https://example.com/c')).toBe(3);
+  });
+
+  it('matches agent citations through normalization', () => {
+    const sources = [
+      makeSource('a', 'https://medicaid.ncdhhs.gov/8c/download'),
+    ];
+    const index = buildSourceIndex(sources);
+    // Agent may emit the URL with `?attachment`; index lookup must still hit.
+    const normalized = normalizeCitationUrl('https://medicaid.ncdhhs.gov/8c/download?attachment');
+    expect(normalized).not.toBeNull();
+    expect(index.get(normalized!)).toBe(1);
   });
 });

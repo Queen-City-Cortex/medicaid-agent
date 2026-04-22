@@ -1,12 +1,21 @@
 'use client';
 
-import { type RefObject } from 'react';
+import { useCallback, useState, type RefObject } from 'react';
 import ReactMarkdown from 'react-markdown';
 import type { UIMessage } from 'ai';
 import { MessageActions } from '@/components/MessageActions';
-import { SourcesPanel } from '@/components/SourcesPanel';
+import { SourcesPanel, sourceRowId } from '@/components/SourcesPanel';
 import { ToolStep } from '@/components/ToolStep';
-import { extractMessageSources, getTrailingAssistantText, hasRenderableAssistantPart, isTextPart, isToolPart } from '@/lib/message-parts';
+import {
+  buildSourceIndex,
+  extractMessageSources,
+  getTrailingAssistantText,
+  hasRenderableAssistantPart,
+  isTextPart,
+  isToolPart,
+  normalizeCitationUrl,
+  type MessageSource,
+} from '@/lib/message-parts';
 
 const PROSE = 'prose prose-sm dark:prose-invert max-w-none prose-headings:font-heading prose-headings:tracking-tight prose-h2:text-lg prose-h3:text-base prose-p:leading-relaxed prose-li:leading-relaxed prose-strong:text-foreground';
 const PROSE_PROGRESS = 'prose prose-sm dark:prose-invert max-w-none text-muted-foreground prose-headings:text-foreground prose-p:my-0 prose-li:leading-relaxed';
@@ -28,20 +37,47 @@ function MarkdownText({
   text,
   finalAnswer,
   showCursor,
+  sourceIndex,
+  onCitationClick,
 }: {
   text: string;
   finalAnswer: boolean;
   showCursor: boolean;
+  sourceIndex?: Map<string, number>;
+  onCitationClick?: (sourceNumber: number) => void;
 }) {
   return (
     <div className={finalAnswer ? PROSE : PROSE_PROGRESS}>
       <ReactMarkdown
         components={{
-          a: ({ children, href }) => (
-            <a href={href} target="_blank" rel="noopener noreferrer" className="text-accent underline underline-offset-2">
-              {children}
-            </a>
-          ),
+          a: ({ children, href }) => {
+            const normalized = normalizeCitationUrl(href ?? null);
+            const sourceNumber = normalized ? sourceIndex?.get(normalized) : undefined;
+            return (
+              <>
+                <a href={href} target="_blank" rel="noopener noreferrer" className="text-accent underline underline-offset-2">
+                  {children}
+                </a>
+                {sourceNumber !== undefined && (
+                  <sup>
+                    <button
+                      type="button"
+                      data-testid="citation-footnote"
+                      data-source-number={sourceNumber}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        onCitationClick?.(sourceNumber);
+                      }}
+                      className="ml-0.5 inline-flex cursor-pointer items-center rounded px-0.5 text-[0.7em] font-medium text-muted-foreground hover:bg-accent/15 hover:text-accent"
+                      aria-label={`Jump to source ${sourceNumber} in the Sources panel`}
+                    >
+                      [{sourceNumber}]
+                    </button>
+                  </sup>
+                )}
+              </>
+            );
+          },
         }}
       >
         {text}
@@ -83,6 +119,26 @@ function AssistantMessage({
     .map((part, index) => ({ part, index }))
     .filter(({ part }) => isToolPart(part) || (isTextPart(part) && part.text.trim().length > 0));
   const sources = extractMessageSources(msg);
+  const sourceIndex = buildSourceIndex(sources);
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [highlightedKey, setHighlightedKey] = useState<string | null>(null);
+
+  const handleCitationClick = useCallback(
+    (sourceNumber: number) => {
+      const source: MessageSource | undefined = sources[sourceNumber - 1];
+      if (!source) return;
+      setPanelOpen(true);
+      setHighlightedKey(source.key);
+      // Wait a tick so the Collapsible content is in the DOM before scrolling to it.
+      window.requestAnimationFrame(() => {
+        const el = document.getElementById(sourceRowId(msg.id, source.key));
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+      // Clear highlight after the transition finishes.
+      window.setTimeout(() => setHighlightedKey(null), 1800);
+    },
+    [msg.id, sources],
+  );
 
   return (
     <div
@@ -115,6 +171,8 @@ function AssistantMessage({
               text={part.text}
               finalAnswer={finalAnswer}
               showCursor={isStreaming && isLastVisiblePart}
+              sourceIndex={finalAnswer ? sourceIndex : undefined}
+              onCitationClick={finalAnswer ? handleCitationClick : undefined}
             />
           </div>
         );
@@ -127,7 +185,15 @@ function AssistantMessage({
         </div>
       )}
 
-      {!isStreaming && sources.length > 0 && <SourcesPanel sources={sources} />}
+      {!isStreaming && sources.length > 0 && (
+        <SourcesPanel
+          sources={sources}
+          messageId={msg.id}
+          open={panelOpen}
+          onOpenChange={setPanelOpen}
+          highlightedKey={highlightedKey}
+        />
+      )}
 
       {!isStreaming && finalAnswerText && (
         <MessageActions
