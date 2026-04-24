@@ -107,6 +107,7 @@ export class AISdkStreamBuilder {
         'content-type': 'text/event-stream; charset=utf-8',
         'cache-control': 'no-cache',
         connection: 'keep-alive',
+        'x-vercel-ai-ui-message-stream': 'v1',
       },
       body: this.toBody(),
     };

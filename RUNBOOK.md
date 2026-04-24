@@ -128,6 +128,55 @@ Federal regulations change slowly. The `--refresh` flag forces re-fetch even if 
 
 A regression is flagged if any metric drops more than 5%. Investigate failures before merging.
 
+## Judge Evidence: Unified vs Legacy
+
+As of 2026-04-23, the answer-level judge sees a **unified** evidence bundle: the
+golden-dataset sections (anchor) combined with the structured tool-sourced
+evidence the agent actually read (the same bundle the in-agent hallucination
+verifier uses). This removes a prior false-positive class where the agent
+correctly cited graph data — typically amendment effective_dates and
+`change_description` strings from `getAmendments` — that the judge couldn't see
+because it only received curated section `content_text`.
+
+- **Default:** `pipeline eval --level answer` runs with the unified bundle.
+- **Legacy (for A/B comparison):** `pipeline eval --level answer --legacy-evidence`
+  restores the pre-2026-04-23 behavior (golden sections only, no tool outputs).
+  The run's `config.evidence_mode` field records which mode was used.
+- **Compare across modes carefully.** Numbers produced under `unified` and
+  `legacy` are not directly comparable — the judge has strictly more evidence
+  under unified, so hallucination scores are expected to be higher. Always
+  diff unified-vs-unified or legacy-vs-legacy.
+
+Per-question JSON now carries:
+- `agent_evidence`: raw tool-sourced evidence the agent emitted
+  (`{source_count, total_bytes, sources: [{toolName, key, text}, …]}`).
+- `judge_evidence_stats`: what landed in the judge prompt
+  (`{sources_used, golden_blocks_used, bytes_in_prompt, budget_trimmed,
+  evidence_mode}`). If `budget_trimmed=true`, some lower-priority tool blocks
+  were dropped to fit the 80 KB cap; check this first when a hallucination
+  score drops unexpectedly.
+
+## Separating Eval Signal From Judge Noise
+
+Single-run answer-eval deltas are noisy. A question that scored 3/3 last run and 2/3 now may just be judge variance. Run `eval-answer-stability` to separate **stable misses** (questions that fail across multiple runs — real gaps worth fixing) from **high variance** (questions whose scores swing widely — judge wobble, do not chase).
+
+```bash
+.venv/bin/python -m pipeline.cli eval-answer-stability --last 5
+```
+
+Useful options:
+- `--last N` — how many recent full runs to aggregate (default 5)
+- `--question q-044` — focus on one question's history
+- `--stable-miss-threshold 3` — stricter definition of stable (default 2)
+- `--include-targeted` — also count partial-dataset runs (default excludes them)
+
+**When to run:** After any eval delta ≥ ±0.10 overall, before planning retrieval/agent work, and to validate that a proposed fix targets real gaps (not noise).
+
+**How to read:**
+- **Stable Misses** → prioritize fixing these. Mean score + miss count indicate severity.
+- **High Variance** → do not chase in isolation; rerun or re-judge to confirm.
+- **Agent error** entries (e.g., "Agent exited with code 1") → tool/infra failure, not answer quality — investigate in `packages/agent/` logs.
+
 ## Validate Dataset and Graph Integrity
 
 ```bash

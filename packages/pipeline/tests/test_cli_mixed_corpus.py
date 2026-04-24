@@ -114,6 +114,8 @@ def test_eval_command_still_defaults_to_retrieval(monkeypatch):
                 "category": None,
                 "difficulty": None,
                 "question": None,
+                "from_result": None,
+                "legacy_evidence": False,
             },
         )
     ]

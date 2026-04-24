@@ -28,7 +28,9 @@ export interface MockMastraOptions {
   feedbackEntries?: Array<{ id: string; messageId: string; threadId: string; rating: string; comment: string | null }>;
 }
 
-const MASTRA_BASE = '**/api/**';
+function isNextServerAction(headers: Record<string, string>): boolean {
+  return Boolean(headers['next-action'] || headers['next-router-state-tree']);
+}
 
 /**
  * Set up page.route() intercepts for all Mastra API endpoints the frontend calls.
@@ -37,7 +39,7 @@ const MASTRA_BASE = '**/api/**';
 export async function mockMastraAPI(page: Page, options: MockMastraOptions = {}): Promise<void> {
   // 1. POST /chat
   await page.route('**/chat', async (route) => {
-    if (route.request().method() !== 'POST') {
+    if (route.request().method() !== 'POST' || isNextServerAction(route.request().headers())) {
       await route.fallback();
       return;
     }

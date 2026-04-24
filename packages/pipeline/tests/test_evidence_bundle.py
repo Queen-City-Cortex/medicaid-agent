@@ -1,0 +1,183 @@
+"""Tests for the judge evidence bundle builder."""
+
+from pipeline.eval.evidence import build_judge_evidence, EvidenceBundle
+
+
+def _golden(section_id: str, text: str) -> dict:
+    return {"section_id": section_id, "text": text}
+
+
+def _source(tool: str, key: str, text: str) -> dict:
+    return {"toolName": tool, "key": key, "text": text}
+
+
+def test_empty_inputs_return_empty_bundle():
+    bundle = build_judge_evidence([], [])
+    assert isinstance(bundle, EvidenceBundle)
+    assert bundle.blocks == []
+    assert bundle.sources_used == 0
+    assert bundle.golden_blocks_used == 0
+    assert bundle.bytes_in_prompt == 0
+    assert bundle.budget_trimmed is False
+
+
+def test_only_golden_preserves_order():
+    bundle = build_judge_evidence(
+        [_golden("sec:a", "Alpha content"), _golden("sec:b", "Beta content")],
+        [],
+    )
+    assert bundle.blocks == ["Alpha content", "Beta content"]
+    assert bundle.golden_blocks_used == 2
+    assert bundle.sources_used == 0
+
+
+def test_only_agent_sources_ordered_by_priority():
+    sources = [
+        _source("followReferences", "fr-1", "Ref block"),
+        _source("getSection", "sec:x", "Section X content"),
+        _source("getAmendments", "cn-04-26", "Amendment block"),
+    ]
+    bundle = build_judge_evidence([], sources)
+    # Priority order: getSection > getAmendments > followReferences.
+    assert len(bundle.blocks) == 3
+    assert "getSection" in bundle.blocks[0]
+    assert "getAmendments" in bundle.blocks[1]
+    assert "followReferences" in bundle.blocks[2]
+    assert bundle.sources_used == 3
+
+
+def test_golden_comes_before_agent_sources():
+    bundle = build_judge_evidence(
+        [_golden("sec:a", "Golden A")],
+        [_source("getSection", "sec:x", "Agent X")],
+    )
+    assert bundle.blocks[0] == "Golden A"
+    assert "Agent X" in bundle.blocks[1]
+    assert bundle.blocks[1].startswith("--- Evidence: getSection → sec:x ---")
+
+
+def test_dedup_agent_getSection_when_golden_has_same_id():
+    bundle = build_judge_evidence(
+        [_golden("sec:shared", "Golden shared text")],
+        [
+            _source("getSection", "sec:shared", "Agent-read copy"),
+            _source("getSection", "sec:unique", "Agent-unique read"),
+        ],
+    )
+    # Only the unique agent section survives; the duplicate is dropped.
+    assert any("Agent-unique read" in b for b in bundle.blocks)
+    assert not any("Agent-read copy" in b for b in bundle.blocks)
+    assert bundle.golden_blocks_used == 1
+    assert bundle.sources_used == 1
+
+
+def test_non_getSection_sources_are_never_deduped_against_golden():
+    bundle = build_judge_evidence(
+        [_golden("cn:04-26", "Golden notice body")],
+        [_source("getAmendments", "cn:04-26", "[getAmendments]\nAppendix B changed...")],
+    )
+    # Amendments carry different info than section content — always keep.
+    assert bundle.sources_used == 1
+    assert any("Appendix B" in b for b in bundle.blocks)
+
+
+def test_amendment_source_with_change_summary_survives(q_044_style=True):
+    """q-044 regression case: agent calls getAmendments → changeSummary is the
+    only source of 'Appendix B' / 'Section 3.3b' fact. Must appear in bundle."""
+    sources = [
+        _source(
+            "getAmendments",
+            "clinical_policy:3K-2",
+            "[getAmendments]\nAmendments (2):\n"
+            "  - clinical_policy:3K-2:amend:2024-11-15 | Policy 3K-2 Revision — 2024-11-15 | 2024-11-15\n"
+            "    Summary: Appendix B: New information was added to provide clarity.\n"
+            "  - clinical_policy:3K-2:amend:2025-09-01 | Policy 3K-2 Revision — 2025-09-01 | 2025-09-01\n"
+            "    Summary: Section 3.3b: Added 'birth' to 'month'.",
+        ),
+    ]
+    bundle = build_judge_evidence([], sources)
+    joined = "\n".join(bundle.blocks)
+    assert "2024-11-15" in joined
+    assert "2025-09-01" in joined
+    assert "Appendix B" in joined
+    assert "Section 3.3b" in joined
+
+
+def test_budget_trims_lowest_priority_agent_source_first():
+    big = "X" * 5_000
+    sources = [
+        _source("followReferences", "fr-1", big),
+        _source("resolveAnswerFrame", "raf-1", big),
+        _source("getSection", "sec:keep", big),
+        _source("getAmendments", "cn:keep", big),
+    ]
+    # Budget fits two sources + headers, not four.
+    bundle = build_judge_evidence([], sources, budget_bytes=12_000)
+    joined = "\n".join(bundle.blocks)
+    assert "sec:keep" in joined
+    assert "cn:keep" in joined
+    assert "fr-1" not in joined
+    assert "raf-1" not in joined
+    assert bundle.budget_trimmed is True
+    assert bundle.sources_used == 2
+
+
+def test_budget_never_trims_golden():
+    # 20 KB of golden + 5 KB budget → golden still included (golden is
+    # mandatory; budget applies only to agent sources).
+    golden = [_golden("sec:a", "G" * 20_000)]
+    bundle = build_judge_evidence(golden, [], budget_bytes=5_000)
+    assert bundle.golden_blocks_used == 1
+    assert bundle.blocks[0].startswith("G")
+    # No agent sources to trim → budget_trimmed stays False.
+    assert bundle.budget_trimmed is False
+
+
+def test_budget_trimmed_true_when_agent_source_overflows():
+    golden = [_golden("sec:a", "small")]
+    sources = [_source("getSection", "sec:big", "X" * 10_000)]
+    bundle = build_judge_evidence(golden, sources, budget_bytes=1_000)
+    # Golden survived; agent source didn't.
+    assert bundle.golden_blocks_used == 1
+    assert bundle.sources_used == 0
+    assert bundle.budget_trimmed is True
+
+
+def test_empty_text_sources_are_skipped():
+    sources = [
+        _source("getSection", "sec:empty", ""),
+        _source("getSection", "sec:real", "actual content"),
+    ]
+    bundle = build_judge_evidence([], sources)
+    assert bundle.sources_used == 1
+    assert any("actual content" in b for b in bundle.blocks)
+
+
+def test_stats_reflect_final_byte_count():
+    bundle = build_judge_evidence(
+        [_golden("sec:a", "hello")],
+        [_source("getSection", "sec:x", "world")],
+    )
+    # Two blocks joined by "\n\n" separator in the count.
+    assert bundle.bytes_in_prompt > 0
+    assert bundle.bytes_in_prompt == sum(
+        len(b.encode("utf-8")) for b in bundle.blocks
+    ) + len("\n\n") * (len(bundle.blocks) - 1)
+
+
+def test_unknown_tool_is_ranked_last_not_dropped():
+    sources = [
+        _source("mysteryTool", "m-1", "mystery text"),
+        _source("getSection", "sec:x", "section text"),
+    ]
+    bundle = build_judge_evidence([], sources)
+    assert bundle.sources_used == 2
+    # getSection is priority 0; unknown tool is 99 → getSection first.
+    assert "section text" in bundle.blocks[0]
+    assert "mystery text" in bundle.blocks[1]
+
+
+def test_non_dict_agent_sources_are_skipped_safely():
+    sources = [None, "a string", {"toolName": "getSection", "key": "sec:x", "text": "ok"}]
+    bundle = build_judge_evidence([], sources)  # type: ignore[arg-type]
+    assert bundle.sources_used == 1

@@ -124,7 +124,16 @@ def build_sections_from_items(doc_dict: dict, document_id: str) -> list[dict]:
                 current_section["content_text"] += "\n\n[table extraction failed]\n"
                 current_section["has_tables"] = True
 
-        elif label in (DocItemLabel.PARAGRAPH, DocItemLabel.LIST_ITEM):
+        elif label in (
+            DocItemLabel.PARAGRAPH,
+            DocItemLabel.LIST_ITEM,
+            DocItemLabel.TEXT,
+            DocItemLabel.FOOTNOTE,
+            DocItemLabel.CAPTION,
+            DocItemLabel.REFERENCE,
+            DocItemLabel.CODE,
+            DocItemLabel.FORMULA,
+        ):
             if current_section:
                 current_section["content_text"] += f"\n{text}"
             elif text.strip():

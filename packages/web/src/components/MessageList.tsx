@@ -1,14 +1,16 @@
 'use client';
 
-import { useCallback, useState, type RefObject } from 'react';
+import { useState, type RefObject } from 'react';
 import ReactMarkdown from 'react-markdown';
 import type { UIMessage } from 'ai';
 import { MessageActions } from '@/components/MessageActions';
 import { SourcesPanel, sourceRowId } from '@/components/SourcesPanel';
 import { ToolStep } from '@/components/ToolStep';
+import { VersionNav } from '@/components/VersionNav';
 import {
   buildSourceIndex,
   extractMessageSources,
+  extractVerificationState,
   getTrailingAssistantText,
   hasRenderableAssistantPart,
   isTextPart,
@@ -31,6 +33,11 @@ interface MessageListProps {
   onRate: (messageId: string, rating: 'up' | 'down') => void;
   onClearRating: (messageId: string) => void;
   onComment: (messageId: string, comment: string) => void;
+  /** Client-side history of previous assistant messages keyed by the user msg they answered. Non-empty entries mean the user has re-run and earlier answers exist. */
+  archivedVersions?: Record<string, UIMessage[]>;
+  /** 1-based active version per user msg id. Missing / equal to total means "show live (latest)". */
+  activeVersion?: Record<string, number>;
+  onSelectVersion?: (userMsgId: string, version: number) => void;
 }
 
 function MarkdownText({
@@ -119,6 +126,7 @@ function AssistantMessage({
     .map((part, index) => ({ part, index }))
     .filter(({ part }) => isToolPart(part) || (isTextPart(part) && part.text.trim().length > 0));
   const sources = extractMessageSources(msg);
+  const verification = extractVerificationState(msg);
   // Detect the "tools ran but agent gave up without a text answer" state. This
   // happens when a mid-tool-loop model call throws (e.g. transient
   // AI_APICallError) and Mastra terminates the stream with finishReason that
@@ -132,22 +140,19 @@ function AssistantMessage({
   const [panelOpen, setPanelOpen] = useState(false);
   const [highlightedKey, setHighlightedKey] = useState<string | null>(null);
 
-  const handleCitationClick = useCallback(
-    (sourceNumber: number) => {
-      const source: MessageSource | undefined = sources[sourceNumber - 1];
-      if (!source) return;
-      setPanelOpen(true);
-      setHighlightedKey(source.key);
-      // Wait a tick so the Collapsible content is in the DOM before scrolling to it.
-      window.requestAnimationFrame(() => {
-        const el = document.getElementById(sourceRowId(msg.id, source.key));
-        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      });
-      // Clear highlight after the transition finishes.
-      window.setTimeout(() => setHighlightedKey(null), 1800);
-    },
-    [msg.id, sources],
-  );
+  const handleCitationClick = (sourceNumber: number) => {
+    const source: MessageSource | undefined = sources[sourceNumber - 1];
+    if (!source) return;
+    setPanelOpen(true);
+    setHighlightedKey(source.key);
+    // Wait a tick so the Collapsible content is in the DOM before scrolling to it.
+    window.requestAnimationFrame(() => {
+      const el = document.getElementById(sourceRowId(msg.id, source.key));
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+    // Clear highlight after the transition finishes.
+    window.setTimeout(() => setHighlightedKey(null), 1800);
+  };
 
   return (
     <div
@@ -215,6 +220,7 @@ function AssistantMessage({
           open={panelOpen}
           onOpenChange={setPanelOpen}
           highlightedKey={highlightedKey}
+          verification={verification}
         />
       )}
 
@@ -244,37 +250,73 @@ function AssistantMessage({
   );
 }
 
-export function MessageList({ messages, isStreaming, status, onRerun, messagesEndRef, feedbackMap, threadId, onRate, onClearRating, onComment }: MessageListProps) {
+export function MessageList({ messages, isStreaming, status, onRerun, messagesEndRef, feedbackMap, threadId, onRate, onClearRating, onComment, archivedVersions, activeVersion, onSelectVersion }: MessageListProps) {
+  // Walk once to remember the nearest preceding user message for each
+  // assistant. Used to look up archived versions + render a VersionNav above
+  // the displayed message when earlier answers exist.
+  const parentUserIdByAssistantIndex = new Map<number, string>();
+  {
+    let lastUserId: string | null = null;
+    for (let i = 0; i < messages.length; i++) {
+      const m = messages[i];
+      if (m.role === 'user') lastUserId = m.id;
+      else if (m.role === 'assistant' && lastUserId) {
+        parentUserIdByAssistantIndex.set(i, lastUserId);
+      }
+    }
+  }
+
   return (
     <>
-      {messages.map((msg, i) => (
-        <div key={msg.id} className="group">
-          {msg.role === 'user' && (
-            <div className="flex justify-end mb-6 animate-in fade-in slide-in-from-bottom-2 duration-200">
-              <div data-testid="user-message" className="bg-primary text-primary-foreground rounded-2xl rounded-br-sm px-5 py-3 max-w-[75%] shadow-sm">
-                <p className="text-sm leading-relaxed">
-                  {msg.parts.filter(p => p.type === 'text').map(p => (p as { text: string }).text).join('')}
-                </p>
-              </div>
-            </div>
-          )}
+      {messages.map((msg, i) => {
+        const parentUserId = parentUserIdByAssistantIndex.get(i);
+        const archived: UIMessage[] = parentUserId ? (archivedVersions?.[parentUserId] ?? []) : [];
+        const totalVersions = archived.length + 1;
+        // Default active version = live (the last slot). Explicit active version only matters when archived.length > 0.
+        const active = parentUserId ? (activeVersion?.[parentUserId] ?? totalVersions) : totalVersions;
+        const showLive = active === totalVersions;
+        const displayMsg = showLive ? msg : archived[active - 1] ?? msg;
 
-          {msg.role === 'assistant' && (
-            <AssistantMessage
-              msg={msg}
-              messageIndex={i}
-              messages={messages}
-              isStreaming={isStreaming && i === messages.length - 1}
-              threadId={threadId}
-              feedbackMap={feedbackMap}
-              onRerun={onRerun}
-              onRate={onRate}
-              onClearRating={onClearRating}
-              onComment={onComment}
-            />
-          )}
-        </div>
-      ))}
+        return (
+          <div key={msg.id} className="group">
+            {msg.role === 'user' && (
+              <div className="flex justify-end mb-6 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                <div data-testid="user-message" className="bg-primary text-primary-foreground rounded-2xl rounded-br-sm px-5 py-3 max-w-[75%] shadow-sm">
+                  <p className="text-sm leading-relaxed">
+                    {msg.parts.filter(p => p.type === 'text').map(p => (p as { text: string }).text).join('')}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {msg.role === 'assistant' && (
+              <>
+                {totalVersions > 1 && parentUserId && onSelectVersion && (
+                  <div className="mt-3 pl-2">
+                    <VersionNav
+                      current={active}
+                      total={totalVersions}
+                      onSelect={(v) => onSelectVersion(parentUserId, v)}
+                    />
+                  </div>
+                )}
+                <AssistantMessage
+                  msg={displayMsg}
+                  messageIndex={i}
+                  messages={messages}
+                  isStreaming={showLive && isStreaming && i === messages.length - 1}
+                  threadId={threadId}
+                  feedbackMap={feedbackMap}
+                  onRerun={onRerun}
+                  onRate={onRate}
+                  onClearRating={onClearRating}
+                  onComment={onComment}
+                />
+              </>
+            )}
+          </div>
+        );
+      })}
 
       {/* Submitted but no assistant message yet */}
       {status === 'submitted' && (messages.length === 0 || messages[messages.length - 1]?.role !== 'assistant') && (

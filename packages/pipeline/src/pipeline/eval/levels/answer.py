@@ -8,17 +8,16 @@ import logging
 import threading
 import time
 
-import httpx
-
 from pipeline.config import ANTHROPIC_API_KEY, VOYAGE_API_KEY, AGENT_DIR
 from pipeline.graph.connection import get_session
 from pipeline.eval.judge import judge_answer
 from pipeline.eval.citation import score_citation_support
+from pipeline.eval.evidence import build_judge_evidence
 
 logger = logging.getLogger(__name__)
 
-AGENT_API_URL = "http://localhost:4111/api/agents/ncMedicaidAgent/generate"
 ROUTE_MARKER = "---ROUTE---"
+EVIDENCE_MARKER = "---EVIDENCE---"
 VERIFIER_MARKER = "---VERIFIER---"
 ANSWER_EVAL_PREVIEW_CHARS = 72
 AGENT_EVAL_TIMEOUT_SECS = int(os.environ.get("AGENT_EVAL_TIMEOUT_SECS", "180"))
@@ -97,14 +96,28 @@ def _extract_marker_block(stdout: str, start_marker: str, end_markers: tuple[str
 
 
 def extract_route_metadata(stdout: str) -> dict | None:
-    # Bound the search by the next marker so an interleaved `---VERIFIER---`
-    # block isn't accidentally parsed as the route JSON.
-    return _extract_marker_block(stdout, ROUTE_MARKER, (VERIFIER_MARKER, "---ANSWER---"))
+    # Bound the search by the next marker so an interleaved block isn't
+    # accidentally parsed as the route JSON.
+    return _extract_marker_block(
+        stdout, ROUTE_MARKER, (EVIDENCE_MARKER, VERIFIER_MARKER, "---ANSWER---")
+    )
 
 
 def extract_verifier_metadata(stdout: str) -> dict | None:
     """Extract hallucination-verifier telemetry (printed as a `---VERIFIER---` block)."""
     return _extract_marker_block(stdout, VERIFIER_MARKER, ("---ANSWER---",))
+
+
+def extract_evidence_metadata(stdout: str) -> dict | None:
+    """Extract the agent's tool-sourced evidence payload (``---EVIDENCE---`` block).
+
+    Shape: ``{"sources": [{"toolName", "key", "text"}, ...], "evidence_bytes": int}``.
+    The block is printed before ``---VERIFIER---`` / ``---ANSWER---``, so bound
+    the search accordingly.
+    """
+    return _extract_marker_block(
+        stdout, EVIDENCE_MARKER, (VERIFIER_MARKER, "---ANSWER---")
+    )
 
 
 def _is_retryable_agent_answer(answer: str) -> bool:
@@ -148,21 +161,6 @@ def _start_pipe_reader(stream: subprocess.PIPE) -> tuple[list[str], threading.Th
     return chunks, thread
 
 
-def _invoke_agent_http(question: str, *, progress_label: str | None = None) -> tuple[str, dict | None, dict | None]:
-    """Call the agent via HTTP API (requires `mastra dev` running on port 4111).
-
-    Returns (answer, route_info, verifier_info). HTTP path cannot read the ---VERIFIER---
-    stdout marker, so verifier_info is always None here — use CLI fallback for verifier telemetry.
-    """
-    resp = httpx.post(
-        AGENT_API_URL,
-        json={"messages": [{"role": "user", "content": question}]},
-        timeout=AGENT_EVAL_TIMEOUT_SECS,
-    )
-    resp.raise_for_status()
-    return resp.json().get("text", ""), None, None
-
-
 def _build_agent_env() -> dict[str, str]:
     agent_env = {**os.environ, "ANTHROPIC_API_KEY": ANTHROPIC_API_KEY, "VOYAGE_API_KEY": VOYAGE_API_KEY}
     agent_env["MASTRA_OBSERVABILITY_PATH"] = agent_env.get("MASTRA_OBSERVABILITY_PATH", ":memory:")
@@ -178,8 +176,8 @@ def _build_agent_env() -> dict[str, str]:
     return agent_env
 
 
-def _invoke_agent_cli(question: str, *, progress_label: str | None = None) -> tuple[str, dict | None, dict | None]:
-    """Fall back to CLI subprocess. Returns (answer, route_info, verifier_info)."""
+def _invoke_agent_cli(question: str, *, progress_label: str | None = None) -> tuple[str, dict | None, dict | None, dict | None]:
+    """Fall back to CLI subprocess. Returns (answer, route_info, verifier_info, evidence_info)."""
     agent_env = _build_agent_env()
     agent_env["AGENT_EVAL_CAPTURE_ROUTE"] = "true"
 
@@ -216,7 +214,12 @@ def _invoke_agent_cli(question: str, *, progress_label: str | None = None) -> tu
                 details.append(f"stdout_tail={stdout_tail}")
             detail_suffix = f" ({'; '.join(details)})" if details else ""
             raise RuntimeError(f"Agent exited with code {proc.returncode}{detail_suffix}")
-        return extract_answer(stdout), extract_route_metadata(stdout), extract_verifier_metadata(stdout)
+        return (
+            extract_answer(stdout),
+            extract_route_metadata(stdout),
+            extract_verifier_metadata(stdout),
+            extract_evidence_metadata(stdout),
+        )
 
     assert proc.stdout is not None
     assert proc.stderr is not None
@@ -269,26 +272,30 @@ def _invoke_agent_cli(question: str, *, progress_label: str | None = None) -> tu
             details.append(f"stdout_tail={stdout_tail}")
         detail_suffix = f" ({'; '.join(details)})" if details else ""
         raise RuntimeError(f"Agent exited with code {proc.returncode}{detail_suffix}")
-    return extract_answer(stdout), extract_route_metadata(stdout), extract_verifier_metadata(stdout)
+    return (
+        extract_answer(stdout),
+        extract_route_metadata(stdout),
+        extract_verifier_metadata(stdout),
+        extract_evidence_metadata(stdout),
+    )
 
 
-def _invoke_agent(question: str, *, progress_label: str | None = None) -> tuple[str, dict | None, dict | None]:
-    """Invoke agent via HTTP API, falling back to CLI subprocess.
+def _invoke_agent(question: str, *, progress_label: str | None = None) -> tuple[str, dict | None, dict | None, dict | None]:
+    """Invoke answer eval through the CLI subprocess.
 
-    Returns (answer, route_info, verifier_info).
+    The CLI emits route, verifier, and tool-evidence marker blocks on stdout.
+    The local Mastra HTTP API does not expose those signals, so answer evals
+    intentionally avoid the HTTP path even when a dev server is running.
     """
-    try:
-        return _invoke_agent_http(question, progress_label=progress_label)
-    except (httpx.ConnectError, httpx.HTTPError):
-        logger.info("Agent HTTP API not available, falling back to CLI subprocess")
-        return _invoke_agent_cli(question, progress_label=progress_label)
+    logger.debug("Invoking answer eval through CLI to preserve verifier/evidence metadata")
+    return _invoke_agent_cli(question, progress_label=progress_label)
 
 
-def _invoke_agent_with_progress(question: str, progress_label: str | None = None) -> tuple[str, dict | None, dict | None]:
-    """Compatibility wrapper for tests or callers that still monkeypatch a one-arg _invoke_agent.
-
-    Returns (answer, route_info, verifier_info). Older monkeypatches that return 2-tuples
-    or plain strings are padded to the 3-tuple shape.
+def _invoke_agent_with_progress(question: str, progress_label: str | None = None) -> tuple[str, dict | None, dict | None, dict | None]:
+    """Compatibility wrapper for tests or callers that still monkeypatch a
+    narrower ``_invoke_agent``. Always returns a 4-tuple
+    ``(answer, route_info, verifier_info, evidence_info)``; shorter tuples
+    from legacy monkeypatches are padded with ``None``.
     """
     try:
         result = _invoke_agent(question, progress_label=progress_label)
@@ -298,18 +305,35 @@ def _invoke_agent_with_progress(question: str, progress_label: str | None = None
         result = _invoke_agent(question)
 
     if isinstance(result, tuple):
-        if len(result) == 3:
+        if len(result) == 4:
             return result  # type: ignore[return-value]
+        if len(result) == 3:
+            return result[0], result[1], result[2], None
         if len(result) == 2:
-            return result[0], result[1], None
+            return result[0], result[1], None, None
         if len(result) == 1:
-            return result[0], None, None
-    return result, None, None  # type: ignore[return-value]
+            return result[0], None, None, None
+    return result, None, None, None  # type: ignore[return-value]
 
 
 def _fetch_evidence_texts(primary_sections: list[dict]) -> list[str]:
-    """Fetch content for the given section IDs from Neo4j."""
-    texts: list[str] = []
+    """Fetch content for the given section IDs from Neo4j (legacy shape).
+
+    Kept for the ``--legacy-evidence`` code path. For the default path use
+    ``_fetch_evidence_sections`` which preserves section ids so the evidence
+    bundle builder can dedupe against agent-sourced getSection reads.
+    """
+    return [s["text"] for s in _fetch_evidence_sections(primary_sections)]
+
+
+def _fetch_evidence_sections(primary_sections: list[dict]) -> list[dict]:
+    """Fetch ``{section_id, text}`` pairs for the given section IDs from Neo4j.
+
+    Returns the same joined ``title\\ncontent`` string as the legacy helper,
+    but keyed by section id so downstream deduplication against the agent's
+    ``getSection`` reads is possible.
+    """
+    sections: list[dict] = []
     with get_session() as session:
         for sec in primary_sections:
             section_id = sec.get("section_id")
@@ -323,19 +347,25 @@ def _fetch_evidence_texts(primary_sections: list[dict]) -> list[str]:
             if record:
                 title = record["title"] or ""
                 content = record["content"] or ""
-                texts.append(f"{title}\n{content}".strip())
-    return texts
+                text = f"{title}\n{content}".strip()
+                if text:
+                    sections.append({"section_id": section_id, "text": text})
+    return sections
 
 
-def evaluate_answers(entries: list[dict]) -> list[dict]:
+def evaluate_answers(entries: list[dict], *, use_unified_evidence: bool = True) -> list[dict]:
     """
     Run end-to-end answer quality evaluation for each golden dataset entry.
 
     For each entry:
     1. Invokes the agent subprocess to get an answer.
-    2. Fetches evidence section texts from Neo4j.
-    3. Calls judge_answer() to score the response.
-    4. Returns per-question results with scores.
+    2. Fetches the golden-dataset evidence sections from Neo4j.
+    3. Builds the judge evidence bundle. When ``use_unified_evidence`` is True
+       (default), the bundle combines golden sections with the agent's
+       tool-sourced evidence — the same bundle the hallucination verifier
+       sees. When False, legacy behavior: golden sections only.
+    4. Calls ``judge_answer()`` to score the response.
+    5. Returns per-question results with scores.
     """
     results: list[dict] = []
     total = len(entries)
@@ -355,6 +385,7 @@ def evaluate_answers(entries: list[dict]) -> list[dict]:
         route_info: dict | None = None
         route_error: str | None = None
         verifier_info: dict | None = None
+        evidence_info: dict | None = None
         agent_started_at = time.monotonic()
 
         for attempt in range(AGENT_EVAL_MAX_RETRIES + 1):
@@ -363,6 +394,7 @@ def evaluate_answers(entries: list[dict]) -> list[dict]:
                     candidate_answer,
                     candidate_route_info,
                     candidate_verifier_info,
+                    candidate_evidence_info,
                 ) = _invoke_agent_with_progress(
                     question,
                     progress_label=question_id,
@@ -373,6 +405,7 @@ def evaluate_answers(entries: list[dict]) -> list[dict]:
                 candidate_answer = ""
                 candidate_route_info = extract_route_metadata((getattr(exc, "stdout", "") or ""))
                 candidate_verifier_info = extract_verifier_metadata((getattr(exc, "stdout", "") or ""))
+                candidate_evidence_info = extract_evidence_metadata((getattr(exc, "stdout", "") or ""))
                 tails = []
                 stderr_tail = _tail_text(getattr(exc, "stderr", None))
                 stdout_tail = _tail_text(extract_answer(getattr(exc, "stdout", "") or getattr(exc, "stdout", "")))
@@ -387,6 +420,7 @@ def evaluate_answers(entries: list[dict]) -> list[dict]:
                 candidate_answer = ""
                 candidate_route_info = None
                 candidate_verifier_info = None
+                candidate_evidence_info = None
                 candidate_error = f"Agent error: {exc}"
                 candidate_route_error = None
 
@@ -414,6 +448,7 @@ def evaluate_answers(entries: list[dict]) -> list[dict]:
             route_info = candidate_route_info
             route_error = candidate_route_error
             verifier_info = candidate_verifier_info
+            evidence_info = candidate_evidence_info
             break
 
         if agent_error:
@@ -426,6 +461,8 @@ def evaluate_answers(entries: list[dict]) -> list[dict]:
             route_info = None
         if not isinstance(verifier_info, dict):
             verifier_info = None
+        if not isinstance(evidence_info, dict):
+            evidence_info = None
         route = (route_info or {}).get("route") or {}
         if not isinstance(route, dict):
             route = {}
@@ -441,18 +478,34 @@ def evaluate_answers(entries: list[dict]) -> list[dict]:
             )
         agent_elapsed_seconds = round(time.monotonic() - agent_started_at, 3)
 
-        # --- Fetch evidence texts from Neo4j ---
+        # --- Fetch evidence texts from Neo4j (golden anchor) ---
         primary_sections = entry["evidence"].get("primary_sections", [])
         supporting_sections = entry["evidence"].get("supporting_sections", [])
         all_sections = primary_sections + supporting_sections
         try:
-            evidence_texts = _fetch_evidence_texts(all_sections)
+            golden_sections = _fetch_evidence_sections(all_sections)
         except Exception:
-            evidence_texts = []
+            golden_sections = []
+
+        # --- Build the unified judge evidence bundle ---
+        # Combines golden anchor sections with the agent's tool-sourced evidence
+        # (same bundle the hallucination verifier sees). Aligning the judge's
+        # input with the verifier's input removes the false-positive class where
+        # the agent correctly cites graph data (e.g. amendment effective_dates)
+        # the judge couldn't see.
+        agent_sources = ((evidence_info or {}).get("sources") or []) if use_unified_evidence else []
+        evidence_bundle = build_judge_evidence(
+            golden_sections=golden_sections,
+            agent_sources=agent_sources,
+        )
+        evidence_texts = evidence_bundle.blocks
 
         # --- Blind citation-support detector (deterministic, no LLM) ---
         # Runs even when the judge errors so we still have grounding signal.
-        citation_support = score_citation_support(agent_answer or "", evidence_texts)
+        # Scored against golden-only so the detector's signal stays comparable
+        # across runs regardless of how much tool evidence the agent surfaced.
+        golden_only_texts = [sec["text"] for sec in golden_sections]
+        citation_support = score_citation_support(agent_answer or "", golden_only_texts)
 
         # --- Score with judge ---
         if agent_error:
@@ -509,6 +562,18 @@ def evaluate_answers(entries: list[dict]) -> list[dict]:
             "route_inspection_error": route_error,
             "verifier": verifier_info,
             "citation_support": citation_support,
+            "agent_evidence": {
+                "source_count": len((evidence_info or {}).get("sources") or []),
+                "total_bytes": (evidence_info or {}).get("evidence_bytes") or 0,
+                "sources": (evidence_info or {}).get("sources") or [],
+            },
+            "judge_evidence_stats": {
+                "sources_used": evidence_bundle.sources_used,
+                "golden_blocks_used": evidence_bundle.golden_blocks_used,
+                "bytes_in_prompt": evidence_bundle.bytes_in_prompt,
+                "budget_trimmed": evidence_bundle.budget_trimmed,
+                "evidence_mode": "unified" if use_unified_evidence else "legacy",
+            },
             "agent_elapsed_seconds": agent_elapsed_seconds,
             # Alias fields for results.py aggregate compatibility
             # None values signal "exclude from aggregates"

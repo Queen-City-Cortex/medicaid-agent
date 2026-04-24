@@ -25,6 +25,7 @@ def _run_eval_level(
     difficulty: str | None = None,
     question: str | None = None,
     from_result: str | None = None,
+    legacy_evidence: bool = False,
 ) -> dict:
     from pipeline.eval.runner import run_eval
 
@@ -35,6 +36,7 @@ def _run_eval_level(
         question_id=question,
         top_k=top_k,
         from_result=from_result,
+        legacy_evidence=legacy_evidence,
     )
 
 
@@ -57,6 +59,7 @@ def _run_eval_levels(
     difficulty: str | None = None,
     question: str | None = None,
     from_result: str | None = None,
+    legacy_evidence: bool = False,
 ) -> dict[str, dict]:
     results: dict[str, dict] = {}
 
@@ -69,6 +72,7 @@ def _run_eval_levels(
             difficulty=difficulty,
             question=question,
             from_result=from_result,
+            legacy_evidence=legacy_evidence,
         )
         if "error" in result:
             console.print(f"[red]{result['error']}[/red]")
@@ -532,6 +536,13 @@ def search(query_text: str, top_k: int, doc_type: str | None):
     type=click.Path(exists=True, dir_okay=False, path_type=str),
     help="Path to a cached answer-eval result JSON. Required for --level citation; ignored elsewhere.",
 )
+@click.option(
+    "--legacy-evidence",
+    is_flag=True,
+    default=False,
+    help="Use the old judge evidence path (golden sections only, no agent tool outputs). "
+         "Answer-level only. Default is the unified path (golden + tool-sourced).",
+)
 def eval(
     level: str | None,
     top_k: int | None,
@@ -539,6 +550,7 @@ def eval(
     difficulty: str | None,
     question: str | None,
     from_result: str | None,
+    legacy_evidence: bool,
 ):
     """Run evaluation against the golden dataset."""
     levels = [level] if level else ["retrieval"]
@@ -551,6 +563,7 @@ def eval(
         difficulty=difficulty,
         question=question,
         from_result=from_result,
+        legacy_evidence=legacy_evidence,
     )
 
 

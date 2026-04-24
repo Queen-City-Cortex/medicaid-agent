@@ -67,12 +67,23 @@ export default function ChatPage() {
     },
   }), [threadId, resourceId, getAccessToken]);
 
-  const { messages, status, error, sendMessage, setMessages } = useChat({
+  const { messages, status, error, sendMessage, regenerate, setMessages } = useChat({
     id: `${threadId}:${resourceId}`,
     transport,
     onFinish: () => setThreadVersion(v => v + 1),
     onError: (err) => console.error('[chat] stream error:', err),
   });
+
+  // Historical assistant messages archived by the user msg they answer. The
+  // "live" version lives in `messages` (useChat); anything in this map is an
+  // earlier attempt preserved client-side so the user can flip between
+  // answers via the VersionNav pager. Keyed by user msg id so it survives
+  // regenerate() swapping the live assistant's id. Not persisted — cleared
+  // when the thread changes.
+  const [archivedVersions, setArchivedVersions] = useState<Record<string, UIMessage[]>>({});
+  // 1-based active version per user msg id. N = live, 1..N-1 = archived.
+  // Absent key means "show live" (the default).
+  const [activeVersion, setActiveVersion] = useState<Record<string, number>>({});
 
   const isStreaming = status === 'streaming';
   const isLoading = status === 'streaming' || status === 'submitted';
@@ -241,6 +252,8 @@ export default function ChatPage() {
     console.log(`[chat] selectThread ${tid.slice(0, 8)}… | cached: ${hasCached}`);
     setThreadId(tid);
     setFeedbackMap({});
+    setArchivedVersions({});
+    setActiveVersion({});
     if (isMobile) setSidebarCollapsed(true);
 
     const cached = messageCache.current.get(tid);
@@ -265,6 +278,8 @@ export default function ChatPage() {
     setThreadId(newId);
     setMessages([]);
     setFeedbackMap({});
+    setArchivedVersions({});
+    setActiveVersion({});
     if (isMobile) setSidebarCollapsed(true);
     await ensureThreadExists(newId);
     inputRef.current?.focus({ preventScroll: true });
@@ -281,14 +296,27 @@ export default function ChatPage() {
   }, [input, messages.length, threadId, ensureThreadExists, sendMessage]);
 
   const handleRerun = useCallback((messageIndex: number, userIndex: number) => {
-    const userText = messages[userIndex].parts
-      .filter(p => p.type === 'text')
-      .map(p => (p as { text: string }).text)
-      .join('');
-    const newMessages = messages.filter((_, idx) => idx !== messageIndex && idx !== userIndex);
-    setMessages(newMessages);
-    sendMessage({ text: userText });
-  }, [messages, setMessages, sendMessage]);
+    const assistantMsg = messages[messageIndex];
+    const userMsg = messages[userIndex];
+    if (!assistantMsg || !userMsg || assistantMsg.role !== 'assistant' || userMsg.role !== 'user') return;
+
+    // Snapshot the current (live) answer so the user can navigate back to it
+    // after the regenerate replaces it in place. Archived versions stack up
+    // in the order they were replaced, oldest first.
+    setArchivedVersions(prev => {
+      const existing = prev[userMsg.id] ?? [];
+      return { ...prev, [userMsg.id]: [...existing, assistantMsg] };
+    });
+    // Jump activeVersion to the new live answer so the UI follows the user's
+    // expectation that "re-run" shows the new response.
+    setActiveVersion(prev => {
+      const next = { ...prev };
+      delete next[userMsg.id];
+      return next;
+    });
+
+    regenerate({ messageId: assistantMsg.id });
+  }, [messages, regenerate]);
 
   const handleSelectExample = useCallback((question: string) => {
     setInput(question);
@@ -427,6 +455,15 @@ export default function ChatPage() {
               onRate={handleRate}
               onClearRating={handleClearRating}
               onComment={handleComment}
+              archivedVersions={archivedVersions}
+              activeVersion={activeVersion}
+              onSelectVersion={(userMsgId, version) => {
+                setActiveVersion(prev => {
+                  const next = { ...prev };
+                  next[userMsgId] = version;
+                  return next;
+                });
+              }}
             />
 
             {error && (

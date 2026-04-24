@@ -563,6 +563,72 @@ export async function verifyAnswer(
   }
 }
 
+// ── Confidence scoring ──────────────────────────────────────────────────────
+
+export type VerificationSeverity = 'high' | 'medium' | 'low';
+
+export interface VerificationConfidence {
+  /** 0..1, where 1 = no issues detected. */
+  confidence: number;
+  severity: VerificationSeverity;
+  counts: {
+    unsupported: number;
+    missingCitation: number;
+    relevanceMajor: number;
+    relevanceMinor: number;
+  };
+  /**
+   * True when the verifier produced a rewrite that was entirely `[missing
+   * citation: ...]` markers and we fell back to the original text. This is a
+   * degraded state even if the verifier's per-check flags look clean — the
+   * rewrite was unusable — so we clamp to `low`.
+   */
+  pureMarkerFallback: boolean;
+}
+
+/**
+ * Derive a single 0..1 confidence score from the verifier's check outputs.
+ * Higher = fewer/softer issues. Deductions are additive rather than
+ * normalized per-claim so that multiple unsupported claims compound: the
+ * user signal we want is "how bad", not "what kind."
+ */
+export function computeVerificationConfidence(
+  verification: VerificationResult,
+  options: { pureMarkerFallback?: boolean } = {},
+): VerificationConfidence {
+  const unsupported = verification.unsupportedClaims?.length ?? 0;
+  const missingCitation = verification.missingCitationClaims?.length ?? 0;
+  const issues = verification.relevanceIssues ?? [];
+  const relevanceMajor = issues.filter((i) => i.severity === 'major').length;
+  const relevanceMinor = issues.filter((i) => i.severity === 'minor').length;
+
+  const deduction =
+    0.30 * unsupported
+    + 0.15 * missingCitation
+    + 0.35 * relevanceMajor
+    + 0.10 * relevanceMinor;
+  let confidence = Math.max(0, Math.min(1, 1 - deduction));
+
+  const pureMarkerFallback = !!options.pureMarkerFallback;
+  if (pureMarkerFallback) {
+    // Clamp: a rewrite that was unusable should never read `high` no matter
+    // how clean the individual check flags looked.
+    confidence = Math.min(confidence, 0.55);
+  }
+
+  let severity: VerificationSeverity;
+  if (confidence >= 0.85) severity = 'high';
+  else if (confidence >= 0.60) severity = 'medium';
+  else severity = 'low';
+
+  return {
+    confidence,
+    severity,
+    counts: { unsupported, missingCitation, relevanceMajor, relevanceMinor },
+    pureMarkerFallback,
+  };
+}
+
 // ── Rendering helpers ───────────────────────────────────────────────────────
 
 const MISSING_CITATION_MARKER = '[missing citation:';
@@ -651,6 +717,32 @@ export function renderCorrectedAnswer(corrected: string, fallback?: string): str
 
 // ── Processor Class ─────────────────────────────────────────────────────────
 
+function extractTextFromMessage(message: MastraDBMessage): string {
+  const content = (message as any).content;
+  if (typeof content === 'string') return content.trim();
+
+  const parts = content?.parts ?? [];
+  if (!Array.isArray(parts)) return '';
+
+  return parts
+    .filter((part: any) => part?.type === 'text' && typeof part.text === 'string')
+    .map((part: any) => part.text.trim())
+    .filter(Boolean)
+    .join('\n')
+    .trim();
+}
+
+function extractLatestUserQuestion(messages: MastraDBMessage[]): string {
+  for (let index = messages.length - 1; index >= 0; index--) {
+    const message = messages[index];
+    if (message.role !== 'user') continue;
+
+    const text = extractTextFromMessage(message);
+    if (text) return text;
+  }
+  return '';
+}
+
 export class HallucinationVerifier implements Processor {
   readonly id = 'hallucination-verifier';
   readonly name = 'Hallucination Verifier';
@@ -669,20 +761,7 @@ export class HallucinationVerifier implements Processor {
       return messages;
     }
 
-    // Extract the user's original question from the first user message
-    let question = '';
-    for (const msg of messages) {
-      if (msg.role === 'user') {
-        const parts = (msg.content as any)?.parts ?? [];
-        for (const part of parts) {
-          if (part.type === 'text' && part.text) {
-            question = part.text;
-            break;
-          }
-        }
-        if (question) break;
-      }
-    }
+    const question = extractLatestUserQuestion(messages);
 
     const sources = extractSources(messages as any);
     const sourceText = buildSourceText(sources, text);
@@ -702,7 +781,19 @@ export class HallucinationVerifier implements Processor {
       && !hasMajorRelevanceIssue
       && citationsComplete
     ) {
-      if (!writer) {
+      const okConfidence = computeVerificationConfidence(verification);
+      if (writer) {
+        // Emit a positive-path event so the UI can render a green confidence
+        // indicator even when nothing needed correcting.
+        await writer.custom({
+          type: 'data-verification-ok',
+          data: {
+            confidence: okConfidence.confidence,
+            severity: okConfidence.severity,
+            counts: okConfidence.counts,
+          },
+        } as any);
+      } else {
         console.log('\n---VERIFIER---\n');
         console.log(JSON.stringify({
           rewrote: false,
@@ -717,6 +808,8 @@ export class HallucinationVerifier implements Processor {
           verifier_model: getConfig().model,
           reranker_fallback_count: rerankerDiagnostics.fallbackCount,
           reranker_last_error: rerankerDiagnostics.lastError,
+          confidence: okConfidence.confidence,
+          severity: okConfidence.severity,
         }));
       }
       return messages;
@@ -734,6 +827,11 @@ export class HallucinationVerifier implements Processor {
     // Pass the original text as a fallback so a rewrite that is pure markers
     // (body empty after extraction) doesn't nuke the answer.
     const corrected = renderCorrectedAnswer(rawCorrected, text);
+    // Detect the pure-marker fallback so the confidence badge reflects that
+    // the rewrite was unusable (same signal as the q-006 regression guard).
+    const pureMarkerFallback =
+      (verification.correctedAnswer ?? '').trim().length > 0 && corrected.trim() === text.trim();
+    const confidence = computeVerificationConfidence(verification, { pureMarkerFallback });
 
     if (writer) {
       await writer.custom({
@@ -743,6 +841,10 @@ export class HallucinationVerifier implements Processor {
           missingCitationClaims: verification.missingCitationClaims,
           relevanceIssues: verification.relevanceIssues,
           correctedAnswer: corrected,
+          confidence: confidence.confidence,
+          severity: confidence.severity,
+          counts: confidence.counts,
+          pureMarkerFallback,
         },
       } as any);
     } else {
@@ -760,6 +862,9 @@ export class HallucinationVerifier implements Processor {
         verifier_model: getConfig().model,
         reranker_fallback_count: rerankerDiagnostics.fallbackCount,
         reranker_last_error: rerankerDiagnostics.lastError,
+        confidence: confidence.confidence,
+        severity: confidence.severity,
+        pure_marker_fallback: pureMarkerFallback,
       };
       console.log('\n---VERIFIER---\n');
       console.log(JSON.stringify(telemetry));

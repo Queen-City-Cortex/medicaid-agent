@@ -25,6 +25,7 @@ import {
   buildSourceText,
   verifyAnswer,
   renderCorrectedAnswer,
+  computeVerificationConfidence,
   type ToolResultRecord,
 } from './processors/hallucination-verifier.js';
 import { getPolicyCorpusRerankerDiagnostics } from './policy-corpus-reranker.js';
@@ -325,6 +326,14 @@ if (CLI_QUESTION) {
           sources = extractSources(messages);
         }
         const sourceText = buildSourceText(sources, finalAnswer);
+
+        // Emit the extracted sources so the eval harness can give the judge
+        // the same evidence the verifier sees. Single-line JSON so the
+        // `last JSON object line` extractor on the Python side parses cleanly.
+        const evidenceBytes = sources.reduce((n, s) => n + s.text.length, 0);
+        console.log('\n---EVIDENCE---\n');
+        console.log(JSON.stringify({ sources, evidence_bytes: evidenceBytes }));
+
         const verification = await verifyAnswer(CLI_QUESTION, finalAnswer, sourceText);
         const hasMajorRelevanceIssue = verification.relevanceIssues?.some(
           (i) => i.severity === 'major',
@@ -337,6 +346,19 @@ if (CLI_QUESTION) {
           && citationsComplete
         );
         const rerankerDiag = getPolicyCorpusRerankerDiagnostics();
+
+        // Compute the rendered (post-marker-folding) answer up-front so we can
+        // detect the pure-marker fallback, which influences confidence.
+        let renderedCorrected: string | null = null;
+        let pureMarkerFallback = false;
+        if (rewrote && verification.correctedAnswer) {
+          renderedCorrected = renderCorrectedAnswer(verification.correctedAnswer, finalAnswer);
+          pureMarkerFallback =
+            verification.correctedAnswer.trim().length > 0
+            && renderedCorrected.trim() === finalAnswer.trim();
+        }
+        const confidence = computeVerificationConfidence(verification, { pureMarkerFallback });
+
         const telemetry = {
           rewrote,
           supported: verification.supported,
@@ -353,12 +375,16 @@ if (CLI_QUESTION) {
           reranker_fallback_count: rerankerDiag.fallbackCount,
           reranker_last_error: rerankerDiag.lastError,
           source_entry_count: sources.length,
+          evidence_bytes: evidenceBytes,
+          confidence: confidence.confidence,
+          severity: confidence.severity,
+          pure_marker_fallback: pureMarkerFallback,
         };
         console.log('\n---VERIFIER---\n');
         console.log(JSON.stringify(telemetry));
 
-        if (rewrote && verification.correctedAnswer) {
-          finalAnswer = renderCorrectedAnswer(verification.correctedAnswer);
+        if (renderedCorrected !== null) {
+          finalAnswer = renderedCorrected;
         }
       } catch (err) {
         console.log('\n---VERIFIER---\n');

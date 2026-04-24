@@ -125,22 +125,27 @@ integration('agent tools against a real Neo4j graph', () => {
   });
 
   it('returns reference_text and mapped source_url/status fields', async () => {
+    // Use fixture-unique policy numbers so lookupPolicy's policy_number match
+    // can't collide with real 8C / 42 CFR 440 docs in the live graph.
+    const fixturePolicy = 'TEST-REF-8C';
+    const fixtureFedPolicy = 'TEST-REF-FED-440';
+
     await run(
       `
       CREATE (sourceDoc:Document {
         id: $sourceDocId,
-        title: 'Policy 8C',
+        title: 'Fixture Policy TEST-REF-8C',
         document_type: 'dhhs_policy',
-        policy_number: '8C',
-        source_url: 'https://example.com/8C',
+        policy_number: $fixturePolicy,
+        source_url: 'https://example.com/test-ref-8C',
         status: 'current'
       })
       CREATE (targetDoc:Document {
         id: $targetDocId,
-        title: 'Policy 42 CFR 440',
+        title: 'Fixture Policy 42 CFR 440',
         document_type: 'federal_regulation',
-        policy_number: '42 CFR 440',
-        source_url: 'https://example.com/42-cfr-440',
+        policy_number: $fixtureFedPolicy,
+        source_url: 'https://example.com/test-ref-42-cfr-440',
         status: 'current'
       })
       CREATE (source:Section {
@@ -168,14 +173,16 @@ integration('agent tools against a real Neo4j graph', () => {
         targetDocId: `${FIXTURE_PREFIX}doc:target`,
         sourceSectionId: `${FIXTURE_PREFIX}sec:source`,
         targetSectionId: `${FIXTURE_PREFIX}sec:target`,
+        fixturePolicy,
+        fixtureFedPolicy,
       },
     );
 
     const references = await followReferences.execute({ sectionId: `${FIXTURE_PREFIX}sec:source` }, {});
     expect(references.references[0]?.referenceText).toBe('see 42 CFR 440.70');
 
-    const lookup = await lookupPolicy.execute({ policyNumber: '8C' }, {});
-    expect(lookup.documents[0]?.url).toBe('https://example.com/8C');
+    const lookup = await lookupPolicy.execute({ policyNumber: fixturePolicy }, {});
+    expect(lookup.documents[0]?.url).toBe('https://example.com/test-ref-8C');
     expect(lookup.documents[0]?.status).toBe('current');
   });
 

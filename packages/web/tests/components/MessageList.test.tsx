@@ -10,7 +10,13 @@ vi.mock('@/components/MessageActions', () => ({
   ),
 }));
 
-function renderMessageList(messages: UIMessage[], options?: { isStreaming?: boolean; status?: string }) {
+function renderMessageList(messages: UIMessage[], options?: {
+  isStreaming?: boolean;
+  status?: string;
+  archivedVersions?: Record<string, UIMessage[]>;
+  activeVersion?: Record<string, number>;
+  onSelectVersion?: (userMsgId: string, version: number) => void;
+}) {
   const messagesEndRef = { current: null };
 
   render(
@@ -25,6 +31,9 @@ function renderMessageList(messages: UIMessage[], options?: { isStreaming?: bool
       onRate={vi.fn()}
       onClearRating={vi.fn()}
       onComment={vi.fn()}
+      archivedVersions={options?.archivedVersions}
+      activeVersion={options?.activeVersion}
+      onSelectVersion={options?.onSelectVersion ?? (() => {})}
     />,
   );
 }
@@ -243,5 +252,62 @@ describe('MessageList', () => {
     ]);
 
     expect(screen.queryByTestId('ended-without-answer')).not.toBeInTheDocument();
+  });
+
+  // ── Version navigation ────────────────────────────────────────────────
+
+  const USER_MSG: UIMessage = {
+    id: 'user-1',
+    role: 'user',
+    parts: [{ type: 'text', text: 'Question?' }],
+  } as unknown as UIMessage;
+
+  const ASSISTANT_V2: UIMessage = {
+    id: 'assistant-v2-live',
+    role: 'assistant',
+    parts: [{ type: 'text', text: 'Second answer (live).' }],
+  } as unknown as UIMessage;
+
+  const ASSISTANT_V1_ARCHIVED: UIMessage = {
+    id: 'assistant-v1-archived',
+    role: 'assistant',
+    parts: [{ type: 'text', text: 'First answer (archived).' }],
+  } as unknown as UIMessage;
+
+  it('does not render a version-nav when no earlier versions exist', () => {
+    renderMessageList([USER_MSG, ASSISTANT_V2]);
+    expect(screen.queryByTestId('version-nav')).not.toBeInTheDocument();
+  });
+
+  it('renders the version-nav when an earlier version is archived', () => {
+    renderMessageList([USER_MSG, ASSISTANT_V2], {
+      archivedVersions: { 'user-1': [ASSISTANT_V1_ARCHIVED] },
+    });
+    expect(screen.getByTestId('version-indicator')).toHaveTextContent('2 / 2');
+    // Live (v2) is the default displayed version. The MessageActions mock also
+    // renders the trailing answer text, so we expect it twice (prose + mock).
+    expect(screen.getAllByText('Second answer (live).').length).toBeGreaterThan(0);
+    expect(screen.queryByText('First answer (archived).')).not.toBeInTheDocument();
+  });
+
+  it('renders the archived content when activeVersion points at an earlier slot', () => {
+    renderMessageList([USER_MSG, ASSISTANT_V2], {
+      archivedVersions: { 'user-1': [ASSISTANT_V1_ARCHIVED] },
+      activeVersion: { 'user-1': 1 },
+    });
+    expect(screen.getAllByText('First answer (archived).').length).toBeGreaterThan(0);
+    expect(screen.queryByText('Second answer (live).')).not.toBeInTheDocument();
+    expect(screen.getByTestId('version-indicator')).toHaveTextContent('1 / 2');
+  });
+
+  it('fires onSelectVersion with the user-msg id and new version number', async () => {
+    const onSelectVersion = vi.fn();
+    renderMessageList([USER_MSG, ASSISTANT_V2], {
+      archivedVersions: { 'user-1': [ASSISTANT_V1_ARCHIVED] },
+      onSelectVersion,
+    });
+    const user = (await import('@testing-library/user-event')).default.setup();
+    await user.click(screen.getByTestId('version-prev'));
+    expect(onSelectVersion).toHaveBeenCalledWith('user-1', 1);
   });
 });

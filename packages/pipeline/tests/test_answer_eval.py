@@ -33,11 +33,12 @@ def test_invoke_agent_cli_returns_extracted_answer_and_uses_in_memory_observabil
     monkeypatch.delenv("MASTRA_OBSERVABILITY_PATH", raising=False)
     monkeypatch.setattr(answer.subprocess, "Popen", fake_popen)
 
-    result, route, verifier = answer._invoke_agent_cli("What is CAP/DA?")
+    result, route, verifier, evidence = answer._invoke_agent_cli("What is CAP/DA?")
 
     assert result == "final answer"
     assert route is None
     assert verifier is None
+    assert evidence is None
     assert observed["kwargs"]["start_new_session"] is True
     assert observed["kwargs"]["env"]["MASTRA_OBSERVABILITY_PATH"] == ":memory:"
 
@@ -64,6 +65,28 @@ def test_invoke_agent_cli_kills_process_group_on_timeout(monkeypatch):
 
     assert killed == [(456, answer.signal.SIGKILL)]
     assert proc.communicate_calls == 2
+
+
+def test_invoke_agent_uses_cli_so_verifier_evidence_metadata_is_preserved(monkeypatch):
+    calls = []
+
+    def fake_cli(question, *, progress_label=None):
+        calls.append((question, progress_label))
+        return (
+            "final answer",
+            {"route": {"lane": "graph_reasoning"}},
+            {"supported": True},
+            {"sources": [{"toolName": "getSection", "key": "sec:1", "text": "Evidence"}]},
+        )
+
+    monkeypatch.setattr(answer, "_invoke_agent_cli", fake_cli)
+
+    result = answer._invoke_agent("What is covered?", progress_label="q-001")
+
+    assert calls == [("What is covered?", "q-001")]
+    assert result[0] == "final answer"
+    assert result[2] == {"supported": True}
+    assert result[3]["sources"][0]["toolName"] == "getSection"
 
 
 def test_is_retryable_agent_answer_detects_tool_connection_failure():
@@ -108,7 +131,7 @@ def test_evaluate_answers_retries_transient_tool_failure_answer(monkeypatch):
     monkeypatch.setattr(answer, "AGENT_EVAL_RETRY_DELAY_SECS", 0)
     monkeypatch.setattr(answer.time, "sleep", lambda secs: None)
     monkeypatch.setattr(answer, "_invoke_agent", lambda question: next(calls))
-    monkeypatch.setattr(answer, "_fetch_evidence_texts", lambda sections: ["evidence"])
+    monkeypatch.setattr(answer, "_fetch_evidence_sections", lambda sections: [])
     monkeypatch.setattr(
         answer,
         "judge_answer",
@@ -172,3 +195,59 @@ def test_extract_route_metadata_handles_missing_verifier():
     route = answer.extract_route_metadata(stdout)
     assert route["route"]["lane"] == "graph_reasoning"
     assert answer.extract_verifier_metadata(stdout) is None
+
+
+def test_extract_evidence_metadata_parses_sources_payload():
+    """Agent emits `---EVIDENCE---` before `---VERIFIER---` and `---ANSWER---`;
+    extractor must bound the search correctly and parse the single-line JSON."""
+    sources_payload = (
+        '{"sources":[{"toolName":"getAmendments","key":"cn:04-26",'
+        '"text":"[getAmendments]\\nAppendix B change"}],"evidence_bytes":42}'
+    )
+    stdout = (
+        "prelude\n"
+        "---ROUTE---\n"
+        '{"route":{"lane":"graph_reasoning"}}\n'
+        "---EVIDENCE---\n"
+        f"{sources_payload}\n"
+        "---VERIFIER---\n"
+        '{"rewrote":false,"supported":true}\n'
+        "---ANSWER---\n"
+        "final\n"
+    )
+    evidence = answer.extract_evidence_metadata(stdout)
+    assert evidence is not None
+    assert evidence["evidence_bytes"] == 42
+    assert len(evidence["sources"]) == 1
+    assert evidence["sources"][0]["toolName"] == "getAmendments"
+    # Route extractor must stop before the evidence block, not absorb it.
+    route = answer.extract_route_metadata(stdout)
+    assert route["route"]["lane"] == "graph_reasoning"
+    # Verifier extractor must still work (evidence block is before it).
+    verifier = answer.extract_verifier_metadata(stdout)
+    assert verifier["supported"] is True
+
+
+def test_extract_evidence_metadata_returns_none_when_block_absent():
+    stdout = "---ROUTE---\n{}\n---ANSWER---\nok\n"
+    assert answer.extract_evidence_metadata(stdout) is None
+
+
+def test_invoke_agent_with_progress_pads_legacy_three_tuple():
+    """Older monkeypatches returning 3-tuples still work — padded with None
+    for evidence_info."""
+    from pipeline.eval.levels import answer as mod
+
+    class _Stub:
+        def __call__(self, question, *, progress_label=None):
+            return ("ans", None, {"rewrote": False})
+
+    original = mod._invoke_agent
+    mod._invoke_agent = _Stub()
+    try:
+        ans, route, verifier, evidence = mod._invoke_agent_with_progress("q")
+        assert ans == "ans"
+        assert verifier == {"rewrote": False}
+        assert evidence is None
+    finally:
+        mod._invoke_agent = original

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { Ellipsis, Pencil, Trash2 } from 'lucide-react';
+import { Copy, Download, Ellipsis, Pencil, Trash2 } from 'lucide-react';
 import { useAuth } from '@workos-inc/authkit-nextjs/components';
 import { signOut } from '@workos-inc/authkit-nextjs';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -168,6 +168,62 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
     }
   };
 
+  const handleDuplicate = async (threadId: string, sourceTitle: string) => {
+    try {
+      const thread = mastraClient.getMemoryThread({ threadId, agentId: AGENT_ID });
+      // Mastra's clone endpoint copies the thread + all messages server-side.
+      // We pass a fresh title so the sidebar shows the copy distinctly.
+      const titled = sourceTitle.trim() || 'Untitled';
+      await thread.clone({ title: `${titled} (copy)`, resourceId });
+      fetchThreads();
+    } catch (err) {
+      console.error('Failed to duplicate thread:', err);
+    }
+  };
+
+  const handleExport = async (threadId: string, sourceTitle: string) => {
+    try {
+      const thread = mastraClient.getMemoryThread({ threadId, agentId: AGENT_ID });
+      const [meta, msgs] = await Promise.all([
+        thread.get(),
+        thread.listMessages(),
+      ]);
+      const payload = {
+        schemaVersion: 1,
+        exportedAt: new Date().toISOString(),
+        thread: {
+          id: meta.id,
+          title: meta.title,
+          resourceId: meta.resourceId,
+          createdAt: meta.createdAt,
+          updatedAt: meta.updatedAt,
+          metadata: meta.metadata ?? null,
+        },
+        messages: msgs.messages ?? [],
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], {
+        type: 'application/json',
+      });
+      const url = URL.createObjectURL(blob);
+      const slug = (sourceTitle || meta.title || 'thread')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .slice(0, 40) || 'thread';
+      const date = new Date().toISOString().slice(0, 10);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `thread-${slug}-${date}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      // Give the browser a tick to start the download before revoking.
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (err) {
+      console.error('Failed to export thread:', err);
+    }
+  };
+
   const displayTitles = buildThreadDisplayTitles(threads, derivedTitles);
 
   return (
@@ -290,6 +346,20 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
                             >
                               <Pencil className="w-3.5 h-3.5" />
                               Rename
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              data-testid="thread-duplicate"
+                              onClick={() => handleDuplicate(thread.id, displayTitle)}
+                            >
+                              <Copy className="w-3.5 h-3.5" />
+                              Duplicate
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              data-testid="thread-export"
+                              onClick={() => handleExport(thread.id, displayTitle)}
+                            >
+                              <Download className="w-3.5 h-3.5" />
+                              Export
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() => {

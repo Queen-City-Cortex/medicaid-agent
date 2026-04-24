@@ -241,7 +241,16 @@ def parse_pdf(pdf_path: Path, converter: DocumentConverter) -> dict:
             if table_text:
                 _append_section_content(current_section, table_text)
                 content_char_count += len(table_text)
-        elif label in (DocItemLabel.PARAGRAPH, DocItemLabel.LIST_ITEM):
+        elif label in (
+            DocItemLabel.PARAGRAPH,
+            DocItemLabel.LIST_ITEM,
+            DocItemLabel.TEXT,
+            DocItemLabel.FOOTNOTE,
+            DocItemLabel.CAPTION,
+            DocItemLabel.REFERENCE,
+            DocItemLabel.CODE,
+            DocItemLabel.FORMULA,
+        ):
             if current_section is None:
                 current_section = _new_synthetic_section(None, 0)
             _append_section_content(current_section, text)

@@ -78,14 +78,56 @@ def test_upsert_document_bundle_writes_document_and_section_structure():
 
     assert [query for query, _ in session.calls] == [
         queries.MERGE_DOCUMENT,
+        queries.DELETE_STALE_DOCUMENT_SECTIONS,
+        queries.CLEAR_DOCUMENT_SECTION_STRUCTURE,
+        queries.CLEAR_SECTION_CHUNKS_AND_EMBEDDINGS_BATCH,
         queries.MERGE_SECTIONS_BATCH,
         queries.MERGE_HAS_SECTION_BATCH,
         queries.MERGE_PARENT_OF_BATCH,
         queries.MERGE_NEXT_SIBLING_BATCH,
     ]
     assert session.calls[0][1]["id"] == "doc:test"
-    assert session.calls[1][1]["sections"][0]["id"] == "sec:1"
-    assert session.calls[2][1] == {"doc_id": "doc:test", "section_ids": ["sec:1", "sec:2"]}
+    assert session.calls[1][1] == {"doc_id": "doc:test", "section_ids": ["sec:1", "sec:2"]}
+    assert session.calls[2][1] == {"doc_id": "doc:test"}
+    assert session.calls[3][1] == {"section_ids": ["sec:1", "sec:2"]}
+    assert session.calls[4][1]["sections"][0]["id"] == "sec:1"
+    assert session.calls[5][1] == {"doc_id": "doc:test", "section_ids": ["sec:1", "sec:2"]}
+
+
+def test_upsert_document_bundle_deletes_all_existing_sections_when_parse_has_no_sections():
+    session = FakeSession()
+
+    @contextmanager
+    def fake_session_factory():
+        yield session
+
+    writer = CorpusGraphWriter(fake_session_factory)
+    bundle = DocumentBundle(
+        document=DocumentNode(
+            id="doc:empty",
+            title="Empty legacy parse",
+            document_type="dhhs_policy",
+            policy_number="8C",
+            category="eligibility",
+            status="current",
+            source_url="https://example.com/empty",
+            local_path="/tmp/empty.json",
+            pdf_path="/tmp/empty.pdf",
+            page_count=1,
+            section_count=0,
+            effective_date=None,
+        ),
+        sections=[],
+    )
+
+    writer.upsert_document_bundle(bundle)
+
+    assert [query for query, _ in session.calls] == [
+        queries.MERGE_DOCUMENT,
+        queries.DELETE_STALE_DOCUMENT_SECTIONS,
+        queries.CLEAR_DOCUMENT_SECTION_STRUCTURE,
+    ]
+    assert session.calls[1][1] == {"doc_id": "doc:empty", "section_ids": []}
 
 
 def test_merge_reference_edges_batches_by_edge_type():

@@ -11,6 +11,7 @@ def run_eval(
     question_id: str | None = None,
     top_k: int | None = None,
     from_result: str | None = None,
+    legacy_evidence: bool = False,
 ) -> dict:
     """Run an evaluation at the specified level. Returns the result dict."""
     entries = load_dataset()
@@ -32,7 +33,7 @@ def run_eval(
         per_question = evaluate_cross_refs(entries)
     elif level == "answer":
         from pipeline.eval.levels.answer import evaluate_answers
-        per_question = evaluate_answers(entries)
+        per_question = evaluate_answers(entries, use_unified_evidence=not legacy_evidence)
     elif level == "citation":
         from pipeline.eval.levels.citation import evaluate_citations
         per_question = evaluate_citations(entries, from_result=from_result)
@@ -46,6 +47,7 @@ def run_eval(
     if level == "answer":
         from pipeline.config import EVAL_JUDGE_MODEL
         config_overrides["judge_model"] = EVAL_JUDGE_MODEL
+        config_overrides["evidence_mode"] = "legacy" if legacy_evidence else "unified"
     if level == "citation" and from_result:
         config_overrides["from_result"] = str(from_result)
 

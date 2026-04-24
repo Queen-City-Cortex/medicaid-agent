@@ -160,6 +160,8 @@ class CorpusGraphWriter:
             if section.prev_sibling_id
         ]
 
+        self._cleanup_document_sections(session, doc_id, section_ids)
+
         for batch in chunked(section_rows, GRAPH_BATCH_SIZE):
             session.run(queries.MERGE_SECTIONS_BATCH, {"sections": batch})
 
@@ -171,6 +173,19 @@ class CorpusGraphWriter:
 
         for batch in chunked(sibling_pairs, GRAPH_BATCH_SIZE):
             session.run(queries.MERGE_NEXT_SIBLING_BATCH, {"pairs": batch})
+
+    def _cleanup_document_sections(self, session: Session, doc_id: str, section_ids: list[str]) -> None:
+        session.run(
+            queries.DELETE_STALE_DOCUMENT_SECTIONS,
+            {"doc_id": doc_id, "section_ids": section_ids},
+        )
+        session.run(queries.CLEAR_DOCUMENT_SECTION_STRUCTURE, {"doc_id": doc_id})
+
+        for batch in chunked(section_ids, GRAPH_BATCH_SIZE):
+            session.run(
+                queries.CLEAR_SECTION_CHUNKS_AND_EMBEDDINGS_BATCH,
+                {"section_ids": batch},
+            )
 
     def _mark_document_statuses(self, session: Session, document_ids: list[str], status: str) -> None:
         if not document_ids:

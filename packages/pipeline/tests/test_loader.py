@@ -77,6 +77,36 @@ class TestWalkDoclingDocument:
             "sec:doc:test:fixture:Attachment B:dup1",
         ]
 
+    def test_text_labeled_items_contribute_to_section_content(self, monkeypatch):
+        """Docling often tags body paragraphs as TEXT (not PARAGRAPH). Historical
+        code only read PARAGRAPH/LIST_ITEM, silently dropping most change-notice
+        bodies and ~26M chars across the corpus. This test pins the fix."""
+
+        class FakeItem:
+            def __init__(self, label, text):
+                self.label = label
+                self.text = text
+
+        class FakeDoc:
+            def iterate_items(self):
+                yield FakeItem(DocItemLabel.SECTION_HEADER, "I. BACKGROUND"), 1
+                yield FakeItem(DocItemLabel.TEXT, "DHB has updated MA-2910 charts."), 1
+                yield FakeItem(DocItemLabel.FOOTNOTE, "See attachment A."), 1
+                yield FakeItem(DocItemLabel.CAPTION, "Table 1: Transport rates."), 1
+
+        monkeypatch.setattr(
+            "pipeline.graph.loader.DoclingDocument.model_validate",
+            lambda doc_dict: FakeDoc(),
+        )
+
+        sections = build_sections_from_items({}, "doc:test:fixture")
+
+        assert len(sections) == 1
+        body = sections[0]["content_text"]
+        assert "MA-2910" in body
+        assert "attachment A" in body
+        assert "Transport rates" in body
+
     def test_table_only_document_creates_implicit_section(self, monkeypatch):
         class FakeDataFrame:
             def to_markdown(self, index=False):

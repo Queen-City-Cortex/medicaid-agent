@@ -66,6 +66,31 @@ MATCH (s:Section {id: sec_id})
 MERGE (d)-[:HAS_SECTION]->(s)
 """
 
+DELETE_STALE_DOCUMENT_SECTIONS = """
+MATCH (d:Document {id: $doc_id})-[:HAS_SECTION]->(s:Section)
+WHERE NOT s.id IN $section_ids
+OPTIONAL MATCH (s)-[:HAS_CHUNK]->(chunk:Chunk)
+WITH s, collect(chunk) AS chunks
+FOREACH (chunk IN chunks | DETACH DELETE chunk)
+DETACH DELETE s
+"""
+
+CLEAR_DOCUMENT_SECTION_STRUCTURE = """
+MATCH (d:Document {id: $doc_id})-[:HAS_SECTION]->(s:Section)
+MATCH (s)-[r:PARENT_OF|NEXT_SIBLING]-(:Section)
+DELETE r
+"""
+
+CLEAR_SECTION_CHUNKS_AND_EMBEDDINGS_BATCH = """
+UNWIND $section_ids AS section_id
+MATCH (s:Section {id: section_id})
+SET s.embedding = NULL
+WITH s
+OPTIONAL MATCH (s)-[:HAS_CHUNK]->(chunk:Chunk)
+WITH collect(chunk) AS chunks
+FOREACH (chunk IN chunks | DETACH DELETE chunk)
+"""
+
 MERGE_PARENT_OF = """
 MATCH (parent:Section {id: $parent_id})
 MATCH (child:Section {id: $child_id})

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { extractSources, buildSourceText, verifyAnswer, VerificationResult, SourceEntry, HallucinationVerifier, VERIFICATION_UNAVAILABLE } from '../../src/processors/hallucination-verifier.js';
+import { extractSources, buildSourceText, verifyAnswer, VerificationResult, SourceEntry, HallucinationVerifier, VERIFICATION_UNAVAILABLE, computeVerificationConfidence } from '../../src/processors/hallucination-verifier.js';
 
 vi.mock('ai', () => ({
   generateObject: vi.fn(),
@@ -658,6 +658,42 @@ describe('HallucinationVerifier.processOutputStep', () => {
     expect(generateObject).toHaveBeenCalled();
   });
 
+  it('verifies multi-turn answers against the latest user question', async () => {
+    mockVerification({ supported: true, unsupportedClaims: [] });
+
+    const args = makeProcessOutputStepArgs({
+      text: 'Follow-up answer',
+      messages: [
+        {
+          id: 'user-1',
+          role: 'user' as const,
+          content: { parts: [{ type: 'text' as const, text: 'What is the first question?' }] },
+        },
+        {
+          id: 'assistant-1',
+          role: 'assistant' as const,
+          content: { parts: [{ type: 'text' as const, text: 'First answer' }] },
+        },
+        {
+          id: 'user-2',
+          role: 'user' as const,
+          content: { parts: [{ type: 'text' as const, text: 'What about the follow-up?' }] },
+        },
+        {
+          id: 'assistant-2',
+          role: 'assistant' as const,
+          content: { parts: [{ type: 'text' as const, text: 'Follow-up answer' }] },
+        },
+      ] as any,
+    });
+
+    await verifier.processOutputStep!(args);
+
+    const verifierPrompt = vi.mocked(generateObject).mock.calls[0]?.[0] as any;
+    expect(verifierPrompt.messages[0].content).toContain('## QUESTION\n\nWhat about the follow-up?');
+    expect(verifierPrompt.messages[0].content).not.toContain('What is the first question?');
+  });
+
   // Test 3: Rewrites assistant messages with correctedAnswer when unsupported
   it('rewrites assistant messages with correctedAnswer when unsupported claims found', async () => {
     const corrected = 'The limit is [unverified: $500].';
@@ -730,6 +766,80 @@ describe('HallucinationVerifier.processOutputStep', () => {
 
     expect(result).toEqual(args.messages);
     expect(generateObject).not.toHaveBeenCalled();
+  });
+
+  // Test 8 (plan 6c): Pure-marker fallback — if the verifier's rewrite is
+  // entirely `[missing citation: ...]` markers, renderCorrectedAnswer strips
+  // them and the body is empty. We fall back to the original text so the user
+  // doesn't see a blank answer, and the emitted confidence should reflect
+  // that the rewrite was unusable (severity=low, pureMarkerFallback=true).
+  it('preserves the original text when the rewrite is purely citation markers, and flags pureMarkerFallback', async () => {
+    const originalText = 'Physical therapy is covered for up to 30 visits per year.';
+    // All-markers correctedAnswer → renderCorrectedAnswer will strip them
+    // (body becomes empty) and return the original text via fallback.
+    const allMarkers = '[missing citation: [Policy 10A § 3.2.1](https://example.com)] [missing citation: [Policy 10A § 4.1](https://example.com)]';
+    mockVerification({
+      supported: true,
+      relevant: true,
+      citationsComplete: false,
+      unsupportedClaims: [],
+      missingCitationClaims: [
+        { claim: 'Physical therapy is covered.', suggestedCitation: '[Policy 10A § 3.2.1](https://example.com)' },
+        { claim: 'Up to 30 visits.', suggestedCitation: '[Policy 10A § 4.1](https://example.com)' },
+      ],
+      relevanceIssues: [],
+      correctedAnswer: allMarkers,
+    });
+
+    const writer = { custom: vi.fn() };
+    const args = makeProcessOutputStepArgs({ text: originalText, writer: writer as any });
+    const result = await verifier.processOutputStep!(args) as any[];
+
+    // 1. Final assistant text must be the original, NOT the empty/marker-only rewrite.
+    const assistantMsg = result.find((m: any) => m.role === 'assistant');
+    const textPart = assistantMsg!.content.parts.find((p: any) => p.type === 'text');
+    expect(textPart.text).toBe(originalText);
+
+    // 2. The emitted confidence event carries pureMarkerFallback=true + low severity.
+    const rewriteCall = writer.custom.mock.calls.find(
+      ([arg]) => arg?.type === 'data-verification-rewrite',
+    );
+    expect(rewriteCall).toBeDefined();
+    const payload = rewriteCall![0];
+    expect(payload.data.pureMarkerFallback).toBe(true);
+    expect(payload.data.severity).toBe('low');
+    expect(payload.data.confidence).toBeLessThanOrEqual(0.55);
+  });
+
+  // Test 9 (plan 6c): Happy-path rewrite — final assistant text matches the
+  // verifier's correctedAnswer, not the draft, and the streamed event carries
+  // the corrected text so non-persistent consumers stay in sync.
+  it('replaces assistant text with correctedAnswer AND forwards it via data-verification-rewrite', async () => {
+    const draft = 'The limit is $500.';
+    const corrected = 'The limit is [unverified: $500].';
+    mockVerification({
+      supported: false,
+      relevant: true,
+      citationsComplete: true,
+      unsupportedClaims: [{ claim: 'The limit is $500.', reason: 'Source says $300.' }],
+      missingCitationClaims: [],
+      relevanceIssues: [],
+      correctedAnswer: corrected,
+    });
+
+    const writer = { custom: vi.fn() };
+    const args = makeProcessOutputStepArgs({ text: draft, writer: writer as any });
+    const result = await verifier.processOutputStep!(args) as any[];
+
+    const assistantMsg = result.find((m: any) => m.role === 'assistant');
+    const textPart = assistantMsg!.content.parts.find((p: any) => p.type === 'text');
+    expect(textPart.text).toBe(corrected);
+
+    const rewriteCall = writer.custom.mock.calls.find(
+      ([arg]) => arg?.type === 'data-verification-rewrite',
+    );
+    expect(rewriteCall![0].data.correctedAnswer).toBe(corrected);
+    expect(rewriteCall![0].data.pureMarkerFallback).toBe(false);
   });
 });
 
@@ -812,5 +922,211 @@ describe('renderCorrectedAnswer', () => {
     // Without a fallback we still avoid the bare-footer output; preserve markers.
     expect(output).toContain('[missing citation:');
     expect(output).not.toContain('*Suggested citations for uncited claims above:*');
+  });
+});
+
+
+// ── computeVerificationConfidence ────────────────────────────────────────────
+
+function makeVerification(partial: Partial<VerificationResult>): VerificationResult {
+  return {
+    supported: true,
+    relevant: true,
+    citationsComplete: true,
+    unsupportedClaims: [],
+    missingCitationClaims: [],
+    relevanceIssues: [],
+    correctedAnswer: '',
+    ...partial,
+  };
+}
+
+describe('computeVerificationConfidence', () => {
+  it('returns 1.0 high when no issues', () => {
+    const result = computeVerificationConfidence(makeVerification({}));
+    expect(result.confidence).toBe(1);
+    expect(result.severity).toBe('high');
+    expect(result.counts).toEqual({
+      unsupported: 0,
+      missingCitation: 0,
+      relevanceMajor: 0,
+      relevanceMinor: 0,
+    });
+    expect(result.pureMarkerFallback).toBe(false);
+  });
+
+  it('deducts 0.30 per unsupported claim', () => {
+    const one = computeVerificationConfidence(makeVerification({
+      supported: false,
+      unsupportedClaims: [{ claim: 'x', reason: 'y' }],
+    }));
+    expect(one.confidence).toBeCloseTo(0.70, 5);
+    expect(one.severity).toBe('medium');
+
+    const three = computeVerificationConfidence(makeVerification({
+      supported: false,
+      unsupportedClaims: [
+        { claim: 'x', reason: 'y' },
+        { claim: 'y', reason: 'z' },
+        { claim: 'z', reason: 'w' },
+      ],
+    }));
+    expect(three.confidence).toBeCloseTo(0.10, 5);
+    expect(three.severity).toBe('low');
+  });
+
+  it('deducts 0.15 per missing-citation claim — stays in high band for one', () => {
+    const one = computeVerificationConfidence(makeVerification({
+      citationsComplete: false,
+      missingCitationClaims: [{ claim: 'x', suggestedCitation: '[Policy X](url)' }],
+    }));
+    expect(one.confidence).toBeCloseTo(0.85, 5);
+    expect(one.severity).toBe('high');
+  });
+
+  it('treats major relevance issues more severely than minor ones', () => {
+    const major = computeVerificationConfidence(makeVerification({
+      relevant: false,
+      relevanceIssues: [{ issue: 'wrong policy', severity: 'major' }],
+    }));
+    expect(major.confidence).toBeCloseTo(0.65, 5);
+    expect(major.severity).toBe('medium');
+
+    const minor = computeVerificationConfidence(makeVerification({
+      relevanceIssues: [{ issue: 'incomplete', severity: 'minor' }],
+    }));
+    expect(minor.confidence).toBeCloseTo(0.90, 5);
+    expect(minor.severity).toBe('high');
+  });
+
+  it('clamps at 0 when deductions exceed 1.0', () => {
+    const result = computeVerificationConfidence(makeVerification({
+      supported: false,
+      unsupportedClaims: Array.from({ length: 5 }, (_, i) => ({ claim: `c${i}`, reason: 'r' })),
+    }));
+    expect(result.confidence).toBe(0);
+    expect(result.severity).toBe('low');
+  });
+
+  it('clamps to low/0.55 when pureMarkerFallback is true even if counts look clean', () => {
+    const result = computeVerificationConfidence(
+      makeVerification({}),
+      { pureMarkerFallback: true },
+    );
+    expect(result.confidence).toBeLessThanOrEqual(0.55);
+    expect(result.severity).toBe('low');
+    expect(result.pureMarkerFallback).toBe(true);
+  });
+
+  it('compounds major relevance + unsupported into low severity', () => {
+    const result = computeVerificationConfidence(makeVerification({
+      supported: false,
+      relevant: false,
+      unsupportedClaims: [{ claim: 'x', reason: 'y' }],
+      relevanceIssues: [{ issue: 'wrong policy', severity: 'major' }],
+    }));
+    expect(result.confidence).toBeCloseTo(0.35, 5);
+    expect(result.severity).toBe('low');
+  });
+});
+
+
+// ── Streaming event emission ────────────────────────────────────────────────
+
+describe('HallucinationVerifier streaming events', () => {
+  const { mockVerification, makeProcessOutputStepArgs } = (globalThis as any).__verifierTestHelpers ?? {};
+
+  it('emits data-verification-ok when all checks pass', async () => {
+    // Inline test harness mirroring the one used in the "writer.custom"
+    // block elsewhere in this file.
+    const { HallucinationVerifier } = await import('../../src/processors/hallucination-verifier.js');
+    const verifier = new HallucinationVerifier();
+
+    vi.mocked(generateObject).mockResolvedValueOnce({
+      object: {
+        supported: true,
+        relevant: true,
+        citationsComplete: true,
+        unsupportedClaims: [],
+        missingCitationClaims: [],
+        relevanceIssues: [],
+        correctedAnswer: '',
+      },
+    } as any);
+
+    const writer = { custom: vi.fn() };
+    const args: ProcessOutputStepArgs = {
+      text: 'answer',
+      finishReason: 'stop',
+      toolCalls: [],
+      messages: [
+        {
+          id: 'u1',
+          role: 'user',
+          content: { parts: [{ type: 'text', text: 'question?' }] },
+        } as any,
+      ],
+      writer: writer as any,
+      abort: vi.fn(),
+    } as any;
+
+    await verifier.processOutputStep!(args);
+
+    expect(writer.custom).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'data-verification-ok',
+        data: expect.objectContaining({ severity: 'high', confidence: 1 }),
+      }),
+    );
+  });
+
+  it('includes confidence + severity in data-verification-rewrite payload', async () => {
+    const { HallucinationVerifier } = await import('../../src/processors/hallucination-verifier.js');
+    const verifier = new HallucinationVerifier();
+
+    vi.mocked(generateObject).mockResolvedValueOnce({
+      object: {
+        supported: false,
+        relevant: true,
+        citationsComplete: true,
+        unsupportedClaims: [{ claim: 'x', reason: 'y' }],
+        missingCitationClaims: [],
+        relevanceIssues: [],
+        correctedAnswer: 'x [unverified: y]',
+      },
+    } as any);
+
+    const writer = { custom: vi.fn() };
+    const args: ProcessOutputStepArgs = {
+      text: 'answer',
+      finishReason: 'stop',
+      toolCalls: [],
+      messages: [
+        {
+          id: 'u1',
+          role: 'user',
+          content: { parts: [{ type: 'text', text: 'q?' }] },
+        } as any,
+        {
+          id: 'a1',
+          role: 'assistant',
+          content: { parts: [{ type: 'text', text: 'answer' }] },
+        } as any,
+      ],
+      writer: writer as any,
+      abort: vi.fn(),
+    } as any;
+
+    await verifier.processOutputStep!(args);
+
+    const call = writer.custom.mock.calls.find(
+      ([arg]) => arg?.type === 'data-verification-rewrite',
+    );
+    expect(call).toBeDefined();
+    const payload = call![0];
+    expect(payload.data.confidence).toBeCloseTo(0.70, 5);
+    expect(payload.data.severity).toBe('medium');
+    expect(payload.data.counts.unsupported).toBe(1);
+    expect(payload.data.pureMarkerFallback).toBe(false);
   });
 });
