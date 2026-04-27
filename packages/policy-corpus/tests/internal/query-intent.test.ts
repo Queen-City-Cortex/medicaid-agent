@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { isYesNoCoverageQuery } from '../../src/internal/query-intent.js';
+import {
+  extractAliasedPolicyNumbers,
+  isYesNoCoverageQuery,
+} from '../../src/internal/query-intent.js';
 
 describe('isYesNoCoverageQuery', () => {
   it('matches bare "cover" (legacy behavior preserved)', () => {
@@ -59,5 +62,29 @@ describe('isYesNoCoverageQuery', () => {
     for (const q of yesNoNegativeQuestions) {
       expect(isYesNoCoverageQuery(q), q).toBe(true);
     }
+  });
+});
+
+describe('extractAliasedPolicyNumbers', () => {
+  it('routes outpatient pharmacy coverage questions to Policy 9', () => {
+    expect(
+      extractAliasedPolicyNumbers(
+        'are experimental or investigational drugs covered under the nc medicaid outpatient pharmacy benefit?',
+      ),
+    ).toContain('9');
+    expect(
+      extractAliasedPolicyNumbers('does nc medicaid cover over-the-counter medications without a prescription?'),
+    ).toContain('9');
+    expect(
+      extractAliasedPolicyNumbers(
+        'can a medicare dual eligible get otc medications through the nc medicaid outpatient pharmacy benefit?',
+      ),
+    ).toContain('9');
+  });
+
+  it('does not route Medicare Part D prescription-drug questions to Policy 9', () => {
+    expect(
+      extractAliasedPolicyNumbers('what does the medicare prescription drug benefit say about part d non-covered drugs?'),
+    ).not.toContain('9');
   });
 });

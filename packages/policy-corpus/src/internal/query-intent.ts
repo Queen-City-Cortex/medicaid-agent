@@ -219,6 +219,35 @@ export function isHcwdQuery(queryLower: string): boolean {
   );
 }
 
+export function isOutpatientPharmacyPolicyQuery(queryLower: string): boolean {
+  if (
+    includesPhrase(queryLower, [
+      'part d',
+      'medicare prescription drug',
+      'medicare prescription-drug',
+      'medicare drug benefit',
+    ])
+  ) {
+    return false;
+  }
+
+  return includesPhrase(queryLower, [
+    'outpatient pharmacy',
+    'pharmacy benefit',
+    'pharmacy claims',
+    'prescription drug',
+    'prescription drugs',
+    'over-the-counter medication',
+    'over-the-counter medications',
+    'over the counter medication',
+    'over the counter medications',
+    'otc drug',
+    'otc drugs',
+    'otc medication',
+    'otc medications',
+  ]);
+}
+
 export function isHcwdIncomePremiumQuery(queryLower: string): boolean {
   return (
     isHcwdQuery(queryLower) &&
@@ -409,6 +438,10 @@ export function extractAliasedPolicyNumbers(queryLower: string): string[] {
 
   if (queryLower.includes('ambulance') && !queryLower.includes('nemt') && !queryLower.includes('non-emergency medical transportation')) {
     policyNumbers.push('15');
+  }
+
+  if (isOutpatientPharmacyPolicyQuery(queryLower)) {
+    policyNumbers.push('9');
   }
 
   if (isHcwdQuery(queryLower)) {

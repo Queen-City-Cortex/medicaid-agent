@@ -2279,6 +2279,165 @@ describe('Neo4jPolicyCorpus', () => {
     );
   });
 
+  it('resolveCoverageFrame routes outpatient pharmacy exclusion questions to Policy 9 instead of Medicare Part D manuals', async () => {
+    const policy9Sections = [
+      {
+        id: 'sec-9-211',
+        title: '2.1.1 Description of the Procedure, Product, or Service',
+        sectionNumber: '2.1.1',
+        content: 'The outpatient pharmacy benefit covers prescribed drugs within the NC Medicaid pharmacy program.',
+      },
+      {
+        id: 'sec-9-41',
+        title: '4.1 General Criteria Not Covered',
+        sectionNumber: '4.1',
+        content:
+          'The procedure, product, or service is not covered when it is experimental, investigational, or part of a clinical trial.',
+      },
+    ];
+    const { corpus } = createCorpusWithSearchHandlers([
+      {
+        match: (query, params) =>
+          query.includes("CALL db.index.vector.queryNodes('section_embeddings'") &&
+          Array.isArray(params.docTypes) &&
+          (params.docTypes as string[]).includes('clinical_policy'),
+        result: {
+          records: [
+            mockRecord({
+              sectionId: 'sec-9-41',
+              sectionNumber: '4.1',
+              sectionTitle: '4.1 General Criteria Not Covered',
+              documentTitle: 'Outpatient Pharmacy',
+              policyNumber: '9',
+              documentType: 'clinical_policy',
+              content:
+                'The procedure, product, or service is not covered when it is experimental, investigational, or part of a clinical trial.',
+              score: 0.72,
+            }),
+            mockRecord({
+              sectionId: 'sec-9-211',
+              sectionNumber: '2.1.1',
+              sectionTitle: '2.1.1 Description of the Procedure, Product, or Service',
+              documentTitle: 'Outpatient Pharmacy',
+              policyNumber: '9',
+              documentType: 'clinical_policy',
+              content: 'The outpatient pharmacy benefit covers prescribed drugs within the NC Medicaid pharmacy program.',
+              score: 0.69,
+            }),
+          ],
+        },
+      },
+      {
+        match: (query, params) =>
+          query.includes("CALL db.index.vector.queryNodes('section_embeddings'") &&
+          Array.isArray(params.docTypes) &&
+          (params.docTypes as string[]).includes('dhhs_policy'),
+        result: {
+          records: [
+            mockRecord({
+              sectionId: 'sec-ma-2312',
+              sectionNumber: 'B',
+              sectionTitle: 'B. Non-Covered Drugs',
+              documentTitle: 'MA-2312 Medicare Prescription Drug Benefit',
+              policyNumber: 'MA-2312',
+              documentType: 'dhhs_policy',
+              content: 'Non-covered drugs are not covered by Medicaid in the Medicare prescription-drug context.',
+              score: 0.99,
+            }),
+          ],
+        },
+      },
+      {
+        match: (query) => query.includes("CALL db.index.vector.queryNodes('chunk_embeddings'"),
+        result: { records: [] },
+      },
+      {
+        match: (query) => query.includes('MATCH (c:PolicyConcept)'),
+        result: { records: [] },
+      },
+      {
+        match: (query) => query.includes('section_fulltext'),
+        result: { records: [] },
+      },
+      {
+        match: (query, params) => query.includes('MATCH (d:Document)') && params.pn === '9',
+        result: {
+          records: [
+            mockRecord({
+              id: 'doc-9',
+              title: 'Outpatient Pharmacy',
+              documentType: 'clinical_policy',
+              policyNumber: '9',
+              effectiveDate: '2025-01-01',
+              url: 'https://example.com/policy-9',
+              status: 'current',
+              sections: policy9Sections.map((section) => ({
+                id: section.id,
+                number: section.sectionNumber,
+                title: section.title,
+                chars: section.content.length,
+              })),
+            }),
+          ],
+        },
+      },
+      ...policy9Sections.map((section) => ({
+        match: (query, params) => query.includes('MATCH (s:Section {id: $id})') && params.id === section.id,
+        result: {
+          records: [
+            mockRecord({
+              ...section,
+              documentId: 'doc-9',
+              documentTitle: 'Outpatient Pharmacy',
+              documentType: 'clinical_policy',
+              policyNumber: '9',
+              effectiveDate: '2025-01-01',
+              url: 'https://example.com/policy-9',
+              status: 'current',
+            }),
+          ],
+        },
+      })),
+      {
+        match: (query, params) =>
+          query.includes('MATCH (d:Document {id: $id})') &&
+          query.includes('collect({id: s.id') &&
+          params.id === 'doc-9',
+        result: {
+          records: [
+            mockRecord({
+              id: 'doc-9',
+              title: 'Outpatient Pharmacy',
+              documentType: 'clinical_policy',
+              policyNumber: '9',
+              effectiveDate: '2025-01-01',
+              url: 'https://example.com/policy-9',
+              status: 'current',
+              sections: policy9Sections.map((section) => ({
+                id: section.id,
+                number: section.sectionNumber,
+                title: section.title,
+                chars: section.content.length,
+              })),
+            }),
+          ],
+        },
+      },
+    ]);
+
+    const frame = await corpus.resolveCoverageFrame(
+      'Are experimental or investigational drugs covered under the NC Medicaid outpatient pharmacy benefit?',
+    );
+
+    expect(frame.authoritativeDocuments[0]?.policyNumber).toBe('9');
+    expect(frame.authoritativeDocuments.map((document) => document.policyNumber)).not.toContain('MA-2312');
+    expect(frame.primarySections.map((section) => section.sectionNumber)).toEqual(
+      expect.arrayContaining(['4.1']),
+    );
+    const exclusionSection = frame.primarySections.find((section) => section.sectionNumber === '4.1');
+    expect(exclusionSection?.content).toContain('experimental, investigational');
+  });
+
   it('resolveAnswerFrame routes CAP/DA home-modification requirements into a coverage frame with MDT support evidence', async () => {
     const { corpus } = createCorpusWithSearchHandlers([
       {
