@@ -185,6 +185,57 @@ Useful options:
 cd packages/agent && npm run test:integration     # Opt-in real-Neo4j agent tool tests
 ```
 
+## Production Deployment
+
+Production is deployed on Railway from GitHub `main`:
+
+- Web service: `@nc-medicaid/web`
+- Agent service: `@nc-medicaid/agent`
+- Agent health check: `https://medicaid-agent-backend.up.railway.app/healthz`
+- Web smoke target: `https://medicaid-agent.up.railway.app/chat`
+
+The service configs live at:
+
+- `packages/web/railway.json`
+- `packages/agent/railway.json`
+
+In Railway, set each service's config file path to the matching repo-root path (`/packages/web/railway.json` and `/packages/agent/railway.json`). Keep the agent watch paths broad enough to include both `/packages/agent/**` and `/packages/policy-corpus/**`; the agent Docker build imports the local policy-corpus workspace.
+
+Check current deploy status:
+
+```bash
+railway status --json
+railway deployment list --service '@nc-medicaid/agent' --json
+railway deployment list --service '@nc-medicaid/web' --json
+```
+
+Inspect a failed deploy:
+
+```bash
+railway logs --service '@nc-medicaid/agent' --build --lines 200 <deployment-id>
+railway logs --service '@nc-medicaid/agent' --deploy --lines 200 <deployment-id>
+```
+
+If a GitHub-triggered agent deploy stalls or fails before Docker build logs appear, retry from a clean `origin/main` worktree so the deployed image exactly matches the merged commit:
+
+```bash
+git fetch origin main
+git worktree add --detach /tmp/medicaid-agent-deploy origin/main
+cd /tmp/medicaid-agent-deploy
+railway up --project 2a11b10b-43ea-4181-b975-da24adcc3322 --environment production --service '@nc-medicaid/agent' --ci --message "Retry agent deploy for $(git rev-parse --short HEAD)"
+cd -
+git worktree remove /tmp/medicaid-agent-deploy
+```
+
+Verify production after any deploy:
+
+```bash
+curl -i https://medicaid-agent-backend.up.railway.app/healthz
+npm run smoke:prod
+```
+
+`npm run smoke:prod` uses `TEST_USER_EMAIL` and `TEST_USER_PASSWORD` from the environment or local env files, asks a real production question, checks for a substantive answer with tool steps and sources, and writes a screenshot to `/tmp/nc-medicaid-prod-smoke.png` by default. Override with `SMOKE_BASE_URL`, `SMOKE_QUESTION`, `SMOKE_TIMEOUT_MS`, or `SMOKE_SCREENSHOT_PATH` when needed.
+
 ## Full Rebuild (Nuclear Option)
 
 If the graph is corrupted or you need to rebuild from scratch:
