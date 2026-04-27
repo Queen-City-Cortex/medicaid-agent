@@ -109,7 +109,9 @@ export function createSectionPrimitiveService({ withSession }: { withSession: Se
                       ? record.get('title')
                       : key === 'sectionNumber'
                         ? record.get('sectionNumber')
-                        : childRecord.get(key);
+                        : key === 'lastRevised' || key === 'federalRegisterCite'
+                          ? record.get(key)
+                          : childRecord.get(key);
                 },
               },
               `[Container heading with ${children.length} child sections:]\n\n${combined}`,

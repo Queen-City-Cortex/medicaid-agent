@@ -5,6 +5,17 @@ function mockRecord(data: Record<string, unknown>) {
   return { get: (key: string) => data[key] };
 }
 
+function strictMockRecord(data: Record<string, unknown>) {
+  return {
+    get(key: string) {
+      if (!(key in data)) {
+        throw new Error(`Missing test record field: ${key}`);
+      }
+      return data[key];
+    },
+  };
+}
+
 function createCorpusWithRuns(runs: Array<{ records: ReturnType<typeof mockRecord>[] }>) {
   let callIndex = 0;
   const session = {
@@ -1171,6 +1182,14 @@ describe('Neo4jPolicyCorpus', () => {
             effectiveDate: '2025-01-01',
             url: 'https://example.com/8C',
             status: 'current',
+            authorityTier: null,
+            answerRole: null,
+            sourceFormat: null,
+            answerReady: null,
+            corpusBucket: null,
+            variantGroup: null,
+            variantDate: null,
+            retrievalReady: null,
           }),
         ],
       },
@@ -1213,6 +1232,8 @@ describe('Neo4jPolicyCorpus', () => {
             title: 'Parent Section',
             sectionNumber: '4',
             content: '',
+            lastRevised: null,
+            federalRegisterCite: null,
             documentId: 'doc-1',
             documentTitle: 'Policy 8C',
             documentType: 'dhhs_policy',
@@ -1220,12 +1241,20 @@ describe('Neo4jPolicyCorpus', () => {
             effectiveDate: '2025-01-01',
             url: 'https://example.com/8C',
             status: 'current',
+            authorityTier: null,
+            answerRole: null,
+            sourceFormat: null,
+            answerReady: null,
+            corpusBucket: null,
+            variantGroup: null,
+            variantDate: null,
+            retrievalReady: null,
           }),
         ],
       },
       {
         records: [
-          mockRecord({
+          strictMockRecord({
             children: [
               { id: 'sec-child-1', title: 'Child A', sectionNumber: '4.1', content: 'Child A content' },
               { id: 'sec-child-2', title: 'Child B', sectionNumber: '4.2', content: 'Child B content' },
@@ -1237,6 +1266,14 @@ describe('Neo4jPolicyCorpus', () => {
             effectiveDate: '2025-01-01',
             url: 'https://example.com/8C',
             status: 'current',
+            authorityTier: null,
+            answerRole: null,
+            sourceFormat: null,
+            answerReady: null,
+            corpusBucket: null,
+            variantGroup: null,
+            variantDate: null,
+            retrievalReady: null,
           }),
         ],
       },
