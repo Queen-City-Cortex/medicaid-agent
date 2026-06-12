@@ -146,6 +146,8 @@ All in `packages/web` — these are bugs, not redesign:
 
 ## P2 — UX product upgrade (meaningful, within current design language)
 
+> **STATUS: ✅ Completed 2026-06-12** (commits 75006c5, b30f50b — trust layer + presentation). Deferred: per-answer generation timestamps (no reliable createdAt on live messages yet) and "corpus current as of {date}" in the empty state (no corpus-date source plumbed to the client — inventing one would be a false trust signal).
+
 From the product-UX review (full text: `2026-06-11-product-ux-review.md`). Per project memory, invoke the `frontend-design` skill when implementing.
 
 **Top three (the purchase-decision items):**
@@ -167,6 +169,8 @@ From the product-UX review (full text: `2026-06-11-product-ux-review.md`). Per p
 ---
 
 ## P2 — CI, deploy, hygiene
+
+> **STATUS: ✅ Completed 2026-06-12** (commit 90e9bd2). Deferred: e2e mocked tier in CI (auth.setup.ts needs live WorkOS credentials — make the mocked tier hermetic first).
 
 - **CI gaps** (`agent-tests-rest:2`/`xc-deps-config:0`, 2 reviewers): Neo4j service provisioned but `RUN_NEO4J_INTEGRATION=1` never set and `test:integration` never run — set it and run them; add the e2e mocked suite as a CI job (`xc-deps-config:1`) — requires making auth.setup hermetic (`e2e-infra:5`, mock auth for the mocked tier); pipeline pytest runs twice (`xc-deps-config:2`); add lint coverage for agent/crawler/policy-corpus (`e2e-infra:23`).
 - **Smoke suite cannot run** (`e2e-infra:0,1`, *high*): reachability probe hits auth-protected `/api/agents` (always skips), and asserts a removed `research-trace` testid. Probe `/healthz`, fix selectors.
