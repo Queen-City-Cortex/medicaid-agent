@@ -77,6 +77,8 @@ The big picture: the product's core promise is *trustworthy, citable answers abo
 
 ## P1 — Retrieval quality & corpus integrity
 
+> **STATUS: ✅ Completed 2026-06-12** (commits 66babff…3bda5c1), including both P1 UX batches. Exceptions: supersession downranking in retrieval scoring (7b, partial — needs graph support for superseded status; deferred to the verifier/amendments track) and backend parallelization (item 9 latency note, deferred).
+
 ### 7b. Supersession is structurally unenforced (RAG review findings 6–7)
 The product's signature risk — citing superseded policy — has no structural defense:
 - `policy-corpus/src/primitives/amendments.ts:28` — null `effective_date` sorts first under `DESC`, so an undated change notice becomes `authoritativeDocument` (the prompt tells the agent to adopt it).
