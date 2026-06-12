@@ -34,6 +34,25 @@ describe('formatDate', () => {
     expect(formatDate('2026-03-29T10:00:00')).toBe('Yesterday');
   });
 
+  it('returns Yesterday for yesterday evening even when less than 24h ago', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-03-30T08:00:00'));
+
+    // Only 10 hours ago, but a different calendar day — must NOT render as a
+    // bare time, which would imply "today".
+    expect(formatDate('2026-03-29T22:00:00')).toBe('Yesterday');
+  });
+
+  it('returns a weekday for the day before yesterday even when barely over 24h ago', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-03-30T01:00:00'));
+
+    // 27 hours ago: the old 24h-window logic bucketed this as "Yesterday",
+    // but it is two calendar days back.
+    expect(formatDate('2026-03-28T22:00:00')).toMatch(/^[A-Z][a-z]{2}/);
+    expect(formatDate('2026-03-28T22:00:00')).not.toBe('Yesterday');
+  });
+
   it('returns weekday name for 3 days ago', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-03-30T14:00:00'));

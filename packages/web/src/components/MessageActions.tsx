@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { Copy, Check, RotateCcw, ThumbsUp, ThumbsDown, Send } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Copy, Check, X, RotateCcw, ThumbsUp, ThumbsDown, Send } from 'lucide-react';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
 interface FeedbackState {
@@ -14,7 +14,6 @@ interface MessageActionsProps {
   content: string;
   onRerun?: () => void;
   messageId?: string;
-  threadId?: string;
   feedback?: FeedbackState | null;
   onRate?: (rating: 'up' | 'down') => void;
   onClearRating?: () => void;
@@ -25,14 +24,50 @@ const btnClass = 'p-1.5 rounded-md text-muted-foreground/50 hover:text-muted-for
 const btnActiveUp = 'p-1.5 rounded-md text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 transition-colors';
 const btnActiveDown = 'p-1.5 rounded-md text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-950/30 transition-colors';
 
+type CopyState = 'idle' | 'copied' | 'failed';
+
+const COPY_LABELS: Record<CopyState, string> = {
+  idle: 'Copy message',
+  copied: 'Copied',
+  failed: 'Copy failed',
+};
+
+const COPY_TOOLTIPS: Record<CopyState, string> = {
+  idle: 'Copy',
+  copied: 'Copied!',
+  failed: 'Copy failed',
+};
+
 export function MessageActions({ content, onRerun, messageId, feedback, onRate, onClearRating, onComment }: MessageActionsProps) {
-  const [copied, setCopied] = useState(false);
+  const [copyState, setCopyState] = useState<CopyState>('idle');
   const [commentText, setCommentText] = useState('');
+  const copyTimerRef = useRef<number | null>(null);
+
+  // Clear any pending reset timer on unmount.
+  useEffect(() => {
+    return () => {
+      if (copyTimerRef.current !== null) window.clearTimeout(copyTimerRef.current);
+    };
+  }, []);
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(content);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    // Reset any in-flight timer so rapid clicks don't have an old timer
+    // cutting the new feedback state short.
+    if (copyTimerRef.current !== null) window.clearTimeout(copyTimerRef.current);
+    let next: CopyState;
+    try {
+      // Throws on permission denial; navigator.clipboard itself is undefined
+      // in non-secure contexts — the try covers both.
+      await navigator.clipboard.writeText(content);
+      next = 'copied';
+    } catch {
+      next = 'failed';
+    }
+    setCopyState(next);
+    copyTimerRef.current = window.setTimeout(() => {
+      setCopyState('idle');
+      copyTimerRef.current = null;
+    }, 2000);
   };
 
   const handleThumbClick = (rating: 'up' | 'down') => {
@@ -54,10 +89,20 @@ export function MessageActions({ content, onRerun, messageId, feedback, onRate, 
     <div className="mt-2">
       <div className="flex items-center gap-0.5">
         <Tooltip>
-          <TooltipTrigger className={btnClass} onClick={handleCopy} aria-label={copied ? 'Copied' : 'Copy message'}>
-            {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+          <TooltipTrigger
+            className={copyState === 'failed' ? `${btnClass} text-destructive hover:text-destructive` : btnClass}
+            onClick={handleCopy}
+            aria-label={COPY_LABELS[copyState]}
+          >
+            {copyState === 'copied' ? (
+              <Check className="w-3.5 h-3.5" />
+            ) : copyState === 'failed' ? (
+              <X className="w-3.5 h-3.5" />
+            ) : (
+              <Copy className="w-3.5 h-3.5" />
+            )}
           </TooltipTrigger>
-          <TooltipContent>{copied ? 'Copied!' : 'Copy'}</TooltipContent>
+          <TooltipContent>{COPY_TOOLTIPS[copyState]}</TooltipContent>
         </Tooltip>
 
         {onRerun && (

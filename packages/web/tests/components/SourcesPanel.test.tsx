@@ -11,6 +11,7 @@ const SAMPLE: MessageSource[] = [
     title: 'Outpatient Behavioral Health',
     url: 'https://medicaid.ncdhhs.gov/8c/download',
     originTool: 'getSection',
+    sectionNumber: '3.2.1',
   },
   {
     key: 'b',
@@ -18,6 +19,7 @@ const SAMPLE: MessageSource[] = [
     title: 'Community Alternatives Program',
     url: 'https://medicaid.ncdhhs.gov/3k-2/download',
     originTool: 'lookupPolicy',
+    sectionNumber: null,
   },
 ];
 
@@ -95,7 +97,15 @@ describe('SourcesPanel', () => {
     render(<SourcesPanel sources={SAMPLE} verification={verification} />);
     const dot = screen.getByTestId('verification-dot');
     expect(dot).toHaveAttribute('data-severity', severity);
-    expect(dot).toHaveAttribute('aria-label', expect.stringContaining('confidence'));
+    // The dot is presentational — not focusable, hidden from the
+    // accessibility tree — so it does not nest an interactive element
+    // inside the CollapsibleTrigger button.
+    expect(dot).toHaveAttribute('aria-hidden', 'true');
+    expect(dot).not.toHaveAttribute('tabindex');
+    // Its meaning lives in the trigger's accessible name instead.
+    expect(screen.getByTestId('sources-panel-trigger')).toHaveAccessibleName(
+      new RegExp(`Verifier confidence: ${severity}`),
+    );
   });
 
   it('dot click does not toggle the collapsible panel', async () => {

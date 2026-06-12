@@ -1,32 +1,36 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useSyncExternalStore } from 'react';
 import { ArrowDown } from 'lucide-react';
 
 interface ScrollToBottomProps {
   /** The scroll viewport element. Passed as state (not a ref) so the scroll
-   *  listener attaches when the viewport appears — with a ref object the
+   *  subscription attaches when the viewport appears — with a ref object the
    *  effect ran once before the viewport existed and never re-ran, leaving
    *  the button permanently invisible. */
   viewport: HTMLElement | null;
   hasMessages?: boolean;
 }
 
+function subscribeToScroll(viewport: HTMLElement | null) {
+  return (onStoreChange: () => void) => {
+    if (!viewport) return () => {};
+    viewport.addEventListener('scroll', onStoreChange, { passive: true });
+    return () => viewport.removeEventListener('scroll', onStoreChange);
+  };
+}
+
+function isAwayFromBottom(viewport: HTMLElement | null): boolean {
+  if (!viewport) return false;
+  return viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight > 100;
+}
+
 export function ScrollToBottom({ viewport, hasMessages = true }: ScrollToBottomProps) {
-  const [visible, setVisible] = useState(false);
-
-  const checkScroll = useCallback(() => {
-    if (!viewport) return;
-    const distanceFromBottom = viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight;
-    setVisible(distanceFromBottom > 100);
-  }, [viewport]);
-
-  useEffect(() => {
-    if (!viewport) return;
-    viewport.addEventListener('scroll', checkScroll, { passive: true });
-    checkScroll();
-    return () => viewport.removeEventListener('scroll', checkScroll);
-  }, [viewport, checkScroll]);
+  const visible = useSyncExternalStore(
+    subscribeToScroll(viewport),
+    () => isAwayFromBottom(viewport),
+    () => false,
+  );
 
   const scrollToBottom = () => {
     viewport?.scrollTo({ top: viewport.scrollHeight, behavior: 'smooth' });

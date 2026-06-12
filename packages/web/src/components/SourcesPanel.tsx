@@ -67,23 +67,21 @@ function ConfidenceDot({ verification }: ConfidenceDotProps) {
         <TooltipTrigger
           // Render as a span rather than the default button — SourcesPanel's
           // CollapsibleTrigger is itself a <button>, and nesting buttons is
-          // invalid HTML. The span still gets hover/focus listeners from
-          // base-ui's Tooltip and stays tab-focusable via tabIndex.
+          // invalid HTML. The dot is purely presentational (aria-hidden, not
+          // focusable): a focusable element nested inside the trigger button
+          // would be invalid interactive nesting. Its meaning is exposed via
+          // the sr-only text inside the trigger instead; the tooltip remains
+          // as a pointer-hover affordance.
           render={<span />}
-          tabIndex={0}
-          role="img"
+          aria-hidden="true"
           data-testid="verification-dot"
           data-severity={verification.severity}
-          aria-label={DOT_SR_LABEL[verification.severity]}
           // Stop the dot from toggling the Collapsible when the user
-          // clicks/activates it — otherwise opening the panel would
-          // flicker the tooltip off.
+          // clicks it — otherwise opening the panel would flicker the
+          // tooltip off.
           onClick={(event) => event.stopPropagation()}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' || event.key === ' ') event.stopPropagation();
-          }}
           className={cn(
-            'inline-flex size-2.5 shrink-0 rounded-full ring-2 transition-colors outline-none focus-visible:ring-4 focus-visible:ring-offset-1 focus-visible:ring-offset-background',
+            'inline-flex size-2.5 shrink-0 rounded-full ring-2 transition-colors',
             DOT_CLASSES[verification.severity],
           )}
         />
@@ -119,7 +117,18 @@ export function SourcesPanel({ sources, messageId, open, onOpenChange, highlight
           <div className="flex min-w-0 items-center gap-3">
             {verification && <ConfidenceDot verification={verification} />}
             <div className="min-w-0">
-              <div className="text-sm font-medium text-foreground">Sources</div>
+              <div className="text-sm font-medium text-foreground">
+                Sources
+                {/* The confidence dot above is presentational; expose its
+                    meaning in the trigger's accessible name instead. */}
+                {verification && (
+                  <span className="sr-only">
+                    {' — '}
+                    {DOT_SR_LABEL[verification.severity]}.{' '}
+                    {verificationTooltipLines(verification).slice(1).join(' ')}
+                  </span>
+                )}
+              </div>
               <div className="text-xs text-muted-foreground">{countLabel(sources.length)}</div>
             </div>
           </div>

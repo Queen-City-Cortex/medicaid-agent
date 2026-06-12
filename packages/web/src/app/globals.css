@@ -51,6 +51,7 @@
 }
 
 :root {
+  color-scheme: light;
   --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
   --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
@@ -89,6 +90,8 @@
 }
 
 .dark {
+  /* Keep native UI (scrollbars, form controls, system dialogs) dark too. */
+  color-scheme: dark;
   --background: oklch(0.145 0.005 260);
   --foreground: oklch(0.93 0.005 80);
   --card: oklch(0.185 0.005 260);
@@ -140,3 +143,18 @@
     @apply font-sans;
   }
 }
+
+/* Honor the user's reduced-motion preference: collapse animations and
+   transitions to imperceptible durations and disable smooth scrolling. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+

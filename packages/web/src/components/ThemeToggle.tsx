@@ -4,10 +4,11 @@ import { Sun, Moon, Monitor } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useTheme } from './ThemeProvider';
+import { useTheme, type Theme } from './ThemeProvider';
 
 const options = [
   { value: 'system' as const, label: 'System', Icon: Monitor },
@@ -25,16 +26,16 @@ export function ThemeToggle() {
         <ActiveIcon className="w-4 h-4" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        {options.map(({ value, label, Icon }) => (
-          <DropdownMenuItem
-            key={value}
-            onClick={() => setTheme(value)}
-            className={theme === value ? 'bg-accent' : ''}
-          >
-            <Icon className="w-4 h-4" />
-            {label}
-          </DropdownMenuItem>
-        ))}
+        {/* Radio semantics (menuitemradio + aria-checked) plus the check
+            indicator convey the active theme without relying on color alone. */}
+        <DropdownMenuRadioGroup value={theme} onValueChange={(value) => setTheme(value as Theme)}>
+          {options.map(({ value, label, Icon }) => (
+            <DropdownMenuRadioItem key={value} value={value} closeOnClick>
+              <Icon className="w-4 h-4" />
+              {label}
+            </DropdownMenuRadioItem>
+          ))}
+        </DropdownMenuRadioGroup>
       </DropdownMenuContent>
     </DropdownMenu>
   );

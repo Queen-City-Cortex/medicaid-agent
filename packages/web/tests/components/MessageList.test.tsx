@@ -27,7 +27,6 @@ function renderMessageList(messages: UIMessage[], options?: {
       onRerun={vi.fn()}
       messagesEndRef={messagesEndRef}
       feedbackMap={{}}
-      threadId="thread-1"
       onRate={vi.fn()}
       onClearRating={vi.fn()}
       onComment={vi.fn()}
@@ -252,6 +251,40 @@ describe('MessageList', () => {
     ]);
 
     expect(screen.queryByTestId('ended-without-answer')).not.toBeInTheDocument();
+  });
+
+  it('announces status transitions via a hidden live region instead of aria-live on messages', () => {
+    const baseProps = {
+      messages: [
+        {
+          id: 'assistant-live',
+          role: 'assistant',
+          parts: [{ type: 'text', text: 'Streaming answer.' }],
+        } as UIMessage,
+      ],
+      onRerun: vi.fn(),
+      messagesEndRef: { current: null },
+      feedbackMap: {},
+      onRate: vi.fn(),
+      onClearRating: vi.fn(),
+      onComment: vi.fn(),
+    };
+
+    const { rerender } = render(<MessageList {...baseProps} isStreaming={false} status="ready" />);
+    const announcer = screen.getByTestId('chat-status-announcer');
+    expect(announcer).toHaveAttribute('aria-live', 'polite');
+    expect(announcer).toHaveTextContent('');
+
+    rerender(<MessageList {...baseProps} isStreaming={false} status="submitted" />);
+    expect(announcer).toHaveTextContent('Researching…');
+
+    rerender(<MessageList {...baseProps} isStreaming={true} status="streaming" />);
+    expect(announcer).toHaveTextContent('Researching…');
+    // The streaming message container itself must not be a live region.
+    expect(screen.getByTestId('assistant-message')).not.toHaveAttribute('aria-live');
+
+    rerender(<MessageList {...baseProps} isStreaming={false} status="ready" />);
+    expect(announcer).toHaveTextContent('Answer ready');
   });
 
   // ── Version navigation ────────────────────────────────────────────────

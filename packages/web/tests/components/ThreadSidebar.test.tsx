@@ -18,17 +18,22 @@ vi.mock('@workos-inc/authkit-nextjs', () => ({
   signOut: vi.fn(),
 }));
 
-vi.mock('@/lib/use-mastra-client', () => ({
-  useMastraClient: () => ({
-    listMemoryThreads,
-    getMemoryThread: () => ({
-      listMessages,
-      update,
-      delete: deleteThread,
-      clone,
-      get: getThread,
-    }),
+// A stable client object — returning a fresh object from the hook on every
+// render would recreate fetchThreads each render and refetch (clearing error
+// state) after every state change, which the real memoized client never does.
+const mastraClient = {
+  listMemoryThreads,
+  getMemoryThread: () => ({
+    listMessages,
+    update,
+    delete: deleteThread,
+    clone,
+    get: getThread,
   }),
+};
+
+vi.mock('@/lib/use-mastra-client', () => ({
+  useMastraClient: () => mastraClient,
   useMastraReady: () => true,
 }));
 
@@ -145,6 +150,87 @@ describe('ThreadSidebar', () => {
     );
   });
 
+  it('preserves the thread metadata and resourceId when renaming', async () => {
+    const user = userEvent.setup();
+    listMemoryThreads.mockResolvedValue({
+      threads: [
+        {
+          id: 'thread-1',
+          title: 'My conversation',
+          resourceId: 'user-1',
+          updatedAt: '2026-04-13T12:00:00Z',
+          metadata: { pinned: true, source: 'import' },
+        },
+      ],
+    });
+    update.mockResolvedValue({});
+
+    render(
+      <ThreadSidebar
+        currentThreadId="other-thread"
+        resourceId="user-1"
+        onSelectThread={() => {}}
+        onNewThread={() => {}}
+      />,
+    );
+
+    await user.click(await screen.findByRole('button', { name: 'Thread actions for My conversation' }));
+    await user.click(await screen.findByRole('menuitem', { name: /Rename/i }));
+    const renameInput = await screen.findByRole('textbox', { name: 'Rename My conversation' });
+    await user.clear(renameInput);
+    await user.type(renameInput, 'Renamed thread{Enter}');
+
+    await waitFor(() => expect(update).toHaveBeenCalled());
+    expect(update).toHaveBeenCalledWith({
+      title: 'Renamed thread',
+      metadata: { pinned: true, source: 'import' },
+      resourceId: 'user-1',
+    });
+  });
+
+  it('surfaces an inline error when rename fails', async () => {
+    const user = userEvent.setup();
+    update.mockRejectedValue(new Error('boom'));
+
+    render(
+      <ThreadSidebar
+        currentThreadId="other-thread"
+        resourceId="user-1"
+        onSelectThread={() => {}}
+        onNewThread={() => {}}
+      />,
+    );
+
+    await user.click(await screen.findByRole('button', { name: 'Thread actions for My conversation' }));
+    await user.click(await screen.findByRole('menuitem', { name: /Rename/i }));
+    const renameInput = await screen.findByRole('textbox', { name: 'Rename My conversation' });
+    await user.type(renameInput, ' updated{Enter}');
+
+    expect(await screen.findByText('Failed to rename thread')).toBeInTheDocument();
+    // The edit state is closed and the thread row is still rendered.
+    expect(screen.queryByRole('textbox', { name: 'Rename My conversation' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'My conversation' })).toBeInTheDocument();
+  });
+
+  it('surfaces an inline error when duplicate fails', async () => {
+    const user = userEvent.setup();
+    clone.mockRejectedValue(new Error('boom'));
+
+    render(
+      <ThreadSidebar
+        currentThreadId="other-thread"
+        resourceId="user-1"
+        onSelectThread={() => {}}
+        onNewThread={() => {}}
+      />,
+    );
+
+    await user.click(await screen.findByRole('button', { name: 'Thread actions for My conversation' }));
+    await user.click(await screen.findByTestId('thread-duplicate'));
+
+    expect(await screen.findByText('Failed to duplicate thread')).toBeInTheDocument();
+  });
+
   it('triggers a JSON download with a slugged filename when Export is clicked', async () => {
     const user = userEvent.setup();
     getThread.mockResolvedValue({
@@ -162,7 +248,7 @@ describe('ThreadSidebar', () => {
     });
 
     // Spy on the download plumbing — the component clicks a synthetic <a>.
-    const createObjectURL = vi.fn(() => 'blob:mock-url');
+    const createObjectURL = vi.fn((_blob: Blob) => 'blob:mock-url');
     const revokeObjectURL = vi.fn();
     const originalCreate = URL.createObjectURL;
     const originalRevoke = URL.revokeObjectURL;
@@ -184,11 +270,11 @@ describe('ThreadSidebar', () => {
       await user.click(await screen.findByTestId('thread-export'));
 
       await waitFor(() => expect(createObjectURL).toHaveBeenCalled());
-      const blob = createObjectURL.mock.calls[0][0] as Blob;
+      const blob = createObjectURL.mock.calls[0][0];
       expect(blob.type).toBe('application/json');
       expect(clickSpy).toHaveBeenCalled();
       // Confirm the anchor had a slugged .json download name.
-      const anchor = clickSpy.mock.instances[0] as HTMLAnchorElement;
+      const anchor = clickSpy.mock.instances[0] as unknown as HTMLAnchorElement;
       expect(anchor.download).toMatch(/^thread-my-conversation-\d{4}-\d{2}-\d{2}\.json$/);
     } finally {
       URL.createObjectURL = originalCreate;

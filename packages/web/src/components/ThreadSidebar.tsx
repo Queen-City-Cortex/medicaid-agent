@@ -33,6 +33,11 @@ import type { StorageThreadType } from '@mastra/core/memory';
 
 const AGENT_ID = 'nc-medicaid-navigator';
 
+// Server threads are created with the question as their title nowadays, so
+// deriving titles from messages is a legacy path for old threads. Cap how many
+// we derive so a sidebar of 50 untitled threads doesn't fan out 50 requests.
+const MAX_DERIVED_TITLE_THREADS = 10;
+
 interface ThreadSidebarProps {
   currentThreadId: string;
   resourceId: string;
@@ -100,21 +105,24 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
   useEffect(() => {
     let cancelled = false;
 
-    const untitledThreads = threads.filter(
-      (thread) =>
-        (!thread.title || !thread.title.trim()) &&
-        !derivedTitles[thread.id] &&
-        !requestedDerivedTitlesRef.current.has(thread.id),
-    );
+    // Only the most recent untitled threads get a derived title (the list is
+    // already sorted by updatedAt DESC); older ones keep the fallback label.
+    const untitledThreads = threads
+      .filter((thread) => !thread.title || !thread.title.trim())
+      .slice(0, MAX_DERIVED_TITLE_THREADS)
+      .filter((thread) => !requestedDerivedTitlesRef.current.has(thread.id));
 
-    for (const thread of untitledThreads) {
-      requestedDerivedTitlesRef.current.add(thread.id);
+    if (untitledThreads.length === 0) return;
 
-      void (async () => {
+    // Fetch sequentially instead of fanning out one request per thread. An
+    // in-flight fetch is never aborted — its result is still applied — the
+    // cleanup only stops further fetches from starting.
+    void (async () => {
+      for (const thread of untitledThreads) {
+        requestedDerivedTitlesRef.current.add(thread.id);
         try {
           const threadHandle = mastraClient.getMemoryThread({ threadId: thread.id, agentId: AGENT_ID });
           const result = await threadHandle.listMessages();
-          if (cancelled) return;
 
           const derivedTitle = deriveThreadTitleFromMessages(
             (result.messages ?? []) as Array<{ role?: string; content?: unknown }>,
@@ -127,19 +135,21 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
             });
           }
         } catch (err) {
-          if (!cancelled) {
-            console.error('Failed to derive thread title:', err);
-          }
+          // Let a future pass retry this thread instead of poisoning it forever.
+          requestedDerivedTitlesRef.current.delete(thread.id);
+          console.error('Failed to derive thread title:', err);
         }
-      })();
-    }
+        if (cancelled) return;
+      }
+    })();
 
     return () => {
       cancelled = true;
     };
-  }, [threads, derivedTitles, mastraClient]);
+  }, [threads, mastraClient]);
 
   const handleDelete = async (threadId: string) => {
+    setError(null);
     try {
       const thread = mastraClient.getMemoryThread({ threadId, agentId: AGENT_ID });
       await thread.delete();
@@ -149,6 +159,7 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
       fetchThreads();
     } catch (err) {
       console.error('Failed to delete thread:', err);
+      setError('Failed to delete thread');
     }
   };
 
@@ -157,18 +168,27 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
       setEditingThreadId(null);
       return;
     }
+    setError(null);
     try {
+      const existing = threads.find((t) => t.id === threadId);
       const thread = mastraClient.getMemoryThread({ threadId, agentId: AGENT_ID });
-      await thread.update({ title: editTitle.trim(), metadata: {}, resourceId });
+      // Pass the thread's existing metadata through — sending `{}` here wiped it.
+      await thread.update({
+        title: editTitle.trim(),
+        metadata: existing?.metadata ?? {},
+        resourceId: existing?.resourceId ?? resourceId,
+      });
       setEditingThreadId(null);
       fetchThreads();
     } catch (err) {
       console.error('Failed to rename thread:', err);
+      setError('Failed to rename thread');
       setEditingThreadId(null);
     }
   };
 
   const handleDuplicate = async (threadId: string, sourceTitle: string) => {
+    setError(null);
     try {
       const thread = mastraClient.getMemoryThread({ threadId, agentId: AGENT_ID });
       // Mastra's clone endpoint copies the thread + all messages server-side.
@@ -178,10 +198,12 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
       fetchThreads();
     } catch (err) {
       console.error('Failed to duplicate thread:', err);
+      setError('Failed to duplicate thread');
     }
   };
 
   const handleExport = async (threadId: string, sourceTitle: string) => {
+    setError(null);
     try {
       const thread = mastraClient.getMemoryThread({ threadId, agentId: AGENT_ID });
       const [meta, msgs] = await Promise.all([
@@ -221,6 +243,7 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (err) {
       console.error('Failed to export thread:', err);
+      setError('Failed to export thread');
     }
   };
 
@@ -263,7 +286,7 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
 
           {!isLoading && error && (
             <div className="px-4 py-3">
-              <p className="text-xs text-red-400 mb-2">{error}</p>
+              <p className="text-xs text-destructive mb-2">{error}</p>
               <button
                 onClick={() => fetchThreads()}
                 className="text-xs text-sidebar-foreground/70 hover:text-sidebar-foreground underline underline-offset-2"

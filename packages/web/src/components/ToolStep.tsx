@@ -1,6 +1,7 @@
 'use client';
 
-import { ChevronRight, Search, FileText, ClipboardList, Link, ArrowUpRight, FilePen, Tag, BookOpen, Scale, type LucideIcon } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { ChevronRight, Search, FileText, ClipboardList, Link, ArrowUpRight, FilePen, Tag, BookOpen, Scale, TriangleAlert, type LucideIcon } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { getToolName, type ToolMessagePart } from '@/lib/message-parts';
 import { cn } from '@/lib/utils';
@@ -30,6 +31,10 @@ function isRunningState(state: string | undefined): boolean {
 
 function isCompletedState(state: string | undefined): boolean {
   return state === 'output-available';
+}
+
+function isErrorState(state: string | undefined): boolean {
+  return state === 'output-error';
 }
 
 function truncate(text: string, max = 120): string {
@@ -233,24 +238,45 @@ export function ToolStep({ part }: ToolStepProps) {
   const outputSummary = summarizeToolOutput(toolName, output);
   const running = isRunningState(part.state);
   const completed = isCompletedState(part.state);
-  const statusLabel = running ? 'Running' : completed ? 'Done' : 'Pending';
+  const failed = isErrorState(part.state);
+  const statusLabel = running ? 'Running' : completed ? 'Done' : failed ? 'Failed' : 'Pending';
+
+  // Track open state so the (potentially large) raw payloads are only
+  // stringified while the panel is actually open — formatJson on every render
+  // of a closed panel was wasted work on every stream chunk.
+  const [open, setOpen] = useState(false);
+  const inputJson = useMemo(
+    () => (open && input !== undefined ? formatJson(input) : ''),
+    [open, input],
+  );
+  const outputJson = useMemo(
+    () => (open && output !== undefined ? formatJson(output) : ''),
+    [open, output],
+  );
 
   return (
-    <Collapsible>
+    <Collapsible open={open} onOpenChange={setOpen}>
       <div data-testid="tool-step" className="my-3">
         <CollapsibleTrigger
           data-testid="tool-step-trigger"
-          className="group flex w-full items-center justify-between rounded-xl border border-border/70 bg-muted/35 px-4 py-3 text-left transition-colors hover:bg-muted/55"
+          className={cn(
+            'group flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left transition-colors',
+            failed
+              ? 'border-destructive/30 bg-destructive/5 hover:bg-destructive/10'
+              : 'border-border/70 bg-muted/35 hover:bg-muted/55',
+          )}
         >
           <div className="flex min-w-0 items-center gap-3">
             {running ? (
               <span className="inline-block size-4 shrink-0 rounded-full border-2 border-accent border-t-transparent animate-spin" />
+            ) : failed ? (
+              <TriangleAlert className="size-4 shrink-0 text-destructive" />
             ) : (
               <Icon className="size-4 shrink-0 text-muted-foreground" />
             )}
             <div className="min-w-0">
               <div className="text-sm font-medium text-foreground">{label}</div>
-              <div className="text-xs text-muted-foreground">{statusLabel}</div>
+              <div className={cn('text-xs', failed ? 'text-destructive' : 'text-muted-foreground')}>{statusLabel}</div>
             </div>
           </div>
           <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-transform group-data-[panel-open]:rotate-90" />
@@ -271,7 +297,7 @@ export function ToolStep({ part }: ToolStepProps) {
                 <span className="font-medium">Result:</span> {outputSummary}
               </div>
             )}
-            {!inputSummary && !outputSummary && (
+            {!inputSummary && !outputSummary && !failed && (
               <div className="text-sm text-muted-foreground">
                 {toolName === 'unknown'
                   ? 'Showing raw tool details.'
@@ -280,8 +306,18 @@ export function ToolStep({ part }: ToolStepProps) {
             )}
           </div>
 
-          {input !== undefined && <PayloadSection title="Raw input" body={formatJson(input)} />}
-          {output !== undefined && <PayloadSection title="Raw result" body={formatJson(output)} />}
+          {failed && (
+            <div
+              data-testid="tool-step-error"
+              className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs leading-relaxed text-destructive whitespace-pre-wrap break-words"
+            >
+              <span className="font-medium">Error:</span>{' '}
+              {part.errorText?.trim() || 'The tool call failed without an error message.'}
+            </div>
+          )}
+
+          {inputJson && <PayloadSection title="Raw input" body={inputJson} />}
+          {outputJson && <PayloadSection title="Raw result" body={outputJson} />}
           {output === undefined && running && (
             <div className="text-xs text-muted-foreground">Waiting for the tool result.</div>
           )}

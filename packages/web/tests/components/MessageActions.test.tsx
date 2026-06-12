@@ -1,6 +1,6 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { render, screen, act, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MessageActions } from '../../src/components/MessageActions';
 
@@ -13,6 +13,10 @@ vi.mock('../../src/components/ui/tooltip', () => ({
 }));
 
 describe('MessageActions', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('renders copy button', () => {
     render(<MessageActions content="test content" />);
     expect(screen.getByLabelText('Copy message')).toBeInTheDocument();
@@ -20,12 +24,79 @@ describe('MessageActions', () => {
 
   it('copies content to clipboard on click', async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
-    Object.assign(navigator, { clipboard: { writeText } });
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
 
     render(<MessageActions content="test content" />);
     await userEvent.click(screen.getByLabelText('Copy message'));
 
     expect(writeText).toHaveBeenCalledWith('test content');
+    expect(await screen.findByLabelText('Copied')).toBeInTheDocument();
+  });
+
+  it('shows a "Copy failed" state when the clipboard write rejects', async () => {
+    const writeText = vi.fn().mockRejectedValue(new Error('NotAllowedError'));
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+
+    render(<MessageActions content="test content" />);
+    await userEvent.click(screen.getByLabelText('Copy message'));
+
+    expect(await screen.findByLabelText('Copy failed')).toBeInTheDocument();
+  });
+
+  it('treats a missing clipboard API (non-secure context) as a copy failure', async () => {
+    Object.defineProperty(navigator, 'clipboard', { value: undefined, configurable: true });
+
+    render(<MessageActions content="test content" />);
+    await userEvent.click(screen.getByLabelText('Copy message'));
+
+    expect(await screen.findByLabelText('Copy failed')).toBeInTheDocument();
+  });
+
+  it('keeps the copied state alive on rapid clicks instead of letting the first timer cut it short', async () => {
+    vi.useFakeTimers();
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+
+    render(<MessageActions content="test content" />);
+
+    fireEvent.click(screen.getByLabelText('Copy message'));
+    // Flush the (microtask) clipboard promise without advancing timers.
+    await act(async () => {});
+    expect(screen.getByLabelText('Copied')).toBeInTheDocument();
+
+    // Second click 1.5s in — restarts the 2s feedback window.
+    act(() => {
+      vi.advanceTimersByTime(1500);
+    });
+    fireEvent.click(screen.getByLabelText('Copied'));
+    await act(async () => {});
+
+    // 1s after the second click the first timer (2s mark) would have fired.
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+    expect(screen.getByLabelText('Copied')).toBeInTheDocument();
+
+    // The restarted window expires 2s after the second click.
+    act(() => {
+      vi.advanceTimersByTime(1100);
+    });
+    expect(screen.getByLabelText('Copy message')).toBeInTheDocument();
+  });
+
+  it('clears the pending reset timer on unmount', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+    const clearSpy = vi.spyOn(window, 'clearTimeout');
+
+    const { unmount } = render(<MessageActions content="test content" />);
+    await userEvent.click(screen.getByLabelText('Copy message'));
+    await screen.findByLabelText('Copied');
+
+    clearSpy.mockClear();
+    unmount();
+    expect(clearSpy).toHaveBeenCalled();
+    clearSpy.mockRestore();
   });
 
   it('shows rerun button only when onRerun is provided', () => {
@@ -37,7 +108,7 @@ describe('MessageActions', () => {
   });
 
   it('renders thumbs-up and thumbs-down buttons when messageId is provided', () => {
-    render(<MessageActions content="test" messageId="msg-1" threadId="t-1" onRate={() => {}} />);
+    render(<MessageActions content="test" messageId="msg-1" onRate={() => {}} />);
     expect(screen.getByLabelText('Rate helpful')).toBeInTheDocument();
     expect(screen.getByLabelText('Rate unhelpful')).toBeInTheDocument();
   });
@@ -50,7 +121,7 @@ describe('MessageActions', () => {
 
   it('calls onRate with "up" when thumbs-up clicked', async () => {
     const onRate = vi.fn();
-    render(<MessageActions content="test" messageId="msg-1" threadId="t-1" onRate={onRate} />);
+    render(<MessageActions content="test" messageId="msg-1" onRate={onRate} />);
     await userEvent.click(screen.getByLabelText('Rate helpful'));
     expect(onRate).toHaveBeenCalledWith('up');
   });
@@ -61,7 +132,6 @@ describe('MessageActions', () => {
       <MessageActions
         content="test"
         messageId="msg-1"
-        threadId="t-1"
         feedback={{ id: 'fb-1', rating: 'up', comment: null }}
         onRate={() => {}}
         onClearRating={onClearRating}
@@ -76,7 +146,6 @@ describe('MessageActions', () => {
       <MessageActions
         content="test"
         messageId="msg-1"
-        threadId="t-1"
         feedback={{ id: 'fb-1', rating: 'down', comment: null }}
         onRate={() => {}}
         onComment={() => {}}
@@ -91,7 +160,6 @@ describe('MessageActions', () => {
       <MessageActions
         content="test"
         messageId="msg-1"
-        threadId="t-1"
         feedback={{ id: 'fb-1', rating: 'down', comment: null }}
         onRate={() => {}}
         onComment={onComment}

@@ -65,6 +65,52 @@ describe('ToolStep', () => {
     expect(screen.getByText('Researching sources')).toBeInTheDocument();
   });
 
+  it('renders a Failed state for output-error parts and reveals the error when expanded', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ToolStep
+        part={{
+          type: 'dynamic-tool',
+          toolName: 'searchSections',
+          toolCallId: 'tc-err',
+          state: 'output-error',
+          input: { query: 'chiropractic' },
+          errorText: 'Upstream search index timed out',
+        }}
+      />,
+    );
+
+    expect(screen.getByText('Failed')).toBeInTheDocument();
+    expect(screen.queryByText('Pending')).not.toBeInTheDocument();
+    expect(screen.queryByText(/timed out/)).not.toBeInTheDocument();
+
+    await user.click(screen.getByTestId('tool-step-trigger'));
+
+    expect(screen.getByTestId('tool-step-error')).toHaveTextContent('Upstream search index timed out');
+  });
+
+  it('shows a fallback message when a failed tool part has no errorText', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ToolStep
+        part={{
+          type: 'dynamic-tool',
+          toolName: 'getSection',
+          toolCallId: 'tc-err-2',
+          state: 'output-error',
+        }}
+      />,
+    );
+
+    await user.click(screen.getByTestId('tool-step-trigger'));
+
+    expect(screen.getByTestId('tool-step-error')).toHaveTextContent(
+      'The tool call failed without an error message.',
+    );
+  });
+
   it('keeps large results hidden until expanded', async () => {
     const user = userEvent.setup();
     const largeOutput = { payload: 'A'.repeat(800) };

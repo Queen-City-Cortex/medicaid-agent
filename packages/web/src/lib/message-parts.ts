@@ -7,6 +7,8 @@ export type ToolMessagePart = {
   state?: string;
   input?: unknown;
   output?: unknown;
+  /** Present when state === 'output-error': the error message from the failed tool call. */
+  errorText?: string;
 };
 
 type TextMessagePart = {

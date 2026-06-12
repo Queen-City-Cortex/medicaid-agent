@@ -446,8 +446,9 @@ export default function ChatPage() {
         />
       )}
 
-      {/* Main chat area */}
-      <div className="flex flex-col flex-1 min-w-0">
+      {/* Main chat area — inert while the mobile sidebar overlay is open so
+          background content can't be tabbed into behind the backdrop */}
+      <div className="flex flex-col flex-1 min-w-0" inert={isMobile && !sidebarCollapsed}>
         <header className="border-b border-border bg-card px-4 md:px-8 py-5 shrink-0">
           <div className="max-w-3xl mx-auto flex items-center gap-3">
             <button
@@ -485,7 +486,6 @@ export default function ChatPage() {
               onRerun={handleRerun}
               messagesEndRef={messagesEndRef}
               feedbackMap={feedbackMap}
-              threadId={threadId}
               onRate={handleRate}
               onClearRating={handleClearRating}
               onComment={handleComment}

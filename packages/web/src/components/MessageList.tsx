@@ -29,7 +29,6 @@ interface MessageListProps {
   onRerun: (messageIndex: number, userIndex: number) => void;
   messagesEndRef: RefObject<HTMLDivElement | null>;
   feedbackMap: Record<string, { id: string; rating: 'up' | 'down'; comment: string | null }>;
-  threadId: string;
   onRate: (messageId: string, rating: 'up' | 'down') => void;
   onClearRating: (messageId: string) => void;
   onComment: (messageId: string, comment: string) => void;
@@ -101,7 +100,6 @@ function AssistantMessage({
   messageIndex,
   messages,
   isStreaming,
-  threadId,
   feedbackMap,
   onRerun,
   onRate,
@@ -112,7 +110,6 @@ function AssistantMessage({
   messageIndex: number;
   messages: UIMessage[];
   isStreaming: boolean;
-  threadId: string;
   feedbackMap: Record<string, { id: string; rating: 'up' | 'down'; comment: string | null }>;
   onRerun: (messageIndex: number, userIndex: number) => void;
   onRate: (messageId: string, rating: 'up' | 'down') => void;
@@ -158,13 +155,10 @@ function AssistantMessage({
     <div
       data-testid="assistant-message"
       className="pl-2 mt-6 animate-in fade-in slide-in-from-bottom-2 duration-200"
-      // Screen readers get incremental updates while streaming; polite keeps it
-      // from interrupting the user's current focus. Once streaming completes
-      // (isStreaming=false) we drop live-region semantics so re-rendered
-      // content doesn't re-announce.
-      aria-live={isStreaming ? 'polite' : undefined}
+      // No aria-live here: announcing every streamed chunk spams screen
+      // readers. MessageList renders a small status live region that announces
+      // state transitions instead.
       aria-busy={isStreaming || undefined}
-      role={isStreaming ? 'status' : undefined}
     >
       {visibleParts.map(({ part, index }, visibleIndex) => {
         const isLastVisiblePart = visibleIndex === visibleParts.length - 1;
@@ -239,7 +233,6 @@ function AssistantMessage({
             onRerun(messageIndex, userIdx);
           }}
           messageId={msg.id}
-          threadId={threadId}
           feedback={feedbackMap[msg.id] ?? null}
           onRate={(rating) => onRate(msg.id, rating)}
           onClearRating={() => onClearRating(msg.id)}
@@ -250,7 +243,23 @@ function AssistantMessage({
   );
 }
 
-export function MessageList({ messages, isStreaming, status, onRerun, messagesEndRef, feedbackMap, threadId, onRate, onClearRating, onComment, archivedVersions, activeVersion, onSelectVersion }: MessageListProps) {
+export function MessageList({ messages, isStreaming, status, onRerun, messagesEndRef, feedbackMap, onRate, onClearRating, onComment, archivedVersions, activeVersion, onSelectVersion }: MessageListProps) {
+  // Screen-reader announcements for chat state transitions. A single hidden
+  // live region announcing "Researching…" / "Answer ready" replaces aria-live
+  // on the streaming message container, which re-announced every chunk.
+  // Uses the "storing information from previous renders" pattern (setState
+  // during render) rather than an effect.
+  const [announcement, setAnnouncement] = useState('');
+  const [prevStatus, setPrevStatus] = useState(status);
+  if (status !== prevStatus) {
+    setPrevStatus(status);
+    if (status === 'submitted') {
+      setAnnouncement('Researching…');
+    } else if (status === 'ready' && (prevStatus === 'streaming' || prevStatus === 'submitted')) {
+      setAnnouncement('Answer ready');
+    }
+  }
+
   // Walk once to remember the nearest preceding user message for each
   // assistant. Used to look up archived versions + render a VersionNav above
   // the displayed message when earlier answers exist.
@@ -268,6 +277,10 @@ export function MessageList({ messages, isStreaming, status, onRerun, messagesEn
 
   return (
     <>
+      <div data-testid="chat-status-announcer" role="status" aria-live="polite" className="sr-only">
+        {announcement}
+      </div>
+
       {messages.map((msg, i) => {
         const parentUserId = parentUserIdByAssistantIndex.get(i);
         const archived: UIMessage[] = parentUserId ? (archivedVersions?.[parentUserId] ?? []) : [];
@@ -305,7 +318,6 @@ export function MessageList({ messages, isStreaming, status, onRerun, messagesEn
                   messageIndex={i}
                   messages={messages}
                   isStreaming={showLive && isStreaming && i === messages.length - 1}
-                  threadId={threadId}
                   feedbackMap={feedbackMap}
                   onRerun={onRerun}
                   onRate={onRate}

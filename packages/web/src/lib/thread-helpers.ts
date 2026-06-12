@@ -4,14 +4,21 @@ import { extractText } from '@/lib/parse-message';
 const FALLBACK_THREAD_TITLE = 'New conversation';
 const THREAD_TITLE_MAX_LENGTH = 60;
 
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+function startOfLocalDay(date: Date): number {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+}
+
 export function formatDate(date: string | Date | undefined): string {
   if (!date) return '';
   const d = new Date(date);
   const now = new Date();
-  const diffMs = now.getTime() - d.getTime();
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  // Bucket by calendar day, not 24-hour windows — a thread from yesterday
+  // evening must say "Yesterday", not render as a bare time implying today.
+  const diffDays = Math.round((startOfLocalDay(now) - startOfLocalDay(d)) / MS_PER_DAY);
 
-  if (diffDays === 0) {
+  if (diffDays <= 0) {
     return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   } else if (diffDays === 1) {
     return 'Yesterday';
