@@ -168,7 +168,9 @@ export function useChatThread({
       const dbMessages = result.messages ?? [];
       const converted: UIMessage[] = [];
       for (const msg of dbMessages) {
-        const uiMsg = convertThreadMessageToUIMessage(msg as { id?: string; role: string; content: unknown });
+        const uiMsg = convertThreadMessageToUIMessage(
+          msg as { id?: string; role: string; content: unknown; createdAt?: string | Date },
+        );
         if (uiMsg) converted.push(uiMsg);
       }
       const assistantParts = converted.filter(m => m.role === 'assistant').flatMap(m => m.parts);

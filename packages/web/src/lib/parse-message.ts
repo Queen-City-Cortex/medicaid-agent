@@ -36,6 +36,17 @@ function convertV4PartsToV5(v4Parts: Array<Record<string, unknown>>): UIMessage[
  * Detects MastraMessageContentV2 format and preserves structured parts
  * (tool calls, text, step boundaries) for proper timeline rendering.
  */
+/** Metadata carried on restored thread messages. Streaming messages have none. */
+export interface ThreadMessageMetadata {
+  /** ISO timestamp of when the message was persisted to memory. */
+  createdAt?: string;
+}
+
+export function getMessageCreatedAt(msg: UIMessage): string | null {
+  const metadata = msg.metadata as ThreadMessageMetadata | undefined;
+  return metadata?.createdAt ?? null;
+}
+
 export function convertThreadMessageToUIMessage(msg: {
   id?: string;
   role: string;
@@ -44,6 +55,14 @@ export function convertThreadMessageToUIMessage(msg: {
 }): UIMessage | null {
   const role = msg.role as string;
   if (role !== 'user' && role !== 'assistant') return null;
+
+  // Memory timestamps answer "when was this generated?" on restored threads.
+  // Invalid/absent dates yield no metadata rather than a bogus timestamp.
+  const createdAtDate = msg.createdAt ? new Date(msg.createdAt) : null;
+  const metadata: ThreadMessageMetadata | undefined =
+    createdAtDate && !Number.isNaN(createdAtDate.getTime())
+      ? { createdAt: createdAtDate.toISOString() }
+      : undefined;
 
   const id = msg.id ?? (() => {
     const fallback = generateUUID();
@@ -59,7 +78,7 @@ export function convertThreadMessageToUIMessage(msg: {
     if (v2.format === 2 && Array.isArray(v2.parts) && v2.parts.length > 0) {
       const parts = convertV4PartsToV5(v2.parts);
       if (parts.length > 0) {
-        return { id, role: role as 'user' | 'assistant', parts };
+        return { id, role: role as 'user' | 'assistant', parts, metadata };
       }
     }
   }
@@ -72,6 +91,7 @@ export function convertThreadMessageToUIMessage(msg: {
     id,
     role: role as 'user' | 'assistant',
     parts: [{ type: 'text' as const, text: text.trim() }],
+    metadata,
   };
 }
 

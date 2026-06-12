@@ -11,6 +11,7 @@ import { SourcesPanel, sourceRowId } from '@/components/SourcesPanel';
 import { ToolStep, getToolDescriptor, summarizeToolInput } from '@/components/ToolStep';
 import { VerificationBadge } from '@/components/VerificationBadge';
 import { VersionNav } from '@/components/VersionNav';
+import { getMessageCreatedAt } from '@/lib/parse-message';
 import {
   buildAnswerClipboardText,
   buildSourceIndex,
@@ -142,6 +143,19 @@ function AssistantMessage({
     extractCitedUrls(msg),
   );
   const verification = extractVerificationState(msg);
+  // Generation timestamp from memory's createdAt — present only on restored
+  // thread messages (exactly where "when was this answer generated?" matters;
+  // a just-streamed answer is self-evidently from now).
+  const createdAt = getMessageCreatedAt(msg);
+  const generatedAt = createdAt
+    ? new Date(createdAt).toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+      })
+    : null;
   // Detect the "tools ran but agent gave up without a text answer" state. This
   // happens when a mid-tool-loop model call throws (e.g. transient
   // AI_APICallError) and Mastra terminates the stream with finishReason that
@@ -344,6 +358,12 @@ function AssistantMessage({
           highlightedKey={highlightedKey}
           verification={verification}
         />
+      )}
+
+      {!isStreaming && generatedAt && finalAnswerText && (
+        <p data-testid="generated-at" className="mt-3 text-[11px] text-muted-foreground/60">
+          Generated {generatedAt}
+        </p>
       )}
 
       {!isStreaming && (finalAnswerText || endedWithoutAnswer) && (

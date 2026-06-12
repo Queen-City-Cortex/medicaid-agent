@@ -1,10 +1,14 @@
 'use client';
 
+import { useCorpusStatus } from '@/lib/use-corpus-status';
+
 // First-run guidance, kept deliberately quiet: a scope line (what document
 // families the corpus covers), a limits line (what this tool must never be
-// mistaken for), and persona-grouped example questions with jargon expanded.
-// The personas mirror the product's three audiences — legal-aid attorneys,
-// case managers, and beneficiaries.
+// mistaken for), a corpus-freshness line (real max(last_indexed) from the
+// graph — rendered only when the value loads, never an invented date), and
+// persona-grouped example questions with jargon expanded. The personas mirror
+// the product's three audiences — legal-aid attorneys, case managers, and
+// beneficiaries.
 const EXAMPLE_GROUPS: { persona: string; questions: string[] }[] = [
   {
     persona: 'For attorneys',
@@ -34,6 +38,15 @@ interface EmptyStateProps {
 }
 
 export function EmptyState({ onSelectExample }: EmptyStateProps) {
+  const corpusStatus = useCorpusStatus();
+  const corpusUpdated = corpusStatus?.lastUpdated
+    ? new Date(corpusStatus.lastUpdated).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      })
+    : null;
+
   return (
     <div className="py-12 text-center">
       <h2 data-testid="empty-state" className="font-heading text-3xl font-semibold tracking-tight text-foreground mb-3">
@@ -48,6 +61,12 @@ export function EmptyState({ onSelectExample }: EmptyStateProps) {
         It can&rsquo;t give legal advice or look up individual cases or eligibility. Verify critical
         details with NC DHHS.
       </p>
+      {corpusUpdated && (
+        <p data-testid="empty-state-corpus-status" className="max-w-xl mx-auto mt-2 text-xs text-muted-foreground/80">
+          Corpus of {corpusStatus!.documentCount.toLocaleString('en-US')} documents, last updated{' '}
+          {corpusUpdated}.
+        </p>
+      )}
       <div className="mt-10 grid gap-6 max-w-lg mx-auto text-left">
         {EXAMPLE_GROUPS.map((group) => (
           <div key={group.persona}>

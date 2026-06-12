@@ -61,6 +61,28 @@ describe('convertThreadMessageToUIMessage', () => {
     expect(result!.role).toBe('assistant');
   });
 
+  it('carries memory createdAt into UIMessage metadata', () => {
+    const result = convertThreadMessageToUIMessage({
+      id: 'msg-3',
+      role: 'assistant',
+      content: 'Answer text.',
+      createdAt: '2026-04-09T17:50:36.141Z',
+    });
+    expect(result!.metadata).toEqual({ createdAt: '2026-04-09T17:50:36.141Z' });
+  });
+
+  it('omits metadata when createdAt is missing or invalid', () => {
+    const noDate = convertThreadMessageToUIMessage({ id: 'a', role: 'assistant', content: 'x'.repeat(10) });
+    expect(noDate!.metadata).toBeUndefined();
+    const badDate = convertThreadMessageToUIMessage({
+      id: 'b',
+      role: 'assistant',
+      content: 'x'.repeat(10),
+      createdAt: 'not-a-date',
+    });
+    expect(badDate!.metadata).toBeUndefined();
+  });
+
   it('returns null for non-user/non-assistant roles', () => {
     expect(convertThreadMessageToUIMessage({ role: 'system', content: 'hi' })).toBeNull();
     expect(convertThreadMessageToUIMessage({ role: 'tool', content: 'result' })).toBeNull();

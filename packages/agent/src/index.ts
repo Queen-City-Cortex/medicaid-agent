@@ -34,6 +34,7 @@ import { bindResourceToAuthenticatedUser } from './auth-middleware.js';
 import { PinoLogger } from '@mastra/loggers';
 import { FeedbackRepository } from './feedback/repository.js';
 import { feedbackApiRoutes } from './feedback/routes.js';
+import { corpusStatusRoute } from './corpus-status.js';
 import { buildSystemPrompt } from './prompt.js';
 
 // ── Startup validation ────────────────────────────────────────────────────────
@@ -256,6 +257,7 @@ export const mastra = new Mastra({
         },
       }),
       ...feedbackApiRoutes(feedbackRepo),
+      corpusStatusRoute(),
       registerApiRoute('/healthz', {
         method: 'GET',
         requiresAuth: false,

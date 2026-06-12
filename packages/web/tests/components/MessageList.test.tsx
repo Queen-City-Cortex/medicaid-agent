@@ -118,6 +118,26 @@ describe('MessageList', () => {
     expect(screen.getByTestId('message-actions')).toHaveTextContent('Plain answer with no tools.');
   });
 
+  it('shows a generation timestamp on restored messages and omits it without metadata', () => {
+    renderMessageList([
+      {
+        id: 'assistant-fresh',
+        role: 'assistant',
+        parts: [{ type: 'text', text: 'Streamed just now.' }],
+      },
+      {
+        id: 'assistant-restored',
+        role: 'assistant',
+        parts: [{ type: 'text', text: 'Restored from memory.' }],
+        metadata: { createdAt: '2026-04-09T17:50:36.141Z' },
+      },
+    ]);
+
+    const stamps = screen.getAllByTestId('generated-at');
+    expect(stamps).toHaveLength(1);
+    expect(stamps[0]).toHaveTextContent(/Generated April 9, 2026/);
+  });
+
   it('hides step-start parts while keeping later content visible', () => {
     renderMessageList([
       {
