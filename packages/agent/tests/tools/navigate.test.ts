@@ -12,6 +12,7 @@ vi.mock('../../src/neo4j.js', () => ({
 
 import { withSession } from '../../src/neo4j.js';
 import { followReferences, getAmendments } from '../../src/tools/navigate.js';
+import { runTool } from '../helpers/run-tool.js';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -63,7 +64,7 @@ describe('followReferences', () => {
       },
     ]);
 
-    const result = await followReferences.execute({ sectionId: 'sec-1' }, {});
+    const result = await runTool(followReferences, { sectionId: 'sec-1' });
 
     expect(result.references).toHaveLength(2);
     expect(result.references[0]).toMatchObject({
@@ -87,7 +88,7 @@ describe('followReferences', () => {
   it('returns empty array when no references', async () => {
     setupSession([{ records: [] }]);
 
-    const result = await followReferences.execute({ sectionId: 'sec-orphan' }, {});
+    const result = await runTool(followReferences, { sectionId: 'sec-orphan' });
 
     expect(result.references).toEqual([]);
   });
@@ -157,7 +158,7 @@ describe('getAmendments', () => {
       },
     ]);
 
-    const result = await getAmendments.execute({ documentId: 'doc-1' }, {});
+    const result = await runTool(getAmendments, { documentId: 'doc-1' });
 
     expect(result.amendments).toHaveLength(2);
     expect(result.amendments[0]).toMatchObject({
@@ -232,7 +233,7 @@ describe('getAmendments', () => {
       { records: [] }, // No base document
     ]);
 
-    const result = await getAmendments.execute({ documentId: 'doc-1' }, {});
+    const result = await runTool(getAmendments, { documentId: 'doc-1' });
 
     expect(result.amendments).toHaveLength(1);
     expect(result.amendments[0].changeSummary).toBe('A short summary.');

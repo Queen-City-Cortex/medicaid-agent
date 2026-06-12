@@ -1,6 +1,8 @@
 services:
   neo4j:
-    image: neo4j:community
+    # Pin the image so dev/CI don't silently jump major versions when the
+    # floating `community` tag moves.
+    image: neo4j:2026.05-community
     ports:
       - "7474:7474"
       - "7687:7687"
@@ -16,6 +18,10 @@ services:
       start_period: 10s
 
 volumes:
+  # External so compose never tries to own/recreate the volume that holds the
+  # loaded policy graph. The npm `dev` / `dev:infra` scripts create it
+  # automatically (`docker volume create` is idempotent), so a fresh clone's
+  # `npm run dev` works without manual setup.
   neo4j-data:
     external: true
     name: neo4j-medicaid-data

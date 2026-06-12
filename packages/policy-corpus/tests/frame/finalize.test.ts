@@ -26,6 +26,7 @@ function section(id: string, content: string | null = 'body text'): AnswerFrameS
     variantGroup: null,
     variantDate: null,
     retrievalReady: null,
+    reason: null,
   };
 }
 

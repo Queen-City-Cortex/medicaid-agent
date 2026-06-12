@@ -12,6 +12,7 @@ vi.mock('../../src/neo4j.js', () => ({
 
 import { withSession } from '../../src/neo4j.js';
 import { lookupPolicy } from '../../src/tools/lookup.js';
+import { runTool } from '../helpers/run-tool.js';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -60,7 +61,7 @@ describe('lookupPolicy', () => {
       },
     ]);
 
-    const result = await lookupPolicy.execute({ policyNumber: '8C' }, {});
+    const result = await runTool(lookupPolicy, { policyNumber: '8C' });
 
     expect(result.documents).toHaveLength(1);
     expect(result.documents[0].id).toBe('doc-8c');
@@ -94,7 +95,7 @@ describe('lookupPolicy', () => {
       },
     ]);
 
-    const result = await lookupPolicy.execute({ policyNumber: '1A' }, {});
+    const result = await runTool(lookupPolicy, { policyNumber: '1A' });
 
     expect(result.documents[0].sections).toHaveLength(1);
     expect(result.documents[0].sections[0].id).toBe('sec-valid');
@@ -103,7 +104,7 @@ describe('lookupPolicy', () => {
   it('returns empty array when no match', async () => {
     setupSession([{ records: [] }]);
 
-    const result = await lookupPolicy.execute({ policyNumber: 'nonexistent' }, {});
+    const result = await runTool(lookupPolicy, { policyNumber: 'nonexistent' });
 
     expect(result.documents).toEqual([]);
   });

@@ -3,20 +3,24 @@
   "private": true,
   "packageManager": "npm@11.11.0",
   "workspaces": ["packages/*"],
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "build": "turbo run build",
     "test": "turbo run test",
     "test:integration": "npm run test:integration -w @nc-medicaid/agent",
     "test:coverage": "turbo run test:coverage",
     "lint": "turbo run lint",
+    "typecheck:tests": "turbo run typecheck:tests",
     "test:e2e": "cd e2e && npx playwright test --project=mocked",
     "test:e2e:smoke": "cd e2e && npx playwright test --project=smoke",
     "smoke:prod": "cd e2e && node scripts/smoke-production.mjs",
     "test:e2e:all": "cd e2e && npx playwright test",
     "test:e2e:ui": "cd e2e && npx playwright test --project=mocked --ui",
     "deploy-data": "bash scripts/deploy-data.sh",
-    "dev": "docker compose up -d --wait neo4j && npm run dev -w @nc-medicaid/web & npm run dev -w @nc-medicaid/agent & wait",
-    "dev:infra": "docker compose up -d",
+    "dev": "docker volume create neo4j-medicaid-data >/dev/null && docker compose up -d --wait neo4j && npm run dev -w @nc-medicaid/web & npm run dev -w @nc-medicaid/agent & wait",
+    "dev:infra": "docker volume create neo4j-medicaid-data >/dev/null && docker compose up -d",
     "dev:stop": "docker compose down",
     "dev:web": "npm run dev -w @nc-medicaid/web",
     "dev:agent": "npm run dev -w @nc-medicaid/agent"

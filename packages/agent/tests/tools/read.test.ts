@@ -12,6 +12,7 @@ vi.mock('../../src/neo4j.js', () => ({
 
 import { withSession } from '../../src/neo4j.js';
 import { getSection, getDocument, getSectionContext } from '../../src/tools/read.js';
+import { runTool } from '../helpers/run-tool.js';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -61,7 +62,7 @@ describe('getSection', () => {
       },
     ]);
 
-    const result = await getSection.execute({ sectionId: 'sec-1' }, {});
+    const result = await runTool(getSection, { sectionId: 'sec-1' });
 
     expect(result.section).toEqual({
       id: 'sec-1',
@@ -92,7 +93,7 @@ describe('getSection', () => {
   it('returns null when section not found', async () => {
     setupSession([{ records: [] }]);
 
-    const result = await getSection.execute({ sectionId: 'nonexistent' }, {});
+    const result = await runTool(getSection, { sectionId: 'nonexistent' });
 
     expect(result.section).toBeNull();
   });
@@ -139,7 +140,7 @@ describe('getSection', () => {
       },
     ]);
 
-    const result = await getSection.execute({ sectionId: 'sec-parent' }, {});
+    const result = await runTool(getSection, { sectionId: 'sec-parent' });
 
     expect(result.section).not.toBeNull();
     expect(result.section!.content).toContain(
@@ -189,7 +190,7 @@ describe('getSection', () => {
       },
     ]);
 
-    const result = await getSection.execute({ sectionId: 'sec-empty' }, {});
+    const result = await runTool(getSection, { sectionId: 'sec-empty' });
 
     expect(result.section).not.toBeNull();
     expect(result.section!.id).toBe('sec-empty');
@@ -227,7 +228,7 @@ describe('getDocument', () => {
       },
     ]);
 
-    const result = await getDocument.execute({ documentId: 'doc-1' }, {});
+    const result = await runTool(getDocument, { documentId: 'doc-1' });
 
     expect(result.document).not.toBeNull();
     expect(result.document!.sections).toHaveLength(2);
@@ -240,7 +241,7 @@ describe('getDocument', () => {
   it('returns null when document not found', async () => {
     setupSession([{ records: [] }]);
 
-    const result = await getDocument.execute({ documentId: 'nonexistent' }, {});
+    const result = await runTool(getDocument, { documentId: 'nonexistent' });
 
     expect(result.document).toBeNull();
   });
@@ -278,7 +279,7 @@ describe('getSectionContext', () => {
       },
     ]);
 
-    const result = await getSectionContext.execute({ sectionId: 'sec-1.1.1' }, {});
+    const result = await runTool(getSectionContext, { sectionId: 'sec-1.1.1' });
 
     expect(result.ancestors).toEqual([
       { id: 'sec-root', title: 'Root', sectionNumber: '1' },

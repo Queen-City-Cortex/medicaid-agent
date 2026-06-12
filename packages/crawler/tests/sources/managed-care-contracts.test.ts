@@ -128,7 +128,7 @@ describe('managedCareContractsSource.discover', () => {
       },
     };
 
-    const docs = await managedCareContractsSource.discover(fetcher);
+    const docs = await managedCareContractsSource.discover(fetcher, 0);
     const urls = docs.map((doc) => doc.source_url);
 
     expect(urls).toContain(

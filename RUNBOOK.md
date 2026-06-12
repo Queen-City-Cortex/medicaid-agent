@@ -2,11 +2,12 @@
 
 ## Prerequisites
 
-- Docker running with `neo4j-medicaid` container (`docker start neo4j-medicaid`)
-- Node.js 20+ (for crawler and agent)
+- Docker running (Neo4j via `docker compose up -d neo4j` or `npm run dev:infra`)
+- Node.js 22+ (for crawler and agent)
 - Python 3.11+ with venv at `packages/pipeline/.venv/`
 - `VOYAGE_API_KEY` environment variable set (for embeddings and search)
-- `ANTHROPIC_API_KEY` environment variable set (for the agent)
+- `OPENAI_API_KEY` environment variable set (for the agent, verifier, prompt-injection detector, and observational memory)
+- `ANTHROPIC_API_KEY` only if you override `AGENT_MODEL` to a Claude model
 
 Copy `.env.example` to `.env` at the repo root and fill in keys. The agent and web packages pick up `.env` via `packages/agent/src/load-env.ts`. Note: the Mastra agent CLI does NOT get `.env` values from `tsx` / `npm exec` automatically when invoked ad-hoc — use the real entrypoints or export vars manually.
 
@@ -14,9 +15,11 @@ Copy `.env.example` to `.env` at the repo root and fill in keys. The agent and w
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `ANTHROPIC_API_KEY` | Yes (agent) | — | Anthropic API key for Claude |
+| `OPENAI_API_KEY` | Yes (agent) | — | OpenAI API key — always required: the verifier (`gpt-5.4-mini`), prompt-injection detector (`gpt-5-mini`), and observational memory (`gpt-5.4-mini`) run on OpenAI even when the main agent model is Claude |
 | `VOYAGE_API_KEY` | Yes (search/embed) | — | Voyage AI API key for embeddings |
-| `AGENT_MODEL` | No | `claude-haiku-4-5-20251001` | Claude model for the agent |
+| `ANTHROPIC_API_KEY` | Only for Claude `AGENT_MODEL` | — | Anthropic API key; needed only when `AGENT_MODEL` is a `claude-*` model |
+| `AGENT_MODEL` | No | `gpt-5.4` | Main agent model (`gpt-*`/`o3*`/`o4*` route to OpenAI, anything else to Anthropic) |
+| `VERIFIER_MODEL` | No | `gpt-5.4-mini` | Hallucination-verifier model |
 | `NEO4J_URI` | No | `bolt://localhost:7687` | Neo4j connection URI |
 | `NEO4J_USER` | No | `neo4j` | Neo4j username |
 | `NEO4J_PASSWORD` | No | `medicaid-dev` | Neo4j password |
@@ -25,17 +28,17 @@ Copy `.env.example` to `.env` at the repo root and fill in keys. The agent and w
 
 ### Model Selection
 
-The agent defaults to **Haiku** for cost efficiency during development (~$0.01/question). Switch to Sonnet for production quality or eval runs (~$0.25/question):
+The agent defaults to **`gpt-5.4`** (OpenAI). Override `AGENT_MODEL` to experiment with other models — Claude models work for the main agent loop, but the verifier, injection detector, and observational memory remain OpenAI-wired, so `OPENAI_API_KEY` is required regardless:
 
 ```bash
-# Development (default — Haiku)
+# Default (gpt-5.4)
 npx mastra dev --dir src
 
-# Production / eval (Sonnet)
-AGENT_MODEL=claude-sonnet-4-6 npx mastra dev --dir src
+# Cheaper OpenAI model
+AGENT_MODEL=gpt-5.4-mini npx mastra dev --dir src
 
-# Opus (highest quality, highest cost)
-AGENT_MODEL=claude-opus-4-6 npx mastra dev --dir src
+# Claude (also requires ANTHROPIC_API_KEY)
+AGENT_MODEL=claude-sonnet-4-6 npx mastra dev --dir src
 ```
 
 ## Running the Web UI
@@ -45,7 +48,7 @@ Start both services:
 ```bash
 # Terminal 1: Mastra agent server
 cd packages/agent
-ANTHROPIC_API_KEY=... VOYAGE_API_KEY=... npx mastra dev --dir src
+OPENAI_API_KEY=... VOYAGE_API_KEY=... npx mastra dev --dir src
 
 # Terminal 2: Next.js frontend
 cd packages/web
@@ -238,7 +241,7 @@ npm run smoke:prod
 
 ## Full Rebuild (Nuclear Option)
 
-If the graph is corrupted or you need to rebuild from scratch:
+If the graph is corrupted or you need to rebuild from scratch. **`load --reset` drops every node and relationship in the graph that `NEO4J_URI` points at** — double-check it targets the intended instance before running. (For remote/production rebuilds use `npm run deploy-data`, which prints the target graph's contents and requires explicit confirmation.)
 
 ```bash
 cd packages/pipeline
@@ -258,10 +261,7 @@ This takes ~30 minutes (most time is embedding via Voyage API). The parsed JSON 
 
 **Neo4j not running:**
 ```bash
-docker start neo4j-medicaid
-# Or recreate:
-docker run -d --name neo4j-medicaid -p 7474:7474 -p 7687:7687 \
-  -e NEO4J_AUTH=neo4j/medicaid-dev -v neo4j-medicaid-data:/data neo4j:community
+npm run dev:infra   # creates the data volume if missing, then docker compose up -d
 ```
 
 **Neo4j Browser:** `http://localhost:7474` (neo4j/medicaid-dev)

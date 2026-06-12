@@ -1,4 +1,5 @@
 import * as cheerio from 'cheerio';
+import type { Element } from 'domhandler';
 import type { DiscoveredDocument, SourceType } from './types.js';
 
 export const MEDICAID_BASE_URL = 'https://medicaid.ncdhhs.gov';
@@ -40,9 +41,9 @@ function pageTitle($: cheerio.CheerioAPI): string | null {
 
 export function findNearestHeading(
   $: cheerio.CheerioAPI,
-  element: unknown,
+  element: Element,
 ): string | null {
-  let current = $(element as any);
+  let current = $(element);
   while (current.length > 0) {
     const heading = current
       .prevAll('h1,h2,h3,h4,h5,h6,summary,button,dt,.accordion-button')

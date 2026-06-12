@@ -22,10 +22,10 @@ export function inferWaiverCategory(pageUrl: string): string {
   if (/\/1915i/i.test(pageUrl)) {
     return '1915(i) HCBS';
   }
-  if (/cap[\/-]?da/i.test(pageUrl)) {
+  if (/cap[/-]?da/i.test(pageUrl)) {
     return 'CAP/DA';
   }
-  if (/cap[\/-]?c/i.test(pageUrl)) {
+  if (/cap[/-]?c/i.test(pageUrl)) {
     return 'CAP/C';
   }
   return 'Waiver';

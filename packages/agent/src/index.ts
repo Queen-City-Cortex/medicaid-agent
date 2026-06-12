@@ -41,12 +41,17 @@ import { buildSystemPrompt } from './prompt.js';
 
 // ── Startup validation ────────────────────────────────────────────────────────
 
-const REQUIRED_ENV = ['VOYAGE_API_KEY'] as const;
+// OPENAI_API_KEY is always required: even with a Claude AGENT_MODEL override,
+// the hallucination verifier, prompt-injection detector, and observational
+// memory run on OpenAI models. ANTHROPIC_API_KEY is only needed when
+// AGENT_MODEL points at a Claude model.
+const REQUIRED_ENV = ['VOYAGE_API_KEY', 'OPENAI_API_KEY'] as const;
 
 function validateEnv() {
   const missing: string[] = REQUIRED_ENV.filter((v) => !process.env[v]);
-  if (!process.env.OPENAI_API_KEY && !process.env.ANTHROPIC_API_KEY) {
-    missing.push('OPENAI_API_KEY or ANTHROPIC_API_KEY');
+  const agentModel = process.env.AGENT_MODEL || '';
+  if (agentModel.startsWith('claude-') && !process.env.ANTHROPIC_API_KEY) {
+    missing.push('ANTHROPIC_API_KEY (required for Claude AGENT_MODEL)');
   }
   if (missing.length > 0) {
     throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
@@ -63,7 +68,6 @@ const OBSERVABILITY_DB_PATH = process.env.MASTRA_OBSERVABILITY_PATH || (IS_CLI_R
 
 const anthropic = createAnthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
-  headers: { 'anthropic-beta': 'prompt-caching-2024-07-31' },
 });
 
 const openai = createOpenAI({
@@ -183,19 +187,15 @@ export const ncMedicaidAgent = new Agent({
   id: 'nc-medicaid-navigator',
   name: 'NC Medicaid Navigator',
   instructions: () => {
-    const now = new Date();
-    const date = now.toLocaleDateString('en-US', {
+    // Date-only resolution: a per-minute timestamp at the top of the prompt
+    // would change every request and defeat provider prompt caching.
+    const date = new Date().toLocaleDateString('en-US', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
       day: 'numeric',
     });
-    const time = now.toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      timeZoneName: 'short',
-    });
-    return `Current date: ${date}. Current time: ${time}.\n\n${SYSTEM_PROMPT}`;
+    return `Current date: ${date}.\n\n${SYSTEM_PROMPT}`;
   },
   model: createModel(AGENT_MODEL),
   tools: {

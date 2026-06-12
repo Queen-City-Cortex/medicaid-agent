@@ -1,4 +1,4 @@
-import type { AnswerFrame, AnswerFrameRoute, DocumentWithSectionsView } from '../../types.js';
+import type { AnswerFrame, AnswerFrameRoute } from '../../types.js';
 import type { FrameContext } from '../context.js';
 import { selectAnswerRoute } from '../../internal/answer-routing.js';
 import { rebalanceFederalAuthorityFrame } from '../rebalance/federal-authority.js';

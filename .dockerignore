@@ -1,0 +1,43 @@
+# Keep host build artifacts and secrets out of the Docker build context.
+# Both Dockerfiles run `COPY packages/<pkg> ...` — without this file the COPY
+# ships host node_modules, .next output, and local databases into the image.
+
+# Dependencies (installed inside the build)
+node_modules
+**/node_modules
+
+# Build outputs
+**/dist
+**/.next
+**/.mastra
+**/.turbo
+**/coverage
+**/.venv
+**/__pycache__
+
+# VCS / tooling state
+.git
+.github
+.brv
+**/.brv
+.firecrawl
+.claude
+
+# Local data and databases
+data
+packages/crawler/data
+packages/pipeline/data
+*.db
+*.db-shm
+*.db-wal
+*.duckdb
+*.duckdb.wal
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Not needed in images
+e2e
+docs

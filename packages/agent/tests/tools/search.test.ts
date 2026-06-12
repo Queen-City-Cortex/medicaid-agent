@@ -13,6 +13,7 @@ vi.mock('../../src/neo4j.js', () => ({
 
 import { withSession } from '../../src/neo4j.js';
 import { searchSections } from '../../src/tools/search.js';
+import { runTool } from '../helpers/run-tool.js';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -119,7 +120,7 @@ describe('searchSections', () => {
       },
     ]);
 
-    const result = await searchSections.execute({ query: 'test query' }, {});
+    const result = await runTool(searchSections, { query: 'test query' });
 
     expect(result.sections).toHaveLength(2);
     expect(result.sections[0]).toEqual({
@@ -176,7 +177,7 @@ describe('searchSections', () => {
       },
     ]);
 
-    const result = await searchSections.execute({ query: 'test' }, {});
+    const result = await runTool(searchSections, { query: 'test' });
 
     expect(result.sections).toHaveLength(1);
     expect(result.sections[0].score).toBe(0.95);
@@ -210,7 +211,7 @@ describe('searchSections', () => {
       },
     ]);
 
-    const result = await searchSections.execute({ query: 'test', topK: 5 }, {});
+    const result = await runTool(searchSections, { query: 'test', topK: 5 });
 
     expect(result.sections).toHaveLength(5);
   });
@@ -244,7 +245,7 @@ describe('searchSections', () => {
       },
     ]);
 
-    const result = await searchSections.execute({ query: 'test' }, {});
+    const result = await runTool(searchSections, { query: 'test' });
 
     expect(result.sections[0].contentSnippet).toHaveLength(SEARCH_SNIPPET_CHARS);
     expect(result.sections[0].contentSnippet).toBe('A'.repeat(SEARCH_SNIPPET_CHARS));
@@ -278,7 +279,7 @@ describe('searchSections', () => {
       },
     ]);
 
-    const result = await searchSections.execute({ query: 'test' }, {});
+    const result = await runTool(searchSections, { query: 'test' });
 
     expect(result.sections).toHaveLength(1);
     expect(result.sections[0].sectionId).toBe('sec-1');
@@ -339,7 +340,7 @@ describe('searchSections', () => {
       },
     ]);
 
-    const result = await searchSections.execute({ query: 'home modifications cap/da', topK: 2 }, {});
+    const result = await runTool(searchSections, { query: 'home modifications cap/da', topK: 2 });
 
     expect(result.sections.map((section) => section.sectionId)).toEqual([
       'sec-primary',
@@ -358,7 +359,7 @@ describe('searchSections', () => {
 
     setupSession([{ records: [] }, { records: [] }]);
 
-    await expect(searchSections.execute({ query: 'test' }, {})).rejects.toThrow(
+    await expect(runTool(searchSections, { query: 'test' })).rejects.toThrow(
       'Voyage API error 401: Unauthorized',
     );
   });

@@ -81,11 +81,12 @@ describe('coverage support seams', () => {
 
 function makeSection(overrides: Partial<AnswerFrameSection> & { id: string }): AnswerFrameSection {
   return {
-    id: overrides.id,
     title: null,
     sectionNumber: null,
     content: null,
     effectiveDate: null,
+    lastRevised: null,
+    federalRegisterCite: null,
     documentId: 'doc:test',
     documentTitle: 'Test Document',
     documentType: 'clinical_policy',

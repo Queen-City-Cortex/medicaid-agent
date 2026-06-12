@@ -4,7 +4,6 @@
   "private": true,
   "description": "Document parsing pipeline for NC Medicaid policy documents",
   "scripts": {
-    "build": "echo 'no build step'",
     "test": ".venv/bin/python -m pytest tests/ -v",
     "lint": ".venv/bin/ruff check src/",
     "setup": "python3 -m venv .venv && .venv/bin/pip install -e '.[dev]'"

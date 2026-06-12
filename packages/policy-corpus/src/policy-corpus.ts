@@ -1,5 +1,5 @@
 import type { PolicyCorpus, PolicyCorpusDependencies } from './types.js';
-import { SEARCH_SNIPPET_CHARS, retrievalHitToSearchHit } from './internal/shared.js';
+import { retrievalHitToSearchHit } from './internal/shared.js';
 import { createHybridRetriever } from './retrieval/hybrid.js';
 import { createLegalPrimitiveService } from './primitives/service.js';
 import { createAnswerFrameResolver } from './frame/service.js';

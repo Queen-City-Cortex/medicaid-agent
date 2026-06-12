@@ -1,4 +1,5 @@
 import { registerApiRoute } from '@mastra/core/server';
+import type { Context } from 'hono';
 import { z } from 'zod';
 import type { FeedbackRepository } from './repository.js';
 
@@ -9,14 +10,14 @@ const FeedbackBodySchema = z.object({
   comment: z.string().optional(),
 });
 
-export function getResourceId(c: any): string | null {
+export function getResourceId(c: Context): string | null {
   const rc = c.get('requestContext');
   const user = rc?.get?.('user');
   return user?.userId ?? user?.id ?? null;
 }
 
 export function createFeedbackRoutes(repo: FeedbackRepository) {
-  const post = async (c: any) => {
+  const post = async (c: Context) => {
     let body: unknown;
     try {
       body = await c.req.json();
@@ -45,7 +46,7 @@ export function createFeedbackRoutes(repo: FeedbackRepository) {
     return c.json({ id: result.id }, result.isNew ? 201 : 200);
   };
 
-  const get = async (c: any) => {
+  const get = async (c: Context) => {
     const threadId = c.req.query('threadId');
     if (!threadId) {
       return c.json({ error: 'threadId query parameter is required' }, 400);
@@ -57,8 +58,9 @@ export function createFeedbackRoutes(repo: FeedbackRepository) {
     return c.json({ feedback }, 200);
   };
 
-  const del = async (c: any) => {
+  const del = async (c: Context) => {
     const id = c.req.param('id');
+    if (!id) return c.json({ error: 'Feedback id is required' }, 400);
     const resourceId = getResourceId(c);
     if (!resourceId) return c.json({ error: 'Not authenticated' }, 401);
     const deleted = await repo.delete(id, resourceId);

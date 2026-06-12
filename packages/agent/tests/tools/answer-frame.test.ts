@@ -12,6 +12,7 @@ vi.mock('../../src/policy-corpus.js', () => ({
 
 import { policyCorpus } from '../../src/policy-corpus.js';
 import { resolveAnswerFrame } from '../../src/tools/answer-frame.js';
+import { runTool } from '../helpers/run-tool.js';
 
 function makeRoute(overrides: Partial<{
   lane: 'baseline_hybrid' | 'graph_reasoning' | 'deterministic_evidence';
@@ -55,6 +56,14 @@ describe('resolveAnswerFrame', () => {
           url: 'https://example.com/10A',
           citationLink: '[Clinical Coverage Policy 10A](https://example.com/10A)',
           status: 'current',
+          authorityTier: 'state',
+          answerRole: 'governing',
+          sourceFormat: 'pdf',
+          answerReady: true,
+          corpusBucket: 'state_policy',
+          variantGroup: null,
+          variantDate: null,
+          retrievalReady: true,
           reason: 'Preferred service-specific policy.',
         },
       ],
@@ -65,7 +74,7 @@ describe('resolveAnswerFrame', () => {
       variantReasoning: null,
     });
 
-    const result = await resolveAnswerFrame.execute({ query: 'Does Policy 10A cover telehealth?' }, {});
+    const result = await runTool(resolveAnswerFrame, { query: 'Does Policy 10A cover telehealth?' });
 
     expect(policyCorpus.resolveAnswerFrame).toHaveBeenCalledWith({
       query: 'Does Policy 10A cover telehealth?',
@@ -95,12 +104,12 @@ describe('resolveAnswerFrame', () => {
       variantReasoning: null,
     });
 
-    await resolveAnswerFrame.execute(
+    await runTool(
+      resolveAnswerFrame,
       {
         query: 'What is the latest change notice for MA-3550?',
         questionType: 'amendment',
       },
-      {},
     );
 
     expect(policyCorpus.resolveAnswerFrame).toHaveBeenCalledWith({

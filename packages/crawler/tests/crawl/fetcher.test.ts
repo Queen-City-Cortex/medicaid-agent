@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { createFetcher } from '../../src/crawl/fetcher.js';
 
 // We test the rate-limiting and retry logic, not actual HTTP

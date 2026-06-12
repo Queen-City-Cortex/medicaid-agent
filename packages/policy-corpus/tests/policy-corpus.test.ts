@@ -35,15 +35,25 @@ function createCorpusWithRuns(runs: Array<{ records: ReturnType<typeof mockRecor
   return { corpus, session };
 }
 
+/**
+ * Cypher params the mock search handlers inspect. Keys the tests match on are
+ * typed; everything else stays unknown.
+ */
+interface MockQueryParams {
+  pns?: string[];
+  id?: string;
+  [key: string]: unknown;
+}
+
 function createCorpusWithSearchHandlers(
   handlers: Array<{
-    match: (query: string, params: Record<string, unknown>) => boolean;
+    match: (query: string, params: MockQueryParams) => boolean;
     result?: { records: ReturnType<typeof mockRecord>[] };
     error?: Error;
   }>,
 ) {
   const session = {
-    run: vi.fn(async (query: string, params: Record<string, unknown> = {}) => {
+    run: vi.fn(async (query: string, params: MockQueryParams = {}) => {
       const handler = handlers.find((candidate) => candidate.match(query, params));
       if (!handler) return { records: [] };
       if (handler.error) throw handler.error;
@@ -1912,7 +1922,7 @@ describe('Neo4jPolicyCorpus', () => {
           content: 'Prior policy revisions.',
         },
       ].map((section) => ({
-        match: (query, params) => query.includes('MATCH (s:Section {id: $id})') && params.id === section.id,
+        match: (query: string, params: MockQueryParams) => query.includes('MATCH (s:Section {id: $id})') && params.id === section.id,
         result: {
           records: [
             mockRecord({
@@ -2048,7 +2058,7 @@ describe('Neo4jPolicyCorpus', () => {
           content: 'Telehealth Eligible Service: Yes for selected speech/language treatment codes.',
         },
       ].map((section) => ({
-        match: (query, params) => query.includes('MATCH (s:Section {id: $id})') && params.id === section.id,
+        match: (query: string, params: MockQueryParams) => query.includes('MATCH (s:Section {id: $id})') && params.id === section.id,
         result: {
           records: [
             mockRecord({
@@ -2244,7 +2254,7 @@ describe('Neo4jPolicyCorpus', () => {
           content: 'Specific non-covered device criteria.',
         },
       ].map((section) => ({
-        match: (query, params) => query.includes('MATCH (s:Section {id: $id})') && params.id === section.id,
+        match: (query: string, params: MockQueryParams) => query.includes('MATCH (s:Section {id: $id})') && params.id === section.id,
         result: {
           records: [
             mockRecord({
@@ -2419,7 +2429,7 @@ describe('Neo4jPolicyCorpus', () => {
         },
       },
       ...policy9Sections.map((section) => ({
-        match: (query, params) => query.includes('MATCH (s:Section {id: $id})') && params.id === section.id,
+        match: (query: string, params: MockQueryParams) => query.includes('MATCH (s:Section {id: $id})') && params.id === section.id,
         result: {
           records: [
             mockRecord({
@@ -3697,7 +3707,7 @@ describe('Neo4jPolicyCorpus', () => {
           content: 'False alarm calls, patient refusal, waiting fees, and similar services are not covered.',
         },
       ].map((section) => ({
-        match: (query, params) => query.includes('MATCH (s:Section {id: $id})') && params.id === section.id,
+        match: (query: string, params: MockQueryParams) => query.includes('MATCH (s:Section {id: $id})') && params.id === section.id,
         result: {
           records: [
             mockRecord({

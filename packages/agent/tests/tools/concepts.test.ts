@@ -12,6 +12,7 @@ vi.mock('../../src/neo4j.js', () => ({
 
 import { withSession } from '../../src/neo4j.js';
 import { findConceptSections } from '../../src/tools/concepts.js';
+import { runTool } from '../helpers/run-tool.js';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -22,7 +23,7 @@ function mockRecord(data: Record<string, unknown>) {
 function setupSession(runs: Array<{ records: ReturnType<typeof mockRecord>[] }>) {
   let callIndex = 0;
   const session = {
-    run: vi.fn(async () => {
+    run: vi.fn(async (_query: string, _params?: Record<string, unknown>) => {
       const result = runs[callIndex] ?? { records: [] };
       callIndex++;
       return result;
@@ -65,7 +66,7 @@ describe('findConceptSections', () => {
       },
     ]);
 
-    const result = await findConceptSections.execute({ conceptName: 'EPSDT' }, {});
+    const result = await runTool(findConceptSections, { conceptName: 'EPSDT' });
 
     expect(result.sections).toHaveLength(2);
     expect(result.sections[0]).toEqual({
@@ -83,7 +84,7 @@ describe('findConceptSections', () => {
   it('passes conceptName to query', async () => {
     const session = setupSession([{ records: [] }]);
 
-    await findConceptSections.execute({ conceptName: 'Prior Authorization' }, {});
+    await runTool(findConceptSections, { conceptName: 'Prior Authorization' });
 
     expect(session.run).toHaveBeenCalledTimes(1);
     expect(session.run).toHaveBeenCalledWith(
@@ -109,24 +110,24 @@ describe('findConceptSections', () => {
       },
     ]);
 
-    const result = await findConceptSections.execute(
+    const result = await runTool(
+      findConceptSections,
       { conceptName: 'EPSDT', relationshipType: 'DEFINES' },
-      {},
     );
 
     expect(result.sections).toHaveLength(1);
     expect(session.run).toHaveBeenCalledTimes(1);
     // The query should contain the specific relationship type
-    const queryArg = session.run.mock.calls[0][0] as string;
+    const queryArg = session.run.mock.calls[0][0];
     expect(queryArg).toContain('DEFINES');
   });
 
   it('rejects invalid relationship types to prevent injection', async () => {
     const session = setupSession([{ records: [] }]);
 
-    const result = await findConceptSections.execute(
+    const result = await runTool(
+      findConceptSections,
       { conceptName: 'EPSDT', relationshipType: 'DEFINES}]->(x) DETACH DELETE x //' },
-      {},
     );
 
     expect(result.sections).toHaveLength(0);

@@ -9,6 +9,8 @@ function makeSection(overrides: Partial<AnswerFrameSection>): AnswerFrameSection
     sectionNumber: overrides.sectionNumber ?? null,
     content: overrides.content ?? null,
     effectiveDate: null,
+    lastRevised: null,
+    federalRegisterCite: null,
     documentId: overrides.documentId ?? null,
     documentTitle: overrides.documentTitle ?? null,
     documentType: overrides.documentType ?? 'federal_regulation',

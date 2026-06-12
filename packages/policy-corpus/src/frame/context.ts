@@ -1,7 +1,5 @@
 import type {
   AnswerFrame,
-  AnswerFrameRoute,
-  AnswerQuestionType,
   CorpusRetrievalHit,
   DocumentWithSectionsView,
   SessionExecutor,

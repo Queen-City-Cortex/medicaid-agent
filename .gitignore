@@ -20,3 +20,4 @@ packages/agent/src/public/
 /coverage/
 /packages/*/coverage/
 packages/pipeline/data/eval-results/*.json
+packages/*/.brv/

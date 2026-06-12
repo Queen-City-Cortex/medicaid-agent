@@ -3,10 +3,12 @@ import { ChatPage } from '../../helpers/chat-page';
 
 const AGENT_URL = process.env.MASTRA_URL || 'http://localhost:4111';
 
-// Skip the entire suite if the agent is not reachable
+// Skip the entire suite if the agent is not reachable.
+// /healthz is the only unauthenticated endpoint (requiresAuth: false) — probing
+// an authed route like /api/agents always returns 401 and silently skips forever.
 test.beforeAll(async () => {
   try {
-    const res = await fetch(`${AGENT_URL}/api/agents`);
+    const res = await fetch(`${AGENT_URL}/healthz`);
     if (!res.ok) throw new Error(`Agent returned ${res.status}`);
   } catch (err) {
     test.skip(true, `Agent not reachable at ${AGENT_URL} — skipping smoke tests. Start with: cd packages/agent && npm run dev`);
@@ -34,8 +36,8 @@ test.describe('Full-stack smoke test', () => {
     // Should not be an error message
     expect(text).not.toContain('error processing your question');
 
-    // Research trace should have appeared (agent uses tools)
-    const traces = page.getByTestId('research-trace');
-    await expect(traces.first()).toBeVisible();
+    // Tool steps should have appeared (agent uses tools)
+    const toolSteps = page.getByTestId('tool-step');
+    await expect(toolSteps.first()).toBeVisible();
   });
 });

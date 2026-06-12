@@ -10,6 +10,7 @@ import { searchSections } from '../../src/tools/search.js';
 import { followReferences, getAmendments } from '../../src/tools/navigate.js';
 import { lookupPolicy } from '../../src/tools/lookup.js';
 import { getSection, getSectionContext } from '../../src/tools/read.js';
+import { runTool } from '../helpers/run-tool.js';
 
 const integration = process.env.RUN_NEO4J_INTEGRATION === '1' ? describe : describe.skip;
 
@@ -118,7 +119,7 @@ integration('agent tools against a real Neo4j graph', () => {
       },
     );
 
-    const result = await searchSections.execute({ query: 'coverage' }, {});
+    const result = await runTool(searchSections, { query: 'coverage' });
 
     expect(result.sections[0]?.sectionId).toBe(`${FIXTURE_PREFIX}sec:8C:4.1`);
     expect(result.sections[0]?.contentSnippet).toContain('Seeded search content');
@@ -178,10 +179,10 @@ integration('agent tools against a real Neo4j graph', () => {
       },
     );
 
-    const references = await followReferences.execute({ sectionId: `${FIXTURE_PREFIX}sec:source` }, {});
+    const references = await runTool(followReferences, { sectionId: `${FIXTURE_PREFIX}sec:source` });
     expect(references.references[0]?.referenceText).toBe('see 42 CFR 440.70');
 
-    const lookup = await lookupPolicy.execute({ policyNumber: fixturePolicy }, {});
+    const lookup = await runTool(lookupPolicy, { policyNumber: fixturePolicy });
     expect(lookup.documents[0]?.url).toBe('https://example.com/test-ref-8C');
     expect(lookup.documents[0]?.status).toBe('current');
   });
@@ -214,7 +215,7 @@ integration('agent tools against a real Neo4j graph', () => {
       { docId, sectionId },
     );
 
-    const result = await getSection.execute({ sectionId }, {});
+    const result = await runTool(getSection, { sectionId });
 
     expect(result.section?.effectiveDate).toBe('2025-01-01');
     expect(result.section?.documentTitle).toBe('Policy 8C');
@@ -282,7 +283,7 @@ integration('agent tools against a real Neo4j graph', () => {
       },
     );
 
-    const result = await getAmendments.execute({ documentId: currentDocId }, {});
+    const result = await runTool(getAmendments, { documentId: currentDocId });
 
     expect(result.baseDocument?.id).toBe(baseDocId);
     expect(result.amendments.map((doc) => doc.id)).toEqual([amendLateId, amendEarlyId]);
@@ -354,7 +355,7 @@ integration('agent tools against a real Neo4j graph', () => {
       { docId, parentId, firstId, middleId, lastId },
     );
 
-    const context = await getSectionContext.execute({ sectionId: middleId }, {});
+    const context = await runTool(getSectionContext, { sectionId: middleId });
 
     expect(context.siblings).toEqual([
       { id: firstId, title: 'First', sectionNumber: '1.1' },

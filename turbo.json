@@ -3,7 +3,8 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**"]
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**"],
+      "env": ["NEXT_PUBLIC_*", "NODE_ENV"]
     },
     "test": {
       "dependsOn": ["^build"]
@@ -12,6 +13,9 @@
       "dependsOn": ["^build"],
       "outputs": ["coverage/**"]
     },
-    "lint": {}
+    "lint": {},
+    "typecheck:tests": {
+      "dependsOn": ["^build"]
+    }
   }
 }

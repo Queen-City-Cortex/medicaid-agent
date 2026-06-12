@@ -16,7 +16,7 @@ import type { Context, Next } from 'hono';
  * authenticated user in the request context under 'user'.
  */
 export async function bindResourceToAuthenticatedUser(c: Context, next: Next) {
-  const rc = (c as any).get('requestContext');
+  const rc = c.get('requestContext');
   const user = rc?.get?.('user') as { userId?: string; id?: string } | undefined;
   const userId = user?.userId ?? user?.id;
   if (userId && rc?.set) {

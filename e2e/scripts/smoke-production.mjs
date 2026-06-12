@@ -9,10 +9,12 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '../..');
 
-loadEnvFile(path.join(repoRoot, '.env'));
+// loadEnvFile never overwrites already-set keys, so earlier files win:
+// list .env.local before .env so local overrides take precedence.
 loadEnvFile(path.join(repoRoot, '.env.local'));
-loadEnvFile(path.join(repoRoot, 'packages/web/.env'));
+loadEnvFile(path.join(repoRoot, '.env'));
 loadEnvFile(path.join(repoRoot, 'packages/web/.env.local'));
+loadEnvFile(path.join(repoRoot, 'packages/web/.env'));
 
 const baseUrl = normalizeBaseUrl(process.env.SMOKE_BASE_URL ?? 'https://medicaid-agent.up.railway.app');
 const question = process.env.SMOKE_QUESTION ?? 'What is EPSDT?';

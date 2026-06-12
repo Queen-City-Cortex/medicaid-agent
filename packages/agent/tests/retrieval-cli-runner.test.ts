@@ -48,12 +48,14 @@ describe('executeRetrievalCli', () => {
   });
 
   it('uses createAgentPolicyCorpus for each batch request so injected rerankers are preserved', async () => {
-    const createCorpus = vi.fn(({ embedQuery }: { embedQuery: (query: string) => Promise<number[]> }) => ({
+    const createCorpus = vi.fn((options?: { embedQuery?: (query: string) => Promise<number[]> }) => ({
       searchSectionsDetailed: vi.fn(async (input: { query: string }) => {
+        const embedQuery = options?.embedQuery;
+        if (!embedQuery) throw new Error('expected createCorpus to receive embedQuery');
         const embedding = await embedQuery(input.query);
         return [makeHit(`sec-${embedding[0]}`, input.query)];
       }),
-    }));
+    }) as unknown as PolicyCorpus);
     const embedQueryBatch = vi.fn(async (queries: string[]) => queries.map((_, index) => [index + 1]));
 
     const result = await executeRetrievalCli(

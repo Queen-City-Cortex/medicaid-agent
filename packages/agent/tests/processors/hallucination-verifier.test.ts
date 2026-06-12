@@ -542,7 +542,7 @@ describe('verifyAnswer', () => {
       object: { supported: true, unsupportedClaims: [] },
     } as any);
 
-    const result = await verifyAnswer('The benefit cap is $500.', 'The benefit cap is $500 per month.');
+    const result = await verifyAnswer('What is the benefit cap?', 'The benefit cap is $500.', 'The benefit cap is $500 per month.');
 
     expect(result.supported).toBe(true);
     expect(result.unsupportedClaims).toHaveLength(0);
@@ -560,6 +560,7 @@ describe('verifyAnswer', () => {
     } as any);
 
     const result = await verifyAnswer(
+      'What is the physical therapy visit limit?',
       'The visit limit is 20 visits per year.',
       'Physical therapy is covered for up to 30 visits per year.',
     );
@@ -574,7 +575,7 @@ describe('verifyAnswer', () => {
   it('returns supported: false on verifier LLM error (fail-closed)', async () => {
     vi.mocked(generateObject).mockRejectedValueOnce(new Error('Network timeout'));
 
-    const result = await verifyAnswer('Some answer.', 'Some source.');
+    const result = await verifyAnswer('Some question?', 'Some answer.', 'Some source.');
 
     expect(result.supported).toBe(false);
     expect(result.unsupportedClaims).toHaveLength(1);
@@ -627,9 +628,18 @@ describe('HallucinationVerifier.processOutputStep', () => {
   });
 
   // Helper: mock generateObject to make verifyAnswer return a specific result
-  function mockVerification(result: VerificationResult) {
+  function mockVerification(
+    result: Partial<VerificationResult> & Pick<VerificationResult, 'supported' | 'unsupportedClaims'>,
+  ) {
     vi.mocked(generateObject).mockResolvedValueOnce({
-      object: result,
+      object: {
+        relevant: true,
+        citationsComplete: true,
+        missingCitationClaims: [],
+        relevanceIssues: [],
+        correctedAnswer: '',
+        ...result,
+      },
     } as any);
   }
 
@@ -1034,8 +1044,6 @@ describe('computeVerificationConfidence', () => {
 // ── Streaming event emission ────────────────────────────────────────────────
 
 describe('HallucinationVerifier streaming events', () => {
-  const { mockVerification, makeProcessOutputStepArgs } = (globalThis as any).__verifierTestHelpers ?? {};
-
   it('emits data-verification-ok when all checks pass', async () => {
     // Inline test harness mirroring the one used in the "writer.custom"
     // block elsewhere in this file.

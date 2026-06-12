@@ -46,9 +46,9 @@ export class ChatPage {
     return this.page.getByTestId('user-message');
   }
 
-  /** Get research trace entries (tool timeline items). */
-  researchTraceEntries(): Locator {
-    return this.page.getByTestId('research-trace').locator('.text-xs');
+  /** Get tool-step entries (tool timeline items). */
+  toolSteps(): Locator {
+    return this.page.getByTestId('tool-step');
   }
 
   /** Get the thread sidebar's thread items. */

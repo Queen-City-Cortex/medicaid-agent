@@ -79,7 +79,8 @@ describe('parseBulletinListingPage', () => {
 // ── parseDigestsPage ─────────────────────────────────────────────────────────
 
 describe('parseDigestsPage', () => {
-  const docs = parseDigestsPage(digestsHtml, DIGESTS_URL);
+  // sinceYear=0 disables year filtering so the full fixture is visible.
+  const docs = parseDigestsPage(digestsHtml, DIGESTS_URL, 0);
 
   it('discovers at least 90 digest documents', () => {
     // The real page has ~96 /download?attachment links across 9 year tabs

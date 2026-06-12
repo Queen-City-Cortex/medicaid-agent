@@ -22,6 +22,7 @@ import { closeDriver } from '../../src/neo4j.js';
 import { searchSections } from '../../src/tools/search.js';
 import { followReferences, getAmendments } from '../../src/tools/navigate.js';
 import { getSection } from '../../src/tools/read.js';
+import { runTool } from '../helpers/run-tool.js';
 
 const integration = process.env.RUN_NEO4J_INTEGRATION === '1' ? describe : describe.skip;
 
@@ -155,18 +156,18 @@ integration('retrieval chains against a real Neo4j graph', () => {
     );
 
     // Step 1: search surfaces the seeded section.
-    const searchResult = await searchSections.execute({ query: 'coverage criteria' }, {});
+    const searchResult = await runTool(searchSections, { query: 'coverage criteria' });
     const hit = searchResult.sections.find((s) => s.sectionId === sectionId);
     expect(hit).toBeDefined();
     expect(hit?.contentSnippet).toContain('Behavioral-health coverage');
 
     // Step 2: getSection returns the parent document metadata the agent cites.
-    const section = await getSection.execute({ sectionId }, {});
+    const section = await runTool(getSection, { sectionId });
     expect(section.section?.documentId).toBe(docId);
     expect(section.section?.citationLink).toBe('[Policy 8C](https://example.com/8C)');
 
     // Step 3: getAmendments on that document surfaces the change notice + description.
-    const amendments = await getAmendments.execute({ documentId: docId }, {});
+    const amendments = await runTool(getAmendments, { documentId: docId });
     expect(amendments.amendments).toHaveLength(1);
     expect(amendments.amendments[0].id).toBe(amendId);
     expect(amendments.amendments[0].changeSummary).toBe(
@@ -265,7 +266,7 @@ integration('retrieval chains against a real Neo4j graph', () => {
       }
     }
 
-    const result = await followReferences.execute({ sectionId: sourceSecId }, {});
+    const result = await runTool(followReferences, { sectionId: sourceSecId });
     expect(result.references).toHaveLength(5);
 
     // Assert the full set of target ids is present (order-insensitive).
@@ -304,7 +305,7 @@ integration('retrieval chains against a real Neo4j graph', () => {
       { docId },
     );
 
-    const result = await getAmendments.execute({ documentId: docId }, {});
+    const result = await runTool(getAmendments, { documentId: docId });
     expect(result.amendments).toEqual([]);
     // Authoritative document falls back to the queried doc itself when no amendments exist.
     expect(result.authoritativeDocument?.id).toBe(docId);
@@ -312,7 +313,7 @@ integration('retrieval chains against a real Neo4j graph', () => {
 
   it('followReferences on a section id that does not exist returns an empty array (no crash)', async () => {
     const missingId = `${FIXTURE_PREFIX}sec:does-not-exist`;
-    const result = await followReferences.execute({ sectionId: missingId }, {});
+    const result = await runTool(followReferences, { sectionId: missingId });
     expect(result.references).toEqual([]);
   });
 });

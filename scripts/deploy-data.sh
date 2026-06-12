@@ -4,15 +4,24 @@ set -euo pipefail
 # Load pipeline data into a remote Neo4j instance (e.g., Railway production).
 #
 # Usage:
-#   NEO4J_HOST=<host:port> npm run deploy-data
+#   NEO4J_HOST=<host:port> npm run deploy-data            # interactive confirm
+#   NEO4J_HOST=<host:port> npm run deploy-data -- --yes   # skip confirmation
 #
 # Prerequisites:
 #   1. In Railway dashboard, go to neo4j service > Settings > Networking
 #   2. Enable TCP Proxy — this gives you a public host:port
 #   3. After migration completes, disable the TCP Proxy
 
+CONFIRMED=false
+for arg in "$@"; do
+  case "$arg" in
+    --yes|-y) CONFIRMED=true ;;
+    *) echo "Unknown argument: $arg" >&2; exit 1 ;;
+  esac
+done
+
 if [ -z "${NEO4J_HOST:-}" ]; then
-  echo "Usage: NEO4J_HOST=<railway-tcp-proxy-host:port> npm run deploy-data"
+  echo "Usage: NEO4J_HOST=<railway-tcp-proxy-host:port> npm run deploy-data [-- --yes]"
   echo ""
   echo "Steps:"
   echo "  1. In Railway dashboard, go to neo4j service > Settings > Networking"
@@ -22,8 +31,10 @@ if [ -z "${NEO4J_HOST:-}" ]; then
   exit 1
 fi
 
-# Read production Neo4j password from Railway env vars
-NEO4J_PASSWORD=$(railway variables -s neo4j --kv 2>/dev/null | grep '^NEO4J_AUTH=' | cut -d/ -f2-)
+# Read production Neo4j password from Railway env vars.
+# `|| true` so a failed lookup reaches the guard below instead of being
+# killed by `set -e` (the pipeline fails when grep finds no match).
+NEO4J_PASSWORD=$(railway variables -s neo4j --kv 2>/dev/null | grep '^NEO4J_AUTH=' | cut -d/ -f2- || true)
 if [ -z "${NEO4J_PASSWORD:-}" ]; then
   echo "Error: Could not read NEO4J_AUTH from Railway. Are you logged in? (railway login)"
   exit 1
@@ -37,6 +48,24 @@ export NEO4J_PASSWORD
 
 echo "==> Targeting Neo4j at $NEO4J_URI"
 echo ""
+echo "!!! DESTRUCTIVE: step 2 runs 'load --reset', which DROPS ALL NODES AND"
+echo "!!! RELATIONSHIPS in the graph at $NEO4J_URI before reloading."
+echo "!!! Current contents of that graph:"
+.venv/bin/python -m pipeline.cli stats || echo "(could not fetch stats — graph may be empty or unreachable)"
+echo ""
+
+if [ "$CONFIRMED" != "true" ]; then
+  if [ ! -t 0 ]; then
+    echo "Refusing to wipe $NEO4J_URI without confirmation (non-interactive shell)."
+    echo "Re-run with: NEO4J_HOST=$NEO4J_HOST npm run deploy-data -- --yes"
+    exit 1
+  fi
+  read -r -p "Type 'wipe' to drop and rebuild the graph at $NEO4J_URI: " REPLY
+  if [ "$REPLY" != "wipe" ]; then
+    echo "Aborted."
+    exit 1
+  fi
+fi
 
 echo "==> [1/10] Creating schema (constraints + indexes)..."
 .venv/bin/python -m pipeline.cli schema

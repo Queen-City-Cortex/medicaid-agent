@@ -6,14 +6,19 @@ on:
   pull_request:
     branches: [main]
 
+# No e2e job: e2e/tests/auth.setup.ts requires live WorkOS hosted-login
+# credentials (TEST_USER_EMAIL/TEST_USER_PASSWORD against a real WorkOS
+# environment), so even the mocked tier can't run hermetically in CI.
+# Tracked in the remediation plan (P2).
+
 jobs:
   test:
     runs-on: ubuntu-latest
     services:
-      # Neo4j is used by the agent integration tests and eval-validate.
-      # Provision via docker service so `RUN_NEO4J_INTEGRATION=1` paths exercise.
+      # Used by the "Agent integration tests" step below. Pinned to the same
+      # tag as docker-compose.yml so CI and local dev test the same Neo4j.
       neo4j:
-        image: neo4j:community
+        image: neo4j:2026.05-community
         env:
           NEO4J_AUTH: neo4j/medicaid-dev
         ports:
@@ -34,7 +39,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - uses: actions/setup-python@v5
@@ -54,11 +59,22 @@ jobs:
       - name: Build all workspaces
         run: npm run build
 
+      - name: Typecheck test suites
+        run: npm run typecheck:tests
+
+      # Pipeline is excluded here because its pytest suite runs as the
+      # dedicated step below — without the filter it would run twice per CI run.
       - name: Test JS workspaces
-        run: npm test
+        run: npm test -- --filter='!@nc-medicaid/pipeline'
 
       # Explicit pytest step so pipeline failures are visible as a distinct
       # CI gate rather than hidden inside turbo's aggregate output.
       - name: Test Python pipeline
         run: .venv/bin/python -m pytest tests/ -v
         working-directory: packages/pipeline
+
+      # Hermetic against the Neo4j service: the suite creates its own vector
+      # indexes and `test:`-prefixed fixtures and mocks the embedding API, so
+      # no pipeline data load is required.
+      - name: Agent integration tests (real Neo4j)
+        run: npm run test:integration -w @nc-medicaid/agent

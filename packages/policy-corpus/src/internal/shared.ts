@@ -5,25 +5,15 @@ import {
   type AnswerFrameSection,
   type AnswerQuestionType,
   ALLOWED_CONCEPT_RELATIONSHIPS,
-  type AmendmentsView,
-  type ConceptSectionView,
   type CorpusRetrievalHit,
   type DocumentSectionView,
   type DocumentView,
   type DocumentWithSectionsView,
-  type FindConceptSectionsInput,
-  type PolicyCorpus,
-  type PolicyCorpusDependencies,
-  type ReferenceView,
-  type ResolveAnswerFrameInput,
   type SearchHit,
-  type SearchSectionsInput,
   type SectionContextEntry,
-  type SectionContextView,
   type SectionView,
   type SessionRecordLike,
 } from '../types.js';
-import { documentMetadataReturn, mapDocumentMetadataRecord } from '../document-metadata.js';
 import {
   combineText,
   includesPhrase,
@@ -36,14 +26,12 @@ import { buildAnswerRoute } from './answer-routing.js';
 import {
   extractAliasedPolicyNumbers,
   extractExplicitPolicyNumbers,
-  extractRequestedYears,
   includesAnyTerm,
   isBillingWorkflowQuery,
   isCoverageQuestion,
   isChangeNoticeQuery,
   isFederalAuthorityQuery,
   isHistoricalReimbursementQuery,
-  isHcwdQuery,
   isHcwdIncomePremiumQuery,
   isLatestChangeNoticeQuery,
   isManagedCareContractQuery,
@@ -60,16 +48,10 @@ import {
   variantDateMatchesRequestedYear,
 } from './query-intent.js';
 import {
-  buildFocusedFederalQuery,
-  buildQueryFocusTerms,
   countPhraseMatches,
   countProcedureCodeMatches,
   dedupeTerms,
-  extractProcedureCodeTerms,
-  extractQuotedPhrases,
   extractSearchTerms,
-  extractServiceFocusTerms,
-  isUsefulSearchTerm,
   scoreTermMatches,
 } from './search.js';
 

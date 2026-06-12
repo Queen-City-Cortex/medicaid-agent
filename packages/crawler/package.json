@@ -8,6 +8,8 @@
     "check": "tsx src/index.ts check",
     "stats": "tsx src/index.ts stats",
     "build": "tsc",
+    "lint": "eslint .",
+    "typecheck:tests": "tsc -p tsconfig.tests.json",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest"
@@ -17,17 +19,19 @@
     "cheerio": "^1.0.0",
     "commander": "^12.0.0",
     "file-type": "^19.0.0",
-    "mime-types": "^2.1.35",
     "p-queue": "^8.0.0",
     "robots-parser": "^3.0.0",
     "undici": "^6.0.0"
   },
   "devDependencies": {
+    "@eslint/js": "^9.0.0",
     "@types/better-sqlite3": "^7.6.0",
-    "@types/mime-types": "^2.1.4",
     "@vitest/coverage-v8": "^2.1.9",
+    "domhandler": "^5.0.3",
+    "eslint": "^9.0.0",
     "tsx": "^4.0.0",
     "typescript": "^5.5.0",
+    "typescript-eslint": "^8.0.0",
     "vitest": "^2.0.0"
   }
 }

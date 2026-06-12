@@ -1,6 +1,5 @@
 import type { AnswerFrameSection } from '../../types.js';
 import {
-  NOT_COVERED_SECTION_TERMS,
   combineText,
   includesPhrase,
   isAttachmentTitle,
