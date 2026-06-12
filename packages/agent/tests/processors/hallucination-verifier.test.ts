@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { extractSources, buildSourceText, verifyAnswer, VerificationResult, SourceEntry, HallucinationVerifier, VERIFICATION_UNAVAILABLE, computeVerificationConfidence } from '../../src/processors/hallucination-verifier.js';
+import { extractSources, buildSourceText, verifyAnswer, VerificationResult, SourceEntry, HallucinationVerifier, VERIFICATION_UNAVAILABLE, computeVerificationConfidence, replaceFinalAnswerText } from '../../src/processors/hallucination-verifier.js';
 
 vi.mock('ai', () => ({
   generateObject: vi.fn(),
@@ -1128,5 +1128,131 @@ describe('HallucinationVerifier streaming events', () => {
     expect(payload.data.severity).toBe('medium');
     expect(payload.data.counts.unsupported).toBe(1);
     expect(payload.data.pureMarkerFallback).toBe(false);
+  });
+});
+
+// ── replaceFinalAnswerText / rewrite scope ───────────────────────────────────
+
+describe('rewrite scope (replaceFinalAnswerText)', () => {
+  it('rewrites only the last text part of the last assistant message', () => {
+    const messages = [
+      {
+        id: 'a-1',
+        role: 'assistant',
+        content: { parts: [{ type: 'text', text: 'Prior turn answer' }] },
+      },
+      {
+        id: 'u-2',
+        role: 'user',
+        content: { parts: [{ type: 'text', text: 'Follow-up question' }] },
+      },
+      {
+        id: 'a-2',
+        role: 'assistant',
+        content: {
+          parts: [
+            { type: 'text', text: 'Checking the clinical policies…' },
+            { type: 'tool-invocation', toolInvocation: { state: 'result', toolName: 'getSection', toolCallId: 'c1', result: {} } },
+            { type: 'text', text: 'Original final answer' },
+          ],
+        },
+      },
+    ] as any[];
+
+    const result = replaceFinalAnswerText(messages as any, 'CORRECTED') as any[];
+
+    // Prior assistant turn untouched
+    expect(result[0].content.parts[0].text).toBe('Prior turn answer');
+    // User message untouched
+    expect(result[1].content.parts[0].text).toBe('Follow-up question');
+    // Interim progress text untouched
+    expect(result[2].content.parts[0].text).toBe('Checking the clinical policies…');
+    // Tool part untouched
+    expect(result[2].content.parts[1].type).toBe('tool-invocation');
+    // Only the final text part rewritten
+    expect(result[2].content.parts[2].text).toBe('CORRECTED');
+  });
+
+  it('does not crash on string-content assistant messages', () => {
+    const messages = [
+      { id: 'a-1', role: 'assistant', content: 'plain string answer' },
+    ] as any[];
+
+    const result = replaceFinalAnswerText(messages as any, 'CORRECTED') as any[];
+    expect(result[0].content).toBe('CORRECTED');
+  });
+
+  it('returns messages unchanged when there is no assistant message', () => {
+    const messages = [
+      { id: 'u-1', role: 'user', content: { parts: [{ type: 'text', text: 'q' }] } },
+    ] as any[];
+    expect(replaceFinalAnswerText(messages as any, 'X')).toEqual(messages);
+  });
+});
+
+// ── cited-first ordering via citation links ─────────────────────────────────
+
+describe('buildSourceText cited-first ordering', () => {
+  it('orders link-cited sources first so truncation drops uncited ones', () => {
+    const sources: SourceEntry[] = [
+      { toolName: 'getSection', key: 'sec:doc-a:1', text: 'UNCITED-' + 'x'.repeat(80), link: 'https://example.com/other' },
+      { toolName: 'getSection', key: 'sec:doc-b:2', text: 'CITED-' + 'y'.repeat(80), link: 'https://example.com/8c' },
+    ];
+    // Answer cites via markdown link URL — raw section IDs never appear.
+    const answer = 'Coverage applies [Policy 8C § 3.2.1](https://example.com/8c).';
+
+    // Budget fits only one source block: the cited one must survive.
+    const text = buildSourceText(sources, answer, 120);
+    expect(text).toContain('CITED-');
+    expect(text).not.toContain('UNCITED-');
+  });
+
+  it('still honors raw-key matches as a fallback', () => {
+    const sources: SourceEntry[] = [
+      { toolName: 'getSection', key: 'sec:doc-a:1', text: 'A'.repeat(80) },
+      { toolName: 'getSection', key: 'sec:doc-b:2', text: 'B'.repeat(80) },
+    ];
+    const answer = 'Debug answer referencing sec:doc-b:2 directly.';
+    const text = buildSourceText(sources, answer, 120);
+    expect(text).toContain('B');
+    expect(text).not.toContain('A'.repeat(10));
+  });
+});
+
+// ── evidence includes citation metadata ──────────────────────────────────────
+
+describe('verifier evidence citation fields', () => {
+  it('serializes citationLink and revision metadata from getSection', () => {
+    const msgs = [
+      makeToolMessage([
+        {
+          toolCallId: 'call-1',
+          toolName: 'getSection',
+          output: {
+            section: {
+              id: 'sec:42-cfr-441:301',
+              title: 'Contents of request for a waiver',
+              sectionNumber: '441.301',
+              content: 'A request for a waiver…',
+              effectiveDate: null,
+              lastRevised: '2024-05-10',
+              federalRegisterCite: '[89 FR 40863, May 10, 2024]',
+              documentId: 'doc:42-cfr-441',
+              documentType: 'federal_regulation',
+              policyNumber: '42-CFR-441',
+              url: 'https://ecfr.gov/42/441.301',
+              citationLink: '[42 CFR § 441.301](https://ecfr.gov/42/441.301)',
+            },
+          },
+        },
+      ]),
+    ];
+
+    const sources = extractSources(msgs as any);
+    expect(sources).toHaveLength(1);
+    expect(sources[0].link).toBe('https://ecfr.gov/42/441.301');
+    expect(sources[0].text).toContain('Citation link: [42 CFR § 441.301](https://ecfr.gov/42/441.301)');
+    expect(sources[0].text).toContain('Last revised: 2024-05-10');
+    expect(sources[0].text).toContain('Federal Register cite: [89 FR 40863, May 10, 2024]');
   });
 });

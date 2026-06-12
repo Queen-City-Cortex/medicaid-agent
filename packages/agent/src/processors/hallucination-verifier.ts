@@ -22,6 +22,11 @@ export interface SourceEntry {
   toolName: string;
   key: string;   // section or document ID
   text: string;  // serialized evidence text
+  /** Citation URL for this source (citationLink or url), when available.
+   *  Used to match sources against the answer's inline markdown citations —
+   *  raw IDs never appear in answers, so the key alone can't identify
+   *  "cited" sources. */
+  link?: string | null;
 }
 
 // Tool result types ──────────────────────────────────────────────────────────
@@ -33,9 +38,13 @@ interface GetSectionResult {
     sectionNumber: string | null;
     content: string | null;
     effectiveDate: string | null;
+    lastRevised: string | null;
+    federalRegisterCite: string | null;
     documentId: string | null;
     documentType: string | null;
     policyNumber: string | null;
+    url: string | null;
+    citationLink: string | null;
   } | null;
 }
 
@@ -89,10 +98,14 @@ interface AnswerFrameSection {
   sectionNumber: string | null;
   content: string | null;
   effectiveDate: string | null;
+  lastRevised: string | null;
+  federalRegisterCite: string | null;
   documentId: string | null;
   documentTitle: string | null;
   documentType: string | null;
   policyNumber: string | null;
+  url: string | null;
+  citationLink: string | null;
   reason: string | null;
 }
 
@@ -146,6 +159,13 @@ function formatDocMeta(doc: DocumentMetadata): string {
   return parts.join('\n');
 }
 
+/** Pull the bare URL out of a `[title](url)` markdown citation link. */
+function urlFromCitationLink(citationLink: string | null | undefined): string | null {
+  if (!citationLink) return null;
+  const match = citationLink.match(/\]\((.+)\)\s*$/);
+  return match ? match[1] : null;
+}
+
 function extractGetSection(result: GetSectionResult): SourceEntry | null {
   const sec = result?.section;
   if (!sec) return null;
@@ -157,9 +177,18 @@ function extractGetSection(result: GetSectionResult): SourceEntry | null {
   if (sec.policyNumber) lines.push(`Policy: ${sec.policyNumber}`);
   if (sec.documentType) lines.push(`Type: ${sec.documentType}`);
   if (sec.effectiveDate) lines.push(`Effective: ${sec.effectiveDate}`);
+  if (sec.lastRevised) lines.push(`Last revised: ${sec.lastRevised}`);
+  if (sec.federalRegisterCite) lines.push(`Federal Register cite: ${sec.federalRegisterCite}`);
+  if (sec.citationLink) lines.push(`Citation link: ${sec.citationLink}`);
+  else if (sec.url) lines.push(`URL: ${sec.url}`);
   if (sec.content) lines.push(`\nContent:\n${sec.content}`);
 
-  return { toolName: 'getSection', key: sec.id, text: lines.join('\n') };
+  return {
+    toolName: 'getSection',
+    key: sec.id,
+    text: lines.join('\n'),
+    link: sec.url ?? urlFromCitationLink(sec.citationLink),
+  };
 }
 
 function extractGetDocument(result: GetDocumentResult): SourceEntry | null {
@@ -177,7 +206,7 @@ function extractGetDocument(result: GetDocumentResult): SourceEntry | null {
     }
   }
 
-  return { toolName: 'getDocument', key: doc.id, text: lines.join('\n') };
+  return { toolName: 'getDocument', key: doc.id, text: lines.join('\n'), link: doc.url };
 }
 
 function extractGetAmendments(result: GetAmendmentsResult, toolCallId: string): SourceEntry | null {
@@ -206,7 +235,7 @@ function extractGetAmendments(result: GetAmendmentsResult, toolCallId: string): 
     lines.push(formatDocMeta(result.baseDocument));
   }
 
-  return { toolName: 'getAmendments', key, text: lines.join('\n') };
+  return { toolName: 'getAmendments', key, text: lines.join('\n'), link: auth?.url ?? null };
 }
 
 function extractLookupPolicy(result: LookupPolicyResult, toolCallId: string): SourceEntry | null {
@@ -232,7 +261,7 @@ function extractLookupPolicy(result: LookupPolicyResult, toolCallId: string): So
     lines.push('');
   }
 
-  return { toolName: 'lookupPolicy', key, text: lines.join('\n').trimEnd() };
+  return { toolName: 'lookupPolicy', key, text: lines.join('\n').trimEnd(), link: docs[0]?.url ?? null };
 }
 
 function extractFollowReferences(result: FollowReferencesResult, toolCallId: string): SourceEntry | null {
@@ -258,6 +287,10 @@ function formatFrameSection(section: AnswerFrameSection): string {
   if (section.sectionNumber) lines.push(`Section: ${section.sectionNumber}`);
   if (section.policyNumber) lines.push(`Policy: ${section.policyNumber}`);
   if (section.documentType) lines.push(`Type: ${section.documentType}`);
+  if (section.lastRevised) lines.push(`Last revised: ${section.lastRevised}`);
+  if (section.federalRegisterCite) lines.push(`Federal Register cite: ${section.federalRegisterCite}`);
+  if (section.citationLink) lines.push(`Citation link: ${section.citationLink}`);
+  else if (section.url) lines.push(`URL: ${section.url}`);
   if (section.reason) lines.push(`Reason: ${section.reason}`);
   if (section.content) lines.push(`Content:\n${section.content}`);
   return lines.join('\n');
@@ -268,6 +301,10 @@ function extractResolveAnswerFrame(result: ResolveAnswerFrameResult, toolCallId:
   if (!frame) return null;
 
   const key = frame.primarySections[0]?.id ?? frame.authoritativeDocuments[0]?.id ?? `resolveAnswerFrame:${toolCallId}`;
+  const link = frame.primarySections[0]?.url
+    ?? urlFromCitationLink(frame.primarySections[0]?.citationLink)
+    ?? frame.authoritativeDocuments[0]?.url
+    ?? null;
   const lines: string[] = [`[resolveAnswerFrame]`, `Question type: ${frame.questionType}`];
   lines.push(`Route lane: ${frame.route.lane}`);
   lines.push(`Route rationale: ${frame.route.rationale}`);
@@ -321,7 +358,7 @@ function extractResolveAnswerFrame(result: ResolveAnswerFrameResult, toolCallId:
     }
   }
 
-  return { toolName: 'resolveAnswerFrame', key, text: lines.join('\n').trimEnd() };
+  return { toolName: 'resolveAnswerFrame', key, text: lines.join('\n').trimEnd(), link };
 }
 
 // ── extractSources ───────────────────────────────────────────────────────────
@@ -438,11 +475,15 @@ export function buildSourceText(
 
   const limit = maxChars ?? getConfig().maxSourceChars;
 
-  // Split into cited (key appears in answer) vs uncited
+  // Split into cited vs uncited so budget truncation drops uncited sources
+  // first. Answers cite via markdown links (raw section IDs are forbidden by
+  // the system prompt), so match on the source's citation URL; the raw-key
+  // check is kept as a fallback for ID-bearing answers (e.g. CLI debugging).
   const cited: SourceEntry[] = [];
   const uncited: SourceEntry[] = [];
   for (const s of sources) {
-    if (answerText.includes(s.key)) {
+    const citedByLink = !!s.link && answerText.includes(s.link);
+    if (citedByLink || answerText.includes(s.key)) {
       cited.push(s);
     } else {
       uncited.push(s);
@@ -870,20 +911,59 @@ export class HallucinationVerifier implements Processor {
       console.log(JSON.stringify(telemetry));
     }
 
-    return messages.map((msg) => {
-      if (msg.role !== 'assistant') return msg;
-      return {
-        ...msg,
-        content: {
-          ...msg.content,
-          parts: (msg.content as any).parts.map((part: any) => {
-            if (part.type === 'text') {
-              return { ...part, text: corrected };
-            }
-            return part;
-          }),
-        },
-      };
-    });
+    return replaceFinalAnswerText(messages, corrected);
   }
+}
+
+/**
+ * Replace ONLY the final answer text: the last text part of the last
+ * assistant message. Earlier assistant messages (prior turns) and interim
+ * progress-update text parts must remain untouched — a blanket rewrite
+ * clobbers conversation history with the current turn's corrected answer.
+ */
+export function replaceFinalAnswerText(
+  messages: MastraDBMessage[],
+  corrected: string,
+): MastraDBMessage[] {
+  let lastAssistantIdx = -1;
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].role === 'assistant') {
+      lastAssistantIdx = i;
+      break;
+    }
+  }
+  if (lastAssistantIdx === -1) return messages;
+
+  return messages.map((msg, idx) => {
+    if (idx !== lastAssistantIdx) return msg;
+
+    const content = (msg as any).content;
+    // Defensive: the type says content is always structured, but legacy rows
+    // can carry plain-string content — don't crash on them.
+    if (typeof content === 'string') {
+      return { ...msg, content: corrected } as unknown as MastraDBMessage;
+    }
+
+    const parts = Array.isArray(content?.parts) ? content.parts : null;
+    if (!parts) return msg;
+
+    let lastTextIdx = -1;
+    for (let i = parts.length - 1; i >= 0; i--) {
+      if (parts[i]?.type === 'text') {
+        lastTextIdx = i;
+        break;
+      }
+    }
+    if (lastTextIdx === -1) return msg;
+
+    return {
+      ...msg,
+      content: {
+        ...content,
+        parts: parts.map((part: any, i: number) =>
+          i === lastTextIdx ? { ...part, text: corrected } : part,
+        ),
+      },
+    } as MastraDBMessage;
+  });
 }
