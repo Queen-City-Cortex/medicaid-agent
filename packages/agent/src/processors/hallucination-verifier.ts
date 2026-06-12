@@ -756,6 +756,134 @@ export function renderCorrectedAnswer(corrected: string, fallback?: string): str
   return `${body}\n\n---\n\n*Suggested citations for uncited claims above:*\n${footer}`;
 }
 
+// ── Shared verification flow ────────────────────────────────────────────────
+
+/**
+ * Telemetry emitted as a single JSON line after a `---VERIFIER---` stdout
+ * marker. The snake_case field names are a stable contract: the Python eval
+ * harness (`packages/pipeline/src/pipeline/eval/levels/answer.py`,
+ * `extract_verifier_metadata`) parses this block and downstream reports read
+ * these fields by name. Do not rename them.
+ */
+export interface VerifierTelemetry {
+  rewrote: boolean;
+  supported: boolean;
+  relevant: boolean;
+  citations_complete: boolean;
+  unsupported_claim_count: number;
+  missing_citation_count: number;
+  relevance_issue_count: number;
+  major_relevance_issue: boolean;
+  verifier_unavailable: boolean;
+  verifier_model: string;
+  reranker_fallback_count: number;
+  reranker_last_error: string | null;
+  source_entry_count: number;
+  evidence_bytes: number;
+  confidence: number;
+  severity: VerificationSeverity;
+  pure_marker_fallback: boolean;
+}
+
+export interface VerificationRunResult {
+  /** Answer text after applying the verifier's rewrite (the original text
+   *  when no rewrite was needed or the rewrite was unusable). */
+  finalAnswer: string;
+  /** True when any check failed and a rewrite was attempted. */
+  rewrote: boolean;
+  telemetry: VerifierTelemetry;
+  verification: VerificationResult;
+  confidence: VerificationConfidence;
+}
+
+/** Print a `---VERIFIER---` telemetry block in the format the eval harness
+ *  parses (marker line, then a single JSON object line). */
+export function emitVerifierTelemetry(telemetry: object): void {
+  console.log('\n---VERIFIER---\n');
+  console.log(JSON.stringify(telemetry));
+}
+
+/**
+ * Run the full hallucination-verification flow for a finished answer:
+ * build the source text, verify, render the corrected answer (with the
+ * pure-marker fallback guard), and compute confidence + telemetry.
+ *
+ * Shared by the CLI/eval runner in `index.ts` and the streaming
+ * `HallucinationVerifier` processor so the two paths can't drift.
+ */
+export async function runVerificationForAnswer({
+  question,
+  answerText,
+  sources,
+}: {
+  question: string;
+  answerText: string;
+  sources: SourceEntry[];
+}): Promise<VerificationRunResult> {
+  const sourceText = buildSourceText(sources, answerText);
+  const verification = await verifyAnswer(question, answerText, sourceText);
+
+  const hasMajorRelevanceIssue = verification.relevanceIssues?.some(
+    (issue) => issue.severity === 'major',
+  ) ?? false;
+  const citationsComplete = verification.citationsComplete !== false;
+  const rewrote = !(
+    verification.supported
+    && verification.relevant
+    && !hasMajorRelevanceIssue
+    && citationsComplete
+  );
+  const verifierUnavailable = verification.unsupportedClaims?.some(
+    (claim) => claim.reason === VERIFICATION_UNAVAILABLE,
+  ) ?? false;
+
+  let finalAnswer = answerText;
+  let pureMarkerFallback = false;
+  if (rewrote) {
+    // Apply the verifier's correctedAnswer directly — no retry. Retries cause
+    // the agent to over-correct and hedge everything. When the verification
+    // service itself was unavailable, keep the original answer but append a
+    // "could not be verified" disclaimer.
+    const rawCorrected = verification.correctedAnswer
+      || (verifierUnavailable ? answerText + VERIFICATION_DISCLAIMER : answerText);
+    // Move [missing citation: ...] markers out of sentence flow into a footer;
+    // keep [unverified: ...] / [wrong source: ...] inline (hallucination
+    // signal). Pass the original text as a fallback so a rewrite that is pure
+    // markers (body empty after extraction) doesn't nuke the answer.
+    finalAnswer = renderCorrectedAnswer(rawCorrected, answerText);
+    // Detect the pure-marker fallback so confidence reflects that the rewrite
+    // was unusable (same signal as the q-006 regression guard).
+    pureMarkerFallback =
+      (verification.correctedAnswer ?? '').trim().length > 0
+      && finalAnswer.trim() === answerText.trim();
+  }
+
+  const confidence = computeVerificationConfidence(verification, { pureMarkerFallback });
+  const rerankerDiagnostics = getPolicyCorpusRerankerDiagnostics();
+
+  const telemetry: VerifierTelemetry = {
+    rewrote,
+    supported: verification.supported,
+    relevant: verification.relevant,
+    citations_complete: citationsComplete,
+    unsupported_claim_count: verification.unsupportedClaims?.length ?? 0,
+    missing_citation_count: verification.missingCitationClaims?.length ?? 0,
+    relevance_issue_count: verification.relevanceIssues?.length ?? 0,
+    major_relevance_issue: hasMajorRelevanceIssue,
+    verifier_unavailable: verifierUnavailable,
+    verifier_model: getConfig().model,
+    reranker_fallback_count: rerankerDiagnostics.fallbackCount,
+    reranker_last_error: rerankerDiagnostics.lastError,
+    source_entry_count: sources.length,
+    evidence_bytes: sources.reduce((total, source) => total + source.text.length, 0),
+    confidence: confidence.confidence,
+    severity: confidence.severity,
+    pure_marker_fallback: pureMarkerFallback,
+  };
+
+  return { finalAnswer, rewrote, telemetry, verification, confidence };
+}
+
 // ── Processor Class ─────────────────────────────────────────────────────────
 
 function extractTextFromMessage(message: MastraDBMessage): string {
@@ -803,76 +931,28 @@ export class HallucinationVerifier implements Processor {
     }
 
     const question = extractLatestUserQuestion(messages);
-
     const sources = extractSources(messages as any);
-    const sourceText = buildSourceText(sources, text);
-    const verification = await verifyAnswer(question, text, sourceText);
+    const { finalAnswer, rewrote, telemetry, verification, confidence } =
+      await runVerificationForAnswer({ question, answerText: text, sources });
 
-    const hasMajorRelevanceIssue = verification.relevanceIssues?.some(
-      (issue) => issue.severity === 'major',
-    );
-
-    const rerankerDiagnostics = getPolicyCorpusRerankerDiagnostics();
-    const citationsComplete = verification.citationsComplete !== false;
-    const missingCitationCount = verification.missingCitationClaims?.length ?? 0;
-
-    if (
-      verification.supported
-      && verification.relevant
-      && !hasMajorRelevanceIssue
-      && citationsComplete
-    ) {
-      const okConfidence = computeVerificationConfidence(verification);
+    if (!rewrote) {
       if (writer) {
         // Emit a positive-path event so the UI can render a green confidence
         // indicator even when nothing needed correcting.
         await writer.custom({
           type: 'data-verification-ok',
           data: {
-            confidence: okConfidence.confidence,
-            severity: okConfidence.severity,
-            counts: okConfidence.counts,
+            confidence: confidence.confidence,
+            severity: confidence.severity,
+            counts: confidence.counts,
           },
         } as any);
       } else {
-        console.log('\n---VERIFIER---\n');
-        console.log(JSON.stringify({
-          rewrote: false,
-          supported: true,
-          relevant: true,
-          citations_complete: true,
-          unsupported_claim_count: 0,
-          missing_citation_count: 0,
-          relevance_issue_count: verification.relevanceIssues?.length ?? 0,
-          major_relevance_issue: false,
-          verifier_unavailable: false,
-          verifier_model: getConfig().model,
-          reranker_fallback_count: rerankerDiagnostics.fallbackCount,
-          reranker_last_error: rerankerDiagnostics.lastError,
-          confidence: okConfidence.confidence,
-          severity: okConfidence.severity,
-        }));
+        // Non-streaming path — emit telemetry so the eval harness can capture it.
+        emitVerifierTelemetry(telemetry);
       }
       return messages;
     }
-
-    // Apply the verifier's correctedAnswer directly — no retry.
-    // Retries cause the agent to over-correct and hedge everything.
-    const verifierUnavailable = verification.unsupportedClaims.some(
-      (c) => c.reason === VERIFICATION_UNAVAILABLE,
-    );
-    const rawCorrected = verification.correctedAnswer
-      || (verifierUnavailable ? text + VERIFICATION_DISCLAIMER : text);
-    // Move [missing citation: ...] markers out of sentence flow into a footer;
-    // keep [unverified: ...] / [wrong source: ...] inline (hallucination signal).
-    // Pass the original text as a fallback so a rewrite that is pure markers
-    // (body empty after extraction) doesn't nuke the answer.
-    const corrected = renderCorrectedAnswer(rawCorrected, text);
-    // Detect the pure-marker fallback so the confidence badge reflects that
-    // the rewrite was unusable (same signal as the q-006 regression guard).
-    const pureMarkerFallback =
-      (verification.correctedAnswer ?? '').trim().length > 0 && corrected.trim() === text.trim();
-    const confidence = computeVerificationConfidence(verification, { pureMarkerFallback });
 
     if (writer) {
       await writer.custom({
@@ -881,37 +961,19 @@ export class HallucinationVerifier implements Processor {
           unsupportedClaims: verification.unsupportedClaims,
           missingCitationClaims: verification.missingCitationClaims,
           relevanceIssues: verification.relevanceIssues,
-          correctedAnswer: corrected,
+          correctedAnswer: finalAnswer,
           confidence: confidence.confidence,
           severity: confidence.severity,
           counts: confidence.counts,
-          pureMarkerFallback,
+          pureMarkerFallback: confidence.pureMarkerFallback,
         },
       } as any);
     } else {
-      // CLI / non-streaming path — emit telemetry marker so the eval harness can capture it.
-      const telemetry = {
-        rewrote: true,
-        supported: verification.supported,
-        relevant: verification.relevant,
-        citations_complete: citationsComplete,
-        unsupported_claim_count: verification.unsupportedClaims?.length ?? 0,
-        missing_citation_count: missingCitationCount,
-        relevance_issue_count: verification.relevanceIssues?.length ?? 0,
-        major_relevance_issue: hasMajorRelevanceIssue,
-        verifier_unavailable: verifierUnavailable,
-        verifier_model: getConfig().model,
-        reranker_fallback_count: rerankerDiagnostics.fallbackCount,
-        reranker_last_error: rerankerDiagnostics.lastError,
-        confidence: confidence.confidence,
-        severity: confidence.severity,
-        pure_marker_fallback: pureMarkerFallback,
-      };
-      console.log('\n---VERIFIER---\n');
-      console.log(JSON.stringify(telemetry));
+      // Non-streaming path — emit telemetry so the eval harness can capture it.
+      emitVerifierTelemetry(telemetry);
     }
 
-    return replaceFinalAnswerText(messages, corrected);
+    return replaceFinalAnswerText(messages, finalAnswer);
   }
 }
 

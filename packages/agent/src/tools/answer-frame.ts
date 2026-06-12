@@ -8,6 +8,13 @@ import { z } from 'zod';
 import { policyCorpus } from '../policy-corpus.js';
 import { DocumentMetadataSchema } from './document-metadata.js';
 
+// Once-per-process latch for the eval-route emission below. It is intentional
+// that this never resets: AGENT_EVAL_CAPTURE_ROUTE is only set by the eval
+// harness, which runs the CLI (`npx tsx src/index.ts "<question>"`) as a fresh
+// subprocess per question, so "once per process" means "once per question".
+// The harness's `---ROUTE---` extractor reads a single block per run; the
+// first resolveAnswerFrame call is the routing decision it must capture.
+// Long-lived server processes never set the env var, so the latch is inert there.
 let emittedEvalRoute = false;
 
 const AnswerFrameSectionSchema = z.object({

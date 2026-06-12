@@ -22,13 +22,10 @@ import {
   HallucinationVerifier,
   extractSources,
   extractSourcesFromToolResults,
-  buildSourceText,
-  verifyAnswer,
-  renderCorrectedAnswer,
-  computeVerificationConfidence,
+  runVerificationForAnswer,
+  emitVerifierTelemetry,
   type ToolResultRecord,
 } from './processors/hallucination-verifier.js';
-import { getPolicyCorpusRerankerDiagnostics } from './policy-corpus-reranker.js';
 import { AnswerFramePrefetchProcessor } from './processors/answer-frame-prefetch.js';
 import { AnswerFramePlanningProcessor } from './processors/answer-frame-planning.js';
 import { OpenAIResponsesDedupProcessor } from './processors/openai-responses-dedup.js';
@@ -154,9 +151,10 @@ const inputProcessors = IS_CLI_RUN
     ];
 // outputProcessors run in the web streaming path. In CLI/generate mode, Mastra's
 // processor chain doesn't emit the verifier's stdout telemetry, so the CLI runner
-// below calls `verifyAnswer` directly after `agent.generate()` completes. That
-// keeps eval scores aligned with what web users see while still letting
-// VERIFIER_ENABLED=false skip the extra cost for fast debug runs.
+// below calls `runVerificationForAnswer` (the same flow the processor uses)
+// directly after `agent.generate()` completes. That keeps eval scores aligned
+// with what web users see while still letting VERIFIER_ENABLED=false skip the
+// extra cost for fast debug runs.
 const verifierEnabled = process.env.VERIFIER_ENABLED !== 'false';
 const outputProcessors = verifierEnabled && !IS_CLI_RUN ? [hallucinationVerifier] : [];
 
@@ -334,8 +332,6 @@ if (CLI_QUESTION) {
             ?? [];
           sources = extractSources(messages);
         }
-        const sourceText = buildSourceText(sources, finalAnswer);
-
         // Emit the extracted sources so the eval harness can give the judge
         // the same evidence the verifier sees. Single-line JSON so the
         // `last JSON object line` extractor on the Python side parses cleanly.
@@ -343,61 +339,15 @@ if (CLI_QUESTION) {
         console.log('\n---EVIDENCE---\n');
         console.log(JSON.stringify({ sources, evidence_bytes: evidenceBytes }));
 
-        const verification = await verifyAnswer(CLI_QUESTION, finalAnswer, sourceText);
-        const hasMajorRelevanceIssue = verification.relevanceIssues?.some(
-          (i) => i.severity === 'major',
-        ) ?? false;
-        const citationsComplete = verification.citationsComplete !== false;
-        const rewrote = !(
-          verification.supported
-          && verification.relevant
-          && !hasMajorRelevanceIssue
-          && citationsComplete
-        );
-        const rerankerDiag = getPolicyCorpusRerankerDiagnostics();
-
-        // Compute the rendered (post-marker-folding) answer up-front so we can
-        // detect the pure-marker fallback, which influences confidence.
-        let renderedCorrected: string | null = null;
-        let pureMarkerFallback = false;
-        if (rewrote && verification.correctedAnswer) {
-          renderedCorrected = renderCorrectedAnswer(verification.correctedAnswer, finalAnswer);
-          pureMarkerFallback =
-            verification.correctedAnswer.trim().length > 0
-            && renderedCorrected.trim() === finalAnswer.trim();
-        }
-        const confidence = computeVerificationConfidence(verification, { pureMarkerFallback });
-
-        const telemetry = {
-          rewrote,
-          supported: verification.supported,
-          relevant: verification.relevant,
-          citations_complete: citationsComplete,
-          unsupported_claim_count: verification.unsupportedClaims?.length ?? 0,
-          missing_citation_count: verification.missingCitationClaims?.length ?? 0,
-          relevance_issue_count: verification.relevanceIssues?.length ?? 0,
-          major_relevance_issue: hasMajorRelevanceIssue,
-          verifier_unavailable: verification.unsupportedClaims?.some(
-            (c) => c.reason === 'Verification service unavailable',
-          ) ?? false,
-          verifier_model: process.env.VERIFIER_MODEL || 'gpt-5.4-mini',
-          reranker_fallback_count: rerankerDiag.fallbackCount,
-          reranker_last_error: rerankerDiag.lastError,
-          source_entry_count: sources.length,
-          evidence_bytes: evidenceBytes,
-          confidence: confidence.confidence,
-          severity: confidence.severity,
-          pure_marker_fallback: pureMarkerFallback,
-        };
-        console.log('\n---VERIFIER---\n');
-        console.log(JSON.stringify(telemetry));
-
-        if (renderedCorrected !== null) {
-          finalAnswer = renderedCorrected;
-        }
+        const run = await runVerificationForAnswer({
+          question: CLI_QUESTION,
+          answerText: finalAnswer,
+          sources,
+        });
+        emitVerifierTelemetry(run.telemetry);
+        finalAnswer = run.finalAnswer;
       } catch (err) {
-        console.log('\n---VERIFIER---\n');
-        console.log(JSON.stringify({ error: String(err), rewrote: false }));
+        emitVerifierTelemetry({ error: String(err), rewrote: false });
       }
     }
 

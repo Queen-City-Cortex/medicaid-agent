@@ -9,6 +9,3 @@ export function createMastraClient(accessToken?: string) {
     headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
   });
 }
-
-/** Unauthenticated client for backwards compatibility (e.g., server-side). */
-export const mastraClient = createMastraClient();
