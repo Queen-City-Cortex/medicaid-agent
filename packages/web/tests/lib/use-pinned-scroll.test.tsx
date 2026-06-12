@@ -1,22 +1,41 @@
 import { render } from '@testing-library/react';
 import { fireEvent } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { useEffect } from 'react';
 import { usePinnedScroll } from '@/lib/use-pinned-scroll';
 
-let hookResult: ReturnType<typeof usePinnedScroll>;
+// Test-harness capture: the hook needs surrounding DOM (the viewport wrapper
+// with the ref inside), so renderHook's wrapper isn't enough. Capturing into
+// a ref-style container (property mutation, not variable reassignment) keeps
+// the render pure enough for the react-hooks rules while letting assertions
+// reach the latest hook result.
+const capturedRef: { current: ReturnType<typeof usePinnedScroll> | null } = { current: null };
+function hookResult(): ReturnType<typeof usePinnedScroll> {
+  if (!capturedRef.current) throw new Error('hook not rendered yet');
+  return capturedRef.current;
+}
 
 function Harness({ messages, status }: { messages: unknown; status: unknown }) {
-  hookResult = usePinnedScroll({ messages, status });
+  const result = usePinnedScroll({ messages, status });
+  const { messagesEndRef } = result;
+  // Capture after render (assertions run after act() flushes effects).
+  useEffect(() => {
+    capturedRef.current = result;
+  });
   return (
     <div data-slot="scroll-area-viewport">
-      <div ref={hookResult.messagesEndRef} />
+      <div ref={messagesEndRef} />
     </div>
   );
 }
 
 function NoViewportHarness({ messages }: { messages: unknown }) {
-  hookResult = usePinnedScroll({ messages, status: 'ready' });
-  return <div ref={hookResult.messagesEndRef} />;
+  const result = usePinnedScroll({ messages, status: 'ready' });
+  const { messagesEndRef } = result;
+  useEffect(() => {
+    capturedRef.current = result;
+  });
+  return <div ref={messagesEndRef} />;
 }
 
 const scrollToSpy = vi.fn();
@@ -48,12 +67,12 @@ describe('usePinnedScroll', () => {
     const viewport = container.querySelector('[data-slot="scroll-area-viewport"]');
 
     expect(viewport).not.toBeNull();
-    expect(hookResult.viewport).toBe(viewport);
+    expect(hookResult().viewport).toBe(viewport);
   });
 
   it('exposes null when no viewport ancestor exists', () => {
     render(<NoViewportHarness messages={1} />);
-    expect(hookResult.viewport).toBeNull();
+    expect(hookResult().viewport).toBeNull();
   });
 
   it('follows new content while the user is pinned to the bottom', () => {
