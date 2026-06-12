@@ -403,4 +403,18 @@ export const VARIANT_SETTING_TERMS: Array<{ terms: string[]; titleTerms: string[
     titleTerms: ['state plan pcs', 'in-home', 'in home'],
     reason: 'Preferred because the query asks about in-home services.',
   },
+  // Nursing facility vs residential treatment: both policy families use
+  // "therapeutic leave"/"resident" vocabulary, so raw scores routinely cross
+  // (a nursing-facility leave question routed to Residential Treatment
+  // Services). The query's facility type names the governing family.
+  {
+    terms: ['nursing facility', 'nursing facilities', 'nursing home', 'skilled nursing'],
+    titleTerms: ['nursing facility', 'nursing facilities', 'nursing home'],
+    reason: 'Preferred because the query asks about a nursing facility setting.',
+  },
+  {
+    terms: ['residential treatment', 'residential facility', 'residential treatment facility'],
+    titleTerms: ['residential treatment'],
+    reason: 'Preferred because the query asks about a residential treatment setting.',
+  },
 ];

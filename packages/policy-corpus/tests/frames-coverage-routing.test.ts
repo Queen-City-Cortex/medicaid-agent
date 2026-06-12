@@ -456,6 +456,72 @@ describe('coverage frame document routing', () => {
     expect(frame.primarySections.every((section) => section.policyNumber === '3L-1')).toBe(true);
   });
 
+  it('keeps a nursing-facility therapeutic-leave question on the nursing facility policy', async () => {
+    // h-012 regression: 'therapeutic leave' appears in both the Nursing
+    // Facilities policy (2B-1, 60 days/year) and Residential Treatment
+    // Services (8D-2, 45 days/year). When 8D-2 outranked on raw scores the
+    // answer quoted the wrong policy's limits. The query names the facility
+    // type — that must steer document selection.
+    const DOC_2B1: GraphDocument = {
+      id: 'doc-2b1',
+      title: 'Nursing Facilities',
+      documentType: 'clinical_policy',
+      policyNumber: '2B-1',
+      effectiveDate: '2025-01-01',
+      url: 'https://example.com/2B-1',
+      sections: [
+        {
+          id: 'sec-2b1-leave',
+          number: '5.8',
+          title: '5.8 Therapeutic Leave',
+          content: 'A nursing facility resident may take up to 60 days of therapeutic leave per calendar year when ordered by the attending physician.',
+          chars: 900,
+        },
+      ],
+    };
+    const DOC_8D2: GraphDocument = {
+      id: 'doc-8d2',
+      title: '8D-2, Residential Treatment Services',
+      documentType: 'clinical_policy',
+      policyNumber: '8D-2',
+      effectiveDate: '2025-01-01',
+      url: 'https://example.com/8D-2',
+      sections: [
+        {
+          id: 'sec-8d2-leave',
+          number: '6.1',
+          title: '6.1 Therapeutic Leave',
+          content: 'A resident of a Level II, III, or IV residential facility may take up to 45 days of therapeutic leave per calendar year, limited to 15 days per quarter.',
+          chars: 900,
+        },
+      ],
+    };
+
+    const { corpus } = createCorpus([
+      {
+        label: 'vector clinical',
+        match: queries.sectionVector('clinical_policy'),
+        result: {
+          records: [
+            hitFor(DOC_8D2, 'sec-8d2-leave', 0.99),
+            hitFor(DOC_2B1, 'sec-2b1-leave', 0.93),
+          ],
+        },
+      },
+      ...documentGraphHandlers(DOC_8D2),
+      ...documentGraphHandlers(DOC_2B1),
+    ]);
+
+    const frame = await resolveTypedFrame(
+      corpus,
+      'coverage',
+      'How many days of therapeutic leave per year can a nursing facility resident take under NC Medicaid, and what conditions apply to that leave?',
+    );
+
+    expect(frame.authoritativeDocuments[0]?.policyNumber).toBe('2B-1');
+    expect(frame.primarySections.every((section) => section.policyNumber === '2B-1')).toBe(true);
+  });
+
   it('promotes specific ambulance non-covered subsections over general exclusions', async () => {
     const DOC_15: GraphDocument = {
       id: 'doc-15',

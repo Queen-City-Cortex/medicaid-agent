@@ -110,9 +110,23 @@ export async function resolveCoverageFrame(
   const primaryHits = candidateHits.filter(
     (hit) => !limitationHits.some((candidate) => candidate.sectionId === hit.sectionId),
   );
+  // The focused-search hits must respect the same preferred-document scoping
+  // as candidateHits: unioning RAW focusHits into the seed pool let a
+  // non-preferred document's section lead primarySections even after routing
+  // correctly scoped to the preferred policy (h-012: Residential Treatment's
+  // therapeutic-leave section led a Nursing Facilities answer).
+  const scopedFocusHits =
+    preferredPolicyNumbers.size === 0
+      ? focusHits
+      : (() => {
+          const scoped = focusHits.filter(
+            (hit) => hit.policyNumber && preferredPolicyNumbers.has(hit.policyNumber.toUpperCase()),
+          );
+          return scoped.length > 0 ? scoped : focusHits;
+        })();
   const serviceFocusedHits = serviceFocusTerms.length === 0
     ? []
-    : uniqueBy([...focusHits, ...primaryHits], (hit) => hit.sectionId).filter((hit) => {
+    : uniqueBy([...scopedFocusHits, ...primaryHits], (hit) => hit.sectionId).filter((hit) => {
         const focusMatches =
           scoreTermMatches(serviceFocusTerms, hit.sectionTitle) +
           Math.min(scoreTermMatches(serviceFocusTerms, hit.content), 4);
@@ -120,7 +134,7 @@ export async function resolveCoverageFrame(
       });
   const weaklyServiceFocusedHits = serviceFocusTerms.length === 0
     ? []
-    : uniqueBy([...focusHits, ...primaryHits], (hit) => hit.sectionId).filter((hit) => {
+    : uniqueBy([...scopedFocusHits, ...primaryHits], (hit) => hit.sectionId).filter((hit) => {
         const focusMatches =
           scoreTermMatches(serviceFocusTerms, hit.sectionTitle) +
           Math.min(scoreTermMatches(serviceFocusTerms, hit.content), 4);

@@ -439,13 +439,12 @@ describe('coverage frame', () => {
     );
 
     expect(frame.authoritativeDocuments[0]?.policyNumber).toBe('9');
-    // FINDING (pinned, not papered over): the historical assertion here was
-    // `not.toContain('MA-2312')`, but it only passed because the MA-2312
-    // fixtures were unhydratable and got dropped unconditionally. With the
-    // competitor fully fixtured, current src keeps the Medicare Part D manual
-    // as a SECONDARY authoritative document — the routing guarantee is that
-    // Policy 9 outranks it, not that it is excluded.
-    expect(frame.authoritativeDocuments.map((document) => document.policyNumber)).toEqual(['9', 'MA-2312']);
+    // The Medicare Part D manual used to survive as a SECONDARY authoritative
+    // document only because raw focusHits bypassed preferred-document scoping
+    // in the seed pool. With focus hits scoped (h-012 fix), the historical
+    // guarantee — Part D manuals excluded outright — holds again.
+    expect(frame.authoritativeDocuments.map((document) => document.policyNumber)).toEqual(['9']);
+    expect(frame.authoritativeDocuments.map((document) => document.policyNumber)).not.toContain('MA-2312');
     expect(frame.primarySections.map((section) => section.sectionNumber)).toEqual(expect.arrayContaining(['4.1']));
     const exclusionSection = frame.primarySections.find((section) => section.sectionNumber === '4.1');
     expect(exclusionSection?.content).toContain('experimental, investigational');
