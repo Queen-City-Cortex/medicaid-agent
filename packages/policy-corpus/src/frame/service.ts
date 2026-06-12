@@ -22,10 +22,5 @@ export function createAnswerFrameResolver({
 
   return {
     resolveAnswerFrame: planner.resolveAnswerFrame,
-    resolveCoverageFrame: (query) => planner.resolveTypedFrame(query, 'coverage'),
-    resolvePriorAuthFrame: (query) => planner.resolveTypedFrame(query, 'prior_authorization'),
-    resolveAmendmentFrame: (query) => planner.resolveTypedFrame(query, 'amendment'),
-    resolveFederalAuthorityFrame: (query) => planner.resolveTypedFrame(query, 'federal_authority'),
-    resolvePolicyVariantFrame: (query) => planner.resolveTypedFrame(query, 'policy_variant'),
   };
 }

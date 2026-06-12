@@ -2,6 +2,7 @@ import type { CorpusReranker, QueryAnalysis, RetrievalBackend, RetrievalProfile 
 import type { CorpusRetrievalHit, SearchSectionsInput, SessionLike } from '../types.js';
 import {
   FULLTEXT_BOOST,
+  buildRerankQueryContext,
   changeMarkerValueForHit,
   computeDocumentCoverageBoosts,
   dedupeTerms,
@@ -102,19 +103,20 @@ export async function finalizeHybridHits({
       }, null)
     : null;
 
+  // Per-query intent flags are computed once here instead of being re-derived
+  // inside the rerank loop for every hit.
+  const rerankContext = buildRerankQueryContext({
+    queryLower: analysis.normalizedQuery,
+    queryTerms: analysis.searchTerms,
+    procedureCodes: analysis.procedureCodes,
+    requestedYears: analysis.requestedYears,
+    exactPolicyNumbers: analysis.explicitPolicyNumbers,
+    documentCoverageBoosts,
+    latestChangeMarkerValue,
+  });
+
   const baselineHits = Array.from(sectionMap.values())
-    .map((hit) =>
-      rerankRetrievalHit(
-        hit,
-        analysis.normalizedQuery,
-        analysis.searchTerms,
-        analysis.procedureCodes,
-        analysis.requestedYears,
-        analysis.explicitPolicyNumbers,
-        documentCoverageBoosts,
-        latestChangeMarkerValue,
-      ),
-    )
+    .map((hit) => rerankRetrievalHit(hit, rerankContext))
     .sort((left, right) => right.score - left.score);
 
   const finalHits = await maybeRerankHits({

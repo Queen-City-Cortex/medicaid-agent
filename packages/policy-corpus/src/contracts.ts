@@ -132,9 +132,4 @@ export interface SearchService {
 
 export interface FrameResolver {
   resolveAnswerFrame(input: ResolveAnswerFrameInput): Promise<AnswerFrame>;
-  resolveCoverageFrame(query: string): Promise<AnswerFrame>;
-  resolvePriorAuthFrame(query: string): Promise<AnswerFrame>;
-  resolveAmendmentFrame(query: string): Promise<AnswerFrame>;
-  resolveFederalAuthorityFrame(query: string): Promise<AnswerFrame>;
-  resolvePolicyVariantFrame(query: string): Promise<AnswerFrame>;
 }

@@ -238,11 +238,6 @@ export interface PolicyCorpus {
   searchSections(input: SearchSectionsInput): Promise<SearchHit[]>;
   searchSectionsDetailed(input: SearchSectionsInput): Promise<CorpusRetrievalHit[]>;
   resolveAnswerFrame(input: ResolveAnswerFrameInput): Promise<AnswerFrame>;
-  resolveCoverageFrame(query: string): Promise<AnswerFrame>;
-  resolvePriorAuthFrame(query: string): Promise<AnswerFrame>;
-  resolveAmendmentFrame(query: string): Promise<AnswerFrame>;
-  resolveFederalAuthorityFrame(query: string): Promise<AnswerFrame>;
-  resolvePolicyVariantFrame(query: string): Promise<AnswerFrame>;
   getSection(sectionId: string): Promise<SectionView | null>;
   getDocument(documentId: string): Promise<DocumentWithSectionsView | null>;
   getSectionContext(sectionId: string): Promise<SectionContextView>;

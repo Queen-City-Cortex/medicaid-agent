@@ -1,12 +1,4 @@
 export { createNeo4jPolicyCorpus, SEARCH_SNIPPET_CHARS } from './policy-corpus.js';
-export { getCorpusCoverage, getSchemaVersion } from './coverage/index.js';
-export type {
-  CorpusCoverage,
-  SchemaVersionInfo,
-  SourceTypeCoverage,
-  CfrPartCoverage,
-  DhhsPolicyCoverage,
-} from './coverage/index.js';
 export type { CorpusReranker, CorpusRerankerArgs, CorpusRerankerResult } from './contracts.js';
 export {
   ANSWER_QUESTION_TYPES,

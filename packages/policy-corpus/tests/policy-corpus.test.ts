@@ -1,5 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { SEARCH_SNIPPET_CHARS, createNeo4jPolicyCorpus } from '../src/index.js';
+import {
+  SEARCH_SNIPPET_CHARS,
+  createNeo4jPolicyCorpus,
+  type AnswerQuestionType,
+  type PolicyCorpus,
+} from '../src/index.js';
+
+function resolveTypedFrame(corpus: PolicyCorpus, questionType: AnswerQuestionType, query: string) {
+  return corpus.resolveAnswerFrame({ query, questionType });
+}
 
 function mockRecord(data: Record<string, unknown>) {
   return { get: (key: string) => data[key] };
@@ -1524,7 +1533,7 @@ describe('Neo4jPolicyCorpus', () => {
     expect(session.run).not.toHaveBeenCalled();
   });
 
-  it('resolveCoverageFrame returns coverage and limiting evidence for service questions', async () => {
+  it('coverage frame returns coverage and limiting evidence for service questions', async () => {
     const { corpus } = createCorpusWithSearchHandlers([
       {
         match: (query, params) =>
@@ -1649,7 +1658,7 @@ describe('Neo4jPolicyCorpus', () => {
       },
     ]);
 
-    const frame = await corpus.resolveCoverageFrame('Does Policy 10A cover telehealth speech therapy?');
+    const frame = await resolveTypedFrame(corpus, 'coverage', 'Does Policy 10A cover telehealth speech therapy?');
 
     expect(frame.questionType).toBe('coverage');
     expect(frame.authoritativeDocuments[0]?.policyNumber).toBe('10A');
@@ -1657,7 +1666,7 @@ describe('Neo4jPolicyCorpus', () => {
     expect([...frame.primarySections, ...frame.supportingSections].map((section) => section.title)).toContain('Not Covered');
   });
 
-  it('resolveCoverageFrame aliases telehealth speech-therapy questions to Policy 10A without explicit policy numbers', async () => {
+  it('coverage frame aliases telehealth speech-therapy questions to Policy 10A without explicit policy numbers', async () => {
     const { corpus } = createCorpusWithSearchHandlers([
       {
         match: (query, params) =>
@@ -1766,7 +1775,7 @@ describe('Neo4jPolicyCorpus', () => {
       },
     ]);
 
-    const frame = await corpus.resolveCoverageFrame(
+    const frame = await resolveTypedFrame(corpus, 'coverage', 
       'Under what conditions can speech therapy be provided via telehealth under NC Medicaid?',
     );
 
@@ -1775,7 +1784,7 @@ describe('Neo4jPolicyCorpus', () => {
     expect(frame.primarySections.map((section) => section.title)).toContain('e. Telehealth');
   });
 
-  it('resolveCoverageFrame keeps telehealth speech questions on state-policy telehealth sections and avoids cross-reference boilerplate', async () => {
+  it('coverage frame keeps telehealth speech questions on state-policy telehealth sections and avoids cross-reference boilerplate', async () => {
     const { corpus } = createCorpusWithSearchHandlers([
       {
         match: (query, params) =>
@@ -1966,7 +1975,7 @@ describe('Neo4jPolicyCorpus', () => {
       },
     ]);
 
-    const frame = await corpus.resolveCoverageFrame(
+    const frame = await resolveTypedFrame(corpus, 'coverage', 
       'Under what conditions can speech therapy be provided via telehealth under NC Medicaid?',
     );
 
@@ -1982,7 +1991,7 @@ describe('Neo4jPolicyCorpus', () => {
     expect(frame.avoidSections.map((section) => section.title)).toContain('Speech/Language Treatment');
   });
 
-  it('resolveCoverageFrame can still surface telehealth service tables when the query explicitly asks which services are eligible', async () => {
+  it('coverage frame can still surface telehealth service tables when the query explicitly asks which services are eligible', async () => {
     const { corpus } = createCorpusWithSearchHandlers([
       {
         match: (query, params) =>
@@ -2099,7 +2108,7 @@ describe('Neo4jPolicyCorpus', () => {
       },
     ]);
 
-    const frame = await corpus.resolveCoverageFrame(
+    const frame = await resolveTypedFrame(corpus, 'coverage', 
       'Which speech therapy services are telehealth-eligible under NC Medicaid?',
     );
 
@@ -2108,7 +2117,7 @@ describe('Neo4jPolicyCorpus', () => {
     );
   });
 
-  it('resolveCoverageFrame keeps yes/no coverage questions on scope and not-covered sections instead of request attachments', async () => {
+  it('coverage frame keeps yes/no coverage questions on scope and not-covered sections instead of request attachments', async () => {
     const { corpus } = createCorpusWithSearchHandlers([
       {
         match: (query, params) =>
@@ -2300,7 +2309,7 @@ describe('Neo4jPolicyCorpus', () => {
       },
     ]);
 
-    const frame = await corpus.resolveCoverageFrame('Does NC Medicaid cover chiropractic services under Clinical Coverage Policy 5B?');
+    const frame = await resolveTypedFrame(corpus, 'coverage', 'Does NC Medicaid cover chiropractic services under Clinical Coverage Policy 5B?');
 
     expect(frame.authoritativeDocuments[0]?.policyNumber).toBe('5B');
     expect(frame.route.lane).toBe('baseline_hybrid');
@@ -2326,7 +2335,7 @@ describe('Neo4jPolicyCorpus', () => {
     );
   });
 
-  it('resolveCoverageFrame routes outpatient pharmacy exclusion questions to Policy 9 instead of Medicare Part D manuals', async () => {
+  it('coverage frame routes outpatient pharmacy exclusion questions to Policy 9 instead of Medicare Part D manuals', async () => {
     const policy9Sections = [
       {
         id: 'sec-9-211',
@@ -2472,7 +2481,7 @@ describe('Neo4jPolicyCorpus', () => {
       },
     ]);
 
-    const frame = await corpus.resolveCoverageFrame(
+    const frame = await resolveTypedFrame(corpus, 'coverage', 
       'Are experimental or investigational drugs covered under the NC Medicaid outpatient pharmacy benefit?',
     );
 
@@ -2693,7 +2702,7 @@ describe('Neo4jPolicyCorpus', () => {
     expect(frame.supportingSections.map((section) => section.sectionNumber)).toContain('3.4.5');
   });
 
-  it('resolveCoverageFrame pairs EPSDT coverage with pediatric therapy sections from the preferred document', async () => {
+  it('coverage frame pairs EPSDT coverage with pediatric therapy sections from the preferred document', async () => {
     const { corpus } = createCorpusWithSearchHandlers([
       {
         match: (query, params) =>
@@ -2840,7 +2849,7 @@ describe('Neo4jPolicyCorpus', () => {
       },
     ]);
 
-    const frame = await corpus.resolveCoverageFrame(
+    const frame = await resolveTypedFrame(corpus, 'coverage', 
       'How does the EPSDT special provision affect coverage for outpatient therapy services for Medicaid beneficiaries under age 21?',
     );
 
@@ -2850,7 +2859,7 @@ describe('Neo4jPolicyCorpus', () => {
     ).toEqual(expect.arrayContaining(['2.2.1', '3.2.1.3', '3.2.1.4']));
   });
 
-  it('resolveCoverageFrame infers the governing policy document and promotes general/not-covered sections over attachments', async () => {
+  it('coverage frame infers the governing policy document and promotes general/not-covered sections over attachments', async () => {
     const { corpus } = createCorpusWithSearchHandlers([
       {
         match: (query, params) =>
@@ -3073,7 +3082,7 @@ describe('Neo4jPolicyCorpus', () => {
       },
     ]);
 
-    const frame = await corpus.resolveCoverageFrame(
+    const frame = await resolveTypedFrame(corpus, 'coverage', 
       'What DME items are specifically NOT covered by NC Medicaid under the Orthotics and Prosthetics policy, and what general criteria must be met for coverage?',
     );
 
@@ -3083,7 +3092,7 @@ describe('Neo4jPolicyCorpus', () => {
     expect(frame.supportingSections.map((section) => section.sectionNumber)).toEqual(expect.arrayContaining(['3.1', '3.2.1']));
   });
 
-  it('resolveCoverageFrame keeps CAP/DA general eligibility questions on broad eligibility sections instead of reimbursement or provider operations', async () => {
+  it('coverage frame keeps CAP/DA general eligibility questions on broad eligibility sections instead of reimbursement or provider operations', async () => {
     const { corpus } = createCorpusWithSearchHandlers([
       {
         match: (query, params) =>
@@ -3320,7 +3329,7 @@ describe('Neo4jPolicyCorpus', () => {
       },
     ]);
 
-    const frame = await corpus.resolveCoverageFrame('What are the general eligibility criteria for CAP/DA services under NC Medicaid?');
+    const frame = await resolveTypedFrame(corpus, 'coverage', 'What are the general eligibility criteria for CAP/DA services under NC Medicaid?');
 
     expect(frame.primarySections.map((section) => section.sectionNumber)).toEqual(
       expect.arrayContaining(['2.1.1', '3.1', '3.2.1']),
@@ -3335,7 +3344,7 @@ describe('Neo4jPolicyCorpus', () => {
     );
   });
 
-  it('resolveCoverageFrame prefers the congregate sibling policy for assisted-living PCS questions without explicit policy numbers', async () => {
+  it('coverage frame prefers the congregate sibling policy for assisted-living PCS questions without explicit policy numbers', async () => {
     const { corpus } = createCorpusWithSearchHandlers([
       {
         match: (query, params) =>
@@ -3590,7 +3599,7 @@ describe('Neo4jPolicyCorpus', () => {
       },
     ]);
 
-    const frame = await corpus.resolveCoverageFrame(
+    const frame = await resolveTypedFrame(corpus, 'coverage', 
       'Does NC Medicaid cover Personal Care Services for beneficiaries who live in an assisted living facility?',
     );
 
@@ -3606,7 +3615,7 @@ describe('Neo4jPolicyCorpus', () => {
     expect(frame.primarySections.every((section) => section.policyNumber === '3L-1')).toBe(true);
   });
 
-  it('resolveCoverageFrame promotes specific ambulance non-covered subsections over general exclusions', async () => {
+  it('coverage frame promotes specific ambulance non-covered subsections over general exclusions', async () => {
     const { corpus } = createCorpusWithSearchHandlers([
       {
         match: (query, params) =>
@@ -3749,7 +3758,7 @@ describe('Neo4jPolicyCorpus', () => {
       },
     ]);
 
-    const frame = await corpus.resolveCoverageFrame('What ambulance services are NOT covered by NC Medicaid?');
+    const frame = await resolveTypedFrame(corpus, 'coverage', 'What ambulance services are NOT covered by NC Medicaid?');
 
     expect(frame.authoritativeDocuments[0]?.policyNumber).toBe('15');
     expect(frame.primarySections.map((section) => section.sectionNumber)).toContain('4.2.1.4');
@@ -3758,7 +3767,7 @@ describe('Neo4jPolicyCorpus', () => {
     expect(frame.avoidSections.map((section) => section.sectionNumber)).toContain('4.1');
   });
 
-  it('resolveCoverageFrame surfaces hospice certification-source sections for terminal-illness questions', async () => {
+  it('coverage frame surfaces hospice certification-source sections for terminal-illness questions', async () => {
     const { corpus } = createCorpusWithSearchHandlers([
       {
         match: (query, params) =>
@@ -3917,7 +3926,7 @@ describe('Neo4jPolicyCorpus', () => {
       },
     ]);
 
-    const frame = await corpus.resolveCoverageFrame(
+    const frame = await resolveTypedFrame(corpus, 'coverage', 
       "How does NC Medicaid define 'terminally ill' for purposes of hospice eligibility, and what certification is required?",
     );
 
@@ -3929,7 +3938,7 @@ describe('Neo4jPolicyCorpus', () => {
     );
   });
 
-  it('resolveCoverageFrame keeps HCWD income/premium questions on current MA-2180 while surfacing the earned-income-cap removal notice', async () => {
+  it('coverage frame keeps HCWD income/premium questions on current MA-2180 while surfacing the earned-income-cap removal notice', async () => {
     const { corpus } = createCorpusWithSearchHandlers([
       {
         match: (query, params) =>
@@ -4276,7 +4285,7 @@ describe('Neo4jPolicyCorpus', () => {
       },
     ]);
 
-    const frame = await corpus.resolveCoverageFrame(
+    const frame = await resolveTypedFrame(corpus, 'coverage', 
       'Is there a maximum earned income limit for people on HCWD (Health Coverage for Workers with Disabilities), and what premiums apply?',
     );
 
@@ -4299,7 +4308,7 @@ describe('Neo4jPolicyCorpus', () => {
     expect(surfacedTitles).not.toContain('2. Determine if a Premium is due');
   });
 
-  it('resolvePriorAuthFrame prefers criteria sections over request-process attachments', async () => {
+  it('prior-auth frame prefers criteria sections over request-process attachments', async () => {
     const { corpus } = createCorpusWithSearchHandlers([
       {
         match: (query, params) =>
@@ -4424,14 +4433,14 @@ describe('Neo4jPolicyCorpus', () => {
       },
     ]);
 
-    const frame = await corpus.resolvePriorAuthFrame('What prior approval criteria apply under Policy 9A?');
+    const frame = await resolveTypedFrame(corpus, 'prior_authorization', 'What prior approval criteria apply under Policy 9A?');
 
     expect(frame.questionType).toBe('prior_authorization');
     expect(frame.primarySections[0]?.title).toBe('Prior Approval Drugs and Criteria');
     expect(frame.avoidSections.map((section) => section.title)).toContain('Prior Approval Request Process');
   });
 
-  it('resolvePriorAuthFrame surfaces pharmacy quantity limits together with the prior-approval criteria section', async () => {
+  it('prior-auth frame surfaces pharmacy quantity limits together with the prior-approval criteria section', async () => {
     const { corpus } = createCorpusWithSearchHandlers([
       {
         match: (query, params) =>
@@ -4676,7 +4685,7 @@ describe('Neo4jPolicyCorpus', () => {
       },
     ]);
 
-    const frame = await corpus.resolvePriorAuthFrame(
+    const frame = await resolveTypedFrame(corpus, 'prior_authorization', 
       'Are there quantity limits on prescription drugs under NC Medicaid, and when is prior authorization required for pharmacy claims?',
     );
 
@@ -4697,7 +4706,7 @@ describe('Neo4jPolicyCorpus', () => {
     );
   });
 
-  it('resolveAmendmentFrame surfaces the latest revision header and authoritative document', async () => {
+  it('amendment frame surfaces the latest revision header and authoritative document', async () => {
     const { corpus } = createCorpusWithSearchHandlers([
       {
         match: (query, params) =>
@@ -4845,7 +4854,7 @@ describe('Neo4jPolicyCorpus', () => {
       },
     ]);
 
-    const frame = await corpus.resolveAmendmentFrame('What is the latest change notice for MA-3550?');
+    const frame = await resolveTypedFrame(corpus, 'amendment', 'What is the latest change notice for MA-3550?');
 
     expect(frame.questionType).toBe('amendment');
     expect(frame.route.lane).toBe('deterministic_evidence');
@@ -4858,7 +4867,7 @@ describe('Neo4jPolicyCorpus', () => {
     expect(frame.latestRevision?.marker).toContain('04-26');
   });
 
-  it('resolveFederalAuthorityFrame prefers federal authority and keeps NC implementation as support', async () => {
+  it('federal-authority frame prefers federal authority and keeps NC implementation as support', async () => {
     const { corpus } = createCorpusWithSearchHandlers([
       {
         match: (query, params) =>
@@ -5091,7 +5100,7 @@ describe('Neo4jPolicyCorpus', () => {
       },
     ]);
 
-    const frame = await corpus.resolveFederalAuthorityFrame(
+    const frame = await resolveTypedFrame(corpus, 'federal_authority', 
       "What does federal law define as 'home health services' under Medicaid, and how does North Carolina implement it?",
     );
 
@@ -5101,7 +5110,7 @@ describe('Neo4jPolicyCorpus', () => {
     expect(frame.supportingSections[0]?.documentType).toBe('state_plan_amendment');
   });
 
-  it('resolveFederalAuthorityFrame keeps MLR implementation evidence scoped to the matching NC document', async () => {
+  it('federal-authority frame keeps MLR implementation evidence scoped to the matching NC document', async () => {
     const { corpus } = createCorpusWithSearchHandlers([
       {
         match: (query, params) =>
@@ -5399,7 +5408,7 @@ describe('Neo4jPolicyCorpus', () => {
       },
     ]);
 
-    const frame = await corpus.resolveFederalAuthorityFrame(
+    const frame = await resolveTypedFrame(corpus, 'federal_authority', 
       'What medical loss ratio (MLR) must Medicaid managed care organizations meet under federal law, and how does NC implement this requirement?',
     );
 
@@ -5410,7 +5419,7 @@ describe('Neo4jPolicyCorpus', () => {
     expect(frame.supportingSections[0]?.title).toContain('Medical Loss Ratio');
   });
 
-  it('resolveFederalAuthorityFrame surfaces NC managed care contract MLR implementation alongside SPA support', async () => {
+  it('federal-authority frame surfaces NC managed care contract MLR implementation alongside SPA support', async () => {
     const { corpus } = createCorpusWithSearchHandlers([
       {
         match: (query, params) =>
@@ -5650,7 +5659,7 @@ describe('Neo4jPolicyCorpus', () => {
       },
     ]);
 
-    const frame = await corpus.resolveFederalAuthorityFrame(
+    const frame = await resolveTypedFrame(corpus, 'federal_authority', 
       'What medical loss ratio (MLR) must Medicaid managed care organizations meet under federal law, and how does NC implement this requirement?',
     );
 
@@ -5661,7 +5670,7 @@ describe('Neo4jPolicyCorpus', () => {
     );
   });
 
-  it('resolveFederalAuthorityFrame keeps MLR federal sections focused on MLR calculation and reporting', async () => {
+  it('federal-authority frame keeps MLR federal sections focused on MLR calculation and reporting', async () => {
     const { corpus } = createCorpusWithSearchHandlers([
       {
         match: (query, params) =>
@@ -5857,7 +5866,7 @@ describe('Neo4jPolicyCorpus', () => {
       },
     ]);
 
-    const frame = await corpus.resolveFederalAuthorityFrame(
+    const frame = await resolveTypedFrame(corpus, 'federal_authority', 
       'What medical loss ratio (MLR) must Medicaid managed care organizations meet under federal law, and how does NC implement this requirement?',
     );
 
@@ -5868,7 +5877,7 @@ describe('Neo4jPolicyCorpus', () => {
     expect(frame.primarySections.map((section) => section.sectionNumber)).not.toContain('438.510');
   });
 
-  it('resolveFederalAuthorityFrame surfaces federal enforcement sections from the same governing regulation', async () => {
+  it('federal-authority frame surfaces federal enforcement sections from the same governing regulation', async () => {
     const { corpus } = createCorpusWithSearchHandlers([
       {
         match: (query, params) =>
@@ -5963,7 +5972,7 @@ describe('Neo4jPolicyCorpus', () => {
       },
     ]);
 
-    const frame = await corpus.resolveFederalAuthorityFrame(
+    const frame = await resolveTypedFrame(corpus, 'federal_authority', 
       'What medical loss ratio (MLR) must Medicaid managed care organizations meet under federal law, and how is this requirement enforced?',
     );
 
@@ -5977,7 +5986,7 @@ describe('Neo4jPolicyCorpus', () => {
     ).toBe(true);
   });
 
-  it('resolveFederalAuthorityFrame adds aliased NC implementation policy support without displacing federal authority', async () => {
+  it('federal-authority frame adds aliased NC implementation policy support without displacing federal authority', async () => {
     const { corpus } = createCorpusWithSearchHandlers([
       {
         match: (query, params) =>
@@ -6233,7 +6242,7 @@ describe('Neo4jPolicyCorpus', () => {
       },
     ]);
 
-    const frame = await corpus.resolveFederalAuthorityFrame(
+    const frame = await resolveTypedFrame(corpus, 'federal_authority', 
       "What is the federal statutory authority for NC's CAP/DA waiver, and what does the state need to demonstrate in its waiver application?",
     );
 
@@ -6249,7 +6258,7 @@ describe('Neo4jPolicyCorpus', () => {
     expect(frame.avoidSections.map((section) => section.sectionNumber)).toContain('431.408');
   });
 
-  it('resolveFederalAuthorityFrame keeps Part 441 authoritative when mixed federal hits elevate SSA section 1915', async () => {
+  it('federal-authority frame keeps Part 441 authoritative when mixed federal hits elevate SSA section 1915', async () => {
     const { corpus } = createCorpusWithSearchHandlers([
       {
         match: (query, params) =>
@@ -6559,7 +6568,7 @@ describe('Neo4jPolicyCorpus', () => {
       },
     ]);
 
-    const frame = await corpus.resolveFederalAuthorityFrame(
+    const frame = await resolveTypedFrame(corpus, 'federal_authority', 
       "What is the federal statutory authority for NC's CAP/DA waiver, and what does the state need to demonstrate in its waiver application?",
     );
 
@@ -6570,7 +6579,7 @@ describe('Neo4jPolicyCorpus', () => {
     expect(frame.primarySections.map((section) => section.sectionNumber)).not.toContain('1929');
   });
 
-  it('resolvePolicyVariantFrame picks the matching sibling policy and explains why', async () => {
+  it('policy-variant frame picks the matching sibling policy and explains why', async () => {
     const { corpus } = createCorpusWithSearchHandlers([
       {
         match: (query, params) => query.includes('MATCH (d:Document)') && params.pns?.[0] === '3L',
@@ -6648,7 +6657,7 @@ describe('Neo4jPolicyCorpus', () => {
       },
     ]);
 
-    const frame = await corpus.resolvePolicyVariantFrame(
+    const frame = await resolveTypedFrame(corpus, 'policy_variant', 
       'For PCS in congregate settings, should I use 3L or 3L-1?',
     );
 

@@ -11,52 +11,12 @@ import { resolveGeneralFrame } from './pipelines/general.js';
 
 export type EvidencePipeline = AnswerQuestionType;
 
-export interface EvidencePlanDiagnostics {
-  activeFlags: string[];
-  searchProfile: QueryAnalysis['route']['lane'];
-  sourceFamilies: string[];
-}
-
 export interface EvidencePlan {
   query: string;
   normalizedQuery: string;
   questionType: AnswerQuestionType;
   pipeline: EvidencePipeline;
   route: QueryAnalysis['route'];
-  diagnostics: EvidencePlanDiagnostics;
-}
-
-function activeFlagNames(analysis: QueryAnalysis): string[] {
-  return Object.entries(analysis.flags)
-    .filter(([, enabled]) => enabled)
-    .map(([name]) => name);
-}
-
-function sourceFamiliesForAnalysis(analysis: QueryAnalysis): string[] {
-  switch (analysis.questionType) {
-    case 'coverage':
-      return [
-        'clinical_policy',
-        'dhhs_policy',
-        ...(analysis.flags.isManagedCareContractQuery ? ['managed_care_contract'] : []),
-        ...(analysis.flags.isFederalAuthorityQuery ? ['federal_regulation'] : []),
-      ];
-    case 'prior_authorization':
-      return ['clinical_policy', 'pharmacy_policy'];
-    case 'amendment':
-      return ['dhhs_policy', 'change_notice'];
-    case 'federal_authority':
-      return [
-        'federal_regulation',
-        'state_plan_amendment',
-        ...(analysis.flags.isManagedCareContractQuery || analysis.flags.isMlrQuery ? ['managed_care_contract'] : []),
-        ...(analysis.flags.asksForImplementation ? ['clinical_policy', 'dhhs_policy'] : []),
-      ];
-    case 'policy_variant':
-      return ['clinical_policy', 'dhhs_policy'];
-    default:
-      return ['mixed_corpus'];
-  }
 }
 
 export function buildEvidencePlan(input: ResolveAnswerFrameInput): EvidencePlan {
@@ -67,11 +27,6 @@ export function buildEvidencePlan(input: ResolveAnswerFrameInput): EvidencePlan 
     questionType: analysis.questionType,
     pipeline: analysis.questionType,
     route: analysis.route,
-    diagnostics: {
-      activeFlags: activeFlagNames(analysis),
-      searchProfile: analysis.route.lane,
-      sourceFamilies: sourceFamiliesForAnalysis(analysis),
-    },
   };
 }
 
@@ -94,12 +49,8 @@ async function resolvePlannedFrame(context: FrameContext, plan: EvidencePlan): P
 
 export function createEvidencePlanner(context: FrameContext) {
   return {
-    buildPlan: buildEvidencePlan,
     resolveAnswerFrame(input: ResolveAnswerFrameInput): Promise<AnswerFrame> {
       return resolvePlannedFrame(context, buildEvidencePlan(input));
-    },
-    resolveTypedFrame(query: string, questionType: AnswerQuestionType): Promise<AnswerFrame> {
-      return resolvePlannedFrame(context, buildEvidencePlan({ query, questionType }));
     },
   };
 }
