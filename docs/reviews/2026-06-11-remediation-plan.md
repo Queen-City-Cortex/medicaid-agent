@@ -185,6 +185,8 @@ From the product-UX review (full text: `2026-06-11-product-ux-review.md`). Per p
 
 ## P3 — Staged refactors (separate efforts, after the above)
 
+> **STATUS: ✅ Completed 2026-06-12** (commits 82111a4, 37ddd9a, b774663, 625a5bb, cc8be7a). shared.ts → 18-line barrel over 10 modules (rerank flags computed once per query, scores bitwise-pinned); frame layer 34→18 files with inert scoring removed; collector has one documented 5-stage merge pipeline; ChatPage → 5 contract-documented hooks (+43 tests); CLI verifier flow deduplicated behind a documented eval-protocol contract; the 6,670-line test monolith → 8 per-surface files over a strict fixture builder (48/48 migrated, +8 negative/failure tests). Item 7 (broad test-quality debt) was absorbed across P0–P3 commits.
+
 1. **Decompose `internal/shared.ts`** (1,681 lines, interface ≈ implementation; 2 reviewers) into ~7 focused modules; while in there, kill the recompute-per-hit rerank flags (`pc-internal:4`).
 2. **Consolidate the frame layer** — one concern across 24 files / 6 dirs with pass-through layers (`xc-architecture:3`, `pc-frame-coverage:7`); fold the 14-file coverage subtree into 2–3 deep modules with boundary tests; delete inert scoring plumbing (`pc-frame-rest:3` — selection is purely positional today).
 3. **Unify the retrieval backend abstraction** — 3 of 10 backends bypass it; `change_notice_header` config is dead (`xc-architecture:7`, `pc-retrieval:5`).
