@@ -15,7 +15,7 @@ The big picture: the product's core promise is *trustworthy, citable answers abo
 
 ## P0 — Answer integrity & security (fix before any real user touches this)
 
-> **STATUS: ✅ Completed 2026-06-11** (commits c7f2b5b…74170f2). Remaining operational steps: re-ingest the federal slice (`ingest-ssa`, `extract-refs`, `embed`) and re-baseline the eval. The held-out eval slice (item 6) is designed but not yet built.
+> **STATUS: ✅ Completed 2026-06-11** (commits c7f2b5b…74170f2). Operational follow-through completed 2026-06-12: federal slice re-ingested (69 SSA sections, 26,095 refs resolved, 312 embeddings, 0 errors; three freestanding USC sections classified — see `FREESTANDING_USC_SECTIONS`), held-out paraphrase slice built (`data/golden/heldout-paraphrase.json`, h-001…h-050, `eval --dataset`), and the eval re-baselined on it: **overall 2.60/3.00** (fa 2.72, comp 2.66, hall 2.60, cit 2.66; trail-level hit 96%, n=50, zero agent errors, judge claude-sonnet-4-6, unified evidence, git 71ef5a0). Statistically equal to the contaminated 2026-04-23 baseline (2.613 ± 0.12 single-run wobble) despite never-seen phrasings — the P1 de-contamination removed memorized routing without losing real quality. Weakest types: temporal 2.33, federal_reference 2.40; failures h-005 (meta-commentary instead of answer), h-049 (EPSDT authority routed to 42 CFR 440.345 benchmark context).
 
 ### 1. Federal-law ingestion is materially wrong (CRITICAL cluster)
 `packages/pipeline/src/pipeline/federal/` — refs `pipeline-refs-federal:0–5`:
