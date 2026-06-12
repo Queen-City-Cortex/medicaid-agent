@@ -3,9 +3,12 @@
 import { useState, type RefObject } from 'react';
 import ReactMarkdown from 'react-markdown';
 import type { UIMessage } from 'ai';
+import { ChevronRight, RotateCcw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { MessageActions } from '@/components/MessageActions';
 import { SourcesPanel, sourceRowId } from '@/components/SourcesPanel';
-import { ToolStep } from '@/components/ToolStep';
+import { ToolStep, getToolDescriptor, summarizeToolInput } from '@/components/ToolStep';
 import { VerificationBadge } from '@/components/VerificationBadge';
 import { VersionNav } from '@/components/VersionNav';
 import {
@@ -14,6 +17,7 @@ import {
   extractCitedUrls,
   extractMessageSources,
   extractVerificationState,
+  getToolName,
   getTrailingAssistantText,
   hasRenderableAssistantPart,
   isTextPart,
@@ -21,6 +25,7 @@ import {
   normalizeCitationUrl,
   splitSourcesByCited,
   type MessageSource,
+  type ToolMessagePart,
 } from '@/lib/message-parts';
 
 const PROSE = 'prose prose-sm dark:prose-invert max-w-none prose-headings:font-heading prose-headings:tracking-tight prose-h2:text-lg prose-h3:text-base prose-p:leading-relaxed prose-li:leading-relaxed prose-strong:text-foreground';
@@ -78,7 +83,11 @@ function MarkdownText({
                         event.preventDefault();
                         onCitationClick?.(sourceNumber);
                       }}
-                      className="ml-0.5 inline-flex cursor-pointer items-center rounded px-0.5 text-[0.7em] font-medium text-muted-foreground hover:bg-accent/15 hover:text-accent"
+                      // The visible footnote is tiny (0.7em inside <sup>); the
+                      // ::after overlay extends the effective hit area to ≥24px
+                      // in each dimension without shifting layout — tap-target
+                      // minimums matter for mobile case managers.
+                      className="relative ml-0.5 inline-flex cursor-pointer items-center rounded px-0.5 text-[0.7em] font-medium text-muted-foreground after:absolute after:-inset-2 after:content-[''] hover:bg-accent/15 hover:text-accent"
                       aria-label={`Jump to source ${sourceNumber} in the Sources panel`}
                     >
                       [{sourceNumber}]
@@ -142,6 +151,20 @@ function AssistantMessage({
   // which is indistinguishable from "finished". Show an explicit notice.
   const endedWithoutAnswer =
     !isStreaming && lastToolIndex !== -1 && finalAnswerText.trim().length === 0;
+  const toolStepCount = parts.filter(isToolPart).length;
+  // Once a run completes with an answer, the tool loop collapses into a
+  // single "Research trail" below the answer — ten full-width step cards
+  // stacked above the answer buried the thing the user asked for. Streaming
+  // keeps the live expanded view; ended-without-answer keeps the steps
+  // expanded because they ARE the only output worth reading.
+  const collapseTrail =
+    !isStreaming && lastToolIndex !== -1 && finalAnswerText.trim().length > 0;
+  const trailParts = collapseTrail
+    ? visibleParts.filter(({ index }) => index <= lastToolIndex)
+    : [];
+  const inlineParts = collapseTrail
+    ? visibleParts.filter(({ index }) => index > lastToolIndex)
+    : visibleParts;
   const sourceIndex = buildSourceIndex(sources);
   // Open by default when the answer actually cites sources — hiding the
   // panel behind a click is the wrong default for a verification-first
@@ -165,6 +188,66 @@ function AssistantMessage({
     window.setTimeout(() => setHighlightedKey(null), 1800);
   };
 
+  // Shared by the MessageActions rerun button and the "Try again" button in
+  // the ended-without-answer notice: find the user message this assistant
+  // message answered and re-send it.
+  const handleRerun = () => {
+    let userIdx = -1;
+    for (let index = messageIndex - 1; index >= 0; index--) {
+      if (messages[index].role === 'user') {
+        userIdx = index;
+        break;
+      }
+    }
+    if (userIdx === -1) return;
+    onRerun(messageIndex, userIdx);
+  };
+
+  const renderPart = (
+    { part, index }: { part: UIMessage['parts'][number]; index: number },
+    isLastVisiblePart: boolean,
+  ) => {
+    if (isToolPart(part)) {
+      return (
+        <ToolStep
+          key={part.toolCallId ?? `tool-${index}`}
+          part={part}
+        />
+      );
+    }
+    if (!isTextPart(part)) return null;
+
+    const finalAnswer = lastToolIndex === -1 || index > lastToolIndex;
+    return (
+      <div key={`text-${msg.id}-${index}`} className={finalAnswer ? 'my-4' : 'my-3'}>
+        <MarkdownText
+          text={part.text}
+          finalAnswer={finalAnswer}
+          showCursor={isStreaming && isLastVisiblePart}
+          sourceIndex={finalAnswer ? sourceIndex : undefined}
+          onCitationClick={finalAnswer ? handleCitationClick : undefined}
+        />
+      </div>
+    );
+  };
+
+  // Live narration while the tool loop runs: descriptor + summarized input +
+  // step counter, all derived from the last tool part. Hidden once the final
+  // answer starts streaming (the cursor takes over as the activity signal).
+  const lastToolPart = lastToolIndex !== -1 ? (parts[lastToolIndex] as ToolMessagePart) : null;
+  const showNarration =
+    isStreaming && lastToolPart !== null && finalAnswerText.trim().length === 0;
+  let narration: { text: string; step: number } | null = null;
+  if (showNarration && lastToolPart) {
+    const toolName = getToolName(lastToolPart);
+    const { label } = getToolDescriptor(toolName);
+    const inputSummary = summarizeToolInput(toolName, lastToolPart.input);
+    narration = {
+      text: inputSummary ? `${label} — ${inputSummary}` : label,
+      step: toolStepCount,
+    };
+  }
+
   return (
     <div
       data-testid="assistant-message"
@@ -174,36 +257,27 @@ function AssistantMessage({
       // state transitions instead.
       aria-busy={isStreaming || undefined}
     >
-      {visibleParts.map(({ part, index }, visibleIndex) => {
-        const isLastVisiblePart = visibleIndex === visibleParts.length - 1;
-        if (isToolPart(part)) {
-          return (
-            <ToolStep
-              key={part.toolCallId ?? `tool-${index}`}
-              part={part}
-            />
-          );
-        }
-        if (!isTextPart(part)) return null;
-
-        const finalAnswer = lastToolIndex === -1 || index > lastToolIndex;
-        return (
-          <div key={`text-${msg.id}-${index}`} className={finalAnswer ? 'my-4' : 'my-3'}>
-            <MarkdownText
-              text={part.text}
-              finalAnswer={finalAnswer}
-              showCursor={isStreaming && isLastVisiblePart}
-              sourceIndex={finalAnswer ? sourceIndex : undefined}
-              onCitationClick={finalAnswer ? handleCitationClick : undefined}
-            />
-          </div>
-        );
-      })}
+      {inlineParts.map((entry, visibleIndex) =>
+        renderPart(entry, visibleIndex === inlineParts.length - 1),
+      )}
 
       {isStreaming && !hasRenderableAssistantPart(parts) && (
         <div data-testid="loading-indicator" className="flex items-center gap-2 text-sm text-muted-foreground">
           <span className="inline-block w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" />
           Starting research...
+        </div>
+      )}
+
+      {narration && (
+        <div
+          data-testid="progress-narration"
+          className="mt-3 flex items-center gap-2 text-xs text-muted-foreground"
+        >
+          <span className="inline-block size-3.5 shrink-0 rounded-full border-2 border-accent border-t-transparent animate-spin" />
+          <span className="min-w-0 truncate">{narration.text}</span>
+          <span className="shrink-0 tabular-nums">
+            · step {narration.step}
+          </span>
         </div>
       )}
 
@@ -216,13 +290,48 @@ function AssistantMessage({
           <p className="font-medium">The agent finished without a final answer.</p>
           <p className="mt-1 text-muted-foreground">
             This usually means a transient API error interrupted the synthesis step. The sources
-            below show what was retrieved. Use the rerun button to try again.
+            below show what was retrieved.
           </p>
+          <Button
+            data-testid="try-again-button"
+            variant="outline"
+            size="sm"
+            className="mt-3"
+            onClick={handleRerun}
+          >
+            <RotateCcw className="size-3.5" />
+            Try again
+          </Button>
         </div>
       )}
 
       {!isStreaming && verification && finalAnswerText && (
         <VerificationBadge verification={verification} />
+      )}
+
+      {collapseTrail && (
+        <Collapsible>
+          <div data-testid="research-trail" className="mt-4">
+            <CollapsibleTrigger
+              data-testid="research-trail-trigger"
+              className="group flex w-full items-center justify-between rounded-xl border border-border/70 bg-muted/25 px-4 py-2.5 text-left transition-colors hover:bg-muted/45"
+            >
+              <span className="min-w-0 truncate text-sm font-medium text-foreground">
+                Research trail
+                <span className="ml-1.5 font-normal text-muted-foreground">
+                  — {toolStepCount} step{toolStepCount === 1 ? '' : 's'}
+                </span>
+              </span>
+              <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-transform group-data-[panel-open]:rotate-90" />
+            </CollapsibleTrigger>
+            <CollapsibleContent
+              data-testid="research-trail-content"
+              className="mt-2 rounded-xl border border-border/70 bg-muted/15 px-4 py-1"
+            >
+              {trailParts.map((entry) => renderPart(entry, false))}
+            </CollapsibleContent>
+          </div>
+        </Collapsible>
       )}
 
       {!isStreaming && sources.length > 0 && (
@@ -240,17 +349,7 @@ function AssistantMessage({
       {!isStreaming && (finalAnswerText || endedWithoutAnswer) && (
         <MessageActions
           content={buildAnswerClipboardText(finalAnswerText, sources)}
-          onRerun={() => {
-            let userIdx = -1;
-            for (let index = messageIndex - 1; index >= 0; index--) {
-              if (messages[index].role === 'user') {
-                userIdx = index;
-                break;
-              }
-            }
-            if (userIdx === -1) return;
-            onRerun(messageIndex, userIdx);
-          }}
+          onRerun={handleRerun}
           messageId={msg.id}
           feedback={feedbackMap[msg.id] ?? null}
           onRate={(rating) => onRate(msg.id, rating)}
@@ -314,7 +413,10 @@ export function MessageList({ messages, isStreaming, status, onRerun, messagesEn
             {msg.role === 'user' && (
               <div className="flex justify-end mb-6 animate-in fade-in slide-in-from-bottom-2 duration-200">
                 <div data-testid="user-message" className="bg-primary text-primary-foreground rounded-2xl rounded-br-sm px-5 py-3 max-w-[75%] shadow-sm">
-                  <p className="text-sm leading-relaxed">
+                  {/* pre-wrap keeps the user's line breaks (attorneys paste
+                      multi-line fact patterns); overflow-wrap:anywhere stops a
+                      long pasted URL or ID from blowing out the bubble. */}
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere]">
                     {msg.parts.filter(p => p.type === 'text').map(p => (p as { text: string }).text).join('')}
                   </p>
                 </div>

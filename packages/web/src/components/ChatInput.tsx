@@ -3,8 +3,15 @@
 import { type RefObject } from 'react';
 import { Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useIsMobile } from '@/lib/use-is-mobile';
+import { cn } from '@/lib/utils';
 
 const MAX_INPUT_LENGTH = 10_000;
+// Show the character counter only when the user is actually approaching the
+// limit — a permanent counter is noise for the 99% of questions under a
+// paragraph. The maxLength attribute silently swallows keystrokes past the
+// limit, so the counter is the user's only warning before that happens.
+const COUNTER_THRESHOLD = 9_000;
 
 interface ChatInputProps {
   input: string;
@@ -17,6 +24,12 @@ interface ChatInputProps {
 
 export function ChatInput({ input, setInput, isLoading, onSend, onStop, inputRef }: ChatInputProps) {
   const helperTextId = 'chat-input-helper-text';
+  // On mobile, Enter inserts a newline and sending is button-only — phone
+  // keyboards have no Shift+Enter, so Enter-to-send makes multi-line
+  // questions impossible to type.
+  const isMobile = useIsMobile();
+  const showCounter = input.length >= COUNTER_THRESHOLD;
+  const atLimit = input.length >= MAX_INPUT_LENGTH;
 
   return (
     <footer className="border-t border-border bg-card px-4 md:px-8 py-5 shrink-0 print:hidden">
@@ -38,6 +51,7 @@ export function ChatInput({ input, setInput, isLoading, onSend, onStop, inputRef
           }}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
+              if (isMobile) return;
               // Committing an IME candidate (CJK/Vietnamese input) fires
               // Enter mid-composition — that must not send the message.
               if (e.nativeEvent.isComposing) return;
@@ -77,9 +91,24 @@ export function ChatInput({ input, setInput, isLoading, onSend, onStop, inputRef
           </Button>
         )}
       </div>
-      <p id={helperTextId} className="max-w-3xl mx-auto text-xs text-muted-foreground mt-2">
-        Answers are AI-generated from NC Medicaid policy documents. Verify critical information with DHHS.
-      </p>
+      <div className="max-w-3xl mx-auto mt-2 flex items-baseline justify-between gap-4">
+        <p id={helperTextId} className="text-xs text-muted-foreground">
+          Answers are AI-generated from NC Medicaid policy documents. Verify critical information with DHHS.
+        </p>
+        {showCounter && (
+          <p
+            data-testid="char-counter"
+            aria-live="polite"
+            className={cn(
+              'shrink-0 text-xs tabular-nums',
+              atLimit ? 'text-destructive' : 'text-muted-foreground',
+            )}
+          >
+            {input.length.toLocaleString('en-US')} / {MAX_INPUT_LENGTH.toLocaleString('en-US')}
+            {atLimit && <span className="ml-1">— limit reached</span>}
+          </p>
+        )}
+      </div>
     </footer>
   );
 }

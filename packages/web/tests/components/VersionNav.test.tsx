@@ -11,9 +11,19 @@ describe('VersionNav', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('shows the current / total indicator', () => {
+  it('shows a human-readable "Answer N of M" indicator', () => {
     render(<VersionNav current={2} total={3} onSelect={() => {}} />);
-    expect(screen.getByTestId('version-indicator')).toHaveTextContent('2 / 3');
+    expect(screen.getByTestId('version-indicator')).toHaveTextContent('Answer 2 of 3');
+  });
+
+  it('labels prev/next accessibly and explains session-only retention', () => {
+    render(<VersionNav current={2} total={3} onSelect={() => {}} />);
+    expect(screen.getByLabelText('Previous answer')).toBeInTheDocument();
+    expect(screen.getByLabelText('Next answer')).toBeInTheDocument();
+    expect(screen.getByTestId('version-nav')).toHaveAttribute(
+      'title',
+      'Earlier answers are kept only for this session',
+    );
   });
 
   it('calls onSelect with current-1 when prev is clicked', async () => {

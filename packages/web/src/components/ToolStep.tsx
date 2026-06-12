@@ -21,7 +21,8 @@ const TOOL_DESCRIPTORS: Record<string, { label: string; Icon: LucideIcon }> = {
 const FALLBACK_TOOL_LABEL = 'Researching sources';
 const FALLBACK_TOOL_ICON = Search;
 
-function getToolDescriptor(toolName: string): { label: string; Icon: LucideIcon } {
+/** Exported for the live progress narration in MessageList. */
+export function getToolDescriptor(toolName: string): { label: string; Icon: LucideIcon } {
   return TOOL_DESCRIPTORS[toolName] ?? { label: FALLBACK_TOOL_LABEL, Icon: FALLBACK_TOOL_ICON };
 }
 
@@ -46,7 +47,8 @@ function countLabel(count: number, singular: string, plural = `${singular}s`): s
   return `${count} ${count === 1 ? singular : plural}`;
 }
 
-function summarizeToolInput(toolName: string, input: unknown): string | null {
+/** Exported for the live progress narration in MessageList. */
+export function summarizeToolInput(toolName: string, input: unknown): string | null {
   if (!input || typeof input !== 'object') return null;
 
   switch (toolName) {

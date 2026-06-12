@@ -65,7 +65,7 @@ describe('getTrailingAssistantText', () => {
   it('keeps only trailing text after the last tool', () => {
     const result = getTrailingAssistantText(makeMsg([
       { type: 'text', text: 'Let me search...' },
-      { type: 'tool-searchSections', toolCallId: 'tc-1', state: 'output-available' },
+      { type: 'tool-searchSections', toolCallId: 'tc-1', state: 'output-available', input: {}, output: {} },
       { type: 'text', text: 'Final answer' },
     ]));
 
@@ -74,7 +74,7 @@ describe('getTrailingAssistantText', () => {
 
   it('returns empty string for messages with no trailing text after tools', () => {
     const result = getTrailingAssistantText(makeMsg([
-      { type: 'dynamic-tool', toolName: 'searchSections', toolCallId: 'tc-dyn', state: 'input-streaming' },
+      { type: 'dynamic-tool', toolName: 'searchSections', toolCallId: 'tc-dyn', state: 'input-streaming', input: {} },
     ]));
 
     expect(result).toBe('');
@@ -87,7 +87,7 @@ describe('hasRenderableAssistantPart', () => {
   });
 
   it('returns true for tool parts', () => {
-    expect(hasRenderableAssistantPart([{ type: 'dynamic-tool', toolName: 'searchSections' }])).toBe(true);
+    expect(hasRenderableAssistantPart([{ type: 'dynamic-tool', toolName: 'searchSections', toolCallId: 'tc-1', state: 'input-streaming', input: {} }])).toBe(true);
   });
 
   it('ignores step-start and whitespace-only text', () => {
@@ -116,6 +116,7 @@ describe('extractMessageSources', () => {
         toolName: 'getSection',
         toolCallId: 'tc-1',
         state: 'output-available',
+        input: {},
         output: {
           section: {
             id: 'sec:doc:clinical_policy:8C:3.2.1',
@@ -148,6 +149,7 @@ describe('extractMessageSources', () => {
         toolName: 'searchSections',
         toolCallId: 'tc-1',
         state: 'output-available',
+        input: {},
         output: { sections: [sharedSection] },
       },
       {
@@ -155,6 +157,7 @@ describe('extractMessageSources', () => {
         toolName: 'getSection',
         toolCallId: 'tc-2',
         state: 'output-available',
+        input: {},
         output: { section: sharedSection },
       },
     ]));
@@ -169,6 +172,7 @@ describe('extractMessageSources', () => {
         toolName: 'resolveAnswerFrame',
         toolCallId: 'tc-1',
         state: 'output-available',
+        input: {},
         output: {
           frame: {
             authoritativeDocuments: [
@@ -197,6 +201,7 @@ describe('extractMessageSources', () => {
         toolName: 'getSection',
         toolCallId: 'tc-1',
         state: 'output-available',
+        input: {},
         output: {
           section: { id: 'sec:x', title: 'X', sectionNumber: '1.0', policyNumber: '8C', url: null },
         },
@@ -213,6 +218,7 @@ describe('extractMessageSources', () => {
         toolName: 'searchSections',
         toolCallId: 'tc-1',
         state: 'output-available',
+        input: {},
         output: {
           sections: [
             { id: 'sec:a', policyNumber: '8C', sectionNumber: '3.2.1', title: 'Covered', url: 'https://example.com/a' },
@@ -238,6 +244,7 @@ describe('extractMessageSources', () => {
         toolName: 'lookupPolicy',
         toolCallId: 'tc-1',
         state: 'output-available',
+        input: {},
         output: {
           documents: [
             { id: 'doc:a', policyNumber: '8C', title: 'Outpatient BH', url: 'https://medicaid.ncdhhs.gov/8c-main/download' },
@@ -258,6 +265,7 @@ describe('extractMessageSources', () => {
         toolName: 'lookupPolicy',
         toolCallId: 'tc-1',
         state: 'output-available',
+        input: {},
         output: {
           documents: [
             { id: 'doc:a', policyNumber: '8C', title: 'Outpatient BH', url: 'https://medicaid.ncdhhs.gov/8c-main/download' },
@@ -275,6 +283,7 @@ describe('extractMessageSources', () => {
         toolName: 'resolveAnswerFrame',
         toolCallId: 'tc-1',
         state: 'output-available',
+        input: {},
         output: {
           frame: {
             authoritativeDocuments: [
@@ -309,6 +318,7 @@ describe('extractMessageSources', () => {
         toolName: 'lookupPolicy',
         toolCallId: 'tc-1',
         state: 'output-available',
+        input: {},
         output: {
           documents: [
             { id: 'doc:a', policyNumber: '3K-2', title: 'CAP/DA', url: 'https://example.com/3k2' },
@@ -320,6 +330,7 @@ describe('extractMessageSources', () => {
         toolName: 'getAmendments',
         toolCallId: 'tc-2',
         state: 'output-available',
+        input: {},
         output: {
           authoritativeDocument: {
             id: 'doc:a',
@@ -369,6 +380,7 @@ describe('buildSourceIndex', () => {
     url,
     originTool: 'getSection',
     sectionNumber: null,
+    snippet: null,
   });
 
   it('indexes sources 1-based in array order', () => {

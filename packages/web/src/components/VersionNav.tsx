@@ -13,9 +13,9 @@ export interface VersionNavProps {
 }
 
 /**
- * `< N / M >` pager rendered above a re-run-able assistant message when the
- * user has earlier versions archived. Rendered only when `total > 1`; otherwise
- * there's nothing to navigate.
+ * `< Answer N of M >` pager rendered above a re-run-able assistant message
+ * when the user has earlier versions archived. Rendered only when `total > 1`;
+ * otherwise there's nothing to navigate.
  */
 export function VersionNav({ current, total, onSelect, className }: VersionNavProps) {
   if (total <= 1) return null;
@@ -25,6 +25,9 @@ export function VersionNav({ current, total, onSelect, className }: VersionNavPr
   return (
     <div
       data-testid="version-nav"
+      // Earlier answers live only in client state — say so on hover rather
+      // than leaving the pager's lifetime a mystery.
+      title="Earlier answers are kept only for this session"
       className={cn(
         'inline-flex items-center gap-1 rounded-full border border-border/70 bg-muted/30 px-2 py-0.5 text-xs text-muted-foreground',
         className,
@@ -33,7 +36,7 @@ export function VersionNav({ current, total, onSelect, className }: VersionNavPr
       <button
         type="button"
         data-testid="version-prev"
-        aria-label="Previous version"
+        aria-label="Previous answer"
         disabled={!canPrev}
         onClick={() => canPrev && onSelect(current - 1)}
         className="inline-flex size-5 items-center justify-center rounded-full transition-colors hover:bg-foreground/10 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
@@ -45,12 +48,12 @@ export function VersionNav({ current, total, onSelect, className }: VersionNavPr
         aria-live="polite"
         className="tabular-nums text-foreground/75"
       >
-        {current} / {total}
+        Answer {current} of {total}
       </span>
       <button
         type="button"
         data-testid="version-next"
-        aria-label="Next version"
+        aria-label="Next answer"
         disabled={!canNext}
         onClick={() => canNext && onSelect(current + 1)}
         className="inline-flex size-5 items-center justify-center rounded-full transition-colors hover:bg-foreground/10 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"

@@ -12,6 +12,7 @@ const SAMPLE: MessageSource[] = [
     url: 'https://medicaid.ncdhhs.gov/8c/download',
     originTool: 'getSection',
     sectionNumber: '3.2.1',
+    snippet: null,
   },
   {
     key: 'b',
@@ -20,6 +21,7 @@ const SAMPLE: MessageSource[] = [
     url: 'https://medicaid.ncdhhs.gov/3k-2/download',
     originTool: 'lookupPolicy',
     sectionNumber: null,
+    snippet: null,
   },
 ];
 

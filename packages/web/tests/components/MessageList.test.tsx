@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type { UIMessage } from 'ai';
 import { MessageList } from '../../src/components/MessageList';
@@ -13,6 +14,7 @@ vi.mock('@/components/MessageActions', () => ({
 function renderMessageList(messages: UIMessage[], options?: {
   isStreaming?: boolean;
   status?: string;
+  onRerun?: (messageIndex: number, userIndex: number) => void;
   archivedVersions?: Record<string, UIMessage[]>;
   activeVersion?: Record<string, number>;
   onSelectVersion?: (userMsgId: string, version: number) => void;
@@ -24,7 +26,7 @@ function renderMessageList(messages: UIMessage[], options?: {
       messages={messages}
       isStreaming={options?.isStreaming ?? false}
       status={options?.status ?? 'ready'}
-      onRerun={vi.fn()}
+      onRerun={options?.onRerun ?? vi.fn()}
       messagesEndRef={messagesEndRef}
       feedbackMap={{}}
       onRate={vi.fn()}
@@ -38,7 +40,7 @@ function renderMessageList(messages: UIMessage[], options?: {
 }
 
 describe('MessageList', () => {
-  it('renders assistant parts in native order', () => {
+  it('renders the answer first and collapses completed tool runs into a research trail', async () => {
     renderMessageList([
       {
         id: 'assistant-1',
@@ -67,14 +69,35 @@ describe('MessageList', () => {
       },
     ]);
 
+    // The final answer renders BEFORE the trail — the answer is what the
+    // user asked for; the tool loop is supporting evidence.
+    const answer = screen.getByText('No, chiropractic services are not covered.');
+    const trigger = screen.getByTestId('research-trail-trigger');
+    expect(trigger).toHaveTextContent('Research trail');
+    expect(trigger).toHaveTextContent('2 steps');
+    expect(
+      answer.compareDocumentPosition(trigger) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    // Collapsed by default: tool steps and progress prose are out of the DOM.
+    expect(screen.queryByText('Looking up policy')).not.toBeInTheDocument();
+    expect(screen.queryByText('Checking the policy first.')).not.toBeInTheDocument();
+
+    // Expanding reveals the interleaved progress text + tool steps in their
+    // original order, inside the trail content.
+    const user = userEvent.setup();
+    await user.click(trigger);
+
+    const trailContent = screen.getByTestId('research-trail-content');
     const orderedNodes = [
       screen.getByText('Checking the policy first.'),
       screen.getByText('Looking up policy'),
       screen.getByText('Now checking for amendments.'),
       screen.getByText('Checking amendments'),
-      screen.getByText('No, chiropractic services are not covered.'),
     ];
-
+    for (const node of orderedNodes) {
+      expect(trailContent).toContainElement(node);
+    }
     for (let index = 0; index < orderedNodes.length - 1; index++) {
       expect(
         orderedNodes[index].compareDocumentPosition(orderedNodes[index + 1]) & Node.DOCUMENT_POSITION_FOLLOWING,
@@ -143,9 +166,72 @@ describe('MessageList', () => {
     expect(screen.getByText('Searching policies')).toBeInTheDocument();
     expect(screen.getByText('Running')).toBeInTheDocument();
     expect(screen.queryByTestId('message-actions')).not.toBeInTheDocument();
+    // The live view stays expanded — no research trail until the run completes.
+    expect(screen.queryByTestId('research-trail')).not.toBeInTheDocument();
   });
 
-  it('renders legacy stored V2 messages in order after parsing', () => {
+  it('narrates the current step while streaming, replacing the static loading indicator', () => {
+    renderMessageList(
+      [
+        {
+          id: 'assistant-narration',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'dynamic-tool',
+              toolName: 'searchSections',
+              toolCallId: 'tc-1',
+              state: 'output-available',
+              input: { query: 'therapeutic leave' },
+              output: { sections: [] },
+            },
+            {
+              type: 'dynamic-tool',
+              toolName: 'getSection',
+              toolCallId: 'tc-2',
+              state: 'input-available',
+              input: { sectionId: 'sec-8c-321' },
+            },
+          ],
+        },
+      ],
+      { isStreaming: true },
+    );
+
+    const narration = screen.getByTestId('progress-narration');
+    // Descriptor + summarized input from the LAST tool part, plus step count.
+    expect(narration).toHaveTextContent('Reading section');
+    expect(narration).toHaveTextContent('Section: sec-8c-321');
+    expect(narration).toHaveTextContent('step 2');
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+  });
+
+  it('drops the narration line once the final answer starts streaming', () => {
+    renderMessageList(
+      [
+        {
+          id: 'assistant-answering',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'dynamic-tool',
+              toolName: 'searchSections',
+              toolCallId: 'tc-1',
+              state: 'output-available',
+              input: { query: 'x' },
+              output: { sections: [] },
+            },
+            { type: 'text', text: 'The answer is forming…' },
+          ],
+        },
+      ],
+      { isStreaming: true },
+    );
+
+    expect(screen.queryByTestId('progress-narration')).not.toBeInTheDocument();
+  });
+
+  it('renders legacy stored V2 messages in order after parsing', async () => {
     const parsed = convertThreadMessageToUIMessage({
       id: 'assistant-v2',
       role: 'assistant',
@@ -171,12 +257,20 @@ describe('MessageList', () => {
     expect(parsed).not.toBeNull();
     renderMessageList([parsed!]);
 
+    // Completed run: the answer is visible immediately, the tool loop is
+    // collapsed into the research trail.
+    const finalAnswer = screen.getByText('Here is the final answer.');
+    const trigger = screen.getByTestId('research-trail-trigger');
+    expect(
+      finalAnswer.compareDocumentPosition(trigger) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    const user = userEvent.setup();
+    await user.click(trigger);
+
     const firstNote = screen.getByText('First note.');
     const toolLabel = screen.getByText('Searching policies');
-    const finalAnswer = screen.getByText('Here is the final answer.');
-
     expect(firstNote.compareDocumentPosition(toolLabel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(toolLabel.compareDocumentPosition(finalAnswer) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it('shows an explicit "ended without answer" notice + Rerun when tools ran but no final text was produced', () => {
@@ -205,6 +299,43 @@ describe('MessageList', () => {
     expect(screen.getByText(/finished without a final answer/i)).toBeInTheDocument();
     // MessageActions (Rerun etc.) must be reachable even though content is empty.
     expect(screen.getByTestId('message-actions')).toBeInTheDocument();
+    // The tool steps stay expanded (no collapsed trail) — they are the only
+    // output worth inspecting in this state.
+    expect(screen.getByText('Searching policies')).toBeInTheDocument();
+    expect(screen.queryByTestId('research-trail')).not.toBeInTheDocument();
+  });
+
+  it('wires the Try again button in the ended-without-answer notice to the rerun path', async () => {
+    const onRerun = vi.fn();
+    renderMessageList(
+      [
+        {
+          id: 'user-q',
+          role: 'user',
+          parts: [{ type: 'text', text: 'Is therapeutic leave covered?' }],
+        },
+        {
+          id: 'assistant-empty',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'dynamic-tool',
+              toolName: 'searchSections',
+              toolCallId: 'tc-1',
+              state: 'output-available',
+              input: { query: 'x' },
+              output: { sections: [] },
+            },
+          ],
+        },
+      ],
+      { onRerun },
+    );
+
+    const user = userEvent.setup();
+    await user.click(screen.getByTestId('try-again-button'));
+    // Same wiring as the MessageActions rerun button: (assistantIndex, userIndex).
+    expect(onRerun).toHaveBeenCalledWith(1, 0);
   });
 
   it('does not show the "ended without answer" notice while streaming', () => {
@@ -287,6 +418,55 @@ describe('MessageList', () => {
     expect(announcer).toHaveTextContent('Answer ready');
   });
 
+  it('preserves user line breaks and wraps long tokens in the user bubble', () => {
+    renderMessageList([
+      {
+        id: 'user-multiline',
+        role: 'user',
+        parts: [{ type: 'text', text: 'Fact one.\nFact two.' }],
+      },
+    ]);
+
+    const bubbleText = screen.getByTestId('user-message').querySelector('p');
+    expect(bubbleText).not.toBeNull();
+    expect(bubbleText!.className).toContain('whitespace-pre-wrap');
+    expect(bubbleText!.className).toContain('[overflow-wrap:anywhere]');
+  });
+
+  it('gives citation footnotes an expanded hit area without changing visual size', () => {
+    const url = 'https://example.org/policy-8c.pdf';
+    renderMessageList([
+      {
+        id: 'assistant-cited',
+        role: 'assistant',
+        parts: [
+          {
+            type: 'dynamic-tool',
+            toolName: 'getSection',
+            toolCallId: 'tc-1',
+            state: 'output-available',
+            input: { sectionId: 'sec-1' },
+            output: {
+              section: {
+                title: 'Therapeutic Leave',
+                sectionNumber: '3.2.1',
+                policyNumber: '8C',
+                url,
+              },
+            },
+          },
+          { type: 'text', text: `Covered per [Policy 8C § 3.2.1](${url}).` },
+        ],
+      },
+    ]);
+
+    const footnote = screen.getByTestId('citation-footnote');
+    // The ::after overlay extends the tap target to ≥24px on each side while
+    // the visible footnote stays superscript-sized.
+    expect(footnote.className).toContain('after:-inset-2');
+    expect(footnote.className).toContain('relative');
+  });
+
   // ── Version navigation ────────────────────────────────────────────────
 
   const USER_MSG: UIMessage = {
@@ -316,7 +496,7 @@ describe('MessageList', () => {
     renderMessageList([USER_MSG, ASSISTANT_V2], {
       archivedVersions: { 'user-1': [ASSISTANT_V1_ARCHIVED] },
     });
-    expect(screen.getByTestId('version-indicator')).toHaveTextContent('2 / 2');
+    expect(screen.getByTestId('version-indicator')).toHaveTextContent('Answer 2 of 2');
     // Live (v2) is the default displayed version. The MessageActions mock also
     // renders the trailing answer text, so we expect it twice (prose + mock).
     expect(screen.getAllByText('Second answer (live).').length).toBeGreaterThan(0);
@@ -330,7 +510,7 @@ describe('MessageList', () => {
     });
     expect(screen.getAllByText('First answer (archived).').length).toBeGreaterThan(0);
     expect(screen.queryByText('Second answer (live).')).not.toBeInTheDocument();
-    expect(screen.getByTestId('version-indicator')).toHaveTextContent('1 / 2');
+    expect(screen.getByTestId('version-indicator')).toHaveTextContent('Answer 1 of 2');
   });
 
   it('fires onSelectVersion with the user-msg id and new version number', async () => {

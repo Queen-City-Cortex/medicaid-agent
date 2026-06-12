@@ -1,7 +1,19 @@
 import { createRef } from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ChatInput } from '../../src/components/ChatInput';
+import { useIsMobile } from '../../src/lib/use-is-mobile';
+
+// jsdom has no matchMedia; the hook is mocked and flipped per-test.
+vi.mock('@/lib/use-is-mobile', () => ({
+  useIsMobile: vi.fn(() => false),
+}));
+
+const useIsMobileMock = vi.mocked(useIsMobile);
+
+beforeEach(() => {
+  useIsMobileMock.mockReturnValue(false);
+});
 
 function renderInput(overrides: Partial<Parameters<typeof ChatInput>[0]> = {}) {
   const props = {
@@ -76,5 +88,40 @@ describe('ChatInput', () => {
   it('disables Ask when the input is empty', () => {
     renderInput({ input: '   ' });
     expect(screen.getByTestId('send-button')).toBeDisabled();
+  });
+
+  it('does not send on Enter on mobile — sending is button-only', () => {
+    useIsMobileMock.mockReturnValue(true);
+    const onSend = vi.fn();
+    renderInput({ input: 'question', onSend });
+    const input = screen.getByLabelText('Ask a policy question');
+
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(onSend).not.toHaveBeenCalled();
+
+    // The Ask button still works.
+    fireEvent.click(screen.getByTestId('send-button'));
+    expect(onSend).toHaveBeenCalledTimes(1);
+  });
+
+  it('hides the character counter for ordinary input lengths', () => {
+    renderInput({ input: 'a'.repeat(8_999) });
+    expect(screen.queryByTestId('char-counter')).not.toBeInTheDocument();
+  });
+
+  it('shows a quiet character counter from 9,000 characters', () => {
+    renderInput({ input: 'a'.repeat(9_000) });
+    const counter = screen.getByTestId('char-counter');
+    expect(counter).toHaveTextContent('9,000 / 10,000');
+    expect(counter.className).toContain('text-muted-foreground');
+    expect(counter.className).not.toContain('text-destructive');
+  });
+
+  it('switches the counter to a destructive tone at the limit', () => {
+    renderInput({ input: 'a'.repeat(10_000) });
+    const counter = screen.getByTestId('char-counter');
+    expect(counter).toHaveTextContent('10,000 / 10,000');
+    expect(counter).toHaveTextContent('limit reached');
+    expect(counter.className).toContain('text-destructive');
   });
 });
