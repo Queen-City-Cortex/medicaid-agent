@@ -22,7 +22,7 @@ describe('FeedbackRepository', () => {
       expect(result).toEqual({ id: 'fb-1', isNew: true });
     });
 
-    it('replaces rating on duplicate (message_id, resource_id)', async () => {
+    it('replaces rating on duplicate (message_id, resource_id) keeping the original id', async () => {
       await repo.upsert({
         id: 'fb-1',
         threadId: 'thread-1',
@@ -41,13 +41,26 @@ describe('FeedbackRepository', () => {
         comment: 'Wrong policy',
       });
 
-      expect(result).toEqual({ id: 'fb-2', isNew: false });
+      // The id is stable across re-ratings so clients can keep using it
+      // (e.g. to DELETE after a comment).
+      expect(result).toEqual({ id: 'fb-1', isNew: false });
 
       const rows = await repo.getByThread('thread-1', 'user-1');
       expect(rows).toHaveLength(1);
       expect(rows[0].rating).toBe('down');
       expect(rows[0].comment).toBe('Wrong policy');
-      expect(rows[0].id).toBe('fb-2');
+      expect(rows[0].id).toBe('fb-1');
+    });
+
+    it('preserves created_at when re-rating', async () => {
+      await repo.upsert({ id: 'fb-1', threadId: 't1', messageId: 'm1', resourceId: 'u1', rating: 'up', comment: null });
+      const before = (await repo.getByThread('t1', 'u1'))[0].createdAt;
+
+      await new Promise(resolve => setTimeout(resolve, 5));
+      await repo.upsert({ id: 'fb-9', threadId: 't1', messageId: 'm1', resourceId: 'u1', rating: 'down', comment: 'x' });
+
+      const after = (await repo.getByThread('t1', 'u1'))[0].createdAt;
+      expect(after).toBe(before);
     });
 
     it('clears comment when switching from down to up', async () => {

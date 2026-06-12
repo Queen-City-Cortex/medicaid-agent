@@ -330,7 +330,7 @@ export default function ChatPage() {
 
     try {
       const token = await getAccessToken();
-      if (!token) return;
+      if (!token) throw new Error('Not authenticated');
       const result = await submitFeedback({ messageId, threadId, rating }, MASTRA_URL, token);
       setFeedbackMap(m => ({ ...m, [messageId]: { ...m[messageId], id: result.id } }));
     } catch {
@@ -346,7 +346,7 @@ export default function ChatPage() {
 
     try {
       const token = await getAccessToken();
-      if (!token) return;
+      if (!token) throw new Error('Not authenticated');
       await deleteFeedback(prev.id, MASTRA_URL, token);
     } catch {
       setFeedbackMap(m => ({ ...m, [messageId]: prev }));
@@ -360,8 +360,13 @@ export default function ChatPage() {
 
     try {
       const token = await getAccessToken();
-      if (!token) return;
-      await submitFeedback({ messageId, threadId, rating: 'down', comment }, MASTRA_URL, token);
+      if (!token) throw new Error('Not authenticated');
+      const result = await submitFeedback(
+        { messageId, threadId, rating: prev.rating, comment },
+        MASTRA_URL,
+        token,
+      );
+      setFeedbackMap(m => ({ ...m, [messageId]: { ...m[messageId], id: result.id } }));
     } catch {
       setFeedbackMap(m => ({ ...m, [messageId]: prev }));
     }

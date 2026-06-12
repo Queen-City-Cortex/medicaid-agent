@@ -1,31 +1,24 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { Hono } from 'hono';
 import { createFeedbackRoutes, getResourceId } from '../../src/feedback/routes.js';
 import type { FeedbackRepository } from '../../src/feedback/repository.js';
 
-function mockContext(overrides: {
-  method?: string;
-  body?: unknown;
-  query?: Record<string, string>;
-  param?: Record<string, string>;
-  requestContext?: Map<string, unknown>;
-} = {}) {
-  const userMap = new Map<string, unknown>();
-  userMap.set('user', { userId: 'user-123' });
-
-  const rc = overrides.requestContext ?? userMap;
-
-  return {
-    req: {
-      json: vi.fn().mockResolvedValue(overrides.body ?? {}),
-      query: vi.fn((key: string) => overrides.query?.[key] ?? null),
-      param: vi.fn((key: string) => overrides.param?.[key] ?? ''),
-    },
-    get: vi.fn((key: string) => {
-      if (key === 'requestContext') return rc;
-      return undefined;
-    }),
-    json: vi.fn((data: unknown, status?: number) => ({ __body: data, __status: status ?? 200 })),
-  } as any;
+// Tests run against a real Hono app so response semantics (e.g. 204 bodies,
+// thrown errors becoming 500s) are exercised for real — a stubbed context
+// previously masked a crash in the DELETE handler.
+function buildApp(repo: FeedbackRepository, user?: unknown) {
+  const handlers = createFeedbackRoutes(repo);
+  const app = new Hono();
+  app.use('*', async (c, next) => {
+    const rc = new Map<string, unknown>();
+    if (user !== undefined) rc.set('user', user);
+    (c as any).set('requestContext', rc);
+    await next();
+  });
+  app.post('/feedback', handlers.post);
+  app.get('/feedback', handlers.get);
+  app.delete('/feedback/:id', handlers.del);
+  return app;
 }
 
 function mockRepo(): FeedbackRepository {
@@ -36,6 +29,16 @@ function mockRepo(): FeedbackRepository {
   } as any;
 }
 
+const USER = { userId: 'user-123' };
+
+function postJson(app: Hono, body: unknown) {
+  return app.request('/feedback', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+}
+
 describe('getResourceId', () => {
   it('extracts userId from request context', () => {
     const rc = new Map<string, unknown>();
@@ -44,29 +47,25 @@ describe('getResourceId', () => {
     expect(getResourceId(c)).toBe('u-abc');
   });
 
-  it('throws when no user in context', () => {
+  it('returns null when no user in context', () => {
     const rc = new Map<string, unknown>();
     const c = { get: vi.fn(() => rc) } as any;
-    expect(() => getResourceId(c)).toThrow();
+    expect(getResourceId(c)).toBeNull();
   });
 });
 
-describe('POST /feedback handler', () => {
+describe('POST /feedback', () => {
   let repo: ReturnType<typeof mockRepo>;
-  let handlers: ReturnType<typeof createFeedbackRoutes>;
 
   beforeEach(() => {
     repo = mockRepo();
-    handlers = createFeedbackRoutes(repo);
   });
 
   it('returns 201 on new feedback', async () => {
-    const c = mockContext({
-      body: { messageId: 'msg-1', threadId: 'thread-1', rating: 'up' },
-    });
-    const result = await handlers.post(c);
-    expect(result.__status).toBe(201);
-    expect(result.__body).toEqual({ id: 'fb-1' });
+    const app = buildApp(repo, USER);
+    const res = await postJson(app, { messageId: 'msg-1', threadId: 'thread-1', rating: 'up' });
+    expect(res.status).toBe(201);
+    expect(await res.json()).toEqual({ id: 'fb-1' });
     expect(repo.upsert).toHaveBeenCalledWith({
       id: expect.any(String),
       messageId: 'msg-1',
@@ -77,74 +76,100 @@ describe('POST /feedback handler', () => {
     });
   });
 
-  it('returns 200 on upsert', async () => {
+  it('returns 200 on upsert of existing feedback', async () => {
     vi.mocked(repo.upsert).mockResolvedValue({ id: 'fb-2', isNew: false });
-    const c = mockContext({
-      body: { messageId: 'msg-1', threadId: 'thread-1', rating: 'down', comment: 'Bad' },
-    });
-    const result = await handlers.post(c);
-    expect(result.__status).toBe(200);
+    const app = buildApp(repo, USER);
+    const res = await postJson(app, { messageId: 'msg-1', threadId: 'thread-1', rating: 'down', comment: 'Bad' });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ id: 'fb-2' });
   });
 
   it('returns 400 on missing rating', async () => {
-    const c = mockContext({ body: { messageId: 'msg-1', threadId: 'thread-1' } });
-    const result = await handlers.post(c);
-    expect(result.__status).toBe(400);
+    const app = buildApp(repo, USER);
+    const res = await postJson(app, { messageId: 'msg-1', threadId: 'thread-1' });
+    expect(res.status).toBe(400);
   });
 
   it('returns 400 on invalid rating value', async () => {
-    const c = mockContext({ body: { messageId: 'msg-1', threadId: 'thread-1', rating: 'maybe' } });
-    const result = await handlers.post(c);
-    expect(result.__status).toBe(400);
+    const app = buildApp(repo, USER);
+    const res = await postJson(app, { messageId: 'msg-1', threadId: 'thread-1', rating: 'maybe' });
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 400 on malformed JSON', async () => {
+    const app = buildApp(repo, USER);
+    const res = await app.request('/feedback', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: '{not json',
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 401 when unauthenticated', async () => {
+    const app = buildApp(repo);
+    const res = await postJson(app, { messageId: 'msg-1', threadId: 'thread-1', rating: 'up' });
+    expect(res.status).toBe(401);
+    expect(repo.upsert).not.toHaveBeenCalled();
   });
 });
 
-describe('GET /feedback handler', () => {
+describe('GET /feedback', () => {
   let repo: ReturnType<typeof mockRepo>;
-  let handlers: ReturnType<typeof createFeedbackRoutes>;
 
   beforeEach(() => {
     repo = mockRepo();
-    handlers = createFeedbackRoutes(repo);
   });
 
   it('returns feedback for thread', async () => {
     const feedback = [{ id: 'fb-1', messageId: 'msg-1', threadId: 't1', resourceId: 'user-123', rating: 'up', comment: null, createdAt: '2026-04-04T00:00:00Z' }];
     vi.mocked(repo.getByThread).mockResolvedValue(feedback as any);
-    const c = mockContext({ query: { threadId: 't1' } });
-    const result = await handlers.get(c);
-    expect(result.__status).toBe(200);
-    expect(result.__body).toEqual({ feedback });
+    const app = buildApp(repo, USER);
+    const res = await app.request('/feedback?threadId=t1');
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ feedback });
     expect(repo.getByThread).toHaveBeenCalledWith('t1', 'user-123');
   });
 
   it('returns 400 when threadId is missing', async () => {
-    const c = mockContext({ query: {} });
-    const result = await handlers.get(c);
-    expect(result.__status).toBe(400);
+    const app = buildApp(repo, USER);
+    const res = await app.request('/feedback');
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 401 when unauthenticated', async () => {
+    const app = buildApp(repo);
+    const res = await app.request('/feedback?threadId=t1');
+    expect(res.status).toBe(401);
   });
 });
 
-describe('DELETE /feedback/:id handler', () => {
+describe('DELETE /feedback/:id', () => {
   let repo: ReturnType<typeof mockRepo>;
-  let handlers: ReturnType<typeof createFeedbackRoutes>;
 
   beforeEach(() => {
     repo = mockRepo();
-    handlers = createFeedbackRoutes(repo);
   });
 
-  it('returns 204 on successful delete', async () => {
-    const c = mockContext({ param: { id: 'fb-1' } });
-    const result = await handlers.del(c);
-    expect(result.__status).toBe(204);
+  it('returns 204 with an empty body on successful delete', async () => {
+    const app = buildApp(repo, USER);
+    const res = await app.request('/feedback/fb-1', { method: 'DELETE' });
+    expect(res.status).toBe(204);
+    expect(await res.text()).toBe('');
     expect(repo.delete).toHaveBeenCalledWith('fb-1', 'user-123');
   });
 
   it('returns 404 when feedback not found or not owned', async () => {
     vi.mocked(repo.delete).mockResolvedValue(false);
-    const c = mockContext({ param: { id: 'nonexistent' } });
-    const result = await handlers.del(c);
-    expect(result.__status).toBe(404);
+    const app = buildApp(repo, USER);
+    const res = await app.request('/feedback/nonexistent', { method: 'DELETE' });
+    expect(res.status).toBe(404);
+  });
+
+  it('returns 401 when unauthenticated', async () => {
+    const app = buildApp(repo);
+    const res = await app.request('/feedback/fb-1', { method: 'DELETE' });
+    expect(res.status).toBe(401);
+    expect(repo.delete).not.toHaveBeenCalled();
   });
 });

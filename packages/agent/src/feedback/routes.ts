@@ -9,12 +9,10 @@ const FeedbackBodySchema = z.object({
   comment: z.string().optional(),
 });
 
-export function getResourceId(c: any): string {
+export function getResourceId(c: any): string | null {
   const rc = c.get('requestContext');
   const user = rc?.get?.('user');
-  const id = user?.userId ?? user?.id;
-  if (!id) throw new Error('User not authenticated');
-  return id;
+  return user?.userId ?? user?.id ?? null;
 }
 
 export function createFeedbackRoutes(repo: FeedbackRepository) {
@@ -32,6 +30,7 @@ export function createFeedbackRoutes(repo: FeedbackRepository) {
     }
 
     const resourceId = getResourceId(c);
+    if (!resourceId) return c.json({ error: 'Not authenticated' }, 401);
     const id = crypto.randomUUID();
 
     const result = await repo.upsert({
@@ -53,6 +52,7 @@ export function createFeedbackRoutes(repo: FeedbackRepository) {
     }
 
     const resourceId = getResourceId(c);
+    if (!resourceId) return c.json({ error: 'Not authenticated' }, 401);
     const feedback = await repo.getByThread(threadId, resourceId);
     return c.json({ feedback }, 200);
   };
@@ -60,12 +60,14 @@ export function createFeedbackRoutes(repo: FeedbackRepository) {
   const del = async (c: any) => {
     const id = c.req.param('id');
     const resourceId = getResourceId(c);
+    if (!resourceId) return c.json({ error: 'Not authenticated' }, 401);
     const deleted = await repo.delete(id, resourceId);
 
     if (!deleted) {
       return c.json({ error: 'Feedback not found' }, 404);
     }
-    return c.json(null, 204);
+    // 204 must not have a body — c.json(null, 204) throws in Hono.
+    return c.body(null, 204);
   };
 
   return { post, get, del };

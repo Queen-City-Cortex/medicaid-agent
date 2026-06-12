@@ -45,6 +45,9 @@ export class FeedbackRepository {
       args: [input.messageId, input.resourceId],
     });
     const isNew = existing.rows.length === 0;
+    // Re-rating updates the existing row in place: the id and created_at are
+    // stable so clients can hold onto the id across rating/comment changes.
+    const id = isNew ? input.id : (existing.rows[0].id as string);
 
     const comment = input.rating === 'up' ? null : (input.comment ?? null);
 
@@ -52,11 +55,11 @@ export class FeedbackRepository {
       sql: `INSERT INTO feedback (id, thread_id, message_id, resource_id, rating, comment, created_at)
             VALUES (?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT (message_id, resource_id)
-            DO UPDATE SET id = excluded.id, rating = excluded.rating, comment = excluded.comment, created_at = excluded.created_at`,
-      args: [input.id, input.threadId, input.messageId, input.resourceId, input.rating, comment, new Date().toISOString()],
+            DO UPDATE SET rating = excluded.rating, comment = excluded.comment`,
+      args: [id, input.threadId, input.messageId, input.resourceId, input.rating, comment, new Date().toISOString()],
     });
 
-    return { id: input.id, isNew };
+    return { id, isNew };
   }
 
   async delete(id: string, resourceId: string): Promise<boolean> {
