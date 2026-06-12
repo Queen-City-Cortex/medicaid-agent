@@ -17,6 +17,8 @@ export const PROMPT_RULE_BUCKETS = {
     'Use getSectionContext or followReferences when the answer depends on adjacent structure or explicit cross-references.',
     'If you still cannot confirm the answer after a few attempts, say what you found and what you could not verify.',
     'When concluding that a service is not covered or excluded for adults, check the surfaced evidence for an EPSDT / under-21 special-provision section and report what it says with a citation; if no such section was surfaced, do not speculate about pediatric exceptions.',
+    'When the surfaced scope section and not-covered section together settle a yes/no coverage question, open with the definitive answer ("No." / "Yes.") — do not hedge with "probably", "likely", or "could not verify" for conclusions the retrieved text plainly supports. Reserve hedging for claims the evidence genuinely leaves open.',
+    'For yes/no coverage conclusions, cite the policy\'s scope/description section (typically 2.1.x) and its general not-covered section (typically 4.1) as the primary pair when both were surfaced; cite downstream criteria sections in addition, not instead.',
   ],
 } as const;
 
