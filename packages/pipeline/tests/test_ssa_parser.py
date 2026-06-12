@@ -3,7 +3,11 @@ zero coverage: a shifted SSA→USC mapping, headings lost to inner <i> tags,
 a base-number fallback that aliased sections onto their parents, and a 50K
 truncation that dropped most of the longest statutes."""
 
-from pipeline.federal.ssa_client import SSA_TO_USC, USC_TO_SSA
+from pipeline.federal.ssa_client import (
+    FREESTANDING_USC_SECTIONS,
+    SSA_TO_USC,
+    USC_TO_SSA,
+)
 from pipeline.federal.ssa_parser import parse_usc_subchapter
 
 
@@ -19,7 +23,8 @@ class TestSsaToUscMapping:
     def test_mapping_matches_usc_source_credits(self):
         # Verified against the source-credit lines in the USC HTML
         # ("...ch. 531, title XIX, §1944, as added..."). The suffix sequence
-        # is NOT contiguous: 1944 is w-3a and there is no current w-7.
+        # is NOT contiguous: 1944 is w-3a, and w-7 is a freestanding
+        # provision that belongs to no SSA section.
         assert SSA_TO_USC["1900"] == "1396"
         assert SSA_TO_USC["1901"] == "1396-1"
         assert SSA_TO_USC["1943"] == "1396w-3"
@@ -33,6 +38,13 @@ class TestSsaToUscMapping:
 
     def test_reverse_mapping_has_no_collisions(self):
         assert len(USC_TO_SSA) == len(SSA_TO_USC)
+
+    def test_freestanding_sections_are_disjoint_from_the_mapping(self):
+        # These USC sections were enacted by standalone Public Laws, not the
+        # SSA — they must never gain an SSA_TO_USC entry. (Their skip is
+        # downgraded from WARNING to a quiet note during ingest.)
+        assert {"1396b-1", "1396w-7", "1396w-9"} <= FREESTANDING_USC_SECTIONS
+        assert not FREESTANDING_USC_SECTIONS & set(USC_TO_SSA)
 
 
 class TestParseUscSubchapter:

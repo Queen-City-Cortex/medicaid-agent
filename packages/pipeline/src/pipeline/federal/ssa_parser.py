@@ -11,7 +11,7 @@ from html.parser import HTMLParser
 
 from rich.console import Console
 
-from pipeline.federal.ssa_client import USC_TO_SSA
+from pipeline.federal.ssa_client import FREESTANDING_USC_SECTIONS, USC_TO_SSA
 
 console = Console()
 
@@ -92,10 +92,17 @@ def parse_usc_subchapter(html: str, title_num: int) -> list[dict]:
         # overwriting the parent's text in Neo4j.
         ssa_num = USC_TO_SSA.get(usc_num)
         if not ssa_num:
-            console.print(
-                f"  [yellow]WARNING:[/yellow] USC §{usc_num} has no SSA mapping — skipped "
-                f"(add it to SSA_TO_USC in ssa_client.py)"
-            )
+            if usc_num in FREESTANDING_USC_SECTIONS:
+                console.print(
+                    f"  [dim]note:[/dim] USC §{usc_num} is freestanding (not part of the SSA) — skipped"
+                )
+            else:
+                console.print(
+                    f"  [yellow]WARNING:[/yellow] USC §{usc_num} has no SSA mapping — skipped. "
+                    f"Check its source credit: if it cites 'ch. 531' (the SSA), add the named SSA "
+                    f"section to SSA_TO_USC; if it cites only a Pub. L., add it to "
+                    f"FREESTANDING_USC_SECTIONS in ssa_client.py"
+                )
             continue
         if ssa_num in seen_ssa_numbers:
             console.print(

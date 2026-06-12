@@ -28,7 +28,8 @@ USC_URLS = {
 # Verified against the source credits in the USC HTML itself — each section's
 # credit line names its SSA section, e.g. "(Aug. 14, 1935, ch. 531, title XIX,
 # §1945, as added ...)". Do NOT assume the suffix sequence is contiguous:
-# SSA 1944 is 1396w-3a (not w-4), and there is no 1396w-7 in current law.
+# SSA 1944 is 1396w-3a (not w-4), and 1396w-7 belongs to no SSA section at all
+# (see FREESTANDING_USC_SECTIONS below).
 SSA_TO_USC = {
     # Title XIX — Medicaid
     "1900": "1396",
@@ -105,6 +106,17 @@ SSA_TO_USC = {
 
 # Reverse mapping for resolving USC references back to SSA numbers
 USC_TO_SSA = {v: k for k, v in SSA_TO_USC.items()}
+
+# USC sections in chapter 7 subchapters XIX/XXI that are NOT part of the
+# Social Security Act: their source credits cite only a standalone Public Law
+# (no "Aug. 14, 1935, ch. 531" act credit), so they have no SSA section number
+# and MUST NOT be given an entry in SSA_TO_USC. They are skipped by ingest-ssa
+# by design; ingest them as freestanding USC documents if they're ever needed.
+FREESTANDING_USC_SECTIONS = {
+    "1396b-1",  # Pub. L. 111-148 §2702 — payment adjustment, health care-acquired conditions
+    "1396w-7",  # Pub. L. 117-328 div. FF §5124 — crisis response services continuum
+    "1396w-9",  # Pub. L. 119-75 div. J §6104 — maternity/labor/delivery cost studies
+}
 
 
 def _cache_path(title_num: int) -> Path:
