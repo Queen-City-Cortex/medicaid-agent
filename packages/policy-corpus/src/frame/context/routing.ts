@@ -7,9 +7,8 @@ import type {
 import {
   ATTACHMENT_TITLE_PENALTY,
   BOILERPLATE_TITLE_PENALTY,
-  DOCUMENT_KEYWORD_DOC_WEIGHT,
   FRAME_DOCUMENT_LIMIT,
-  HCWD_LIMIT_HISTORY_TERMS,
+  HCWD_INCOME_RULE_TERMS,
   POLICY_ROUTING_DOCUMENT_TYPES,
   SECTION_KEYWORD_BASE_SCORE,
   SECTION_KEYWORD_WEIGHT,
@@ -54,6 +53,11 @@ export function createFrameRoutingHelpers({
     return uniqueBy(documents.flat(), (document) => document.id);
   };
 
+  // Surfaces income/premium rule sections from HCWD change notices, newest
+  // first. Scoring is TOPICAL only — the previous version scored sections by
+  // verbatim golden-answer sentences and gave a title bonus to the one change
+  // notice ('01-14') that answers the golden question, i.e. it retrieved the
+  // answer because we already knew it.
   const collectHcwdIncomeHistoryHits = async (): Promise<CorpusRetrievalHit[]> => {
     return withSession(async (session) => {
       const result = await session.run(
@@ -66,19 +70,14 @@ export function createFrameRoutingHelpers({
            )
          WITH d, s,
               CASE
-                WHEN toLower(coalesce(s.content_text, '')) CONTAINS 'remove the 150% fpl income limit' THEN 8
-                WHEN toLower(coalesce(s.content_text, '')) CONTAINS 'only income limit for the hcwd program is the 150% fpl limit on unearned income' THEN 7
-                WHEN toLower(coalesce(s.content_text, '')) CONTAINS 'regardless of total countable income' THEN 6
-                WHEN toLower(coalesce(s.content_text, '')) CONTAINS 'remove limits on countable income except for the 150% of federal poverty level' THEN 6
-                WHEN toLower(coalesce(s.content_text, '')) CONTAINS 'sliding scale premiums' THEN 5
-                WHEN toLower(coalesce(s.title, '')) CONTAINS 'premium' THEN 4
                 WHEN toLower(coalesce(s.title, '')) CONTAINS 'income' THEN 4
+                WHEN toLower(coalesce(s.title, '')) CONTAINS 'premium' THEN 4
+                WHEN toLower(coalesce(s.content_text, '')) CONTAINS 'income limit' THEN 3
+                WHEN toLower(coalesce(s.content_text, '')) CONTAINS 'countable income' THEN 3
+                WHEN toLower(coalesce(s.content_text, '')) CONTAINS 'federal poverty level' THEN 3
+                WHEN toLower(coalesce(s.content_text, '')) CONTAINS 'premium' THEN 2
                 ELSE 0
-              END AS sectionScore,
-              CASE
-                WHEN toLower(coalesce(d.title, '')) CONTAINS '01-14' THEN 3
-                ELSE 0
-              END AS docBonus
+              END AS sectionScore
          WHERE sectionScore > 0
          RETURN
            s.id AS sectionId,
@@ -89,7 +88,7 @@ export function createFrameRoutingHelpers({
            d.document_type AS documentType,
            ${retrievalDocumentMetadataReturn('d')}
            s.content_text AS content,
-           (${SECTION_KEYWORD_BASE_SCORE} + sectionScore * ${SECTION_KEYWORD_WEIGHT} + docBonus * ${DOCUMENT_KEYWORD_DOC_WEIGHT}) AS score
+           (${SECTION_KEYWORD_BASE_SCORE} + sectionScore * ${SECTION_KEYWORD_WEIGHT}) AS score
          ORDER BY score DESC, coalesce(d.effective_date, '') DESC
          LIMIT 8`,
       );

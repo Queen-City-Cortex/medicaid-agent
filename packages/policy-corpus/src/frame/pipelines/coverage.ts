@@ -11,7 +11,7 @@ import {
   COVERAGE_SUPPORT_TERMS,
   FRAME_PRIMARY_LIMIT,
   FRAME_SUPPORT_LIMIT,
-  HCWD_LIMIT_HISTORY_TERMS,
+  HCWD_INCOME_RULE_TERMS,
   PRIOR_AUTH_AVOID_TERMS,
   buildHitText,
   buildSectionCandidates,
@@ -86,7 +86,7 @@ export async function resolveCoverageFrame(
         return (
           documentTitle.includes('change notice') &&
           (documentTitle.includes('hcwd') || documentTitle.includes('health coverage for workers with disabilities')) &&
-          includesPhrase(text, HCWD_LIMIT_HISTORY_TERMS)
+          includesPhrase(text, HCWD_INCOME_RULE_TERMS)
         );
       })
     : [];

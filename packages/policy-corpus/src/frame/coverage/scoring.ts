@@ -2,7 +2,7 @@ import type { AnswerFrameSection } from '../../types.js';
 import {
   CERTIFICATION_SECTION_TERMS,
   GENERAL_CRITERIA_SECTION_TERMS,
-  HCWD_LIMIT_HISTORY_TERMS,
+  HCWD_INCOME_RULE_TERMS,
   HCWD_PRIMARY_SECTION_TERMS,
   NOT_COVERED_SECTION_TERMS,
   REQUIREMENT_EVIDENCE_TERMS,
@@ -64,7 +64,7 @@ function scoreCoverageSection(
     flags.telehealthQuery && !flags.telehealthServiceListQuery && isTelehealthServiceTableSection(section) ? 2.8 : 0;
   const hcwdCurrentBonus = flags.hcwdIncomePremiumQuery ? scorePhraseMatches(text, HCWD_PRIMARY_SECTION_TERMS, 1) * 1.3 : 0;
   const hcwdHistoryBonus =
-    flags.hcwdIncomePremiumQuery && flags.earnedIncomeLimitQuery ? scorePhraseMatches(text, HCWD_LIMIT_HISTORY_TERMS, 1) * 1.5 : 0;
+    flags.hcwdIncomePremiumQuery && flags.earnedIncomeLimitQuery ? scorePhraseMatches(text, HCWD_INCOME_RULE_TERMS, 1) * 1.5 : 0;
   const hcwdCurrentDocumentBonus =
     flags.hcwdIncomePremiumQuery && section.policyNumber?.toUpperCase() === 'MA-2180' ? 1.5 : 0;
   const numberedBonus = section.sectionNumber ? 0.5 : 0;

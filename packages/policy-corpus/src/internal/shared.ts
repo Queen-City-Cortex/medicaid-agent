@@ -330,12 +330,20 @@ export const HCWD_PRIMARY_SECTION_TERMS = [
   'enrollment fee',
   'income ranges and premium amounts',
 ];
-export const HCWD_LIMIT_HISTORY_TERMS = [
-  'remove the 150% fpl income limit',
-  'only income limit for the hcwd program is the 150% fpl limit on unearned income',
-  'regardless of total countable income',
-  'remove limits on countable income except for the 150% of federal poverty level',
-  'sliding scale premiums',
+// Topical vocabulary for HCWD income/premium rule text. Deliberately NOT
+// sentences from any expected answer: the previous list contained verbatim
+// golden-dataset answer text ("remove the 150% fpl income limit", …), which
+// is eval contamination — boosting sections that contain the answer only
+// "works" when the answer is already known.
+export const HCWD_INCOME_RULE_TERMS = [
+  'income limit',
+  'countable income',
+  'unearned income',
+  'earned income',
+  'federal poverty level',
+  'sliding scale',
+  'premium amount',
+  'premium amounts',
 ];
 export const NOT_COVERED_SECTION_TERMS = [
   'not covered',
@@ -587,8 +595,11 @@ export function isTitleOnlySection(section: Pick<AnswerFrameSection, 'content'>)
 }
 
 export function isPriorAuthQuantitySection(section: AnswerFrameSection): boolean {
+  // Topical match only — this used to also hardcode section number 5.4.3
+  // (Policy 9's quantity-limits section), coupling retrieval to one specific
+  // policy's table of contents.
   const text = combineText(section.sectionNumber, section.title, section.content);
-  return normalizeSearchText(section.sectionNumber) === '5.4.3' || includesPhrase(text, PRIOR_AUTH_QUANTITY_TERMS);
+  return includesPhrase(text, PRIOR_AUTH_QUANTITY_TERMS);
 }
 
 export function isPriorAuthCriteriaSection(section: AnswerFrameSection): boolean {
@@ -1069,7 +1080,7 @@ export function rerankRetrievalHit(
   }
 
   if (hcwdIncomePremiumQuery) {
-    if (includesPhrase(retrievalText, HCWD_LIMIT_HISTORY_TERMS)) {
+    if (includesPhrase(retrievalText, HCWD_INCOME_RULE_TERMS)) {
       adjustedScore += 0.32;
     }
 
