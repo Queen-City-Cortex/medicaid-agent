@@ -15,6 +15,8 @@ The big picture: the product's core promise is *trustworthy, citable answers abo
 
 ## P0 — Answer integrity & security (fix before any real user touches this)
 
+> **STATUS: ✅ Completed 2026-06-11** (commits c7f2b5b…74170f2). Remaining operational steps: re-ingest the federal slice (`ingest-ssa`, `extract-refs`, `embed`) and re-baseline the eval. The held-out eval slice (item 6) is designed but not yet built.
+
 ### 1. Federal-law ingestion is materially wrong (CRITICAL cluster)
 `packages/pipeline/src/pipeline/federal/` — refs `pipeline-refs-federal:0–5`:
 - **ssa_client.py:79** — `SSA_TO_USC` mapping shifted by one for SSA 1944–1947 and wrong for 1901: statute text stored under the wrong SSA section numbers (e.g. "Section 1945 health homes" returns PDMP text). *Critical.*
