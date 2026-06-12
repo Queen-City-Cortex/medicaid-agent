@@ -36,7 +36,8 @@ CREATE TABLE IF NOT EXISTS documents (
   status TEXT NOT NULL DEFAULT 'discovered',
   error_message TEXT,
   download_attempts INTEGER DEFAULT 0,
-  consecutive_errors INTEGER DEFAULT 0
+  consecutive_errors INTEGER DEFAULT 0,
+  consecutive_not_found INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE INDEX IF NOT EXISTS idx_documents_status ON documents(status);
@@ -58,8 +59,24 @@ CREATE TABLE IF NOT EXISTS crawl_runs (
 );
 `;
 
+function ensureColumn(
+  db: Database.Database,
+  table: string,
+  column: string,
+  definition: string,
+): void {
+  const columns = db
+    .pragma(`table_info(${table})`) as Array<{ name: string }>;
+  if (!columns.some((c) => c.name === column)) {
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  }
+}
+
 export function initializeSchema(db: Database.Database): void {
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
   db.exec(SCHEMA_SQL);
+  // Registries created before the column existed get it added in place so the
+  // crawled corpus doesn't have to be rebuilt.
+  ensureColumn(db, 'documents', 'consecutive_not_found', 'INTEGER NOT NULL DEFAULT 0');
 }

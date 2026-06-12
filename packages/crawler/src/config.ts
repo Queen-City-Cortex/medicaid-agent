@@ -34,6 +34,11 @@ export const config = {
   // Crawl scope
   defaultSinceYear: 2018,
 
+  // A document is only marked 'removed' after it 404s on this many
+  // consecutive attempts — transient 404s (CDN hiccups, mid-deploy windows)
+  // stay 'error' and retry on the next run.
+  notFoundRemovalThreshold: 3,
+
   // User agent
   userAgent:
     'NCMedicaidNavigator/1.0 (+https://queencitycortex.com/crawler-info)',

@@ -25,6 +25,7 @@ export interface DocumentRecord {
   error_message: string | null;
   download_attempts: number;
   consecutive_errors: number;
+  consecutive_not_found: number;
 }
 
 export interface DownloadedInfo {
@@ -60,6 +61,12 @@ export interface DocumentRegistry {
   updateChanged(id: number, info: DownloadedInfo): void;
   markUnchanged(id: number): void;
   markError(id: number, message: string): void;
+  /**
+   * Record a 404 for the document. Sets status='error' (so it retries) and
+   * increments the consecutive-404 streak. Returns the new streak length so
+   * the caller can decide when to mark the document removed.
+   */
+  recordNotFound(id: number, message: string): number;
   markRemoved(id: number): void;
   getDocumentsToCheck(sourceType?: string): DocumentRecord[];
   getDocumentsToDownload(sourceType?: string): DocumentRecord[];
@@ -105,6 +112,7 @@ export function createRegistry(db: Database.Database): DocumentRegistry {
       status = 'downloaded',
       download_attempts = download_attempts + 1,
       consecutive_errors = 0,
+      consecutive_not_found = 0,
       error_message = NULL
     WHERE id = @id
   `);
@@ -125,6 +133,7 @@ export function createRegistry(db: Database.Database): DocumentRegistry {
       status = 'updated',
       download_attempts = download_attempts + 1,
       consecutive_errors = 0,
+      consecutive_not_found = 0,
       error_message = NULL
     WHERE id = @id
   `);
@@ -134,6 +143,7 @@ export function createRegistry(db: Database.Database): DocumentRegistry {
       last_checked_at = datetime('now'),
       status = 'unchanged',
       consecutive_errors = 0,
+      consecutive_not_found = 0,
       error_message = NULL
     WHERE id = ?
   `);
@@ -144,7 +154,21 @@ export function createRegistry(db: Database.Database): DocumentRegistry {
       status = 'error',
       error_message = @message,
       download_attempts = download_attempts + 1,
-      consecutive_errors = consecutive_errors + 1
+      consecutive_errors = consecutive_errors + 1,
+      consecutive_not_found = 0
+    WHERE id = @id
+  `);
+
+  // A 404 is recorded separately so the consecutive-404 streak only grows on
+  // genuine not-found responses; any other outcome resets it.
+  const recordNotFoundStmt = db.prepare(`
+    UPDATE documents SET
+      last_checked_at = datetime('now'),
+      status = 'error',
+      error_message = @message,
+      download_attempts = download_attempts + 1,
+      consecutive_errors = consecutive_errors + 1,
+      consecutive_not_found = consecutive_not_found + 1
     WHERE id = @id
   `);
 
@@ -155,15 +179,19 @@ export function createRegistry(db: Database.Database): DocumentRegistry {
     WHERE id = ?
   `);
 
+  // 'error' is included so transient failures self-heal on the next run
+  // instead of stranding the document forever. Only 'removed' (confirmed gone
+  // after repeated 404s) and 'discovered' (handled by the download phase) are
+  // excluded.
   const getToCheckStmt = db.prepare(`
     SELECT * FROM documents
-    WHERE status IN ('downloaded', 'updated', 'unchanged')
+    WHERE status IN ('downloaded', 'updated', 'unchanged', 'error')
     ORDER BY last_checked_at ASC NULLS FIRST
   `);
 
   const getToCheckBySourceStmt = db.prepare(`
     SELECT * FROM documents
-    WHERE status IN ('downloaded', 'updated', 'unchanged')
+    WHERE status IN ('downloaded', 'updated', 'unchanged', 'error')
       AND source_type = ?
     ORDER BY last_checked_at ASC NULLS FIRST
   `);
@@ -249,6 +277,12 @@ export function createRegistry(db: Database.Database): DocumentRegistry {
 
     markError(id: number, message: string): void {
       markErrorStmt.run({ id, message });
+    },
+
+    recordNotFound(id: number, message: string): number {
+      recordNotFoundStmt.run({ id, message });
+      const row = getByIdStmt.get(id) as DocumentRecord;
+      return row.consecutive_not_found;
     },
 
     markRemoved(id: number): void {

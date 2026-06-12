@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileTypeFromBuffer } from 'file-type';
+import { HttpStatusError } from './fetcher.js';
 import { hashFile } from '../utils/hash.js';
 import { buildFilename } from '../utils/naming.js';
 import { logger } from '../utils/logger.js';
@@ -24,13 +25,27 @@ const MIME_TO_EXTENSIONS: Record<string, string[]> = {
   'text/plain': ['.txt'],
 };
 
+// Extensions that denote text-based formats. If a source family allows any of
+// these, a text-looking payload is legitimate; otherwise it is almost
+// certainly an HTML soft-404 or maintenance page.
+const TEXT_FORMAT_EXTENSIONS = new Set([
+  '.html',
+  '.htm',
+  '.txt',
+  '.xml',
+  '.csv',
+  '.json',
+  '.md',
+]);
+
 export function detectedTypeMatchesAllowedFormats(
   detectedMime: string | null,
   allowedFormats: readonly string[],
 ): boolean {
   if (!detectedMime) {
-    // No magic-byte detection. Be permissive — the extension check at file-
-    // save time still filters the common cases.
+    // No magic-byte detection. Be permissive — `looksLikeTextPayload` handles
+    // the dangerous case (text masquerading as a binary document), and the
+    // extension check at file-save time still filters the common cases.
     return true;
   }
   const candidates = MIME_TO_EXTENSIONS[detectedMime] ?? [];
@@ -40,6 +55,57 @@ export function detectedTypeMatchesAllowedFormats(
   }
   const allowed = new Set(allowedFormats.map((format) => format.toLowerCase()));
   return candidates.some((ext) => allowed.has(ext.toLowerCase()));
+}
+
+export function allowsTextFormats(allowedFormats: readonly string[]): boolean {
+  return allowedFormats.some((format) =>
+    TEXT_FORMAT_EXTENSIONS.has(format.toLowerCase()),
+  );
+}
+
+// Leading markers that identify HTML/XML even when `file-type` (which only
+// detects binary signatures) returns null.
+const MARKUP_MARKERS = [
+  '<!doctype',
+  '<html',
+  '<?xml',
+  '<head',
+  '<body',
+  '<script',
+  '<!--',
+];
+
+/**
+ * Heuristic for "this payload is HTML/text, not a binary document". `file-type`
+ * cannot detect text formats, so a null magic-byte detection is ambiguous —
+ * this disambiguates by looking for markup markers and, failing that, checking
+ * whether the header bytes are overwhelmingly printable text.
+ */
+export function looksLikeTextPayload(header: Buffer): boolean {
+  if (header.length === 0) return false;
+
+  // Strip a UTF-8 BOM if present
+  let bytes = header;
+  if (bytes.length >= 3 && bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf) {
+    bytes = bytes.subarray(3);
+  }
+
+  const leading = bytes.subarray(0, 1024).toString('utf8').trimStart().toLowerCase();
+  if (MARKUP_MARKERS.some((marker) => leading.startsWith(marker))) {
+    return true;
+  }
+
+  // Mostly-printable check: any NUL byte means binary; otherwise require an
+  // overwhelmingly printable header (tab/LF/CR, printable ASCII, and bytes
+  // >= 0x80 for UTF-8 multibyte sequences).
+  let printable = 0;
+  for (const byte of bytes) {
+    if (byte === 0x00) return false;
+    if (byte === 0x09 || byte === 0x0a || byte === 0x0d || (byte >= 0x20 && byte !== 0x7f)) {
+      printable++;
+    }
+  }
+  return printable / bytes.length >= 0.97;
 }
 
 export function parseContentDisposition(
@@ -62,17 +128,26 @@ export function parseContentDisposition(
   return null;
 }
 
+// file-type only needs a few KB to detect magic bytes, and the text heuristic
+// only needs enough to see past leading whitespace/comments.
+const HEADER_BYTES = 4100;
+
+export function readFileHeader(filePath: string): Buffer {
+  const fd = fs.openSync(filePath, 'r');
+  try {
+    const buffer = Buffer.alloc(HEADER_BYTES);
+    const bytesRead = fs.readSync(fd, buffer, 0, HEADER_BYTES, 0);
+    return buffer.subarray(0, bytesRead);
+  } finally {
+    fs.closeSync(fd);
+  }
+}
+
 export async function detectContentType(
   filePath: string,
 ): Promise<string | null> {
   try {
-    // Read a small header chunk — file-type only needs a few KB to detect magic bytes
-    const HEADER_BYTES = 4100;
-    const fd = fs.openSync(filePath, 'r');
-    const buffer = Buffer.alloc(HEADER_BYTES);
-    const bytesRead = fs.readSync(fd, buffer, 0, HEADER_BYTES, 0);
-    fs.closeSync(fd);
-    const result = await fileTypeFromBuffer(buffer.subarray(0, bytesRead));
+    const result = await fileTypeFromBuffer(readFileHeader(filePath));
     return result?.mime ?? null;
   } catch {
     return null;
@@ -99,6 +174,11 @@ export interface DownloadResult {
   action: 'downloaded' | 'updated' | 'unchanged' | 'error';
   info?: DownloadedInfo;
   error?: string;
+  /**
+   * HTTP status code when the error came from an HTTP response (e.g. 404).
+   * Undefined for non-HTTP failures (network errors, rejected payloads).
+   */
+  statusCode?: number;
 }
 
 export async function downloadDocument(
@@ -134,13 +214,11 @@ export async function downloadDocument(
     }
 
     // Non-200 responses
-    if (result.statusCode === 404) {
-      return { action: 'error', error: '404 Not Found (removed)' };
-    }
     if (result.statusCode !== 200 || !result.filePath) {
       return {
         action: 'error',
         error: `HTTP ${result.statusCode}`,
+        statusCode: result.statusCode,
       };
     }
 
@@ -184,6 +262,26 @@ export async function downloadDocument(
       return {
         action: 'error',
         error: `Content-type ${detectedContentType ?? 'unknown'} not allowed for source_type ${doc.source_type}`,
+      };
+    }
+
+    // file-type cannot detect text formats, so a null detection may be an HTML
+    // soft-404 or maintenance page served with a 200. If the source family
+    // only allows binary document formats, reject text-looking payloads
+    // instead of poisoning the corpus with HTML saved as .pdf.
+    if (
+      detectedContentType === null &&
+      !allowsTextFormats(sourceFamily.allowed_file_formats) &&
+      looksLikeTextPayload(readFileHeader(tmpPath))
+    ) {
+      fs.unlinkSync(tmpPath);
+      logger.warn(
+        `${doc.source_url} payload looks like HTML/text but ${doc.source_type} ` +
+          `only allows binary formats (${sourceFamily.allowed_file_formats.join(', ')}) — rejected`,
+      );
+      return {
+        action: 'error',
+        error: `Payload looks like HTML/text, not allowed for source_type ${doc.source_type}`,
       };
     }
 
@@ -250,6 +348,10 @@ export async function downloadDocument(
     if (fs.existsSync(tmpPath)) {
       fs.unlinkSync(tmpPath);
     }
-    return { action: 'error', error: (err as Error).message };
+    return {
+      action: 'error',
+      error: (err as Error).message,
+      statusCode: err instanceof HttpStatusError ? err.statusCode : undefined,
+    };
   }
 }

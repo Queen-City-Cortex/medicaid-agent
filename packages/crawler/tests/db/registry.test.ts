@@ -107,6 +107,51 @@ describe('DocumentRegistry', () => {
     });
   });
 
+  describe('recordNotFound', () => {
+    it('sets status to error and returns the consecutive-404 streak', () => {
+      const id = registry.upsertDiscovered(sampleDoc);
+      const first = registry.recordNotFound(id, '404 Not Found');
+      const second = registry.recordNotFound(id, '404 Not Found');
+      expect(first).toBe(1);
+      expect(second).toBe(2);
+      const doc = registry.getByUrl(sampleDoc.source_url);
+      expect(doc!.status).toBe('error');
+      expect(doc!.error_message).toBe('404 Not Found');
+      expect(doc!.consecutive_not_found).toBe(2);
+    });
+
+    it('streak resets on a successful download', () => {
+      const id = registry.upsertDiscovered(sampleDoc);
+      registry.recordNotFound(id, '404 Not Found');
+      registry.updateDownloaded(id, {
+        local_path: 'test.pdf',
+        file_hash: 'abc',
+        file_size: 100,
+        mime_type: 'application/pdf',
+        detected_content_type: 'application/pdf',
+        content_disposition_filename: null,
+        etag: null,
+        last_modified: null,
+      });
+      expect(registry.getById(id)!.consecutive_not_found).toBe(0);
+    });
+
+    it('streak resets on an unchanged check', () => {
+      const id = registry.upsertDiscovered(sampleDoc);
+      registry.recordNotFound(id, '404 Not Found');
+      registry.markUnchanged(id);
+      expect(registry.getById(id)!.consecutive_not_found).toBe(0);
+    });
+
+    it('streak resets on a non-404 error so only consecutive 404s count', () => {
+      const id = registry.upsertDiscovered(sampleDoc);
+      registry.recordNotFound(id, '404 Not Found');
+      registry.markError(id, 'timeout');
+      expect(registry.getById(id)!.consecutive_not_found).toBe(0);
+      expect(registry.getById(id)!.consecutive_errors).toBe(2);
+    });
+  });
+
   describe('markRemoved', () => {
     it('sets status to removed', () => {
       const id = registry.upsertDiscovered(sampleDoc);
@@ -132,6 +177,23 @@ describe('DocumentRegistry', () => {
       const docs = registry.getDocumentsToCheck();
       expect(docs.length).toBe(1);
     });
+
+    it('includes errored documents so transient failures retry on the next run', () => {
+      const id = registry.upsertDiscovered(sampleDoc);
+      registry.markError(id, 'ECONNRESET');
+      const docs = registry.getDocumentsToCheck();
+      expect(docs.map((d) => d.id)).toContain(id);
+    });
+
+    it('excludes removed and discovered documents', () => {
+      const removedId = registry.upsertDiscovered(sampleDoc);
+      registry.markRemoved(removedId);
+      registry.upsertDiscovered({
+        ...sampleDoc,
+        source_url: 'https://example.com/new.pdf',
+      });
+      expect(registry.getDocumentsToCheck()).toEqual([]);
+    });
   });
 
   describe('getBySourceType', () => {
@@ -156,6 +218,44 @@ describe('DocumentRegistry', () => {
         status: 'discovered',
         count: 1,
       });
+    });
+  });
+
+  describe('schema migration', () => {
+    it('adds consecutive_not_found to registries created before the column existed', () => {
+      const oldDb = new Database(':memory:');
+      oldDb.exec(`
+        CREATE TABLE documents (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          source_url TEXT NOT NULL UNIQUE,
+          discovered_from TEXT NOT NULL,
+          source_type TEXT NOT NULL,
+          title TEXT,
+          policy_number TEXT,
+          category TEXT,
+          local_path TEXT,
+          file_hash TEXT,
+          file_size INTEGER,
+          mime_type TEXT,
+          detected_content_type TEXT,
+          content_disposition_filename TEXT,
+          etag TEXT,
+          last_modified TEXT,
+          first_seen_at TEXT NOT NULL DEFAULT (datetime('now')),
+          last_checked_at TEXT,
+          last_downloaded_at TEXT,
+          last_changed_at TEXT,
+          status TEXT NOT NULL DEFAULT 'discovered',
+          error_message TEXT,
+          download_attempts INTEGER DEFAULT 0,
+          consecutive_errors INTEGER DEFAULT 0
+        );
+      `);
+      initializeSchema(oldDb);
+      const oldRegistry = createRegistry(oldDb);
+      const id = oldRegistry.upsertDiscovered(sampleDoc);
+      expect(oldRegistry.recordNotFound(id, '404 Not Found')).toBe(1);
+      oldDb.close();
     });
   });
 

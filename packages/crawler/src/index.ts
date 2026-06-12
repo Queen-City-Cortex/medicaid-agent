@@ -2,14 +2,14 @@ import { Command } from 'commander';
 import Database from 'better-sqlite3';
 import fs from 'node:fs';
 import path from 'node:path';
-import { config, SOURCE_TYPE_DIRS } from './config.js';
+import { config } from './config.js';
 import { MANIFEST_SOURCE_TYPES } from './corpus-manifest.js';
 import { initializeSchema } from './db/schema.js';
 import { createRegistry } from './db/registry.js';
 import { createFetcher } from './crawl/fetcher.js';
 import { createRobotsChecker } from './crawl/robots.js';
 import { discoverDocuments } from './crawl/discovery.js';
-import { downloadDocument } from './crawl/downloader.js';
+import { mergeStats, runCheckPhase, runDownloadPhase } from './crawl/sync.js';
 import { logger } from './utils/logger.js';
 import type { SourceType } from './sources/types.js';
 
@@ -130,100 +130,27 @@ program
       return;
     }
 
-    // Download phase — download newly discovered documents (scoped to selected sources)
-    const toDownload = registry.getDocumentsToDownload()
-      .filter((doc) => sourceTypes.includes(doc.source_type as SourceType));
+    // Download phase — newly discovered documents (scoped to selected
+    // sources), then check previously known documents for updates. The check
+    // phase skips everything the download phase just handled so nothing is
+    // fetched twice in the same run.
+    const ctx = {
+      registry,
+      fetcher,
+      sourceTypes,
+      isAllowed: (url: string) => robots.isAllowed(url),
+    };
+    const download = await runDownloadPhase(ctx);
+    const check = await runCheckPhase(ctx, download.processedIds);
+    const totals = mergeStats(download.stats, check);
+
     const stats = {
       documents_discovered: newCount,
-      documents_downloaded: 0,
-      documents_unchanged: 0,
-      documents_updated: 0,
-      documents_errored: 0,
+      documents_downloaded: totals.downloaded,
+      documents_unchanged: totals.unchanged,
+      documents_updated: totals.updated,
+      documents_errored: totals.errored,
     };
-
-    // Collect existing filenames per source type to handle collisions
-    const existingFilenames = new Map<string, Set<string>>();
-    for (const st of sourceTypes) {
-      const dir = path.join(
-        config.documentsDir,
-        SOURCE_TYPE_DIRS[st] ?? st,
-      );
-      if (fs.existsSync(dir)) {
-        existingFilenames.set(st, new Set(fs.readdirSync(dir)));
-      } else {
-        existingFilenames.set(st, new Set());
-      }
-    }
-
-    for (const doc of toDownload) {
-      if (!robots.isAllowed(doc.source_url)) continue;
-
-      const names = existingFilenames.get(doc.source_type) ?? new Set();
-      const result = await downloadDocument(doc, fetcher, names);
-
-      switch (result.action) {
-        case 'downloaded':
-          if (result.info) registry.updateDownloaded(doc.id, result.info);
-          stats.documents_downloaded++;
-          logger.info(
-            `${doc.policy_number ?? doc.title ?? doc.source_url}... new document (${result.info?.file_size ? Math.round(result.info.file_size / 1024) + ' KB' : 'unknown size'})`,
-          );
-          break;
-        case 'unchanged':
-          registry.markUnchanged(doc.id);
-          stats.documents_unchanged++;
-          break;
-        case 'error':
-          if (result.error?.includes('404')) {
-            registry.markRemoved(doc.id);
-          } else {
-            registry.markError(doc.id, result.error ?? 'Unknown error');
-          }
-          stats.documents_errored++;
-          logger.warn(
-            `${doc.policy_number ?? doc.source_url}... error: ${result.error}`,
-          );
-          break;
-      }
-    }
-
-    // Also check previously downloaded documents for updates
-    const toCheck = registry.getDocumentsToCheck();
-    for (const doc of toCheck) {
-      if (!sourceTypes.includes(doc.source_type as SourceType)) continue;
-      if (!robots.isAllowed(doc.source_url)) continue;
-
-      const names = existingFilenames.get(doc.source_type) ?? new Set();
-      const result = await downloadDocument(doc, fetcher, names);
-
-      switch (result.action) {
-        case 'updated':
-          if (result.info) registry.updateChanged(doc.id, result.info);
-          stats.documents_updated++;
-          logger.info(
-            `${doc.policy_number ?? doc.title ?? doc.source_url}... updated (hash changed)`,
-          );
-          break;
-        case 'unchanged':
-          registry.markUnchanged(doc.id);
-          stats.documents_unchanged++;
-          logger.debug(
-            `${doc.policy_number ?? doc.source_url}... 304 Not Modified`,
-          );
-          break;
-        case 'error':
-          if (result.error?.includes('404')) {
-            registry.markRemoved(doc.id);
-          } else {
-            registry.markError(doc.id, result.error ?? 'Unknown error');
-          }
-          stats.documents_errored++;
-          logger.warn(
-            `${doc.policy_number ?? doc.source_url}... error: ${result.error}`,
-          );
-          break;
-      }
-    }
 
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(0);
     registry.completeCrawlRun(runId, stats);
@@ -272,51 +199,16 @@ program
 
     logger.info('Checking for updates...');
 
-    const existingFilenames = new Map<string, Set<string>>();
-    let unchanged = 0;
-    let updated = 0;
-    let errors = 0;
+    const stats = await runCheckPhase({
+      registry,
+      fetcher,
+      sourceTypes,
+      isAllowed: (url: string) => robots.isAllowed(url),
+    });
 
-    for (const doc of docs) {
-      if (!sourceTypes.includes(doc.source_type as SourceType)) continue;
-      if (!robots.isAllowed(doc.source_url)) continue;
-
-      if (!existingFilenames.has(doc.source_type)) {
-        const dir = path.join(
-          config.documentsDir,
-          SOURCE_TYPE_DIRS[doc.source_type] ?? doc.source_type,
-        );
-        existingFilenames.set(
-          doc.source_type,
-          fs.existsSync(dir) ? new Set(fs.readdirSync(dir)) : new Set(),
-        );
-      }
-
-      const names = existingFilenames.get(doc.source_type)!;
-      const result = await downloadDocument(doc, fetcher, names);
-
-      switch (result.action) {
-        case 'updated':
-          if (result.info) registry.updateChanged(doc.id, result.info);
-          updated++;
-          logger.info(`${doc.policy_number ?? doc.source_url}... updated`);
-          break;
-        case 'unchanged':
-          registry.markUnchanged(doc.id);
-          unchanged++;
-          break;
-        case 'error':
-          if (result.error?.includes('404')) {
-            registry.markRemoved(doc.id);
-          } else {
-            registry.markError(doc.id, result.error ?? 'Unknown error');
-          }
-          errors++;
-          break;
-      }
-    }
-
-    logger.info(`Check complete: ${unchanged} unchanged, ${updated} updated, ${errors} errors`);
+    logger.info(
+      `Check complete: ${stats.unchanged} unchanged, ${stats.updated} updated, ${stats.errored} errors`,
+    );
     registry.close();
     logger.close();
   });

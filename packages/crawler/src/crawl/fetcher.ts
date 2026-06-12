@@ -8,6 +8,21 @@ import type { Fetcher, FetchFileResult } from '../sources/types.js';
 
 type BodyReadable = Dispatcher.ResponseData['body'];
 
+/**
+ * Error thrown when a fetch ultimately fails with an HTTP error status.
+ * Carries the structured status code so callers never have to parse it back
+ * out of the message string.
+ */
+export class HttpStatusError extends Error {
+  readonly statusCode: number;
+
+  constructor(statusCode: number, url: string) {
+    super(`HTTP ${statusCode} from ${url}`);
+    this.name = 'HttpStatusError';
+    this.statusCode = statusCode;
+  }
+}
+
 export interface FetcherOptions {
   userAgent: string;
   defaultDelayMs: number;
@@ -156,7 +171,7 @@ export function createFetcher(options: FetcherOptions): RateLimitedFetcher {
           await sleep(backoffMs);
         }
 
-        lastError = new Error(`HTTP ${response.statusCode}`);
+        lastError = new HttpStatusError(response.statusCode, url);
       } catch (err) {
         const elapsed = Date.now() - startTime;
         logger.error(
