@@ -26,7 +26,10 @@ def _run_eval_level(
     question: str | None = None,
     from_result: str | None = None,
     legacy_evidence: bool = False,
+    dataset: str | None = None,
 ) -> dict:
+    from pathlib import Path
+
     from pipeline.eval.runner import run_eval
 
     return run_eval(
@@ -37,6 +40,7 @@ def _run_eval_level(
         top_k=top_k,
         from_result=from_result,
         legacy_evidence=legacy_evidence,
+        dataset_path=Path(dataset) if dataset else None,
     )
 
 
@@ -60,6 +64,7 @@ def _run_eval_levels(
     question: str | None = None,
     from_result: str | None = None,
     legacy_evidence: bool = False,
+    dataset: str | None = None,
 ) -> dict[str, dict]:
     results: dict[str, dict] = {}
 
@@ -73,6 +78,7 @@ def _run_eval_levels(
             question=question,
             from_result=from_result,
             legacy_evidence=legacy_evidence,
+            dataset=dataset,
         )
         if "error" in result:
             console.print(f"[red]{result['error']}[/red]")
@@ -560,6 +566,12 @@ def search(query_text: str, top_k: int, doc_type: str | None):
     help="Use the old judge evidence path (golden sections only, no agent tool outputs). "
          "Answer-level only. Default is the unified path (golden + tool-sourced).",
 )
+@click.option(
+    "--dataset",
+    type=click.Path(exists=True, dir_okay=False, path_type=str),
+    help="Alternate dataset JSON (same schema as the golden dataset). "
+         "Default is data/golden/dataset.json.",
+)
 def eval(
     level: str | None,
     top_k: int | None,
@@ -568,6 +580,7 @@ def eval(
     question: str | None,
     from_result: str | None,
     legacy_evidence: bool,
+    dataset: str | None,
 ):
     """Run evaluation against the golden dataset."""
     levels = [level] if level else ["retrieval"]
@@ -581,6 +594,7 @@ def eval(
         question=question,
         from_result=from_result,
         legacy_evidence=legacy_evidence,
+        dataset=dataset,
     )
 
 
@@ -717,13 +731,23 @@ def eval_answer_stability(
 
 
 @cli.command("eval-validate")
-def eval_validate():
+@click.option(
+    "--dataset",
+    type=click.Path(exists=True, dir_okay=False, path_type=str),
+    help="Alternate dataset JSON (same schema as the golden dataset). "
+         "Default is data/golden/dataset.json.",
+)
+def eval_validate(dataset: str | None):
     """Validate the golden dataset against the graph."""
+    from pathlib import Path
+
     from pipeline.eval.dataset import validate_dataset, load_dataset
     from pipeline.graph.connection import get_session
 
+    dataset_path = Path(dataset) if dataset else None
+
     # Schema validation
-    errors = validate_dataset()
+    errors = validate_dataset(dataset_path)
     if errors:
         console.print("[red]Schema validation errors:[/red]")
         for e in errors:
@@ -733,7 +757,7 @@ def eval_validate():
     console.print("[green]Schema validation: PASS[/green]")
 
     # Reference integrity
-    entries = load_dataset()
+    entries = load_dataset(dataset_path)
     missing = []
     with get_session() as session:
         for entry in entries:

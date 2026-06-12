@@ -1,5 +1,7 @@
 """Eval orchestrator — selects level, iterates questions, collects results."""
 
+from pathlib import Path
+
 from pipeline.eval.dataset import load_dataset, filter_dataset
 from pipeline.eval.results import save_result
 
@@ -12,9 +14,10 @@ def run_eval(
     top_k: int | None = None,
     from_result: str | None = None,
     legacy_evidence: bool = False,
+    dataset_path: Path | None = None,
 ) -> dict:
     """Run an evaluation at the specified level. Returns the result dict."""
-    entries = load_dataset()
+    entries = load_dataset(dataset_path)
     entries = filter_dataset(
         entries,
         difficulty=difficulty,
@@ -42,6 +45,10 @@ def run_eval(
 
     # Save results
     config_overrides = {}
+    if dataset_path:
+        # Recorded so eval-compare and eval-runs can tell held-out runs apart
+        # from main-dataset runs.
+        config_overrides["dataset"] = str(dataset_path)
     if top_k:
         config_overrides["top_k"] = top_k
     if level == "answer":
