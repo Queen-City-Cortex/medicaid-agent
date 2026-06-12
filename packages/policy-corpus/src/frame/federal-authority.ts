@@ -21,12 +21,14 @@ import {
   FRAME_DOCUMENT_LIMIT,
   FRAME_PRIMARY_LIMIT,
   FRAME_SUPPORT_LIMIT,
+  FEDERAL_PROGRAM_NAME_EXPANSIONS,
   MLR_FEDERAL_PRIMARY_SECTION_TERMS,
   MLR_FEDERAL_SUPPORT_SECTION_TERMS,
   WAIVER_APPLICATION_AVOID_TERMS,
   WAIVER_APPLICATION_DOCUMENT_SECTION_TERMS,
   WAIVER_APPLICATION_PRIMARY_SECTION_NUMBERS,
   WAIVER_APPLICATION_PRIMARY_TERMS,
+  asksForAuthorityCitation,
   asksForImplementation,
   asksForPublicNoticeDetails,
   buildFocusedFederalQuery,
@@ -43,6 +45,7 @@ import {
   isMlrQuery,
   isWaiverApplicationQuery,
   isWaiverAuthorityQuery,
+  matchesToken,
   normalizeSearchText,
   rankHitsByQueryFocus,
   scoreTermMatches,
@@ -58,6 +61,7 @@ export interface FederalAuthoritySignals {
   queryLower: string;
   waiverApplicationQuery: boolean;
   waiverAuthorityQuery: boolean;
+  authorityCitationQuery: boolean;
   publicNoticeQuery: boolean;
   mlrQuery: boolean;
   implementationQuery: boolean;
@@ -67,14 +71,31 @@ export interface FederalAuthoritySignals {
   focusedFederalQuery: string | null;
 }
 
+// Expand bare program acronyms in the focus terms with the official names
+// used in statute/CFR headings (and vice versa), so "federal authority for
+// EPSDT" can title-match 441 Subpart B ("Early and periodic screening…")
+// instead of only body-text acronym mentions in other parts.
+function expandFocusTermsWithProgramNames(queryLower: string, focusTerms: string[]): string[] {
+  const expanded = [...focusTerms];
+  for (const entry of FEDERAL_PROGRAM_NAME_EXPANSIONS) {
+    if (matchesToken(queryLower, entry.token)) {
+      expanded.push(...entry.expansions);
+    } else if (entry.expansions.some((expansion) => queryLower.includes(expansion))) {
+      expanded.push(entry.token);
+    }
+  }
+  return dedupeTerms(expanded);
+}
+
 export function buildFederalAuthoritySignals(query: string): FederalAuthoritySignals {
   const queryLower = normalizeSearchText(query);
-  const focusTerms = buildQueryFocusTerms(query);
+  const focusTerms = expandFocusTermsWithProgramNames(queryLower, buildQueryFocusTerms(query));
 
   return {
     queryLower,
     waiverApplicationQuery: isWaiverApplicationQuery(queryLower),
     waiverAuthorityQuery: isWaiverAuthorityQuery(queryLower),
+    authorityCitationQuery: asksForAuthorityCitation(queryLower),
     publicNoticeQuery: asksForPublicNoticeDetails(queryLower),
     mlrQuery: isMlrQuery(queryLower),
     implementationQuery: asksForImplementation(queryLower),
@@ -93,6 +114,78 @@ export interface FederalAuthorityEvidence {
   primaryFederalDocuments: DocumentWithSectionsView[];
   primaryCandidates: SectionCandidate[];
   authoritativeCandidates: DocumentCandidate[];
+}
+
+const AUTHORITY_TITLE_PHRASE_BOOST = 0.3;
+
+const FEDERAL_AUTHORITY_DOC_TYPES = ['federal_regulation', 'federal_statute'] as const;
+
+// When the preferred titles cover only one of {statute, regulation} and the
+// other type exists in the ranked hits, append the other type's top-ranked
+// document title. Encodes "federal authority = statute + implementing
+// regulation"; the specific document is whichever retrieval ranked highest.
+function withStatuteRegulationTitlePairing(titles: string[], hits: CorpusRetrievalHit[]): string[] {
+  if (titles.length === 0) return titles;
+  const typeByTitle = new Map<string, string>();
+  for (const hit of hits) {
+    if (hit.documentTitle && hit.documentType && !typeByTitle.has(hit.documentTitle)) {
+      typeByTitle.set(hit.documentTitle, hit.documentType);
+    }
+  }
+  const presentTypes = new Set(titles.map((title) => typeByTitle.get(title)).filter(Boolean));
+  const paired = [...titles];
+  for (const docType of FEDERAL_AUTHORITY_DOC_TYPES) {
+    if (presentTypes.has(docType)) continue;
+    const topOfType = hits.find((hit) => hit.documentType === docType && hit.documentTitle);
+    if (topOfType?.documentTitle) paired.push(topOfType.documentTitle);
+  }
+  return dedupeTerms(paired);
+}
+
+// Ensure the top primary candidates span both statute and regulation when
+// both document types were retrieved: splice the missing type's top hit in at
+// index 1 so the regulation document keeps the authoritative top slot.
+function ensureStatuteRegulationCandidatePairing(
+  candidates: SectionCandidate[],
+  hits: CorpusRetrievalHit[],
+  limit: number,
+): SectionCandidate[] {
+  const typeBySectionId = new Map<string, string>();
+  for (const hit of hits) {
+    if (hit.documentType) typeBySectionId.set(hit.sectionId, hit.documentType);
+  }
+  const availableTypes = new Set(typeBySectionId.values());
+  const topTypes = new Set(
+    candidates.slice(0, limit).map((candidate) => typeBySectionId.get(candidate.sectionId)).filter(Boolean),
+  );
+
+  const additions: SectionCandidate[] = [];
+  for (const docType of FEDERAL_AUTHORITY_DOC_TYPES) {
+    if (topTypes.has(docType) || !availableTypes.has(docType)) continue;
+    const topHit = hits.find((hit) => typeBySectionId.get(hit.sectionId) === docType);
+    if (topHit) {
+      additions.push({
+        sectionId: topHit.sectionId,
+        reason: 'Federal statutory authority paired with its implementing regulation.',
+      });
+    }
+  }
+  if (additions.length === 0) return candidates;
+
+  const spliced = [...candidates];
+  spliced.splice(Math.min(1, spliced.length), 0, ...additions);
+  return uniqueBy(spliced, (candidate) => candidate.sectionId);
+}
+
+function boostAuthorityTitleMatches(hits: CorpusRetrievalHit[], focusTerms: string[]): CorpusRetrievalHit[] {
+  const phraseFocusTerms = focusTerms.filter((term) => term.includes(' '));
+  if (phraseFocusTerms.length === 0) return hits;
+  return [...hits]
+    .map((hit) => ({
+      ...hit,
+      score: hit.score + Math.min(scoreTermMatches(phraseFocusTerms, hit.sectionTitle), 2) * AUTHORITY_TITLE_PHRASE_BOOST,
+    }))
+    .sort((left, right) => right.score - left.score);
 }
 
 function isWaiverAuthorityAnchorHit(hit: {
@@ -141,7 +234,16 @@ export async function collectFederalAuthorityEvidence(
     ],
     (hit) => hit.sectionId,
   );
-  const rankedFederalHits = rankHitsByQueryFocus(mergedFederalHits, signals.focusTerms, signals.quotedPhrases);
+  const focusRankedFederalHits = rankHitsByQueryFocus(mergedFederalHits, signals.focusTerms, signals.quotedPhrases);
+  // Authority-citation questions get a section-TITLE phrase boost: a section
+  // whose heading carries the program's official multi-word name (e.g.
+  // "Early and periodic screening…" in 441 Subpart B) is ABOUT the program,
+  // while a section that merely mentions the acronym in another part's body
+  // text (440.345, benchmark benefits) is context. Structural signal — no
+  // hardcoded section numbers.
+  const rankedFederalHits = signals.authorityCitationQuery
+    ? boostAuthorityTitleMatches(focusRankedFederalHits, signals.focusTerms)
+    : focusRankedFederalHits;
   const waiverRankedFederalHits = signals.waiverApplicationQuery
     ? [...rankedFederalHits]
         .map((hit) => {
@@ -191,15 +293,25 @@ export async function collectFederalAuthorityEvidence(
         // Authority questions must anchor on 42 CFR Part 441 Subpart G. If the
         // part's title isn't in the retrieved hits at all, fall back to focus
         // scoring — but typically it is (§§ 441.301–441.303 are strong hits
-        // for 1915(c) authority phrasing), just not top-1.
+        // for 1915(c) authority phrasing), just not top-1. The SSA §1915
+        // statute anchors alongside it: "federal authority" answers should
+        // pair the statute with its implementing regulation.
         waiverAnchorHits.find((hit) => hit.policyNumber?.toUpperCase() === '42-CFR-441')?.documentTitle,
+        waiverAnchorHits.find((hit) => hit.policyNumber?.toUpperCase() === 'SSA-TITLE-19')?.documentTitle,
       ].filter((title): title is string => Boolean(title))
     : [];
-  const preferredFederalDocumentTitles =
+  const focusPreferredFederalDocumentTitles =
     waiverPreferredFederalDocumentTitles.length > 0
       ? dedupeTerms(waiverPreferredFederalDocumentTitles)
       : selectPreferredDocumentTitlesByFocus(
-          signals.waiverApplicationQuery ? waiverRankedFederalHits : mergedFederalHits,
+          // Authority queries pass the title-boosted ranking so the document
+          // whose section HEADINGS match the program name wins preference;
+          // other queries keep the unadjusted merged hits (pinned behavior).
+          signals.waiverApplicationQuery
+            ? waiverRankedFederalHits
+            : signals.authorityCitationQuery
+              ? rankedFederalHits
+              : mergedFederalHits,
           signals.waiverApplicationQuery
             ? dedupeTerms([...signals.focusTerms, ...WAIVER_APPLICATION_PRIMARY_TERMS])
             : signals.focusTerms,
@@ -211,10 +323,23 @@ export async function collectFederalAuthorityEvidence(
           // query actually targets CHIP (42 CFR 457).
           signals.queryLower,
         );
+  // Authority answers should pair the statute with its implementing
+  // regulation. Title preference normally keeps ONE document, which scoped
+  // statute hits out entirely (an EPSDT-authority question kept only the CFR
+  // part; the SSA section never reached the primary set). When the preferred
+  // titles are all one document type and the other type exists in the ranked
+  // hits, admit the other type's top-ranked document title too.
+  const preferredFederalDocumentTitles = signals.authorityCitationQuery
+    ? withStatuteRegulationTitlePairing(focusPreferredFederalDocumentTitles, rankedFederalHits)
+    : focusPreferredFederalDocumentTitles;
+  const includeAnchorsInPrimary = signals.waiverApplicationQuery || signals.waiverAuthorityQuery;
   const primaryFederalHits =
     preferredFederalDocumentTitles.length === 0
-      ? signals.waiverApplicationQuery
-        ? uniqueBy([...waiverAnchorHits, ...waiverRankedFederalHits], (hit) => hit.sectionId)
+      ? includeAnchorsInPrimary
+        ? uniqueBy(
+            [...waiverAnchorHits, ...(signals.waiverApplicationQuery ? waiverRankedFederalHits : rankedFederalHits)],
+            (hit) => hit.sectionId,
+          )
         : rankedFederalHits
       : (() => {
           const candidateHits = signals.waiverApplicationQuery ? waiverRankedFederalHits : rankedFederalHits;
@@ -222,7 +347,7 @@ export async function collectFederalAuthorityEvidence(
             (hit) => hit.documentTitle && preferredFederalDocumentTitles.includes(hit.documentTitle),
           );
           const baseHits = scoped.length > 0 ? scoped : candidateHits;
-          return signals.waiverApplicationQuery
+          return includeAnchorsInPrimary
             ? uniqueBy([...waiverAnchorHits, ...baseHits], (hit) => hit.sectionId)
             : baseHits;
         })();
@@ -265,13 +390,16 @@ export async function collectFederalAuthorityEvidence(
           })()
         : scopedPrimaryFederalHits;
   const primaryIncludeTerms = dedupeTerms([...FEDERAL_PRIMARY_TERMS, ...signals.focusTerms]);
-  const initialPrimaryCandidates = buildSectionCandidates(
+  const unpairedPrimaryCandidates = buildSectionCandidates(
     filteredPrimaryFederalHits,
     primaryIncludeTerms,
     [],
     FRAME_PRIMARY_LIMIT * 2,
     'Primary federal authority section.',
   );
+  const initialPrimaryCandidates = signals.authorityCitationQuery
+    ? ensureStatuteRegulationCandidatePairing(unpairedPrimaryCandidates, primaryFederalHits, FRAME_PRIMARY_LIMIT)
+    : unpairedPrimaryCandidates;
   const hydratedFederalPrimary = await context.hydrateSectionCandidates(initialPrimaryCandidates, FRAME_PRIMARY_LIMIT * 2);
   const primaryFederalDocumentIds = dedupeTerms(
     hydratedFederalPrimary
@@ -308,7 +436,7 @@ export async function collectFederalAuthorityEvidence(
         : [],
   );
   const waiverStatutoryCandidates =
-    signals.waiverApplicationQuery
+    signals.waiverApplicationQuery || signals.waiverAuthorityQuery
       ? buildSectionCandidates(
           filteredPrimaryFederalHits.filter(
             (hit) => hit.policyNumber?.toUpperCase() === 'SSA-TITLE-19' && normalizeSearchText(hit.sectionNumber) === '1915',

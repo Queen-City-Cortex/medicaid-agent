@@ -1,7 +1,9 @@
 import type { AnswerFrame, AnswerFrameDocument, AnswerFrameSection } from '../../types.js';
 import {
+  asksForAuthorityCitation,
   asksForPublicNoticeDetails,
   isWaiverApplicationQuery,
+  isWaiverAuthorityQuery,
 } from '../../internal/query-intent.js';
 import {
   FRAME_PRIMARY_LIMIT,
@@ -66,15 +68,10 @@ const WAIVER_HINT: FederalQueryHint = {
 // phrasing so it doesn't over-fire on general 1915(b) managed-care questions.
 const WAIVER_AUTHORITY_HINT: FederalQueryHint = {
   id: 'waiver-authority',
-  matches: (q) =>
-    // Trailing \b doesn't match after `)` (both `)` and space are non-word
-    // chars, so no boundary). Use a negative lookahead instead.
-    /\b1915\s*\(c\)(?!\w)/.test(q) &&
-    (
-      /\bauthoriz(e|es|ed|ing|ation)\b/.test(q) ||
-      /\bfederal (authority|regulation|rule|law)\b/.test(q) ||
-      /\bwhat (?:regulation|rule|law|section|provision)\b/.test(q)
-    ),
+  // Delegates to the shared predicate so the collection path and this hint
+  // can't drift (the hint used to duplicate the regex inline and missed the
+  // plural "federal regulations" phrasing the predicate now accepts).
+  matches: (q) => isWaiverAuthorityQuery(q),
   isPrimary: (section) => {
     const policy = policyNumberUpper(section);
     if (policy !== '42-CFR-441') return false;
@@ -156,10 +153,29 @@ export function rebalanceFederalAuthorityFrame(frame: AnswerFrame, queryLower: s
     (section) => section.id,
   );
 
-  const primarySections =
+  const hintScopedPrimarySections =
     hintPrimarySections.length > 0
       ? hintPrimarySections.slice(0, FRAME_PRIMARY_LIMIT)
       : frame.primarySections;
+  // Statute retention for authority questions: the hints' isPrimary
+  // predicates are regulation-only, so they would strip the statute section
+  // that collection paired in. Keep one surfaced federal_statute section in
+  // primary (replacing the last slot when already at the limit).
+  const statuteSection = asksForAuthorityCitation(queryLower)
+    ? surfacedSections.find((section) => section.documentType === 'federal_statute')
+    : undefined;
+  const primarySections =
+    statuteSection && !hintScopedPrimarySections.some((section) => section.documentType === 'federal_statute')
+      ? uniqueBy(
+          [
+            ...(hintScopedPrimarySections.length >= FRAME_PRIMARY_LIMIT
+              ? hintScopedPrimarySections.slice(0, FRAME_PRIMARY_LIMIT - 1)
+              : hintScopedPrimarySections),
+            statuteSection,
+          ],
+          (section) => section.id,
+        )
+      : hintScopedPrimarySections;
   const primaryIds = new Set(primarySections.map((section) => section.id));
 
   const includeProceduralInSupport =

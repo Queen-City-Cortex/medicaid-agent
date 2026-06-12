@@ -778,3 +778,197 @@ describe('federal-authority frame', () => {
     expectAllHandlersUsed();
   });
 });
+
+describe('federal authority statute pairing', () => {
+  it('pairs the SSA statute with the implementing regulation on an EPSDT authority question', async () => {
+    // h-049 regression: 440.345 ("EPSDT and other required benefits", the
+    // benchmark-plan context) had the highest raw score, and single-document
+    // title preference scoped out both 441 Subpart B and the SSA statute.
+    const DOC_441: GraphDocument = {
+      id: 'doc-441',
+      title: '42 CFR Part 441',
+      documentType: 'federal_regulation',
+      policyNumber: '42-CFR-441',
+      effectiveDate: '2024-07-01',
+      url: 'https://example.com/441',
+      sections: [
+        {
+          id: 'sec-44150',
+          number: '441.50',
+          title: 'Basis and purpose',
+          content: 'This subpart implements sections 1902(a)(43) and 1905(a)(4)(B) and (r) of the Act on early and periodic screening, diagnosis, and treatment of individuals under age 21.',
+          chars: 900,
+        },
+        {
+          id: 'sec-44156',
+          number: '441.56',
+          title: 'Required activities: Early and periodic screening, diagnosis, and treatment of individuals under age 21',
+          content: 'The agency must require screening, diagnosis, and treatment services for eligible EPSDT recipients.',
+          chars: 900,
+        },
+      ],
+    };
+    const DOC_440: GraphDocument = {
+      id: 'doc-440',
+      title: '42 CFR Part 440',
+      documentType: 'federal_regulation',
+      policyNumber: '42-CFR-440',
+      effectiveDate: '2024-07-01',
+      url: 'https://example.com/440',
+      sections: [
+        {
+          id: 'sec-440345',
+          number: '440.345',
+          title: 'EPSDT and other required benefits',
+          content: 'Benchmark and benchmark-equivalent plans must include EPSDT benefits for children.',
+          chars: 900,
+        },
+      ],
+    };
+    const DOC_SSA: GraphDocument = {
+      id: 'doc-ssa',
+      title: 'Social Security Act — Title XIX (Medicaid)',
+      documentType: 'federal_statute',
+      policyNumber: 'SSA-Title-19',
+      effectiveDate: null,
+      url: 'https://example.com/ssa-title-19',
+      sections: [
+        {
+          id: 'sec-1905',
+          number: '1905',
+          title: 'Section 1905. Definitions',
+          content: 'The term medical assistance includes early and periodic screening, diagnostic, and treatment services for individuals under age 21, as defined in subsection (r).',
+          chars: 900,
+        },
+      ],
+    };
+
+    const { corpus } = createCorpus([
+      {
+        // ONE combined federal scan covers both federal docTypes.
+        label: 'vector federal',
+        match: queries.sectionVector('federal_regulation'),
+        result: {
+          records: [
+            hitFor(DOC_440, 'sec-440345', 1.0),
+            hitFor(DOC_441, 'sec-44156', 0.97),
+            hitFor(DOC_441, 'sec-44150', 0.94),
+            hitFor(DOC_SSA, 'sec-1905', 0.9),
+          ],
+        },
+      },
+      ...documentGraphHandlers(DOC_441),
+      ...documentGraphHandlers(DOC_440),
+      ...documentGraphHandlers(DOC_SSA),
+    ]);
+
+    const frame = await resolveTypedFrame(
+      corpus,
+      'federal_authority',
+      'What federal authority establishes the EPSDT benefit for individuals under 21?',
+    );
+
+    const primaryNumbers = frame.primarySections.map((section) => section.sectionNumber);
+    expect(primaryNumbers.some((sectionNumber) => sectionNumber?.startsWith('441.5'))).toBe(true);
+    expect(primaryNumbers).toContain('1905');
+    expect(primaryNumbers).not.toContain('440.345');
+    expect(frame.primarySections.some((section) => section.documentType === 'federal_statute')).toBe(true);
+    const authoritativePolicyNumbers = frame.authoritativeDocuments.map((document) => document.policyNumber);
+    expect(authoritativePolicyNumbers).toContain('42-CFR-441');
+    expect(authoritativePolicyNumbers).toContain('SSA-Title-19');
+    expect(frame.authoritativeDocuments[0]?.policyNumber).toBe('42-CFR-441');
+  });
+
+  it('adds SSA section 1915 alongside Part 441 Subpart G on a 1915(c) authority question', async () => {
+    // h-046 regression: the waiver-authority path anchored only 42-CFR-441
+    // and never surfaced the statutory authority the question asks about.
+    const DOC_441: GraphDocument = {
+      id: 'doc-441',
+      title: '42 CFR Part 441',
+      documentType: 'federal_regulation',
+      policyNumber: '42-CFR-441',
+      effectiveDate: '2024-07-01',
+      url: 'https://example.com/441',
+      sections: [
+        {
+          id: 'sec-441300',
+          number: '441.300',
+          title: 'Basis and scope',
+          content: 'This subpart implements section 1915(c) home and community-based services waiver authority.',
+          chars: 900,
+        },
+        {
+          id: 'sec-441301',
+          number: '441.301',
+          title: 'Contents of request for a waiver',
+          content: 'A waiver request must include the required assurances and requested waivers.',
+          chars: 900,
+        },
+      ],
+    };
+    const DOC_430: GraphDocument = {
+      id: 'doc-430',
+      title: '42 CFR Part 430',
+      documentType: 'federal_regulation',
+      policyNumber: '42-CFR-430',
+      effectiveDate: '2024-07-01',
+      url: 'https://example.com/430',
+      sections: [
+        {
+          id: 'sec-43025',
+          number: '430.25',
+          title: 'Waivers of State plan requirements',
+          content: 'Cross-references the home and community-based services waiver provisions of part 441.',
+          chars: 900,
+        },
+      ],
+    };
+    const DOC_SSA: GraphDocument = {
+      id: 'doc-ssa',
+      title: 'Social Security Act — Title XIX (Medicaid)',
+      documentType: 'federal_statute',
+      policyNumber: 'SSA-Title-19',
+      effectiveDate: null,
+      url: 'https://example.com/ssa-title-19',
+      sections: [
+        {
+          id: 'sec-1915',
+          number: '1915',
+          title: 'Section 1915. Compliance with State plan and payment provisions',
+          content: 'Section 1915(c) authorizes home and community-based services waivers for Medicaid.',
+          chars: 900,
+        },
+      ],
+    };
+
+    const { corpus } = createCorpus([
+      {
+        label: 'vector federal',
+        match: queries.sectionVector('federal_regulation'),
+        result: {
+          records: [
+            hitFor(DOC_430, 'sec-43025', 1.0),
+            hitFor(DOC_441, 'sec-441300', 0.97),
+            hitFor(DOC_441, 'sec-441301', 0.95),
+            hitFor(DOC_SSA, 'sec-1915', 0.92),
+          ],
+        },
+      },
+      ...documentGraphHandlers(DOC_441),
+      ...documentGraphHandlers(DOC_430),
+      ...documentGraphHandlers(DOC_SSA),
+    ]);
+
+    const frame = await resolveTypedFrame(
+      corpus,
+      'federal_authority',
+      'Where in the federal regulations is the authority for 1915(c) HCBS waivers?',
+    );
+
+    const primaryNumbers = frame.primarySections.map((section) => section.sectionNumber);
+    expect(primaryNumbers.some((sectionNumber) => sectionNumber?.startsWith('441.30'))).toBe(true);
+    expect(primaryNumbers).toContain('1915');
+    expect(frame.authoritativeDocuments[0]?.policyNumber).toBe('42-CFR-441');
+    expect(frame.primarySections[0]?.sectionNumber).not.toBe('430.25');
+  });
+});

@@ -370,6 +370,17 @@ export const TITLE_CLUSTER_STOPWORDS = new Set([
   'supplies',
   'waiver',
 ]);
+// Statutory/regulatory program-name glossary: acronym ↔ the official
+// multi-word name as it appears in statute and CFR section HEADINGS. Pure
+// legal vocabulary — not derived from any eval question or expected answer.
+// Applied only inside the federal-authority frame's focus terms so the
+// bitwise-pinned search/rerank scores stay untouched.
+export const FEDERAL_PROGRAM_NAME_EXPANSIONS: ReadonlyArray<{ token: string; expansions: string[] }> = [
+  { token: 'epsdt', expansions: ['early and periodic screening'] },
+  { token: 'hcbs', expansions: ['home and community-based services'] },
+  { token: 'mlr', expansions: ['medical loss ratio'] },
+];
+
 export const VARIANT_SETTING_TERMS: Array<{ terms: string[]; titleTerms: string[]; reason: string }> = [
   {
     terms: ['congregate', 'adult care home', 'group home', 'ach', 'assisted living', 'assisted living facility'],

@@ -344,8 +344,27 @@ export function isWaiverAuthorityQuery(queryLower: string): boolean {
   if (!/\b1915\s*\(c\)(?!\w)/.test(queryLower)) return false;
   return (
     /\bauthoriz(e|es|ed|ing|ation)\b/.test(queryLower) ||
-    /\bfederal (authority|regulation|rule|law)\b/.test(queryLower) ||
+    /\bauthority\b/.test(queryLower) ||
+    /\bfederal (authority|regulations?|rules?|laws?|statutes?)\b/.test(queryLower) ||
     /\bwhat (?:regulation|rule|law|section|provision)\b/.test(queryLower)
+  );
+}
+
+/**
+ * Authority-citation phrasing: the question asks WHICH statute/regulation
+ * creates or governs something ("what federal authority establishes EPSDT",
+ * "statutory basis for...", "which regulation governs..."). Broader than the
+ * waiver-specific predicate above — consulted only inside the
+ * federal-authority frame, where it turns on statute+regulation pairing.
+ * Generic legal phrasing only; no program or section identifiers.
+ */
+export function asksForAuthorityCitation(queryLower: string): boolean {
+  return (
+    /\bauthoriz(e|es|ed|ing|ation)\b/.test(queryLower) ||
+    /\bauthority\b/.test(queryLower) ||
+    /\bstatutory basis\b/.test(queryLower) ||
+    /\bestablish(es|ed|ing)?\b/.test(queryLower) ||
+    /\bgoverns?\b/.test(queryLower)
   );
 }
 

@@ -32,3 +32,33 @@ describe('federal authority signals', () => {
     expect(signals.publicNoticeQuery).toBe(true);
   });
 });
+
+describe('authority-citation signals', () => {
+  it('recognizes authority-citation phrasing', () => {
+    const signals = buildFederalAuthoritySignals(
+      'What federal statute establishes the EPSDT benefit for children on Medicaid?',
+    );
+    expect(signals.authorityCitationQuery).toBe(true);
+  });
+
+  it('does not fire for application-process questions without authority phrasing', () => {
+    const signals = buildFederalAuthoritySignals(
+      'How does a state submit a 1915(c) waiver application to CMS?',
+    );
+    expect(signals.authorityCitationQuery).toBe(false);
+  });
+
+  it('expands program acronyms in focus terms with their statutory names', () => {
+    const signals = buildFederalAuthoritySignals(
+      'What federal authority establishes the EPSDT benefit?',
+    );
+    expect(signals.focusTerms).toContain('early and periodic screening');
+  });
+
+  it('recognizes 1915(c) authority questions phrased with plural regulations', () => {
+    const signals = buildFederalAuthoritySignals(
+      'Where in the federal regulations is the authority for 1915(c) HCBS waivers?',
+    );
+    expect(signals.waiverAuthorityQuery).toBe(true);
+  });
+});
