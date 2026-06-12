@@ -1,0 +1,210 @@
+--- [U|high|bug] crawler-src:0 packages/crawler/src/index.ts:191
+Crawl command immediately re-fetches every document it just downloaded in the same run
+In the `crawl` action, the download phase (line 158) processes status='discovered' docs and `updateDownloaded` sets their status to 'downloaded'. Only afterwards, line 191 calls `registry.getDocumentsToCheck()`, which selects status IN ('downloaded',
+FIX: 
+
+--- [U|high|bug] crawler-src:1 packages/crawler/src/db/registry.ts:171
+Documents marked 'error' (or transiently 404'd) are permanently stranded with no retry path
+`getToDownloadStmt` selects only status='discovered' and `getToCheckStmt` selects only ('downloaded','updated','unchanged'). Once `markError` sets status='error' (or `markRemoved` sets 'removed' on a transient 404 — see index.ts:177), the document is
+FIX: 
+
+--- [U|high|bug] crawler-src:2 packages/crawler/src/crawl/downloader.ts:31
+HTML error pages pass the magic-byte gate and are saved as .pdf — comment claims the opposite
+`detectedTypeMatchesAllowedFormats` is permissive when `detectedMime` is null, and the `file-type` library only detects binary formats — it explicitly cannot detect text-based formats like HTML or plain text. So for a soft-404/maintenance/login HTML 
+FIX: 
+
+--- [U|high|performance] pipeline-parse-graph:0 packages/pipeline/src/pipeline/graph/corpus_writer.py:177
+Every document load wipes embeddings and chunks, defeating incremental embedding and forcing a full corpus re-embed on each run-all
+_cleanup_document_sections (called unconditionally from _write_sections at line 163) runs CLEAR_SECTION_CHUNKS_AND_EMBEDDINGS_BATCH, which sets s.embedding = NULL and deletes all Chunk nodes for every section of every document being written — even wh
+FIX: 
+
+--- [U|critical|bug] pipeline-refs-federal:0 packages/pipeline/src/pipeline/federal/ssa_client.py:79
+SSA_TO_USC mapping is shifted by one for SSA 1944-1947 and wrong for 1901, so statute text is stored under the wrong SSA section numbers
+The table maps "1944": "1396w-4", "1945": "1396w-5", "1946": "1396w-6", "1947": "1396w-7". The actual codification is: SSA 1944 = 42 USC 1396w-3a (PDMP requirements), SSA 1945 = 1396w-4 (health homes for chronic conditions — the heavily-cited 'Sectio
+FIX: 
+
+--- [U|high|bug] pipeline-refs-federal:1 packages/pipeline/src/pipeline/federal/ssa_parser.py:59
+Section-heading regex cannot match headings containing inner HTML tags — SSA 1913, 1916, 1916A, and 2112 are silently missing from the corpus
+uscode.house.gov italicizes the letters l and o in section numbers to distinguish them from 1/0: the cached HTML contains '&sect;1396<i>l</i>.', '&sect;1396<i>o</i>.', '&sect;1396<i>o</i>&ndash;1.', and '&sect;1397<i>ll</i>.'. The pattern's number cl
+FIX: 
+
+--- [U|high|bug] pipeline-refs-federal:2 packages/pipeline/src/pipeline/federal/ssa_parser.py:75
+Base-number fallback aliases unmapped USC sections onto their parent SSA number, producing duplicate section IDs that overwrite each other in Neo4j
+When USC_TO_SSA has no entry, the fallback re.match(r"(\d+[a-z]*(?:-\d+)?)") strips trailing letter suffixes and reuses the parent's SSA number. Verified with the cached HTML: 1396w-3a (PDMP) falls back to base '1396w-3' → SSA '1943', and 1396w-4a (A
+FIX: 
+
+--- [U|high|bug] pipeline-refs-federal:3 packages/pipeline/src/pipeline/federal/ssa_parser.py:88
+50K-char truncation silently drops 65-94% of the most-cited Medicaid statutes (SSA 1902, 1905, 1915, 1917, 1919, 1927)
+Measured against the cached HTML: 42 USC 1396a (SSA 1902, State plan requirements) extracts to 806,093 chars of text but only the first 50,000 (6%) are kept; 1396d (SSA 1905, Definitions) keeps 21%; 1396r (1919) 32%; 1396r-8 (1927, drug rebates) 35%.
+FIX: 
+
+--- [U|high|bug] pipeline-refs-federal:4 packages/pipeline/src/pipeline/references/extractor.py:40
+CFR regex misses the dotted 'C.F.R.' form (~10K corpus occurrences) and the 'CFR Part N' form, so most federal citations are never extracted
+The pattern r"(\d+)\s*CFR\s*§?\s*([\d]+(?:\.[\d]+)*)" requires the contiguous literal 'CFR' immediately followed by digits. The parsed corpus contains 9,979 matches for 'C.F.R.' (e.g. '42 C.F.R. § 441.301(c)', '42 C.F.R. § 438.14(b)' in bulletins/pro
+FIX: 
+
+--- [U|high|bug] pipeline-refs-federal:5 packages/pipeline/src/pipeline/references/resolver.py:143
+CFR supersession remap fabricates section numbers across parts: '45 CFR 75.326' (procurement, cited 4x in the NC State Plan) resolves to 2 CFR 200.326 'Bonding requirements'
+parse_cfr_citation rewrites a superseded citation's section number by string-replacing the part prefix: 75.326 → '200' + '.326' = 200.326. This assumes the replacement part shares section numbering, which is false for both configured supersessions. T
+FIX: 
+
+--- [U|high|bug] pipeline-eval:0 packages/pipeline/src/pipeline/eval/results.py:27
+Rollup sums None recall/mrr for rows deemed scorable, crashing save_result and losing the entire run
+_compute_retrieval_rollup defines scorable rows as `q.get("precision") is not None` (line 21) but then computes `sum(q["recall"] for q in scorable)` and `sum(q["mrr"] ...)` unguarded (lines 27-28). Two producers emit rows with precision set but recal
+FIX: 
+
+--- [U|high|bug] pipeline-eval:1 packages/pipeline/src/pipeline/eval/reports.py:110
+print_answer_report crashes whenever a run contains a judge error (None score values)
+Judge errors produce scores dicts with all-None values (answer.py:531-539), and the harness explicitly tracks judge_errors as an expected condition. But print_answer_report assumes numeric scores: line 110-111 `vals = [q["scores"].get(dim, 0) for q i
+FIX: 
+
+--- [U|high|bug] pipeline-eval:2 packages/pipeline/src/pipeline/eval/results.py:21
+Citation aggregates silently drop zero-citation answers, inflating recall and primary_hit_rate
+For the citation level, an answer with no markdown citations yields precision=None but recall=0.0 (citation.py:97-103, unit-tested in test_no_citations_emits_none_precision). Because _compute_retrieval_rollup keys scorability solely on precision bein
+FIX: 
+
+--- [U|high|bug] pc-frame-rest:0 packages/policy-corpus/src/frame/rebalance/federal-authority.ts:110
+Float comparison of CFR section numbers conflates EPSDT Subpart B with Community First Choice Subpart K
+EPSDT_HINT.isPrimary uses `Number.parseFloat(sn)` and the range check `num >= 441.5 && num < 441.63` to whitelist EPSDT regs (comment says §§ 441.50–441.62). parseFloat cannot distinguish two-digit from three-digit CFR subsections: parseFloat('441.50
+FIX: 
+
+--- [U|high|bug] pc-frame-rest:1 packages/policy-corpus/src/frame/context/finalize.ts:79
+finalizeFrame hydrates avoidCandidates with a fresh seen-set, so the same section ships as both primary and avoid
+Primary and supporting hydration share `seenSectionIds`, but the avoid hydration call omits it (`hydrateSectionCandidates(avoidCandidates, FRAME_AVOID_LIMIT)` creates a new Set via the default parameter in hydration.ts:30). Overlap is near-guaranteed
+FIX: 
+
+--- [U|high|bug] pc-retrieval:0 packages/policy-corpus/src/retrieval/backends/section-vector.ts:11
+Per-type-group vector queries are identical global ANN calls post-filtered by type — no per-group coverage, 5-8x wasted queries
+`db.index.vector.queryNodes('section_embeddings', $k, $embedding)` returns the global top-k nearest sections; the subsequent `MATCH (d)-[:HAS_SECTION]->(s) WHERE d.document_type IN $docTypes` only filters that same top-k. The loop over `profile.typeG
+FIX: 
+
+--- [U|high|bug] pc-internal:0 packages/policy-corpus/src/internal/query-intent.ts:456
+queryMentionsPolicyNumber uses raw substring containment — any query containing the digit '9' boosts Policy 9
+queryMentionsPolicyNumber returns queryLower.includes(normalizeSearchText(policyNumber)). The corpus contains single/double-digit policy numbers ('9' for outpatient pharmacy — confirmed in tests/policy-corpus.test.ts:2348; '15' for ambulance — extrac
+FIX: 
+
+--- [U|high|bug] pc-internal:1 packages/policy-corpus/src/internal/search.ts:88
+extractSearchTerms duplicates every token via [token, ...token.split()] producing garbage 'X X' phrases on every query
+Line 88: .flatMap((token) => [token, ...token.split(/[/-]+/)]) — for a token with no '/' or '-', split returns [token] itself, so every plain token appears twice in orderedTokens. The phrase loop (lines 93-101) then pairs adjacent orderedTokens, gene
+FIX: 
+
+--- [U|high|bug] pc-internal:2 packages/policy-corpus/src/internal/query-intent.ts:386
+detectAnswerQuestionType priority order misroutes natural domain questions ('most recent X' -> amendment; 'federal prior authorization' -> prior_authorization)
+detectAnswerQuestionType checks isChangeNoticeQuery first, and isChangeNoticeQuery (line 469) matches bare 'most recent' or 'amendment'/'amended'. So 'What is the most recent income limit for HCWD?' is typed 'amendment', and because 'most recent' als
+FIX: 
+
+--- [U|high|bug] agent-core:0 packages/agent/src/feedback/routes.ts:68
+DELETE /feedback/:id always throws: c.json(null, 204) builds a 204 Response with a body
+Hono's c.json() calls JSON.stringify(object) — JSON.stringify(null) is the string 'null' — and passes it straight to new Response(body, {status}) (verified in node_modules/hono/dist/context.js: createResponseInstance has no null-body-status guard). I
+FIX: 
+
+--- [U|high|bug] agent-core:1 packages/agent/src/index.ts:236
+Web chat path runs with Mastra's default 5-step limit while CLI/eval runs 99 steps with forced synthesis
+The CLI runner passes `maxSteps: MAX_STEPS` (99) and `onIterationComplete` (forced final-answer synthesis) to agent.generate(), but chatRoute's defaultOptions (lines 240-248) contain neither, and the web client (packages/web/src/app/chat/page.tsx) se
+FIX: 
+
+--- [U|high|security] agent-core:2 packages/agent/src/index.ts:229
+No server-side binding of memory resource to the authenticated user — cross-user thread/working-memory access (IDOR)
+authorizeUser() is overridden to `return true` for every authenticated WorkOS user, and nothing maps the authenticated user to the memory `resource`. The chat body's `memory: {thread, resource}` is entirely client-supplied (verified: @mastra/ai-sdk h
+FIX: 
+
+--- [U|high|bug] agent-tools:0 packages/agent/src/tools/answer-frame.ts:13
+AnswerFrameSectionSchema silently strips lastRevised/federalRegisterCite that the system prompt tells the model to use
+The corpus's AnswerFrameSection extends SectionView, which includes lastRevised and federalRegisterCite (packages/policy-corpus/src/types.ts:54-56; populated by buildSectionView from eCFR <CITA> tags). AnswerFrameSectionSchema (lines 13-35) declares 
+FIX: 
+
+--- [U|high|bug] agent-tools:1 packages/agent/src/tools/lookup.ts:9
+lookupPolicy description example "42 CFR 440" can never match — federal policy numbers are stored hyphenated (42-CFR-440)
+The tool description teaches the model to pass policy numbers like "42 CFR 440", but the pipeline stores federal regulation policy_number as `f"{title}-CFR-{part}"` (packages/pipeline/src/pipeline/federal/loader.py:86, e.g. "42-CFR-440"; statutes as 
+FIX: 
+
+--- [U|high|bug] agent-processors:0 packages/agent/src/processors/hallucination-verifier.ts:873
+Verifier rewrite clobbers every text part of every assistant message, not just the final answer
+When the verifier rewrites, the returned messages are produced by `messages.map(...)` which, for EVERY message with role 'assistant', replaces EVERY `type: 'text'` part with the full corrected answer. Two failure modes are concrete: (1) The system pr
+FIX: 
+
+--- [U|high|bug] agent-processors:1 packages/agent/src/processors/hallucination-verifier.ts:149
+Section citationLink/url dropped from verifier evidence, making citation validation unsound and suggested citations fabricable
+The agent is instructed (prompt.ts 'Citation requirements') to cite the per-section `citationLink` verbatim, and the tool schemas return it (tools/read.ts:31, tools/answer-frame.ts:24). But `extractGetSection` (lines 149-163) and `formatFrameSection`
+FIX: 
+
+--- [U|high|bug] agent-tests-processors:0 packages/agent/src/processors/hallucination-verifier.ts:873
+Verifier rewrite path clobbers every assistant message, including prior turns
+Cross-reference bug found while reviewing test coverage. On the rewrite path, processOutputStep returns `messages.map(...)` which replaces the text part of EVERY assistant message with the corrected answer for the current turn. The test file's own mu
+FIX: 
+
+--- [U|high|bug] agent-tests-rest:0 packages/agent/src/feedback/routes.ts:68
+DELETE /feedback/:id always returns 500: c.json(null, 204) throws in Hono
+The delete handler returns `c.json(null, 204)`. Per the fetch spec, constructing a Response with a body and a null-body status (204) throws. Reproduced against the repo's installed hono 4.12.9: `c.json(null, 204)` throws `TypeError: Response construc
+FIX: 
+
+--- [U|high|testing] agent-tests-rest:2 .github/workflows/ci.yml:14
+Agent Neo4j integration suites are silently skipped in CI despite provisioned Neo4j
+The workflow provisions a Neo4j service with the comment 'Provision via docker service so `RUN_NEO4J_INTEGRATION=1` paths exercise', but no step ever sets RUN_NEO4J_INTEGRATION=1 and nothing runs `test:integration`. The job env only sets NEO4J_URI/US
+FIX: 
+
+--- [U|high|bug] web-app-lib:0 packages/web/src/app/chat/page.tsx:218
+Thread switch race: stale loadThread response overwrites the newly selected thread's messages and feedback
+loadThread awaits listMessages and then calls setMessages(converted) and setFeedbackMap(map) with no guard that the user is still on thread `tid`. In @ai-sdk/react, setMessages writes through chatRef.current, which is swapped to the new Chat instance
+FIX: 
+
+--- [U|high|bug] web-app-lib:1 packages/web/src/app/chat/page.tsx:364
+handleComment discards the rotated feedback id, so clearing a rating after commenting silently fails and reverts
+The agent's feedback upsert rotates the row id on every POST (packages/agent/src/feedback/repository.ts: `DO UPDATE SET id = excluded.id`, returning a fresh crypto.randomUUID()). handleRate captures the returned id (line 335), but handleComment calls
+FIX: 
+
+--- [U|high|bug] web-components:0 packages/web/src/components/ScrollToBottom.tsx:21
+Scroll-to-bottom button can never appear in production builds
+The effect attaches the scroll listener only if `viewportRef.current` is non-null when it runs. But the ref is populated by the parent's own effect in app/chat/page.tsx:192-195 (`viewportRef.current = el`), and child effects run before parent effects
+FIX: 
+
+--- [U|high|bug] web-tests:0 packages/web/src/components/ScrollToBottom.tsx:21
+Scroll-to-bottom button can never appear: effect runs before viewportRef is assigned and never re-runs; component has zero test coverage
+Found via coverage-gap analysis: ScrollToBottom is mocked to `() => null` in ChatPage.test.tsx (line 49) and no unit or e2e test covers it (scroll-stability.spec.ts tests only layout stability). The component is in fact dead in production: its effect
+FIX: 
+
+--- [U|high|bug] e2e-infra:0 e2e/tests/smoke/chat-roundtrip.spec.ts:9
+Smoke reachability probe hits auth-protected /api/agents, so the suite always silently skips
+The beforeAll probe does `fetch(`${AGENT_URL}/api/agents`)` with no Authorization header. The agent server configures `MastraAuthWorkos` (packages/agent/src/index.ts:228) and Mastra's defaultAuthConfig protects `/api/*` (verified in node_modules/@mas
+FIX: 
+
+--- [U|high|bug] e2e-infra:1 e2e/tests/smoke/chat-roundtrip.spec.ts:38
+Asserts on removed 'research-trace' testid — test cannot pass if it ever runs
+`page.getByTestId('research-trace')` references a testid that no longer exists anywhere in packages/web (the full data-testid inventory has `tool-step` etc., no `research-trace`). Commit 9c2b44e 'refactor(web): replace ResearchTrace with collapsible 
+FIX: 
+
+--- [U|high|docs] e2e-infra:2 RUNBOOK.md:28
+RUNBOOK/.env.example/README all claim the agent defaults to Claude Haiku — actual default is OpenAI gpt-5.4
+RUNBOOK's env table (line 19) says AGENT_MODEL defaults to `claude-haiku-4-5-20251001` and the Model Selection section (lines 26-39) says 'The agent defaults to Haiku for cost efficiency'. .env.example line 6 repeats this ('Haiku for dev'). README.md
+FIX: 
+
+--- [U|critical|security] xc-security:0 packages/agent/src/index.ts:229
+IDOR: any authenticated user can read/modify/delete another user's threads and messages (resourceId is client-supplied, not bound to the session)
+The agent server enforces WorkOS authentication on all routes (good), but authorization is broken. The custom auth provider overrides `authorizeUser() { return true }` (line 229), so every authenticated WorkOS user passes authorization for every rout
+FIX: 
+
+--- [U|high|bug] xc-architecture:0 packages/agent/src/index.ts:240
+Web /chat path lacks the maxSteps cap and forced-synthesis safeguard that the eval CLI path has
+The CLI/eval runner calls agent.generate with maxSteps: MAX_STEPS (99) and onIterationComplete (lines 291-295), which forces the model to synthesize a final answer when it nears the step limit (lines 162-174). The production chatRoute's defaultOption
+FIX: 
+
+--- [U|high|bug] xc-ux-guidelines:0 packages/web/src/components/ScrollToBottom.tsx:21
+Scroll-to-bottom button can never appear in production: scroll listener attaches before viewportRef is populated and never re-attaches
+The effect's deps are [viewportRef, checkScroll] — both referentially stable (viewportRef is a useRef object from ChatPage; checkScroll is useCallback([viewportRef])). So the effect runs exactly once at mount. But viewportRef.current is only set by t
+FIX: 
+
+--- [U|high|ux] xc-ux-guidelines:1 packages/web/src/app/chat/page.tsx:145
+Auto-scroll fires on every stream chunk, yanking the user back to the bottom while they read (scrolljacking)
+The effect with deps [messages, status] calls viewport.scrollTo({top: scrollHeight, behavior: 'smooth'}) unconditionally. useChat replaces the messages array on every streamed chunk, so during a long answer the page scrolls to the bottom many times p
+FIX: 
+
+--- [U|high|testing] xc-deps-config:0 .github/workflows/ci.yml:14
+CI provisions a Neo4j service that nothing uses; integration tests silently never run
+The comment (lines 13-14) says the Neo4j service exists 'so RUN_NEO4J_INTEGRATION=1 paths exercise' and for eval-validate. But CI never sets RUN_NEO4J_INTEGRATION (the agent integration suites in packages/agent/tests/integration/*.integration.test.ts
+FIX: 
+
+--- [U|high|bug] xc-deps-config:3 packages/agent/package.json:16
+Agent imports `ai` and `@mastra/loggers` without declaring them (phantom deps)
+Runtime imports exist for both: `import { generateObject } from 'ai'` in src/policy-corpus-reranker.ts:2 and src/processors/hallucination-verifier.ts:1, and `import { PinoLogger } from '@mastra/loggers'` in src/index.ts:36. Neither appears in package
+FIX: 
+
