@@ -1555,7 +1555,7 @@ describe('Neo4jPolicyCorpus', () => {
         result: { records: [] },
       },
       {
-        match: (query, params) => query.includes('MATCH (d:Document)') && params.pn === '10A',
+        match: (query, params) => query.includes('MATCH (d:Document)') && params.pns?.[0] === '10A',
         result: {
           records: [
             mockRecord({
@@ -1698,7 +1698,7 @@ describe('Neo4jPolicyCorpus', () => {
         result: { records: [] },
       },
       {
-        match: (query, params) => query.includes('MATCH (d:Document)') && params.pn === '10A',
+        match: (query, params) => query.includes('MATCH (d:Document)') && params.pns?.[0] === '10A',
         result: {
           records: [
             mockRecord({
@@ -1857,7 +1857,7 @@ describe('Neo4jPolicyCorpus', () => {
         result: { records: [] },
       },
       {
-        match: (query, params) => query.includes('MATCH (d:Document)') && params.pn === '10A',
+        match: (query, params) => query.includes('MATCH (d:Document)') && params.pns?.[0] === '10A',
         result: {
           records: [
             mockRecord({
@@ -2014,7 +2014,7 @@ describe('Neo4jPolicyCorpus', () => {
         result: { records: [] },
       },
       {
-        match: (query, params) => query.includes('MATCH (d:Document)') && params.pn === '10A',
+        match: (query, params) => query.includes('MATCH (d:Document)') && params.pns?.[0] === '10A',
         result: {
           records: [
             mockRecord({
@@ -2397,7 +2397,7 @@ describe('Neo4jPolicyCorpus', () => {
         result: { records: [] },
       },
       {
-        match: (query, params) => query.includes('MATCH (d:Document)') && params.pn === '9',
+        match: (query, params) => query.includes('MATCH (d:Document)') && params.pns?.[0] === '9',
         result: {
           records: [
             mockRecord({
@@ -2540,7 +2540,7 @@ describe('Neo4jPolicyCorpus', () => {
         result: { records: [] },
       },
       {
-        match: (query, params) => query.includes('MATCH (d:Document)') && params.pn === '3K-2',
+        match: (query, params) => query.includes('MATCH (d:Document)') && params.pns?.[0] === '3K-2',
         result: {
           records: [
             mockRecord({
@@ -2724,7 +2724,7 @@ describe('Neo4jPolicyCorpus', () => {
         result: { records: [] },
       },
       {
-        match: (query, params) => query.includes('MATCH (d:Document)') && params.pn === '10A',
+        match: (query, params) => query.includes('MATCH (d:Document)') && params.pns?.[0] === '10A',
         result: {
           records: [
             mockRecord({
@@ -2891,7 +2891,7 @@ describe('Neo4jPolicyCorpus', () => {
         result: { records: [] },
       },
       {
-        match: (query, params) => query.includes('MATCH (d:Document)') && params.pn === '5B',
+        match: (query, params) => query.includes('MATCH (d:Document)') && params.pns?.[0] === '5B',
         result: {
           records: [
             mockRecord({
@@ -3144,7 +3144,7 @@ describe('Neo4jPolicyCorpus', () => {
         result: { records: [] },
       },
       {
-        match: (query, params) => query.includes('MATCH (d:Document)') && params.pn === '3K-2',
+        match: (query, params) => query.includes('MATCH (d:Document)') && params.pns?.[0] === '3K-2',
         result: {
           records: [
             mockRecord({
@@ -3396,7 +3396,7 @@ describe('Neo4jPolicyCorpus', () => {
         result: { records: [] },
       },
       {
-        match: (query, params) => query.includes('MATCH (d:Document)') && params.pn === '3L-1',
+        match: (query, params) => query.includes('MATCH (d:Document)') && params.pns?.[0] === '3L-1',
         result: {
           records: [
             mockRecord({
@@ -3417,7 +3417,7 @@ describe('Neo4jPolicyCorpus', () => {
         },
       },
       {
-        match: (query, params) => query.includes('MATCH (d:Document)') && params.pn === '3L',
+        match: (query, params) => query.includes('MATCH (d:Document)') && params.pns?.[0] === '3L',
         result: {
           records: [
             mockRecord({
@@ -3657,7 +3657,7 @@ describe('Neo4jPolicyCorpus', () => {
         result: { records: [] },
       },
       {
-        match: (query, params) => query.includes('MATCH (d:Document)') && params.pn === '15',
+        match: (query, params) => query.includes('MATCH (d:Document)') && params.pns?.[0] === '15',
         result: {
           records: [
             mockRecord({
@@ -3800,7 +3800,7 @@ describe('Neo4jPolicyCorpus', () => {
         result: { records: [] },
       },
       {
-        match: (query, params) => query.includes('MATCH (d:Document)') && params.pn === '3D',
+        match: (query, params) => query.includes('MATCH (d:Document)') && params.pns?.[0] === '3D',
         result: {
           records: [
             mockRecord({
@@ -4023,7 +4023,7 @@ describe('Neo4jPolicyCorpus', () => {
         },
       },
       {
-        match: (query, params) => query.includes('MATCH (d:Document)') && params.pn === 'MA-2180',
+        match: (query, params) => query.includes('MATCH (d:Document)') && params.pns?.[0] === 'MA-2180',
         result: {
           records: [
             mockRecord({
@@ -4330,7 +4330,7 @@ describe('Neo4jPolicyCorpus', () => {
         result: { records: [] },
       },
       {
-        match: (query, params) => query.includes('MATCH (d:Document)') && params.pn === '9A',
+        match: (query, params) => query.includes('MATCH (d:Document)') && params.pns?.[0] === '9A',
         result: {
           records: [
             mockRecord({
@@ -4492,7 +4492,7 @@ describe('Neo4jPolicyCorpus', () => {
         result: { records: [] },
       },
       {
-        match: (query, params) => query.includes('MATCH (d:Document)') && params.pn === '9',
+        match: (query, params) => query.includes('MATCH (d:Document)') && params.pns?.[0] === '9',
         result: {
           records: [
             mockRecord({
@@ -6036,7 +6036,7 @@ describe('Neo4jPolicyCorpus', () => {
         result: { records: [] },
       },
       {
-        match: (query, params) => query.includes('MATCH (d:Document)') && params.pn === '3K-2',
+        match: (query, params) => query.includes('MATCH (d:Document)') && params.pns?.[0] === '3K-2',
         result: {
           records: [
             mockRecord({
@@ -6563,7 +6563,7 @@ describe('Neo4jPolicyCorpus', () => {
   it('resolvePolicyVariantFrame picks the matching sibling policy and explains why', async () => {
     const { corpus } = createCorpusWithSearchHandlers([
       {
-        match: (query, params) => query.includes('MATCH (d:Document)') && params.pn === '3L',
+        match: (query, params) => query.includes('MATCH (d:Document)') && params.pns?.[0] === '3L',
         result: {
           records: [
             mockRecord({
@@ -6580,7 +6580,7 @@ describe('Neo4jPolicyCorpus', () => {
         },
       },
       {
-        match: (query, params) => query.includes('MATCH (d:Document)') && params.pn === '3L-1',
+        match: (query, params) => query.includes('MATCH (d:Document)') && params.pns?.[0] === '3L-1',
         result: {
           records: [
             mockRecord({

@@ -6,11 +6,12 @@ import { DocumentMetadataSchema } from './document-metadata.js';
 export const lookupPolicy = createTool({
   id: 'lookup-policy',
   description:
-    'Look up a policy document by its policy number (e.g. "8C", "1A-1", "42 CFR 440"). ' +
+    'Look up a policy document by its policy number (e.g. "8C", "1A-1", "42 CFR 440", "SSA Title 19"). ' +
+    'Federal citations may be written naturally ("42 CFR 440", "42 C.F.R. § 440.230") — they are normalized to the stored form. ' +
     'Returns the document metadata and a list of its sections. ' +
     'Use this when the user or a cross-reference mentions a specific policy number.',
   inputSchema: z.object({
-    policyNumber: z.string().describe('The policy number to look up (e.g. "8C", "1A-1")'),
+    policyNumber: z.string().describe('The policy number to look up (e.g. "8C", "1A-1", "42 CFR 440")'),
   }),
   outputSchema: z.object({
     documents: z.array(
