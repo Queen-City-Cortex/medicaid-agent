@@ -4,6 +4,7 @@
 
 import { describe, expect, it } from 'vitest';
 import {
+  strictRecord,
   containerChildrenRecord,
   contextEntryRecord,
   createCorpus,
@@ -302,8 +303,53 @@ describe('lookupPolicy', () => {
           { id: 'sec-1', number: '1', title: 'Introduction' },
           { id: 'sec-2', number: '2', title: 'Coverage' },
         ],
+        supersession: null,
       },
     ]);
+  });
+
+  it('returns a structured supersession note when a SUPERSEDED_BY edge exists', async () => {
+    const { corpus } = createCorpusWithRuns([
+      {
+        records: [
+          strictRecord({
+            id: 'doc:federal_regulation:45-CFR-74',
+            title: '45 CFR Part 74',
+            documentType: 'federal_regulation',
+            policyNumber: '45-CFR-74',
+            effectiveDate: '2025-10-01',
+            url: 'https://www.ecfr.gov/current/title-45/part-74',
+            status: 'superseded',
+            authorityTier: null,
+            answerRole: null,
+            sourceFormat: null,
+            answerReady: false,
+            corpusBucket: null,
+            variantGroup: null,
+            variantDate: null,
+            retrievalReady: false,
+            sections: [],
+            supersessionEffective: '2025-10-01',
+            supersessionReason: '45 CFR Part 74 was superseded by Part 75 in Dec 2014; both were rescinded in favor of 2 CFR Part 200.',
+            supersededByPolicyNumber: '2-CFR-200',
+            supersededByTitle: '2 CFR Part 200',
+            supersededByUrl: 'https://www.ecfr.gov/current/title-2/part-200',
+          }),
+        ],
+      },
+    ]);
+
+    const documents = await corpus.lookupPolicy({ policyNumber: '45 CFR 74' });
+
+    expect(documents).toHaveLength(1);
+    expect(documents[0].status).toBe('superseded');
+    expect(documents[0].supersession).toEqual({
+      byPolicyNumber: '2-CFR-200',
+      byTitle: '2 CFR Part 200',
+      citationLink: '[2 CFR Part 200](https://www.ecfr.gov/current/title-2/part-200)',
+      effective: '2025-10-01',
+      reason: '45 CFR Part 74 was superseded by Part 75 in Dec 2014; both were rescinded in favor of 2 CFR Part 200.',
+    });
   });
 
   it('returns an empty list when no document matches the policy number', async () => {

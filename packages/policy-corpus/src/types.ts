@@ -41,6 +41,18 @@ export interface DocumentSectionView {
 
 export interface DocumentWithSectionsView extends DocumentView {
   sections: DocumentSectionView[];
+  /** Structured supersession note when this document has been superseded
+   *  (SUPERSEDED_BY edge in the graph): what replaced it, when, and why.
+   *  Null for current documents. */
+  supersession?: DocumentSupersessionView | null;
+}
+
+export interface DocumentSupersessionView {
+  byPolicyNumber: string | null;
+  byTitle: string | null;
+  citationLink: string | null;
+  effective: string | null;
+  reason: string | null;
 }
 
 export interface SectionView {

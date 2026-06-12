@@ -5,9 +5,10 @@ from rich.console import Console
 from pipeline.config import CFR_PARTS
 from pipeline.federal.ecfr_client import fetch_part_xml
 from pipeline.federal.parser import parse_part_xml
-from pipeline.graph.corpus_types import DocumentBundle, DocumentNode, SectionNode
+from pipeline.graph.corpus_types import DocumentBundle, DocumentNode, SectionNode, SupersessionEdge
 from pipeline.graph.corpus_writer import graph_writer
 from pipeline.graph.schema import ensure_schema
+from pipeline.references.supersessions import load_cfr_supersessions
 
 console = Console()
 
@@ -163,4 +164,69 @@ def load_all_cfr(part_filter: int | None = None, refresh: bool = False) -> dict:
             console.print(f"[red]ERROR: {e}[/red]")
             stats["errors"] += 1
 
+    # Superseded-part stubs go in AFTER the replacement parts so the
+    # SUPERSEDED_BY edge's MATCH on the target document finds it.
+    stub_stats = load_cfr_supersession_stubs()
+    stats["supersession_stubs"] = stub_stats["stubs"]
+    stats["supersession_edges"] = stub_stats["edges"]
+
+    return stats
+
+
+def load_cfr_supersession_stubs() -> dict:
+    """Create stub Documents for superseded CFR parts plus SUPERSEDED_BY edges.
+
+    Stubs carry no sections and are flagged answer_ready=False /
+    retrieval_ready=False with status='superseded', so they never enter
+    search or embedding — they exist so lookupPolicy('45 CFR 74') can return
+    the structured supersession note (what replaced it, when, and why) instead
+    of an empty result. The narrative lives in cfr-supersessions.json, not in
+    code.
+    """
+    supersessions = load_cfr_supersessions()
+    stats = {"stubs": 0, "edges": 0}
+
+    for entry in supersessions.values():
+        old_id = f"doc:federal_regulation:{entry.old_title}-CFR-{entry.old_part}"
+        new_id = f"doc:federal_regulation:{entry.new_title}-CFR-{entry.new_part}"
+        graph_writer.upsert_document_bundle(
+            DocumentBundle(
+                document=DocumentNode(
+                    id=old_id,
+                    title=f"{entry.old_title} CFR Part {entry.old_part}",
+                    document_type="federal_regulation",
+                    policy_number=f"{entry.old_title}-CFR-{entry.old_part}",
+                    category="federal",
+                    status="superseded",
+                    source_url=f"https://www.ecfr.gov/current/title-{entry.old_title}/part-{entry.old_part}",
+                    local_path="",
+                    pdf_path="",
+                    page_count=0,
+                    section_count=0,
+                    effective_date=entry.effective,
+                    authority_tier="supporting",
+                    answer_role=None,
+                    source_format="xml",
+                    answer_ready=False,
+                    retrieval_ready=False,
+                ),
+                sections=[],
+            )
+        )
+        stats["stubs"] += 1
+        stats["edges"] += graph_writer.merge_supersessions(
+            [
+                SupersessionEdge(
+                    source_id=old_id,
+                    target_id=new_id,
+                    effective=entry.effective,
+                    reason=entry.reason,
+                )
+            ]
+        )
+
+    if stats["stubs"]:
+        console.print(
+            f"  Supersession stubs: {stats['stubs']} documents, {stats['edges']} SUPERSEDED_BY edges"
+        )
     return stats

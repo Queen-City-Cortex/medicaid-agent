@@ -2,12 +2,12 @@
 
 import json
 import re
-from pathlib import Path
 
 from pipeline.graph.connection import get_session
 from pipeline.graph.corpus_types import ReferenceEdge
 from pipeline.graph.corpus_writer import graph_writer
 from pipeline.references.extractor import ReferenceMatch
+from pipeline.references.supersessions import CfrSupersession, load_cfr_supersessions
 from pipeline.config import PARSED_DATA_DIR
 
 # Matches "42 CFR 440.70" and variants with optional § and spaces
@@ -16,43 +16,11 @@ CFR_CITATION_RE = re.compile(
     re.IGNORECASE,
 )
 
-_CFR_SUPERSESSIONS_PATH = (
-    Path(__file__).resolve().parents[3] / "data" / "references" / "cfr-supersessions.json"
-)
-
-
-def _load_cfr_supersessions() -> dict[tuple[int, int], tuple[int, int]]:
-    """Load the (title, part) → (title, part) supersession map from the data file.
-
-    The file format uses 'TITLE:PART' string keys and a `replaces_with` object so
-    entries can carry provenance (effective date, reason). Fails open to an empty
-    mapping if the file is missing or malformed so reference resolution still works.
-    """
-    try:
-        payload = json.loads(_CFR_SUPERSESSIONS_PATH.read_text())
-    except (FileNotFoundError, json.JSONDecodeError):
-        return {}
-
-    raw = payload.get("supersessions") or {}
-    result: dict[tuple[int, int], tuple[int, int]] = {}
-    for key, entry in raw.items():
-        try:
-            old_title_str, old_part_str = key.split(":", 1)
-            old_title, old_part = int(old_title_str), int(old_part_str)
-            replacement = entry["replaces_with"]
-            new_title = int(replacement["title"])
-            new_part = int(replacement["part"])
-        except (ValueError, KeyError, TypeError):
-            continue
-        result[(old_title, old_part)] = (new_title, new_part)
-    return result
-
-
 # Superseded CFR parts: old → current. Citations to the old part resolve to the
-# replacement part instead. Data lives in packages/pipeline/data/references/
-# cfr-supersessions.json so additional supersessions can be added without code
-# changes.
-CFR_SUPERSESSIONS: dict[tuple[int, int], tuple[int, int]] = _load_cfr_supersessions()
+# replacement part instead. The shared loader keeps the effective/reason
+# provenance, which the federal loader writes to the graph; the resolver only
+# needs the replacement tuple.
+CFR_SUPERSESSIONS: dict[tuple[int, int], CfrSupersession] = load_cfr_supersessions()
 
 _CONTEXTUAL_DOCUMENT_REF_TYPES = {"cross_document", "spa", "waiver"}
 
@@ -143,7 +111,7 @@ def parse_cfr_citation(text: str) -> dict | None:
     # redirected citation resolves to the replacement part as a document.
     redirect = CFR_SUPERSESSIONS.get((title, part))
     if redirect:
-        new_title, new_part = redirect
+        new_title, new_part = redirect.new_title, redirect.new_part
         return {
             "title": new_title,
             "section": str(new_part),

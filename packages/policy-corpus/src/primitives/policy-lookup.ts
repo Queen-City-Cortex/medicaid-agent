@@ -1,4 +1,4 @@
-import type { DocumentWithSectionsView, LookupPolicyInput, SessionExecutor } from '../types.js';
+import type { DocumentSupersessionView, DocumentWithSectionsView, LookupPolicyInput, SessionExecutor } from '../types.js';
 import { documentMetadataReturn, mapDocumentMetadataRecord } from '../document-metadata.js';
 import { mapDocumentSections } from '../internal/shared.js';
 
@@ -25,22 +25,54 @@ export function candidatePolicyNumbers(raw: string): string[] {
   return [...candidates];
 }
 
+function stringField(record: { get(key: string): unknown }, key: string): string | null {
+  try {
+    const value = record.get(key);
+    return typeof value === 'string' && value.length > 0 ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+function mapSupersession(record: { get(key: string): unknown }): DocumentSupersessionView | null {
+  const byPolicyNumber = stringField(record, 'supersededByPolicyNumber');
+  const byTitle = stringField(record, 'supersededByTitle');
+  const reason = stringField(record, 'supersessionReason');
+  if (!byPolicyNumber && !byTitle && !reason) return null;
+  const url = stringField(record, 'supersededByUrl');
+  return {
+    byPolicyNumber,
+    byTitle,
+    citationLink: byTitle && url ? `[${byTitle}](${url})` : null,
+    effective: stringField(record, 'supersessionEffective'),
+    reason,
+  };
+}
+
 export function createPolicyLookupPrimitiveService({ withSession }: { withSession: SessionExecutor }) {
   const lookupPolicy = async ({ policyNumber }: LookupPolicyInput): Promise<DocumentWithSectionsView[]> => {
     const candidates = candidatePolicyNumbers(policyNumber);
     if (candidates.length === 0) return [];
 
     return withSession(async (session) => {
+      // The 0..1 supersession match runs BEFORE the section collect so it
+      // can't multiply section rows.
       const result = await session.run(
         `MATCH (d:Document)
          WHERE any(pn IN $pns WHERE
            d.policy_number = pn
            OR toLower(d.policy_number) = toLower(pn)
            OR d.policy_number STARTS WITH pn)
+         OPTIONAL MATCH (d)-[sup:SUPERSEDED_BY]->(cur:Document)
          OPTIONAL MATCH (d)-[:HAS_SECTION]->(s:Section)
          RETURN
            ${documentMetadataReturn('d')},
-           collect({id: s.id, number: s.section_number, title: s.title}) AS sections
+           collect({id: s.id, number: s.section_number, title: s.title}) AS sections,
+           sup.effective AS supersessionEffective,
+           sup.reason AS supersessionReason,
+           cur.policy_number AS supersededByPolicyNumber,
+           cur.title AS supersededByTitle,
+           cur.source_url AS supersededByUrl
          ORDER BY
            CASE WHEN toUpper(coalesce(d.title, '')) CONTAINS 'CHANGE NOTICE' THEN 1 ELSE 0 END,
            CASE WHEN coalesce(d.status, '') = 'amendment' THEN 1 ELSE 0 END,
@@ -61,6 +93,7 @@ export function createPolicyLookupPrimitiveService({ withSession }: { withSessio
             title: string | null;
           }>) ?? [],
         ),
+        supersession: mapSupersession(record),
       })) satisfies DocumentWithSectionsView[];
     });
   };

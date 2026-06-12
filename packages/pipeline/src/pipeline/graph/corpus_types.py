@@ -78,6 +78,15 @@ class AmendmentEdge:
 
 
 @dataclass(frozen=True)
+class SupersessionEdge:
+    """old Document --SUPERSEDED_BY--> new Document, with provenance."""
+    source_id: str
+    target_id: str
+    effective: str | None
+    reason: str | None
+
+
+@dataclass(frozen=True)
 class ConceptLink:
     section_id: str
     concept_id: str

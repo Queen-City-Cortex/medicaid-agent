@@ -226,6 +226,15 @@ RETURN s.id, s.section_number, s.title, s.level, s.content_length,
 ORDER BY s.section_number
 """
 
+MERGE_SUPERSEDED_BY_BATCH = """
+UNWIND $edges AS edge
+MATCH (old:Document {id: edge.source_id})
+MATCH (new:Document {id: edge.target_id})
+MERGE (old)-[r:SUPERSEDED_BY]->(new)
+SET r.effective = edge.effective,
+    r.reason = edge.reason
+"""
+
 MERGE_AMENDS = """
 MATCH (src:Document {id: $source_id})
 MATCH (tgt:Document {id: $target_id})

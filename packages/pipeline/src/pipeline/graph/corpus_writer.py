@@ -13,6 +13,7 @@ from pipeline.graph.corpus_types import (
     ConceptLink,
     DocumentBundle,
     ReferenceEdge,
+    SupersessionEdge,
 )
 from pipeline.utils.batching import chunked
 
@@ -100,6 +101,25 @@ class CorpusGraphWriter:
                 session.run(queries.MERGE_AMENDS_BATCH, {"pairs": batch})
 
             self._mark_document_statuses(session, amendment_doc_ids, "amendment")
+
+        return len(edges)
+
+    def merge_supersessions(self, edges: list[SupersessionEdge]) -> int:
+        if not edges:
+            return 0
+
+        with self._session_factory() as session:
+            payload = [
+                {
+                    "source_id": edge.source_id,
+                    "target_id": edge.target_id,
+                    "effective": edge.effective,
+                    "reason": edge.reason,
+                }
+                for edge in edges
+            ]
+            for batch in chunked(payload, GRAPH_BATCH_SIZE):
+                session.run(queries.MERGE_SUPERSEDED_BY_BATCH, {"edges": batch})
 
         return len(edges)
 
