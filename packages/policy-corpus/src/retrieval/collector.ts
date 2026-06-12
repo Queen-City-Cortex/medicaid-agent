@@ -162,12 +162,19 @@ async function mergeFulltextHits({
     }
   }
 
+  // Fulltext is the exact-phrase recovery path. New fulltext-only hits used
+  // to be floored just below the weakest hit from every other backend, so
+  // they could effectively never survive topK. Place them mid-range instead,
+  // decaying by fulltext rank: competitive without outranking strong vector
+  // hits.
   const scores = Array.from(sectionMap.values()).map((hit) => hit.score);
   const minScore = scores.length > 0 ? Math.min(...scores) : 0.5;
+  const maxScore = scores.length > 0 ? Math.max(...scores) : 0.5;
+  const midScore = (minScore + maxScore) / 2;
   for (let index = 0; index < fulltextHits.length; index += 1) {
     const hit = fulltextHits[index];
     if (!sectionMap.has(hit.sectionId)) {
-      hit.score = Math.max(minScore - 0.01 * (index + 1), 0.01);
+      hit.score = Math.max(midScore - 0.02 * index, 0.01);
       sectionMap.set(hit.sectionId, hit);
     }
   }

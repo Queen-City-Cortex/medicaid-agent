@@ -81,6 +81,16 @@ export * from './search.js';
 export const SEARCH_SNIPPET_CHARS = 300;
 export const CONCEPT_MATCH_SCORE = 0.7;
 export const FULLTEXT_BOOST = 0.05;
+// Neo4j's vector index cannot pre-filter: queryNodes(k) returns the GLOBAL
+// top-k, and a WHERE afterwards only filters that same pool. Per-type-group
+// (or per-policy) coverage requires overscanning the index and filtering the
+// deeper pool down to the group's top-k.
+export const VECTOR_OVERSCAN_FACTOR = 8;
+export const VECTOR_OVERSCAN_MAX = 200;
+
+export function vectorScanK(perGroupK: number): number {
+  return Math.min(VECTOR_OVERSCAN_MAX, Math.max(perGroupK * VECTOR_OVERSCAN_FACTOR, perGroupK));
+}
 export const BASE_TYPE_GROUPS = [
   ['clinical_policy'],
   ['dhhs_policy'],

@@ -1,5 +1,5 @@
 import type { RetrievalBackend } from '../../contracts.js';
-import { recordToRetrievalHit, retrievalDocumentMetadataReturn, timeSearchStep } from '../../internal/shared.js';
+import { recordToRetrievalHit, retrievalDocumentMetadataReturn, timeSearchStep, vectorScanK } from '../../internal/shared.js';
 
 export const chunkVectorBackend: RetrievalBackend = {
   name: 'chunk_vector',
@@ -7,9 +7,10 @@ export const chunkVectorBackend: RetrievalBackend = {
     const chunkHits = [];
     for (const docTypes of profile.typeGroups) {
       try {
+        // Overscan then filter — see section-vector for why.
         const result = await timeSearchStep(`chunk vector ${docTypes.join('+')}`, () =>
           session.run(
-            `CALL db.index.vector.queryNodes('chunk_embeddings', toInteger($k), $embedding)
+            `CALL db.index.vector.queryNodes('chunk_embeddings', toInteger($scanK), $embedding)
              YIELD node AS c, score
              MATCH (s:Section)-[:HAS_CHUNK]->(c)
              MATCH (d:Document)-[:HAS_SECTION]->(s)
@@ -26,7 +27,7 @@ export const chunkVectorBackend: RetrievalBackend = {
                score
              ORDER BY score DESC
              LIMIT toInteger($k)`,
-            { embedding, k: profile.perGroupK, docTypes },
+            { embedding, k: profile.perGroupK, scanK: vectorScanK(profile.perGroupK), docTypes },
           ),
         );
         chunkHits.push(...result.records.map(recordToRetrievalHit));

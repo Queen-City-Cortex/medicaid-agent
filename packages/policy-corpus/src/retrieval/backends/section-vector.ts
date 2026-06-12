@@ -1,14 +1,17 @@
 import type { RetrievalBackend } from '../../contracts.js';
-import { recordToRetrievalHit, retrievalDocumentMetadataReturn, timeSearchStep } from '../../internal/shared.js';
+import { recordToRetrievalHit, retrievalDocumentMetadataReturn, timeSearchStep, vectorScanK } from '../../internal/shared.js';
 
 export const sectionVectorBackend: RetrievalBackend = {
   name: 'section_vector',
   async retrieve({ session, profile, embedding }) {
     const vectorHits = [];
     for (const docTypes of profile.typeGroups) {
+      // Overscan ($scanK) then filter to the group: queryNodes(k) alone
+      // returns the global top-k, so post-filtering it gave every group the
+      // same global hits instead of per-group coverage.
       const result = await timeSearchStep(`section vector ${docTypes.join('+')}`, () =>
         session.run(
-          `CALL db.index.vector.queryNodes('section_embeddings', toInteger($k), $embedding)
+          `CALL db.index.vector.queryNodes('section_embeddings', toInteger($scanK), $embedding)
            YIELD node AS s, score
            MATCH (d:Document)-[:HAS_SECTION]->(s)
            WHERE d.document_type IN $docTypes
@@ -24,7 +27,7 @@ export const sectionVectorBackend: RetrievalBackend = {
              score
            ORDER BY score DESC
            LIMIT toInteger($k)`,
-          { embedding, k: profile.perGroupK, docTypes },
+          { embedding, k: profile.perGroupK, scanK: vectorScanK(profile.perGroupK), docTypes },
         ),
       );
       vectorHits.push(...result.records.map(recordToRetrievalHit));

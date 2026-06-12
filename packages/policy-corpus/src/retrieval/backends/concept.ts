@@ -10,7 +10,9 @@ export const conceptBackend: RetrievalBackend = {
           `MATCH (c:PolicyConcept)
            WHERE toLower($query) CONTAINS toLower(c.name)
               OR ANY(alias IN c.aliases WHERE toLower($query) CONTAINS toLower(alias))
-           WITH c LIMIT 2
+           // Deterministic selection (LIMIT without ORDER BY is arbitrary):
+           // prefer the most specific (longest-named) matching concepts.
+           WITH c ORDER BY size(c.name) DESC, c.name ASC LIMIT 2
            MATCH (s:Section)-[:COVERS|DEFINES|RESTRICTS]->(c)
            MATCH (d:Document)-[:HAS_SECTION]->(s)
            WHERE s.content_length > 200

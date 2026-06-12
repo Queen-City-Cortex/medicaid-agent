@@ -5,6 +5,7 @@ import {
   recordToRetrievalHit,
   retrievalDocumentMetadataReturn,
   timeSearchStep,
+  vectorScanK,
 } from '../../internal/shared.js';
 
 export const policyScopedBackend: RetrievalBackend = {
@@ -15,9 +16,13 @@ export const policyScopedBackend: RetrievalBackend = {
     const policyScopedHits = [];
     for (const docTypes of profile.typeGroups) {
       try {
+        // Without overscan this was a provable no-op: the global top-k
+        // post-filtered to the named policy is a subset of section_vector's
+        // results at identical scores. The deep scan is what lets the named
+        // policy's sections surface even when they miss the global top-k.
         const vectorResult = await timeSearchStep(`policy scoped vector ${docTypes.join('+')}`, () =>
           session.run(
-            `CALL db.index.vector.queryNodes('section_embeddings', toInteger($k), $embedding)
+            `CALL db.index.vector.queryNodes('section_embeddings', toInteger($scanK), $embedding)
              YIELD node AS s, score
              MATCH (d:Document)-[:HAS_SECTION]->(s)
              WHERE d.document_type IN $docTypes
@@ -39,6 +44,7 @@ export const policyScopedBackend: RetrievalBackend = {
               docTypes,
               policyNumbers: analysis.explicitPolicyNumbers,
               k: profile.perGroupK,
+              scanK: vectorScanK(profile.perGroupK),
             },
           ),
         );
