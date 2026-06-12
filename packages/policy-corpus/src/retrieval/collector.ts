@@ -1,5 +1,5 @@
 import type { CorpusReranker, QueryAnalysis, RetrievalBackend, RetrievalProfile } from '../contracts.js';
-import type { CorpusRetrievalHit, SearchSectionsInput, SessionLike } from '../types.js';
+import type { CorpusRetrievalHit, SearchSectionsInput, SessionExecutor } from '../types.js';
 import {
   FULLTEXT_BOOST,
   buildRerankQueryContext,
@@ -32,8 +32,12 @@ function mergeMax(sectionMap: HitMap, hits: CorpusRetrievalHit[]) {
   }
 }
 
-// Builds the hybrid hit map through one explicit merge pipeline. Stages run in
-// order; each stage's merge semantics are stated where it runs:
+// Builds the hybrid hit map through one explicit merge pipeline. Merges are
+// applied in stage order; each stage's merge semantics are stated where it
+// runs. Queries that don't depend on earlier stages' results run
+// concurrently, each on its own session — neo4j driver sessions don't
+// support concurrent queries, so every parallel branch acquires a session
+// via withSession instead of sharing one:
 //
 //   1. Independent backends — every profile.enabledBackends entry with a
 //      registry implementation, merged with merge-max. ('fulltext' and
@@ -41,7 +45,9 @@ function mergeMax(sectionMap: HitMap, hits: CorpusRetrievalHit[]) {
 //      and 4; they have no registry entry, so this loop skips them.)
 //   2. Fulltext recovery — exact-phrase Lucene search that boosts sections
 //      the other backends already found and inserts fulltext-only sections at
-//      a mid-range score.
+//      a mid-range score. (Its query runs concurrently with stage 1; its
+//      merge still happens after stage 1's, which is what its semantics
+//      depend on.)
 //   3. Amendment-title expansion (change-notice queries only) — sections of
 //      the base documents amended by change notices already in the map,
 //      merge-max.
@@ -50,15 +56,16 @@ function mergeMax(sectionMap: HitMap, hits: CorpusRetrievalHit[]) {
 //      merge-max.
 //   5. Change-notice header expansion (change-notice queries only) —
 //      revision-header sections from those same dominant documents, merge-max.
+//      (Queries for 4 and 5 run concurrently; merges apply in stage order.)
 export async function collectHybridHitMap({
-  session,
+  withSession,
   input,
   analysis,
   profile,
   embedding,
   backends,
 }: {
-  session: SessionLike;
+  withSession: SessionExecutor;
   input: SearchSectionsInput;
   analysis: QueryAnalysis;
   profile: RetrievalProfile;
@@ -67,29 +74,30 @@ export async function collectHybridHitMap({
 }): Promise<HitMap> {
   const sectionMap: HitMap = new Map();
 
-  // Stage 1: independent backends, merge-max.
-  for (const backendName of profile.enabledBackends) {
-    const backend = backends.get(backendName);
-    if (!backend) continue;
-    const hits = await backend.retrieve({
-      session,
-      input,
-      analysis,
-      profile,
-      embedding,
-    });
+  // Stages 1 and 2: query concurrently, then merge in stage order. Merge-max
+  // is order-independent on scores (ties keep the first-merged hit), and
+  // Promise.all preserves input order, so results are identical to the old
+  // sequential loop.
+  const stageOneBackends = profile.enabledBackends
+    .map((name) => backends.get(name))
+    .filter((backend): backend is RetrievalBackend => Boolean(backend));
+  const fulltextEnabled = profile.enabledBackends.includes('fulltext');
+
+  const [stageOneResults, fulltextHits] = await Promise.all([
+    Promise.all(
+      stageOneBackends.map((backend) =>
+        withSession((session) => backend.retrieve({ session, input, analysis, profile, embedding })),
+      ),
+    ),
+    fulltextEnabled
+      ? withSession((session) => fulltextBackend.retrieve({ session, input, analysis, profile, embedding }))
+      : Promise.resolve([]),
+  ]);
+
+  for (const hits of stageOneResults) {
     mergeMax(sectionMap, hits);
   }
-
-  // Stage 2: fulltext recovery — boost existing hits, mid-range-insert new ones.
-  if (profile.enabledBackends.includes('fulltext')) {
-    const fulltextHits = await fulltextBackend.retrieve({
-      session,
-      input,
-      analysis,
-      profile,
-      embedding,
-    });
+  if (fulltextEnabled) {
     mergeFulltextHits(sectionMap, fulltextHits);
   }
 
@@ -103,11 +111,13 @@ export async function collectHybridHitMap({
 
     mergeMax(
       sectionMap,
-      await retrieveAmendmentTitleExpansionHits({
-        session,
-        titles: changeNoticeTitles,
-        k: profile.perGroupK,
-      }),
+      await withSession((session) =>
+        retrieveAmendmentTitleExpansionHits({
+          session,
+          titles: changeNoticeTitles,
+          k: profile.perGroupK,
+        }),
+      ),
     );
   }
 
@@ -119,30 +129,31 @@ export async function collectHybridHitMap({
     documentCoverageBoosts,
   );
 
-  // Stage 4: document expansion, merge-max.
-  if (profile.enabledBackends.includes('document_expansion')) {
-    mergeMax(
-      sectionMap,
-      await retrieveDocumentExpansionHits({
-        session,
-        titles: documentTitlesForExpansion,
-        terms: analysis.searchTerms,
-        k: profile.perGroupK,
-      }),
-    );
-  }
+  // Stages 4 and 5: query concurrently, merge in stage order, merge-max.
+  const [documentExpansionHits, changeNoticeHeaderHits] = await Promise.all([
+    profile.enabledBackends.includes('document_expansion')
+      ? withSession((session) =>
+          retrieveDocumentExpansionHits({
+            session,
+            titles: documentTitlesForExpansion,
+            terms: analysis.searchTerms,
+            k: profile.perGroupK,
+          }),
+        )
+      : Promise.resolve([]),
+    analysis.flags.isChangeNoticeQuery
+      ? withSession((session) =>
+          retrieveChangeNoticeHeaderHits({
+            session,
+            titles: documentTitlesForExpansion,
+            k: profile.perGroupK,
+          }),
+        )
+      : Promise.resolve([]),
+  ]);
 
-  // Stage 5: change-notice header expansion for change-notice queries, merge-max.
-  if (analysis.flags.isChangeNoticeQuery) {
-    mergeMax(
-      sectionMap,
-      await retrieveChangeNoticeHeaderHits({
-        session,
-        titles: documentTitlesForExpansion,
-        k: profile.perGroupK,
-      }),
-    );
-  }
+  mergeMax(sectionMap, documentExpansionHits);
+  mergeMax(sectionMap, changeNoticeHeaderHits);
 
   return sectionMap;
 }

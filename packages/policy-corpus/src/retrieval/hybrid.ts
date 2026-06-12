@@ -29,27 +29,27 @@ export function createHybridRetriever({
     debugSearch(`search start query="${queryInput.query}" topK=${topK}`);
     const embedding = await timeSearchStep('embed query', () => embedQuery(queryInput.query));
 
-    return withSession(async (session) => {
-      debugSearch(`typeGroups=${profile.typeGroups.map((group) => group.join('+')).join(',')} perGroupK=${profile.perGroupK}`);
-      const sectionMap = await collectHybridHitMap({
-        session,
-        input: queryInput,
-        analysis,
-        profile,
-        embedding,
-        backends: RETRIEVAL_BACKENDS,
-      });
-      const finalHits = await finalizeHybridHits({
-        input: queryInput,
-        sectionMap,
-        analysis,
-        profile,
-        topK,
-        rerankHits,
-      });
-      debugSearch(`search end query="${queryInput.query}" hits=${finalHits.length}`);
-      return finalHits;
+    debugSearch(`typeGroups=${profile.typeGroups.map((group) => group.join('+')).join(',')} perGroupK=${profile.perGroupK}`);
+    // The collector acquires a session per concurrent query branch, so it
+    // takes the executor rather than running inside a single session.
+    const sectionMap = await collectHybridHitMap({
+      withSession,
+      input: queryInput,
+      analysis,
+      profile,
+      embedding,
+      backends: RETRIEVAL_BACKENDS,
     });
+    const finalHits = await finalizeHybridHits({
+      input: queryInput,
+      sectionMap,
+      analysis,
+      profile,
+      topK,
+      rerankHits,
+    });
+    debugSearch(`search end query="${queryInput.query}" hits=${finalHits.length}`);
+    return finalHits;
   };
 
   return {
