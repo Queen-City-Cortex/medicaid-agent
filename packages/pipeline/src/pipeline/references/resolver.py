@@ -12,7 +12,8 @@ from pipeline.config import PARSED_DATA_DIR
 
 # Matches "42 CFR 440.70" and variants with optional § and spaces
 CFR_CITATION_RE = re.compile(
-    r"(\d+)\s*CFR\s*§?\s*([\d]+(?:\.[\d]+)*)"
+    r"(\d+)\s*C\.?\s?F\.?\s?R\.?\s*(?:Part\s+)?§{0,2}\s*([\d]+(?:\.[\d]+)*)",
+    re.IGNORECASE,
 )
 
 _CFR_SUPERSESSIONS_PATH = (
@@ -135,14 +136,20 @@ def parse_cfr_citation(text: str) -> dict | None:
     # Derive part number: integer part of section number (before the dot)
     part = int(section.split(".")[0])
 
-    # Redirect superseded parts to their current replacements
+    # Redirect superseded parts to their current replacements — at PART level
+    # only. Replacement parts do not share section numbering with what they
+    # superseded (45 CFR 75.326 is procurement; 2 CFR 200.326 is bonding), so
+    # rewriting the section number across parts fabricates citations. The
+    # redirected citation resolves to the replacement part as a document.
     redirect = CFR_SUPERSESSIONS.get((title, part))
     if redirect:
         new_title, new_part = redirect
-        # Remap section number: 74.x → 75.x
-        section = str(new_part) + section[len(str(part)):]
-        title = new_title
-        part = new_part
+        return {
+            "title": new_title,
+            "section": str(new_part),
+            "part": new_part,
+            "redirected_from": {"title": title, "section": section, "part": part},
+        }
 
     return {"title": title, "section": section, "part": part}
 

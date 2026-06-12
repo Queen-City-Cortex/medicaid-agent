@@ -23,11 +23,16 @@ USC_URLS = {
     21: "https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title42-chapter7-subchapter21&edition=prelim",
 }
 
-# SSA section number → USC section number mapping
-# SSA §1901 = 42 USC §1396, SSA §1902 = 42 USC §1396a, etc.
+# SSA section number → USC section number mapping.
+#
+# Verified against the source credits in the USC HTML itself — each section's
+# credit line names its SSA section, e.g. "(Aug. 14, 1935, ch. 531, title XIX,
+# §1945, as added ...)". Do NOT assume the suffix sequence is contiguous:
+# SSA 1944 is 1396w-3a (not w-4), and there is no 1396w-7 in current law.
 SSA_TO_USC = {
     # Title XIX — Medicaid
-    "1901": "1396",
+    "1900": "1396",
+    "1901": "1396-1",
     "1902": "1396a",
     "1903": "1396b",
     "1904": "1396c",
@@ -76,10 +81,12 @@ SSA_TO_USC = {
     "1941": "1396w-1",
     "1942": "1396w-2",
     "1943": "1396w-3",
-    "1944": "1396w-4",
-    "1945": "1396w-5",
-    "1946": "1396w-6",
-    "1947": "1396w-7",
+    "1944": "1396w-3a",
+    "1945": "1396w-4",
+    "1945A": "1396w-4a",
+    "1946": "1396w-5",
+    "1947": "1396w-6",
+    "1948": "1396w-8",
     # Title XXI — CHIP
     "2101": "1397aa",
     "2102": "1397bb",

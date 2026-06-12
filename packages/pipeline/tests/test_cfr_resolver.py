@@ -55,20 +55,28 @@ class TestParseCfrCitation:
         result = parse_cfr_citation("42 CFR 440.1")
         assert result == {"title": 42, "section": "440.1", "part": 440}
 
-    def test_superseded_part_74_redirects_to_2_cfr_200(self):
+    def test_superseded_part_74_redirects_to_2_cfr_200_part_level(self):
         # 45 CFR Part 74 was superseded by Part 75 in 2014; HHS then rescinded
-        # Part 75 in late 2025 in favor of 2 CFR Part 200. Both 74 and 75 now
-        # resolve to 2 CFR 200 via the supersession map.
+        # Part 75 in late 2025 in favor of 2 CFR Part 200. The redirect is
+        # PART-level only: replacement parts do not share section numbering
+        # (45 CFR 75.326 is procurement; 2 CFR 200.326 is bonding), so the old
+        # behavior of rewriting "74.x" to "200.x" fabricated citations.
         result = parse_cfr_citation("45 CFR 74.1")
-        assert result == {"title": 2, "section": "200.1", "part": 200}
+        assert result == {
+            "title": 2,
+            "section": "200",
+            "part": 200,
+            "redirected_from": {"title": 45, "section": "74.1", "part": 74},
+        }
 
-    def test_superseded_part_74_deep_section(self):
-        result = parse_cfr_citation("45 CFR 74.21")
-        assert result == {"title": 2, "section": "200.21", "part": 200}
-
-    def test_superseded_part_75_redirects_to_2_cfr_200(self):
-        result = parse_cfr_citation("45 CFR 75.100")
-        assert result == {"title": 2, "section": "200.100", "part": 200}
+    def test_superseded_part_75_redirects_to_2_cfr_200_part_level(self):
+        result = parse_cfr_citation("45 CFR 75.326")
+        assert result == {
+            "title": 2,
+            "section": "200",
+            "part": 200,
+            "redirected_from": {"title": 45, "section": "75.326", "part": 75},
+        }
 
     def test_non_superseded_part_unchanged(self):
         # 42 CFR 440 is not superseded — should pass through unchanged

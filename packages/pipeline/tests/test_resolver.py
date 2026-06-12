@@ -252,7 +252,13 @@ def test_cfr_supersessions_loaded_from_data_file():
         assert parsed is not None, f"Failed to parse {old_title} CFR {old_part}.101"
         assert parsed["title"] == new_title
         assert parsed["part"] == new_part
-        assert parsed["section"] == f"{new_part}.101"
+        # Part-level redirect only — never fabricate cross-part section numbers.
+        assert parsed["section"] == str(new_part)
+        assert parsed["redirected_from"] == {
+            "title": old_title,
+            "section": f"{old_part}.101",
+            "part": old_part,
+        }
 
 
 def test_parse_cfr_citation_non_superseded_passes_through():

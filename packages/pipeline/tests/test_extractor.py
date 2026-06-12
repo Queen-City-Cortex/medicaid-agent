@@ -108,3 +108,42 @@ class TestExtractReferences:
         text = "Clinical Coverage Policy 5A provides guidance"
         refs = extract_references(text)
         assert any(r.ref_type == "cross_document" and r.target_id == "5A" for r in refs)
+
+
+class TestCfrCitationForms:
+    """The dotted C.F.R. form appears ~10K times in the corpus and the Part
+    form is common in bulletins — both were previously never extracted."""
+
+    def test_dotted_cfr_form(self):
+        refs = extract_references("See 42 C.F.R. § 441.301(c) for details.")
+        federal = [r for r in refs if r.ref_type == "federal_regulation"]
+        assert len(federal) == 1
+        assert federal[0].target_id == "42 CFR 441.301"
+
+    def test_cfr_part_form(self):
+        refs = extract_references("as required by 42 CFR Part 438")
+        federal = [r for r in refs if r.ref_type == "federal_regulation"]
+        assert len(federal) == 1
+        assert federal[0].target_id == "42 CFR 438"
+
+    def test_plain_cfr_form_still_works(self):
+        refs = extract_references("Per 42 CFR 440.70 home health is covered.")
+        federal = [r for r in refs if r.ref_type == "federal_regulation"]
+        assert federal[0].target_id == "42 CFR 440.70"
+
+    def test_double_section_symbol(self):
+        refs = extract_references("See 42 C.F.R. §§ 438.14 and others.")
+        federal = [r for r in refs if r.ref_type == "federal_regulation"]
+        assert federal[0].target_id == "42 CFR 438.14"
+
+
+class TestSsaSectionRanges:
+    def test_letter_suffix_sections_extracted(self):
+        refs = extract_references("Under Section 1916A premiums apply.")
+        ssa = [r for r in refs if r.ref_type == "ssa_section"]
+        assert [r.target_id for r in ssa] == ["1916A"]
+
+    def test_medicare_sections_not_extracted(self):
+        # 18xx is Medicare (Title XVIII) — not in the corpus, never resolvable.
+        refs = extract_references("See Section 1861 of the Act.")
+        assert [r for r in refs if r.ref_type == "ssa_section"] == []

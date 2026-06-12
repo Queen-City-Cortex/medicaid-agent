@@ -29,7 +29,11 @@ PATTERNS: list[tuple[str, re.Pattern]] = [
     ),
     (
         "ssa_section",
-        re.compile(r"(?:Section|Subsection)\s+(1[89]\d{2}|2[01]\d{2})"),
+        # Only ranges that exist in the corpus: Title XIX (19xx, with letter
+        # suffixes like 1916A) and Title XXI (21xx). 18xx/20xx matched Medicare
+        # sections that can never resolve. Trailing boundary stops "1902."
+        # matching inside longer tokens.
+        re.compile(r"(?:Section|Subsection)\s+(19\d{2}[A-Z]?|21\d{2})\b"),
     ),
     (
         "attachment",
@@ -37,7 +41,12 @@ PATTERNS: list[tuple[str, re.Pattern]] = [
     ),
     (
         "federal_regulation",
-        re.compile(r"(\d+)\s*CFR\s*§?\s*([\d]+(?:\.[\d]+)*)"),
+        # Accepts "42 CFR 440.70", the dotted "42 C.F.R. § 440.70" form
+        # (~10K corpus occurrences), and "42 CFR Part 438".
+        re.compile(
+            r"(\d+)\s*C\.?\s?F\.?\s?R\.?\s*(?:Part\s+)?§{0,2}\s*([\d]+(?:\.[\d]+)*)",
+            re.IGNORECASE,
+        ),
     ),
     (
         "spa",
