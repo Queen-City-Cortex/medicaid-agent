@@ -1,11 +1,8 @@
 'use client';
 
-import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import { PanelLeftOpen, PanelLeftClose } from 'lucide-react';
 import { useAuth, useAccessToken } from '@workos-inc/authkit-nextjs/components';
-import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport } from 'ai';
-import type { UIMessage } from 'ai';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { ChatInput } from '@/components/ChatInput';
@@ -15,205 +12,81 @@ import { ScrollToBottom } from '@/components/ScrollToBottom';
 import { ThreadSidebar } from '@/components/ThreadSidebar';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useIsMobile } from '@/lib/use-is-mobile';
-import { generateUUID } from '@/lib/utils';
-import { convertThreadMessageToUIMessage } from '@/lib/parse-message';
 import { useMastraClient } from '@/lib/use-mastra-client';
-import { submitFeedback, deleteFeedback, getFeedbackByThread } from '@/lib/feedback-client';
-
-const AGENT_ID = 'nc-medicaid-navigator';
-const MASTRA_URL = process.env.NEXT_PUBLIC_MASTRA_URL || 'http://localhost:4111';
-
-function removeFeedbackEntry(
-  entries: Record<string, { id: string; rating: 'up' | 'down'; comment: string | null }>,
-  messageId: string,
-) {
-  const nextEntries = { ...entries };
-  delete nextEntries[messageId];
-  return nextEntries;
-}
+import { useAnswerVersions } from '@/lib/use-answer-versions';
+import { useChatThread } from '@/lib/use-chat-thread';
+import { useFeedback } from '@/lib/use-feedback';
+import { usePinnedScroll } from '@/lib/use-pinned-scroll';
+import { useSidebarState } from '@/lib/use-sidebar-state';
 
 export default function ChatPage() {
   const { user, loading: authLoading } = useAuth();
   const { getAccessToken } = useAccessToken();
   const mastraClient = useMastraClient();
-  const [threadId, setThreadId] = useState<string>(() => generateUUID());
-  const [threadVersion, setThreadVersion] = useState(0);
   const isMobile = useIsMobile();
 
   const resourceId = user?.id ?? 'anonymous';
 
-  const [feedbackMap, setFeedbackMap] = useState<Record<string, { id: string; rating: 'up' | 'down'; comment: string | null }>>({});
-
-  // Bridges savePerStep's async DB writes: caches messages when streaming ends
-  // so clicking "+New" then back shows the complete response, not a partial DB snapshot.
-  const messageCache = useRef<Map<string, UIMessage[]>>(new Map());
-  const pendingRestore = useRef<UIMessage[] | null>(null);
-
-  // Transport re-creates when threadId/resourceId change — this also resets useChat state
-  const transport = useMemo(() => new DefaultChatTransport({
-    api: `${MASTRA_URL}/chat`,
-    credentials: 'include' as RequestCredentials,
-    headers: async () => {
-      const token = await getAccessToken();
-      return token ? { Authorization: `Bearer ${token}` } as Record<string, string> : {} as Record<string, string>;
-    },
-    prepareSendMessagesRequest({ messages }) {
-      return {
-        body: {
-          messages,
-          memory: { thread: threadId, resource: resourceId },
-        },
-      };
-    },
-  }), [threadId, resourceId, getAccessToken]);
-
-  const { messages, status, error, sendMessage, regenerate, setMessages, stop } = useChat({
-    id: `${threadId}:${resourceId}`,
-    transport,
-    onFinish: () => setThreadVersion(v => v + 1),
-    onError: (err) => console.error('[chat] stream error:', err),
-  });
-
-  // Historical assistant messages archived by the user msg they answer. The
-  // "live" version lives in `messages` (useChat); anything in this map is an
-  // earlier attempt preserved client-side so the user can flip between
-  // answers via the VersionNav pager. Keyed by user msg id so it survives
-  // regenerate() swapping the live assistant's id. Not persisted — cleared
-  // when the thread changes.
-  const [archivedVersions, setArchivedVersions] = useState<Record<string, UIMessage[]>>({});
-  // 1-based active version per user msg id. N = live, 1..N-1 = archived.
-  // Absent key means "show live" (the default).
-  const [activeVersion, setActiveVersion] = useState<Record<string, number>>({});
-
-  const isStreaming = status === 'streaming';
-  const isLoading = status === 'streaming' || status === 'submitted';
-
-  // Restore cached messages after useChat recreates its Chat instance.
-  // setMessages in handleSelectThread writes to the old instance; this effect
-  // fires after the new instance mounts and applies the pending restore.
-  useEffect(() => {
-    if (pendingRestore.current) {
-      console.log(`[chat] restoring ${pendingRestore.current.length} cached messages`);
-      setMessages(pendingRestore.current);
-      pendingRestore.current = null;
-    }
-  }, [threadId, setMessages]);
-
-  // Log status transitions and cache messages when streaming completes.
-  const prevStatus = useRef(status);
-  useEffect(() => {
-    if (prevStatus.current !== status) {
-      const parts = messages.filter(m => m.role === 'assistant').flatMap(m => m.parts);
-      const textLen = parts.filter(p => p.type === 'text').reduce((n, p) => n + ((p as { text: string }).text?.length ?? 0), 0);
-      const toolCount = parts.filter(p => p.type !== 'text' && p.type !== 'step-start').length;
-      console.log(`[chat] status: ${prevStatus.current} → ${status} | msgs: ${messages.length} | parts: ${parts.length} (text: ${textLen} chars, tools: ${toolCount})`);
-
-      if (prevStatus.current === 'streaming' && status === 'ready' && messages.length > 0) {
-        messageCache.current.set(threadId, messages);
-        console.log(`[chat] cached ${messages.length} messages for thread ${threadId.slice(0, 8)}…`);
-      }
-      if (status === 'error') {
-        console.error('[chat] entered error state', error);
-      }
-    }
-    prevStatus.current = status;
-  }, [status, threadId, messages, error]);
-
   const [input, setInput] = useState('');
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  // The scroll viewport is rendered by ScrollArea, so it is discovered after
-  // mount. It lives in STATE (not a ref) so consumers like ScrollToBottom
-  // re-attach their listeners when it appears — a ref left them attached to
-  // nothing, permanently.
-  const [viewport, setViewport] = useState<HTMLElement | null>(null);
-  // Whether the user is reading at the bottom. Auto-scroll only when pinned —
-  // unconditional scrolling yanked the viewport down on every stream chunk
-  // while the user was reading earlier content.
-  const pinnedRef = useRef(true);
-  // The thread the user is currently viewing — guards against a slow
-  // loadThread response overwriting a newer selection.
-  const activeThreadRef = useRef(threadId);
-  const sidebarRef = useRef<HTMLDivElement>(null);
-  const sidebarToggleRef = useRef<HTMLButtonElement>(null);
-  const previousSidebarCollapsedRef = useRef<boolean | null>(null);
-
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
-    if (typeof window === 'undefined') return true;
-    if (window.innerWidth < 768) return true;
-    return localStorage.getItem('sidebar-collapsed') === 'true';
-  });
-
-  const toggleSidebar = useCallback(() => {
-    setSidebarCollapsed(prev => {
-      const next = !prev;
-      localStorage.setItem('sidebar-collapsed', String(next));
-      return next;
-    });
+  const focusInput = useCallback(() => {
+    inputRef.current?.focus({ preventScroll: true });
   }, []);
 
-  // Discover the ScrollArea viewport once it exists.
-  useEffect(() => {
-    if (viewport) return;
-    const el = messagesEndRef.current?.closest('[data-slot="scroll-area-viewport"]');
-    if (el) setViewport(el as HTMLElement);
-  }, [messages, viewport]);
+  const { sidebarCollapsed, toggleSidebar, closeMobileSidebar, sidebarRef, sidebarToggleRef } =
+    useSidebarState({ isMobile });
 
-  // Track whether the user is pinned to the bottom.
-  useEffect(() => {
-    if (!viewport) return;
-    const onScroll = () => {
-      pinnedRef.current = viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < 100;
-    };
-    viewport.addEventListener('scroll', onScroll, { passive: true });
-    onScroll();
-    return () => viewport.removeEventListener('scroll', onScroll);
-  }, [viewport]);
+  const {
+    feedbackMap,
+    loadFeedback,
+    resetFeedback,
+    handleRate: rateMessage,
+    handleClearRating,
+    handleComment: commentOnMessage,
+  } = useFeedback({ getAccessToken });
 
-  // Follow new content only while pinned ('auto' so the follow doesn't fight
-  // user scrolling with a competing smooth animation on every chunk).
-  useEffect(() => {
-    if (!viewport || !pinnedRef.current) return;
-    viewport.scrollTo({ top: viewport.scrollHeight, behavior: 'auto' });
-  }, [messages, status, viewport]);
+  const {
+    archivedVersions,
+    activeVersion,
+    resetVersions,
+    selectVersion,
+    handleRerun: rerunAnswer,
+  } = useAnswerVersions();
+
+  // Feedback and answer versions are per-thread client state — drop both
+  // whenever the visible thread changes.
+  const onThreadSwitch = useCallback(() => {
+    resetFeedback();
+    resetVersions();
+  }, [resetFeedback, resetVersions]);
+
+  const {
+    threadId,
+    threadVersion,
+    messages,
+    status,
+    error,
+    isStreaming,
+    isLoading,
+    sendMessage,
+    regenerate,
+    stop,
+    ensureThreadExists,
+    handleSelectThread,
+    handleNewThread,
+  } = useChatThread({
+    resourceId,
+    mastraClient,
+    getAccessToken,
+    onThreadSwitch,
+    loadThreadFeedback: loadFeedback,
+    closeMobileSidebar,
+    focusInput,
+  });
+
+  const { viewport, messagesEndRef } = usePinnedScroll({ messages, status });
 
   useEffect(() => { inputRef.current?.focus({ preventScroll: true }); }, []);
-
-  useEffect(() => {
-    if (!isMobile || sidebarCollapsed) return;
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setSidebarCollapsed(true);
-        localStorage.setItem('sidebar-collapsed', 'true');
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isMobile, sidebarCollapsed]);
-
-  useEffect(() => {
-    if (!isMobile) {
-      previousSidebarCollapsedRef.current = sidebarCollapsed;
-      return;
-    }
-
-    const previousValue = previousSidebarCollapsedRef.current;
-    previousSidebarCollapsedRef.current = sidebarCollapsed;
-
-    if (previousValue === null || previousValue === sidebarCollapsed) return;
-
-    if (!sidebarCollapsed) {
-      const firstFocusable = sidebarRef.current?.querySelector<HTMLElement>(
-        'button:not([disabled]), [href], input:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
-      );
-      firstFocusable?.focus();
-      return;
-    }
-
-    sidebarToggleRef.current?.focus();
-  }, [isMobile, sidebarCollapsed]);
 
   // Reset textarea height when input is cleared
   useEffect(() => {
@@ -221,98 +94,6 @@ export default function ChatPage() {
       inputRef.current.style.height = 'auto';
     }
   }, [input]);
-
-
-  const ensureThreadExists = useCallback(async (tid: string, title?: string) => {
-    try {
-      await mastraClient.createMemoryThread({
-        threadId: tid,
-        resourceId,
-        agentId: AGENT_ID,
-        title: title ?? 'New conversation',
-      });
-    } catch {
-      // Thread may already exist — that's fine
-    }
-  }, [resourceId, mastraClient]);
-
-  const loadThread = useCallback(async (tid: string) => {
-    try {
-      const thread = mastraClient.getMemoryThread({ threadId: tid, agentId: AGENT_ID });
-      const result = await thread.listMessages();
-      // The user may have switched threads while this request was in flight —
-      // a stale response must not overwrite the newer thread's messages.
-      if (activeThreadRef.current !== tid) return;
-      const dbMessages = result.messages ?? [];
-      const converted: UIMessage[] = [];
-      for (const msg of dbMessages) {
-        const uiMsg = convertThreadMessageToUIMessage(msg as { id?: string; role: string; content: unknown });
-        if (uiMsg) converted.push(uiMsg);
-      }
-      const assistantParts = converted.filter(m => m.role === 'assistant').flatMap(m => m.parts);
-      console.log(`[chat] loadThread ${tid.slice(0, 8)}… | ${dbMessages.length} db msgs → ${converted.length} ui msgs | assistant parts: ${assistantParts.length} (types: ${[...new Set(assistantParts.map(p => p.type))].join(',')})`);
-      setMessages(converted);
-      try {
-        const token = await getAccessToken();
-        if (token) {
-          const entries = await getFeedbackByThread(tid, MASTRA_URL, token);
-          if (activeThreadRef.current !== tid) return;
-          const map: Record<string, { id: string; rating: 'up' | 'down'; comment: string | null }> = {};
-          for (const entry of entries) {
-            map[entry.messageId] = { id: entry.id, rating: entry.rating, comment: entry.comment };
-          }
-          setFeedbackMap(map);
-        }
-      } catch (err) {
-        console.error('Failed to load feedback:', err);
-      }
-    } catch (err) {
-      console.error('Failed to load thread messages:', err);
-      if (activeThreadRef.current === tid) setMessages([]);
-    }
-  }, [setMessages, mastraClient, getAccessToken]);
-
-  const handleSelectThread = useCallback(async (tid: string) => {
-    const hasCached = messageCache.current.has(tid);
-    console.log(`[chat] selectThread ${tid.slice(0, 8)}… | cached: ${hasCached}`);
-    activeThreadRef.current = tid;
-    setThreadId(tid);
-    setFeedbackMap({});
-    setArchivedVersions({});
-    setActiveVersion({});
-    if (isMobile) setSidebarCollapsed(true);
-
-    const cached = messageCache.current.get(tid);
-    if (cached && cached.length > 0) {
-      pendingRestore.current = cached;
-      messageCache.current.delete(tid);
-    } else {
-      pendingRestore.current = null;
-      await loadThread(tid);
-    }
-
-    inputRef.current?.focus({ preventScroll: true });
-  }, [loadThread, isMobile]);
-
-  const handleNewThread = useCallback(async () => {
-    if (messages.length === 0) {
-      if (isMobile) setSidebarCollapsed(true);
-      inputRef.current?.focus({ preventScroll: true });
-      return;
-    }
-    const newId = generateUUID();
-    activeThreadRef.current = newId;
-    setThreadId(newId);
-    setMessages([]);
-    setFeedbackMap({});
-    setArchivedVersions({});
-    setActiveVersion({});
-    if (isMobile) setSidebarCollapsed(true);
-    // The thread is created lazily by handleSend (with the question as its
-    // title) — eager creation here accumulated empty "New conversation"
-    // threads in the sidebar for every + New click.
-    inputRef.current?.focus({ preventScroll: true });
-  }, [messages.length, setMessages, isMobile]);
 
   const handleSend = useCallback(async () => {
     if (!input.trim() || input.length > 10_000) return;
@@ -325,81 +106,19 @@ export default function ChatPage() {
   }, [input, messages.length, threadId, ensureThreadExists, sendMessage]);
 
   const handleRerun = useCallback((messageIndex: number, userIndex: number) => {
-    const assistantMsg = messages[messageIndex];
-    const userMsg = messages[userIndex];
-    if (!assistantMsg || !userMsg || assistantMsg.role !== 'assistant' || userMsg.role !== 'user') return;
-
-    // Snapshot the current (live) answer so the user can navigate back to it
-    // after the regenerate replaces it in place. Archived versions stack up
-    // in the order they were replaced, oldest first.
-    setArchivedVersions(prev => {
-      const existing = prev[userMsg.id] ?? [];
-      return { ...prev, [userMsg.id]: [...existing, assistantMsg] };
-    });
-    // Jump activeVersion to the new live answer so the UI follows the user's
-    // expectation that "re-run" shows the new response.
-    setActiveVersion(prev => {
-      const next = { ...prev };
-      delete next[userMsg.id];
-      return next;
-    });
-
-    regenerate({ messageId: assistantMsg.id });
-  }, [messages, regenerate]);
+    rerunAnswer({ messages, regenerate, messageIndex, userIndex });
+  }, [rerunAnswer, messages, regenerate]);
 
   const handleSelectExample = useCallback((question: string) => {
     setInput(question);
     inputRef.current?.focus({ preventScroll: true });
   }, []);
 
-  const handleRate = useCallback(async (messageId: string, rating: 'up' | 'down') => {
-    const prev = feedbackMap[messageId];
-    const optimistic = { id: prev?.id ?? messageId, rating, comment: null };
-    setFeedbackMap(m => ({ ...m, [messageId]: optimistic }));
+  const handleRate = useCallback((messageId: string, rating: 'up' | 'down') =>
+    rateMessage(threadId, messageId, rating), [rateMessage, threadId]);
 
-    try {
-      const token = await getAccessToken();
-      if (!token) throw new Error('Not authenticated');
-      const result = await submitFeedback({ messageId, threadId, rating }, MASTRA_URL, token);
-      setFeedbackMap(m => ({ ...m, [messageId]: { ...m[messageId], id: result.id } }));
-    } catch {
-      if (prev) setFeedbackMap(m => ({ ...m, [messageId]: prev }));
-      else setFeedbackMap(m => removeFeedbackEntry(m, messageId));
-    }
-  }, [feedbackMap, threadId, getAccessToken]);
-
-  const handleClearRating = useCallback(async (messageId: string) => {
-    const prev = feedbackMap[messageId];
-    if (!prev) return;
-    setFeedbackMap(m => removeFeedbackEntry(m, messageId));
-
-    try {
-      const token = await getAccessToken();
-      if (!token) throw new Error('Not authenticated');
-      await deleteFeedback(prev.id, MASTRA_URL, token);
-    } catch {
-      setFeedbackMap(m => ({ ...m, [messageId]: prev }));
-    }
-  }, [feedbackMap, getAccessToken]);
-
-  const handleComment = useCallback(async (messageId: string, comment: string) => {
-    const prev = feedbackMap[messageId];
-    if (!prev) return;
-    setFeedbackMap(m => ({ ...m, [messageId]: { ...m[messageId], comment } }));
-
-    try {
-      const token = await getAccessToken();
-      if (!token) throw new Error('Not authenticated');
-      const result = await submitFeedback(
-        { messageId, threadId, rating: prev.rating, comment },
-        MASTRA_URL,
-        token,
-      );
-      setFeedbackMap(m => ({ ...m, [messageId]: { ...m[messageId], id: result.id } }));
-    } catch {
-      setFeedbackMap(m => ({ ...m, [messageId]: prev }));
-    }
-  }, [feedbackMap, threadId, getAccessToken]);
+  const handleComment = useCallback((messageId: string, comment: string) =>
+    commentOnMessage(threadId, messageId, comment), [commentOnMessage, threadId]);
 
   if (authLoading) return (
     <div className="flex h-screen bg-background">
@@ -491,13 +210,7 @@ export default function ChatPage() {
               onComment={handleComment}
               archivedVersions={archivedVersions}
               activeVersion={activeVersion}
-              onSelectVersion={(userMsgId, version) => {
-                setActiveVersion(prev => {
-                  const next = { ...prev };
-                  next[userMsgId] = version;
-                  return next;
-                });
-              }}
+              onSelectVersion={selectVersion}
             />
 
             {error && (
