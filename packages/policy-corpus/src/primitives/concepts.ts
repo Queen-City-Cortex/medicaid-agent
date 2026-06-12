@@ -5,19 +5,36 @@ import {
   type SessionExecutor,
 } from '../types.js';
 
+// Concepts are stored with a canonical `name` plus an `aliases` list
+// (e.g. CAP/DA ← "Community Alternatives Program for Disabled Adults").
+// Matching must cover both, case-insensitively — name-only matching made
+// every documented alias lookup silently return [].
+const CONCEPT_NAME_MATCH = `(
+             toLower(c.name) = toLower($name)
+             OR any(alias IN coalesce(c.aliases, []) WHERE toLower(alias) = toLower($name))
+           )`;
+
 export function createConceptPrimitiveService({ withSession }: { withSession: SessionExecutor }) {
   const findConceptSections = async ({
     conceptName,
     relationshipType,
   }: FindConceptSectionsInput): Promise<ConceptSectionView[]> => {
-    if (relationshipType && !(ALLOWED_CONCEPT_RELATIONSHIPS as readonly string[]).includes(relationshipType)) {
+    // Normalize case before the allowlist check — 'covers' is as valid as
+    // 'COVERS', and a silent [] for a casing mismatch is indistinguishable
+    // from "no sections" to the caller.
+    const normalizedRelationship = relationshipType
+      ? (ALLOWED_CONCEPT_RELATIONSHIPS as readonly string[]).find(
+          (allowed) => allowed.toLowerCase() === relationshipType.toLowerCase(),
+        )
+      : undefined;
+    if (relationshipType && !normalizedRelationship) {
       return [];
     }
 
     return withSession(async (session) => {
-      const query = relationshipType
-        ? `MATCH (s:Section)-[r:${relationshipType}]->(c:PolicyConcept)
-           WHERE c.name = $name OR toLower(c.name) = toLower($name)
+      const query = normalizedRelationship
+        ? `MATCH (s:Section)-[r:${normalizedRelationship}]->(c:PolicyConcept)
+           WHERE ${CONCEPT_NAME_MATCH}
            OPTIONAL MATCH (d:Document)-[:HAS_SECTION]->(s)
            RETURN
              s.id AS sectionId,
@@ -28,7 +45,7 @@ export function createConceptPrimitiveService({ withSession }: { withSession: Se
              d.policy_number AS policyNumber,
              type(r) AS relationshipType`
         : `MATCH (s:Section)-[r]->(c:PolicyConcept)
-           WHERE c.name = $name OR toLower(c.name) = toLower($name)
+           WHERE ${CONCEPT_NAME_MATCH}
            OPTIONAL MATCH (d:Document)-[:HAS_SECTION]->(s)
            RETURN
              s.id AS sectionId,

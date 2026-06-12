@@ -169,3 +169,29 @@ describe('rebalanceFederalAuthorityFrame — widened beyond waiver queries', () 
     expect(result.avoidSections.map((s) => s.id)).toContain('sec:431.408');
   });
 });
+
+  it('does not treat Community First Choice (441.5xx) as EPSDT Subpart B', () => {
+    // parseFloat('441.500') === parseFloat('441.50') — the old numeric range
+    // check promoted Subpart K sections on EPSDT questions.
+    const communityFirstChoice = makeSection({
+      id: 'sec:441.500',
+      sectionNumber: '441.500',
+      policyNumber: '42-CFR-441',
+      documentId: 'doc:federal_regulation:42-CFR-441',
+    });
+    const epsdt = makeSection({
+      id: 'sec:441.56',
+      sectionNumber: '441.56',
+      policyNumber: '42-CFR-441',
+      documentId: 'doc:federal_regulation:42-CFR-441',
+    });
+    const frame = makeFrame([communityFirstChoice, epsdt]);
+
+    const result = rebalanceFederalAuthorityFrame(
+      frame,
+      'what is the federal authority for medicaid epsdt services',
+    );
+
+    expect(result.primarySections.map((s) => s.id)).toContain('sec:441.56');
+    expect(result.primarySections.map((s) => s.id)).not.toContain('sec:441.500');
+  });

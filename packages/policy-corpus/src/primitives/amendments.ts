@@ -18,14 +18,16 @@ export function createAmendmentPrimitiveService({ withSession }: { withSession: 
       // Clinical coverage policies with full revision-history tables can
       // otherwise return 200+ amendments and blow through the agent's
       // 180s turn budget.
+      // Cypher DESC sorts nulls FIRST: without the IS NULL key, an undated
+      // change notice outranked every dated one and was presented as the
+      // authoritative document.
       const amendmentResult = await session.run(
         `MATCH (d:Document {id: $id})
          OPTIONAL MATCH (amend:Document)-[r:AMENDS]->(d)
-         WHERE amend IS NOT NULL
          RETURN
            ${documentMetadataReturn('amend')},
            r.change_description AS changeDescription
-         ORDER BY amend.effective_date DESC, amend.id ASC
+         ORDER BY amend.effective_date IS NULL, amend.effective_date DESC, amend.id ASC
          LIMIT 50`,
         { id: documentId },
       );

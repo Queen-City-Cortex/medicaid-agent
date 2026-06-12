@@ -76,8 +76,12 @@ export function createFrameFinalizer({
     const supportingSections = (
       await hydrateSectionCandidates(supportingCandidates, FRAME_SUPPORT_LIMIT, seenSectionIds)
     ).map((candidate) => candidate.section);
-    const avoidSections = (await hydrateSectionCandidates(avoidCandidates, FRAME_AVOID_LIMIT)).map(
-      (candidate) => candidate.section,
+    // Share the seen-set so a section already selected as primary/supporting
+    // can't also ship as an avoid section, and strip content: avoid sections
+    // are negative guidance — their full text otherwise occupies model
+    // context and counts as supporting evidence in the verifier.
+    const avoidSections = (await hydrateSectionCandidates(avoidCandidates, FRAME_AVOID_LIMIT, seenSectionIds)).map(
+      (candidate) => ({ ...candidate.section, content: null }),
     );
 
     const documentCandidates = [

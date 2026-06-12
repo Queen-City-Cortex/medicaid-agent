@@ -105,9 +105,13 @@ const EPSDT_HINT: FederalQueryHint = {
     const policy = policyNumberUpper(section);
     const sn = normalizeSearchText(section.sectionNumber);
     // EPSDT implementing regs live in 42 CFR 441 Subpart B (§§ 441.50–441.62).
-    if (policy !== '42-CFR-441' || !sn.startsWith('441.')) return false;
-    const num = Number.parseFloat(sn);
-    return Number.isFinite(num) && num >= 441.5 && num < 441.63;
+    // CFR subsections are strings, not decimals: parseFloat conflated
+    // 441.50x/441.5xx (Subpart K, Community First Choice) with 441.50.
+    if (policy !== '42-CFR-441') return false;
+    const sub = sn.match(/^441\.(\d+)/)?.[1];
+    if (!sub || sub.length !== 2) return false;
+    const subNum = Number.parseInt(sub, 10);
+    return subNum >= 50 && subNum <= 62;
   },
 };
 
