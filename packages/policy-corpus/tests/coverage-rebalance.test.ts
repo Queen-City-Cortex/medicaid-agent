@@ -139,6 +139,71 @@ describe('coverage rebalance helpers', () => {
     expect([...assembled.primarySections, ...assembled.supportingSections].map((section) => section.id)).toContain('contrast');
     expect(assembled.avoidSections.map((section) => section.id)).toContain('general');
   });
+
+  it('keeps a surfaced EPSDT special-provision section in supporting for adult exclusion frames', () => {
+    const query = normalizeSearchText('Does Policy 10A cover routine massage therapy for beneficiaries over age 21?');
+    const flags = buildCoverageQueryFlags(query);
+    const surfacedSections = [
+      makeSection({
+        id: 'scope',
+        sectionNumber: '2.1.1',
+        title: 'Description of the Procedure, Product, or Service',
+        content: 'Outpatient specialized therapies include physical, occupational, speech, and respiratory therapy.',
+      }),
+      makeSection({
+        id: 'not-covered',
+        sectionNumber: '4.1',
+        title: 'General Criteria Not Covered',
+        content: 'Routine massage therapy is not covered for beneficiaries 21 years of age and older.',
+      }),
+      makeSection({
+        id: 'epsdt',
+        sectionNumber: '2.2.1',
+        title: 'EPSDT Special Provision: Exception to Policy Limitations for a Medicaid Beneficiary under 21 Years of Age',
+        content: 'EPSDT requires coverage of medically necessary services for beneficiaries under 21 even when the policy limits them.',
+      }),
+    ];
+    const scored = scoreCoverageSections(surfacedSections, ['massage'], ['therapy'], flags);
+    const selection = buildCoverageInitialSelection({
+      scored,
+      serviceFocusTerms: ['massage'],
+      flags,
+    });
+    const groups = collectCoverageSectionGroups(surfacedSections, flags);
+    const anchors = buildCoverageAnchors({
+      surfacedSections,
+      groups,
+      flags,
+      selection,
+    });
+    const assembled = assembleCoverageSections({
+      frame: makeFrame(),
+      flags,
+      groups,
+      selection,
+      anchors,
+    });
+
+    const surfacedIds = [...assembled.primarySections, ...assembled.supportingSections].map((section) => section.id);
+    expect(surfacedIds).toContain('epsdt');
+    expect(assembled.avoidSections.map((section) => section.id)).not.toContain('epsdt');
+  });
+
+  it('does not fabricate EPSDT sections when none are surfaced', () => {
+    const query = normalizeSearchText('Does Policy 10A cover routine massage therapy for beneficiaries over age 21?');
+    const flags = buildCoverageQueryFlags(query);
+    const surfacedSections = [
+      makeSection({
+        id: 'scope',
+        sectionNumber: '2.1.1',
+        title: 'Description of the Procedure, Product, or Service',
+        content: 'Outpatient specialized therapies include physical, occupational, speech, and respiratory therapy.',
+      }),
+    ];
+    const groups = collectCoverageSectionGroups(surfacedSections, flags);
+
+    expect(groups.epsdtExceptionSections).toEqual([]);
+  });
 });
 
 function makeSection(overrides: Partial<AnswerFrameSection> & { id: string }): AnswerFrameSection {

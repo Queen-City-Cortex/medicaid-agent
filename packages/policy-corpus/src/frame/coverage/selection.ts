@@ -67,6 +67,7 @@ export interface CoverageSectionGroups {
   congregateRoomAndBoardSections: AnswerFrameSection[];
   congregateWorkflowSections: AnswerFrameSection[];
   congregateGeneralLimitationSections: AnswerFrameSection[];
+  epsdtExceptionSections: AnswerFrameSection[];
 }
 
 // --- Stage 1: scoring -------------------------------------------------------
@@ -198,7 +199,31 @@ export function collectCoverageSectionGroups(
     ...collectGeneralEligibilityGroups(surfacedSections, flags),
     ...collectCoverageScopeGroups(surfacedSections, flags),
     ...collectCongregatePcsGroups(surfacedSections, flags),
+    ...collectEpsdtExceptionGroups(surfacedSections, flags),
   };
+}
+
+// The standard EPSDT special-provision section (template heading, usually
+// 2.2.x) when it was surfaced for a coverage/exclusion question — kept as a
+// named group so score-ranked supporting selection can't silently drop the
+// under-21 contrast evidence.
+function collectEpsdtExceptionGroups(
+  surfacedSections: AnswerFrameSection[],
+  flags: CoverageQueryFlags,
+): Pick<CoverageSectionGroups, 'epsdtExceptionSections'> {
+  const epsdtExceptionSections =
+    flags.yesNoCoverageQuery || flags.notCoveredQuery
+      ? uniqueBy(
+          surfacedSections.filter((section) =>
+            includesPhrase(combineText(section.sectionNumber, section.title, section.content), [
+              'epsdt special provision',
+              'exception to policy limitations',
+            ]),
+          ),
+          (section) => section.id,
+        )
+      : [];
+  return { epsdtExceptionSections };
 }
 
 function collectGeneralEligibilityGroups(
@@ -779,6 +804,16 @@ export function assembleCoverageSections({
             ),
         ),
       ],
+      (section) => section.id,
+    )
+      .filter((section) => !rebalancedPrimaryIds.has(section.id))
+      .slice(0, FRAME_SUPPORT_LIMIT);
+  }
+  if (groups.epsdtExceptionSections.length > 0) {
+    // Keep one EPSDT special-provision section visible in supporting evidence
+    // so adult-exclusion answers can cite the under-21 contrast.
+    supportingSections = uniqueBy(
+      [groups.epsdtExceptionSections[0], ...supportingSections],
       (section) => section.id,
     )
       .filter((section) => !rebalancedPrimaryIds.has(section.id))

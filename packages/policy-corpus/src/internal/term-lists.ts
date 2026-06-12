@@ -370,6 +370,17 @@ export const TITLE_CLUSTER_STOPWORDS = new Set([
   'supplies',
   'waiver',
 ]);
+// NC clinical-policy TEMPLATE heading vocabulary for the standard EPSDT
+// special-provision section (usually 2.2.x) that modifies adult limitations
+// for beneficiaries under 21. Section-heading phrases from the policy
+// template itself — not golden-answer sentences.
+export const EPSDT_EXCEPTION_SECTION_TERMS = [
+  'epsdt special provision',
+  'exception to policy limitations',
+  'early and periodic screening, diagnostic and treatment',
+  'under 21 years of age',
+];
+
 // Statutory/regulatory program-name glossary: acronym ↔ the official
 // multi-word name as it appears in statute and CFR section HEADINGS. Pure
 // legal vocabulary — not derived from any eval question or expected answer.

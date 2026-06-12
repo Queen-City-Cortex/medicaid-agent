@@ -14,6 +14,7 @@
 import type { FrameContext } from '../context.js';
 import type { DocumentWithSectionsView } from '../../types.js';
 import {
+  EPSDT_EXCEPTION_SECTION_TERMS,
   CERTIFICATION_SECTION_TERMS,
   CONGREGATE_PCS_CRITERIA_SECTION_TERMS,
   CONGREGATE_PCS_COVERED_SERVICE_SECTION_TERMS,
@@ -371,6 +372,31 @@ function buildCoverageSupportingProfiles(
     ...buildHcwdSupportingProfiles(signals),
     ...buildLimitationSupportingProfiles(signals),
     ...buildCongregateSupportingProfiles(signals),
+    ...buildEpsdtExceptionSupportingProfiles(signals),
+  ];
+}
+
+// Adult coverage/exclusion questions: surface the policy's standard EPSDT
+// special-provision section (template heading, usually 2.2.x) so the answer
+// can state the under-21 contrast WITH a citation. Pediatric questions
+// already get the dedicated pediatric profiles, so this is gated off there.
+// Evidence-driven: pulls the section from the preferred document only if it
+// actually exists; the planning directive downstream fires only on surfaced
+// evidence.
+function buildEpsdtExceptionSupportingProfiles(
+  signals: CoverageDocumentCandidateSignals,
+): CoverageDocumentCandidateProfile[] {
+  const adultExclusionContext =
+    signals.flags.yesNoCoverageQuery || signals.notCoveredRequested || signals.coverRequested;
+  if (!adultExclusionContext || signals.pediatricRequested) return [];
+  return [
+    makeSectionProfile(
+      'epsdt-exception-supporting',
+      EPSDT_EXCEPTION_SECTION_TERMS,
+      COVERAGE_SCOPE_AVOID_TERMS,
+      'EPSDT special-provision section that may modify policy limitations for beneficiaries under 21.',
+      1,
+    ),
   ];
 }
 

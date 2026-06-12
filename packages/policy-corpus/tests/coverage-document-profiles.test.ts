@@ -39,4 +39,22 @@ describe('coverage document candidate profiles', () => {
     expect(profiles.supportingProfiles.map((profile) => profile.id)).toContain('congregate-not-covered-supporting');
     expect(profiles.supportingProfiles.map((profile) => profile.id)).toContain('congregate-support-supporting');
   });
+
+  it('adds an epsdt-exception supporting profile for adult coverage-exclusion questions', () => {
+    const queryLower = normalizeSearchText('Does Policy 10A cover routine massage therapy for beneficiaries over age 21?');
+    const flags = buildCoverageQueryFlags(queryLower);
+
+    const profiles = buildCoverageDocumentCandidateProfiles(queryLower, flags);
+
+    expect(profiles.supportingProfiles.map((profile) => profile.id)).toContain('epsdt-exception-supporting');
+  });
+
+  it('omits the epsdt-exception profile when the question already asks about under-21/EPSDT', () => {
+    const queryLower = normalizeSearchText('How does the EPSDT special provision affect outpatient therapy for children under 21?');
+    const flags = buildCoverageQueryFlags(queryLower);
+
+    const profiles = buildCoverageDocumentCandidateProfiles(queryLower, flags);
+
+    expect(profiles.supportingProfiles.map((profile) => profile.id)).not.toContain('epsdt-exception-supporting');
+  });
 });

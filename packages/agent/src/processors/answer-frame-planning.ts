@@ -235,6 +235,26 @@ function buildCoverageChecklist(questionLower: string, frame: ResolveAnswerFrame
     );
   }
 
+  // Evidence-gated EPSDT-exception directive for ADULT exclusion questions:
+  // fires only when the frame actually surfaced the policy's EPSDT
+  // special-provision section, instructs read-and-cite, and asserts nothing
+  // about what the exception allows (de-contamination guarantee). Questions
+  // that themselves ask about under-21/EPSDT use the pairing directive below
+  // instead. Uses a local coverage matcher: the shared yes/no regex misses
+  // "covered" phrasing (separate follow-up).
+  const epsdtExceptionSections = matchingSections(allSections, [
+    'epsdt special provision',
+    'exception to policy limitations',
+  ]);
+  const adultExclusionQuestion =
+    /\bcover(s|ed|age)?\b/.test(questionLower) &&
+    !includesAny(questionLower, ['under age 21', 'under 21', 'epsdt', 'child', 'children', 'pediatric']);
+  if (epsdtExceptionSections.length > 0 && adultExclusionQuestion) {
+    checklist.push(
+      `The frame surfaced an EPSDT special-provision section (${listSections(epsdtExceptionSections, 1)}). Before finalizing a no-coverage conclusion for adults, read that section and state what it says about beneficiaries under 21, citing it. Do not assert what the exception allows beyond that section's text.`,
+    );
+  }
+
   if (questionLower.includes('telehealth') && telehealthSections.length > 0) {
     checklist.push(`Lead with the telehealth-specific state rule from ${listSections(telehealthSections, 1)}.`);
     checklist.push('Use the state telehealth conditions first. Do not widen to cross-referenced telehealth background or federal rules unless the user explicitly asks for them or the state section leaves a material gap.');

@@ -1244,4 +1244,112 @@ describe('AnswerFramePlanningProcessor', () => {
 
     expect(result).toBeUndefined();
   });
+
+  function makeCoverageSection(overrides: Record<string, unknown>) {
+    return {
+      id: 'sec-x',
+      title: '',
+      sectionNumber: null,
+      content: '',
+      effectiveDate: null,
+      documentId: 'doc-10a',
+      documentTitle: 'Outpatient Specialized Therapies',
+      documentType: 'clinical_policy',
+      policyNumber: '10A',
+      reason: 'test',
+      ...overrides,
+    };
+  }
+
+  function makeAdultExclusionArgs(withEpsdtSection: boolean, questionText?: string) {
+    return makeArgs({
+      messages: [
+        {
+          role: 'user',
+          content: {
+            parts: [
+              {
+                type: 'text',
+                text:
+                  questionText ??
+                  'Does Policy 10A cover routine massage therapy for beneficiaries over age 21?',
+              },
+            ],
+          },
+        },
+        makeToolMessage({
+          frame: {
+            questionType: 'coverage',
+            route: makeRoute({ lane: 'baseline_hybrid', rationale: 'single_document_coverage' }),
+            authoritativeDocuments: [],
+            primarySections: [
+              makeCoverageSection({
+                id: 'sec-scope',
+                title: 'Description of the Procedure, Product, or Service',
+                sectionNumber: '2.1.1',
+                content: 'Outpatient specialized therapies include physical, occupational, and speech therapy.',
+              }),
+              makeCoverageSection({
+                id: 'sec-notcovered',
+                title: 'General Criteria Not Covered',
+                sectionNumber: '4.1',
+                content: 'Routine massage therapy is not covered for beneficiaries 21 years of age and older.',
+              }),
+            ],
+            supportingSections: withEpsdtSection
+              ? [
+                  makeCoverageSection({
+                    id: 'sec-epsdt',
+                    title:
+                      'EPSDT Special Provision: Exception to Policy Limitations for a Medicaid Beneficiary under 21 Years of Age',
+                    sectionNumber: '2.2.1',
+                    content:
+                      'EPSDT requires coverage of medically necessary services for beneficiaries under 21 even when this policy limits them.',
+                  }),
+                ]
+              : [],
+            avoidSections: [],
+            latestRevision: null,
+            variantReasoning: null,
+          },
+        }),
+      ],
+    });
+  }
+
+  it('adds an evidence-gated EPSDT-exception directive when the section is surfaced for an adult exclusion question', () => {
+    const processor = new AnswerFramePlanningProcessor();
+
+    const result = processor.processInputStep!(makeAdultExclusionArgs(true));
+    const plan = result?.systemMessages?.[0]?.content ?? '';
+
+    expect(plan).toContain('EPSDT special-provision section');
+    expect(plan).toContain('2.2.1');
+    // De-contamination pins: the directive directs WHERE to look and forbids
+    // asserting beyond the section text — it must never contain golden-answer
+    // conclusion phrasing.
+    expect(plan).toContain("Do not assert what the exception allows beyond that section's text");
+    expect(plan).not.toContain('may permit broader coverage');
+    expect(plan).not.toContain('is covered for beneficiaries under 21');
+  });
+
+  it('omits the EPSDT directive when no EPSDT section is surfaced', () => {
+    const processor = new AnswerFramePlanningProcessor();
+
+    const result = processor.processInputStep!(makeAdultExclusionArgs(false));
+    const plan = result?.systemMessages?.[0]?.content ?? '';
+
+    expect(plan).not.toContain('EPSDT special-provision section');
+  });
+
+  it('does not add the adult-exclusion EPSDT directive when the question itself asks about under-21', () => {
+    const processor = new AnswerFramePlanningProcessor();
+
+    const result = processor.processInputStep!(
+      makeAdultExclusionArgs(true, 'How does the EPSDT special provision affect massage therapy coverage for children under 21?'),
+    );
+    const plan = result?.systemMessages?.[0]?.content ?? '';
+
+    expect(plan).not.toContain('Before finalizing a no-coverage conclusion for adults');
+  });
 });

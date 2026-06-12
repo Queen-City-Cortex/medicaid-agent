@@ -16,6 +16,7 @@ export const PROMPT_RULE_BUCKETS = {
     'Use getDocument when you need to inspect nearby sections, attachments, or scope/general provisions in the same document.',
     'Use getSectionContext or followReferences when the answer depends on adjacent structure or explicit cross-references.',
     'If you still cannot confirm the answer after a few attempts, say what you found and what you could not verify.',
+    'When concluding that a service is not covered or excluded for adults, check the surfaced evidence for an EPSDT / under-21 special-provision section and report what it says with a citation; if no such section was surfaced, do not speculate about pediatric exceptions.',
   ],
 } as const;
 
