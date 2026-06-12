@@ -374,6 +374,88 @@ describe('coverage frame document routing', () => {
     expectAllHandlersUsed();
   });
 
+  it('keeps an adult-care-home PCS question on the congregate policy despite a non-sibling distractor', async () => {
+    // h-005 regression: CAP/DA (3K-2) outranked PCS-in-congregate-settings
+    // (3L-1) on raw scores, and narrowInferredCoverageDocuments kept only the
+    // raw-score winner because 3K-2 and 3L-1 are not policy siblings. The
+    // setting preference must scope routing documents before that narrowing.
+    const DOC_3L1: GraphDocument = {
+      id: 'doc-3l1',
+      title: 'PCS in Congregate Settings',
+      documentType: 'clinical_policy',
+      policyNumber: '3L-1',
+      effectiveDate: '2025-01-01',
+      url: 'https://example.com/3L-1',
+      sections: [
+        {
+          id: 'sec-3l1-321',
+          number: '3.2.1',
+          title: '3.2.1 Specific criteria covered by Medicaid',
+          content: 'PCS is covered in congregate settings such as adult care homes when the policy criteria are met.',
+          chars: 900,
+        },
+        {
+          id: 'sec-3l1-33',
+          number: '3.3',
+          title: '3.3 Personal Care Services',
+          content: 'This section governs PCS provided in assisted living and other congregate settings.',
+          chars: 1000,
+        },
+      ],
+    };
+    const DOC_3K2: GraphDocument = {
+      id: 'doc-3k2',
+      title: 'Community Alternatives Program for Disabled Adults (CAP/DA)',
+      documentType: 'clinical_policy',
+      policyNumber: '3K-2',
+      effectiveDate: '2025-01-01',
+      url: 'https://example.com/3K-2',
+      sections: [
+        {
+          id: 'sec-3k2-31',
+          number: '3.1',
+          title: '3.1 General criteria covered',
+          content: 'CAP/DA covers in-home aide services, personal care assistance, and supports for disabled adults living at home.',
+          chars: 1100,
+        },
+        {
+          id: 'sec-3k2-41',
+          number: '4.1',
+          title: '4.1 Services not covered',
+          content: 'Room and board are not covered for adults receiving waiver services while living in the home.',
+          chars: 800,
+        },
+      ],
+    };
+
+    const { corpus } = createCorpus([
+      {
+        label: 'vector clinical',
+        match: queries.sectionVector('clinical_policy'),
+        result: {
+          records: [
+            hitFor(DOC_3K2, 'sec-3k2-31', 0.99),
+            hitFor(DOC_3K2, 'sec-3k2-41', 0.96),
+            hitFor(DOC_3L1, 'sec-3l1-321', 0.94),
+            hitFor(DOC_3L1, 'sec-3l1-33', 0.93),
+          ],
+        },
+      },
+      ...documentGraphHandlers(DOC_3K2),
+      ...documentGraphHandlers(DOC_3L1),
+    ]);
+
+    const frame = await resolveTypedFrame(
+      corpus,
+      'coverage',
+      'My mother lives in an adult care home (assisted living). Can she receive Personal Care Services through NC Medicaid while living there?',
+    );
+
+    expect(frame.authoritativeDocuments[0]?.policyNumber).toBe('3L-1');
+    expect(frame.variantReasoning).toContain('congregate');
+    expect(frame.primarySections.every((section) => section.policyNumber === '3L-1')).toBe(true);
+  });
+
   it('promotes specific ambulance non-covered subsections over general exclusions', async () => {
     const DOC_15: GraphDocument = {
       id: 'doc-15',

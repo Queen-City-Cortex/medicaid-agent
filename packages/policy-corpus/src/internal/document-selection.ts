@@ -180,6 +180,31 @@ export function narrowHcwdCoverageDocuments(query: string, documents: DocumentWi
     .map(({ document }) => document);
 }
 
+/**
+ * Prefer routing documents whose titles match the care setting the query asks
+ * about (congregate/adult-care-home vs in-home). The same preference exists in
+ * scoreVariantDocument, but that path only runs for sibling policy sets — a
+ * non-sibling distractor (e.g. CAP/DA outranking the congregate PCS policy on
+ * raw hit scores for an "adult care home" question) bypassed it entirely.
+ * Returns the original documents and a null reason when the query names no
+ * setting or no document title matches it.
+ */
+export function selectSettingPreferredDocuments(
+  queryLower: string,
+  documents: DocumentWithSectionsView[],
+): { documents: DocumentWithSectionsView[]; reason: string | null } {
+  for (const variant of VARIANT_SETTING_TERMS) {
+    if (!includesPhrase(queryLower, variant.terms)) continue;
+    const matching = documents.filter((document) =>
+      includesPhrase(combineText(document.title, document.policyNumber), variant.titleTerms),
+    );
+    if (matching.length > 0) {
+      return { documents: matching, reason: variant.reason };
+    }
+  }
+  return { documents, reason: null };
+}
+
 export function policyFamilyKey(policyNumber: string | null | undefined): string | null {
   if (!policyNumber) return null;
   return policyNumber.toUpperCase().replace(/-[A-Z0-9]+$/g, '');

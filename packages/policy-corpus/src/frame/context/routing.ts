@@ -21,6 +21,7 @@ import {
   isHcwdIncomePremiumQuery,
   narrowHcwdCoverageDocuments,
   narrowInferredCoverageDocuments,
+  selectSettingPreferredDocuments,
   normalizeSearchText,
   recordToRetrievalHit,
   retrievalDocumentMetadataReturn,
@@ -157,7 +158,15 @@ export function createFrameRoutingHelpers({
         : lookupDocuments;
     }
     const inferredDocuments = await collectPolicyDocumentsFromHits(query, hits, FRAME_DOCUMENT_LIMIT + 1);
-    return narrowInferredCoverageDocuments(inferredDocuments);
+    // Setting preference must run BEFORE narrowing: narrowInferredCoverage-
+    // Documents keeps only the raw-score winner for non-sibling sets, which
+    // discarded the congregate PCS policy whenever CAP/DA outranked it on an
+    // adult-care-home question.
+    const { documents: settingScopedDocuments } = selectSettingPreferredDocuments(
+      normalizeSearchText(query),
+      inferredDocuments,
+    );
+    return narrowInferredCoverageDocuments(settingScopedDocuments);
   };
 
   return {

@@ -21,6 +21,7 @@ import {
   includesPhrase,
   looksLikeSiblingPolicySet,
   normalizeSearchText,
+  selectSettingPreferredDocuments,
   scoreTermMatches,
   uniqueBy,
   type DocumentCandidate,
@@ -69,9 +70,14 @@ export async function resolveCoverageFrame(
       ? await buildPolicyVariantFrameForDocuments(context, query, routingDocuments, selectAnswerRoute(queryLower, 'policy_variant'))
       : null;
   const preferredDocumentId = variantFrame?.authoritativeDocuments[0]?.id ?? null;
+  // Setting-variant preference for the no-sibling case: when the query names a
+  // care setting (congregate/in-home) and a routing document's title matches
+  // it, scope to those documents even if a non-sibling distractor outranked
+  // them on raw scores. The variant frame (sibling sets) takes precedence.
+  const settingPreference = selectSettingPreferredDocuments(queryLower, routingDocuments);
   const preferredRoutingDocuments = preferredDocumentId
     ? routingDocuments.filter((document) => document.id === preferredDocumentId)
-    : routingDocuments;
+    : settingPreference.documents;
   const scopedRoutingDocuments = preferredRoutingDocuments.length > 0 ? preferredRoutingDocuments : routingDocuments;
   const preferredPolicyNumbers = new Set(
     scopedRoutingDocuments
@@ -239,7 +245,7 @@ export async function resolveCoverageFrame(
     primaryCandidates,
     supportingCandidates,
     avoidCandidates,
-    variantReasoning: variantFrame?.variantReasoning ?? null,
+    variantReasoning: variantFrame?.variantReasoning ?? settingPreference.reason,
     latestRevisionSections: [],
   });
   return rebalanceCoverageFrame(frame, queryLower, serviceFocusTerms, serviceClusterTerms);
