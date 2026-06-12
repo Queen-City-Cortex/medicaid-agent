@@ -160,7 +160,15 @@ class CorpusGraphWriter:
             if section.prev_sibling_id
         ]
 
-        self._cleanup_document_sections(session, doc_id, section_ids)
+        existing_content = self._fetch_existing_section_content(session, section_ids)
+        changed_section_ids = [
+            row["id"]
+            for row in section_rows
+            if row["id"] in existing_content
+            and existing_content[row["id"]] != row["content_text"]
+        ]
+
+        self._cleanup_document_sections(session, doc_id, section_ids, changed_section_ids)
 
         for batch in chunked(section_rows, GRAPH_BATCH_SIZE):
             session.run(queries.MERGE_SECTIONS_BATCH, {"sections": batch})
@@ -174,14 +182,34 @@ class CorpusGraphWriter:
         for batch in chunked(sibling_pairs, GRAPH_BATCH_SIZE):
             session.run(queries.MERGE_NEXT_SIBLING_BATCH, {"pairs": batch})
 
-    def _cleanup_document_sections(self, session: Session, doc_id: str, section_ids: list[str]) -> None:
+    def _fetch_existing_section_content(
+        self, session: Session, section_ids: list[str]
+    ) -> dict[str, str]:
+        """Fetch content_text for sections that already exist in the graph."""
+        existing: dict[str, str] = {}
+        for batch in chunked(section_ids, GRAPH_BATCH_SIZE):
+            result = session.run(queries.GET_SECTION_CONTENT_BATCH, {"section_ids": batch})
+            for record in result:
+                existing[record["id"]] = record["content_text"]
+        return existing
+
+    def _cleanup_document_sections(
+        self,
+        session: Session,
+        doc_id: str,
+        section_ids: list[str],
+        changed_section_ids: list[str],
+    ) -> None:
         session.run(
             queries.DELETE_STALE_DOCUMENT_SECTIONS,
             {"doc_id": doc_id, "section_ids": section_ids},
         )
         session.run(queries.CLEAR_DOCUMENT_SECTION_STRUCTURE, {"doc_id": doc_id})
 
-        for batch in chunked(section_ids, GRAPH_BATCH_SIZE):
+        # Only sections whose content actually changed lose their embedding and
+        # chunks — unchanged sections keep them, so re-running the loader never
+        # forces a full corpus re-embed.
+        for batch in chunked(changed_section_ids, GRAPH_BATCH_SIZE):
             session.run(
                 queries.CLEAR_SECTION_CHUNKS_AND_EMBEDDINGS_BATCH,
                 {"section_ids": batch},

@@ -81,6 +81,12 @@ MATCH (s)-[r:PARENT_OF|NEXT_SIBLING]-(:Section)
 DELETE r
 """
 
+GET_SECTION_CONTENT_BATCH = """
+UNWIND $section_ids AS section_id
+MATCH (s:Section {id: section_id})
+RETURN s.id AS id, s.content_text AS content_text
+"""
+
 CLEAR_SECTION_CHUNKS_AND_EMBEDDINGS_BATCH = """
 UNWIND $section_ids AS section_id
 MATCH (s:Section {id: section_id})

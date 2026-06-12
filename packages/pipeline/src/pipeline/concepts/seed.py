@@ -20,7 +20,9 @@ SEED_CONCEPTS = [
     # Services
     {"name": "Personal Care Services", "aliases": ["PCS"], "category": "service"},
     {"name": "Private Duty Nursing", "aliases": ["PDN"], "category": "service"},
-    {"name": "Home Health Services", "aliases": ["HHS"], "category": "service"},
+    # NOTE: "HHS" is deliberately NOT an alias — in this corpus it almost
+    # always means the federal Department of Health and Human Services.
+    {"name": "Home Health Services", "aliases": [], "category": "service"},
     {"name": "Durable Medical Equipment", "aliases": ["DME"], "category": "service"},
     {"name": "Home Modifications", "aliases": [], "category": "service"},
     {"name": "Assistive Technology", "aliases": [], "category": "service"},

@@ -15,23 +15,24 @@ from pipeline.graph.corpus_writer import CorpusGraphWriter
 
 
 class FakeSession:
-    def __init__(self):
+    def __init__(self, existing_sections: dict[str, str] | None = None):
         self.calls: list[tuple[str, dict]] = []
+        # id → content_text of sections already in the graph
+        self.existing_sections = existing_sections or {}
 
     def run(self, query: str, params: dict | None = None):
         self.calls.append((query, params or {}))
+        if query == queries.GET_SECTION_CONTENT_BATCH:
+            return [
+                {"id": sec_id, "content_text": self.existing_sections[sec_id]}
+                for sec_id in (params or {})["section_ids"]
+                if sec_id in self.existing_sections
+            ]
         return []
 
 
-def test_upsert_document_bundle_writes_document_and_section_structure():
-    session = FakeSession()
-
-    @contextmanager
-    def fake_session_factory():
-        yield session
-
-    writer = CorpusGraphWriter(fake_session_factory)
-    bundle = DocumentBundle(
+def _make_bundle() -> DocumentBundle:
+    return DocumentBundle(
         document=DocumentNode(
             id="doc:test",
             title="Policy 8C",
@@ -74,24 +75,80 @@ def test_upsert_document_bundle_writes_document_and_section_structure():
         ],
     )
 
-    writer.upsert_document_bundle(bundle)
+
+def _writer_for(session: FakeSession) -> CorpusGraphWriter:
+    @contextmanager
+    def fake_session_factory():
+        yield session
+
+    return CorpusGraphWriter(fake_session_factory)
+
+
+def test_upsert_document_bundle_writes_document_and_section_structure():
+    session = FakeSession()
+    writer = _writer_for(session)
+
+    writer.upsert_document_bundle(_make_bundle())
 
     assert [query for query, _ in session.calls] == [
         queries.MERGE_DOCUMENT,
+        queries.GET_SECTION_CONTENT_BATCH,
         queries.DELETE_STALE_DOCUMENT_SECTIONS,
         queries.CLEAR_DOCUMENT_SECTION_STRUCTURE,
-        queries.CLEAR_SECTION_CHUNKS_AND_EMBEDDINGS_BATCH,
         queries.MERGE_SECTIONS_BATCH,
         queries.MERGE_HAS_SECTION_BATCH,
         queries.MERGE_PARENT_OF_BATCH,
         queries.MERGE_NEXT_SIBLING_BATCH,
     ]
     assert session.calls[0][1]["id"] == "doc:test"
-    assert session.calls[1][1] == {"doc_id": "doc:test", "section_ids": ["sec:1", "sec:2"]}
-    assert session.calls[2][1] == {"doc_id": "doc:test"}
-    assert session.calls[3][1] == {"section_ids": ["sec:1", "sec:2"]}
+    assert session.calls[1][1] == {"section_ids": ["sec:1", "sec:2"]}
+    assert session.calls[2][1] == {"doc_id": "doc:test", "section_ids": ["sec:1", "sec:2"]}
+    assert session.calls[3][1] == {"doc_id": "doc:test"}
     assert session.calls[4][1]["sections"][0]["id"] == "sec:1"
     assert session.calls[5][1] == {"doc_id": "doc:test", "section_ids": ["sec:1", "sec:2"]}
+
+
+def test_upsert_document_bundle_keeps_embeddings_for_unchanged_sections():
+    # Both sections already exist with identical content — nothing gets cleared.
+    session = FakeSession(existing_sections={
+        "sec:1": "Intro text",
+        "sec:2": "Child text",
+    })
+    writer = _writer_for(session)
+
+    writer.upsert_document_bundle(_make_bundle())
+
+    queries_run = [query for query, _ in session.calls]
+    assert queries.CLEAR_SECTION_CHUNKS_AND_EMBEDDINGS_BATCH not in queries_run
+    assert queries.MERGE_SECTIONS_BATCH in queries_run
+
+
+def test_upsert_document_bundle_clears_embeddings_only_for_changed_sections():
+    # sec:1 content changed, sec:2 is identical — only sec:1 gets cleared.
+    session = FakeSession(existing_sections={
+        "sec:1": "Old intro text",
+        "sec:2": "Child text",
+    })
+    writer = _writer_for(session)
+
+    writer.upsert_document_bundle(_make_bundle())
+
+    clear_calls = [
+        params for query, params in session.calls
+        if query == queries.CLEAR_SECTION_CHUNKS_AND_EMBEDDINGS_BATCH
+    ]
+    assert clear_calls == [{"section_ids": ["sec:1"]}]
+
+
+def test_upsert_document_bundle_does_not_clear_brand_new_sections():
+    # Sections not yet in the graph have no embeddings or chunks to clear.
+    session = FakeSession(existing_sections={})
+    writer = _writer_for(session)
+
+    writer.upsert_document_bundle(_make_bundle())
+
+    queries_run = [query for query, _ in session.calls]
+    assert queries.CLEAR_SECTION_CHUNKS_AND_EMBEDDINGS_BATCH not in queries_run
 
 
 def test_upsert_document_bundle_deletes_all_existing_sections_when_parse_has_no_sections():

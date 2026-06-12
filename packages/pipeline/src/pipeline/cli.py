@@ -84,6 +84,21 @@ def _run_eval_levels(
     return results
 
 
+def _fail_on_embed_errors(embed_stats: dict) -> None:
+    """Exit non-zero when embedding finished with errors.
+
+    Dropped batches mean sections/chunks are silently missing from vector
+    search, so a run with errors must not look successful.
+    """
+    errors = embed_stats.get("errors", 0)
+    if errors:
+        console.print(
+            f"[red]Embedding finished with {errors} errors — some batches were "
+            "not embedded. Fix the failures and re-run `embed`.[/red]"
+        )
+        raise SystemExit(1)
+
+
 def _run_mixed_corpus_build(
     *,
     reset: bool = True,
@@ -184,6 +199,7 @@ def _run_mixed_corpus_build(
             f"  {embed_stats['embedded']} embedded, "
             f"{embed_stats['errors']} errors\n"
         )
+        _fail_on_embed_errors(embed_stats)
 
     if with_concepts:
         console.print("[bold]Stage 8: Concepts[/bold]")
@@ -362,6 +378,7 @@ def embed(model: str | None):
     stats = embed_all(model=model)
     ensure_vector_index()
     console.print(f"\n[bold]Embedding complete:[/bold] {stats['embedded']} embedded, {stats['errors']} errors")
+    _fail_on_embed_errors(stats)
 
 
 @cli.command("seed-concepts")
@@ -802,7 +819,8 @@ def run_all(source_type: str | None, llm_assist: bool):
     console.print("[bold]Stage 4: Embeddings[/bold]")
     embed_stats = embed_all()
     ensure_vector_index()
-    console.print(f"  {embed_stats['embedded']} embedded\n")
+    console.print(f"  {embed_stats['embedded']} embedded, {embed_stats['errors']} errors\n")
+    _fail_on_embed_errors(embed_stats)
 
     console.print("[bold]Stage 5: Concepts[/bold]")
     seed_count = seed_concepts()

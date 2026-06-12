@@ -12,12 +12,33 @@ from pipeline.concepts.seed import SEED_CONCEPTS, slugify
 
 console = Console()
 
-# Short aliases that match common English words — require case-sensitive match
-# to avoid false positives like "at home" matching Assistive Technology
-CASE_SENSITIVE_ALIASES = {"PA", "POC", "HHS", "MAA", "MAB", "MAD"}
+# Acronym terms (all-caps, e.g. "PA", "POC", "PACE", "DME") must match
+# case-sensitively, otherwise they collide with common English words
+# ("pace", "at home", ...). Genuinely ambiguous acronyms — e.g. "HHS" for
+# Home Health Services, which the federal department dominates in this
+# corpus — are not aliases at all (see pipeline.concepts.seed).
+MIN_ACRONYM_LENGTH = 2
 
-# Minimum alias length for case-insensitive matching
+# Minimum term length for case-insensitive matching
 MIN_ALIAS_LENGTH = 3
+
+
+def _is_acronym(term: str) -> bool:
+    """True for all-caps terms like 'PA', 'PACE', 'CAP/DA', 'M-AA'."""
+    return term.isupper()
+
+
+def _build_term_pattern(term: str) -> re.Pattern[str] | None:
+    """Compile a whole-word pattern for a concept term.
+
+    Acronyms match case-sensitively; everything else case-insensitively.
+    Returns None for terms too short to match safely.
+    """
+    min_length = MIN_ACRONYM_LENGTH if _is_acronym(term) else MIN_ALIAS_LENGTH
+    if len(term) < min_length:
+        return None
+    flags = 0 if _is_acronym(term) else re.IGNORECASE
+    return re.compile(r"\b" + re.escape(term) + r"\b", flags)
 
 
 def _determine_relationship(section_title: str | None) -> str:
@@ -40,12 +61,17 @@ def link_concepts() -> dict:
     """Link concepts to sections based on keyword matching."""
     stats = {"edges_created": 0}
 
-    # Build search terms: concept_id → list of terms to search for
-    search_map: list[tuple[str, str, list[str]]] = []
+    # Build search patterns: concept_id → compiled whole-word patterns
+    search_map: list[tuple[str, str, list[re.Pattern[str]]]] = []
     for concept in SEED_CONCEPTS:
         concept_id = f"concept:{slugify(concept['name'])}"
         terms = [concept["name"]] + concept["aliases"]
-        search_map.append((concept_id, concept["name"], terms))
+        patterns = [
+            pattern
+            for pattern in (_build_term_pattern(term) for term in terms)
+            if pattern is not None
+        ]
+        search_map.append((concept_id, concept["name"], patterns))
 
     # Get all sections
     with get_session() as session:
@@ -63,29 +89,14 @@ def link_concepts() -> dict:
         section_id = record["s.id"]
         section_title = record["s.title"]
         content_raw = record["s.content_text"] or ""
-        content_lower = content_raw.lower()
 
-        if not content_lower:
+        if not content_raw:
             continue
 
         rel_type = _determine_relationship(section_title)
 
-        for concept_id, concept_name, terms in search_map:
-            found = False
-            for term in terms:
-                if term in CASE_SENSITIVE_ALIASES:
-                    # Case-sensitive match for short ambiguous aliases
-                    if re.search(r"\b" + re.escape(term) + r"\b", content_raw):
-                        found = True
-                        break
-                elif len(term) < MIN_ALIAS_LENGTH:
-                    # Skip very short aliases entirely — too many false positives
-                    continue
-                else:
-                    if re.search(r"\b" + re.escape(term.lower()) + r"\b", content_lower):
-                        found = True
-                        break
-            if found:
+        for concept_id, _concept_name, patterns in search_map:
+            if any(pattern.search(content_raw) for pattern in patterns):
                 edges_to_create.add((section_id, concept_id, rel_type))
 
     concept_links = [
