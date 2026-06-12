@@ -305,7 +305,11 @@ function extractResolveAnswerFrame(result: ResolveAnswerFrameResult, toolCallId:
     ?? urlFromCitationLink(frame.primarySections[0]?.citationLink)
     ?? frame.authoritativeDocuments[0]?.url
     ?? null;
-  const lines: string[] = [`[resolveAnswerFrame]`, `Question type: ${frame.questionType}`];
+  const lines: string[] = [
+    `[resolveAnswerFrame]`,
+    `(Routing hint from an upstream router — NOT ground-truth evidence; the router can be wrong.)`,
+    `Question type: ${frame.questionType}`,
+  ];
   lines.push(`Route lane: ${frame.route.lane}`);
   lines.push(`Route rationale: ${frame.route.rationale}`);
   lines.push(`Widening policy: ${frame.route.widening_policy}`);
@@ -535,19 +539,23 @@ const VerificationSchema = z.object({
 
 export type VerificationResult = z.infer<typeof VerificationSchema>;
 
-const VERIFIER_PROMPT = `You are a factual verification and relevance assistant for NC Medicaid policy answers. Given a QUESTION, an ANSWER, and SOURCE DOCUMENTS, perform four checks:
+export const VERIFIER_PROMPT = `You are a factual verification and relevance assistant for NC Medicaid policy answers. Given a QUESTION, an ANSWER, and SOURCE DOCUMENTS, perform four checks:
 
 ## 1. RELEVANCE CHECK
 Does the answer directly address the specific question asked?
-- If the question asks about a specific policy (e.g., "Policy 3L"), does the answer primarily use that policy?
+- If the question asks about a specific policy by number, does the answer primarily use that policy?
 - If the question asks about a specific setting or population, does the answer address that setting/population?
-- Flag as MAJOR if the answer discusses a related-but-different policy (e.g., 3L-1 instead of 3L, MA-3540 instead of CCP 10A) or reaches the wrong conclusion by using the wrong source.
+- The [resolveAnswerFrame] block is a routing hint produced by an upstream router that can be wrong. It is NOT evidence. Judge relevance by whether the answer's own cited sections (from the non-frame sources) support its claims and address the question's setting and population.
+- Flag as MAJOR only if the answer's cited evidence itself fails to address the question or the answer reaches a conclusion its cited sources contradict.
+- A disagreement between the frame's authoritative document and the policy the answer cites is at most MINOR when the answer's citations are internally consistent and on-topic.
 - Flag as MINOR if the answer is directionally correct but incomplete or uses a secondary source.
 
 ## 2. FACTUAL CHECK
 Identify every factual claim and check whether it is supported by the source documents.
 - A claim is SUPPORTED if the source documents contain the information stated or it is a reasonable paraphrase.
 - A claim is UNSUPPORTED if the source documents do not contain that information, or the answer contradicts the sources.
+- Text presented in quotation marks claims to be verbatim: it is UNSUPPORTED unless it appears (allowing whitespace differences) in a non-frame source.
+- Any URL appearing in the answer must come from the SOURCE DOCUMENTS; a URL not present in the sources is an unsupported claim.
 - Focus on: dollar amounts, dates, thresholds, visit limits, eligibility criteria, policy numbers, and specific requirements.
 - Ignore narrative transitions, hedging language, and meta-commentary about the research process.
 
@@ -568,6 +576,7 @@ If the SOURCE DOCUMENTS contain a [resolveAnswerFrame] block with a "Determinism
 - Wrap content from the wrong policy source in [wrong source: ...] markers.
 - Wrap uncited factual claims in [missing citation: <suggestedCitation>] markers placed immediately after the claim sentence; do not overwrite existing citations, and do not re-wrap narrative transitions.
 - Determinism-hint violations count as unsupported claims — wrap them in [unverified: ...] with the specific reason.
+- Markers wrap the minimal offending span only. correctedAnswer must preserve all substantive content that was not flagged — NEVER replace the answer body with meta-commentary about sources or the verification process.
 - Keep all correct, cited content unchanged. The corrected version must be the complete answer, not a diff. Leave correctedAnswer empty only when supported, relevant, AND citationsComplete are all true with no major relevance issues.`;
 
 export async function verifyAnswer(
@@ -617,6 +626,8 @@ export interface VerificationConfidence {
     missingCitation: number;
     relevanceMajor: number;
     relevanceMinor: number;
+    fabricatedUrl: number;
+    fabricatedQuote: number;
   };
   /**
    * True when the verifier produced a rewrite that was entirely `[missing
@@ -625,6 +636,12 @@ export interface VerificationConfidence {
    * rewrite was unusable — so we clamp to `low`.
    */
   pureMarkerFallback: boolean;
+  /**
+   * True when the rewrite stripped most of the original answer's substance
+   * (meta-commentary takeover) and we fell back to the original text. Same
+   * clamp as pureMarkerFallback.
+   */
+  substanceLossFallback: boolean;
 }
 
 /**
@@ -635,23 +652,33 @@ export interface VerificationConfidence {
  */
 export function computeVerificationConfidence(
   verification: VerificationResult,
-  options: { pureMarkerFallback?: boolean } = {},
+  options: {
+    pureMarkerFallback?: boolean;
+    substanceLossFallback?: boolean;
+    fabricatedUrlCount?: number;
+    fabricatedQuoteCount?: number;
+  } = {},
 ): VerificationConfidence {
   const unsupported = verification.unsupportedClaims?.length ?? 0;
   const missingCitation = verification.missingCitationClaims?.length ?? 0;
   const issues = verification.relevanceIssues ?? [];
   const relevanceMajor = issues.filter((i) => i.severity === 'major').length;
   const relevanceMinor = issues.filter((i) => i.severity === 'minor').length;
+  const fabricatedUrl = options.fabricatedUrlCount ?? 0;
+  const fabricatedQuote = options.fabricatedQuoteCount ?? 0;
 
   const deduction =
     0.30 * unsupported
     + 0.15 * missingCitation
     + 0.35 * relevanceMajor
-    + 0.10 * relevanceMinor;
+    + 0.10 * relevanceMinor
+    + 0.25 * fabricatedUrl
+    + 0.20 * fabricatedQuote;
   let confidence = Math.max(0, Math.min(1, 1 - deduction));
 
   const pureMarkerFallback = !!options.pureMarkerFallback;
-  if (pureMarkerFallback) {
+  const substanceLossFallback = !!options.substanceLossFallback;
+  if (pureMarkerFallback || substanceLossFallback) {
     // Clamp: a rewrite that was unusable should never read `high` no matter
     // how clean the individual check flags looked.
     confidence = Math.min(confidence, 0.55);
@@ -665,38 +692,51 @@ export function computeVerificationConfidence(
   return {
     confidence,
     severity,
-    counts: { unsupported, missingCitation, relevanceMajor, relevanceMinor },
+    counts: { unsupported, missingCitation, relevanceMajor, relevanceMinor, fabricatedUrl, fabricatedQuote },
     pureMarkerFallback,
+    substanceLossFallback,
   };
 }
 
 // ── Rendering helpers ───────────────────────────────────────────────────────
 
 const MISSING_CITATION_MARKER = '[missing citation:';
+const VERIFIER_MARKER_PREFIXES = ['[unverified:', '[wrong source:', MISSING_CITATION_MARKER];
+
+interface MarkerSpan {
+  start: number;
+  /** Index just past the marker's closing `]`. */
+  end: number;
+  prefix: string;
+  content: string;
+}
 
 /**
- * Parse `[missing citation: <content>]` markers out of the verifier's corrected
- * answer, tracking bracket depth so the common payload shape
- * `[missing citation: [Policy 8C § 3.2.1](https://...)]` doesn't stop at the
- * inner `]`. Returns the body with markers stripped and the list of suggested
- * citations in the order they appeared.
+ * Find verifier marker spans (`[unverified: ...]`, `[wrong source: ...]`,
+ * `[missing citation: ...]`), tracking bracket depth so payloads containing
+ * markdown links like `[Policy 8C § 3.2.1](https://...)` don't stop at the
+ * inner `]`. An unmatched marker yields no span (callers keep the original
+ * text rather than silently dropping content).
  */
-function extractMissingCitations(text: string): { body: string; citations: string[] } {
-  const citations: string[] = [];
-  const segments: string[] = [];
+function scanMarkerSpans(text: string, markerPrefixes: string[]): MarkerSpan[] {
+  const spans: MarkerSpan[] = [];
   let cursor = 0;
 
   while (cursor < text.length) {
-    const idx = text.indexOf(MISSING_CITATION_MARKER, cursor);
-    if (idx === -1) {
-      segments.push(text.slice(cursor));
-      break;
+    let idx = -1;
+    let prefix = '';
+    for (const candidate of markerPrefixes) {
+      const found = text.indexOf(candidate, cursor);
+      if (found !== -1 && (idx === -1 || found < idx)) {
+        idx = found;
+        prefix = candidate;
+      }
     }
-    segments.push(text.slice(cursor, idx));
+    if (idx === -1) break;
 
     // Find the marker's matching `]` while honoring nested brackets.
     let depth = 1;
-    let j = idx + MISSING_CITATION_MARKER.length;
+    let j = idx + prefix.length;
     while (j < text.length) {
       const ch = text[j];
       if (ch === '[') depth++;
@@ -706,21 +746,198 @@ function extractMissingCitations(text: string): { body: string; citations: strin
       }
       j++;
     }
-    if (j >= text.length) {
-      // Unmatched marker — keep the original substring so we don't silently
-      // drop content.
-      segments.push(text.slice(idx));
-      break;
-    }
-    const content = text.slice(idx + MISSING_CITATION_MARKER.length, j).trim();
-    if (content) citations.push(content);
+    if (j >= text.length) break; // unmatched — stop scanning
+
+    spans.push({
+      start: idx,
+      end: j + 1,
+      prefix,
+      content: text.slice(idx + prefix.length, j).trim(),
+    });
     cursor = j + 1;
   }
+
+  return spans;
+}
+
+/**
+ * Parse `[missing citation: <content>]` markers out of the verifier's corrected
+ * answer. Returns the body with markers stripped and the list of suggested
+ * citations in the order they appeared.
+ */
+function extractMissingCitations(text: string): { body: string; citations: string[] } {
+  const spans = scanMarkerSpans(text, [MISSING_CITATION_MARKER]);
+  const citations = spans.map((span) => span.content).filter(Boolean);
+
+  const segments: string[] = [];
+  let cursor = 0;
+  for (const span of spans) {
+    segments.push(text.slice(cursor, span.start));
+    cursor = span.end;
+  }
+  segments.push(text.slice(cursor));
 
   let body = segments.join('');
   // Clean up whitespace that the marker left behind (e.g., `sentence. <gap> `).
   body = body.replace(/[ \t]+\n/g, '\n').replace(/ {2,}/g, ' ').trim();
   return { body, citations };
+}
+
+// ── Deterministic rewrite guards ────────────────────────────────────────────
+
+export interface RewriteSubstanceCheck {
+  /** Non-marker chars of the corrected answer / chars of the original
+   *  (whitespace-normalized). */
+  ratio: number;
+  lostSubstance: boolean;
+}
+
+const REWRITE_SUBSTANCE_MIN_RATIO = 0.4;
+
+/**
+ * Detect rewrites that destroyed the answer: the verifier is instructed to
+ * wrap minimal spans, but a misfiring model can return a "corrected" answer
+ * that is nothing but wrong-source/unverified meta-commentary (observed with
+ * h-005 in the 2026-06-12 eval — the entire substantive answer was replaced
+ * by two markers). Marker spans are removed INCLUDING their content (in the
+ * failure mode the content is meta-commentary, not original prose) and the
+ * remaining substance is compared to the original. A false trigger is safe:
+ * the caller falls back to the original answer with clamped confidence.
+ */
+export function assessRewriteSubstance(
+  originalAnswer: string,
+  correctedAnswer: string,
+  options: { minRatio?: number } = {},
+): RewriteSubstanceCheck {
+  const minRatio = options.minRatio ?? REWRITE_SUBSTANCE_MIN_RATIO;
+  const normalize = (text: string) => text.replace(/\s+/g, ' ').trim();
+
+  const spans = scanMarkerSpans(correctedAnswer, VERIFIER_MARKER_PREFIXES);
+  const segments: string[] = [];
+  let cursor = 0;
+  for (const span of spans) {
+    segments.push(correctedAnswer.slice(cursor, span.start));
+    cursor = span.end;
+  }
+  segments.push(correctedAnswer.slice(cursor));
+
+  const remaining = normalize(segments.join(' ')).length;
+  const original = normalize(originalAnswer).length;
+  const ratio = remaining / Math.max(1, original);
+  return { ratio, lostSubstance: ratio < minRatio };
+}
+
+/**
+ * Normalize a URL for set membership: lowercase scheme + host, drop trailing
+ * slash and fragment, KEEP the query string (`download?attachment` is a
+ * meaningful distinction on medicaid.ncdhhs.gov).
+ */
+export function normalizeUrl(url: string): string {
+  try {
+    const parsed = new URL(url.trim());
+    parsed.hash = '';
+    const pathname = parsed.pathname.replace(/\/+$/, '');
+    return `${parsed.protocol}//${parsed.host.toLowerCase()}${pathname}${parsed.search}`;
+  } catch {
+    return url.trim().toLowerCase().replace(/\/+$/, '');
+  }
+}
+
+const MARKDOWN_LINK_PATTERN = /\[([^\]]*)\]\(\s*(https?:\/\/[^)\s]+)\s*\)/g;
+const BARE_URL_PATTERN = /https?:\/\/[^\s)\]'"<>]+/g;
+
+/** Hosts that legitimately appear without a backing tool output (the
+ *  verification disclaimer links the NC DHHS portal root). */
+const ALWAYS_ALLOWED_URLS = new Set([normalizeUrl('https://medicaid.ncdhhs.gov')]);
+
+export interface UrlValidationResult {
+  /** Answer with unknown markdown links demoted to their plain-text labels. */
+  validatedAnswer: string;
+  /** Original (un-normalized) URLs that appear in no retrieved source. */
+  unknownUrls: string[];
+  checkedUrlCount: number;
+}
+
+/**
+ * Deterministic URL check: every markdown link target in the answer must
+ * exist somewhere in the retrieved sources (the `link` field or a URL embedded
+ * in the tool-output text). The agent has no legitimate way to know a URL its
+ * tools never returned — an unknown URL is a fabrication (observed with
+ * h-043 in the 2026-06-12 eval: an invented `/download?attachment` link).
+ * Unknown links are demoted to plain text so they are not clickable.
+ */
+export function validateAnswerUrls(answerText: string, sources: SourceEntry[]): UrlValidationResult {
+  const allowed = new Set(ALWAYS_ALLOWED_URLS);
+  for (const source of sources) {
+    if (source.link) allowed.add(normalizeUrl(source.link));
+    for (const url of source.text.match(BARE_URL_PATTERN) ?? []) {
+      allowed.add(normalizeUrl(url));
+    }
+  }
+
+  const unknownUrls: string[] = [];
+  let checkedUrlCount = 0;
+  const validatedAnswer = answerText.replace(MARKDOWN_LINK_PATTERN, (match, label: string, url: string) => {
+    checkedUrlCount += 1;
+    if (allowed.has(normalizeUrl(url))) return match;
+    unknownUrls.push(url);
+    return label;
+  });
+
+  return { validatedAnswer, unknownUrls, checkedUrlCount };
+}
+
+export interface QuoteValidationResult {
+  /** Answer with unknown long quotes marked `[unverified quote — ...]`. */
+  validatedAnswer: string;
+  unknownQuotes: string[];
+  checkedQuoteCount: number;
+}
+
+const QUOTE_MIN_LENGTH = 30;
+const UNVERIFIED_QUOTE_MARK = ' [unverified quote — not found in retrieved sources]';
+
+function normalizeQuotedText(text: string): string {
+  return text
+    .replace(/[‘’]/g, "'")
+    .replace(/[“”]/g, '"')
+    .replace(/­/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
+/**
+ * Deterministic quote check: long double-quoted spans claim to be verbatim
+ * source text. Each is searched for (whitespace/curly-quote-insensitively) in
+ * the full retrieved source text; quotes that appear nowhere get a visible
+ * `[unverified quote]` mark appended (marked, not deleted — removing text the
+ * answer presents as verbatim is riskier than flagging it). Short quoted
+ * phrases (scare quotes like "not covered") are ignored.
+ */
+export function validateAnswerQuotes(
+  answerText: string,
+  sources: SourceEntry[],
+  options: { minLength?: number } = {},
+): QuoteValidationResult {
+  const minLength = options.minLength ?? QUOTE_MIN_LENGTH;
+  const haystack = normalizeQuotedText(sources.map((source) => source.text).join('\n'));
+
+  const unknownQuotes: string[] = [];
+  let checkedQuoteCount = 0;
+  const validatedAnswer = answerText.replace(
+    /["“]([^"“”]+)["”]/g,
+    (match, inner: string) => {
+      const normalized = normalizeQuotedText(inner);
+      if (normalized.length < minLength) return match;
+      checkedQuoteCount += 1;
+      if (haystack.includes(normalized)) return match;
+      unknownQuotes.push(inner);
+      return `${match}${UNVERIFIED_QUOTE_MARK}`;
+    },
+  );
+
+  return { validatedAnswer, unknownQuotes, checkedQuoteCount };
 }
 
 /**
@@ -783,6 +1000,12 @@ export interface VerifierTelemetry {
   confidence: number;
   severity: VerificationSeverity;
   pure_marker_fallback: boolean;
+  substance_loss_fallback: boolean;
+  /** Non-marker substance ratio of the LLM rewrite vs the original answer;
+   *  null when no LLM rewrite was produced. */
+  rewrite_substance_ratio: number | null;
+  fabricated_url_count: number;
+  fabricated_quote_count: number;
 }
 
 export interface VerificationRunResult {
@@ -839,6 +1062,8 @@ export async function runVerificationForAnswer({
 
   let finalAnswer = answerText;
   let pureMarkerFallback = false;
+  let substanceLossFallback = false;
+  let rewriteSubstanceRatio: number | null = null;
   if (rewrote) {
     // Apply the verifier's correctedAnswer directly — no retry. Retries cause
     // the agent to over-correct and hedge everything. When the verification
@@ -856,13 +1081,46 @@ export async function runVerificationForAnswer({
     pureMarkerFallback =
       (verification.correctedAnswer ?? '').trim().length > 0
       && finalAnswer.trim() === answerText.trim();
+    // Substance-loss guard: a rewrite whose non-marker content is a small
+    // fraction of the original replaced the answer with meta-commentary
+    // (h-005 regression guard). Keep the original; confidence is clamped.
+    if (!pureMarkerFallback && (verification.correctedAnswer ?? '').trim()) {
+      const substance = assessRewriteSubstance(answerText, verification.correctedAnswer);
+      rewriteSubstanceRatio = substance.ratio;
+      if (substance.lostSubstance) {
+        finalAnswer = answerText;
+        substanceLossFallback = true;
+      }
+    }
   }
 
-  const confidence = computeVerificationConfidence(verification, { pureMarkerFallback });
+  // Deterministic guards run on the outgoing text regardless of whether the
+  // LLM checks passed — a fabricated URL in an otherwise-clean answer is
+  // exactly the case the LLM misses.
+  const urlValidation = validateAnswerUrls(finalAnswer, sources);
+  if (urlValidation.unknownUrls.length > 0) {
+    finalAnswer = urlValidation.validatedAnswer;
+  }
+  const quoteValidation = validateAnswerQuotes(finalAnswer, sources);
+  if (quoteValidation.unknownQuotes.length > 0) {
+    finalAnswer = quoteValidation.validatedAnswer;
+  }
+  const sanitized = urlValidation.unknownUrls.length > 0 || quoteValidation.unknownQuotes.length > 0;
+
+  const confidence = computeVerificationConfidence(verification, {
+    pureMarkerFallback,
+    substanceLossFallback,
+    fabricatedUrlCount: urlValidation.unknownUrls.length,
+    fabricatedQuoteCount: quoteValidation.unknownQuotes.length,
+  });
   const rerankerDiagnostics = getPolicyCorpusRerankerDiagnostics();
 
+  // Deterministic sanitization counts as a rewrite: the processor keys
+  // message replacement off this flag, and the modified text must land.
+  const rewroteFinal = rewrote || sanitized;
+
   const telemetry: VerifierTelemetry = {
-    rewrote,
+    rewrote: rewroteFinal,
     supported: verification.supported,
     relevant: verification.relevant,
     citations_complete: citationsComplete,
@@ -879,9 +1137,13 @@ export async function runVerificationForAnswer({
     confidence: confidence.confidence,
     severity: confidence.severity,
     pure_marker_fallback: pureMarkerFallback,
+    substance_loss_fallback: substanceLossFallback,
+    rewrite_substance_ratio: rewriteSubstanceRatio,
+    fabricated_url_count: urlValidation.unknownUrls.length,
+    fabricated_quote_count: quoteValidation.unknownQuotes.length,
   };
 
-  return { finalAnswer, rewrote, telemetry, verification, confidence };
+  return { finalAnswer, rewrote: rewroteFinal, telemetry, verification, confidence };
 }
 
 // ── Processor Class ─────────────────────────────────────────────────────────
@@ -966,6 +1228,7 @@ export class HallucinationVerifier implements Processor {
           severity: confidence.severity,
           counts: confidence.counts,
           pureMarkerFallback: confidence.pureMarkerFallback,
+          substanceLossFallback: confidence.substanceLossFallback,
         },
       } as any);
     } else {

@@ -961,6 +961,8 @@ describe('computeVerificationConfidence', () => {
       missingCitation: 0,
       relevanceMajor: 0,
       relevanceMinor: 0,
+      fabricatedUrl: 0,
+      fabricatedQuote: 0,
     });
     expect(result.pureMarkerFallback).toBe(false);
   });
@@ -1100,13 +1102,14 @@ describe('HallucinationVerifier streaming events', () => {
         unsupportedClaims: [{ claim: 'x', reason: 'y' }],
         missingCitationClaims: [],
         relevanceIssues: [],
-        correctedAnswer: 'x [unverified: y]',
+        correctedAnswer:
+          'Policy 3L covers in-home aide services for eligible beneficiaries. [unverified: The monthly cap is 80 hours.]',
       },
     } as any);
 
     const writer = { custom: vi.fn() };
     const args: ProcessOutputStepArgs = {
-      text: 'answer',
+      text: 'Policy 3L covers in-home aide services for eligible beneficiaries. The monthly cap is 80 hours.',
       finishReason: 'stop',
       toolCalls: [],
       messages: [
@@ -1118,7 +1121,14 @@ describe('HallucinationVerifier streaming events', () => {
         {
           id: 'a1',
           role: 'assistant',
-          content: { parts: [{ type: 'text', text: 'answer' }] },
+          content: {
+            parts: [
+              {
+                type: 'text',
+                text: 'Policy 3L covers in-home aide services for eligible beneficiaries. The monthly cap is 80 hours.',
+              },
+            ],
+          },
         } as any,
       ],
       writer: writer as any,
@@ -1136,6 +1146,7 @@ describe('HallucinationVerifier streaming events', () => {
     expect(payload.data.severity).toBe('medium');
     expect(payload.data.counts.unsupported).toBe(1);
     expect(payload.data.pureMarkerFallback).toBe(false);
+    expect(payload.data.substanceLossFallback).toBe(false);
   });
 });
 
