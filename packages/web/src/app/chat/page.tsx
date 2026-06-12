@@ -67,7 +67,7 @@ export default function ChatPage() {
     },
   }), [threadId, resourceId, getAccessToken]);
 
-  const { messages, status, error, sendMessage, regenerate, setMessages } = useChat({
+  const { messages, status, error, sendMessage, regenerate, setMessages, stop } = useChat({
     id: `${threadId}:${resourceId}`,
     transport,
     onFinish: () => setThreadVersion(v => v + 1),
@@ -122,7 +122,18 @@ export default function ChatPage() {
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const viewportRef = useRef<HTMLElement | null>(null);
+  // The scroll viewport is rendered by ScrollArea, so it is discovered after
+  // mount. It lives in STATE (not a ref) so consumers like ScrollToBottom
+  // re-attach their listeners when it appears — a ref left them attached to
+  // nothing, permanently.
+  const [viewport, setViewport] = useState<HTMLElement | null>(null);
+  // Whether the user is reading at the bottom. Auto-scroll only when pinned —
+  // unconditional scrolling yanked the viewport down on every stream chunk
+  // while the user was reading earlier content.
+  const pinnedRef = useRef(true);
+  // The thread the user is currently viewing — guards against a slow
+  // loadThread response overwriting a newer selection.
+  const activeThreadRef = useRef(threadId);
   const sidebarRef = useRef<HTMLDivElement>(null);
   const sidebarToggleRef = useRef<HTMLButtonElement>(null);
   const previousSidebarCollapsedRef = useRef<boolean | null>(null);
@@ -141,14 +152,30 @@ export default function ChatPage() {
     });
   }, []);
 
-  // Auto-scroll on new content
+  // Discover the ScrollArea viewport once it exists.
   useEffect(() => {
-    const el = messagesEndRef.current;
-    const viewport = el?.closest('[data-slot="scroll-area-viewport"]');
-    if (viewport) {
-      viewport.scrollTo({ top: viewport.scrollHeight, behavior: 'smooth' });
-    }
-  }, [messages, status]);
+    if (viewport) return;
+    const el = messagesEndRef.current?.closest('[data-slot="scroll-area-viewport"]');
+    if (el) setViewport(el as HTMLElement);
+  }, [messages, viewport]);
+
+  // Track whether the user is pinned to the bottom.
+  useEffect(() => {
+    if (!viewport) return;
+    const onScroll = () => {
+      pinnedRef.current = viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < 100;
+    };
+    viewport.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    return () => viewport.removeEventListener('scroll', onScroll);
+  }, [viewport]);
+
+  // Follow new content only while pinned ('auto' so the follow doesn't fight
+  // user scrolling with a competing smooth animation on every chunk).
+  useEffect(() => {
+    if (!viewport || !pinnedRef.current) return;
+    viewport.scrollTo({ top: viewport.scrollHeight, behavior: 'auto' });
+  }, [messages, status, viewport]);
 
   useEffect(() => { inputRef.current?.focus({ preventScroll: true }); }, []);
 
@@ -188,12 +215,6 @@ export default function ChatPage() {
     sidebarToggleRef.current?.focus();
   }, [isMobile, sidebarCollapsed]);
 
-  // Re-grab viewport ref whenever messages change
-  useEffect(() => {
-    const el = messagesEndRef.current?.closest('[data-slot="scroll-area-viewport"]');
-    if (el) viewportRef.current = el as HTMLElement;
-  }, [messages]);
-
   // Reset textarea height when input is cleared
   useEffect(() => {
     if (!input && inputRef.current) {
@@ -219,6 +240,9 @@ export default function ChatPage() {
     try {
       const thread = mastraClient.getMemoryThread({ threadId: tid, agentId: AGENT_ID });
       const result = await thread.listMessages();
+      // The user may have switched threads while this request was in flight —
+      // a stale response must not overwrite the newer thread's messages.
+      if (activeThreadRef.current !== tid) return;
       const dbMessages = result.messages ?? [];
       const converted: UIMessage[] = [];
       for (const msg of dbMessages) {
@@ -232,6 +256,7 @@ export default function ChatPage() {
         const token = await getAccessToken();
         if (token) {
           const entries = await getFeedbackByThread(tid, MASTRA_URL, token);
+          if (activeThreadRef.current !== tid) return;
           const map: Record<string, { id: string; rating: 'up' | 'down'; comment: string | null }> = {};
           for (const entry of entries) {
             map[entry.messageId] = { id: entry.id, rating: entry.rating, comment: entry.comment };
@@ -243,13 +268,14 @@ export default function ChatPage() {
       }
     } catch (err) {
       console.error('Failed to load thread messages:', err);
-      setMessages([]);
+      if (activeThreadRef.current === tid) setMessages([]);
     }
   }, [setMessages, mastraClient, getAccessToken]);
 
   const handleSelectThread = useCallback(async (tid: string) => {
     const hasCached = messageCache.current.has(tid);
     console.log(`[chat] selectThread ${tid.slice(0, 8)}… | cached: ${hasCached}`);
+    activeThreadRef.current = tid;
     setThreadId(tid);
     setFeedbackMap({});
     setArchivedVersions({});
@@ -275,15 +301,18 @@ export default function ChatPage() {
       return;
     }
     const newId = generateUUID();
+    activeThreadRef.current = newId;
     setThreadId(newId);
     setMessages([]);
     setFeedbackMap({});
     setArchivedVersions({});
     setActiveVersion({});
     if (isMobile) setSidebarCollapsed(true);
-    await ensureThreadExists(newId);
+    // The thread is created lazily by handleSend (with the question as its
+    // title) — eager creation here accumulated empty "New conversation"
+    // threads in the sidebar for every + New click.
     inputRef.current?.focus({ preventScroll: true });
-  }, [messages.length, setMessages, ensureThreadExists, isMobile]);
+  }, [messages.length, setMessages, isMobile]);
 
   const handleSend = useCallback(async () => {
     if (!input.trim() || input.length > 10_000) return;
@@ -474,13 +503,20 @@ export default function ChatPage() {
             {error && (
               <div data-testid="assistant-message" className="pl-2 mt-6 animate-in fade-in slide-in-from-bottom-2 duration-200">
                 <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-                  Sorry, there was an error processing your question. Please try again.
+                  <p>Sorry, there was an error processing your question.</p>
+                  <button
+                    type="button"
+                    onClick={() => regenerate()}
+                    className="mt-2 inline-flex items-center rounded-md border border-destructive/40 px-3 py-1 text-xs font-medium text-destructive hover:bg-destructive/10 transition-colors"
+                  >
+                    Try again
+                  </button>
                 </div>
               </div>
             )}
           </div>
         </ScrollArea>
-        <ScrollToBottom viewportRef={viewportRef} hasMessages={messages.length > 0 || isLoading} />
+        <ScrollToBottom viewport={viewport} hasMessages={messages.length > 0 || isLoading} />
         </div>
 
         <ChatInput
@@ -488,6 +524,7 @@ export default function ChatPage() {
           setInput={setInput}
           isLoading={isLoading}
           onSend={handleSend}
+          onStop={stop}
           inputRef={inputRef}
         />
       </div>

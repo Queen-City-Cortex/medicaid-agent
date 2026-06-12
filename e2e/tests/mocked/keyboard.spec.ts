@@ -35,9 +35,10 @@ test.describe('Keyboard interactions', () => {
     await expect(chat.emptyHeading).toBeVisible();
   });
 
-  test('input is disabled while loading', async ({ page }) => {
-    // Use a stream that takes a moment to resolve — but route.fulfill is instant,
-    // so we just check the disabled state appears briefly by checking the button text
+  test('input stays enabled across a run and can send again after completion', async ({ page }) => {
+    // The textarea is intentionally NOT disabled while streaming (users can
+    // draft their next question; the action button becomes Stop). route.fulfill
+    // resolves instantly, so this asserts the post-run state.
     const stream = new AISdkStreamBuilder()
       .start()
       .textDelta('Done.')

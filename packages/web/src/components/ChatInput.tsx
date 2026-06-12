@@ -1,6 +1,7 @@
 'use client';
 
 import { type RefObject } from 'react';
+import { Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const MAX_INPUT_LENGTH = 10_000;
@@ -10,10 +11,11 @@ interface ChatInputProps {
   setInput: (value: string) => void;
   isLoading: boolean;
   onSend: () => void;
+  onStop?: () => void;
   inputRef: RefObject<HTMLTextAreaElement | null>;
 }
 
-export function ChatInput({ input, setInput, isLoading, onSend, inputRef }: ChatInputProps) {
+export function ChatInput({ input, setInput, isLoading, onSend, onStop, inputRef }: ChatInputProps) {
   const helperTextId = 'chat-input-helper-text';
 
   return (
@@ -36,24 +38,44 @@ export function ChatInput({ input, setInput, isLoading, onSend, inputRef }: Chat
           }}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
+              // Committing an IME candidate (CJK/Vietnamese input) fires
+              // Enter mid-composition — that must not send the message.
+              if (e.nativeEvent.isComposing) return;
               e.preventDefault();
-              onSend();
+              if (!isLoading) onSend();
             }
           }}
           maxLength={MAX_INPUT_LENGTH}
-          placeholder="Ask about NC Medicaid policy..."
+          placeholder="Ask about NC Medicaid policy…"
           className="flex-1 rounded-lg border border-input bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-shadow resize-none overflow-y-auto scrollbar-none"
           style={{ maxHeight: '120px' }}
-          disabled={isLoading}
         />
-        <Button data-testid="send-button" onClick={onSend} disabled={isLoading || !input.trim()} className="px-6 self-end">
-          {isLoading ? (
+        {/* The textarea stays enabled during a run so the user can draft the
+            next question; Enter-to-send is gated on !isLoading above, and the
+            action button becomes Stop. */}
+        {isLoading && onStop ? (
+          <Button
+            data-testid="stop-button"
+            onClick={onStop}
+            variant="outline"
+            className="px-6 self-end"
+            aria-label="Stop generating"
+          >
             <span className="flex items-center gap-2">
-              <span className="inline-block w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-              Researching
+              <Square className="w-3.5 h-3.5 fill-current" />
+              Stop
             </span>
-          ) : 'Ask'}
-        </Button>
+          </Button>
+        ) : (
+          <Button
+            data-testid="send-button"
+            onClick={onSend}
+            disabled={isLoading || !input.trim()}
+            className="px-6 self-end"
+          >
+            Ask
+          </Button>
+        )}
       </div>
       <p id={helperTextId} className="max-w-3xl mx-auto text-xs text-muted-foreground mt-2">
         Answers are AI-generated from NC Medicaid policy documents. Verify critical information with DHHS.

@@ -4,33 +4,32 @@ import { useState, useEffect, useCallback } from 'react';
 import { ArrowDown } from 'lucide-react';
 
 interface ScrollToBottomProps {
-  viewportRef: React.RefObject<HTMLElement | null>;
+  /** The scroll viewport element. Passed as state (not a ref) so the scroll
+   *  listener attaches when the viewport appears — with a ref object the
+   *  effect ran once before the viewport existed and never re-ran, leaving
+   *  the button permanently invisible. */
+  viewport: HTMLElement | null;
   hasMessages?: boolean;
 }
 
-export function ScrollToBottom({ viewportRef, hasMessages = true }: ScrollToBottomProps) {
+export function ScrollToBottom({ viewport, hasMessages = true }: ScrollToBottomProps) {
   const [visible, setVisible] = useState(false);
 
   const checkScroll = useCallback(() => {
-    const vp = viewportRef.current;
-    if (!vp) return;
-    const distanceFromBottom = vp.scrollHeight - vp.scrollTop - vp.clientHeight;
+    if (!viewport) return;
+    const distanceFromBottom = viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight;
     setVisible(distanceFromBottom > 100);
-  }, [viewportRef]);
+  }, [viewport]);
 
   useEffect(() => {
-    const vp = viewportRef.current;
-    if (!vp) return;
-    vp.addEventListener('scroll', checkScroll, { passive: true });
+    if (!viewport) return;
+    viewport.addEventListener('scroll', checkScroll, { passive: true });
     checkScroll();
-    return () => vp.removeEventListener('scroll', checkScroll);
-  }, [viewportRef, checkScroll]);
+    return () => viewport.removeEventListener('scroll', checkScroll);
+  }, [viewport, checkScroll]);
 
   const scrollToBottom = () => {
-    const vp = viewportRef.current;
-    if (vp) {
-      vp.scrollTo({ top: vp.scrollHeight, behavior: 'smooth' });
-    }
+    viewport?.scrollTo({ top: viewport.scrollHeight, behavior: 'smooth' });
   };
 
   if (!visible || !hasMessages) return null;
