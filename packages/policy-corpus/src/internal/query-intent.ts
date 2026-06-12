@@ -1,10 +1,12 @@
 import type { AnswerQuestionType } from '../types.js';
-import { includesPhrase, normalizeSearchText } from './base.js';
+import { includesPhrase, matchesToken, normalizeSearchText } from './base.js';
 import { dedupeTerms } from './search.js';
 
 export const YEAR_QUERY_RE = /\b(19|20)\d{2}\b/g;
 export const REQUIREMENT_QUERY_TERMS = ['requirement', 'requirements', 'documentation', 'document', 'provide'];
-export const PEDIATRIC_QUERY_TERMS = ['under 21', 'child', 'children', 'pediatric', 'pediatrics', 'adolescent', 'youth', 'minor'];
+// 'minor' is deliberately absent: in this corpus it overwhelmingly means
+// "small" ("minor home modifications" under CAP/DA), not "a child".
+export const PEDIATRIC_QUERY_TERMS = ['under 21', 'child', 'children', 'pediatric', 'pediatrics', 'adolescent', 'youth'];
 
 export function includesAnyTerm(text: string, terms: string[]): boolean {
   return terms.some((term) => text.includes(term));
@@ -15,7 +17,9 @@ export function isPriorAuthorizationQuery(queryLower: string): boolean {
     queryLower.includes('prior authorization') ||
     queryLower.includes('prior approval') ||
     queryLower.includes('prior auth') ||
-    (queryLower.includes('pa ') && queryLower.includes('criteria'))
+    // Word-bounded: the old "pa " substring matched "spa " (State Plan
+    // Amendment questions misrouted to prior_authorization).
+    (/\bpa\b/.test(queryLower) && queryLower.includes('criteria'))
   );
 }
 
@@ -43,10 +47,12 @@ export function extractRequestedYears(query: string): string[] {
 export function isHistoricalReimbursementQuery(queryLower: string, requestedYears: string[]): boolean {
   return (
     requestedYears.length > 0 ||
+    // 'prior' is bounded and must not be the 'prior authorization/approval'
+    // term — those questions are about criteria, not history.
+    /\bprior\b(?!\s+(?:authorization|approval|auth))/.test(queryLower) ||
     includesAnyTerm(queryLower, [
       'histor',
       'previous',
-      'prior',
       'earlier',
       'older',
       'changed',
@@ -115,10 +121,9 @@ export function isCoverageQuestion(queryLower: string): boolean {
   }
 
   return (
-    queryLower.includes('cover') ||
-    queryLower.includes('coverage') ||
-    queryLower.includes('covered') ||
-    queryLower.includes('not covered') ||
+    // Word-bounded: the old bare 'cover' substring typed "estate recovery"
+    // and any 'recovery' question as coverage.
+    /\bcover(s|ed|ing|age)?\b/.test(queryLower) ||
     queryLower.includes('telehealth') ||
     queryLower.includes('epsdt') ||
     queryLower.includes('medically necessary') ||
@@ -373,9 +378,22 @@ export function isPediatricQuery(queryLower: string): boolean {
 }
 
 export function isDeterministicCoverageQuery(queryLower: string): boolean {
+  // The deterministic numeric-only lane (widening: none) is for questions
+  // seeking a specific figure. Bare 'premium'/'cost sharing' mentions used to
+  // force every such coverage question onto it, blocking evidence widening.
+  const asksForFigure = includesPhrase(queryLower, [
+    'how much',
+    'amount',
+    'maximum',
+    'limit',
+    'cap',
+    'threshold',
+    'fpl',
+    'dollar',
+  ]);
   return (
     isHcwdIncomePremiumQuery(queryLower) ||
-    includesPhrase(queryLower, ['premium', 'premiums', 'enrollment fee', 'cost sharing']) ||
+    (includesPhrase(queryLower, ['premium', 'premiums', 'enrollment fee', 'cost sharing']) && asksForFigure) ||
     (
       queryLower.includes('income') &&
       includesPhrase(queryLower, ['maximum', 'limit', 'cap', 'threshold', 'fpl'])
@@ -389,8 +407,10 @@ export function detectAnswerQuestionType(
 ): AnswerQuestionType {
   if (requestedType) return requestedType;
   if (isChangeNoticeQuery(queryLower)) return 'amendment';
-  if (isPriorAuthorizationQuery(queryLower)) return 'prior_authorization';
+  // Federal authority outranks prior-auth: "what federal regulation governs
+  // prior authorization for X" is a federal-authority question.
   if (isFederalAuthorityQuery(queryLower)) return 'federal_authority';
+  if (isPriorAuthorizationQuery(queryLower)) return 'prior_authorization';
   if (isPolicyVariantQuery(queryLower)) return 'policy_variant';
   if (isCoverageQuestion(queryLower)) return 'coverage';
   return 'general';
@@ -453,7 +473,9 @@ export function extractAliasedPolicyNumbers(queryLower: string): string[] {
 
 export function queryMentionsPolicyNumber(queryLower: string, policyNumber: string | null): boolean {
   if (!policyNumber) return false;
-  return queryLower.includes(normalizeSearchText(policyNumber));
+  // Token-bounded: raw containment meant any query with the digit "9" in it
+  // (e.g. "1915(c)") boosted Policy 9.
+  return matchesToken(queryLower, normalizeSearchText(policyNumber));
 }
 
 export function isFederalAuthorityQuery(queryLower: string): boolean {
@@ -467,11 +489,17 @@ export function isFederalAuthorityQuery(queryLower: string): boolean {
 }
 
 export function isChangeNoticeQuery(queryLower: string): boolean {
+  // Bare "most recent" is a recency qualifier, not an amendment question —
+  // "the most recent income limit for HCWD" used to misroute to the
+  // amendment lane. Recency only counts alongside change vocabulary.
   return (
     queryLower.includes('change notice') ||
-    queryLower.includes('most recent') ||
     queryLower.includes('amended') ||
-    queryLower.includes('amendment')
+    queryLower.includes('amendment') ||
+    (
+      includesPhrase(queryLower, ['most recent', 'latest']) &&
+      includesPhrase(queryLower, ['change', 'revision', 'notice', 'update', 'version'])
+    )
   );
 }
 

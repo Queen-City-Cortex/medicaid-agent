@@ -84,16 +84,28 @@ export function expandSearchToken(token: string): string[] {
 
 export function extractSearchTerms(query: string): string[] {
   const rawTokens = normalizeSearchText(query).match(/[a-z0-9]+(?:[/-][a-z0-9]+)*/g) ?? [];
-  const orderedTokens = rawTokens
-    .flatMap((token) => [token, ...token.split(/[/-]+/)])
-    .flatMap(expandSearchToken)
-    .filter(isUsefulSearchTerm);
-  const tokens = dedupeTerms(orderedTokens);
+  // Only compound tokens contribute their split parts — for a plain token,
+  // split() returns the token itself, and the old unconditional spread
+  // duplicated every token (producing garbage "X X" phrases below and
+  // wasting the MAX_QUERY_TERMS budget on duplicates).
+  const tokens = dedupeTerms(
+    rawTokens
+      .flatMap((token) => {
+        const parts = token.split(/[/-]+/).filter(Boolean);
+        return parts.length > 1 ? [token, ...parts] : [token];
+      })
+      .flatMap(expandSearchToken)
+      .filter(isUsefulSearchTerm),
+  );
+  // Phrases reflect actual adjacency in the query, so they are built from the
+  // raw token sequence — not from the expanded variants, whose artificial
+  // adjacency produced pairs like "policies policy".
+  const phraseTokens = rawTokens.filter(isUsefulSearchTerm);
   const phrases: string[] = [];
-  for (let index = 0; index < orderedTokens.length - 1; index++) {
-    const left = orderedTokens[index];
-    const right = orderedTokens[index + 1];
-    if (!left || !right) continue;
+  for (let index = 0; index < phraseTokens.length - 1; index++) {
+    const left = phraseTokens[index];
+    const right = phraseTokens[index + 1];
+    if (!left || !right || left === right) continue;
     const phrase = `${left} ${right}`;
     if (phrase.length >= 7) {
       phrases.push(phrase);

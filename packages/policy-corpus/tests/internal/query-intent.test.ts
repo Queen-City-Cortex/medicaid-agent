@@ -88,3 +88,131 @@ describe('extractAliasedPolicyNumbers', () => {
     ).not.toContain('9');
   });
 });
+
+// ── Substring-landmine regressions ───────────────────────────────────────────
+// Each of these previously misrouted via raw substring containment.
+
+import {
+  detectAnswerQuestionType,
+  isChangeNoticeQuery,
+  isCoverageQuestion,
+  isDeterministicCoverageQuery,
+  isHistoricalReimbursementQuery,
+  isPediatricQuery,
+  isPriorAuthorizationQuery,
+  queryMentionsPolicyNumber,
+} from '../../src/internal/query-intent.js';
+import { extractSearchTerms } from '../../src/internal/search.js';
+
+describe('queryMentionsPolicyNumber token boundaries', () => {
+  it('matches a standalone policy number', () => {
+    expect(queryMentionsPolicyNumber('what does policy 9 say about otc drugs?', '9')).toBe(true);
+    expect(queryMentionsPolicyNumber('under policy 8c, is therapy covered?', '8C')).toBe(true);
+  });
+
+  it('does not match digits embedded in longer tokens', () => {
+    // "1915(c)" contains the digit 9 — must not "mention" Policy 9.
+    expect(queryMentionsPolicyNumber('what federal rule authorizes 1915(c) waivers?', '9')).toBe(false);
+    expect(queryMentionsPolicyNumber('income limit is 195% fpl', '9')).toBe(false);
+    // "8C" must not match inside "8C-1".
+    expect(queryMentionsPolicyNumber('compare with policy 8c-1 criteria', '8C')).toBe(false);
+  });
+});
+
+describe('isPriorAuthorizationQuery word boundaries', () => {
+  it('does not treat SPA (State Plan Amendment) as PA', () => {
+    expect(isPriorAuthorizationQuery('what criteria does spa 23-0012 change?')).toBe(false);
+  });
+
+  it('still matches bounded "pa" with criteria', () => {
+    expect(isPriorAuthorizationQuery('where are the pa criteria for imaging?')).toBe(true);
+  });
+});
+
+describe('isCoverageQuestion word boundaries', () => {
+  it('does not type estate recovery as coverage', () => {
+    expect(isCoverageQuestion('how does estate recovery work after death?')).toBe(false);
+  });
+
+  it('still matches inflected cover forms', () => {
+    expect(isCoverageQuestion('is wheelchair repair covered?')).toBe(true);
+    expect(isCoverageQuestion('what coverage applies to home health?')).toBe(true);
+  });
+});
+
+describe('isHistoricalReimbursementQuery prior-auth exclusion', () => {
+  it('does not treat prior authorization as historical', () => {
+    expect(isHistoricalReimbursementQuery('what are the prior authorization criteria?', [])).toBe(false);
+    expect(isHistoricalReimbursementQuery('is prior approval needed for mri?', [])).toBe(false);
+  });
+
+  it('still detects genuine history vocabulary', () => {
+    expect(isHistoricalReimbursementQuery('what was the rate prior to the update?', [])).toBe(true);
+    expect(isHistoricalReimbursementQuery('show previous rates', [])).toBe(true);
+  });
+});
+
+describe('isPediatricQuery', () => {
+  it('does not type "minor home modifications" as pediatric', () => {
+    expect(isPediatricQuery('are minor home modifications covered under cap/da?')).toBe(false);
+  });
+
+  it('still detects real pediatric vocabulary', () => {
+    expect(isPediatricQuery('what therapy services are covered for children under 21?')).toBe(true);
+  });
+});
+
+describe('isChangeNoticeQuery recency handling', () => {
+  it('does not route "most recent <value>" questions to the amendment lane', () => {
+    expect(isChangeNoticeQuery('what is the most recent income limit for hcwd?')).toBe(false);
+  });
+
+  it('routes recency + change vocabulary to amendment', () => {
+    expect(isChangeNoticeQuery('what is the most recent change to policy 8c?')).toBe(true);
+    expect(isChangeNoticeQuery('latest revision of clinical coverage policy 3l?')).toBe(true);
+    expect(isChangeNoticeQuery('was policy 5b amended this year?')).toBe(true);
+  });
+});
+
+describe('detectAnswerQuestionType priority', () => {
+  it('routes federal prior-authorization questions to federal_authority', () => {
+    expect(
+      detectAnswerQuestionType('what federal regulation governs prior authorization for hcbs?'),
+    ).toBe('federal_authority');
+  });
+
+  it('keeps plain prior-auth questions on prior_authorization', () => {
+    expect(detectAnswerQuestionType('is prior authorization required for mri?')).toBe('prior_authorization');
+  });
+
+  it('types "most recent income limit" as a value question, not amendment', () => {
+    expect(detectAnswerQuestionType('what is the most recent income limit for hcwd?')).not.toBe('amendment');
+  });
+});
+
+describe('isDeterministicCoverageQuery figure-seeking gate', () => {
+  it('does not force bare premium mentions onto the numeric-only lane', () => {
+    // (HCWD premium questions stay deterministic via their own branch.)
+    expect(isDeterministicCoverageQuery('how do participants pay premiums, by mail or online?')).toBe(false);
+  });
+
+  it('keeps figure-seeking premium questions deterministic', () => {
+    expect(isDeterministicCoverageQuery('how much is the monthly premium for hcwd?')).toBe(true);
+    expect(isDeterministicCoverageQuery('what is the income limit for hcwd premiums?')).toBe(true);
+  });
+});
+
+describe('extractSearchTerms duplication fix', () => {
+  it('does not produce duplicate-word phrases', () => {
+    const terms = extractSearchTerms('income limit for workers with disabilities');
+    expect(terms.filter((t) => /^(\S+) \1$/.test(t))).toEqual([]);
+    expect(terms).toContain('income limit');
+  });
+
+  it('still splits compound tokens into parts', () => {
+    const terms = extractSearchTerms('speech-language therapy criteria');
+    expect(terms).toContain('speech-language');
+    expect(terms).toContain('speech');
+    expect(terms).toContain('language');
+  });
+});

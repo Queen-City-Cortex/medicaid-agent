@@ -43,6 +43,23 @@ export function includesPhrase(text: string, phrases: readonly string[]): boolea
   return phrases.some((phrase) => text.includes(phrase));
 }
 
+const REGEX_SPECIAL = /[.*+?^${}()|[\]\\]/g;
+
+export function escapeRegExp(value: string): string {
+  return value.replace(REGEX_SPECIAL, '\\$&');
+}
+
+/**
+ * Token-boundary containment: the needle must not be embedded inside a longer
+ * word/number token. Raw substring checks caused systematic misrouting — e.g.
+ * any query containing the digit "9" (as in "1915(c)") "mentioned" Policy 9.
+ * Hyphens count as token characters so "8C" does not match inside "8C-1".
+ */
+export function matchesToken(text: string, token: string): boolean {
+  if (!token) return false;
+  return new RegExp(`(?<![\\w-])${escapeRegExp(token)}(?![\\w-])`).test(text);
+}
+
 export function scorePhraseMatches(text: string, phrases: readonly string[], weight = 1): number {
   return phrases.reduce((score, phrase) => score + (text.includes(phrase) ? weight : 0), 0);
 }
