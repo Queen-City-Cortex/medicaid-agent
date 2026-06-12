@@ -1,6 +1,6 @@
 import './load-env.js';
 import { Mastra } from '@mastra/core';
-import { Agent } from '@mastra/core/agent';
+import { Agent, type OnIterationCompleteHandler } from '@mastra/core/agent';
 import { PromptInjectionDetector, TokenLimiterProcessor } from '@mastra/core/processors';
 import { MastraCompositeStore } from '@mastra/core/storage';
 import { createAnthropic } from '@ai-sdk/anthropic';
@@ -159,11 +159,7 @@ const MAX_STEPS = 99;
 
 // Force synthesis when the agent is about to hit the step limit.
 // Mastra's onIterationComplete injects feedback and gives one final step to respond.
-const onIterationComplete = ({ iteration, finishReason }: {
-  iteration: number;
-  finishReason: string;
-  [key: string]: unknown;
-}) => {
+const onIterationComplete: OnIterationCompleteHandler = ({ iteration, finishReason }) => {
   if (iteration >= MAX_STEPS - 2 && finishReason === 'tool-calls') {
     return {
       feedback: 'You are running out of steps. Provide your final answer NOW based on everything you have found so far. Use markdown formatting, cite specific policy sections, and explicitly state what you could not find.',
@@ -172,6 +168,15 @@ const onIterationComplete = ({ iteration, finishReason }: {
   }
   return undefined;
 };
+
+// Shared by the web chat route and the CLI/eval runner. Without this the two
+// paths drift: the web route previously ran on Mastra's default step limit
+// while evals ran 99 steps with forced synthesis — eval scores described an
+// agent web users never got.
+const AGENT_RUN_LIMITS = {
+  maxSteps: MAX_STEPS,
+  onIterationComplete,
+} as const;
 
 export const ncMedicaidAgent = new Agent({
   id: 'nc-medicaid-navigator',
@@ -238,6 +243,7 @@ export const mastra = new Mastra({
         agent: 'ncMedicaidAgent',
         version: 'v6',
         defaultOptions: {
+          ...AGENT_RUN_LIMITS,
           savePerStep: true,
           onStepFinish: async (step) => {
             console.log(`[chat] step finished: ${step.stepType} | text: ${step.text?.length ?? 0} chars | tools: ${step.toolCalls?.length ?? 0}`);
@@ -289,9 +295,8 @@ if (CLI_QUESTION) {
 
   try {
     const result = await agent.generate(CLI_QUESTION, {
-      maxSteps: MAX_STEPS,
+      ...AGENT_RUN_LIMITS,
       memory: { thread: `cli-${Date.now()}`, resource: 'cli' },
-      onIterationComplete,
       onStepFinish: (step: any) => {
         // Mastra wraps each AI SDK tool-result into an envelope:
         // { type: 'tool-result', runId, from, payload: { toolName, toolCallId, result, args } }
