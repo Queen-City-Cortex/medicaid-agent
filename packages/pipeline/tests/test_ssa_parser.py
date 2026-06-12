@@ -95,3 +95,44 @@ class TestParseUscSubchapter:
         sections = parse_usc_subchapter(html, 19)
         assert sections[0]["id"] == "sec:doc:federal_statute:ssa-title-19:1915"
         assert sections[0]["title"].startswith("Section 1915.")
+
+class TestStatuteSubsectionSplitting:
+    """h-049 regression: §1905 was one 229K-char section, so the EPSDT
+    definition at §1905(r) (char ~45K) was unreachable and uncitable."""
+
+    def _big_section_html(self, body: str) -> str:
+        return _section("1396d", "Definitions", body)
+
+    def test_splits_large_sections_into_sequenced_lettered_children(self):
+        body = "<p>Preamble text.</p>"
+        for letter, heading in [("a", "Medical assistance"), ("b", "Federal medical assistance percentage"), ("c", "Institution for mental diseases")]:
+            body += f"<p>({letter}) {heading}</p>" + f"<p>{'Body text. ' * 1500}</p>"
+        sections = parse_usc_subchapter(self._big_section_html(body), 19)
+
+        parent = next(s for s in sections if s["level"] == 1)
+        children = [s for s in sections if s["level"] == 2]
+        assert [c["section_number"] for c in children] == ["1905(a)", "1905(b)", "1905(c)"]
+        assert all(c["parent_id"] == parent["id"] for c in children)
+        assert children[0]["id"] == f"{parent['id']}-a"
+        assert children[0]["title"] == "Section 1905(a). Medical assistance"
+        # Parent keeps its full text — existing ids and citations stay stable.
+        assert parent["content_length"] > 30_000
+
+    def test_roman_numeral_line_starts_do_not_become_children(self):
+        # (i)/(ii)/(iv) nested clauses start lines too; only the strict a, b,
+        # c… sequence is accepted ('i' counts only directly after 'h').
+        body = "<p>(a) First</p>" + f"<p>{'x ' * 8000}</p>"
+        body += "<p>(i) nested roman clause</p><p>(ii) another</p>"
+        body += "<p>(b) Second</p>" + f"<p>{'y ' * 8000}</p>"
+        sections = parse_usc_subchapter(self._big_section_html(body), 19)
+        children = [s for s in sections if s["level"] == 2]
+        assert [c["section_number"] for c in children] == ["1905(a)", "1905(b)"]
+        # The roman clause stays inside (a)'s content.
+        a = children[0]
+        assert "nested roman clause" in a["content_text"]
+
+    def test_small_sections_are_not_split(self):
+        html = _section("1396d", "Definitions", "(a) Small.\n(b) Also small.")
+        sections = parse_usc_subchapter(html, 19)
+        assert [s["level"] for s in sections] == [1]
+

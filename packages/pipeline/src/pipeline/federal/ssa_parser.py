@@ -134,5 +134,74 @@ def parse_usc_subchapter(html: str, title_num: int) -> list[dict]:
             "has_tables": bool(re.search(r"<table", section_html, re.IGNORECASE)),
             "has_definitions": "means" in content[:3000].lower(),
         })
+        sections.extend(_split_statute_subsections(sections[-1], doc_id))
 
     return sections
+
+
+# Sections larger than this get top-level subsections split out as child
+# sections. The most-cited statutes (SSA 1902, 1905, 1915) run 100K-800K
+# characters in one section — an agent reading from the top never reaches,
+# say, §1905(r) (the EPSDT definition) at char 45K, and nothing citable
+# carries the subsection identity. The parent section keeps its full text so
+# existing ids and citations stay stable.
+SUBSECTION_SPLIT_MIN_CHARS = 30_000
+
+
+def _next_subsection_letters(letter: str) -> str:
+    """USC top-level subsection sequence: (a)…(z), then (aa), (bb), …"""
+    if len(letter) == 1:
+        return "aa" if letter == "z" else chr(ord(letter) + 1)
+    nxt = chr(ord(letter[0]) + 1)
+    return nxt * len(letter)
+
+
+def _split_statute_subsections(section: dict, doc_id: str) -> list[dict]:
+    """Split a large statute section's TOP-LEVEL lettered subsections into
+    child sections.
+
+    Subsection markers appear at line starts as "(a) Heading text". Nested
+    roman numerals ((i), (ii), (iv)…) also start lines, so markers are
+    accepted only in strict sequence (a → b → … → z → aa → …): a stray (i)
+    is skipped unless 'i' is the next expected letter after (h).
+    """
+    content = section["content_text"]
+    if len(content) < SUBSECTION_SPLIT_MIN_CHARS:
+        return []
+
+    ssa_num = section["section_number"]
+    marker_pattern = re.compile(r"(?m)^\(([a-z]{1,2})\)\s*(.*)$")
+    expected = "a"
+    found: list[tuple[str, str, int, int]] = []  # (letter, heading, start, body_start)
+    for match in marker_pattern.finditer(content):
+        letter = match.group(1)
+        if letter != expected:
+            continue
+        found.append((letter, match.group(2).strip(), match.start(), match.end()))
+        expected = _next_subsection_letters(letter)
+
+    if len(found) < 2:
+        return []
+
+    children: list[dict] = []
+    for index, (letter, heading, start, _body_start) in enumerate(found):
+        end = found[index + 1][2] if index + 1 < len(found) else len(content)
+        sub_content = content[start:end].strip()
+        if not sub_content:
+            continue
+        sub_number = f"{ssa_num}({letter})"
+        title = f"Section {sub_number}. {heading}" if heading else f"Section {sub_number}."
+        children.append({
+            "id": f"{section['id']}-{letter}",
+            "document_id": doc_id,
+            "section_number": sub_number,
+            "title": title,
+            "level": 2,
+            "parent_id": section["id"],
+            "content_text": sub_content,
+            "content_length": len(sub_content),
+            "has_tables": False,
+            "has_definitions": "means" in sub_content[:3000].lower(),
+        })
+
+    return children
