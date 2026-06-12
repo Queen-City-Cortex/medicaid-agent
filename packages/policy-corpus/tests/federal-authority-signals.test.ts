@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildFederalAuthoritySignals } from '../src/frame/federal-authority/signals.js';
+import { buildFederalAuthoritySignals } from '../src/frame/federal-authority.js';
 
 describe('federal authority signals', () => {
   it('recognizes waiver-application questions and suppresses public-notice mode by default', () => {

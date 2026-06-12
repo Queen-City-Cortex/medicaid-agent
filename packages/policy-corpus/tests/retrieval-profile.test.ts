@@ -9,7 +9,6 @@ describe('retrieval profile signals', () => {
 
     expect(signals.profileName).toBe('operational_hybrid');
     expect(signals.enabledBackends).toContain('document_expansion');
-    expect(signals.enabledBackends).not.toContain('change_notice_header');
   });
 
   it('keeps federal questions on the federal profile without amendment-only backends', () => {
@@ -18,6 +17,5 @@ describe('retrieval profile signals', () => {
 
     expect(signals.profileName).toBe('federal_hybrid');
     expect(signals.enabledBackends).not.toContain('amendment_context');
-    expect(signals.enabledBackends).not.toContain('change_notice_header');
   });
 });

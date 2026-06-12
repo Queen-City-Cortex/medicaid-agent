@@ -3,8 +3,7 @@ import type { FrameContext } from '../context.js';
 import { selectAnswerRoute } from '../../internal/answer-routing.js';
 import { buildPolicyVariantFrameForDocuments } from './policy-variant.js';
 import { rebalanceCoverageFrame } from '../rebalance/coverage.js';
-import { buildCoverageQueryFlags } from '../coverage/flags.js';
-import { collectCoverageDocumentHydratedCandidates } from '../coverage/document-candidates.js';
+import { buildCoverageQueryFlags, collectCoverageDocumentHydratedCandidates } from '../coverage/candidates.js';
 import {
   COVERAGE_AVOID_TERMS,
   COVERAGE_PRIMARY_TERMS,
@@ -166,7 +165,7 @@ export async function resolveCoverageFrame(
     : [];
   const primaryCandidates = uniqueBy(
     [
-      ...context.toSectionCandidates(documentPrimaryHydrated, 0.35),
+      ...context.toSectionCandidates(documentPrimaryHydrated),
       ...promotedLimitationCandidates,
       ...buildSectionCandidates(
         primarySeedHits,
@@ -198,7 +197,7 @@ export async function resolveCoverageFrame(
       );
   const supportingCandidates = uniqueBy(
     [
-      ...context.toSectionCandidates(documentSupportingHydrated, 0.35),
+      ...context.toSectionCandidates(documentSupportingHydrated),
       ...limitationCandidates,
       ...numberedClusteredSupportingCandidates,
       ...clusteredSupportingCandidates,

@@ -41,7 +41,6 @@ describe('retrieval profiles', () => {
 
     expect(profile.name).toBe('amendment_hybrid');
     expect(profile.enabledBackends).toContain('amendment_context');
-    expect(profile.enabledBackends).toContain('change_notice_header');
   });
 
   it('keeps explicit document type scoping when callers provide it', () => {

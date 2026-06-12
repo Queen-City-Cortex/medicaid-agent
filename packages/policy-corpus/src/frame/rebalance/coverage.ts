@@ -1,9 +1,12 @@
 import type { AnswerFrame } from '../../types.js';
-import { buildCoverageQueryFlags } from '../coverage/flags.js';
-import { collectCoverageSectionGroups, scoreCoverageSections } from '../coverage/rebalance-support.js';
-import { buildCoverageInitialSelection } from '../coverage/initial-selection.js';
-import { buildCoverageAnchors } from '../coverage/anchors.js';
-import { assembleCoverageSections } from '../coverage/section-selection.js';
+import { buildCoverageQueryFlags } from '../coverage/candidates.js';
+import {
+  assembleCoverageSections,
+  buildCoverageAnchors,
+  buildCoverageInitialSelection,
+  collectCoverageSectionGroups,
+  scoreCoverageSections,
+} from '../coverage/selection.js';
 import {
   uniqueBy,
 } from '../../internal/shared.js';

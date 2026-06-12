@@ -21,13 +21,11 @@ import { DOCUMENT_SECTION_PICK_LIMIT } from './scoring-constants.js';
 
 export interface SectionCandidate {
   sectionId: string;
-  score: number;
   reason: string;
 }
 
 export interface HydratedSectionCandidate {
   section: AnswerFrameSection;
-  score: number;
 }
 
 export interface DocumentCandidate {
@@ -57,6 +55,8 @@ export function buildSectionCandidates(
   limit: number,
   fallbackReason: string,
 ): SectionCandidate[] {
+  // Score is only used to order the candidates emitted here; everything
+  // downstream of this function selects positionally.
   return uniqueBy(
     hits
       .map((hit) => {
@@ -64,18 +64,20 @@ export function buildSectionCandidates(
         const includeScore = scorePhraseMatches(sectionText, includeTerms, 1);
         const avoidScore = scorePhraseMatches(sectionText, avoidTerms, 1);
         const titleBonus = hit.sectionTitle ? scorePhraseMatches(normalizeSearchText(hit.sectionTitle), includeTerms, 0.75) : 0;
-        const score = hit.score + includeScore * 0.12 + titleBonus * 0.08 - avoidScore * 0.1;
         return {
-          sectionId: hit.sectionId,
-          score,
-          reason:
-            includeScore > 0
-              ? `Matched ${includeTerms.find((term) => sectionText.includes(term)) ?? fallbackReason}.`
-              : fallbackReason,
-        } satisfies SectionCandidate;
+          score: hit.score + includeScore * 0.12 + titleBonus * 0.08 - avoidScore * 0.1,
+          candidate: {
+            sectionId: hit.sectionId,
+            reason:
+              includeScore > 0
+                ? `Matched ${includeTerms.find((term) => sectionText.includes(term)) ?? fallbackReason}.`
+                : fallbackReason,
+          } satisfies SectionCandidate,
+        };
       })
-      .filter((candidate) => Number.isFinite(candidate.score))
-      .sort((left, right) => right.score - left.score),
+      .filter((entry) => Number.isFinite(entry.score))
+      .sort((left, right) => right.score - left.score)
+      .map((entry) => entry.candidate),
     (candidate) => candidate.sectionId,
   ).slice(0, limit);
 }

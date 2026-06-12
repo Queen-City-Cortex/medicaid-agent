@@ -36,7 +36,6 @@ export function buildRetrievalProfileSignals(
   }
   if (analysis.flags.isChangeNoticeQuery) {
     enabledBackends.push('amendment_context');
-    enabledBackends.push('change_notice_header');
   }
 
   return {

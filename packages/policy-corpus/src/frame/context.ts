@@ -54,7 +54,7 @@ export interface FrameContext {
     reason: string,
     limit?: number,
   ): Promise<HydratedSectionCandidate[]>;
-  toSectionCandidates(hydrated: HydratedSectionCandidate[], scoreBoost?: number): SectionCandidate[];
+  toSectionCandidates(hydrated: HydratedSectionCandidate[]): SectionCandidate[];
   finalizeFrame(input: FinalizeFrameInput): Promise<AnswerFrame>;
 }
 

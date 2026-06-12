@@ -66,6 +66,11 @@ export interface QueryAnalysis {
   flags: QueryFlags;
 }
 
+// Names accepted in RetrievalProfile.enabledBackends. Most are independent
+// merge-max backends registered in retrieval/backend-registry.ts; 'fulltext'
+// and 'document_expansion' are stage flags for the collector's
+// fulltext-recovery and document-expansion merge stages (see
+// retrieval/collector.ts for the full pipeline).
 export type RetrievalBackendName =
   | 'section_vector'
   | 'chunk_vector'
@@ -75,8 +80,7 @@ export type RetrievalBackendName =
   | 'amendment_context'
   | 'policy_scoped'
   | 'fulltext'
-  | 'document_expansion'
-  | 'change_notice_header';
+  | 'document_expansion';
 
 export interface RetrievalProfile {
   name: string;

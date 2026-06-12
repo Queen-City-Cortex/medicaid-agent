@@ -1,26 +1,99 @@
-import type { DocumentWithSectionsView } from '../../types.js';
-import type { FrameContext } from '../context.js';
+// Federal-authority evidence resolution, consumed by
+// frame/pipelines/federal-authority.ts in four steps:
+//
+//   1. buildFederalAuthoritySignals          — query intent signals
+//   2. collectFederalAuthorityEvidence       — federal regulation/statute hits,
+//      waiver-aware ranking, primary candidates + authoritative documents
+//   3. collectFederalImplementationEvidence  — NC implementation hits/documents
+//   4. buildFederalAuthorityCandidateSets    — final candidate sets for finalizeFrame
+//
+// Internal ranking helpers stay private to this module.
+
+import type { CorpusRetrievalHit, DocumentWithSectionsView } from '../types.js';
+import type { FrameContext } from './context.js';
 import {
+  CONTRACT_ROLE_BOOST,
+  COVERAGE_AVOID_TERMS,
+  COVERAGE_PRIMARY_TERMS,
+  FEDERAL_DOCUMENT_SUPPORT_TERMS,
   FEDERAL_PRIMARY_TERMS,
+  FRAME_AVOID_LIMIT,
+  FRAME_DOCUMENT_LIMIT,
   FRAME_PRIMARY_LIMIT,
+  FRAME_SUPPORT_LIMIT,
   MLR_FEDERAL_PRIMARY_SECTION_TERMS,
+  MLR_FEDERAL_SUPPORT_SECTION_TERMS,
   WAIVER_APPLICATION_AVOID_TERMS,
   WAIVER_APPLICATION_DOCUMENT_SECTION_TERMS,
   WAIVER_APPLICATION_PRIMARY_SECTION_NUMBERS,
   WAIVER_APPLICATION_PRIMARY_TERMS,
+  asksForImplementation,
+  asksForPublicNoticeDetails,
+  buildFocusedFederalQuery,
+  buildFederalImplementationSectionTerms,
   buildHitText,
+  buildQueryFocusTerms,
   buildSectionCandidates,
   dedupeTerms,
   extractDocumentView,
+  extractQuotedPhrases,
+  federalImplementationDocumentTypes,
   filterHitsToFocusedContent,
   includesPhrase,
+  isMlrQuery,
+  isWaiverApplicationQuery,
+  isWaiverAuthorityQuery,
   normalizeSearchText,
   rankHitsByQueryFocus,
   scoreTermMatches,
   selectPreferredDocumentTitlesByFocus,
   uniqueBy,
-} from '../../internal/shared.js';
-import type { FederalAuthorityEvidence, FederalAuthoritySignals } from './types.js';
+  type DocumentCandidate,
+  type SectionCandidate,
+} from '../internal/shared.js';
+
+// --- Signals -----------------------------------------------------------------
+
+export interface FederalAuthoritySignals {
+  queryLower: string;
+  waiverApplicationQuery: boolean;
+  waiverAuthorityQuery: boolean;
+  publicNoticeQuery: boolean;
+  mlrQuery: boolean;
+  implementationQuery: boolean;
+  focusTerms: string[];
+  quotedPhrases: string[];
+  implementationSectionTerms: string[];
+  focusedFederalQuery: string | null;
+}
+
+export function buildFederalAuthoritySignals(query: string): FederalAuthoritySignals {
+  const queryLower = normalizeSearchText(query);
+  const focusTerms = buildQueryFocusTerms(query);
+
+  return {
+    queryLower,
+    waiverApplicationQuery: isWaiverApplicationQuery(queryLower),
+    waiverAuthorityQuery: isWaiverAuthorityQuery(queryLower),
+    publicNoticeQuery: asksForPublicNoticeDetails(queryLower),
+    mlrQuery: isMlrQuery(queryLower),
+    implementationQuery: asksForImplementation(queryLower),
+    focusTerms,
+    quotedPhrases: extractQuotedPhrases(query),
+    implementationSectionTerms: buildFederalImplementationSectionTerms(queryLower, focusTerms),
+    focusedFederalQuery: buildFocusedFederalQuery(query),
+  };
+}
+
+// --- Federal evidence ----------------------------------------------------------
+
+export interface FederalAuthorityEvidence {
+  waiverRankedFederalHits: CorpusRetrievalHit[];
+  filteredPrimaryFederalHits: CorpusRetrievalHit[];
+  primaryFederalDocuments: DocumentWithSectionsView[];
+  primaryCandidates: SectionCandidate[];
+  authoritativeCandidates: DocumentCandidate[];
+}
 
 function isWaiverAuthorityAnchorHit(hit: {
   policyNumber?: string | null;
@@ -233,7 +306,6 @@ export async function collectFederalAuthorityEvidence(
             FRAME_PRIMARY_LIMIT * 2,
           )
         : [],
-    0.08,
   );
   const waiverStatutoryCandidates =
     signals.waiverApplicationQuery
@@ -272,5 +344,152 @@ export async function collectFederalAuthorityEvidence(
     primaryFederalDocuments,
     primaryCandidates,
     authoritativeCandidates,
+  };
+}
+
+// --- Implementation evidence ----------------------------------------------------
+
+export interface FederalImplementationEvidence {
+  scopedImplementationHits: CorpusRetrievalHit[];
+  implementationDocuments: DocumentWithSectionsView[];
+}
+
+export async function collectFederalImplementationEvidence(
+  context: FrameContext,
+  query: string,
+  signals: FederalAuthoritySignals,
+): Promise<FederalImplementationEvidence> {
+  const implementationLookupDocuments = signals.implementationQuery
+    ? await context.collectImplementationLookupDocuments(query)
+    : [];
+  const implementationHits = signals.implementationQuery
+    ? await context.searchSectionsDetailed({
+        query,
+        topK: signals.mlrQuery ? 8 : 6,
+        documentTypes: federalImplementationDocumentTypes(signals.queryLower),
+      })
+    : [];
+  const focusedImplementationHits = filterHitsToFocusedContent(
+    implementationHits,
+    signals.focusTerms,
+    signals.quotedPhrases,
+  );
+  const rankedImplementationHits = (
+    signals.mlrQuery
+      ? focusedImplementationHits.map((hit) =>
+          hit.answerRole === 'managed_care_contract'
+            ? {
+                ...hit,
+                score: hit.score + CONTRACT_ROLE_BOOST,
+              }
+            : hit,
+        )
+      : focusedImplementationHits
+  ).sort((left, right) => right.score - left.score);
+  const preferredImplementationDocumentTitles = selectPreferredDocumentTitlesByFocus(
+    rankedImplementationHits,
+    signals.focusTerms,
+    signals.quotedPhrases,
+    signals.mlrQuery ? 2 : 1,
+    0.08,
+  );
+  const scopedImplementationHits =
+    preferredImplementationDocumentTitles.length === 0
+      ? rankedImplementationHits
+      : (() => {
+          const scoped = rankedImplementationHits.filter(
+            (hit) => hit.documentTitle && preferredImplementationDocumentTitles.includes(hit.documentTitle),
+          );
+          return scoped.length > 0 ? scoped : rankedImplementationHits;
+        })();
+  const implementationDocuments = uniqueBy(
+    [
+      ...implementationLookupDocuments,
+      ...(await context.collectDocumentsForSectionIds(
+        scopedImplementationHits.map((hit) => hit.sectionId),
+        FRAME_DOCUMENT_LIMIT,
+      )),
+    ],
+    (document) => document.id,
+  );
+
+  return {
+    scopedImplementationHits,
+    implementationDocuments,
+  };
+}
+
+// --- Candidate sets ---------------------------------------------------------------
+
+export async function buildFederalAuthorityCandidateSets(
+  context: FrameContext,
+  signals: FederalAuthoritySignals,
+  federalEvidence: FederalAuthorityEvidence,
+  implementationEvidence: FederalImplementationEvidence,
+) {
+  const federalDocumentSupportCandidates = context.toSectionCandidates(
+    await context.collectDocumentSectionCandidates(
+      federalEvidence.primaryFederalDocuments,
+      dedupeTerms([
+        ...FEDERAL_DOCUMENT_SUPPORT_TERMS,
+        ...signals.focusTerms,
+        ...(signals.waiverApplicationQuery ? WAIVER_APPLICATION_PRIMARY_TERMS : []),
+        ...(signals.mlrQuery ? MLR_FEDERAL_SUPPORT_SECTION_TERMS : []),
+      ]),
+      signals.publicNoticeQuery || !signals.waiverApplicationQuery ? [] : WAIVER_APPLICATION_AVOID_TERMS,
+      'Supporting federal reporting or enforcement section from the same authority document.',
+      FRAME_SUPPORT_LIMIT * 2,
+    ),
+  );
+  const implementationDocumentSupportCandidates = context.toSectionCandidates(
+    await context.collectDocumentSectionCandidates(
+      implementationEvidence.implementationDocuments,
+      signals.implementationSectionTerms,
+      COVERAGE_AVOID_TERMS,
+      'State implementation section from the NC policy document named by the question.',
+      FRAME_SUPPORT_LIMIT * 2,
+    ),
+  );
+  const implementationSupportCandidates = buildSectionCandidates(
+    implementationEvidence.scopedImplementationHits,
+    signals.implementationSectionTerms,
+    [],
+    FRAME_SUPPORT_LIMIT * 2,
+    'NC implementation or oversight evidence related to the federal rule.',
+  );
+  const avoidCandidates = buildSectionCandidates(
+    signals.waiverApplicationQuery
+      ? uniqueBy(
+          [
+            ...implementationEvidence.scopedImplementationHits,
+            ...federalEvidence.waiverRankedFederalHits.filter((hit) =>
+              includesPhrase(buildHitText(hit), WAIVER_APPLICATION_AVOID_TERMS),
+            ),
+          ],
+          (hit) => hit.sectionId,
+        )
+      : implementationEvidence.scopedImplementationHits,
+    signals.waiverApplicationQuery ? WAIVER_APPLICATION_AVOID_TERMS : COVERAGE_PRIMARY_TERMS,
+    [],
+    FRAME_AVOID_LIMIT,
+    signals.waiverApplicationQuery
+      ? 'Procedural federal section that should stay secondary to the waiver authority and application requirements.'
+      : 'Service-specific policy evidence that should not displace the federal authority.',
+  );
+
+  return {
+    primaryCandidates: federalEvidence.primaryCandidates,
+    supportingCandidates: uniqueBy(
+      signals.implementationQuery
+        ? [
+            ...implementationDocumentSupportCandidates,
+            ...implementationSupportCandidates,
+            ...federalDocumentSupportCandidates,
+          ]
+        : [...federalDocumentSupportCandidates, ...implementationSupportCandidates],
+      (candidate) => candidate.sectionId,
+    ),
+    avoidCandidates,
+    authoritativeCandidates: federalEvidence.authoritativeCandidates,
   };
 }

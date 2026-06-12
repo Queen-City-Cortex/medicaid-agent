@@ -20,6 +20,36 @@ import { maybeRerankHits } from './rerank.js';
 
 type HitMap = Map<string, CorpusRetrievalHit>;
 
+// Merges hits into the map keyed by sectionId, keeping the highest-scored hit
+// per section ("merge-max") — the default semantics for every pipeline stage
+// except fulltext recovery.
+function mergeMax(sectionMap: HitMap, hits: CorpusRetrievalHit[]) {
+  for (const hit of hits) {
+    const existing = sectionMap.get(hit.sectionId);
+    if (!existing || hit.score > existing.score) {
+      sectionMap.set(hit.sectionId, hit);
+    }
+  }
+}
+
+// Builds the hybrid hit map through one explicit merge pipeline. Stages run in
+// order; each stage's merge semantics are stated where it runs:
+//
+//   1. Independent backends — every profile.enabledBackends entry with a
+//      registry implementation, merged with merge-max. ('fulltext' and
+//      'document_expansion' in enabledBackends are stage flags for stages 2
+//      and 4; they have no registry entry, so this loop skips them.)
+//   2. Fulltext recovery — exact-phrase Lucene search that boosts sections
+//      the other backends already found and inserts fulltext-only sections at
+//      a mid-range score.
+//   3. Amendment-title expansion (change-notice queries only) — sections of
+//      the base documents amended by change notices already in the map,
+//      merge-max.
+//   4. Document expansion (when 'document_expansion' is enabled) —
+//      term-matched sections from the documents that dominate the map so far,
+//      merge-max.
+//   5. Change-notice header expansion (change-notice queries only) —
+//      revision-header sections from those same dominant documents, merge-max.
 export async function collectHybridHitMap({
   session,
   input,
@@ -36,19 +66,9 @@ export async function collectHybridHitMap({
   backends: Map<string, RetrievalBackend>;
 }): Promise<HitMap> {
   const sectionMap: HitMap = new Map();
-  const mergeMax = (hits: CorpusRetrievalHit[]) => {
-    for (const hit of hits) {
-      const existing = sectionMap.get(hit.sectionId);
-      if (!existing || hit.score > existing.score) {
-        sectionMap.set(hit.sectionId, hit);
-      }
-    }
-  };
 
+  // Stage 1: independent backends, merge-max.
   for (const backendName of profile.enabledBackends) {
-    if (backendName === 'fulltext' || backendName === 'document_expansion' || backendName === 'change_notice_header') {
-      continue;
-    }
     const backend = backends.get(backendName);
     if (!backend) continue;
     const hits = await backend.retrieve({
@@ -58,25 +78,103 @@ export async function collectHybridHitMap({
       profile,
       embedding,
     });
-    mergeMax(hits);
+    mergeMax(sectionMap, hits);
   }
 
-  await mergeFulltextHits({
-    sectionMap,
-    session,
-    input,
-    analysis,
-    profile,
-    embedding,
-  });
-  await mergeExpansionHits({
-    sectionMap,
-    session,
-    analysis,
-    profile,
-  });
+  // Stage 2: fulltext recovery — boost existing hits, mid-range-insert new ones.
+  if (profile.enabledBackends.includes('fulltext')) {
+    const fulltextHits = await fulltextBackend.retrieve({
+      session,
+      input,
+      analysis,
+      profile,
+      embedding,
+    });
+    mergeFulltextHits(sectionMap, fulltextHits);
+  }
+
+  // Stage 3: amendment-title expansion for change-notice queries, merge-max.
+  if (analysis.flags.isChangeNoticeQuery) {
+    const changeNoticeTitles = dedupeTerms(
+      Array.from(sectionMap.values())
+        .map((hit) => hit.documentTitle)
+        .filter((title): title is string => Boolean(title) && normalizeSearchText(title).includes('change notice')),
+    ).slice(0, 5);
+
+    mergeMax(
+      sectionMap,
+      await retrieveAmendmentTitleExpansionHits({
+        session,
+        titles: changeNoticeTitles,
+        k: profile.perGroupK,
+      }),
+    );
+  }
+
+  // Stages 4 and 5 expand from the documents that dominate the map after the
+  // earlier stages (including stage 3's amendment hits).
+  const documentCoverageBoosts = computeDocumentCoverageBoosts(Array.from(sectionMap.values()), analysis.searchTerms);
+  const documentTitlesForExpansion = selectDocumentTitlesForExpansion(
+    Array.from(sectionMap.values()),
+    documentCoverageBoosts,
+  );
+
+  // Stage 4: document expansion, merge-max.
+  if (profile.enabledBackends.includes('document_expansion')) {
+    mergeMax(
+      sectionMap,
+      await retrieveDocumentExpansionHits({
+        session,
+        titles: documentTitlesForExpansion,
+        terms: analysis.searchTerms,
+        k: profile.perGroupK,
+      }),
+    );
+  }
+
+  // Stage 5: change-notice header expansion for change-notice queries, merge-max.
+  if (analysis.flags.isChangeNoticeQuery) {
+    mergeMax(
+      sectionMap,
+      await retrieveChangeNoticeHeaderHits({
+        session,
+        titles: documentTitlesForExpansion,
+        k: profile.perGroupK,
+      }),
+    );
+  }
 
   return sectionMap;
+}
+
+// Fulltext is the exact-phrase recovery path, so it doesn't merge-max:
+// sections the other backends already found get FULLTEXT_BOOST added to their
+// score, and fulltext-only sections are inserted at a mid-range score decaying
+// by fulltext rank. (New fulltext-only hits used to be floored just below the
+// weakest hit from every other backend, so they could effectively never
+// survive topK. Mid-range placement keeps them competitive without outranking
+// strong vector hits.)
+function mergeFulltextHits(sectionMap: HitMap, fulltextHits: CorpusRetrievalHit[]) {
+  if (fulltextHits.length === 0) return;
+
+  const fulltextIds = new Set(fulltextHits.map((hit) => hit.sectionId));
+  for (const [sectionId, hit] of sectionMap) {
+    if (fulltextIds.has(sectionId)) {
+      hit.score += FULLTEXT_BOOST;
+    }
+  }
+
+  const scores = Array.from(sectionMap.values()).map((hit) => hit.score);
+  const minScore = scores.length > 0 ? Math.min(...scores) : 0.5;
+  const maxScore = scores.length > 0 ? Math.max(...scores) : 0.5;
+  const midScore = (minScore + maxScore) / 2;
+  for (let index = 0; index < fulltextHits.length; index += 1) {
+    const hit = fulltextHits[index];
+    if (!sectionMap.has(hit.sectionId)) {
+      hit.score = Math.max(midScore - 0.02 * index, 0.01);
+      sectionMap.set(hit.sectionId, hit);
+    }
+  }
 }
 
 export async function finalizeHybridHits({
@@ -129,119 +227,4 @@ export async function finalizeHybridHits({
   });
 
   return finalHits.slice(0, topK);
-}
-
-async function mergeFulltextHits({
-  sectionMap,
-  session,
-  input,
-  analysis,
-  profile,
-  embedding,
-}: {
-  sectionMap: HitMap;
-  session: SessionLike;
-  input: SearchSectionsInput;
-  analysis: QueryAnalysis;
-  profile: RetrievalProfile;
-  embedding: number[];
-}) {
-  const fulltextHits = profile.enabledBackends.includes('fulltext')
-    ? await fulltextBackend.retrieve({
-        session,
-        input,
-        analysis,
-        profile,
-        embedding,
-      })
-    : [];
-  if (fulltextHits.length === 0) return;
-
-  const fulltextIds = new Set(fulltextHits.map((hit) => hit.sectionId));
-  for (const [sectionId, hit] of sectionMap) {
-    if (fulltextIds.has(sectionId)) {
-      hit.score += FULLTEXT_BOOST;
-    }
-  }
-
-  // Fulltext is the exact-phrase recovery path. New fulltext-only hits used
-  // to be floored just below the weakest hit from every other backend, so
-  // they could effectively never survive topK. Place them mid-range instead,
-  // decaying by fulltext rank: competitive without outranking strong vector
-  // hits.
-  const scores = Array.from(sectionMap.values()).map((hit) => hit.score);
-  const minScore = scores.length > 0 ? Math.min(...scores) : 0.5;
-  const maxScore = scores.length > 0 ? Math.max(...scores) : 0.5;
-  const midScore = (minScore + maxScore) / 2;
-  for (let index = 0; index < fulltextHits.length; index += 1) {
-    const hit = fulltextHits[index];
-    if (!sectionMap.has(hit.sectionId)) {
-      hit.score = Math.max(midScore - 0.02 * index, 0.01);
-      sectionMap.set(hit.sectionId, hit);
-    }
-  }
-}
-
-async function mergeExpansionHits({
-  sectionMap,
-  session,
-  analysis,
-  profile,
-}: {
-  sectionMap: HitMap;
-  session: SessionLike;
-  analysis: QueryAnalysis;
-  profile: RetrievalProfile;
-}) {
-  const mergeMax = (hits: CorpusRetrievalHit[]) => {
-    for (const hit of hits) {
-      const existing = sectionMap.get(hit.sectionId);
-      if (!existing || hit.score > existing.score) {
-        sectionMap.set(hit.sectionId, hit);
-      }
-    }
-  };
-
-  if (analysis.flags.isChangeNoticeQuery) {
-    const changeNoticeTitles = dedupeTerms(
-      Array.from(sectionMap.values())
-        .map((hit) => hit.documentTitle)
-        .filter((title): title is string => Boolean(title) && normalizeSearchText(title).includes('change notice')),
-    ).slice(0, 5);
-
-    mergeMax(
-      await retrieveAmendmentTitleExpansionHits({
-        session,
-        titles: changeNoticeTitles,
-        k: profile.perGroupK,
-      }),
-    );
-  }
-
-  const documentCoverageBoosts = computeDocumentCoverageBoosts(Array.from(sectionMap.values()), analysis.searchTerms);
-  const documentTitlesForExpansion = selectDocumentTitlesForExpansion(
-    Array.from(sectionMap.values()),
-    documentCoverageBoosts,
-  );
-
-  if (profile.enabledBackends.includes('document_expansion')) {
-    mergeMax(
-      await retrieveDocumentExpansionHits({
-        session,
-        titles: documentTitlesForExpansion,
-        terms: analysis.searchTerms,
-        k: profile.perGroupK,
-      }),
-    );
-  }
-
-  if (analysis.flags.isChangeNoticeQuery) {
-    mergeMax(
-      await retrieveChangeNoticeHeaderHits({
-        session,
-        titles: documentTitlesForExpansion,
-        k: profile.perGroupK,
-      }),
-    );
-  }
 }

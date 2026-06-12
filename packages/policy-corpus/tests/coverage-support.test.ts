@@ -1,9 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { AnswerFrameSection } from '../src/types.js';
 import { normalizeSearchText } from '../src/internal/shared.js';
-import { buildCoverageQueryFlags } from '../src/frame/coverage/flags.js';
-import { collectCoverageSectionGroups } from '../src/frame/coverage/groups.js';
-import { scoreCoverageSections } from '../src/frame/coverage/scoring.js';
+import { buildCoverageQueryFlags } from '../src/frame/coverage/candidates.js';
+import { collectCoverageSectionGroups, scoreCoverageSections } from '../src/frame/coverage/selection.js';
 
 describe('coverage support seams', () => {
   it('collects eligibility anchors, context, and administrative sections separately', () => {

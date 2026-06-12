@@ -62,7 +62,6 @@ export async function resolvePriorAuthFrame(
       'Title-matched prior-authorization criteria section from the preferred document.',
       FRAME_PRIMARY_LIMIT * 2,
     ),
-    0.08,
   );
   const quantityDocumentPrimaryCandidates = isPharmacyQuantityPriorAuthQuery(queryLower)
     ? context.toSectionCandidates(
@@ -73,7 +72,6 @@ export async function resolvePriorAuthFrame(
           'Quantity-limit section from the governing pharmacy policy.',
           Math.max(FRAME_PRIMARY_LIMIT, 2),
         ),
-        0.2,
       )
     : [];
   const criteriaDocumentPrimaryCandidates = isPharmacyQuantityPriorAuthQuery(queryLower)
@@ -85,7 +83,6 @@ export async function resolvePriorAuthFrame(
           'Pharmacy prior-approval criteria section from the governing policy.',
           Math.max(FRAME_PRIMARY_LIMIT, 2),
         ),
-        0.16,
       )
     : [];
   const documentSupportingCandidates = context.toSectionCandidates(
@@ -96,7 +93,6 @@ export async function resolvePriorAuthFrame(
       'Title-matched supporting prior-authorization section from the preferred document.',
       FRAME_SUPPORT_LIMIT * 2,
     ),
-    0.04,
   );
 
   const authoritativeCandidates = lookupDocuments.map((document) => ({

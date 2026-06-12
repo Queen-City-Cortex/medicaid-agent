@@ -35,10 +35,7 @@ export function createFrameHydrationHelpers({
       const section = await getSection(candidate.sectionId);
       if (!section) continue;
       seenSectionIds.add(candidate.sectionId);
-      hydrated.push({
-        section: toAnswerFrameSection(section, candidate.reason),
-        score: candidate.score,
-      });
+      hydrated.push({ section: toAnswerFrameSection(section, candidate.reason) });
       if (hydrated.length >= limit) break;
     }
     return hydrated;
@@ -97,10 +94,7 @@ export function createFrameHydrationHelpers({
     for (const sectionId of sectionIds) {
       const section = await getSection(sectionId);
       if (!section) continue;
-      hydrated.push({
-        section: toAnswerFrameSection(section, reason),
-        score: 0.75,
-      });
+      hydrated.push({ section: toAnswerFrameSection(section, reason) });
       if (hydrated.length >= limit) break;
     }
     return hydrated;
@@ -118,22 +112,15 @@ export function createFrameHydrationHelpers({
     for (const sectionId of sectionIds) {
       const section = await getSection(sectionId);
       if (!section) continue;
-      hydrated.push({
-        section: toAnswerFrameSection(section, reason),
-        score: 0.72,
-      });
+      hydrated.push({ section: toAnswerFrameSection(section, reason) });
       if (hydrated.length >= limit) break;
     }
     return hydrated;
   };
 
-  const toSectionCandidates = (
-    hydrated: HydratedSectionCandidate[],
-    scoreBoost = 0,
-  ): SectionCandidate[] =>
+  const toSectionCandidates = (hydrated: HydratedSectionCandidate[]): SectionCandidate[] =>
     hydrated.map((candidate) => ({
       sectionId: candidate.section.id,
-      score: candidate.score + scoreBoost,
       reason: candidate.section.reason ?? 'Document-title matched section.',
     }));
 
