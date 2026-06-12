@@ -16,19 +16,43 @@ ANSWER_SCORE_DIMENSIONS = (
 )
 
 
+_RETRIEVAL_METRIC_KEYS = ("precision", "recall", "mrr")
+
+
+def _metric_mean(rows: list[dict], key: str) -> float | None:
+    """Mean of a metric over the rows where it is present (not None)."""
+    values = [q.get(key) for q in rows if q.get(key) is not None]
+    return sum(values) / len(values) if values else None
+
+
 def _compute_retrieval_rollup(rows: list[dict]) -> tuple[dict, int, int]:
-    """Compute retrieval-style aggregates for a run subset."""
-    scorable = [q for q in rows if q.get("precision") is not None]
-    judge_errors = len(rows) - len(scorable)
+    """Compute retrieval-style aggregates for a run subset.
+
+    Scorability is per-metric, not keyed solely on precision: zero-citation
+    answers legitimately produce precision=None with recall=0.0, and keying
+    on precision silently dropped them — inflating recall and
+    primary_hit_rate. Rows with no retrieval metric at all (judge/agent
+    errors) are excluded and counted.
+    """
+    scorable = [
+        q for q in rows
+        if any(q.get(key) is not None for key in _RETRIEVAL_METRIC_KEYS)
+    ]
+    unscored = len(rows) - len(scorable)
 
     rollup: dict = {}
     if scorable:
-        rollup["precision_at_k"] = sum(q["precision"] for q in scorable) / len(scorable)
-        rollup["recall_at_k"] = sum(q["recall"] for q in scorable) / len(scorable)
-        rollup["mrr"] = sum(q["mrr"] for q in scorable) / len(scorable)
+        for out_key, key in (
+            ("precision_at_k", "precision"),
+            ("recall_at_k", "recall"),
+            ("mrr", "mrr"),
+        ):
+            value = _metric_mean(scorable, key)
+            if value is not None:
+                rollup[out_key] = value
         rollup["primary_hit_rate"] = sum(1 for q in scorable if q.get("primary_hit")) / len(scorable)
 
-    return rollup, len(scorable), judge_errors
+    return rollup, len(scorable), unscored
 
 
 def _compute_answer_rollup(rows: list[dict]) -> dict:
@@ -46,22 +70,45 @@ def _compute_answer_rollup(rows: list[dict]) -> dict:
     return rollup
 
 
+def _error_counts(rows: list[dict]) -> dict:
+    """Count rows excluded from aggregates, keyed by error type.
+
+    Agent/judge errors carry `scores.error_type`; counting them separately
+    keeps availability visible without letting infra failures pollute the
+    quality means.
+    """
+    counts: dict[str, int] = {}
+    for q in rows:
+        error_type = (q.get("scores") or {}).get("error_type")
+        if error_type:
+            key = f"{error_type}_errors"
+            counts[key] = counts.get(key, 0) + 1
+    return counts
+
+
+_NON_METRIC_KEYS = {"judge_errors", "agent_errors", "scorable_count"}
+
+
 def _compute_rollup(rows: list[dict]) -> dict:
     """Compute all persisted aggregates for a run subset."""
-    retrieval_rollup, scorable_count, judge_errors = _compute_retrieval_rollup(rows)
+    retrieval_rollup, scorable_count, retrieval_unscored = _compute_retrieval_rollup(rows)
     answer_rollup = _compute_answer_rollup(rows)
 
     rollup = {**retrieval_rollup, **answer_rollup}
-    if judge_errors:
-        rollup["judge_errors"] = judge_errors
+    # Only meaningful for retrieval-style runs: for answer-level runs no row
+    # has retrieval metrics, and the old unconditional counter stamped every
+    # answer aggregate with judge_errors=N / scorable_count=0.
+    if retrieval_rollup and retrieval_unscored:
+        rollup["judge_errors"] = retrieval_unscored
         rollup["scorable_count"] = scorable_count
+    rollup.update(_error_counts(rows))
 
     return rollup
 
 
 def _has_metric_values(rollup: dict) -> bool:
     """Whether a rollup contains actual score metrics, not just error counters."""
-    return any(key not in {"judge_errors", "scorable_count"} for key in rollup)
+    return any(key not in _NON_METRIC_KEYS for key in rollup)
 
 
 def save_result(level: str, per_question: list[dict], config_overrides: dict | None = None) -> Path:

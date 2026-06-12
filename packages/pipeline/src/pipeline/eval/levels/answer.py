@@ -408,7 +408,7 @@ def evaluate_answers(entries: list[dict], *, use_unified_evidence: bool = True) 
                 candidate_evidence_info = extract_evidence_metadata((getattr(exc, "stdout", "") or ""))
                 tails = []
                 stderr_tail = _tail_text(getattr(exc, "stderr", None))
-                stdout_tail = _tail_text(extract_answer(getattr(exc, "stdout", "") or getattr(exc, "stdout", "")))
+                stdout_tail = _tail_text(extract_answer(getattr(exc, "stdout", "") or ""))
                 if stderr_tail:
                     tails.append(f"stderr_tail={stderr_tail}")
                 if stdout_tail:
@@ -484,7 +484,13 @@ def evaluate_answers(entries: list[dict], *, use_unified_evidence: bool = True) 
         all_sections = primary_sections + supporting_sections
         try:
             golden_sections = _fetch_evidence_sections(all_sections)
-        except Exception:
+        except Exception as exc:
+            # Don't silently judge against an empty golden anchor — that turns
+            # a Neo4j outage into phantom hallucination scores.
+            print(
+                f"[answer eval] {question_id} WARNING: failed to fetch golden evidence: {exc}",
+                flush=True,
+            )
             golden_sections = []
 
         # --- Build the unified judge evidence bundle ---
@@ -509,12 +515,16 @@ def evaluate_answers(entries: list[dict], *, use_unified_evidence: bool = True) 
 
         # --- Score with judge ---
         if agent_error:
+            # Infra failure, not answer quality: scoring these 0 conflated
+            # timeouts with "major hallucination" and dragged every mean down.
+            # None scores are excluded from aggregates (like judge errors) and
+            # surface via the agent_errors availability counter instead.
             scores = {
-                "factual_accuracy": 0,
-                "completeness": 0,
-                "hallucination": 0,
-                "citation_quality": 0,
-                "overall": 0,
+                "factual_accuracy": None,
+                "completeness": None,
+                "hallucination": None,
+                "citation_quality": None,
+                "overall": None,
                 "explanation": agent_error,
                 "error_type": "agent",
             }

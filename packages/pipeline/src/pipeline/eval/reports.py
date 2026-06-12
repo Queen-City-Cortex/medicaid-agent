@@ -107,8 +107,10 @@ def print_answer_report(result: dict):
             if subset:
                 row = [diff]
                 for dim in dims:
-                    vals = [q["scores"].get(dim, 0) for q in subset]
-                    row.append(f"{sum(vals)/len(vals):.2f}")
+                    # Error rows carry None scores — exclude them rather than
+                    # crash or count them as zeros.
+                    vals = [v for v in (q["scores"].get(dim) for q in subset) if v is not None]
+                    row.append(f"{sum(vals)/len(vals):.2f}" if vals else "—")
                 row.append(str(len(subset)))
                 table.add_row(*row)
         console.print(table)
@@ -116,29 +118,39 @@ def print_answer_report(result: dict):
     # Per-question scores
     console.print("\n  [bold]Per-Question Results[/bold]")
     console.print(f"  {'─' * 50}")
+    def fmt(value) -> str:
+        return "—" if value is None else str(value)
+
     for q in per_q:
-        scores = q.get("scores", {})
-        overall = scores.get("overall", 0)
-        color = "green" if overall >= 2 else "red"
+        scores = q.get("scores") or {}
+        overall = scores.get("overall")
+        if overall is None:
+            color = "yellow"
+        else:
+            color = "green" if overall >= 2 else "red"
         snippet = (q.get("agent_answer") or "")[:80].replace("\n", " ")
         console.print(
             f"  [{color}]{q['id']}[/{color}]  [{q['difficulty']}/{q['reasoning_type']}]  "
-            f"overall={overall}/3  fa={scores.get('factual_accuracy',0)}  "
-            f"comp={scores.get('completeness',0)}  hall={scores.get('hallucination',0)}  "
-            f"cit={scores.get('citation_quality',0)}"
+            f"overall={fmt(overall)}/3  fa={fmt(scores.get('factual_accuracy'))}  "
+            f"comp={fmt(scores.get('completeness'))}  hall={fmt(scores.get('hallucination'))}  "
+            f"cit={fmt(scores.get('citation_quality'))}"
         )
         if snippet:
             console.print(f"    [dim]{snippet}...[/dim]")
         if q.get("agent_error"):
             console.print(f"    [red]ERROR: {q['agent_error'][:120]}[/red]")
 
-    # Failures
-    failures = [q for q in per_q if q.get("scores", {}).get("overall", 0) < 2]
+    # Failures (error rows with None scores are reported separately above)
+    failures = [
+        q for q in per_q
+        if (q.get("scores") or {}).get("overall") is not None
+        and q["scores"]["overall"] < 2
+    ]
     if failures:
         console.print("\n  [bold red]Failures (overall < 2)[/bold red]")
         console.print(f"  {'─' * 50}")
         for f in failures:
-            expl = f.get("scores", {}).get("explanation", "")[:120]
+            expl = ((f.get("scores") or {}).get("explanation") or "")[:120]
             console.print(f"  {f['id']}  [{f['difficulty']}/{f['reasoning_type']}]  {expl}")
 
     console.print()
