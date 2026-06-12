@@ -7,7 +7,13 @@ import { cn } from '@/lib/utils';
 import type { MessageSource, VerificationState } from '@/lib/message-parts';
 
 export interface SourcesPanelProps {
+  /** Sources in display order: cited entries first, then merely-consulted. */
   sources: MessageSource[];
+  /** How many leading entries in `sources` are cited inline in the answer.
+   *  Drives the "Cited in this answer" / "Also consulted" group split —
+   *  presenting every search hit as a flat "12 sources" list undermines
+   *  verifiability when only 3 back the answer. */
+  citedCount?: number;
   /** Optional stable id for linking from inline citation footnotes. Scopes the DOM ids below so multiple panels on one page don't collide. */
   messageId?: string;
   /** Controlled open state. Lifted to the parent so inline footnotes can force the panel open when clicked. When omitted, falls back to uncontrolled behaviour. */
@@ -19,9 +25,22 @@ export interface SourcesPanelProps {
   verification?: VerificationState | null;
 }
 
-function countLabel(count: number): string {
-  return `${count} source${count === 1 ? '' : 's'}`;
+function countLabel(count: number, citedCount: number | undefined): string {
+  const total = `${count} source${count === 1 ? '' : 's'}`;
+  if (citedCount === undefined || citedCount === 0 || citedCount === count) return total;
+  return `${citedCount} cited · ${count - citedCount} consulted`;
 }
+
+/** Human label for how the agent surfaced a source. */
+const ORIGIN_LABELS: Record<string, string> = {
+  getSection: 'read',
+  resolveAnswerFrame: 'evidence plan',
+  searchSections: 'search result',
+  findConceptSections: 'concept match',
+  getDocument: 'looked up',
+  lookupPolicy: 'looked up',
+  getAmendments: 'amendment check',
+};
 
 // Dot color matches the project's existing feedback + alert tokens: emerald
 // for positive signals (MessageActions), amber for warnings (endedWithoutAnswer
@@ -104,8 +123,74 @@ export function sourceRowId(messageId: string | undefined, sourceKey: string): s
   return `source-${messageId ?? 'msg'}-${sourceKey}`;
 }
 
-export function SourcesPanel({ sources, messageId, open, onOpenChange, highlightedKey, verification }: SourcesPanelProps) {
+function SourceRow({
+  source,
+  index,
+  messageId,
+  highlighted,
+}: {
+  source: MessageSource;
+  index: number;
+  messageId?: string;
+  highlighted: boolean;
+}) {
+  return (
+    <li
+      key={source.key}
+      id={sourceRowId(messageId, source.key)}
+      data-testid="source-item"
+      data-highlighted={highlighted || undefined}
+      className={cn(
+        'min-w-0 rounded-md px-1 py-0.5 transition-colors duration-500',
+        highlighted && 'bg-accent/15',
+      )}
+    >
+      <a
+        href={source.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="group flex min-w-0 items-start gap-2 text-sm text-foreground hover:text-accent"
+      >
+        <span className="mt-0.5 w-6 shrink-0 text-right text-xs font-medium text-muted-foreground group-hover:text-accent">
+          {index + 1}.
+        </span>
+        <ExternalLink className="mt-0.5 size-3.5 shrink-0 text-muted-foreground group-hover:text-accent" />
+        <span className="min-w-0 flex-1">
+          <span className="font-medium underline-offset-2 group-hover:underline">
+            {source.label}
+          </span>
+          {ORIGIN_LABELS[source.originTool] && (
+            <span className="ml-2 inline-block rounded bg-muted px-1.5 py-px align-middle text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+              {ORIGIN_LABELS[source.originTool]}
+            </span>
+          )}
+          {source.title && (
+            <span className="block text-xs text-muted-foreground">{source.title}</span>
+          )}
+        </span>
+      </a>
+      {source.snippet && (
+        // Native <details> keeps the excerpt one keyboard-accessible click
+        // away without nesting more interactive machinery inside the panel.
+        <details data-testid="source-excerpt" className="ml-8 mt-1">
+          <summary className="cursor-pointer select-none text-xs text-muted-foreground hover:text-accent">
+            Show policy text
+          </summary>
+          <blockquote className="mt-1 border-l-2 border-border pl-3 text-xs leading-relaxed text-muted-foreground">
+            {source.snippet}
+          </blockquote>
+        </details>
+      )}
+    </li>
+  );
+}
+
+export function SourcesPanel({ sources, citedCount, messageId, open, onOpenChange, highlightedKey, verification }: SourcesPanelProps) {
   if (sources.length === 0) return null;
+
+  const cited = citedCount === undefined ? sources : sources.slice(0, citedCount);
+  const consulted = citedCount === undefined ? [] : sources.slice(citedCount);
+  const showGroups = cited.length > 0 && consulted.length > 0;
 
   return (
     <Collapsible open={open} onOpenChange={onOpenChange}>
@@ -129,7 +214,7 @@ export function SourcesPanel({ sources, messageId, open, onOpenChange, highlight
                   </span>
                 )}
               </div>
-              <div className="text-xs text-muted-foreground">{countLabel(sources.length)}</div>
+              <div className="text-xs text-muted-foreground">{countLabel(sources.length, citedCount)}</div>
             </div>
           </div>
           <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-transform group-data-[panel-open]:rotate-90" />
@@ -139,40 +224,40 @@ export function SourcesPanel({ sources, messageId, open, onOpenChange, highlight
           data-testid="sources-panel-list"
           className="mt-2 rounded-xl border border-border/70 bg-muted/15 px-4 py-3"
         >
+          {showGroups && (
+            <div className="mb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+              Cited in this answer
+            </div>
+          )}
           <ul className="space-y-2">
-            {sources.map((source, index) => (
-              <li
+            {(showGroups ? cited : sources).map((source, index) => (
+              <SourceRow
                 key={source.key}
-                id={sourceRowId(messageId, source.key)}
-                data-testid="source-item"
-                data-highlighted={highlightedKey === source.key || undefined}
-                className={cn(
-                  'min-w-0 rounded-md px-1 py-0.5 transition-colors duration-500',
-                  highlightedKey === source.key && 'bg-accent/15',
-                )}
-              >
-                <a
-                  href={source.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group flex min-w-0 items-start gap-2 text-sm text-foreground hover:text-accent"
-                >
-                  <span className="mt-0.5 w-6 shrink-0 text-right text-xs font-medium text-muted-foreground group-hover:text-accent">
-                    {index + 1}.
-                  </span>
-                  <ExternalLink className="mt-0.5 size-3.5 shrink-0 text-muted-foreground group-hover:text-accent" />
-                  <span className="min-w-0 flex-1">
-                    <span className="font-medium underline-offset-2 group-hover:underline">
-                      {source.label}
-                    </span>
-                    {source.title && (
-                      <span className="block text-xs text-muted-foreground">{source.title}</span>
-                    )}
-                  </span>
-                </a>
-              </li>
+                source={source}
+                index={index}
+                messageId={messageId}
+                highlighted={highlightedKey === source.key}
+              />
             ))}
           </ul>
+          {showGroups && (
+            <>
+              <div className="mb-1 mt-3 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                Also consulted
+              </div>
+              <ul className="space-y-2">
+                {consulted.map((source, index) => (
+                  <SourceRow
+                    key={source.key}
+                    source={source}
+                    index={cited.length + index}
+                    messageId={messageId}
+                    highlighted={highlightedKey === source.key}
+                  />
+                ))}
+              </ul>
+            </>
+          )}
         </CollapsibleContent>
       </div>
     </Collapsible>

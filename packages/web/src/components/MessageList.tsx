@@ -6,9 +6,12 @@ import type { UIMessage } from 'ai';
 import { MessageActions } from '@/components/MessageActions';
 import { SourcesPanel, sourceRowId } from '@/components/SourcesPanel';
 import { ToolStep } from '@/components/ToolStep';
+import { VerificationBadge } from '@/components/VerificationBadge';
 import { VersionNav } from '@/components/VersionNav';
 import {
+  buildAnswerClipboardText,
   buildSourceIndex,
+  extractCitedUrls,
   extractMessageSources,
   extractVerificationState,
   getTrailingAssistantText,
@@ -16,6 +19,7 @@ import {
   isTextPart,
   isToolPart,
   normalizeCitationUrl,
+  splitSourcesByCited,
   type MessageSource,
 } from '@/lib/message-parts';
 
@@ -122,7 +126,12 @@ function AssistantMessage({
   const visibleParts = parts
     .map((part, index) => ({ part, index }))
     .filter(({ part }) => isToolPart(part) || (isTextPart(part) && part.text.trim().length > 0));
-  const sources = extractMessageSources(msg);
+  // Sources ordered cited-first so the panel can group them and budgeted
+  // footnote numbers stay aligned with row positions.
+  const { ordered: sources, citedCount } = splitSourcesByCited(
+    extractMessageSources(msg),
+    extractCitedUrls(msg),
+  );
   const verification = extractVerificationState(msg);
   // Detect the "tools ran but agent gave up without a text answer" state. This
   // happens when a mid-tool-loop model call throws (e.g. transient
@@ -134,7 +143,12 @@ function AssistantMessage({
   const endedWithoutAnswer =
     !isStreaming && lastToolIndex !== -1 && finalAnswerText.trim().length === 0;
   const sourceIndex = buildSourceIndex(sources);
-  const [panelOpen, setPanelOpen] = useState(false);
+  // Open by default when the answer actually cites sources — hiding the
+  // panel behind a click is the wrong default for a verification-first
+  // product. The user's explicit toggle always wins once made.
+  const [panelOpenOverride, setPanelOpenOverride] = useState<boolean | null>(null);
+  const panelOpen = panelOpenOverride ?? citedCount > 0;
+  const setPanelOpen = setPanelOpenOverride;
   const [highlightedKey, setHighlightedKey] = useState<string | null>(null);
 
   const handleCitationClick = (sourceNumber: number) => {
@@ -207,9 +221,14 @@ function AssistantMessage({
         </div>
       )}
 
+      {!isStreaming && verification && finalAnswerText && (
+        <VerificationBadge verification={verification} />
+      )}
+
       {!isStreaming && sources.length > 0 && (
         <SourcesPanel
           sources={sources}
+          citedCount={citedCount}
           messageId={msg.id}
           open={panelOpen}
           onOpenChange={setPanelOpen}
@@ -220,7 +239,7 @@ function AssistantMessage({
 
       {!isStreaming && (finalAnswerText || endedWithoutAnswer) && (
         <MessageActions
-          content={finalAnswerText}
+          content={buildAnswerClipboardText(finalAnswerText, sources)}
           onRerun={() => {
             let userIdx = -1;
             for (let index = messageIndex - 1; index >= 0; index--) {

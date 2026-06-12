@@ -19,7 +19,7 @@ export function ChatInput({ input, setInput, isLoading, onSend, onStop, inputRef
   const helperTextId = 'chat-input-helper-text';
 
   return (
-    <footer className="border-t border-border bg-card px-4 md:px-8 py-5 shrink-0">
+    <footer className="border-t border-border bg-card px-4 md:px-8 py-5 shrink-0 print:hidden">
       <div className="max-w-3xl mx-auto flex gap-3">
         <label htmlFor="chat-input" className="sr-only">
           Ask a policy question

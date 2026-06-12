@@ -1,6 +1,8 @@
-FROM node:20-alpine AS base
+FROM node:22-alpine AS base
 
-# --- deps: install production dependencies ---
+# --- deps: install workspace dependencies ---
+# Installs dev dependencies too: the builder stage needs them (Next.js,
+# TypeScript, Tailwind) to build the app.
 FROM base AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
@@ -26,9 +28,10 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 # standalone output mirrors monorepo structure
-COPY --from=builder /app/packages/web/.next/standalone ./
-COPY --from=builder /app/packages/web/.next/static ./packages/web/.next/static
-COPY --from=builder /app/packages/web/public ./packages/web/public
+COPY --from=builder --chown=node:node /app/packages/web/.next/standalone ./
+COPY --from=builder --chown=node:node /app/packages/web/.next/static ./packages/web/.next/static
+COPY --from=builder --chown=node:node /app/packages/web/public ./packages/web/public
+USER node
 
 EXPOSE 3000
 ENV PORT=3000

@@ -158,3 +158,30 @@
   }
 }
 
+
+/* ─── Print: produce a clean document, not a clipped app viewport ─────────── */
+@media print {
+  /* The chat lives inside a fixed-height ScrollArea; unclip it so the full
+     conversation paginates. */
+  [data-slot='scroll-area-viewport'] {
+    overflow: visible !important;
+    height: auto !important;
+  }
+  [data-slot='scroll-area'] {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Paper has no hover — print the citation target after each answer link. */
+  [data-testid='assistant-message'] .prose a[href^='http']::after {
+    content: ' (' attr(href) ')';
+    font-size: 0.85em;
+    color: var(--muted-foreground);
+    word-break: break-all;
+  }
+
+  /* Footnote jump buttons are interactive chrome. */
+  [data-testid='citation-footnote'] {
+    display: none !important;
+  }
+}

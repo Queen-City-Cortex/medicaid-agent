@@ -106,3 +106,63 @@ export function buildThreadDisplayTitles(
   }
   return titles;
 }
+
+// ─── Thread export ───────────────────────────────────────────────────────────
+
+import { convertThreadMessageToUIMessage } from '@/lib/parse-message';
+import {
+  buildAnswerClipboardText,
+  extractCitedUrls,
+  extractMessageSources,
+  getTrailingAssistantText,
+  splitSourcesByCited,
+} from '@/lib/message-parts';
+
+/**
+ * Render a thread as a readable Markdown document — the deliverable a
+ * legal-aid attorney or case manager puts in a case file. Each answer keeps
+ * its inline citations as numbered footnotes with a source list, matching
+ * the in-app Sources panel.
+ */
+export function buildThreadMarkdown({
+  title,
+  exportedAt,
+  messages,
+}: {
+  title: string;
+  exportedAt: Date;
+  messages: Array<{ id?: string; role: string; content: unknown }>;
+}): string {
+  const lines: string[] = [
+    `# ${title.trim() || 'Conversation'}`,
+    '',
+    `*Exported ${exportedAt.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} from NC Medicaid Navigator. Answers are AI-generated from NC Medicaid policy documents — verify critical information with NC DHHS.*`,
+    '',
+  ];
+
+  for (const raw of messages) {
+    const msg = convertThreadMessageToUIMessage(raw);
+    if (!msg) continue;
+
+    if (msg.role === 'user') {
+      const text = (msg.parts ?? [])
+        .filter((part): part is { type: 'text'; text: string } => part.type === 'text')
+        .map((part) => part.text)
+        .join('\n\n')
+        .trim();
+      if (text) {
+        lines.push('## Question', '', text, '');
+      }
+      continue;
+    }
+
+    if (msg.role !== 'assistant') continue;
+    const answer = getTrailingAssistantText(msg).trim();
+    if (!answer) continue;
+
+    const { ordered } = splitSourcesByCited(extractMessageSources(msg), extractCitedUrls(msg));
+    lines.push('## Answer', '', buildAnswerClipboardText(answer, ordered), '');
+  }
+
+  return lines.join('\n');
+}

@@ -26,6 +26,7 @@ import {
 import { useMastraClient, useMastraReady } from '@/lib/use-mastra-client';
 import {
   buildThreadDisplayTitles,
+  buildThreadMarkdown,
   deriveThreadTitleFromMessages,
   formatDate,
 } from '@/lib/thread-helpers';
@@ -210,22 +211,14 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
         thread.get(),
         thread.listMessages(),
       ]);
-      const payload = {
-        schemaVersion: 1,
-        exportedAt: new Date().toISOString(),
-        thread: {
-          id: meta.id,
-          title: meta.title,
-          resourceId: meta.resourceId,
-          createdAt: meta.createdAt,
-          updatedAt: meta.updatedAt,
-          metadata: meta.metadata ?? null,
-        },
+      // Export as Markdown — the deliverable for legal-aid users is a
+      // readable document for a case file, not a JSON blob.
+      const markdown = buildThreadMarkdown({
+        title: sourceTitle || meta.title || 'Conversation',
+        exportedAt: new Date(),
         messages: msgs.messages ?? [],
-      };
-      const blob = new Blob([JSON.stringify(payload, null, 2)], {
-        type: 'application/json',
       });
+      const blob = new Blob([markdown], { type: 'text/markdown' });
       const url = URL.createObjectURL(blob);
       const slug = (sourceTitle || meta.title || 'thread')
         .toLowerCase()
@@ -235,7 +228,7 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
       const date = new Date().toISOString().slice(0, 10);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `thread-${slug}-${date}.json`;
+      a.download = `thread-${slug}-${date}.md`;
       document.body.appendChild(a);
       a.click();
       a.remove();

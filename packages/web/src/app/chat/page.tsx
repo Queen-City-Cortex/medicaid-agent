@@ -414,7 +414,7 @@ export default function ChatPage() {
   );
 
   return (
-    <div className="flex h-screen bg-background overflow-hidden">
+    <div className="flex h-screen bg-background overflow-hidden print:h-auto print:overflow-visible">
       {/* Sidebar — fixed overlay on mobile, in-flow on desktop */}
       <div
         ref={sidebarRef}
@@ -422,7 +422,7 @@ export default function ChatPage() {
         aria-hidden={sidebarCollapsed || undefined}
         inert={sidebarCollapsed}
         className={[
-        'flex flex-col h-full bg-sidebar border-r border-sidebar-border',
+        'flex flex-col h-full bg-sidebar border-r border-sidebar-border print:hidden',
         'fixed inset-y-0 left-0 z-40 w-[280px] transition-transform duration-200',
         sidebarCollapsed ? '-translate-x-full' : 'translate-x-0',
         'md:relative md:z-auto md:translate-x-0 md:transition-[width] md:shrink-0 md:overflow-hidden',
@@ -449,7 +449,7 @@ export default function ChatPage() {
       {/* Main chat area — inert while the mobile sidebar overlay is open so
           background content can't be tabbed into behind the backdrop */}
       <div className="flex flex-col flex-1 min-w-0" inert={isMobile && !sidebarCollapsed}>
-        <header className="border-b border-border bg-card px-4 md:px-8 py-5 shrink-0">
+        <header className="border-b border-border bg-card px-4 md:px-8 py-5 shrink-0 print:hidden">
           <div className="max-w-3xl mx-auto flex items-center gap-3">
             <button
               ref={sidebarToggleRef}

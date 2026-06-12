@@ -231,7 +231,7 @@ describe('ThreadSidebar', () => {
     expect(await screen.findByText('Failed to duplicate thread')).toBeInTheDocument();
   });
 
-  it('triggers a JSON download with a slugged filename when Export is clicked', async () => {
+  it('exports the thread as a Markdown document with a slugged filename', async () => {
     const user = userEvent.setup();
     getThread.mockResolvedValue({
       id: 'thread-1',
@@ -271,11 +271,14 @@ describe('ThreadSidebar', () => {
 
       await waitFor(() => expect(createObjectURL).toHaveBeenCalled());
       const blob = createObjectURL.mock.calls[0][0];
-      expect(blob.type).toBe('application/json');
+      // Markdown, not a JSON blob — the export goes into a case file.
+      expect(blob.type).toBe('text/markdown');
+      const text = await blob.text();
+      expect(text).toContain('# My conversation');
+      expect(text).toContain('NC Medicaid Navigator');
       expect(clickSpy).toHaveBeenCalled();
-      // Confirm the anchor had a slugged .json download name.
       const anchor = clickSpy.mock.instances[0] as unknown as HTMLAnchorElement;
-      expect(anchor.download).toMatch(/^thread-my-conversation-\d{4}-\d{2}-\d{2}\.json$/);
+      expect(anchor.download).toMatch(/^thread-my-conversation-\d{4}-\d{2}-\d{2}\.md$/);
     } finally {
       URL.createObjectURL = originalCreate;
       URL.revokeObjectURL = originalRevoke;

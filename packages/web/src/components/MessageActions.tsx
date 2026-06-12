@@ -86,7 +86,7 @@ export function MessageActions({ content, onRerun, messageId, feedback, onRate, 
   };
 
   return (
-    <div className="mt-2">
+    <div className="mt-2 print:hidden">
       <div className="flex items-center gap-0.5">
         <Tooltip>
           <TooltipTrigger

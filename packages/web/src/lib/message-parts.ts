@@ -149,6 +149,9 @@ export type MessageSource = {
   originTool: string;
   /** Preserved section number (e.g. "3.2.1" or "Attachment A") when known. Null for doc-level entries. Used for natural-order sorting. */
   sectionNumber: string | null;
+  /** Short excerpt of the section text so the user can read the cited policy
+   *  language without downloading a PDF. Null for doc-level entries. */
+  snippet: string | null;
 };
 
 type SectionLike = {
@@ -157,6 +160,10 @@ type SectionLike = {
   sectionNumber?: unknown;
   policyNumber?: unknown;
   url?: unknown;
+  /** Full section text (getSection / resolveAnswerFrame outputs). */
+  content?: unknown;
+  /** Short excerpt (searchSections output). */
+  contentSnippet?: unknown;
 };
 
 type DocumentLike = {
@@ -303,6 +310,19 @@ function disambiguateLabels(sources: MessageSource[]): MessageSource[] {
   });
 }
 
+const SNIPPET_MAX_CHARS = 300;
+
+/** First ~300 chars of section text, trimmed to a word boundary. */
+function buildSnippet(content: unknown): string | null {
+  if (typeof content !== 'string') return null;
+  const collapsed = content.replace(/\s+/g, ' ').trim();
+  if (!collapsed) return null;
+  if (collapsed.length <= SNIPPET_MAX_CHARS) return collapsed;
+  const cut = collapsed.slice(0, SNIPPET_MAX_CHARS);
+  const lastSpace = cut.lastIndexOf(' ');
+  return `${cut.slice(0, lastSpace > 200 ? lastSpace : SNIPPET_MAX_CHARS)}…`;
+}
+
 function addSectionSource(
   accumulator: Map<string, MessageSource>,
   section: SectionLike | null | undefined,
@@ -315,8 +335,19 @@ function addSectionSource(
   const sectionNumber = str(section.sectionNumber);
   const title = str(section.title);
   const label = sectionLabel(policy, sectionNumber, title);
-  const key = `${url}|${policy ?? ''}|${sectionNumber ?? ''}`;
-  if (accumulator.has(key)) return;
+  // Dedupe on the NORMALIZED url so surface-form variants of the same
+  // document collapse, matching the footnote-numbering normalization.
+  const key = `${normalizeCitationUrl(url)}|${policy ?? ''}|${sectionNumber ?? ''}`;
+  const existing = accumulator.get(key);
+  if (existing) {
+    // Later duplicates can still contribute an excerpt (e.g. a search hit
+    // without content followed by a getSection read with full text).
+    if (!existing.snippet) {
+      const snippet = buildSnippet(section.content) ?? buildSnippet(section.contentSnippet);
+      if (snippet) accumulator.set(key, { ...existing, snippet });
+    }
+    return;
+  }
   accumulator.set(key, {
     key,
     label,
@@ -324,6 +355,7 @@ function addSectionSource(
     url,
     originTool,
     sectionNumber,
+    snippet: buildSnippet(section.content) ?? buildSnippet(section.contentSnippet),
   });
 }
 
@@ -338,7 +370,7 @@ function addDocumentSource(
   const policy = str(doc.policyNumber);
   const title = str(doc.title);
   const label = documentLabel(policy, title);
-  const key = `${url}|${policy ?? ''}|doc`;
+  const key = `${normalizeCitationUrl(url)}|${policy ?? ''}|doc`;
   if (accumulator.has(key)) return;
   accumulator.set(key, {
     key,
@@ -347,6 +379,7 @@ function addDocumentSource(
     url,
     originTool,
     sectionNumber: null,
+    snippet: null,
   });
 }
 
@@ -442,4 +475,73 @@ export function extractMessageSources(msg: UIMessage): MessageSource[] {
     compareSectionNumbers(a.sectionNumber, b.sectionNumber),
   );
   return disambiguateLabels(sorted);
+}
+
+// ─── Cited vs consulted ──────────────────────────────────────────────────────
+
+const MARKDOWN_LINK_URL_RE = /\]\(\s*(https?:\/\/[^)\s]+)\s*\)/g;
+
+/**
+ * Normalized URLs of every markdown link in the message's text parts — i.e.
+ * the sources the answer actually cites inline. Everything else in the
+ * Sources panel was merely consulted (mostly search hits), and presenting
+ * "12 sources" when 9 are unread search results undermines verifiability.
+ */
+export function extractCitedUrls(msg: UIMessage): Set<string> {
+  const cited = new Set<string>();
+  for (const part of msg.parts ?? []) {
+    if (!isTextPart(part)) continue;
+    for (const match of part.text.matchAll(MARKDOWN_LINK_URL_RE)) {
+      const normalized = normalizeCitationUrl(match[1]);
+      if (normalized) cited.add(normalized);
+    }
+  }
+  return cited;
+}
+
+/**
+ * Order sources cited-first (preserving natural section order within each
+ * group) and return the split point. The Sources panel renders group
+ * headers; footnote numbers stay continuous across the boundary.
+ */
+export function splitSourcesByCited(
+  sources: MessageSource[],
+  citedUrls: Set<string>,
+): { ordered: MessageSource[]; citedCount: number } {
+  const cited: MessageSource[] = [];
+  const consulted: MessageSource[] = [];
+  for (const source of sources) {
+    const normalized = normalizeCitationUrl(source.url);
+    (normalized && citedUrls.has(normalized) ? cited : consulted).push(source);
+  }
+  return { ordered: [...cited, ...consulted], citedCount: cited.length };
+}
+
+// ─── Clipboard text ──────────────────────────────────────────────────────────
+
+/**
+ * Render the answer for the clipboard: inline markdown citations become
+ * "label [n]" footnote references and a numbered source list is appended.
+ * Raw markdown link syntax pasted into an email reads as noise to the
+ * case managers and attorneys this is built for.
+ */
+export function buildAnswerClipboardText(answerText: string, orderedSources: MessageSource[]): string {
+  if (!answerText.trim()) return answerText;
+  const index = buildSourceIndex(orderedSources);
+
+  const body = answerText.replace(
+    /\[([^\]]+)\]\(\s*(https?:\/\/[^)\s]+)\s*\)/g,
+    (_match, label: string, url: string) => {
+      const normalized = normalizeCitationUrl(url);
+      const sourceNumber = normalized ? index.get(normalized) : undefined;
+      return sourceNumber !== undefined ? `${label} [${sourceNumber}]` : label;
+    },
+  );
+
+  if (orderedSources.length === 0) return body;
+
+  const sourceLines = orderedSources.map(
+    (source, i) => `[${i + 1}] ${source.label} — ${source.url}`,
+  );
+  return `${body}\n\nSources:\n${sourceLines.join('\n')}`;
 }
