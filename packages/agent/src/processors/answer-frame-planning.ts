@@ -389,10 +389,10 @@ function buildPriorAuthChecklist(questionLower: string, frame: ResolveAnswerFram
       `Lead with the surfaced quantity-limit and criteria sections ${listSections([...quantitySections, ...criteriaSections], 2)}.${frame.authoritativeDocuments[0]?.policyNumber ? ` Name the governing source by policy number first: ${frame.authoritativeDocuments[0].policyNumber}. Use the title only as supporting citation context if needed.` : ''}`,
     );
     checklist.push(
-      `For this pharmacy quantity-limit question, answer yes first from ${listSections(quantitySections, 1)}: the surfaced policy text says NC Medicaid may impose quantity limitations for episodic drugs. Then use ${listSections(contentfulCriteriaSections.length > 0 ? contentfulCriteriaSections : criteriaSections, 1)}${attachmentCriteriaSections.length > 0 ? ` together with ${listSections(attachmentCriteriaSections, 1)}` : ''} to explain that prior authorization is required for the drugs or categories listed in the pharmacy prior-approval criteria.`,
+      `For this pharmacy quantity-limit question, read ${listSections(quantitySections, 1)} and state the yes/no conclusion only as that text supports it. Then use ${listSections(contentfulCriteriaSections.length > 0 ? contentfulCriteriaSections : criteriaSections, 1)}${attachmentCriteriaSections.length > 0 ? ` together with ${listSections(attachmentCriteriaSections, 1)}` : ''} to explain which drugs or categories the pharmacy prior-approval criteria list as requiring prior authorization.`,
     );
     checklist.push(
-      'Do not present a partial sample drug list as if it were exhaustive. If you mention examples, label them as examples only; otherwise say Attachment K / the pharmacy prior-approval criteria contains the detailed list. Do not say quantity limits were unverified when the surfaced quantity section confirms they exist, and keep request-process or exception procedures secondary unless the user asks about them.',
+      'Do not present a partial sample drug list as if it were exhaustive. If you mention examples, label them as examples only; otherwise say Attachment K / the pharmacy prior-approval criteria contains the detailed list. Keep request-process or exception procedures secondary unless the user asks about them.',
     );
     return checklist.slice(0, CHECKLIST_LIMIT);
   }
@@ -500,8 +500,11 @@ function buildFederalChecklist(questionLower: string, frame: ResolveAnswerFrameR
     checklist.push('Separate the unconditional reporting/calculation duties from any conditional minimum-threshold requirement in the same rule.');
   }
 
-  if (includesAny(questionLower, ['where', 'provided']) || allText.includes('place of residence')) {
-    checklist.push('State the place-of-residence rule and the excluded settings explicitly.');
+  // Evidence-gated: only direct the model at a place-of-residence rule when
+  // the surfaced text actually contains one — question keywords alone
+  // previously injected this directive with no supporting evidence.
+  if (allText.includes('place of residence')) {
+    checklist.push('The surfaced sections mention a place-of-residence rule — state it and any excluded settings explicitly, citing the section that contains them.');
   }
 
   if (includesAny(questionLower, ['enforce', 'enforced', 'implementation', 'implement']) && enforcementSections.length > 0) {

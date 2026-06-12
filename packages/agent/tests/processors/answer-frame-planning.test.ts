@@ -1216,17 +1216,21 @@ describe('AnswerFramePlanningProcessor', () => {
       }),
     );
 
-    expect(result?.systemMessages?.[0]?.content).toContain('Lead with the surfaced quantity-limit and criteria sections');
-    expect(result?.systemMessages?.[0]?.content).toContain('5.4.3');
-    expect(result?.systemMessages?.[0]?.content).toContain('answer yes first');
-    expect(result?.systemMessages?.[0]?.content).toContain('NC Medicaid may impose quantity limitations for episodic drugs');
-    expect(result?.systemMessages?.[0]?.content).toContain('prior authorization is required for the drugs or categories listed');
-    expect(result?.systemMessages?.[0]?.content).toContain('Attachment K');
-    expect(result?.systemMessages?.[0]?.content).toContain('Name the governing source by policy number first: 9');
-    expect(result?.systemMessages?.[0]?.content).toContain('Do not present a partial sample drug list');
-    expect(result?.systemMessages?.[0]?.content).toContain('Do not say quantity limits were unverified');
-    expect(result?.systemMessages?.[0]?.content).toContain('keep request-process or exception procedures secondary');
-    expect(result?.systemMessages?.[0]?.content).toContain('unless the user asks about them');
+    const plan = result?.systemMessages?.[0]?.content ?? '';
+    expect(plan).toContain('Lead with the surfaced quantity-limit and criteria sections');
+    expect(plan).toContain('5.4.3');
+    // The plan must direct WHERE to look, never assert the conclusion —
+    // pre-baked "answer yes first: the policy says X" lines were injected
+    // from keyword matches without reading the section text.
+    expect(plan).toContain('state the yes/no conclusion only as that text supports it');
+    expect(plan).not.toContain('answer yes first');
+    expect(plan).not.toContain('NC Medicaid may impose quantity limitations');
+    expect(plan).toContain('which drugs or categories the pharmacy prior-approval criteria list');
+    expect(plan).toContain('Attachment K');
+    expect(plan).toContain('Name the governing source by policy number first: 9');
+    expect(plan).toContain('Do not present a partial sample drug list');
+    expect(plan).toContain('Keep request-process or exception procedures secondary');
+    expect(plan).toContain('unless the user asks about them');
   });
 
   it('does nothing when a plan is already present', () => {
