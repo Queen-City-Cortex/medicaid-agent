@@ -33,6 +33,7 @@ import { AnswerFramePrefetchProcessor } from './processors/answer-frame-prefetch
 import { AnswerFramePlanningProcessor } from './processors/answer-frame-planning.js';
 import { OpenAIResponsesDedupProcessor } from './processors/openai-responses-dedup.js';
 import { MastraAuthWorkos } from '@mastra/auth-workos';
+import { bindResourceToAuthenticatedUser } from './auth-middleware.js';
 import { PinoLogger } from '@mastra/loggers';
 import { FeedbackRepository } from './feedback/repository.js';
 import { feedbackApiRoutes } from './feedback/routes.js';
@@ -233,6 +234,9 @@ export const mastra = new Mastra({
     auth: new (class extends MastraAuthWorkos {
       async authorizeUser() { return true; } // allow any authenticated WorkOS user
     })(),
+    // Runs after Mastra's auth middleware: forces every memory/thread/chat
+    // request to operate on the authenticated user's own resource (anti-IDOR).
+    middleware: [bindResourceToAuthenticatedUser],
     cors: {
       origin: (process.env.CORS_ORIGINS || 'http://localhost:3000').split(','),
       credentials: true,
