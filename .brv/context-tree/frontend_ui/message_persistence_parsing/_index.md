@@ -1,28 +1,53 @@
 ---
-children_hash: 31630cc33e102e35fbb54a4716de11ca504b3b7e08304394c79d655f9462c64f
-compression_ratio: 0.578239608801956
+children_hash: 5a0ee1c9727f764c929e387c83ff6fa66b3335ba40282db36d79882b9629e778
+compression_ratio: 0.6050516647531573
 condensation_order: 1
 covers: [context.md, message_persistence_parsing.md]
-covers_token_total: 818
+covers_token_total: 871
 summary_level: d1
-token_count: 473
+token_count: 527
 type: summary
 ---
-# Message Persistence Parsing (frontend_ui/message_persistence_parsing)
+# Message Persistence Parsing
 
-- **Context (context.md)**: Describes the transformation pipeline converting Mastra memory thread messages into `UIMessage` payloads for the chat page. Highlights detection of `MastraMessageContentV2`, use of `convertV4PartsToV5` for dynamic tool translation, legacy `extractText` fallbacks, and compatibility with `ResearchTrace` metadata. Related topics: `frontend_ui/chat_page_transport`, `frontend_ui/message_feedback`.
+Structural overview of how chat-thread messages are reconstructed into `UIMessage` payloads in the frontend. The core path is `packages/web/src/lib/parse-message.ts`, where structured Mastra payloads are preferred and legacy text remains supported as a fallback.
 
-- **Key Implementation Updates (message_persistence_parsing.md)**:
-  - **Task**: Track MastraMessageContentV2 detection, tool invocation conversion, and legacy formatting preservation.
-  - **Flow**: `thread message → detect MastraMessageContentV2 (format 2, parts array) → convertV4 parts to dynamic tool parts → emit UIMessage if structured parts exist → fallback to `extractText` joining segments with `\n\n`.
-  - **Components**:
-    - `convertThreadMessageToUIMessage` now inspects stored payloads for format 2 cues and delegates to `convertV4PartsToV5`.
-    - `convertV4PartsToV5` emits `dynamic-tool`, `step-start`, and `text` segments while mapping any `result` state to `output-available` and all others to `input-available`, fulfilling `ResearchTrace` expectations.
-    - `extractText` now concatenates mixed text/content arrays with double newlines, preserving multi-paragraph and formatted answers when structured data is absent.
-  - **Files**: `packages/web/src/lib/parse-message.ts`
-  - **Facts**:
-    - MastraMessageContentV2 payloads (format 2) are now detected and converted before rendering.
-    - Tool invocations map states to `output-available` or `input-available` as needed.
-    - Legacy message reconstruction now preserves spacing via `\n\n` separators.
+## Main behavior
 
-Refer to `context.md` and `message_persistence_parsing.md` for detailed explanations and implementation specifics.
+- `message_persistence_parsing.md` documents the parsing update for persisted thread messages.
+- `context.md` frames the topic as message conversion for the chat page, with emphasis on preserving structured content, tool state, and formatting.
+
+## Key parsing flow
+
+- `convertThreadMessageToUIMessage` detects `MastraMessageContentV2` payloads using the `format 2 + parts array` signal.
+- When structured content is present, it calls `convertV4PartsToV5`.
+- `convertV4PartsToV5` translates V4 tool-invocation parts into dynamic-tool / step-start / text parts.
+- If structured parsing is not possible, `extractText` reconstructs legacy payloads.
+
+## Important architectural decisions
+
+- Structured Mastra thread messages are preserved on reload rather than flattened immediately.
+- Tool invocation states are normalized for `ResearchTrace` compatibility:
+  - `result` → `output-available`
+  - all other states → `input-available`
+- `extractText` joins mixed text/content segments with `\n\n` to preserve paragraph spacing in legacy messages.
+
+## Dependencies and relationships
+
+- Relies on `generateUUID` for missing IDs.
+- Depends on `convertV4PartsToV5` for tool-invocation translation.
+- Uses `extractText` as the legacy fallback path.
+- Related downstream topics:
+  - `frontend_ui/chat_page_transport`
+  - `frontend_ui/message_feedback`
+  - cache/thread restoration topics in `frontend_ui/message_persistence_cache` and `frontend_ui/chat_page_thread_cache`
+
+## Key facts to drill into
+
+- `mastra_message_format_detection`
+- `dynamic_tool_state_mapping`
+- `extract_text_separator`
+
+## Summary outcome
+
+This topic ensures persisted Mastra thread messages survive reloads with structured parts, tool metadata, and preserved formatting, while maintaining compatibility with older message payloads.

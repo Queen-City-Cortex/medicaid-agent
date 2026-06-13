@@ -1,0 +1,1 @@
+Retrieval quality depends on decontamination, per-group vector overscan, topical filtering, and staged RRF ranking after sectionId deduplication.

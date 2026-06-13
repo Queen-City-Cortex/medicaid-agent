@@ -1,0 +1,1 @@
+This document summarizes the June 11–12, 2026 remediation plan for evaluation pipeline fixes, covering re-baseline metrics, P0 security and answer integrity issues, and staged follow-up actions.

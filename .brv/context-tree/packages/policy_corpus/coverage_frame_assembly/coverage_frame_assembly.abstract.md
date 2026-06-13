@@ -1,0 +1,1 @@
+Coverage frame assembly now treats setting-preferred routing documents as authoritative candidates when no sibling variant frame takes precedence.

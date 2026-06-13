@@ -1,0 +1,1 @@
+Coverage routing now applies setting-scoped document preference before inferred narrowing and uses that preference as fallback variant reasoning.

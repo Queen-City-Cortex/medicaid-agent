@@ -1,0 +1,1 @@
+This document defines the hallucination verifier CLI flow, stable stdout markers, and telemetry contract required for deterministic verification and harness parsing.

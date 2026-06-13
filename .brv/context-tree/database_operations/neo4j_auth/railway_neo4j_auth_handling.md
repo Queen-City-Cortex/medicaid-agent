@@ -7,6 +7,7 @@ recency: 1
 maturity: draft
 createdAt: '2026-04-02T02:22:29.007Z'
 updatedAt: '2026-04-02T02:22:29.007Z'
+related: [database_operations/neo4j_hybrid_search/neo4j_hybrid_search_indexing.md, database_operations/neo4j_auth/context.md]
 ---
 ## Raw Concept
 **Task:**

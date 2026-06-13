@@ -1,28 +1,34 @@
 ---
-children_hash: 940ea11961a774d99b5c8893ca3666947df52724ac943b0ece3c13b83b3cef9c
-compression_ratio: 0.5819047619047619
+children_hash: 9c7e2eb4f21dbff4462b4aa2769165f27fd7c8c808d25e012399620955b63ff0
+compression_ratio: 0.41116751269035534
 condensation_order: 1
-covers: [callback_base_url_resolution.md, context.md, handleauth_docker_redirect_fix.md]
-covers_token_total: 1050
+covers: [callback_base_url_resolution.md, context.md]
+covers_token_total: 985
 summary_level: d1
-token_count: 611
+token_count: 405
 type: summary
 ---
-### workos_authkit_nextjs Overview
-- **Topics Covered**: `context.md` outlines how the WorkOS authkit-nextjs callback route works with `handleAuth` and Railway’s Docker environment, centering on deriving the external callback origin from `NEXT_PUBLIC_WORKOS_REDIRECT_URI`.
-- **Key Architectural Concern**: The auth callback must avoid redirecting to Railway/Docker internals (`HOSTNAME=0.0.0.0`) by forcing a public-facing origin before invoking `handleAuth`.
+# workos_authkit_nextjs
 
-### Callback Base URL Resolution (`callback_base_url_resolution.md`)
-- **Task & Flow**: The GET handler for `/auth/callback` resolves the base URL via `getBaseURL`, which checks `NEXT_PUBLIC_WORKOS_REDIRECT_URI`, falls back to runtime `WORKOS_REDIRECT_URI`, and finally uses `RAILWAY_PUBLIC_DOMAIN` before passing the derived origin into `handleAuth`.
-- **Dependencies & Fixes**: Ensures standalone Next.js Route Handlers (where `NEXT_PUBLIC_*` env vars aren’t available at runtime) still get a valid public origin, preventing redirects to `0.0.0.0`; relies on `handleAuth` from `@workos-inc/authkit-nextjs`.
-- **Facts to Drill Down**: Environmental constraint that NEXT_PUBLIC vars are only inlined at build time; runtime fallback chain for deriving base URL; critical baseURL override to keep redirects on public hostnames.
+## Overview
+This topic documents the WorkOS authkit-nextjs callback routing fix for Railway/Docker deployments, centered on deriving a public `baseURL` for `handleAuth` instead of letting server-side callbacks resolve to internal hosts like `0.0.0.0`.
 
-### HandleAuth Docker Redirect Fix (`handleauth_docker_redirect_fix.md`)
-- **Task & Flow**: Documents how the callback route parses `NEXT_PUBLIC_WORKOS_REDIRECT_URI` to derive the public origin and pass it to `handleAuth`, ensuring the GET handler returns `/chat` after successful auth.
-- **Dependency**: Requires `NEXT_PUBLIC_WORKOS_REDIRECT_URI` to represent the external callback and leverages WorkOS authkit-nextjs’s support for overriding `baseURL` in Docker.
-- **Highlight**: Addresses Railway/Docker redirect issue where HOSTNAME=0.0.0.0 otherwise causes callbacks to go to the internal address; overriding `handleAuth`’s baseURL keeps redirects on the customer-facing host.
+## Structural Summary
+- **Primary file:** `callback_base_url_resolution.md`
+  - Defines the callback route flow in `packages/web/src/app/auth/callback/route.ts`.
+  - The `/auth/callback` GET handler delegates to `handleAuth` with a computed `baseURL`.
+  - `getBaseURL` resolution order:
+    1. `NEXT_PUBLIC_WORKOS_REDIRECT_URI`
+    2. `WORKOS_REDIRECT_URI`
+    3. `RAILWAY_PUBLIC_DOMAIN`
+  - The helper parses an origin from redirect URIs and falls back to the Railway public domain when values are missing or unparseable.
+  - The resulting public origin is passed into `handleAuth` so users are redirected back to `/chat` correctly.
 
-### Relationships & Drill-Down Paths
-- Start at `workos_authkit_nextjs/context.md` for the conceptual overview and dependencies around `handleAuth` configuration.
-- Review `callback_base_url_resolution.md` for the runtime fallback chain and how `getBaseURL` ensures safe origins across build/runtime environments.
-- Consult `handleauth_docker_redirect_fix.md` for the Docker-specific fix and the precise reason the baseURL override was introduced for Railway deployments.
+## Key Facts and Relationships
+- `NEXT_PUBLIC_*` env vars are build-time inlined and may be empty in Next.js server Route Handlers at runtime.
+- The fix addresses a Railway/Docker issue where `HOSTNAME=0.0.0.0` causes auth callbacks to redirect to `0.0.0.0:8080`.
+- `handleAuth` from `@workos-inc/authkit-nextjs` supports a `baseURL` override, which is used here to force public-facing redirects.
+- The callback route depends on both build-time and runtime environment variables to remain portable across local, Docker, and Railway deployments.
+
+## Drill-down Entry
+- **`callback_base_url_resolution.md`** — full explanation of the base URL resolution helper, runtime fallbacks, and the redirect-host fix.

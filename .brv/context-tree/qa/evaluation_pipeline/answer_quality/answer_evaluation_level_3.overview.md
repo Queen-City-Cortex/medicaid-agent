@@ -1,0 +1,6 @@
+- Describes level-3 answer quality evaluation in the pipeline, representing the highest-level answer assessment.
+- Adds HTTP-first agent invocation with CLI fallback, plus error logging for connectivity issues.
+- Specifies failure handling: agent errors produce zeroed numeric scores with an explanation, while judge errors set metrics to None so aggregates treat them as missing.
+- Focuses on response generation → evaluation → level-3 assessment → feedback as the evaluation flow.
+- The rules section is especially important, defining how factual_accuracy, completeness, overall, and citation_quality are nulled on judge failure.
+- Dependencies include launch blocker fixes, evaluation pipeline rules, citation fidelity expectations, and related verification/e2e infrastructure.

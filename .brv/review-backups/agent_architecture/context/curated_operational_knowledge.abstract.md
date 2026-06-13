@@ -1,0 +1,1 @@
+This document captures durable operational knowledge about retrieval heuristics, message parsing behavior, and curation workflow preferences, including hybrid policy search and legacy fallback patterns.

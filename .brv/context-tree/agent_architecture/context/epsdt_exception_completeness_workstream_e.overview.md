@@ -1,0 +1,7 @@
+- Curated knowledge entry for “EPSDT exception completeness (Workstream E)” derived from supplied context.
+- Purpose is to turn raw RLM/context input into durable knowledge for later recall.
+- Describes a simple flow: source context -> fact extraction -> durable knowledge entry.
+- Notes that the document is a single curated knowledge entry, not a multi-part analysis.
+- Depends on the original context text provided in the curation payload.
+- Key operational detail preserved is that the main points are extracted and retained as lasting reference.
+- Notable entity: EPSDT exception completeness, specifically labeled as Workstream E.

@@ -1,3 +1,6 @@
+---
+related: [database_operations/neo4j_hybrid_search/neo4j_hybrid_search_indexing.md]
+---
 # Topic: neo4j_hybrid_search
 
 ## Overview

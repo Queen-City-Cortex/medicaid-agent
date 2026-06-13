@@ -1,0 +1,1 @@
+deploy-data.sh provisions a remote Neo4j refresh pipeline that requires Railway connectivity and explicit confirmation because load --reset destructively wipes the graph.

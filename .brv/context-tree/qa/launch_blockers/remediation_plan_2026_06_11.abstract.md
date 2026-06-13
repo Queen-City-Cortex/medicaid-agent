@@ -1,0 +1,1 @@
+This document outlines a severity-ranked remediation roadmap for NC Medicaid, prioritizing P0 answer integrity and security fixes, then retrieval, UX, infra, and staged refactors.

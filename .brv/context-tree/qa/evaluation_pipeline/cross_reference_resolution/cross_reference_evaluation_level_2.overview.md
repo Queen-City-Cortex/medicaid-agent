@@ -1,0 +1,6 @@
+- Documents level-2 cross-reference resolution evaluation behavior in the evaluation pipeline.
+- Adds bidirectional AMENDS checks in addition to REFERENCES_DOCUMENT edges to improve coverage.
+- Introduces a section-level REFERENCES fallback query when document-level edges are absent.
+- Tracks resolved_count and missed_count, then derives precision/recall for each entry and later aggregation.
+- States explicit scoring rules: total_refs is len(cross_references), precision/recall default to resolved_count / total_refs when references exist, and false_resolutions/extraction_misses are currently fixed at 0.
+- The overall flow is reference detection → resolution → level-2 evaluation → outcome, with dependencies on answer quality and evaluation validation.

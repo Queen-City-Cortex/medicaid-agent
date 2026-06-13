@@ -1,7 +1,7 @@
 ---
 title: Chat Page Thread Cache Restoration
 tags: []
-related: [frontend_ui/message_persistence_cache/message_persistence_cache.md, frontend_ui/message_persistence_parsing/message_persistence_parsing.md]
+related: [frontend_ui/message_persistence_cache/message_persistence_cache.md, frontend_ui/message_persistence_parsing/message_persistence_parsing.md, frontend_ui/message_persistence_cache/chat_page_thread_cache_race_fix.md]
 keywords: []
 importance: 50
 recency: 1

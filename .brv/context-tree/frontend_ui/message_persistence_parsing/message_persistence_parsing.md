@@ -7,6 +7,7 @@ recency: 1
 maturity: draft
 createdAt: '2026-04-05T19:25:34.932Z'
 updatedAt: '2026-04-05T19:25:34.932Z'
+related: [frontend_ui/message_persistence_cache/chat_page_thread_cache_race_fix.md, frontend_ui/chat_page_thread_cache/chat_page_thread_cache_restoration.md, frontend_ui/message_feedback/message_feedback_flow.md]
 ---
 ## Raw Concept
 **Task:**

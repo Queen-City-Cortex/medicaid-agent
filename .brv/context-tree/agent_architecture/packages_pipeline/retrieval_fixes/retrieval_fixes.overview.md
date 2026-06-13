@@ -1,0 +1,7 @@
+- Documents fixes to the policy corpus retrieval pipeline, focusing on Neo4j vector overscan, preserving per-group coverage, and making fulltext-only hits survive ranking.
+- The key change is to overscan section vector queries per type group using vectorScanK(profile.perGroupK), then filter by document_type and merge by sectionId.
+- Hybrid retrieval keeps section-level deduplication as the merge boundary before fulltext merge, reranking, and topK trimming.
+- Fulltext-only hits are no longer scored below all vector results; they are assigned mid-range scores so they can participate in final ranking.
+- Existing fulltext hits in the section map receive a FULLTEXT_BOOST.
+- The document emphasizes that Neo4j queryNodes(k) returns global top-k and cannot be post-filtered per group, which motivated the overscan fix.
+- Notable entities and helpers include section_embeddings, FULLTEXT_BOOST, and rerankRetrievalHit.

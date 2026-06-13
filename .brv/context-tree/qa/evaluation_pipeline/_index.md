@@ -1,40 +1,111 @@
 ---
-children_hash: 96f4ae45c6fea65bcf9649f095046e2c8bd28761fa1e4d6f43d9d6a16382721c
-compression_ratio: 0.3729752770673487
+children_hash: 6da4f43dadad43e3e6442db83b18ccd0b6f53e1e25a52f2c282a4038c75f3dd0
+compression_ratio: 0.2840885142255005
 condensation_order: 1
-covers: [answer_quality/_index.md, answer_quality_and_cross_reference_evaluation.md, context.md, cross_reference_resolution/_index.md, evaluation_pipeline.md]
-covers_token_total: 2346
+covers: [answer_quality/_index.md, answer_quality_and_cross_reference_evaluation.md, context.md, cross_reference_resolution/_index.md, evaluation_pipeline.md, held_out_evaluation_dataset_and_ssa_ingestion_rules.md]
+covers_token_total: 4745
 summary_level: d1
-token_count: 875
+token_count: 1348
 type: summary
 ---
-# Evaluation Pipeline (level d1 structural overview)
+# Evaluation Pipeline
 
-- **Overall QA Architecture**
-  - Pipeline composed of two linked evaluation layers described in `evaluation_pipeline.md`, coordinating Level 3 answer scoring with Level 2 cross-reference resolution to produce recall/precision/primary-hit aggregates for the NC Medicaid agent’s golden dataset.
-  - Flow: golden entry → Level 3 answer evaluation (`answer_quality/_index.md`, `answer_quality_and_cross_reference_evaluation.md`) → Level 2 cross-reference resolution (`cross_reference_resolution/_index.md`) → aggregated QA metrics.
+The QA evaluation pipeline has two coordinated layers: **Level 3 answer evaluation** and **Level 2 cross-reference evaluation**. Together they score agent answers against golden data, resolve supporting evidence from Neo4j, and verify document/section relationship integrity for the NC Medicaid agent.
 
-- **Level 3 Answer Evaluation (`answer_quality/_index.md`, `answer_quality_and_cross_reference_evaluation.md`)**
-  - Task: Drive controlled scoring run via `packages/pipeline/src/pipeline/eval/levels/answer.py`, invoking the ncMedicaidAgent (HTTP POST to `http://localhost:4111/api/agents/ncMedicaidAgent/generate`, falling back to `npx tsx src/index.ts` in `AGENT_DIR`), fetching evidence from Neo4j sections, and applying `judge_answer`.
-  - Key decisions:
-    - Agent errors zero all numeric scores but keep the explanation string; judge errors now record `None` for numeric scores and are excluded from aggregates to avoid metric pollution.
-    - Evidence enrichment concatenates `Section.title` with `content_text`, and scoring metadata (precision/recall/MRR/primary hit) is preserved for downstream aggregates.
-  - Dependencies: running mastra dev HTTP service (`localhost:4111`), Neo4j graph connection via `pipeline.graph.connection.get_session`.
-  - Facts highlighted: HTTP-first agent invocation, Neo4j evidence sourcing, judge error handling conventions, `None`-score exclusion rule.
+## Core structure
+- **Level 3 answer scoring** lives in `packages/pipeline/src/pipeline/eval/levels/answer.py`
+- **Level 2 cross-reference checking** lives in `packages/pipeline/src/pipeline/eval/levels/cross_ref.py`
+- Both feed aggregated QA metrics such as recall, precision, and primary hit
+- Related orchestration and dataset handling are covered in **held_out_evaluation_dataset_and_ssa_ingestion_rules.md**
 
-- **Level 2 Cross-Reference Resolution (`cross_reference_resolution/_index.md`)**
-  - Task: `packages/pipeline/src/pipeline/eval/levels/cross_ref.py` iterates each golden entry’s `cross_references` and resolves them through Neo4j MATCH queries.
-  - Architectural patterns:
-    - Bidirectional AMENDS edges augment `REFERENCES_DOCUMENT` coverage to capture richer document-to-document links.
-    - Section-level `REFERENCES` chains serve as fallbacks when document edges are missing, ensuring indirect relationships remain auditable.
-    - Metrics track resolved/missed counts per entry (precision/recall = `resolved_count / total_refs`), with false resolutions and extraction misses currently placeholder zeros pending instrumentation.
-  - Outcomes: 2 of 5 previously failing references recovered; entries q-004, q-009, q-020 remain flagged as reference extraction gaps.
+## Level 3: Answer Evaluation
+See **answer_quality/_index.md** and **answer_quality_and_cross_reference_evaluation.md** for the answer-scoring flow.
 
-- **Inter-layer Relationships**
-  - Cross-reference checks run after Level 3 scoring, enriching aggregated QA metrics with difficulty/reasoning metadata to surface both answer quality and citation fidelity.
-  - Shared dependencies include Neo4j evidence helpers and the same evaluation codebase (`packages/pipeline/src/pipeline/eval/levels/*`), aligning scoring and reference resolution flows.
+### Flow
+`question -> _invoke_agent -> _fetch_evidence_texts -> judge_answer -> results append`
 
-- **Key Rules & Facts**
-  - Judge errors emit `None` scores and are dropped from aggregates (`answer_quality_and_cross_reference_evaluation.md`).
-  - Cross-reference resolution relies on `REFERENCES_DOCUMENT`, AMENDS (both directions), and section-level `REFERENCES` paths to prove relationships before counting them as resolved (`cross_reference_resolution/_index.md`).
-  - Evidence fetching always precedes judging, pulling Neo4j section data enumerated in each golden entry’s `evidence` payload (`answer_quality_and_cross_reference_evaluation.md`).
+### Key behaviors
+- Agent invocation is **HTTP-first**, using `http://localhost:4111/api/agents/ncMedicaidAgent/generate`
+- If HTTP fails, it falls back to CLI execution via `npx tsx src/index.ts` in `AGENT_DIR`
+- Evidence is fetched from **Neo4j Section nodes** by section ID and concatenated as `title + content_text`
+- `evaluate_answers(entries)` records agent output, evidence texts, and judge scores per golden entry
+- Compatibility fields include aliases such as `precision`, `recall`, `mrr`, and `primary_hit`
+
+### Error handling rules
+- If `agent_error` is present, all numeric scores are set to `0`, and the explanation is preserved
+- If `judge_answer` raises or returns a judge-type error, `factual_accuracy`, `completeness`, `overall`, and `citation_quality` become `None`
+- Judge errors are **excluded from aggregation** so they do not skew metrics
+
+### Dependencies and links
+- Uses `httpx`, `subprocess`, `get_session`, and `judge_answer`
+- Connected evaluation contexts:
+  - `qa/evaluation_pipeline/evaluation_pipeline.md`
+  - `qa/evaluation_pipeline/answer_quality_and_cross_reference_evaluation.md`
+  - `qa/evaluation_pipeline/cross_reference_resolution/cross_reference_evaluation_level_2.md`
+  - `qa/hallucination_verifier/hallucination_verifier_processor.md`
+  - `qa/playwright_e2e/medicaid_agent_playwright_e2e_infrastructure.md`
+
+## Level 2: Cross-Reference Evaluation
+See **cross_reference_resolution/_index.md** and **answer_quality_and_cross_reference_evaluation.md** for relationship validation details.
+
+### Purpose
+This layer verifies whether golden cross-references are supported by Neo4j graph relationships between documents and sections.
+
+### Flow
+`entry -> iterate cross_references -> document-level Neo4j query -> section-level fallback -> compute metrics -> aggregate results`
+
+### Resolution rules
+A reference counts as resolved when the graph contains:
+- `REFERENCES_DOCUMENT`
+- `AMENDS` in either direction
+- section-level `REFERENCES` fallback when document edges are missing
+
+### Metrics and outputs
+- Captures `resolved_count`, `missed_count`, `precision`, `recall`, `difficulty`, `reasoning_type`, and `primary_hit`
+- Uses `total_refs = len(cross_references)`
+- `precision` and `recall` are derived from resolved count over total refs
+- `false_resolutions` and `extraction_misses` remain hard-coded to `0` pending future instrumentation
+
+### Outcome notes
+- Bidirectional and fallback relationship checks improved coverage
+- Previously failing references still flagged for extraction improvement include:
+  - `q-004`
+  - `q-009`
+  - `q-020`
+
+## Related pipeline orchestration
+See **evaluation_pipeline.md** for the higher-level pipeline description.
+
+### Combined behavior
+- Level 3 performs answer scoring with agent invocation, Neo4j evidence retrieval, and judge scoring
+- Level 2 validates cross-reference relationships in the graph
+- Downstream aggregates combine these outputs for final QA reporting
+
+### Shared dependencies
+- `judge_answer`
+- Neo4j session helpers
+- `AGENT_DIR` configuration for agent access
+
+## Dataset and ingestion context
+See **held_out_evaluation_dataset_and_ssa_ingestion_rules.md** for the evaluation runner and dataset rules that support this pipeline.
+
+### Important facts
+- Held-out paraphrase dataset uses IDs `h-001..h-050`
+- `eval/eval-validate` accepts `--dataset`
+- `run_eval` records dataset path in result config
+- Schema IDs match `^(q|h)-\d+$`
+- SSA ingestion uses explicit SSA↔USC mapping and freestanding USC exclusions
+- Section numbering alone must never be used to infer SSA membership
+
+### Operational notes
+- `run_eval` supports retrieval, cross-ref, answer, and citation levels
+- CLI eval defaults to retrieval when `--level` is omitted
+- Citation eval requires `--from-result`
+- Mixed-corpus build includes parsing, loading state/federal sources, cross-reference extraction, amendment detection, embedding, vector indexing, and optional concept seeding
+
+## Drill-down references
+- **answer_quality/_index.md** — Level 3 answer evaluation summary and scoring rules
+- **answer_quality_and_cross_reference_evaluation.md** — combined QA pipeline documentation
+- **cross_reference_resolution/_index.md** — Level 2 cross-reference evaluation overview
+- **evaluation_pipeline.md** — end-to-end QA pipeline summary
+- **held_out_evaluation_dataset_and_ssa_ingestion_rules.md** — dataset, runner, and SSA ingestion rules

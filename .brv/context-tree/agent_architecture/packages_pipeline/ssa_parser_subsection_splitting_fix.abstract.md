@@ -1,0 +1,1 @@
+The SSA parser now splits only large top-level lettered USC subsections into child sections, preserves parent text for stable citations, and strictly ignores nested roman numeral markers unless they follow the expected sequence.

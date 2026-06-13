@@ -1,16 +1,61 @@
 ---
-children_hash: d68077d5a2fd4f34781a4f3a8fce19d49dfd11da4830618453ca93eead4df235
-compression_ratio: 0.45181818181818184
+children_hash: f517a66e2be75d52653027fb8be0ce5b51d86b0872a5aed493865179b974651d
+compression_ratio: 0.609973285841496
 condensation_order: 1
 covers: [ai_sdk_v6_sse_streaming_and_error_handling.md, context.md]
-covers_token_total: 1100
+covers_token_total: 1123
 summary_level: d1
-token_count: 497
+token_count: 685
 type: summary
 ---
-### NC Medicaid Navigator Chat Streaming & Error Handling  
-- **AISdkStreamBuilder stream orchestration** (`ai_sdk_v6_sse_streaming_and_error_handling.md`): Migrated from `MastraStreamBuilder` to `AISdkStreamBuilder` to emit SSE payloads (start → text block deltas → tool events → finish) with helpers (`toBody`, `toFulfill`). Tracks `events`, `messageId`, text block state, and mirrors `uiMessageChunkSchema` so Playwright can produce deterministic streams.  
-- **Playwright mocks** (`ai_sdk_v6_sse_streaming_and_error_handling.md`): `mockMastraAPI` intercepts POST `/chat` and memory thread endpoints, supplying default mock streams/pagination metadata while letting GET metadata fetch real data; plays back AISdk-formatted SSE events for tests and exercises error cases (500 response triggers alert and re-enables input per `chat_error_handling_tests`).  
-- **ChatPage UI/transport/error behavior** (`ai_sdk_v6_*` and `context.md`): Client component wires `useChat`/`useMastraClient` to DefaultChatTransport targeting `${MASTRA_URL}/chat` with AGENT_ID `nc-medicaid-navigator`. Ensures thread existence, enforces 10k-character limits, reuses user text for reruns, and renders the destructive alert (“Sorry, there was an error…”) based on `useChat` status (`status === "streaming"` and `isLoading` guard the textarea). Includes hooks/UI pieces (sidebar, EmptyState, MessageList, ScrollToBottom, ChatInput).  
-- **Thread helpers & rerun support** (`ai_sdk_v6_*`): Auto-create memory threads, avoid duplicates on empty input, cap message text to 10k characters, and serialize reruns by filtering text parts before resending; ensures sidebar/mobile state stays in sync with thread lifecycle.  
-- **Summary context** (`context.md`): Presents the topic “chat_streaming_error_handling,” emphasizing the AISdkStreamBuilder sequence, mock Mastra routing, and ChatPage state around streaming, reruns, and errors; points readers to `frontend_ui/chat_page_scroll_stability` for related behaviors.
+# chat_streaming_error_handling
+
+Structural summary of the NC Medicaid Navigator chat streaming/error-handling topic, centered on SSE stream generation, deterministic test mocks, and ChatPage UI behavior.
+
+## Core structure
+
+- **AISdkStreamBuilder** replaces `MastraStreamBuilder` for Playwright SSE test payloads.
+- **mockMastraAPI** centralizes Mastra chat and memory endpoint routing for deterministic success/error flows.
+- **ChatPage** consumes `useChat` and related hooks to manage streaming state, thread lifecycle, reruns, and error rendering.
+
+## Key components
+
+### `ai_sdk_v6_sse_streaming_and_error_handling.md`
+- Defines the AI SDK v6 SSE event sequence used by tests and UI expectations.
+- Documents `AISdkStreamBuilder` behavior: start, start-step, text deltas, tool input/output, finish-step, finish.
+- Covers `mockMastraAPI` interception of:
+  - `POST /chat`
+  - `GET/POST /api/memory/threads`
+  - `GET /api/memory/threads/:id/messages`
+- Describes ChatPage flow:
+  - create thread before sending
+  - enforce 10k-character input limit
+  - reuse user text for reruns
+  - render destructive error alert on `useChat` failure
+  - keep textarea/input disabled while streaming or loading
+
+### `context.md`
+- Provides the higher-level topic framing:
+  - SSE message streaming via `AISdkStreamBuilder`
+  - Playwright Mastra API mocking
+  - ChatPage handling of streaming, reruns, and error states
+
+## Important relationships
+
+- **Test streaming depends on UI schema compatibility**: mocked SSE events mirror `uiMessageChunkSchema`.
+- **ChatPage transport is tied to Mastra infrastructure**: `DefaultChatTransport` targets `${MASTRA_URL}/chat` with credentials included.
+- **Thread and memory behavior is coordinated** between UI state and mocked memory endpoints to support realistic chat flows.
+- **Error handling is verified end-to-end** in Playwright by asserting the 500 `/chat` failure surfaces the expected alert and restores input usability.
+
+## Notable facts
+
+- `AISdkStreamBuilder` keeps per-stream event state and text block state, exposing `toBody` and `toFulfill` helpers.
+- `mockMastraAPI` supports default mock streams, pagination metadata, and override hooks.
+- ChatPage uses `useAuth`, `useAccessToken`, `useMastraClient`, `useChat`, `useIsMobile`, `generateUUID`, and `convertThreadMessageToUIMessage`.
+- The UI error message is: **"Sorry, there was an error processing your question. Please try again."**
+- ChatPage is keyed to AGENT_ID **`nc-medicaid-navigator`**.
+
+## Drill-down pointers
+
+- See **`ai_sdk_v6_sse_streaming_and_error_handling.md`** for the full SSE event model, Playwright helpers, and error test expectations.
+- See **`context.md`** for the concise topic definition and related chat UI linkage.

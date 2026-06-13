@@ -1,0 +1,7 @@
+- Coverage frame assembly now treats setting-preferred routing documents as authoritative candidates when no sibling variant frame takes precedence.
+- `selectSettingPreferredDocuments` scopes `preferredRoutingDocuments`, and the resulting documents are used in authoritative candidates with a policy-number lookup reason.
+- `variantReasoning` falls back to the setting preference reason if no variant frame exists.
+- The coverage pipeline combines search hits, HCWD history hits, routed documents, and section candidates into primary, supporting, and avoid evidence sets.
+- The overall flow is: search hits, route documents, choose preferred routing documents, build candidates, then finalize the frame.
+- Dependencies include route selection, wildcard widening policy, sibling policy variant detection, and document-scoped preference logic.
+- A key rule is that sibling variant frames take precedence; otherwise, `settingPreference.documents` become the preferred routing documents.

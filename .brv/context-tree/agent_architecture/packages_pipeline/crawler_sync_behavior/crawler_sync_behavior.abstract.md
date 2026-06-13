@@ -1,0 +1,1 @@
+This document explains crawler sync behavior that separates download and check phases, skips already processed documents, and removes items only after repeated 404s.

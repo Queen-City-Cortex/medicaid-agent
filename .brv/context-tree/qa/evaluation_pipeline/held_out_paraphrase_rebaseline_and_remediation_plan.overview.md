@@ -1,0 +1,8 @@
+- Documents a held-out paraphrase rebaseline for the Medicaid agent evaluation pipeline and a staged remediation roadmap.
+- Key result: overall score 2.60/3.00 with 96% trail hit across n=50; FA 2.72, Comp 2.66, Hall 2.60, Cit 2.66.
+- Notes that P1 de-contamination preserved quality and was statistically equal to the earlier contaminated 2026-04-23 baseline despite never-seen phrasings.
+- Records operational constraints for future evaluations: compare only against data/golden/heldout-paraphrase.json and use unified mode only.
+- Captures the evaluation setup and provenance, including judge claude-sonnet-4-6, git commit 71ef5a0, and unified evidence mode.
+- The remediation plan is organized by priority phases P0 through P3, with some items completed and others deferred.
+- Notable failure examples include h-005 (meta-commentary instead of answer) and h-049 (EPSDT authority routed to the wrong CFR benchmark); weakest reasoning types were temporal (2.33) and federal reference (2.40).
+- Structure/sections: Reason and Raw Concept for intent and changes; Narrative with Structure, Dependencies, Highlights, Rules, and Examples; followed by detailed Facts listing scores, judge, commit, and comparison conventions.

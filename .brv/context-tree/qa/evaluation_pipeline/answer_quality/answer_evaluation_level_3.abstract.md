@@ -1,0 +1,1 @@
+This document describes level-3 answer quality evaluation, including HTTP-first agent execution, CLI fallback, and error handling that preserves accurate scoring and traceability.

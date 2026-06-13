@@ -7,6 +7,7 @@ recency: 1
 maturity: draft
 createdAt: '2026-04-04T07:01:07.672Z'
 updatedAt: '2026-04-04T07:01:07.672Z'
+related: [frontend_ui/thread_sidebar/thread_sidebar_fetch_resilience.md, frontend_ui/chat_streaming_error_handling/ai_sdk_v6_sse_streaming_and_error_handling.md]
 ---
 ## Raw Concept
 **Task:**

@@ -1,0 +1,1 @@
+This document covers level-2 cross-reference evaluation, adding bidirectional and fallback reference resolution with precision and recall tracking for aggregate scoring.

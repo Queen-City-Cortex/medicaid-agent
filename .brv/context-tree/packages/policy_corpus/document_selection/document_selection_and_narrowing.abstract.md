@@ -1,0 +1,1 @@
+Document selection now prefers care-setting-matching policy documents before narrowing, preventing distractors from outranking congregate or in-home coverage sources.

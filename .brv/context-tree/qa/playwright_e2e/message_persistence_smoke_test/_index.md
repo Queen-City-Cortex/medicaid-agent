@@ -1,27 +1,22 @@
 ---
-children_hash: aafa3262e092a636bc0fcd1dd34fb52c8109e50206477c420634530816f77464
-compression_ratio: 0.5657216494845361
+children_hash: aef4bf55de291eade744d9c2f57e6841c37bc15160a3f27a55261489cec8e452
+compression_ratio: 0.4693627450980392
 condensation_order: 0
 covers: [context.md, message_persistence_smoke_test.md]
-covers_token_total: 776
+covers_token_total: 816
 summary_level: d0
-token_count: 439
+token_count: 383
 type: summary
 ---
-### Level d0 Structural Summary: qa/playwright_e2e/message_persistence_smoke_test
+## QA / Playwright E2E
 
-- **Scope & Purpose**: Documents a targeted Playwright smoke test (“message_persistence_smoke_test.md” and accompanying `context.md`) under `qa/playwright_e2e` that proves the `savePerStep` fix keeps long-form answer text, research-trace metadata, and UI feedback controls after a page reload.
-
-- **Key Flow**: Test exercises the ChatPage helper to ask “What is EPSDT?”, waits for streaming completion (Rate helpful button), records answer length/research trace icons, reloads the page, reopens the thread, and verifies persisted answer content, research-trace icons, and MessageActions (feedback buttons) render from LibSQL via SaveQueueManager with `savePerStep=true`.
-
-- **Architectural Decisions & Dependencies**:
-  - Relies on `MASTRA_URL` agent endpoint and the ChatPage helper for reliable streaming.
-  - SaveQueueManager must flush the final assistant message into LibSQL when `savePerStep` is true to ensure persistence.
-  - Observational memory must capture both answer text (>100 characters, includes “epsdt”) and research-trace tool metadata before and after reload.
-
-- **Validation Rules (from narrative)**:
-  1. Delay assertions until the Rate helpful button appears.
-  2. Post-reload answer must still reference “epsdt” and exceed 100 characters; research trace labels must remain visible.
-  3. MessageActions must re-render so feedback buttons are available, confirming UI persistence.
-
-- **Facts to Drill Down**: See `message_persistence_smoke_test.md` for explicit facts about the smoke test flow, saveQueue behavior, answer/research-trace validation, and MessageActions persistence; `context.md` situates the entry within the broader Playwright E2E topic.
+### message_persistence_smoke_test
+- **Purpose:** A Playwright smoke test that verifies chat message persistence when `savePerStep` is true, ensuring the final assistant answer, research trace metadata, and UI feedback controls survive a page reload.
+- **Core flow:** `e2e/tests/smoke/message-persistence.spec.ts` drives the chat page by sending **“What is EPSDT?”**, waiting for streaming completion, recording answer length and research trace icons, reloading, reselecting the thread, and confirming the persisted answer plus UI state.
+- **Key dependency:** The fix relies on `SaveQueueManager` flushing the final assistant message into **LibSQL** when `savePerStep: true`; the test also depends on `ChatPage` and the agent endpoint configured by `MASTRA_URL`.
+- **Validation rules:**  
+  - Wait for the **Rate helpful** button before checking message text length or traces.  
+  - After reload, the answer must still mention **“epsdt”**, exceed **100 characters**, and show the same research trace labels.  
+  - **MessageActions** must render again so feedback buttons remain visible.
+- **What it guards against:** The regression where answer text was missing on reload when `savePerStep` was false, while also confirming observational memory preserves both assistant text and tool-call/research trace data.
+- **Drill-down:** See `message_persistence_smoke_test.md` for the full test sequence, dependencies, and recorded facts; `context.md` captures the topic focus and parent relation to Playwright E2E.

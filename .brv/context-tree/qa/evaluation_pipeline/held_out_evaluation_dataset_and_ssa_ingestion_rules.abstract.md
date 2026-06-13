@@ -1,0 +1,1 @@
+This document describes held-out evaluation dataset controls and SSA ingestion rules, emphasizing decontamination, correct source-authority mapping, paraphrase rebaselining, and citation fidelity.

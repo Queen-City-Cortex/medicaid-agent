@@ -1,0 +1,86 @@
+{
+  "curationsSinceDream": 18,
+  "lastDreamAt": "2026-06-12T17:26:12.363Z",
+  "lastDreamLogId": "drm-1781284941478",
+  "pendingMerges": [],
+  "staleSummaryPaths": [
+    {
+      "enqueuedAt": 1781285282902,
+      "path": "packages/retrieval_quality/retrieval_quality_depends_on_decontamination_plus_staged_ranking.md"
+    },
+    {
+      "enqueuedAt": 1781285860968,
+      "path": "agent_architecture/context/curated_operational_knowledge.md"
+    },
+    {
+      "enqueuedAt": 1781286546741,
+      "path": "qa/evaluation_pipeline/held_out_paraphrase_rebaseline_and_remediation_plan.md"
+    },
+    {
+      "enqueuedAt": 1781296890626,
+      "path": "qa/evaluation_pipeline/trustworthiness_and_citation_fidelity.md"
+    },
+    {
+      "enqueuedAt": 1781297278221,
+      "path": "packages/policy_corpus/coverage_frame_assembly/coverage_frame_assembly.md"
+    },
+    {
+      "enqueuedAt": 1781297278221,
+      "path": "packages/policy_corpus/coverage_routing/coverage_routing.md"
+    },
+    {
+      "enqueuedAt": 1781297278221,
+      "path": "packages/policy_corpus/document_selection/document_selection_and_narrowing.md"
+    },
+    {
+      "enqueuedAt": 1781297826376,
+      "path": "packages/policy_corpus/frame/federal_authority_pairing_and_rebalance.md"
+    },
+    {
+      "enqueuedAt": 1781298118800,
+      "path": "agent_architecture/context/epsdt_exception_completeness_workstream_e.md"
+    },
+    {
+      "enqueuedAt": 1781298599516,
+      "path": "qa/evaluation_pipeline/held_out_evaluation_dataset_and_ssa_ingestion_rules.md"
+    },
+    {
+      "enqueuedAt": 1781301830366,
+      "path": "qa/evaluation_pipeline/remediation_plan_2026_06_11_to_2026_06_12.md"
+    },
+    {
+      "enqueuedAt": 1781303804101,
+      "path": "agent_architecture/packages_pipeline/ssa_parser_subsection_splitting_fix.md"
+    },
+    {
+      "enqueuedAt": 1781319625526,
+      "path": "qa/hallucination_verifier/cli_verifier_flow_and_stdout_contract.md"
+    },
+    {
+      "enqueuedAt": 1781319625526,
+      "path": "qa/evaluation_pipeline/answer_quality/answer_evaluation_level_3.md"
+    },
+    {
+      "enqueuedAt": 1781319625526,
+      "path": "qa/evaluation_pipeline/cross_reference_resolution/cross_reference_evaluation_level_2.md"
+    },
+    {
+      "enqueuedAt": 1781320847920,
+      "path": "database_operations/neo4j_write_read_consistency/corpus_graph_writer_incremental_cleanup.md"
+    },
+    {
+      "enqueuedAt": 1781320847920,
+      "path": "database_operations/neo4j_hybrid_search/deploy_data_script_and_refresh_workflow.md"
+    },
+    {
+      "enqueuedAt": 1781320847920,
+      "path": "database_operations/neo4j_auth/production_neo4j_federal_data_refresh.md"
+    },
+    {
+      "enqueuedAt": 1781323030546,
+      "path": "agent_architecture/local_dev_setup/ci_workflow_concurrency_and_test_gates.md"
+    }
+  ],
+  "totalDreams": 2,
+  "version": 1
+}

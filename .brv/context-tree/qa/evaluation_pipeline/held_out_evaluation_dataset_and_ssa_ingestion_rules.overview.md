@@ -1,0 +1,9 @@
+- Covers held-out evaluation dataset construction and SSA ingestion rules for the evaluation pipeline.
+- Emphasizes decontamination: held-out data must not overlap with training or retrieval corpora.
+- Includes paraphrase rebaseline handling and remediation planning as part of ongoing evaluation maintenance.
+- Highlights trustworthiness and citation fidelity as explicit evaluation safeguards.
+- Notes SSA-to-USC mapping rules and warns against inferring SSA membership from section numbering alone.
+- States that freestanding USC sections must never receive SSA_TO_USC entries.
+- Provides example mappings such as SSA 1902 -> USC 1396a, SSA 1905 -> USC 1396d, and SSA 1944 -> 1396w-3a.
+- Structure summary: title/metadata, reason, raw concept, narrative (structure/dependencies/highlights/rules/examples), and facts.
+- Notable entities: evaluation pipeline runner, CLI, federal SSA client, mixed-corpus build behavior, held-out paraphrase dataset metadata, and citation/trustworthiness review.

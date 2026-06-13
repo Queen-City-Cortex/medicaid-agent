@@ -1,0 +1,7 @@
+- Captures durable operational knowledge focused on retrieval heuristics, message parsing behavior, and curation workflow preferences.
+- The document is intentionally minimal and serves as a curated knowledge entry rather than a procedural guide.
+- Key flow described: context input -> extract factual statements -> group by subject -> upsert curated knowledge.
+- Highlights preserve patterns such as hybrid policy search, message parsing, legacy fallback behavior, and structured curation workflow.
+- Depends on broader context-tree organization and prior curated modules, especially retrieval and frontend parsing knowledge.
+- Sections summarized: Reason explains why the entry exists; Raw Concept defines the task, changes, flow, and timestamp; Narrative adds structure, dependencies, and highlights.
+- Notable entities/patterns include “hybrid policy search,” “legacy fallback behavior,” and “structured curation workflow,” indicating reusable operational conventions.

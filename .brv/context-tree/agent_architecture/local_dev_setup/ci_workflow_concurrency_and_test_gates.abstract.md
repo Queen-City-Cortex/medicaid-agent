@@ -1,0 +1,1 @@
+The CI workflow uses branch-safe concurrency, runs staged JS, Python, and Neo4j-backed tests, and adds a separate production Docker build gate while excluding e2e due to external auth dependencies.

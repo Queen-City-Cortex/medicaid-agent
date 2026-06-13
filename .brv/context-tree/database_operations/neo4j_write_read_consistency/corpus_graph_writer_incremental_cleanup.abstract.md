@@ -1,0 +1,1 @@
+CorpusGraphWriter is the single write boundary that upserts documents and sections, removes stale sections, and clears embeddings only for changed content.

@@ -1,0 +1,6 @@
+- Document-level selection helpers now support setting-preferred routing, ensuring congregate/in-home policy documents are protected before narrowing.
+- The main change adds `selectSettingPreferredDocuments(queryLower, documents)` to scope routing docs by the care setting named in the query.
+- Preference is applied before `narrowInferredCoverageDocuments`, because narrowing otherwise keeps only the raw-score winner for non-sibling sets.
+- The helper module covers document coverage boosts, title expansion selection, variant scoring, HCWD coverage scoring, and narrowing of inferred coverage documents.
+- Dependencies include `VARIANT_SETTING_TERMS`, title matching, and existing narrowing logic.
+- A key effect is preventing non-sibling distractors from outranking the setting-specific document when the query explicitly names congregate or in-home care.

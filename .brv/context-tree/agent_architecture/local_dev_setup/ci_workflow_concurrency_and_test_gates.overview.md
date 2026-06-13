@@ -1,0 +1,8 @@
+- CI is triggered on push and pull_request events to main and uses branch-safe concurrency with group `${{ github.workflow }}-${{ github.ref }}`.
+- Cancel-in-progress is enabled for non-main refs only; main runs are protected to avoid Railway deployment gating issues caused by skipped commits.
+- The main test job provisions Node 22, Python 3.11, and a Neo4j service, then runs lint, build, typecheck, JS tests, pipeline pytest, and agent integration tests.
+- Pipeline tests are intentionally excluded from the JS test step and run as a separate explicit pytest gate so failures are visible independently and not duplicated.
+- Agent integration tests run against real Neo4j but isolate themselves by creating their own vector indexes, using `test:`-prefixed fixtures, and mocking the embedding API.
+- A separate parallel `docker-build` job validates production images for both agent and web; the web build uses placeholder env args for Mastra and WorkOS redirect URLs.
+- There is no e2e job because `e2e/tests/auth.setup.ts` requires live WorkOS hosted-login credentials and cannot run hermetically in CI.
+- Notable entities/patterns include the `blacksmith-4vcpu-ubuntu-2404` runner, `neo4j:2026.05-community`, the `npm run setup -w @nc-medicaid/pipeline` venv setup, and the Railway-specific reason for preserving main branch CI runs.

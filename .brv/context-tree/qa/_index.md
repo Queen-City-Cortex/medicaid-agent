@@ -1,46 +1,113 @@
 ---
-children_hash: ab5c9f7a794e6d5e47f4e9441eae19b255e88498780aab23a6878f6e9ee00461
-compression_ratio: 0.4069368131868132
+children_hash: a7f5821092eb5038257dadfaf0a8aef0c360c0680c113db2fe68521f187819a3
+compression_ratio: 0.2556971803785245
 condensation_order: 2
-covers: [context.md, evaluation_pipeline/_index.md, hallucination_verifier/_index.md, launch_blockers/_index.md, playwright_e2e/_index.md]
-covers_token_total: 2912
+covers: [context.md, end-to-end-citation-fidelity-is-enforced-from-retrieval-to-evaluation.md, evaluation_pipeline/_index.md, hallucination_verifier/_index.md, launch_blockers/_index.md, playwright_e2e/_index.md, trustworthiness-is-enforced-from-retrieval-through-final-answer-evaluation.md]
+covers_token_total: 5178
 summary_level: d2
-token_count: 1185
+token_count: 1324
 type: summary
 ---
-# QA Domain Overview
-- **Purpose & Scope**: QA domain documents Playwright-backed e2e strategies, Mastra stream/memory mocks, chat/thread page objects, and orchestrated test helpers for the Medicaid navigator UI (`qa/context.md`). Excludes non-Playwright unit/integration tests and backend service logic.
+# QA
 
-## Evaluation Pipeline (qa/evaluation_pipeline/_index.md)
-- **Architecture**: Two-stage evaluation pipeline: Level 3 answer scoring (`answer_quality_*` files) feeds Level 2 cross-reference resolution (`cross_reference_resolution/_index.md`) to yield precision/recall/MRR/primary-hit metrics for the NC Medicaid golden dataset.
-- **Key facts**:
-  - Level 3 uses `packages/pipeline/src/pipeline/eval/levels/answer.py` hitting `ncMedicaidAgent` via HTTP or local `tsx` runner, sourcing evidence from Neo4j before `judge_answer`.
-  - Judge errors now produce `None` scores and are excluded from aggregates; evidence enrichment concatenates section titles with content.
-  - Level 2 (`cross_ref.py`) resolves entry `cross_references` via Neo4j `REFERENCES_DOCUMENT`, bidirectional `AMENDS`, and section-level `REFERENCES`, tracking resolved/missed counts; unresolved entries include q-004, q-009, q-020.
-- **Relationship**: Cross-reference resolution runs after Level 3 scoring, sharing Neo4j helpers and evaluation code; aggregated metrics therefore combine answer quality with citation fidelity.
+The `qa` domain captures end-to-end testing and trust enforcement for the Medicaid navigator agent UI. It spans Playwright E2E infrastructure, hallucination verification, and evaluation pipelines that keep retrieval, citations, and final answers aligned with Neo4j-backed evidence.
 
-## Hallucination Verifier (qa/hallucination_verifier/_index.md)
-- **Processor Flow**: The `HallucinationVerifier` intercepts the final assistant message (`processOutputStep`), builds a prioritized `sourceText` from evidence helpers (`getSection`, `getDocument`, `getAmendments`, `lookupPolicy`, `followReferences`, with `buildSourceText` handling truncation notices up to `maxSourceChars`), and calls `verifyAnswer`.
-- **Behavioral rules**: Applies verification only on messages finishing normally; relevance issues, unsupported claims, or unsupported verification trigger immediate rewrites via `writer.custom`; failures return `VERIFICATION_UNAVAILABLE`.
-- **Dependencies**: `generateObject`, `createOpenAI`, Zod schemas, Mastra processor/memory types, and `writer.custom`.
+## Core scope and ownership
+- Owned by the **QA/Automation Team**
+- Includes:
+  - Playwright config, helpers, and page objects for mocked and smoke suites
+  - Hallucination verification at processor and CLI/runtime boundaries
+  - Answer-quality and cross-reference evaluation against golden data
+- Excludes:
+  - Unit/integration tests outside Playwright
+  - Backend service implementation details outside verifier/evaluation contracts
 
-## Launch Blocker Fixes (qa/launch_blockers/_index.md)
-- **Scope**: Mitigates blocker risks across proxy middleware, concept Cypher guards, hallucination verifier evidence handling, and search tests.
-- **Decisions**:
-  - `proxy.ts` exports a Next.js 16-compatible `proxy` that forwards both `NextFetchEvent` and `NextRequest` to `authkitProxy`.
-  - `concepts.ts` whitelists `COVERS`, `DEFINES`, `RESTRICTS`, `GOVERNS`, `REFERENCES_CONCEPT`, adds null handling for section metadata, and enforces guarded Cypher execution.
-  - Hallucination verifier helpers now impose character caps, maintain cited/uncited ordering with truncation notices, append disclaimers, and rewrite responses when evidence fails.
-  - `search.test.ts` strengthens deduping, top-K limits, 500-character snippets, embedding failure behavior, numbered-concept filtering, and Voyage API error propagation.
+## Structural pillars
 
-## Playwright E2E (qa/playwright_e2e/_index.md)
-- **Foundations (`context.md`)**:
-  - Playwright config defines mocked and smoke suites with tailored timeouts/reporters, shared retries, and a web server running `npm run dev` from `../packages/web`.
-  - Helpers include `MastraStreamBuilder` (SSE builders ending `[DONE]`), `mockMastraAPI` intercepting `/agents/*/stream`, `/memory/threads`, and `/memory/threads/*/messages`, and `ChatPage` page object covering chat navigation, messaging, assistant traces, and thread sidebar interactions.
-  - Flow: config launches tests → builders synthesize stream frames → mock routes register intercepts → `ChatPage` executes UI flows.
-  - Facts: Mocked suite uses 15s timeouts; smoke suite targets real agent/Neo4j with 120s timeouts.
-- **Message Persistence Smoke Test (`message_persistence_smoke_test/_index.md`)**:
-  - Purpose: Verify `savePerStep` persists assistant answers, research-trace metadata, and MessageActions across reloads using `ChatPage`.
-  - Flow: Ask “What is EPSDT?”, wait for streaming and Rate helpful button, record persisted answer/metadata, reload, reopen thread, and assert LibSQL-stored content plus UI persistence.
-  - Dependency/Architecture: Relies on `MASTRA_URL`, deterministic streaming helpers, and `SaveQueueManager` flushing final messages to LibSQL when `savePerStep=true`.
-  - Rules: Delay assertions until Rate helpful is visible; post-reload answer must mention “epsdt”, exceed 100 characters, and show research-trace icons; MessageActions buttons must reappear.
-  - For detailed assertions and persistence mechanics see `message_persistence_smoke_test.md`; for infrastructure context refer to `context.md`.
+### 1) End-to-end citation fidelity
+Reference: `end-to-end-citation-fidelity-is-enforced-from-retrieval-to-evaluation.md`
+
+- Citation fidelity is treated as an **end-to-end contract** across:
+  - agent retrieval and amendment lookup
+  - evaluation scoring against Neo4j section evidence
+  - hallucination verification and answer rewriting
+- Key relationship:
+  - the agent enforces tool-first policy lookup and citation duties
+  - evaluation fetches section text and cross-reference evidence
+  - the verifier rejects or rewrites unsupported output
+
+### 2) Evaluation pipeline
+References: `evaluation_pipeline/_index.md`
+
+- The pipeline has two coordinated layers:
+  - **Level 3 answer evaluation**
+  - **Level 2 cross-reference evaluation**
+- Core flow:
+  - question → agent invocation → evidence retrieval → judge scoring
+  - entry → cross-reference iteration → document/section graph checks → metrics
+- Important behaviors:
+  - HTTP-first agent invocation with CLI fallback
+  - Neo4j section text is the primary evidence source
+  - judge errors are excluded from aggregation
+  - cross-reference resolution supports `REFERENCES_DOCUMENT`, `AMENDS`, and section-level `REFERENCES` fallback
+- Dataset context:
+  - held-out paraphrase IDs `h-001..h-050`
+  - schema IDs match `^(q|h)-\\d+$`
+  - SSA ingestion uses explicit SSA↔USC mapping and must not infer membership from section numbering alone
+
+### 3) Hallucination verification
+References: `hallucination_verifier/_index.md`
+
+- Split into two child concerns:
+  - `hallucination_verifier_processor.md` — internal processor behavior
+  - `cli_verifier_flow_and_stdout_contract.md` — external CLI/stdout contract
+- Shared design:
+  - verify only the **final assistant response**
+  - assemble source text from `getSection`, `getDocument`, `getAmendments`, `lookupPolicy`, `followReferences`
+  - prioritize cited sources, cap source text, and signal truncation
+  - apply `correctedAnswer` immediately when unsupported or irrelevant
+- CLI/runtime contract:
+  - stdout markers: `---EVIDENCE---`, `---VERIFIER---`, `---ANSWER---`
+  - exact snake_case JSON fields are required for eval harness parsing
+  - confidence is clamped and banded into high/medium/low
+  - verifier toggles and model defaults are controlled by environment settings
+
+### 4) Launch blockers and remediation
+References: `launch_blockers/_index.md`
+
+- Tracks release-blocking fixes and staged remediation.
+- Main themes:
+  - middleware/proxy alignment with Next.js 16
+  - concept relationship validation and null handling
+  - verifier hardening for source formatting, truncation, and failure sentinels
+  - search test expansion covering deduplication, topK, truncation, and embedding failures
+- Remediation plan emphasis:
+  - trustworthiness, citation fidelity, hallucination prevention, and evaluation honesty
+  - staged P0–P3 work with P0 remediation completed and later phases completed on 2026-06-12
+  - trust-layer UX upgrades such as verification badges, cited/consulted split, clipboard footnotes, Markdown export, and print CSS
+
+### 5) Playwright E2E infrastructure
+References: `playwright_e2e/_index.md`
+
+- Covers Playwright-based end-to-end testing under `e2e/`
+- Architecture centers on:
+  - shared Playwright config
+  - reusable Mastra streaming and API-mocking helpers
+  - a `ChatPage` abstraction for chat interactions and sidebar flow
+- Test split:
+  - **Mocked suites**: fast, 15s timeouts, desktop Chrome settings
+  - **Smoke suites**: real agent integration, 120s timeouts
+- Key helper responsibilities:
+  - `MastraStreamBuilder` creates Mastra-compliant SSE streams ending in `[DONE]`
+  - `mockMastraAPI(page, ...)` intercepts agent and memory endpoints before navigating to `/chat`
+  - `ChatPage` centralizes selectors, message sending, reply waiting, trace lookup, and thread sidebar interactions
+- Dependencies:
+  - `npm run dev` from `../packages/web`
+  - Mastra client SSE parsing
+  - `data-testid` selectors in the chat UI
+
+## Cross-entry relationships
+- `evaluation_pipeline/_index.md` and `end-to-end-citation-fidelity-is-enforced-from-retrieval-to-evaluation.md` both treat Neo4j evidence and cross-reference integrity as part of answer trust.
+- `hallucination_verifier/_index.md` complements evaluation by rewriting unsupported final answers rather than only scoring them.
+- `launch_blockers/_index.md` shows the trust/citation hardening work that supports the same quality goals.
+- `playwright_e2e/_index.md` provides the UI-level harness used to validate chat behavior, streaming, and message persistence.

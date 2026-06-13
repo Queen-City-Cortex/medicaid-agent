@@ -1,0 +1,7 @@
+- Coverage routing now applies setting-scoped document preference before inferred narrowing, and carries that preference into fallback variant reasoning.
+- `collectCoverageRoutingDocuments` applies `selectSettingPreferredDocuments` before `narrowInferredCoverageDocuments` for inferred documents.
+- When a query names a care setting and the titles match, the routing layer returns only the setting-matching documents.
+- The setting preference reason is propagated into `variantReasoning` when no sibling policy variant frame exists.
+- The routing flow is: lookup documents, infer documents from hits, apply setting preference, narrow, then return routing documents.
+- The behavior is meant to block CAP/DA or similar distractors from replacing the congregate PCS document on adult-care-home questions.
+- Core dependencies include `collectPolicyDocumentsFromHits`, `narrowHcwdCoverageDocuments`, `narrowInferredCoverageDocuments`, and the new setting-preference helper.

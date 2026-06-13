@@ -1,17 +1,34 @@
 ---
-children_hash: eba71dd91cde168fbaef4b0303b0a1a0cdedcf989ed46fd04bdf13ff28e46f9f
-compression_ratio: 0.627906976744186
+children_hash: 40a38aec6abbce6e58e05618cbc10b2c73926b83df60ae484e192b5fce3bad45
+compression_ratio: 0.7381316998468607
 condensation_order: 1
-covers: [context.md, evaluation_pipeline_overview.md]
-covers_token_total: 559
+covers: [evaluation_pipeline_overview.md]
+covers_token_total: 653
 summary_level: d1
-token_count: 351
+token_count: 482
 type: summary
 ---
-## pipeline_overview (Level 2/3 Evaluation Flow)
-- **Structural focus:** Level 2 and Level 3 evaluation routines in `pipeline/src/pipeline/eval/levels` coordinate answer scoring (`answer.py`) and cross-reference verification (`cross_ref.py`) over dataset entries, producing structured per-entry metrics and aggregates.
-- **Core flow:** golden entries → agent invocation (with fallback handling) → Neo4j evidence retrieval → judge scoring → cross-reference checks → aggregate updates.
-- **Key facts & rules:** agent invocations time out after 180 seconds and surface CLI failures; judge errors return `None` scores and are excluded from aggregates; missing document IDs during cross-reference checks are treated as skips without additional Neo4j queries.
-- **Dependencies & integrations:** answer evaluation uses HTTPX, subprocess CLI fallbacks, Neo4j sessions, and `judge_answer`; cross-reference checks depend on Neo4j edge types (REFERENCES_DOCUMENT, AMENDS, HAS_SECTION, REFERENCES).
-- **Outcome:** Clarifies how agent errors, evidence sharing, and judge failures propagate through scoring, plus why recent cross-reference counts (now 2/5 resolved) expose gaps in q-004, q-009, q-020 reference extraction.
-- **Drill-down path:** see `evaluation_pipeline_overview.md` for raw concept/changes and `context.md` for topic-level overview; related verification actions live under `qa/hallucination_verifier`.
+# Evaluation Pipeline Overview
+
+- **Core purpose:** Captures the Level 2 and Level 3 evaluation flow for QA and reference resolution, centered on agent invocation, Neo4j evidence retrieval, judge scoring, and cross-reference verification.
+- **Primary modules:** `packages/pipeline/src/pipeline/eval/levels/answer.py` and `packages/pipeline/src/pipeline/eval/levels/cross_ref.py` define the two evaluation paths.
+
+## Structural flow
+- **Shared pipeline shape:** golden entries → agent invocation → Neo4j evidence fetch → judge scoring → per-entry metrics / cross-reference checks → aggregate updates.
+- **Answer evaluation:** handles response scoring, including agent CLI fallback via subprocess and HTTPX-based execution paths.
+- **Cross-reference evaluation:** validates reference relationships in Neo4j and tracks resolved vs missed references.
+
+## Key behaviors and decisions
+- **Judge errors:** now use `None` scores instead of zeros and remain excluded from aggregates.
+- **Cross-reference coverage:** validation extends to `DOCUMENT` and section-level relationships, improving resolved counts from `0/5` to `2/5`.
+- **Failure hotspots:** remaining `q-004`, `q-009`, and `q-020` failures indicate missing reference extraction coverage.
+
+## Dependencies and graph relationships
+- **Answer scoring dependencies:** HTTPX, subprocess CLI fallback, Neo4j sessions, and `judge_answer` scoring.
+- **Cross-ref dependencies:** Neo4j edge types `REFERENCES_DOCUMENT`, `AMENDS`, `HAS_SECTION`, and `REFERENCES`.
+- **Error handling rule:** agent invocations time out after 180 seconds and raise on non-zero CLI exit codes.
+- **Cross-ref rule:** missing document IDs count as missed without querying the graph.
+
+## Drill-down references
+- **`evaluation_pipeline_overview.md`** — full overview of Level 2/3 evaluation structure and metrics behavior.
+- **Related topic:** `qa/hallucination_verifier` for downstream verification actions.

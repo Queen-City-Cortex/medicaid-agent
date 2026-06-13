@@ -1,3 +1,6 @@
+---
+related: [qa/playwright_e2e/message_persistence_smoke_test/message_persistence_smoke_test.md]
+---
 # Subtopic: message_persistence_smoke_test
 
 ## Focus

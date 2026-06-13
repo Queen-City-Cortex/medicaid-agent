@@ -1,0 +1,6 @@
+- Documents a remediation plan for the evaluation pipeline covering June 11–12, 2026, with emphasis on quality fixes, re-baselining, and follow-up actions.
+- Key remediation themes include P0 answer integrity/security fixes, P1 retrieval and UX defect clusters, P2 product upgrade and infrastructure hygiene, and P3 staged refactors.
+- Notes preservation of held-out dataset ingestion, SSA rules, paraphrase rebaseline details, trustworthiness/citation fidelity concerns, and quality-assurance remediation actions.
+- Describes a workflow of issue identification → remediation planning → implementation → verification.
+- Includes a milestone JSON snapshot with evaluation metrics and configuration details, suggesting this file also serves as a record of evaluation results and baseline performance.
+- Notable entities include the referenced milestone JSON files, the held-out paraphrase dataset, and explicit rules about confirming findings against code before fixing them.

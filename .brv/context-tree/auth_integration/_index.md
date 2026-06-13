@@ -1,22 +1,31 @@
 ---
-children_hash: 04538d111efc2ead26c5b612b804ce02ac3d36213dcbbed1fb083aa85d775716
-compression_ratio: 0.5501193317422435
+children_hash: 5847783063bc07d19ba654780cafa3257b3c5fa398e99befbfa80e1d4fa4b0e0
+compression_ratio: 0.4662813102119461
 condensation_order: 2
-covers: [context.md, workos_authkit_nextjs/_index.md]
-covers_token_total: 838
+covers: [auth-and-deployment-fixes-are-driven-by-runtime-environment-boundaries.md, context.md, workos_authkit_nextjs/_index.md]
+covers_token_total: 1038
 summary_level: d2
-token_count: 461
+token_count: 484
 type: summary
 ---
-## Domain: auth_integration  
-- **Purpose & Scope**: Documents deployment-specific authentication fixes for libraries running in constrained hosts (Docker/Railway), focusing on callback overrides and environment variable mappings; excludes general auth architecture and user-facing docs. Owned by Platform Infrastructure; use for host-adjusted auth fixes.
+# d2 Structural Summary: Auth/deployment boundary fixes
 
-## Topic: workos_authkit_nextjs  
-- **Context (workos_authkit_nextjs/context.md)**: Explains the WorkOS authkit-nextjs callback route using `handleAuth` and the need to derive a stable public origin before calling it; the topic links callback behavior, deployment constraints, and the `handleAuth` configuration.
-- **Callback Base URL Resolution (callback_base_url_resolution.md)**: Describes GET `/auth/callback` flow—`getBaseURL` consults `NEXT_PUBLIC_WORKOS_REDIRECT_URI`, falls back to `WORKOS_REDIRECT_URI`, then `RAILWAY_PUBLIC_DOMAIN`, and supplies the resulting origin to `handleAuth`; ensures runtime fallback when `NEXT_PUBLIC_*` vars aren’t runtime-accessible so redirects stay off `0.0.0.0`.
-- **HandleAuth Docker Redirect Fix (handleauth_docker_redirect_fix.md)**: Details the Docker/Railway fix: parsing `NEXT_PUBLIC_WORKOS_REDIRECT_URI` for the external host, overriding `handleAuth`’s `baseURL`, and returning `/chat` post-auth to prevent callbacks targeting the internal `HOSTNAME=0.0.0.0`.
+## Overview
+These entries describe a single theme: authentication reliability depends on resolving **runtime environment boundaries** correctly. The recurring pattern is that build-time assumptions, internal container hosts, and framework migration changes can break auth redirects or request routing unless public origins and proxy behavior are resolved dynamically.
 
-## Relationships & Drill-Down Paths  
-- Start at `workos_authkit_nextjs/context.md` for the architectural rationale and dependencies around overriding `handleAuth`.  
-- Dive into `callback_base_url_resolution.md` to understand the fallback chain that guarantees safe callback origins across build/runtime boundaries.  
-- Inspect `handleauth_docker_redirect_fix.md` for the Docker-specific redirect correction and the necessity of the `baseURL` override in Railway environments.
+## Core relationships
+- **auth_integration** provides the deployment-specific auth fix pattern: derive a stable public callback origin from environment fallbacks before calling `handleAuth`.
+- **frontend_ui** shows the framework-level transport adaptation: replace deprecated/unsupported middleware with Next.js 16 `proxy.ts` and route requests through `authkitProxy`.
+- **agent_architecture** supplies the shared environment foundation: centralize auth and LLM secrets in a root `.env` and symlink app-specific env files to keep runtime configuration aligned.
+
+## Key architectural decisions
+- Prefer **runtime origin resolution** over static callback assumptions.
+- Treat **public-facing redirect URLs** as separate from internal container hostnames like `0.0.0.0`.
+- Use **framework-compatible proxy entrypoints** instead of middleware when required by Next.js/Authkit integration.
+- Keep **shared credentials and env vars centralized** so auth, web, and agent processes restart with consistent configuration.
+
+## Drill-down entries
+- **auth-and-deployment-fixes-are-driven-by-runtime-environment-boundaries.md** — cross-domain synthesis of the auth/runtime boundary pattern.
+- **auth_integration / workos_authkit_nextjs** — callback base URL resolution for WorkOS Authkit in Railway/Docker deployments.
+- **frontend_ui / proxy_handling** — Next.js 16 proxy migration and Authkit request forwarding.
+- **agent_architecture** — root `.env` consolidation and symlink-based env synchronization across agent/web.

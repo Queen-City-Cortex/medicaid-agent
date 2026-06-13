@@ -1,64 +1,97 @@
 ---
-children_hash: a98fe5ad0d530ca80e6072638944d3dc6e7a8209221078f93e38e7da8d549d2a
-compression_ratio: 0.2465144783208212
+children_hash: 9c45dfa3c4ae0c2a18ef15db1477ebe4b6e8982e7490c67dd9afb135da090e56
+compression_ratio: 0.6237388724035609
 condensation_order: 1
-covers: [cli_runner.md, cli_runner_memory_guardrails.md, context.md, document_metadata_and_agent_prompt/_index.md, libsql_storage_fix_for_railway.md, mastra_nc_medicaid_navigator_configuration.md, nc_medicaid_navigator_agent.md, observational_memory_and_policy_guidance.md, startup_and_web_ui_hardening.md]
-covers_token_total: 6527
+covers: [cli_runner.md, libsql_storage_fix_for_railway.md, nc_medicaid_navigator_agent.md, ssa_and_cfr_reference_resolution_fixes.md, startup_and_web_ui_hardening.md]
+covers_token_total: 1685
 summary_level: d1
-token_count: 1609
+token_count: 1051
 type: summary
 ---
-# NC Medicaid Navigator Agent Overview
+# NC Medicaid Agent Architecture
 
-## Core Execution Surface
-- **CLI Runner (`cli_runner.md`)**  
-  - Entry point: `packages/agent/src/index.ts` wires Mastra, ncMedicaidAgent, observability, Neo4j cleanup, and extended tools (searchSections, getSection, getDocument, getSectionContext, followReferences, getAmendments, findConceptSections, lookupPolicy).  
-  - Execution: `npx tsx src/index.ts "your question here"` → loads Mastra + memory + tools → `agent.generate(question, { maxSteps: 99, memory: { thread: \`cli-${Date.now()}\`, resource: "cli" }, onIterationComplete })` → log via Pino → print answer and close Neo4j driver.  
-  - Dependency surface: ANTHROPIC_API_KEY/OPENAI_API_KEY for model factories, DuckDB for observability store replaced by LibSQL in rail fix, LibSQL for memory, Neo4j driver.  
-  - Highlights: unique thread IDs per run, working memory captures user profile/preferences, onIterationComplete enforces final answer, system prompt encodes anti-hallucination guardrails.
+This cluster captures the canonical implementation and hardening notes for the NC Medicaid Navigator agent, with several consolidated child entries covering startup/runtime behavior, storage fixes, citation resolution, and CLI execution safeguards.
 
-- **CLI Memory Guardrails (`cli_runner_memory_guardrails.md`)**  
-  - Reinforces memory payload requirements (`memory: { thread, resource }`) to align with MastraObserver expectations and to associate observational memory entries per run.  
-  - Flow and dependencies mirror CLI runner, emphasizing `maxSteps=99`, onIterationComplete, and always closing the driver.  
-  - Facts: UI memory handshake mirrors CLI payload; Mastra API rejects top-level threadId/resourceId; unique `cli-${Date.now()}` thread per invocation.
+## Core agent runtime
 
-## Agent Configuration & Guards
-- **NC Medicaid Navigator Agent (`nc_medicaid_navigator_agent.md`)**  
-  - Constructs Memory atop LibSQL, enabling observational memory (`openai/gpt-5.4-mini`) plus resource-scoped working memory seeded with Medicaid profile/preferences and detail-level templates.  
-  - Instructions function rebuilds system prompt per request, prepending current date/time to static policy guidance while removing hardcoded tool count because Mastra injects tools dynamically.  
-  - Tools bundled include searchSections, getSection, getDocument, getSectionContext, followReferences, getAmendments, findConceptSections, lookupPolicy; HallucinationVerifier enforces citations, amendment checks, forced synthesis near MAX_STEPS=40.  
-  - Rules enforce tool-first workflow, citation requirements (section IDs, policy numbers, authoritative documents), and forced synthesis warnings.
+### `startup_and_web_ui_hardening.md`
+The main runtime hardening record for the NC Medicaid Navigator agent. It ties together:
+- env validation and startup checks
+- Mastra configuration for memory, tools, and server
+- server routes and web UI constraints
+- CLI runner behavior
+- system prompt rules and anti-hallucination guidance
 
-- **Observational Memory & Policy Guidance (`observational_memory_and_policy_guidance.md`)**  
-  - Adds detailed system prompt rules: document-type routing (Eligibility/enrollment → dhhs_policy, Coverage → clinical_policy, etc.), amendment checking with lookupPolicy, citation requirements (section IDs, policy numbers, effective dates, amendments), and anti-hallucination mandates (verbatim facts, plan distinctions, admit uncertainty).  
-  - Observational memory compresses tool-heavy conversations using openai/gpt-5.4-mini, requiring @mastra/memory >=1.1.0 with supported adapters (libsql/pg/mongodb).  
-  - Server configuration: host 0.0.0.0 port 4111 with env-driven CORS origins; CLI runner mirrors HTTP behavior.
+The associated `context.md` topic overview states that this area documents how the agent uses Mastra components and the instructions that keep policy guidance factual and consistent.
 
-- **Mastra NC Medicaid Navigator Configuration (`mastra_nc_medicaid_navigator_configuration.md`)**  
-  - Working memory template captures Medicaid user data (role, org, region, detail level, topics) scoped to each resource.  
-  - Instructions function dynamically injects current date/time before policy guidance, keeping tool counts accurate via runtime injection.  
-  - System prompt adjustments ensure working memory stays structured and instructions remain current.
+### `cli_runner.md`
+Canonical CLI execution note, with the memory-guardrail content folded in. Key retained details:
+- full CLI flow and step iteration behavior
+- explicit CLI memory payload requirements
+- tool list and observability memory details
+- `cli-${Date.now()}` thread behavior
+- `onIterationComplete` synthesis guardrail for `MAX_STEPS`
+- `closeDriver()` cleanup
 
-- **Document Metadata & Agent Prompt Summary (`document_metadata_and_agent_prompt/_index.md`)**  
-  - Validates environment (VOYAGE_API_KEY + OpenAI/Anthropic key) before startup, configures storage (LibSQL, DuckDB observability), SensitiveDataFilter, logging, memory, and server timeouts (10 min).  
-  - Metadata helper (`document-metadata.ts`) surfaces policy fields (id, title, type, policy_number, effective_date, url, status, source_url) for citation links.  
-  - System prompt mandates calling `getAmendments` for every citation, referencing section IDs/policy numbers, linking to source URLs, and formatting responses using markdown headings/bullets/bold.
+This entry should be used as the drill-down source for how the CLI runner maintains memory, completes iterations, and shuts down cleanly.
 
-## Infrastructure Hardening
-- **Startup & Web UI Hardening (`startup_and_web_ui_hardening.md`)**  
-  - Startup enforces VOYAGE_API_KEY plus one of OPENAI_API_KEY/ANTHROPIC_API_KEY before agent creation; Mastra config covers models, LibSQL storage, memory, observability, exporters, filters, timeouts, and logging.  
-  - Exposes `/chat` and `/healthz` routes plus CLI runner; `/healthz` probes Neo4j and reports status.  
-  - Web UI (`packages/web/src/app/error.tsx`, `chat/page.tsx`) uses AGENT_ID `nc-medicaid-navigator`, `DefaultChatTransport` targeting `${MASTRA_URL}/chat`, AGENT_URL fallback `http://localhost:4111`, thread/memory metadata per request, chat input limits (10k chars, auto-resize, spinner), and message/ sidebar UI states.  
-  - Highlights: system prompt enforces tool-first policy research, anti-hallucination rules (verbatim facts, plan distinctions, noting updates), forced synthesis via hallucination verifier, and UI behaviors for example cards, reruns, and auto-scroll.
+## Storage and deployment fixes
 
-## Deployment Adaptations
-- **LibSQL Storage Fix for Railway (`libsql_storage_fix_for_railway.md`)**  
-  - Railway’s Alpine/musl environment lacked `ld-linux-x86-64.so.2`; removed DuckDB/@mastra/duckdb (glibc binding) and MastraCompositeStore.  
-  - LibSQLStore now powers both persistence and observational memory/observability, eliminating glibc dependencies and stabilizing Railway deployments.  
-  - Facts: Railway Alpine containers require LibSQL; LibSQLStore replaces DuckDB for all memory/observability workloads.
+### `libsql_storage_fix_for_railway.md`
+Records the Railway deployment fix that replaced DuckDB/MastraCompositeStore with LibSQL storage to avoid Alpine/musl crashes.
 
-## Relationships & Drill-Down Paths
-- Drill into `agent_architecture/nc_medicaid_agent/context.md` for the domain overview and pointers to related UI and QA topics.  
-- Reference `document_metadata_and_agent_prompt/_index.md` for metadata/system prompt constraints and environment validation.  
-- Explore `cli_runner.md` and `cli_runner_memory_guardrails.md` for CLI-specific memory/workflow guardrails.  
-- Consult `nc_medicaid_navigator_agent.md`, `observational_memory_and_policy_guidance.md`, `mastra_nc_medicaid_navigator_configuration.md`, and `startup_and_web_ui_hardening.md` for detailed agent, memory, tooling, and UI requirements.
+Key architectural decision:
+- remove `@mastra/duckdb` and DuckDB-based `MastraCompositeStore`
+- use `LibSQLStore` from `@mastra/libsql` for both persistence and observational memory
+- route observability/exporter storage through LibSQL so Railway deploys succeed
+
+Important context:
+- Railway containers run Alpine Linux with musl libc
+- DuckDB native bindings require `ld-linux-x86-64.so.2`, which is unavailable there
+- canonical files: `packages/agent/src/index.ts` and `packages/agent/package.json`
+
+## Reference resolution and citation correctness
+
+### `ssa_and_cfr_reference_resolution_fixes.md`
+The canonical fix set for SSA/CFR citation resolution. The consolidated record preserves the underlying parser/resolver behavior and the re-ingestion pipeline.
+
+Important retained facts and relationships:
+- P0 fixes cover SSA-to-USC mapping, SSA parser robustness, CFR citation parsing, and part-level-only supersession redirects
+- notable mappings:
+  - SSA 1944 → USC 1396w-3a
+  - SSA 1900 → USC 1396
+  - SSA 1901 → USC 1396-1
+- there is no current-law USC 1396w-7
+- parser improvements handle italicized section headings in USC HTML
+- full section text is preserved by removing the 50K truncation cap
+- CFR matching recognizes both `C.F.R.` and `Part X` citation forms case-insensitively
+- supersession redirects are constrained to part-level only
+- re-ingestion sequence: `ingest-ssa --refresh` → `extract-refs` → `embed`
+
+Anchor files referenced for drill-down:
+- `ssa_client.py`
+- `ssa_parser.py`
+- `resolver.py`
+- `uscode.house.gov`
+- `cfr-supersessions.json`
+
+## Agent prompt and metadata guidance
+
+### `nc_medicaid_navigator_agent.md`
+Canonical agent document with an added subtopic note pointing to `document_metadata_and_agent_prompt_guidance.md` for the detailed behavior around metadata helpers, startup validation, and prompt requirements for accurate policy citations.
+
+Preserved guidance areas:
+- `source_url` support for clickable citations
+- startup/model/storage/memory/server configuration
+- tool taxonomy
+- amendment verification
+- anti-hallucination rules
+- required response-format rules
+
+## Structural relationship summary
+
+- `startup_and_web_ui_hardening.md` is the broadest runtime and UI hardening reference.
+- `cli_runner.md` is the canonical CLI execution/memory/cleanup reference.
+- `libsql_storage_fix_for_railway.md` explains the storage backend change that unblocked Railway deployment.
+- `ssa_and_cfr_reference_resolution_fixes.md` documents citation and legal-reference resolution correctness.
+- `nc_medicaid_navigator_agent.md` anchors the agent-level prompt and metadata guidance, with a pointer to the detailed guidance subtopic.

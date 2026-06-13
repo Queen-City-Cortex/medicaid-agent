@@ -1,0 +1,8 @@
+- Documents a fix in the SSA parser for handling large USC statute sections by splitting only top-level lettered subsections into child sections.
+- The parent section text is preserved so existing IDs and citations remain stable, while child subsections get identities like <parent>-<letter>.
+- The parser now uses strict expected-letter sequencing (a, b, ..., z, aa, etc.) to avoid misclassifying nested roman numeral markers as subsection boundaries.
+- Unmapped or freestanding USC sections are skipped, with the parser relying on USC-to-SSA and freestanding section mappings from `ssa_client.py`.
+- The workflow described is: parse USC HTML, find section heads, map USC to SSA, retain parent text, split oversized sections, then ingest and embed.
+- A key threshold is `SUBSECTION_SPLIT_MIN_CHARS` at 30,000 characters; only sections above this size are eligible for splitting.
+- Notable regex patterns include one for top-level lettered subsection markers and one for USC section heading extraction; an example cited subsection is `1905(r)`.
+- The document is organized into Reason, Raw Concept, Narrative, Facts, and includes dependencies, rules, highlights, and example behavior.

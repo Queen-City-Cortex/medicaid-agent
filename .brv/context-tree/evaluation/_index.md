@@ -1,31 +1,58 @@
 ---
-children_hash: 0cc2925dcc0a65a0a35503a08bd9707dd48b49124e8a16bea7f12fca089b0ec6
-compression_ratio: 0.5640636846095527
+children_hash: a15a8a075b613f673184cfe7d80940b4834c8aefced1d8142c4c9611e5b06482
+compression_ratio: 0.47497089639115253
 condensation_order: 2
 covers: [answer_quality/_index.md, context.md, cross_reference_resolution/_index.md, pipeline_overview/_index.md]
-covers_token_total: 1319
+covers_token_total: 1718
 summary_level: d2
-token_count: 744
+token_count: 816
 type: summary
 ---
-## evaluation domain overview
-- **Purpose & scope:** Centralizes Level 2/3 evaluation for answer quality, cross-reference resolution, Neo4j evidence relationships, and agent invocation/error handling (see `context.md`).
-- **Ownership & usage:** Maintained by Evaluation Engineering; use this domain for documenting scoring flows, heuristics, and instrumentation tied to QA metrics.
+# Evaluation
 
-### Level 3 answer quality evaluation (`answer_quality/_index.md`)
-- **Core implementation:** `packages/pipeline/src/pipeline/eval/levels/answer.py` orchestrates HTTP-first agent answering (with CLI fallback), enforces a 180s timeout, and passes `OPENAI_API_KEY`/`AGENT_MODEL` overrides through every path.
-- **Evidence & scoring flow:** Answers trigger Neo4j section queries to fetch primary/supporting texts before `judge_answer` computes per-question metrics; judge failures emit `None` scores and are excluded, while agent/process errors return zeros plus explanations.
-- **Primary hit rule:** Any overall score ≥ 2 flags a primary hit; aggregates ignore unavailable judge scores.
-- **Drill down:** Consult `answer_quality_evaluation.md` for task/flow details and `context.md` for domain scope.
+Central QA evaluation domain for the Medicaid Navigator, covering answer scoring, cross-reference verification, and the shared Neo4j-backed pipeline shape. The evaluation stack is organized around two primary Level 2/3 paths: answer quality scoring and graph reference resolution.
 
-### Level 2 cross-reference resolution (`cross_reference_resolution/_index.md`)
-- **Workflow focus:** Validates golden cross-references before computing precision/recall, relying on Neo4j edges (`REFERENCES_DOCUMENT`, `AMENDS`, `HAS_SECTION`, `REFERENCES`) to connect questions to documents/sections.
-- **Processing steps:** `packages/pipeline/src/pipeline/eval/levels/cross_ref.py` iterates each `cross_refs` entry, skips missing document IDs, then searches for document-level edges or section-level references to count resolved vs. missed items.
-- **Metrics & impact:** Precision/recall = resolved ÷ total (zero when no references); false positives always zero; recent coverage rose from 0/5 to 2/5 resolved, with q-004, q-009, q-020 still unresolved, revealing extraction gaps.
-- **Refer to:** `cross_reference_resolution_evaluation.md` for flow specifics and `context.md` for domain definitions.
+## Shared pipeline structure
+- Common flow: golden entries → agent invocation → Neo4j evidence retrieval → judge/scoring logic → per-entry metrics or cross-reference checks → aggregate updates.
+- Primary implementation modules:
+  - `packages/pipeline/src/pipeline/eval/levels/answer.py`
+  - `packages/pipeline/src/pipeline/eval/levels/cross_ref.py`
+- The domain is focused on measurable QA checks, not general runtime configuration or unrelated business logic.
 
-### Evaluation pipeline overview (`pipeline_overview/_index.md`)
-- **Structural summary:** Levels 2 and 3 routines in `pipeline/src/pipeline/eval/levels` link golden entries → agent invocation → Neo4j evidence retrieval → judge scoring → cross-reference checking → aggregate updates.
-- **Rules & dependencies:** Agent errors surface CLI failures, judge timeouts/errors return `None` or zeros, missing document IDs skip Neo4j queries, and cross-reference checks depend on specific Neo4j relationships.
-- **Results & gaps:** Documentation ties judge behavior and evidence sharing to scoring, explains why unresolved references persist (q-004, q-009, q-020), and captures aggregate handling of judge failures/errors.
-- **Explore further:** `evaluation_pipeline_overview.md` for raw flow/changes and `context.md` for apparatus; related verification work appears under `qa/hallucination_verifier`.
+## Answer quality evaluation
+See `answer_quality/_index.md` and its source `answer_quality_evaluation.md` for the Level 3 answer-scoring pipeline.
+- Executes `_invoke_agent` with HTTP first and CLI fallback.
+- HTTP path uses `HTTPX` and supports `OPENAI_API_KEY` and `AGENT_MODEL` passthrough overrides.
+- CLI path uses `subprocess`; invocations time out after 180 seconds and fail on non-zero exit codes.
+- Evidence is fetched from Neo4j for both primary and supporting sections before scoring.
+- Scoring is delegated to `judge_answer`.
+- Error handling is asymmetric:
+  - judge errors produce `None` scores and are excluded from aggregates
+  - agent errors produce zero scores and include the agent error in the explanation
+- `primary_hit` is true when overall score is at least 2, when available.
+
+## Cross-reference resolution evaluation
+See `cross_reference_resolution/_index.md` and `cross_reference_resolution_evaluation.md` for the Level 2 relationship-validation pipeline.
+- Inspects golden entries against Neo4j relationships to determine whether cross-references resolve correctly.
+- Checks document-level edges first: `REFERENCES_DOCUMENT` and `AMENDS`.
+- Falls back to section-level paths using `HAS_SECTION` and `REFERENCES`.
+- Metrics track resolved vs missed cross-refs, with precision/recall computed from `resolved_count / total_cross_refs`.
+- Missing document IDs count as missed without querying the graph.
+- Coverage improvements raised success from `0/5` to `2/5`, but `q-004`, `q-009`, and `q-020` still fail due to missing reference extraction coverage.
+
+## Evaluation pipeline overview
+See `pipeline_overview/_index.md` and `evaluation_pipeline_overview.md` for the combined Level 2/3 structural view.
+- Confirms the shared pipeline shape across answer scoring and cross-reference checks.
+- Highlights the core dependencies:
+  - Answer scoring: `HTTPX`, `subprocess`, Neo4j sessions, `judge_answer`
+  - Cross-ref validation: Neo4j edge types `REFERENCES_DOCUMENT`, `AMENDS`, `HAS_SECTION`, `REFERENCES`
+- Reinforces the key error-handling rule: agent invocations time out after 180 seconds, and CLI non-zero exits raise immediately.
+- Notes that judge errors now use `None` rather than zero values, so they do not pollute aggregate metrics.
+
+## Drill-down references
+- `answer_quality/_index.md`
+- `answer_quality_evaluation.md`
+- `cross_reference_resolution/_index.md`
+- `cross_reference_resolution_evaluation.md`
+- `pipeline_overview/_index.md`
+- `evaluation_pipeline_overview.md`

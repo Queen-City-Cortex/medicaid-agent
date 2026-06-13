@@ -7,6 +7,8 @@ recency: 1
 maturity: draft
 createdAt: '2026-04-03T05:51:39.740Z'
 updatedAt: '2026-04-03T05:51:39.740Z'
+consolidated_at: '2026-06-12T03:04:49.650Z'
+consolidated_from: [{date: '2026-06-12T03:04:49.650Z', path: evaluation/pipeline_overview/context.md, reason: 'These files cover the same evaluation-pipeline overview topic; the evaluation file is the full curated entry, and context.md is only a short summary. Consolidation avoids duplication while preserving the richer details.'}]
 ---
 ## Raw Concept
 **Task:**
@@ -38,3 +40,17 @@ Documenting both modules in one topic clarifies how agent invocation errors are 
 
 ### Rules
 Rule 1: Agent invocations time out after 180 seconds and raise if the CLI exits with a non-zero code; Rule 2: Missing document IDs in cross-reference entries count as missed without querying the graph.
+
+# Topic: pipeline_overview
+
+## Overview
+Summarizes how Level 2 and Level 3 evaluation pipelines produce metrics by invoking agents, fetching evidence, scoring responses, and verifying cross references.
+
+## Key Concepts
+- Level hierarchies
+- agent invocation fallbacks
+- Neo4j evidence lookups
+- judge vs agent error handling
+
+## Related Topics
+- qa/hallucination_verifier - downstream verification actions

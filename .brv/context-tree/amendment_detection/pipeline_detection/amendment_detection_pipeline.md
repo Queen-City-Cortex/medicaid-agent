@@ -7,6 +7,8 @@ recency: 1
 maturity: draft
 createdAt: '2026-04-02T19:24:07.999Z'
 updatedAt: '2026-04-02T19:24:07.999Z'
+consolidated_at: '2026-06-12T03:05:16.947Z'
+consolidated_from: [{date: '2026-06-12T03:05:16.947Z', path: amendment_detection/pipeline_detection/context.md, reason: 'These files describe the same amendment detection pipeline in packages/pipeline/src/pipeline/references/amendments.py. The markdown file contains the full curated content, while context.md is a concise topic overview of the same subject, so they are overlapping and should be consolidated.'}]
 ---
 ## Raw Concept
 **Task:**
@@ -50,3 +52,6 @@ Example: context extraction now returns "MA-2180.IV.I - HCWD Premiums Income cha
 - **sentence_boundary_detection**: Sentence boundary detection now treats periods followed by alphanumeric characters as reference punctuation so MA-2180.IV.I stays in context. [project]
 - **signal_section_detection**: Signal sections include titles or bodies containing CONTENT OF CHANGE, POLICY UPDATE, or MAINTENANCE OF MANUAL, or any MA-series number. [project]
 - **amends_edge_creation**: AMENDS edges are emitted via queries.MERGE_AMENDS_BATCH with deduplicated change_description lines, and change notice documents are marked status="amendment" through queries.SET_DOCUMENT_STATUS_BATCH. [project]
+
+## Related Topics
+- agent_architecture/neo4j_tool_output_validation - for validating graph writes

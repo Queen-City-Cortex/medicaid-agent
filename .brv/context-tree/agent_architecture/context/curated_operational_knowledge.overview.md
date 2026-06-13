@@ -1,0 +1,7 @@
+- Captures a session-level curation workflow as durable operational knowledge, focused on using precomputed recon plus single-pass UPSERT verification.
+- Emphasizes that the source context was small enough for single-pass processing rather than chunking, and that raw source text was not printed during curation.
+- Notes the end-to-end flow: recon -> extraction -> dedup/group -> UPSERT curate -> verify applied file paths.
+- Highlights dependencies on the precomputed recon result, the provided context variable, and curation history metadata for bookkeeping.
+- Includes operational facts such as `curation_mode` being single-pass, `context_size` being 5100 characters across 124 lines with zero messages, and the task being to curate using the RLM approach.
+- References related knowledge areas around retrieval fixes, message persistence/parsing behavior, and broader agent architecture context.
+- Mentions concrete files involved in the underlying work: `.github/workflows/ci.yml`, `e2e/tests/auth.setup.ts`, and `packages/pipeline/pyproject.toml`.

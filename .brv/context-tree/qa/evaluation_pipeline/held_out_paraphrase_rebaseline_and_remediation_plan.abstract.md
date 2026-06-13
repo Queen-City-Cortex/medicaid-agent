@@ -1,0 +1,1 @@
+The held-out paraphrase rebaseline scored 2.60/3.00 with 96% trail hit, confirmed P1 de-contamination did not reduce quality, and records the remaining P0–P3 remediation roadmap and comparison rules.

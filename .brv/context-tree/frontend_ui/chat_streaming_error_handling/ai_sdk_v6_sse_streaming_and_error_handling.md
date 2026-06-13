@@ -7,6 +7,7 @@ recency: 1
 maturity: draft
 createdAt: '2026-04-04T06:02:06.324Z'
 updatedAt: '2026-04-04T06:02:06.324Z'
+related: [frontend_ui/chat_page_transport/authenticated_chat_transport_reinitialization.md]
 ---
 ## Raw Concept
 **Task:**

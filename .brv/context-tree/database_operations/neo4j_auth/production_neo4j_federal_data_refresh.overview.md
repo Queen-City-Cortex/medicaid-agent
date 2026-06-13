@@ -1,0 +1,6 @@
+- Describes a safe production Neo4j refresh workflow for the federal slice, explicitly warning against using the destructive `load --reset` path in production.
+- Core flow: enable Railway Neo4j TCP proxy, set `NEO4J_URI` and `NEO4J_PASSWORD` from Railway auth, ingest SSA and CFR data, extract references, run incremental embedding, then disable the proxy.
+- Emphasizes that the refresh is non-destructive and targeted: unchanged sections retain embeddings/chunks, while only changed sections are cleaned and reprocessed.
+- Notes production-scale context, including reported graph size (48,720 sections and 1,877 docs) and preservation of supersession edges, EPSDT hits, and the clinical corpus.
+- Requires Railway CLI access plus manual proxy enable/disable steps; proxy should be shut down immediately after migration.
+- References files involved: `scripts/deploy-data.sh` and `packages/pipeline/src/pipeline/graph/corpus_writer.py`.

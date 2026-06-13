@@ -1,0 +1,9 @@
+- Federal authority retrieval was updated to pair statutes with implementing regulations, improve authority-citation title matching, and rebalance query hints for waiver, SPA, and EPSDT cases.
+- The pipeline flow is described as query intent detection → authority signal detection → federal hit ranking → statute/regulation pairing → frame rebalance hints.
+- Authority questions now prefer official section headings over body mentions, and CFR results are kept “authority-first” by pairing statute and regulation candidates.
+- Rebalance logic adds specific hints for waiver authority, SPA, and EPSDT queries while preserving statute retention so one federal_statute section remains visible even when regulation hints dominate.
+- Order-sensitive behavior is emphasized: WAIVER_AUTHORITY_HINT must run before WAIVER_HINT because authority phrasing is narrower.
+- MLR and generic managed-care federal hints were considered but intentionally excluded because existing behavior already works.
+- Example routing decisions include 1915(c) HCBS waiver authority to 42 CFR Part 441 Subpart G, SPA timeliness to 42 CFR 430, and EPSDT to 42 CFR 441 Subpart B.
+- The document is organized into reason/raw concept, narrative sections (structure, dependencies, highlights, rules, examples), and a detailed facts list of implementation decisions and helper behaviors.
+- Notable entities include asksForAuthorityCitation, authorityCitationQuery, boostAuthorityTitleMatches, withStatuteRegulationTitlePairing, ensureStatuteRegulationCandidatePairing, WAIVER_AUTHORITY_HINT, SPA_HINT, EPSDT_HINT, and SSA TITLE-19 anchors.

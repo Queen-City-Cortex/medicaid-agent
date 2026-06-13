@@ -1,21 +1,32 @@
 ---
-children_hash: e7c9a116e5273d10c9cab8bd7f6a65406466c2291e8b0f82a18dcd6281b98adb
-compression_ratio: 0.5343137254901961
+children_hash: da99cbe5d7187460283a574867f5025bf8b1c1bee443fa3b9e9634c7fcf1962c
+compression_ratio: 0.4214634146341463
 condensation_order: 1
-covers: [amendment_detection_pipeline.md, context.md]
-covers_token_total: 1020
+covers: [amendment_detection_pipeline.md]
+covers_token_total: 1025
 summary_level: d1
-token_count: 545
+token_count: 432
 type: summary
 ---
-# Amendment Detection Pipeline (Topic: pipeline_detection)
+# Amendment Detection Pipeline
 
-- **Scope & Flow** (`context.md` / `amendment_detection_pipeline.md`): Documents the NC Medicaid amendment detection pipeline implemented in `packages/pipeline/src/pipeline/references/amendments.py`. The end-to-end flow is: query documents → identify change notices/revised SPAs → collect sections and MA/SPA identifiers → extract sentence-level context with refined heuristics → build AMENDS edges in Neo4j with deduplicated descriptions and mark amendment-origin documents with `status="amendment"`.
+The amendment detection work centers on `packages/pipeline/src/pipeline/references/amendments.py` and the `detect_amendments()` flow that identifies change notices and revised SPAs, extracts supporting context, and writes AMENDS edges to Neo4j. The main architectural pieces are helper predicates such as `_is_change_notice`, `_is_revised_spa`, `_is_signal_section`, and `_is_sentence_boundary`, followed by batched graph writes and status updates.
 
-- **Signal & Context Extraction** (`amendment_detection_pipeline.md`): Focuses on signal section predicates (`_is_change_notice`, `_is_revised_spa`, `_is_signal_section`, `_is_sentence_boundary`) and the surrounding logic in `detect_amendments()`. Regex patterns capture DHHS change notice titles, MA-series policy numbers, and multi-part SPA numbers; sentence boundary detection now treats periods followed by alphanumeric characters (e.g., `MA-2180.IV.I`) as part of references, ensuring full context is extracted instead of truncating.
+## Core behavior
+- Queries documents, identifies amendment-relevant sources, collects MA/SPA references, extracts sentence-level context, and emits `AMENDS` edges.
+- Uses `pipeline.config.GRAPH_BATCH_SIZE`, `pipeline.graph.connection.get_session`, `pipeline.graph.queries`, `pipeline.utils.batching.chunked`, and `rich.console.Console`.
+- After edge creation, amendment-origin docs are explicitly marked `status="amendment"`.
 
-- **Dependencies & Highlights** (`amendment_detection_pipeline.md`): Relies on batching utilities (`pipeline.utils.batching.chunked`), graph session/queries (`pipeline.graph.*`), and console logging (`rich.console.Console`). Highlights include improved MA reference contexts, prioritized signal sections (CONTENT OF CHANGE, POLICY UPDATE, MAINTENANCE OF MANUAL, MA-series mention), deduplicated `change_description` entries, and the explicit `status="amendment"` update after merging AMENDS edges.
+## Key fixes and decisions
+- Sentence boundary detection was corrected so periods inside MA-series identifiers are not treated as sentence ends.
+- `_extract_context` now preserves full sentences even when references contain dotted MA numbers like `MA-2180.IV.I`.
+- `change_description` entries are deduplicated per `(source, target)` before `queries.MERGE_AMENDS_BATCH`.
+- Signal sections are prioritized over fallback bodies when determining context excerpts.
 
-- **Rules & Facts** (`amendment_detection_pipeline.md`): Enforces explicit rules for sentence boundary handling, signal section recognition, change description deduplication, and post-edge document flagging. Key facts record the updated sentence boundary logic, signal section criteria, and AMENDS edge creation/status updates via `queries.MERGE_AMENDS_BATCH` and `queries.SET_DOCUMENT_STATUS_BATCH`.
+## Important patterns
+- Change notices are detected with titles like `CHANGE NOTICE FOR MANUAL NO. ...`.
+- MA-series policy numbers are matched with `((?:MA|DMA|DHB|DSS)-\d+)`.
+- SPA identifiers are extracted with `SPA\s+(\d+[\s\-]+\d+)`.
 
-- **Related Validation Topic** (`context.md`): Points to `agent_architecture/neo4j_tool_output_validation` for ensuring the graph writes performed by this pipeline are valid.
+## Drill-down entry
+- `amendment_detection_pipeline.md` — full pipeline details, rules, patterns, and update behavior.

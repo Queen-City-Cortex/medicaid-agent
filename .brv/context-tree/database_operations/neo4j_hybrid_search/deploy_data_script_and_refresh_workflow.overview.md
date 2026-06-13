@@ -1,0 +1,6 @@
+- Describes `scripts/deploy-data.sh` as a remote Neo4j deployment script with explicitly destructive behavior, including a graph wipe via `load --reset`.
+- Requires Railway CLI login and an enabled Railway TCP proxy; the script validates `NEO4J_HOST` and reads credentials from `NEO4J_AUTH`.
+- The workflow is a fixed multi-step pipeline: schema creation, destructive reset, ingest CFR, ingest SSA, extract references, detect amendments, embed, seed concepts, link concepts, and final stats.
+- Enforces explicit user confirmation before wiping the graph, with non-interactive shells refusing to proceed without confirmation; `--yes` bypasses the prompt.
+- Warns to disable the TCP proxy after migration completes.
+- Notes the script is intended for remote deployment and prints destructive warnings, with step 2 being the irreversible reset point.

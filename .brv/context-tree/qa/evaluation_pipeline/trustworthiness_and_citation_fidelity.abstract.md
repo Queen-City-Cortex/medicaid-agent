@@ -1,0 +1,1 @@
+This document describes an evaluation pipeline that enforces end-to-end trustworthiness through citation fidelity, answer quality checks, cross-reference evaluation, and held-out remediation rules.

@@ -3,37 +3,35 @@
     {
       "order": 2,
       "path": "agent_architecture/_index.md",
-      "tokens": 1633,
+      "tokens": 1862,
       "type": "summary"
     },
     {
       "order": 1,
-      "path": "agent_architecture/navigate_tools/_index.md",
-      "tokens": 358,
+      "path": "agent_architecture/amendment_pipeline_and_prompt/_index.md",
+      "tokens": 131,
       "type": "summary"
-    },
-    {
-      "importance": 60,
-      "path": "agent_architecture/nc_medicaid_agent/cli_runner.md",
-      "tokens": 1143,
-      "type": "context"
-    },
-    {
-      "importance": 50,
-      "path": "README.md",
-      "tokens": 2,
-      "type": "context"
     },
     {
       "importance": 50,
       "path": "agent_architecture/amendment_pipeline_and_prompt/amendment_pipeline_and_prompt_guardrails.md",
-      "tokens": 1243,
+      "tokens": 181,
       "type": "context"
     },
     {
+      "abstractPath": "agent_architecture/context/curated_operational_knowledge.abstract.md",
+      "abstractTokens": 52,
       "importance": 50,
-      "path": "agent_architecture/amendment_pipeline_and_prompt/context.md",
-      "tokens": 117,
+      "path": "agent_architecture/context/curated_operational_knowledge.md",
+      "tokens": 52,
+      "type": "context"
+    },
+    {
+      "abstractPath": "agent_architecture/context/epsdt_exception_completeness_workstream_e.abstract.md",
+      "abstractTokens": 33,
+      "importance": 50,
+      "path": "agent_architecture/context/epsdt_exception_completeness_workstream_e.md",
+      "tokens": 33,
       "type": "context"
     },
     {
@@ -44,36 +42,79 @@
     },
     {
       "importance": 50,
-      "path": "agent_architecture/local_dev_setup/context.md",
-      "tokens": 109,
-      "type": "context"
-    },
-    {
-      "importance": 50,
-      "path": "agent_architecture/local_dev_setup/env_consolidation/context.md",
-      "tokens": 88,
+      "path": "agent_architecture/local_dev_setup/ci_workflow_concurrency_and_test_gates.md",
+      "tokens": 1334,
       "type": "context"
     },
     {
       "importance": 50,
       "path": "agent_architecture/local_dev_setup/env_consolidation/root_environment_consolidation.md",
-      "tokens": 541,
+      "tokens": 407,
       "type": "context"
     },
     {
       "importance": 50,
-      "path": "agent_architecture/local_dev_setup/environment_variable_consolidation.md",
-      "tokens": 595,
+      "path": "agent_architecture/local_dev_setup/local_development_setup.md",
+      "tokens": 179,
       "type": "context"
+    },
+    {
+      "importance": 50,
+      "path": "agent_architecture/mastra_server_configuration/mastra_server_timeout_tuning.md",
+      "tokens": 187,
+      "type": "context"
+    },
+    {
+      "importance": 50,
+      "path": "agent_architecture/navigate_tools/getamendments_optional_match_filtering.md",
+      "tokens": 180,
+      "type": "context"
+    },
+    {
+      "importance": 50,
+      "path": "agent_architecture/nc_medicaid_agent/cli_runner.md",
+      "tokens": 207,
+      "type": "context"
+    },
+    {
+      "importance": 50,
+      "path": "agent_architecture/nc_medicaid_agent/libsql_storage_fix_for_railway.md",
+      "tokens": 542,
+      "type": "context"
+    },
+    {
+      "importance": 50,
+      "path": "agent_architecture/nc_medicaid_agent/nc_medicaid_navigator_agent.md",
+      "tokens": 264,
+      "type": "context"
+    },
+    {
+      "importance": 50,
+      "path": "agent_architecture/nc_medicaid_agent/startup_and_web_ui_hardening.md",
+      "tokens": 214,
+      "type": "context"
+    },
+    {
+      "abstractPath": "agent_architecture/packages_pipeline/crawler_sync_behavior/crawler_sync_behavior.abstract.md",
+      "abstractTokens": 41,
+      "importance": 50,
+      "path": "agent_architecture/packages_pipeline/crawler_sync_behavior/crawler_sync_behavior.md",
+      "tokens": 41,
+      "type": "context"
+    },
+    {
+      "path": "_archived/README.stub.md",
+      "tokens": 104,
+      "type": "stub"
     }
   ],
-  "generated_at": "2026-04-06T02:19:41.141Z",
+  "generated_at": "2026-06-13T03:57:10.576Z",
   "lane_tokens": {
-    "contexts": 3996,
-    "stubs": 0,
-    "summaries": 1991
+    "contexts": 3979,
+    "stubs": 104,
+    "summaries": 1993
   },
-  "source_fingerprint": "f837e05e670df6f44133779a59217071f17c50d50ca0dfd5fd91b8e4b8510d83",
-  "total_tokens": 5987,
+  "source_fingerprint": "a5304da6513228c10246811367482fbe16656a6462a3d380cd16e51be9eeecc9",
+  "total_tokens": 6076,
   "version": 1
 }

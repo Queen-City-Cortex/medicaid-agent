@@ -1,27 +1,35 @@
 ---
-children_hash: dec10293f1645c0c0ddc3879263da2bc6415903f2a0780b7c0f223a906486abb
-compression_ratio: 0.5157894736842106
+children_hash: c0a0d4ed784172e2c1ad1c1c3c2472d52b126896e6a1a275011d38454875ee4c
+compression_ratio: 0.6338672768878718
 condensation_order: 1
 covers: [chat_page_thread_cache_restoration.md, context.md]
-covers_token_total: 855
+covers_token_total: 874
 summary_level: d1
-token_count: 441
+token_count: 554
 type: summary
 ---
-# Summary – chat_page_thread_cache
+# chat_page_thread_cache
 
-- **chat_page_thread_cache (context.md)**
-  - Documents the NC Medicaid Navigator chat page’s thread-specific message persistence strategy.
-  - Key mechanisms: a `messageCache` keyed by `threadId`, a `pendingRestore` ref, and a `useEffect` that rehydrates cached data when a new `useChat` instance mounts, preventing writes to stale instances during thread switches.
-  - Links to broader message persistence topics such as `frontend_ui/message_persistence_cache/message_persistence_cache.md`.
+## Overview
+The chat page thread cache restoration flow preserves per-thread conversations when `setThreadId` recreates the `useChat` instance. The main goal is to avoid writing restored messages into a stale chat instance and to keep the UI aligned with cached thread state after thread switches.
 
-- **Chat Page Thread Cache Restoration**
-  - **Task & Flow**: Restores cached assistant replies by buffering them per `threadId` when streaming becomes ready, then applying them through `pendingRestore` after `setThreadId` triggers a transport/useChat recreation.
-  - **Changes**
-    - `messageCache`: captures replies after streaming completes to avoid showing partial datastore snapshots when switching threads.
-    - `pendingRestore` flow: defers `setMessages` until the new `useChat` instance is ready, ensuring cached payloads replay against the fresh instance.
-    - `handleSelectThread`: stops directly calling `setMessages`, relying on the pending restore effect instead.
-  - **Dependencies**: `useChat` from `@ai-sdk/react` (id `${threadId}:${resourceId}`), `DefaultChatTransport`, and Mastra client helpers for thread history and feedback loading.
-  - **Highlights & Facts**
-    - Ensures the UI stays consistent by avoiding stale-instance writes and logs restoration events.
-    - Confirms `setThreadId` triggers useChat recreation (`usechat_recreation` fact), caches assistant replies post-streaming (`message_caching`), and defers rehydration via `pendingRestore` until the new instance mounts (`pending_restore_flow`).
+## Structural Summary
+- **Core mechanism:** a `messageCache` map keyed by `threadId` stores assistant replies when streaming completes and status transitions from `streaming` to `ready`.
+- **Restoration mechanism:** `handleSelectThread` no longer calls `setMessages` immediately; it places cached messages into a `pendingRestore` ref.
+- **Rehydration timing:** a `useEffect` watching `threadId` runs after the new `useChat` instance mounts, applies `setMessages` with the buffered payload, and clears `pendingRestore`.
+- **State safety:** this prevents updates from targeting the old `useChat` instance that existed before `threadId` changed.
+- **Transport coupling:** the flow depends on `useChat` from `@ai-sdk/react` with id `${threadId}:${resourceId}` and `DefaultChatTransport`, which is reinitialized when `threadId` or `resourceId` changes.
+- **Integration points:** also tied to Mastra client helpers that load thread histories and feedback.
+
+## Key Flow
+`Thread selection -> setThreadId / transport recreation -> pendingRestore effect after threadId change -> setMessages on fresh useChat instance -> pendingRestore cleared`
+
+## Important Facts
+- `setThreadId` recreates `useChat`, so early `setMessages` calls would write to the old instance and lose the restored payload.
+- Assistant replies are cached per thread to avoid showing partial DB snapshots after switching threads or clicking `+New`.
+- Restoration events are logged for observability.
+
+## Drill-Down Entries
+- **chat_page_thread_cache_restoration.md** — detailed restoration logic, cache flow, and implementation notes.
+- **context.md** — topic-level overview and key concepts.
+- Related areas: **frontend_ui/message_persistence_cache/message_persistence_cache.md**, **frontend_ui/message_persistence_parsing/message_persistence_parsing.md**, **frontend_ui/message_persistence_cache/chat_page_thread_cache_race_fix.md**

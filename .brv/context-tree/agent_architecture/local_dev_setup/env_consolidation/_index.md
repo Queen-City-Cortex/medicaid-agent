@@ -1,17 +1,36 @@
 ---
-children_hash: b8f451ab5b02bc0379525d73ca43c76bd81acc2987bbb8f54e0dd4eefbe80691
-compression_ratio: 0.4594594594594595
+children_hash: b83d43bbc74c72f9bf9cf82d763fec1e90992b308a1f0dfdef6bcb308d7e0682
+compression_ratio: 0.6805896805896806
 condensation_order: 0
-covers: [context.md, root_environment_consolidation.md]
-covers_token_total: 629
+covers: [root_environment_consolidation.md]
+covers_token_total: 407
 summary_level: d0
-token_count: 289
+token_count: 277
 type: summary
 ---
-### env_consolidation (subtopic of local_dev_setup)
-- **Focus:** Documents the shift to a single root `.env` file that centralizes all secrets for LLM integrations, WorkOS configuration, and E2E test credentials, serving as an extension of the local development setup.
-- **root_environment_consolidation.md:** 
-  - **Architecture:** Replaced a circular symlink chain with a concrete root `.env` adjacent to package directories, furnishing keys for OpenAI, Anthropic, Voyage, WorkOS client settings, redirect URIs, and the WorkOS test user.
-  - **Flow:** Audit existing symlinks → delete stale links → populate the real root `.env` with shared secrets → recreate `packages/agent/.env` and `packages/web/.env.local` as absolute symlinks → verify LLM/WorkOS/test credentials.
-  - **Dependencies/Relationships:** Both agent and web packages rely on the root file via absolute symlinks; all credential updates must occur at the root before restarting services to keep keys synchronized.
-  - **Key Decisions:** Centralizing secrets removes duplication/stale keys, eliminates circular symlink creation, and ensures consistent Access for WorkOS and LLM credentials.
+# Local Dev Setup: Environment Consolidation
+
+- **Child entry:** `root_environment_consolidation.md`
+- **Parent topic:** `agent_architecture/local_dev_setup`
+
+## Structural overview
+
+This entry documents the consolidation of environment variables into the repository root `.env` file as the single source of truth for:
+- LLM API keys
+- WorkOS authentication configuration
+- E2E test credentials
+
+## Key architectural decision
+
+- The repo now centralizes all environment variables at the root `.env`.
+- `packages/agent/.env` and `packages/web/.env.local` are **absolute symlinks** to the root file.
+- The previous circular symlink chain was eliminated by removing all symlinks first, then creating a real root `.env`.
+
+## Relationship to other entries
+
+- This is a focused follow-up within **`local_dev_setup`**.
+- It complements the broader local development setup work by describing the environment-variable source-of-truth strategy rather than the full setup process.
+
+## Drill-down reference
+
+- See **`root_environment_consolidation.md`** for the operational consolidation details and symlink resolution.

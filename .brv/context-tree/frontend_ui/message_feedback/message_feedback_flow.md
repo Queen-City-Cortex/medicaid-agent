@@ -7,6 +7,7 @@ recency: 1
 maturity: draft
 createdAt: '2026-04-05T00:00:53.037Z'
 updatedAt: '2026-04-05T00:00:53.037Z'
+related: [frontend_ui/message_persistence_parsing/message_persistence_parsing.md]
 ---
 ## Raw Concept
 **Task:**

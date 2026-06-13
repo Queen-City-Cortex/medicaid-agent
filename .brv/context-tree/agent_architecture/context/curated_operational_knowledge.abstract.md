@@ -1,0 +1,1 @@
+This document records a session-level curation workflow that uses precomputed recon, single-pass UPSERT verification, and applied file paths to manage compact operational context without rereading source text.

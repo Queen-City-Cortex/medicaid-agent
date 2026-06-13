@@ -1,31 +1,54 @@
 ---
-children_hash: 3b65820ff4ea090ab00326c7cc8a7907b922da8cb4050d228b2fee5e1ae44c62
-compression_ratio: 0.7776049766718507
+children_hash: 9edef668cd3de939029e840a7d13bf7578f5104af10c0fbb95a3aead720edb29
+compression_ratio: 0.6533864541832669
 condensation_order: 0
 covers: [cross_reference_evaluation_level_2.md]
-covers_token_total: 643
+covers_token_total: 753
 summary_level: d0
-token_count: 500
+token_count: 492
 type: summary
 ---
-# Level 2 Cross-Reference Evaluation Overview
+# Level 2 Cross-Reference Evaluation
 
-- **Purpose & Flow**: `cross_reference_evaluation_level_2.md` documents how the Level 2 evaluation routine (`evaluate_cross_refs`) iterates each golden entry’s `cross_references`, skips entries with none, and resolves them via Neo4j MATCH queries, falling back to section-level REFERENCES when document-level relationships aren’t found. This flow tracks per-entry counts (resolved, missed) plus resolution difficulty metadata for downstream aggregation.
+Structural overview of the Level 2 cross-reference evaluation pipeline used by QA to verify golden evidence relationships in Neo4j.
 
-- **Key Architectural Decisions**:
-  - **Edge coverage**: Added bidirectional AMENDS checks alongside REFERENCES_DOCUMENT edges to capture more granular relationships between source and target documents.
-  - **Fallback strategy**: When direct document edges are absent, the evaluator runs a section-to-section REFERENCES chain to recover indirect relationships.
-  - **Metric tracking**: Each entry yields resolved/missed counts, with derived precision and recall (resolved_count ÷ total_refs) and placeholder zeros for false_resolutions and extraction_misses until instrumentation improves.
+## Core purpose
+- Confirms whether golden cross-references are supported by graph relationships between documents and sections.
+- Primary entry point: `packages/pipeline/src/pipeline/eval/levels/cross_ref.py`.
 
-- **Dependencies & Assets**:
-  - Relies on `pipeline.graph.connection.get_session` to execute Neo4j MATCH queries spanning Document and Section nodes.
-  - Source code located at `packages/pipeline/src/pipeline/eval/levels/cross_ref.py`.
+## Evaluation flow
+- `entry -> iterate cross_references -> document-level Neo4j query -> section-level fallback -> compute metrics -> aggregate results`
+- For each golden entry:
+  - Skip entries without `cross_references`.
+  - Run `MATCH (a)-[:REFERENCES_DOCUMENT|AMENDS]-(b)` to resolve direct document links.
+  - If no document-level match exists, fall back to a section-level `REFERENCES` chain.
+  - Record resolved/missed counts and derived precision/recall.
 
-- **Highlights & Outcomes**:
-  - The updated evaluation resolves 2 of 5 previously failing references while flagging remaining ones (q-004, q-009, q-020) as extraction gaps.
-  - Section-level fallbacks ensure indirect cross-reference relationships are surfaced for auditability.
+## Key relationships and rules
+- Resolution counts a reference as found when the graph contains:
+  - `REFERENCES_DOCUMENT`
+  - `AMENDS`
+- Section-level fallback exists specifically to capture indirect relationships when document edges are missing.
+- Metrics currently use:
+  - `total_refs = len(cross_references)`
+  - `precision = recall = resolved_count / total_refs` when `total_refs > 0`
+- `false_resolutions` and `extraction_misses` are still hard-coded to `0` pending future instrumentation.
 
-- **Rules & Facts**:
-  - `total_refs` equals `len(cross_references)`; precision/recall default to `resolved_count / total_refs` when `total_refs > 0`.
-  - False resolutions and extraction misses remain hard-coded to 0 until further instrumentation.
-  - Evaluator signals resolution when Neo4j shows either REFERENCES_DOCUMENT or AMENDS edges; otherwise, it attempts section-level chains.
+## Data captured for downstream aggregation
+- `resolved_count`
+- `missed_count`
+- `precision`
+- `recall`
+- `difficulty`
+- `reasoning_type`
+- `primary_hit`
+
+## Dependencies
+- Uses `pipeline.graph.connection.get_session` to execute Neo4j `MATCH` queries over `Document` and `Section` nodes.
+
+## Notable outcome
+- The fallback and bidirectional edge checking improved coverage, resolving 2/5 previously failing references.
+- Remaining unresolved references noted for extraction improvement: `q-004`, `q-009`, `q-020`.
+
+## Drill-down
+- `cross_reference_evaluation_level_2.md` — full evaluation design, flow, and metrics details

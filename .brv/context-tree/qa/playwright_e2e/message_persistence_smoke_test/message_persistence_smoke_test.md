@@ -1,7 +1,7 @@
 ---
 title: Message Persistence Smoke Test
 tags: []
-related: [qa/playwright_e2e/context.md]
+related: [qa/playwright_e2e/context.md, qa/playwright_e2e/message_persistence_smoke_test/context.md]
 keywords: []
 importance: 50
 recency: 1

@@ -1,0 +1,1 @@
+This document describes Neo4j retrieval fixes that add per-group vector overscan, preserve fulltext-only hits through ranking, and dedupe by sectionId before topK.

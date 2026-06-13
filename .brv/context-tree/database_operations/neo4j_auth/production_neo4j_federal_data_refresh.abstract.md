@@ -1,0 +1,1 @@
+Production Neo4j federal refreshes must use the Railway TCP proxy and targeted incremental updates, never the destructive load --reset workflow.

@@ -1,0 +1,1 @@
+Curated knowledge entry preserving operational context for EPSDT exception completeness (Workstream E) as durable recall material.

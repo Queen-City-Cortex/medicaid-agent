@@ -1,0 +1,10 @@
+- Remediation roadmap for the 2026-06-11 full-codebase review, focused on restoring trustworthy, citable NC Medicaid answers and fixing issues in staged priority order.
+- Covers severity-ranked work across P0 through P3, with execution explicitly ordered as: P0, P1 retrieval, P1 UX, P2 UX, P2 infra, then P3 refactors.
+- Key dependencies include re-ingesting federal sources, re-baselining evaluations, and validating UX behavior with Playwright before/alongside later-stage changes.
+- P0 items concentrate on answer integrity and security blockers: federal-law ingestion errors, IDOR cross-user thread access, web vs eval agent regime mismatches, hallucination verifier breakage, planning processor injection, tool/schema mismatches, eval harness reliability, and broken feedback deletion.
+- P1 items split into retrieval/corpus integrity and UX defects; retrieval issues include supersession enforcement, frame prefetch/planning defects, query-intent substring pitfalls, backend retrieval defects, frame-resolution problems, and corpus freshness/integrity gaps.
+- P1 UX defects emphasize app stability and interaction issues such as scrolljacking, race conditions, pending tool failures, input/stop control issues, theme flash, accessibility, clipboard/copy failures, lazy thread creation, and silent failures.
+- P2 work adds product-quality upgrades and infrastructure hygiene, including visible verification, cited policy text, copy-with-sources, print/PDF, Markdown export, CI/test coverage, deploy safety, Docker/repo hygiene, and docs drift cleanup.
+- P3 captures staged refactors and maintainability work, including splitting shared and page components, consolidating frame and retrieval abstractions, deduplicating verifier flows, splitting tests, and improving overall test quality.
+- Notable pattern: the plan distinguishes fixes from refactors, with product-facing UX upgrades kept within the current design language and implementation work expected to use the frontend-design skill.
+- The document records review metadata and scale: a 31-agent line-by-line review across 433 file assignments, with 2 critical and 40 high findings in the referenced report.

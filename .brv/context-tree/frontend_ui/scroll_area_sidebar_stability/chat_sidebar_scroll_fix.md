@@ -7,6 +7,7 @@ recency: 1
 maturity: draft
 createdAt: '2026-03-29T22:31:16.662Z'
 updatedAt: '2026-03-29T22:31:16.662Z'
+related: [frontend_ui/chat_page_scroll_stability/chat_page_scroll_stability.md]
 ---
 ## Raw Concept
 **Task:**

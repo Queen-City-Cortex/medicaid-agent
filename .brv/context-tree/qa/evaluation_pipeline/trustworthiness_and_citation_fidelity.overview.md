@@ -1,0 +1,6 @@
+- Focuses on QA evaluation pipeline trustworthiness, citation fidelity, answer quality, cross-reference checks, and held-out remediation planning.
+- Emphasizes end-to-end enforcement of citation fidelity, from retrieval through final answer evaluation rather than only at generation time.
+- Describes a pipeline flow: retrieval -> citation checks -> answer evaluation -> cross-reference evaluation -> remediation.
+- Notes additional rules for held-out dataset ingestion and paraphrase remediation as part of the evaluation process.
+- Highlights that overall trustworthiness depends on retrieval correctness, grounded citations, and evaluation-level quality checks.
+- Structure includes Reason, Raw Concept, and Narrative sections, with subsections for Structure, Dependencies, and Highlights.

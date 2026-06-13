@@ -1,42 +1,48 @@
 ---
-children_hash: cdec217a9dd40557630617fffe2629fb3e1062d9122be33851816ed59a768958
-compression_ratio: 0.6697019867549668
+children_hash: 6ea577b58eb6356ca4ad4cd3f612eb99a0fed9e92006079733c897dab8e6c52e
+compression_ratio: 0.3486333161423414
 condensation_order: 2
-covers: [context.md, neo4j_auth/_index.md, neo4j_hybrid_search/_index.md]
-covers_token_total: 1208
+covers: [context.md, neo4j-write-read-consistency-is-protected-by-schema-aware-validation-at-every-la.md, neo4j_auth/_index.md, neo4j_hybrid_search/_index.md, schema-aware-validation-is-the-shared-safety-net-for-graph-and-evaluation-layers.md]
+covers_token_total: 1939
 summary_level: d2
-token_count: 809
+token_count: 676
 type: summary
 ---
-## Domain: database_operations
+# database_operations
 
-- **Purpose & Usage**  
-  - Captures operational resolutions for database connectivity and authentication incidents, focused on platform deployment quirks and password/configuration guidance. Owned by Platform Infrastructure; reference when debugging database environments (context.md).
+Operational knowledge for database deployments, authentication incidents, and Neo4j reliability patterns. The domain centers on precise fixes for environment-specific failures and on schema-aware safeguards that keep graph reads, writes, search, and evaluation consistent. See **neo4j_auth/_index.md** for Railway auth remediation, **neo4j_hybrid_search/_index.md** for hybrid retrieval architecture, and the synthesis entries for cross-layer validation patterns.
 
-### Topic: neo4j_auth
+## Core themes
 
-- **Key Problem**: Railway decodes environment variables before delivering them to containers, so `+` in passwords becomes spaces, breaking Neo4j authentication unless credentials are strictly alphanumeric (context.md, railway_neo4j_auth_handling.md).
-- **Neo4j Password Lifecycle**: `NEO4J_AUTH` only applies during initial volume boot; live instances require manual password updates through Neo4j commands (railway_neo4j_auth_handling.md).
-- **Rotation Workflow** (neo4j_auth/railway_neo4j_auth_handling.md):
-  - Deploy injects env vars → URL decoding transforms `+` → authentication failure.
-  - Rotate to an alphanumeric password (example `***REDACTED***`) to survive decoding.
-  - Use the bolt TCP proxy to execute `ALTER CURRENT USER SET PASSWORD` so the running database accepts the new secret.
-- **Dependencies**: Bolt TCP proxy is required for live password rotation; Neo4j configuration is consumed by the Medicaid agent documented under `agent_architecture/nc_medicaid_agent`.
+- **Database auth and deployment quirks**
+  - Focuses on environment-driven failures and password lifecycle behavior in deployed Neo4j instances.
+  - Emphasizes that rotation and remediation must account for existing volumes and platform behavior.
 
-### Topic: neo4j_hybrid_search
+- **Schema-aware Neo4j safety**
+  - Neo4j data is normalized and filtered before validation, search, or scoring.
+  - Protects downstream consumers from malformed rows, null relationships, and inconsistent payloads.
 
-- **Overview**: Documents the hybrid search pipeline combining vector/chunk embeddings, gated concept matches, and section-level keyword hits, fused via Reciprocal Rank Fusion with `RRF_K=60` (neo4j_hybrid_search/context.md).
-- **Architecture & Flow** (neo4j_hybrid_search/neo4j_hybrid_search_indexing.md):
-  - `ensure_vector_index` asserts vector/chunk/`section_fulltext` indexes; `vector_search` iterates document-type groups to collect `vector_rows`, `chunk_rows`, `concept_rows`, and optional `fulltext_rows`, deduplicates by `section_id`, and fuses via `_rrf_fuse`.
-  - Per-group chunk queries mirror the document-type grouping; `per_group_k` equals `top_k` when filters apply or `max(top_k, 10)` otherwise.
-  - Concept matches require `query_text`, use `CONCEPT_MATCH_SCORE=0.70`, and cap sections at `min(top_k, 5)`; keyword hits reuse the new `section_fulltext` index tied to `Section.title`/`content_text`.
-- **Schema & Dependencies**:
-  - `schema.indexes` adds `section_fulltext` to speed keyword retrieval.
-  - Pipeline relies on `pipeline.config.EMBEDDING_DIMENSIONS`, Neo4j sessions via `pipeline.graph.connection.get_session`, and filtered `PolicyConcept` nodes (`content_length`, `section_number`).
-  - Implementation files include `packages/pipeline/src/pipeline/embeddings/indexer.py` and `packages/pipeline/src/pipeline/graph/schema.py`.
-- **Facts**:
-  - Hybrid search fuses four signals (embeddings, chunk embeddings, concept matches, keyword hits) via RRF (k=60).
-  - Chunk search sizing adapts per group with a floor of 10 when no filters are applied.
-  - Schema includes `section_fulltext` for keyword acceleration.
+## Key structural patterns
 
-Refer to each child entry—`neo4j_auth/_index.md`, `railway_neo4j_auth_handling.md`, `neo4j_hybrid_search/_index.md`, and `neo4j_hybrid_search_indexing.md`—for implementation specifics and full procedural guidance.
+- **Railway environment decoding affects credentials**
+  - URL-decoded env vars can mutate passwords before Neo4j receives them.
+  - `NEO4J_AUTH` only initializes credentials on first volume setup; it does not update existing databases.
+  - Existing instances require live password changes through the bolt proxy using `ALTER CURRENT USER SET PASSWORD`.
+
+- **Hybrid search uses indexed, multi-signal ranking**
+  - Retrieval combines vector, chunk, concept, and keyword signals.
+  - Search depends on `section_embeddings`, `chunk_embeddings`, and `section_fulltext` indexes.
+  - Results are deduplicated by `section_id` and fused with Reciprocal Rank Fusion, using `RRF_K = 60`.
+
+- **Validation is the shared safety net across layers**
+  - Numeric normalization occurs before Zod validation.
+  - `OPTIONAL MATCH` results are filtered to remove null rows before schema checks.
+  - Guarded Cypher execution and relationship whitelisting protect graph access.
+  - QA and evaluation rely on validated graph outputs and relationship checks such as `REFERENCES_DOCUMENT`, `AMENDS`, `HAS_SECTION`, and `REFERENCES`.
+
+## Drill-down map
+
+- **neo4j_auth/_index.md** — Railway auth decoding, password rotation, and bolt-proxy remediation.
+- **neo4j_hybrid_search/_index.md** — Neo4j hybrid search indexing, signal fusion, and schema dependencies.
+- **neo4j-write-read-consistency-is-protected-by-schema-aware-validation-at-every-la.md** — Cross-layer consistency pattern spanning database operations, architecture, and QA.
+- **schema-aware-validation-is-the-shared-safety-net-for-graph-and-evaluation-layers.md** — Shared validation model linking Neo4j normalization, tool-output validation, and evaluation safeguards.

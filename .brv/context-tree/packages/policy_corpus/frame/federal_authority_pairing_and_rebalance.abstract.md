@@ -1,0 +1,1 @@
+This document describes federal authority query handling that pairs statutes with regulations, boosts title-based authority matches, and rebalances waiver, SPA, and EPSDT hints while preserving statute retention.

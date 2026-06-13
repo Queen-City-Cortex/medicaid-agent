@@ -1,0 +1,7 @@
+- Describes crawler sync behavior for document downloads, error handling, and phase-aware processing in the crawl pipeline.
+- Introduces a change from immediate deletion on 404s to tracking consecutive 404s and only removing a document after a threshold is reached.
+- Separates download and check phases using skipIds/processedIds to avoid duplicate fetches and reprocessing within the same run.
+- Improves error logging and document status transitions during sync.
+- The sync module is organized around SyncStats, SyncContext, applyResult, processDocuments, runDownloadPhase, and runCheckPhase.
+- Removal behavior is controlled by config.notFoundRemovalThreshold, with a default of 3 consecutive 404s.
+- Notable entities and patterns include HttpStatusError.statusCode, payload validation for binary-only families, lazy filename tracking by source type, and the registry/fetcher/downloader dependencies.

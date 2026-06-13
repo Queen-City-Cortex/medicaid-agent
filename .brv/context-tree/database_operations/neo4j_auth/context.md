@@ -1,3 +1,6 @@
+---
+related: [database_operations/neo4j_auth/railway_neo4j_auth_handling.md]
+---
 # Topic: neo4j_auth
 
 ## Overview

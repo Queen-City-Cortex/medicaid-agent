@@ -1,0 +1,6 @@
+- Documents `CorpusGraphWriter` as the single write-side boundary for Neo4j corpus graph mutations, centralizing document, section, relationship, and status updates.
+- Explains incremental cleanup behavior: stale sections are deleted, and embeddings/chunks are cleared only for sections whose content changed.
+- Highlights document bundle upsert flow: merge document, write sections, delete stale sections, clear changed embeddings, then merge relationships.
+- Separates relationship merge paths for references, amendments, supersessions, and concept links, showing distinct handling for each edge type.
+- Notes batching via `GRAPH_BATCH_SIZE` and Neo4j session/query-constant dependencies.
+- Emphasizes rerun safety: unchanged sections are preserved and do not trigger a full re-embed.

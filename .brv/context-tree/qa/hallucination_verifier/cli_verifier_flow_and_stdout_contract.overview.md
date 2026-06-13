@@ -1,0 +1,6 @@
+- Defines the CLI verifier flow and stdout contract for hallucination verification, focused on deterministic output behavior.
+- Key output markers are stable stdout blocks such as ---EVIDENCE---, ---VERIFIER---, and ---ANSWER---.
+- Captures verifier telemetry schema, confidence scoring, and runtime behavior across CLI and processor components.
+- Documents agent server settings, route behavior, and healthcheck configuration as part of execution flow.
+- Emphasizes a strict rule: telemetry field names must not be renamed because the Python eval harness parses the ---VERIFIER--- JSON block using exact snake_case keys.
+- Structure centers on verifier execution, stdout contract, and result handling, with dependencies on evaluation tooling and answer-quality checks.

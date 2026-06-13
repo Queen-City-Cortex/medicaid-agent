@@ -1,0 +1,8 @@
+- Retrieval quality is framed as depending on three main ideas: decontamination, topical coverage, and staged ranking with overscanned candidates.
+- The core retrieval flow is: query intent -> candidate scoring -> vector overscan -> topical filtering -> group-specific ranking -> RRF merge.
+- The backend pattern iterates `profile.typeGroups`, overscans each group with `vectorScanK(profile.perGroupK)`, and then filters by `document_type`.
+- Final ranking uses reciprocal rank fusion (RRF) after deduplicating hits by `sectionId`, preserving hybrid policy search ordering.
+- A major dependency is Neo4j behavior: `queryNodes(k)` returns a global top-k, so group coverage requires overscanning before filtering.
+- Decontamination rules are domain-specific: for HCWD, replace limit-history terms with income-rule terms and remove the 01-14 change-notice bonus; for HCBS, preserve `WAIVER_APPLICATION_PRIMARY_SECTION_NUMBERS` but remove hardcoded heuristics like `5.4.3`.
+- Notable entities and files include `packages/policy-corpus/src/retrieval/backends/section-vector.ts` and `packages/policy-corpus/src/retrieval/collector.ts`, along with the patterns `^vectorScanK\(profile\.perGroupK\)$` and `^queryNodes\(k\)$`.
+- The document’s sections cover reason, raw concept, narrative (structure, dependencies, highlights, rules, examples), and a facts list summarizing the retrieval design decisions.
