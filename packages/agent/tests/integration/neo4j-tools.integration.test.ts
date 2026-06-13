@@ -11,6 +11,7 @@ import { followReferences, getAmendments } from '../../src/tools/navigate.js';
 import { lookupPolicy } from '../../src/tools/lookup.js';
 import { getSection, getSectionContext } from '../../src/tools/read.js';
 import { runTool } from '../helpers/run-tool.js';
+import { ensureIntegrationIndexes } from '../helpers/integration-indexes.js';
 
 const integration = process.env.RUN_NEO4J_INTEGRATION === '1' ? describe : describe.skip;
 
@@ -41,35 +42,11 @@ async function cleanupFixtures() {
   );
 }
 
-async function ensureIntegrationIndexes() {
-  await run(`
-    CREATE VECTOR INDEX section_embeddings IF NOT EXISTS
-    FOR (s:Section) ON (s.embedding)
-    OPTIONS {
-      indexConfig: {
-        \`vector.dimensions\`: 1024,
-        \`vector.similarity_function\`: 'cosine'
-      }
-    }
-  `);
-  await run(`
-    CREATE VECTOR INDEX chunk_embeddings IF NOT EXISTS
-    FOR (ch:Chunk) ON (ch.embedding)
-    OPTIONS {
-      indexConfig: {
-        \`vector.dimensions\`: 1024,
-        \`vector.similarity_function\`: 'cosine'
-      }
-    }
-  `);
-  await run('CALL db.awaitIndexes()');
-}
-
 integration('agent tools against a real Neo4j graph', () => {
   beforeAll(async () => {
     driver = neo4j.driver(NEO4J_URI, neo4j.auth.basic(NEO4J_USER, NEO4J_PASSWORD));
     await driver.verifyConnectivity();
-    await ensureIntegrationIndexes();
+    await ensureIntegrationIndexes(run);
   });
 
   beforeEach(async () => {
