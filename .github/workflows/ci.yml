@@ -6,6 +6,14 @@ on:
   pull_request:
     branches: [main]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # Cancel superseded runs on PRs/branches, but never on main: Railway gates
+  # each deployment on that commit's CI and path-skips workflow/docs-only
+  # commits, so cancelling a main run could strand an app-code commit's deploy
+  # behind a later skipped commit (the af1fad7 -> ecc6f43 shape from 2026-06-13).
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 # No e2e job: e2e/tests/auth.setup.ts requires live WorkOS hosted-login
 # credentials (TEST_USER_EMAIL/TEST_USER_PASSWORD against a real WorkOS
 # environment), so even the mocked tier can't run hermetically in CI.
