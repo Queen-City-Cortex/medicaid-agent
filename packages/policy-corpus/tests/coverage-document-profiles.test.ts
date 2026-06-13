@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { normalizeSearchText } from '../src/internal/shared.js';
-import { buildCoverageDocumentCandidateProfiles, buildCoverageQueryFlags } from '../src/frame/coverage/candidates.js';
+import { buildCoverageDocumentCandidateProfiles, buildCoverageQueryFlags } from '../src/frame/coverage-sections/candidates.js';
 
 describe('coverage document candidate profiles', () => {
   it('enables eligibility primary and supporting profiles for CAP/DA criteria questions', () => {

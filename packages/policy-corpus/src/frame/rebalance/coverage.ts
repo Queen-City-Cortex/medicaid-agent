@@ -1,12 +1,12 @@
 import type { AnswerFrame } from '../../types.js';
-import { buildCoverageQueryFlags } from '../coverage/candidates.js';
+import { buildCoverageQueryFlags } from '../coverage-sections/candidates.js';
 import {
   assembleCoverageSections,
   buildCoverageAnchors,
   buildCoverageInitialSelection,
   collectCoverageSectionGroups,
   scoreCoverageSections,
-} from '../coverage/selection.js';
+} from '../coverage-sections/selection.js';
 import {
   uniqueBy,
 } from '../../internal/shared.js';

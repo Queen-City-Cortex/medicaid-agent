@@ -3,7 +3,7 @@ import type { FrameContext } from '../context.js';
 import { selectAnswerRoute } from '../../internal/answer-routing.js';
 import { buildPolicyVariantFrameForDocuments } from './policy-variant.js';
 import { rebalanceCoverageFrame } from '../rebalance/coverage.js';
-import { buildCoverageQueryFlags, collectCoverageDocumentHydratedCandidates } from '../coverage/candidates.js';
+import { buildCoverageQueryFlags, collectCoverageDocumentHydratedCandidates } from '../coverage-sections/candidates.js';
 import {
   COVERAGE_AVOID_TERMS,
   COVERAGE_PRIMARY_TERMS,

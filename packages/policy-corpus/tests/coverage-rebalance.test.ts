@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import type { AnswerFrame, AnswerFrameSection } from '../src/types.js';
 import { normalizeSearchText } from '../src/internal/shared.js';
-import { buildCoverageQueryFlags } from '../src/frame/coverage/candidates.js';
+import { buildCoverageQueryFlags } from '../src/frame/coverage-sections/candidates.js';
 import {
   assembleCoverageSections,
   buildCoverageAnchors,
   buildCoverageInitialSelection,
   collectCoverageSectionGroups,
   scoreCoverageSections,
-} from '../src/frame/coverage/selection.js';
+} from '../src/frame/coverage-sections/selection.js';
 
 describe('coverage rebalance helpers', () => {
   it('keeps yes/no coverage queries off request attachments during initial selection', () => {
