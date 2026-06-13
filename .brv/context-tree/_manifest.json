@@ -20,8 +20,22 @@
     },
     {
       "importance": 50,
+      "path": "agent_architecture/context/context.md",
+      "tokens": 57,
+      "type": "context"
+    },
+    {
+      "abstractPath": "agent_architecture/context/curated_context.abstract.md",
+      "abstractTokens": 32,
+      "importance": 50,
       "path": "agent_architecture/context/curated_context.md",
-      "tokens": 215,
+      "tokens": 32,
+      "type": "context"
+    },
+    {
+      "importance": 50,
+      "path": "agent_architecture/context/curated_context_extraction_notes.md",
+      "tokens": 443,
       "type": "context"
     },
     {
@@ -137,48 +151,18 @@
       "type": "context"
     },
     {
-      "abstractPath": "agent_architecture/packages_pipeline/ssa_parser_subsection_splitting_fix.abstract.md",
-      "abstractTokens": 57,
-      "importance": 50,
-      "path": "agent_architecture/packages_pipeline/ssa_parser_subsection_splitting_fix.md",
-      "tokens": 57,
-      "type": "context"
-    },
-    {
-      "importance": 50,
-      "path": "agent_architecture/search_tooling/hybrid_policy_search_tool.md",
-      "tokens": 193,
-      "type": "context"
-    },
-    {
-      "abstractPath": "database_operations/neo4j_auth/production_neo4j_federal_data_refresh.abstract.md",
-      "abstractTokens": 36,
-      "importance": 50,
-      "path": "database_operations/neo4j_auth/production_neo4j_federal_data_refresh.md",
-      "tokens": 36,
-      "type": "context"
-    },
-    {
-      "abstractPath": "packages/policy_corpus/coverage_frame_assembly/coverage_frame_assembly.abstract.md",
-      "abstractTokens": 37,
-      "importance": 50,
-      "path": "packages/policy_corpus/coverage_frame_assembly/coverage_frame_assembly.md",
-      "tokens": 37,
-      "type": "context"
-    },
-    {
       "path": "_archived/README.stub.md",
       "tokens": 104,
       "type": "stub"
     }
   ],
-  "generated_at": "2026-06-13T04:36:38.019Z",
+  "generated_at": "2026-06-13T05:42:43.423Z",
   "lane_tokens": {
-    "contexts": 4000,
+    "contexts": 3994,
     "stubs": 104,
     "summaries": 1993
   },
-  "source_fingerprint": "0c4fb326f131fa6a8242b2a811394413ef85af0511c3b2e4671d336e5378d72e",
-  "total_tokens": 6097,
+  "source_fingerprint": "9fd518309ee21450ec5541623ecfa05c5da4d33e6749d4490842c71c7b4bfbd9",
+  "total_tokens": 6091,
   "version": 1
 }

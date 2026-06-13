@@ -1,0 +1,1 @@
+This note records a context curation workflow using a precomputed recon result, emphasizing single-pass processing, preserved source references, and verified applied file paths.

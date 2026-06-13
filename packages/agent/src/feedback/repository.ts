@@ -15,9 +15,43 @@ export type FeedbackInput = Omit<Feedback, 'createdAt'> & { comment?: string | n
 export class FeedbackRepository {
   private client: Client;
   private initialized = false;
+  private probeInitialized = false;
 
   constructor(url: string) {
     this.client = createClient({ url });
+  }
+
+  /**
+   * Verify the underlying LibSQL store accepts writes. The agent's memory
+   * (mastra.db) and this feedback table share the same file, which on Railway
+   * lives on a persistent volume; if that volume is read-only (e.g. an
+   * ownership mismatch between the runtime user and the volume), connectivity
+   * still succeeds but every chat-thread write fails with SQLITE_READONLY.
+   *
+   * `/healthz` calls this so a read-only store fails the deploy healthcheck —
+   * Railway then keeps the previous healthy deployment instead of promoting a
+   * write-broken one. Returns false instead of throwing.
+   */
+  async probeWritable(): Promise<boolean> {
+    try {
+      if (!this.probeInitialized) {
+        await this.client.execute(
+          'CREATE TABLE IF NOT EXISTS _healthz_probe (id INTEGER PRIMARY KEY, checked_at TEXT NOT NULL)',
+        );
+        this.probeInitialized = true;
+      }
+      await this.client.execute({
+        sql: 'INSERT INTO _healthz_probe (id, checked_at) VALUES (1, ?) ON CONFLICT(id) DO UPDATE SET checked_at = excluded.checked_at',
+        args: [new Date().toISOString()],
+      });
+      return true;
+    } catch (err) {
+      // Re-create the probe table on the next call in case a transient failure
+      // left it absent.
+      this.probeInitialized = false;
+      console.error('[healthz] storage write probe failed:', err);
+      return false;
+    }
   }
 
   private async ensureTable(): Promise<void> {

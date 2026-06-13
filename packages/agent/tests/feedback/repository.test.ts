@@ -131,4 +131,26 @@ describe('FeedbackRepository', () => {
       expect(rows).toHaveLength(1);
     });
   });
+
+
+  describe('probeWritable', () => {
+    it('returns true when the store accepts writes', async () => {
+      expect(await repo.probeWritable()).toBe(true);
+    });
+
+    it('returns false (not throw) when a write fails like a read-only volume', async () => {
+      // Reproduce the production failure mode: the connection opens, but the
+      // write throws SQLITE_READONLY. probeWritable must swallow it and return
+      // false so /healthz reports degraded (503) instead of crashing.
+      const writable = new FeedbackRepository(':memory:');
+      (writable as unknown as { client: { execute: () => Promise<unknown> } }).client = {
+        execute: async () => {
+          const err = new Error('attempt to write a readonly database') as Error & { code: string };
+          err.code = 'SQLITE_READONLY';
+          throw err;
+        },
+      };
+      expect(await writable.probeWritable()).toBe(false);
+    });
+  });
 });

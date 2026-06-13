@@ -1,0 +1,7 @@
+- Captures a curation session for preserving extracted facts and workflow notes from supplied context.
+- Emphasizes that the task is to curate RLM context into durable knowledge, using a pre-computed recon result rather than rerunning recon.
+- Notes a single-pass processing recommendation, with suggestedChunkCount 3, because the context was classified as manageable without chunking.
+- Records basic context characteristics: 19,883 characters, 520 lines, and 0 messages.
+- Lists source file references involved in the task: packages/agent/src/feedback/repository.ts and packages/agent/src/index.ts.
+- Highlights the workflow sequence: context provided -> recon precomputed -> extract key facts -> upsert curated knowledge.
+- Mentions verification guidance: do not print raw context, and confirm outputs through result.applied[].filePath.

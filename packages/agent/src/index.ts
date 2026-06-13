@@ -273,8 +273,16 @@ export const mastra = new Mastra({
             }
           } catch { /* neo4j stays 'error' */ }
 
-          const ok = neo4j === 'connected';
-          return c.json({ status: ok ? 'ok' : 'degraded', neo4j }, ok ? 200 : 503);
+          // Verify the LibSQL store (chat memory + feedback, on the Railway
+          // volume) actually accepts writes. Connectivity alone is not enough:
+          // a read-only volume passes a liveness check but breaks every chat
+          // write, so a write-broken deploy must fail this healthcheck and be
+          // rejected rather than promoted.
+          const storage: 'writable' | 'readonly' =
+            (await feedbackRepo.probeWritable()) ? 'writable' : 'readonly';
+
+          const ok = neo4j === 'connected' && storage === 'writable';
+          return c.json({ status: ok ? 'ok' : 'degraded', neo4j, storage }, ok ? 200 : 503);
         },
       }),
     ],
