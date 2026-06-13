@@ -1,5 +1,5 @@
 {
-  "curationsSinceDream": 18,
+  "curationsSinceDream": 19,
   "lastDreamAt": "2026-06-12T17:26:12.363Z",
   "lastDreamLogId": "drm-1781284941478",
   "pendingMerges": [],
@@ -79,6 +79,10 @@
     {
       "enqueuedAt": 1781323030546,
       "path": "agent_architecture/local_dev_setup/ci_workflow_concurrency_and_test_gates.md"
+    },
+    {
+      "enqueuedAt": 1781325397999,
+      "path": "agent_architecture/context/curated_context.md"
     }
   ],
   "totalDreams": 2,

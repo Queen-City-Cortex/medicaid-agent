@@ -1,0 +1,6 @@
+- Purpose: captures a curated, durable knowledge entry derived from a provided context snapshot.
+- Key points: describes the task as “document extracted context” and notes the output of extracting and organizing source context into durable knowledge.
+- Process / flow: source context -> factual extraction -> knowledge curation.
+- Metadata noted: createdAt and updatedAt timestamps, plus author “ByteRover context engineer.”
+- Structure / sections summary: includes frontmatter metadata, then “Reason,” “Raw Concept,” and “Narrative” sections.
+- Notable entities / decisions: the document emphasizes single-pass curation of the current context snapshot and dependence on the provided context variable plus existing history metadata.

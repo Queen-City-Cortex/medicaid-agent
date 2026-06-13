@@ -25,10 +25,16 @@ RUN npx mastra build --dir src
 FROM base AS runner
 WORKDIR /app
 ENV NODE_ENV=production
-COPY --from=builder --chown=node:node /app/packages/agent/.mastra/output ./
-# The runtime writes file-backed stores (mastra.db, mastra.duckdb) into the
-# workdir by default, so the non-root user must own it.
-RUN chown node:node /app
-USER node
+# gosu lets the entrypoint drop from root to `node` after it chowns the
+# root-owned Railway volume (see docker-entrypoint.sh).
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends gosu \
+  && rm -rf /var/lib/apt/lists/*
+COPY --from=builder /app/packages/agent/.mastra/output ./
+COPY packages/agent/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+# No `USER node`: the entrypoint starts as root to fix volume ownership, then
+# execs the app as `node` via gosu.
 EXPOSE 4111
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 CMD ["node", "index.mjs"]

@@ -1,0 +1,1 @@
+This document records the single-pass curation of a context snapshot into durable knowledge for the agent architecture context.
