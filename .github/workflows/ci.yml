@@ -78,3 +78,28 @@ jobs:
       # no pipeline data load is required.
       - name: Agent integration tests (real Neo4j)
         run: npm run test:integration -w @nc-medicaid/agent
+
+  # Builds the same images Railway deploys, so production-only bundling
+  # failures are caught here instead of at deploy time. The agent build runs
+  # the exact `mastra build` (esbuild) bundle step that — on 2026-06-13 —
+  # failed on a workspace-source import that tsc and vitest resolved fine,
+  # reaching production as a broken deploy. Runs in parallel with `test`;
+  # Railway gates on the whole workflow, so a failed image build blocks deploys.
+  docker-build:
+    name: Production Docker builds
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build agent image
+        run: docker build -f packages/agent/Dockerfile -t agent-ci .
+
+      # NEXT_PUBLIC_* args only need to be present (Next.js inlines them at
+      # build time); the values are placeholders — this job validates that the
+      # bundle compiles, not runtime config.
+      - name: Build web image
+        run: >-
+          docker build -f packages/web/Dockerfile
+          --build-arg NEXT_PUBLIC_MASTRA_URL=http://localhost:4111
+          --build-arg NEXT_PUBLIC_WORKOS_REDIRECT_URI=http://localhost:3000/callback
+          -t web-ci .
