@@ -1,3 +1,6 @@
+---
+related: [agent_architecture/context/epsdt_exception_completeness_workstream_e.md, agent_architecture/context/curated_operational_knowledge.md]
+---
 # Topic: context
 
 ## Overview

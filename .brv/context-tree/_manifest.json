@@ -21,21 +21,15 @@
     {
       "importance": 50,
       "path": "agent_architecture/context/context.md",
-      "tokens": 57,
+      "tokens": 95,
       "type": "context"
     },
     {
-      "abstractPath": "agent_architecture/context/curated_context.abstract.md",
-      "abstractTokens": 32,
-      "importance": 50,
-      "path": "agent_architecture/context/curated_context.md",
-      "tokens": 32,
-      "type": "context"
-    },
-    {
+      "abstractPath": "agent_architecture/context/curated_context_extraction_notes.abstract.md",
+      "abstractTokens": 44,
       "importance": 50,
       "path": "agent_architecture/context/curated_context_extraction_notes.md",
-      "tokens": 443,
+      "tokens": 44,
       "type": "context"
     },
     {
@@ -77,7 +71,7 @@
     {
       "importance": 50,
       "path": "agent_architecture/local_dev_setup/local_development_setup.md",
-      "tokens": 179,
+      "tokens": 201,
       "type": "context"
     },
     {
@@ -131,7 +125,7 @@
     {
       "importance": 50,
       "path": "agent_architecture/packages_pipeline/context.md",
-      "tokens": 64,
+      "tokens": 88,
       "type": "context"
     },
     {
@@ -151,18 +145,38 @@
       "type": "context"
     },
     {
+      "abstractPath": "agent_architecture/packages_pipeline/ssa_parser_subsection_splitting_fix.abstract.md",
+      "abstractTokens": 57,
+      "importance": 50,
+      "path": "agent_architecture/packages_pipeline/ssa_parser_subsection_splitting_fix.md",
+      "tokens": 57,
+      "type": "context"
+    },
+    {
+      "importance": 50,
+      "path": "agent_architecture/search_tooling/hybrid_policy_search_tool.md",
+      "tokens": 193,
+      "type": "context"
+    },
+    {
+      "importance": 50,
+      "path": "auth_integration/workos_authkit_nextjs/context.md",
+      "tokens": 89,
+      "type": "context"
+    },
+    {
       "path": "_archived/README.stub.md",
       "tokens": 104,
       "type": "stub"
     }
   ],
-  "generated_at": "2026-06-13T05:42:43.423Z",
+  "generated_at": "2026-06-13T06:00:50.125Z",
   "lane_tokens": {
-    "contexts": 3994,
+    "contexts": 3986,
     "stubs": 104,
     "summaries": 1993
   },
-  "source_fingerprint": "9fd518309ee21450ec5541623ecfa05c5da4d33e6749d4490842c71c7b4bfbd9",
-  "total_tokens": 6091,
+  "source_fingerprint": "d854093578f1e301f4e91b635d5bb3699ad932b9a0e740393bafa61fc00e80fd",
+  "total_tokens": 6083,
   "version": 1
 }

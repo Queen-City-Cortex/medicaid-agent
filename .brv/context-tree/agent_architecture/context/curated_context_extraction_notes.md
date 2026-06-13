@@ -6,6 +6,8 @@ related: []
 keywords: []
 createdAt: '2026-06-13T05:42:43.392Z'
 updatedAt: '2026-06-13T05:42:43.392Z'
+consolidated_at: '2026-06-13T05:58:01.330Z'
+consolidated_from: [{date: '2026-06-13T05:58:01.330Z', path: agent_architecture/context/curated_context.md, reason: 'Both files document the same single-pass curation session and largely overlap in purpose, workflow, and metadata. The extraction notes are richer, so they should become the authoritative record, with unique details from the shorter curated_context file preserved in the merge.'}]
 ---
 ## Reason
 Preserve extracted facts and curation workflow notes from the provided context
@@ -18,6 +20,7 @@ Curate the provided RLM context into durable knowledge
 - Captured curation metadata
 - Recorded the recon recommendation
 - Preserved detected source references
+- Extracted and organized source context into durable knowledge
 
 **Files:**
 - packages/agent/src/feedback/repository.ts
@@ -32,13 +35,13 @@ context provided -> recon precomputed -> extract key facts -> upsert curated kno
 
 ## Narrative
 ### Structure
-This entry records the current curation session, its size characteristics, and the recommended single-pass processing mode.
+This entry records the current curation session, its size characteristics, and the recommended single-pass processing mode. It also serves as the durable record of the earlier curated context snapshot.
 
 ### Dependencies
 Relies on the supplied context, history, and metadata variables plus the pre-computed recon result.
 
 ### Highlights
-The context can be curated without chunking because recon classified it as single-pass. The task emphasizes not printing raw context and verifying via curate result file paths.
+The context can be curated without chunking because recon classified it as single-pass. The task emphasizes not printing raw context and verifying via curate result file paths. Single-pass curation completed for the current context snapshot (lines: 83).
 
 ### Examples
 Use the pre-computed recon result, avoid calling recon again, and verify applied outputs through result.applied[].filePath.

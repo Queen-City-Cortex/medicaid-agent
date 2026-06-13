@@ -1,3 +1,6 @@
+---
+related: [agent_architecture/packages_pipeline/ssa_parser_subsection_splitting_fix.md]
+---
 # Topic: packages_pipeline
 
 ## Overview

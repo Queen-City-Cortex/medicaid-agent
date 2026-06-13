@@ -1,108 +1,80 @@
 ---
-children_hash: 482c9ce45d25f13cac0755d7296811564be656e6057df87c410a786634717cc5
-compression_ratio: 0.3655984303466318
+children_hash: 25c36ecc6221c23d707592be4e396c7eb8aac2c935587dc818ba97c0ae93b1fd
+compression_ratio: 0.6042638241172552
 condensation_order: 1
 covers: [cli_verifier_flow_and_stdout_contract.md, hallucination_verifier_processor.md]
-covers_token_total: 3058
+covers_token_total: 1501
 summary_level: d1
-token_count: 1118
+token_count: 907
 type: summary
 ---
-## QA / Hallucination Verification
+# Hallucination Verification Pipeline
 
-Structural overview of the verifier pipeline, processor behavior, and CLI/stdout contract. The two child entries split cleanly between runtime processing logic and the externally visible verification output format.
+This cluster documents the hallucination verifier’s CLI contract and the processor that enforces answer quality in NC Medicaid policy workflows. The two entries are tightly linked: the processor produces the verification behavior, and the CLI contract defines how its output is consumed by downstream tooling.
 
-### 1) Hallucination Verifier Processor
-Reference: `hallucination_verifier_processor.md`
+## Core structure
 
-- Implements `HallucinationVerifier` as a processor-level post-check for NC Medicaid policy answers.
-- Core behavior shifted from simple factuality checking to a **two-step verification**:
-  1. **Relevance** to the user question / intended policy
-  2. **Factual accuracy** against retrieved evidence
-- Verification now takes the **first user question** plus answer text plus source text:
-  - `verifyAnswer(question, text, sourceText)`
-- Evidence assembly is tool-driven and limited to these sources:
+- **`hallucination_verifier_processor.md`**  
+  The main implementation doc for `HallucinationVerifier`, which performs a two-step check:
+  1. relevance against the intended policy/question
+  2. factual accuracy against retrieved sources
+
+- **`cli_verifier_flow_and_stdout_contract.md`**  
+  The execution/serialization contract for CLI verification output, including stable stdout markers and telemetry field requirements used by external harnesses.
+
+## Key architectural decisions
+
+- Verification is **final-answer only**: the processor runs only when `finishReason` is `stop`, there are no pending tool calls, and text is present.
+- Evidence gathering is **tool-scoped**: only specific source builders contribute to verification context.
+- Failure handling is **rewrite-based**, not retry-based: if verification fails, the processor applies `correctedAnswer` directly through `writer.custom`.
+- CLI output is **machine-parsed and stable**: stdout markers and telemetry field names must not change because the Python eval harness depends on them.
+
+## `hallucination_verifier_processor.md` details
+
+- Defines the verifier configuration, evidence-source interfaces, metadata formatters, and `buildSourceText` helper.
+- Uses dedicated SourceEntry builders for:
   - `getSection`
   - `getDocument`
   - `getAmendments`
   - `lookupPolicy`
   - `followReferences`
-- Source assembly rules:
-  - cited sources are prioritized before uncited sources
-  - source text is capped by `maxSourceChars`
-  - truncation is explicitly signaled when excess sources are omitted
-- Failure handling:
-  - if verification is unsupported, irrelevant, or has major relevance issues, the processor applies `correctedAnswer` immediately
-  - correction uses `writer.custom` with `data-verification-rewrite`
-  - avoids retry loops / over-correction
-- Guardrails:
-  - only runs on the final assistant response
-  - requires `finishReason === stop`
-  - requires no pending tool calls
-  - requires text to be present
-- Depends on:
+- `buildSourceText` prioritizes cited evidence before uncited material and enforces `maxSourceChars`.
+- The verification schema includes:
+  - `supported`
+  - `relevant`
+  - `unsupportedClaims`
+  - `relevanceIssues`
+  - `correctedAnswer`
+- Dependencies include:
   - `generateObject` from `ai`
   - `createOpenAI` from `@ai-sdk/openai`
-  - Zod schema validation
+  - Zod
   - Mastra core processor/memory types
-  - `writer.custom` event emission
+  - `writer.custom` for `data-verification-rewrite` events
 
-### 2) CLI Verifier Flow and Stdout Contract
-Reference: `cli_verifier_flow_and_stdout_contract.md`
+### Important facts
+- Evidence extraction only considers the five supported tool outputs.
+- `maxSourceChars` is computed as `VERIFIER_MAX_SOURCE_TOKENS` defaulting to 30000, multiplied by 4.
+- The processor extracts the first user question, gathers source text, verifies the answer, and updates the assistant message if needed.
+- When verification fails, the processor applies `correctedAnswer` immediately without retries.
 
-- Documents the **shared verification flow** used by both CLI runner and processor:
-  - `runVerificationForAnswer()` is the common execution path
-- Establishes a **stable stdout contract** for eval / harness consumption:
+## `cli_verifier_flow_and_stdout_contract.md` details
+
+- Documents the CLI verifier execution chain:
+  - input → verifier execution → stdout contract → result handling
+- Defines stable stdout markers:
   - `---EVIDENCE---`
   - `---VERIFIER---`
   - `---ANSWER---`
-- Critical contract rule:
-  - the Python eval harness parses the `---VERIFIER---` JSON block
-  - exact **snake_case** field names must not change
-- Verification schema includes:
-  - `supported`
-  - `relevant`
-  - `citationsComplete`
-  - `unsupportedClaims`
-  - `missingCitationClaims`
-  - `relevanceIssues`
-  - `correctedAnswer`
-- Confidence scoring / thresholds:
-  - weighted deductions for unsupported claims, missing citations, and relevance issues
-  - confidence is clamped to `[0, 1]`
-  - severity bands: `high >= 0.85`, `medium >= 0.60`, otherwise `low`
-  - `pureMarkerFallback` caps confidence at `0.55`
-- Output rendering behavior:
-  - corrected answers remove missing-citation markers from sentence flow
-  - footer suggests citations
-  - if evidence is insufficient, CLI falls back to a standard inability message
-- CLI/runtime configuration:
-  - `VERIFIER_ENABLED !== 'false'`
-  - `VERIFIER_MODEL` defaults to `gpt-5.4-mini`
-  - `VERIFIER_MAX_SOURCE_TOKENS` defaults to `30000`
-  - `maxSourceChars = maxTokens * 4`
-  - `AGENT_MODEL` defaults to `gpt-5.4`
-  - OpenAI is used for `gpt-*`, `o3*`, `o4*`; Anthropic otherwise
-- Agent/server behavior captured here:
-  - `agent id`: `nc-medicaid-navigator`
-  - `server host`: `0.0.0.0`
-  - `port`: `parseInt(process.env.PORT || '4111')`
-  - `healthz` checks Neo4j via `RETURN 1`
-  - CLI uses `:memory:` observability DB; non-CLI uses `mastra.duckdb`
-- Supported evidence/tool contract mirrors the processor entry:
-  - `getSection`, `getDocument`, `getAmendments`, `lookupPolicy`, `followReferences`, `resolveAnswerFrame`
+- Captures verifier telemetry and confidence-scoring behavior.
+- Records environment/model behavior for the CLI, agent server, route, and healthcheck settings.
+- Explicit rule: do not rename telemetry fields because the eval harness parses the `---VERIFIER---` JSON block and expects exact snake_case names.
 
-### Cross-entry relationships
+## Relationships and drill-down paths
 
-- The CLI entry (`cli_verifier_flow_and_stdout_contract.md`) defines the **observable contract** and execution expectations.
-- The processor entry (`hallucination_verifier_processor.md`) defines the **internal implementation** that produces those outputs.
-- Both entries share the same core assumptions:
-  - final-answer-only verification
-  - evidence-first source assembly
-  - relevance + factuality schema
-  - immediate corrected-answer replacement when verification fails
-
-### Drill-down map
-
-- `hallucination_verifier_processor.md` → processor internals, source builders, schema, rewrite behavior
-- `cli_verifier_flow_and_stdout_contract.md` → stdout markers, confidence scoring, CLI/server/runtime settings, eval harness contract
+- **Processor behavior and schema** → `hallucination_verifier_processor.md`
+- **CLI stdout contract and harness compatibility** → `cli_verifier_flow_and_stdout_contract.md`
+- **Evaluation and launch-blocker alignment** is referenced by both entries through related links to:
+  - `qa/evaluation_pipeline/context.md`
+  - `qa/launch_blockers/launch_blocker_fixes.md`
+  - `qa/playwright_e2e/...` and answer-quality evaluation docs

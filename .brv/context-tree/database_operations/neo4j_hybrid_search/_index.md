@@ -1,38 +1,85 @@
 ---
-children_hash: 91402e0c6733ee46762f9d912ba1494c4f4fa9828cec6dd1932bb444b733e8ab
-compression_ratio: 0.5027322404371585
+children_hash: 540d1af473660f9aab881373286e042464b464aa76a4ba1be439f3cf89858ef2
+compression_ratio: 0.6639765223771094
 condensation_order: 1
-covers: [context.md, neo4j_hybrid_search_indexing.md]
-covers_token_total: 915
+covers: [context.md, deploy_data_script_and_refresh_workflow.md, neo4j_hybrid_search_indexing.md]
+covers_token_total: 1363
 summary_level: d1
-token_count: 460
+token_count: 905
 type: summary
 ---
-## Neo4j Hybrid Search
+# Neo4j Hybrid Search and Deployment Workflow
 
-Covers the Neo4j-backed retrieval layer that combines vector search, chunk embeddings, concept graph matches, and fulltext keyword search into a single hybrid ranking pipeline. The main drill-down entry is **Neo4j Hybrid Search Indexing**, with the topic-level overview in **context.md**.
+## Overview
+This set of knowledge entries covers two tightly related areas in the Neo4j pipeline:
+- **`context.md` / `neo4j_hybrid_search`**: the hybrid retrieval design that combines vector, chunk, concept-graph, and fulltext signals.
+- **`deploy_data_script_and_refresh_workflow.md`**: the remote deployment script that rebuilds and reloads the graph in a controlled, destructive workflow.
+- **`neo4j_hybrid_search_indexing.md`**: the concrete indexing and ranking mechanics behind hybrid search.
 
-### Core architecture
-- **Indexing and schema setup**: `ensure_vector_index` asserts the presence of `section_embeddings`, `chunk_embeddings`, and `section_fulltext` indexes.
-- **Hybrid retrieval**: `vector_search` gathers multiple signal types per document-type group, deduplicates by `section_id`, then fuses scores with **Reciprocal Rank Fusion** using **RRF_K = 60**.
-- **Search signals included**:
-  - section embeddings
-  - chunk embeddings
-  - concept graph matches
-  - fulltext keyword hits
+## Core Architecture
 
-### Key behaviors and rules
-- Concept and fulltext search only run when `query_text` is provided.
-- Concept matches are limited to up to `min(top_k, 5)` sections and use a fixed **CONCEPT_MATCH_SCORE = 0.70**.
-- Each source list is de-duplicated by keeping the highest score per `section_id` before fusion.
-- Fulltext search follows the same document-type group iteration as vector search.
-- Chunk embedding search mirrors the per-type-group pattern used for section embeddings.
+### Hybrid retrieval pipeline
+`neo4j_hybrid_search` describes a retrieval flow where Neo4j search merges multiple relevance sources:
+- section embeddings
+- chunk embeddings
+- concept graph matches
+- fulltext keyword hits
 
-### Dependencies and schema details
-- Depends on `pipeline.config.EMBEDDING_DIMENSIONS` for index creation.
-- Uses `pipeline.graph.connection.get_session` for Neo4j access.
-- Concept matching relies on `PolicyConcept` nodes with aliases and section filters such as `content_length > 200` and `section_number`.
-- Schema support includes a `section_fulltext` index over `Section.title` and `Section.content_text`.
+The key design point is **Reciprocal Rank Fusion** with **`RRF_K = 60`**, used to blend ranked lists into a single result set. Concept matching is gated by `query_text`, and the search is organized around document-type groups.
 
-### Related entry
-- **Neo4j Hybrid Search Indexing** — implementation details, flow, rules, and facts for the hybrid fusion pipeline.
+### Indexing and schema support
+`neo4j_hybrid_search_indexing.md` adds implementation detail:
+- `ensure_vector_index` validates required indexes exist
+- schema includes **`section_fulltext`** over `Section.title` and `Section.content_text`
+- vector and chunk embedding search are both performed per document-type group
+- results are deduplicated by `section_id` before fusion
+- `_rrf_fuse` combines the ranked lists and returns top-k results
+
+## Deployment / Refresh Workflow
+
+### Remote graph reload script
+`Deploy Data Script and Refresh Workflow` documents `scripts/deploy-data.sh`, which targets a remote Neo4j instance and performs a fixed multi-step reload pipeline.
+
+Key properties:
+- requires `NEO4J_HOST`
+- reads `NEO4J_AUTH` from Railway variables
+- requires Railway CLI login
+- depends on an enabled Railway TCP proxy
+- refuses destructive graph wipe without explicit confirmation in non-interactive shells
+
+The workflow is explicitly destructive at **step 2**, where `load --reset` drops all nodes and relationships before reloading.
+
+### Pipeline flow
+The documented flow is:
+
+`configure NEO4J_HOST -> read NEO4J_AUTH -> confirm wipe -> schema -> load --reset -> ingest-cfr -> ingest-ssa -> extract-refs -> detect-amendments -> embed -> seed-concepts -> link-concepts -> stats`
+
+## Key Rules and Constraints
+
+### Search rules
+From `neo4j_hybrid_search_indexing.md`:
+- Deduplicate each source list by keeping the highest score per `section_id` before fusing.
+- Concept matches require `query_text`.
+- Concept matches use a fixed score of `0.70` and consider up to `min(top_k, 5)` sections.
+- Fulltext search uses the same document-type grouping as vector search.
+
+### Deployment rules
+From `Deploy Data Script and Refresh Workflow`:
+- Exit with usage instructions if `NEO4J_HOST` is missing.
+- Use Railway variables for auth.
+- Require confirmation before wiping the graph.
+- Step 2 is destructive and uses `load --reset`.
+- Disable the TCP proxy after migration.
+
+## Important Dependencies
+Across these entries, the system depends on:
+- `pipeline.config.EMBEDDING_DIMENSIONS`
+- `pipeline.graph.connection.get_session`
+- `PolicyConcept` nodes and aliases
+- section filters such as `content_length > 200` and `section_number`
+- Railway CLI + TCP proxy for remote deployment
+
+## Drill-down References
+- **`context.md`** — high-level topic overview for `neo4j_hybrid_search`
+- **`neo4j_hybrid_search_indexing.md`** — implementation details for index creation and RRF fusion
+- **`deploy_data_script_and_refresh_workflow.md`** — destructive remote reload workflow for `scripts/deploy-data.sh`

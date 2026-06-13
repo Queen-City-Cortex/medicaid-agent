@@ -2,7 +2,7 @@
 title: Curated Operational Knowledge
 summary: Session-level curation workflow using precomputed recon and single-pass UPSERT verification
 tags: []
-related: [agent_architecture/packages_pipeline/retrieval_fixes.md, frontend_ui/message_persistence_parsing/message_persistence_parsing.md, agent_architecture/context.md]
+related: [agent_architecture/packages_pipeline/retrieval_fixes.md, frontend_ui/message_persistence_parsing/message_persistence_parsing.md, agent_architecture/context.md, agent_architecture/context/context.md]
 keywords: []
 createdAt: '2026-06-12T05:52:52.426Z'
 updatedAt: '2026-06-13T03:40:01.385Z'

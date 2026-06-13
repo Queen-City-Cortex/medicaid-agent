@@ -165,7 +165,12 @@ def _build_agent_env() -> dict[str, str]:
     agent_env = {**os.environ, "ANTHROPIC_API_KEY": ANTHROPIC_API_KEY, "VOYAGE_API_KEY": VOYAGE_API_KEY}
     agent_env["MASTRA_OBSERVABILITY_PATH"] = agent_env.get("MASTRA_OBSERVABILITY_PATH", ":memory:")
 
-    openai_key = os.environ.get("OPENAI_API_KEY", "")
+    # Evals run the agent, which calls OpenAI for the model, hallucination
+    # verifier, prompt-injection detector, and observational memory. Prefer a
+    # dedicated EVAL_OPENAI_API_KEY so a research run cannot drain the
+    # production agent's OpenAI quota (which would surface to users as failing
+    # chats). Falls back to OPENAI_API_KEY when no separate eval key is set.
+    openai_key = os.environ.get("EVAL_OPENAI_API_KEY") or os.environ.get("OPENAI_API_KEY", "")
     if openai_key:
         agent_env["OPENAI_API_KEY"] = openai_key
 

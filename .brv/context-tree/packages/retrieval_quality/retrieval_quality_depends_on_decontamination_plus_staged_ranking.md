@@ -6,6 +6,8 @@ related: [packages/policy_corpus/frame/coverage_selection_and_graph_fixtures.md,
 keywords: []
 createdAt: '2026-06-12T17:28:02.891Z'
 updatedAt: '2026-06-12T17:28:02.891Z'
+consolidated_at: '2026-06-13T05:58:26.711Z'
+consolidated_from: [{date: '2026-06-13T05:58:26.711Z', path: packages/retrieval_quality/retrieval_quality_depends_on_decontamination_plus_staged_ranking.abstract.md, reason: 'These three files are the same knowledge item at different abstraction levels: the main markdown file already contains the full structured content, while the abstract and overview restate the same retrieval-quality design, flow, dependencies, rules, and facts. They are redundant and should be consolidated into one canonical file while preserving the unique details from the summary variants.'}, {date: '2026-06-13T05:58:26.711Z', path: packages/retrieval_quality/retrieval_quality_depends_on_decontamination_plus_staged_ranking.overview.md, reason: 'These three files are the same knowledge item at different abstraction levels: the main markdown file already contains the full structured content, while the abstract and overview restate the same retrieval-quality design, flow, dependencies, rules, and facts. They are redundant and should be consolidated into one canonical file while preserving the unique details from the summary variants.'}]
 ---
 ## Reason
 Curate the provided retrieval-quality context into durable knowledge.
@@ -57,3 +59,13 @@ Example flow: iterate profile.typeGroups, overscan with vectorScanK(profile.perG
 - **hcbs_decontamination**: Keep WAIVER_APPLICATION_PRIMARY_SECTION_NUMBERS as legitimate HCBS domain knowledge, but remove hardcoded section-number heuristics like 5.4.3 from prior-auth quantity detection. [project]
 - **neo4j_vector_overscan**: Use vector overscan because Neo4j queryNodes(k) returns global top-k and cannot pre-filter by group. [project]
 - **retrieval_backend_files**: Retrieval/backend files referenced are packages/policy-corpus/src/retrieval/backends/section-vector.ts and packages/policy-corpus/src/retrieval/collector.ts. [project]
+
+## Consolidated notes from summary files
+- Retrieval quality is framed as depending on three main ideas: decontamination, topical coverage, and staged ranking with overscanned candidates.
+- The core retrieval flow is: query intent -> candidate scoring -> vector overscan -> topical filtering -> group-specific ranking -> RRF merge.
+- The backend pattern iterates `profile.typeGroups`, overscans each group with `vectorScanK(profile.perGroupK)`, and then filters by `document_type`.
+- Final ranking uses reciprocal rank fusion (RRF) after deduplicating hits by `sectionId`, preserving hybrid policy search ordering.
+- A major dependency is Neo4j behavior: `queryNodes(k)` returns a global top-k, so group coverage requires overscanning before filtering.
+- Decontamination rules are domain-specific: for HCWD, replace limit-history terms with income-rule terms and remove the 01-14 change-notice bonus; for HCBS, preserve `WAIVER_APPLICATION_PRIMARY_SECTION_NUMBERS` but remove hardcoded heuristics like `5.4.3`.
+- Notable entities and files include `packages/policy-corpus/src/retrieval/backends/section-vector.ts` and `packages/policy-corpus/src/retrieval/collector.ts`, along with the patterns `^vectorScanK\(profile\.perGroupK\)$` and `^queryNodes\(k\)$`.
+- The document’s sections cover reason, raw concept, narrative (structure, dependencies, highlights, rules, examples), and a facts list summarizing the retrieval design decisions.

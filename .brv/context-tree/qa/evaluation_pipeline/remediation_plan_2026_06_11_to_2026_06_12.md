@@ -1,83 +1,20 @@
 ---
-title: Remediation Plan 2026-06-11 to 2026-06-12
-summary: Remediation plan covering evaluation pipeline fixes and follow-up actions across June 11-12, 2026.
-tags: []
-related: [packages/pipeline/data/eval-results/milestones/2026-06-12t22:00:12_answer.json.md]
-keywords: []
-createdAt: '2026-06-12T22:03:47.698Z'
-updatedAt: '2026-06-13T03:00:23.076Z'
+consolidated_at: '2026-06-13T05:58:10.479Z'
+consolidated_from: [{date: '2026-06-13T05:58:10.479Z', path: qa/evaluation_pipeline/held_out_evaluation_dataset_and_ssa_ingestion_rules.md, reason: 'These four files substantially overlap on the same evaluation-pipeline maintenance area: held-out dataset handling, SSA ingestion rules, paraphrase rebaseline, trustworthiness/citation fidelity, and remediation planning. The remediation plan file is the richest target because it already aggregates the June 11–12 window and includes milestone context, while the other files contribute specific rules, metrics, and operational constraints that should be preserved in one consolidated topic.'}, {date: '2026-06-13T05:58:10.479Z', path: qa/evaluation_pipeline/trustworthiness_and_citation_fidelity.md, reason: 'These four files substantially overlap on the same evaluation-pipeline maintenance area: held-out dataset handling, SSA ingestion rules, paraphrase rebaseline, trustworthiness/citation fidelity, and remediation planning. The remediation plan file is the richest target because it already aggregates the June 11–12 window and includes milestone context, while the other files contribute specific rules, metrics, and operational constraints that should be preserved in one consolidated topic.'}, {date: '2026-06-13T05:58:10.479Z', path: qa/evaluation_pipeline/held_out_paraphrase_rebaseline_and_remediation_plan.md, reason: 'These four files substantially overlap on the same evaluation-pipeline maintenance area: held-out dataset handling, SSA ingestion rules, paraphrase rebaseline, trustworthiness/citation fidelity, and remediation planning. The remediation plan file is the richest target because it already aggregates the June 11–12 window and includes milestone context, while the other files contribute specific rules, metrics, and operational constraints that should be preserved in one consolidated topic.'}]
 ---
-## Reason
-Curate extracted facts from context
+Consolidate the evaluation-pipeline maintenance knowledge into a single topic centered on the June 11–12, 2026 remediation window, while preserving the held-out dataset, SSA ingestion rules, paraphrase rebaseline metrics, and trustworthiness/citation-fidelity requirements.
 
-## Raw Concept
-**Task:**
-Document the remediation plan for the evaluation pipeline across 2026-06-11 to 2026-06-12
+Include the following unique details from the source files:
+- Held-out evaluation dataset must remain de-contaminated from training and retrieval corpora.
+- SSA ingestion rules: do not infer SSA membership from section numbering alone; do not assume section suffixes are contiguous; freestanding USC sections must never get SSA_TO_USC entries.
+- Example mappings: SSA 1902 -> USC 1396a; SSA 1905 -> USC 1396d; SSA 1944 -> USC 1396w-3a.
+- Trustworthiness is enforced end to end through retrieval, citation checks, answer evaluation, cross-reference evaluation, and remediation.
+- Judge errors should remain None and be excluded from aggregates.
+- Cross-reference resolution checks REFERENCES_DOCUMENT, AMENDS in both directions, and section-level REFERENCES paths.
+- Held-out paraphrase rebaseline results: overall 2.60/3.00, FA 2.72, Comp 2.66, Hall 2.60, Cit 2.66, trail hit 96% across n=50, judge claude-sonnet-4-6, unified evidence mode, git commit 71ef5a0.
+- P1 de-contamination preserved quality and was statistically equal to the contaminated 2026-04-23 baseline despite never-seen phrasings.
+- Remediation roadmap phases P0 through P3: answer integrity/security, retrieval and UX, product upgrade/infrastructure hygiene, staged refactors.
+- June 11–12 remediation planning details: evening re-baseline metrics and score deltas, P0/P1/P2/P3 clusters, and the workflow issue identification -> remediation planning -> implementation -> verification.
+- Preserve the milestone JSON snapshot and all explicit examples, rules, and timestamps from the source documents.
 
-**Changes:**
-- Recorded evening re-baseline metrics and score deltas
-- Captured P0 answer integrity and security fixes
-- Captured P1 retrieval and UX defect clusters
-- Captured P2 product upgrade and infrastructure hygiene priorities
-- Captured P3 staged refactors
-- Captured remediation actions for evaluation pipeline and quality assurance
-- Preserved held-out dataset ingestion and SSA rules
-- Preserved paraphrase rebaseline and remediation planning details
-- Recorded trustworthiness and citation fidelity concerns
-- Captured remediation actions spanning 2026-06-11 to 2026-06-12
-- Recorded the 2026-06-11 remediation plan and phase ordering
-- Captured the held-out paraphrase baseline improvements through 2026-06-13
-- Preserved the remaining stable 2s and the next optimization lever
-- Captured remediation steps, fixes, and evaluation adjustments described in the source context
-
-**Files:**
-- packages/pipeline/data/eval-results/milestones/2026-06-12T22:00:12_answer.json
-- docs/reviews/2026-06-11-remediation-plan.md
-- packages/pipeline/data/eval-results/milestones/2026-06-13T00:39:11_answer.json
-
-**Flow:**
-issue identification -> remediation planning -> implementation -> verification
-
-**Timestamp:** 2026-06-12
-
-**Author:** ByteRover context engineer
-
-## Narrative
-### Structure
-This topic records the remediation work for the evaluation pipeline and related quality controls during the June 11-12 window.
-
-### Dependencies
-Connected to evaluation quality, citation fidelity, and held-out dataset handling.
-
-### Highlights
-Preserves the remediation scope, dates, and evaluation-related adjustments for later recall.
-
-### Rules
-UI/UX implementation work should invoke the frontend-design skill. Each fix should start by confirming the finding against the code.
-
-### Examples
-Examples of remaining gaps include CAP/DA MDT documentation detail, experimental-drug framing, and 441 Subpart G numbering-family completeness.
-
----
-
-## Milestone JSON snapshot
-
-```json
-{
-  "run_id": "2026-06-12T23:32:28",
-  "level": "answer",
-  "config": {
-    "embedding_model": "voyage-law-2",
-    "top_k": 10,
-    "dataset_count": 50,
-    "git_sha": "e5c5a52",
-    "dataset": "data/golden/heldout-paraphrase.json",
-    "judge_model": "claude-sonnet-4-6",
-    "evidence_mode": "unified"
-  },
-  "aggregate": {
-    "precision_at_k": 0.9533333333333333,
-    "recall_at_k": 0.96,
-    "mrr": 0.96,
-    "primary_hit_rate": 1.0,
-    "fac [other]
+Recommended consolidated narrative: the evaluation pipeline has a single maintenance thread covering held-out dataset integrity, SSA source-authority mapping, trustworthiness and citation fidelity, held-out paraphrase rebaselining, and staged remediation actions recorded across June 11–12, 2026.

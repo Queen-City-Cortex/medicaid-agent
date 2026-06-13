@@ -251,3 +251,18 @@ def test_invoke_agent_with_progress_pads_legacy_three_tuple():
         assert evidence is None
     finally:
         mod._invoke_agent = original
+
+
+def test_build_agent_env_prefers_eval_openai_key(monkeypatch):
+    # A research run must not draw on the production agent's OpenAI quota.
+    monkeypatch.setenv("OPENAI_API_KEY", "prod-key")
+    monkeypatch.setenv("EVAL_OPENAI_API_KEY", "eval-key")
+    env = answer._build_agent_env()
+    assert env["OPENAI_API_KEY"] == "eval-key"
+
+
+def test_build_agent_env_falls_back_to_openai_key(monkeypatch):
+    monkeypatch.setenv("OPENAI_API_KEY", "prod-key")
+    monkeypatch.delenv("EVAL_OPENAI_API_KEY", raising=False)
+    env = answer._build_agent_env()
+    assert env["OPENAI_API_KEY"] == "prod-key"

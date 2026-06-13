@@ -1,120 +1,92 @@
 ---
-children_hash: 96a94567093d12cdd1bddc1b0afc065dd75bf406b587646ba3e42487ff3c18f2
-compression_ratio: 0.8450889914304548
+children_hash: 8cdbede826c9250332bc34f4436f71569585ef8f243c7a8f81f10921155c3137
+compression_ratio: 0.4890691114245416
 condensation_order: 1
-covers: [frame/_index.md, golden_dataset_de_contamination_and_retrieval_constants.md]
-covers_token_total: 1517
+covers: [coverage_frame_assembly/_index.md, coverage_routing/_index.md, document_selection/_index.md, frame/_index.md, golden_dataset_de_contamination_and_retrieval_constants.md]
+covers_token_total: 2836
 summary_level: d1
-token_count: 1282
+token_count: 1387
 type: summary
 ---
-# Policy Corpus Coverage and Retrieval Constants
+# Policy Corpus Structural Overview
 
-This level-1 summary captures two tightly related areas: the coverage-selection pipeline plus strict graph-fixture test helpers, and the canonical golden dataset / retrieval-constants knowledge. Together they describe how policy-corpus coverage is assembled, validated, and kept decontaminated.
+This layer covers the policy-corpus frame pipeline, with three tightly related areas: routing, document selection, and frame assembly. The main theme is that query intent and care-setting specificity now control how documents are selected, narrowed, paired, and assembled into the final coverage frame.
 
-## Coverage Selection and Graph Fixtures
-Reference **frame/_index.md** for the main pipeline and fixture architecture.
+## Coverage routing and setting preference
+- **`coverage_routing/_index.md`** describes the routing flow:
+  `lookup documents -> infer documents from hits -> apply setting preference -> narrow -> return routing documents`
+- Routing now applies **setting-scoped document preference before inferred narrowing** via `selectSettingPreferredDocuments`, ahead of `narrowInferredCoverageDocuments`.
+- If a query explicitly names a care setting and titles match, only setting-matching documents are returned.
+- When no sibling policy variant frame exists, the **setting preference reason** is carried into `variantReasoning`.
+- Key dependency chain:
+  - `collectPolicyDocumentsFromHits`
+  - `narrowHcwdCoverageDocuments`
+  - `narrowInferredCoverageDocuments`
+  - `selectSettingPreferredDocuments`
+- Source files: `packages/policy-corpus/src/frame/context/routing.ts`, `packages/policy-corpus/src/internal/document-selection.ts`
 
-- Coverage assembly is now **positional rather than score-field driven**: `SectionCandidate.score` was removed.
-- The five exported stages are:
-  1. `scoreCoverageSections`
-  2. `collectCoverageSectionGroups`
-  3. `buildCoverageInitialSelection`
-  4. `buildCoverageAnchors`
-  5. `assembleCoverageSections`
-- The flow is:
-  - surface candidate sections
-  - score and group by coverage flags
-  - build the initial selection
-  - assemble anchors
-  - merge primary, supporting, and avoid sections
-- Scoring still uses multiple signals, including `focusScore`, `clusterScore`, `requirementScore`, and query-specific bonuses/penalties.
-- Notable heuristics include:
-  - HCWD income premium scoring with a current-document bonus for policy number `MA-2180`
-  - penalties for amendments, administrative forms, year-specific premiums, and HCWD process titles
-  - grouping for general eligibility, coverage scope, and congregate PCS
-  - telehealth prioritization and demotion rules
-  - anchor-based reshaping for not-covered and yes/no coverage queries
-  - supporting-selection rebalance when certain anchors are present
-- Avoid sections include demoted telehealth tables/context, ambulance general exclusions, congregate workflow sections, and general-eligibility administrative or limitation sections.
+## Document selection and narrowing
+- **`document_selection/_index.md`** focuses on document-level coverage boosts, title expansion, variant scoring, HCWD scoring, and narrowing.
+- The key architectural change is `selectSettingPreferredDocuments(queryLower, documents)`, which prioritizes documents matching the setting named in the query.
+- Setting preference runs **before** `narrowInferredCoverageDocuments`, preventing irrelevant distractors from outranking the intended policy document when the query includes a setting.
+- `variantReasoning` falls back to the setting-preference reason when no sibling variant frame exists.
+- Processing flow:
+  `query terms -> document scoring -> optional setting preference -> narrowing -> frame assembly`
+- Depends on `VARIANT_SETTING_TERMS`, title matching, and existing narrowing behavior.
 
-### Collector and Federal Authority
-Also covered in **frame/_index.md**.
+## Coverage frame assembly
+- **`coverage_frame_assembly/_index.md`** documents how the final coverage answer frame is assembled from routed documents and evidence candidates.
+- The pipeline merges:
+  - base hits
+  - HCWD history hits
+  - routed documents
+  - section candidates
+- These are organized into:
+  - primary evidence
+  - supporting evidence
+  - avoid evidence
+- Core rule: for sibling sets, the variant frame takes precedence; otherwise, `settingPreference.documents` become `preferredRoutingDocuments`.
+- This ensures setting-specific routing remains authoritative even when non-sibling documents have higher raw scores.
+- Key files: `packages/policy-corpus/src/frame/pipelines/coverage.ts`, `packages/policy-corpus/src/frame/context/routing.ts`, `packages/policy-corpus/src/internal/document-selection.ts`
 
-- The collector uses a documented **5-stage merge pipeline**.
-- The federal collector currently scans `federal regulation` and `federal statute` together.
-- This combined scan is a known rough edge because it can hide per-`docType` coverage gaps and may silently drop one side in stubs.
+## Frame pipeline context
+- **`frame/_index.md`** covers the broader policy corpus frame pipeline, including coverage selection, graph fixtures, and federal authority handling.
+- **Coverage Selection and Graph Fixtures**
+  - Frame code is split across `packages/policy-corpus/src/frame/coverage/candidates.ts`, `coverage/selection.ts`, and `federal-authority.ts`
+  - `SectionCandidate.score` was removed; selection is now positional rather than score-field driven
+  - Coverage selection uses a 5-stage pipeline:
+    1. score coverage sections
+    2. collect/group by coverage flags
+    3. build initial selection
+    4. build anchors
+    5. assemble final sections by merging primary, supporting, and avoid sections
+  - Shared strict Neo4j fixtures centralize typed record builders, query matchers, corpus/session stubs, and handler execution checks
+  - Fixtures fail loudly on missing fields, unused handlers, and unexpected extra queries unless `allowExtraQueries` is set
+- **Federal Authority Pairing and Rebalance**
+  - Retrieval explicitly pairs statute and regulation when query intent indicates an authority citation
+  - Driven by `asksForAuthorityCitation` in `query-intent.ts` and `authorityCitationQuery`
+  - Adds title boosting, statute/regulation pairing, and CFR authority-first candidate behavior
+  - Evidence resolution steps:
+    1. `buildFederalAuthoritySignals`
+    2. `collectFederalAuthorityEvidence`
+    3. `collectFederalImplementationEvidence`
+    4. `buildFederalAuthorityCandidateSets`
+  - Rebalance hints adjust primary/supporting/avoid sections for waiver authority, SPA, and EPSDT
+  - Statute retention is preserved so one `federal_statute` section remains visible even when regulation hints dominate
+  - Ordering matters: `WAIVER_AUTHORITY_HINT` must run before `WAIVER_HINT`
+  - Example intent mappings:
+    - 1915(c) HCBS waiver authority -> `42 CFR Part 441 Subpart G`
+    - SPA timeliness/submission -> `42 CFR 430`
+    - EPSDT -> `42 CFR 441 Subpart B`
 
-### Graph Fixtures and Test Helpers
-Also covered in **frame/_index.md**.
+## Cross-cutting patterns
+- The pipeline is increasingly **intent-aware**: query intent determines which sections are surfaced, paired, or demoted.
+- Authority questions favor official section headings over body mentions.
+- Test infrastructure is intentionally strict and fails loudly on missing data, unexpected queries, and unused handlers.
+- A noted rough edge: the federal collector scans `federal_regulation` and `federal_statute` together, which can mask per-docType test coverage gaps.
 
-- `packages/policy-corpus/tests/helpers/graph-fixtures.ts` centralizes strict Neo4j test helpers.
-- Strict records throw on missing field access instead of returning `undefined`.
-- `expectAllHandlersUsed()` is required to flush dead handlers.
-- Unexpected extra scripted queries throw unless `allowExtraQueries` is explicitly set.
-- `createCorpus` provides match-based handlers.
-- `createCorpusWithRuns` consumes scripted runs in order.
-
-#### Centralized Builders and Matchers
-The fixture layer standardizes construction and matching:
-
-- Typed record builders:
-  - `sectionHit`
-  - `sectionRecord`
-  - `documentRecord`
-  - `amendmentRecord`
-  - `containerChildrenRecord`
-  - `contextEntryRecord`
-  - `referenceRecord`
-- Query matchers under `queries.*` cover:
-  - vector
-  - fulltext
-  - concept
-  - document
-  - amendment
-  - section hydration
-- `documentGraphHandlers` hydrates `lookupPolicy`, `getSection`, and `getDocument` for one document, with generated handlers marked optional.
-
-### Design Direction
-- The coverage frame layer now uses:
-  - `packages/policy-corpus/src/frame/coverage/candidates.ts`
-  - `packages/policy-corpus/src/frame/coverage/selection.ts`
-  - `packages/policy-corpus/src/frame/federal-authority.ts`
-- The overall direction is toward explicit, strict, and inspectable coverage assembly rather than implicit scoring state.
-
-## Golden Dataset De-contamination and Retrieval Constants
-Reference **golden_dataset_de_contamination_and_retrieval_constants.md** for the canonical merged entry.
-
-- This entry is the canonical consolidation of the main markdown plus its abstract and overview variants.
-- It preserves the full durable content while merging repeated summary wording.
-
-### Preserved de-contamination decisions
-- Replace HCWD limit-history terms with **HCWD income-rule terms**.
-- Remove the `01-14` change-notice bonus from HCWD history retrieval.
-- Remove the hardcoded `5.4.3` prior-auth quantity-detection heuristic.
-- Preserve `WAIVER_APPLICATION_PRIMARY_SECTION_NUMBERS` as legitimate HCBS domain knowledge.
-
-### Retrieval flow and ranking
-- Retrieval follows:
-  - query intent
-  - candidate scoring
-  - vector overscan
-  - topical filtering
-  - group-specific ranking
-- Neo4j `queryNodes(k)` returns a global top-k, so per-group coverage requires overscanning first and then filtering.
-
-### Canonical constants
-The merged entry explicitly retains these constants:
-
-- `VECTOR_OVERSCAN_FACTOR = 8`
-- `VECTOR_OVERSCAN_MAX = 200`
-- `MAX_CONTENT_CHARS = 6000`
-- `MAX_COMBINED_CHARS = 6000`
-- `FRAME_PRIMARY_LIMIT = 4`
-- `FRAME_SUPPORT_LIMIT = 4`
-- `FRAME_AVOID_LIMIT = 3`
-- `FRAME_DOCUMENT_LIMIT = 3`
-
-## Drill-down map
-- **frame/_index.md**: coverage-selection pipeline, collector behavior, strict Neo4j fixtures, builders, and matchers
-- **golden_dataset_de_contamination_and_retrieval_constants.md**: de-contamination rules, retrieval flow, Neo4j overscan rationale, and canonical constants
+## Related drill-down entries
+- `coverage_routing/_index.md`
+- `document_selection/_index.md`
+- `coverage_frame_assembly/_index.md`
+- `frame/_index.md`

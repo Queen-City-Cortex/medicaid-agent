@@ -1,87 +1,68 @@
 ---
-children_hash: bb8e1bfbb782327c5ac5a332ede1849908098871dded48847cfcab51f5d1594c
-compression_ratio: 0.7313432835820896
+children_hash: 2b52964a2a13f3ce0b07f986f8d2726420e8fe8d7ab8099fef14c4244e1afbbe
+compression_ratio: 0.2853087295954578
 condensation_order: 0
-covers: [coverage_selection_and_graph_fixtures.md]
-covers_token_total: 1340
+covers: [coverage_selection_and_graph_fixtures.md, federal_authority_pairing_and_rebalance.md]
+covers_token_total: 2818
 summary_level: d0
-token_count: 980
+token_count: 804
 type: summary
 ---
-# Coverage Selection and Graph Fixtures
+# Policy Corpus Frame Pipeline
 
-This entry set documents the policy-corpus coverage selection pipeline and the strict Neo4j graph fixture utilities that support it. The core theme is a move from score-field-driven selection to positional assembly, with test infrastructure hardened to fail on missing data and unexpected queries.
-
-## Coverage Selection Pipeline
-See **coverage_selection_and_graph_fixtures.md** for the main pipeline details.
-
-- Coverage selection is split into five exported stages:
-  1. `scoreCoverageSections`
-  2. `collectCoverageSectionGroups`
-  3. `buildCoverageInitialSelection`
-  4. `buildCoverageAnchors`
-  5. `assembleCoverageSections`
-- The selection flow is:
-  - surface candidate sections
-  - score and group by coverage flags
-  - build initial selection
-  - assemble anchors
-  - merge primary, supporting, and avoid sections
+## Coverage Selection and Graph Fixtures
+- The frame layer is split across `packages/policy-corpus/src/frame/coverage/candidates.ts`, `coverage/selection.ts`, and `federal-authority.ts`.
 - `SectionCandidate.score` was removed; selection is now positional rather than score-field driven.
-- Scoring still uses multiple signals, including `focusScore`, `clusterScore`, `requirementScore`, and query-specific bonuses/penalties.
-- Known heuristics include:
-  - HCWD income premium scoring with a current-document bonus for policy number `MA-2180`
-  - penalties for amendments, administrative forms, year-specific premiums, and HCWD process titles
-  - grouping logic for general eligibility, coverage scope, and congregate PCS
-  - telehealth-specific prioritization and demotion rules
-  - anchor-based reshaping for not-covered and yes/no coverage queries
-  - supporting selection rebalance when certain anchors are present
-- Avoid sections include demoted telehealth tables, telehealth context, ambulance general exclusions, congregate workflow sections, and general eligibility administrative or limitation sections.
+- Coverage selection is implemented as a 5-stage pipeline:
+  1. score coverage sections
+  2. collect/group by coverage flags
+  3. build initial selection
+  4. build anchors
+  5. assemble final sections by merging primary, supporting, and avoid sections
+- Shared strict Neo4j graph fixtures centralize:
+  - typed record builders
+  - query matchers
+  - corpus/session stubs
+  - handler execution checks
+- Key fixture behavior:
+  - strict records throw on missing fields
+  - `expectAllHandlersUsed()` is required to flush dead handlers
+  - scripted runs throw on unexpected extra queries unless `allowExtraQueries` is set
+- A known rough edge is that the federal collector scans `federal_regulation` and `federal_statute` together, which can mask per-docType test coverage gaps.
 
-## Collector and Federal Authority
-Also covered in **coverage_selection_and_graph_fixtures.md**.
+### Drill down
+- `coverage_selection_and_graph_fixtures.md` for scoring, grouping, anchors, and graph-fixture behavior.
 
-- The collector follows a documented 5-stage merge pipeline.
-- The federal collector currently scans `federal regulation` and `federal statute` together.
-- This combined scan is a known rough edge because it can hide per-`docType` test coverage gaps and may silently drop one side in stubs.
+## Federal Authority Pairing and Rebalance
+- Federal authority retrieval now explicitly pairs statute and regulation when query intent indicates an authority citation.
+- The workstream is driven by `asksForAuthorityCitation` in `query-intent.ts` and `authorityCitationQuery`.
+- Authority handling adds:
+  - title boosting for official CFR/program headings
+  - statute/regulation title pairing
+  - candidate pairing so CFR remains authority-first
+- The federal-authority pipeline resolves evidence in four steps:
+  1. `buildFederalAuthoritySignals`
+  2. `collectFederalAuthorityEvidence`
+  3. `collectFederalImplementationEvidence`
+  4. `buildFederalAuthorityCandidateSets`
+- Rebalance hints adjust primary/supporting/avoid sections for:
+  - waiver authority
+  - SPA
+  - EPSDT
+- Statute retention is preserved so one `federal_statute` section remains visible even when regulation hints dominate.
+- Ordering matters in rebalance hints:
+  - `WAIVER_AUTHORITY_HINT` must run before `WAIVER_HINT`
+- Intent-specific routing examples:
+  - 1915(c) HCBS waiver authority → `42 CFR Part 441 Subpart G`
+  - SPA timeliness/submission questions → `42 CFR 430`
+  - EPSDT questions → `42 CFR 441 Subpart B`
+- MLR-specific hinting was considered but intentionally left out because existing MLR tests already produce the correct frame.
 
-## Graph Fixtures and Test Helpers
-See **coverage_selection_and_graph_fixtures.md** for the fixture architecture.
+### Drill down
+- `federal_authority_pairing_and_rebalance.md` for authority citation handling, pairing, and rebalance rules.
 
-- `packages/policy-corpus/tests/helpers/graph-fixtures.ts` centralizes strict Neo4j test helpers.
-- Strict records throw on missing field access instead of returning `undefined`.
-- `expectAllHandlersUsed()` is required to flush dead handlers.
-- Unexpected extra scripted queries throw unless `allowExtraQueries` is explicitly set.
-- `createCorpus` provides match-based handlers.
-- `createCorpusWithRuns` consumes scripted runs in order.
-
-### Centralized Builders and Matchers
-The fixture layer standardizes test data construction and query matching:
-
-- Typed record builders:
-  - `sectionHit`
-  - `sectionRecord`
-  - `documentRecord`
-  - `amendmentRecord`
-  - `containerChildrenRecord`
-  - `contextEntryRecord`
-  - `referenceRecord`
-- Query matchers under `queries.*` cover:
-  - vector
-  - fulltext
-  - concept
-  - document
-  - amendment
-  - section hydration
-- `documentGraphHandlers` hydrates `lookupPolicy`, `getSection`, and `getDocument` for one document, with generated handlers marked optional.
-
-## Dependencies and Design Notes
-- The coverage frame layer now uses:
-  - `packages/policy-corpus/src/frame/coverage/candidates.ts`
-  - `packages/policy-corpus/src/frame/coverage/selection.ts`
-  - `packages/policy-corpus/src/frame/federal-authority.ts`
-- The test helpers rely on shared constants and helpers from `internal/shared.js` plus Neo4j session stubs.
-- The overall direction is toward explicit, strict, and inspectable coverage assembly rather than implicit scoring state.
-
-## Drill-Down Points
-- **coverage_selection_and_graph_fixtures.md**: full pipeline, scoring heuristics, anchor rules, and fixture behavior
+## Cross-cutting patterns
+- The policy-corpus frame pipeline is increasingly intent-aware: query intent determines which sections are surfaced, paired, or demoted.
+- Authority questions favor official section headings over body mentions.
+- Test infrastructure is designed to fail loudly on missing data, unexpected queries, and unused handlers.
+- The local context tree already contains established domains such as `agent_architecture`, `amendment_detection`, `auth_integration`, `database_operations`, `evaluation`, `frontend_ui`, `packages`, and `qa`.
