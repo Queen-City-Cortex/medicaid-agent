@@ -1,7 +1,7 @@
-- Captures a curation session for preserving extracted facts and workflow notes from supplied context.
-- Emphasizes that the task is to curate RLM context into durable knowledge, using a pre-computed recon result rather than rerunning recon.
-- Notes a single-pass processing recommendation, with suggestedChunkCount 3, because the context was classified as manageable without chunking.
-- Records basic context characteristics: 19,883 characters, 520 lines, and 0 messages.
-- Lists source file references involved in the task: packages/agent/src/feedback/repository.ts and packages/agent/src/index.ts.
-- Highlights the workflow sequence: context provided -> recon precomputed -> extract key facts -> upsert curated knowledge.
-- Mentions verification guidance: do not print raw context, and confirm outputs through result.applied[].filePath.
+- Curates context-extraction workflow knowledge into durable agent-architecture documentation.
+- Records the main changes: curation metadata, recon recommendation, detected source references, organized source context, workflow notes, operational guidance, and EPSDT exception completeness workstream context.
+- Notes the file set involved, including repository/index source files and related curated context/workstream markdown files.
+- Describes a simple flow: context capture -> extract facts -> curate durable knowledge -> record progress.
+- Emphasizes a compact, single-pass curation approach as appropriate for this context.
+- Highlights operational guidance: reuse the precomputed recon result, avoid rerunning recon, and verify applied outputs via result.applied[].filePath.
+- Includes metadata facts: context size is 818 characters, with 1 line and 0 messages, and identifies the author as ByteRover context engineer.

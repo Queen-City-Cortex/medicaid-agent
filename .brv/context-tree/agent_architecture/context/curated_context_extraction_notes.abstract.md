@@ -1,1 +1,1 @@
-This note records a context curation workflow using a precomputed recon result, emphasizing single-pass processing, preserved source references, and verified applied file paths.
+Curated notes describe agent context extraction workflow, durable knowledge curation, and EPSDT exception workstream guidance, emphasizing single-pass capture and reuse of precomputed recon results.

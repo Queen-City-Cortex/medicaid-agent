@@ -1,0 +1,31 @@
+# Isolated Neo4j for A/B model-comparison evals (see scripts/eval-ab.sh).
+#
+# Holds a *candidate* embedding corpus (e.g. voyage-4-large at 2048 dims) on a
+# separate port so it never touches the production voyage-law-2 graph managed by
+# docker-compose.yml. Neo4j Community is single-database, so isolation is by
+# container/URI, not by `NEO4J_DATABASE`.
+#
+#   docker compose -f docker-compose.ab.yml up -d --wait   # bolt://localhost:7688
+#   docker compose -f docker-compose.ab.yml down -v         # discard the candidate corpus
+#
+# Unlike the production compose file, the volume here is NOT external: it is
+# disposable on purpose so `down -v` wipes the candidate corpus between A/B runs.
+services:
+  neo4j-ab:
+    image: neo4j:2026.05-community
+    ports:
+      - "7475:7474"
+      - "7688:7687"
+    environment:
+      NEO4J_AUTH: neo4j/medicaid-dev
+    volumes:
+      - neo4j-ab-data:/data
+    healthcheck:
+      test: ["CMD", "cypher-shell", "-u", "neo4j", "-p", "medicaid-dev", "RETURN 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  neo4j-ab-data:

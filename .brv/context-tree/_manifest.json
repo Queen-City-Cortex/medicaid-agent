@@ -3,13 +3,7 @@
     {
       "order": 2,
       "path": "agent_architecture/_index.md",
-      "tokens": 1751,
-      "type": "summary"
-    },
-    {
-      "order": 1,
-      "path": "agent_architecture/amendment_pipeline_and_prompt/_index.md",
-      "tokens": 131,
+      "tokens": 1934,
       "type": "summary"
     },
     {
@@ -26,10 +20,10 @@
     },
     {
       "abstractPath": "agent_architecture/context/curated_context_extraction_notes.abstract.md",
-      "abstractTokens": 44,
+      "abstractTokens": 50,
       "importance": 50,
       "path": "agent_architecture/context/curated_context_extraction_notes.md",
-      "tokens": 44,
+      "tokens": 50,
       "type": "context"
     },
     {
@@ -170,13 +164,13 @@
       "type": "stub"
     }
   ],
-  "generated_at": "2026-06-13T20:14:41.617Z",
+  "generated_at": "2026-06-14T20:00:22.313Z",
   "lane_tokens": {
-    "contexts": 3986,
+    "contexts": 3992,
     "stubs": 104,
-    "summaries": 1882
+    "summaries": 1934
   },
-  "source_fingerprint": "3fd6de9c804d2efa0d97c59995b11397336c7d6ec17f94bf774e706ec9a77c91",
-  "total_tokens": 5972,
+  "source_fingerprint": "c91175a67ba56880f42747d9de7d80db159645865471c88dfe629de09e07c946",
+  "total_tokens": 6030,
   "version": 1
 }

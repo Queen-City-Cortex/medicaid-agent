@@ -1,5 +1,8 @@
 export const VOYAGE_API_KEY = process.env.VOYAGE_API_KEY || '';
-export const VOYAGE_MODEL = 'voyage-law-2';
+// Overridable via env so the A/B eval harness can point query embedding at a
+// candidate model. MUST match the pipeline's EMBEDDING_MODEL used to build the
+// corpus being queried, or vector similarity is meaningless.
+export const VOYAGE_MODEL = process.env.VOYAGE_MODEL || 'voyage-4';
 export const VOYAGE_API_URL = 'https://api.voyageai.com/v1/embeddings';
 export const DEFAULT_TOP_K = 10;
 const DEFAULT_POLICY_CORPUS_RERANK_ENABLED = true;

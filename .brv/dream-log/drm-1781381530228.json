@@ -1,0 +1,99 @@
+{
+  "completedAt": 1781381681617,
+  "id": "drm-1781381530228",
+  "operations": [
+    {
+      "action": "MERGE",
+      "inputFiles": [
+        "facts/project/curated_context_snippet.md",
+        "facts/project/curated_context_snippet.abstract.md",
+        "facts/project/curated_context_snippet.overview.md"
+      ],
+      "needsReview": true,
+      "outputFile": "facts/project/curated_context_snippet.md",
+      "previousTexts": {
+        "facts/project/curated_context_snippet.md": "---\ntitle: Curated Context Snippet\nsummary: Project-level curation notes covering context preservation, fact extraction, preservation rules, and structured knowledge modeling.\ntags: []\nrelated: []\nkeywords: []\ncreatedAt: '2026-06-13T06:00:50.089Z'\nupdatedAt: '2026-06-13T19:57:01.033Z'\n---\n## Reason\nPreserve project facts and curation guidance from the provided context snippet\n\n## Raw Concept\n**Task:**\nCurate a context-engineering reference for preserving and organizing durable knowledge from snippets and source material.\n\n**Changes:**\n- Defined a two-part context model using rawConcept and narrative fields\n- Specified facts extraction and temporal preservation requirements\n- Documented UPSERT-based curation workflow and verification expectations\n\n**Flow:**\nrecon -> extract facts and context -> curate with UPSERT -> verify applied files\n\n**Timestamp:** 2026-06-13T19:56:51.482Z\n\n**Author:** ByteRover context engineer\n\n## Narrative\n### Structure\nKnowledge should be organized into domain/topic/subtopic context files with at least a task, one operational detail, and one descriptive narrative field.\n\n### Dependencies\nCuration depends on accurate source extraction, preserved timestamps, and traceable file or document references.\n\n### Highlights\nPrefer UPSERT for creates/updates, preserve exact rules and regex patterns verbatim, and use standalone facts domains for uncategorized personal, project, or convention facts.\n\n### Rules\n1. Always include a clear task in rawConcept.\n2. Include at least one of changes, files, or flow in rawConcept.\n3. Include at least one narrative field.\n4. Preserve exact rule text, regex patterns, and temporal information.\n5. Use UPSERT by default instead of ADD or UPDATE.\n6. Do not create vague contexts or nested subtopics.\n7. Verify curate results by checking result.summary.failed and result.applied file paths.\n\n### Examples\nStored extracted facts as durable knowledge.\n\n---\n\n## Eval OpenAI key isolation\n\n**Changes:**\n- Extracted from curated context input\n\n**Flow:**\ncontext -> extract lines -> curate facts\n\n**Timestamp:** 2026-06-13T06:00:42.089Z\n",
+        "facts/project/curated_context_snippet.abstract.md": "This document records project curation rules for preserving durable knowledge, emphasizing structured context fields, exact fact and timestamp retention, UPSERT-based updates, and verification of applied results.",
+        "facts/project/curated_context_snippet.overview.md": "- Project-level curation notes for preserving durable knowledge from context snippets and source material.\n- Describes a two-part context model using `rawConcept` and `narrative`, plus requirements for facts extraction and temporal preservation.\n- Defines a curation workflow: recon -> extract facts/context -> curate with UPSERT -> verify applied files.\n- Emphasizes structure: organize knowledge into domain/topic/subtopic files with at least a task, one operational detail, and one descriptive narrative field.\n- Key rules include preserving exact rule text, regex patterns, timestamps, and using UPSERT by default instead of ADD/UPDATE.\n- Verification guidance mentions checking `result.summary.failed` and `result.applied` file paths after curation.\n- Notable entities/patterns: ByteRover context engineer, `rawConcept`, `narrative`, `changes`, `files`, `flow`, and standalone facts domains for uncategorized facts."
+      },
+      "reason": "All three files document the same project-level curation knowledge. The main markdown file already contains the richest content, while the abstract and overview are redundant summaries of the same rules, workflow, and facts-preservation guidance.",
+      "type": "CONSOLIDATE"
+    },
+    {
+      "action": "CREATE",
+      "confidence": 0.95,
+      "needsReview": false,
+      "outputFile": "frontend_ui/runtime-identity-must-propagate-through-auth-chat-transport-and-memory.md",
+      "sources": [
+        "frontend_ui/_index.md",
+        "frontend_ui/_index.md",
+        "auth_integration/_index.md",
+        "auth_integration/_index.md"
+      ],
+      "type": "SYNTHESIZE"
+    },
+    {
+      "action": "CREATE",
+      "confidence": 0.92,
+      "needsReview": false,
+      "outputFile": "database_operations/schema-aware-validation-is-the-shared-guardrail-from-graph-writes-to-evaluation.md",
+      "sources": [
+        "database_operations/_index.md",
+        "database_operations/_index.md",
+        "evaluation/_index.md",
+        "qa/_index.md"
+      ],
+      "type": "SYNTHESIZE"
+    },
+    {
+      "action": "CREATE",
+      "confidence": 0.9,
+      "needsReview": false,
+      "outputFile": "packages/intent-aware-staged-retrieval-dominates-both-policy-search-and-graph-frame-assem.md",
+      "sources": [
+        "packages/_index.md",
+        "packages/_index.md",
+        "database_operations/_index.md",
+        "agent_architecture/_index.md"
+      ],
+      "type": "SYNTHESIZE"
+    },
+    {
+      "action": "CREATE",
+      "confidence": 0.93,
+      "needsReview": false,
+      "outputFile": "qa/end-to-end-trust-is-enforced-by-linking-evidence-verifier-behavior-and-final-sco.md",
+      "sources": [
+        "qa/_index.md",
+        "qa/_index.md",
+        "evaluation/_index.md",
+        "evaluation/_index.md"
+      ],
+      "type": "SYNTHESIZE"
+    },
+    {
+      "action": "CREATE",
+      "confidence": 0.88,
+      "needsReview": false,
+      "outputFile": "auth_integration/runtime-boundaries-are-the-root-cause-behind-auth-and-deployment-reliability.md",
+      "sources": [
+        "auth_integration/_index.md",
+        "agent_architecture/_index.md",
+        "database_operations/_index.md",
+        "database_operations/_index.md"
+      ],
+      "type": "SYNTHESIZE"
+    }
+  ],
+  "startedAt": 1781381530228,
+  "status": "completed",
+  "summary": {
+    "consolidated": 1,
+    "errors": 0,
+    "flaggedForReview": 1,
+    "pruned": 0,
+    "synthesized": 5
+  },
+  "taskId": "ebad7787-b319-4f2d-82f0-685c0b5a1cab",
+  "trigger": "agent-idle"
+}

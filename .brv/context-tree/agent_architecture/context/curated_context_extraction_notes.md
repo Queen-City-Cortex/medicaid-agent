@@ -1,52 +1,56 @@
 ---
 title: Curated Context Extraction Notes
-summary: Notes on context curation workflow, extraction results, and relevant file references for the current task
+summary: Curated notes on context extraction workflow, operational knowledge, and EPSDT exception completeness workstream guidance.
 tags: []
 related: []
 keywords: []
 createdAt: '2026-06-13T05:42:43.392Z'
-updatedAt: '2026-06-13T05:42:43.392Z'
-consolidated_at: '2026-06-13T05:58:01.330Z'
-consolidated_from: [{date: '2026-06-13T05:58:01.330Z', path: agent_architecture/context/curated_context.md, reason: 'Both files document the same single-pass curation session and largely overlap in purpose, workflow, and metadata. The extraction notes are richer, so they should become the authoritative record, with unique details from the shorter curated_context file preserved in the merge.'}]
+updatedAt: '2026-06-14T19:08:52.552Z'
 ---
 ## Reason
-Preserve extracted facts and curation workflow notes from the provided context
+Curate the provided context into durable agent architecture knowledge
 
 ## Raw Concept
 **Task:**
-Curate the provided RLM context into durable knowledge
+Document the curated context extraction notes and operational knowledge for the agent architecture context domain.
 
 **Changes:**
 - Captured curation metadata
 - Recorded the recon recommendation
 - Preserved detected source references
 - Extracted and organized source context into durable knowledge
+- Captured context extraction workflow notes
+- Captured operational knowledge guidance
+- Preserved EPSDT exception completeness workstream context
 
 **Files:**
 - packages/agent/src/feedback/repository.ts
 - packages/agent/src/index.ts
+- .brv/context-tree/agent_architecture/context/curated_context_extraction_notes.md
+- .brv/context-tree/agent_architecture/context/curated_operational_knowledge.md
+- .brv/context-tree/agent_architecture/context/epsdt_exception_completeness_workstream_e.md
 
 **Flow:**
-context provided -> recon precomputed -> extract key facts -> upsert curated knowledge
+context capture -> extract facts -> curate durable knowledge -> record progress
 
-**Timestamp:** 2026-06-13T05:42:33.408Z
+**Timestamp:** 2026-06-14T19:08:41.874Z
 
 **Author:** ByteRover context engineer
 
 ## Narrative
 ### Structure
-This entry records the current curation session, its size characteristics, and the recommended single-pass processing mode. It also serves as the durable record of the earlier curated context snapshot.
+This knowledge sits under agent_architecture/context and captures extraction notes, operational knowledge, and workstream-specific context.
 
 ### Dependencies
-Relies on the supplied context, history, and metadata variables plus the pre-computed recon result.
+Relies on curated context inputs and history tracking for durable recall.
 
 ### Highlights
-The context can be curated without chunking because recon classified it as single-pass. The task emphasizes not printing raw context and verifying via curate result file paths. Single-pass curation completed for the current context snapshot (lines: 83).
+Single-pass curation was appropriate for this compact context. The captured material centers on context extraction and operational knowledge preservation.
 
 ### Examples
 Use the pre-computed recon result, avoid calling recon again, and verify applied outputs through result.applied[].filePath.
 
 ## Facts
-- **curation_workflow**: The current curation task uses the RLM approach with a pre-computed recon result. [other]
-- **context_size**: The provided context is 19883 characters long with 520 lines and 0 messages. [other]
-- **recon_mode**: The pre-computed recon result recommended single-pass mode with suggestedChunkCount 3. [other]
+- **curation_mode**: Suggested mode for this context is single-pass. [project]
+- **context_size_chars**: The context input is 818 characters long. [project]
+- **context_structure**: The context input contains 1 line and 0 messages. [project]

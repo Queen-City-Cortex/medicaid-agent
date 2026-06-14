@@ -1,42 +1,42 @@
 ---
 title: Curated Context Snippet
-summary: Project-level curation notes covering context preservation, fact extraction, preservation rules, and structured knowledge modeling.
+summary: Curated extracted project and process facts from the provided context snippet.
 tags: []
 related: []
 keywords: []
 createdAt: '2026-06-13T06:00:50.089Z'
-updatedAt: '2026-06-13T19:57:01.033Z'
-consolidated_at: '2026-06-13T20:12:19.979Z'
-consolidated_from: [{date: '2026-06-13T20:12:19.979Z', path: facts/project/curated_context_snippet.abstract.md, reason: 'All three files document the same project-level curation knowledge. The main markdown file already contains the richest content, while the abstract and overview are redundant summaries of the same rules, workflow, and facts-preservation guidance.'}, {date: '2026-06-13T20:12:19.979Z', path: facts/project/curated_context_snippet.overview.md, reason: 'All three files document the same project-level curation knowledge. The main markdown file already contains the richest content, while the abstract and overview are redundant summaries of the same rules, workflow, and facts-preservation guidance.'}]
+updatedAt: '2026-06-14T20:00:22.278Z'
 ---
 ## Reason
-Preserve project facts and curation guidance from the provided context snippet
+Preserve extracted project facts from the provided context
 
 ## Raw Concept
 **Task:**
-Curate a context-engineering reference for preserving and organizing durable knowledge from snippets and source material.
+Curate extracted facts and process details from the provided context snippet
 
 **Changes:**
 - Defined a two-part context model using rawConcept and narrative fields
 - Specified facts extraction and temporal preservation requirements
 - Documented UPSERT-based curation workflow and verification expectations
+- Captured salient statements from the context
+- Stored them as durable knowledge facts
 
 **Flow:**
-recon -> extract facts and context -> curate with UPSERT -> verify applied files
+context input -> statement extraction -> fact curation -> durable storage
 
-**Timestamp:** 2026-06-13T19:56:51.482Z
+**Timestamp:** 2026-06-14T20:00:04.864Z
 
 **Author:** ByteRover context engineer
 
 ## Narrative
 ### Structure
-Knowledge should be organized into domain/topic/subtopic context files with at least a task, one operational detail, and one descriptive narrative field.
+A compact knowledge entry for preserving extracted statements from the current context.
 
 ### Dependencies
 Curation depends on accurate source extraction, preserved timestamps, and traceable file or document references.
 
 ### Highlights
-Prefer UPSERT for creates/updates, preserve exact rules and regex patterns verbatim, and use standalone facts domains for uncategorized personal, project, or convention facts.
+Designed to keep useful project/process statements available for later recall.
 
 ### Rules
 1. Always include a clear task in rawConcept.
@@ -49,6 +49,10 @@ Prefer UPSERT for creates/updates, preserve exact rules and regex patterns verba
 
 ### Examples
 Stored extracted facts as durable knowledge.
+
+## Facts
+- **curation_context**: - Use this content to understand the context and create comprehensive knowledge topics [other]
+- **curation_context**: - DO NOT use read_file tool for the files above - the content is already provided [other]
 
 ---
 

@@ -26,8 +26,13 @@ NEO4J_PASSWORD = os.environ.get("NEO4J_PASSWORD", "medicaid-dev")
 NEO4J_DATABASE = os.environ.get("NEO4J_DATABASE", "neo4j")
 
 # Embedding
-EMBEDDING_MODEL = "voyage-law-2"
-EMBEDDING_DIMENSIONS = 1024
+# Overridable via env so the A/B eval harness can build a candidate corpus
+# (e.g. voyage-4-large at 2048 dims) in an isolated Neo4j container without
+# editing source. The query side (agent VOYAGE_MODEL) MUST match EMBEDDING_MODEL
+# or cosine scores are meaningless. EMBEDDING_DIMENSIONS drives index creation
+# in indexer.ensure_vector_index(), so it must match the model's output width.
+EMBEDDING_MODEL = os.environ.get("EMBEDDING_MODEL", "voyage-4")
+EMBEDDING_DIMENSIONS = int(os.environ.get("EMBEDDING_DIMENSIONS", "1024"))
 VOYAGE_API_KEY = os.environ.get("VOYAGE_API_KEY", "")
 
 # LLM (optional, for cross-reference extraction pass 2)
