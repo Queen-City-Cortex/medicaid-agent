@@ -1,5 +1,6 @@
 import { registerApiRoute } from '@mastra/core/server';
 import { withSession } from './neo4j.js';
+import { Sentry } from './sentry.js';
 
 export interface CorpusStatus {
   /** ISO timestamp of the most recent document (re-)index, or null if the graph is empty. */
@@ -47,6 +48,7 @@ export function corpusStatusRoute() {
         return c.json(await getCorpusStatus());
       } catch (err) {
         console.error('[corpus-status] query failed:', err);
+        Sentry.captureException(err, { tags: { route: 'corpus-status' } });
         return c.json({ error: 'Corpus status unavailable' }, 503);
       }
     },

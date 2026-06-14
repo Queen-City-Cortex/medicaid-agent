@@ -104,10 +104,15 @@ jobs:
 
       # NEXT_PUBLIC_* args only need to be present (Next.js inlines them at
       # build time); the values are placeholders — this job validates that the
-      # bundle compiles, not runtime config.
+      # bundle compiles, not runtime config. Sentry source-map upload stays off
+      # here because SENTRY_AUTH_TOKEN is unset (next.config.ts disables it),
+      # so the build needs no Sentry secrets.
       - name: Build web image
         run: >-
           docker build -f packages/web/Dockerfile
           --build-arg NEXT_PUBLIC_MASTRA_URL=http://localhost:4111
           --build-arg NEXT_PUBLIC_WORKOS_REDIRECT_URI=http://localhost:3000/callback
+          --build-arg NEXT_PUBLIC_SENTRY_DSN=
+          --build-arg SENTRY_ORG=
+          --build-arg SENTRY_PROJECT=
           -t web-ci .

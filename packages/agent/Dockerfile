@@ -23,8 +23,13 @@ RUN npx mastra build --dir src
 
 # --- runner: minimal production image ---
 FROM base AS runner
+# Sentry release tag for runtime error events. RAILWAY_GIT_COMMIT_SHA is
+# provided by Railway at build time; SENTRY_DSN/SENTRY_ENVIRONMENT come from
+# Railway at runtime (unset -> Sentry is a no-op).
+ARG RAILWAY_GIT_COMMIT_SHA
 WORKDIR /app
 ENV NODE_ENV=production
+ENV SENTRY_RELEASE=$RAILWAY_GIT_COMMIT_SHA
 # gosu lets the entrypoint drop from root to `node` after it chowns the
 # root-owned Railway volume (see docker-entrypoint.sh).
 RUN apt-get update \

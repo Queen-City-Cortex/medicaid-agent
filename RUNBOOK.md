@@ -26,6 +26,24 @@ Copy `.env.example` to `.env` at the repo root and fill in keys. The agent and w
 | `NEO4J_PASSWORD` | No | `medicaid-dev` | Neo4j password |
 | `DATABASE_URL` | No | `file:./mastra.db` | LibSQL storage URL for Mastra |
 | `PORT` | No | `4111` | Mastra server port |
+| `SENTRY_DSN` | No | — | Server-side error tracking for both agent and web. Unset = Sentry disabled (no-op). Set per service in Railway. |
+| `NEXT_PUBLIC_SENTRY_DSN` | No | — | Browser error DSN for `packages/web`. Inlined at **build** time, so on Railway it must be a **build-time** variable on the web service. |
+| `SENTRY_ENVIRONMENT` / `NEXT_PUBLIC_SENTRY_ENVIRONMENT` | No | `NODE_ENV` | Environment label on events (`production`, `staging`, …). |
+| `SENTRY_TRACES_SAMPLE_RATE` / `NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE` | No | `0` | Performance-trace sample rate. `0` = errors only; raise (e.g. `0.1`) to enable tracing without a code change. |
+| `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` | No | — | Web **build-time** source-map upload. Absent = upload skipped, build still succeeds. |
+| `SENTRY_RELEASE` | No | `RAILWAY_GIT_COMMIT_SHA` | Release tag on events; set from the commit SHA in both Dockerfiles. |
+
+### Sentry error tracking
+
+Sentry is wired into both services and is **fully disabled until `SENTRY_DSN` is set** — local dev, evals, and CI run with no Sentry traffic. It captures errors only (`tracesSampleRate` defaults to `0`); it does **not** replace `@mastra/observability` (LLM/agent tracing).
+
+To enable in production (Railway):
+
+1. Create a Sentry org + a project per service (or one shared project) and a source-map **auth token**.
+2. **agent** service — runtime variables: `SENTRY_DSN`, `SENTRY_ENVIRONMENT=production`.
+3. **web** service — **build-time** variables: `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` (these drive browser-DSN inlining + source-map upload during `next build`); **runtime** variables: `SENTRY_DSN`, `SENTRY_ENVIRONMENT=production`.
+
+`SENTRY_RELEASE` is derived automatically from Railway's `RAILWAY_GIT_COMMIT_SHA` at build time, so uploaded source maps and runtime events resolve against the same release.
 
 ### Model Selection
 

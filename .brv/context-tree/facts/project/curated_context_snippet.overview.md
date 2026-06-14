@@ -1,9 +1,0 @@
-- Captures a small, curated set of factual statements from a provided context into the facts/project domain.
-- The stated reason is to persist extracted facts from the provided context.
-- The raw concept centers on the task “Eval OpenAI key isolation.”
-- Describes a simple flow: context -> extract lines -> curate facts.
-- Notes that the context was compact, with 20 lines and 940 characters.
-- Emphasizes that the process is a single-pass curation from compact RLM context input.
-- Example outcome: extracted facts were stored as durable knowledge.
-- Document structure includes metadata, a Reason section, a Raw Concept block with task/changes/flow/timestamp, and a Narrative section with Structure, Highlights, and Examples.
-- Notable pattern: this is a documentation artifact about knowledge extraction and persistence rather than a substantive domain fact set.

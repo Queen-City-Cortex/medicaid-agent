@@ -15,6 +15,22 @@ RUN npm ci --workspace=@nc-medicaid/web
 FROM base AS builder
 ARG NEXT_PUBLIC_MASTRA_URL
 ARG NEXT_PUBLIC_WORKOS_REDIRECT_URI
+# Sentry: NEXT_PUBLIC_SENTRY_DSN is inlined into the browser bundle; the auth
+# token + org/project + release drive source-map upload during `next build`.
+# All optional — without the auth token, upload is skipped (see next.config.ts).
+# RAILWAY_GIT_COMMIT_SHA is provided by Railway at build time.
+ARG NEXT_PUBLIC_SENTRY_DSN
+ARG NEXT_PUBLIC_SENTRY_ENVIRONMENT
+ARG SENTRY_AUTH_TOKEN
+ARG SENTRY_ORG
+ARG SENTRY_PROJECT
+ARG RAILWAY_GIT_COMMIT_SHA
+ENV NEXT_PUBLIC_SENTRY_DSN=$NEXT_PUBLIC_SENTRY_DSN \
+    NEXT_PUBLIC_SENTRY_ENVIRONMENT=$NEXT_PUBLIC_SENTRY_ENVIRONMENT \
+    SENTRY_AUTH_TOKEN=$SENTRY_AUTH_TOKEN \
+    SENTRY_ORG=$SENTRY_ORG \
+    SENTRY_PROJECT=$SENTRY_PROJECT \
+    SENTRY_RELEASE=$RAILWAY_GIT_COMMIT_SHA
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/packages/web/node_modules ./packages/web/node_modules
@@ -24,8 +40,14 @@ RUN npm run build --workspace=@nc-medicaid/web
 
 # --- runner: minimal production image ---
 FROM base AS runner
+# Re-declared: ARGs do not cross build stages. SENTRY_RELEASE must match the
+# release the source maps were uploaded under so runtime server-side events
+# (instrumentation.ts) resolve against them. SENTRY_DSN/SENTRY_ENVIRONMENT are
+# injected by Railway at runtime.
+ARG RAILWAY_GIT_COMMIT_SHA
 WORKDIR /app
 ENV NODE_ENV=production
+ENV SENTRY_RELEASE=$RAILWAY_GIT_COMMIT_SHA
 
 # standalone output mirrors monorepo structure
 COPY --from=builder --chown=node:node /app/packages/web/.next/standalone ./

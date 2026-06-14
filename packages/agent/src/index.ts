@@ -1,4 +1,5 @@
 import './load-env.js';
+import { Sentry } from './sentry.js';
 import { Mastra } from '@mastra/core';
 import { Agent, type OnIterationCompleteHandler } from '@mastra/core/agent';
 import { PromptInjectionDetector, TokenLimiterProcessor } from '@mastra/core/processors';
@@ -240,6 +241,14 @@ export const mastra = new Mastra({
       origin: (process.env.CORS_ORIGINS || 'http://localhost:3000').split(','),
       credentials: true,
     },
+    // Mastra catches route handler errors itself, so the global Sentry handlers
+    // never see them — report them here. No-op when SENTRY_DSN is unset.
+    onError: (err, c) => {
+      Sentry.captureException(err, {
+        tags: { method: c.req.method, path: c.req.path },
+      });
+      return c.json({ error: 'Internal server error' }, 500);
+    },
     apiRoutes: [
       chatRoute({
         path: '/chat',
@@ -253,6 +262,7 @@ export const mastra = new Mastra({
           },
           onError: (err) => {
             console.error('[chat] stream error:', err);
+            Sentry.captureException(err, { tags: { route: 'chat' } });
           },
         },
       }),

@@ -1,1 +1,0 @@
-This note records a single-pass curation workflow that extracts and persists factual statements from compact context into the project facts domain.

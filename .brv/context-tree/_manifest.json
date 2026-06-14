@@ -3,7 +3,7 @@
     {
       "order": 2,
       "path": "agent_architecture/_index.md",
-      "tokens": 1862,
+      "tokens": 1751,
       "type": "summary"
     },
     {
@@ -170,13 +170,13 @@
       "type": "stub"
     }
   ],
-  "generated_at": "2026-06-13T06:00:50.125Z",
+  "generated_at": "2026-06-13T20:14:41.617Z",
   "lane_tokens": {
     "contexts": 3986,
     "stubs": 104,
-    "summaries": 1993
+    "summaries": 1882
   },
-  "source_fingerprint": "d854093578f1e301f4e91b635d5bb3699ad932b9a0e740393bafa61fc00e80fd",
-  "total_tokens": 6083,
+  "source_fingerprint": "3fd6de9c804d2efa0d97c59995b11397336c7d6ec17f94bf774e706ec9a77c91",
+  "total_tokens": 5972,
   "version": 1
 }
