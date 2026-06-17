@@ -1,5 +1,5 @@
 ---
-related: [database_operations/neo4j_hybrid_search/neo4j_hybrid_search_indexing.md]
+related: [database_operations/neo4j_hybrid_search/neo4j_hybrid_search_indexing.md, database_operations/neo4j_hybrid_search/voyage_4_embedding_migration_on_railway_production.md]
 ---
 # Topic: neo4j_hybrid_search
 

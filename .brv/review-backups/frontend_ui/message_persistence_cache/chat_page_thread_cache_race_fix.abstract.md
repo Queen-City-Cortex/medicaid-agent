@@ -1,0 +1,1 @@
+The chat page preserves message persistence by restoring cached thread state safely and aligning updates with the active thread to prevent stale or mismatched writes.

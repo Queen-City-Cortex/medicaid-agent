@@ -1,7 +1,7 @@
 ---
 title: CorpusGraphWriter Write Boundary
 tags: []
-related: [database_operations/neo4j_write_read_consistency/corpusgraphwriter_transaction_boundary.md, database_operations/neo4j_write_read_consistency/incremental_crawl_ingest_run_19.md]
+related: [database_operations/neo4j_write_read_consistency/incremental_crawl_ingest_run_19.md, database_operations/neo4j_write_read_consistency/corpus_graph_writer_incremental_cleanup.md]
 keywords: []
 importance: 55
 recency: 1

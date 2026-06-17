@@ -1,194 +1,122 @@
 ---
-children_hash: d13f1f7a1b02c0912eaa225778ba39bb471231bbf2b5ffcc142a76f302670eac
-compression_ratio: 0.3121067203624465
+children_hash: 4175d9e5bad56edaf114526b8370ed1a51bb0b5613407384d2cf242cc0317828
+compression_ratio: 0.33516617790811337
 condensation_order: 2
 covers: [chat_page_review_fixes/_index.md, chat_page_scroll_stability/_index.md, chat_page_thread_cache/_index.md, chat_page_transport/_index.md, chat_streaming_error_handling/_index.md, context.md, message_feedback/_index.md, message_persistence_cache/_index.md, message_persistence_parsing/_index.md, proxy_handling/_index.md, runtime-identity-drives-both-auth-transport-and-chat-state.md, runtime-identity-must-propagate-through-auth-chat-transport-and-memory.md, runtime-identity-must-stay-aligned-across-auth-chat-transport-and-memory.md, scroll_area_sidebar_stability/_index.md, streaming-ui-memory-and-persistence-are-coupled-through-thread-identity.md, thread_sidebar/_index.md]
-covers_token_total: 7946
+covers_token_total: 8184
 summary_level: d2
-token_count: 2480
+token_count: 2743
 type: summary
 ---
-# Frontend UI Chat Stability and Feedback
+# Frontend UI: Chat, Streaming, Persistence, and Sidebar Coordination
 
-This cluster documents the NC Medicaid Navigator chat page as a set of tightly coupled UI, transport, persistence, and feedback behaviors. The main recurring pattern is **runtime identity**: `threadId`, auth-derived `resourceId`, and token readiness determine when chat transport, memory, cache restoration, and sidebar fetches must refresh.
+The `frontend_ui` knowledge set centers on a chat page whose behavior is tightly coupled to auth state, thread identity, streaming transport, persistence, and sidebar layout. The main drill-down areas are `chat_page_review_fixes`, `chat_page_scroll_stability`, `chat_page_thread_cache`, `chat_page_transport`, `chat_streaming_error_handling`, `message_feedback`, `message_persistence_cache`, `message_persistence_parsing`, `proxy_handling`, `scroll_area_sidebar_stability`, and `thread_sidebar`.
 
-## Core chat page structure
+## Shared architectural themes
+- **Runtime identity drives state reuse and reset**: chat transport, thread restoration, and memory loading all depend on `threadId` plus auth-derived `resourceId`.
+- **UI layout is flex- and viewport-driven**: the page uses a fixed sidebar plus a main `ScrollArea`, with scrolling constrained to the viewport rather than the layout root.
+- **Persistence is layered**: structured Mastra messages, cache restoration, and database-backed thread loading work together to preserve chat history across rerenders and thread switches.
+- **Auth and proxy boundaries matter**: WorkOS/Authkit, Next.js 16 `proxy.ts`, and token-aware Mastra client creation ensure authenticated requests stay aligned with runtime state.
 
-- **`chat_page_review_fixes/_index.md`**
-  - Refactors `packages/web/src/app/chat/page.tsx` into clearer component boundaries:
-    - `EmptyState`
-    - `MessageList`
-    - `ChatInput`
-    - `ResearchTrace`
-  - Main layout: collapsible `ThreadSidebar` + main `ScrollArea` for messages or empty state.
-  - Chat transport uses `useChat` with `DefaultChatTransport` targeting `${MASTRA_URL}/chat` and `getAccessToken`.
-  - UI hardening includes:
-    - softened sidebar light-mode styling
-    - accessible thread buttons
-    - delete confirmation dialog
-    - CSS `line-clamp` title truncation
-    - Lucide icons
-    - auth loading skeleton
-  - Related drill-down: **`chat_page_scroll_stability.md`** and the message/transport/cache topics below.
+## Chat page review and layout refinement
+### `chat_page_review_fixes`
+- Documents the main ChatPage refactor in `packages/web/src/app/chat/page.tsx`.
+- The original ~380-line page was split into `EmptyState`, `MessageList`, and `ChatInput`, with `ResearchTrace` centralizing policy-tool trace/status rendering.
+- Layout includes a collapsible `ThreadSidebar`, a main `ScrollArea`, and top-level auth/loading handling.
+- UI changes include softer light-mode sidebar styling, accessible thread buttons, deletion confirmation, CSS-based title truncation via `line-clamp`, Lucide icons, adjusted empty-state/footer spacing, and an auth loading skeleton.
+- Key flow: auth loading → layout mount → thread lifecycle → message/empty-state render → input streaming/rerun → research trace rendering.
+- Important facts: sidebar light mode uses `oklch(0.94)`, border strength is `0.85`, and empty-state examples use left accent borders.
 
-## Scroll and layout stability
+## Scroll stability and viewport control
+### `chat_page_scroll_stability`
+- Focuses on message streaming and thread-switch scrolling behavior.
+- Core decision: continue using `viewport.scrollTo` instead of `scrollIntoView` so the sidebar remains visible and the layout root does not overscroll.
+- Adds `min-h-0` to the main `ScrollArea` container so flex children can shrink correctly.
+- Focus management uses `preventScroll: true` after input, new-thread creation, and thread selection to avoid focus-driven jumps.
+- Important constraint: `overflow-clip` is not a substitute for `overflow-hidden` because it does not create a formatting context.
 
-- **`chat_page_scroll_stability/_index.md`**
-  - Focuses on viewport-safe scrolling during streaming and thread switching.
-  - Decision: keep `viewport.scrollTo` rather than `scrollIntoView` so the sidebar stays visible and the layout root does not overscroll.
-  - `min-h-0` was added to the main `ScrollArea` container to let flex children shrink correctly.
-  - `preventScroll: true` is used after input, new thread, and thread selection actions to avoid focus jumps.
-  - Constraint: `overflow-clip` is not a substitute for `overflow-hidden` because it does not create a formatting context.
-  - Related drill-down: **`frontend_ui/scroll_area_sidebar_stability`**.
+### `scroll_area_sidebar_stability`
+- Captures the sibling-preservation fix for the fixed sidebar while the conversation area scrolls.
+- The page uses a flex `h-screen` layout with a fixed-width sidebar and a message-history `ScrollArea`.
+- Scroll handling moved from `messagesEndRef.scrollIntoView()` to the nearest `data-slot="scroll-area-viewport"` element, using `viewport.scrollTo({ top: viewport.scrollHeight, behavior: "smooth" })`.
+- Architectural choice: change the outer container from `overflow-hidden` to `overflow-clip` to prevent sidebar displacement.
+- Root cause: `scrollIntoView` climbed to the overflow-hidden root and pushed the sidebar off-screen; a measurement showed `getBoundingClientRect().top = -458px`.
 
-- **`scroll_area_sidebar_stability/_index.md`**
-  - Describes the root cause of sidebar displacement: `scrollIntoView()` climbed to the layout root and pushed the fixed sidebar off-screen.
-  - Fix: scroll the nearest `data-slot="scroll-area-viewport"` directly with `viewport.scrollTo({ top: viewport.scrollHeight, behavior: "smooth" })`.
-  - Architectural decision: outer layout changed from `overflow-hidden` to `overflow-clip` to preserve sidebar visibility during streaming updates.
-  - Related drill-down: **`Chat Sidebar Scroll Fix`**.
+## Thread cache and restoration behavior
+### `chat_page_thread_cache`
+- Describes how per-thread conversations are preserved when `setThreadId` recreates `useChat`.
+- A `messageCache` map keyed by `threadId` stores assistant replies when streaming finishes and status changes from `streaming` to `ready`.
+- `handleSelectThread` buffers cached messages in `pendingRestore` instead of calling `setMessages` immediately.
+- A `useEffect` watching `threadId` applies the buffered payload after the new `useChat` instance mounts, then clears `pendingRestore`.
+- This avoids writing restored messages into the stale `useChat` instance created before the thread switch.
+- Flow: thread select → `setThreadId` / transport recreation → pending restore effect → `setMessages` on fresh instance → clear buffer.
+- Related areas: `message_persistence_cache` and `message_persistence_parsing`.
 
-## Transport, auth, and runtime identity
+### `message_persistence_cache`
+- Focuses on the race between restoring a thread and the async `savePerStep` write finishing.
+- Canonical fix: a per-thread `messageCache` `useRef(Map)` is populated in `useChat.onFinish`.
+- `handleSelectThread` reads cache first, restores immediately, deletes the cache entry after use, and still calls `loadThread` so the database can reconcile later.
+- The cache is short-lived, per-thread, and consumed on first use to avoid stale data.
+- Key dependency: `savePerStep` writes to `memory_threads` asynchronously, so DB reads may lag behind the UI state.
 
-- **`chat_page_transport/_index.md`**
-  - Documents auth-bound chat transport reinitialization.
-  - `useChat` identity was expanded from `threadId` to `threadId:resourceId`, with `resourceId` defaulting to `anonymous` until auth resolves.
-  - `DefaultChatTransport` is memoized on `threadId`, `resourceId`, and `getAccessToken`, so auth changes recreate the transport and refresh chat state.
-  - `ChatPage` coordinates auth scoping, thread lifecycle, sidebar toggles, empty state, message list, and scroll helpers.
-  - Dependencies: `useAuth`, `useAccessToken`, `useMastraClient`, `DefaultChatTransport`, `ThreadSidebar`, `ScrollArea`.
+## Auth-bound transport and chat instance lifecycle
+### `chat_page_transport`
+- Documents authenticated chat transport reinitialization.
+- `useChat` identity expands from `threadId` to `threadId:resourceId`, with `resourceId` defaulting to `anonymous` until auth loads.
+- `DefaultChatTransport` is memoized on `threadId`, `resourceId`, and `getAccessToken`, forcing a fresh transport when auth changes.
+- The core rule is that `useChat` only recreates internally when its `id` changes, so `resourceId` must be part of the identifier to handle anonymous-to-authenticated transitions.
+- `ChatPage` owns transport creation, auth scoping, thread lifecycle, sidebar toggles, empty states, message lists, and scroll helpers.
+- Dependencies include `useAuth`, `useAccessToken`, `useMastraClient`, `DefaultChatTransport`, `ThreadSidebar`, and `ScrollArea`.
 
-- Cross-cutting synthesized entries reinforce the same rule:
-  - **`runtime-identity-drives-both-auth-transport-and-chat-state.md`**
-  - **`runtime-identity-must-propagate-through-auth-chat-transport-and-memory.md`**
-  - **`runtime-identity-must-stay-aligned-across-auth-chat-transport-and-memory.md`**
-  - Shared conclusion: auth transitions, callback routing, transport, cache restore, and memory access all require the same runtime identity boundary to stay aligned.
+## Streaming, SSE, and error handling
+### `chat_streaming_error_handling`
+- Centers on AI SDK v6 SSE stream generation, deterministic Playwright mocks, and ChatPage UI behavior.
+- `AISdkStreamBuilder` replaces `MastraStreamBuilder` for test payloads and emits the sequence: start, start-step, text deltas, tool input/output, finish-step, finish.
+- `mockMastraAPI` centralizes routing for:
+  - `POST /chat`
+  - `GET/POST /api/memory/threads`
+  - `GET /api/memory/threads/:id/messages`
+- ChatPage flow: create thread before sending, enforce a 10k-character input limit, reuse user text for reruns, show a destructive alert on `useChat` failure, and disable textarea/input while streaming or loading.
+- Key facts: the UI error message is `"Sorry, there was an error processing your question. Please try again."`, and the page is keyed to agent ID `nc-medicaid-navigator`.
 
-## Thread cache, restoration, and message persistence
+## Message feedback pipeline
+### `message_feedback`
+- Covers persistence, API routing, web client helpers, and chat UI integration for feedback.
+- Persistence layer: `FeedbackRepository` wraps `@libsql/client`, lazily creates the `feedback` table, and enforces `UNIQUE(message_id, resource_id)` plus rating validation (`up` / `down`).
+- API layer: Hono routes via `registerApiRoute` handle `POST`, `GET`, and `DELETE` on `/feedback` and `/feedback/:id`, validating with `zod` and deriving `resourceId` from `requestContext`.
+- Web client layer: `submitFeedback`, `deleteFeedback`, and `getFeedbackByThread` use `fetch` with Bearer auth and `credentials: include`.
+- UI integration: `MessageActions.tsx` and `chat/page.tsx` connect feedback state through `feedbackMap`, optimistic updates, and persistence hooks.
+- Important rules: `registerApiRoute` paths must not begin with `/api/`; `getResourceId` must resolve `user.userId` or `user.id` or throw `"User not authenticated"`; `FeedbackEntry.comment` is `null` for up ratings and only set for down ratings with user-entered text.
 
-- **`chat_page_thread_cache/_index.md`**
-  - Restores per-thread conversations when `setThreadId` recreates `useChat`.
-  - Uses `messageCache` keyed by `threadId` to store assistant replies when streaming completes.
-  - `handleSelectThread` buffers cached messages in `pendingRestore` instead of calling `setMessages` immediately.
-  - A `useEffect` on `threadId` applies the buffered payload after the new `useChat` instance mounts, then clears `pendingRestore`.
-  - Prevents writes to the stale chat instance that existed before `threadId` changed.
-  - Related areas:
-    - **`frontend_ui/message_persistence_cache/message_persistence_cache.md`**
-    - **`frontend_ui/message_persistence_parsing/message_persistence_parsing.md`**
-    - **`frontend_ui/message_persistence_cache/chat_page_thread_cache_race_fix.md`**
+## Message parsing and structured reloads
+### `message_persistence_parsing`
+- Documents reconstruction of chat-thread messages into `UIMessage` payloads in `packages/web/src/lib/parse-message.ts`.
+- `convertThreadMessageToUIMessage` detects `MastraMessageContentV2` via the `format 2 + parts array` signal.
+- Structured content uses `convertV4PartsToV5`; legacy text falls back to `extractText`.
+- Tool invocation states are normalized for `ResearchTrace` compatibility: `result` becomes `output-available`, while all other states become `input-available`.
+- `extractText` joins mixed text segments with `\n\n` to preserve paragraph spacing.
+- The topic ensures persisted Mastra messages survive reloads with structured parts, tool metadata, and formatting intact.
 
-- **`message_persistence_cache/_index.md`**
-  - Covers the race condition caused by async `savePerStep` persistence.
-  - Uses a short-lived `useRef Map` cache keyed by `threadId`.
-  - Flow:
-    - `useChat.onFinish` stores the final UI messages
-    - `handleSelectThread` reads cache first and renders immediately
-    - entry is deleted
-    - `loadThread` refreshes from the database
-  - Database remains authoritative once async writes finish; cache only bridges the timing gap.
+## Frontend proxy and authkit migration
+### `proxy_handling`
+- Documents the move from Next.js middleware to the Next.js 16 `proxy.ts` pattern with WorkOS Authkit.
+- `packages/web/src/proxy.ts` exports a named `proxy` function that forwards each `NextRequest` to `authkitProxy`.
+- Configuration enables middleware auth and exempts only `/auth/callback`.
+- Matcher excludes static assets and metadata paths (`_next/static`, `_next/image`, `favicon.ico`, `sitemap.xml`, `robots.txt`).
+- Migration highlights: replace `authkitMiddleware` with `authkitProxy`, drop `NextFetchEvent`, and use the Next.js 16 single-argument proxy signature.
 
-- **`message_persistence_parsing/_index.md`**
-  - Handles reconstruction of persisted thread messages into `UIMessage` payloads in `packages/web/src/lib/parse-message.ts`.
-  - Structured Mastra payloads are preferred; legacy text is a fallback.
-  - `convertThreadMessageToUIMessage` detects `MastraMessageContentV2` via `format 2 + parts array`.
-  - `convertV4PartsToV5` translates older tool-invocation parts.
-  - Tool states are normalized for `ResearchTrace` compatibility:
-    - `result` → `output-available`
-    - all others → `input-available`
-  - `extractText` preserves paragraph spacing by joining segments with `\n\n`.
+## Thread sidebar fetch resilience
+### `thread_sidebar`
+- Focuses on keeping the sidebar responsive while WorkOS auth and Mastra memory access initialize.
+- `ThreadSidebar.tsx` renders `+ New`, a scrollable thread list, loading/error states, rename/delete flows, and a signed-in-user footer with sign-out.
+- Fetch lifecycle: `useMastraReady` and `useMastraClient` establish readiness, `fetchThreads` uses an `AbortController`, `listMemoryThreads` retrieves threads, results are sorted by `updatedAt`, and loading clears after update.
+- Key resilience rule: a `401` is non-fatal while `useMastraReady` is false; the sidebar silently retries once auth is ready.
+- `useMastraClient` recreates `mastraClient` whenever the access token changes, keeping fetches aligned with auth state.
+- Important facts: abort stale thread-list requests on dependency changes, and the fixed agent ID for memory thread calls is `nc-medicaid-navigator`.
 
-## Streaming errors and test-facing SSE behavior
-
-- **`chat_streaming_error_handling/_index.md`**
-  - Centers on AI SDK v6 SSE streaming, deterministic Playwright mocks, and ChatPage error behavior.
-  - `AISdkStreamBuilder` replaces `MastraStreamBuilder` for test payloads and emits:
-    - start
-    - start-step
-    - text deltas
-    - tool input/output
-    - finish-step
-    - finish
-  - `mockMastraAPI` centralizes routing for:
-    - `POST /chat`
-    - `GET/POST /api/memory/threads`
-    - `GET /api/memory/threads/:id/messages`
-  - ChatPage behavior includes:
-    - create thread before sending
-    - 10k-character input limit
-    - reruns reuse the original user text
-    - destructive error alert on `useChat` failure
-    - textarea disabled while streaming/loading
-  - Fixed agent ID: `nc-medicaid-navigator`.
-  - Key UI error message:
-    - “Sorry, there was an error processing your question. Please try again.”
-
-## Thread sidebar resilience
-
-- **`thread_sidebar/_index.md`**
-  - Documents `ThreadSidebar.tsx` and `use-mastra-client.ts`.
-  - Sidebar responsibilities:
-    - `+ New`
-    - thread list
-    - loading/error states
-    - rename/delete
-    - signed-in user footer and sign-out
-  - Fetch lifecycle is guarded by `useMastraReady` and `useMastraClient`, then `listMemoryThreads` with `AbortController`.
-  - If `listMemoryThreads` returns `401` while auth is not ready, the error is swallowed and retried after auth resolves.
-  - `mastraClient` is recreated whenever the access token changes.
-  - Fixed agent ID for memory thread calls: `nc-medicaid-navigator`.
-  - Related drill-down: **`Authenticated Chat Transport Reinitialization`**.
-
-## Feedback pipeline
-
-- **`message_feedback/_index.md`**
-  - Covers persistence, API routing, web client helpers, and chat UI integration for message feedback.
-  - Persistence layer:
-    - `FeedbackRepository` in `packages/agent/src/feedback/repository.ts`
-    - wraps `@libsql/client`
-    - lazily creates `feedback` table
-    - enforces `UNIQUE(message_id, resource_id)`
-    - rating validation: `up` / `down`
-  - API layer:
-    - `packages/agent/src/feedback/routes.ts`
-    - routes registered through `registerApiRoute`
-    - handles `POST`, `GET`, and `DELETE` on `/feedback` and `/feedback/:id`
-    - derives `resourceId` from `c.get("requestContext").get("user")`
-    - payloads validated with `zod`
-  - Web client layer:
-    - `packages/web/src/lib/feedback-client.ts`
-    - `submitFeedback`, `deleteFeedback`, `getFeedbackByThread`
-    - uses `fetch` with Bearer auth and `credentials: include`
-  - UI integration:
-    - `packages/web/src/components/MessageActions.tsx`
-    - `packages/web/src/app/chat/page.tsx`
-    - uses `feedbackMap`, optimistic updates, and persistence hooks
-  - Important rules:
-    - `registerApiRoute` paths must not begin with `/api/`
-    - `getResourceId` must resolve `user.userId` or `user.id`, otherwise throw `"User not authenticated"`
-    - `FeedbackEntry.comment` is `null` for up ratings and only set for down ratings with user-entered text
-
-## Proxy and auth routing
-
-- **`proxy_handling/_index.md`**
-  - Describes the move from Next.js middleware to Next.js 16 `proxy.ts` with WorkOS Authkit.
-  - `packages/web/src/proxy.ts` exports a named `proxy` function that forwards each `NextRequest` to `authkitProxy`.
-  - Middleware auth config:
-    - `middlewareAuth: { enabled: true, unauthenticatedPaths: ['/auth/callback'] }`
-  - Matcher excludes static assets and metadata paths:
-    - `_next/static`
-    - `_next/image`
-    - `favicon.ico`
-    - `sitemap.xml`
-    - `robots.txt`
-  - Migration highlights:
-    - replaced `authkitMiddleware` with `authkitProxy`
-    - removed unused `NextFetchEvent`
-    - resolved the “adapterFn is not a function” error
-  - Dependency: `@workos-inc/authkit-nextjs`
-
-## Overall structural takeaway
-
-The chat UI is organized around a few stable boundaries:
-- **Layout stability**: `ScrollArea`, sidebar visibility, and flex sizing
-- **Identity stability**: `threadId` + auth-derived `resourceId`
-- **State durability**: message cache, pending restore, persisted parsing, and async persistence race handling
-- **Operational reliability**: auth-aware transport refresh, sidebar fetch resilience, and deterministic streaming/error handling
-- **User interaction integrity**: accessible thread controls, feedback persistence, and rerun-friendly streaming behavior
+## Cross-cutting relationships
+- `chat_page_review_fixes`, `chat_page_scroll_stability`, and `scroll_area_sidebar_stability` all describe different layers of the same ChatPage layout/scroll system.
+- `chat_page_transport`, `chat_page_thread_cache`, `message_persistence_cache`, and `message_persistence_parsing` form the runtime identity and persistence pipeline around `useChat`.
+- `chat_streaming_error_handling` connects UI behavior to SSE test payloads and mocked Mastra endpoints.
+- `message_feedback` integrates directly into the chat page’s message lifecycle and relies on the same auth/resource identity model.
+- `proxy_handling` and `thread_sidebar` document the auth boundary conditions that keep chat transport and memory loading synchronized.

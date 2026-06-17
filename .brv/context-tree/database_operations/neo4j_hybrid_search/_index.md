@@ -1,108 +1,65 @@
 ---
-children_hash: 218a6af0784b8ab65a018c49dec2973ac74dd5043713ae89624e2e6cbd0fed7a
-compression_ratio: 0.43436578171091444
+children_hash: f934087bc13405f7b55954060ae9824a1339e5d1c357405c5fd69c5617c97dfb
+compression_ratio: 0.31879460745440125
 condensation_order: 1
-covers: [context.md, deploy_data_script_and_refresh_workflow.abstract.md, deploy_data_script_and_refresh_workflow.md, deploy_data_script_and_refresh_workflow.overview.md, neo4j_hybrid_search_indexing.md, voyage_4_embedding_migration_on_railway_production.md]
-covers_token_total: 2712
+covers: [context.md, deploy_data_script_and_refresh_workflow.md, neo4j_hybrid_search_indexing.md, voyage_4_embedding_migration_on_railway_production.md]
+covers_token_total: 2522
 summary_level: d1
-token_count: 1178
+token_count: 804
 type: summary
 ---
-## database_operations / neo4j_hybrid_search
+## database_operations/neo4j_hybrid_search
 
-Covers the Neo4j retrieval layer used by the pipeline: vector and chunk embeddings, fulltext indexing, and hybrid relevance fusion across multiple signals. The topic centers on `ensure_vector_index` / `ensure_schema` responsibilities and `vector_search` composition, with drill-down detail in `neo4j_hybrid_search_indexing.md`.
+This topic covers the Neo4j hybrid retrieval stack for the pipeline, centered on vector and chunk embeddings, keyword fulltext search, and concept graph matching. It connects closely to `database_operations/neo4j_auth/railway_neo4j_auth_handling.md` and is the shared foundation for both indexing and production embedding migration work.
 
-### Key structure and behavior
-- Hybrid retrieval merges:
-  - section embeddings
+### Core retrieval structure
+- **`context.md`** defines the overall scope: search indexing, vector/chunk embedding indexes, and Reciprocal Rank Fusion (RRF) hybrid retrieval.
+- Key retrieval signals:
+  - vector embeddings per document-type group
   - chunk embeddings
-  - concept graph matches
-  - fulltext keyword hits
-- Fusion uses Reciprocal Rank Fusion with `RRF_K = 60`.
-- Search is performed per document-type group, then deduplicated by `section_id` before fusion.
-- `section_fulltext` indexes `Section.title` and `Section.content_text` for keyword search.
+  - fulltext search over `Section.title` and `Section.content_text`
+  - concept graph matches gated by `query_text`
+- RRF uses **`RRF_K = 60`** as the smoothing constant.
 
-### Important rules and constraints
-- Deduplicate each source list by keeping the highest score per `section_id` before fusing.
-- Concept matches only run when `query_text` is present.
-- Concept matches use a fixed `CONCEPT_MATCH_SCORE = 0.70` and cap results at `min(top_k, 5)`.
-- Fulltext queries follow the same document-type grouping as vector search and honor per-group limits.
-- Chunk embedding queries use per-group limits similar to section embeddings.
+### Indexing and fusion logic
+- **`neo4j_hybrid_search_indexing.md`** documents the indexing and query pipeline:
+  - `ensure_vector_index` asserts required indexes exist: `section_embeddings`, `chunk_embeddings`, and `section_fulltext`
+  - `vector_search` collects `vector_rows`, `chunk_rows`, `concept_rows`, and optional fulltext rows
+  - results are deduplicated by `section_id` before fusion
+  - `_rrf_fuse` combines the signals and returns top-k results
+- Rules and constraints preserved in this entry:
+  - deduplicate each source list by keeping the highest score per `section_id`
+  - concept matches require `query_text`
+  - concept matches use a fixed `CONCEPT_MATCH_SCORE = 0.70`
+  - fulltext search respects the same document-type grouping as vector search
+- Facts captured in this entry emphasize:
+  - hybrid search fuses embeddings, concept matches, and fulltext hits with RRF
+  - chunk searches run per document-type group
+  - `section_fulltext` indexes `Section.title` and `Section.content_text`
 
-### Dependencies and related areas
-- Depends on `pipeline.config.EMBEDDING_DIMENSIONS` for index creation.
-- Uses `pipeline.graph.connection.get_session` for Neo4j access.
-- Concept matching depends on `PolicyConcept` nodes, aliases, and section filters such as `content_length > 200` and `section_number`.
-- Related context: `database_operations/neo4j_auth/railway_neo4j_auth_handling.md`.
+### Production embedding migration
+- **`voyage_4_embedding_migration_on_railway_production.md`** records a Railway production deployment that migrated the remote Neo4j graph to **voyage-4** embeddings.
+- Operational sequence:
+  - authenticate Railway CLI
+  - create a temporary Neo4j TCP proxy
+  - null and re-embed the remote graph in place
+  - push commit `b739229` to `main`
+  - verify `/healthz` and live vector retrieval
+  - delete the proxy
+- Important operational facts:
+  - the migration was **non-destructive**
+  - the temporary proxy was required because direct Neo4j access needed a GraphQL `tcpProxyCreate`
+  - deploy was triggered by a GitHub repo push to `main`
+  - the web service was skipped because the change did not affect it
+  - rollback is possible by nulling embeddings and re-embedding with `voyage-law-2`
+- Verified outcomes include:
+  - `19,855` sections and `2,821` chunks re-embedded
+  - `1024` dimensions
+  - `0` errors and `0` missing embeddings
+  - `/healthz` confirmed Neo4j connectivity and writable storage
+  - live retrieval returned expected clinical policy sections with `0.83+` cosine similarity
 
-### Drill-down entry
-- `neo4j_hybrid_search_indexing.md` — full indexing and fusion implementation details.
-
----
-
-## database_operations / neo4j_hybrid_search / deploy_data_script_and_refresh_workflow
-
-Documents the remote Neo4j refresh/deployment script `scripts/deploy-data.sh`, which performs a destructive reload pipeline and requires explicit operator confirmation plus Railway connectivity. The script is designed for remote graph refreshes, not incremental updates.
-
-### Workflow outline
-- Validate `NEO4J_HOST`
-- Read `NEO4J_AUTH` from Railway variables
-- Confirm destructive wipe
-- Create schema
-- Run `load --reset`
-- Ingest CFR
-- Ingest SSA
-- Extract references
-- Detect amendments
-- Embed
-- Seed concepts
-- Link concepts
-- Emit final stats
-
-### Important operational rules
-- Missing `NEO4J_HOST` exits with usage instructions.
-- Railway CLI login is required.
-- Railway TCP proxy must be enabled before connection succeeds.
-- Non-interactive shells refuse to wipe without confirmation.
-- `--yes` bypasses the prompt.
-- Step 2 is the irreversible point: `load --reset` drops all nodes and relationships.
-- Disable the TCP proxy after migration completes.
-
-### Drill-down entries
-- `deploy_data_script_and_refresh_workflow.md` — structured workflow and rules.
-- `deploy_data_script_and_refresh_workflow.overview.md` — concise operational summary.
-- `deploy_data_script_and_refresh_workflow.abstract.md` — short note on destructive refresh behavior.
-
----
-
-## database_operations / neo4j_hybrid_search / voyage_4_embedding_migration_on_railway_production
-
-Records a production Railway deployment that migrated the remote Neo4j graph embeddings to `voyage-4` and verified the result end-to-end. This is a non-destructive re-embedding operation, distinct from the wipe-and-rebuild refresh workflow.
-
-### Deployment sequence
-- Authenticate Railway CLI with an account API token
-- Create a temporary Neo4j TCP proxy via GraphQL mutations
-- Null existing embeddings and re-embed in place
-- Push commit `b739229` to `main`
-- Trigger agent deployment automatically
-- Verify `/healthz` and live vector retrieval
-- Delete the temporary proxy
-
-### Key operational facts
-- The production environment uses the code default `voyage-4` because `VOYAGE_MODEL` is not overridden.
-- `AGENT_MODEL=gpt-5.4` is pinned in the Railway agent environment.
-- The deployment succeeded with no errors or missing embeddings.
-- The web service was skipped because the change did not affect the web app.
-- Health checks confirmed Neo4j connectivity and writable storage.
-- Retrieval validation returned expected `clinical_policy` sections with `0.83+` cosine similarity.
-- Rollback is possible by nulling embeddings again and re-embedding with `voyage-law-2`.
-
-### Environment and resource identifiers
-- Railway project id: `2a11b10b`
-- Production environment id: `1c44225d`
-- Neo4j service id: `1de48388`
-- Agent service id: `5f1decc0`
-- Web service id: `903a72cc`
-
-### Drill-down entry
-- `voyage_4_embedding_migration_on_railway_production.md` — full deployment record, verification, and rollback path.
+### Drill-down map
+- `context.md` — topic overview and scope
+- `neo4j_hybrid_search_indexing.md` — index creation and hybrid ranking pipeline
+- `voyage_4_embedding_migration_on_railway_production.md` — production embedding migration and verification

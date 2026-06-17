@@ -1,7 +1,7 @@
 ---
 title: Voyage 4 Embedding Migration on Railway Production
 tags: []
-related: [database_operations/neo4j_hybrid_search/context.md]
+related: [database_operations/neo4j_hybrid_search/context.md, database_operations/neo4j_hybrid_search/neo4j_hybrid_search_indexing.md]
 keywords: []
 importance: 50
 recency: 1

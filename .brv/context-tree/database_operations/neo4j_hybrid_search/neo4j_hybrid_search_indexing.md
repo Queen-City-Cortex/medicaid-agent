@@ -1,7 +1,7 @@
 ---
 title: Neo4j Hybrid Search Indexing
 tags: []
-related: [database_operations/neo4j_auth/railway_neo4j_auth_handling.md, database_operations/neo4j_hybrid_search/context.md]
+related: [database_operations/neo4j_auth/railway_neo4j_auth_handling.md, database_operations/neo4j_hybrid_search/context.md, database_operations/neo4j_hybrid_search/voyage_4_embedding_migration_on_railway_production.md]
 keywords: []
 importance: 50
 recency: 1

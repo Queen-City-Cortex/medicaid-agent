@@ -1,14 +1,9 @@
 {
-  "curationsSinceDream": 1,
-  "lastDreamAt": "2026-06-14T19:27:42.767Z",
-  "lastDreamLogId": "drm-1781465040717",
+  "curationsSinceDream": 0,
+  "lastDreamAt": "2026-06-17T20:32:36.482Z",
+  "lastDreamLogId": "drm-1781728188440",
   "pendingMerges": [],
-  "staleSummaryPaths": [
-    {
-      "enqueuedAt": 1781467222289,
-      "path": "facts/project/curated_context_snippet.md"
-    }
-  ],
-  "totalDreams": 5,
+  "staleSummaryPaths": [],
+  "totalDreams": 6,
   "version": 1
 }

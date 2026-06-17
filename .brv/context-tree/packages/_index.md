@@ -1,179 +1,119 @@
 ---
-children_hash: 3507fd3f903a6ea893c9c72d0a2f6130ac4138cc0c47155f63a107b0503b52f4
-compression_ratio: 0.42623863425496383
+children_hash: 91c58f90d12d8af25173839426df2f388842809d41d4a15842cb6662d185e381
+compression_ratio: 0.2711551376762928
 condensation_order: 2
-covers: [crawler/_index.md, intent-aware-staged-retrieval-dominates-both-policy-search-and-graph-frame-assem.md, pipeline/_index.md, policy_corpus/_index.md, retrieval-quality-depends-on-decontamination-plus-staged-ranking.md, retrieval-quality-depends-on-staged-overscan-filtering-and-reranking-across-sear.md, retrieval_quality/_index.md, staged-retrieval-is-the-common-answer-to-policy-search-graph-frame-assembly-and-.md]
-covers_token_total: 5389
+covers: [crawler/_index.md, intent-aware-staged-retrieval-dominates-both-policy-search-and-graph-frame-assem.md, pipeline/_index.md, policy_corpus/_index.md, retrieval-quality-depends-on-decontamination-plus-staged-ranking.md, retrieval-quality-depends-on-staged-overscan-filtering-and-reranking-across-sear.md, retrieval_quality/_index.md, staged-retrieval-is-the-common-answer-to-policy-search-graph-frame-assembly-and-.md, staged-retrieval-is-the-shared-answer-from-policy-search-to-evaluation.md]
+covers_token_total: 5956
 summary_level: d2
-token_count: 2297
+token_count: 1615
 type: summary
 ---
-# Structural Summary: Retrieval and Evaluation Stack
+## Structural Summary: Retrieval, Curation, and Evaluation Patterns
 
-This cluster centers on a shared system pattern: **staged retrieval with overscan, filtering, deduplication, and reranking/verification**. Across crawler, pipeline evaluation, policy corpus retrieval, and graph-based search, the architecture consistently avoids trusting single-pass top-k results and instead uses intent-aware or constraint-aware selection before final assembly.
+This cluster is dominated by a shared architectural pattern: **staged retrieval with overscan, filtering, deduplication, and reranking/fusion**. Across the entries, the system consistently avoids trusting a single global top-k pass and instead uses intent-aware candidate collection followed by controlled merge and verification stages.
 
-## 1) Crawler Fetcher Hardening
-**Drill down:** `crawler/_index.md` → `fetching/_index.md`
-
-- The crawler’s fetch path was hardened for **Node 26** by isolating redirect handling inside a **private undici dispatcher** created in `createFetcher()`.
-- Redirects now use `request({ dispatcher })` with `new Agent().compose(interceptors.redirect({ maxRedirections }))`.
-- This preserves existing crawl semantics:
+### 1) Crawler fetcher hardening
+- **`crawler/_index.md`** documents the fetcher fix for Node 26 reliability in `packages/crawler/src/crawl/fetcher.ts`.
+- Core decision: use a **private undici dispatcher** inside `createFetcher()` rather than relying on global dispatcher state.
+- Redirect handling is moved to `interceptors.redirect({ maxRedirections })`, preserving:
   - per-domain serialization
   - rate limiting
-  - retry/backoff behavior
-  - file streaming behavior
-- Root cause: importing crawler modules that load `cheerio` mutates undici global state via `setGlobalDispatcher()`, which makes global `request({ maxRedirections })` unsafe.
-- Key rule: **do not rely on undici global dispatcher when crawler sources may import `cheerio`**.
-- Outcome: forward-compatible with undici 7 and verified on crawl discovery / robots.txt handling, including a dry run that discovered **177 clinical_policy docs**.
+  - retry/backoff
+  - file streaming
+- Root cause: importing crawler modules that load `cheerio` mutates undici global state via `setGlobalDispatcher()`, which breaks full crawl execution.
+- Verification notes include successful crawl discovery and robots handling, with a dry run discovering **177 clinical_policy docs**.
+- Drill-down entry: **Undici Redirect Interceptor Fetcher Fix**.
 
-## 2) A/B Embedding Evaluation Harness
-**Drill down:** `pipeline/_index.md` → `eval_a_b_gate_corrections.md`, `evaluation_harness_ab/_index.md` → result entries
+### 2) Retrieval as a staged system
+Multiple synthesis entries converge on the same retrieval design:
 
-- The A/B harness in `scripts/eval-ab.sh` now runs three gates:
-  - **embeddings**
-  - **reranker**
-  - **verifier**
-- The embeddings gate is now **apples-to-apples**, using a controlled mixed corpus rather than the production graph.
-- Mixed corpus sources: **dhhs_policy, clinical_policy, state_plan_amendment, CFR, SSA**.
-- Important harness constraints:
-  - `CANDIDATE_DIMS` defaults to **1024**
-  - `embeddings_arm` writes progress to **stderr**, leaving stdout for the latest `run_id`
-  - reranker evaluation should be measured via **answer eval**, not retrieval-only eval
-  - verifier is **stochastic** and uses repeated answer runs
-  - swaps are only accepted if regression stays within **`EVAL_REGRESSION_THRESHOLD = 0.05`**
-- Structural evaluation flow:
-  1. build matched corpus
-  2. run retrieval or answer evaluation
-  3. compare held-out metrics
-  4. enforce regression threshold
-  5. choose based on **quality + cost**
-- Key result pattern:
-  - **`voyage-4` vs `voyage-law-2`**: `voyage-4` is preferred; quality matches on precision@k and primary_hit_rate with slight MRR improvement, while cost drops ~50%.
-  - **`voyage-law-2` vs `voyage-4-large`**: larger model is a wash; slight MRR gain but flat/worse precision@k, primary_hit_rate, and recall@k, with no cost advantage.
-- Migration rule: re-embed the production corpus and update **both** `EMBEDDING_MODEL` and `VOYAGE_MODEL` together.
+- **`retrieval-quality-depends-on-decontamination-plus-staged-ranking.md`**
+- **`retrieval-quality-depends-on-staged-overscan-filtering-and-reranking-across-sear.md`**
+- **`retrieval-quality-depends-on-staged-overscan-filtering-and-reranking-across-search-stacks.md`**
+- **`staged-retrieval-is-the-common-answer-to-policy-search-graph-frame-assembly-and-.md`**
+- **`staged-retrieval-is-the-shared-answer-from-policy-search-to-evaluation.md`**
+- **`intent-aware-staged-retrieval-dominates-both-policy-search-and-graph-frame-assem.md`**
 
-## 3) Policy Corpus Structural Pipeline
-**Drill down:** `policy_corpus/_index.md` → `coverage_routing/_index.md`, `document_selection/_index.md`, `coverage_frame_assembly/_index.md`, `frame/_index.md`, `retrieval/_index.md`, `evaluation_harness_ab/_index.md`
+Common pattern:
+1. **query intent**
+2. **candidate scoring**
+3. **vector overscan**
+4. **topical or document-type filtering**
+5. **group-specific ranking**
+6. **dedupe by stable identity** such as `sectionId` or `section_id`
+7. **RRF merge / fusion**
 
-### Coverage routing and document selection
-- The routing chain is:
-  **lookup documents -> infer documents from hits -> apply setting preference -> narrow -> return routing documents**
-- Core rule: **setting-preferred routing documents are authoritative before inferred narrowing**.
+Key architectural implications:
+- Neo4j `queryNodes(k)` is **global top-k only**, so it cannot satisfy per-group coverage alone.
+- Systems compensate by overscanning per group first, then filtering and reranking.
+- Retrieval quality depends on **decontamination** as well as ranking:
+  - HCWD cleanup removes misleading limit-history cues and preserves topical income-rule terms.
+  - HCBS cleanup keeps legitimate waiver section numbers while removing hardcoded heuristics.
+- The policy-corpus stack uses **intent-aware routing**, where specialized routing or authority handling happens before generic narrowing.
+
+Drill-down anchors:
+- policy-corpus frame assembly and coverage routing
+- retrieval backends and collector logic
+- graph search / hybrid retrieval behavior in database_operations
+- evaluation and QA evidence-handling constraints
+
+### 3) Policy corpus routing and frame assembly
+- **`policy_corpus/_index.md`** describes the structural pipeline that routes documents and assembles the final evidence frame.
+- Core routing chain:
+  - `lookup documents -> infer documents from hits -> apply setting preference -> narrow -> return routing documents`
+- Important rule: **setting-preferred routing documents are authoritative before inferred narrowing**.
 - `selectSettingPreferredDocuments(queryLower, documents)` runs before `narrowInferredCoverageDocuments`.
 - `variantReasoning` falls back to the setting-preference reason when no sibling variant frame exists.
-- This prevents strong explicit matches from being displaced by weaker inferred matches.
-
-### Frame assembly
-- Routed documents feed final answer framing via merged evidence buckets:
+- This prevents explicit setting matches from being displaced by distractors.
+- Frame assembly merges **base hits, HCWD history hits, routed documents, and section candidates** into:
   - **primary**
   - **supporting**
   - **avoid**
 - In sibling sets, the **variant frame** takes precedence; otherwise `settingPreference.documents` becomes `preferredRoutingDocuments`.
-- Relevant implementation paths:
-  - `packages/policy-corpus/src/frame/context/routing.ts`
-  - `packages/policy-corpus/src/internal/document-selection.ts`
-  - `packages/policy-corpus/src/frame/pipelines/coverage.ts`
 
-### Broader frame pipeline
-- Coverage selection follows a **5-stage pipeline**:
-  1. score coverage sections
-  2. collect/group by coverage flags
-  3. build initial selection
-  4. build anchors
-  5. assemble final sections
-- `SectionCandidate.score` was removed; selection is now **positional**, not score-field driven.
-- Authority handling explicitly pairs **statute and regulation** when citation intent is detected.
-- Authority evidence is resolved in four steps:
-  1. `buildFederalAuthoritySignals`
-  2. `collectFederalAuthorityEvidence`
-  3. `collectFederalImplementationEvidence`
-  4. `buildFederalAuthorityCandidateSets`
-- Rebalance hints adjust primary/supporting/avoid sections for **waiver authority**, **SPA**, and **EPSDT**.
-- Ordering matters: `WAIVER_AUTHORITY_HINT` must run before `WAIVER_HINT`.
+Related drill-down entries:
+- **coverage_routing/_index.md**
+- **document_selection/_index.md**
+- **coverage_frame_assembly/_index.md**
+- **frame/_index.md**
 
-### Retrieval gating and evaluation
-- `shouldAttemptRerank()` only activates for **hard or ambiguous queries** and fail-opens to baseline hits otherwise.
-- Reranking is disabled for:
-  - explicit document types
-  - deterministic route / deterministic evidence
-  - too few candidates
-- It is enabled for query types such as:
-  - `federal_authority`
-  - `amendment`
-  - `policy_variant`
-  - `HCWD income premium`
-- The reranker is a **guarded, fail-open refinement**; embeddings are identified as the more important optimization target.
+### 4) Retrieval gating and evaluation harness
+- **`pipeline/_index.md`** summarizes the corrected A/B evaluation harness for embedding and reranker/verifier comparisons.
+- `scripts/eval-ab.sh` now drives three gates:
+  - **embeddings**
+  - **reranker**
+  - **verifier**
+- The embeddings gate uses a **controlled mixed corpus**, not the production graph.
+- Mixed corpus sources: **dhhs_policy, clinical_policy, state_plan_amendment, CFR, SSA**.
+- `CANDIDATE_DIMS` defaults to **1024**, matching `voyage-law-2` and `voyage-4-large`.
+- Adoption threshold: only accept swaps if regression stays within **`EVAL_REGRESSION_THRESHOLD = 0.05`**.
+- `verifier` is stochastic and uses repeated answer runs.
+- `embeddings_arm` writes progress to **stderr** so stdout only returns the latest `run_id`.
 
-### A/B harness integration
-- The policy-corpus A/B harness extends the existing eval system rather than replacing it.
-- Main components:
-  - `packages/pipeline/src/pipeline/config.py`
-  - `packages/agent/src/config.ts`
-  - `packages/pipeline/src/pipeline/eval/runner.py`
-  - `scripts/eval-ab.sh`
-  - `docker-compose.ab.yml`
-- Design constraints:
-  - Neo4j Community Edition is treated as **single-database**
-  - candidate corpus is isolated in a **second container/volume** on `bolt:7688`
-  - `heldout-paraphrase.json` is the trusted baseline after de-contamination review
-  - adoption is blocked unless regression stays within `0.05`
-- Provenance fields used for comparison include:
-  - `embedding_dimensions`
-  - `neo4j_uri`
-  - `reranker`
-- Environment-overridable settings include:
-  - `EMBEDDING_MODEL`
-  - `EMBEDDING_DIMENSIONS`
-  - `VOYAGE_MODEL`
-- Core compatibility rule: `PIPELINE EMBEDDING_MODEL` must equal `AGENT VOYAGE_MODEL` for meaningful vector similarity.
+Result summaries:
+- **`Embeddings A/B Result: voyage-4 vs voyage-law-2`**
+  - `voyage-4` matches quality, slightly improves MRR, and cuts cost by about **50%**
+  - recommendation: **adopt voyage-4**
+  - migration requires re-embedding and updating both `EMBEDDING_MODEL` and `VOYAGE_MODEL`
+- **`Embeddings A/B Result: voyage-law-2 vs voyage-4-large`**
+  - slight MRR improvement but no meaningful recall/precision gain
+  - same cost, so effectively a wash
+  - likely bottleneck is structural, not embedding-specific
 
-## 4) Shared Retrieval Principle Across Stacks
-**Drill down:** `retrieval_quality/_index.md`, `packages/_index.md` synthesis entries, `database_operations/_index.md`
-
-- A common architecture appears across policy search, graph frame assembly, and QA trust:
-  **query intent -> candidate scoring -> vector overscan -> topical filtering -> group-specific ranking -> RRF merge**
-- Neo4j’s `queryNodes(k)` returns a **global top-k**, so the system compensates by overscanning per type group first.
-- Deduplication is done by stable identities such as:
-  - `sectionId`
-  - `section_id`
-- Search stacks combine multiple signals:
-  - vector embeddings
-  - chunk embeddings
-  - concept-graph matches
-  - fulltext keyword hits
-- Final merge uses **Reciprocal Rank Fusion (RRF)**, with `RRF_K = 60` in the graph-search path.
-- Key insight: **specialized routing and filtering should happen before generic narrowing**.
-
-## 5) Decontamination and Retrieval Quality
-**Drill down:** `retrieval_quality/_index.md` and related synthesis entries
-
-- Retrieval quality depends on both **decontamination** and **staged ranking**.
-- The retrieval backend in `packages/policy-corpus/src/retrieval/backends/section-vector.ts`:
-  - iterates `profile.typeGroups`
-  - overscans each group with `vectorScanK(profile.perGroupK)`
-  - filters by `document_type`
-- The collector in `packages/policy-corpus/src/retrieval/collector.ts` performs staged ranking and final merge ordering.
-- Cleanup rules reduce contamination:
-  - **HCWD**: replace limit-history terms with topical HCWD income-rule terms; remove the `01-14` change-notice bonus from HCWD history retrieval
-  - **HCBS**: keep `WAIVER_APPLICATION_PRIMARY_SECTION_NUMBERS`, but remove hardcoded section-number heuristics like `5.4.3`
-- Retrieval quality is therefore tied to:
-  - candidate selection
-  - fixture/data contamination control
+### 5) Cross-cutting themes
+- **Staged retrieval is the dominant design pattern** across search, frame assembly, evaluation, and QA.
+- The system favors:
+  - overscan before precision
   - stable identity deduplication
-  - controlled reranking
+  - intent-aware filtering
+  - provenance-preserving merge boundaries
+  - fail-open or guarded fallback behavior where appropriate
+- Structural correctness is treated as more important than single-pass ranking convenience.
+- Evaluation is designed to compare **entire retrieval behaviors**, not isolated retrieval scores.
 
-## 6) Cross-Cluster Pattern
-- The dominant design across these entries is a **staged, intent-aware retrieval architecture**.
-- Whether the system is:
-  - crawling remote sources,
-  - evaluating embeddings,
-  - assembling policy frames,
-  - or doing hybrid graph search,
-  it consistently prefers:
-  1. broad collection
-  2. filtering by intent or type
-  3. deduplication by stable identity
-  4. reranking/fusion
-  5. guarded verification or final assembly
-
-- The operational constraint throughout is the same: **avoid trusting raw top-k results**; use controlled intermediate stages and preserve provenance, authority, and routing preferences.
+### 6) Where to drill down
+- **Crawler Fetching** → undici dispatcher isolation, redirect handling, Node 26 compatibility
+- **Policy Corpus Structural Summary** → routing, frame assembly, authority handling, reranking
+- **Retrieval Quality / Staged Ranking** → per-group overscan, deduplication, decontamination rules
+- **A/B Embedding Evaluation Harness** → gate corrections, controlled corpus, candidate dimension policy
+- **Embedding result entries** → model selection outcomes and migration implications

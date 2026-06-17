@@ -1,58 +1,44 @@
 ---
-children_hash: 2ec944c20e9fcbf0682401358aae28b1872ec8c1e71c92046beffe9a351ac1fd
-compression_ratio: 0.8685714285714285
+children_hash: 713e39f814a9b5e3e6ef837f67e76470f577e95c6a5baacc328c30bf6b615632
+compression_ratio: 0.8802660753880266
 condensation_order: 2
 covers: [project/_index.md]
-covers_token_total: 525
+covers_token_total: 451
 summary_level: d2
-token_count: 456
+token_count: 397
 type: summary
 ---
-# Structural Overview
+# facts/project — Structural Summary
 
-## Project-level curation guidance
-`project/_index.md` summarizes `curated_context_snippet.md` as the project’s source of truth for curation rules. It replaces redundant `abstract` and `overview` variants, so drill into that entry for the full policy set.
+This domain captures durable project knowledge centered on a single curation record: **`curated_context_snippet.md`**. The entry documents how compact context inputs are converted into structured, durable knowledge, with emphasis on preserving factual detail, timestamps, and verification status instead of leaving information only in chat.
 
-### Core context model
-- Knowledge uses a **two-part context model**:
-  - `rawConcept` for essential metadata, operational facts, and traceable structure
-  - `narrative` for descriptive structure, dependencies, highlights, and rules
-- Content is organized as **domain → topic → subtopic** files.
+## Core curation model
+The preserved workflow is:
 
-### Required shape for curated entries
-Each curated item should include:
-- a clear `task`
-- at least one of `changes`, `files`, or `flow`
-- at least one narrative field
+- **context → extract lines → curate facts**
+- Use a **two-part context model**:
+  - `rawConcept` for operational metadata
+  - `narrative` for descriptive structure
+- Require a clear `task` plus at least one of:
+  - `changes`
+  - `files`
+  - `flow`
+- Include at least one narrative field such as:
+  - `structure`
+  - `dependencies`
+  - `highlights`
 
-The guidance emphasizes **durable, traceable knowledge** over chat-only notes.
+## Key rules and constraints
+The record emphasizes durable-knowledge curation practices:
 
-### Canonical curation workflow
-- Standard flow: `recon -> extract facts and context -> curate with UPSERT -> verify applied files`
-- `UPSERT` is the default operation for create/update handling.
-- Verification should check:
-  - `result.summary.failed`
-  - `result.applied` file paths
+- Prefer **UPSERT** for updates
+- Verify results via `result.summary.failed` and `result.applied`
+- Preserve **exact rule text**, **regex patterns**, and **timestamps**
+- Maintain **temporal fidelity** and exact fact retention
+- Avoid vague topics and nested subtopics
 
-### Preservation and quality rules
-- Preserve **exact rule text**, **regex patterns**, and **temporal information** verbatim.
-- Include timestamps and source references when available.
-- Avoid vague contexts and nested subtopics.
+## Structural signals and relationships
+The notes describe a **single-pass curation** process from a compact RLM context input, indicating the source context was small enough for direct extraction. The document functions as project-level guidance for preserving durable knowledge from context snippets and source material.
 
-### Facts handling
-- Facts should be extracted and stored as durable knowledge.
-- Use standalone `facts/` domains for uncategorized knowledge:
-  - personal facts
-  - project facts
-  - convention facts
-
-### Key referenced entities
-- `ByteRover context engineer`
-- `rawConcept`
-- `narrative`
-- `changes`
-- `files`
-- `flow`
-
-### Drill-down note
-- **Eval OpenAI key isolation**: a separate extracted note within the same entry, useful for provenance around fact-preservation examples.
+## Drill-down
+- **`curated_context_snippet.md`** — concrete curation record, raw concept, narrative, and consolidation notes
