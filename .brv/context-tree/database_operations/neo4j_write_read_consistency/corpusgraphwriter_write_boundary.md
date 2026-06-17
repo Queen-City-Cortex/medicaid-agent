@@ -55,4 +55,4 @@ merge_reference_edges splits edges by type, sending REFERENCES to MERGE_REFERENC
 - **execute_write_retries**: execute_write auto-retries transient errors such as leader switch, deadlock, and dropped connection. [project]
 - **write_idempotency**: All writes are MERGE-based with deterministic, doc-scoped cleanup, making work functions idempotent and safe to rerun. [project]
 - **section_cleanup_policy**: Only sections whose content actually changed lose embeddings and chunks; unchanged sections keep them. [project]
-- **test_suite_result**: The suite result for the corpus writer tests is 301 passed and 2 skipped. [project]
+- **test_suite_result**: The full pipeline test suite passed 301 with 2 skipped after this change; the corpus_writer test file itself has 10 tests. [project]

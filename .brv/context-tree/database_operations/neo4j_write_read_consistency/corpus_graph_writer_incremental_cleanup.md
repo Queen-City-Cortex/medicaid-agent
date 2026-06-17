@@ -52,7 +52,7 @@ Re-running the loader after a document update should not trigger a full corpus r
 - **upsert_document_bundle**: upsert_document_bundle merges the document and writes sections. [project]
 - **reference_edge_types**: merge_reference_edges handles REFERENCES and REFERENCES_DOCUMENT edges separately. [project]
 - **amendment_status_marking**: merge_amendments also marks affected documents with the amendment status. [project]
-- **supersession_edges**: merge_supersessions writes SUPSERSEDED_BY-style edges with effective date and reason. [project]
+- **supersession_edges**: merge_supersessions writes SUPERSEDED_BY edges (via MERGE_SUPERSEDED_BY_BATCH) with effective date and reason. [project]
 - **concept_relationship_types**: merge_concept_links supports COVERS, DEFINES, and RESTRICTS relationships. [project]
 - **section_cleanup**: The section writer removes stale document sections and clears embeddings only for changed section content. [project]
 - **embedding_retention**: Unchanged sections keep their embeddings and chunks when the loader is rerun. [project]
