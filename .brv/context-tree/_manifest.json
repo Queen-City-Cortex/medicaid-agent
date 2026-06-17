@@ -102,13 +102,13 @@
       "type": "stub"
     }
   ],
-  "generated_at": "2026-06-17T19:00:48.251Z",
+  "generated_at": "2026-06-17T19:23:40.850Z",
   "lane_tokens": {
     "contexts": 4000,
     "stubs": 104,
     "summaries": 1934
   },
-  "source_fingerprint": "e5d095efc939a2ae7cd98524017ce26a962ea15b5bdfcf160daf1014e1d47fe5",
+  "source_fingerprint": "e6fe66b83a5d3f6b6ea1a0a2c56694fcf3ef390cc7462334966c420b39062020",
   "total_tokens": 6038,
   "version": 1
 }

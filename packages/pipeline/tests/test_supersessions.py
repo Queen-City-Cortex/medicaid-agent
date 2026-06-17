@@ -25,13 +25,11 @@ class FakeSession:
         self.calls.append((query, params or {}))
         return []
 
-    @contextmanager
-    def begin_transaction(self):
+    def execute_write(self, fn, *args, **kwargs):
         # The transaction is the session: .run keeps recording to .calls.
-        yield self
-
-    def commit(self):
+        result = fn(self, *args, **kwargs)
         self.commits += 1
+        return result
 
 
 def _writer_for(session: FakeSession) -> CorpusGraphWriter:

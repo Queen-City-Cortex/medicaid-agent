@@ -21,12 +21,16 @@ class FakeSession:
         self,
         existing_sections: dict[str, str] | None = None,
         fail_on: str | None = None,
+        transient_retries: int = 0,
     ):
         self.calls: list[tuple[str, dict]] = []
         # id → content_text of sections already in the graph
         self.existing_sections = existing_sections or {}
         # query string to raise on, to simulate a mid-write failure
         self.fail_on = fail_on
+        # number of transient failures to simulate before the work commits
+        self._pending_retries = transient_retries
+        self.attempts = 0
         self.commits = 0
         self.rollbacks = 0
 
@@ -43,21 +47,28 @@ class FakeSession:
         return []
 
     # --- transaction surface -------------------------------------------------
-    # The real neo4j Session.begin_transaction() returns a Transaction that is
-    # itself a context manager with .run/.commit/.rollback. The fake lets the
-    # transaction be the session, so .run keeps recording to the same .calls
-    # list and the existing call-sequence assertions are unaffected.
-    @contextmanager
-    def begin_transaction(self):
-        committed_before = self.commits
-        try:
-            yield self
-        finally:
-            if self.commits == committed_before:
+    # The real neo4j Session.execute_write(fn) runs fn in a managed write
+    # transaction, retrying it on transient errors and committing on success.
+    # The fake makes the transaction be the session (so .run keeps recording to
+    # .calls), commits on success, and rolls back + re-raises on failure. When
+    # transient_retries is set, it re-runs the unit of work — discarding the
+    # rolled-back attempt's recorded statements — to prove the work function is
+    # safe to retry.
+    def execute_write(self, fn, *args, **kwargs):
+        while True:
+            self.attempts += 1
+            try:
+                result = fn(self, *args, **kwargs)
+            except Exception:
                 self.rollbacks += 1
-
-    def commit(self):
-        self.commits += 1
+                raise
+            if self._pending_retries > 0:
+                self._pending_retries -= 1
+                self.rollbacks += 1
+                self.calls.clear()
+                continue
+            self.commits += 1
+            return result
 
 
 def _make_bundle() -> DocumentBundle:
@@ -274,6 +285,30 @@ def test_upsert_document_bundle_rolls_back_when_a_write_fails():
     # delete/clear statements never become durable.
     assert session.commits == 0
     assert session.rollbacks == 1
+
+
+def test_upsert_document_bundle_retries_unit_of_work_then_commits():
+    # Simulate one transient failure: execute_write re-runs the work function.
+    # The rolled-back attempt's statements are discarded, and the retry must
+    # produce the same correct, complete sequence and commit exactly once.
+    session = FakeSession(transient_retries=1)
+    writer = _writer_for(session)
+
+    writer.upsert_document_bundle(_make_bundle())
+
+    assert session.attempts == 2
+    assert session.rollbacks == 1
+    assert session.commits == 1
+    assert [query for query, _ in session.calls] == [
+        queries.MERGE_DOCUMENT,
+        queries.GET_SECTION_CONTENT_BATCH,
+        queries.DELETE_STALE_DOCUMENT_SECTIONS,
+        queries.CLEAR_DOCUMENT_SECTION_STRUCTURE,
+        queries.MERGE_SECTIONS_BATCH,
+        queries.MERGE_HAS_SECTION_BATCH,
+        queries.MERGE_PARENT_OF_BATCH,
+        queries.MERGE_NEXT_SIBLING_BATCH,
+    ]
 
 
 def test_merge_amendments_and_concept_links_write_through_boundary():

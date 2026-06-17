@@ -1,19 +1,26 @@
 """Single write-side boundary for corpus graph mutations.
 
-Every public method runs its statements inside a single explicit Neo4j
-transaction. Because a Neo4j session in auto-commit mode commits each
-``session.run`` separately, a multi-statement mutation (e.g. delete-then-rewrite
-a document's sections) could otherwise be interrupted between statements and
-leave the graph structurally incomplete — sections deleted but not yet
-rewritten. Wrapping the unit of work in a transaction makes it all-or-nothing:
-the ``with session.begin_transaction()`` block commits only if every statement
-succeeds, and rolls back automatically if any of them raises.
+Every public method runs its statements inside a single managed write
+transaction via ``session.execute_write``. Two properties matter here:
+
+1. Atomicity. A Neo4j session in auto-commit mode commits each
+   ``session.run`` separately, so a multi-statement mutation (e.g.
+   delete-then-rewrite a document's sections) could be interrupted between
+   statements and leave the graph structurally incomplete. A managed
+   transaction commits only if the whole unit of work succeeds and rolls
+   back otherwise.
+
+2. Resilience. ``execute_write`` re-runs the unit of work on transient
+   failures (leader switches, deadlocks, lost connections). Every write
+   here is MERGE-based with deterministic, doc-scoped cleanup, so the work
+   functions are idempotent and safe to retry — re-running a rolled-back
+   attempt produces the same end state.
 """
 
 from contextlib import AbstractContextManager
 from typing import Protocol
 
-from neo4j import Session, Transaction
+from neo4j import ManagedTransaction, Session
 
 from pipeline.config import GRAPH_BATCH_SIZE
 from pipeline.graph.connection import get_session
@@ -38,7 +45,8 @@ class CorpusGraphWriter:
 
     def upsert_document_bundle(self, bundle: DocumentBundle) -> None:
         document = bundle.document
-        with self._session_factory() as session, session.begin_transaction() as tx:
+
+        def _work(tx: ManagedTransaction) -> None:
             tx.run(queries.MERGE_DOCUMENT, {
                 "id": document.id,
                 "title": document.title,
@@ -62,7 +70,9 @@ class CorpusGraphWriter:
                 "retrieval_ready": document.retrieval_ready,
             })
             self._write_sections(tx, bundle.sections, document.id)
-            tx.commit()
+
+        with self._session_factory() as session:
+            session.execute_write(_work)
 
     def merge_reference_edges(self, edges: list[ReferenceEdge]) -> int:
         if not edges:
@@ -90,30 +100,34 @@ class CorpusGraphWriter:
             if edge.edge_type == "REFERENCES_DOCUMENT"
         ]
 
-        with self._session_factory() as session, session.begin_transaction() as tx:
+        def _work(tx: ManagedTransaction) -> None:
             for batch in chunked(section_edges, GRAPH_BATCH_SIZE):
                 tx.run(queries.MERGE_REFERENCES_BATCH, {"edges": batch})
             for batch in chunked(document_edges, GRAPH_BATCH_SIZE):
                 tx.run(queries.MERGE_REFERENCES_DOCUMENT_BATCH, {"edges": batch})
-            tx.commit()
+
+        with self._session_factory() as session:
+            session.execute_write(_work)
 
         return len(edges)
 
     def merge_amendments(self, edges: list[AmendmentEdge], amendment_doc_ids: list[str]) -> int:
-        with self._session_factory() as session, session.begin_transaction() as tx:
-            pairs = [
-                {
-                    "source_id": edge.source_id,
-                    "target_id": edge.target_id,
-                    "change_description": edge.change_description,
-                }
-                for edge in edges
-            ]
+        pairs = [
+            {
+                "source_id": edge.source_id,
+                "target_id": edge.target_id,
+                "change_description": edge.change_description,
+            }
+            for edge in edges
+        ]
+
+        def _work(tx: ManagedTransaction) -> None:
             for batch in chunked(pairs, GRAPH_BATCH_SIZE):
                 tx.run(queries.MERGE_AMENDS_BATCH, {"pairs": batch})
-
             self._mark_document_statuses(tx, amendment_doc_ids, "amendment")
-            tx.commit()
+
+        with self._session_factory() as session:
+            session.execute_write(_work)
 
         return len(edges)
 
@@ -121,19 +135,22 @@ class CorpusGraphWriter:
         if not edges:
             return 0
 
-        with self._session_factory() as session, session.begin_transaction() as tx:
-            payload = [
-                {
-                    "source_id": edge.source_id,
-                    "target_id": edge.target_id,
-                    "effective": edge.effective,
-                    "reason": edge.reason,
-                }
-                for edge in edges
-            ]
+        payload = [
+            {
+                "source_id": edge.source_id,
+                "target_id": edge.target_id,
+                "effective": edge.effective,
+                "reason": edge.reason,
+            }
+            for edge in edges
+        ]
+
+        def _work(tx: ManagedTransaction) -> None:
             for batch in chunked(payload, GRAPH_BATCH_SIZE):
                 tx.run(queries.MERGE_SUPERSEDED_BY_BATCH, {"edges": batch})
-            tx.commit()
+
+        with self._session_factory() as session:
+            session.execute_write(_work)
 
         return len(edges)
 
@@ -141,7 +158,7 @@ class CorpusGraphWriter:
         if not links:
             return 0
 
-        with self._session_factory() as session, session.begin_transaction() as tx:
+        def _work(tx: ManagedTransaction) -> None:
             for relationship_type in ("COVERS", "DEFINES", "RESTRICTS"):
                 rel_edges = [
                     {"section_id": link.section_id, "concept_id": link.concept_id}
@@ -158,16 +175,17 @@ class CorpusGraphWriter:
                         """,
                         {"edges": batch},
                     )
-            tx.commit()
+
+        with self._session_factory() as session:
+            session.execute_write(_work)
 
         return len(links)
 
     def mark_document_status(self, document_ids: list[str], status: str) -> None:
-        with self._session_factory() as session, session.begin_transaction() as tx:
-            self._mark_document_statuses(tx, document_ids, status)
-            tx.commit()
+        with self._session_factory() as session:
+            session.execute_write(self._mark_document_statuses, document_ids, status)
 
-    def _write_sections(self, tx: Transaction, sections: list, doc_id: str) -> None:
+    def _write_sections(self, tx: ManagedTransaction, sections: list, doc_id: str) -> None:
         section_rows = [
             {
                 "id": section.id,
@@ -219,7 +237,7 @@ class CorpusGraphWriter:
             tx.run(queries.MERGE_NEXT_SIBLING_BATCH, {"pairs": batch})
 
     def _fetch_existing_section_content(
-        self, tx: Transaction, section_ids: list[str]
+        self, tx: ManagedTransaction, section_ids: list[str]
     ) -> dict[str, str]:
         """Fetch content_text for sections that already exist in the graph."""
         existing: dict[str, str] = {}
@@ -231,7 +249,7 @@ class CorpusGraphWriter:
 
     def _cleanup_document_sections(
         self,
-        tx: Transaction,
+        tx: ManagedTransaction,
         doc_id: str,
         section_ids: list[str],
         changed_section_ids: list[str],
@@ -251,7 +269,9 @@ class CorpusGraphWriter:
                 {"section_ids": batch},
             )
 
-    def _mark_document_statuses(self, tx: Transaction, document_ids: list[str], status: str) -> None:
+    def _mark_document_statuses(
+        self, tx: ManagedTransaction, document_ids: list[str], status: str
+    ) -> None:
         if not document_ids:
             return
 
