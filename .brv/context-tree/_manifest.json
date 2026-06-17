@@ -7,6 +7,18 @@
       "type": "summary"
     },
     {
+      "importance": 60,
+      "path": "qa/launch_blockers/remediation_plan_2026_06_11.md",
+      "tokens": 632,
+      "type": "context"
+    },
+    {
+      "importance": 55,
+      "path": "packages/pipeline/evaluation_harness_ab/embeddings_a_b_result_voyage_4_vs_voyage_law_2.md",
+      "tokens": 645,
+      "type": "context"
+    },
+    {
       "importance": 50,
       "path": "agent_architecture/amendment_pipeline_and_prompt/amendment_pipeline_and_prompt_guardrails.md",
       "tokens": 181,
@@ -19,101 +31,75 @@
       "type": "context"
     },
     {
-      "abstractPath": "agent_architecture/context/curated_context_extraction_notes.abstract.md",
-      "abstractTokens": 50,
       "importance": 50,
-      "path": "agent_architecture/context/curated_context_extraction_notes.md",
+      "path": "agent_architecture/context/curated_context.abstract.md",
+      "tokens": 32,
+      "type": "context"
+    },
+    {
+      "importance": 50,
+      "path": "agent_architecture/context/curated_context.overview.md",
+      "tokens": 183,
+      "type": "context"
+    },
+    {
+      "importance": 50,
+      "path": "agent_architecture/context/curated_context_extraction_notes.abstract.md",
       "tokens": 50,
       "type": "context"
     },
     {
-      "abstractPath": "agent_architecture/context/curated_operational_knowledge.abstract.md",
-      "abstractTokens": 52,
       "importance": 50,
-      "path": "agent_architecture/context/curated_operational_knowledge.md",
+      "path": "agent_architecture/context/curated_context_extraction_notes.md",
+      "tokens": 544,
+      "type": "context"
+    },
+    {
+      "importance": 50,
+      "path": "agent_architecture/context/curated_context_extraction_notes.overview.md",
+      "tokens": 231,
+      "type": "context"
+    },
+    {
+      "importance": 50,
+      "path": "agent_architecture/context/curated_operational_knowledge.abstract.md",
       "tokens": 52,
       "type": "context"
     },
     {
-      "abstractPath": "agent_architecture/context/epsdt_exception_completeness_workstream_e.abstract.md",
-      "abstractTokens": 33,
       "importance": 50,
-      "path": "agent_architecture/context/epsdt_exception_completeness_workstream_e.md",
+      "path": "agent_architecture/context/curated_operational_knowledge.md",
+      "tokens": 517,
+      "type": "context"
+    },
+    {
+      "importance": 50,
+      "path": "agent_architecture/context/curated_operational_knowledge.overview.md",
+      "tokens": 263,
+      "type": "context"
+    },
+    {
+      "importance": 50,
+      "path": "agent_architecture/context/epsdt_exception_completeness_workstream_e.abstract.md",
       "tokens": 33,
       "type": "context"
     },
     {
       "importance": 50,
-      "path": "agent_architecture/context.md",
-      "tokens": 158,
+      "path": "agent_architecture/context/epsdt_exception_completeness_workstream_e.md",
+      "tokens": 228,
       "type": "context"
     },
     {
-      "abstractPath": "agent_architecture/local_dev_setup/ci_workflow_concurrency_and_test_gates.abstract.md",
-      "abstractTokens": 49,
       "importance": 50,
-      "path": "agent_architecture/local_dev_setup/ci_workflow_concurrency_and_test_gates.md",
+      "path": "agent_architecture/context/epsdt_exception_completeness_workstream_e.overview.md",
+      "tokens": 159,
+      "type": "context"
+    },
+    {
+      "importance": 50,
+      "path": "agent_architecture/local_dev_setup/ci_workflow_concurrency_and_test_gates.abstract.md",
       "tokens": 49,
-      "type": "context"
-    },
-    {
-      "importance": 50,
-      "path": "agent_architecture/local_dev_setup/env_consolidation/root_environment_consolidation.md",
-      "tokens": 407,
-      "type": "context"
-    },
-    {
-      "importance": 50,
-      "path": "agent_architecture/local_dev_setup/local_development_setup.md",
-      "tokens": 201,
-      "type": "context"
-    },
-    {
-      "importance": 50,
-      "path": "agent_architecture/mastra_server_configuration/mastra_server_timeout_tuning.md",
-      "tokens": 187,
-      "type": "context"
-    },
-    {
-      "importance": 50,
-      "path": "agent_architecture/navigate_tools/getamendments_optional_match_filtering.md",
-      "tokens": 180,
-      "type": "context"
-    },
-    {
-      "importance": 50,
-      "path": "agent_architecture/nc_medicaid_agent/cli_runner.md",
-      "tokens": 207,
-      "type": "context"
-    },
-    {
-      "importance": 50,
-      "path": "agent_architecture/nc_medicaid_agent/libsql_storage_fix_for_railway.md",
-      "tokens": 542,
-      "type": "context"
-    },
-    {
-      "importance": 50,
-      "path": "agent_architecture/nc_medicaid_agent/nc_medicaid_navigator_agent.md",
-      "tokens": 264,
-      "type": "context"
-    },
-    {
-      "importance": 50,
-      "path": "agent_architecture/nc_medicaid_agent/ssa_and_cfr_reference_resolution_fixes.md",
-      "tokens": 458,
-      "type": "context"
-    },
-    {
-      "importance": 50,
-      "path": "agent_architecture/nc_medicaid_agent/startup_and_web_ui_hardening.md",
-      "tokens": 214,
-      "type": "context"
-    },
-    {
-      "importance": 50,
-      "path": "agent_architecture/neo4j_tool_output_validation/neo4j_tool_output_validation.md",
-      "tokens": 205,
       "type": "context"
     },
     {
@@ -123,54 +109,18 @@
       "type": "context"
     },
     {
-      "abstractPath": "agent_architecture/packages_pipeline/crawler_sync_behavior/crawler_sync_behavior.abstract.md",
-      "abstractTokens": 41,
-      "importance": 50,
-      "path": "agent_architecture/packages_pipeline/crawler_sync_behavior/crawler_sync_behavior.md",
-      "tokens": 41,
-      "type": "context"
-    },
-    {
-      "abstractPath": "agent_architecture/packages_pipeline/retrieval_fixes/retrieval_fixes.abstract.md",
-      "abstractTokens": 41,
-      "importance": 50,
-      "path": "agent_architecture/packages_pipeline/retrieval_fixes/retrieval_fixes.md",
-      "tokens": 41,
-      "type": "context"
-    },
-    {
-      "abstractPath": "agent_architecture/packages_pipeline/ssa_parser_subsection_splitting_fix.abstract.md",
-      "abstractTokens": 57,
-      "importance": 50,
-      "path": "agent_architecture/packages_pipeline/ssa_parser_subsection_splitting_fix.md",
-      "tokens": 57,
-      "type": "context"
-    },
-    {
-      "importance": 50,
-      "path": "agent_architecture/search_tooling/hybrid_policy_search_tool.md",
-      "tokens": 193,
-      "type": "context"
-    },
-    {
-      "importance": 50,
-      "path": "auth_integration/workos_authkit_nextjs/context.md",
-      "tokens": 89,
-      "type": "context"
-    },
-    {
       "path": "_archived/README.stub.md",
       "tokens": 104,
       "type": "stub"
     }
   ],
-  "generated_at": "2026-06-14T20:00:22.313Z",
+  "generated_at": "2026-06-17T03:46:46.637Z",
   "lane_tokens": {
-    "contexts": 3992,
+    "contexts": 3982,
     "stubs": 104,
     "summaries": 1934
   },
-  "source_fingerprint": "c91175a67ba56880f42747d9de7d80db159645865471c88dfe629de09e07c946",
-  "total_tokens": 6030,
+  "source_fingerprint": "84cd542598782c03447dc68f83b7898206e54d1c16abf137c0a348bec1c497b1",
+  "total_tokens": 6020,
   "version": 1
 }

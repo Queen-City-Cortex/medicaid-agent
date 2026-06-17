@@ -1,85 +1,108 @@
 ---
-children_hash: 540d1af473660f9aab881373286e042464b464aa76a4ba1be439f3cf89858ef2
-compression_ratio: 0.6639765223771094
+children_hash: 218a6af0784b8ab65a018c49dec2973ac74dd5043713ae89624e2e6cbd0fed7a
+compression_ratio: 0.43436578171091444
 condensation_order: 1
-covers: [context.md, deploy_data_script_and_refresh_workflow.md, neo4j_hybrid_search_indexing.md]
-covers_token_total: 1363
+covers: [context.md, deploy_data_script_and_refresh_workflow.abstract.md, deploy_data_script_and_refresh_workflow.md, deploy_data_script_and_refresh_workflow.overview.md, neo4j_hybrid_search_indexing.md, voyage_4_embedding_migration_on_railway_production.md]
+covers_token_total: 2712
 summary_level: d1
-token_count: 905
+token_count: 1178
 type: summary
 ---
-# Neo4j Hybrid Search and Deployment Workflow
+## database_operations / neo4j_hybrid_search
 
-## Overview
-This set of knowledge entries covers two tightly related areas in the Neo4j pipeline:
-- **`context.md` / `neo4j_hybrid_search`**: the hybrid retrieval design that combines vector, chunk, concept-graph, and fulltext signals.
-- **`deploy_data_script_and_refresh_workflow.md`**: the remote deployment script that rebuilds and reloads the graph in a controlled, destructive workflow.
-- **`neo4j_hybrid_search_indexing.md`**: the concrete indexing and ranking mechanics behind hybrid search.
+Covers the Neo4j retrieval layer used by the pipeline: vector and chunk embeddings, fulltext indexing, and hybrid relevance fusion across multiple signals. The topic centers on `ensure_vector_index` / `ensure_schema` responsibilities and `vector_search` composition, with drill-down detail in `neo4j_hybrid_search_indexing.md`.
 
-## Core Architecture
+### Key structure and behavior
+- Hybrid retrieval merges:
+  - section embeddings
+  - chunk embeddings
+  - concept graph matches
+  - fulltext keyword hits
+- Fusion uses Reciprocal Rank Fusion with `RRF_K = 60`.
+- Search is performed per document-type group, then deduplicated by `section_id` before fusion.
+- `section_fulltext` indexes `Section.title` and `Section.content_text` for keyword search.
 
-### Hybrid retrieval pipeline
-`neo4j_hybrid_search` describes a retrieval flow where Neo4j search merges multiple relevance sources:
-- section embeddings
-- chunk embeddings
-- concept graph matches
-- fulltext keyword hits
-
-The key design point is **Reciprocal Rank Fusion** with **`RRF_K = 60`**, used to blend ranked lists into a single result set. Concept matching is gated by `query_text`, and the search is organized around document-type groups.
-
-### Indexing and schema support
-`neo4j_hybrid_search_indexing.md` adds implementation detail:
-- `ensure_vector_index` validates required indexes exist
-- schema includes **`section_fulltext`** over `Section.title` and `Section.content_text`
-- vector and chunk embedding search are both performed per document-type group
-- results are deduplicated by `section_id` before fusion
-- `_rrf_fuse` combines the ranked lists and returns top-k results
-
-## Deployment / Refresh Workflow
-
-### Remote graph reload script
-`Deploy Data Script and Refresh Workflow` documents `scripts/deploy-data.sh`, which targets a remote Neo4j instance and performs a fixed multi-step reload pipeline.
-
-Key properties:
-- requires `NEO4J_HOST`
-- reads `NEO4J_AUTH` from Railway variables
-- requires Railway CLI login
-- depends on an enabled Railway TCP proxy
-- refuses destructive graph wipe without explicit confirmation in non-interactive shells
-
-The workflow is explicitly destructive at **step 2**, where `load --reset` drops all nodes and relationships before reloading.
-
-### Pipeline flow
-The documented flow is:
-
-`configure NEO4J_HOST -> read NEO4J_AUTH -> confirm wipe -> schema -> load --reset -> ingest-cfr -> ingest-ssa -> extract-refs -> detect-amendments -> embed -> seed-concepts -> link-concepts -> stats`
-
-## Key Rules and Constraints
-
-### Search rules
-From `neo4j_hybrid_search_indexing.md`:
+### Important rules and constraints
 - Deduplicate each source list by keeping the highest score per `section_id` before fusing.
-- Concept matches require `query_text`.
-- Concept matches use a fixed score of `0.70` and consider up to `min(top_k, 5)` sections.
-- Fulltext search uses the same document-type grouping as vector search.
+- Concept matches only run when `query_text` is present.
+- Concept matches use a fixed `CONCEPT_MATCH_SCORE = 0.70` and cap results at `min(top_k, 5)`.
+- Fulltext queries follow the same document-type grouping as vector search and honor per-group limits.
+- Chunk embedding queries use per-group limits similar to section embeddings.
 
-### Deployment rules
-From `Deploy Data Script and Refresh Workflow`:
-- Exit with usage instructions if `NEO4J_HOST` is missing.
-- Use Railway variables for auth.
-- Require confirmation before wiping the graph.
-- Step 2 is destructive and uses `load --reset`.
-- Disable the TCP proxy after migration.
+### Dependencies and related areas
+- Depends on `pipeline.config.EMBEDDING_DIMENSIONS` for index creation.
+- Uses `pipeline.graph.connection.get_session` for Neo4j access.
+- Concept matching depends on `PolicyConcept` nodes, aliases, and section filters such as `content_length > 200` and `section_number`.
+- Related context: `database_operations/neo4j_auth/railway_neo4j_auth_handling.md`.
 
-## Important Dependencies
-Across these entries, the system depends on:
-- `pipeline.config.EMBEDDING_DIMENSIONS`
-- `pipeline.graph.connection.get_session`
-- `PolicyConcept` nodes and aliases
-- section filters such as `content_length > 200` and `section_number`
-- Railway CLI + TCP proxy for remote deployment
+### Drill-down entry
+- `neo4j_hybrid_search_indexing.md` — full indexing and fusion implementation details.
 
-## Drill-down References
-- **`context.md`** — high-level topic overview for `neo4j_hybrid_search`
-- **`neo4j_hybrid_search_indexing.md`** — implementation details for index creation and RRF fusion
-- **`deploy_data_script_and_refresh_workflow.md`** — destructive remote reload workflow for `scripts/deploy-data.sh`
+---
+
+## database_operations / neo4j_hybrid_search / deploy_data_script_and_refresh_workflow
+
+Documents the remote Neo4j refresh/deployment script `scripts/deploy-data.sh`, which performs a destructive reload pipeline and requires explicit operator confirmation plus Railway connectivity. The script is designed for remote graph refreshes, not incremental updates.
+
+### Workflow outline
+- Validate `NEO4J_HOST`
+- Read `NEO4J_AUTH` from Railway variables
+- Confirm destructive wipe
+- Create schema
+- Run `load --reset`
+- Ingest CFR
+- Ingest SSA
+- Extract references
+- Detect amendments
+- Embed
+- Seed concepts
+- Link concepts
+- Emit final stats
+
+### Important operational rules
+- Missing `NEO4J_HOST` exits with usage instructions.
+- Railway CLI login is required.
+- Railway TCP proxy must be enabled before connection succeeds.
+- Non-interactive shells refuse to wipe without confirmation.
+- `--yes` bypasses the prompt.
+- Step 2 is the irreversible point: `load --reset` drops all nodes and relationships.
+- Disable the TCP proxy after migration completes.
+
+### Drill-down entries
+- `deploy_data_script_and_refresh_workflow.md` — structured workflow and rules.
+- `deploy_data_script_and_refresh_workflow.overview.md` — concise operational summary.
+- `deploy_data_script_and_refresh_workflow.abstract.md` — short note on destructive refresh behavior.
+
+---
+
+## database_operations / neo4j_hybrid_search / voyage_4_embedding_migration_on_railway_production
+
+Records a production Railway deployment that migrated the remote Neo4j graph embeddings to `voyage-4` and verified the result end-to-end. This is a non-destructive re-embedding operation, distinct from the wipe-and-rebuild refresh workflow.
+
+### Deployment sequence
+- Authenticate Railway CLI with an account API token
+- Create a temporary Neo4j TCP proxy via GraphQL mutations
+- Null existing embeddings and re-embed in place
+- Push commit `b739229` to `main`
+- Trigger agent deployment automatically
+- Verify `/healthz` and live vector retrieval
+- Delete the temporary proxy
+
+### Key operational facts
+- The production environment uses the code default `voyage-4` because `VOYAGE_MODEL` is not overridden.
+- `AGENT_MODEL=gpt-5.4` is pinned in the Railway agent environment.
+- The deployment succeeded with no errors or missing embeddings.
+- The web service was skipped because the change did not affect the web app.
+- Health checks confirmed Neo4j connectivity and writable storage.
+- Retrieval validation returned expected `clinical_policy` sections with `0.83+` cosine similarity.
+- Rollback is possible by nulling embeddings again and re-embedding with `voyage-law-2`.
+
+### Environment and resource identifiers
+- Railway project id: `2a11b10b`
+- Production environment id: `1c44225d`
+- Neo4j service id: `1de48388`
+- Agent service id: `5f1decc0`
+- Web service id: `903a72cc`
+
+### Drill-down entry
+- `voyage_4_embedding_migration_on_railway_production.md` — full deployment record, verification, and rollback path.

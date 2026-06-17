@@ -1,4 +1,4 @@
-import { request } from 'undici';
+import { request, Agent, interceptors } from 'undici';
 import type { Dispatcher } from 'undici';
 import fs from 'node:fs';
 import { pipeline } from 'node:stream/promises';
@@ -91,6 +91,17 @@ export function createFetcher(options: FetcherOptions): RateLimitedFetcher {
     'accept-encoding': 'identity',
   };
 
+  // Private dispatcher with the redirect interceptor. We must NOT rely on the
+  // undici GLOBAL dispatcher: importing `cheerio` (in the source modules) calls
+  // setGlobalDispatcher() to install its own redirect-interceptor dispatcher,
+  // which makes passing `maxRedirections` to request() throw
+  // "maxRedirections is not supported, use the redirect interceptor". Owning our
+  // dispatcher isolates the crawler from that global mutation and is forward-
+  // compatible with undici 7 (which drops `maxRedirections` from request()).
+  const dispatcher = new Agent().compose(
+    interceptors.redirect({ maxRedirections: options.maxRedirects }),
+  );
+
   function fetchWithRetry(
     url: string,
     extraHeaders: Record<string, string> = {},
@@ -120,7 +131,7 @@ export function createFetcher(options: FetcherOptions): RateLimitedFetcher {
         const response = await request(url, {
           method: 'GET',
           headers: { ...commonHeaders, ...extraHeaders },
-          maxRedirections: options.maxRedirects,
+          dispatcher,
           bodyTimeout: options.requestTimeoutMs,
           headersTimeout: options.requestTimeoutMs,
         });
