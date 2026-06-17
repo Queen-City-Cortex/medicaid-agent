@@ -2,6 +2,8 @@
 
 from contextlib import contextmanager
 
+import pytest
+
 from pipeline.graph import queries
 from pipeline.graph.corpus_types import (
     AmendmentEdge,
@@ -15,13 +17,23 @@ from pipeline.graph.corpus_writer import CorpusGraphWriter
 
 
 class FakeSession:
-    def __init__(self, existing_sections: dict[str, str] | None = None):
+    def __init__(
+        self,
+        existing_sections: dict[str, str] | None = None,
+        fail_on: str | None = None,
+    ):
         self.calls: list[tuple[str, dict]] = []
         # id → content_text of sections already in the graph
         self.existing_sections = existing_sections or {}
+        # query string to raise on, to simulate a mid-write failure
+        self.fail_on = fail_on
+        self.commits = 0
+        self.rollbacks = 0
 
     def run(self, query: str, params: dict | None = None):
         self.calls.append((query, params or {}))
+        if self.fail_on is not None and query == self.fail_on:
+            raise RuntimeError(f"simulated failure on {query}")
         if query == queries.GET_SECTION_CONTENT_BATCH:
             return [
                 {"id": sec_id, "content_text": self.existing_sections[sec_id]}
@@ -29,6 +41,23 @@ class FakeSession:
                 if sec_id in self.existing_sections
             ]
         return []
+
+    # --- transaction surface -------------------------------------------------
+    # The real neo4j Session.begin_transaction() returns a Transaction that is
+    # itself a context manager with .run/.commit/.rollback. The fake lets the
+    # transaction be the session, so .run keeps recording to the same .calls
+    # list and the existing call-sequence assertions are unaffected.
+    @contextmanager
+    def begin_transaction(self):
+        committed_before = self.commits
+        try:
+            yield self
+        finally:
+            if self.commits == committed_before:
+                self.rollbacks += 1
+
+    def commit(self):
+        self.commits += 1
 
 
 def _make_bundle() -> DocumentBundle:
@@ -220,6 +249,31 @@ def test_merge_reference_edges_batches_by_edge_type():
         queries.MERGE_REFERENCES_BATCH,
         queries.MERGE_REFERENCES_DOCUMENT_BATCH,
     ]
+
+
+def test_upsert_document_bundle_commits_once_on_success():
+    session = FakeSession()
+    writer = _writer_for(session)
+
+    writer.upsert_document_bundle(_make_bundle())
+
+    assert session.commits == 1
+    assert session.rollbacks == 0
+
+
+def test_upsert_document_bundle_rolls_back_when_a_write_fails():
+    # Fail after the destructive cleanup has run but before the re-merge —
+    # exactly the window that previously left a half-wiped document.
+    session = FakeSession(fail_on=queries.MERGE_SECTIONS_BATCH)
+    writer = _writer_for(session)
+
+    with pytest.raises(RuntimeError):
+        writer.upsert_document_bundle(_make_bundle())
+
+    # No commit reached → the transaction context manager rolls back, so the
+    # delete/clear statements never become durable.
+    assert session.commits == 0
+    assert session.rollbacks == 1
 
 
 def test_merge_amendments_and_concept_links_write_through_boundary():

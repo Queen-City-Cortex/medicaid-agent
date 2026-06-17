@@ -21,3 +21,6 @@ packages/agent/src/public/
 /packages/*/coverage/
 packages/pipeline/data/eval-results/*.json
 packages/*/.brv/
+
+# graphify knowledge-graph output
+graphify-out/

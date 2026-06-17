@@ -14,6 +14,12 @@
     },
     {
       "importance": 55,
+      "path": "database_operations/neo4j_write_read_consistency/corpusgraphwriter_transaction_boundary.md",
+      "tokens": 720,
+      "type": "context"
+    },
+    {
+      "importance": 55,
       "path": "packages/pipeline/evaluation_harness_ab/embeddings_a_b_result_voyage_4_vs_voyage_law_2.md",
       "tokens": 645,
       "type": "context"
@@ -74,26 +80,8 @@
     },
     {
       "importance": 50,
-      "path": "agent_architecture/context/curated_operational_knowledge.overview.md",
-      "tokens": 263,
-      "type": "context"
-    },
-    {
-      "importance": 50,
       "path": "agent_architecture/context/epsdt_exception_completeness_workstream_e.abstract.md",
       "tokens": 33,
-      "type": "context"
-    },
-    {
-      "importance": 50,
-      "path": "agent_architecture/context/epsdt_exception_completeness_workstream_e.md",
-      "tokens": 228,
-      "type": "context"
-    },
-    {
-      "importance": 50,
-      "path": "agent_architecture/context/epsdt_exception_completeness_workstream_e.overview.md",
-      "tokens": 159,
       "type": "context"
     },
     {
@@ -104,8 +92,8 @@
     },
     {
       "importance": 50,
-      "path": "agent_architecture/packages_pipeline/context.md",
-      "tokens": 88,
+      "path": "database_operations/neo4j_auth/production_neo4j_federal_data_refresh.abstract.md",
+      "tokens": 36,
       "type": "context"
     },
     {
@@ -114,13 +102,13 @@
       "type": "stub"
     }
   ],
-  "generated_at": "2026-06-17T03:46:46.637Z",
+  "generated_at": "2026-06-17T19:00:48.251Z",
   "lane_tokens": {
-    "contexts": 3982,
+    "contexts": 4000,
     "stubs": 104,
     "summaries": 1934
   },
-  "source_fingerprint": "84cd542598782c03447dc68f83b7898206e54d1c16abf137c0a348bec1c497b1",
-  "total_tokens": 6020,
+  "source_fingerprint": "e5d095efc939a2ae7cd98524017ce26a962ea15b5bdfcf160daf1014e1d47fe5",
+  "total_tokens": 6038,
   "version": 1
 }

@@ -19,10 +19,19 @@ from pipeline.references.supersessions import load_cfr_supersessions
 class FakeSession:
     def __init__(self):
         self.calls: list[tuple[str, dict]] = []
+        self.commits = 0
 
     def run(self, query: str, params: dict | None = None):
         self.calls.append((query, params or {}))
         return []
+
+    @contextmanager
+    def begin_transaction(self):
+        # The transaction is the session: .run keeps recording to .calls.
+        yield self
+
+    def commit(self):
+        self.commits += 1
 
 
 def _writer_for(session: FakeSession) -> CorpusGraphWriter:
