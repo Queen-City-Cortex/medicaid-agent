@@ -1,46 +1,51 @@
 ---
 title: Curated Context Snippet
-summary: Curated a compact project fact note capturing the current context size and recon recommendation.
+summary: Curated snippet of operational knowledge and findings from the provided context into durable project facts.
 tags: []
 related: []
 keywords: []
 createdAt: '2026-06-13T06:00:50.089Z'
-updatedAt: '2026-06-18T02:14:13.341Z'
+updatedAt: '2026-06-18T02:22:26.499Z'
 ---
 ## Reason
-Preserve compact curation metadata and process guidance from the current context.
+Preserve extracted operational notes from the provided context
 
 ## Raw Concept
 **Task:**
-Record curation metadata for the current RLM pass
+Curate operational knowledge from the provided context snippet into durable project facts.
 
 **Changes:**
 - Captured the current context size and line count
 - Recorded the recon recommendation for single-pass processing
+- Extracted context-backed statements for long-term recall
 
 **Flow:**
-recon -> direct curation -> verification
+context snippet -> fact extraction -> durable knowledge entry
 
-**Timestamp:** 2026-06-18T02:14:05.676Z
+**Timestamp:** 2026-06-18
 
 **Author:** ByteRover context engineer
 
 ## Narrative
 ### Structure
-This note stores lightweight operational metadata for the current curation run.
+A compact project-facts entry capturing the most reusable statements from the provided snippet.
 
 ### Dependencies
 Uses the precomputed recon result and current curation variables.
 
 ### Highlights
-Single-pass mode was recommended, so no chunked extraction was needed.
+Preserves operational notes as structured facts for later retrieval.
 
 ### Examples
 Stored extracted facts as durable knowledge.
 
 ## Facts
-- **context_size**: Context is 1218 characters long and spans 53 lines. [other]
-- **recon_mode**: Recon suggested single-pass extraction with one chunk. [other]
+- **curated_context_snippet**: `scoreCoverageSections(...)` [project]
+- **curated_context_snippet**: `collectCoverageSectionGroups(...)` [project]
+- **curated_context_snippet**: Deduplication uses `uniqueBy(section.id)`. [project]
+- **curated_context_snippet**: `buildCoverageAnchors(...)` [project]
+- **curated_context_snippet**: `assembleCoverageSections(...)` [project]
+- **curated_context_snippet**: `selectCoveragePrimarySections(...)` [project]
 
 ---
 

@@ -1,7 +1,7 @@
-- Captures compact curation metadata for a project context note, focusing on preserving current context size, line count, and a recommendation for single-pass processing.
-- Describes a workflow of recon -> direct curation -> verification, with an earlier flow variant of context -> extract lines -> curate facts.
-- The note’s purpose is operational: store lightweight metadata from the current curation run as durable knowledge.
-- Key facts recorded include `context_size` (1218 characters, 53 lines) and `recon_mode` (single-pass extraction with one chunk).
-- Consolidated knowledge emphasizes project curation rules: structured context fields, exact fact/timestamp retention, UPSERT-based updates, and verification of applied results.
-- Structural requirements include a two-part context model (`rawConcept` and `narrative`), plus required fields like `changes`, `files`, or `flow`, and at least one narrative section.
-- Notable entities and patterns: ByteRover context engineer, `rawConcept`, `narrative`, `changes`, `files`, `flow`, `curation_input`, and verification references to `result.summary.failed` and `result.applied`.
+- Captures durable project facts extracted from a context snippet, with emphasis on preserving operational knowledge for later retrieval.
+- Records a curation workflow: context snippet -> fact extraction -> durable knowledge entry, along with timestamped notes and author attribution.
+- Notes specific project functions/patterns mentioned in the facts, including `scoreCoverageSections(...)`, `collectCoverageSectionGroups(...)`, `buildCoverageAnchors(...)`, `assembleCoverageSections(...)`, and `selectCoveragePrimarySections(...)`.
+- Includes a deduplication rule using `uniqueBy(section.id)` and identifies the entry as a compact project-facts document.
+- Summarizes broader curation guidance: two-part context model (`rawConcept` and `narrative`), UPSERT-based updates, verification of applied results, and preservation of exact rule text/timestamps.
+- Highlights notable entities and patterns such as ByteRover context engineer, `changes`, `files`, `flow`, and `curation_input`.
+- Structure-wise, the document is organized into Reason, Raw Concept, Narrative, Facts, and a Consolidated Knowledge section that restates the governing curation rules.
