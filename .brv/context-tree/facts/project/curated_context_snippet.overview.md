@@ -1,0 +1,7 @@
+- Captures compact curation metadata for a project context note, focusing on preserving current context size, line count, and a recommendation for single-pass processing.
+- Describes a workflow of recon -> direct curation -> verification, with an earlier flow variant of context -> extract lines -> curate facts.
+- The note’s purpose is operational: store lightweight metadata from the current curation run as durable knowledge.
+- Key facts recorded include `context_size` (1218 characters, 53 lines) and `recon_mode` (single-pass extraction with one chunk).
+- Consolidated knowledge emphasizes project curation rules: structured context fields, exact fact/timestamp retention, UPSERT-based updates, and verification of applied results.
+- Structural requirements include a two-part context model (`rawConcept` and `narrative`), plus required fields like `changes`, `files`, or `flow`, and at least one narrative section.
+- Notable entities and patterns: ByteRover context engineer, `rawConcept`, `narrative`, `changes`, `files`, `flow`, `curation_input`, and verification references to `result.summary.failed` and `result.applied`.

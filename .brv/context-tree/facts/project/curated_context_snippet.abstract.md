@@ -1,0 +1,1 @@
+This note captures project curation metadata and rules for preserving durable context, including single-pass recon, structured facts, timestamp retention, UPSERT updates, and verification guidance.

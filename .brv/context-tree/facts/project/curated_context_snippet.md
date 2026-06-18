@@ -1,19 +1,49 @@
 ---
 title: Curated Context Snippet
-summary: Captured a small set of factual statements from the provided context into the facts/project domain.
+summary: Curated a compact project fact note capturing the current context size and recon recommendation.
 tags: []
 related: []
 keywords: []
 createdAt: '2026-06-13T06:00:50.089Z'
-updatedAt: '2026-06-13T06:00:50.089Z'
-consolidated_at: '2026-06-17T20:29:55.265Z'
-consolidated_from: [{date: '2026-06-17T20:29:55.265Z', path: facts/project/curated_context_snippet.abstract.md, reason: 'All three files describe the same curated context snippet topic at different levels of detail: the markdown file contains the concrete curation record, while the abstract and overview summarize the same preservation and workflow rules. They are overlapping rather than complementary enough to keep separate.'}, {date: '2026-06-17T20:29:55.265Z', path: facts/project/curated_context_snippet.overview.md, reason: 'All three files describe the same curated context snippet topic at different levels of detail: the markdown file contains the concrete curation record, while the abstract and overview summarize the same preservation and workflow rules. They are overlapping rather than complementary enough to keep separate.'}]
+updatedAt: '2026-06-18T02:14:13.341Z'
 ---
 ## Reason
-Persist extracted facts from the provided context
+Preserve compact curation metadata and process guidance from the current context.
 
 ## Raw Concept
 **Task:**
+Record curation metadata for the current RLM pass
+
+**Changes:**
+- Captured the current context size and line count
+- Recorded the recon recommendation for single-pass processing
+
+**Flow:**
+recon -> direct curation -> verification
+
+**Timestamp:** 2026-06-18T02:14:05.676Z
+
+**Author:** ByteRover context engineer
+
+## Narrative
+### Structure
+This note stores lightweight operational metadata for the current curation run.
+
+### Dependencies
+Uses the precomputed recon result and current curation variables.
+
+### Highlights
+Single-pass mode was recommended, so no chunked extraction was needed.
+
+### Examples
+Stored extracted facts as durable knowledge.
+
+## Facts
+- **context_size**: Context is 1218 characters long and spans 53 lines. [other]
+- **recon_mode**: Recon suggested single-pass extraction with one chunk. [other]
+
+---
+
 ## Eval OpenAI key isolation
 
 **Changes:**
@@ -24,15 +54,6 @@ context -> extract lines -> curate facts
 
 **Timestamp:** 2026-06-13T06:00:42.089Z
 
-## Narrative
-### Structure
-Single-pass curation from compact RLM context input.
-
-### Highlights
-Context had 20 lines and 940 characters.
-
-### Examples
-Stored extracted facts as durable knowledge.
 
 ## Consolidated Knowledge
 This document records project curation rules for preserving durable knowledge, emphasizing structured context fields, exact fact and timestamp retention, UPSERT-based updates, and verification of applied results.
