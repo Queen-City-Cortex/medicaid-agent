@@ -1,0 +1,25 @@
+# graphify scope control — keep the knowledge graph to source + docs only.
+#
+# This repo's graphify graph is a *codebase architecture* map (god nodes,
+# code communities). The directories below are generated/crawled DATA the app
+# processes, not code — ingesting them would add hundreds of millions of words
+# of PDFs/JSON and balloon every `--update`. They are deliberately excluded.
+
+# Crawled source documents and Docling pipeline output (mostly untracked, regenerated)
+packages/*/data/
+
+# Mastra compiled build bundles — generated output, not source (was ~57% of the graph)
+.mastra/
+**/.mastra/
+
+# Caches and tool output
+graphify-out/
+.brv/
+**/.brv/
+
+# Browser-automation / test scratch and generated reports (screenshots, HTML reports)
+.playwright-mcp/
+e2e/playwright-report/
+
+# Next.js boilerplate assets (no architectural value)
+packages/web/public/*.svg
