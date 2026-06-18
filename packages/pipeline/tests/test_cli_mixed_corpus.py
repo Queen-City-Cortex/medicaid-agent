@@ -2,7 +2,6 @@
 
 from click.testing import CliRunner
 
-import pipeline.cli as cli_module
 from pipeline.cli import cli
 
 
@@ -13,7 +12,7 @@ def test_build_mixed_corpus_uses_expected_defaults(monkeypatch):
         calls.append(kwargs)
         return {}
 
-    monkeypatch.setattr(cli_module, "_run_mixed_corpus_build", fake_build)
+    monkeypatch.setattr("pipeline.cli.build._run_mixed_corpus_build", fake_build)
 
     result = CliRunner().invoke(cli, ["build-mixed-corpus"])
 
@@ -38,7 +37,7 @@ def test_build_mixed_corpus_respects_flags(monkeypatch):
         calls.append(kwargs)
         return {}
 
-    monkeypatch.setattr(cli_module, "_run_mixed_corpus_build", fake_build)
+    monkeypatch.setattr("pipeline.cli.build._run_mixed_corpus_build", fake_build)
 
     result = CliRunner().invoke(
         cli,
@@ -73,7 +72,7 @@ def test_eval_mixed_corpus_runs_both_levels_by_default(monkeypatch):
         calls.append((levels, kwargs))
         return {}
 
-    monkeypatch.setattr(cli_module, "_run_eval_levels", fake_run)
+    monkeypatch.setattr("pipeline.cli.eval._run_eval_levels", fake_run)
 
     result = CliRunner().invoke(
         cli,
@@ -101,7 +100,7 @@ def test_eval_command_still_defaults_to_retrieval(monkeypatch):
         calls.append((levels, kwargs))
         return {}
 
-    monkeypatch.setattr(cli_module, "_run_eval_levels", fake_run)
+    monkeypatch.setattr("pipeline.cli.eval._run_eval_levels", fake_run)
 
     result = CliRunner().invoke(cli, ["eval"])
 
@@ -206,7 +205,7 @@ def test_fee_schedule_backlog_command_uses_expected_defaults(monkeypatch):
             "markdown_path": "/tmp/backlog.md",
         }
 
-    monkeypatch.setattr(cli_module, "_run_fee_schedule_backlog", fake_run)
+    monkeypatch.setattr("pipeline.cli.audit._run_fee_schedule_backlog", fake_run)
 
     result = CliRunner().invoke(cli, ["fee-schedule-backlog"])
 
@@ -233,7 +232,7 @@ def test_fee_schedule_backlog_command_respects_flags(monkeypatch, tmp_path):
             "markdown_path": str(tmp_path / "backlog.md"),
         }
 
-    monkeypatch.setattr(cli_module, "_run_fee_schedule_backlog", fake_run)
+    monkeypatch.setattr("pipeline.cli.audit._run_fee_schedule_backlog", fake_run)
 
     result = CliRunner().invoke(
         cli,

@@ -1,0 +1,1 @@
+The Pipeline CLI was refactored from a monolithic click file into a package with shared setup, per-command modules, preserved compatibility exports, and extensive tests.
