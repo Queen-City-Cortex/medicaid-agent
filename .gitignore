@@ -20,7 +20,7 @@ packages/agent/src/public/
 /coverage/
 /packages/*/coverage/
 packages/pipeline/data/eval-results/*.json
-packages/*/.brv/
+packages/**/.brv/
 
 # graphify knowledge-graph output
 graphify-out/
