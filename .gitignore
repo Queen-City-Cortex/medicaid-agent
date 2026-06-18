@@ -22,5 +22,6 @@ packages/agent/src/public/
 packages/pipeline/data/eval-results/*.json
 packages/**/.brv/
 
-# graphify knowledge-graph output
-graphify-out/
+# graphify knowledge-graph output (ignore the heavy artifacts, keep the report)
+graphify-out/*
+!graphify-out/GRAPH_REPORT.md
