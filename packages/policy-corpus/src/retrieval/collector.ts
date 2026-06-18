@@ -203,9 +203,10 @@ export async function finalizeHybridHits({
   topK: number;
   rerankHits?: CorpusReranker;
 }): Promise<CorpusRetrievalHit[]> {
-  const documentCoverageBoosts = computeDocumentCoverageBoosts(Array.from(sectionMap.values()), analysis.searchTerms);
+  const hits = Array.from(sectionMap.values());
+  const documentCoverageBoosts = computeDocumentCoverageBoosts(hits, analysis.searchTerms);
   const latestChangeMarkerValue = analysis.flags.isLatestChangeNoticeQuery
-    ? Array.from(sectionMap.values()).reduce<number | null>((latest, hit) => {
+    ? hits.reduce<number | null>((latest, hit) => {
         const markerValue = changeMarkerValueForHit(hit);
         if (markerValue === null) return latest;
         return latest === null ? markerValue : Math.max(latest, markerValue);
@@ -224,7 +225,7 @@ export async function finalizeHybridHits({
     latestChangeMarkerValue,
   });
 
-  const baselineHits = Array.from(sectionMap.values())
+  const baselineHits = hits
     .map((hit) => rerankRetrievalHit(hit, rerankContext))
     .sort((left, right) => right.score - left.score);
 

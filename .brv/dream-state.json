@@ -1,5 +1,5 @@
 {
-  "curationsSinceDream": 3,
+  "curationsSinceDream": 4,
   "lastDreamAt": "2026-06-17T20:32:36.482Z",
   "lastDreamLogId": "drm-1781728188440",
   "pendingMerges": [],
@@ -11,6 +11,10 @@
     {
       "enqueuedAt": 1781749962390,
       "path": "packages/pipeline/cli/pipeline_cli_package_split.md"
+    },
+    {
+      "enqueuedAt": 1781756390883,
+      "path": "packages/policy_corpus/retrieval/hybrid_retrieval_collector_pipeline.md"
     }
   ],
   "totalDreams": 6,

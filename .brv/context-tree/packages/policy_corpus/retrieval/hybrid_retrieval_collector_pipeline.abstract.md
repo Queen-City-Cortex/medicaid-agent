@@ -1,0 +1,1 @@
+This document explains the staged hybrid retrieval collector pipeline, including concurrent merge stages, fulltext recovery, and the deliberate two-pass coverage boost computation used before and after expansion.

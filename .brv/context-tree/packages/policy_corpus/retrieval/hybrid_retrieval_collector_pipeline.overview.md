@@ -1,0 +1,7 @@
+- Documents the hybrid retrieval collector pipeline in `packages/policy-corpus/src/retrieval/collector.ts`, with emphasis on staged concurrent merges and reranking behavior.
+- Highlights that `computeDocumentCoverageBoosts()` is intentionally called twice: once before expansion to guide later title selection, and again after expansion to support reranking on the expanded hit set.
+- Describes the staged flow: stage 1 backend queries plus fulltext recovery, stage 3 amendment-title expansion, stage 4 document expansion, stage 5 change-notice header expansion, then finalize rerank.
+- Notes that merges are stage-ordered and usually use `mergeMax` per `sectionId`, while fulltext recovery is special and adjusts scores instead of following merge-max semantics.
+- Calls out the safe refactor in `finalizeHybridHits`, where repeated `Array.from(sectionMap.values())` collection is hoisted into a local constant because `sectionMap` is not mutated there.
+- Mentions the dependence on Neo4j session isolation for concurrency, internal shared utilities for coverage boosts, and `maybeRerankHits` for final ordering.
+- Records verification status that typecheck/tests and Vitest 153/153 pass, indicating the documented behavior is validated.
