@@ -1,6 +1,6 @@
-import type { AnswerFrame, AnswerFrameRoute } from '../../types.js';
+import type { QueryAnalysis } from '../../contracts.js';
+import type { AnswerFrame } from '../../types.js';
 import type { FrameContext } from '../context.js';
-import { selectAnswerRoute } from '../../internal/answer-routing.js';
 import { isPharmacyQuantityPriorAuthQuery } from '../../internal/query-intent.js';
 import { rebalancePriorAuthFrame } from '../rebalance/prior-auth.js';
 import {
@@ -16,16 +16,14 @@ import {
   PRIOR_AUTH_SUPPORT_TERMS,
   buildSectionCandidates,
   extractDocumentView,
-  normalizeSearchText,
   uniqueBy,
 } from '../../internal/shared.js';
 
 export async function resolvePriorAuthFrame(
   context: FrameContext,
-  query: string,
-  route: AnswerFrameRoute = selectAnswerRoute(normalizeSearchText(query), 'prior_authorization'),
+  analysis: QueryAnalysis,
 ): Promise<AnswerFrame> {
-  const queryLower = normalizeSearchText(query);
+  const { query, normalizedQuery: queryLower, route } = analysis;
   const hits = await context.searchSectionsDetailed({
     query,
     topK: route.lane === 'deterministic_evidence' ? 10 : 12,

@@ -1,5 +1,5 @@
 import type { QueryAnalysis } from '../contracts.js';
-import type { AnswerFrame, AnswerQuestionType, ResolveAnswerFrameInput } from '../types.js';
+import type { AnswerFrame, ResolveAnswerFrameInput } from '../types.js';
 import { analyzeQuery } from '../query/analysis.js';
 import type { FrameContext } from './context.js';
 import { resolveCoverageFrame } from './pipelines/coverage.js';
@@ -9,41 +9,26 @@ import { resolveFederalAuthorityFrame } from './pipelines/federal-authority.js';
 import { resolvePolicyVariantFrame } from './pipelines/policy-variant.js';
 import { resolveGeneralFrame } from './pipelines/general.js';
 
-export type EvidencePipeline = AnswerQuestionType;
-
-export interface EvidencePlan {
-  query: string;
-  normalizedQuery: string;
-  questionType: AnswerQuestionType;
-  pipeline: EvidencePipeline;
-  route: QueryAnalysis['route'];
+// The analysis IS the plan: its questionType selects the pipeline and it
+// carries every query-derived value each pipeline needs.
+export function buildEvidencePlan(input: ResolveAnswerFrameInput): QueryAnalysis {
+  return analyzeQuery(input.query, input.questionType);
 }
 
-export function buildEvidencePlan(input: ResolveAnswerFrameInput): EvidencePlan {
-  const analysis = analyzeQuery(input.query, input.questionType);
-  return {
-    query: analysis.query,
-    normalizedQuery: analysis.normalizedQuery,
-    questionType: analysis.questionType,
-    pipeline: analysis.questionType,
-    route: analysis.route,
-  };
-}
-
-async function resolvePlannedFrame(context: FrameContext, plan: EvidencePlan): Promise<AnswerFrame> {
-  switch (plan.pipeline) {
+async function resolvePlannedFrame(context: FrameContext, analysis: QueryAnalysis): Promise<AnswerFrame> {
+  switch (analysis.questionType) {
     case 'coverage':
-      return resolveCoverageFrame(context, plan.query, plan.route);
+      return resolveCoverageFrame(context, analysis);
     case 'prior_authorization':
-      return resolvePriorAuthFrame(context, plan.query, plan.route);
+      return resolvePriorAuthFrame(context, analysis);
     case 'amendment':
-      return resolveAmendmentFrame(context, plan.query, plan.route);
+      return resolveAmendmentFrame(context, analysis);
     case 'federal_authority':
-      return resolveFederalAuthorityFrame(context, plan.query, plan.route);
+      return resolveFederalAuthorityFrame(context, analysis);
     case 'policy_variant':
-      return resolvePolicyVariantFrame(context, plan.query, plan.route);
+      return resolvePolicyVariantFrame(context, analysis);
     default:
-      return resolveGeneralFrame(context, plan.query, plan.route);
+      return resolveGeneralFrame(context, analysis);
   }
 }
 

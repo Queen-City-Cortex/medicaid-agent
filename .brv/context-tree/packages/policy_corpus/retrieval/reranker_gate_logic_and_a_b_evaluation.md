@@ -1,7 +1,7 @@
 ---
 title: Reranker Gate Logic and A/B Evaluation
 tags: []
-related: [packages/policy_corpus/frame/coverage_selection_and_graph_fixtures.md, packages/policy_corpus/evaluation/a_b_model_comparison_eval_harness.md, packages/pipeline/evaluation_harness_ab/embeddings_a_b_result_voyage_4_vs_voyage_law_2.md, packages/pipeline/evaluation_harness_ab/embeddings_a_b_result_voyage_law_2_vs_voyage_4_large.md, packages/pipeline/evaluation_harness_ab/a_b_model_comparison_eval_harness_corrections.md, packages/pipeline/eval_a_b_gate_corrections.md, packages/policy_corpus/evaluation_harness_ab/a_b_model_comparison_eval_harness.md]
+related: [packages/policy_corpus/frame/coverage_selection_and_graph_fixtures.md, packages/policy_corpus/evaluation/a_b_model_comparison_eval_harness.md, packages/pipeline/evaluation_harness_ab/embeddings_a_b_result_voyage_4_vs_voyage_law_2.md, packages/pipeline/evaluation_harness_ab/embeddings_a_b_result_voyage_law_2_vs_voyage_4_large.md, packages/pipeline/evaluation_harness_ab/a_b_model_comparison_eval_harness_corrections.md, packages/pipeline/eval_a_b_gate_corrections.md, packages/policy_corpus/evaluation_harness_ab/a_b_model_comparison_eval_harness.md, packages/policy_corpus/retrieval/hybrid_retrieval_collector_pipeline.md, packages/pipeline/cli/pipeline_cli_package_split.md]
 keywords: []
 importance: 50
 recency: 1

@@ -1,1 +1,0 @@
-This document preserves project curation rules for durable knowledge, including structured context fields, fact extraction, UPSERT updates, and verification of applied results.

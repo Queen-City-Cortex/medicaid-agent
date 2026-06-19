@@ -1,4 +1,5 @@
-import type { AnswerFrame, AnswerFrameRoute } from '../../types.js';
+import type { QueryAnalysis } from '../../contracts.js';
+import type { AnswerFrame, CorpusRetrievalHit } from '../../types.js';
 import type { FrameContext } from '../context.js';
 import { selectAnswerRoute } from '../../internal/answer-routing.js';
 import { buildPolicyVariantFrameForDocuments } from './policy-variant.js';
@@ -15,8 +16,6 @@ import {
   buildHitText,
   buildSectionCandidates,
   extractDocumentView,
-  extractSearchTerms,
-  extractServiceFocusTerms,
   extractTitleClusterTerms,
   includesPhrase,
   looksLikeSiblingPolicySet,
@@ -27,64 +26,34 @@ import {
   type DocumentCandidate,
 } from '../../internal/shared.js';
 
-export async function resolveCoverageFrame(
-  context: FrameContext,
-  query: string,
-  route: AnswerFrameRoute = selectAnswerRoute(normalizeSearchText(query), 'coverage'),
-): Promise<AnswerFrame> {
-  const queryLower = normalizeSearchText(query);
-  const flags = buildCoverageQueryFlags(queryLower);
-  const baseHits = await context.searchSectionsDetailed({
-    query,
-    topK: route.lane === 'deterministic_evidence' ? 16 : route.lane === 'baseline_hybrid' ? 18 : 24,
-  });
-  const hcwdHistoryHits =
-    flags.hcwdIncomePremiumQuery && flags.earnedIncomeLimitQuery
-      ? await context.collectHcwdIncomeHistoryHits()
-      : [];
-  const queryTerms = extractSearchTerms(query);
-  const serviceFocusTerms = extractServiceFocusTerms(query);
-  const focusHits = serviceFocusTerms.length === 0 || route.lane === 'deterministic_evidence'
-    ? []
-    : await context.searchSectionsDetailed({
-        query: serviceFocusTerms.join(' '),
-        topK: route.lane === 'baseline_hybrid' ? 8 : 12,
-      });
-  const hits = uniqueBy(
-    [
-      ...focusHits.map((hit) => ({
-        ...hit,
-        score: hit.score + 0.08,
-      })),
-      ...baseHits,
-      ...hcwdHistoryHits.map((hit) => ({
-        ...hit,
-        score: hit.score + 0.12,
-      })),
-    ],
-    (hit) => hit.sectionId,
-  );
-  const routingDocuments = await context.collectCoverageRoutingDocuments(query, hits);
-  const variantFrame =
-    route.widening_policy !== 'none' && routingDocuments.length > 1 && looksLikeSiblingPolicySet(routingDocuments)
-      ? await buildPolicyVariantFrameForDocuments(context, query, routingDocuments, selectAnswerRoute(queryLower, 'policy_variant'))
-      : null;
-  const preferredDocumentId = variantFrame?.authoritativeDocuments[0]?.id ?? null;
-  // Setting-variant preference for the no-sibling case: when the query names a
-  // care setting (congregate/in-home) and a routing document's title matches
-  // it, scope to those documents even if a non-sibling distractor outranked
-  // them on raw scores. The variant frame (sibling sets) takes precedence.
-  const settingPreference = selectSettingPreferredDocuments(queryLower, routingDocuments);
-  const preferredRoutingDocuments = preferredDocumentId
-    ? routingDocuments.filter((document) => document.id === preferredDocumentId)
-    : settingPreference.documents;
-  const scopedRoutingDocuments = preferredRoutingDocuments.length > 0 ? preferredRoutingDocuments : routingDocuments;
-  const preferredPolicyNumbers = new Set(
-    scopedRoutingDocuments
-      .map((document) => document.policyNumber?.toUpperCase())
-      .filter((policyNumber): policyNumber is string => Boolean(policyNumber)),
-  );
-  const supplementalCandidateHits = flags.hcwdIncomePremiumQuery
+interface CoverageSeedHits {
+  candidateHits: CorpusRetrievalHit[];
+  limitationHits: CorpusRetrievalHit[];
+  primarySeedHits: CorpusRetrievalHit[];
+  serviceClusterTerms: string[];
+}
+
+// Derives the candidate/limitation/primary-seed hit sets that feed the coverage
+// answer frame. Scopes both candidate hits and focused-search hits to the
+// preferred policy numbers (see h-012 note), then picks the strongest
+// service-focused, weakly service-focused, or coverage-focused seed for the
+// primary set, falling back to the top three primary hits.
+function selectCoverageSeedHits({
+  hits,
+  focusHits,
+  preferredPolicyNumbers,
+  hcwdIncomePremiumQuery,
+  serviceFocusTerms,
+  queryTerms,
+}: {
+  hits: CorpusRetrievalHit[];
+  focusHits: CorpusRetrievalHit[];
+  preferredPolicyNumbers: Set<string>;
+  hcwdIncomePremiumQuery: boolean;
+  serviceFocusTerms: string[];
+  queryTerms: string[];
+}): CoverageSeedHits {
+  const supplementalCandidateHits = hcwdIncomePremiumQuery
     ? hits.filter((hit) => {
         const documentTitle = normalizeSearchText(hit.documentTitle);
         const text = buildHitText(hit);
@@ -157,6 +126,71 @@ export async function resolveCoverageFrame(
   const serviceClusterTerms = extractTitleClusterTerms(
     primarySeedHits[0]?.sectionTitle ?? primaryHits[0]?.sectionTitle ?? null,
   );
+  return { candidateHits, limitationHits, primarySeedHits, serviceClusterTerms };
+}
+
+export async function resolveCoverageFrame(
+  context: FrameContext,
+  analysis: QueryAnalysis,
+): Promise<AnswerFrame> {
+  const { query, normalizedQuery: queryLower, route, searchTerms: queryTerms, serviceFocusTerms } = analysis;
+  const flags = buildCoverageQueryFlags(queryLower);
+  const baseHits = await context.searchSectionsDetailed({
+    query,
+    topK: route.lane === 'deterministic_evidence' ? 16 : route.lane === 'baseline_hybrid' ? 18 : 24,
+  });
+  const hcwdHistoryHits =
+    flags.hcwdIncomePremiumQuery && flags.earnedIncomeLimitQuery
+      ? await context.collectHcwdIncomeHistoryHits()
+      : [];
+  const focusHits = serviceFocusTerms.length === 0 || route.lane === 'deterministic_evidence'
+    ? []
+    : await context.searchSectionsDetailed({
+        query: serviceFocusTerms.join(' '),
+        topK: route.lane === 'baseline_hybrid' ? 8 : 12,
+      });
+  const hits = uniqueBy(
+    [
+      ...focusHits.map((hit) => ({
+        ...hit,
+        score: hit.score + 0.08,
+      })),
+      ...baseHits,
+      ...hcwdHistoryHits.map((hit) => ({
+        ...hit,
+        score: hit.score + 0.12,
+      })),
+    ],
+    (hit) => hit.sectionId,
+  );
+  const routingDocuments = await context.collectCoverageRoutingDocuments(query, hits);
+  const variantFrame =
+    route.widening_policy !== 'none' && routingDocuments.length > 1 && looksLikeSiblingPolicySet(routingDocuments)
+      ? await buildPolicyVariantFrameForDocuments(context, query, routingDocuments, selectAnswerRoute(queryLower, 'policy_variant'))
+      : null;
+  const preferredDocumentId = variantFrame?.authoritativeDocuments[0]?.id ?? null;
+  // Setting-variant preference for the no-sibling case: when the query names a
+  // care setting (congregate/in-home) and a routing document's title matches
+  // it, scope to those documents even if a non-sibling distractor outranked
+  // them on raw scores. The variant frame (sibling sets) takes precedence.
+  const settingPreference = selectSettingPreferredDocuments(queryLower, routingDocuments);
+  const preferredRoutingDocuments = preferredDocumentId
+    ? routingDocuments.filter((document) => document.id === preferredDocumentId)
+    : settingPreference.documents;
+  const scopedRoutingDocuments = preferredRoutingDocuments.length > 0 ? preferredRoutingDocuments : routingDocuments;
+  const preferredPolicyNumbers = new Set(
+    scopedRoutingDocuments
+      .map((document) => document.policyNumber?.toUpperCase())
+      .filter((policyNumber): policyNumber is string => Boolean(policyNumber)),
+  );
+  const { candidateHits, limitationHits, primarySeedHits, serviceClusterTerms } = selectCoverageSeedHits({
+    hits,
+    focusHits,
+    preferredPolicyNumbers,
+    hcwdIncomePremiumQuery: flags.hcwdIncomePremiumQuery,
+    serviceFocusTerms,
+    queryTerms,
+  });
   const { documentPrimaryHydrated, documentSupportingHydrated } = await collectCoverageDocumentHydratedCandidates({
     context,
     scopedRoutingDocuments,

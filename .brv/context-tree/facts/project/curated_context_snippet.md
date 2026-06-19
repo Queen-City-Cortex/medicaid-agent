@@ -6,6 +6,8 @@ related: []
 keywords: []
 createdAt: '2026-06-13T06:00:50.089Z'
 updatedAt: '2026-06-18T02:22:26.499Z'
+consolidated_at: '2026-06-19T16:48:59.910Z'
+consolidated_from: [{date: '2026-06-19T16:48:59.911Z', path: facts/project/curated_context_snippet.abstract.md, reason: 'All three files describe the same curated-context snippet entry. The main markdown file contains the full structured record, while the abstract and overview are condensed derivatives of the same content, so they are redundant and should be consolidated.'}, {date: '2026-06-19T16:48:59.911Z', path: facts/project/curated_context_snippet.overview.md, reason: 'All three files describe the same curated-context snippet entry. The main markdown file contains the full structured record, while the abstract and overview are condensed derivatives of the same content, so they are redundant and should be consolidated.'}]
 ---
 ## Reason
 Preserve extracted operational notes from the provided context

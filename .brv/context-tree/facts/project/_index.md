@@ -1,38 +1,55 @@
 ---
-children_hash: 76517b0f03e1d01011f7cabbc585c12a883436e297ebe012e0039842fbd9f042
-compression_ratio: 0.5657894736842105
+children_hash: efd39977f10b8ff47c1cad37120627a1a8f0ccf3fb050dd95747594e131a1e00
+compression_ratio: 0.5601300108342362
 condensation_order: 1
 covers: [curated_context_snippet.md]
-covers_token_total: 684
+covers_token_total: 923
 summary_level: d1
-token_count: 387
+token_count: 517
 type: summary
 ---
-# facts/project
+# facts/project — Structural Overview
 
-Durable project knowledge is centered on a small curation record captured in **`curated_context_snippet.md`**. The entry documents how compact context inputs are transformed into structured knowledge and emphasizes preserving factual detail, timestamps, and verification status rather than leaving notes in chat.
+This domain captures durable project facts and curation rules used to preserve reusable operational knowledge from snippets and source material. The central entry is **curated_context_snippet.md**, which consolidates context-derived findings into structured facts for later recall.
 
-## Core curation model
-The preserved workflow is:
+## Core purpose
+- Preserve operational notes as durable knowledge rather than chat-only context.
+- Standardize curation around a two-part model: **`rawConcept`** and **`narrative`**.
+- Retain exact timestamps, rules, regex patterns, and other high-value details for traceability.
 
-- **context -> extract lines -> curate facts**
-- Use a **two-part context model** with:
-  - `rawConcept` for operational metadata
-  - `narrative` for descriptive structure
-- Require a clear `task` plus at least one of `changes`, `files`, or `flow`
-- Include at least one narrative field such as `structure`, `dependencies`, or `highlights`
+## Curation workflow
+- The recorded workflow is: **recon -> extract salient facts/context -> curate using UPSERT -> verify applied files and failures**.
+- Verification focuses on `result.summary.failed` and `result.applied` file paths.
+- The entry emphasizes UPSERT-based updates as the default curation mechanism.
 
-## Key rules and constraints
-The record stresses durable-knowledge curation rules:
+## Structural requirements
+- Every curated context should include:
+  - a clear **task**
+  - at least one operational detail in **`changes`**, **`files`**, or **`flow`**
+  - at least one narrative field such as **structure**, **dependencies**, or **highlights**
+- The system preserves:
+  - exact rule text
+  - regex/validation patterns
+  - timestamps and temporal markers
+  - detailed facts suitable for later recall
 
-- Prefer **UPSERT** for updates
-- Verify outcomes with `result.summary.failed` and `result.applied`
-- Preserve **exact rule text**, **regex patterns**, and **timestamps**
-- Maintain **temporal fidelity** and exact fact retention
-- Avoid vague topics and nested subtopics
+## Key entities and patterns
+- **ByteRover context engineer**
+- **`rawConcept`**
+- **`narrative`**
+- **`changes`**
+- **`files`**
+- **`flow`**
+- Facts extraction and temporal preservation are treated as required curation behaviors.
 
-## Structural signals and relationships
-The curation notes describe a **single-pass curation** from a compact RLM context input and record that the source context was small enough for direct extraction. The document also frames these notes as project-level guidance for preserving durable knowledge from context snippets and source material.
+## Facts captured in the entry
+- Coverage assembly and selection functions are recorded as project facts:
+  - `scoreCoverageSections(...)`
+  - `collectCoverageSectionGroups(...)`
+  - `buildCoverageAnchors(...)`
+  - `assembleCoverageSections(...)`
+  - `selectCoveragePrimarySections(...)`
+- Deduplication is explicitly noted as using `uniqueBy(section.id)`.
 
 ## Drill-down
-- **`curated_context_snippet.md`** — concrete curation record, raw concept, narrative, and consolidation notes
+- See **curated_context_snippet.md** for the full structured record, raw concept details, narrative context, and extracted facts.

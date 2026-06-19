@@ -1,121 +1,115 @@
 ---
-children_hash: f22e19a09a5d30c467b32fdabeb87e33775f42914ec9112d8a9656192d3aabff
-compression_ratio: 0.2651970607882432
+children_hash: b67a8915fa340a8a7f1f12d5fca20aa81b7a2610b0e4077a4b088cc27a3da2e7
+compression_ratio: 0.21368190356919223
 condensation_order: 2
-covers: [context.md, end-to-end-citation-fidelity-is-enforced-from-retrieval-to-evaluation.md, end-to-end-trust-is-enforced-by-linking-evidence-verifier-behavior-and-final-sco.md, end-to-end-trust-is-enforced-by-linking-retrieval-evidence-verifier-rewrite-and-.md, evaluation_pipeline/_index.md, hallucination_verifier/_index.md, launch_blockers/_index.md, playwright_e2e/_index.md, qa-trust-is-enforced-as-a-chain-not-a-single-score.md, trustworthiness-is-enforced-from-retrieval-through-final-answer-evaluation.md]
-covers_token_total: 5988
+covers: [context.md, end-to-end-citation-fidelity-is-enforced-from-retrieval-to-evaluation.md, end-to-end-trust-is-enforced-as-a-chain-not-a-single-check.md, end-to-end-trust-is-enforced-by-linking-evidence-verifier-behavior-and-final-sco.md, end-to-end-trust-is-enforced-by-linking-retrieval-evidence-verifier-rewrite-and-.md, evaluation_pipeline/_index.md, hallucination_verifier/_index.md, launch_blockers/_index.md, playwright_e2e/_index.md, qa-trust-is-enforced-as-a-chain-not-a-single-score.md, trustworthiness-is-enforced-from-retrieval-through-final-answer-evaluation.md]
+covers_token_total: 6388
 summary_level: d2
-token_count: 1588
+token_count: 1365
 type: summary
 ---
-# QA Domain Structural Summary
+# QA Structural Overview
 
-The **qa** domain captures the end-to-end Playwright testing stack for the Medicaid navigator agent UI, plus its role in the broader trust chain that spans retrieval, hallucination verification, and evaluation. The main theme across the child entries is that trustworthy answers are enforced structurally, not by a single check: evidence must be retrieved, verified/rewritten, and then scored against grounded outputs.
+The QA domain captures end-to-end testing, hallucination verification, and evaluation trust guarantees for the Medicaid navigator agent UI and policy-answer pipeline. The dominant pattern across the child entries is that **trust is enforced as a chain**: retrieve evidence, verify or rewrite unsupported output, then score or validate only grounded results.
 
-## Core QA/Test Infrastructure
-- **`context.md`** defines the domain boundary:
-  - Purpose: end-to-end testing patterns and helpers for the Medicaid navigator agent UI
-  - Scope: Playwright mocked and smoke suites, Mastra streaming/memory test helpers, chat and thread-sidebar page objects, and guidance for extending e2e tests
-  - Excludes backend implementation and non-Playwright tests
-  - Owned by the **QA/Automation Team**
+## Core QA scope and ownership
+- `context.md` defines the domain as **end-to-end testing patterns and helpers for the Medicaid navigator agent UI**.
+- Ownership sits with the **QA/Automation Team**.
+- Scope includes:
+  - Playwright configuration for mocked and smoke suites
+  - Helpers that mock Mastra streaming and memory APIs
+  - Page objects for chat and thread-sidebar interactions
+  - Guidance for running and extending E2E tests
+- Excludes:
+  - Unit/integration tests outside Playwright
+  - Backend implementation details
 
-- **`playwright_e2e/_index.md`** describes the testing architecture:
-  - `e2e/playwright.config.ts` splits execution into:
-    - **Mocked** tests: fast path, ~15s timeouts, desktop Chrome
-    - **Smoke** tests: live agent path, ~120s timeouts, real backend/Neo4j interactions
-  - Shared helpers under `e2e/helpers/` include:
-    - `stream-builder.ts` / `MastraStreamBuilder` for Mastra-compliant SSE responses ending in `[DONE]`
-    - `mock-routes.ts` / `mockMastraAPI` for intercepting agent and memory endpoints before `/chat`
-    - `chat-page.ts` / `ChatPage` for selectors, messaging, reply waits, traces, and thread sidebar actions
-  - Depends on `npm run dev` from `../packages/web` and `http://localhost:3000`
-  - Uses `data-testid` selectors and keeps streaming, thread lifecycle, and message retrieval behind helpers
+## Playwright E2E infrastructure
+See `playwright_e2e/_index.md` for the overall harness structure.
+- `e2e/playwright.config.ts` splits execution into:
+  - **Mocked tests**: fast path, 15s timeouts, desktop Chrome settings
+  - **Smoke tests**: real integration path, 120s timeouts, slower agent/Neo4j interactions
+- Helper layer:
+  - `stream-builder.ts` / `MastraStreamBuilder` for Mastra-compliant SSE ending in `[DONE]`
+  - `mock-routes.ts` / `mockMastraAPI` to intercept API calls before visiting `/chat`
+  - `chat-page.ts` / `ChatPage` to centralize selectors and chat/thread actions
+- Key dependency pattern:
+  - `mockMastraAPI(page, {...})` is applied before `page.goto("/chat")`
+  - It controls agent streaming and memory endpoints
+- Requires:
+  - `npm run dev` from `../packages/web`
+  - `http://localhost:3000`
+  - Mastra client SSE parsing
+  - `data-testid` selectors in the UI
 
-## Hallucination Verification Pipeline
-- **`hallucination_verifier/_index.md`** defines the verifier contract and its CLI integration:
-  - Verification is **final-answer only**
-  - Runs only when `finishReason === 'stop'`, no tool calls are pending, and text exists
-  - Evidence gathering is **tool-scoped**
-  - Failure handling is **rewrite-based**, not retry-based, via `correctedAnswer` and `writer.custom`
-  - CLI output is machine-parsed and must keep stable stdout markers:
-    - `---EVIDENCE---`
-    - `---VERIFIER---`
-    - `---ANSWER---`
+## Hallucination verifier pipeline
+See `hallucination_verifier/_index.md` for the verification contract.
+- Verification is **final-answer only**:
+  - runs only when `finishReason` is `stop`
+  - requires no pending tool calls
+  - requires non-empty text
+- Evidence gathering is **tool-scoped** and built from:
+  - `getSection`
+  - `getDocument`
+  - `getAmendments`
+  - `lookupPolicy`
+  - `followReferences`
+- `HallucinationVerifier` performs a two-step check:
+  1. relevance to the intended policy/question
+  2. factual accuracy against retrieved sources
+- Failure handling is **rewrite-based**, not retry-based:
+  - unsupported output is rewritten immediately via `correctedAnswer`
+  - `writer.custom` emits `data-verification-rewrite`
+- CLI contract:
+  - stable stdout markers `---EVIDENCE---`, `---VERIFIER---`, `---ANSWER---`
+  - telemetry field names must remain stable because the eval harness parses them
 
-- Important implementation facts from `hallucination_verifier_processor.md`:
-  - Evidence builders are limited to:
-    - `getSection`
-    - `getDocument`
-    - `getAmendments`
-    - `lookupPolicy`
-    - `followReferences`
-  - `buildSourceText` prioritizes cited evidence before uncited material
-  - `maxSourceChars` is derived from `VERIFIER_MAX_SOURCE_TOKENS` with a 30000 default, multiplied by 4
-  - Verification schema tracks:
-    - `supported`
-    - `relevant`
-    - `unsupportedClaims`
-    - `relevanceIssues`
-    - `correctedAnswer`
-
-## Evaluation and Cross-Reference Fidelity
-- **`evaluation_pipeline/_index.md`** shows the evaluation stack is split into two major layers:
+## Evaluation pipeline and cross-reference validation
+See `evaluation_pipeline/_index.md` for the scoring and reference-resolution stack.
+- The pipeline has two tightly linked layers:
   - **Level 3 answer scoring**
-    - `evaluate_answers(entries)` in `packages/pipeline/src/pipeline/eval/levels/answer.py`
-    - Flow: golden entry → agent invocation → Neo4j evidence fetch → `judge_answer` → aggregate metrics
-    - HTTP-first, CLI fallback
-    - Judge errors normalize score fields to `None` or `0` depending on failure type
   - **Level 2 cross-reference resolution**
-    - `packages/pipeline/src/pipeline/eval/levels/cross_ref.py`
-    - Validates `REFERENCES_DOCUMENT`, bidirectional `AMENDS`, and section-level `REFERENCES`
-    - Tracks resolved/missed counts plus derived precision/recall
+- Level 3 answer evaluation:
+  - implemented in `packages/pipeline/src/pipeline/eval/levels/answer.py`
+  - flow: golden entry → agent invocation → Neo4j evidence fetch → `judge_answer` scoring → aggregation
+  - agent invocation is **HTTP-first** with **CLI fallback**
+  - judge errors become `None` for metric fields so they do not skew aggregation
+  - agent errors yield zero scores with preserved explanations
+- Level 2 cross-reference evaluation:
+  - implemented in `packages/pipeline/src/pipeline/eval/levels/cross_ref.py`
+  - validates Neo4j relationships such as:
+    - `REFERENCES_DOCUMENT`
+    - bidirectional `AMENDS`
+    - section-level `REFERENCES` fallback
+  - tracks `resolved_count`, `missed_count`, precision, and recall
+- Shared dependencies:
+  - running mastra dev HTTP service on `localhost:4111`
+  - Neo4j for evidence and relationship validation
+- June 11–12, 2026 remediation thread:
+  - held-out dataset de-contamination
+  - SSA ingestion rules
+  - citation fidelity enforcement
+  - paraphrase rebaseline metrics
+  - staged P0–P3 remediation roadmap
+- Remaining failures `q-004`, `q-009`, `q-020` are tied to **reference extraction**, not the scorer itself
 
-- Shared evaluation dependencies:
-  - Mastra dev HTTP service on `localhost:4111`
-  - Fallback to `npx tsx src/index.ts`
-  - Neo4j for evidence retrieval and relationship validation
-  - Metadata includes difficulty, reasoning type, and primary hit
+## Cross-cutting trust model
+The synthesis entries reinforce the same architecture across QA, evaluation, and agent policy:
+- Trust is **not a single check**
+- Correctness requires:
+  1. retrieval of evidence
+  2. verifier rejection or rewrite of unsupported claims
+  3. final scoring only against grounded outputs
+- Citation fidelity is treated as an **end-to-end contract**
+  - from retrieval
+  - through hallucination verification
+  - into evaluation and cross-reference scoring
+- Neo4j-backed evidence and amendment links are central to the trust chain
+- Unsupported claims are either rewritten, rejected, or excluded from scoring rather than being allowed through
 
-- Key evaluation risk:
-  - Remaining golden dataset failures `q-004`, `q-009`, `q-020` are attributed to the **reference extraction pipeline**, not scorer logic
-
-- The remediation thread in this entry also preserves major policy/rules:
-  - Held-out dataset must remain de-contaminated
-  - SSA ingestion cannot infer membership from numbering alone
-  - Freestanding USC sections must never receive `SSA_TO_USC`
-  - Trustworthiness and citation fidelity are enforced end-to-end through retrieval, citation checks, answer evaluation, and cross-reference evaluation
-
-## Shared Trust / Citation Pattern Across QA
-Several synthesis entries reinforce the same structural rule:
-
-- **`end-to-end-citation-fidelity-is-enforced-from-retrieval-to-evaluation.md`**
-  - Retrieval, verification, and scoring must preserve section-level evidence and amendment links
-  - Links:
-    - agent policy enforces tool-first lookup and citation duties
-    - evaluation fetches Neo4j section evidence before scoring
-    - qa verifier rewrites unsupported claims using retrieved sources
-
-- **`end-to-end-trust-is-enforced-by-linking-evidence-verifier-behavior-and-final-sco.md`**
-  - Trust depends on preserving evidence through retrieval, verifier behavior, and final scoring
-  - Verification is final-answer only
-  - Failure handling is rewrite-based
-
-- **`end-to-end-trust-is-enforced-by-linking-retrieval-evidence-verifier-rewrite-and-.md`**
-  - Same chain expressed as retrieval evidence → verifier rewrite → evaluation
-  - Highlights that trust is cumulative, not a single guardrail
-
-- **`qa-trust-is-enforced-as-a-chain-not-a-single-score.md`**
-  - Concise statement of the domain-wide pattern:
-    - retrieve correct evidence
-    - verify or rewrite the answer
-    - score only grounded outputs
-
-- **`trustworthiness-is-enforced-from-retrieval-through-final-answer-evaluation.md`**
-  - QA, evaluation, and launch blockers jointly harden the pipeline against unsupported claims
-  - Emphasizes that correctness checks are cumulative
-
-## Drill-Down Map
-- **`context.md`** — domain scope and ownership for QA testing
-- **`playwright_e2e/_index.md`** — Playwright architecture, helpers, and mocked vs smoke suite split
-- **`hallucination_verifier/_index.md`** — verifier contract, evidence builders, stdout markers, rewrite behavior
-- **`evaluation_pipeline/_index.md`** — answer scoring, cross-reference resolution, remediation, and dataset rules
-- **Synthesis entries** — best entry point for understanding the trust chain that connects QA, evaluation, and retrieval fidelity
+## Drill-down map
+- `context.md` — QA domain scope, ownership, and e2e testing purpose
+- `playwright_e2e/_index.md` — Playwright harness, mocked vs smoke suites, helpers, and chat page abstractions
+- `hallucination_verifier/_index.md` — final-answer verification contract, evidence builders, CLI stdout rules
+- `evaluation_pipeline/_index.md` — answer scoring, cross-reference validation, remediation thread, and metric behavior
+- Synthesis entries like `end-to-end-citation-fidelity-is-enforced-from-retrieval-to-evaluation.md` and related trust summaries — shared end-to-end trust pattern across QA, evaluation, and agent architecture

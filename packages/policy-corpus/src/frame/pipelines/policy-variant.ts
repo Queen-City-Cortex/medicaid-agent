@@ -1,3 +1,4 @@
+import type { QueryAnalysis } from '../../contracts.js';
 import type { AnswerFrame, AnswerFrameRoute, DocumentWithSectionsView } from '../../types.js';
 import type { FrameContext } from '../context.js';
 import { selectAnswerRoute } from '../../internal/answer-routing.js';
@@ -62,9 +63,9 @@ export async function buildPolicyVariantFrameForDocuments(
 
 export async function resolvePolicyVariantFrame(
   context: FrameContext,
-  query: string,
-  route: AnswerFrameRoute = selectAnswerRoute(normalizeSearchText(query), 'policy_variant'),
+  analysis: QueryAnalysis,
 ): Promise<AnswerFrame> {
+  const { query, route } = analysis;
   const lookupDocuments = await context.collectLookupDocuments(query);
   const candidateDocuments =
     lookupDocuments.length > 0

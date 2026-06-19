@@ -7,7 +7,7 @@ describe('buildEvidencePlan', () => {
       query: 'Does NC Medicaid cover chiropractic services under Clinical Coverage Policy 5B?',
     });
 
-    expect(plan.pipeline).toBe('coverage');
+    expect(plan.questionType).toBe('coverage');
     expect(plan.route.lane).toBe('baseline_hybrid');
     expect(plan.route.determinism_hints.cite_scope_and_not_covered).toBe(true);
   });
@@ -17,7 +17,7 @@ describe('buildEvidencePlan', () => {
       query: 'What federal authority governs medical loss ratio requirements in NC managed care contracts?',
     });
 
-    expect(plan.pipeline).toBe('federal_authority');
+    expect(plan.questionType).toBe('federal_authority');
     expect(plan.route.lane).toBe('graph_reasoning');
   });
 
@@ -29,8 +29,8 @@ describe('buildEvidencePlan', () => {
       query: 'What is the latest change notice for MA-3550?',
     });
 
-    expect(priorAuthPlan.pipeline).toBe('prior_authorization');
-    expect(amendmentPlan.pipeline).toBe('amendment');
+    expect(priorAuthPlan.questionType).toBe('prior_authorization');
+    expect(amendmentPlan.questionType).toBe('amendment');
     expect(amendmentPlan.route.determinism_hints.latest_revision_only).toBe(true);
   });
 });

@@ -2,7 +2,7 @@
 title: Hybrid Retrieval Collector Pipeline
 summary: Hybrid retrieval collector uses staged concurrent merges, fulltext recovery, and separate pre/post-expansion coverage boosts; finalizeHybridHits safely hoists repeated sectionMap value collection.
 tags: []
-related: []
+related: [packages/pipeline/cli/pipeline_cli_package_split.md, packages/policy_corpus/retrieval/reranker_gate_logic_and_a_b_evaluation.md]
 keywords: []
 createdAt: '2026-06-18T04:19:50.872Z'
 updatedAt: '2026-06-18T04:19:50.872Z'

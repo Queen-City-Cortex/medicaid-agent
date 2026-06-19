@@ -206,11 +206,24 @@ function isWaiverAuthorityAnchorHit(hit: {
   return false;
 }
 
-export async function collectFederalAuthorityEvidence(
+// Federal hits after retrieval, merging, focus ranking, and the waiver-specific
+// re-ranking. Threaded through the title-preference, scoping, and primary-
+// candidate phases below.
+interface RankedFederalHits {
+  mergedFederalHits: CorpusRetrievalHit[];
+  rankedFederalHits: CorpusRetrievalHit[];
+  waiverRankedFederalHits: CorpusRetrievalHit[];
+  waiverAnchorHits: CorpusRetrievalHit[];
+}
+
+// Phase 1: retrieve federal regulation/statute hits (raw + focused-query),
+// merge, focus-rank, apply authority-title and waiver-application boosts, and
+// pick the statutory/regulatory waiver anchors.
+async function retrieveAndRankFederalHits(
   context: FrameContext,
   query: string,
   signals: FederalAuthoritySignals,
-): Promise<FederalAuthorityEvidence> {
+): Promise<RankedFederalHits> {
   const federalHits = await context.searchSectionsDetailed({
     query,
     topK: 8,
@@ -283,6 +296,18 @@ export async function collectFederalAuthorityEvidence(
     ? (signals.waiverApplicationQuery ? waiverRankedFederalHits : mergedFederalHits)
         .filter((hit) => isWaiverAuthorityAnchorHit(hit))
     : [];
+  return { mergedFederalHits, rankedFederalHits, waiverRankedFederalHits, waiverAnchorHits };
+}
+
+// Phase 2: choose which federal document titles to scope the primary set to.
+// Waiver queries anchor on 42 CFR Part 441 + SSA Title 19; other queries fall
+// back to focus-based title preference, with statute/regulation pairing for
+// authority-citation questions.
+function selectPreferredFederalDocumentTitles(
+  signals: FederalAuthoritySignals,
+  ranked: RankedFederalHits,
+): string[] {
+  const { mergedFederalHits, rankedFederalHits, waiverRankedFederalHits, waiverAnchorHits } = ranked;
   const waiverPreferredFederalDocumentTitles = signals.waiverApplicationQuery
     ? [
         waiverAnchorHits.find((hit) => hit.policyNumber?.toUpperCase() === '42-CFR-441')?.documentTitle,
@@ -329,9 +354,20 @@ export async function collectFederalAuthorityEvidence(
   // part; the SSA section never reached the primary set). When the preferred
   // titles are all one document type and the other type exists in the ranked
   // hits, admit the other type's top-ranked document title too.
-  const preferredFederalDocumentTitles = signals.authorityCitationQuery
+  return signals.authorityCitationQuery
     ? withStatuteRegulationTitlePairing(focusPreferredFederalDocumentTitles, rankedFederalHits)
     : focusPreferredFederalDocumentTitles;
+}
+
+// Phase 3: scope the ranked hits to the preferred documents and focus content,
+// producing the primary federal hit set (and the unfiltered primary hits used
+// for statute/regulation candidate pairing downstream).
+function scopeFederalPrimaryHits(
+  signals: FederalAuthoritySignals,
+  ranked: RankedFederalHits,
+  preferredFederalDocumentTitles: string[],
+): { primaryFederalHits: CorpusRetrievalHit[]; filteredPrimaryFederalHits: CorpusRetrievalHit[] } {
+  const { rankedFederalHits, waiverRankedFederalHits, waiverAnchorHits } = ranked;
   const includeAnchorsInPrimary = signals.waiverApplicationQuery || signals.waiverAuthorityQuery;
   const primaryFederalHits =
     preferredFederalDocumentTitles.length === 0
@@ -389,6 +425,19 @@ export async function collectFederalAuthorityEvidence(
             return focused.length > 0 ? focused : scopedPrimaryFederalHits;
           })()
         : scopedPrimaryFederalHits;
+  return { primaryFederalHits, filteredPrimaryFederalHits };
+}
+
+// Phase 4: hydrate the primary candidates and their documents, add the waiver
+// statutory anchor and document-level candidates, and assemble the evidence.
+async function buildFederalPrimaryEvidence(
+  context: FrameContext,
+  signals: FederalAuthoritySignals,
+  ranked: RankedFederalHits,
+  primaryHits: { primaryFederalHits: CorpusRetrievalHit[]; filteredPrimaryFederalHits: CorpusRetrievalHit[] },
+): Promise<FederalAuthorityEvidence> {
+  const { waiverRankedFederalHits } = ranked;
+  const { primaryFederalHits, filteredPrimaryFederalHits } = primaryHits;
   const primaryIncludeTerms = dedupeTerms([...FEDERAL_PRIMARY_TERMS, ...signals.focusTerms]);
   const unpairedPrimaryCandidates = buildSectionCandidates(
     filteredPrimaryFederalHits,
@@ -473,6 +522,19 @@ export async function collectFederalAuthorityEvidence(
     primaryCandidates,
     authoritativeCandidates,
   };
+}
+
+// Orchestrates the four federal-evidence phases: retrieve & rank → select
+// preferred document titles → scope primary hits → build primary candidates.
+export async function collectFederalAuthorityEvidence(
+  context: FrameContext,
+  query: string,
+  signals: FederalAuthoritySignals,
+): Promise<FederalAuthorityEvidence> {
+  const ranked = await retrieveAndRankFederalHits(context, query, signals);
+  const preferredFederalDocumentTitles = selectPreferredFederalDocumentTitles(signals, ranked);
+  const primaryHits = scopeFederalPrimaryHits(signals, ranked, preferredFederalDocumentTitles);
+  return buildFederalPrimaryEvidence(context, signals, ranked, primaryHits);
 }
 
 // --- Implementation evidence ----------------------------------------------------

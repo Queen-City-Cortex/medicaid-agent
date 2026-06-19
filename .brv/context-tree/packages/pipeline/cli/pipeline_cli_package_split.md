@@ -2,7 +2,7 @@
 title: Pipeline CLI Package Split
 summary: Pipeline CLI was split from one large click file into a cli package with shared setup, command modules, preserved back-compat exports, and extensive test coverage.
 tags: []
-related: [packages/pipeline/tests/test_cli_mixed_corpus.py.md, packages/pipeline/src/pipeline/cli/build.py.md, packages/pipeline/src/pipeline/cli/eval.py.md]
+related: [packages/pipeline/tests/test_cli_mixed_corpus.py.md, packages/pipeline/src/pipeline/cli/build.py.md, packages/pipeline/src/pipeline/cli/eval.py.md, packages/policy_corpus/retrieval/hybrid_retrieval_collector_pipeline.md, packages/policy_corpus/retrieval/reranker_gate_logic_and_a_b_evaluation.md]
 keywords: []
 createdAt: '2026-06-18T02:32:42.364Z'
 updatedAt: '2026-06-18T02:32:42.365Z'

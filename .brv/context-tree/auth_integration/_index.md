@@ -1,73 +1,49 @@
 ---
-children_hash: 8e367dd7146e90014c53b802a9c1da632730b5fc176676b11f6bf55b2543786c
-compression_ratio: 0.6073878627968338
+children_hash: 3c56311cfeb5c0724aaaaf507cc630107e3faa04d05673c7a403081586cd7934
+compression_ratio: 0.3838723225535489
 condensation_order: 2
-covers: [auth-and-deployment-fixes-are-driven-by-runtime-environment-boundaries.md, context.md, environment-boundaries-drive-both-deployment-fixes-and-auth-reliability.md, runtime-boundaries-are-the-root-cause-behind-auth-and-deployment-reliability.md, workos_authkit_nextjs/_index.md]
-covers_token_total: 1895
+covers: [auth-and-deployment-fixes-are-driven-by-runtime-environment-boundaries.md, context.md, environment-boundaries-drive-both-deployment-fixes-and-auth-reliability.md, runtime-boundaries-are-the-root-cause-behind-auth-and-deployment-reliability.md, runtime-boundary-correctness-is-the-shared-fix-for-auth-chat-transport-and-datab.md, workos_authkit_nextjs/_index.md]
+covers_token_total: 2381
 summary_level: d2
-token_count: 1151
+token_count: 914
 type: summary
 ---
-# Runtime-boundary auth and deployment reliability
+# Runtime Boundary Correctness Across Auth, Chat Transport, and Database State
 
-## Overview
-This level d2 summary captures a shared pattern across **auth_integration**, **frontend_ui**, **agent_architecture**, and **database_operations**: deployment and auth failures occur when build-time assumptions leak into runtime behavior. The recurring remedy is to resolve public/runtime values dynamically, centralize configuration ownership, and distinguish transient startup state from persistent live state.
+This cluster shows a repeated architectural pattern: reliability failures occur when build-time, initialization-time, or container-internal values are treated as if they were live runtime state. The shared fix is to resolve public-facing settings at request time, keep configuration ownership centralized, and refresh transport/state bindings when auth or environment changes.
 
-## Core structural themes
+## Core pattern
+- Public origins, callbacks, credentials, and chat identity must be derived from runtime context, not static hostnames or first-run assumptions.
+- Root-level or canonical configuration is treated as the source of truth, with package/app layers mirroring it rather than diverging.
+- Stateful services like Neo4j require different handling for first initialization versus existing volumes.
 
-### 1) Public vs internal runtime resolution
-- **auth-and-deployment-fixes-are-driven-by-runtime-environment-boundaries.md**
-  - Auth reliability depends on deriving a stable public origin at runtime before calling `handleAuth`.
-  - Resolution order for callback origin:
-    1. `NEXT_PUBLIC_WORKOS_REDIRECT_URI`
-    2. `WORKOS_REDIRECT_URI`
-    3. `RAILWAY_PUBLIC_DOMAIN`
-  - The key failure mode is redirecting to internal hosts such as `0.0.0.0` instead of a public callback origin.
-- **runtime-boundaries-are-the-root-cause-behind-auth-and-deployment-reliability.md**
-  - Reframes the same issue as a broader runtime-boundary problem: public vs internal origin, build-time vs runtime config, and persistent vs initialized DB state.
+## Auth and deployment boundary handling
+### `auth-and-deployment-fixes-are-driven-by-runtime-environment-boundaries.md`
+- WorkOS callback routing must compute a public origin dynamically instead of relying on internal server hosts.
+- Resolution order for callback origin is environment-driven, with fallbacks to ensure correct redirects in Railway/Docker-like deployments.
+- `frontend_ui` replaces Next.js middleware with `proxy.ts` for Authkit compatibility and excludes callback/static paths.
+- `agent_architecture` centralizes shared secrets in the root `.env`, with app env files symlinked to keep runtime config aligned.
 
-### 2) Auth transport and framework compatibility
-- **auth-and-deployment-fixes-are-driven-by-runtime-environment-boundaries.md**
-  - The auth stack spans **auth_integration**, **frontend_ui**, and **agent_architecture**.
-  - `handleAuth` is used with an explicit `baseURL` override to keep redirects public-facing.
-- **workos_authkit_nextjs/_index.md**
-  - Drill-down topic for the WorkOS AuthKit callback fix in `packages/web/src/app/auth/callback/route.ts`.
-  - The `/auth/callback` GET handler passes the computed public origin into `handleAuth`.
-  - This keeps redirects correct across local, Docker, and Railway deployments.
-- **frontend_ui** evidence from the synthesis
-  - Next.js 16 compatibility required moving from middleware to `proxy.ts` with a named proxy export.
-  - `authkitProxy` forwards requests while excluding `/auth/callback` and static assets.
+### `environment-boundaries-drive-both-deployment-fixes-and-auth-reliability.md`
+- Auth callback bugs and database issues both stem from boundary confusion between public vs internal settings and initial vs live state.
+- The same runtime-resolution discipline applies across auth and database systems.
+- Neo4j credential behavior differs on fresh volume initialization versus existing instances.
 
-### 3) Configuration ownership and synchronization
-- **auth-and-deployment-fixes-are-driven-by-runtime-environment-boundaries.md**
-  - Root `.env` centralization keeps LLM and WorkOS credentials synchronized.
-  - `agent/web` env files symlink to the root `.env` so shared secrets stay aligned before restart.
-- **environment-boundaries-drive-both-deployment-fixes-and-auth-reliability.md**
-  - The root `.env` is the single source of truth.
-  - App-specific env files are symlinked to it to preserve one runtime configuration boundary.
-- **runtime-boundaries-are-the-root-cause-behind-auth-and-deployment-reliability.md**
-  - Reinforces that package-level env files should not diverge from the repo-root source of truth.
+### `runtime-boundaries-are-the-root-cause-behind-auth-and-deployment-reliability.md`
+- Reiterates that public origins and other runtime values must not be inferred from build-time assumptions.
+- Root `.env` remains the authoritative source, while package envs are symlinked copies.
+- For Neo4j, `NEO4J_AUTH` only applies on first initialization; later password changes must be done live.
 
-### 4) Persistent database state vs initialization-time state
-- **environment-boundaries-drive-both-deployment-fixes-and-auth-reliability.md**
-  - `NEO4J_AUTH` only initializes credentials on first volume setup.
-  - Existing Neo4j instances require live password changes through the bolt proxy.
-- **runtime-boundaries-are-the-root-cause-behind-auth-and-deployment-reliability.md**
-  - Confirms the same distinction: initialization settings do not retroactively update a mounted database.
-  - Safe remediation uses an alphanumeric-only password and `ALTER CURRENT USER SET PASSWORD` through the bolt TCP proxy.
+## Cross-system runtime identity and transport coherence
+### `runtime-boundary-correctness-is-the-shared-fix-for-auth-chat-transport-and-datab...md`
+- Extends the boundary pattern into chat transport.
+- `frontend_ui` ties chat identity to `threadId:resourceId` so `useChat` reinitializes correctly when auth changes.
+- `DefaultChatTransport` is memoized on `threadId`, `resourceId`, and `getAccessToken` to ensure transport refreshes with runtime auth state.
+- Neo4j production fixes still depend on live password updates rather than assuming configuration changes will retrofit an existing volume.
 
-## Cross-entry relationship map
-- **auth-and-deployment-fixes-are-driven-by-runtime-environment-boundaries.md**
-  - Best for the combined auth/runtime/deployment story across auth, frontend, and agent environment setup.
-- **environment-boundaries-drive-both-deployment-fixes-and-auth-reliability.md**
-  - Extends the same boundary concept to Neo4j credential initialization and runtime password rotation.
-- **runtime-boundaries-are-the-root-cause-behind-auth-and-deployment-reliability.md**
-  - Most compact synthesis of the shared principle: runtime values must be resolved at runtime, and ownership boundaries must be explicit.
-- **workos_authkit_nextjs/_index.md**
-  - Drill into the specific callback/baseURL fix and redirect-host behavior for WorkOS AuthKit in Next.js.
-
-## Key reusable pattern
-- Resolve public-facing values dynamically at request/runtime time.
-- Keep configuration centralized at the true source of truth.
-- Treat build-time inlining, container hostnames, and volume initialization as distinct from live runtime behavior.
-- Use explicit overrides or live updates when the underlying system cannot be corrected by static env changes alone.
+## Drill-down references
+- `auth-and-deployment-fixes-are-driven-by-runtime-environment-boundaries.md` — WorkOS callback origin resolution, Next.js proxy migration, env synchronization
+- `environment-boundaries-drive-both-deployment-fixes-and-auth-reliability.md` — shared boundary lessons across auth, env ownership, and Neo4j
+- `runtime-boundaries-are-the-root-cause-behind-auth-and-deployment-reliability.md` — root `.env` source of truth and Neo4j initialization semantics
+- `runtime-boundary-correctness-is-the-shared-fix-for-auth-chat-transport-and-datab...md` — runtime identity propagation across auth, chat transport, and database state
+- `workos_authkit_nextjs/_index.md` — focused summary of the WorkOS callback base URL fix and deployment-specific redirect handling

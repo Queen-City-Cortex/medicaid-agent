@@ -1,102 +1,163 @@
 ---
-children_hash: c1a7825eedffbe00011e073aa89fd8584b021acf9cfa95026c2378d800342919
-compression_ratio: 0.335960801022582
+children_hash: 17197a604836771268ee92e71fd6061f4ed553b77225ffe660c85c3ae4cc5f26
+compression_ratio: 0.3922955974842767
 condensation_order: 1
 covers: [coverage_frame_assembly/_index.md, coverage_routing/_index.md, document_selection/_index.md, evaluation_harness_ab/_index.md, frame/_index.md, golden_dataset_de_contamination_and_retrieval_constants.md, retrieval/_index.md]
-covers_token_total: 4694
+covers_token_total: 5088
 summary_level: d1
-token_count: 1577
+token_count: 1996
 type: summary
 ---
-# Policy Corpus Structural Summary
+# Policy Corpus Retrieval and Frame Assembly
 
-## Coverage routing, document selection, and frame assembly
-- **`coverage_routing/_index.md`** and **`document_selection/_index.md`** describe the same routing chain from document hits to final routing documents.
-- Core flow: `lookup documents -> infer documents from hits -> apply setting preference -> narrow -> return routing documents`.
-- Key architectural decision: **setting-preferred routing documents are authoritative before inferred narrowing**.
-- `selectSettingPreferredDocuments(queryLower, documents)` runs ahead of `narrowInferredCoverageDocuments`, and `variantReasoning` falls back to the setting-preference reason when no sibling variant frame exists.
-- This protects explicit setting matches, preventing distractors such as **CAP/DA** from displacing intended documents like **congregate PCS**.
-- `coverage_frame_assembly/_index.md` shows how routed documents feed the final answer frame: base hits, HCWD history hits, routed documents, and section candidates are merged into **primary**, **supporting**, and **avoid** evidence.
-- In sibling sets, the **variant frame** takes precedence; otherwise `settingPreference.documents` becomes `preferredRoutingDocuments`.
-- Relevant source files across these entries:
+This cluster covers the policy-corpus pipeline from hit collection through document selection, routing, frame assembly, and evaluation. The shared theme is **stage-specific ordering matters**: the system preserves intent-sensitive choices at each step instead of reusing earlier results out of context.
+
+## 1) Coverage selection, routing, and frame assembly
+
+### `coverage_frame_assembly/_index.md`
+- Describes how the final coverage answer frame is assembled from routed documents and evidence candidates.
+- The assembly merges:
+  - base hits
+  - HCWD history hits
+  - routed documents
+  - section candidates
+- These are organized into primary, supporting, and avoid evidence.
+- Key rule: **setting-preferred routing documents become authoritative when no sibling variant frame takes precedence**.
+- `selectSettingPreferredDocuments` scopes `preferredRoutingDocuments`; `variantReasoning` falls back to the setting-preference reason when no variant frame exists.
+- Important dependencies:
+  - route selection
+  - wildcard widening policy
+  - sibling policy variant detection
+  - document-scoped preference logic
+- Related drill-down:
+  - `coverage_routing.md`
+  - `document_selection.md`
+
+### `coverage_routing/_index.md`
+- Documents the routing flow for policy coverage questions:
+  - lookup documents → infer documents from hits → apply setting preference → narrow → return routing documents
+- Main architectural decision: **setting-scoped document preference runs before inferred narrowing**.
+- When a query names a care setting and titles match, routing returns only setting-matching documents.
+- If no sibling policy variant frame exists, the setting preference reason is preserved in `variantReasoning`.
+- The final reducer remains `narrowInferredCoverageDocuments`, which keeps the raw-score winner for non-sibling sets.
+- This prevents distractor variants, such as CAP/DA, from displacing the intended congregate PCS document.
+- Related source files:
   - `packages/policy-corpus/src/frame/context/routing.ts`
   - `packages/policy-corpus/src/internal/document-selection.ts`
-  - `packages/policy-corpus/src/frame/pipelines/coverage.ts`
 
-## Frame pipeline and authority handling
-- **`frame/_index.md`** captures the broader policy-corpus frame pipeline.
-- Coverage selection is a **5-stage pipeline**:
-  1. score coverage sections
-  2. collect/group by coverage flags
-  3. build initial selection
-  4. build anchors
-  5. assemble final sections by merging primary, supporting, and avoid sections
-- `SectionCandidate.score` was removed; selection is now **positional**, not score-field driven.
-- Shared strict Neo4j graph fixtures centralize typed record builders, query matchers, corpus/session stubs, and handler execution checks.
-- Fixture behavior is intentionally strict:
-  - missing fields throw
-  - `expectAllHandlersUsed()` is required
-  - unexpected extra queries fail unless `allowExtraQueries` is set
-- Authority retrieval now explicitly pairs **statute and regulation** when query intent indicates an authority citation.
-- The authority pipeline resolves evidence in four steps:
-  1. `buildFederalAuthoritySignals`
-  2. `collectFederalAuthorityEvidence`
-  3. `collectFederalImplementationEvidence`
-  4. `buildFederalAuthorityCandidateSets`
-- Rebalance hints adjust primary/supporting/avoid sections for **waiver authority**, **SPA**, and **EPSDT**.
-- Ordering matters: `WAIVER_AUTHORITY_HINT` must run before `WAIVER_HINT`.
-- Intent-specific routing examples:
-  - 1915(c) HCBS waiver authority -> `42 CFR Part 441 Subpart G`
-  - SPA timeliness/submission -> `42 CFR 430`
-  - EPSDT -> `42 CFR 441 Subpart B`
+### `document_selection/_index.md`
+- Covers document-level selection, scoring, narrowing, and setting preference.
+- Core responsibilities:
+  - document coverage boosts
+  - title expansion
+  - variant scoring
+  - HCWD coverage scoring
+  - narrowing inferred coverage documents after scoring
+- Key change: `selectSettingPreferredDocuments(queryLower, documents)` prioritizes documents matching the care setting named in the query.
+- Setting preference is applied **before** `narrowInferredCoverageDocuments`.
+- Depends on `VARIANT_SETTING_TERMS`, title matching, and existing narrowing behavior.
+- Processing flow:
+  - query terms → document scoring → optional setting preference → narrowing → frame assembly
+- Related routing/assembly areas:
+  - `coverage_routing.md`
+  - `coverage_frame_assembly.md`
 
-## Retrieval gating and evaluation
-- **`retrieval/_index.md`** documents reranker gating and its evaluation findings.
-- `shouldAttemptRerank()` only runs for **hard or ambiguous queries** and fail-opens to baseline hits otherwise.
-- Reranking is disabled for:
-  - explicit document types
-  - deterministic route / deterministic evidence
-  - too few candidates (`MIN_RERANK_CANDIDATES`)
-- It is enabled for hard queries with question types such as:
-  - `federal_authority`
-  - `amendment`
-  - `policy_variant`
-  - `HCWD income premium`
-- It is also enabled for `ambiguous_top_hits` when `distinctDocuments.size >= 3` and `scoreGap <= 0.2`.
-- Evaluation was corrected to happen at the **answer level** via `scripts/eval-ab.sh` and `answer_arm()`, not retrieval-level comparison.
-- Retrieval-level reranker A/B showed no meaningful delta; the conclusion is that the reranker is a guarded, fail-open refinement, while **embeddings** are the more important optimization target.
-- Related evaluation artifacts:
-  - `packages/pipeline/evaluation_harness_ab/embeddings_a_b_result_voyage_4_vs_voyage_law_2.md`
-  - `packages/pipeline/evaluation_harness_ab/embeddings_a_b_result_voyage_law_2_vs_voyage_4_large.md`
-  - `packages/pipeline/evaluation_harness_ab/a_b_model_comparison_eval_harness_corrections.md`
-  - `packages/pipeline/eval_a_b_gate_corrections.md`
+## 2) Hybrid retrieval and reranking
 
-## A/B model comparison harness
-- **`evaluation_harness_ab/_index.md`** describes the policy-corpus A/B eval harness as an extension of the existing pipeline eval system, not a rewrite.
-- Orchestration pattern: **baseline eval -> candidate eval -> `eval-compare`**, with repeated answer runs for verifier stability and a citation gate.
-- Main pipeline components:
+### `retrieval/_index.md`
+This entry describes two linked retrieval layers.
+
+#### `hybrid_retrieval_collector_pipeline.md`
+- The collector uses a multi-stage merge pipeline:
+  - stage 1: backends + fulltext
+  - stage 3: amendment-title expansion
+  - stage 4: document expansion
+  - stage 5: change-notice header expansion
+  - final rerank
+- Key functions:
+  - `mergeMax`
+  - `collectHybridHitMap`
+  - `mergeFulltextHits`
+  - `finalizeHybridHits`
+- `mergeMax` keeps the highest-scored hit per `sectionId`.
+- Fulltext recovery is the exception and uses score adjustment rather than merge-max semantics.
+- `computeDocumentCoverageBoosts()` is intentionally called twice:
+  - once on the pre-expansion map to guide expansion
+  - once in `finalizeHybridHits` on the post-expansion map to feed reranking
+- These two calls must not be deduped or reused across stages.
+- `finalizeHybridHits` can safely hoist repeated `Array.from(sectionMap.values())` calls into a local `hits` const because the map is not mutated there.
+- Depends on Neo4j session isolation and feeds into `maybeRerankHits`.
+- Verification status: `typecheck:tests` and `vitest 153/153 pass`.
+
+#### `reranker_gate_logic_and_a_b_evaluation.md`
+- The reranker is selective and controlled by `shouldAttemptRerank()`.
+- It fail-opens to baseline hits when gate conditions are not met.
+- Gate conditions include:
+  - disabled for explicit document types
+  - disabled for `deterministic_evidence`
+  - disabled when below `MIN_RERANK_CANDIDATES`
+  - enabled for hard queries with question types:
+    - `federal_authority`
+    - `amendment`
+    - `policy_variant`
+  - enabled for HCWD income premium queries
+  - enabled for `ambiguous_top_hits` when `distinctDocuments.size >= 3` and `scoreGap <= 0.2`
+- Retrieval-level reranker A/B was found to be misleading because the standalone retrieval CLI lacks route analysis and often reports `reason=not_hard_query`, effectively skipping reranking.
+- Correct evaluation path is **answer-level evaluation**.
+- `scripts/eval-ab.sh` was corrected so `gate_reranker` uses `answer_arm()`, aligning it with `gate_verifier`.
+- Broader conclusion: embeddings are the higher-value optimization target because the reranker is dormant for many queries.
+- Example gate reasons:
+  - `explicit_document_types`
+  - `deterministic_route`
+  - `too_few_candidates`
+  - `not_hard_query`
+  - `hard_query:federal_authority`
+  - `hard_query:hcwd_income_premium`
+  - `ambiguous_top_hits`
+
+## 3) Coverage frame assembly dependencies
+
+### `coverage_frame_assembly/_index.md` and `coverage_routing/_index.md`
+- The routing layer feeds the frame assembler.
+- Setting-specific routing is preserved even when non-sibling documents have higher raw scores.
+- When sibling sets exist, the variant frame takes precedence; otherwise, `settingPreference.documents` becomes `preferredRoutingDocuments`.
+- The assembler merges routed documents with evidence candidates and sorts them into primary, supporting, and avoid evidence.
+
+## 4) Evaluation harness and A/B comparisons
+
+### `evaluation_harness_ab/_index.md`
+- Documents the policy-corpus A/B evaluation harness as an extension of the existing pipeline eval system, not a rewrite.
+- The harness compares baseline vs candidate arms for:
+  - embeddings
+  - reranker
+  - verifier
+- Orchestration flow:
+  - baseline eval → candidate eval → `eval-compare`
+  - repeated verifier runs for stability
+  - citation gate for verifier output
+- Key pipeline components:
   - `packages/pipeline/src/pipeline/config.py`
   - `packages/agent/src/config.ts`
   - `packages/pipeline/src/pipeline/eval/runner.py`
   - `scripts/eval-ab.sh`
   - `docker-compose.ab.yml`
-- Gated comparisons:
-  - **Embeddings**: `voyage-law-2` vs `voyage-4-large`
-  - **Reranker**: LLM reranker vs none/alternate reranker
-  - **Verifier**: `gpt-5.4-mini` vs `gpt-5.4-nano`
-- Design constraints:
-  - Neo4j Community Edition is treated as **single-database**
-  - candidate corpus is isolated in a **second container/volume** on `bolt:7688`
-  - `heldout-paraphrase.json` remains the only honest baseline after de-contamination review
-  - adoption is blocked unless regression stays within `EVAL_REGRESSION_THRESHOLD = 0.05`
-- Provenance is stamped in `runner.py` so `eval-compare` can distinguish baseline vs candidate arms using fields like `embedding_dimensions`, `neo4j_uri`, and `reranker`.
-- Environment-overridable settings include:
-  - `EMBEDDING_MODEL`
-  - `EMBEDDING_DIMENSIONS`
-  - `VOYAGE_MODEL`
-- `PIPELINE EMBEDDING_MODEL` must equal `AGENT VOYAGE_MODEL` for meaningful vector similarity, and `input_type` remains asymmetric between document and query embeddings.
+- Major design decisions:
+  - Neo4j Community Edition is treated as single-database, so the candidate corpus is isolated in a second container/volume on `bolt:7688`
+  - `heldout-paraphrase.json` is the only honest baseline after de-contamination review
+  - adoption is blocked unless regression is no greater than `EVAL_REGRESSION_THRESHOLD = 0.05`
+  - `PIPELINE EMBEDDING_MODEL` must equal `AGENT VOYAGE_MODEL`
+  - `input_type` remains asymmetric between document and query embeddings
+- `runner.py` stamps provenance such as `embedding_dimensions`, `neo4j_uri`, and `reranker` so comparison tooling can separate baseline and candidate arms.
+- Supporting drill-down entries:
+  - `embeddings_a_b_result_voyage_4_vs_voyage_law_2.md`
+  - `embeddings_a_b_result_voyage_law_2_vs_voyage_4_large.md`
+  - `a_b_model_comparison_eval_harness_corrections.md`
+  - `eval_a_b_gate_corrections.md`
 
-## Cross-cutting patterns
-- The policy-corpus frame pipeline is increasingly **intent-aware**: query intent determines which sections are surfaced, paired, narrowed, or demoted.
-- Setting preference, authority citation handling, and reranking all reflect a common rule: **specialized routing should happen before generic narrowing**.
-- The local context emphasizes strict, failure-loud fixtures and provenance-preserving evaluation so routing and scoring changes can be compared reliably.
+## 5) Cross-cutting pattern
+
+- The retrieval stack, routing logic, and evaluation harness all enforce **ordering and stage boundaries**.
+- Setting preference must happen before narrowing.
+- Boosts must be computed in the correct stage and not reused across phases.
+- Reranker results must be measured at the answer layer, not the raw retrieval CLI layer.
+- Frame assembly remains intent-aware, with query intent controlling which documents are surfaced, paired, or demoted.

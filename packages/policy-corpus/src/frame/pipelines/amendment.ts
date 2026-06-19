@@ -1,6 +1,6 @@
-import type { AnswerFrame, AnswerFrameRoute, DocumentWithSectionsView } from '../../types.js';
+import type { QueryAnalysis } from '../../contracts.js';
+import type { AnswerFrame, DocumentWithSectionsView } from '../../types.js';
 import type { FrameContext } from '../context.js';
-import { selectAnswerRoute } from '../../internal/answer-routing.js';
 import {
   AMENDMENT_PRIMARY_TERMS,
   AMENDMENT_SUPPORT_TERMS,
@@ -8,20 +8,18 @@ import {
   FRAME_AVOID_LIMIT,
   FRAME_PRIMARY_LIMIT,
   FRAME_SUPPORT_LIMIT,
-  asksForHistory,
   buildSectionCandidates,
   changeMarkerValueForHit,
   dedupeTerms,
   isRevisionHeaderTitle,
-  normalizeSearchText,
   uniqueBy,
 } from '../../internal/shared.js';
 
 export async function resolveAmendmentFrame(
   context: FrameContext,
-  query: string,
-  route: AnswerFrameRoute = selectAnswerRoute(normalizeSearchText(query), 'amendment'),
+  analysis: QueryAnalysis,
 ): Promise<AnswerFrame> {
+  const { query, route, flags: { asksForHistory } } = analysis;
   const hits = await context.searchSectionsDetailed({
     query,
     topK: route.lane === 'deterministic_evidence' ? 10 : 12,
@@ -124,7 +122,7 @@ export async function resolveAmendmentFrame(
     ],
     (candidate) => candidate.sectionId,
   );
-  const supportingCandidates = asksForHistory(normalizeSearchText(query))
+  const supportingCandidates = asksForHistory
     ? buildSectionCandidates(
         hits,
         AMENDMENT_SUPPORT_TERMS,
@@ -133,7 +131,7 @@ export async function resolveAmendmentFrame(
         'Older amendment context requested by the question.',
       )
     : [];
-  const avoidCandidates = asksForHistory(normalizeSearchText(query)) || latestRevisionOnly
+  const avoidCandidates = asksForHistory || latestRevisionOnly
     ? []
     : buildSectionCandidates(
         latestRevisionOnly && latestRevisionHeaderHits.length > 0

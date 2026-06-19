@@ -1,7 +1,0 @@
-- Captures durable project facts extracted from a context snippet, with emphasis on preserving operational knowledge for later retrieval.
-- Records a curation workflow: context snippet -> fact extraction -> durable knowledge entry, along with timestamped notes and author attribution.
-- Notes specific project functions/patterns mentioned in the facts, including `scoreCoverageSections(...)`, `collectCoverageSectionGroups(...)`, `buildCoverageAnchors(...)`, `assembleCoverageSections(...)`, and `selectCoveragePrimarySections(...)`.
-- Includes a deduplication rule using `uniqueBy(section.id)` and identifies the entry as a compact project-facts document.
-- Summarizes broader curation guidance: two-part context model (`rawConcept` and `narrative`), UPSERT-based updates, verification of applied results, and preservation of exact rule text/timestamps.
-- Highlights notable entities and patterns such as ByteRover context engineer, `changes`, `files`, `flow`, and `curation_input`.
-- Structure-wise, the document is organized into Reason, Raw Concept, Narrative, Facts, and a Consolidated Knowledge section that restates the governing curation rules.

@@ -2,11 +2,11 @@ import type { AnswerQuestionType } from '../types.js';
 import { includesPhrase, matchesToken, normalizeSearchText } from './base.js';
 import { dedupeTerms } from './search.js';
 
-export const YEAR_QUERY_RE = /\b(19|20)\d{2}\b/g;
-export const REQUIREMENT_QUERY_TERMS = ['requirement', 'requirements', 'documentation', 'document', 'provide'];
+const YEAR_QUERY_RE = /\b(19|20)\d{2}\b/g;
+const REQUIREMENT_QUERY_TERMS = ['requirement', 'requirements', 'documentation', 'document', 'provide'];
 // 'minor' is deliberately absent: in this corpus it overwhelmingly means
 // "small" ("minor home modifications" under CAP/DA), not "a child".
-export const PEDIATRIC_QUERY_TERMS = ['under 21', 'child', 'children', 'pediatric', 'pediatrics', 'adolescent', 'youth'];
+const PEDIATRIC_QUERY_TERMS = ['under 21', 'child', 'children', 'pediatric', 'pediatrics', 'adolescent', 'youth'];
 
 export function includesAnyTerm(text: string, terms: string[]): boolean {
   return terms.some((term) => text.includes(term));
@@ -216,7 +216,7 @@ export function asksForPriorAuthSubmissionProcess(queryLower: string): boolean {
   ]);
 }
 
-export function isHcwdQuery(queryLower: string): boolean {
+function isHcwdQuery(queryLower: string): boolean {
   return (
     queryLower.includes('hcwd') ||
     queryLower.includes('health coverage for workers with disabilities') ||
@@ -224,7 +224,7 @@ export function isHcwdQuery(queryLower: string): boolean {
   );
 }
 
-export function isOutpatientPharmacyPolicyQuery(queryLower: string): boolean {
+function isOutpatientPharmacyPolicyQuery(queryLower: string): boolean {
   if (
     includesPhrase(queryLower, [
       'part d',
