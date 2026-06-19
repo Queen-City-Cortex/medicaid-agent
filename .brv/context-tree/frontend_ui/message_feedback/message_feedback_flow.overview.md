@@ -1,0 +1,8 @@
+- The message feedback flow connects frontend chat UI interactions to backend feedback persistence and retrieval.
+- A LibSQL-backed `FeedbackRepository` was added with lazy table initialization and guarded rating values.
+- Backend routes expose POST/GET/DELETE feedback endpoints using zod validation and derive `resourceId` from `requestContext`.
+- Web helpers support submit/delete/fetch operations with Bearer auth and `credentials: include`.
+- `MessageActions` and `ChatPage` use optimistic `feedbackMap` updates, rollback on errors, and optional comment capture for downvotes.
+- Rules include: route paths must not start with `/api/`; `getResourceId` must resolve `user.userId` or `user.id` or throw; comments are only stored for down ratings.
+- The interaction pattern is: message rendered -> user feedback captured -> feedback associated with the message -> state updated.
+- Notable entities include `FeedbackEntry`, `submitFeedback`, `deleteFeedback`, `getFeedbackByThread`, and the “What went wrong?” downvote comment UI.

@@ -1,0 +1,6 @@
+- Chat page thread cache restoration is about rehydrating the correct conversation when the active thread identity is known, while avoiding cross-thread leakage.
+- A `messageCache` map keyed by `threadId` stores assistant replies when status changes from streaming to ready, preventing partial database views during thread switching.
+- A `pendingRestore` ref defers applying cached messages until after the new `useChat` instance mounts; `handleSelectThread` now routes rehydration through this flow instead of calling `setMessages` immediately.
+- The restoration flow is summarized as: thread identity -> cache lookup -> restore persisted chat state -> render conversation.
+- It depends on stable thread identity and alignment between runtime state and persisted thread state.
+- Notable file: `packages/web/src/app/chat/page.tsx`.

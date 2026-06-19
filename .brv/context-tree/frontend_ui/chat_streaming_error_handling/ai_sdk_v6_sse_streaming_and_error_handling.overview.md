@@ -1,0 +1,7 @@
+- The document covers AI SDK v6 SSE-based streaming in the frontend chat UI and how errors are surfaced and handled.
+- The streaming builder migrated from `MastraStreamBuilder` to `AISdkStreamBuilder`, changing the SSE event sequence.
+- `ChatPage` now includes streaming status handling, thread lifecycle helpers, and error rendering tied to `useChat` failures.
+- Playwright mock routes centralize Mastra chat/memory endpoints to make streaming tests deterministic.
+- The flow is: request -> SSE stream opens -> chunks stream to UI -> errors handled -> stream closes.
+- The main emphasis is on preserving stream continuity and graceful failure handling in the chat experience.
+- Notable files include `e2e/helpers/stream-builder.ts`, `e2e/helpers/mock-routes.ts`, `e2e/tests/mocked/error-handling.spec.ts`, and `packages/web/src/app/chat/page.tsx`.

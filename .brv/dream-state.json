@@ -1,5 +1,5 @@
 {
-  "curationsSinceDream": 2,
+  "curationsSinceDream": 5,
   "lastDreamAt": "2026-06-19T16:51:44.521Z",
   "lastDreamLogId": "drm-1781887724986",
   "pendingMerges": [],
@@ -11,6 +11,22 @@
     {
       "enqueuedAt": 1781891319010,
       "path": "packages/policy_corpus/rerank_scoring/rerank_scoring_refactor.md"
+    },
+    {
+      "enqueuedAt": 1781891763433,
+      "path": "frontend_ui/chat_page_thread_cache/chat_page_thread_cache_restoration.md"
+    },
+    {
+      "enqueuedAt": 1781891763433,
+      "path": "frontend_ui/chat_streaming_error_handling/ai_sdk_v6_sse_streaming_and_error_handling.md"
+    },
+    {
+      "enqueuedAt": 1781891763433,
+      "path": "frontend_ui/message_feedback/message_feedback_flow.md"
+    },
+    {
+      "enqueuedAt": 1781891763433,
+      "path": "frontend_ui/thread_sidebar/thread_sidebar_fetch_resilience.md"
     }
   ],
   "totalDreams": 7,

@@ -1,0 +1,1 @@
+Chat page thread cache restoration rehydrates the correct persisted conversation after thread switches by deferring cache application until the new chat instance mounts.

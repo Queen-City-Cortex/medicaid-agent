@@ -1,0 +1,7 @@
+- The thread sidebar fetch flow is designed to tolerate transient failures while loading thread lists.
+- An `AbortController` is used for every fetch so stale requests are canceled when props or dependencies change.
+- 401 responses are intentionally swallowed while `useMastraReady` is false, preventing noisy errors before the WorkOS token is available and allowing retries afterward.
+- `useMastraClient` recreates `mastraClient` whenever the access token changes, keeping `fetchThreads` stable and aligned with auth state.
+- Documented rules emphasize aborting previous `listMemoryThreads` requests when dependencies change and treating pending-auth 401s as non-errors.
+- Structure centers on sidebar opening -> fetching thread list -> recovering from transient failures -> displaying threads.
+- Notable files: `packages/web/src/components/ThreadSidebar.tsx` and `packages/web/src/lib/use-mastra-client.ts`.

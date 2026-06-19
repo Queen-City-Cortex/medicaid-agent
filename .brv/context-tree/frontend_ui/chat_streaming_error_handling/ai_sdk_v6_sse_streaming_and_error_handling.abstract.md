@@ -1,0 +1,1 @@
+AI SDK v6 SSE streaming in the chat UI delivers chunks through deterministic event streams while handling failures gracefully and rendering chat errors when useChat breaks.

@@ -1,0 +1,1 @@
+Message feedback flow connects backend feedback routes and frontend optimistic updates so users can rate messages, add downvote comments, and keep feedback tied to the correct chat message.

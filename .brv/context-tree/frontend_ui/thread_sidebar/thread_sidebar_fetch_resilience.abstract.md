@@ -1,0 +1,1 @@
+Thread sidebar fetch resilience uses abortable requests, token-aware retry handling, and client reinitialization to load thread lists reliably despite transient failures.

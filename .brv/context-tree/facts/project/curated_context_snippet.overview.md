@@ -1,7 +1,7 @@
-- This document is a curated context snippet meant to preserve extracted facts and curation-run metadata as durable knowledge.
-- It records the curation task, the raw concept, the narrative, and a facts section, with timestamps and author metadata.
-- The highlighted workflow is: context input -> extraction -> curated knowledge, using a precomputed single-pass recon path.
-- The consolidated knowledge emphasizes project-level curation rules: structured fields, exact fact/timestamp retention, UPSERT-based updates, and verification of applied results.
-- It defines a two-part context model with `rawConcept` and `narrative`, and requires inclusion of a clear task, operational details, and at least one narrative field.
-- It also stresses constraints such as preserving exact rule text and regex patterns, avoiding vague contexts, and checking `result.summary.failed` and `result.applied`.
-- Notable entities/patterns include ByteRover context engineer, `rawConcept`, `narrative`, `changes`, `files`, `flow`, and `curation_input`.
+- Captures project-wide curation guidance for extracting durable facts from context while preserving exact details, timestamps, and meaningful narrative.
+- Recommends an RLM workflow: recon, single-pass assessment, extraction if needed, curate via UPSERT, then verify applied file paths and zero failures.
+- Explicit rules emphasize: do not print raw context, do not ask for confirmation, do not use MERGE, and verify `result.summary.failed === 0`.
+- Defines context-tree organization constraints: domain -> topic -> subtopic hierarchy with maximum depth of 2, plus naming and structure expectations.
+- States quality requirements for curated entries: include a clear task, at least one operational field (`changes`, `files`, or `flow`), and at least one narrative field.
+- Notes preference for UPSERT over ADD/UPDATE and preservation of exact rule text, regex patterns, timestamps, and file paths.
+- Highlights notable entities and patterns such as `rawConcept`, `narrative`, `changes`, `files`, `flow`, `curation_input`, and the ByteRover context engineering guidance.
