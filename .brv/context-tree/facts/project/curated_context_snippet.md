@@ -1,53 +1,48 @@
 ---
 title: Curated Context Snippet
-summary: Curated snippet of operational knowledge and findings from the provided context into durable project facts.
+summary: Curated a context snippet and preserved the curation-run metadata as durable knowledge.
 tags: []
 related: []
 keywords: []
 createdAt: '2026-06-13T06:00:50.089Z'
-updatedAt: '2026-06-18T02:22:26.499Z'
-consolidated_at: '2026-06-19T16:48:59.910Z'
-consolidated_from: [{date: '2026-06-19T16:48:59.911Z', path: facts/project/curated_context_snippet.abstract.md, reason: 'All three files describe the same curated-context snippet entry. The main markdown file contains the full structured record, while the abstract and overview are condensed derivatives of the same content, so they are redundant and should be consolidated.'}, {date: '2026-06-19T16:48:59.911Z', path: facts/project/curated_context_snippet.overview.md, reason: 'All three files describe the same curated-context snippet entry. The main markdown file contains the full structured record, while the abstract and overview are condensed derivatives of the same content, so they are redundant and should be consolidated.'}]
+updatedAt: '2026-06-19T17:10:10.729Z'
 ---
 ## Reason
-Preserve extracted operational notes from the provided context
+Persist extracted facts and context from the provided curation payload
 
 ## Raw Concept
 **Task:**
-Curate operational knowledge from the provided context snippet into durable project facts.
+Curate the provided context into durable knowledge
 
 **Changes:**
 - Captured the current context size and line count
 - Recorded the recon recommendation for single-pass processing
 - Extracted context-backed statements for long-term recall
+- Captured the curation run metadata
+- Stored a concise extracted fact
 
 **Flow:**
-context snippet -> fact extraction -> durable knowledge entry
+context input -> extraction -> curated knowledge
 
-**Timestamp:** 2026-06-18
+**Timestamp:** 2026-06-19T17:10:10.727Z
 
 **Author:** ByteRover context engineer
 
 ## Narrative
 ### Structure
-A compact project-facts entry capturing the most reusable statements from the provided snippet.
+This entry records a compact curation result derived from the supplied context payload.
 
 ### Dependencies
 Uses the precomputed recon result and current curation variables.
 
 ### Highlights
-Preserves operational notes as structured facts for later retrieval.
+The run used a precomputed single-pass recon path and was curated without reading raw context verbatim.
 
 ### Examples
 Stored extracted facts as durable knowledge.
 
 ## Facts
-- **curated_context_snippet**: `scoreCoverageSections(...)` [project]
-- **curated_context_snippet**: `collectCoverageSectionGroups(...)` [project]
-- **curated_context_snippet**: Deduplication uses `uniqueBy(section.id)`. [project]
-- **curated_context_snippet**: `buildCoverageAnchors(...)` [project]
-- **curated_context_snippet**: `assembleCoverageSections(...)` [project]
-- **curated_context_snippet**: `selectCoveragePrimarySections(...)` [project]
+- **curation_run**: Context curated from precomputed single-pass extraction [other]
 
 ---
 

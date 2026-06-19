@@ -1,0 +1,1 @@
+This document describes refactoring rerankRetrievalHit into ordered HitScorer functions with shared derived features while preserving exact floating-point scores and test behavior.

@@ -1,0 +1,9 @@
+- The document describes a refactor of `rerankRetrievalHit` in `packages/policy-corpus/src/internal/rerank.ts`, splitting a 279-line scoring accumulator into roughly 20 named `HitScorer` functions.
+- A new `deriveHitFeatures` helper computes shared per-hit values once, and an ordered `HIT_SCORERS` array centralizes execution of scoring heuristics.
+- The refactor preserves exact public behavior: signatures for `rerankRetrievalHit` and `buildRerankQueryContext` remain unchanged, and pinned tests must still match exact floating-point scores.
+- A key constraint is floating-point ordering: scorers must fold deltas in the original statement order because regrouping can change bit-level results, e.g. `1.935` vs `1.9349999999999998`.
+- Scoring concerns are now separated into focused heuristics such as policy-number boosts, federal-authority routing, fee-schedule bucket scoring, waiver handling, change-notice boosts, title-quality penalties, and boilerplate penalties.
+- The document emphasizes ordering rules, especially that the title boost for change notices must stay early while implementation and revision-header boosts must stay late.
+- Tests in `tests/retrieval-ranking.test.ts` pin exact pre-refactor scores with `toBe()`, making score-preserving refactors especially sensitive to arithmetic order.
+- Structure-wise, the document has sections for Reason, Raw Concept (task/changes/files/flow/timestamp), Narrative (structure/dependencies/highlights/rules), and Facts.
+- Notable entities include `HitScorer`, `HIT_SCORERS`, `deriveHitFeatures`, `buildRerankQueryContext`, `rerankRetrievalHit`, and the retrieval ranking test file.

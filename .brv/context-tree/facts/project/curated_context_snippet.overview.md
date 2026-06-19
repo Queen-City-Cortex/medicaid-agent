@@ -1,0 +1,7 @@
+- This document is a curated context snippet meant to preserve extracted facts and curation-run metadata as durable knowledge.
+- It records the curation task, the raw concept, the narrative, and a facts section, with timestamps and author metadata.
+- The highlighted workflow is: context input -> extraction -> curated knowledge, using a precomputed single-pass recon path.
+- The consolidated knowledge emphasizes project-level curation rules: structured fields, exact fact/timestamp retention, UPSERT-based updates, and verification of applied results.
+- It defines a two-part context model with `rawConcept` and `narrative`, and requires inclusion of a clear task, operational details, and at least one narrative field.
+- It also stresses constraints such as preserving exact rule text and regex patterns, avoiding vague contexts, and checking `result.summary.failed` and `result.applied`.
+- Notable entities/patterns include ByteRover context engineer, `rawConcept`, `narrative`, `changes`, `files`, `flow`, and `curation_input`.

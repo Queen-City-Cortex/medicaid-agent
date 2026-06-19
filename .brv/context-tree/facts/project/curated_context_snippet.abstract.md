@@ -1,0 +1,1 @@
+This document captures curated context-snippet knowledge for durable recall, including the two-part context model, extraction workflow, strict structure rules, and metadata-preserving UPSERT verification guidance.

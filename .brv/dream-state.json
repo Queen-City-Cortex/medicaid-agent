@@ -1,9 +1,18 @@
 {
-  "curationsSinceDream": 0,
+  "curationsSinceDream": 2,
   "lastDreamAt": "2026-06-19T16:51:44.521Z",
   "lastDreamLogId": "drm-1781887724986",
   "pendingMerges": [],
-  "staleSummaryPaths": [],
+  "staleSummaryPaths": [
+    {
+      "enqueuedAt": 1781889010742,
+      "path": "facts/project/curated_context_snippet.md"
+    },
+    {
+      "enqueuedAt": 1781891319010,
+      "path": "packages/policy_corpus/rerank_scoring/rerank_scoring_refactor.md"
+    }
+  ],
   "totalDreams": 7,
   "version": 1
 }
