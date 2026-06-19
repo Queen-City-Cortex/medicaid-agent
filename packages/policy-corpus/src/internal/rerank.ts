@@ -193,281 +193,387 @@ export function buildRerankQueryContext({
   };
 }
 
-export function rerankRetrievalHit(hit: CorpusRetrievalHit, context: RerankQueryContext): CorpusRetrievalHit {
-  const {
-    queryLower,
-    queryTerms,
-    procedureCodes,
-    requestedYears,
-    exactPolicyNumbers,
-    documentCoverageBoosts,
-    latestChangeMarkerValue,
-    flags,
-  } = context;
+/**
+ * Per-hit values derived once from the hit + query context, then shared across
+ * the individual scorers below (several need the same term-match counts and
+ * normalized text, so computing them once avoids redundant work per scorer).
+ */
+interface RerankHitFeatures {
+  titleMatches: number;
+  documentMatches: number;
+  contentMatches: number;
+  hitChangeMarkerValue: number | null;
+  sectionText: string;
+  requestedYearMatch: boolean;
+  procedureCodeMatches: number;
+  retrievalText: string;
+  sectionNumber: string;
+}
 
-  const titleMatches = scoreTermMatches(queryTerms, hit.sectionTitle);
-  const documentMatches = scoreTermMatches(queryTerms, hit.documentTitle);
-  const contentMatches = Math.min(scoreTermMatches(queryTerms, hit.content), 6);
-  const hitChangeMarkerValue = changeMarkerValueForHit(hit);
-  const sectionText = combineText(hit.sectionTitle, hit.content);
-  const requestedYearMatch = variantDateMatchesRequestedYear(hit.variantDate, requestedYears);
-  const procedureCodeMatches = countProcedureCodeMatches(
-    combineText(hit.sectionTitle, hit.documentTitle, hit.content),
-    procedureCodes,
-  );
-  const retrievalText = combineText(hit.sectionNumber, hit.sectionTitle, hit.documentTitle, hit.policyNumber, hit.content);
-  const sectionNumber = normalizeSearchText(hit.sectionNumber);
+function deriveHitFeatures(hit: CorpusRetrievalHit, context: RerankQueryContext): RerankHitFeatures {
+  const { queryTerms, procedureCodes, requestedYears } = context;
+  return {
+    titleMatches: scoreTermMatches(queryTerms, hit.sectionTitle),
+    documentMatches: scoreTermMatches(queryTerms, hit.documentTitle),
+    contentMatches: Math.min(scoreTermMatches(queryTerms, hit.content), 6),
+    hitChangeMarkerValue: changeMarkerValueForHit(hit),
+    sectionText: combineText(hit.sectionTitle, hit.content),
+    requestedYearMatch: variantDateMatchesRequestedYear(hit.variantDate, requestedYears),
+    procedureCodeMatches: countProcedureCodeMatches(
+      combineText(hit.sectionTitle, hit.documentTitle, hit.content),
+      procedureCodes,
+    ),
+    retrievalText: combineText(hit.sectionNumber, hit.sectionTitle, hit.documentTitle, hit.policyNumber, hit.content),
+    sectionNumber: normalizeSearchText(hit.sectionNumber),
+  };
+}
 
-  let adjustedScore = hit.score;
-  adjustedScore += titleMatches * TITLE_TERM_MATCH_BOOST;
-  adjustedScore += documentMatches * DOCUMENT_TERM_MATCH_BOOST;
-  adjustedScore += contentMatches * CONTENT_TERM_MATCH_BOOST;
+/**
+ * A single scoring concern. Takes the running score and returns it adjusted by
+ * this concern's boosts/penalties for the hit. Each scorer owns one cohesive
+ * heuristic and is independently readable/testable. Scorers fold the score in
+ * the original statement order so the accumulated floating-point result is
+ * bit-identical to the pre-refactor monolith (see tests/retrieval-ranking).
+ */
+type HitScorer = (
+  score: number,
+  hit: CorpusRetrievalHit,
+  context: RerankQueryContext,
+  features: RerankHitFeatures,
+) => number;
 
-  if (queryMentionsPolicyNumber(queryLower, hit.policyNumber)) {
-    adjustedScore += POLICY_NUMBER_MATCH_BOOST;
+const scoreTermMatchBoosts: HitScorer = (score, _hit, _context, f) => {
+  score += f.titleMatches * TITLE_TERM_MATCH_BOOST;
+  score += f.documentMatches * DOCUMENT_TERM_MATCH_BOOST;
+  score += f.contentMatches * CONTENT_TERM_MATCH_BOOST;
+  return score;
+};
+
+const scorePolicyNumberMatches: HitScorer = (score, hit, context) => {
+  if (queryMentionsPolicyNumber(context.queryLower, hit.policyNumber)) {
+    score += POLICY_NUMBER_MATCH_BOOST;
   }
-
-  if (hit.policyNumber && exactPolicyNumbers.includes(hit.policyNumber.toUpperCase())) {
-    adjustedScore += EXACT_POLICY_NUMBER_BOOST;
+  if (hit.policyNumber && context.exactPolicyNumbers.includes(hit.policyNumber.toUpperCase())) {
+    score += EXACT_POLICY_NUMBER_BOOST;
   }
+  return score;
+};
 
-  if (hit.documentType && FEDERAL_DOCUMENT_TYPES.has(hit.documentType) && flags.federalAuthorityQuery) {
-    adjustedScore += FEDERAL_AUTHORITY_BOOST;
-  } else if (flags.federalAuthorityQuery) {
-    adjustedScore -= NON_FEDERAL_AUTHORITY_PENALTY;
+const scoreFederalAuthority: HitScorer = (score, hit, context) => {
+  if (!context.flags.federalAuthorityQuery) {
+    return score;
   }
+  return hit.documentType && FEDERAL_DOCUMENT_TYPES.has(hit.documentType)
+    ? score + FEDERAL_AUTHORITY_BOOST
+    : score - NON_FEDERAL_AUTHORITY_PENALTY;
+};
 
-  if (flags.managedCareContractQuery && !flags.federalAuthorityQuery) {
-    if (hit.answerRole === 'managed_care_contract') {
-      adjustedScore += CONTRACT_GOVERNING_SOURCE_BOOST;
-    } else if (hit.documentType && FEDERAL_DOCUMENT_TYPES.has(hit.documentType)) {
-      adjustedScore -= CONTRACT_FEDERAL_CONTEXT_PENALTY;
-    }
+const scoreManagedCareContractContext: HitScorer = (score, hit, context) => {
+  if (!context.flags.managedCareContractQuery || context.flags.federalAuthorityQuery) {
+    return score;
   }
+  if (hit.answerRole === 'managed_care_contract') {
+    return score + CONTRACT_GOVERNING_SOURCE_BOOST;
+  }
+  if (hit.documentType && FEDERAL_DOCUMENT_TYPES.has(hit.documentType)) {
+    return score - CONTRACT_FEDERAL_CONTEXT_PENALTY;
+  }
+  return score;
+};
 
+const scoreReadinessPenalties: HitScorer = (score, hit) => {
   if (hit.answerReady === false) {
-    adjustedScore -= ANSWER_READY_PENALTY;
+    score -= ANSWER_READY_PENALTY;
   }
-
   if (hit.retrievalReady === false) {
-    adjustedScore -= RETRIEVAL_READY_PENALTY;
+    score -= RETRIEVAL_READY_PENALTY;
   }
+  return score;
+};
 
-  if (
-    flags.coverageQuestion &&
-    !flags.operationalRoutingQuery &&
-    !flags.federalAuthorityQuery &&
-    !flags.changeNoticeQuery
-  ) {
-    if (hit.authorityTier === 'authoritative') {
-      adjustedScore += AUTHORITATIVE_POLICY_BOOST;
-    } else if (hit.authorityTier) {
-      adjustedScore -= NON_AUTHORITATIVE_POLICY_PENALTY;
-    }
+const scoreCoverageAuthorityTier: HitScorer = (score, hit, context) => {
+  const { flags } = context;
+  if (!flags.coverageQuestion || flags.operationalRoutingQuery || flags.federalAuthorityQuery || flags.changeNoticeQuery) {
+    return score;
   }
+  if (hit.authorityTier === 'authoritative') {
+    return score + AUTHORITATIVE_POLICY_BOOST;
+  }
+  return hit.authorityTier ? score - NON_AUTHORITATIVE_POLICY_PENALTY : score;
+};
 
+const scoreOperationalAlignment: HitScorer = (score, hit, context) => {
+  const { flags } = context;
   const operationalHit = isOperationalSourceHit(hit);
-  if (!flags.operationalRoutingQuery && operationalHit) {
-    adjustedScore -= OFF_TOPIC_OPERATIONAL_PENALTY;
+  if (!operationalHit) {
+    return score;
+  }
+  if (!flags.operationalRoutingQuery) {
+    return score - OFF_TOPIC_OPERATIONAL_PENALTY;
   }
 
-  if (flags.operationalRoutingQuery && operationalHit) {
-    const reimbursementMatch = flags.reimbursementQuery && hit.answerRole === 'reimbursement';
-    const billingMatch = flags.billingWorkflowQuery && hit.answerRole === 'billing';
-    const managedCareMatch =
-      flags.managedCareOperationsQuery &&
-      (flags.managedCareContractQuery
-        ? hit.answerRole === 'managed_care_contract'
-        : hit.answerRole === 'managed_care' || hit.answerRole === 'managed_care_contract');
+  const reimbursementMatch = flags.reimbursementQuery && hit.answerRole === 'reimbursement';
+  const billingMatch = flags.billingWorkflowQuery && hit.answerRole === 'billing';
+  const managedCareMatch =
+    flags.managedCareOperationsQuery &&
+    (flags.managedCareContractQuery
+      ? hit.answerRole === 'managed_care_contract'
+      : hit.answerRole === 'managed_care' || hit.answerRole === 'managed_care_contract');
 
-    if (reimbursementMatch || billingMatch || managedCareMatch) {
-      adjustedScore += OPERATIONAL_ROLE_BOOST;
-    } else {
-      adjustedScore -= OPERATIONAL_ROLE_MISMATCH_PENALTY;
-    }
-
-    if (flags.managedCareContractQuery) {
-      if (hit.answerRole === 'managed_care_contract') {
-        adjustedScore += CONTRACT_ROLE_BOOST;
-      } else if (hit.answerRole === 'managed_care') {
-        adjustedScore -= CONTRACT_ROLE_MISMATCH_PENALTY;
-      }
-    }
+  if (reimbursementMatch || billingMatch || managedCareMatch) {
+    score += OPERATIONAL_ROLE_BOOST;
+  } else {
+    score -= OPERATIONAL_ROLE_MISMATCH_PENALTY;
   }
 
-  if (flags.reimbursementQuery && procedureCodes.length > 0 && procedureCodeMatches > 0) {
-    adjustedScore += procedureCodeMatches * EXACT_REIMBURSEMENT_CODE_BOOST;
-    if (hit.answerRole === 'reimbursement') {
-      adjustedScore += REIMBURSEMENT_CODE_ROLE_BOOST;
-    } else {
-      adjustedScore -= NON_REIMBURSEMENT_CODE_MATCH_PENALTY;
+  if (flags.managedCareContractQuery) {
+    if (hit.answerRole === 'managed_care_contract') {
+      score += CONTRACT_ROLE_BOOST;
+    } else if (hit.answerRole === 'managed_care') {
+      score -= CONTRACT_ROLE_MISMATCH_PENALTY;
     }
   }
+  return score;
+};
 
-  if (hit.documentType === 'fee_schedule' && flags.reimbursementQuery) {
-    if (hit.corpusBucket === 'primary') {
-      adjustedScore += PRIMARY_FEE_SCHEDULE_BOOST;
-    } else if (hit.corpusBucket === 'history') {
-      adjustedScore += flags.historicalReimbursementQuery || requestedYearMatch
-        ? HISTORY_FEE_SCHEDULE_BOOST
-        : -HISTORY_FEE_SCHEDULE_PENALTY;
-    } else if (hit.corpusBucket === 'archive') {
-      adjustedScore += requestedYearMatch ? HISTORY_FEE_SCHEDULE_BOOST : -ARCHIVE_FEE_SCHEDULE_PENALTY;
-    } else if (hit.corpusBucket === 'companion' || hit.corpusBucket === 'reference') {
-      adjustedScore -= COMPANION_FEE_SCHEDULE_PENALTY;
-    }
+const scoreReimbursementCodes: HitScorer = (score, hit, context, f) => {
+  if (!(context.flags.reimbursementQuery && context.procedureCodes.length > 0 && f.procedureCodeMatches > 0)) {
+    return score;
+  }
+  score += f.procedureCodeMatches * EXACT_REIMBURSEMENT_CODE_BOOST;
+  if (hit.answerRole === 'reimbursement') {
+    score += REIMBURSEMENT_CODE_ROLE_BOOST;
+  } else {
+    score -= NON_REIMBURSEMENT_CODE_MATCH_PENALTY;
+  }
+  return score;
+};
 
-    if (hit.sourceFormat === 'xlsx') {
-      adjustedScore += SPREADSHEET_FEE_SCHEDULE_BOOST;
-    }
-
-    if (requestedYearMatch) {
-      adjustedScore += REQUESTED_YEAR_MATCH_BOOST;
-    }
+const scoreFeeScheduleBuckets: HitScorer = (score, hit, context, f) => {
+  if (!(hit.documentType === 'fee_schedule' && context.flags.reimbursementQuery)) {
+    return score;
+  }
+  if (hit.corpusBucket === 'primary') {
+    score += PRIMARY_FEE_SCHEDULE_BOOST;
+  } else if (hit.corpusBucket === 'history') {
+    score += context.flags.historicalReimbursementQuery || f.requestedYearMatch
+      ? HISTORY_FEE_SCHEDULE_BOOST
+      : -HISTORY_FEE_SCHEDULE_PENALTY;
+  } else if (hit.corpusBucket === 'archive') {
+    score += f.requestedYearMatch ? HISTORY_FEE_SCHEDULE_BOOST : -ARCHIVE_FEE_SCHEDULE_PENALTY;
+  } else if (hit.corpusBucket === 'companion' || hit.corpusBucket === 'reference') {
+    score -= COMPANION_FEE_SCHEDULE_PENALTY;
   }
 
-  if (flags.changeNoticeQuery && normalizeSearchText(hit.documentTitle).includes('change notice')) {
-    adjustedScore += CHANGE_NOTICE_BOOST;
+  if (hit.sourceFormat === 'xlsx') {
+    score += SPREADSHEET_FEE_SCHEDULE_BOOST;
   }
-
-  if (flags.waiverApplicationQuery) {
-    if (
-      hit.policyNumber?.toUpperCase() === '42-CFR-441' ||
-      normalizeSearchText(hit.documentTitle).includes('42 cfr part 441')
-    ) {
-      adjustedScore += 0.34;
-    } else if (normalizeSearchText(hit.documentTitle).includes('42 cfr part 440')) {
-      adjustedScore += 0.12;
-    }
-
-    if (sectionNumber === '1915') {
-      adjustedScore += 0.4;
-    }
-
-    if (WAIVER_APPLICATION_PRIMARY_SECTION_NUMBERS.has(sectionNumber)) {
-      adjustedScore += 0.45;
-    }
-
-    if (includesPhrase(retrievalText, WAIVER_APPLICATION_PRIMARY_TERMS)) {
-      adjustedScore += 0.18;
-    }
-
-    if (includesPhrase(retrievalText, ['1915(b)', '1915(b) waiver']) && !flags.queryMentions1915b) {
-      adjustedScore -= 0.45;
-    }
-
-    if (
-      includesPhrase(retrievalText, WAIVER_APPLICATION_AVOID_TERMS) ||
-      (!flags.publicNoticeQuery && sectionNumber === '431.408')
-    ) {
-      adjustedScore -= 0.55;
-    }
+  if (f.requestedYearMatch) {
+    score += REQUESTED_YEAR_MATCH_BOOST;
   }
+  return score;
+};
 
-  if (flags.queryIncludesCover && normalizeSearchText(hit.content).includes('not covered')) {
-    adjustedScore += COVERAGE_EXCLUSION_BOOST;
+const scoreChangeNoticeTitle: HitScorer = (score, hit, context) =>
+  context.flags.changeNoticeQuery && normalizeSearchText(hit.documentTitle).includes('change notice')
+    ? score + CHANGE_NOTICE_BOOST
+    : score;
+
+const scoreWaiverApplication: HitScorer = (score, hit, context, f) => {
+  if (!context.flags.waiverApplicationQuery) {
+    return score;
   }
-
-  if (flags.requirementDetailQuery) {
-    const requirementEvidenceScore = Math.min(scorePhraseMatches(sectionText, REQUIREMENT_EVIDENCE_TERMS, 1), 4);
-    adjustedScore += requirementEvidenceScore * 0.05;
-    if (!hit.sectionNumber && requirementEvidenceScore === 0) {
-      adjustedScore -= 0.08;
-    }
-  }
-
-  if (flags.changeNoticeQuery && normalizeSearchText(hit.sectionTitle).includes('implementation')) {
-    adjustedScore += IMPLEMENTATION_SECTION_BOOST;
-  }
-
-  if (flags.changeNoticeQuery && isRevisionHeaderTitle(hit.sectionTitle)) {
-    adjustedScore += REVISION_HEADER_BOOST;
-  }
-
-  if (flags.hcwdIncomePremiumQuery) {
-    if (includesPhrase(retrievalText, HCWD_INCOME_RULE_TERMS)) {
-      adjustedScore += 0.32;
-    }
-
-    if (normalizeSearchText(hit.documentTitle).includes('change notice')) {
-      adjustedScore += 0.12;
-    }
-
-    if (
-      (isYearSpecificPremiumTitle(hit.sectionTitle) || isYearSpecificPremiumTitle(hit.documentTitle)) &&
-      !flags.queryIncludesCalendarYear &&
-      !flags.queryIncludesChart
-    ) {
-      adjustedScore -= 0.45;
-    }
-
-    if (isAdministrativeFormTitle(hit.sectionTitle) || isAdministrativeFormTitle(hit.documentTitle)) {
-      adjustedScore -= 0.35;
-    }
-
-    if (
-      (isHcwdProcessTitle(hit.sectionTitle) || isHcwdProcessTitle(hit.documentTitle)) &&
-      !flags.queryIncludesProcedure &&
-      !flags.queryIncludesPayment
-    ) {
-      adjustedScore -= 0.2;
-    }
-  }
-
   if (
-    flags.latestChangeNoticeQuery &&
-    latestChangeMarkerValue !== null &&
-    hitChangeMarkerValue !== null &&
-    hitChangeMarkerValue === latestChangeMarkerValue
+    hit.policyNumber?.toUpperCase() === '42-CFR-441' ||
+    normalizeSearchText(hit.documentTitle).includes('42 cfr part 441')
   ) {
-    adjustedScore += LATEST_CHANGE_MARKER_BOOST;
+    score += 0.34;
+  } else if (normalizeSearchText(hit.documentTitle).includes('42 cfr part 440')) {
+    score += 0.12;
   }
 
+  if (f.sectionNumber === '1915') {
+    score += 0.4;
+  }
+  if (WAIVER_APPLICATION_PRIMARY_SECTION_NUMBERS.has(f.sectionNumber)) {
+    score += 0.45;
+  }
+  if (includesPhrase(f.retrievalText, WAIVER_APPLICATION_PRIMARY_TERMS)) {
+    score += 0.18;
+  }
+  if (includesPhrase(f.retrievalText, ['1915(b)', '1915(b) waiver']) && !context.flags.queryMentions1915b) {
+    score -= 0.45;
+  }
   if (
-    flags.latestChangeNoticeQuery &&
-    hitChangeMarkerValue === null &&
+    includesPhrase(f.retrievalText, WAIVER_APPLICATION_AVOID_TERMS) ||
+    (!context.flags.publicNoticeQuery && f.sectionNumber === '431.408')
+  ) {
+    score -= 0.55;
+  }
+  return score;
+};
+
+const scoreCoverageExclusion: HitScorer = (score, hit, context) =>
+  context.flags.queryIncludesCover && normalizeSearchText(hit.content).includes('not covered')
+    ? score + COVERAGE_EXCLUSION_BOOST
+    : score;
+
+const scoreRequirementDetail: HitScorer = (score, hit, context, f) => {
+  if (!context.flags.requirementDetailQuery) {
+    return score;
+  }
+  const requirementEvidenceScore = Math.min(scorePhraseMatches(f.sectionText, REQUIREMENT_EVIDENCE_TERMS, 1), 4);
+  score += requirementEvidenceScore * 0.05;
+  if (!hit.sectionNumber && requirementEvidenceScore === 0) {
+    score -= 0.08;
+  }
+  return score;
+};
+
+const scoreChangeNoticeSection: HitScorer = (score, hit, context) => {
+  if (!context.flags.changeNoticeQuery) {
+    return score;
+  }
+  if (normalizeSearchText(hit.sectionTitle).includes('implementation')) {
+    score += IMPLEMENTATION_SECTION_BOOST;
+  }
+  if (isRevisionHeaderTitle(hit.sectionTitle)) {
+    score += REVISION_HEADER_BOOST;
+  }
+  return score;
+};
+
+const scoreHcwdIncomePremium: HitScorer = (score, hit, context, f) => {
+  if (!context.flags.hcwdIncomePremiumQuery) {
+    return score;
+  }
+  if (includesPhrase(f.retrievalText, HCWD_INCOME_RULE_TERMS)) {
+    score += 0.32;
+  }
+  if (normalizeSearchText(hit.documentTitle).includes('change notice')) {
+    score += 0.12;
+  }
+  if (
+    (isYearSpecificPremiumTitle(hit.sectionTitle) || isYearSpecificPremiumTitle(hit.documentTitle)) &&
+    !context.flags.queryIncludesCalendarYear &&
+    !context.flags.queryIncludesChart
+  ) {
+    score -= 0.45;
+  }
+  if (isAdministrativeFormTitle(hit.sectionTitle) || isAdministrativeFormTitle(hit.documentTitle)) {
+    score -= 0.35;
+  }
+  if (
+    (isHcwdProcessTitle(hit.sectionTitle) || isHcwdProcessTitle(hit.documentTitle)) &&
+    !context.flags.queryIncludesProcedure &&
+    !context.flags.queryIncludesPayment
+  ) {
+    score -= 0.2;
+  }
+  return score;
+};
+
+const scoreLatestChangeMarker: HitScorer = (score, hit, context, f) => {
+  const { flags, latestChangeMarkerValue } = context;
+  if (!flags.latestChangeNoticeQuery) {
+    return score;
+  }
+  if (
+    latestChangeMarkerValue !== null &&
+    f.hitChangeMarkerValue !== null &&
+    f.hitChangeMarkerValue === latestChangeMarkerValue
+  ) {
+    return score + LATEST_CHANGE_MARKER_BOOST;
+  }
+  if (
+    f.hitChangeMarkerValue === null &&
     normalizeSearchText(hit.sectionTitle).includes('effective') &&
     !normalizeSearchText(hit.documentTitle).includes('change notice')
   ) {
-    adjustedScore -= LATEST_CHANGE_QUERY_EFFECTIVE_SECTION_PENALTY;
+    return score - LATEST_CHANGE_QUERY_EFFECTIVE_SECTION_PENALTY;
   }
+  return score;
+};
 
-  if (flags.modificationReviewQuery) {
-    const hitText = `${normalizeSearchText(hit.sectionTitle)} ${normalizeSearchText(hit.content)}`;
-    const matchesModificationTopic = includesAnyTerm(hitText, ['equipment', 'modification', 'technology', 'home modification']);
-    const matchesReviewSignal = includesAnyTerm(hitText, ['multidisciplinary', 'mdt']);
-    if (matchesModificationTopic && matchesReviewSignal) {
-      adjustedScore += MODIFICATION_REVIEW_CLUSTER_BOOST;
-    } else if (matchesModificationTopic && hit.policyNumber && exactPolicyNumbers.includes(hit.policyNumber.toUpperCase())) {
-      adjustedScore += MODIFICATION_TOPIC_BOOST;
-    }
+const scoreModificationReview: HitScorer = (score, hit, context) => {
+  if (!context.flags.modificationReviewQuery) {
+    return score;
   }
-
-  if (isBoilerplateTitle(hit.sectionTitle) && titleMatches === 0 && documentMatches === 0) {
-    adjustedScore -= BOILERPLATE_TITLE_PENALTY;
+  const hitText = `${normalizeSearchText(hit.sectionTitle)} ${normalizeSearchText(hit.content)}`;
+  const matchesModificationTopic = includesAnyTerm(hitText, ['equipment', 'modification', 'technology', 'home modification']);
+  const matchesReviewSignal = includesAnyTerm(hitText, ['multidisciplinary', 'mdt']);
+  if (matchesModificationTopic && matchesReviewSignal) {
+    return score + MODIFICATION_REVIEW_CLUSTER_BOOST;
   }
-
-  if (isAttachmentTitle(hit.sectionTitle) && !flags.queryIncludesAttachment) {
-    adjustedScore -= ATTACHMENT_TITLE_PENALTY;
+  if (matchesModificationTopic && hit.policyNumber && context.exactPolicyNumbers.includes(hit.policyNumber.toUpperCase())) {
+    return score + MODIFICATION_TOPIC_BOOST;
   }
+  return score;
+};
 
+const scoreTitleQualityPenalties: HitScorer = (score, hit, context, f) => {
+  if (isBoilerplateTitle(hit.sectionTitle) && f.titleMatches === 0 && f.documentMatches === 0) {
+    score -= BOILERPLATE_TITLE_PENALTY;
+  }
+  if (isAttachmentTitle(hit.sectionTitle) && !context.flags.queryIncludesAttachment) {
+    score -= ATTACHMENT_TITLE_PENALTY;
+  }
   if (isGenericSectionTitle(hit.sectionTitle)) {
-    adjustedScore -= GENERIC_SECTION_TITLE_PENALTY;
+    score -= GENERIC_SECTION_TITLE_PENALTY;
   }
-
-  if (flags.yesNoCoverageQuery && isCoverageProcessTitle(hit.sectionTitle)) {
-    adjustedScore -= COVERAGE_PROCESS_SECTION_PENALTY;
+  if (context.flags.yesNoCoverageQuery && isCoverageProcessTitle(hit.sectionTitle)) {
+    score -= COVERAGE_PROCESS_SECTION_PENALTY;
   }
+  return score;
+};
 
-  if (isPediatricPolicyHit(hit)) {
-    adjustedScore += flags.pediatricQuery ? 0.12 : -0.12;
+const scorePediatricAlignment: HitScorer = (score, hit, context) => {
+  if (!isPediatricPolicyHit(hit)) {
+    return score;
   }
+  return score + (context.flags.pediatricQuery ? 0.12 : -0.12);
+};
 
+const scoreDocumentCoverageBoost: HitScorer = (score, hit, context) => {
   const documentKey = documentKeyForHit(hit);
-  if (documentKey) {
-    adjustedScore += documentCoverageBoosts.get(documentKey) ?? 0;
-  }
+  return documentKey ? score + (context.documentCoverageBoosts.get(documentKey) ?? 0) : score;
+};
 
+/**
+ * Ordered list of scoring concerns applied on top of the backend score. Order
+ * is preserved from the original monolithic implementation; deltas are summed,
+ * so adding/removing a concern is a localized change. See the pinned scores in
+ * tests/retrieval-ranking.test.ts.
+ */
+const HIT_SCORERS: readonly HitScorer[] = [
+  scoreTermMatchBoosts,
+  scorePolicyNumberMatches,
+  scoreFederalAuthority,
+  scoreManagedCareContractContext,
+  scoreReadinessPenalties,
+  scoreCoverageAuthorityTier,
+  scoreOperationalAlignment,
+  scoreReimbursementCodes,
+  scoreFeeScheduleBuckets,
+  scoreChangeNoticeTitle,
+  scoreWaiverApplication,
+  scoreCoverageExclusion,
+  scoreRequirementDetail,
+  scoreChangeNoticeSection,
+  scoreHcwdIncomePremium,
+  scoreLatestChangeMarker,
+  scoreModificationReview,
+  scoreTitleQualityPenalties,
+  scorePediatricAlignment,
+  scoreDocumentCoverageBoost,
+];
+
+export function rerankRetrievalHit(hit: CorpusRetrievalHit, context: RerankQueryContext): CorpusRetrievalHit {
+  const features = deriveHitFeatures(hit, context);
+  let adjustedScore = hit.score;
+  for (const scorer of HIT_SCORERS) {
+    adjustedScore = scorer(adjustedScore, hit, context, features);
+  }
   return {
     ...hit,
     score: adjustedScore,
