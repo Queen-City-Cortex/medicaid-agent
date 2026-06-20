@@ -1,6 +1,7 @@
 import { registerApiRoute } from '@mastra/core/server';
 import { withSession } from './neo4j.js';
 import { Sentry } from './sentry.js';
+import { log, errorFields } from './logger.js';
 
 export interface CorpusStatus {
   /** ISO timestamp of the most recent document (re-)index, or null if the graph is empty. */
@@ -40,17 +41,22 @@ export function resetCorpusStatusCache() {
   cached = null;
 }
 
+/** Route handler, extracted so the failure-logging path is unit-testable. */
+export async function handleCorpusStatusRequest(c: {
+  json: (body: unknown, status?: number) => unknown;
+}) {
+  try {
+    return c.json(await getCorpusStatus());
+  } catch (err) {
+    log.error('corpus_status.query_failed', errorFields(err));
+    Sentry.captureException(err, { tags: { route: 'corpus-status' } });
+    return c.json({ error: 'Corpus status unavailable' }, 503);
+  }
+}
+
 export function corpusStatusRoute() {
   return registerApiRoute('/corpus-status', {
     method: 'GET',
-    handler: async (c) => {
-      try {
-        return c.json(await getCorpusStatus());
-      } catch (err) {
-        console.error('[corpus-status] query failed:', err);
-        Sentry.captureException(err, { tags: { route: 'corpus-status' } });
-        return c.json({ error: 'Corpus status unavailable' }, 503);
-      }
-    },
+    handler: (c) => handleCorpusStatusRequest(c),
   });
 }

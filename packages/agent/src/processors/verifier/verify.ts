@@ -2,6 +2,7 @@ import { generateObject } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
 import { z } from 'zod';
 import { getConfig } from './config.js';
+import { log, errorFields } from '../../logger.js';
 
 // ── verifyAnswer ─────────────────────────────────────────────────────────────
 
@@ -92,7 +93,10 @@ export async function verifyAnswer(
 
     return object;
   } catch (err) {
-    console.error('[HallucinationVerifier] Error during verification, failing closed:', err);
+    // Fail closed: a verifier outage must surface as low-confidence, not a
+    // silently-trusted answer. Log it so chronic verifier failures (the answer
+    // path users never see degrade) are detectable.
+    log.error('verifier.failed_closed', errorFields(err));
     return {
       supported: false,
       relevant: true,

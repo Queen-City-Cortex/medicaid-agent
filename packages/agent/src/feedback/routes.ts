@@ -2,6 +2,7 @@ import { registerApiRoute } from '@mastra/core/server';
 import type { Context } from 'hono';
 import { z } from 'zod';
 import type { FeedbackRepository } from './repository.js';
+import { log } from '../logger.js';
 
 const FeedbackBodySchema = z.object({
   messageId: z.string().min(1),
@@ -22,6 +23,7 @@ export function createFeedbackRoutes(repo: FeedbackRepository) {
     try {
       body = await c.req.json();
     } catch {
+      log.warn('feedback.invalid_json', { resourceId: getResourceId(c) });
       return c.json({ error: 'Invalid JSON' }, 400);
     }
 

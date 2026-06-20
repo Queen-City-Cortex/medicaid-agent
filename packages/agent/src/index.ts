@@ -1,5 +1,6 @@
 import './load-env.js';
 import { Sentry } from './sentry.js';
+import { log, errorFields } from './logger.js';
 import { Mastra } from '@mastra/core';
 import { Agent, type OnIterationCompleteHandler } from '@mastra/core/agent';
 import { PromptInjectionDetector, TokenLimiterProcessor } from '@mastra/core/processors';
@@ -258,10 +259,14 @@ export const mastra = new Mastra({
           ...AGENT_RUN_LIMITS,
           savePerStep: true,
           onStepFinish: async (step) => {
-            console.log(`[chat] step finished: ${step.stepType} | text: ${step.text?.length ?? 0} chars | tools: ${step.toolCalls?.length ?? 0}`);
+            log.debug('chat.step_finished', {
+              stepType: step.stepType,
+              textChars: step.text?.length ?? 0,
+              toolCalls: step.toolCalls?.length ?? 0,
+            });
           },
           onError: (err) => {
-            console.error('[chat] stream error:', err);
+            log.error('chat.stream_error', errorFields(err));
             Sentry.captureException(err, { tags: { route: 'chat' } });
           },
         },
@@ -281,7 +286,11 @@ export const mastra = new Mastra({
             } finally {
               await session.close();
             }
-          } catch { /* neo4j stays 'error' */ }
+          } catch (err) {
+            // Distinguish a network blip from a permanent outage for on-call:
+            // healthz returns 503 either way, but the cause only lives here.
+            log.error('healthz.neo4j_failed', errorFields(err));
+          }
 
           // Verify the LibSQL store (chat memory + feedback, on the Railway
           // volume) actually accepts writes. Connectivity alone is not enough:

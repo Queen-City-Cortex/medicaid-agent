@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Hono } from 'hono';
 import { createFeedbackRoutes, getResourceId } from '../../src/feedback/routes.js';
 import type { FeedbackRepository } from '../../src/feedback/repository.js';
+import { log } from '../../src/logger.js';
 
 // Tests run against a real Hono app so response semantics (e.g. 204 bodies,
 // thrown errors becoming 500s) are exercised for real — a stubbed context
@@ -96,7 +97,8 @@ describe('POST /feedback', () => {
     expect(res.status).toBe(400);
   });
 
-  it('returns 400 on malformed JSON', async () => {
+  it('returns 400 on malformed JSON and logs it', async () => {
+    const warn = vi.spyOn(log, 'warn').mockImplementation(() => {});
     const app = buildApp(repo, USER);
     const res = await app.request('/feedback', {
       method: 'POST',
@@ -104,6 +106,8 @@ describe('POST /feedback', () => {
       body: '{not json',
     });
     expect(res.status).toBe(400);
+    expect(warn).toHaveBeenCalledWith('feedback.invalid_json', expect.objectContaining({ resourceId: 'user-123' }));
+    warn.mockRestore();
   });
 
   it('returns 401 when unauthenticated', async () => {
