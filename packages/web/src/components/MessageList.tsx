@@ -72,9 +72,25 @@ function MarkdownText({
           a: ({ children, href }) => {
             const normalized = normalizeCitationUrl(href ?? null);
             const sourceNumber = normalized ? sourceIndex?.get(normalized) : undefined;
+            // A link that maps to a numbered source is a citation: keep it quiet
+            // (ink-colored, hairline underline) so clusters of them don't read as
+            // a wall of gold — the small gold [n] marker carries the citation
+            // signal, and the Sources panel carries the full title. A link with
+            // no source mapping is a genuine external reference, so it keeps the
+            // gold treatment.
+            const isCitation = sourceNumber !== undefined;
             return (
               <>
-                <a href={href} target="_blank" rel="noopener noreferrer" className="font-medium text-accent underline decoration-accent/35 underline-offset-2 transition-colors hover:decoration-accent">
+                <a
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={
+                    isCitation
+                      ? 'text-foreground underline decoration-muted-foreground/30 underline-offset-2 transition-colors hover:text-accent hover:decoration-accent/60'
+                      : 'font-medium text-accent underline decoration-accent/35 underline-offset-2 transition-colors hover:decoration-accent'
+                  }
+                >
                   {children}
                 </a>
                 {sourceNumber !== undefined && (
