@@ -1,0 +1,6 @@
+- Defines the repo’s documentation pass convention: keep living reference docs synchronized with code while avoiding rewrites of historical logs, roadmap items, and other aspirational artifacts.
+- The process is an audit-and-update flow: audit docs, compare against code, identify stale docs, then update only the living references.
+- Key living docs called out include root README.md, RUNBOOK.md, AGENTS.md, CLAUDE.md, and per-package README/AGENTS files.
+- A specific pattern is provided to identify docs that should not be treated as living implementation docs: `docs/status-update-*`, `reviews/`, `superpowers/plans`, `superpowers/specs`, `refactor-*`, and `roadmap.md`.
+- One notable correction from the audit was that packages/web/README.md needed a theme persistence update to reflect cookie-first behavior with WorkOS metadata used only for sync/backfill.
+- The document emphasizes that documentation accuracy depends on current code and implementation details, and cites PR #12 as the context for this convention.

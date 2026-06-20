@@ -1,0 +1,1 @@
+The repository doc audit confirmed the root README and RUNBOOK were accurate, corrected the web README’s theme-persistence model, and validated the crawler CLI commands after the src/cli split.

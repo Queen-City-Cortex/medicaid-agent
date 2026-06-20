@@ -1,0 +1,6 @@
+- Summarizes repository documentation audit results: root README and RUNBOOK were verified as accurate, while packages/web/README.md required a correction.
+- The web README issue was specifically theme persistence wording, changing from a WorkOS-first description to a cookie-first model with WorkOS metadata only for cross-device sync and backfill.
+- The audit also confirmed that crawler CLI commands remained valid after the cli/ source split.
+- Common crawler commands noted include `npx tsx src/index.ts crawl`, `check`, and `stats`, with npm scripts available as shortcuts.
+- The crawler CLI architecture is described as a commander program in `src/index.ts` that registers modules from `src/cli/`.
+- Overall structure splits findings into accurate docs, stale-doc correction, and CLI validation.

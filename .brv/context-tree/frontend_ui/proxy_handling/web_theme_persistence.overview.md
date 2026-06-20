@@ -1,0 +1,6 @@
+- Describes the web app’s corrected theme persistence model: preference is stored in a cookie for first paint, while WorkOS user metadata is only used for sync/backfill across devices.
+- The flow is server- and client-aware: `layout.tsx` reads the cookie server-side, and a pre-paint inline script reads it client-side to prevent theme flash on initial load.
+- Theme behavior supports cross-device carryover by syncing to WorkOS metadata, which can restore the cookie on a new device.
+- The web app is identified as a Next.js 16 chat interface for the NC Medicaid Navigator agent.
+- Relevant implementation files are `packages/web/src/app/actions/theme.ts` and `packages/web/src/app/layout.tsx`, alongside the README update.
+- The key design decision is cookie-first persistence with WorkOS as an auxiliary metadata layer, not the primary storage source.

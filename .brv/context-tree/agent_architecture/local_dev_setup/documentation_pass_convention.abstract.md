@@ -1,0 +1,1 @@
+This repo’s documentation pass convention keeps living reference docs synced with code, while preserving dated historical records and verifying key docs like README and RUNBOOK remain accurate.

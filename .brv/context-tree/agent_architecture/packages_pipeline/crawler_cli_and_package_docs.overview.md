@@ -1,0 +1,6 @@
+- Documents crawler package CLI behavior and README guidance, confirming commands remain valid after source reorganization.
+- The crawler exposes a commander-based CLI via `src/index.ts`, which registers command modules from `src/cli/`.
+- Common commands include `crawl`, `check`, `stats`, and examples such as `crawl --source clinical_policy` and `export --output registry.json`.
+- The package uses a local SQLite registry for change detection, emphasizing incremental crawling of NC Medicaid policy documents.
+- The README also points to a full design spec at `docs/superpowers/specs/2026-03-26-nc-medicaid-crawler-design.md`.
+- Structure-wise, the README covers usage, sources, testing, and design references, and includes npm-script shortcuts for frequent commands.

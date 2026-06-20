@@ -1,0 +1,1 @@
+The web app uses a cookie-first theme persistence flow for first paint, with WorkOS metadata only syncing preferences across devices and backfilling the cookie.

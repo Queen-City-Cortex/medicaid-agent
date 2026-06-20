@@ -1,0 +1,1 @@
+The crawler package exposes valid commander-based commands through src/index.ts with npm shortcuts for crawl, check, and stats, and its README points to the design spec.
