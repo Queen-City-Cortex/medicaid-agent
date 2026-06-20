@@ -78,6 +78,23 @@ describe('detectContentType', () => {
       fs.unlinkSync(tmpFile);
     }
   });
+
+  it('logs at debug and returns null when the file cannot be read', async () => {
+    const dbg = vi.spyOn(logger, 'debug').mockImplementation(() => {});
+    const missing = path.join(os.tmpdir(), `detect-missing-${Date.now()}.pdf`);
+
+    const result = await detectContentType(missing);
+
+    try {
+      expect(result).toBeNull();
+      expect(dbg).toHaveBeenCalledWith(
+        'content-type detection failed',
+        expect.objectContaining({ filePath: missing }),
+      );
+    } finally {
+      dbg.mockRestore();
+    }
+  });
 });
 
 describe('archiveOldVersion', () => {

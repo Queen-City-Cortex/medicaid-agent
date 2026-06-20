@@ -149,7 +149,14 @@ export async function detectContentType(
   try {
     const result = await fileTypeFromBuffer(readFileHeader(filePath));
     return result?.mime ?? null;
-  } catch {
+  } catch (err) {
+    // Best-effort sniff: a thrown error (e.g. the file vanished or is
+    // unreadable) is treated as "unknown type", but log it at debug so an I/O
+    // problem isn't indistinguishable from a genuinely unrecognized format.
+    logger.debug('content-type detection failed', {
+      filePath,
+      error: err instanceof Error ? (err.stack ?? err.message) : String(err),
+    });
     return null;
   }
 }

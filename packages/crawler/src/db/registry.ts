@@ -1,5 +1,6 @@
 import type Database from 'better-sqlite3';
 import type { DiscoveredDocument } from '../sources/types.js';
+import { logger } from '../utils/logger.js';
 
 export interface DocumentRecord {
   id: number;
@@ -248,9 +249,28 @@ export function createRegistry(db: Database.Database): DocumentRegistry {
     WHERE id = ?
   `);
 
+  // Wrap a registry write so a SQLite failure (locked db, disk full, constraint
+  // violation) is attributable to its operation and document instead of crashing
+  // the sync phase with no signal about which write failed. Re-throws — behavior
+  // is unchanged; the failure is now just visible.
+  function runWrite<T>(op: string, id: number | null, fn: () => T): T {
+    try {
+      return fn();
+    } catch (err) {
+      // Prefer the stack so a SQLite failure is debuggable; the data goes to the
+      // crawler log file, not the console line.
+      logger.error('registry write failed', {
+        op,
+        id,
+        error: err instanceof Error ? (err.stack ?? err.message) : String(err),
+      });
+      throw err;
+    }
+  }
+
   return {
     upsertDiscovered(doc: DiscoveredDocument): number {
-      insertStmt.run(doc);
+      runWrite('upsertDiscovered', null, () => insertStmt.run(doc));
       const row = getByUrlStmt.get(doc.source_url) as DocumentRecord;
       return row.id;
     },
@@ -264,29 +284,29 @@ export function createRegistry(db: Database.Database): DocumentRegistry {
     },
 
     updateDownloaded(id: number, info: DownloadedInfo): void {
-      updateDownloadedStmt.run({ id, ...info });
+      runWrite('updateDownloaded', id, () => updateDownloadedStmt.run({ id, ...info }));
     },
 
     updateChanged(id: number, info: DownloadedInfo): void {
-      updateChangedStmt.run({ id, ...info });
+      runWrite('updateChanged', id, () => updateChangedStmt.run({ id, ...info }));
     },
 
     markUnchanged(id: number): void {
-      markUnchangedStmt.run(id);
+      runWrite('markUnchanged', id, () => markUnchangedStmt.run(id));
     },
 
     markError(id: number, message: string): void {
-      markErrorStmt.run({ id, message });
+      runWrite('markError', id, () => markErrorStmt.run({ id, message }));
     },
 
     recordNotFound(id: number, message: string): number {
-      recordNotFoundStmt.run({ id, message });
+      runWrite('recordNotFound', id, () => recordNotFoundStmt.run({ id, message }));
       const row = getByIdStmt.get(id) as DocumentRecord;
       return row.consecutive_not_found;
     },
 
     markRemoved(id: number): void {
-      markRemovedStmt.run(id);
+      runWrite('markRemoved', id, () => markRemovedStmt.run(id));
     },
 
     getDocumentsToCheck(sourceType?: string): DocumentRecord[] {

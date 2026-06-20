@@ -1,8 +1,9 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
 import { initializeSchema } from '../../src/db/schema.js';
 import { createRegistry, type DocumentRegistry } from '../../src/db/registry.js';
 import type { DiscoveredDocument } from '../../src/sources/types.js';
+import { logger } from '../../src/utils/logger.js';
 
 describe('DocumentRegistry', () => {
   let db: Database.Database;
@@ -22,6 +23,26 @@ describe('DocumentRegistry', () => {
     policy_number: '3K-2',
     category: 'Community-Based Services',
   };
+
+  describe('write-failure logging', () => {
+    it('logs the operation and document id, then rethrows, when a write fails', () => {
+      const id = registry.upsertDiscovered(sampleDoc);
+      const errSpy = vi.spyOn(logger, 'error').mockImplementation(() => {});
+      // Closing the db makes every subsequent prepared-statement write throw,
+      // standing in for a locked db / disk-full / constraint failure at runtime.
+      db.close();
+
+      try {
+        expect(() => registry.markUnchanged(id)).toThrow();
+        expect(errSpy).toHaveBeenCalledWith(
+          'registry write failed',
+          expect.objectContaining({ op: 'markUnchanged', id }),
+        );
+      } finally {
+        errSpy.mockRestore();
+      }
+    });
+  });
 
   describe('upsertDiscovered', () => {
     it('inserts a new document', () => {
