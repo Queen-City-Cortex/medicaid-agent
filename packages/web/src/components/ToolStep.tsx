@@ -278,7 +278,7 @@ export function ToolStep({ part }: ToolStepProps) {
             )}
             <div className="min-w-0">
               <div className="text-sm font-medium text-foreground">{label}</div>
-              <div className={cn('text-xs', failed ? 'text-destructive' : 'text-muted-foreground')}>{statusLabel}</div>
+              <div className={cn('font-mono text-[10px] uppercase tracking-[0.14em]', failed ? 'text-destructive' : 'text-muted-foreground')}>{statusLabel}</div>
             </div>
           </div>
           <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-transform group-data-[panel-open]:rotate-90" />

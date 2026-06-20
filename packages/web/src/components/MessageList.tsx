@@ -29,7 +29,10 @@ import {
   type ToolMessagePart,
 } from '@/lib/message-parts';
 
-const PROSE = 'prose prose-sm dark:prose-invert max-w-none prose-headings:font-heading prose-headings:tracking-tight prose-h2:text-lg prose-h3:text-base prose-p:leading-relaxed prose-li:leading-relaxed prose-strong:text-foreground';
+// Answer prose reads like a printed document: Newsreader at a comfortable
+// 16px with generous leading, Fraunces headings. The cited links + footnote
+// markers are styled on the custom <a> renderer below.
+const PROSE = 'prose dark:prose-invert max-w-none text-[16px] prose-headings:font-heading prose-headings:tracking-tight prose-h2:text-xl prose-h3:text-lg prose-p:leading-[1.75] prose-li:leading-[1.7] prose-li:my-1 prose-strong:text-foreground prose-strong:font-semibold prose-blockquote:border-l-accent/50 prose-blockquote:font-normal prose-blockquote:not-italic';
 const PROSE_PROGRESS = 'prose prose-sm dark:prose-invert max-w-none text-muted-foreground prose-headings:text-foreground prose-p:my-0 prose-li:leading-relaxed';
 
 interface MessageListProps {
@@ -71,7 +74,7 @@ function MarkdownText({
             const sourceNumber = normalized ? sourceIndex?.get(normalized) : undefined;
             return (
               <>
-                <a href={href} target="_blank" rel="noopener noreferrer" className="text-accent underline underline-offset-2">
+                <a href={href} target="_blank" rel="noopener noreferrer" className="font-medium text-accent underline decoration-accent/35 underline-offset-2 transition-colors hover:decoration-accent">
                   {children}
                 </a>
                 {sourceNumber !== undefined && (
@@ -84,11 +87,11 @@ function MarkdownText({
                         event.preventDefault();
                         onCitationClick?.(sourceNumber);
                       }}
-                      // The visible footnote is tiny (0.7em inside <sup>); the
+                      // The visible footnote is tiny (0.72em inside <sup>); the
                       // ::after overlay extends the effective hit area to ≥24px
                       // in each dimension without shifting layout — tap-target
                       // minimums matter for mobile case managers.
-                      className="relative ml-0.5 inline-flex cursor-pointer items-center rounded px-0.5 text-[0.7em] font-medium text-muted-foreground after:absolute after:-inset-2 after:content-[''] hover:bg-accent/15 hover:text-accent"
+                      className="relative ml-0.5 inline-flex cursor-pointer items-center rounded-sm px-0.5 font-mono text-[0.72em] font-medium text-accent/80 after:absolute after:-inset-2 after:content-[''] hover:bg-accent/15 hover:text-accent"
                       aria-label={`Jump to source ${sourceNumber} in the Sources panel`}
                     >
                       [{sourceNumber}]
@@ -330,10 +333,10 @@ function AssistantMessage({
               data-testid="research-trail-trigger"
               className="group flex w-full items-center justify-between rounded-xl border border-border/70 bg-muted/25 px-4 py-2.5 text-left transition-colors hover:bg-muted/45"
             >
-              <span className="min-w-0 truncate text-sm font-medium text-foreground">
+              <span className="flex min-w-0 items-baseline gap-2 truncate text-sm font-medium text-foreground">
                 Research trail
-                <span className="ml-1.5 font-normal text-muted-foreground">
-                  — {toolStepCount} step{toolStepCount === 1 ? '' : 's'}
+                <span className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+                  {toolStepCount} step{toolStepCount === 1 ? '' : 's'}
                 </span>
               </span>
               <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-transform group-data-[panel-open]:rotate-90" />
@@ -361,7 +364,7 @@ function AssistantMessage({
       )}
 
       {!isStreaming && generatedAt && finalAnswerText && (
-        <p data-testid="generated-at" className="mt-3 text-[11px] text-muted-foreground/60">
+        <p data-testid="generated-at" className="mt-3 font-mono text-[10px] uppercase tracking-wider text-muted-foreground/60">
           Generated {generatedAt}
         </p>
       )}
@@ -432,11 +435,13 @@ export function MessageList({ messages, isStreaming, status, onRerun, messagesEn
           <div key={msg.id} className="group">
             {msg.role === 'user' && (
               <div className="flex justify-end mb-6 animate-in fade-in slide-in-from-bottom-2 duration-200">
-                <div data-testid="user-message" className="bg-primary text-primary-foreground rounded-2xl rounded-br-sm px-5 py-3 max-w-[75%] shadow-sm">
+                {/* The user's question reads as ink on paper — a right-aligned
+                    filled block, distinct from the full-width answer document. */}
+                <div data-testid="user-message" className="bg-primary text-primary-foreground rounded-xl rounded-tr-sm px-5 py-3 max-w-[80%] shadow-[0_1px_2px_rgba(0,0,0,0.12)]">
                   {/* pre-wrap keeps the user's line breaks (attorneys paste
                       multi-line fact patterns); overflow-wrap:anywhere stops a
                       long pasted URL or ID from blowing out the bubble. */}
-                  <p className="text-sm leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere]">
+                  <p className="text-[15px] leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere]">
                     {msg.parts.filter(p => p.type === 'text').map(p => (p as { text: string }).text).join('')}
                   </p>
                 </div>

@@ -32,64 +32,69 @@ export function ChatInput({ input, setInput, isLoading, onSend, onStop, inputRef
   const atLimit = input.length >= MAX_INPUT_LENGTH;
 
   return (
-    <footer className="border-t border-border bg-card px-4 md:px-8 py-5 shrink-0 print:hidden">
-      <div className="max-w-3xl mx-auto flex gap-3">
+    <footer className="border-t border-border bg-card px-4 md:px-8 py-4 shrink-0 print:hidden">
+      <div className="max-w-3xl mx-auto">
         <label htmlFor="chat-input" className="sr-only">
           Ask a policy question
         </label>
-        <textarea
-          id="chat-input"
-          ref={inputRef}
-          rows={1}
-          data-testid="chat-input"
-          aria-describedby={helperTextId}
-          value={input}
-          onChange={(e) => {
-            setInput(e.target.value);
-            e.target.style.height = 'auto';
-            e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              if (isMobile) return;
-              // Committing an IME candidate (CJK/Vietnamese input) fires
-              // Enter mid-composition — that must not send the message.
-              if (e.nativeEvent.isComposing) return;
-              e.preventDefault();
-              if (!isLoading) onSend();
-            }
-          }}
-          maxLength={MAX_INPUT_LENGTH}
-          placeholder="Ask about NC Medicaid policy…"
-          className="flex-1 rounded-lg border border-input bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-shadow resize-none overflow-y-auto scrollbar-none"
-          style={{ maxHeight: '120px' }}
-        />
-        {/* The textarea stays enabled during a run so the user can draft the
-            next question; Enter-to-send is gated on !isLoading above, and the
-            action button becomes Stop. */}
-        {isLoading && onStop ? (
-          <Button
-            data-testid="stop-button"
-            onClick={onStop}
-            variant="outline"
-            className="px-6 self-end"
-            aria-label="Stop generating"
-          >
-            <span className="flex items-center gap-2">
-              <Square className="w-3.5 h-3.5 fill-current" />
+        {/* Unified composer: textarea + action button share one bordered field
+            that lights up its gold ring on focus — a single deliberate "filing"
+            input rather than two loose controls. */}
+        <div className="flex items-end gap-2 rounded-xl border border-input bg-background py-1.5 pl-2 pr-1.5 transition-shadow focus-within:border-accent/50 focus-within:ring-2 focus-within:ring-accent/20">
+          <textarea
+            id="chat-input"
+            ref={inputRef}
+            rows={1}
+            data-testid="chat-input"
+            aria-describedby={helperTextId}
+            value={input}
+            onChange={(e) => {
+              setInput(e.target.value);
+              e.target.style.height = 'auto';
+              e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                if (isMobile) return;
+                // Committing an IME candidate (CJK/Vietnamese input) fires
+                // Enter mid-composition — that must not send the message.
+                if (e.nativeEvent.isComposing) return;
+                e.preventDefault();
+                if (!isLoading) onSend();
+              }
+            }}
+            maxLength={MAX_INPUT_LENGTH}
+            placeholder="Ask about NC Medicaid policy…"
+            className="flex-1 resize-none overflow-y-auto bg-transparent px-2 py-1.5 text-[15px] text-foreground placeholder:text-muted-foreground/70 focus:outline-none scrollbar-none"
+            style={{ maxHeight: '120px' }}
+          />
+          {/* The textarea stays enabled during a run so the user can draft the
+              next question; Enter-to-send is gated on !isLoading above, and the
+              action button becomes Stop. */}
+          {isLoading && onStop ? (
+            <Button
+              data-testid="stop-button"
+              onClick={onStop}
+              variant="outline"
+              size="sm"
+              className="h-8 self-end px-4 font-mono text-xs uppercase tracking-wider"
+              aria-label="Stop generating"
+            >
+              <Square className="size-3 fill-current" />
               Stop
-            </span>
-          </Button>
-        ) : (
-          <Button
-            data-testid="send-button"
-            onClick={onSend}
-            disabled={isLoading || !input.trim()}
-            className="px-6 self-end"
-          >
-            Ask
-          </Button>
-        )}
+            </Button>
+          ) : (
+            <Button
+              data-testid="send-button"
+              onClick={onSend}
+              disabled={isLoading || !input.trim()}
+              size="sm"
+              className="h-8 self-end px-4 font-mono text-xs uppercase tracking-wider"
+            >
+              Ask
+            </Button>
+          )}
+        </div>
       </div>
       <div className="max-w-3xl mx-auto mt-2 flex items-baseline justify-between gap-4">
         <p id={helperTextId} className="text-xs text-muted-foreground">

@@ -1,10 +1,9 @@
 'use client';
 
 import { useRef, useEffect, useState, useCallback } from 'react';
-import { PanelLeftOpen, PanelLeftClose } from 'lucide-react';
+import { PanelLeftOpen, PanelLeftClose, Landmark } from 'lucide-react';
 import { useAuth, useAccessToken } from '@workos-inc/authkit-nextjs/components';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
 import { ChatInput } from '@/components/ChatInput';
 import { EmptyState } from '@/components/EmptyState';
 import { MessageList } from '@/components/MessageList';
@@ -168,7 +167,9 @@ export default function ChatPage() {
       {/* Main chat area — inert while the mobile sidebar overlay is open so
           background content can't be tabbed into behind the backdrop */}
       <div className="flex flex-col flex-1 min-w-0" inert={isMobile && !sidebarCollapsed}>
-        <header className="border-b border-border bg-card px-4 md:px-8 py-5 shrink-0 print:hidden">
+        {/* Masthead — a thin gold "letterhead" rule sits across the very top
+            (the ::after gradient), signalling an official record. */}
+        <header className="relative border-b border-border bg-card px-4 md:px-8 py-4 shrink-0 print:hidden after:absolute after:inset-x-0 after:top-0 after:h-px after:bg-gradient-to-r after:from-transparent after:via-accent/70 after:to-transparent">
           <div className="max-w-3xl mx-auto flex items-center gap-3">
             <button
               ref={sidebarToggleRef}
@@ -180,11 +181,20 @@ export default function ChatPage() {
             >
               {sidebarCollapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
             </button>
-            <h1 className="font-heading text-2xl font-semibold tracking-tight text-foreground">
-              NC Medicaid Navigator
-            </h1>
-            <Separator orientation="vertical" className="h-5 hidden md:block" />
-            <span className="text-sm text-muted-foreground hidden md:inline">Policy Research</span>
+            <span
+              aria-hidden="true"
+              className="grid size-8 shrink-0 place-items-center rounded-md bg-accent/12 text-accent ring-1 ring-accent/25"
+            >
+              <Landmark className="size-4" />
+            </span>
+            <div className="min-w-0">
+              <h1 className="font-heading text-xl md:text-2xl font-semibold leading-none tracking-tight text-foreground truncate">
+                NC Medicaid Navigator
+              </h1>
+              <span className="mt-1 hidden font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground md:block">
+                Policy Research · Queen City Cortex
+              </span>
+            </div>
             <div className="ml-auto">
               <ThemeToggle />
             </div>

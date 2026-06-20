@@ -9,9 +9,15 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-mono);
-  --font-heading: var(--font-serif);
+  /* "Document of Record" type system. Reading serif (Newsreader) is the body
+     default; Fraunces is the display voice; IBM Plex Mono is the apparatus
+     (policy numbers, citation markers, uppercase microlabels, metadata). */
+  --font-sans: var(--font-reading), ui-serif, Georgia, Cambria, "Times New Roman", serif;
+  --font-mono: var(--font-mono), "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  --font-heading: var(--font-display), ui-serif, Georgia, "Times New Roman", serif;
+  --font-reading: var(--font-reading), ui-serif, Georgia, Cambria, serif;
+  --color-seal: var(--seal);
+  --color-seal-foreground: var(--seal-foreground);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -50,79 +56,91 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* ─── Light: "parchment" — warm archival paper, ink, gold leaf ───────────── */
 :root {
   color-scheme: light;
-  --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
-  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-  --background: oklch(0.98 0.003 80);
-  --foreground: oklch(0.17 0.01 260);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.17 0.01 260);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.17 0.01 260);
-  --primary: oklch(0.25 0.04 260);
-  --primary-foreground: oklch(0.98 0.003 80);
-  --secondary: oklch(0.96 0.005 80);
-  --secondary-foreground: oklch(0.25 0.04 260);
-  --muted: oklch(0.95 0.005 80);
-  --muted-foreground: oklch(0.50 0.01 260);
-  --accent: oklch(0.72 0.17 60);
-  --accent-foreground: oklch(0.20 0.04 60);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.87 0.01 80);
-  --input: oklch(0.90 0.008 80);
-  --ring: oklch(0.72 0.17 60);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.94 0.005 80);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.95 0.005 80);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.85 0.008 80);
-  --sidebar-ring: oklch(0.708 0 0);
+  --background: oklch(0.965 0.012 85);
+  --foreground: oklch(0.225 0.014 60);
+  --card: oklch(0.99 0.008 88);
+  --card-foreground: oklch(0.225 0.014 60);
+  --popover: oklch(0.99 0.006 88);
+  --popover-foreground: oklch(0.225 0.014 60);
+  --primary: oklch(0.27 0.022 60);
+  --primary-foreground: oklch(0.97 0.014 85);
+  --secondary: oklch(0.925 0.013 84);
+  --secondary-foreground: oklch(0.27 0.022 60);
+  --muted: oklch(0.93 0.012 84);
+  --muted-foreground: oklch(0.47 0.018 62);
+  /* Deep gold/ochre — rich enough to read as link text on parchment, warm
+     enough to mark authority. Same token drives fills, rings, and citations. */
+  --accent: oklch(0.58 0.122 66);
+  --accent-foreground: oklch(0.99 0.012 85);
+  /* Oxblood — the bound-volume spine. Rare brand accent (wordmark rule). */
+  --seal: oklch(0.43 0.13 25);
+  --seal-foreground: oklch(0.97 0.014 85);
+  --destructive: oklch(0.55 0.2 27);
+  --border: oklch(0.86 0.013 80);
+  --input: oklch(0.88 0.013 80);
+  --ring: oklch(0.58 0.122 66);
+  --chart-1: oklch(0.58 0.122 66);
+  --chart-2: oklch(0.43 0.13 25);
+  --chart-3: oklch(0.45 0.04 60);
+  --chart-4: oklch(0.6 0.06 140);
+  --chart-5: oklch(0.5 0.08 250);
+  --radius: 0.5rem;
+  --sidebar: oklch(0.938 0.014 85);
+  --sidebar-foreground: oklch(0.245 0.014 60);
+  --sidebar-primary: oklch(0.58 0.122 66);
+  --sidebar-primary-foreground: oklch(0.99 0.012 85);
+  --sidebar-accent: oklch(0.9 0.016 82);
+  --sidebar-accent-foreground: oklch(0.245 0.014 60);
+  --sidebar-border: oklch(0.85 0.014 80);
+  --sidebar-ring: oklch(0.58 0.122 66);
+  /* Paper-grain overlay tuning (see body::before). */
+  --grain-opacity: 0.04;
+  --grain-blend: multiply;
 }
 
+/* ─── Dark: "library at night" — warm ink-charcoal, paper, lamplit gold ──── */
 .dark {
   /* Keep native UI (scrollbars, form controls, system dialogs) dark too. */
   color-scheme: dark;
-  --background: oklch(0.145 0.005 260);
-  --foreground: oklch(0.93 0.005 80);
-  --card: oklch(0.185 0.005 260);
-  --card-foreground: oklch(0.93 0.005 80);
-  --popover: oklch(0.185 0.005 260);
-  --popover-foreground: oklch(0.93 0.005 80);
-  --primary: oklch(0.93 0.005 80);
-  --primary-foreground: oklch(0.17 0.01 260);
-  --secondary: oklch(0.25 0.005 260);
-  --secondary-foreground: oklch(0.88 0.005 80);
-  --muted: oklch(0.25 0.005 260);
-  --muted-foreground: oklch(0.65 0.01 260);
-  --accent: oklch(0.75 0.15 60);
-  --accent-foreground: oklch(0.17 0.04 60);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 12%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.75 0.15 60);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.165 0.005 260);
-  --sidebar-foreground: oklch(0.88 0.005 80);
-  --sidebar-primary: oklch(0.75 0.15 60);
-  --sidebar-primary-foreground: oklch(0.93 0.005 80);
-  --sidebar-accent: oklch(0.23 0.005 260);
-  --sidebar-accent-foreground: oklch(0.93 0.005 80);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.75 0.15 60);
+  --background: oklch(0.17 0.008 60);
+  --foreground: oklch(0.91 0.01 85);
+  --card: oklch(0.205 0.009 60);
+  --card-foreground: oklch(0.91 0.01 85);
+  --popover: oklch(0.205 0.009 60);
+  --popover-foreground: oklch(0.91 0.01 85);
+  --primary: oklch(0.91 0.01 85);
+  --primary-foreground: oklch(0.18 0.01 60);
+  --secondary: oklch(0.255 0.009 60);
+  --secondary-foreground: oklch(0.88 0.008 85);
+  --muted: oklch(0.255 0.009 60);
+  --muted-foreground: oklch(0.66 0.013 70);
+  /* Gold brightened so it glows on the dark ground. */
+  --accent: oklch(0.77 0.13 73);
+  --accent-foreground: oklch(0.2 0.04 60);
+  --seal: oklch(0.58 0.15 28);
+  --seal-foreground: oklch(0.97 0.014 85);
+  --destructive: oklch(0.7 0.19 22);
+  --border: oklch(0.85 0.02 85 / 12%);
+  --input: oklch(0.85 0.02 85 / 14%);
+  --ring: oklch(0.77 0.13 73);
+  --chart-1: oklch(0.77 0.13 73);
+  --chart-2: oklch(0.58 0.15 28);
+  --chart-3: oklch(0.7 0.04 70);
+  --chart-4: oklch(0.65 0.07 145);
+  --chart-5: oklch(0.6 0.09 255);
+  --sidebar: oklch(0.155 0.008 60);
+  --sidebar-foreground: oklch(0.85 0.01 85);
+  --sidebar-primary: oklch(0.77 0.13 73);
+  --sidebar-primary-foreground: oklch(0.18 0.01 60);
+  --sidebar-accent: oklch(0.23 0.009 60);
+  --sidebar-accent-foreground: oklch(0.9 0.01 85);
+  --sidebar-border: oklch(0.85 0.02 85 / 10%);
+  --sidebar-ring: oklch(0.77 0.13 73);
+  --grain-opacity: 0.035;
+  --grain-blend: screen;
 }
 
 @utility scrollbar-none {
@@ -138,10 +156,62 @@
   }
   body {
     @apply bg-background text-foreground;
+    /* Reading serif wants a hair more line-height and old-style figures. */
+    font-feature-settings: "onum" 1, "liga" 1, "calt" 1;
+    text-rendering: optimizeLegibility;
   }
   html {
     @apply font-sans;
   }
+
+  /* Display voice: Fraunces tuned a touch tighter + softer for the wordmark
+     and headings — set as a utility so components opt in via `font-heading`. */
+  .font-heading {
+    font-optical-sizing: auto;
+    letter-spacing: -0.012em;
+  }
+
+  /* Mono apparatus is almost always a tracked uppercase microlabel; bake in a
+     sensible default so call sites stay terse. font-feature-settings replaces
+     (not merges with) the body's onum/liga/calt, so set the full intended set:
+     tabular lining figures, no ligatures/contextual alternates for metadata. */
+  .font-mono {
+    font-feature-settings: "tnum" 1, "liga" 0, "calt" 0;
+  }
+
+  /* Gold-tinted selection — the highlighter on the page. */
+  ::selection {
+    background: color-mix(in oklch, var(--accent) 26%, transparent);
+    color: var(--foreground);
+  }
+
+  /* Slim, warm scrollbars that read as part of the paper, not chrome. */
+  @supports (scrollbar-width: thin) {
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: color-mix(in oklch, var(--foreground) 22%, transparent) transparent;
+    }
+  }
+}
+
+/* Paper-grain overlay: one fixed, non-interactive layer of fractal noise that
+   gives both themes a tactile, printed quality without touching layout. The
+   blend mode flips per theme (multiply on light to deepen, screen on dark to
+   lift). Dropped entirely when printing.
+
+   z-index sits above base page content (z-auto) but BELOW every elevated layer
+   — mobile backdrop (z-30), sidebar drawer (z-40), and portaled overlays
+   (tooltips/menus/dialogs at z-50) — so the blend mode never tints those
+   surfaces. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+  opacity: var(--grain-opacity);
+  mix-blend-mode: var(--grain-blend);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
 /* Honor the user's reduced-motion preference: collapse animations and
@@ -161,6 +231,9 @@
 
 /* ─── Print: produce a clean document, not a clipped app viewport ─────────── */
 @media print {
+  /* No paper grain on actual paper. */
+  body::before { display: none !important; }
+
   /* The chat lives inside a fixed-height ScrollArea; unclip it so the full
      conversation paginates. */
   [data-slot='scroll-area-viewport'] {

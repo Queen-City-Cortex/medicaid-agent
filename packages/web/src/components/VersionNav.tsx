@@ -46,7 +46,7 @@ export function VersionNav({ current, total, onSelect, className }: VersionNavPr
       <span
         data-testid="version-indicator"
         aria-live="polite"
-        className="tabular-nums text-foreground/75"
+        className="font-mono text-[11px] uppercase tracking-wide tabular-nums text-foreground/75"
       >
         Answer {current} of {total}
       </span>

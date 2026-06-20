@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { Copy, Download, Ellipsis, Pencil, Trash2 } from 'lucide-react';
+import { Copy, Download, Ellipsis, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useAuth } from '@workos-inc/authkit-nextjs/components';
 import { signOut } from '@workos-inc/authkit-nextjs';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -245,7 +245,7 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
   return (
     <div className="flex flex-col h-full bg-sidebar">
       <div className="px-4 py-4 flex items-center justify-between shrink-0">
-        <span className="text-xs font-semibold uppercase tracking-widest text-sidebar-foreground/50">
+        <span className="font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-sidebar-foreground/55">
           Threads
         </span>
         <Button
@@ -253,13 +253,14 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
           size="sm"
           data-testid="new-thread-button"
           onClick={onNewThread}
-          className="h-7 px-2 text-xs text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+          className="h-7 gap-1.5 px-2 font-mono text-[11px] uppercase tracking-wider text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
         >
-          + New
+          <Plus className="size-3.5" />
+          New
         </Button>
       </div>
 
-      <Separator className="bg-sidebar-accent shrink-0" />
+      <Separator className="bg-sidebar-border shrink-0" />
 
       {/* Thread list */}
       <ScrollArea className="flex-1">
@@ -301,10 +302,10 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
             return (
               <div
                 key={thread.id}
-                className={`group px-4 py-2.5 transition-colors ${
+                className={`group border-l-2 px-4 py-2.5 transition-colors ${
                   isActive
-                    ? 'bg-sidebar-accent text-sidebar-foreground'
-                    : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground/90'
+                    ? 'border-l-accent bg-sidebar-accent text-sidebar-foreground'
+                    : 'border-l-transparent text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground/90'
                 }`}
               >
                 <div className="flex items-start justify-between gap-2">
@@ -322,7 +323,7 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
                         onBlur={() => handleRename(thread.id)}
                         className="flex-1 min-w-0 text-xs bg-sidebar-accent border border-sidebar-border rounded px-1.5 py-0.5 text-sidebar-foreground outline-none focus:ring-1 focus:ring-ring"
                       />
-                      <span className="text-[10px] text-sidebar-foreground/40 shrink-0 mt-0.5">
+                      <span className="font-mono text-[10px] tabular-nums text-sidebar-foreground/40 shrink-0 mt-0.5">
                         {formatDate(thread.updatedAt)}
                       </span>
                     </>
@@ -334,12 +335,12 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
                         onClick={() => onSelectThread(thread.id)}
                         className="flex-1 min-w-0 text-left rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
                       >
-                        <span className="text-xs leading-snug line-clamp-2 block">
+                        <span className="text-[13px] leading-snug line-clamp-2 block">
                           {displayTitle}
                         </span>
                       </button>
                       <div className="flex items-center gap-1 shrink-0 mt-0.5">
-                        <span className="text-[10px] text-sidebar-foreground/40">
+                        <span className="font-mono text-[10px] tabular-nums text-sidebar-foreground/40">
                           {formatDate(thread.updatedAt)}
                         </span>
                         <DropdownMenu onOpenChange={(open) => setMenuOpenThreadId(open ? thread.id : null)}>
@@ -400,16 +401,16 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
 
       {/* User footer */}
       <Separator className="bg-sidebar-border shrink-0" />
-      <div className="px-4 py-3 shrink-0 bg-sidebar-accent/50">
+      <div className="px-4 py-3 shrink-0 bg-sidebar-accent/40">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-xs text-sidebar-foreground/50 truncate min-w-0">
+          <span className="font-mono text-[11px] text-sidebar-foreground/50 truncate min-w-0">
             {user?.email ?? ''}
           </span>
           <Button
             variant="ghost"
             size="sm"
             onClick={() => signOut()}
-            className="h-7 px-2 text-xs text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent shrink-0"
+            className="h-7 px-2 font-mono text-[11px] uppercase tracking-wider text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent shrink-0"
           >
             Sign out
           </Button>

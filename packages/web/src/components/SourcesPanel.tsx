@@ -151,7 +151,7 @@ function SourceRow({
         rel="noopener noreferrer"
         className="group flex min-w-0 items-start gap-2 text-sm text-foreground hover:text-accent"
       >
-        <span className="mt-0.5 w-6 shrink-0 text-right text-xs font-medium text-muted-foreground group-hover:text-accent">
+        <span className="mt-0.5 w-6 shrink-0 text-right font-mono text-xs font-medium tabular-nums text-muted-foreground group-hover:text-accent">
           {index + 1}.
         </span>
         <ExternalLink className="mt-0.5 size-3.5 shrink-0 text-muted-foreground group-hover:text-accent" />
@@ -160,7 +160,7 @@ function SourceRow({
             {source.label}
           </span>
           {ORIGIN_LABELS[source.originTool] && (
-            <span className="ml-2 inline-block rounded bg-muted px-1.5 py-px align-middle text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+            <span className="ml-2 inline-block rounded border border-border bg-muted px-1.5 py-px align-middle font-mono text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
               {ORIGIN_LABELS[source.originTool]}
             </span>
           )}
@@ -214,7 +214,7 @@ export function SourcesPanel({ sources, citedCount, messageId, open, onOpenChang
                   </span>
                 )}
               </div>
-              <div className="text-xs text-muted-foreground">{countLabel(sources.length, citedCount)}</div>
+              <div className="font-mono text-[11px] tracking-tight text-muted-foreground">{countLabel(sources.length, citedCount)}</div>
             </div>
           </div>
           <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-transform group-data-[panel-open]:rotate-90" />
@@ -225,7 +225,7 @@ export function SourcesPanel({ sources, citedCount, messageId, open, onOpenChang
           className="mt-2 rounded-xl border border-border/70 bg-muted/15 px-4 py-3"
         >
           {showGroups && (
-            <div className="mb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            <div className="mb-1.5 font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
               Cited in this answer
             </div>
           )}
@@ -242,7 +242,7 @@ export function SourcesPanel({ sources, citedCount, messageId, open, onOpenChang
           </ul>
           {showGroups && (
             <>
-              <div className="mb-1 mt-3 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+              <div className="mb-1.5 mt-4 font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
                 Also consulted
               </div>
               <ul className="space-y-2">

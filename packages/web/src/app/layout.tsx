@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { AuthKitProvider } from '@workos-inc/authkit-nextjs/components';
 import { ThemeProvider, type Theme } from '@/components/ThemeProvider';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { fontClassNames } from './fonts';
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -33,7 +34,7 @@ export default async function RootLayout({
       // Server-render the dark class for explicit dark so even no-JS paints
       // correctly; the inline script below covers 'system'. The script may
       // adjust the class before hydration, hence suppressHydrationWarning.
-      className={`h-full antialiased${initialTheme === 'dark' ? ' dark' : ''}`}
+      className={`h-full antialiased ${fontClassNames}${initialTheme === 'dark' ? ' dark' : ''}`}
       suppressHydrationWarning
     >
       <head>
