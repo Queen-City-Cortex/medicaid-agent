@@ -1,5 +1,7 @@
 """Tests for Voyage API retry/backoff behavior."""
 
+import logging
+
 import httpx
 import pytest
 
@@ -121,6 +123,41 @@ def test_embed_raises_after_exhausting_attempts(monkeypatch):
 
     assert post.calls == 5
     assert len(sleeper.delays) == 4  # no sleep after the final attempt
+
+
+def test_embed_logs_retry_warning(monkeypatch, caplog):
+    post = FakePost([_response(503), _success_response()])
+    monkeypatch.setattr(voyage_client.httpx, "post", post)
+
+    with caplog.at_level(logging.WARNING, logger="pipeline.embeddings.voyage_client"):
+        voyage_client.embed(["a"], model="voyage-law-2", sleep=FakeSleeper())
+
+    messages = [r.getMessage() for r in caplog.records]
+    assert any("voyage embed retry" in m and "attempt 1/5" in m for m in messages)
+
+
+def test_embed_logs_error_on_exhaustion(monkeypatch, caplog):
+    post = FakePost([_response(429) for _ in range(3)])
+    monkeypatch.setattr(voyage_client.httpx, "post", post)
+
+    with caplog.at_level(logging.ERROR, logger="pipeline.embeddings.voyage_client"):
+        with pytest.raises(httpx.HTTPStatusError):
+            voyage_client.embed(["a"], model="voyage-law-2", max_attempts=3, sleep=FakeSleeper())
+
+    messages = [r.getMessage() for r in caplog.records]
+    assert any("failed after 3 attempts" in m for m in messages)
+
+
+def test_embed_logs_non_retryable_status(monkeypatch, caplog):
+    post = FakePost([_response(400)])
+    monkeypatch.setattr(voyage_client.httpx, "post", post)
+
+    with caplog.at_level(logging.ERROR, logger="pipeline.embeddings.voyage_client"):
+        with pytest.raises(httpx.HTTPStatusError):
+            voyage_client.embed(["a"], model="voyage-law-2", sleep=FakeSleeper())
+
+    messages = [r.getMessage() for r in caplog.records]
+    assert any("non-retryable HTTP 400" in m for m in messages)
 
 
 def test_embed_does_not_retry_client_errors(monkeypatch):

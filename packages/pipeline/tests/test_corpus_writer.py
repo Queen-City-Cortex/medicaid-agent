@@ -1,5 +1,6 @@
 """Tests for the graph write boundary."""
 
+import logging
 from contextlib import contextmanager
 
 import pytest
@@ -122,6 +123,21 @@ def _writer_for(session: FakeSession) -> CorpusGraphWriter:
         yield session
 
     return CorpusGraphWriter(fake_session_factory)
+
+
+def test_write_failure_is_logged_and_reraised(caplog):
+    # A write that fails (here, mid-transaction) must not vanish silently — the
+    # affected document's sections never land, so the failure has to be
+    # attributable to its operation in the logs.
+    session = FakeSession(fail_on=queries.MERGE_DOCUMENT)
+    writer = _writer_for(session)
+
+    with caplog.at_level(logging.ERROR, logger="pipeline.graph.corpus_writer"):
+        with pytest.raises(RuntimeError):
+            writer.upsert_document_bundle(_make_bundle())
+
+    messages = [r.getMessage() for r in caplog.records]
+    assert any("neo4j write failed" in m and "upsert_document_bundle" in m for m in messages)
 
 
 def test_upsert_document_bundle_writes_document_and_section_structure():

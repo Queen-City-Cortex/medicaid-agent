@@ -17,8 +17,9 @@ transaction via ``session.execute_write``. Two properties matter here:
    attempt produces the same end state.
 """
 
+import logging
 from contextlib import AbstractContextManager
-from typing import Protocol
+from typing import Callable, Protocol
 
 from neo4j import ManagedTransaction, Session
 
@@ -34,6 +35,8 @@ from pipeline.graph.corpus_types import (
 )
 from pipeline.utils.batching import chunked
 
+logger = logging.getLogger(__name__)
+
 
 class SessionFactory(Protocol):
     def __call__(self) -> AbstractContextManager[Session]: ...
@@ -42,6 +45,20 @@ class SessionFactory(Protocol):
 class CorpusGraphWriter:
     def __init__(self, session_factory: SessionFactory = get_session):
         self._session_factory = session_factory
+
+    def _execute_write(self, session: Session, work: Callable, op: str, *args) -> None:
+        """Run a managed write, logging (and re-raising) on final failure.
+
+        ``execute_write`` already retries transient errors; this wraps the
+        ultimate outcome so a write that exhausts retries is attributable to its
+        operation instead of failing silently (the affected document's sections
+        or edges simply never land in the graph).
+        """
+        try:
+            session.execute_write(work, *args)
+        except Exception:
+            logger.error("neo4j write failed: op=%s", op, exc_info=True)
+            raise
 
     def upsert_document_bundle(self, bundle: DocumentBundle) -> None:
         document = bundle.document
@@ -72,7 +89,7 @@ class CorpusGraphWriter:
             self._write_sections(tx, bundle.sections, document.id)
 
         with self._session_factory() as session:
-            session.execute_write(_work)
+            self._execute_write(session, _work, "upsert_document_bundle")
 
     def merge_reference_edges(self, edges: list[ReferenceEdge]) -> int:
         if not edges:
@@ -107,7 +124,7 @@ class CorpusGraphWriter:
                 tx.run(queries.MERGE_REFERENCES_DOCUMENT_BATCH, {"edges": batch})
 
         with self._session_factory() as session:
-            session.execute_write(_work)
+            self._execute_write(session, _work, "merge_reference_edges")
 
         return len(edges)
 
@@ -127,7 +144,7 @@ class CorpusGraphWriter:
             self._mark_document_statuses(tx, amendment_doc_ids, "amendment")
 
         with self._session_factory() as session:
-            session.execute_write(_work)
+            self._execute_write(session, _work, "merge_amendments")
 
         return len(edges)
 
@@ -150,7 +167,7 @@ class CorpusGraphWriter:
                 tx.run(queries.MERGE_SUPERSEDED_BY_BATCH, {"edges": batch})
 
         with self._session_factory() as session:
-            session.execute_write(_work)
+            self._execute_write(session, _work, "merge_supersessions")
 
         return len(edges)
 
@@ -177,13 +194,15 @@ class CorpusGraphWriter:
                     )
 
         with self._session_factory() as session:
-            session.execute_write(_work)
+            self._execute_write(session, _work, "merge_concept_links")
 
         return len(links)
 
     def mark_document_status(self, document_ids: list[str], status: str) -> None:
         with self._session_factory() as session:
-            session.execute_write(self._mark_document_statuses, document_ids, status)
+            self._execute_write(
+                session, self._mark_document_statuses, "mark_document_status", document_ids, status
+            )
 
     def _write_sections(self, tx: ManagedTransaction, sections: list, doc_id: str) -> None:
         section_rows = [

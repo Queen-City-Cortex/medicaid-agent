@@ -4,6 +4,7 @@ Replaces the voyageai SDK which crashes on Python 3.14
 due to pydantic v1/v2 incompatibility.
 """
 
+import logging
 import random
 import time
 from typing import Callable
@@ -11,6 +12,8 @@ from typing import Callable
 import httpx
 
 from pipeline.config import VOYAGE_API_KEY
+
+logger = logging.getLogger(__name__)
 
 API_URL = "https://api.voyageai.com/v1/embeddings"
 
@@ -77,11 +80,23 @@ def embed(
             last_error = exc
         except httpx.HTTPStatusError as exc:
             if not _is_retryable_status(exc.response.status_code):
+                # 4xx (other than 429) won't get better on retry — surface the
+                # status so a bad key / model name is debuggable, then re-raise.
+                logger.error("voyage embed: non-retryable HTTP %d", exc.response.status_code)
                 raise
             last_error = exc
             retry_after = exc.response.headers.get("Retry-After")
 
         if attempt + 1 < max_attempts:
-            sleep(_retry_delay(attempt, retry_after))
+            delay = _retry_delay(attempt, retry_after)
+            logger.warning(
+                "voyage embed retry: attempt %d/%d failed (%s), waiting %.1fs",
+                attempt + 1,
+                max_attempts,
+                type(last_error).__name__,
+                delay,
+            )
+            sleep(delay)
 
+    logger.error("voyage embed failed after %d attempts: %s", max_attempts, last_error)
     raise last_error

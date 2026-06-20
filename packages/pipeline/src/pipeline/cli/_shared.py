@@ -9,10 +9,14 @@ partially-initialized package, so there are no import-ordering hazards.
 import click
 from rich.console import Console
 
+from pipeline.logging_setup import configure_logging
+
 console = Console()
 
 
 @click.group()
 def cli():
     """NC Medicaid Document Pipeline — parse, load, embed, and inspect."""
-    pass
+    # Wire stdlib logging so operational logs (Voyage retries, Neo4j write
+    # failures, parse exceptions) actually reach a handler on every CLI run.
+    configure_logging()
