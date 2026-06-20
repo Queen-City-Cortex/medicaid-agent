@@ -1,7 +1,7 @@
-- Captures project-wide curation guidance for extracting durable facts from context while preserving exact details, timestamps, and meaningful narrative.
-- Recommends an RLM workflow: recon, single-pass assessment, extraction if needed, curate via UPSERT, then verify applied file paths and zero failures.
-- Explicit rules emphasize: do not print raw context, do not ask for confirmation, do not use MERGE, and verify `result.summary.failed === 0`.
-- Defines context-tree organization constraints: domain -> topic -> subtopic hierarchy with maximum depth of 2, plus naming and structure expectations.
-- States quality requirements for curated entries: include a clear task, at least one operational field (`changes`, `files`, or `flow`), and at least one narrative field.
-- Notes preference for UPSERT over ADD/UPDATE and preservation of exact rule text, regex patterns, timestamps, and file paths.
-- Highlights notable entities and patterns such as `rawConcept`, `narrative`, `changes`, `files`, `flow`, `curation_input`, and the ByteRover context engineering guidance.
+- Captures durable knowledge curation rules for context snippets, including preserving exact facts, timestamps, and operational notes for long-term recall.
+- Describes a workflow of recon/review, fact extraction, curation via UPSERT, and verification of applied results and failures.
+- Emphasizes strict structure requirements: include a clear task, operational details such as changes/files/flow, and narrative fields.
+- States rules for preserving raw context details like regex patterns, code signatures, diagrams, tables, and step-by-step procedures verbatim when relevant.
+- Notes verification expectations such as checking `result.summary.failed === 0` and inspecting `result.applied` paths.
+- Highlights a two-part context model with `rawConcept` and `narrative`, plus the need to avoid vague contexts and nested subtopics.
+- Identifies notable entities and patterns such as ByteRover context engineer, `curation_input`, `rawConcept`, `narrative`, `changes`, `files`, and `flow`.

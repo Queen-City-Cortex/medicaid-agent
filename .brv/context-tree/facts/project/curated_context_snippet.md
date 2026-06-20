@@ -1,64 +1,51 @@
 ---
 title: Curated Context Snippet
-summary: Project curation guidance for extracting facts, preserving context quality, and using the RLM workflow.
+summary: Curated snippet of operational knowledge and findings from the provided context into durable project facts.
 tags: []
 related: []
 keywords: []
 createdAt: '2026-06-13T06:00:50.089Z'
-updatedAt: '2026-06-19T18:11:51.591Z'
+updatedAt: '2026-06-18T02:22:26.499Z'
 ---
 ## Reason
-Preserve curated context extraction notes and project-wide curation guidance from the provided context.
+Preserve extracted operational notes from the provided context
 
 ## Raw Concept
 **Task:**
-Document the project-wide curation instructions and extraction guidance contained in the provided context.
+Curate operational knowledge from the provided context snippet into durable project facts.
 
 **Changes:**
 - Captured the current context size and line count
 - Recorded the recon recommendation for single-pass processing
 - Extracted context-backed statements for long-term recall
-- Captured the curation run metadata
-- Stored a concise extracted fact
-- Recorded the recommended curation sequence for RLM mode
-- Captured taskId and timeout requirements for mapExtract
-- Preserved context-tree structure and UPSERT preference
-- Defined the RLM curation workflow and verification expectations
-- Specified context tree organization and naming constraints
-- Outlined quality requirements for durable context entries
-- Preserved the preference for UPSERT-based updates
-
-**Files:**
-- .brv/context-tree/
 
 **Flow:**
-recon -> single-pass assessment -> extraction if needed -> curate via UPSERT -> verify applied file paths
+context snippet -> fact extraction -> durable knowledge entry
 
-**Timestamp:** 2026-06-19T18:11:39.332Z
+**Timestamp:** 2026-06-18
 
-**Author:** ByteRover context engineering guidance
+**Author:** ByteRover context engineer
 
 ## Narrative
 ### Structure
-The guidance covers curation workflow, context tree structure, tool selection, and content quality requirements for durable knowledge entries.
+A compact project-facts entry capturing the most reusable statements from the provided snippet.
 
 ### Dependencies
-Depends on the context tree under .brv/context-tree/ and the curated workflow helpers exposed in the sandbox.
+Uses the precomputed recon result and current curation variables.
 
 ### Highlights
-Preserves the rules for not printing raw context, using UPSERT by default, extracting facts, and validating applied file paths after curation.
-
-### Rules
-Do not print raw context. Do not ask for confirmation. Do not use MERGE to update content. Verify result.summary.failed === 0.
+Preserves operational notes as structured facts for later retrieval.
 
 ### Examples
-Examples include preserving file paths, timestamps, exact rules, regex patterns, and meaningful narrative details when curating.
+Stored extracted facts as durable knowledge.
 
 ## Facts
-- **curation_workflow**: Curation should use the RLM approach with recon, extraction, curate, and verification. [convention]
-- **context_tree_depth**: The context tree uses a domain -> topic -> subtopic hierarchy with a maximum depth of 2 levels. [convention]
-- **curate_operation_preference**: UPSERT is the preferred curation operation over ADD and UPDATE. [convention]
-- **context_quality_requirements**: Curated contexts must include a clear task, at least one of changes/files/flow, and at least one narrative field. [convention]
+- **curated_context_snippet**: `scoreCoverageSections(...)` [project]
+- **curated_context_snippet**: `collectCoverageSectionGroups(...)` [project]
+- **curated_context_snippet**: Deduplication uses `uniqueBy(section.id)`. [project]
+- **curated_context_snippet**: `buildCoverageAnchors(...)` [project]
+- **curated_context_snippet**: `assembleCoverageSections(...)` [project]
+- **curated_context_snippet**: `selectCoveragePrimarySections(...)` [project]
 
 ---
 

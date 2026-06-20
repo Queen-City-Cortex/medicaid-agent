@@ -57,6 +57,22 @@
       "type": "context"
     },
     {
+      "abstractPath": "agent_architecture/local_dev_setup/documentation_pass_convention.abstract.md",
+      "abstractTokens": 48,
+      "importance": 50,
+      "path": "agent_architecture/local_dev_setup/documentation_pass_convention.md",
+      "tokens": 48,
+      "type": "context"
+    },
+    {
+      "abstractPath": "agent_architecture/local_dev_setup/env_consolidation/repository_doc_audit_findings.abstract.md",
+      "abstractTokens": 48,
+      "importance": 50,
+      "path": "agent_architecture/local_dev_setup/env_consolidation/repository_doc_audit_findings.md",
+      "tokens": 48,
+      "type": "context"
+    },
+    {
       "importance": 50,
       "path": "agent_architecture/local_dev_setup/env_consolidation/root_environment_consolidation.md",
       "tokens": 407,
@@ -123,6 +139,14 @@
       "type": "context"
     },
     {
+      "abstractPath": "agent_architecture/packages_pipeline/crawler_cli_and_package_docs.abstract.md",
+      "abstractTokens": 42,
+      "importance": 50,
+      "path": "agent_architecture/packages_pipeline/crawler_cli_and_package_docs.md",
+      "tokens": 42,
+      "type": "context"
+    },
+    {
       "abstractPath": "agent_architecture/packages_pipeline/crawler_sync_behavior/crawler_sync_behavior.abstract.md",
       "abstractTokens": 41,
       "importance": 50,
@@ -148,14 +172,16 @@
     },
     {
       "importance": 50,
-      "path": "agent_architecture/search_tooling/hybrid_policy_search_tool.md",
-      "tokens": 193,
+      "path": "amendment_detection/context.md",
+      "tokens": 118,
       "type": "context"
     },
     {
+      "abstractPath": "database_operations/neo4j_auth/production_neo4j_federal_data_refresh.abstract.md",
+      "abstractTokens": 36,
       "importance": 50,
-      "path": "auth_integration/workos_authkit_nextjs/context.md",
-      "tokens": 89,
+      "path": "database_operations/neo4j_auth/production_neo4j_federal_data_refresh.md",
+      "tokens": 36,
       "type": "context"
     },
     {
@@ -164,13 +190,13 @@
       "type": "stub"
     }
   ],
-  "generated_at": "2026-06-20T01:44:37.206Z",
+  "generated_at": "2026-06-20T03:01:41.114Z",
   "lane_tokens": {
-    "contexts": 3983,
+    "contexts": 3993,
     "stubs": 104,
     "summaries": 1934
   },
-  "source_fingerprint": "c72933db906a9949f095675747eb3990b0fb0b382b6afed239fa4b103a1947c6",
-  "total_tokens": 6021,
+  "source_fingerprint": "7c3bb77850ddd040bbc26a098ee264fd665b01cf6c241a40410374194362f761",
+  "total_tokens": 6031,
   "version": 1
 }

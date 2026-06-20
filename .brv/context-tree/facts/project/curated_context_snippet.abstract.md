@@ -1,1 +1,1 @@
-This document defines project curation rules for durable context extraction, requiring recon, UPSERT-based curation, structured fields, and verification of applied results.
+This document captures durable curation rules for context snippets, including strict structure, UPSERT-based updates, exact preservation of facts and timestamps, and verification of successful application.
