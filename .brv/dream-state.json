@@ -1,5 +1,5 @@
 {
-  "curationsSinceDream": 5,
+  "curationsSinceDream": 7,
   "lastDreamAt": "2026-06-19T16:51:44.521Z",
   "lastDreamLogId": "drm-1781887724986",
   "pendingMerges": [],
@@ -27,6 +27,14 @@
     {
       "enqueuedAt": 1781891763433,
       "path": "frontend_ui/thread_sidebar/thread_sidebar_fetch_resilience.md"
+    },
+    {
+      "enqueuedAt": 1781917210752,
+      "path": "agent_architecture/context/curated_context_extraction_notes.md"
+    },
+    {
+      "enqueuedAt": 1781917294907,
+      "path": "frontend_ui/design_system/document_of_record_design_language.md"
     }
   ],
   "totalDreams": 7,

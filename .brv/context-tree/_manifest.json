@@ -20,10 +20,10 @@
     },
     {
       "abstractPath": "agent_architecture/context/curated_context_extraction_notes.abstract.md",
-      "abstractTokens": 50,
+      "abstractTokens": 41,
       "importance": 50,
       "path": "agent_architecture/context/curated_context_extraction_notes.md",
-      "tokens": 50,
+      "tokens": 41,
       "type": "context"
     },
     {
@@ -164,13 +164,13 @@
       "type": "stub"
     }
   ],
-  "generated_at": "2026-06-19T18:11:51.624Z",
+  "generated_at": "2026-06-20T01:01:34.937Z",
   "lane_tokens": {
-    "contexts": 3992,
+    "contexts": 3983,
     "stubs": 104,
     "summaries": 1934
   },
-  "source_fingerprint": "009495e6e3abe233d36457a735786b2e6042c58a16fea91bb979aff07ca808c5",
-  "total_tokens": 6030,
+  "source_fingerprint": "8cb8bfc7c4346b9480d1ab09c0cb68c7c877c5f1942817c3309d0681f8bf1fb9",
+  "total_tokens": 6021,
   "version": 1
 }

@@ -1,59 +1,134 @@
 ---
-children_hash: a615700c075c8b408c6c1d0e62997cfac0845864ef6d85b04284d6699663a618
-compression_ratio: 0.685682326621924
+children_hash: 50da1abd775380c49639d1f368965e22f2fdb17170aacbcb74808c8585173030
+compression_ratio: 0.6396489416623645
 condensation_order: 1
-covers: [chat_page_review_fixes.md]
-covers_token_total: 894
+covers: [chat_page_review_fixes.md, live_ui_testing_without_workos_auth_wall.md]
+covers_token_total: 1937
 summary_level: d1
-token_count: 613
+token_count: 1239
 type: summary
 ---
-# Chat Page Review Fixes
+# d1 Structural Summary: Frontend UI Testing and Chat Page Polish
 
-Frontend review fixes for the NC Medicaid navigator chat page focus on layout decomposition, accessibility, and visual refinement. Drill down into `chat_page_review_fixes.md` for the full implementation details and into `chat_page_scroll_stability.md` for related scroll behavior.
+## Overview
+These entries describe two related frontend efforts in the NC Medicaid Navigator web app:
 
-## Structural changes
-- The original ~380-line `packages/web/src/app/chat/page.tsx` was split into clearer component boundaries:
+1. **chat page review fixes** — structural and UX polish for the main `/chat` experience.
+2. **live UI testing without WorkOS auth wall** — two supported ways to test UI behavior without being blocked by production auth or backend dependencies.
+
+Together they show a pattern of separating **production-safe app behavior** from **developer/test-only paths**, while keeping the real chat shell representative of production.
+
+## Shared Architectural Themes
+- The app remains **protected in production**; no env-based auth bypass is introduced.
+- Development and testing are handled through **explicit alternate paths**:
+  - a dev-only **`/preview`** route for fast component iteration
+  - an opt-in **Playwright design project** for full app-shell testing with mocked backend responses
+- Both entries emphasize preserving the real user experience where needed:
+  - chat page review work keeps the actual `/chat` flow intact
+  - the design project exercises the real `/chat` page with mocked Mastra responses
+
+## 1) Chat Page Review Fixes
+**Entry:** `chat_page_review_fixes.md`
+
+### Structural changes
+- The chat page was refactored from a large `page.tsx` into smaller components:
   - `EmptyState`
   - `MessageList`
   - `ChatInput`
-- `ResearchTrace` centralizes policy-tool trace/status rendering alongside reasoning entries.
-- The main page layout is a flex container with:
-  - a collapsible `ThreadSidebar`
-  - a main `ScrollArea` that renders `MessageList` or `EmptyState`
-  - auth/loading state handling at the top of the flow
+- `ResearchTrace` centralizes status rendering and surfaces policy-tool reasoning/traceability.
 
-## UI and accessibility updates
-- Sidebar styling was softened in light mode:
-  - background shifted from `oklch(0.97)` to `oklch(0.94)`
-  - border strength reduced from `0.89` to `0.85`
-  - duplicate `border-r` removed
-  - example cards gained a left accent edge
-- Thread items were converted to accessible buttons.
-- Deletion is protected with confirmation via an alert dialog.
-- JavaScript title truncation was removed in favor of CSS `line-clamp`.
-- Emoji tool icons were replaced with Lucide icons.
-- Footer disclaimer opacity and empty-state padding were adjusted.
-- An authentication loading skeleton was added.
-
-## Data flow and runtime behavior
-- `useChat` uses `DefaultChatTransport` targeting `${MASTRA_URL}/chat` with `getAccessToken`.
-- `mastraClient` handles thread creation, listing, and deletion.
-- The flow is:
+### Layout and UX decisions
+- Main structure is a **flex layout** with:
+  - collapsible `ThreadSidebar`
+  - main `ScrollArea`
+  - conditional `MessageList` or `EmptyState`
+- The flow is tied to auth and thread lifecycle:
   - auth loading
-  - layout mounts with sidebar/backdrop
-  - thread lifecycle ensures a thread exists and supports selection/creation
-  - main area renders messages or empty state
-  - `ChatInput` manages rerun/streaming with viewport syncing
-  - `ResearchTrace` exposes tool status and reasoning
+  - layout mount
+  - thread creation/listing/selection
+  - message rendering
+  - streaming/rerun input handling
+  - tool trace display
 
-## Shared styling and dependencies
-- `globals.css` provides shared oklch palettes and scrollbar styles.
-- The page integrates `ThemeToggle`, WorkOS auth components, and Lucide icons.
-- The design is aligned with NC Medicaid policy branding while supporting streaming chat and rerun flows.
+### Key implementation details
+- Styling refinements include:
+  - lighter sidebar palette
+  - reduced border strength
+  - removal of duplicate `border-r`
+  - left accent edge on example cards
+- Accessibility and responsiveness improvements include:
+  - thread items converted to accessible buttons
+  - JavaScript title truncation replaced by CSS `line-clamp`
+  - Lucide icons replacing emoji icons
+  - authentication loading skeleton
+  - tighter `useEffect` dependencies
+- Dependencies include:
+  - `DefaultChatTransport` targeting `${MASTRA_URL}/chat`
+  - `getAccessToken`
+  - `mastraClient` for thread operations
+  - `ThemeToggle`
+  - WorkOS auth components
+  - shared styling in `globals.css`
 
-## Key facts
-- Sidebar light-mode color uses `oklch(0.94)`.
-- Thread sidebar border strength uses `0.85`.
-- Title truncation is CSS-based via `line-clamp`.
-- `EmptyState` includes NC Medicaid policy-question example buttons with a left accent border.
+### Drill-down references
+- `packages/web/src/app/chat/page.tsx`
+- `packages/web/src/app/globals.css`
+- `packages/web/src/components/ThreadSidebar.tsx`
+- `packages/web/src/components/ResearchTrace.tsx`
+- `packages/web/src/components/EmptyState.tsx`
+
+## 2) Live UI Testing Without WorkOS Auth Wall
+**Entry:** `live_ui_testing_without_workos_auth_wall.md`
+
+### Two testing modes
+1. **Dev-only `/preview` component gallery**
+   - fastest path for visual iteration
+   - renders real components against fixtures
+   - no auth
+   - no Mastra/Neo4j backend dependency
+
+2. **Playwright design project**
+   - runs against the real `/chat` app shell
+   - uses mocked backend responses
+   - intended for behavior/wiring validation and screenshot capture
+
+### Production-safe boundary
+- The preview route is protected by **production 404 gating**.
+- The design explicitly avoids an environment-based bypass in `proxy.ts`.
+- Development access is allowed through a proxy allow-list entry, but only for the preview route.
+
+### Dependencies and workflow
+- Preview path:
+  - `NODE_ENV` gating
+  - proxy allow-list
+  - `/preview` route
+- Design project path:
+  - WorkOS test-user cookie from `auth.setup.ts`
+  - localhost dev server
+  - mocked Mastra API via `mockMastraAPI`
+  - real `/chat` shell
+  - screenshot output in `e2e/design-shots/`
+
+### Operational rules
+- Do **not** add an env-gated auth bypass to `proxy.ts`
+- Prefer `/preview` for quick component work
+- Use the design project only when real wiring matters
+- Run it explicitly with:
+  - `npx playwright test --project=design`
+
+### Drill-down references
+- `packages/web/src/app/preview/page.tsx`
+- `packages/web/src/app/preview/gallery.tsx`
+- `packages/web/src/proxy.ts`
+- `packages/web/AGENTS.md`
+- `e2e/playwright.config.ts`
+- `e2e/tests/design/screenshots.shots.ts`
+- `e2e/helpers/mock-routes.ts`
+- `e2e/helpers/chat-page.ts`
+- `e2e/helpers/stream-builder.ts`
+- `e2e/tests/auth.setup.ts`
+
+## Relationship Between the Entries
+- `chat_page_review_fixes.md` improves the **production chat experience**.
+- `live_ui_testing_without_workos_auth_wall.md` provides the **safe developer workflow** for testing and screenshotting that UI.
+- The testing setup directly supports validating the same chat page and related components described in the review-fix entry, especially streaming, sidebar behavior, empty states, and citations/UI traceability.

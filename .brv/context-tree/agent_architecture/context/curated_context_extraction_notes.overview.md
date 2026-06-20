@@ -1,7 +1,8 @@
-- Curates context-extraction workflow knowledge into durable agent-architecture documentation.
-- Records the main changes: curation metadata, recon recommendation, detected source references, organized source context, workflow notes, operational guidance, and EPSDT exception completeness workstream context.
-- Notes the file set involved, including repository/index source files and related curated context/workstream markdown files.
-- Describes a simple flow: context capture -> extract facts -> curate durable knowledge -> record progress.
-- Emphasizes a compact, single-pass curation approach as appropriate for this context.
-- Highlights operational guidance: reuse the precomputed recon result, avoid rerunning recon, and verify applied outputs via result.applied[].filePath.
-- Includes metadata facts: context size is 818 characters, with 1 line and 0 messages, and identifies the author as ByteRover context engineer.
+- Documents the RLM-based context curation workflow for durable knowledge capture, emphasizing extraction, deduplication, curation, and verification.
+- Core flow: recon output informs processing mode, then facts/context are extracted, deduplicated/grouped by subject, persisted with UPSERT, and verified via applied file paths.
+- Strong guidance to preserve raw context semantics in structured knowledge entries while avoiding raw context printing.
+- Notes that small context inputs can be handled in a single pass after recon, with extraction followed by one UPSERT operation.
+- Specifies operational rules: do not call `tools.curation.recon` when recon is already precomputed, and pass `taskId` as a bare variable for `mapExtract`.
+- Verification should rely on `result.applied[].filePath` rather than rereading files.
+- Includes explicit project conventions: the context tree lives under `.brv/context-tree`, has a max depth of 2 levels, and uses domain/topic organization with markdown files or `context.md` subfolder patterns.
+- Notable entities/decisions include the preferred `^UPSERT$` curate operation, references to related files in `packages/agent/src/...`, and preservation of EPSDT exception completeness workstream context.

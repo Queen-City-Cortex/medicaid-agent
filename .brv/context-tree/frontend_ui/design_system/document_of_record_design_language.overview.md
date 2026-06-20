@@ -1,0 +1,7 @@
+- Establishes a “Document of Record” editorial design language for the packages/web chat app, with a distinctly archival, document-like aesthetic.
+- Core typography stack uses self-hosted Fraunces for display, Newsreader for reading/body text, and IBM Plex Mono for metadata/apparatus.
+- Theme system defines light and dark modes with OKLCH tokens; the named palettes are “parchment” and “library at night.”
+- Adds a fixed paper-grain SVG noise overlay to reinforce tactile paper texture while staying beneath portaled overlays and sidebar/backdrop layers.
+- Implements print-safe behavior for chat content, including removing chrome, expanding scroll areas, and handling citation/link URL expansion for paginated output.
+- Preserves all data-testid attributes during restyling to keep the test suite stable.
+- Includes refined UI details such as warm/gold accents, selection and scrollbar styling, active-thread ribbon treatment, and typography feature settings for serif/mono usage.

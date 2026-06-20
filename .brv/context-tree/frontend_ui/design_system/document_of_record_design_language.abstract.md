@@ -1,0 +1,1 @@
+A Document of Record editorial design system uses self-hosted serif and mono fonts, parchment and dark library themes, grain texture, and print-safe handling to restyle the chat UI while preserving test IDs.

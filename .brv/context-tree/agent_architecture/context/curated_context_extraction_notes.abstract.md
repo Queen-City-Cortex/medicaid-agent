@@ -1,1 +1,1 @@
-Curated notes describe agent context extraction workflow, durable knowledge curation, and EPSDT exception workstream guidance, emphasizing single-pass capture and reuse of precomputed recon results.
+This document defines the RLM context curation workflow: extract and deduplicate facts after recon, then persist them with UPSERT and verify via applied file paths.
