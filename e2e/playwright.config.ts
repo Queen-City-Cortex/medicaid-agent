@@ -42,6 +42,28 @@ export default defineConfig({
       dependencies: ['setup'],
       timeout: 120_000,
     },
+
+    // Opt-in screenshot project for design review. Gated behind DESIGN_SHOTS so
+    // a bare `npx playwright test` never pulls it in (it would otherwise force a
+    // real WorkOS `setup` login on every full local run). Authenticated like the
+    // others but with the Mastra backend mocked; writes PNGs to design-shots/
+    // rather than asserting. Run: `DESIGN_SHOTS=1 npx playwright test --project=design`.
+    ...(process.env.DESIGN_SHOTS
+      ? [
+          {
+            name: 'design',
+            testDir: './tests/design',
+            testMatch: /.*\.shots\.ts/,
+            use: {
+              ...devices['Desktop Chrome'],
+              viewport: { width: 1280, height: 900 },
+              storageState: 'playwright/.auth/user.json',
+            },
+            dependencies: ['setup'],
+            timeout: 30_000,
+          },
+        ]
+      : []),
   ],
 
   webServer: {

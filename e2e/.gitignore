@@ -2,3 +2,4 @@ test-results/
 playwright-report/
 playwright/.auth/
 node_modules/
+design-shots/

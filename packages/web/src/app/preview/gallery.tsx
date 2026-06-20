@@ -1,0 +1,211 @@
+'use client';
+
+import { useState, useRef, useEffect } from 'react';
+import { Landmark, Plus, Ellipsis, PanelLeftClose, Sun, Moon } from 'lucide-react';
+import type { UIMessage } from 'ai';
+import { EmptyState } from '@/components/EmptyState';
+import { ChatInput } from '@/components/ChatInput';
+import { MessageList } from '@/components/MessageList';
+import { SourcesPanel } from '@/components/SourcesPanel';
+import { VerificationBadge } from '@/components/VerificationBadge';
+import type { MessageSource, VerificationState } from '@/lib/message-parts';
+
+const SOURCES: MessageSource[] = [
+  {
+    key: 's1',
+    label: 'MA-2240 § 2.1 — Therapeutic Leave',
+    title: 'Nursing Facility Services, Adult Medicaid Manual',
+    url: 'https://medicaid.ncdhhs.gov/ma-2240',
+    originTool: 'getSection',
+    sectionNumber: '2.1',
+    snippet:
+      'A nursing facility resident may be absent for therapeutic leave for up to 60 days per calendar year without loss of Medicaid payment for bed reservation, provided the absence is part of the plan of care.',
+  },
+  {
+    key: 's2',
+    label: '42 CFR § 447.40 — Reservation of beds',
+    title: 'Federal Medicaid Regulations',
+    url: 'https://ecfr.gov/447-40',
+    originTool: 'followReferences',
+    sectionNumber: '447.40',
+    snippet: null,
+  },
+  {
+    key: 's3',
+    label: 'Clinical Coverage Policy 5B',
+    title: null,
+    url: 'https://medicaid.ncdhhs.gov/ccp-5b',
+    originTool: 'searchSections',
+    sectionNumber: null,
+    snippet: null,
+  },
+];
+
+const VERIFIED: VerificationState = {
+  severity: 'high',
+  confidence: 0.94,
+  rewrote: false,
+  pureMarkerFallback: false,
+  counts: { unsupported: 0, missingCitation: 0, relevanceMajor: 0, relevanceMinor: 0 },
+};
+
+const CONVERSATION: UIMessage[] = [
+  {
+    id: 'u1',
+    role: 'user',
+    parts: [{ type: 'text', text: 'How many days of therapeutic leave are allowed for nursing facility residents under NC Medicaid?' }],
+  } as UIMessage,
+  {
+    id: 'a1',
+    role: 'assistant',
+    parts: [
+      { type: 'text', text: 'Planning the evidence needed to answer this.' },
+      {
+        type: 'dynamic-tool',
+        toolName: 'searchSections',
+        toolCallId: 't1',
+        state: 'output-available',
+        input: { query: 'therapeutic leave nursing facility days', topK: 6 },
+        output: { sections: [{ title: 'Therapeutic Leave', policyNumber: 'MA-2240' }] },
+      },
+      {
+        type: 'dynamic-tool',
+        toolName: 'getSection',
+        toolCallId: 't2',
+        state: 'output-available',
+        input: { sectionId: 'MA-2240-2.1' },
+        output: { section: { sectionNumber: '2.1', title: 'Therapeutic Leave', policyNumber: 'MA-2240' } },
+      },
+      {
+        type: 'text',
+        text: 'Nursing facility residents are allowed up to **60 days** of therapeutic leave per calendar year without loss of Medicaid payment for bed reservation. The absence must be part of the resident’s [plan of care](https://medicaid.ncdhhs.gov/ma-2240), and federal rules at [42 CFR § 447.40](https://ecfr.gov/447-40) govern bed reservation during the leave.\n\n- Leave is counted **per calendar year**, not per admission.\n- Days beyond the 60-day limit are not reimbursable for bed-hold.',
+      },
+    ],
+  } as UIMessage,
+];
+
+function Eyebrow({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">{children}</p>
+  );
+}
+
+export function PreviewGallery() {
+  const [input, setInput] = useState('');
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  // Local theme toggle — flips the `.dark` class so both themes can be
+  // inspected without a server round-trip. Starts light (deterministic, so no
+  // hydration mismatch) and writes the class on change.
+  const [dark, setDark] = useState(false);
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', dark);
+  }, [dark]);
+
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="mx-auto max-w-3xl px-6 py-10 space-y-16">
+        <header className="flex items-start justify-between">
+          <div>
+            <Eyebrow>Component preview · dev only</Eyebrow>
+            <h1 className="font-heading text-4xl font-semibold tracking-tight">Document of Record</h1>
+          </div>
+          <button
+            type="button"
+            onClick={() => setDark((d) => !d)}
+            className="grid size-9 place-items-center rounded-md border border-border bg-card text-muted-foreground transition-colors hover:text-foreground"
+            aria-label="Toggle theme"
+          >
+            {dark ? <Sun className="size-4" /> : <Moon className="size-4" />}
+          </button>
+        </header>
+
+        <section className="space-y-4">
+          <Eyebrow>App shell</Eyebrow>
+          <div className="flex h-[460px] overflow-hidden rounded-xl border border-border">
+            <div className="flex w-[240px] flex-col bg-sidebar border-r border-sidebar-border">
+              <div className="flex items-center justify-between px-4 py-4">
+                <span className="font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-sidebar-foreground/55">Threads</span>
+                <span className="flex h-7 items-center gap-1.5 rounded-md px-2 font-mono text-[11px] uppercase tracking-wider text-sidebar-foreground/70"><Plus className="size-3.5" />New</span>
+              </div>
+              <div className="h-px bg-sidebar-border" />
+              <div className="py-2 text-sidebar-foreground">
+                {[
+                  { t: 'Therapeutic leave limits for nursing facility residents', d: 'Today', active: true },
+                  { t: 'Prior approval for private duty nursing', d: 'Yesterday', active: false },
+                  { t: 'HCWD earned income limit', d: 'Jun 12', active: false },
+                  { t: 'CAP/DA level-of-care criteria', d: 'Jun 9', active: false },
+                ].map((x) => (
+                  <div key={x.t} className={`group flex items-start justify-between gap-2 border-l-2 px-4 py-2.5 ${x.active ? 'border-l-accent bg-sidebar-accent text-sidebar-foreground' : 'border-l-transparent text-sidebar-foreground/70'}`}>
+                    <span className="text-[13px] leading-snug line-clamp-2">{x.t}</span>
+                    <div className="mt-0.5 flex shrink-0 items-center gap-1">
+                      <span className="font-mono text-[10px] tabular-nums text-sidebar-foreground/40">{x.d}</span>
+                      <Ellipsis className="size-3.5 text-sidebar-foreground/40" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-auto flex items-center justify-between gap-2 bg-sidebar-accent/40 px-4 py-3">
+                <span className="font-mono text-[11px] text-sidebar-foreground/50 truncate">demo@example.com</span>
+                <span className="font-mono text-[11px] uppercase tracking-wider text-sidebar-foreground/50">Sign out</span>
+              </div>
+            </div>
+            <div className="flex min-w-0 flex-1 flex-col bg-background">
+              <header className="relative border-b border-border bg-card px-6 py-4 after:absolute after:inset-x-0 after:top-0 after:h-px after:bg-gradient-to-r after:from-transparent after:via-accent/70 after:to-transparent">
+                <div className="flex items-center gap-3">
+                  <PanelLeftClose className="size-4 text-muted-foreground" />
+                  <span aria-hidden className="grid size-8 shrink-0 place-items-center rounded-md bg-accent/12 text-accent ring-1 ring-accent/25"><Landmark className="size-4" /></span>
+                  <div className="min-w-0">
+                    <h2 className="font-heading text-xl font-semibold leading-none tracking-tight">NC Medicaid Navigator</h2>
+                    <span className="mt-1 block font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Policy Research · Queen City Cortex</span>
+                  </div>
+                </div>
+              </header>
+              <div className="flex-1 px-6 py-6">
+                <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Conversation pane</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="space-y-4">
+          <Eyebrow>Empty state</Eyebrow>
+          <div className="rounded-xl border border-border bg-card">
+            <EmptyState onSelectExample={(q) => setInput(q)} />
+          </div>
+        </section>
+
+        <section className="space-y-4">
+          <Eyebrow>Conversation</Eyebrow>
+          <div className="rounded-xl border border-border bg-background px-6 py-6">
+            <MessageList
+              messages={CONVERSATION}
+              isStreaming={false}
+              status="ready"
+              onRerun={() => {}}
+              messagesEndRef={{ current: null }}
+              feedbackMap={{}}
+              onRate={() => {}}
+              onClearRating={() => {}}
+              onComment={() => {}}
+            />
+          </div>
+        </section>
+
+        <section className="space-y-4">
+          <Eyebrow>Verification + sources</Eyebrow>
+          <div className="rounded-xl border border-border bg-background px-6 py-6">
+            <VerificationBadge verification={VERIFIED} />
+            <SourcesPanel sources={SOURCES} citedCount={2} messageId="demo" open />
+          </div>
+        </section>
+
+        <section className="space-y-4">
+          <Eyebrow>Composer</Eyebrow>
+          <div className="rounded-xl border border-border overflow-hidden">
+            <ChatInput input={input} setInput={setInput} isLoading={false} onSend={() => {}} onStop={() => {}} inputRef={inputRef} />
+          </div>
+        </section>
+      </div>
+    </div>
+  );
+}
