@@ -1,0 +1,7 @@
+- MessageList markdown rendering was updated so citation links that map to known sources render quietly, while unmapped external links keep the more prominent gold/accent styling.
+- The numbered superscript citation footnote remains the main citation affordance and continues to navigate users to the Sources panel.
+- The rendering flow is: markdown link -> normalizeCitationUrl -> sourceIndex lookup -> citation/external styling decision -> footnote navigation.
+- The implementation lives in packages/web/src/components/MessageList.tsx and depends on helpers such as buildSourceIndex, extractMessageSources, extractCitedUrls, splitSourcesByCited, and SourcesPanel row IDs.
+- A preview gallery fixture was updated with real section URLs so inline citations resolve correctly during rendering.
+- The goal was to reduce visual clutter from “a wall of gold” inline links in long answers while preserving clear citation navigation.
+- Notable decisions/entities include subtle citation classes like text-foreground with muted underline, external-link classes like text-accent with accent underline, PR #11 on branch redesign/quiet-citations, and a green test status with 234 web tests passing.

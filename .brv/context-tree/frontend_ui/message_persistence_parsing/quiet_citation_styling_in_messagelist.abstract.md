@@ -1,0 +1,1 @@
+MessageList now renders markdown links that map to sources with subtle citation styling, while unmapped links keep gold emphasis and citation footnotes still jump to the Sources panel.

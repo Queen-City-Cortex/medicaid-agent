@@ -21,5 +21,13 @@ graphify-out/
 .playwright-mcp/
 e2e/playwright-report/
 
-# Next.js boilerplate assets (no architectural value)
+# Playwright auth state — WorkOS session cookie. SECRET: never ingest into the graph.
+e2e/playwright/.auth/
+**/.auth/
+
+# Generated design-review screenshots (gitignored; vision-token noise, no arch value)
+e2e/design-shots/
+
+# Next.js generated boilerplate assets / types (no architectural value)
 packages/web/public/*.svg
+**/next-env.d.ts

@@ -39,6 +39,11 @@ npx tsx src/index.ts update-fixtures
 npx tsx src/index.ts crawl --dry-run
 ```
 
+The CLI is a [commander](https://www.npmjs.com/package/commander) program in
+`src/index.ts` that registers one command per module under `src/cli/`. The most
+common commands also have npm-script shortcuts: `npm run crawl`, `npm run check`,
+`npm run stats`.
+
 ## Sources
 
 | Source | Priority | Documents |

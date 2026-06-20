@@ -1,5 +1,5 @@
 {
-  "curationsSinceDream": 7,
+  "curationsSinceDream": 9,
   "lastDreamAt": "2026-06-19T16:51:44.521Z",
   "lastDreamLogId": "drm-1781887724986",
   "pendingMerges": [],
@@ -35,6 +35,10 @@
     {
       "enqueuedAt": 1781917294907,
       "path": "frontend_ui/design_system/document_of_record_design_language.md"
+    },
+    {
+      "enqueuedAt": 1781919877175,
+      "path": "frontend_ui/message_persistence_parsing/quiet_citation_styling_in_messagelist.md"
     }
   ],
   "totalDreams": 7,
