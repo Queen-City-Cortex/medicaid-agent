@@ -14,25 +14,9 @@ vi.mock('../../src/neo4j.js', () => ({
 import { withSession } from '../../src/neo4j.js';
 import { searchSections } from '../../src/tools/search.js';
 import { runTool } from '../helpers/run-tool.js';
+import { mockRecord, setupSession } from '../helpers/neo4j-session.js';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-
-function mockRecord(data: Record<string, unknown>) {
-  return { get: (key: string) => data[key] };
-}
-
-function setupSession(runs: Array<{ records: ReturnType<typeof mockRecord>[] }>) {
-  let callIndex = 0;
-  const session = {
-    run: vi.fn(async () => {
-      const result = runs[callIndex] ?? { records: [] };
-      callIndex++;
-      return result;
-    }),
-  };
-  vi.mocked(withSession).mockImplementation(async (fn) => fn(session as any));
-  return session;
-}
 
 function setupSearchSession(
   handlers: Array<{

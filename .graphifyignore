@@ -12,6 +12,14 @@ packages/*/data/
 .mastra/
 **/.mastra/
 
+# Compiled TS → JS build output (gitignored, not source)
+dist/
+**/dist/
+
+# Firecrawl crawled web docs — gitignored reference material, not code (was ~184 nodes)
+.firecrawl/
+**/.firecrawl/
+
 # Caches and tool output
 graphify-out/
 .brv/

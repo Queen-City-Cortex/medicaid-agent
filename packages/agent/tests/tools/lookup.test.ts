@@ -10,28 +10,9 @@ vi.mock('../../src/neo4j.js', () => ({
   withSession: vi.fn(),
 }));
 
-import { withSession } from '../../src/neo4j.js';
 import { lookupPolicy } from '../../src/tools/lookup.js';
 import { runTool } from '../helpers/run-tool.js';
-
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
-function mockRecord(data: Record<string, unknown>) {
-  return { get: (key: string) => data[key] };
-}
-
-function setupSession(runs: Array<{ records: ReturnType<typeof mockRecord>[] }>) {
-  let callIndex = 0;
-  const session = {
-    run: vi.fn(async () => {
-      const result = runs[callIndex] ?? { records: [] };
-      callIndex++;
-      return result;
-    }),
-  };
-  vi.mocked(withSession).mockImplementation(async (fn) => fn(session as any));
-  return session;
-}
+import { mockRecord, setupSession } from '../helpers/neo4j-session.js';
 
 // ── Tests ────────────────────────────────────────────────────────────────────
 
