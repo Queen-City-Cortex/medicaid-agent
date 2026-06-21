@@ -1,53 +1,60 @@
 ---
-children_hash: 5a0ee1c9727f764c929e387c83ff6fa66b3335ba40282db36d79882b9629e778
-compression_ratio: 0.6050516647531573
+children_hash: 1292491a9662f86594745fe1817fa71790d236f6abfb638791a8d280ec94e2f0
+compression_ratio: 0.4379310344827586
 condensation_order: 1
-covers: [context.md, message_persistence_parsing.md]
-covers_token_total: 871
+covers: [context.md, message_persistence_parsing.md, quiet_citation_styling_in_messagelist.md]
+covers_token_total: 1740
 summary_level: d1
-token_count: 527
+token_count: 762
 type: summary
 ---
-# Message Persistence Parsing
+# Message Persistence Parsing and Citation Styling
 
-Structural overview of how chat-thread messages are reconstructed into `UIMessage` payloads in the frontend. The core path is `packages/web/src/lib/parse-message.ts`, where structured Mastra payloads are preferred and legacy text remains supported as a fallback.
+## Scope
+This set of entries covers two frontend UI behaviors in the chat experience:
+- how persisted Mastra thread messages are reconstructed into `UIMessage` payloads
+- how inline markdown citations are styled and linked in `MessageList`
 
-## Main behavior
+## 1) Message persistence parsing
+**Drill down:** `message_persistence_parsing.md`, `context.md`
 
-- `message_persistence_parsing.md` documents the parsing update for persisted thread messages.
-- `context.md` frames the topic as message conversion for the chat page, with emphasis on preserving structured content, tool state, and formatting.
+- `convertThreadMessageToUIMessage` now detects `MastraMessageContentV2` payloads (`format 2` with a `parts` array) and preserves structured message parts during reload.
+- `convertV4PartsToV5` translates tool-invocation parts into dynamic-tool / step-start / text parts, with explicit state mapping that matches ResearchTrace expectations.
+- Legacy payloads still fall back to `extractText`, but text pieces are joined with `\n\n` to preserve multi-paragraph formatting.
+- The flow is: receive thread message → detect `MastraMessageContentV2` → convert tool parts → return structured `UIMessage` → fallback to legacy extraction if needed.
+- Key dependencies: `generateUUID`, `convertV4PartsToV5`, and `extractText`.
 
-## Key parsing flow
+**Key facts**
+- Tool invocation state `'result'` maps to `'output-available'`.
+- All other tool states map to `'input-available'`.
+- The parsing update preserves research traces, tool metadata, and formatted answers across reloads.
 
-- `convertThreadMessageToUIMessage` detects `MastraMessageContentV2` payloads using the `format 2 + parts array` signal.
-- When structured content is present, it calls `convertV4PartsToV5`.
-- `convertV4PartsToV5` translates V4 tool-invocation parts into dynamic-tool / step-start / text parts.
-- If structured parsing is not possible, `extractText` reconstructs legacy payloads.
+**Related topics**
+- `frontend_ui/chat_page_transport`
+- `frontend_ui/message_feedback`
+- Also linked in `message_persistence_parsing.md`: thread cache restoration and race-fix entries.
 
-## Important architectural decisions
+## 2) Quiet citation styling in `MessageList`
+**Drill down:** `quiet_citation_styling_in_messagelist.md`
 
-- Structured Mastra thread messages are preserved on reload rather than flattened immediately.
-- Tool invocation states are normalized for `ResearchTrace` compatibility:
-  - `result` → `output-available`
-  - all other states → `input-available`
-- `extractText` joins mixed text/content segments with `\n\n` to preserve paragraph spacing in legacy messages.
+- `MessageList.tsx` overrides the ReactMarkdown `a` renderer so citation links that map to sources render quietly instead of with full gold styling.
+- The citation pipeline is:
+  `markdown link -> normalizeCitationUrl -> sourceIndex lookup -> citation styling or external link styling -> footnote navigation`
+- Mapped citations use subtle foreground styling with a muted underline, while unmapped external links keep gold accent styling.
+- The superscript citation button remains the main citation affordance and jumps to the Sources panel.
 
-## Dependencies and relationships
+**Rules**
+- Mapped source links must render quietly.
+- Unmapped links keep gold treatment.
+- The superscript citation button must navigate to the Sources panel.
 
-- Relies on `generateUUID` for missing IDs.
-- Depends on `convertV4PartsToV5` for tool-invocation translation.
-- Uses `extractText` as the legacy fallback path.
-- Related downstream topics:
-  - `frontend_ui/chat_page_transport`
-  - `frontend_ui/message_feedback`
-  - cache/thread restoration topics in `frontend_ui/message_persistence_cache` and `frontend_ui/chat_page_thread_cache`
+**Key facts**
+- Citation mapping depends on `normalizeCitationUrl`, `buildSourceIndex`, `extractMessageSources`, `extractCitedUrls`, and `splitSourcesByCited`.
+- Preview fixture URLs were updated so citations resolve correctly.
+- The change shipped as PR `#11` on branch `redesign/quiet-citations`.
+- `234` web tests remained green after the change.
 
-## Key facts to drill into
-
-- `mastra_message_format_detection`
-- `dynamic_tool_state_mapping`
-- `extract_text_separator`
-
-## Summary outcome
-
-This topic ensures persisted Mastra thread messages survive reloads with structured parts, tool metadata, and preserved formatting, while maintaining compatibility with older message payloads.
+## Relationship between the entries
+- Both entries focus on preserving chat answer fidelity across persistence and presentation.
+- `message_persistence_parsing` ensures stored content reloads with structure intact.
+- `quiet_citation_styling_in_messagelist` ensures rendered answers stay readable while preserving citation navigation and source traceability.

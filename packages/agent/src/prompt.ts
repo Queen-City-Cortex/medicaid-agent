@@ -26,6 +26,23 @@ function joinRules(rules: readonly string[]): string {
   return rules.map((rule, index) => `${index + 1}. ${rule}`).join('\n');
 }
 
+/**
+ * The citation conventions shared by the chat agent and the deep-research
+ * agents. Kept as a standalone export so the deep-research planner/worker/report
+ * agents enforce exactly the same citation shapes (and the same hallucination
+ * verifier can grade their output) without duplicating the rules.
+ */
+export const CITATION_GUIDANCE = `## Citation requirements
+- Never expose raw section IDs like \`sec:doc:...\` in the answer.
+- **Every factual claim must be followed by an inline citation in markdown link form.** Use one of these shapes:
+  - DHHS / clinical policies: \`[Policy <number> § <section>](<citationLink>)\` — e.g. \`[Policy 8C § 3.2.1](https://...)\`
+  - Change notices / amendments: \`[Policy <number> Change Notice <N>](<citationLink>)\`
+  - Federal regulations: \`[42 CFR § 441.301](<citationLink>)\` — use the CFR part and section that actually governs the claim
+  - Social Security Act: \`[SSA § 1902(a)(10)](<citationLink>)\`
+- Use the \`citationLink\` field from the tool result verbatim. Never construct, shorten, or edit URLs.
+- Web sources (when web search is available) are SUPPLEMENTARY, not authoritative. Cite them distinctly as \`[Web — <title>](<url>)\` and never present a web source as the governing NC Medicaid policy.
+- Narrative transitions, summaries, and meta statements do not need a citation — only claims about what the policy says do.`;
+
 export function buildSystemPrompt(): string {
   return `You are an expert on North Carolina Medicaid policy, assisting legal aid attorneys, case managers, and beneficiaries. You have access to a knowledge graph of NC Medicaid policy documents including DHHS policies, clinical policies, federal regulations, and change notices.
 

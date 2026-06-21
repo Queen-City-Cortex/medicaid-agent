@@ -8,7 +8,9 @@ import { ChatInput } from '@/components/ChatInput';
 import { MessageList } from '@/components/MessageList';
 import { SourcesPanel } from '@/components/SourcesPanel';
 import { VerificationBadge } from '@/components/VerificationBadge';
+import { DeepResearchView } from '@/components/DeepResearchView';
 import type { MessageSource, VerificationState } from '@/lib/message-parts';
+import type { DeepResearchController, DeepResearchPlan, DeepResearchReport } from '@/lib/use-deep-research';
 
 const SOURCES: MessageSource[] = [
   {
@@ -92,6 +94,92 @@ const CONVERSATION: UIMessage[] = [
   } as UIMessage,
 ];
 
+const DR_PLAN: DeepResearchPlan = {
+  brief:
+    'Goal: Compare prior-authorization (PA) requirements across NC Medicaid behavioral-health services and how recent change notices altered them. Scope: clinical coverage policies in the 8-series; current versions plus change notices from the last 24 months; statewide (non-plan-specific).',
+  subQuestions: [
+    {
+      question: 'Which behavioral-health services require prior authorization under the 8-series clinical coverage policies?',
+      rationale: 'Establishes the baseline set of PA-required services to compare.',
+      channels: ['concept', 'keyword'],
+      useWeb: false,
+    },
+    {
+      question: 'What change notices in the last 24 months modified PA requirements for these services?',
+      rationale: 'Captures recent amendments that changed the rules.',
+      channels: ['amendments'],
+      useWeb: false,
+    },
+    {
+      question: 'How do the federal parity requirements (42 CFR Part 438 subpart K) constrain NC PA rules?',
+      rationale: 'Federal authority bounds what NC may require.',
+      channels: ['federal', 'vector'],
+      useWeb: true,
+    },
+  ],
+};
+
+const DR_REPORT: DeepResearchReport = {
+  status: 'completed',
+  question: 'Compare prior-authorization requirements across NC Medicaid behavioral-health services.',
+  brief: DR_PLAN.brief,
+  reportMarkdown: `## Executive summary
+
+Prior authorization (PA) requirements vary across NC Medicaid behavioral-health services. Inpatient behavioral health and Residential Treatment require PA before admission [Policy 8B § 5.2.1](https://medicaid.ncdhhs.gov/8b), while most outpatient services are subject to PA only after an initial unmanaged visit threshold [Policy 8C § 3.4](https://medicaid.ncdhhs.gov/8c).
+
+## Services requiring prior authorization
+
+- **Inpatient behavioral health** — PA required prior to admission [Policy 8B § 5.2.1](https://medicaid.ncdhhs.gov/8b).
+- **Residential treatment (PRTF)** — PA required, with continued-stay review [Policy 8D-1 § 4.1](https://medicaid.ncdhhs.gov/8d1).
+
+## Recent changes
+
+A 2024 change notice expanded the unmanaged-visit allowance for outpatient therapy [Policy 8C Change Notice 3](https://medicaid.ncdhhs.gov/8c-cn3).
+
+## Federal constraints
+
+Mental-health parity rules limit NQTLs such as PA [42 CFR § 438.910](https://ecfr.gov/438-910).
+
+## Sources
+
+**Authoritative (NC Medicaid corpus)**
+- Policy 8B § 5.2.1
+- Policy 8C § 3.4
+- Policy 8C Change Notice 3
+
+**Supplementary (web)**
+- CMS behavioral health parity guidance`,
+  subQuestions: DR_PLAN.subQuestions,
+  corpusSources: [
+    { key: 'sec:8b:5.2.1', label: 'Policy 8B § 5.2.1 — Inpatient PA', link: 'https://medicaid.ncdhhs.gov/8b' },
+    { key: 'sec:8c:3.4', label: 'Policy 8C § 3.4 — Outpatient PA thresholds', link: 'https://medicaid.ncdhhs.gov/8c' },
+    { key: 'sec:8c:cn3', label: 'Policy 8C Change Notice 3', link: 'https://medicaid.ncdhhs.gov/8c-cn3' },
+  ],
+  webSources: [{ title: 'CMS behavioral health parity guidance', url: 'https://cms.gov/parity' }],
+  verification: { checkedCitations: 12, groundedCitations: 12, fabricatedCitations: 0 },
+  stats: { reflectionRounds: 1, subQuestionCount: 3, corpusSourceCount: 3, webSourceCount: 1 },
+};
+
+const noop = () => {};
+const asyncNoop = async () => {};
+
+function makeController(over: Partial<DeepResearchController>): DeepResearchController {
+  return {
+    status: 'idle',
+    plan: null,
+    report: null,
+    error: null,
+    question: '',
+    elapsedMs: 0,
+    isBusy: false,
+    start: asyncNoop,
+    approve: asyncNoop,
+    decline: asyncNoop,
+    reset: noop,
+    ...over,
+  };
+}
+
 function Eyebrow({ children }: { children: React.ReactNode }) {
   return (
     <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">{children}</p>
@@ -172,6 +260,28 @@ export function PreviewGallery() {
                 <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Conversation pane</p>
               </div>
             </div>
+          </div>
+        </section>
+
+        <section className="space-y-4">
+          <Eyebrow>Deep Research · plan approval</Eyebrow>
+          <div className="rounded-xl border border-border p-6">
+            <DeepResearchView
+              controller={makeController({
+                status: 'awaiting-approval',
+                question: DR_REPORT.question,
+                plan: DR_PLAN,
+              })}
+            />
+          </div>
+        </section>
+
+        <section className="space-y-4">
+          <Eyebrow>Deep Research · report</Eyebrow>
+          <div className="rounded-xl border border-border p-6">
+            <DeepResearchView
+              controller={makeController({ status: 'done', question: DR_REPORT.question, report: DR_REPORT })}
+            />
           </div>
         </section>
 

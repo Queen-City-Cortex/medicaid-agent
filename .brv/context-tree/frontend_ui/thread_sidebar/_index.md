@@ -1,47 +1,38 @@
 ---
-children_hash: 5440f0ccc92c9e9d2a3fda3077938878aa4b13224be55b6454e42aafb3f4a7e3
-compression_ratio: 0.8027465667915106
+children_hash: 43000b31fd9999b16ebf85e1efb601caff89ac3f49447057dfe8d725af86b10a
+compression_ratio: 0.8527004909983633
 condensation_order: 1
 covers: [thread_sidebar_fetch_resilience.md]
-covers_token_total: 801
+covers_token_total: 611
 summary_level: d1
-token_count: 643
+token_count: 521
 type: summary
 ---
-## Frontend UI: thread sidebar fetch resilience
+# Structural Overview
 
-This set of notes centers on how the thread sidebar stays responsive while WorkOS auth and Mastra memory access are still initializing. The main implementation is in **Thread Sidebar Fetch Resilience**, with close overlap to **Authenticated Chat Transport Reinitialization** for token-driven client refresh behavior.
+## frontend_ui/thread_sidebar_fetch_resilience
+This topic documents how `ThreadSidebar.tsx` and `use-mastra-client.ts` keep thread loading reliable under changing auth and prop state. The main pattern is a retry-friendly fetch path for `listMemoryThreads` that avoids stale requests, suppresses expected auth noise, and preserves stable client identity as tokens change.
 
-### Thread sidebar fetch lifecycle
-- **Thread Sidebar Fetch Resilience** documents `packages/web/src/components/ThreadSidebar.tsx` and `packages/web/src/lib/use-mastra-client.ts`.
-- The sidebar is a client-side React component that renders:
-  - a `+ New` control,
-  - a scrollable thread list,
-  - loading/error states,
-  - rename/delete flows,
-  - a footer with the signed-in user and sign-out.
-- Thread loading follows a guarded sequence:
-  - `useMastraReady` and `useMastraClient` establish token/client readiness,
-  - `fetchThreads` runs with an `AbortController`,
-  - `listMemoryThreads` retrieves threads,
-  - results are sorted by `updatedAt`,
-  - state is updated and loading is cleared,
-  - dependent effects rerun on client, `currentThreadId`, or `refreshKey` changes.
+### Key behaviors
+- `AbortController` is created for every fetch so prior requests are canceled when dependencies change.
+- `401` responses are swallowed while `useMastraReady` is false, allowing retry once the WorkOS token is available.
+- `useMastraClient` recreates `mastraClient` when the access token changes, keeping `fetchThreads` stable.
 
-### Resilience and auth coupling
-- The key design is to avoid racing thread fetches against WorkOS token availability.
-- If `listMemoryThreads` returns **401** while `useMastraReady` is still false, the error is swallowed and the sidebar quietly retries once auth is ready.
-- A new `mastraClient` is recreated via `useMastraClient` whenever the access token changes, keeping the fetch layer aligned with auth state.
-- `AbortController` is used to cancel stale requests whenever dependencies change, preventing overlapping fetches from writing outdated state.
+### Flow
+`sidebar opens -> fetch thread list -> recover from transient failures -> display threads`
 
-### Interaction patterns and dependencies
-- Depends on WorkOS authkit hooks (`useAuth`, `useAccessToken`) via `useMastraClient` / `useMastraReady`.
-- Depends on Mastra memory APIs such as `listMemoryThreads` and `getMemoryThread`.
-- Uses UI primitives like `ScrollArea`, `Button`, `Separator`, `DropdownMenu`, and `AlertDialog`.
-- Rename and delete actions refresh the thread list after updating the underlying memory thread.
+### Dependencies and relationships
+- Depends on reliable runtime identity and backend responses to populate thread lists.
+- Closely related to:
+  - `frontend_ui/chat_page_transport/authenticated_chat_transport_reinitialization.md` for auth-aware transport lifecycle
+  - `frontend_ui/chat_page_thread_cache/chat_page_thread_cache_restoration.md` for restoring cached thread state
+  - `frontend_ui/chat_streaming_error_handling/ai_sdk_v6_sse_streaming_and_error_handling.md` for fetch/stream failure handling patterns
+  - `frontend_ui/proxy_handling/web_theme_persistence.md` for client/runtime boundary handling
+  - `frontend_ui/message_persistence_parsing/quiet_citation_styling_in_messagelist.md` and `frontend_ui/message_feedback/message_feedback_flow.md` for adjacent UI stability concerns
 
-### Rules and facts to retain
-- **Rule 1:** Treat a 401 as non-fatal while `useMastraReady` is false.
-- **Rule 2:** Abort any previous `listMemoryThreads` request when a new fetch is scheduled due to dependency changes.
-- The fixed agent ID for memory thread calls is `nc-medicaid-navigator`.
-- The broader related pattern is token-driven transport/client reinitialization, referenced in **Authenticated Chat Transport Reinitialization**.
+### Rules to preserve
+1. Treat a `401` response as non-error when `useMastraReady` is false so the sidebar does not log noise while the token is pending.
+2. Abort any previous `listMemoryThreads` request whenever a new fetch is scheduled because dependencies changed (`client`, `resourceId`, `refreshKey`, or current selection).
+
+### Drill-down entry
+- `thread_sidebar_fetch_resilience.md` for the detailed resilience rules and implementation notes

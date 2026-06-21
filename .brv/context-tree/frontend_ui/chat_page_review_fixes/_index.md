@@ -1,134 +1,73 @@
 ---
-children_hash: 50da1abd775380c49639d1f368965e22f2fdb17170aacbcb74808c8585173030
-compression_ratio: 0.6396489416623645
+children_hash: 7ab857c97769e39877a9931469bc06165ab8d8f79136412afa08f394c041f9f8
+compression_ratio: 0.37945998071359693
 condensation_order: 1
 covers: [chat_page_review_fixes.md, live_ui_testing_without_workos_auth_wall.md]
-covers_token_total: 1937
+covers_token_total: 2074
 summary_level: d1
-token_count: 1239
+token_count: 787
 type: summary
 ---
-# d1 Structural Summary: Frontend UI Testing and Chat Page Polish
+# Frontend UI Testing and Chat Page Structure
 
-## Overview
-These entries describe two related frontend efforts in the NC Medicaid Navigator web app:
+This layer captures two closely related frontend workstreams: the **chat page review fixes** and the **live UI testing path without the WorkOS wall**. Together they describe both the production chat experience and the safe ways to exercise it during development.
 
-1. **chat page review fixes** — structural and UX polish for the main `/chat` experience.
-2. **live UI testing without WorkOS auth wall** — two supported ways to test UI behavior without being blocked by production auth or backend dependencies.
+## Chat page review fixes
+`chat_page_review_fixes.md` documents the structural cleanup and polish applied to `packages/web/src/app/chat/page.tsx` and its supporting UI files.
 
-Together they show a pattern of separating **production-safe app behavior** from **developer/test-only paths**, while keeping the real chat shell representative of production.
-
-## Shared Architectural Themes
-- The app remains **protected in production**; no env-based auth bypass is introduced.
-- Development and testing are handled through **explicit alternate paths**:
-  - a dev-only **`/preview`** route for fast component iteration
-  - an opt-in **Playwright design project** for full app-shell testing with mocked backend responses
-- Both entries emphasize preserving the real user experience where needed:
-  - chat page review work keeps the actual `/chat` flow intact
-  - the design project exercises the real `/chat` page with mocked Mastra responses
-
-## 1) Chat Page Review Fixes
-**Entry:** `chat_page_review_fixes.md`
-
-### Structural changes
-- The chat page was refactored from a large `page.tsx` into smaller components:
+- The page was refactored from a large monolith into smaller components:
   - `EmptyState`
   - `MessageList`
   - `ChatInput`
-- `ResearchTrace` centralizes status rendering and surfaces policy-tool reasoning/traceability.
-
-### Layout and UX decisions
-- Main structure is a **flex layout** with:
+  - `ResearchTrace` for status and policy-tool traceability
+- Layout is now centered around a flex container with:
   - collapsible `ThreadSidebar`
   - main `ScrollArea`
-  - conditional `MessageList` or `EmptyState`
-- The flow is tied to auth and thread lifecycle:
-  - auth loading
-  - layout mount
-  - thread creation/listing/selection
-  - message rendering
-  - streaming/rerun input handling
-  - tool trace display
+  - conditional `MessageList` vs `EmptyState`
+- Chat flow remains tied to `useChat` with `DefaultChatTransport` targeting `${MASTRA_URL}/chat`, plus `getAccessToken` and `mastraClient` thread management.
 
-### Key implementation details
-- Styling refinements include:
-  - lighter sidebar palette
-  - reduced border strength
-  - removal of duplicate `border-r`
-  - left accent edge on example cards
-- Accessibility and responsiveness improvements include:
-  - thread items converted to accessible buttons
-  - JavaScript title truncation replaced by CSS `line-clamp`
-  - Lucide icons replacing emoji icons
-  - authentication loading skeleton
-  - tighter `useEffect` dependencies
-- Dependencies include:
-  - `DefaultChatTransport` targeting `${MASTRA_URL}/chat`
-  - `getAccessToken`
-  - `mastraClient` for thread operations
-  - `ThemeToggle`
-  - WorkOS auth components
-  - shared styling in `globals.css`
+Key UI changes include:
+- softer sidebar palette and reduced border strength in `globals.css`
+- accessible thread actions using buttons and Lucide icons
+- removal of JS title truncation in favor of CSS `line-clamp`
+- improved empty-state spacing and policy-oriented example prompts
+- authentication loading skeleton and tighter effect dependencies
+- footer disclaimer opacity correction
 
-### Drill-down references
-- `packages/web/src/app/chat/page.tsx`
-- `packages/web/src/app/globals.css`
-- `packages/web/src/components/ThreadSidebar.tsx`
-- `packages/web/src/components/ResearchTrace.tsx`
-- `packages/web/src/components/EmptyState.tsx`
+Reference: drill down into `chat_page_review_fixes.md` for the full component and styling breakdown.
 
-## 2) Live UI Testing Without WorkOS Auth Wall
-**Entry:** `live_ui_testing_without_workos_auth_wall.md`
+## Live UI testing without the WorkOS auth wall
+`live_ui_testing_without_workos_auth_wall.md` defines two sanctioned development/testing paths for seeing the UI without full production dependency chains.
 
-### Two testing modes
-1. **Dev-only `/preview` component gallery**
-   - fastest path for visual iteration
-   - renders real components against fixtures
-   - no auth
-   - no Mastra/Neo4j backend dependency
+### 1) Dev-only preview gallery
+- Implemented under `packages/web/src/app/preview/`
+- Exposed at `/preview`
+- Renders real components against fixtures
+- No auth, no Mastra, no Neo4j dependency
+- Protected by production `404` gating rather than an env-based bypass
+- Allowed through development proxy allow-list entries
 
-2. **Playwright design project**
-   - runs against the real `/chat` app shell
-   - uses mocked backend responses
-   - intended for behavior/wiring validation and screenshot capture
-
-### Production-safe boundary
-- The preview route is protected by **production 404 gating**.
-- The design explicitly avoids an environment-based bypass in `proxy.ts`.
-- Development access is allowed through a proxy allow-list entry, but only for the preview route.
-
-### Dependencies and workflow
-- Preview path:
-  - `NODE_ENV` gating
-  - proxy allow-list
-  - `/preview` route
-- Design project path:
-  - WorkOS test-user cookie from `auth.setup.ts`
-  - localhost dev server
-  - mocked Mastra API via `mockMastraAPI`
+### 2) Playwright design project
+- Lives under `e2e/tests/design/`
+- Run explicitly with `npx playwright test --project=design`
+- Uses:
+  - saved WorkOS cookie from `auth.setup.ts`
+  - mocked backend routes via `mockMastraAPI`
   - real `/chat` shell
-  - screenshot output in `e2e/design-shots/`
+  - theme cookies for light/dark runs
+- Produces screenshots in `e2e/design-shots/`
 
-### Operational rules
-- Do **not** add an env-gated auth bypass to `proxy.ts`
-- Prefer `/preview` for quick component work
-- Use the design project only when real wiring matters
-- Run it explicitly with:
-  - `npx playwright test --project=design`
+Important constraints and rules:
+- Do not introduce an env-gated auth bypass in `proxy.ts`
+- Prefer `/preview` for quick visual component checks
+- Use the Playwright design project only when behavior or integration wiring matters
+- `/preview` must remain `404` in production
 
-### Drill-down references
-- `packages/web/src/app/preview/page.tsx`
-- `packages/web/src/app/preview/gallery.tsx`
-- `packages/web/src/proxy.ts`
-- `packages/web/AGENTS.md`
-- `e2e/playwright.config.ts`
-- `e2e/tests/design/screenshots.shots.ts`
-- `e2e/helpers/mock-routes.ts`
-- `e2e/helpers/chat-page.ts`
-- `e2e/helpers/stream-builder.ts`
-- `e2e/tests/auth.setup.ts`
+Reference these child entries for drill-down:
+- `live_ui_testing_without_workos_auth_wall.md`
+- `chat_page_review_fixes.md`
 
-## Relationship Between the Entries
-- `chat_page_review_fixes.md` improves the **production chat experience**.
-- `live_ui_testing_without_workos_auth_wall.md` provides the **safe developer workflow** for testing and screenshotting that UI.
-- The testing setup directly supports validating the same chat page and related components described in the review-fix entry, especially streaming, sidebar behavior, empty states, and citations/UI traceability.
+## Relationship between the entries
+These entries connect the **production chat page implementation** with the **testing strategy** around it:
+- `chat_page_review_fixes.md` describes the stabilized chat UI and its dependencies.
+- `live_ui_testing_without_workos_auth_wall.md` provides the development/test harness for validating those UI pieces safely, especially when auth or backend services are unavailable.

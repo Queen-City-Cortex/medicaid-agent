@@ -2,7 +2,7 @@
 title: Quiet Citation Styling in MessageList
 summary: Markdown citation links in MessageList render quietly when mapped to sources, while unmapped external links keep gold styling; citation footnotes jump to the Sources panel.
 tags: []
-related: [frontend_ui/message_feedback/context.md, frontend_ui/thread_sidebar/context.md]
+related: [frontend_ui/message_feedback/context.md, frontend_ui/thread_sidebar/context.md, frontend_ui/proxy_handling/web_theme_persistence.md, frontend_ui/design_system/document_of_record_design_language.md, frontend_ui/chat_streaming_error_handling/ai_sdk_v6_sse_streaming_and_error_handling.md, frontend_ui/chat_page_thread_cache/chat_page_thread_cache_restoration.md, frontend_ui/thread_sidebar/thread_sidebar_fetch_resilience.md, frontend_ui/message_feedback/message_feedback_flow.md, frontend_ui/live_testing/live_testing_without_the_workos_wall.md, frontend_ui/chat_page_review_fixes/live_ui_testing_without_workos_auth_wall.md]
 keywords: []
 createdAt: '2026-06-20T01:44:37.160Z'
 updatedAt: '2026-06-20T01:44:37.160Z'

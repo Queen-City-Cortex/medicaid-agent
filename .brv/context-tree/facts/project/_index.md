@@ -1,55 +1,40 @@
 ---
-children_hash: efd39977f10b8ff47c1cad37120627a1a8f0ccf3fb050dd95747594e131a1e00
-compression_ratio: 0.5601300108342362
+children_hash: 4f8def6d59fd8285539262a214547108f5dc6003c14a0b8a161e5124d95b2328
+compression_ratio: 0.6826923076923077
 condensation_order: 1
 covers: [curated_context_snippet.md]
-covers_token_total: 923
+covers_token_total: 728
 summary_level: d1
-token_count: 517
+token_count: 497
 type: summary
 ---
-# facts/project — Structural Overview
+# d1 Structural Summary
 
-This domain captures durable project facts and curation rules used to preserve reusable operational knowledge from snippets and source material. The central entry is **curated_context_snippet.md**, which consolidates context-derived findings into structured facts for later recall.
+## Project curation rules and durable knowledge model
+The main entry, **curated_context_snippet.md**, captures the project’s durable curation approach: preserve operational knowledge from context snippets as structured facts, keep exact timestamps, and retain reusable project facts for later retrieval. It also records specific project functions and deduplication behavior, including `scoreCoverageSections(...)`, `collectCoverageSectionGroups(...)`, `buildCoverageAnchors(...)`, `assembleCoverageSections(...)`, `selectCoveragePrimarySections(...)`, and deduplication via `uniqueBy(section.id)`.
 
-## Core purpose
-- Preserve operational notes as durable knowledge rather than chat-only context.
-- Standardize curation around a two-part model: **`rawConcept`** and **`narrative`**.
-- Retain exact timestamps, rules, regex patterns, and other high-value details for traceability.
+## Core curation workflow and content requirements
+The consolidated knowledge defines a strict workflow: **recon → extract salient facts/context → curate with UPSERT → verify applied files and failures**. It emphasizes a two-part context model with `rawConcept` and `narrative`, and requires each context to include:
+- a clear `task`
+- at least one operational detail in `changes`, `files`, or `flow`
+- at least one narrative field
 
-## Curation workflow
-- The recorded workflow is: **recon -> extract salient facts/context -> curate using UPSERT -> verify applied files and failures**.
-- Verification focuses on `result.summary.failed` and `result.applied` file paths.
-- The entry emphasizes UPSERT-based updates as the default curation mechanism.
+It also requires temporal preservation, exact rule text, regex patterns, and avoidance of vague or under-specified contexts.
 
-## Structural requirements
-- Every curated context should include:
-  - a clear **task**
-  - at least one operational detail in **`changes`**, **`files`**, or **`flow`**
-  - at least one narrative field such as **structure**, **dependencies**, or **highlights**
-- The system preserves:
-  - exact rule text
-  - regex/validation patterns
-  - timestamps and temporal markers
-  - detailed facts suitable for later recall
+## Verification and update discipline
+A recurring operational rule is to verify curation success by checking `result.summary.failed` and inspecting `result.applied` file paths. UPSERT is the preferred update mode, used to avoid pre-checks and simplify create/update handling while preserving consistency in the context tree.
 
-## Key entities and patterns
+## Key entities and reusable concepts
+This knowledge set repeatedly centers on:
 - **ByteRover context engineer**
-- **`rawConcept`**
-- **`narrative`**
-- **`changes`**
-- **`files`**
-- **`flow`**
-- Facts extraction and temporal preservation are treated as required curation behaviors.
+- `rawConcept`
+- `narrative`
+- `changes`
+- `files`
+- `flow`
+- `curation_input`
 
-## Facts captured in the entry
-- Coverage assembly and selection functions are recorded as project facts:
-  - `scoreCoverageSections(...)`
-  - `collectCoverageSectionGroups(...)`
-  - `buildCoverageAnchors(...)`
-  - `assembleCoverageSections(...)`
-  - `selectCoveragePrimarySections(...)`
-- Deduplication is explicitly noted as using `uniqueBy(section.id)`.
+These names are important drill-down anchors for understanding the curation system and its preservation standards.
 
-## Drill-down
-- See **curated_context_snippet.md** for the full structured record, raw concept details, narrative context, and extracted facts.
+## Related drill-down entry
+- **curated_context_snippet.md** — primary source for the project-facts entry, extracted operational notes, and the consolidated curation rules

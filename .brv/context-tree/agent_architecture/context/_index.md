@@ -1,71 +1,56 @@
 ---
-children_hash: 3e49c9a319930c9a5682bf4a4805c574096f2c2175efb3a4da18e663f65ba171
-compression_ratio: 0.5946531791907514
+children_hash: 97b7da453a336884875f99e65c3638ce674d9859690d808175655d11d9d3319b
+compression_ratio: 0.5317401045556386
 condensation_order: 1
 covers: [context.md, curated_context_extraction_notes.md, curated_operational_knowledge.md, epsdt_exception_completeness_workstream_e.md]
-covers_token_total: 1384
+covers_token_total: 1339
 summary_level: d1
-token_count: 823
+token_count: 712
 type: summary
 ---
-# agent_architecture/context — Structural Summary
+# Structural Summary: context
 
-This d1 topic captures operational knowledge for curation workflows under `agent_architecture/context`, centered on single-pass RLM processing, precomputed recon data, and durable recall of extracted context.
+This level groups session-level curation knowledge around the RLM single-pass workflow and related durable notes. The entries collectively preserve how precomputed recon, extraction, and UPSERT-based verification were used to turn supplied context into long-lived operational knowledge.
 
-## Core entries
+## Core Workflow Pattern
+- **`context.md`** establishes the central pattern: **single-pass processing**, driven by **precomputed recon**, with **curation verification** and **context size metadata** as key inputs.
+- The workflow emphasized avoiding unnecessary chunking when recon already recommends single-pass handling.
 
-- **context.md**  
-  Provides the top-level overview for the topic: operational notes for curating a single-pass RLM context with precomputed recon data. Key ideas are:
-  - single-pass processing
-  - precomputed recon
-  - curation verification
-  - context size metadata  
-  It is the anchor entry for drilling into the workflow-oriented notes below.
+## Session Curation Notes
+- **`curated_context_extraction_notes.md`** records the curation session for the supplied context, including:
+  - detected source references,
+  - curation metadata,
+  - the recon recommendation,
+  - and the instruction to verify applied outputs via `result.applied[].filePath`.
+- It explicitly notes the context was **19883 characters / 520 lines / 0 messages** and recon recommended **single-pass mode** with **suggestedChunkCount 3**.
+- Drill down here for the most explicit operational notes about the current curation pass.
 
-- **curated_context_extraction_notes.md**  
-  Documents the extraction workflow used to turn compact source context into durable agent-architecture knowledge. It records:
-  - curation metadata capture
-  - recon recommendation preservation
-  - source reference detection
-  - organized extraction into durable knowledge
-  - EPSDT exception completeness workstream context  
-  Structural emphasis: this note says the context was small enough for **single-pass** curation, and verification should use `result.applied[].filePath` rather than rereading source files. It also preserves facts about context size and structure.
+## Durable Operational Knowledge
+- **`curated_operational_knowledge.md`** captures session-level durable knowledge about:
+  - retrieval heuristics,
+  - message parsing behavior,
+  - and the preferred curation workflow.
+- It documents the execution pattern as: **recon -> extraction -> dedup/group -> UPSERT curate -> verify applied file paths**.
+- The source context was small enough for **single-pass processing** rather than chunking.
+- It also preserves that verification should rely on **applied file paths** instead of rereading files.
+- Related drill-down topics include:
+  - **`agent_architecture/packages_pipeline/retrieval_fixes.md`**
+  - **`frontend_ui/message_persistence_parsing/message_persistence_parsing.md`**
+  - **`agent_architecture/context.md`**
+  - **`agent_architecture/context/context.md`**
+  - **`agent_architecture/context/curated_context_extraction_notes.md`**
 
-- **curated_operational_knowledge.md**  
-  Captures session-level curation workflow and operational preferences. It connects the topic to broader durable knowledge about:
-  - retrieval heuristics
-  - message parsing behavior
-  - curation workflow preferences  
-  The recorded flow is: `recon -> extraction -> dedup/group -> UPSERT curate -> verify applied file paths`. This entry also notes the context was compact enough for single-pass processing and that verification is based on applied file paths.
+## Workstream-Specific Context
+- **`epsdt_exception_completeness_workstream_e.md`** is a focused curated entry for **EPSDT exception completeness (Workstream E)**.
+- It preserves the minimal operational structure:
+  - source context,
+  - fact extraction,
+  - durable knowledge entry.
+- This entry is a lighter-weight record than the other two and serves as a drill-down anchor for workstream-specific context.
 
-- **epsdt_exception_completeness_workstream_e.md**  
-  A focused workstream-specific entry for **EPSDT exception completeness (Workstream E)**. It preserves the original context as durable knowledge with a simple structure:
-  - task documentation
-  - fact preservation
-  - durable recall entry  
-  This file is the drill-down point for workstream-specific operational details.
-
-## Relationships
-
-- `context.md` links structurally to:
-  - `curated_operational_knowledge.md`
-  - `epsdt_exception_completeness_workstream_e.md`
-- `curated_operational_knowledge.md` also references related entries in:
-  - `agent_architecture/packages_pipeline/retrieval_fixes.md`
-  - `frontend_ui/message_persistence_parsing/message_persistence_parsing.md`
-  - `agent_architecture/context.md`
-  - `agent_architecture/context/context.md`
-
-## Shared patterns across entries
-
-- All entries emphasize **durable knowledge capture** from compact source context.
-- **Single-pass processing** is the recurring operational choice when context is small enough.
-- **Verification** is consistently tied to applied output paths, not raw source rereading.
-- The topic preserves both **workflow mechanics** and **context-specific facts** for later recall.
-
-## Drill-down guide
-
-- For the overall topic framing: **context.md**
-- For extraction workflow and metadata handling: **curated_context_extraction_notes.md**
-- For session-level operational workflow: **curated_operational_knowledge.md**
-- For EPSDT workstream specifics: **epsdt_exception_completeness_workstream_e.md**
+## Shared Themes
+Across these entries, the recurring structural patterns are:
+- **precomputed recon** as the decision point for processing mode,
+- **single-pass curation** when context is compact enough,
+- **durable knowledge capture** instead of ephemeral chat memory,
+- and **verification by curated output paths** rather than reinspection of raw text.

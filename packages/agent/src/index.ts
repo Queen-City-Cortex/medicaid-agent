@@ -5,8 +5,8 @@ import { Mastra } from '@mastra/core';
 import { Agent, type OnIterationCompleteHandler } from '@mastra/core/agent';
 import { PromptInjectionDetector, TokenLimiterProcessor } from '@mastra/core/processors';
 import { MastraCompositeStore } from '@mastra/core/storage';
-import { createAnthropic } from '@ai-sdk/anthropic';
-import { createOpenAI } from '@ai-sdk/openai';
+import { createModel, AGENT_MODEL } from './model.js';
+import { deepResearchWorkflow } from './deep-research/workflow.js';
 import { chatRoute } from '@mastra/ai-sdk';
 import { registerApiRoute } from '@mastra/core/server';
 import { Memory } from '@mastra/memory';
@@ -60,28 +60,14 @@ function validateEnv() {
 
 validateEnv();
 
-const CLI_QUESTION = process.argv[2];
+// CLI usage:
+//   npx tsx src/index.ts "question"                  → chat agent (one-shot)
+//   npx tsx src/index.ts --deep-research "question"   → deep-research workflow
+const CLI_ARGS = process.argv.slice(2);
+const IS_DEEP_RESEARCH_CLI = CLI_ARGS[0] === '--deep-research';
+const CLI_QUESTION = IS_DEEP_RESEARCH_CLI ? CLI_ARGS[1] : CLI_ARGS[0];
 const IS_CLI_RUN = Boolean(CLI_QUESTION);
 const OBSERVABILITY_DB_PATH = process.env.MASTRA_OBSERVABILITY_PATH || (IS_CLI_RUN ? ':memory:' : 'mastra.duckdb');
-
-// ── Model providers ──────────────────────────────────────────────────────────
-
-const anthropic = createAnthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
-
-const openai = createOpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
-const AGENT_MODEL = process.env.AGENT_MODEL || 'gpt-5.4';
-
-function createModel(modelId: string) {
-  if (modelId.startsWith('gpt-') || modelId.startsWith('o3') || modelId.startsWith('o4')) {
-    return openai(modelId);
-  }
-  return anthropic(modelId);
-}
 
 const libsql = new LibSQLStore({
   id: 'mastra-storage',
@@ -217,6 +203,7 @@ export const ncMedicaidAgent = new Agent({
 
 export const mastra = new Mastra({
   agents: { ncMedicaidAgent },
+  workflows: { deepResearchWorkflow },
   storage,
   observability: new Observability({
     configs: {
@@ -310,8 +297,38 @@ export const mastra = new Mastra({
 
 // ─── CLI runner ────────────────────────────────────────────────────────────────
 // Usage: npx tsx --env-file=.env src/index.ts "your question here"
+//        npx tsx --env-file=.env src/index.ts --deep-research "your question"
 
-if (CLI_QUESTION) {
+if (IS_DEEP_RESEARCH_CLI && CLI_QUESTION) {
+  // Headless deep-research run: auto-approve the plan so the suspend gate is
+  // skipped, then print the final report. Progress is visible via the logger.
+  try {
+    const run = await mastra.getWorkflow('deepResearchWorkflow').createRun();
+    const result = await run.start({ inputData: { question: CLI_QUESTION, autoApprove: true } });
+    if (result.status === 'success') {
+      const report = result.result;
+      console.log('\n---PLAN---\n');
+      console.log(JSON.stringify({ brief: report.brief, subQuestions: report.subQuestions }, null, 2));
+      console.log('\n---STATS---\n');
+      console.log(JSON.stringify(report.stats));
+      if (report.verification) {
+        console.log('\n---VERIFIER---\n');
+        console.log(JSON.stringify(report.verification));
+      }
+      console.log('\n---REPORT---\n');
+      console.log(report.reportMarkdown);
+    } else {
+      console.error('Deep research did not complete. Status:', result.status);
+      if ('error' in result) console.error(result.error);
+      process.exitCode = 1;
+    }
+  } catch (err) {
+    console.error('Deep research error:', err);
+    process.exitCode = 1;
+  } finally {
+    await closeDriver();
+  }
+} else if (CLI_QUESTION) {
   const agent = mastra.getAgent('ncMedicaidAgent');
   if (!agent) {
     console.error('Agent not found');

@@ -5,6 +5,7 @@ import { PanelLeftOpen, PanelLeftClose, Landmark } from 'lucide-react';
 import { useAuth, useAccessToken } from '@workos-inc/authkit-nextjs/components';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ChatInput } from '@/components/ChatInput';
+import { DeepResearchView } from '@/components/DeepResearchView';
 import { EmptyState } from '@/components/EmptyState';
 import { MessageList } from '@/components/MessageList';
 import { ScrollToBottom } from '@/components/ScrollToBottom';
@@ -14,6 +15,7 @@ import { useIsMobile } from '@/lib/use-is-mobile';
 import { useMastraClient } from '@/lib/use-mastra-client';
 import { useAnswerVersions } from '@/lib/use-answer-versions';
 import { useChatThread } from '@/lib/use-chat-thread';
+import { useDeepResearch } from '@/lib/use-deep-research';
 import { useFeedback } from '@/lib/use-feedback';
 import { usePinnedScroll } from '@/lib/use-pinned-scroll';
 import { useSidebarState } from '@/lib/use-sidebar-state';
@@ -83,6 +85,12 @@ export default function ChatPage() {
     focusInput,
   });
 
+  // Deep Research is a distinct mode: a HITL plan-approval gate then a long
+  // cited report, driven by the deepResearchWorkflow via the Mastra client —
+  // separate from the streaming chat agent above.
+  const [deepMode, setDeepMode] = useState(false);
+  const deepResearch = useDeepResearch({ mastraClient });
+
   const { viewport, messagesEndRef } = usePinnedScroll({ messages, status });
 
   useEffect(() => { inputRef.current?.focus({ preventScroll: true }); }, []);
@@ -98,11 +106,15 @@ export default function ChatPage() {
     if (!input.trim() || input.length > 10_000) return;
     const question = input;
     setInput('');
+    if (deepMode) {
+      await deepResearch.start(question);
+      return;
+    }
     if (messages.length === 0) {
       await ensureThreadExists(threadId, question.slice(0, 60));
     }
     await sendMessage({ text: question });
-  }, [input, messages.length, threadId, ensureThreadExists, sendMessage]);
+  }, [input, deepMode, deepResearch, messages.length, threadId, ensureThreadExists, sendMessage]);
 
   const handleRerun = useCallback((messageIndex: number, userIndex: number) => {
     rerunAnswer({ messages, regenerate, messageIndex, userIndex });
@@ -204,6 +216,10 @@ export default function ChatPage() {
         <div className="flex-1 min-h-0 relative">
         <ScrollArea className="h-full bg-background">
           <div className="max-w-3xl mx-auto px-4 md:px-8 py-8 space-y-8">
+            {deepMode ? (
+              <DeepResearchView controller={deepResearch} />
+            ) : (
+            <>
             {messages.length === 0 && !isLoading && (
               <EmptyState onSelectExample={handleSelectExample} />
             )}
@@ -237,6 +253,8 @@ export default function ChatPage() {
                 </div>
               </div>
             )}
+            </>
+            )}
           </div>
         </ScrollArea>
         <ScrollToBottom viewport={viewport} hasMessages={messages.length > 0 || isLoading} />
@@ -245,10 +263,12 @@ export default function ChatPage() {
         <ChatInput
           input={input}
           setInput={setInput}
-          isLoading={isLoading}
+          isLoading={deepMode ? deepResearch.isBusy : isLoading}
           onSend={handleSend}
-          onStop={stop}
+          onStop={deepMode ? undefined : stop}
           inputRef={inputRef}
+          deepResearch={deepMode}
+          onToggleDeepResearch={() => setDeepMode((v) => !v)}
         />
       </div>
     </div>

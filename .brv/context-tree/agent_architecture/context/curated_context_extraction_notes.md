@@ -2,7 +2,7 @@
 title: Curated Context Extraction Notes
 summary: Notes on context curation workflow, extraction results, and relevant file references for the current task
 tags: []
-related: []
+related: [agent_architecture/context/curated_operational_knowledge.md, agent_architecture/context/context.md]
 keywords: []
 createdAt: '2026-06-13T05:42:43.392Z'
 updatedAt: '2026-06-13T05:42:43.392Z'

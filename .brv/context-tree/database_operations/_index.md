@@ -1,80 +1,99 @@
 ---
-children_hash: e2021db0d3d0fb0c13f4a75979ec6ce5c6cb9338465fe72ae18a61c257f7c37f
-compression_ratio: 0.2365371506475801
+children_hash: 12b08d6f2170da7c336a171475f509e3bf20465863fcca00ad10c1f9bddf2fca
+compression_ratio: 0.23377441713925645
 condensation_order: 2
-covers: [context.md, neo4j-write-read-consistency-is-protected-by-schema-aware-validation-at-every-la.md, neo4j_auth/_index.md, neo4j_hybrid_search/_index.md, neo4j_write_read_consistency/_index.md, schema-aware-validation-is-the-common-safety-net-across-graph-writes-retrieval-a.md, schema-aware-validation-is-the-guardrail-from-graph-writes-to-qa.md, schema-aware-validation-is-the-shared-guardrail-for-graph-data-and-evaluation.md, schema-aware-validation-is-the-shared-guardrail-from-graph-writes-to-evaluation.md, schema-aware-validation-is-the-shared-safety-net-for-graph-and-evaluation-layers.md, schema-aware-validation-is-the-shared-safety-net-from-graph-writes-to-evaluation.md]
-covers_token_total: 5868
+covers: [context.md, neo4j-write-read-consistency-is-protected-by-schema-aware-validation-at-every-la.md, neo4j_auth/_index.md, neo4j_hybrid_search/_index.md, neo4j_write_read_consistency/_index.md, schema-aware-validation-is-the-common-safety-net-across-graph-writes-retrieval-a.md, schema-aware-validation-is-the-common-safety-net-from-graph-writes-to-evaluation.md, schema-aware-validation-is-the-guardrail-from-graph-writes-to-qa.md, schema-aware-validation-is-the-shared-guardrail-for-graph-data-and-evaluation.md, schema-aware-validation-is-the-shared-guardrail-from-graph-writes-to-evaluation.md, schema-aware-validation-is-the-shared-safety-net-for-graph-and-evaluation-layers.md, schema-aware-validation-is-the-shared-safety-net-from-graph-writes-to-evaluation.md]
+covers_token_total: 6348
 summary_level: d2
-token_count: 1388
+token_count: 1484
 type: summary
 ---
-# database_operations — Structural Summary
+## database_operations
 
-## Domain focus
-This domain captures operational knowledge around database deployments, Neo4j authentication, graph retrieval, and write/read consistency. The emphasis is on environment-sensitive behavior, safe production procedures, and schema-aware guards that keep malformed graph data from breaking search, navigation, or evaluation.
+Operational knowledge for database deployments and authentication incidents on the platform. The domain is owned by the Platform Infrastructure Team and focuses on precise fixes for environment-specific database issues, password rotation, and configuration guidance.
 
-## Top-level structure and key themes
+### Core cluster: `neo4j_auth`
+- Covers Railway-specific Neo4j authentication behavior and a safe production refresh path for federal data.
+- Key facts:
+  - Railway URL-decodes environment variables, so `+` can become a space and corrupt Neo4j passwords.
+  - `NEO4J_AUTH` only sets the password on first volume initialization; it does not update existing databases.
+  - A workable fix is rotating to an alphanumeric-only password and applying it with `ALTER CURRENT USER SET PASSWORD` through the bolt TCP proxy.
+- Production refresh guidance:
+  - Do **not** use `deploy-data.sh load --reset`; that path is destructive.
+  - Safe flow is: enable Railway TCP proxy → set `NEO4J_URI` and `NEO4J_PASSWORD` → ingest SSA/CFR → extract references → embed incrementally → disable proxy.
+  - The refresh is targeted to the federal slice; unchanged sections keep embeddings and the clinical corpus remains untouched.
+- Drill down:
+  - `railway_neo4j_auth_handling.md`
+  - `production_neo4j_federal_data_refresh.md`
 
-### `context.md`
-- Defines the domain scope: database connection/auth issues, deployment quirks, password rotation, and configuration guidance.
-- Ownership sits with the Platform Infrastructure Team.
-- Intended use is precise incident documentation for future debugging.
+### Core cluster: `neo4j_hybrid_search`
+- Documents the Neo4j hybrid retrieval stack used by the pipeline.
+- Retrieval architecture combines:
+  - vector embeddings per document-type group
+  - chunk embeddings
+  - keyword fulltext search over `Section.title` and `Section.content_text`
+  - concept graph matches gated by `query_text`
+- Fusion uses Reciprocal Rank Fusion with `RRF_K = 60`.
+- Important indexing and ranking rules:
+  - `ensure_vector_index` requires `section_embeddings`, `chunk_embeddings`, and `section_fulltext`
+  - results are deduplicated by `section_id` before fusion
+  - concept matches use a fixed `CONCEPT_MATCH_SCORE = 0.70`
+  - fulltext search respects the same document-type grouping as vector search
+- Production migration note:
+  - `voyage_4_embedding_migration_on_railway_production.md` records a non-destructive Railway deploy that re-embedded the remote graph to voyage-4, using a temporary Neo4j TCP proxy, push `b739229`, `/healthz` verification, and rollback capability via `voyage-law-2`.
+  - Verified scale: `19,855` sections and `2,821` chunks, `1024` dimensions, `0` errors, `0` missing embeddings.
+- Drill down:
+  - `neo4j_hybrid_search_indexing.md`
+  - `voyage_4_embedding_migration_on_railway_production.md`
 
-### Neo4j authentication and production refresh
-**Drill down:** `neo4j_auth/_index.md`, especially `railway_neo4j_auth_handling.md` and `production_neo4j_federal_data_refresh.md`
-- Railway environment handling can corrupt Neo4j passwords because URL decoding turns `+` into a space.
-- `NEO4J_AUTH` only applies on first volume initialization; it does not update existing databases.
-- Fix pattern: rotate to an alphanumeric-only password and apply it through the bolt TCP proxy with `ALTER CURRENT USER SET PASSWORD`.
-- Production refresh must avoid `deploy-data.sh load --reset`; the safe path is targeted ingestion with Railway TCP proxy enabled, `NEO4J_URI`/`NEO4J_PASSWORD` set, SSA/CFR ingestion, reference extraction, incremental embedding, then proxy teardown.
-- The refresh process is explicitly non-destructive and preserves unchanged content, embeddings, and supersession relationships.
+### Core cluster: `neo4j_write_read_consistency`
+- Describes write-side behavior of `CorpusGraphWriter` and incremental reprocessing during crawl ingest.
+- Main pattern: managed Neo4j writes + selective section cleanup + preserved embeddings for unchanged content.
+- `corpusgraphwriter_write_boundary.md`
+  - Public writes use `session.execute_write(work_fn)` with per-method `_work(tx)` closures.
+  - Managed transactions provide commit/rollback semantics and auto-retry transient errors.
+  - Writes are MERGE-based, idempotent, and doc-scoped cleanup makes reruns safe.
+  - Reference batching is split by type:
+    - `REFERENCES` → `MERGE_REFERENCES_BATCH`
+    - `REFERENCES_DOCUMENT` → `MERGE_REFERENCES_DOCUMENT_BATCH`
+- `corpus_graph_writer_incremental_cleanup.md`
+  - Workflow: merge document → write sections → delete stale sections → clear changed embeddings → merge relationships.
+  - Stale sections are removed, but unchanged sections retain prior embeddings/chunks.
+  - Relationship paths are separated into `merge_reference_edges`, `merge_amendments`, `merge_supersessions`, and `merge_concept_links`.
+  - Key rule: rerunning the loader should not force full re-embedding.
+- `incremental_crawl_ingest_run_19.md`
+  - Records crawl run #19 into Railway production using voyage-4.
+  - 34 targeted docs ingested; corpus grew from 6693 to 6725 docs; 1533 sections added.
+  - Selection logic favors `status='downloaded'`, `first_seen_at>=run_start`, and `last_changed_at>=run_start and source_type!=fee_schedule`.
+  - Important gotcha: multiprocessing spawn fails from stdin/heredoc; use a real `.py` file or parse in-process.
+- Drill down:
+  - `corpusgraphwriter_write_boundary.md`
+  - `corpus_graph_writer_incremental_cleanup.md`
+  - `incremental_crawl_ingest_run_19.md`
 
-### Neo4j hybrid search and embedding migration
-**Drill down:** `neo4j_hybrid_search/_index.md`, especially `neo4j_hybrid_search_indexing.md` and `voyage_4_embedding_migration_on_railway_production.md`
-- The retrieval stack combines vector, chunk, concept, and keyword fulltext signals using Reciprocal Rank Fusion.
-- `RRF_K = 60` is the smoothing constant.
-- Required indexes include `section_embeddings`, `chunk_embeddings`, and `section_fulltext`.
-- Search logic deduplicates results by `section_id`, requires `query_text` for concept matches, and uses a fixed `CONCEPT_MATCH_SCORE = 0.70`.
-- Production embedding migration to `voyage-4` was performed non-destructively on Railway using a temporary TCP proxy, with validation via `/healthz` and live retrieval checks.
-- Rollback remains possible by nulling embeddings and re-embedding with `voyage-law-2`.
+### Cross-cutting synthesis entries
+- Multiple synthesis notes connect `database_operations` with `agent_architecture`, `evaluation`, `packages`, and `qa`.
+- Shared architectural pattern:
+  - normalize outputs before validation
+  - filter null rows after `OPTIONAL MATCH`
+  - validate against Zod-compatible or equivalent schemas
+  - only then trust search, scoring, or QA results
+- This guardrail applies across:
+  - graph writes
+  - retrieval payload shaping
+  - cross-reference evaluation
+  - hallucination verification
+- Key relationship:
+  - `CorpusGraphWriter` and schema-aware validation together protect safe mutation boundaries and downstream correctness.
+- Drill down:
+  - `neo4j-write-read-consistency-is-protected-by-schema-aware-validation-at-every-la.md`
+  - `schema-aware-validation-is-the-common-safety-net-across-graph-writes-retrieval-a.md`
+  - `schema-aware-validation-is-the-common-safety-net-from-graph-writes-to-evaluation.md`
+  - `schema-aware-validation-is-the-guardrail-from-graph-writes-to-qa.md`
+  - `schema-aware-validation-is-the-shared-guardrail-for-graph-data-and-evaluation.md`
+  - `schema-aware-validation-is-the-shared-safety-net-for-graph-and-evaluation-layers.md`
+  - `schema-aware-validation-is-the-shared-safety-net-from-graph-writes-to-evaluation.md`
 
-### Corpus graph writer and incremental ingest
-**Drill down:** `neo4j_write_read_consistency/_index.md`, especially `corpusgraphwriter_write_boundary.md`, `corpus_graph_writer_incremental_cleanup.md`, and `incremental_crawl_ingest_run_19.md`
-- `CorpusGraphWriter` public writes use managed transactions via `session.execute_write(work_fn)` with per-method `_work(tx)` closures.
-- Managed transactions provide commit/rollback semantics and automatic retry of transient Neo4j errors.
-- Write behavior is MERGE-based and idempotent, with batching split by reference type:
-  - `REFERENCES` → `MERGE_REFERENCES_BATCH`
-  - `REFERENCES_DOCUMENT` → `MERGE_REFERENCES_DOCUMENT_BATCH`
-- Incremental cleanup is surgical: stale sections are deleted, changed sections lose embeddings/chunks, unchanged sections retain prior embeddings.
-- Incremental crawl ingest run #19 demonstrates the operating model: targeted documents only, incremental embedding, no full corpus reprocessing, and verification of retrieval quality.
-- A noted operational gotcha is that multiprocessing spawn fails when invoked from stdin/heredoc; use a real `.py` file or parse in-process.
-
-## Cross-cutting architectural pattern
-### Schema-aware validation as a shared safety net
-**Relevant synthesis entries:**  
-- `neo4j-write-read-consistency-is-protected-by-schema-aware-validation-at-every-la.md`
-- `schema-aware-validation-is-the-common-safety-net-across-graph-writes-retrieval-a.md`
-- `schema-aware-validation-is-the-guardrail-from-graph-writes-to-qa.md`
-- `schema-aware-validation-is-the-shared-guardrail-for-graph-data-and-evaluation.md`
-- `schema-aware-validation-is-the-shared-guardrail-from-graph-writes-to-evaluation.md`
-- `schema-aware-validation-is-the-shared-safety-net-for-graph-and-evaluation-layers.md`
-- `schema-aware-validation-is-the-shared-safety-net-from-graph-writes-to-evaluation.md`
-
-Common thread across these entries:
-- Normalize graph outputs before validation.
-- Filter null rows after `OPTIONAL MATCH`.
-- Validate payloads with Zod-compatible schemas.
-- Guard Cypher execution and relationship checks.
-- Use validated Neo4j evidence for evaluation, scoring, and hallucination verification.
-- Treat structural correctness as a prerequisite, not cleanup.
-
-## Relationship summary
-- `neo4j_auth` and `neo4j_hybrid_search` both depend on Railway proxy behavior and careful credential/environment handling.
-- `neo4j_write_read_consistency` operationalizes safe mutation boundaries that enable the incremental ingest and embedding workflows described in the other topics.
-- The synthesis entries show that the same validation-first discipline spans graph writes, retrieval, and QA/evaluation, making schema-aware normalization the domain’s dominant pattern.
-
-## Drill-down map
-- Domain scope and ownership: `context.md`
-- Railway auth and safe refresh: `neo4j_auth/_index.md`
-- Hybrid retrieval and embedding migration: `neo4j_hybrid_search/_index.md`
-- Managed writes and incremental ingest: `neo4j_write_read_consistency/_index.md`
-- Validation cross-cutting pattern: the schema-aware validation synthesis entries
+### Domain-level pattern
+- The domain consistently emphasizes **environment-sensitive Neo4j operations** plus **schema-aware validation**.
+- Safe practice is incremental and targeted: avoid destructive resets, preserve unchanged embeddings, and validate graph-shaped output before it reaches search, evaluation, or QA.

@@ -1,7 +1,7 @@
 'use client';
 
 import { type RefObject } from 'react';
-import { Square } from 'lucide-react';
+import { Square, Telescope } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/lib/use-is-mobile';
 import { cn } from '@/lib/utils';
@@ -20,9 +20,21 @@ interface ChatInputProps {
   onSend: () => void;
   onStop?: () => void;
   inputRef: RefObject<HTMLTextAreaElement | null>;
+  /** When provided, renders a Deep Research mode toggle above the composer. */
+  deepResearch?: boolean;
+  onToggleDeepResearch?: () => void;
 }
 
-export function ChatInput({ input, setInput, isLoading, onSend, onStop, inputRef }: ChatInputProps) {
+export function ChatInput({
+  input,
+  setInput,
+  isLoading,
+  onSend,
+  onStop,
+  inputRef,
+  deepResearch = false,
+  onToggleDeepResearch,
+}: ChatInputProps) {
   const helperTextId = 'chat-input-helper-text';
   // On mobile, Enter inserts a newline and sending is button-only — phone
   // keyboards have no Shift+Enter, so Enter-to-send makes multi-line
@@ -37,6 +49,25 @@ export function ChatInput({ input, setInput, isLoading, onSend, onStop, inputRef
         <label htmlFor="chat-input" className="sr-only">
           Ask a policy question
         </label>
+        {onToggleDeepResearch && (
+          <div className="mb-2 flex items-center">
+            <button
+              type="button"
+              data-testid="deep-research-toggle"
+              onClick={onToggleDeepResearch}
+              aria-pressed={deepResearch}
+              className={cn(
+                'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+                deepResearch
+                  ? 'border-accent/50 bg-accent/12 text-accent'
+                  : 'border-input text-muted-foreground hover:text-foreground',
+              )}
+            >
+              <Telescope className="size-3.5" />
+              Deep Research {deepResearch ? 'on' : 'off'}
+            </button>
+          </div>
+        )}
         {/* Unified composer: textarea + action button share one bordered field
             that lights up its gold ring on focus — a single deliberate "filing"
             input rather than two loose controls. */}
@@ -64,7 +95,7 @@ export function ChatInput({ input, setInput, isLoading, onSend, onStop, inputRef
               }
             }}
             maxLength={MAX_INPUT_LENGTH}
-            placeholder="Ask about NC Medicaid policy…"
+            placeholder={deepResearch ? 'Describe a topic to research in depth…' : 'Ask about NC Medicaid policy…'}
             className="flex-1 resize-none overflow-y-auto bg-transparent px-2 py-1.5 text-[15px] text-foreground placeholder:text-muted-foreground/70 focus:outline-none scrollbar-none"
             style={{ maxHeight: '120px' }}
           />

@@ -1,0 +1,1 @@
+DeepResearchWorkflow is a Mastra vNext pipeline that plans, pauses for human approval, runs bounded parallel research, synthesizes and verifies a cited report, and includes client and CLI support for suspend/resume handling.

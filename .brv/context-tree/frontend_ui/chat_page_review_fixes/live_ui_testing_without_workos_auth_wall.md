@@ -1,7 +1,7 @@
 ---
 title: Live UI Testing Without WorkOS Auth Wall
 tags: []
-related: [frontend_ui/chat_page_review_fixes/chat_page_review_fixes.md, frontend_ui/chat_page_scroll_stability/chat_page_scroll_stability.md, auth_integration/workos_authkit_nextjs/callback_base_url_resolution.md]
+related: [frontend_ui/chat_page_review_fixes/chat_page_review_fixes.md, frontend_ui/chat_page_scroll_stability/chat_page_scroll_stability.md, auth_integration/workos_authkit_nextjs/callback_base_url_resolution.md, frontend_ui/proxy_handling/web_theme_persistence.md, frontend_ui/design_system/document_of_record_design_language.md, frontend_ui/message_persistence_parsing/quiet_citation_styling_in_messagelist.md, frontend_ui/chat_streaming_error_handling/ai_sdk_v6_sse_streaming_and_error_handling.md, frontend_ui/chat_page_thread_cache/chat_page_thread_cache_restoration.md, frontend_ui/thread_sidebar/thread_sidebar_fetch_resilience.md, frontend_ui/message_feedback/message_feedback_flow.md, frontend_ui/live_testing/live_testing_without_the_workos_wall.md]
 keywords: []
 importance: 50
 recency: 1

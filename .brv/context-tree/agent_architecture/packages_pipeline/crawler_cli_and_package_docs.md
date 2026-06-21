@@ -2,7 +2,7 @@
 title: Crawler CLI and Package Docs
 summary: The crawler package exposes commands through src/index.ts and keeps npm shortcuts for crawl, check, and stats; its README points to a design spec in docs/superpowers/specs.
 tags: []
-related: []
+related: [agent_architecture/local_dev_setup/env_consolidation/repository_doc_audit_findings.md, agent_architecture/packages_pipeline/ssa_parser_subsection_splitting_fix.md, agent_architecture/packages_pipeline/context.md]
 keywords: []
 createdAt: '2026-06-20T02:08:40.998Z'
 updatedAt: '2026-06-20T02:08:40.998Z'

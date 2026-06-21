@@ -2,7 +2,7 @@
 title: CI Workflow Concurrency and Test Gates
 summary: CI workflow uses branch-safe concurrency, runs JS/Python/Neo4j tests, and includes a separate Docker build gate for production image validation.
 tags: []
-related: [agent_architecture/local_dev_setup/local_development_setup.md, auth_integration/workos_authkit_nextjs/context.md, database_operations/neo4j_auth/context.md]
+related: [agent_architecture/local_dev_setup/local_development_setup.md, auth_integration/workos_authkit_nextjs/context.md, database_operations/neo4j_auth/context.md, agent_architecture/local_dev_setup/documentation_pass_convention.md, agent_architecture/local_dev_setup/env_consolidation/repository_doc_audit_findings.md]
 keywords: []
 createdAt: '2026-06-13T03:57:10.520Z'
 updatedAt: '2026-06-13T03:57:10.520Z'

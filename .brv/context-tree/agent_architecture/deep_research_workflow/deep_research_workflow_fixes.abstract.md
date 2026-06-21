@@ -1,0 +1,1 @@
+Deep research workers now force a final cited summary before exhausting their tool budget, and report verification uses deterministic URL grounding instead of a hallucination-prone chat verifier.

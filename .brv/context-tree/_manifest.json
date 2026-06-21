@@ -3,7 +3,13 @@
     {
       "order": 2,
       "path": "agent_architecture/_index.md",
-      "tokens": 1934,
+      "tokens": 1377,
+      "type": "summary"
+    },
+    {
+      "order": 2,
+      "path": "amendment_detection/_index.md",
+      "tokens": 527,
       "type": "summary"
     },
     {
@@ -15,7 +21,7 @@
     {
       "importance": 50,
       "path": "agent_architecture/context/context.md",
-      "tokens": 95,
+      "tokens": 111,
       "type": "context"
     },
     {
@@ -49,19 +55,27 @@
       "type": "context"
     },
     {
+      "abstractPath": "agent_architecture/deep_research_workflow/deep_research_workflow.abstract.md",
+      "abstractTokens": 56,
+      "importance": 50,
+      "path": "agent_architecture/deep_research_workflow/deep_research_workflow.md",
+      "tokens": 56,
+      "type": "context"
+    },
+    {
+      "abstractPath": "agent_architecture/deep_research_workflow/deep_research_workflow_fixes.abstract.md",
+      "abstractTokens": 49,
+      "importance": 50,
+      "path": "agent_architecture/deep_research_workflow/deep_research_workflow_fixes.md",
+      "tokens": 49,
+      "type": "context"
+    },
+    {
       "abstractPath": "agent_architecture/local_dev_setup/ci_workflow_concurrency_and_test_gates.abstract.md",
       "abstractTokens": 49,
       "importance": 50,
       "path": "agent_architecture/local_dev_setup/ci_workflow_concurrency_and_test_gates.md",
       "tokens": 49,
-      "type": "context"
-    },
-    {
-      "abstractPath": "agent_architecture/local_dev_setup/documentation_pass_convention.abstract.md",
-      "abstractTokens": 48,
-      "importance": 50,
-      "path": "agent_architecture/local_dev_setup/documentation_pass_convention.md",
-      "tokens": 48,
       "type": "context"
     },
     {
@@ -81,7 +95,7 @@
     {
       "importance": 50,
       "path": "agent_architecture/local_dev_setup/local_development_setup.md",
-      "tokens": 201,
+      "tokens": 240,
       "type": "context"
     },
     {
@@ -135,7 +149,7 @@
     {
       "importance": 50,
       "path": "agent_architecture/packages_pipeline/context.md",
-      "tokens": 88,
+      "tokens": 105,
       "type": "context"
     },
     {
@@ -171,32 +185,18 @@
       "type": "context"
     },
     {
-      "importance": 50,
-      "path": "amendment_detection/context.md",
-      "tokens": 118,
-      "type": "context"
-    },
-    {
-      "abstractPath": "database_operations/neo4j_auth/production_neo4j_federal_data_refresh.abstract.md",
-      "abstractTokens": 36,
-      "importance": 50,
-      "path": "database_operations/neo4j_auth/production_neo4j_federal_data_refresh.md",
-      "tokens": 36,
-      "type": "context"
-    },
-    {
       "path": "_archived/README.stub.md",
       "tokens": 104,
       "type": "stub"
     }
   ],
-  "generated_at": "2026-06-20T03:01:41.114Z",
+  "generated_at": "2026-06-20T21:08:14.238Z",
   "lane_tokens": {
-    "contexts": 3993,
+    "contexts": 3968,
     "stubs": 104,
-    "summaries": 1934
+    "summaries": 1904
   },
-  "source_fingerprint": "7c3bb77850ddd040bbc26a098ee264fd665b01cf6c241a40410374194362f761",
-  "total_tokens": 6031,
+  "source_fingerprint": "f860fdef4789726587d6f840e628678da322429a839a0d1ed8eb562ac3870713",
+  "total_tokens": 5976,
   "version": 1
 }

@@ -1,0 +1,7 @@
+- Deep research worker synthesis was fixed by adding an onIterationComplete guard that forces a final cited summary when the worker is near its step limit and otherwise might end with empty tool-call-only output.
+- The worker budget was increased from WORKER_MAX_STEPS 12 to 16 to reduce premature exhaustion during research.
+- Report verification changed from a chat-tuned hallucination verifier to deterministic URL grounding via validateAnswerUrls(reportMarkdown, sources), making citation checking source-backed and reproducible.
+- Report agent instructions were strengthened to require ATX headings and to avoid asking the user for more input or permission.
+- The workflow now follows a clearer sequence: planner -> worker research -> forced synthesis near step limit -> report synthesis -> deterministic citation grounding -> completion.
+- Notable implementation details include OnIterationCompleteHandler from @mastra/core/agent, the hallucination-verifier helper validateAnswerUrls, and a live run result showing 82/82 citations grounded with 0 fabricated.
+- A behavioral note calls out that gpt-5-mini tends to produce flatter bullets and over-claim more often, while the default DEEP_RESEARCH_MODEL is gpt-5.4.

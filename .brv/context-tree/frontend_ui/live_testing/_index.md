@@ -1,62 +1,58 @@
 ---
-children_hash: 5a81faf385434d701e6183ccad02f0c8c5e49b4e2ec1e0f29d7c9ab5d7a0133c
-compression_ratio: 0.6412556053811659
+children_hash: a7fcf2f7ab581fc03e5c84928f6452ec9a6f3ad3b505cec7e1eeecda62c989cb
+compression_ratio: 0.7105517909002904
 condensation_order: 1
 covers: [live_testing_without_the_workos_wall.md]
-covers_token_total: 892
+covers_token_total: 1033
 summary_level: d1
-token_count: 572
+token_count: 734
 type: summary
 ---
-# Frontend UI Live Testing Paths
+# Live Testing Without the WorkOS Wall
 
-This set of notes defines two complementary ways to live-test the web UI without depending on the WorkOS auth wall or a live backend. See **live_testing_without_the_workos_wall.md** for the full breakdown.
+This entry documents two complementary ways to live-test the web UI without requiring full production auth or backend availability. The design splits fast component iteration from wired-app validation, and explicitly avoids an env-gated auth bypass in `proxy.ts`.
 
-## Core validation paths
+## Primary paths
 
-- **`/preview` dev gallery**: a dev-only component gallery for isolated UI iteration against fixture data.
-- **Playwright design project**: an opt-in test project that exercises the real **`/chat`** route while mocking backend responses and capturing screenshots for review.
+### `live_testing_without_the_workos_wall.md`
+- **Purpose:** Compare two local testing approaches for the web UI:
+  1. a dev-only `/preview` component gallery
+  2. an opt-in Playwright **design** project that screenshots the real `/chat` route with backend mocking
+- **Core flow:** `/preview` for isolated component rendering → Playwright design project for the actual wired app → mocked backend responses → PNG capture for review
+- **Key rule:** prefer `/preview` for quick visual iteration; use the Playwright design project when streaming, sidebar behavior, or citations need to be validated in the real app
+- **Notable constraint:** no auth-bypass flag was added to `proxy.ts`
 
-## Key structural decisions
+## Structural overview
 
-- The team **did not add an env-gated auth bypass to `proxy.ts`**.
-- Instead, they split validation into:
-  - fast component-level work in `/preview`
-  - end-to-end visual verification in the Playwright design project when wiring matters
+### `/preview` path
+- Dev-only component gallery for rendering real UI components against fixtures
+- No auth wall and no backend dependency
+- Protected from production use by a `NODE_ENV`-based 404 gate
+- Listed in `proxy.ts` unauthenticated paths so it works in development without a login round-trip
+- Best for fast, isolated UI work and theme toggling
 
-## `/preview` route behavior
+### Playwright `design` project
+- Runs against the real `/chat` route
+- Uses a minted WorkOS test-user cookie via `storageState`
+- Intercepts Mastra/Neo4j backend calls through `mockMastraAPI`
+- Produces screenshots for light and dark themes
+- Intended for validating the fully wired UI, especially streaming and citations
+- Outputs PNGs to `e2e/design-shots/`, which is gitignored
 
-- File references:
-  - `packages/web/src/app/preview/page.tsx`
-  - `packages/web/src/app/preview/gallery.tsx`
-- It is reachable in development without a login round-trip because it is listed in `proxy.ts` unauthenticated paths.
-- It is protected in production by a `NODE_ENV` 404 gate.
-- It depends only on fixture data and an in-page light/dark toggle.
+## Dependencies and setup signals
+- Requires `auth.setup.ts` to mint the WorkOS test-user cookie
+- Uses `TEST_USER_EMAIL` and `TEST_USER_PASSWORD` from the root `.env`
+- Depends on `e2e/helpers/mock-routes.ts` for backend mocking
+- Playwright config is in `e2e/playwright.config.ts`
+- Screenshot command is `npx playwright test --project=design`
 
-## Playwright design project behavior
-
-- File references:
-  - `e2e/tests/design/screenshots.shots.ts`
-  - `e2e/playwright.config.ts`
-  - `e2e/helpers/mock-routes.ts`
-- It runs the actual **`/chat`** UI with a real WorkOS test-user cookie via `storageState`.
-- It intercepts the backend with `mockMastraAPI`, so no agent or database is required.
-- It writes PNG screenshots to **`e2e/design-shots/`**, which is gitignored.
-- It sets a theme cookie per run to produce both light and dark screenshots.
-
-## Dependencies and inputs
-
-- The Playwright path depends on:
-  - `auth.setup.ts` for minting the WorkOS test-user cookie
-  - root `.env` values:
-    - `TEST_USER_EMAIL`
-    - `TEST_USER_PASSWORD`
-  - `mockMastraAPI` for backend interception
-- The preview path depends only on fixtures and local UI rendering.
-
-## Operational guidance
-
-- Use **`/preview`** for fast visual iteration.
-- Use the **Playwright design project** when you need to validate streaming, sidebar behavior, or citations in the fully wired app.
-- The design project command is:
-  - `npx playwright test --project=design`
+## Drill-down references
+- `live_testing_without_the_workos_wall.md` — overall strategy, rules, and tradeoffs
+- `frontend_ui/context.md` — broader UI context
+- `auth_integration/context.md` — auth/test-user setup background
+- `frontend_ui/chat_streaming_error_handling/ai_sdk_v6_sse_streaming_and_error_handling.md` — streaming-related validation
+- `frontend_ui/chat_page_thread_cache/chat_page_thread_cache_restoration.md` — chat state/cache behavior
+- `frontend_ui/message_persistence_parsing/quiet_citation_styling_in_messagelist.md` — citation rendering details
+- `frontend_ui/message_feedback/message_feedback_flow.md` — feedback UI flow
+- `frontend_ui/proxy_handling/web_theme_persistence.md` — theme persistence behavior
+- `frontend_ui/design_system/document_of_record_design_language.md` — design system context

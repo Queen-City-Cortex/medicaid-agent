@@ -1,5 +1,5 @@
 ---
-related: [agent_architecture/packages_pipeline/ssa_parser_subsection_splitting_fix.md]
+related: [agent_architecture/packages_pipeline/ssa_parser_subsection_splitting_fix.md, agent_architecture/packages_pipeline/crawler_cli_and_package_docs.md]
 ---
 # Topic: packages_pipeline
 

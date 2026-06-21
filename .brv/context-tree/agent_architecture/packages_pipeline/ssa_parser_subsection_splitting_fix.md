@@ -2,7 +2,7 @@
 title: SSA Parser Subsection Splitting Fix
 summary: SSA parser now splits only top-level lettered subsections from large USC statute sections, preserves parent text, and skips nested roman numeral markers unless they match the strict expected sequence.
 tags: []
-related: [database_operations/neo4j_hybrid_search/neo4j_hybrid_search_indexing.md, agent_architecture/packages_pipeline/context.md]
+related: [database_operations/neo4j_hybrid_search/neo4j_hybrid_search_indexing.md, agent_architecture/packages_pipeline/context.md, agent_architecture/packages_pipeline/crawler_cli_and_package_docs.md]
 keywords: []
 createdAt: '2026-06-12T22:36:44.082Z'
 updatedAt: '2026-06-12T22:36:44.082Z'

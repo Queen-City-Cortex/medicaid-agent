@@ -1,0 +1,8 @@
+- DeepResearchWorkflow is a Mastra vNext pipeline for deep research, combining planning, human-in-the-loop approval, parallel research, bounded reflection, synthesis, and verification.
+- The main flow is: plan -> plan-approval suspend/resume -> research fan-out -> bounded reflection -> synthesize -> verify.
+- The planner produces a brief and sub-questions, which are sent to a step-keyed suspension payload for human review before research continues.
+- Research uses parallel fan-out over sub-questions and applies novelty-based stopping / bounded reflection to limit unnecessary iteration.
+- The synthesis step produces a cited markdown report, and the verification step can score or rewrite the result against sources.
+- Client-side code was updated to handle multiple suspend/resume payload shapes, and the CLI supports unattended deep research runs with auto-approval.
+- Notable implementation details include Mastra vNext typings, `agent.generate` returning `FullOutput`, `writer.write` requiring `await`, and workflow suspend payloads being keyed by step ID.
+- Example usage shown: `npx tsx src/index.ts --deep-research "question"`; approval resumes with `{ approved: true, editedSubQuestions?: [...] }`, decline with `{ approved: false }`.

@@ -1,46 +1,22 @@
 {
-  "curationsSinceDream": 10,
-  "lastDreamAt": "2026-06-19T16:51:44.521Z",
-  "lastDreamLogId": "drm-1781887724986",
+  "curationsSinceDream": 3,
+  "lastDreamAt": "2026-06-20T18:46:50.775Z",
+  "lastDreamLogId": "drm-1781980901996",
   "pendingMerges": [],
   "staleSummaryPaths": [
     {
-      "enqueuedAt": 1781889010742,
-      "path": "facts/project/curated_context_snippet.md"
+      "enqueuedAt": 1781986230948,
+      "path": "agent_architecture/deep_research_workflow/deep_research_workflow.md"
     },
     {
-      "enqueuedAt": 1781891319010,
-      "path": "packages/policy_corpus/rerank_scoring/rerank_scoring_refactor.md"
+      "enqueuedAt": 1781987812121,
+      "path": "agent_architecture/deep_research_workflow/deep_research_workflow_fixes.md"
     },
     {
-      "enqueuedAt": 1781891763433,
-      "path": "frontend_ui/chat_page_thread_cache/chat_page_thread_cache_restoration.md"
-    },
-    {
-      "enqueuedAt": 1781891763433,
-      "path": "frontend_ui/chat_streaming_error_handling/ai_sdk_v6_sse_streaming_and_error_handling.md"
-    },
-    {
-      "enqueuedAt": 1781891763433,
-      "path": "frontend_ui/message_feedback/message_feedback_flow.md"
-    },
-    {
-      "enqueuedAt": 1781891763433,
-      "path": "frontend_ui/thread_sidebar/thread_sidebar_fetch_resilience.md"
-    },
-    {
-      "enqueuedAt": 1781917210752,
-      "path": "agent_architecture/context/curated_context_extraction_notes.md"
-    },
-    {
-      "enqueuedAt": 1781917294907,
-      "path": "frontend_ui/design_system/document_of_record_design_language.md"
-    },
-    {
-      "enqueuedAt": 1781919877175,
-      "path": "frontend_ui/message_persistence_parsing/quiet_citation_styling_in_messagelist.md"
+      "enqueuedAt": 1781989694211,
+      "path": "facts/conventions/curation_workflow_guardrails.md"
     }
   ],
-  "totalDreams": 7,
+  "totalDreams": 8,
   "version": 1
 }
