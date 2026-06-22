@@ -86,31 +86,3 @@ def fetch_part_xml(title: int, part: int, refresh: bool = False) -> str:
     time.sleep(1)
 
     return xml_text
-
-
-def fetch_structure(title: int, part: int, refresh: bool = False) -> str:
-    """
-    Fetch the structure JSON for a CFR part from the eCFR API.
-
-    Used to get TOC and section titles. Returns the JSON text.
-    The structure endpoint accepts "current" so no date lookup is needed.
-    """
-    cache = _cache_path(title, part, ".json")
-
-    if not refresh and _is_cache_fresh(cache):
-        return cache.read_text(encoding="utf-8")
-
-    url = f"{ECFR_API_BASE}/structure/current/title-{title}.json?part={part}"
-    console.print(f"  Fetching structure {url}...")
-
-    ECFR_CACHE_DIR.mkdir(parents=True, exist_ok=True)
-
-    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(req, timeout=60) as response:
-        json_text = response.read().decode("utf-8")
-
-    cache.write_text(json_text, encoding="utf-8")
-
-    time.sleep(1)
-
-    return json_text

@@ -31,21 +31,6 @@ _DHHS_CHANGE_NOTICE_RE = re.compile(
 )
 
 
-def walk_docling_document(doc_dict: dict) -> list[dict]:
-    """
-    Walk a Docling document dict and extract raw items.
-
-    Returns a list of item dicts with label and text.
-    """
-    doc = DoclingDocument.model_validate(doc_dict)
-    items = []
-    for item, level in doc.iterate_items():
-        label = getattr(item, "label", None)
-        text = getattr(item, "text", "") or ""
-        items.append({"label": label, "text": text, "level": level, "item": item})
-    return items
-
-
 def build_sections_from_items(doc_dict: dict, document_id: str) -> list[dict]:
     """
     Walk a Docling document dict and extract sections with content.

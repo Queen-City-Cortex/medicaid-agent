@@ -321,16 +321,6 @@ def _invoke_agent_with_progress(question: str, progress_label: str | None = None
     return result, None, None, None  # type: ignore[return-value]
 
 
-def _fetch_evidence_texts(primary_sections: list[dict]) -> list[str]:
-    """Fetch content for the given section IDs from Neo4j (legacy shape).
-
-    Kept for the ``--legacy-evidence`` code path. For the default path use
-    ``_fetch_evidence_sections`` which preserves section ids so the evidence
-    bundle builder can dedupe against agent-sourced getSection reads.
-    """
-    return [s["text"] for s in _fetch_evidence_sections(primary_sections)]
-
-
 def _fetch_evidence_sections(primary_sections: list[dict]) -> list[dict]:
     """Fetch ``{section_id, text}`` pairs for the given section IDs from Neo4j.
 
