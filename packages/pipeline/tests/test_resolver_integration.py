@@ -199,7 +199,6 @@ def test_resolve_reference_across_mixed_corpora():
             start=4,
             end=32,
         ),
-        source_section_id=SOURCE_SECTION_ID,
         source_document_id=SOURCE_DOC_ID,
     )
     contextual_section = resolve_reference(
@@ -210,7 +209,6 @@ def test_resolve_reference_across_mixed_corpora():
             start=34,
             end=45,
         ),
-        source_section_id=SOURCE_SECTION_ID,
         source_document_id=SOURCE_DOC_ID,
         preferred_document_id=CLINICAL_DOC_ID,
     )
@@ -222,7 +220,6 @@ def test_resolve_reference_across_mixed_corpora():
             start=71,
             end=85,
         ),
-        source_section_id=SOURCE_SECTION_ID,
         source_document_id=SOURCE_DOC_ID,
     )
     ssa_section = resolve_reference(
@@ -233,7 +230,6 @@ def test_resolve_reference_across_mixed_corpora():
             start=90,
             end=102,
         ),
-        source_section_id=SOURCE_SECTION_ID,
         source_document_id=SOURCE_DOC_ID,
     )
     spa = resolve_reference(
@@ -244,7 +240,6 @@ def test_resolve_reference_across_mixed_corpora():
             start=114,
             end=125,
         ),
-        source_section_id=SOURCE_SECTION_ID,
         source_document_id=SOURCE_DOC_ID,
     )
 

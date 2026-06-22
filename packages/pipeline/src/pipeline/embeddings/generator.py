@@ -225,11 +225,3 @@ def embed_all(model: str | None = None) -> dict:
         _flush_batch(model, batch_ids, batch_texts, batch_kinds, stats)
 
     return stats
-
-
-def _store_embeddings(section_ids: list[str], embeddings: list[list[float]]):
-    """Write embeddings back to Neo4j Section nodes (legacy helper)."""
-    with get_session() as session:
-        rows = [{"id": sid, "embedding": emb} for sid, emb in zip(section_ids, embeddings)]
-        for batch in chunked(rows, EMBED_WRITE_BATCH_SIZE):
-            session.run(queries.SET_SECTION_EMBEDDINGS_BATCH, {"rows": batch})

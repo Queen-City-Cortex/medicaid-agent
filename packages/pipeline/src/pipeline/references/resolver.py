@@ -124,7 +124,6 @@ def parse_cfr_citation(text: str) -> dict | None:
 
 def resolve_reference(
     ref: ReferenceMatch,
-    source_section_id: str,
     source_document_id: str,
     preferred_document_id: str | None = None,
 ) -> dict:
@@ -367,7 +366,6 @@ def _resolve_reference_edge(
     """Resolve a single reference and return the edge payload if successful."""
     resolution = resolution or resolve_reference(
         ref,
-        section_id,
         document_id,
         preferred_document_id=preferred_document_id,
     )
@@ -465,7 +463,7 @@ def extract_and_resolve_all(llm_assist: bool = False) -> dict:
         contextual_documents: dict[int, str] = {}
         for ref_index, ref in enumerate(refs):
             if ref.ref_type in _CONTEXTUAL_DOCUMENT_REF_TYPES:
-                resolution = resolve_reference(ref, section_id, document_id)
+                resolution = resolve_reference(ref, document_id)
                 precomputed_resolutions[ref_index] = resolution
                 if resolution["resolved"] and resolution["target_type"] == "document":
                     contextual_documents[ref_index] = resolution["target_node_id"]

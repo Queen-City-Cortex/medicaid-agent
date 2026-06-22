@@ -49,7 +49,6 @@ def test_resolve_reference_uses_normalized_policy_number_fallback(monkeypatch):
             start=0,
             end=27,
         ),
-        source_section_id="sec:source",
         source_document_id="doc:source",
     )
 
@@ -84,7 +83,6 @@ def test_resolve_reference_resolves_spa_documents(monkeypatch):
             start=0,
             end=11,
         ),
-        source_section_id="sec:source",
         source_document_id="doc:source",
     )
 
@@ -122,7 +120,6 @@ def test_resolve_reference_uses_attachment_title_fallback(monkeypatch):
             start=0,
             end=12,
         ),
-        source_section_id="sec:source",
         source_document_id="doc:source",
     )
 
@@ -169,7 +166,7 @@ def test_extract_and_resolve_all_batches_edges_through_graph_writer(monkeypatch,
     monkeypatch.setattr(
         resolver,
         "resolve_reference",
-        lambda ref, source_section_id, source_document_id: {
+        lambda ref, source_document_id: {
             "resolved": True,
             "target_node_id": "doc:8c",
             "target_type": "document",
