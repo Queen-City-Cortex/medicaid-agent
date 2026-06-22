@@ -1,21 +1,17 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": ["tsconfig.json"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
       "outputs": ["dist/**", ".next/**", "!.next/cache/**"],
       "env": ["NEXT_PUBLIC_*", "NODE_ENV"]
     },
-    "test": {
-      "dependsOn": ["^build"]
-    },
+    "test": {},
     "test:coverage": {
-      "dependsOn": ["^build"],
       "outputs": ["coverage/**"]
     },
     "lint": {},
-    "typecheck:tests": {
-      "dependsOn": ["^build"]
-    }
+    "typecheck:tests": {}
   }
 }
