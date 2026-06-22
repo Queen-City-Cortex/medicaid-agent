@@ -5,8 +5,7 @@
   "description": "Document parsing pipeline for NC Medicaid policy documents",
   "scripts": {
     "test": ".venv/bin/python -m pytest tests/ -v",
-    "lint": ".venv/bin/ruff check src/",
-    "lint:dead": ".venv/bin/vulture src vulture_whitelist.py",
+    "lint": ".venv/bin/ruff check src/ && .venv/bin/vulture src vulture_whitelist.py",
     "setup": "python3 -m venv .venv && .venv/bin/pip install -e '.[dev]'"
   }
 }
