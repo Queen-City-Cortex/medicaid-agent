@@ -1,5 +1,4 @@
-import pytest
-from pipeline.references.extractor import extract_references, ReferenceMatch
+from pipeline.references.extractor import extract_references
 
 
 class TestExtractReferences:

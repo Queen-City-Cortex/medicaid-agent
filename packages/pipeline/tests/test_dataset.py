@@ -1,8 +1,6 @@
 """Test golden dataset loader and validator."""
 
 import json
-import pytest
-from pathlib import Path
 from pipeline.eval.dataset import load_dataset, validate_dataset, filter_dataset
 
 

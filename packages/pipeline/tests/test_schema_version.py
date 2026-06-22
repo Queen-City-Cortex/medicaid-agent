@@ -2,9 +2,7 @@
 
 import json
 from contextlib import contextmanager
-from pathlib import Path
 
-import pytest
 
 from pipeline.graph import schema_version as sv
 

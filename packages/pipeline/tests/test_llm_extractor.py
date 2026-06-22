@@ -1,9 +1,8 @@
 """Tests for LLM-based cross-reference extraction."""
 
 import json
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
-import pytest
 
 from pipeline.references.llm_extractor import (
     _build_document_catalog,
@@ -12,7 +11,6 @@ from pipeline.references.llm_extractor import (
     _raw_to_reference_matches,
     extract_references_llm,
 )
-from pipeline.references.extractor import ReferenceMatch
 
 
 SAMPLE_CATALOG = [

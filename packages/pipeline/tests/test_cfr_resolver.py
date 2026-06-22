@@ -1,6 +1,5 @@
 """Test CFR citation parsing and normalization."""
 
-import pytest
 from pipeline.references.resolver import parse_cfr_citation
 
 

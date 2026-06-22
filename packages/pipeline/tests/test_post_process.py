@@ -1,4 +1,3 @@
-import pytest
 from pipeline.parse.post_process import extract_section_number, infer_level_from_number
 
 

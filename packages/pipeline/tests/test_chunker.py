@@ -1,6 +1,5 @@
 """Tests for text chunking logic."""
 
-import pytest
 from pipeline.embeddings.chunker import chunk_text
 
 
