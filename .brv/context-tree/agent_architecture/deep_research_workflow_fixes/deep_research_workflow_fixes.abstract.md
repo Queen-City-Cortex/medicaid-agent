@@ -1,0 +1,1 @@
+Deep Research Workflow Fixes documents PR #17’s merged fixes for OpenAI o1 routing, immediate cancelled-state handling on decline, and human-readable corpus source labels.

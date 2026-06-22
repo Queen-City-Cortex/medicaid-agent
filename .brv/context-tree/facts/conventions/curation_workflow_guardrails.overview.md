@@ -1,7 +1,0 @@
-- Captures curation execution constraints for RLM-based context processing, emphasizing recon-first workflow and verification rules.
-- Key guardrails: use recon before extraction when assessing curatable context, prefer single-pass curation when recon recommends it, and never print raw context during curation.
-- Verification must be done through applied write results, specifically `result.applied[].filePath`, not by rereading files.
-- Explicit flow is `recon -> extraction -> curate -> verify`, with a note that this context is intended to be handled in a single pass.
-- Additional rules include: do not call `tools.curation.recon` if recon is already computed, use `tools.curation.mapExtract()` for chunked extraction, and pass `taskId` as a bare variable rather than a string.
-- Structure is organized into metadata, Reason, Raw Concept, Narrative, Dependencies, Highlights, and Rules sections.
-- Notable entities and patterns: `context/history/metadata` variables, `result.applied[].filePath`, `tools.curation.mapExtract()`, and the prohibition on `readFile` for verification.

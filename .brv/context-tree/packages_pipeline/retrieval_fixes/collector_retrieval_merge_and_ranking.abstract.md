@@ -1,0 +1,1 @@
+This document summarizes tests and behavior for collector retrieval merging and ranking, covering merge-max semantics, fulltext recovery, and topK finalization.

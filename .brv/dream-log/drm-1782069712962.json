@@ -1,0 +1,92 @@
+{
+  "completedAt": 1782069908200,
+  "id": "drm-1782069712962",
+  "operations": [
+    {
+      "action": "MERGE",
+      "inputFiles": [
+        "facts/conventions/curation_workflow_guardrails.md",
+        "facts/conventions/curation_workflow_guardrails.abstract.md",
+        "facts/conventions/curation_workflow_guardrails.overview.md"
+      ],
+      "needsReview": true,
+      "outputFile": "facts/conventions/curation_workflow_guardrails.md",
+      "previousTexts": {
+        "facts/conventions/curation_workflow_guardrails.md": "---\ntitle: Curation Workflow Guardrails\nsummary: Curation workflow guardrails covering RLM approach, single-pass recon guidance, mapExtract usage, context quality requirements, preservation rules, and verification expectations.\ntags: []\nrelated: [facts/project/curated_context_snippet.md]\nkeywords: []\ncreatedAt: '2026-06-20T21:08:14.201Z'\nupdatedAt: '2026-06-21T19:06:45.216Z'\n---\n## Reason\nCapture durable curation workflow rules and constraints from the provided context\n\n## Raw Concept\n**Task:**\nCurate curation workflow guardrails and RLM approach expectations\n\n**Changes:**\n- Use recon before extraction when assessing curatable context\n- Prefer single-pass curation when recon recommends it\n- Do not print raw context during curation\n- Verify applied writes using result.applied[].filePath\n- Recorded verification and extraction conventions\n- Documented single-pass guidance for precomputed recon results\n- Captured chunked extraction requirements for mapExtract\n- Recorded verification and content preservation constraints\n\n**Files:**\n- .brv/context-tree/facts/conventions/curation_workflow_guardrails.md\n\n**Flow:**\nrecon -> choose single-pass or chunked extraction -> curate -> verify via applied file paths\n\n**Timestamp:** 2026-06-21T19:06:31.605Z\n\n**Author:** ByteRover context engineer\n\n## Narrative\n### Structure\nThese guardrails define how curation should be executed, including the required sandbox variable usage, extraction path selection, and post-curation verification steps.\n\n### Dependencies\nDepends on precomputed recon data, tools.curation.mapExtract for chunked contexts, and tools.curate for UPSERT-based persistence.\n\n### Highlights\nThe context explicitly says not to print raw context, not to call tools.curation.recon again, and to proceed directly to extraction. It also emphasizes preserving exact rules, patterns, and all enumerated items.\n\n### Rules\nDo NOT print raw context. Do NOT call tools.curation.recon — it has been pre-computed. Proceed directly to extraction. For chunked extraction use tools.curation.mapExtract(). Pass taskId as a bare variable, not a string. IMPORTANT: Any code_exec call containing mapExtract MUST use timeout: 300000 on the code_exec tool call itself (not inside mapExtract options). Verify via result.applied[].filePath — do NOT call readFile for verification.\n\n### Examples\nUse recon metadata to decide single-pass handling when suggestedMode is single-pass. In verification, inspect applied file paths instead of re-reading files.\n\n## Facts\n- **curation_rlm_approach**: Curation tasks use the RLM approach with context, history, metadata, and task ID variables. [convention]\n- **single_pass_mode**: When recon is already computed and suggestedMode is single-pass, chunking should be skipped. [convention]\n- **map_extract_task_id**: For chunked extraction, tools.curation.mapExtract() should be used with the taskId passed as a bare variable. [convention]\n- **map_extract_timeout**: Code_exec calls containing mapExtract must use timeout: 300000 on the tool call itself. [convention]\n- **verification_method**: Verification for curation should use result.applied[].filePath and not readFile. [convention]\n- **context_quality_requirements**: Context quality requires a clear task, at least one of changes/files/flow, at least one narrative field, and minimum 2-4 sentences per context. [convention]\n- **content_preservation_rules**: When curation content includes rules or patterns, exact rule text and regex patterns must be preserved verbatim. [convention]\n- **upsert_preference**: UPSERT is the preferred curation operation because it auto-detects add versus update. [convention]\n",
+        "facts/conventions/curation_workflow_guardrails.abstract.md": "This document defines curation workflow guardrails: use precomputed recon, prefer single-pass when suggested, preserve exact content, use mapExtract for chunked cases, and verify writes via applied file paths.",
+        "facts/conventions/curation_workflow_guardrails.overview.md": "- Defines curation workflow guardrails for the RLM approach, emphasizing use of context/history/metadata/task ID variables and durable workflow rules.\n- Core flow is: use precomputed recon data, then choose single-pass or chunked extraction, curate, and verify using applied file paths.\n- Strong prohibitions include: do not print raw context, do not re-run `tools.curation.recon`, and do not use `readFile` for verification.\n- For chunked contexts, use `tools.curation.mapExtract()` with `taskId` passed as a bare variable, and ensure any `code_exec` call containing `mapExtract` has `timeout: 300000` on the outer tool call.\n- Verification must inspect `result.applied[].filePath`; UPSERT is preferred because it auto-detects add vs update.\n- Context quality requirements are explicit: include a clear task, at least one of changes/files/flow, at least one narrative field, and 2–4 sentences per context.\n- Content preservation rules require exact retention of rule text and regex patterns when curation content includes them.\n- Sections summarize purpose/reason, raw concept, narrative, rules, examples, and a facts list capturing specific conventions and decisions."
+      },
+      "reason": "These three files describe the same curation workflow guardrails topic at different fidelity levels. The main markdown file already contains the full durable content, while the abstract and overview are condensed summaries of the same material, so they are redundant and should be consolidated.",
+      "type": "CONSOLIDATE"
+    },
+    {
+      "action": "MERGE",
+      "inputFiles": [
+        "agent_architecture/deep_research_workflow_fixes/deep_research_workflow_fixes.md",
+        "agent_architecture/deep_research_workflow/deep_research_workflow_fixes.md"
+      ],
+      "needsReview": true,
+      "outputFile": "agent_architecture/deep_research_workflow/deep_research_workflow_fixes.md",
+      "previousTexts": {
+        "agent_architecture/deep_research_workflow_fixes/deep_research_workflow_fixes.md": "---\ntitle: Deep Research Workflow Fixes\nsummary: 'PR #17 merged as c61709f fixed OpenAI o1 routing, immediate cancelled state on decline, and human-readable corpus source labels in deep research verification.'\ntags: []\nrelated: [agent_architecture/context/context.md, frontend_ui/chat_page_transport/authenticated_chat_transport_reinitialization.md, agent_architecture/nc_medicaid_agent/startup_and_web_ui_hardening.md]\nkeywords: []\ncreatedAt: '2026-06-21T05:39:51.447Z'\nupdatedAt: '2026-06-21T05:39:51.447Z'\n---\n## Reason\nDocument merged PR #17 review fixes for deep research behavior and source labeling\n\n## Raw Concept\n**Task:**\nDocument the Deep Research feature review fixes that were applied after greptile PR review.\n\n**Changes:**\n- Added o1 model-prefix routing to OpenAI in createModel\n- Changed decline() to mark cancelled immediately\n- Introduced sourceLabel(SourceEntry) for readable corpus source labels\n\n**Files:**\n- packages/agent/src/model.ts\n- packages/web/src/lib/use-deep-research.ts\n- packages/agent/src/deep-research/workflow.ts\n\n**Flow:**\nreview -> code update -> merged to main -> verification of model routing, cancel UX, and source label formatting\n\n**Timestamp:** 2026-06-21T05:39:24.565Z\n\n**Author:** greptile PR review\n\n## Narrative\n### Structure\nThe review touches three separate code paths: agent model selection, browser deep-research state transitions, and workflow verification output.\n\n### Dependencies\nModel routing depends on matching provider prefixes correctly; cancel handling depends on workflow bailout behavior; source labeling depends on parsing serialized evidence text.\n\n### Highlights\nThe key user-visible improvements are that o1 models now route to OpenAI, Cancel no longer flashes the researching phase, and corpus sources appear with policy/section-style labels instead of raw IDs.\n\n### Rules\nOpenAI reasoning models use the o1/o3/o4 prefixes; everything non-OpenAI (claude-*) routes to Anthropic. The decline round-trip just bails the workflow to a cancelled report, so show the cancelled state immediately rather than flashing \"Researching…\". The project forbids exposing raw internal IDs (sec:doc:…) in the UI.\n\n### Examples\nExample label formatting: Policy 5B § 2.3 — Therapeutic Leave.\n\n## Facts\n- **deep_research_pr**: PR #17 was merged to main as c61709f. [project]\n- **model_factory_sharing**: createModel in packages/agent/src/model.ts is shared by both the chat agent and deep-research agents. [project]\n- **openai_model_routing_bug**: OpenAI model routing originally matched gpt-, o3, and o4 prefixes only, which caused o1 models such as o1-mini and o1-preview to route to Anthropic and fail with auth/model-not-found. [project]\n- **openai_model_routing_fix**: The fix added an o1 prefix to the OpenAI branch in createModel. [project]\n- **decline_status_fix**: packages/web/src/lib/use-deep-research.ts decline() now sets status to cancelled immediately instead of researching before awaiting the cancel round-trip. [project]\n- **cancel_ui_flash_fix**: The decline behavior avoids flashing the wrong phase, including spinner and sub-question list, on Cancel. [project]\n- **raw_id_violation**: deep-research/workflow.ts verifyStep previously emitted corpusSources.label as the raw section key, violating the no-raw-IDs rule. [project]\n- **source_label_helper**: The new sourceLabel(SourceEntry) helper parses serialized evidence text with Title, Section, and Policy lines into readable labels such as Policy 5B § 2.3 — Therapeutic Leave. [project]\n- **source_label_fallback**: sourceLabel(SourceEntry) falls back to the source key only when no usable metadata is present. [project]\n",
+        "agent_architecture/deep_research_workflow/deep_research_workflow_fixes.md": "---\ntitle: Deep Research Workflow Fixes\nsummary: Deep research workers now force a final cited summary before tool budget exhaustion, and report verification now uses deterministic URL grounding instead of a chat-tuned hallucination verifier.\ntags: []\nrelated: [agent_architecture/context/curated_operational_knowledge.md, agent_architecture/nc_medicaid_agent/startup_and_web_ui_hardening.md]\nkeywords: []\ncreatedAt: '2026-06-20T20:36:52.089Z'\nupdatedAt: '2026-06-20T20:36:52.089Z'\n---\n## Reason\nDocument fixes to deep-research worker synthesis and citation verification\n\n## Raw Concept\n**Task:**\nDocument deep-research workflow fixes for worker synthesis and citation verification\n\n**Changes:**\n- Added onIterationComplete worker guard to force final summary near tool budget exhaustion\n- Raised WORKER_MAX_STEPS from 12 to 16\n- Replaced chat-tuned verifier with deterministic validateAnswerUrls grounding\n- Strengthened report agent instructions to require ATX headings and avoid asking for more input\n\n**Files:**\n- packages/agent/src/deep-research/workflow.ts\n- packages/agent/src/deep-research/agents.ts\n- packages/agent/src/deep-research/config.ts\n- packages/agent/src/deep-research/schemas.ts\n\n**Flow:**\nplanner -> worker research -> forced synthesis near step limit -> report synthesis -> deterministic citation grounding -> completion\n\n**Timestamp:** 2026-06-20T20:36:23.273Z\n\n## Narrative\n### Structure\nThe workflow step now protects against blank worker outputs by injecting feedback two steps before the worker step limit, and the verification pass now grounds citations against retrieved sources rather than using a long-report hallucination verifier.\n\n### Dependencies\nDepends on @mastra/core/agent for OnIterationCompleteHandler and on the hallucination-verifier helper validateAnswerUrls for deterministic citation checking.\n\n### Highlights\nThe live fix resolved both empty findings from worker agents and verifier miscalibration on 22-23k character reports with many citations.\n\n### Examples\nA worker that reaches iteration WORKER_MAX_STEPS - 2 with finishReason tool-calls is told to stop and write its final cited summary immediately.\n\n## Facts\n- **worker_finish_reason**: The deep-research worker can end with finishReason='tool-calls' and empty text when it spends its entire step budget on tool calls. [project]\n- **worker_iteration_handler**: The worker fix adds onIterationComplete using OnIterationCompleteHandler from @mastra/core/agent. [project]\n- **worker_force_synthesis_rule**: When iteration >= WORKER_MAX_STEPS - 2 and finishReason === tool-calls, the worker receives feedback to write its final cited summary NOW and returns continue: false. [project]\n- **worker_max_steps**: WORKER_MAX_STEPS default was increased from 12 to 16. [project]\n- **verification_strategy**: The deep-research verify step now uses validateAnswerUrls(reportMarkdown, sources) instead of runVerificationForAnswer. [project]\n- **citation_grounding_behavior**: validateAnswerUrls demotes citation URLs not backed by a retrieved source to plain text and counts checked, grounded, and fabricated citations. [project]\n- **report_agent_instructions**: The report agent instructions require ATX headings, never asking the user to paste findings, and never asking for permission. [project]\n- **deep_research_model_behavior**: The default DEEP_RESEARCH_MODEL is gpt-5.4, and gpt-5-mini tends to produce flatter bullet lists and over-claim more often. [project]\n- **verification_result**: The verify step logs 82/82 citations grounded and 0 fabricated in a live gpt-5.4 run. [project]\n- **worker_result**: The worker now returns finishReason stop and a full cited summary after the synthesis guard is added. [project]\n"
+      },
+      "reason": "These two files are redundant topical siblings under deep_research_workflow/deep_research_workflow_fixes and both document PR-driven fixes to the deep research feature. They overlap heavily in subject matter and should be consolidated into a single, richer fixes document that preserves all unique details: worker synthesis/verification fixes, OpenAI o1 routing, cancel-state behavior, and human-readable source labels.",
+      "type": "CONSOLIDATE"
+    },
+    {
+      "action": "CREATE",
+      "confidence": 0.97,
+      "needsReview": false,
+      "outputFile": "frontend_ui/runtime-identity-must-stay-aligned-across-auth-chat-transport-and-thread-cache.md",
+      "sources": [
+        "auth_integration/_index.md",
+        "frontend_ui/_index.md",
+        "agent_architecture/_index.md"
+      ],
+      "type": "SYNTHESIZE"
+    },
+    {
+      "action": "CREATE",
+      "confidence": 0.95,
+      "needsReview": false,
+      "outputFile": "packages/staged-retrieval-is-the-project-s-shared-retrieval-contract.md",
+      "sources": [
+        "packages/_index.md",
+        "agent_architecture/_index.md",
+        "evaluation/_index.md"
+      ],
+      "type": "SYNTHESIZE"
+    },
+    {
+      "action": "CREATE",
+      "confidence": 0.92,
+      "needsReview": false,
+      "outputFile": "auth_integration/runtime-boundary-bugs-cluster-around-deployment-auth-and-database-initialization.md",
+      "sources": [
+        "auth_integration/_index.md",
+        "database_operations/_index.md",
+        "agent_architecture/_index.md"
+      ],
+      "type": "SYNTHESIZE"
+    },
+    {
+      "action": "KEEP",
+      "file": "frontend_ui/scroll_area_sidebar_stability/chat_sidebar_scroll_fix.md",
+      "needsReview": false,
+      "reason": "Contains concrete implementation details for preserving sidebar visibility during chat viewport scrolling, including the overflow-clip change and direct ScrollArea viewport scrolling logic. This is actionable knowledge rather than a placeholder or obsolete draft.",
+      "type": "PRUNE"
+    }
+  ],
+  "startedAt": 1782069712962,
+  "status": "completed",
+  "summary": {
+    "consolidated": 2,
+    "errors": 0,
+    "flaggedForReview": 2,
+    "pruned": 1,
+    "synthesized": 3
+  },
+  "taskId": "a9192ec7-977b-4b2e-b411-d7b3c7b0f997",
+  "trigger": "agent-idle"
+}

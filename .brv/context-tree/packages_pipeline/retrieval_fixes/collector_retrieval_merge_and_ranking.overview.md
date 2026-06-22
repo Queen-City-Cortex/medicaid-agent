@@ -1,0 +1,8 @@
+- Documents regression-test coverage for the policy-corpus retrieval collector, focusing on `collectHybridHitMap` and `finalizeHybridHits`.
+- Core behaviors captured include merge-max semantics, fulltext recovery/boosting, later-stage expansion hooks, and deterministic topK ranking/capping.
+- The collector is described as a stage-ordered merge pipeline: injected stage-1 backends first, then fulltext recovery, then optional change-notice/document-expansion stages, ending with final ranking.
+- Dependencies noted for the main functions include `withSession`, injected `RetrievalBackend` implementations, mocked fulltext backend behavior, and ranking helpers like `computeDocumentCoverageBoosts`, `rerankRetrievalHit`, and `maybeRerankHits`.
+- A key implementation pattern is the `^sectionId$` section-map key used to merge hits per section.
+- Important decisions include silently skipping unknown enabled backends, mocking only the fulltext stage because it issues its own Cypher, and keeping other shared helpers real to exercise actual orchestration.
+- The suite adds 10 tests and locks in deterministic behaviors such as higher-score preference in merges, equal-score tie handling, fulltext-only hit placement, and baseline topK truncation when reranking is absent.
+- Notable entities include `collector.test.ts`, `collector.ts`, `analyzeQuery(query)`, `FULLTEXT_BOOST`, and the `backends` Map used for dependency injection.

@@ -1,0 +1,1 @@
+Vitest tests lock in policy-corpus document selection behavior, including keying, coverage boosting, family and setting narrowing, variant scoring, and capped top-candidate ranking.

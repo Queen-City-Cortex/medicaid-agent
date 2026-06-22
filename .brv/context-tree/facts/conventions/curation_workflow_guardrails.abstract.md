@@ -1,1 +1,0 @@
-This document defines curation workflow guardrails: use recon before extraction, prefer single-pass curation, avoid printing raw context, and verify writes via applied file paths.

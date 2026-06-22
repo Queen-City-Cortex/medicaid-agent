@@ -1,1 +1,1 @@
-This document captures durable curation rules for context snippets, including strict structure, UPSERT-based updates, exact preservation of facts and timestamps, and verification of successful application.
+This document defines the curated context snippet workflow, emphasizing recon-to-curate extraction, durable-note preservation, and strict structured facts for long-term recall.

@@ -1,22 +1,26 @@
 {
-  "curationsSinceDream": 3,
-  "lastDreamAt": "2026-06-20T18:46:50.775Z",
-  "lastDreamLogId": "drm-1781980901996",
+  "curationsSinceDream": 4,
+  "lastDreamAt": "2026-06-21T19:25:08.202Z",
+  "lastDreamLogId": "drm-1782069712962",
   "pendingMerges": [],
   "staleSummaryPaths": [
     {
-      "enqueuedAt": 1781986230948,
-      "path": "agent_architecture/deep_research_workflow/deep_research_workflow.md"
+      "enqueuedAt": 1782070364538,
+      "path": "facts/project/policy_corpus_coverage_scoring.md"
     },
     {
-      "enqueuedAt": 1781987812121,
-      "path": "agent_architecture/deep_research_workflow/deep_research_workflow_fixes.md"
+      "enqueuedAt": 1782072692895,
+      "path": "packages/policy_corpus/tests/section_predicates_test_suite.md"
     },
     {
-      "enqueuedAt": 1781989694211,
-      "path": "facts/conventions/curation_workflow_guardrails.md"
+      "enqueuedAt": 1782072996634,
+      "path": "packages_pipeline/retrieval_fixes/collector_retrieval_merge_and_ranking.md"
+    },
+    {
+      "enqueuedAt": 1782074203455,
+      "path": "packages/policy_corpus/internal/document_selection_tests.md"
     }
   ],
-  "totalDreams": 8,
+  "totalDreams": 9,
   "version": 1
 }

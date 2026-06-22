@@ -2,14 +2,26 @@
   "active_context": [
     {
       "order": 2,
-      "path": "agent_architecture/_index.md",
-      "tokens": 1377,
+      "path": "amendment_detection/_index.md",
+      "tokens": 527,
       "type": "summary"
     },
     {
       "order": 2,
-      "path": "amendment_detection/_index.md",
-      "tokens": 527,
+      "path": "auth_integration/_index.md",
+      "tokens": 1167,
+      "type": "summary"
+    },
+    {
+      "order": 1,
+      "path": "agent_architecture/amendment_pipeline_and_prompt/_index.md",
+      "tokens": 131,
+      "type": "summary"
+    },
+    {
+      "order": 1,
+      "path": "agent_architecture/mastra_server_configuration/_index.md",
+      "tokens": 126,
       "type": "summary"
     },
     {
@@ -190,13 +202,13 @@
       "type": "stub"
     }
   ],
-  "generated_at": "2026-06-20T21:08:14.238Z",
+  "generated_at": "2026-06-21T20:36:43.486Z",
   "lane_tokens": {
     "contexts": 3968,
     "stubs": 104,
-    "summaries": 1904
+    "summaries": 1951
   },
-  "source_fingerprint": "f860fdef4789726587d6f840e628678da322429a839a0d1ed8eb562ac3870713",
-  "total_tokens": 5976,
+  "source_fingerprint": "016b96b8501853aa6deaa30ca409c6692102939dc32df82a2800c47643338506",
+  "total_tokens": 6023,
   "version": 1
 }

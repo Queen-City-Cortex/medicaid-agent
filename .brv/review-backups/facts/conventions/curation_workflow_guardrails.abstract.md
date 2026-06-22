@@ -1,0 +1,1 @@
+This document defines curation workflow guardrails: use precomputed recon, prefer single-pass when suggested, preserve exact content, use mapExtract for chunked cases, and verify writes via applied file paths.

@@ -1,0 +1,1 @@
+Coverage section scoring is tested with real text helpers and exact anchors, confirming weighted phrase matching plus flag-gated bonuses and penalties for ranking.

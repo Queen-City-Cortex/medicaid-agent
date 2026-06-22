@@ -1,7 +1,7 @@
-- Captures durable knowledge curation rules for context snippets, including preserving exact facts, timestamps, and operational notes for long-term recall.
-- Describes a workflow of recon/review, fact extraction, curation via UPSERT, and verification of applied results and failures.
-- Emphasizes strict structure requirements: include a clear task, operational details such as changes/files/flow, and narrative fields.
-- States rules for preserving raw context details like regex patterns, code signatures, diagrams, tables, and step-by-step procedures verbatim when relevant.
-- Notes verification expectations such as checking `result.summary.failed === 0` and inspecting `result.applied` paths.
-- Highlights a two-part context model with `rawConcept` and `narrative`, plus the need to avoid vague contexts and nested subtopics.
-- Identifies notable entities and patterns such as ByteRover context engineer, `curation_input`, `rawConcept`, `narrative`, `changes`, `files`, and `flow`.
+- Captures a curated context snippet workflow focused on preserving durable knowledge from context and source material.
+- Describes a two-part context model using `rawConcept` and `narrative`, with facts extraction and temporal preservation as core requirements.
+- Shows the workflow shape as `recon -> extraction -> curate apply`, with verification after writes.
+- Emphasizes strict structure rules: include a clear task, at least one operational detail (`changes`, `files`, or `flow`), and at least one narrative field.
+- Highlights durable-note separation from raw snippets, and prefers storing extracted facts for long-term recall rather than chat-only context.
+- Notes key constraints such as preserving exact rule text, regex patterns, timestamps, avoiding vague contexts or nested subtopics, and checking `result.summary.failed` plus `result.applied` paths.
+- Notable entities/patterns include ByteRover context engineer, `rawConcept`, `narrative`, `changes`, `files`, `flow`, and a `curation_input` facts entry.

@@ -1,0 +1,1 @@
+This suite adds 30 tests covering 21 section-predicate helpers in policy-corpus, locking in exact edge-case rules for title classification, section detection, year matching, and title-cluster extraction.

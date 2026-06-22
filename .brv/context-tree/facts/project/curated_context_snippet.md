@@ -1,51 +1,50 @@
 ---
 title: Curated Context Snippet
-summary: Curated snippet of operational knowledge and findings from the provided context into durable project facts.
+summary: Project facts about the curated context snippet workflow and its output structure.
 tags: []
 related: []
 keywords: []
 createdAt: '2026-06-13T06:00:50.089Z'
-updatedAt: '2026-06-18T02:22:26.499Z'
+updatedAt: '2026-06-21T19:03:39.616Z'
 ---
 ## Reason
-Preserve extracted operational notes from the provided context
+Curate workflow notes from provided context
 
 ## Raw Concept
 **Task:**
-Curate operational knowledge from the provided context snippet into durable project facts.
+Document the curated context snippet workflow and its curation pattern.
 
 **Changes:**
 - Captured the current context size and line count
 - Recorded the recon recommendation for single-pass processing
 - Extracted context-backed statements for long-term recall
+- Captured workflow shape and curation approach
+- Preserved durable-note separation from raw snippets
 
 **Flow:**
-context snippet -> fact extraction -> durable knowledge entry
+recon -> extraction -> curate apply
 
-**Timestamp:** 2026-06-18
+**Timestamp:** 2026-06-21T19:03:28.361Z
 
 **Author:** ByteRover context engineer
 
 ## Narrative
 ### Structure
-A compact project-facts entry capturing the most reusable statements from the provided snippet.
+This knowledge captures how the module is curated and organized for durable recall.
 
 ### Dependencies
 Uses the precomputed recon result and current curation variables.
 
 ### Highlights
-Preserves operational notes as structured facts for later retrieval.
+The context emphasizes keeping durable knowledge instead of chat-only context and using RLM-style curation.
 
 ### Examples
 Stored extracted facts as durable knowledge.
 
 ## Facts
-- **curated_context_snippet**: `scoreCoverageSections(...)` [project]
-- **curated_context_snippet**: `collectCoverageSectionGroups(...)` [project]
-- **curated_context_snippet**: Deduplication uses `uniqueBy(section.id)`. [project]
-- **curated_context_snippet**: `buildCoverageAnchors(...)` [project]
-- **curated_context_snippet**: `assembleCoverageSections(...)` [project]
-- **curated_context_snippet**: `selectCoveragePrimarySections(...)` [project]
+- **curated_context_snippet_workflow**: The curated context snippet workflow is an actively curated project module. [project]
+- **durable_notes_separation**: The workflow stores durable notes separately from raw source snippets. [project]
+- **curate_workflow**: The workflow uses a recon -> extraction -> curate apply pattern. [project]
 
 ---
 

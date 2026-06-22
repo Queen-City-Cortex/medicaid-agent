@@ -1,0 +1,7 @@
+- Summarizes PR #17, merged as c61709f, which fixed deep research behavior in three areas: OpenAI o1 routing, immediate cancelled-state handling on decline, and human-readable corpus source labels.
+- The core changes span three code paths: `packages/agent/src/model.ts` for model selection, `packages/web/src/lib/use-deep-research.ts` for UI state transitions, and `packages/agent/src/deep-research/workflow.ts` for verification output.
+- Key bug fix: OpenAI routing previously handled `gpt-`, `o3`, and `o4` prefixes only, causing `o1-*` models like `o1-mini` and `o1-preview` to be misrouted to Anthropic and fail; the fix adds `o1` to the OpenAI branch.
+- UX fix: `decline()` now marks the workflow as `cancelled` immediately instead of briefly showing `researching`, avoiding a flash of the wrong phase, spinner, and sub-question list.
+- Output/formatting fix: verification previously emitted raw corpus section IDs in `corpusSources.label`; a new `sourceLabel(SourceEntry)` helper now parses serialized evidence metadata into readable labels.
+- Notable formatting pattern: labels are constructed from Title, Section, and Policy lines, with an example like `Policy 5B § 2.3 — Therapeutic Leave`; the helper falls back to the source key only when metadata is unavailable.
+- The document also emphasizes a rule against exposing internal raw IDs such as `sec:doc:...` in the UI, reinforcing human-readable source labeling.

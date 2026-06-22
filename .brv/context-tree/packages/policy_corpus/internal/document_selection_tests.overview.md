@@ -1,0 +1,8 @@
+- Vitest suite documenting and locking in behavior for internal document-selection helpers in `packages/policy-corpus`.
+- Covers 31 tests, expanding package coverage from 153 to 239 total tests, and exercises 11 of 12 exports from `src/internal/document-selection.ts`.
+- Tests focus on keying, coverage boost scoring, title expansion selection, policy-family grouping, sibling-set detection, HCWD narrowing/scoring, setting-based preference, variant scoring, and top-candidate selection.
+- Key document identity pattern is `^clinical_policy::[^:]*::[^:]*$`, representing type, policy number, and title.
+- Several behaviors are explicitly bounded: coverage boost caps at 0.16, top title expansion returns 8 items, and top document candidates default to a 3-document cap unless overridden.
+- Narrowing logic is context-sensitive: HCWD narrowing may keep up to two close documents when queries mention a year or chart, while inferred coverage narrowing prefers the most common policy family or falls back to the first document.
+- Notable scoring rules include uppercase family normalization with suffix stripping, exact policy-number match bonuses, and penalties for amendment/change-notice documents or administrative-form titles.
+- Structure of the test file follows fixture helpers first, then describe blocks for each helper function: `documentKeyForHit`, `computeDocumentCoverageBoosts`, `selectDocumentTitlesForExpansion`, `policyFamilyKey`, `looksLikeSiblingPolicySet`, `narrowInferredCoverageDocuments`, `scoreHcwdCoverageDocument`, `narrowHcwdCoverageDocuments`, `selectSettingPreferredDocuments`, `scoreVariantDocument`, and `pickTopDocumentCandidates`.

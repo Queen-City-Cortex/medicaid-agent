@@ -1,0 +1,8 @@
+- Defines curation workflow guardrails for the RLM approach, emphasizing use of context/history/metadata/task ID variables and durable workflow rules.
+- Core flow is: use precomputed recon data, then choose single-pass or chunked extraction, curate, and verify using applied file paths.
+- Strong prohibitions include: do not print raw context, do not re-run `tools.curation.recon`, and do not use `readFile` for verification.
+- For chunked contexts, use `tools.curation.mapExtract()` with `taskId` passed as a bare variable, and ensure any `code_exec` call containing `mapExtract` has `timeout: 300000` on the outer tool call.
+- Verification must inspect `result.applied[].filePath`; UPSERT is preferred because it auto-detects add vs update.
+- Context quality requirements are explicit: include a clear task, at least one of changes/files/flow, at least one narrative field, and 2–4 sentences per context.
+- Content preservation rules require exact retention of rule text and regex patterns when curation content includes them.
+- Sections summarize purpose/reason, raw concept, narrative, rules, examples, and a facts list capturing specific conventions and decisions.
