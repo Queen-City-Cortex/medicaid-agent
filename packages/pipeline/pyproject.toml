@@ -32,6 +32,8 @@ where = ["src"]
 
 [tool.ruff]
 src = ["src"]
+# Vulture whitelist is intentionally a list of bare names (would trip F821).
+extend-exclude = ["vulture_whitelist.py"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

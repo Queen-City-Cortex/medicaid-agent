@@ -25,19 +25,6 @@ SET d.title = $title,
 RETURN d
 """
 
-MERGE_SECTION = """
-MERGE (s:Section {id: $id})
-SET s.document_id = $document_id,
-    s.section_number = $section_number,
-    s.title = $title,
-    s.level = $level,
-    s.content_text = $content_text,
-    s.content_length = $content_length,
-    s.has_tables = $has_tables,
-    s.has_definitions = $has_definitions
-RETURN s
-"""
-
 MERGE_SECTIONS_BATCH = """
 UNWIND $sections AS section
 MERGE (s:Section {id: section.id})
@@ -51,12 +38,6 @@ SET s.document_id = section.document_id,
     s.has_definitions = section.has_definitions,
     s.federal_register_cite = section.federal_register_cite,
     s.last_revised = section.last_revised
-"""
-
-MERGE_HAS_SECTION = """
-MATCH (d:Document {id: $doc_id})
-MATCH (s:Section {id: $sec_id})
-MERGE (d)-[:HAS_SECTION]->(s)
 """
 
 MERGE_HAS_SECTION_BATCH = """
@@ -97,12 +78,6 @@ WITH collect(chunk) AS chunks
 FOREACH (chunk IN chunks | DETACH DELETE chunk)
 """
 
-MERGE_PARENT_OF = """
-MATCH (parent:Section {id: $parent_id})
-MATCH (child:Section {id: $child_id})
-MERGE (parent)-[:PARENT_OF]->(child)
-"""
-
 MERGE_PARENT_OF_BATCH = """
 UNWIND $pairs AS pair
 MATCH (parent:Section {id: pair.parent_id})
@@ -110,26 +85,11 @@ MATCH (child:Section {id: pair.child_id})
 MERGE (parent)-[:PARENT_OF]->(child)
 """
 
-MERGE_NEXT_SIBLING = """
-MATCH (prev:Section {id: $prev_id})
-MATCH (next:Section {id: $next_id})
-MERGE (prev)-[:NEXT_SIBLING]->(next)
-"""
-
 MERGE_NEXT_SIBLING_BATCH = """
 UNWIND $pairs AS pair
 MATCH (prev:Section {id: pair.prev_id})
 MATCH (next:Section {id: pair.next_id})
 MERGE (prev)-[:NEXT_SIBLING]->(next)
-"""
-
-MERGE_REFERENCES = """
-MATCH (src:Section {id: $source_id})
-MATCH (tgt:Section {id: $target_id})
-MERGE (src)-[r:REFERENCES]->(tgt)
-SET r.reference_text = $reference_text,
-    r.reference_type = $reference_type,
-    r.extraction_method = $extraction_method
 """
 
 MERGE_REFERENCES_BATCH = """
@@ -140,14 +100,6 @@ MERGE (src)-[r:REFERENCES]->(tgt)
 SET r.reference_text = edge.reference_text,
     r.reference_type = edge.reference_type,
     r.extraction_method = edge.extraction_method
-"""
-
-MERGE_REFERENCES_DOCUMENT = """
-MATCH (src:Section {id: $source_id})
-MATCH (tgt:Document {id: $target_id})
-MERGE (src)-[r:REFERENCES_DOCUMENT]->(tgt)
-SET r.reference_text = $reference_text,
-    r.extraction_method = $extraction_method
 """
 
 MERGE_REFERENCES_DOCUMENT_BATCH = """
@@ -169,15 +121,6 @@ RETURN c
 
 # Note: Concept-section edges use dynamic Cypher in linker.py (relationship type varies)
 
-MERGE_CHUNK = """
-MERGE (ch:Chunk {id: $id})
-SET ch.section_id = $section_id,
-    ch.chunk_index = $chunk_index,
-    ch.content_text = $content_text,
-    ch.content_length = $content_length
-RETURN ch
-"""
-
 MERGE_CHUNKS_BATCH = """
 UNWIND $chunks AS chunk
 MERGE (ch:Chunk {id: chunk.id})
@@ -185,12 +128,6 @@ SET ch.section_id = chunk.section_id,
     ch.chunk_index = chunk.chunk_index,
     ch.content_text = chunk.content_text,
     ch.content_length = chunk.content_length
-"""
-
-MERGE_HAS_CHUNK = """
-MATCH (s:Section {id: $section_id})
-MATCH (ch:Chunk {id: $chunk_id})
-MERGE (s)-[:HAS_CHUNK]->(ch)
 """
 
 MERGE_HAS_CHUNK_BATCH = """
@@ -213,19 +150,6 @@ WITH type(r) AS rel_type, count(r) AS cnt
 RETURN rel_type, cnt ORDER BY rel_type
 """
 
-FIND_DOCUMENT = """
-MATCH (d:Document {policy_number: $policy_number})
-RETURN d
-"""
-
-FIND_SECTIONS_BY_DOC = """
-MATCH (d:Document {id: $doc_id})-[:HAS_SECTION]->(s:Section)
-OPTIONAL MATCH (s)-[:PARENT_OF]->(child:Section)
-RETURN s.id, s.section_number, s.title, s.level, s.content_length,
-       collect(child.section_number) AS children
-ORDER BY s.section_number
-"""
-
 MERGE_SUPERSEDED_BY_BATCH = """
 UNWIND $edges AS edge
 MATCH (old:Document {id: edge.source_id})
@@ -233,12 +157,6 @@ MATCH (new:Document {id: edge.target_id})
 MERGE (old)-[r:SUPERSEDED_BY]->(new)
 SET r.effective = edge.effective,
     r.reason = edge.reason
-"""
-
-MERGE_AMENDS = """
-MATCH (src:Document {id: $source_id})
-MATCH (tgt:Document {id: $target_id})
-MERGE (src)-[:AMENDS]->(tgt)
 """
 
 MERGE_AMENDS_BATCH = """
