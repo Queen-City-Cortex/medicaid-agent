@@ -21,7 +21,4 @@ if (dsn) {
   });
 }
 
-/** True when Sentry is active (DSN configured). */
-export const sentryEnabled = Boolean(dsn);
-
 export { Sentry };

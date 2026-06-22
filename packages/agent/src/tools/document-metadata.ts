@@ -19,5 +19,3 @@ export const DocumentMetadataSchema = z.object({
   variantDate: z.string().nullable(),
   retrievalReady: z.boolean().nullable(),
 });
-
-export type DocumentMetadata = z.infer<typeof DocumentMetadataSchema>;
