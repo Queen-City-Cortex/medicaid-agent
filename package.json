@@ -26,7 +26,7 @@
     "dev:agent": "npm run dev -w @nc-medicaid/agent"
   },
   "devDependencies": {
-    "turbo": "^2.0.0",
+    "turbo": "^2.9.18",
     "typescript": "^5.5.0"
   }
 }
