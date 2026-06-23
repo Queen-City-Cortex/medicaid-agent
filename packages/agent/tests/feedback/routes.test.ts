@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Hono } from 'hono';
+import type { Handler } from 'hono';
 import { createFeedbackRoutes, getResourceId } from '../../src/feedback/routes.js';
 import type { FeedbackRepository } from '../../src/feedback/repository.js';
 import { log } from '../../src/logger.js';
@@ -16,9 +17,11 @@ function buildApp(repo: FeedbackRepository, user?: unknown) {
     (c as any).set('requestContext', rc);
     await next();
   });
-  app.post('/feedback', handlers.post);
-  app.get('/feedback', handlers.get);
-  app.delete('/feedback/:id', handlers.del);
+  // Handlers are typed against Mastra's vendored hono Context, a distinct
+  // nominal copy from the top-level `hono` package used to build this app.
+  app.post('/feedback', handlers.post as unknown as Handler);
+  app.get('/feedback', handlers.get as unknown as Handler);
+  app.delete('/feedback/:id', handlers.del as unknown as Handler);
   return app;
 }
 

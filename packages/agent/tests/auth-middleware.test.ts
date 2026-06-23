@@ -1,7 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { Hono } from 'hono';
+import type { MiddlewareHandler } from 'hono';
 import { MASTRA_RESOURCE_ID_KEY, RequestContext } from '@mastra/core/request-context';
 import { bindResourceToAuthenticatedUser } from '../src/auth-middleware.js';
+
+// bindResourceToAuthenticatedUser is typed against Mastra's vendored hono
+// Context, which is a distinct nominal copy from the top-level `hono` package
+// used to build these test apps. Cast at the registration boundary.
+const asMiddleware = bindResourceToAuthenticatedUser as unknown as MiddlewareHandler;
 
 // Mimics Mastra's server assembly: a context middleware stores the
 // RequestContext, the auth middleware sets 'user' into it, and
@@ -16,7 +22,7 @@ function buildApp(user?: unknown) {
     observed = rc;
     await next();
   });
-  app.use('*', bindResourceToAuthenticatedUser);
+  app.use('*', asMiddleware);
   app.get('/probe', (c) => c.json({ ok: true }));
   return { app, getContext: () => observed };
 }
@@ -47,7 +53,7 @@ describe('bindResourceToAuthenticatedUser', () => {
       observed = rc;
       await next();
     });
-    app.use('*', bindResourceToAuthenticatedUser);
+    app.use('*', asMiddleware);
     app.get('/probe', (c) => c.json({ ok: true }));
 
     await app.request('/probe');

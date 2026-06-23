@@ -1,5 +1,11 @@
-import type { StorageThreadType } from '@mastra/core/memory';
+import type { ListMemoryThreadsResponse } from '@mastra/client-js';
 import { extractText } from '@/lib/parse-message';
+
+// The element type actually returned by `client.listMemoryThreads`. Unlike
+// `StorageThreadType` (whose createdAt/updatedAt are `Date`), the client
+// serializes timestamps to ISO strings over the wire, so the local thread
+// shape uses strings. Derived from the client response to stay in sync.
+export type Thread = NonNullable<ListMemoryThreadsResponse['threads']>[number];
 
 const FALLBACK_THREAD_TITLE = 'New conversation';
 const THREAD_TITLE_MAX_LENGTH = 60;
@@ -29,14 +35,14 @@ export function formatDate(date: string | Date | undefined): string {
   }
 }
 
-export function getThreadTitle(thread: StorageThreadType): string {
+export function getThreadTitle(thread: Thread): string {
   if (thread.title && thread.title.trim()) {
     return thread.title;
   }
   return FALLBACK_THREAD_TITLE;
 }
 
-export function getThreadDisplayTitle(thread: StorageThreadType, derivedTitle?: string | null): string {
+export function getThreadDisplayTitle(thread: Thread, derivedTitle?: string | null): string {
   if (thread.title && thread.title.trim()) {
     return thread.title;
   }
@@ -74,7 +80,7 @@ export function deriveThreadTitleFromMessages(
  * caller can render each thread's final display title in one lookup.
  */
 export function buildThreadDisplayTitles(
-  threads: StorageThreadType[],
+  threads: Thread[],
   derivedTitles: Record<string, string | null | undefined> = {},
 ): Map<string, string> {
   const titles = new Map<string, string>();

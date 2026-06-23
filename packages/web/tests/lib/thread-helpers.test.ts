@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import type { StorageThreadType } from '@mastra/core/memory';
 import {
   buildThreadDisplayTitles,
   deriveThreadTitleFromMessages,
@@ -8,6 +7,7 @@ import {
   getThreadDisplayTitle,
   getThreadTitle,
 } from '../../src/lib/thread-helpers';
+import type { Thread } from '../../src/lib/thread-helpers';
 
 describe('formatDate', () => {
   afterEach(() => {
@@ -80,8 +80,8 @@ describe('formatDate', () => {
 });
 
 describe('getThreadTitle', () => {
-  function asThread(thread: Partial<StorageThreadType>): StorageThreadType {
-    return thread as StorageThreadType;
+  function asThread(thread: Partial<Thread>): Thread {
+    return thread as Thread;
   }
 
   it('returns thread title when present', () => {
@@ -108,8 +108,8 @@ describe('getThreadTitle', () => {
 });
 
 describe('getThreadDisplayTitle', () => {
-  function asThread(thread: Partial<StorageThreadType>): StorageThreadType {
-    return thread as StorageThreadType;
+  function asThread(thread: Partial<Thread>): Thread {
+    return thread as Thread;
   }
 
   it('prefers the stored thread title', () => {
@@ -172,8 +172,8 @@ describe('deriveThreadTitleFromMessages', () => {
 });
 
 describe('buildThreadDisplayTitles', () => {
-  function makeThread(id: string, overrides: Partial<StorageThreadType> = {}): StorageThreadType {
-    const now = new Date();
+  function makeThread(id: string, overrides: Partial<Thread> = {}): Thread {
+    const now = new Date().toISOString();
     return {
       id,
       title: null,
@@ -182,7 +182,7 @@ describe('buildThreadDisplayTitles', () => {
       updatedAt: now,
       metadata: null,
       ...overrides,
-    } as StorageThreadType;
+    } as Thread;
   }
 
   it('returns derived titles unchanged when there are no collisions', () => {
@@ -198,9 +198,9 @@ describe('buildThreadDisplayTitles', () => {
 
   it('appends a date suffix when auto-derived titles collide', () => {
     const threads = [
-      makeThread('t1', { updatedAt: new Date('2026-03-10T10:00:00Z') }),
-      makeThread('t2', { updatedAt: new Date('2026-04-01T10:00:00Z') }),
-      makeThread('t3', { updatedAt: new Date('2026-04-05T10:00:00Z') }),
+      makeThread('t1', { updatedAt: '2026-03-10T10:00:00Z' }),
+      makeThread('t2', { updatedAt: '2026-04-01T10:00:00Z' }),
+      makeThread('t3', { updatedAt: '2026-04-05T10:00:00Z' }),
     ];
     const derived = { t1: 'What is EPSDT?', t2: 'What is EPSDT?', t3: 'What is EPSDT?' };
     const titles = buildThreadDisplayTitles(threads, derived);

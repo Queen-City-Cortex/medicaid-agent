@@ -1,5 +1,6 @@
 import { MASTRA_RESOURCE_ID_KEY } from '@mastra/core/request-context';
-import type { Context, Next } from 'hono';
+import type { ContextWithMastra } from '@mastra/core/server';
+import type { Next } from 'hono';
 
 /**
  * Binds Mastra memory access to the authenticated user.
@@ -15,7 +16,7 @@ import type { Context, Next } from 'hono';
  * `server.middleware` after its auth middleware, which stores the
  * authenticated user in the request context under 'user'.
  */
-export async function bindResourceToAuthenticatedUser(c: Context, next: Next) {
+export async function bindResourceToAuthenticatedUser(c: ContextWithMastra, next: Next) {
   const rc = c.get('requestContext');
   const user = rc?.get?.('user') as { userId?: string; id?: string } | undefined;
   const userId = user?.userId ?? user?.id;

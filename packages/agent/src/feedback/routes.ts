@@ -1,5 +1,5 @@
 import { registerApiRoute } from '@mastra/core/server';
-import type { Context } from 'hono';
+import type { ContextWithMastra } from '@mastra/core/server';
 import { z } from 'zod';
 import type { FeedbackRepository } from './repository.js';
 import { log } from '../logger.js';
@@ -11,14 +11,18 @@ const FeedbackBodySchema = z.object({
   comment: z.string().optional(),
 });
 
-export function getResourceId(c: Context): string | null {
+export function getResourceId(c: ContextWithMastra): string | null {
   const rc = c.get('requestContext');
-  const user = rc?.get?.('user');
+  const user = rc?.get?.('user') as { userId?: string; id?: string } | undefined;
   return user?.userId ?? user?.id ?? null;
 }
 
-export function createFeedbackRoutes(repo: FeedbackRepository) {
-  const post = async (c: Context) => {
+export function createFeedbackRoutes(repo: FeedbackRepository): {
+  post: (c: ContextWithMastra) => Promise<Response>;
+  get: (c: ContextWithMastra) => Promise<Response>;
+  del: (c: ContextWithMastra) => Promise<Response>;
+} {
+  const post = async (c: ContextWithMastra): Promise<Response> => {
     let body: unknown;
     try {
       body = await c.req.json();
@@ -48,7 +52,7 @@ export function createFeedbackRoutes(repo: FeedbackRepository) {
     return c.json({ id: result.id }, result.isNew ? 201 : 200);
   };
 
-  const get = async (c: Context) => {
+  const get = async (c: ContextWithMastra): Promise<Response> => {
     const threadId = c.req.query('threadId');
     if (!threadId) {
       return c.json({ error: 'threadId query parameter is required' }, 400);
@@ -60,7 +64,7 @@ export function createFeedbackRoutes(repo: FeedbackRepository) {
     return c.json({ feedback }, 200);
   };
 
-  const del = async (c: Context) => {
+  const del = async (c: ContextWithMastra): Promise<Response> => {
     const id = c.req.param('id');
     if (!id) return c.json({ error: 'Feedback id is required' }, 400);
     const resourceId = getResourceId(c);

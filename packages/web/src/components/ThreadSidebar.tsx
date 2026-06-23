@@ -30,7 +30,7 @@ import {
   deriveThreadTitleFromMessages,
   formatDate,
 } from '@/lib/thread-helpers';
-import type { StorageThreadType } from '@mastra/core/memory';
+import type { Thread } from '@/lib/thread-helpers';
 
 const AGENT_ID = 'nc-medicaid-navigator';
 
@@ -54,7 +54,7 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
   // (a render-time client snapshot would 401 with no recovery).
   const { run } = useMastraClientRunner();
   const ready = useMastraReady();
-  const [threads, setThreads] = useState<StorageThreadType[]>([]);
+  const [threads, setThreads] = useState<Thread[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editingThreadId, setEditingThreadId] = useState<string | null>(null);
@@ -73,8 +73,7 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
         client.listMemoryThreads({
           resourceId,
           agentId: AGENT_ID,
-          orderBy: 'updatedAt',
-          sortDirection: 'DESC',
+          orderBy: { field: 'updatedAt', direction: 'DESC' },
           perPage: 50,
         }),
       );
