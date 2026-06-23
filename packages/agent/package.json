@@ -39,7 +39,7 @@
     "@types/node": "^22.0.0",
     "@vitest/coverage-v8": "^4.1.9",
     "eslint": "^9.0.0",
-    "hono": "^4.12.26",
+    "hono": "^4.12.27",
     "mastra": "^1.15.0",
     "tsx": "^4.22.4",
     "typescript": "^6.0.3",
