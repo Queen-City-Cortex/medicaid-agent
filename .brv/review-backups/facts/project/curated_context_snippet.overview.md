@@ -1,7 +1,0 @@
-- Project-level curation notes for preserving durable knowledge from context snippets and source material.
-- Describes a two-part context model using `rawConcept` and `narrative`, plus requirements for facts extraction and temporal preservation.
-- Defines a curation workflow: recon -> extract facts/context -> curate with UPSERT -> verify applied files.
-- Emphasizes structure: organize knowledge into domain/topic/subtopic files with at least a task, one operational detail, and one descriptive narrative field.
-- Key rules include preserving exact rule text, regex patterns, timestamps, and using UPSERT by default instead of ADD/UPDATE.
-- Verification guidance mentions checking `result.summary.failed` and `result.applied` file paths after curation.
-- Notable entities/patterns: ByteRover context engineer, `rawConcept`, `narrative`, `changes`, `files`, `flow`, and standalone facts domains for uncategorized facts.

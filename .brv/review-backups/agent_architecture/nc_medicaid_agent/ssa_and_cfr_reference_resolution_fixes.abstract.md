@@ -1,1 +1,0 @@
-This document records P0 fixes to SSA-to-USC mapping, SSA parser robustness, CFR citation matching, and part-level-only supersession redirects, followed by required re-ingestion.

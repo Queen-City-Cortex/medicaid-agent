@@ -1,26 +1,9 @@
 {
-  "curationsSinceDream": 4,
+  "curationsSinceDream": 10,
   "lastDreamAt": "2026-06-21T19:25:08.202Z",
   "lastDreamLogId": "drm-1782069712962",
   "pendingMerges": [],
-  "staleSummaryPaths": [
-    {
-      "enqueuedAt": 1782070364538,
-      "path": "facts/project/policy_corpus_coverage_scoring.md"
-    },
-    {
-      "enqueuedAt": 1782072692895,
-      "path": "packages/policy_corpus/tests/section_predicates_test_suite.md"
-    },
-    {
-      "enqueuedAt": 1782072996634,
-      "path": "packages_pipeline/retrieval_fixes/collector_retrieval_merge_and_ranking.md"
-    },
-    {
-      "enqueuedAt": 1782074203455,
-      "path": "packages/policy_corpus/internal/document_selection_tests.md"
-    }
-  ],
+  "staleSummaryPaths": [],
   "totalDreams": 9,
   "version": 1
 }

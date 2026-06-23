@@ -1,112 +1,237 @@
 ---
-children_hash: 8b9747b8856bc4b28338a47c912cb19de56dc98681fff53be9b7d9539a5d3c4f
-compression_ratio: 0.18996415770609318
+children_hash: 734ffaaab9fbc78bd2539c9c55c3353837dcf2d5fbff2ed7f6e54327e1e81748
+compression_ratio: 0.30400525279054497
 condensation_order: 2
-covers: [crawler/_index.md, intent-aware-staged-retrieval-dominates-both-policy-search-and-graph-frame-assem.md, pipeline/_index.md, policy_corpus/_index.md, retrieval-quality-depends-on-decontamination-plus-staged-ranking.md, retrieval-quality-depends-on-staged-overscan-filtering-and-reranking-across-sear.md, retrieval_quality/_index.md, staged-retrieval-and-overscan-are-the-shared-answer-from-search-to-evaluation.md, staged-retrieval-is-the-common-answer-to-policy-search-graph-frame-assembly-and-.md, staged-retrieval-is-the-project-s-shared-retrieval-contract.md, staged-retrieval-is-the-shared-answer-from-policy-search-to-evaluation.md, staged-retrieval-not-global-top-k-is-the-project-s-retrieval-contract.md]
-covers_token_total: 8928
+covers: [crawler/_index.md, intent-aware-staged-retrieval-dominates-both-policy-search-and-graph-frame-assem.md, pipeline/_index.md, policy_corpus/_index.md, retrieval-quality-depends-on-decontamination-plus-staged-ranking.md, retrieval-quality-depends-on-staged-overscan-filtering-and-reranking-across-sear.md, retrieval_quality/_index.md, staged-retrieval-and-overscan-are-the-shared-answer-from-search-to-evaluation.md, staged-retrieval-is-the-common-answer-to-policy-search-graph-frame-assembly-and-.md, staged-retrieval-is-the-project-s-shared-contract-from-search-to-evaluation.md, staged-retrieval-is-the-project-s-shared-retrieval-contract.md, staged-retrieval-is-the-shared-answer-from-policy-search-to-evaluation.md, staged-retrieval-not-global-top-k-is-the-project-s-retrieval-contract.md]
+covers_token_total: 9138
 summary_level: d2
-token_count: 1696
+token_count: 2778
 type: summary
 ---
-## d2 Structural Summary: Retrieval, Evaluation, and Crawl Hardening
+# Structural Summary: Retrieval, Curation, and Evaluation Contracts
 
-This cluster shows a consistent architectural theme across crawler, retrieval, policy-corpus, and evaluation systems: **preserve behavior by isolating boundaries, stage candidate selection, and verify under controlled conditions**. The major patterns are: avoid mutable global state, prefer overscan + filter + dedup + rerank over naive top-k, and keep evaluation aligned with the real execution path.
+## High-level pattern
+These entries describe a shared project contract: **never trust naive global top-k or structural change without validation**. Across crawler, policy corpus, pipeline, retrieval quality, and evaluation, the recurring architecture is:
 
-### Crawler Fetching
-- **`crawler/_index.md`** documents the Node 26 crawl fetcher hardening in `packages/crawler/src/crawl/fetcher.ts`.
-- Core fix: the fetcher now uses a **private undici dispatcher** created in `createFetcher()`, with redirect handling via `interceptors.redirect({ maxRedirections })`.
-- Key behavioral guarantees preserved:
+**overscan / isolate / filter / dedupe / rerank / verify**
+
+This shows up in:
+- crawler fetcher hardening for Node 26
+- staged retrieval in policy corpus and hybrid search
+- A/B evaluation harnesses for embeddings, rerankers, and verifiers
+- CLI refactors that preserve command behavior under package restructuring
+
+---
+
+## 1) Crawler fetcher hardening
+### `crawler/_index.md`
+- Main concern: make crawl execution reliable on **Node 26** without changing crawl semantics.
+- Key implementation detail: `packages/crawler/src/crawl/fetcher.ts` now uses a **private undici dispatcher** inside `createFetcher()`.
+- Redirects are handled via `interceptors.redirect({ maxRedirections })`.
+- The fix avoids relying on the **global undici dispatcher**, because importing crawler sources that load `cheerio` can mutate global state via `setGlobalDispatcher()`.
+- Preserved runtime behavior:
   - per-domain serialization
   - rate limiting
-  - retry/backoff logic
+  - retry/backoff
   - file streaming
-- Root cause: importing crawler modules that load `cheerio` mutates undici global state via `setGlobalDispatcher()`, which breaks the full crawl path on Node 26 if `maxRedirections` is passed directly to `request()`.
-- Rule set: use `request({ dispatcher })` with a composed agent; do not depend on the global dispatcher; consume error bodies before retry/return.
-- Outcome: forward-compatible with undici 7 and verified on a dry run that discovered **177 clinical_policy docs**.
-- Drill-down: **Undici Redirect Interceptor Fetcher Fix**.
+- Required rule: do **not** pass `maxRedirections` directly to `request()`.
+- Outcome: forward-compatible with undici 7 and verified in crawl discovery / robots.txt flow, including a dry run that found **177 clinical_policy docs**.
 
-### Retrieval as a Shared Contract
-Several synthesis entries converge on the same cross-domain rule: **retrieval is staged, not single-pass**.
-- Broadly:
-  - overscan candidates first
-  - filter by intent or document type
-  - dedupe by stable identity (`sectionId` / `section_id`)
-  - rerank or fuse at the end
-- This pattern appears in:
-  - **`retrieval-quality/_index.md`**
-  - **`retrieval-quality-depends-on-decontamination-plus-staged-ranking.md`**
-  - **`retrieval-quality-depends-on-staged-overscan-filtering-and-reranking-across-sear.md`**
-  - **`staged-retrieval-and-overscan-are-the-shared-answer-from-search-to-evaluation.md`**
-  - **`staged-retrieval-is-the-common-answer-to-policy-search-graph-frame-assembly-and-.md`**
-  - **`staged-retrieval-is-the-project-s-shared-retrieval-contract.md`**
-  - **`staged-retrieval-not-global-top-k-is-the-project’s-retrieval-contract.md`**
-- Shared constraint: Neo4j `queryNodes(k)` is **global top-k**, so systems compensate by overscanning per group first.
+**Drill-down:** `Undici Redirect Interceptor Fetcher Fix`
 
-### Policy Corpus Retrieval and Frame Pipeline
-- **`policy_corpus/_index.md`** is the most complete structural map of the policy-corpus pipeline.
-- Retrieval stack:
-  - `packages/policy-corpus/src/retrieval/collector.ts`
-  - stages include backends + fulltext, amendment-title expansion, document expansion, change-notice expansion, then final rerank
-  - `mergeMax` keeps the highest-scored hit per `sectionId`
-  - `computeDocumentCoverageBoosts()` is intentionally run twice: pre-expansion and post-expansion
-- Reranker gating:
-  - `packages/policy-corpus/src/retrieval/rerank.ts`
-  - `shouldAttemptRerank()` is selective and fail-open
-  - rerank is disabled for explicit document types, `deterministic_evidence`, and too-few candidates
-  - hard-query routing includes federal authority, amendment, policy variant, HCWD income premium, and ambiguous top-hit sets
-- Document selection / routing:
-  - **`document_selection/_index.md`**
-  - **`coverage_routing/_index.md`**
-  - setting-aware narrowing happens **before** `narrowInferredCoverageDocuments`
-  - if a query names a care setting, matching documents are preferred
-  - `variantReasoning` falls back to setting-preference reasoning when no sibling variant frame exists
-- Frame assembly:
-  - **`coverage_frame_assembly/_index.md`**
-  - setting-preferred routing documents are authoritative unless a sibling variant frame takes precedence
-  - final frame composition merges base hits, HCWD history hits, routed documents, and section candidates into primary/supporting/avoid evidence
-- Rerank scoring:
-  - **`rerank_scoring/_index.md`**
+---
+
+## 2) Retrieval is staged, not one-shot
+### `retrieval_quality/_index.md`
+- Canonical flow:
+  **query intent -> candidate scoring -> vector overscan -> topical filtering -> group-specific ranking -> RRF merge**
+- Core technical constraint: `queryNodes(k)` in Neo4j returns a **global top-k**, so the system compensates by overscanning per group first.
+- Key backend behavior:
+  - `retrieval/backends/section-vector.ts` iterates `profile.typeGroups`
+  - uses `vectorScanK(profile.perGroupK)`
+  - filters by `document_type`
+  - final ordering uses **reciprocal rank fusion (RRF)** after deduping by `sectionId`
+- Decontamination rules matter:
+  - HCWD should replace limit-history terms with HCWD income-rule terms
+  - HCBS should preserve `WAIVER_APPLICATION_PRIMARY_SECTION_NUMBERS`
+  - hardcoded heuristics like `5.4.3` should be removed from prior-auth quantity detection
+
+### Synthesis entries reinforcing the same contract
+- `staged-retrieval-and-overscan-are-the-shared-answer-from-search-to-evaluation.md`
+- `staged-retrieval-is-the-common-answer-to-policy-search-graph-frame-assembly-and-qa-trust.md`
+- `staged-retrieval-is-the-project-s-shared-retrieval-contract.md`
+- `staged-retrieval-is-the-project’s-shared-contract-from-search-to-evaluation.md`
+- `staged-retrieval-is-the-shared-answer-from-policy-search-to-evaluation.md`
+- `staged-retrieval-not-global-top-k-is-the-project’s-retrieval-contract.md`
+
+These all restate the same architectural rule:
+- overscan broadly
+- filter by intent/type
+- dedupe by stable identity
+- rerank or fuse at the end
+- treat retrieval quality as structural, not a single-model or single-pass issue
+
+---
+
+## 3) Policy corpus: stage-aware processing across retrieval, selection, and assembly
+### `policy_corpus/_index.md`
+This is the densest overview of the policy-corpus retrieval stack.
+
+#### Retrieval and reranking
+- `retrieval/_index.md` covers:
+  - `hybrid_retrieval_collector_pipeline.md`
+  - `reranker_gate_logic_and_a_b_evaluation.md`
+- Collector pipeline stages:
+  1. backends + fulltext
+  2. amendment-title expansion
+  3. document expansion
+  4. change-notice header expansion
+  5. final rerank
+- `mergeMax` keeps the best hit per `sectionId`.
+- `computeDocumentCoverageBoosts()` is intentionally called **twice**:
+  - before expansion for title selection
+  - after expansion for reranking
+- Reranker gate behavior:
+  - `shouldAttemptRerank()` controls reranking
+  - fail-open to baseline unless gate conditions are met
+  - triggers include `federal_authority`, `amendment`, `policy_variant`, HCWD income premium, and ambiguous top-hit cases
+- Important evaluation note: retrieval-level A/B comparisons are misleading; answer-level evaluation is required via `scripts/eval-ab.sh` and `answer_arm()`.
+
+#### Rerank scoring
+- `rerank_scoring/_index.md`:
   - `rerankRetrievalHit` was decomposed into ~20 ordered `HitScorer` functions
-  - `deriveHitFeatures` computes per-hit features once
-  - `HIT_SCORERS` order matters; floating-point behavior must remain pinned
-  - public signatures must remain unchanged
-- Frame assembly and authority rebalance:
-  - **`frame/_index.md`**
-  - coverage selection moved from score-field driven to positional selection
-  - federal authority handling pairs statute and regulation when query intent indicates citation lookup
-  - `WAIVER_AUTHORITY_HINT` must run before `WAIVER_HINT`
-  - intent-specific routing examples include 1915(c) HCBS, SPA timeliness/submission, and EPSDT
+  - shared `deriveHitFeatures` computes features once
+  - exact floating-point behavior is contractually important
+  - scoring covers policy-number boosts, federal authority routing, fee-schedule buckets, waiver handling, change-notice boosts, title penalties, and HCWD/waiver special cases
 
-### Evaluation and A/B Harness
-- **`pipeline/_index.md`** captures the evaluation harness and CLI split.
-- Pipeline CLI refactor:
-  - `packages/pipeline/src/pipeline/cli.py` split into `pipeline.cli` package
-  - preserved `python -m pipeline.cli` via `__main__.py`
+#### Document selection and routing
+- `document_selection/_index.md`:
+  - selection logic includes coverage boosts, title expansion, variant scoring, HCWD scoring, narrowing inferred docs
+  - `selectSettingPreferredDocuments(queryLower, documents)` prioritizes documents matching the care setting named in the query
+  - this must happen **before** `narrowInferredCoverageDocuments`
+  - `variantReasoning` falls back to the setting preference reason when no sibling variant frame exists
+
+- `coverage_routing/_index.md`:
+  - flow: lookup documents -> infer documents from hits -> apply setting preference -> narrow -> return routing documents
+  - explicit care setting preference must happen before narrowing
+  - if query names a setting and titles match, only setting-matching docs are returned
+
+- `coverage_frame_assembly/_index.md`:
+  - final frame merges base hits, HCWD history hits, routed docs, and section candidates
+  - evidence is split into primary / supporting / avoid
+  - sibling variant frames take precedence; otherwise `settingPreference.documents` becomes `preferredRoutingDocuments`
+
+#### Frame pipeline and authority handling
+- `frame/_index.md`:
+  - coverage selection is a **5-stage pipeline**
+    1. score coverage sections
+    2. collect/group by coverage flags
+    3. build initial selection
+    4. build anchors
+    5. assemble final sections
+  - `SectionCandidate.score` was removed; selection is positional, not score-field driven
+  - strict Neo4j fixtures require handler execution checks
+  - authority routing pairs statute and regulation when intent signals an authority citation
+  - ordering matters: `WAIVER_AUTHORITY_HINT` must run before `WAIVER_HINT`
+
+#### Tests and contract coverage
+- `internal/_index.md`:
+  - 31 Vitest tests
+  - covers 11 of 12 exports from `src/internal/document-selection.ts`
+  - pins behavior of `selectSettingPreferredDocuments`, `pickTopDocumentCandidates`, and related helpers
+- `tests/_index.md`:
+  - 30 tests across 21 pure predicates
+  - hardcoded rules are preserved, including:
+    - `isPriorAuthExceptionSection` uses section number `3.2.3`
+    - `isAdministrativeFormTitle` excludes `"Change Notice"`
+    - `isGenericSectionTitle` matches only exact titles
+    - `extractTitleClusterTerms` lowercases, dedupes, removes stopwords, and keeps 4+ char tokens
+
+**Cross-cutting policy-corpus rule:**  
+Ordering is critical. Preference, narrowing, reranking, and assembly each have distinct phases and must not reuse intermediate outputs outside their intended stage.
+
+---
+
+## 4) Evaluation harnesses preserve behavior under controlled comparisons
+### `pipeline/_index.md`
+This cluster combines two related concerns:
+
+#### Pipeline CLI package split
+- `packages/pipeline/src/pipeline/cli.py` was split into a `pipeline.cli` package.
+- New structure:
+  - `_shared.py` for shared click/Rich setup
+  - `__init__.py` as package entry
+  - `__main__.py` to preserve `python -m pipeline.cli`
   - command modules: `build.py`, `references.py`, `federal.py`, `graph.py`, `eval.py`, `audit.py`
-  - validation reported clean build, `ruff` clean, **301 passed**, **2 skipped**, and **25 commands** still registered
-- Eval A/B gate corrections:
-  - `scripts/eval-ab.sh` now has three gates: embeddings, reranker, verifier
-  - embeddings compare on an isolated AB Neo4j container using the same matched mixed corpus
-  - reranker and verifier are measured at the **answer level**, not retrieval level
-  - acceptance threshold: `EVAL_REGRESSION_THRESHOLD = 0.05`
-- A/B harness results:
-  - `voyage-4` vs `voyage-law-2`: quality comparable, slightly better MRR, ~50% cheaper; recommended adoption
-  - `voyage-4-large` vs `voyage-law-2`: mostly a wash; suggests the bottleneck is structural rather than model choice
-- Structural takeaway:
-  - evaluation is designed to detect whether retrieval architecture, not just embedding choice, is the limiting factor.
+- Backward-compatible exports were retained.
+- The split avoided partially initialized import problems.
+- Validation: clean build, `ruff` clean, **301 passed**, **2 skipped**
+- Command suite still registers **25 commands**
 
-### Cross-Cluster Pattern
-Across these entries, the system’s design contract is consistent:
-- **Isolate mutable runtime boundaries** when external modules can alter global state.
-- **Stage retrieval** with overscan, filtering, deduplication, and reranking/fusion.
-- **Preserve ordering and evaluation semantics** when refactoring scoring or CLI surfaces.
-- **Use answer-level evaluation** when retrieval-only metrics miss routing or frame-assembly behavior.
+#### Eval A/B gate corrections
+- `scripts/eval-ab.sh` now defines shared helpers:
+  - `latest_run_id`
+  - `summarize_metric`
+  - `answer_arm`
+  - `embeddings_arm`
+- It dispatches to:
+  - `gate_embeddings`
+  - `gate_reranker`
+  - `gate_verifier`
+- Three gates are evaluated:
+  - embeddings
+  - reranker
+  - verifier
+- Embedding comparisons run on an **isolated AB Neo4j container** using the **same matched mixed corpus**.
+- `CANDIDATE_DIMS` defaults to **1024**, matching `voyage-law-2`.
+- `embeddings_arm` writes progress to stderr so stdout remains the latest run id.
+- Reranker evaluation is answer-level, not retrieval-level.
+- Verifier evaluation is stochastic and uses repeated answer runs with citation checks.
+- Adoption rule: regression must stay within `EVAL_REGRESSION_THRESHOLD = 0.05`.
 
-### Drill-down Map
-- **Crawler**: `crawler/_index.md`
-- **Policy corpus retrieval**: `policy_corpus/_index.md`
-- **Retrieval quality**: `retrieval-quality/_index.md`
-- **Frame assembly**: `frame/_index.md`
-- **Document selection / routing**: `document_selection/_index.md`, `coverage_routing/_index.md`
-- **Rerank scoring**: `rerank_scoring/_index.md`
-- **Evaluation harness**: `pipeline/_index.md`
+#### A/B embedding results
+- `voyage-4` vs `voyage-law-2`:
+  - similar quality on `precision@k` and `primary_hit_rate`
+  - slightly better `MRR`
+  - about **50% cheaper**
+  - recommendation: adopt `voyage-4`
+  - migration requires re-embedding the production corpus and updating `EMBEDDING_MODEL` and `VOYAGE_MODEL` together
+- `voyage-law-2` vs `voyage-4-large`:
+  - same 1024-dimensional width
+  - `MRR` slightly improved, but `precision@k`, `primary_hit_rate`, and `recall@k` are flat or worse
+  - same price ($0.12/M), so no cost win
+  - verdict: wash
+  - likely bottleneck is structural: chunking, query routing, or retrieval design
+
+**Shared evaluation pattern:**  
+controlled corpus + isolated environment + held-out metrics + regression threshold + quality/cost adoption decision
+
+---
+
+## 5) Cross-entry relationships
+- **Crawler hardening** and **retrieval staging** both reflect a broader reliability principle: isolate mutable runtime behavior and preserve semantics while changing internals.
+- **Policy corpus retrieval**, **database_operations hybrid search**, and **agent_architecture search** all converge on the same retrieval contract:
+  - overscan first
+  - dedupe by stable ID
+  - fuse or rerank later
+- **Pipeline CLI split** exists to preserve command behavior while enabling a more maintainable package structure.
+- **Evaluation harness corrections** are what make the A/B results trustworthy enough to support model migration decisions.
+- **Tests** across policy corpus encode contract-level rules, especially exact scoring, order of operations, and hardcoded predicate behavior.
+
+---
+
+## Overall takeaway
+The project’s core architectural pattern is consistent:
+
+1. **Preserve runtime semantics while isolating side effects**
+2. **Prefer staged retrieval over single-pass top-k**
+3. **Treat ordering and gating rules as contractual**
+4. **Validate changes with isolated, repeatable A/B harnesses**
+5. **Encode important behavior in tests and fixed predicates rather than informal expectations**
+
+The entry names most useful for drill-down are:
+- `Undici Redirect Interceptor Fetcher Fix`
+- `Retrieval Quality / Staged Ranking`
+- `Policy Corpus Structural Overview`
+- `A/B Evaluation Harness and CLI Split`
+- the staged-retrieval synthesis entries listed above

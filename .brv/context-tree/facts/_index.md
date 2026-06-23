@@ -1,80 +1,60 @@
 ---
-children_hash: a8598d2ae00703c58bc1e8f1be2ed3bd7cf5750a29de0d836757fcaf69970dd6
-compression_ratio: 0.6534653465346535
+children_hash: f163c65b46ad8ebc8a521d92d00d8f7b28c6d7c986a9cc939a696bc66de42762
+compression_ratio: 0.6465364120781527
 condensation_order: 2
 covers: [conventions/_index.md, project/_index.md]
-covers_token_total: 1212
+covers_token_total: 1126
 summary_level: d2
-token_count: 792
+token_count: 728
 type: summary
 ---
-# Structural Summary: Curation Guardrails and Curated Snippet Workflow
+# facts domain overview
 
-## Scope
-These entries define the durable curation rules and the project’s canonical knowledge-snippet workflow. Together they establish how context is extracted, structured, verified, and preserved for long-term recall.
+The `facts` domain contains durable operational knowledge for context-tree curation and one project-specific technical contract. It splits into two main lines: curation workflow conventions in `facts/conventions`, and policy-corpus scoring behavior in `facts/project`.
 
-## Shared Structural Pattern
-Both entries emphasize a **RLM-style curation flow** centered on preserving knowledge in structured form rather than chat-only notes:
-- **recon -> extraction -> curate apply**
-- Prefer **UPSERT** for persistence
-- Verify results using curator outputs, especially **`result.summary.failed`** and **`result.applied[].filePath`**
+## `facts/conventions`
+Covers the guardrails for durable knowledge curation into the context tree, centered on the **recon → extraction → curate → verify** workflow. Drill down into:
 
-## conventions/_index.md — Curation Workflow Guardrails
-This entry captures the operating rules for ByteRover curation:
+- **`context.md`** — high-level conventions for curation discipline, context-tree structure, facts extraction, and verification
+- **`curation_workflow_guardrails.md`** — exact execution constraints and verification rules
 
-- Use the RLM workflow with **context, history, metadata, and task ID variables**
-- If recon already recommends **single-pass**, do **not** chunk
-- For chunked extraction, use **`tools.curation.mapExtract()`** and pass **`taskId` as a bare variable**
-- Any `code_exec` call using `mapExtract` must set **`timeout: 300000`**
-- Do not print raw context during curation
-- Do not rerun recon when precomputed recon is already available
-- Prefer **file-path verification** over rereading file content
+Key preserved rules and patterns:
+- **UPSERT-first curation** is the default.
+- **Single-pass mode** is allowed when recon recommends it.
+- Do **not print raw context** during curation.
+- Use **`tools.curation.mapExtract()`** for chunked extraction.
+- Pass **`taskId` as a bare variable**, not a quoted string.
+- Verification should rely on **`result.applied[].filePath`**.
+- Do **not** re-run `tools.curation.recon()` if recon has already been computed.
 
-### Content quality requirements
-A curatable context must include:
-- a clear **task**
-- at least one of **changes / files / flow**
-- at least one **narrative** field
-- **2–4 sentences minimum**
+## `facts/project`
+Combines operational curation guidance with a technical note on **policy corpus coverage scoring**. Drill down into:
 
-### Preservation rules
-- Preserve **exact rule text**
-- Preserve **regex patterns** verbatim
-- Preserve all enumerated items
-- Keep outputs detailed enough to stand alone
+- **`context.md`** — project facts curation anchor: RLM approach, UPSERT-first curation, context-tree hierarchy, facts domain, verification discipline
+- **`policy_corpus_coverage_scoring.md`** — concrete scoring contract for `scoreCoverageSections`
 
-### Drill-down
-- See **facts/project/curated_context_snippet.md** for related curated context examples and snippet handling.
+Important technical structure preserved in `policy_corpus_coverage_scoring.md`:
+- Flow: **section list → scoreCoverageSections → ranking by `primaryScore` / `supportScore`**
+- Uses shared text helpers and term lists with **no mocks**
+- Test coverage is organized around:
+  - structural invariants
+  - exact-score anchors
+  - behavioral/property tests
 
-## project/_index.md — Curated Context Snippet Workflow
-This entry documents the project’s durable-knowledge snippet pattern and its structural expectations:
+Key scoring facts:
+- Core helpers/inputs: `normalizeSearchText`, `combineText`, `scoreTermMatches`, `isCoverageLimitationText`, `CoverageQueryFlags`
+- `combineText(section.title, section.content)` is part of the scoring pipeline
+- Preserved numeric anchors:
+  - empty section → `0/0`
+  - numbered sections → `+0.5` to both scores
+  - attachment titles → `-3` to both scores
+  - limitation text → `+3` supportScore only
+  - MA-2180 with `hcwdIncomePremiumQuery` → `+1.5` primaryScore only
+  - `PHRASE_MATCH_WEIGHT = 1.8`
+  - low-signal terms downweighted by `0.35`
+- Flag-gated behavior includes **telehealth**, **certification**, and **HCWD** paths, with telehealth avoid-term penalties only active under `telehealthQuery`
 
-### Core model
-- **rawConcept**: task, changes, files, flow, timestamp, author, patterns
-- **narrative**: structure, dependencies, highlights, rules, examples
-
-### Required curation properties
-- Every context needs a clear **task**
-- It must include at least one operational detail: **changes**, **files**, or **flow**
-- It must include at least one narrative field
-- Facts must be extracted and preserved
-- Temporal information must be retained exactly, including timestamps
-
-### Preservation and quality rules
-- Preserve exact rule text, regex patterns, and timestamps
-- Avoid vague contexts and nested subtopics
-- Prefer **UPSERT** updates
-- Verify using `result.summary.failed` and `result.applied`
-
-### Key facts and relationships
-- Durable notes are separated from raw source snippets
-- The workflow follows **recon -> extraction -> curate apply**
-- It is described as an actively curated project module
-- It relies on ByteRover context-engineering conventions
-
-### Secondary note
-A smaller auxiliary fragment appears on **Eval OpenAI key isolation**, using a simpler flow:
-- **context -> extract lines -> curate facts**
-
-### Drill-down
-- See **curated_context_snippet.md** for the full workflow shape, facts list, and verification guidance.
+### Drill-down guide
+- Use **`facts/conventions/context.md`** for curation workflow structure and rules.
+- Use **`facts/conventions/curation_workflow_guardrails.md`** for exact guardrails.
+- Use **`facts/project/policy_corpus_coverage_scoring.md`** for the scoring contract and test anchors.

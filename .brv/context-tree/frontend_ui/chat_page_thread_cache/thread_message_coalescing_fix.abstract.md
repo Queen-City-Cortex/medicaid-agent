@@ -1,0 +1,1 @@
+This document describes a parse-message.ts fix that improves thread message coalescing by dropping step-start parts from merged assistant turns, preserving verification metadata, and isolating multi-turn merges.

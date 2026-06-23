@@ -1,0 +1,8 @@
+- Documents a fix to thread message restoration in `parse-message.ts`, specifically refining `coalesceThreadMessages` / `mergeAssistantTurn` so assistant turns merge correctly after reload.
+- Key change: step-start parts are no longer included in the merged assistant turn; only tool-invocation parts are bucketed there.
+- The refactor removes a stale orphaned JSDoc that was left behind after changes to `convertThreadMessageToUIMessage` / `ThreadMessageMetadata`.
+- Verification metadata is preserved during restoration, so the UI can still render the verification badge/state after reload.
+- Regression tests were added to cover multi-turn isolation and explicit dropping of step-start parts.
+- The flow described is: persisted raw thread messages -> coalesce assistant turn -> order tool parts before answer text -> preserve verification metadata -> render UI message.
+- Notable entities/patterns: `UIMessage`, `generateUUID` fallback IDs, message-parts helpers, `MessageList` ignoring step-start, and the rule that step boundaries are meaningless once split messages are merged.
+- Structure summary: Reason, Raw Concept (task/changes/files/flow/timestamp/author), Narrative (structure/dependencies/highlights/rules/examples), and Facts capturing the specific behavioral decisions and test assertions.

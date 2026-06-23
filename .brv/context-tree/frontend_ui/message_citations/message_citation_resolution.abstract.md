@@ -1,0 +1,1 @@
+Inline message citations now resolve to the correct Sources panel row by exact label, same-policy dotted ancestor, or normalized URL, with consistent deduped sorting for markdown and clipboard output.

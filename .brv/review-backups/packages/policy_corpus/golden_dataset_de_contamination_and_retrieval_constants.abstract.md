@@ -1,1 +1,0 @@
-This document explains how policy-corpus retrieval was de-contaminated by removing memorized answer cues and hardcoded section matches while preserving legitimate HCBS terms and vector overscan constants.

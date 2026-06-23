@@ -2,10 +2,12 @@
 title: Section Predicates Test Suite
 summary: Full unit suite for section-predicates.ts covering 21 exported predicates, their exact matching rules, exclusions, and helper semantics across 30 tests.
 tags: []
-related: []
+related: [packages/policy_corpus/internal/document_selection_tests.md]
 keywords: []
 createdAt: '2026-06-21T20:11:32.876Z'
 updatedAt: '2026-06-21T20:11:32.876Z'
+consolidated_at: '2026-06-23T00:54:27.546Z'
+consolidated_from: [{date: '2026-06-23T00:54:27.546Z', path: packages/policy_corpus/tests/section_predicates_test_suite.abstract.md, reason: 'These three files all describe the same section-predicates test suite, with the abstract and overview duplicating the canonical test documentation. They should be consolidated to avoid redundant parallel descriptions of the same suite.'}, {date: '2026-06-23T00:54:27.546Z', path: packages/policy_corpus/tests/section_predicates_test_suite.overview.md, reason: 'These three files all describe the same section-predicates test suite, with the abstract and overview duplicating the canonical test documentation. They should be consolidated to avoid redundant parallel descriptions of the same suite.'}]
 ---
 ## Reason
 Document the full unit suite and the behaviors it locks in for section predicate helpers
@@ -54,3 +56,6 @@ Preserve these exact behaviors: isPriorAuthExceptionSection short-circuits true 
 - **telehealth_service_table_rule**: isTelehealthServiceTableSection requires telehealth-eligible phrasing and no sectionNumber. [project]
 - **calendar_year_rule**: includesCalendarYear matches only 20xx year tokens and excludes 19xx values. [project]
 - **title_cluster_terms_rule**: extractTitleClusterTerms keeps tokens with at least four characters, removes TITLE_CLUSTER_STOPWORDS, dedupes, and lowercases. [project]
+
+## Merged Summary
+This suite adds 30 tests covering 21 section-predicate helpers in policy-corpus, locking in exact edge-case rules for title classification, section detection, year matching, and title-cluster extraction. Coverage is organized by predicate category: hit text and role predicates, section-shape predicates, prior-authorization predicates, title-classification predicates, process/administrative predicates, year and premium helpers, and title-cluster extraction helpers. The file also preserves exact behavior for hardcoded section `3.2.3`, Change Notice exclusion, attachment separator handling, exact generic-title matching, and `20xx`-only year detection, plus helper semantics for boilerplate normalization, telehealth table detection, and title-cluster term extraction.

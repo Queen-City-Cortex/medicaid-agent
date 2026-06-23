@@ -8,8 +8,8 @@
     },
     {
       "order": 2,
-      "path": "auth_integration/_index.md",
-      "tokens": 1167,
+      "path": "evaluation/_index.md",
+      "tokens": 1189,
       "type": "summary"
     },
     {
@@ -202,13 +202,13 @@
       "type": "stub"
     }
   ],
-  "generated_at": "2026-06-21T20:36:43.486Z",
+  "generated_at": "2026-06-23T01:54:34.878Z",
   "lane_tokens": {
     "contexts": 3968,
     "stubs": 104,
-    "summaries": 1951
+    "summaries": 1973
   },
-  "source_fingerprint": "016b96b8501853aa6deaa30ca409c6692102939dc32df82a2800c47643338506",
-  "total_tokens": 6023,
+  "source_fingerprint": "a9752c0ffcbb6b8c6c76777d5b7220e09273a0835085126bce96cfe56f50ea8e",
+  "total_tokens": 6045,
   "version": 1
 }

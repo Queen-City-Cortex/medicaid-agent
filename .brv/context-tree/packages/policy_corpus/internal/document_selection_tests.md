@@ -2,10 +2,12 @@
 title: Document Selection Tests
 summary: Vitest suite covering document selection helpers, policy family grouping, HCWD narrowing, setting preference, variant scoring, and top-candidate selection.
 tags: []
-related: [packages/policy_corpus/internal/context.md]
+related: [packages/policy_corpus/internal/context.md, packages/policy_corpus/tests/section_predicates_test_suite.md]
 keywords: []
 createdAt: '2026-06-21T20:36:43.437Z'
 updatedAt: '2026-06-21T20:36:43.437Z'
+consolidated_at: '2026-06-23T00:54:27.544Z'
+consolidated_from: [{date: '2026-06-23T00:54:27.544Z', path: packages/policy_corpus/internal/document_selection_tests.abstract.md, reason: 'The .md, .abstract.md, and .overview.md files all document the same document-selection test suite. The overview and abstract are derivative summaries of the main file, so this is redundant coverage that should be consolidated into the richer canonical markdown file.'}, {date: '2026-06-23T00:54:27.544Z', path: packages/policy_corpus/internal/document_selection_tests.overview.md, reason: 'The .md, .abstract.md, and .overview.md files all document the same document-selection test suite. The overview and abstract are derivative summaries of the main file, so this is redundant coverage that should be consolidated into the richer canonical markdown file.'}]
 ---
 ## Reason
 Document test coverage and locked-in behaviors for internal/document-selection.ts
@@ -61,3 +63,6 @@ Use full document fixtures with sections:[] for selection tests. Keep scoring an
 - **setting_preference_selection**: selectSettingPreferredDocuments uses VARIANT_SETTING_TERMS and returns {documents, reason: null} when no setting or no matching title is found. [project]
 - **variant_document_scoring**: scoreVariantDocument gives +2.5 for an exact policy-number match and -1.5 for change-notice or amendment documents. [project]
 - **top_document_candidates**: pickTopDocumentCandidates sorts by score descending, deduplicates by document id, and caps results at FRAME_DOCUMENT_LIMIT = 3 unless an explicit limit is passed. [project]
+
+## Merged Summary
+Vitest suite documenting and locking in behavior for internal document-selection helpers in `packages/policy-corpus`. Covers 31 tests, expanding package coverage from 153 to 239 total tests, and exercises 11 of 12 exports from `src/internal/document-selection.ts`. Tests focus on keying, coverage boost scoring, title expansion selection, policy-family grouping, sibling-set detection, HCWD narrowing/scoring, setting-based preference, variant scoring, and top-candidate selection. Key document identity pattern is `^clinical_policy::[^:]*::[^:]*$`, representing type, policy number, and title. Several behaviors are explicitly bounded: coverage boost caps at 0.16, top title expansion returns 8 items, and top document candidates default to a 3-document cap unless overridden. Narrowing logic is context-sensitive: HCWD narrowing may keep up to two close documents when queries mention a year or chart, while inferred coverage narrowing prefers the most common policy family or falls back to the first document. Notable scoring rules include uppercase family normalization with suffix stripping, exact policy-number match bonuses, and penalties for amendment/change-notice documents or administrative-form titles. Structure of the test file follows fixture helpers first, then describe blocks for each helper function: `documentKeyForHit`, `computeDocumentCoverageBoosts`, `selectDocumentTitlesForExpansion`, `policyFamilyKey`, `looksLikeSiblingPolicySet`, `narrowInferredCoverageDocuments`, `scoreHcwdCoverageDocument`, `narrowHcwdCoverageDocuments`, `selectSettingPreferredDocuments`, `scoreVariantDocument`, and `pickTopDocumentCandidates`.

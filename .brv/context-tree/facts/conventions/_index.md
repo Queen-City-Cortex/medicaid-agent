@@ -1,38 +1,40 @@
 ---
-children_hash: e7e309332f202a2cc64fe423d6b7492f7d3e637af38e88907ae03a7bb0bb34d1
-compression_ratio: 0.36846689895470386
+children_hash: b3275003d382bdd84c14af84bc62c19626cd17a0b9dbd2c8a5de0e5a28b13ff9
+compression_ratio: 0.7693877551020408
 condensation_order: 1
-covers: [curation_workflow_guardrails.md]
-covers_token_total: 1148
+covers: [context.md, curation_workflow_guardrails.md]
+covers_token_total: 490
 summary_level: d1
-token_count: 423
+token_count: 377
 type: summary
 ---
-## Curation Workflow Guardrails
+# facts/conventions
 
-This entry defines the durable operating rules for curation in the ByteRover RLM workflow. The core pattern is **recon → choose single-pass or chunked extraction → curate → verify via applied file paths**, with **UPSERT** as the preferred persistence operation.
+Operational guardrails for durable knowledge curation into the context tree, centered on the recon/extract/curate/verify RLM workflow.
 
-### What the guardrails enforce
-- Use the **RLM approach** with context, history, metadata, and task ID variables.
-- If recon already exists and recommends **single-pass**, **skip chunking**.
-- For chunked work, use **`tools.curation.mapExtract()`** with `taskId` passed as a **bare variable**.
-- Any `code_exec` call containing `mapExtract` must set **`timeout: 300000`** on the tool call itself.
-- Do **not** print raw context during curation.
-- Do **not** call `tools.curation.recon()` again when recon has already been precomputed.
-- Verify curation results using **`result.applied[].filePath`** instead of `readFile`.
+## Core structure and scope
+- The domain captures **curation workflow discipline** and the rules needed to maintain context-tree quality.
+- It is anchored by two child entries:
+  - **`context.md`** — high-level overview of conventions and workflow concepts.
+  - **`curation_workflow_guardrails.md`** — detailed execution guardrails and verification rules.
 
-### Content quality and preservation requirements
-- Each curatable context must include:
-  - a clear **task**
-  - at least one of **changes / files / flow**
-  - at least one **narrative** field
-  - **2–4 sentences minimum**
-- Preserve **exact rule text**, **regex patterns**, and all enumerated items verbatim.
-- Keep curation outputs detailed enough to stand alone without rereading source material.
+## Key workflow pattern
+- The standard flow is **recon -> extraction -> curate -> verify**.
+- **UPSERT-first curation** is the default approach.
+- When recon recommends it, the workflow can be handled in **single-pass** mode instead of chunked processing.
 
-### Operational preference
-- **UPSERT** is the default curation mode because it automatically handles add vs. update.
-- Verification is file-path based, not content rereading, to keep the workflow efficient and deterministic.
+## Preserved curation rules
+- Do **not print raw context** during curation.
+- Use **`tools.curation.mapExtract()`** for chunked extraction when needed.
+- Pass **`taskId` as a bare variable**, not a quoted string.
+- Verification should use **`result.applied[].filePath`**.
+- Do **not** rely on rereading files for verification.
+- Do **not** call **`tools.curation.recon()`** if recon has already been computed.
 
-### Drill-down
-- See **facts/project/curated_context_snippet.md** for related curated context examples and project-specific snippet handling.
+## Knowledge modeling emphasis
+- The topic explicitly preserves:
+  - fact extraction
+  - content preservation
+  - context-tree structure limits
+  - verification discipline
+- Drill down into **`curation_workflow_guardrails.md`** for the exact execution constraints and into **`context.md`** for the broader conventions summary.

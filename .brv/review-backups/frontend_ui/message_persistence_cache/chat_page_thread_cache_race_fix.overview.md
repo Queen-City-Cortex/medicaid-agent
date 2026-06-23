@@ -1,8 +1,0 @@
-- Chat page message persistence depends on cached thread identity and careful thread restoration to avoid stale or mismatched state.
-- A key fix was adding a `messageCache` ref to preserve the last thread messages when `useChat` `onFinish` fires.
-- `handleSelectThread` now reads from `messageCache` before clearing it, then calls `loadThread` to refresh data from the database.
-- The document emphasizes that persistence updates must stay aligned with the active thread during restoration and rehydration.
-- The main risk described is a race condition between restoring thread state and applying message persistence updates.
-- Related files indicate this topic sits within a broader frontend message-persistence and thread-cache context.
-- Flow described: load chat page -> resolve thread identity -> restore cached thread state -> sync message persistence -> prevent stale writes.
-- Notable entities/patterns include `thread_identity_cache`, `thread_cache_race`, `message_persistence_scope`, `messageCache`, `handleSelectThread`, and `loadThread`.

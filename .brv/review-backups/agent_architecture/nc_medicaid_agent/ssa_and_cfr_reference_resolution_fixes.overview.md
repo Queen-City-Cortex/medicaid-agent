@@ -1,9 +1,0 @@
-- Documents P0 fixes in the federal statute/regulation pipeline covering SSA mapping, SSA parser robustness, CFR citation parsing, and supersession redirect behavior.
-- Key correction: SSA-to-USC mappings are non-contiguous; notable mappings include SSA 1944 → USC 1396w-3a, SSA 1900 → USC 1396, and SSA 1901 → USC 1396-1.
-- Clarifies that there is no current-law USC 1396w-7 section, preventing incorrect reference assumptions.
-- SSA parser improvements include handling italicized section headings in USC HTML and preserving full section text by removing the previous 50K truncation cap.
-- CFR citation handling was expanded to recognize both “C.F.R.” and “Part X” citation forms, with regexes matching those patterns case-insensitively.
-- Supersession redirects are constrained to part-level only; section numbers must not be rewritten across parts.
-- The document emphasizes that mapping/parser fixes require re-ingestion, specifically via `ingest-ssa --refresh`, then `extract-refs`, then `embed`.
-- Structure: reason and raw concept, narrative sections for structure/dependencies/highlights/rules/examples, followed by a facts list summarizing implementation details and constraints.
-- Notable entities include `ssa_client.py`, `ssa_parser.py`, `resolver.py`, `uscode.house.gov`, and `cfr-supersessions.json`, which anchor the workflow from USC fetch through SSA parse and reference extraction to CFR parsing and redirect handling.

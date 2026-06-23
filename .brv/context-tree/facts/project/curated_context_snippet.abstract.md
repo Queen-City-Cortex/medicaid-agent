@@ -1,1 +1,1 @@
-This document defines the curated context snippet workflow, emphasizing recon-to-curate extraction, durable-note preservation, and strict structured facts for long-term recall.
+This document records project curation rules for preserving durable knowledge, emphasizing structured context fields, exact fact and timestamp retention, UPSERT-based updates, and verification of applied results.

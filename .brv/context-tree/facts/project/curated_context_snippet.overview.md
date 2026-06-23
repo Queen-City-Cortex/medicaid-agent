@@ -1,7 +1,7 @@
-- Captures a curated context snippet workflow focused on preserving durable knowledge from context and source material.
-- Describes a two-part context model using `rawConcept` and `narrative`, with facts extraction and temporal preservation as core requirements.
-- Shows the workflow shape as `recon -> extraction -> curate apply`, with verification after writes.
-- Emphasizes strict structure rules: include a clear task, at least one operational detail (`changes`, `files`, or `flow`), and at least one narrative field.
-- Highlights durable-note separation from raw snippets, and prefers storing extracted facts for long-term recall rather than chat-only context.
-- Notes key constraints such as preserving exact rule text, regex patterns, timestamps, avoiding vague contexts or nested subtopics, and checking `result.summary.failed` plus `result.applied` paths.
-- Notable entities/patterns include ByteRover context engineer, `rawConcept`, `narrative`, `changes`, `files`, `flow`, and a `curation_input` facts entry.
+- Project-level curation notes for preserving durable knowledge from context snippets and source material.
+- Describes a two-part context model using `rawConcept` and `narrative`, plus requirements for facts extraction and temporal preservation.
+- Defines a curation workflow: recon -> extract facts/context -> curate with UPSERT -> verify applied files.
+- Emphasizes structure: organize knowledge into domain/topic/subtopic files with at least a task, one operational detail, and one descriptive narrative field.
+- Key rules include preserving exact rule text, regex patterns, timestamps, and using UPSERT by default instead of ADD/UPDATE.
+- Verification guidance mentions checking `result.summary.failed` and `result.applied` file paths after curation.
+- Notable entities/patterns: ByteRover context engineer, `rawConcept`, `narrative`, `changes`, `files`, `flow`, and standalone facts domains for uncategorized facts.

@@ -1,0 +1,7 @@
+- Reloaded NC Medicaid chat threads now restore correctly by coalescing split persisted assistant messages into a single UI message per agent turn.
+- The fix preserves verification-related parts (`data-verification-rewrite`, `data-verification-ok`) while dropping `data-om-*` observational-memory parts as internal noise.
+- The restored UI now shows tool cards, citations/footnotes, trust badges, and generated timestamps correctly, without orphan tool-only cards or “agent finished without a final answer” artifacts.
+- Implementation changes span `packages/web/src/lib/parse-message.ts` (message conversion and coalescing) and `packages/web/src/lib/use-chat-thread.ts` (using coalescing on thread reload), with tests updated in `packages/web/tests/lib/parse-message.test.ts`.
+- The core flow is: persisted DB messages → coalesce assistant turn parts → merge tools + answer + verification → restore chat thread UI state on reload.
+- A notable design decision is to anchor restored assistant `id` and `createdAt` on the answer-text-bearing message, since answer text may be timestamped before tool messages.
+- The document notes a CI/testing gap: mocked e2e fixtures did not reproduce the multi-message persisted shape, so the degradation was not caught earlier.

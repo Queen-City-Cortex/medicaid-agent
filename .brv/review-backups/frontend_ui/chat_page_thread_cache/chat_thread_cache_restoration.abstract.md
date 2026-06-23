@@ -1,0 +1,1 @@
+Reloaded NC Medicaid chat threads now coalesce split assistant turn parts into one restored UI message so tools, citations, and verification badges render correctly.

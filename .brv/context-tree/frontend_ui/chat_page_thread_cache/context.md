@@ -1,3 +1,6 @@
+---
+related: [auth_integration/runtime_boundary_fixes/fresh_token_runner_for_chat_and_deep_research.md, auth_integration/context.md, frontend_ui/chat_streaming_error_handling/context.md]
+---
 # Topic: chat_page_thread_cache
 
 ## Overview
