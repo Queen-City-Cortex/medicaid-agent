@@ -5,7 +5,7 @@ import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import type { UIMessage } from 'ai';
 import { generateUUID } from '@/lib/utils';
-import { convertThreadMessageToUIMessage } from '@/lib/parse-message';
+import { coalesceThreadMessages } from '@/lib/parse-message';
 import { MASTRA_URL } from '@/lib/mastra-url';
 import type { MastraRunner } from '@/lib/use-mastra-client';
 
@@ -159,14 +159,13 @@ export function useChatThread({
       // The user may have switched threads while this request was in flight —
       // a stale response must not overwrite the newer thread's messages.
       if (activeThreadRef.current !== tid) return;
-      const dbMessages = result.messages ?? [];
-      const converted: UIMessage[] = [];
-      for (const msg of dbMessages) {
-        const uiMsg = convertThreadMessageToUIMessage(
-          msg as { id?: string; role: string; content: unknown; createdAt?: string | Date },
-        );
-        if (uiMsg) converted.push(uiMsg);
-      }
+      const dbMessages = (result.messages ?? []) as Array<{
+        id?: string; role: string; content: unknown; createdAt?: string | Date;
+      }>;
+      // Coalesce each agent turn's split assistant messages (answer / tools /
+      // verifier / observational-memory) into one, so a reloaded thread
+      // renders like the live stream (Research trail, footnotes, trust badge).
+      const converted = coalesceThreadMessages(dbMessages);
       const assistantParts = converted.filter(m => m.role === 'assistant').flatMap(m => m.parts);
       console.log(`[chat] loadThread ${tid.slice(0, 8)}… | ${dbMessages.length} db msgs → ${converted.length} ui msgs | assistant parts: ${assistantParts.length} (types: ${[...new Set(assistantParts.map(p => p.type))].join(',')})`);
       setMessages(converted);

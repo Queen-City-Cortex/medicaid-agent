@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { convertThreadMessageToUIMessage, extractText } from '../../src/lib/parse-message';
+import { coalesceThreadMessages, convertThreadMessageToUIMessage, extractText } from '../../src/lib/parse-message';
+import { extractVerificationState, getTrailingAssistantText, isToolPart } from '../../src/lib/message-parts';
 
 describe('extractText', () => {
   it('returns string content as-is', () => {
@@ -238,5 +239,82 @@ describe('convertThreadMessageToUIMessage', () => {
         output: undefined,
       });
     });
+  });
+});
+
+describe('coalesceThreadMessages', () => {
+  // Mirrors how Mastra persists one agent turn: the answer text + verifier
+  // state in one message (timestamped FIRST), tool calls in another (later),
+  // and observational-memory (data-om-*) noise scattered + an om-only tail.
+  const v2 = (parts: unknown[]) => ({ format: 2, parts });
+  const turn = [
+    { id: 'u1', role: 'user', createdAt: '2026-06-22T18:08:10Z',
+      content: v2([{ type: 'text', text: 'Does NC Medicaid cover chiropractic, with visit limits?' }]) },
+    { id: 'a-answer', role: 'assistant', createdAt: '2026-06-22T18:08:17Z',
+      content: v2([
+        { type: 'data-om-activation', data: { cycleId: 'x' } },
+        { type: 'text', text: 'Yes — limited to 8 visits/yr [Policy 1F § 5.6](https://medicaid.ncdhhs.gov/1f/download).' },
+        { type: 'data-verification-rewrite', data: { severity: 'low', confidence: 0, counts: { unsupported: 6 }, pureMarkerFallback: false } },
+      ]) },
+    { id: 'a-tools', role: 'assistant', createdAt: '2026-06-22T18:08:30Z',
+      content: v2([
+        { type: 'tool-invocation', toolInvocation: { toolCallId: 't1', toolName: 'searchSections', state: 'result', args: {}, result: { sections: [{ id: 's1', title: 'Visit Limits', sectionNumber: '5.6', policyNumber: '1F', url: 'https://medicaid.ncdhhs.gov/1f/download' }] } } },
+        { type: 'data-om-status', data: {} },
+        { type: 'tool-invocation', toolInvocation: { toolCallId: 't2', toolName: 'getSection', state: 'result', args: {}, result: { section: { id: 's1' } } } },
+      ]) },
+    { id: 'a-om', role: 'assistant', createdAt: '2026-06-22T18:08:36Z',
+      content: v2([{ type: 'data-om-activation', data: {} }]) },
+  ];
+
+  it('coalesces a split agent turn into one assistant message (not four)', () => {
+    const out = coalesceThreadMessages(turn);
+    expect(out.map((m) => m.role)).toEqual(['user', 'assistant']);
+  });
+
+  it('orders tools before the answer text so the Research trail + footnotes render', () => {
+    const [, assistant] = coalesceThreadMessages(turn);
+    const types = assistant.parts.map((p) => p.type);
+    const lastTool = types.map((t, i) => (/tool/.test(t) ? i : -1)).reduce((a, b) => Math.max(a, b), -1);
+    const firstText = types.indexOf('text');
+    expect(assistant.parts.filter(isToolPart)).toHaveLength(2);
+    expect(lastTool).toBeGreaterThanOrEqual(0);
+    expect(firstText).toBeGreaterThan(lastTool); // answer is trailing
+    expect(getTrailingAssistantText(assistant)).toContain('8 visits/yr');
+    // no observational-memory noise survives
+    expect(types.some((t) => t.startsWith('data-om'))).toBe(false);
+  });
+
+  it('preserves the verifier state so the trust badge restores', () => {
+    const [, assistant] = coalesceThreadMessages(turn);
+    const v = extractVerificationState(assistant);
+    expect(v).not.toBeNull();
+    expect(v!.severity).toBe('low');
+    expect(v!.rewrote).toBe(true);
+    expect(v!.counts.unsupported).toBe(6);
+  });
+
+  it('anchors id + timestamp on the answer-bearing message', () => {
+    const [, assistant] = coalesceThreadMessages(turn);
+    expect(assistant.id).toBe('a-answer');
+    expect((assistant.metadata as { createdAt?: string }).createdAt).toBe('2026-06-22T18:08:17.000Z');
+  });
+
+  it('drops an om-only assistant turn entirely (no empty bubble)', () => {
+    const out = coalesceThreadMessages([
+      { id: 'u1', role: 'user', content: 'hi' },
+      { id: 'a-om', role: 'assistant', content: { format: 2, parts: [{ type: 'data-om-activation', data: {} }] } },
+    ]);
+    expect(out.map((m) => m.role)).toEqual(['user']);
+  });
+
+  it('keeps a genuinely answer-less tool turn as one message (not orphan cards)', () => {
+    const out = coalesceThreadMessages([
+      { id: 'u1', role: 'user', content: 'hi' },
+      { id: 'a-t1', role: 'assistant', content: { format: 2, parts: [{ type: 'tool-invocation', toolInvocation: { toolCallId: 't1', toolName: 'searchSections', state: 'result', args: {}, result: {} } }] } },
+      { id: 'a-t2', role: 'assistant', content: { format: 2, parts: [{ type: 'tool-invocation', toolInvocation: { toolCallId: 't2', toolName: 'getSection', state: 'result', args: {}, result: {} } }] } },
+    ]);
+    expect(out.map((m) => m.role)).toEqual(['user', 'assistant']);
+    expect(out[1].parts.filter(isToolPart)).toHaveLength(2);
+    expect(getTrailingAssistantText(out[1])).toBe(''); // genuinely no answer → endedWithoutAnswer path
   });
 });

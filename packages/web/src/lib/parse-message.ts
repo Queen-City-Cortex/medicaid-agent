@@ -24,6 +24,12 @@ function convertV4PartsToV5(v4Parts: Array<Record<string, unknown>>): UIMessage[
         input: inv.args,
         output: inv.state === 'result' ? inv.result : undefined,
       });
+    } else if (type === 'data-verification-rewrite' || type === 'data-verification-ok') {
+      // Preserve the verifier's confidence state so the trust badge restores
+      // on reload (extractVerificationState reads these parts). Other data-*
+      // parts — notably observational-memory `data-om-*` — stay dropped as
+      // internal noise.
+      result.push({ type, data: part.data });
     } else if (type === 'step-start') {
       result.push({ type: 'step-start' });
     }
@@ -47,51 +53,122 @@ export function getMessageCreatedAt(msg: UIMessage): string | null {
   return metadata?.createdAt ?? null;
 }
 
-export function convertThreadMessageToUIMessage(msg: {
+export interface RawThreadMessage {
   id?: string;
   role: string;
   content: unknown;
   createdAt?: string | Date;
-}): UIMessage | null {
-  const role = msg.role as string;
-  if (role !== 'user' && role !== 'assistant') return null;
+}
 
-  // Memory timestamps answer "when was this generated?" on restored threads.
-  // Invalid/absent dates yield no metadata rather than a bogus timestamp.
-  const createdAtDate = msg.createdAt ? new Date(msg.createdAt) : null;
-  const metadata: ThreadMessageMetadata | undefined =
-    createdAtDate && !Number.isNaN(createdAtDate.getTime())
-      ? { createdAt: createdAtDate.toISOString() }
-      : undefined;
+/** Memory timestamps answer "when was this generated?" on restored threads.
+ *  Invalid/absent dates yield no metadata rather than a bogus timestamp. */
+function createdAtMetadata(createdAt?: string | Date): ThreadMessageMetadata | undefined {
+  const d = createdAt ? new Date(createdAt) : null;
+  return d && !Number.isNaN(d.getTime()) ? { createdAt: d.toISOString() } : undefined;
+}
 
-  const id = msg.id ?? (() => {
-    const fallback = generateUUID();
-    console.warn(`[feedback] Message missing ID, generated fallback: ${fallback}. Feedback for this message won't survive reload.`);
-    return fallback;
-  })();
+function resolveMessageId(id?: string): string {
+  if (id) return id;
+  const fallback = generateUUID();
+  console.warn(`[feedback] Message missing ID, generated fallback: ${fallback}. Feedback for this message won't survive reload.`);
+  return fallback;
+}
 
-  // Detect MastraMessageContentV2 format — preserve structured parts
-  const content = msg.content;
+/** Raw V2 parts for a message; a single synthesized text part for legacy
+ *  string/array/`{parts}` content. */
+function getRawParts(content: unknown): Array<Record<string, unknown>> {
   if (content && typeof content === 'object' && !Array.isArray(content) &&
       'format' in content && 'parts' in content) {
     const v2 = content as { format: number; parts: Array<Record<string, unknown>> };
-    if (v2.format === 2 && Array.isArray(v2.parts) && v2.parts.length > 0) {
-      const parts = convertV4PartsToV5(v2.parts);
-      if (parts.length > 0) {
-        return { id, role: role as 'user' | 'assistant', parts, metadata };
+    if (v2.format === 2 && Array.isArray(v2.parts)) return v2.parts;
+  }
+  const text = extractText(content);
+  return text.trim() ? [{ type: 'text', text: text.trim() }] : [];
+}
+
+export function convertThreadMessageToUIMessage(msg: RawThreadMessage): UIMessage | null {
+  const role = msg.role;
+  if (role !== 'user' && role !== 'assistant') return null;
+  const parts = convertV4PartsToV5(getRawParts(msg.content));
+  if (parts.length === 0) return null;
+  return { id: resolveMessageId(msg.id), role, parts, metadata: createdAtMetadata(msg.createdAt) };
+}
+
+/**
+ * Rebuild a thread's UI messages from persisted memory.
+ *
+ * Mastra persists a single agent turn as SEVERAL assistant messages — the
+ * final answer text + verifier state in one, tool calls in others, and
+ * observational-memory bookkeeping (`data-om-*`) scattered throughout, often
+ * with the answer message timestamped *before* the tool messages. Rendered
+ * naively (one UIMessage per persisted message) a reloaded thread shows orphan
+ * tool-only cards (each firing the "finished without a final answer" notice),
+ * an answer detached from its sources/footnotes, and no verification badge.
+ *
+ * Coalesce each assistant turn (the run of assistant messages following a user
+ * message) into ONE assistant UIMessage, deterministically ordered
+ * tools → answer text → verification so the live-stream rendering contract
+ * holds (collapsible Research trail, inline citation footnotes, trust badge).
+ * `data-om-*` and other internal parts are dropped.
+ */
+export function coalesceThreadMessages(rawMessages: RawThreadMessage[]): UIMessage[] {
+  const out: UIMessage[] = [];
+  let turn: RawThreadMessage[] = [];
+
+  const flush = () => {
+    if (turn.length === 0) return;
+    const merged = mergeAssistantTurn(turn);
+    if (merged) out.push(merged);
+    turn = [];
+  };
+
+  for (const msg of rawMessages) {
+    if (msg.role === 'assistant') {
+      turn.push(msg);
+      continue;
+    }
+    flush(); // a non-assistant message ends the current assistant turn
+    if (msg.role === 'user') {
+      const u = convertThreadMessageToUIMessage(msg);
+      if (u) out.push(u);
+    }
+  }
+  flush();
+  return out;
+}
+
+function mergeAssistantTurn(turn: RawThreadMessage[]): UIMessage | null {
+  const tools: Array<Record<string, unknown>> = [];
+  const texts: Array<Record<string, unknown>> = [];
+  const verifications: Array<Record<string, unknown>> = [];
+  let anchor: RawThreadMessage | null = null; // the answer-text-bearing message
+
+  for (const msg of turn) {
+    for (const part of getRawParts(msg.content)) {
+      const type = part.type as string;
+      if (type === 'tool-invocation' || type === 'step-start') {
+        tools.push(part);
+      } else if (type === 'text' && typeof part.text === 'string' && part.text.trim()) {
+        texts.push(part);
+        anchor = msg;
+      } else if (type === 'data-verification-rewrite' || type === 'data-verification-ok') {
+        verifications.push(part);
       }
+      // drop data-om-* and anything else — internal bookkeeping, not user-facing
     }
   }
 
-  // Legacy fallback: extract text only
-  const text = extractText(content);
-  if (!text.trim()) return null;
+  const parts = convertV4PartsToV5([...tools, ...texts, ...verifications]);
+  if (parts.length === 0) return null;
 
+  // Anchor id + timestamp on the answer-bearing message (what feedback and the
+  // "Generated {date}" line refer to); fall back to the turn's last message.
+  const idSource = anchor ?? turn[turn.length - 1];
   return {
-    id,
-    role: role as 'user' | 'assistant',
-    parts: [{ type: 'text' as const, text: text.trim() }],
-    metadata,
+    id: resolveMessageId(idSource.id),
+    role: 'assistant',
+    parts,
+    metadata: createdAtMetadata(idSource.createdAt),
   };
 }
 
