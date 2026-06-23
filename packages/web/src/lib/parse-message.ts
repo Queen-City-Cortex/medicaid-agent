@@ -37,11 +37,6 @@ function convertV4PartsToV5(v4Parts: Array<Record<string, unknown>>): UIMessage[
   return result as UIMessage['parts'];
 }
 
-/**
- * Convert a Mastra memory thread message into a UIMessage for useChat.
- * Detects MastraMessageContentV2 format and preserves structured parts
- * (tool calls, text, step boundaries) for proper timeline rendering.
- */
 /** Metadata carried on restored thread messages. Streaming messages have none. */
 export interface ThreadMessageMetadata {
   /** ISO timestamp of when the message was persisted to memory. */
@@ -146,7 +141,7 @@ function mergeAssistantTurn(turn: RawThreadMessage[]): UIMessage | null {
   for (const msg of turn) {
     for (const part of getRawParts(msg.content)) {
       const type = part.type as string;
-      if (type === 'tool-invocation' || type === 'step-start') {
+      if (type === 'tool-invocation') {
         tools.push(part);
       } else if (type === 'text' && typeof part.text === 'string' && part.text.trim()) {
         texts.push(part);
@@ -154,7 +149,10 @@ function mergeAssistantTurn(turn: RawThreadMessage[]): UIMessage | null {
       } else if (type === 'data-verification-rewrite' || type === 'data-verification-ok') {
         verifications.push(part);
       }
-      // drop data-om-* and anything else — internal bookkeeping, not user-facing
+      // Drop data-om-*, step-start, and anything else — internal/structural
+      // noise, not user-facing. Step boundaries are meaningless once a turn's
+      // messages are merged (and MessageList ignores step-start anyway), so
+      // excluding them avoids a stray step-start leading the merged tool run.
     }
   }
 

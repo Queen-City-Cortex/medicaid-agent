@@ -317,4 +317,38 @@ describe('coalesceThreadMessages', () => {
     expect(out[1].parts.filter(isToolPart)).toHaveLength(2);
     expect(getTrailingAssistantText(out[1])).toBe(''); // genuinely no answer → endedWithoutAnswer path
   });
+
+  it('coalesces multiple turns independently without bleeding tools/text across turns', () => {
+    const out = coalesceThreadMessages([
+      { id: 'u1', role: 'user', content: v2([{ type: 'text', text: 'First question?' }]) },
+      { id: 'a1-tools', role: 'assistant', content: v2([{ type: 'tool-invocation', toolInvocation: { toolCallId: 't1', toolName: 'searchSections', state: 'result', args: {}, result: {} } }]) },
+      { id: 'a1-answer', role: 'assistant', content: v2([{ type: 'text', text: 'First answer.' }]) },
+      { id: 'u2', role: 'user', content: v2([{ type: 'text', text: 'Second question?' }]) },
+      { id: 'a2-tools', role: 'assistant', content: v2([{ type: 'tool-invocation', toolInvocation: { toolCallId: 't2', toolName: 'getSection', state: 'result', args: {}, result: {} } }]) },
+      { id: 'a2-answer', role: 'assistant', content: v2([{ type: 'text', text: 'Second answer.' }]) },
+    ]);
+
+    expect(out.map((m) => m.role)).toEqual(['user', 'assistant', 'user', 'assistant']);
+    const [, a1, , a2] = out;
+    // Each turn keeps exactly its own tool + its own answer — no cross-turn bleed.
+    expect(a1.parts.filter(isToolPart)).toHaveLength(1);
+    expect(getTrailingAssistantText(a1)).toBe('First answer.');
+    expect(a1.id).toBe('a1-answer');
+    expect(a2.parts.filter(isToolPart)).toHaveLength(1);
+    expect(getTrailingAssistantText(a2)).toBe('Second answer.');
+    expect(a2.id).toBe('a2-answer');
+  });
+
+  it('drops step-start parts from the coalesced turn (invisible structural noise)', () => {
+    const out = coalesceThreadMessages([
+      { id: 'u1', role: 'user', content: 'q' },
+      { id: 'a-answer', role: 'assistant', content: v2([{ type: 'step-start' }, { type: 'text', text: 'Answer.' }]) },
+      { id: 'a-tools', role: 'assistant', content: v2([{ type: 'step-start' }, { type: 'tool-invocation', toolInvocation: { toolCallId: 't1', toolName: 'searchSections', state: 'result', args: {}, result: {} } }]) },
+    ]);
+
+    const [, assistant] = out;
+    expect(assistant.parts.some((p) => p.type === 'step-start')).toBe(false);
+    expect(assistant.parts.filter(isToolPart)).toHaveLength(1); // tool still precedes the answer
+    expect(getTrailingAssistantText(assistant)).toBe('Answer.');
+  });
 });
