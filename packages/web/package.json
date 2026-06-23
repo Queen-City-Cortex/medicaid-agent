@@ -17,7 +17,7 @@
     "@mastra/client-js": "^1.26.0",
     "@sentry/nextjs": "^10.59.0",
     "@tailwindcss/typography": "^0.5.20",
-    "@workos-inc/authkit-nextjs": "^3.0.0",
+    "@workos-inc/authkit-nextjs": "^4.1.1",
     "ai": "^6.0.208",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
