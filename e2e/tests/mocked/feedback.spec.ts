@@ -124,6 +124,9 @@ test.describe('Message Feedback', () => {
     // Wait for assistant message to load
     await expect(page.getByTestId('assistant-message')).toBeVisible();
 
+    // P2 UX redesign: on a restored/completed message the tool steps collapse
+    // into the "Research trail" Collapsible; expand it to see the tool name.
+    await page.getByTestId('research-trail-trigger').click();
     // Research trace should show the tool call
     await expect(page.getByText('Searching policies')).toBeVisible();
 

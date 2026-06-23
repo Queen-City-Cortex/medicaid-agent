@@ -36,8 +36,9 @@ test.describe('Full-stack smoke test', () => {
     // Should not be an error message
     expect(text).not.toContain('error processing your question');
 
-    // Tool steps should have appeared (agent uses tools)
-    const toolSteps = page.getByTestId('tool-step');
-    await expect(toolSteps.first()).toBeVisible();
+    // The agent uses tools; once the run completes they collapse into the
+    // "Research trail" (P2 redesign). Assert the trail appears rather than
+    // racing the transiently-visible individual step cards.
+    await expect(page.getByTestId('research-trail-trigger')).toBeVisible({ timeout: 60_000 });
   });
 });

@@ -6,31 +6,22 @@ import { DefaultChatTransport } from 'ai';
 import type { UIMessage } from 'ai';
 import { generateUUID } from '@/lib/utils';
 import { convertThreadMessageToUIMessage } from '@/lib/parse-message';
+import { MASTRA_URL } from '@/lib/mastra-url';
+import type { MastraRunner } from '@/lib/use-mastra-client';
 
 const AGENT_ID = 'nc-medicaid-navigator';
-const MASTRA_URL = process.env.NEXT_PUBLIC_MASTRA_URL || 'http://localhost:4111';
-
-/**
- * The subset of the Mastra client that thread management needs. Kept
- * structural so tests can pass a plain mock instead of a full MastraClient.
- */
-export interface ChatThreadClient {
-  createMemoryThread(params: {
-    threadId: string;
-    resourceId: string;
-    agentId: string;
-    title: string;
-  }): Promise<unknown>;
-  getMemoryThread(params: { threadId: string; agentId: string }): {
-    listMessages(): Promise<{ messages?: unknown[] }>;
-  };
-}
 
 export interface UseChatThreadOptions {
   /** Memory resource the threads belong to (the WorkOS user id). */
   resourceId: string;
-  /** Client used to create threads and list persisted messages. */
-  mastraClient: ChatThreadClient;
+  /**
+   * Runs a thread/memory op against a client built from a freshly-fetched
+   * token (with 401 refresh-retry) — see `useMastraClientRunner`. Thread
+   * creation + message loads must survive the access token expiring
+   * mid-session, so they go through this rather than a render-time client
+   * snapshot.
+   */
+  run: MastraRunner;
   /** Returns the current WorkOS access token (for the chat transport). */
   getAccessToken: () => Promise<string | null | undefined>;
   /**
@@ -67,7 +58,7 @@ export interface UseChatThreadOptions {
  */
 export function useChatThread({
   resourceId,
-  mastraClient,
+  run,
   getAccessToken,
   onThreadSwitch,
   loadThreadFeedback,
@@ -147,21 +138,24 @@ export function useChatThread({
 
   const ensureThreadExists = useCallback(async (tid: string, title?: string) => {
     try {
-      await mastraClient.createMemoryThread({
-        threadId: tid,
-        resourceId,
-        agentId: AGENT_ID,
-        title: title ?? 'New conversation',
-      });
+      await run((client) =>
+        client.createMemoryThread({
+          threadId: tid,
+          resourceId,
+          agentId: AGENT_ID,
+          title: title ?? 'New conversation',
+        }),
+      );
     } catch {
       // Thread may already exist — that's fine
     }
-  }, [resourceId, mastraClient]);
+  }, [resourceId, run]);
 
   const loadThread = useCallback(async (tid: string) => {
     try {
-      const thread = mastraClient.getMemoryThread({ threadId: tid, agentId: AGENT_ID });
-      const result = await thread.listMessages();
+      const result = await run((client) =>
+        client.getMemoryThread({ threadId: tid, agentId: AGENT_ID }).listMessages(),
+      );
       // The user may have switched threads while this request was in flight —
       // a stale response must not overwrite the newer thread's messages.
       if (activeThreadRef.current !== tid) return;
@@ -181,7 +175,7 @@ export function useChatThread({
       console.error('Failed to load thread messages:', err);
       if (activeThreadRef.current === tid) setMessages([]);
     }
-  }, [setMessages, mastraClient, loadThreadFeedback]);
+  }, [setMessages, run, loadThreadFeedback]);
 
   const handleSelectThread = useCallback(async (tid: string) => {
     const hasCached = messageCache.current.has(tid);

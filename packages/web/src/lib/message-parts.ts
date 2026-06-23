@@ -217,6 +217,82 @@ export function buildSourceIndex(sources: MessageSource[]): Map<string, number> 
   return index;
 }
 
+export type CitationResolver = (
+  label: string | null | undefined,
+  href: string | null | undefined,
+) => number | undefined;
+
+/** Parse a source/citation label like "Policy 3G-1 § 5.2.1" into its parts. */
+function parsePolicySection(label: string): { policy: string; section: string } | null {
+  const m = label.match(/^Policy\s+(\S+)\s*§\s*([\d.]+)/i);
+  if (!m) return null;
+  return { policy: m[1], section: m[2].replace(/\.+$/, '') };
+}
+
+/** True when `prefix` is a strict dotted-segment ancestor of `full` (5.2 ⊏ 5.2.1). */
+function isDottedAncestor(prefix: string, full: string): boolean {
+  const p = prefix.split('.');
+  const f = full.split('.');
+  if (p.length >= f.length) return false;
+  return p.every((seg, i) => seg === f[i]);
+}
+
+/**
+ * Resolve an inline markdown citation to its 1-based Sources-panel row.
+ *
+ * Every section of one policy PDF shares a single download URL (e.g. all of
+ * Policy 1F's sections point at `…/1f-chiropractic-services/download`), so a
+ * URL-only lookup collapses "§ 3.2.1", "§ 5.6", etc. onto whichever row landed
+ * first — the footnote then misroutes the reader to the wrong section. We
+ * resolve in three tiers:
+ *   1. Exact label match — the source LABEL ("Policy 1F § 5.6") is unique per
+ *      row (disambiguateLabels guarantees it) and the agent emits exactly that
+ *      label as the link text.
+ *   2. Deepest same-policy ancestor — the agent often cites a finer subsection
+ *      ("§ 5.2.1") than the row it actually retrieved ("§ 5.2"); point at that
+ *      ancestor row rather than the unrelated first row of the PDF.
+ *   3. URL fallback — for doc-level links or prose phrases whose text isn't a
+ *      section label.
+ */
+export function buildCitationResolver(sources: MessageSource[]): CitationResolver {
+  const byLabel = new Map<string, number>();
+  const byUrl = new Map<string, number>();
+  const sectionRows: Array<{ policy: string; section: string; index: number }> = [];
+  sources.forEach((source, i) => {
+    const n = i + 1;
+    if (!byLabel.has(source.label)) byLabel.set(source.label, n);
+    const normalized = normalizeCitationUrl(source.url);
+    if (normalized && !byUrl.has(normalized)) byUrl.set(normalized, n);
+    const ps = parsePolicySection(source.label);
+    if (ps) sectionRows.push({ ...ps, index: n });
+  });
+  return (label, href) => {
+    const trimmed = label?.trim();
+    if (trimmed) {
+      const byExact = byLabel.get(trimmed);
+      if (byExact !== undefined) return byExact;
+      const cite = parsePolicySection(trimmed);
+      if (cite) {
+        let best: number | undefined;
+        let bestDepth = -1;
+        for (const row of sectionRows) {
+          if (row.policy !== cite.policy) continue;
+          if (isDottedAncestor(row.section, cite.section)) {
+            const depth = row.section.split('.').length;
+            if (depth > bestDepth) {
+              bestDepth = depth;
+              best = row.index;
+            }
+          }
+        }
+        if (best !== undefined) return best;
+      }
+    }
+    const normalized = normalizeCitationUrl(href ?? null);
+    return normalized ? byUrl.get(normalized) : undefined;
+  };
+}
+
 function sectionLabel(policy: string | null, section: string | null, title: string | null): string {
   if (policy && section) {
     // `§` is the legal-typography section-sign — valid only for numeric
@@ -527,13 +603,12 @@ export function splitSourcesByCited(
  */
 export function buildAnswerClipboardText(answerText: string, orderedSources: MessageSource[]): string {
   if (!answerText.trim()) return answerText;
-  const index = buildSourceIndex(orderedSources);
+  const resolve = buildCitationResolver(orderedSources);
 
   const body = answerText.replace(
     /\[([^\]]+)\]\(\s*(https?:\/\/[^)\s]+)\s*\)/g,
     (_match, label: string, url: string) => {
-      const normalized = normalizeCitationUrl(url);
-      const sourceNumber = normalized ? index.get(normalized) : undefined;
+      const sourceNumber = resolve(label, url);
       return sourceNumber !== undefined ? `${label} [${sourceNumber}]` : label;
     },
   );

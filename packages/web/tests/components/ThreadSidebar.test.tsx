@@ -32,10 +32,21 @@ const mastraClient = {
   }),
 };
 
-vi.mock('@/lib/use-mastra-client', () => ({
-  useMastraClient: () => mastraClient,
-  useMastraReady: () => true,
-}));
+vi.mock('@/lib/use-mastra-client', () => {
+  // A STABLE pass-through runner (same reference every render) — the real
+  // useMastraClientRunner returns a stable `run` (useCallback []); a fresh
+  // object each render would churn fetchThreads's identity and refetch,
+  // clearing error state (the bug the stable mock client above guards against).
+  // The real fresh-token + 401-retry behavior is unit-tested separately in
+  // tests/lib/mastra-client.test.ts (runWithFreshAuth).
+  const runner = {
+    run: <T,>(op: (c: typeof mastraClient) => T): T => op(mastraClient),
+  };
+  return {
+    useMastraClientRunner: () => runner,
+    useMastraReady: () => true,
+  };
+});
 
 describe('ThreadSidebar', () => {
   beforeEach(() => {

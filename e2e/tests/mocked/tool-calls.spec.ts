@@ -24,7 +24,12 @@ test.describe('Tool calls', () => {
     // Wait for the assistant message to confirm everything completed
     await chat.waitForAssistantMessage('coverage is available');
 
-    // One ToolStep renders per tool call, each with its own label.
+    // P2 UX redesign: once a run completes with an answer, the tool loop
+    // collapses into a single "Research trail" Collapsible below the answer
+    // (the step cards are unmounted until expanded). Expand it, then assert the
+    // per-tool steps render with their labels.
+    await expect(page.getByTestId('research-trail-trigger')).toContainText('2 steps');
+    await page.getByTestId('research-trail-trigger').click();
     const steps = page.getByTestId('tool-step');
     await expect(steps).toHaveCount(2);
     await expect(steps.nth(0)).toContainText('Searching policies');
@@ -144,18 +149,18 @@ test.describe('Tool calls', () => {
     await expect(footnote).toHaveAttribute('data-source-number', '1');
     await expect(footnote).toContainText('[1]');
 
-    // Panel starts collapsed — no source-item in the DOM tree yet.
-    expect(await page.getByTestId('source-item').count()).toBe(0);
+    // P2 UX redesign: the Sources panel auto-opens when the answer cites a
+    // source, so the target row is already in the DOM (it is no longer
+    // collapsed-by-default).
+    const items = page.getByTestId('source-item');
+    await expect(items).toHaveCount(1);
 
-    // Click the footnote; the panel opens and the target row gets a highlight.
+    // Click the footnote; the target row gets a highlight.
     // The `<sup>` wrapper renders with near-zero bounding box on the test
     // viewport, which trips Playwright's "outside viewport" actionability
     // check. Dispatch the click directly on the button — we're testing the
     // onClick handler wiring, not hit-testing.
     await footnote.evaluate((el) => (el as HTMLButtonElement).click());
-
-    const items = page.getByTestId('source-item');
-    await expect(items).toHaveCount(1);
     await expect(items.first()).toHaveAttribute('data-highlighted', 'true');
   });
 });

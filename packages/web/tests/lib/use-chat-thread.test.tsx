@@ -1,6 +1,7 @@
 import { renderHook, act } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { useChatThread, type ChatThreadClient } from '@/lib/use-chat-thread';
+import { useChatThread } from '@/lib/use-chat-thread';
+import type { MastraRunner } from '@/lib/use-mastra-client';
 
 type MinimalMessage = { id: string; role: string; parts: Array<Record<string, unknown>> };
 
@@ -50,7 +51,11 @@ function setup() {
     listMessages: () =>
       (listMessagesImpls.get(params.threadId) ?? (async () => ({ messages: [] as unknown[] })))(),
   }));
-  const client: ChatThreadClient = { createMemoryThread, getMemoryThread };
+  const client = { createMemoryThread, getMemoryThread };
+  // Pass-through runner: execute the op against the mock client. The real
+  // fresh-token + 401-retry behavior lives in runWithFreshAuth (unit-tested in
+  // tests/lib/mastra-client.test.ts).
+  const run: MastraRunner = (op) => op(client as never);
 
   const onThreadSwitch = vi.fn();
   const loadThreadFeedback = vi.fn(async (_threadId: string, _isActive: () => boolean) => {});
@@ -61,7 +66,7 @@ function setup() {
   const utils = renderHook(() =>
     useChatThread({
       resourceId: 'user-1',
-      mastraClient: client,
+      run,
       getAccessToken,
       onThreadSwitch,
       loadThreadFeedback,

@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useAccessToken } from '@workos-inc/authkit-nextjs/components';
-
-const MASTRA_URL = process.env.NEXT_PUBLIC_MASTRA_URL || 'http://localhost:4111';
+import { MASTRA_URL } from './mastra-url';
 
 export interface CorpusStatus {
   /** ISO timestamp of the most recent document (re-)index, or null if unknown. */

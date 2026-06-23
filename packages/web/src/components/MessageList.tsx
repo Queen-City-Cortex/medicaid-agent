@@ -14,7 +14,7 @@ import { VersionNav } from '@/components/VersionNav';
 import { getMessageCreatedAt } from '@/lib/parse-message';
 import {
   buildAnswerClipboardText,
-  buildSourceIndex,
+  buildCitationResolver,
   extractCitedUrls,
   extractMessageSources,
   extractVerificationState,
@@ -23,8 +23,8 @@ import {
   hasRenderableAssistantPart,
   isTextPart,
   isToolPart,
-  normalizeCitationUrl,
   splitSourcesByCited,
+  type CitationResolver,
   type MessageSource,
   type ToolMessagePart,
 } from '@/lib/message-parts';
@@ -56,13 +56,13 @@ function MarkdownText({
   text,
   finalAnswer,
   showCursor,
-  sourceIndex,
+  resolveCitation,
   onCitationClick,
 }: {
   text: string;
   finalAnswer: boolean;
   showCursor: boolean;
-  sourceIndex?: Map<string, number>;
+  resolveCitation?: CitationResolver;
   onCitationClick?: (sourceNumber: number) => void;
 }) {
   return (
@@ -70,8 +70,15 @@ function MarkdownText({
       <ReactMarkdown
         components={{
           a: ({ children, href }) => {
-            const normalized = normalizeCitationUrl(href ?? null);
-            const sourceNumber = normalized ? sourceIndex?.get(normalized) : undefined;
+            // Resolve to the Sources-panel row by the link's visible label
+            // first (unique per section) — a URL-only match collapses every
+            // section of one policy PDF onto a single footnote number.
+            const label = typeof children === 'string'
+              ? children
+              : Array.isArray(children)
+                ? children.filter((c) => typeof c === 'string').join('')
+                : '';
+            const sourceNumber = resolveCitation?.(label, href ?? null);
             // A link that maps to a numbered source is a citation: keep it quiet
             // (ink-colored, hairline underline) so clusters of them don't read as
             // a wall of gold — the small gold [n] marker carries the citation
@@ -198,7 +205,7 @@ function AssistantMessage({
   const inlineParts = collapseTrail
     ? visibleParts.filter(({ index }) => index > lastToolIndex)
     : visibleParts;
-  const sourceIndex = buildSourceIndex(sources);
+  const resolveCitation = buildCitationResolver(sources);
   // Open by default when the answer actually cites sources — hiding the
   // panel behind a click is the wrong default for a verification-first
   // product. The user's explicit toggle always wins once made.
@@ -257,7 +264,7 @@ function AssistantMessage({
           text={part.text}
           finalAnswer={finalAnswer}
           showCursor={isStreaming && isLastVisiblePart}
-          sourceIndex={finalAnswer ? sourceIndex : undefined}
+          resolveCitation={finalAnswer ? resolveCitation : undefined}
           onCitationClick={finalAnswer ? handleCitationClick : undefined}
         />
       </div>

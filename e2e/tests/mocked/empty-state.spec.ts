@@ -16,9 +16,12 @@ test.describe('Empty state', () => {
     await expect(chat.emptyHeading).toHaveText('What would you like to know?');
   });
 
-  test('renders 3 example cards', async () => {
-    await expect(chat.exampleCards).toHaveCount(3);
-    await expect(chat.exampleCards.first()).toContainText('NC Medicaid');
+  test('renders persona-grouped example cards', async ({ page }) => {
+    // P2 UX redesign: the empty state shows 3 personas (attorneys / case
+    // managers / beneficiaries) × 2 questions each = 6 example cards.
+    await expect(chat.exampleCards).toHaveCount(6);
+    await expect(page.getByTestId('example-persona')).toHaveCount(3);
+    await expect(chat.exampleCards.first()).toContainText('42 CFR Part 431');
   });
 
   test('clicking an example card fills the input', async () => {

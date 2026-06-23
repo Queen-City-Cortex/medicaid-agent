@@ -23,7 +23,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { useMastraClient, useMastraReady } from '@/lib/use-mastra-client';
+import { useMastraClientRunner, useMastraReady } from '@/lib/use-mastra-client';
 import {
   buildThreadDisplayTitles,
   buildThreadMarkdown,
@@ -49,7 +49,10 @@ interface ThreadSidebarProps {
 
 export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelectThread, onNewThread }: ThreadSidebarProps) {
   const { user } = useAuth();
-  const mastraClient = useMastraClient();
+  // `run` builds a client with a freshly-fetched token per call and retries
+  // once on a 401, so thread ops survive the access token expiring mid-session
+  // (a render-time client snapshot would 401 with no recovery).
+  const { run } = useMastraClientRunner();
   const ready = useMastraReady();
   const [threads, setThreads] = useState<StorageThreadType[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -66,13 +69,15 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
     setIsLoading(true);
     setError(null);
     try {
-      const result = await mastraClient.listMemoryThreads({
-        resourceId,
-        agentId: AGENT_ID,
-        orderBy: 'updatedAt',
-        sortDirection: 'DESC',
-        perPage: 50,
-      });
+      const result = await run((client) =>
+        client.listMemoryThreads({
+          resourceId,
+          agentId: AGENT_ID,
+          orderBy: 'updatedAt',
+          sortDirection: 'DESC',
+          perPage: 50,
+        }),
+      );
       if (signal?.aborted) return;
       setThreads(result.threads ?? []);
     } catch (err) {
@@ -86,7 +91,7 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
     } finally {
       if (!signal?.aborted) setIsLoading(false);
     }
-  }, [resourceId, mastraClient, ready]);
+  }, [resourceId, run, ready]);
 
   // Fetch threads on mount and when dependencies change; abort stale requests
   useEffect(() => {
@@ -122,8 +127,9 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
       for (const thread of untitledThreads) {
         requestedDerivedTitlesRef.current.add(thread.id);
         try {
-          const threadHandle = mastraClient.getMemoryThread({ threadId: thread.id, agentId: AGENT_ID });
-          const result = await threadHandle.listMessages();
+          const result = await run((client) =>
+            client.getMemoryThread({ threadId: thread.id, agentId: AGENT_ID }).listMessages(),
+          );
 
           const derivedTitle = deriveThreadTitleFromMessages(
             (result.messages ?? []) as Array<{ role?: string; content?: unknown }>,
@@ -147,13 +153,12 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
     return () => {
       cancelled = true;
     };
-  }, [threads, mastraClient]);
+  }, [threads, run]);
 
   const handleDelete = async (threadId: string) => {
     setError(null);
     try {
-      const thread = mastraClient.getMemoryThread({ threadId, agentId: AGENT_ID });
-      await thread.delete();
+      await run((client) => client.getMemoryThread({ threadId, agentId: AGENT_ID }).delete());
       if (threadId === currentThreadId) {
         onNewThread();
       }
@@ -172,13 +177,14 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
     setError(null);
     try {
       const existing = threads.find((t) => t.id === threadId);
-      const thread = mastraClient.getMemoryThread({ threadId, agentId: AGENT_ID });
       // Pass the thread's existing metadata through — sending `{}` here wiped it.
-      await thread.update({
-        title: editTitle.trim(),
-        metadata: existing?.metadata ?? {},
-        resourceId: existing?.resourceId ?? resourceId,
-      });
+      await run((client) =>
+        client.getMemoryThread({ threadId, agentId: AGENT_ID }).update({
+          title: editTitle.trim(),
+          metadata: existing?.metadata ?? {},
+          resourceId: existing?.resourceId ?? resourceId,
+        }),
+      );
       setEditingThreadId(null);
       fetchThreads();
     } catch (err) {
@@ -191,11 +197,12 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
   const handleDuplicate = async (threadId: string, sourceTitle: string) => {
     setError(null);
     try {
-      const thread = mastraClient.getMemoryThread({ threadId, agentId: AGENT_ID });
       // Mastra's clone endpoint copies the thread + all messages server-side.
       // We pass a fresh title so the sidebar shows the copy distinctly.
       const titled = sourceTitle.trim() || 'Untitled';
-      await thread.clone({ title: `${titled} (copy)`, resourceId });
+      await run((client) =>
+        client.getMemoryThread({ threadId, agentId: AGENT_ID }).clone({ title: `${titled} (copy)`, resourceId }),
+      );
       fetchThreads();
     } catch (err) {
       console.error('Failed to duplicate thread:', err);
@@ -206,11 +213,10 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
   const handleExport = async (threadId: string, sourceTitle: string) => {
     setError(null);
     try {
-      const thread = mastraClient.getMemoryThread({ threadId, agentId: AGENT_ID });
-      const [meta, msgs] = await Promise.all([
-        thread.get(),
-        thread.listMessages(),
-      ]);
+      const [meta, msgs] = await run((client) => {
+        const thread = client.getMemoryThread({ threadId, agentId: AGENT_ID });
+        return Promise.all([thread.get(), thread.listMessages()]);
+      });
       // Export as Markdown — the deliverable for legal-aid users is a
       // readable document for a case file, not a JSON blob.
       const markdown = buildThreadMarkdown({

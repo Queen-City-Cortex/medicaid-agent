@@ -12,7 +12,7 @@ import { ScrollToBottom } from '@/components/ScrollToBottom';
 import { ThreadSidebar } from '@/components/ThreadSidebar';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useIsMobile } from '@/lib/use-is-mobile';
-import { useMastraClient } from '@/lib/use-mastra-client';
+import { useMastraClientRunner } from '@/lib/use-mastra-client';
 import { useAnswerVersions } from '@/lib/use-answer-versions';
 import { useChatThread } from '@/lib/use-chat-thread';
 import { useDeepResearch } from '@/lib/use-deep-research';
@@ -23,7 +23,7 @@ import { useSidebarState } from '@/lib/use-sidebar-state';
 export default function ChatPage() {
   const { user, loading: authLoading } = useAuth();
   const { getAccessToken } = useAccessToken();
-  const mastraClient = useMastraClient();
+  const { run } = useMastraClientRunner();
   const isMobile = useIsMobile();
 
   const resourceId = user?.id ?? 'anonymous';
@@ -54,12 +54,28 @@ export default function ChatPage() {
     handleRerun: rerunAnswer,
   } = useAnswerVersions();
 
-  // Feedback and answer versions are per-thread client state — drop both
-  // whenever the visible thread changes.
+  // Deep Research is a distinct mode (declared before onThreadSwitch so the
+  // thread-switch reset can flip back to chat view). A HITL plan-approval gate
+  // then a long cited report, driven by the deepResearchWorkflow via the
+  // Mastra client — separate from the streaming chat agent.
+  const [deepMode, setDeepMode] = useState(false);
+  const deepResearch = useDeepResearch({ run });
+  // Pull out the stable `reset` callback so onThreadSwitch can depend on it
+  // rather than the whole `deepResearch` object (a new reference every render),
+  // keeping onThreadSwitch — and the useChatThread callbacks that list it —
+  // referentially stable.
+  const resetDeepResearch = deepResearch.reset;
+
+  // Feedback, answer versions, and deep-research mode are per-thread client
+  // state — drop them all when the visible thread changes. Resetting deep mode
+  // here fixes the case where picking a past chat while Deep Research was on
+  // left the DeepResearchView mounted and the selection appeared to do nothing.
   const onThreadSwitch = useCallback(() => {
     resetFeedback();
     resetVersions();
-  }, [resetFeedback, resetVersions]);
+    resetDeepResearch();
+    setDeepMode(false);
+  }, [resetFeedback, resetVersions, resetDeepResearch]);
 
   const {
     threadId,
@@ -77,19 +93,13 @@ export default function ChatPage() {
     handleNewThread,
   } = useChatThread({
     resourceId,
-    mastraClient,
+    run,
     getAccessToken,
     onThreadSwitch,
     loadThreadFeedback: loadFeedback,
     closeMobileSidebar,
     focusInput,
   });
-
-  // Deep Research is a distinct mode: a HITL plan-approval gate then a long
-  // cited report, driven by the deepResearchWorkflow via the Mastra client —
-  // separate from the streaming chat agent above.
-  const [deepMode, setDeepMode] = useState(false);
-  const deepResearch = useDeepResearch({ mastraClient });
 
   const { viewport, messagesEndRef } = usePinnedScroll({ messages, status });
 
@@ -110,11 +120,26 @@ export default function ChatPage() {
       await deepResearch.start(question);
       return;
     }
-    if (messages.length === 0) {
-      await ensureThreadExists(threadId, question.slice(0, 60));
+    try {
+      if (messages.length === 0) {
+        await ensureThreadExists(threadId, question.slice(0, 60));
+      }
+      await sendMessage({ text: question });
+    } catch (err) {
+      // A transient send/transport failure must not silently swallow the
+      // user's typed question — restore it so they can retry without retyping.
+      // Don't clobber text they've already begun typing again during the await.
+      console.error('[chat] send failed; restoring input', err);
+      setInput((current) => (current ? current : question));
     }
-    await sendMessage({ text: question });
   }, [input, deepMode, deepResearch, messages.length, threadId, ensureThreadExists, sendMessage]);
+
+  // Toggling Deep Research OFF discards its (now-irrelevant) plan/report state
+  // so flipping back to chat — or toggling on again — starts clean.
+  const toggleDeepResearch = useCallback(() => {
+    if (deepMode) deepResearch.reset();
+    setDeepMode((v) => !v);
+  }, [deepMode, deepResearch]);
 
   const handleRerun = useCallback((messageIndex: number, userIndex: number) => {
     rerunAnswer({ messages, regenerate, messageIndex, userIndex });
@@ -268,7 +293,7 @@ export default function ChatPage() {
           onStop={deepMode ? undefined : stop}
           inputRef={inputRef}
           deepResearch={deepMode}
-          onToggleDeepResearch={() => setDeepMode((v) => !v)}
+          onToggleDeepResearch={toggleDeepResearch}
         />
       </div>
     </div>

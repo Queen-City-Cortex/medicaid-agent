@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import type { UIMessage } from 'ai';
 import {
+  buildCitationResolver,
   buildSourceIndex,
   extractMessageSources,
   extractVerificationState,
@@ -404,6 +405,65 @@ describe('buildSourceIndex', () => {
     const normalized = normalizeCitationUrl('https://medicaid.ncdhhs.gov/8c/download?attachment');
     expect(normalized).not.toBeNull();
     expect(index.get(normalized!)).toBe(1);
+  });
+});
+
+describe('buildCitationResolver', () => {
+  // All sections of one policy PDF share a single download URL.
+  const SHARED_URL = 'https://medicaid.ncdhhs.gov/1f-chiropractic-services/download?attachment';
+  const sectionSource = (section: string): MessageSource => ({
+    key: `1F|${section}`,
+    label: `Policy 1F § ${section}`,
+    title: null,
+    url: SHARED_URL,
+    originTool: 'getSection',
+    sectionNumber: section,
+    snippet: null,
+  });
+
+  it('maps each section of one shared-URL policy to its own row (not a single collapsed number)', () => {
+    const sources = [
+      sectionSource('2.2.1'), // row 1
+      sectionSource('3.2.1'), // row 2
+      sectionSource('5.6'),   // row 5-equivalent (here row 3)
+    ];
+    const resolve = buildCitationResolver(sources);
+    // The agent emits the section label as the link text; each must resolve to
+    // its OWN row, even though all three share one URL.
+    expect(resolve('Policy 1F § 2.2.1', SHARED_URL)).toBe(1);
+    expect(resolve('Policy 1F § 3.2.1', SHARED_URL)).toBe(2);
+    expect(resolve('Policy 1F § 5.6', SHARED_URL)).toBe(3);
+    // Regression guard: a URL-only resolver would return 1 for all three.
+    expect(new Set([
+      resolve('Policy 1F § 2.2.1', SHARED_URL),
+      resolve('Policy 1F § 3.2.1', SHARED_URL),
+      resolve('Policy 1F § 5.6', SHARED_URL),
+    ]).size).toBe(3);
+  });
+
+  it('maps a cited subsection to its deepest retrieved ancestor in the same policy', () => {
+    const sources = [
+      sectionSource('3.2'), // row 1
+      sectionSource('5.2'), // row 2
+      sectionSource('5.1'), // row 3
+    ];
+    const resolve = buildCitationResolver(sources);
+    // § 5.2.1 / § 5.2.3 weren't retrieved as their own rows; resolve to the
+    // ancestor § 5.2 (row 2), NOT the unrelated first row of the same PDF.
+    expect(resolve('Policy 1F § 5.2.1', SHARED_URL)).toBe(2);
+    expect(resolve('Policy 1F § 5.2.3', SHARED_URL)).toBe(2);
+    // An exact section row still wins over the ancestor heuristic.
+    expect(resolve('Policy 1F § 5.1', SHARED_URL)).toBe(3);
+  });
+
+  it('falls back to URL match when the link label is not a source label', () => {
+    const sources = [sectionSource('2.2.1'), sectionSource('5.6')];
+    const resolve = buildCitationResolver(sources);
+    // A prose-phrase link (label not a row label) still resolves via URL to the
+    // first row sharing that URL.
+    expect(resolve('see the chiropractic policy', SHARED_URL)).toBe(1);
+    // An unknown URL with an unknown label resolves to nothing.
+    expect(resolve('whatever', 'https://example.com/unknown')).toBeUndefined();
   });
 });
 

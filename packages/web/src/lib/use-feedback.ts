@@ -2,8 +2,7 @@
 
 import { useCallback, useState } from 'react';
 import { getFeedbackByThread, submitFeedback, deleteFeedback } from '@/lib/feedback-client';
-
-const MASTRA_URL = process.env.NEXT_PUBLIC_MASTRA_URL || 'http://localhost:4111';
+import { MASTRA_URL } from '@/lib/mastra-url';
 
 /** Per-message feedback as rendered in the UI. */
 export interface MessageFeedback {

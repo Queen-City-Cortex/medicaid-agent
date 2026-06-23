@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { MastraClient } from '@mastra/client-js';
+import type { MastraRunner } from './use-mastra-client';
 
 // Client-side mirror of the agent's deep-research output schema
 // (packages/agent/src/deep-research/schemas.ts). Kept as a local interface so
@@ -66,8 +66,14 @@ export type DeepResearchStatus =
   | 'error';
 
 interface WorkflowRun {
+  readonly runId: string;
   startAsync(params: { inputData: Record<string, unknown> }): Promise<unknown>;
   resumeAsync(params: { step?: string; resumeData?: Record<string, unknown> }): Promise<unknown>;
+}
+
+/** Minimal shape of the `client.getWorkflow(id)` resource we use. */
+interface WorkflowResource {
+  createRun(params?: { runId?: string }): Promise<WorkflowRun>;
 }
 
 interface RawWorkflowResult {
@@ -104,7 +110,7 @@ function extractPlan(r: RawWorkflowResult): DeepResearchPlan | null {
  * suspendPayload, and result) rather than chunk parsing — robust for the MVP.
  * Progress is reported at phase granularity ('planning' / 'researching').
  */
-export function useDeepResearch({ mastraClient }: { mastraClient: MastraClient }) {
+export function useDeepResearch({ run }: { run: MastraRunner }) {
   const [status, setStatus] = useState<DeepResearchStatus>('idle');
   const [plan, setPlan] = useState<DeepResearchPlan | null>(null);
   const [report, setReport] = useState<DeepResearchReport | null>(null);
@@ -113,7 +119,10 @@ export function useDeepResearch({ mastraClient }: { mastraClient: MastraClient }
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [now, setNow] = useState<number>(0);
 
-  const runRef = useRef<WorkflowRun | null>(null);
+  // Store the runId (not the run handle): on resume we re-attach with a
+  // freshly-tokened client so a suspended run survives the access token
+  // expiring during the plan-approval gate.
+  const runIdRef = useRef<string | null>(null);
 
   // Elapsed-time ticker while a phase is actively working.
   const working = status === 'planning' || status === 'researching';
@@ -133,9 +142,14 @@ export function useDeepResearch({ mastraClient }: { mastraClient: MastraClient }
       setStartedAt(Date.now());
       setNow(Date.now());
       try {
-        const run = (await mastraClient.getWorkflow(WORKFLOW_ID).createRun()) as unknown as WorkflowRun;
-        runRef.current = run;
-        const res = asResult(await run.startAsync({ inputData: { question: q } }));
+        const res = asResult(
+          await run(async (client) => {
+            const wf = client.getWorkflow(WORKFLOW_ID) as unknown as WorkflowResource;
+            const wfRun = await wf.createRun();
+            runIdRef.current = wfRun.runId;
+            return wfRun.startAsync({ inputData: { question: q } });
+          }),
+        );
         const extracted = extractPlan(res);
         if (res.status === 'suspended' && extracted) {
           setPlan(extracted);
@@ -153,14 +167,22 @@ export function useDeepResearch({ mastraClient }: { mastraClient: MastraClient }
         setStatus('error');
       }
     },
-    [mastraClient],
+    [run],
   );
 
   const finishResume = useCallback(async (resumeData: Record<string, unknown>) => {
-    const run = runRef.current;
-    if (!run) return;
+    const runId = runIdRef.current;
+    if (!runId) return;
     try {
-      const res = asResult(await run.resumeAsync({ step: APPROVAL_STEP, resumeData }));
+      // Re-attach to the suspended run with a fresh-token client — the plan
+      // gate can sit minutes between start and approve, outliving the token.
+      const res = asResult(
+        await run(async (client) => {
+          const wf = client.getWorkflow(WORKFLOW_ID) as unknown as WorkflowResource;
+          const wfRun = await wf.createRun({ runId });
+          return wfRun.resumeAsync({ step: APPROVAL_STEP, resumeData });
+        }),
+      );
       if (res.status === 'success' && res.result) {
         setReport(res.result);
         setStatus(res.result.status === 'cancelled' ? 'cancelled' : 'done');
@@ -172,7 +194,7 @@ export function useDeepResearch({ mastraClient }: { mastraClient: MastraClient }
       setError(err instanceof Error ? err.message : String(err));
       setStatus('error');
     }
-  }, []);
+  }, [run]);
 
   const approve = useCallback(
     async (editedSubQuestions?: DeepResearchSubQuestion[]) => {
@@ -194,7 +216,7 @@ export function useDeepResearch({ mastraClient }: { mastraClient: MastraClient }
   }, [finishResume]);
 
   const reset = useCallback(() => {
-    runRef.current = null;
+    runIdRef.current = null;
     setStatus('idle');
     setPlan(null);
     setReport(null);

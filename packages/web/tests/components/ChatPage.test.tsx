@@ -68,14 +68,28 @@ vi.mock('@/lib/use-is-mobile', () => ({
   useIsMobile: () => true,
 }));
 
-vi.mock('@/lib/use-mastra-client', () => ({
-  useMastraClient: () => ({
+vi.mock('@/lib/use-mastra-client', () => {
+  // Stable pass-through runner over a mock client (page.tsx now consumes
+  // useMastraClientRunner and threads `run` into useChatThread/useDeepResearch).
+  const client = {
     createMemoryThread: vi.fn().mockResolvedValue(undefined),
     getMemoryThread: vi.fn(() => ({
       listMessages: vi.fn().mockResolvedValue({ messages: [] }),
     })),
-  }),
-}));
+    getWorkflow: vi.fn(() => ({
+      createRun: vi.fn().mockResolvedValue({
+        runId: 'run-1',
+        startAsync: vi.fn().mockResolvedValue({ status: 'suspended' }),
+        resumeAsync: vi.fn().mockResolvedValue({ status: 'success' }),
+      }),
+    })),
+  };
+  const runner = { run: (op: (c: typeof client) => unknown) => op(client) };
+  return {
+    useMastraClientRunner: () => runner,
+    useMastraReady: () => true,
+  };
+});
 
 vi.mock('@/lib/feedback-client', () => ({
   submitFeedback: vi.fn(),
