@@ -31,7 +31,7 @@
     "@sentry/node": "^10.59.0",
     "ai": "^6.0.208",
     "exa-js": "^2.14.0",
-    "neo4j-driver": "^5.0.0",
+    "neo4j-driver": "^6.1.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
