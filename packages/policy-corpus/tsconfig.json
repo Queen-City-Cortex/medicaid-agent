@@ -5,7 +5,12 @@
     "rootDir": "src",
     "moduleResolution": "bundler",
     "module": "ES2022",
-    "target": "ES2022"
+    "target": "ES2022",
+    // TS 6 stopped auto-including @types/node's ambient globals for this
+    // package's nested resolution, leaving `process` unresolved. Declare node
+    // types explicitly. (Tests import from 'vitest' directly, so no other
+    // ambient types are required here.)
+    "types": ["node"]
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "tests"]
