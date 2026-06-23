@@ -3,7 +3,7 @@
 ## Prerequisites
 
 - Docker running (Neo4j via `docker compose up -d neo4j` or `npm run dev:infra`)
-- Node.js 22+ (for crawler and agent)
+- Node.js 22.12+ (root `engines.node` is `>=22.12.0`; commander 15's ESM build needs it)
 - Python 3.11+ with venv at `packages/pipeline/.venv/`
 - `VOYAGE_API_KEY` environment variable set (for embeddings and search)
 - `OPENAI_API_KEY` environment variable set (for the agent, verifier, prompt-injection detector, and observational memory)
@@ -26,7 +26,7 @@ Copy `.env.example` to `.env` at the repo root and fill in keys. The agent and w
 | `NEO4J_PASSWORD` | No | `medicaid-dev` | Neo4j password |
 | `DATABASE_URL` | No | `file:./mastra.db` | LibSQL storage URL for Mastra |
 | `PORT` | No | `4111` | Mastra server port |
-| `SENTRY_DSN` | No | — | Server-side error tracking for both agent and web. Unset = Sentry disabled (no-op). Set per service in Railway. |
+| `SENTRY_DSN` | No | — | Server-side error tracking for both agent and web. Unset = Sentry disabled (no-op). **Also skipped when the resolved environment is `development`** (see below), so a DSN in local `.env` does not report dev errors. Set per service in Railway. |
 | `NEXT_PUBLIC_SENTRY_DSN` | No | — | Browser error DSN for `packages/web`. Inlined at **build** time, so on Railway it must be a **build-time** variable on the web service. |
 | `SENTRY_ENVIRONMENT` / `NEXT_PUBLIC_SENTRY_ENVIRONMENT` | No | `NODE_ENV` | Environment label on events (`production`, `staging`, …). |
 | `SENTRY_TRACES_SAMPLE_RATE` / `NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE` | No | `0` | Performance-trace sample rate. `0` = errors only; raise (e.g. `0.1`) to enable tracing without a code change. |
@@ -35,7 +35,7 @@ Copy `.env.example` to `.env` at the repo root and fill in keys. The agent and w
 
 ### Sentry error tracking
 
-Sentry is wired into both services and is **fully disabled until `SENTRY_DSN` is set** — local dev, evals, and CI run with no Sentry traffic. It captures errors only (`tracesSampleRate` defaults to `0`); it does **not** replace `@mastra/observability` (LLM/agent tracing).
+Sentry is wired into both services and is **fully disabled until `SENTRY_DSN` is set** — evals and CI run with no Sentry traffic. It is **also skipped whenever the resolved environment is `development`** (`SENTRY_ENVIRONMENT` / `NEXT_PUBLIC_SENTRY_ENVIRONMENT`, falling back to `NODE_ENV`), so a DSN left in a local `.env` will **not** send `next dev` / `mastra dev` errors into the shared project — only deploys (prod/staging) report. It captures errors only (`tracesSampleRate` defaults to `0`); it does **not** replace `@mastra/observability` (LLM/agent tracing).
 
 To enable in production (Railway):
 

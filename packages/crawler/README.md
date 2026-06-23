@@ -46,12 +46,26 @@ common commands also have npm-script shortcuts: `npm run crawl`, `npm run check`
 
 ## Sources
 
-| Source | Priority | Documents |
-|---|---|---|
-| Clinical Coverage Policies | HIGH | ~177 PDFs |
-| Medicaid Bulletins | HIGH | Monthly digests + individual bulletins |
-| State Plan Amendments | MEDIUM | Dozens per year |
-| Waiver Documents | MEDIUM-HIGH | ~11 from seed pages |
+Ten source families are configured in `src/config.ts`. The `--source` value below
+is what you pass to `crawl`/`list` (e.g. `crawl --source clinical_policy`); the
+answer role and authority tier come from `corpus-manifest.json`.
+
+| `--source` value | Covers | Answer role | Authority tier |
+|---|---|---|---|
+| `clinical_policy` | Clinical Coverage Policies (~177 PDFs) | coverage | authoritative |
+| `dhhs_policy` | DHHS eligibility manuals (MA-series) | eligibility | authoritative |
+| `state_plan_amendment` | State Plan Amendments | federal_authority | authoritative |
+| `waiver` | Waiver documents (~11 from seed pages) | coverage | authoritative |
+| `bulletin` | Medicaid bulletins (monthly digests + individual) | implementation | supporting |
+| `provider_manual` | NCTracks provider manuals | billing | operational |
+| `billing_guidance` | Billing guidance | billing | operational |
+| `fee_schedule` | Fee schedules (large — ~2,000 docs; staged ingest) | reimbursement | supporting |
+| `managed_care_guidance` | Managed care guidance (hundreds of mixed PDFs) | managed_care | supporting |
+| `managed_care_contract` | Managed care contracts & amendments | managed_care_contract | supporting |
+
+`fee_schedule` and `managed_care_*` are large, mixed-format families — treat them
+as staged ingests and use `audit-corpus` (pipeline) to track partial progress
+rather than expecting one crawl/parse/load pass to finish quickly.
 
 ## Testing
 
