@@ -1,0 +1,8 @@
+- Fixes a citation/source alignment bug in chat answers rendered by MessageList and message-parts.ts, where multiple sections from one policy PDF were collapsing to the wrong source number.
+- Introduces a shared citation resolver helper, `buildCitationResolver(sources)`, and reuses it for both markdown rendering and clipboard text generation so both paths resolve citations consistently.
+- Citation resolution order is explicit: exact source-label match first, then the deepest same-policy dotted-ancestor match, then normalized URL fallback for doc-level links.
+- The document emphasizes that source labels are unique per row and are disambiguated when needed; the agent is expected to emit the source label as the markdown link text.
+- Tests were expanded to cover shared-URL policies, dotted-ancestor matching, URL normalization, sorting, and disambiguation behavior.
+- Key files involved are `packages/web/src/lib/message-parts.ts`, `packages/web/src/components/MessageList.tsx`, and `packages/web/tests/lib/message-parts.test.ts`.
+- Notable patterns/decisions include regex-based policy label parsing (`Policy <number> § <section>` for numeric sections, `Policy <number> — <section>` for non-numeric handles), normalized URL indexing, and 1-based source row numbering.
+- The Sources panel behavior is intentionally aligned with citation resolution: document-level entries sort after section entries, and live verification showed improved footnote accuracy for multi-section policy answers.

@@ -8,8 +8,8 @@
     },
     {
       "order": 2,
-      "path": "evaluation/_index.md",
-      "tokens": 1189,
+      "path": "auth_integration/_index.md",
+      "tokens": 1137,
       "type": "summary"
     },
     {
@@ -25,6 +25,24 @@
       "type": "summary"
     },
     {
+      "importance": 60,
+      "path": "qa/launch_blockers/remediation_plan_2026_06_11.md",
+      "tokens": 632,
+      "type": "context"
+    },
+    {
+      "importance": 55,
+      "path": "database_operations/neo4j_write_read_consistency/corpusgraphwriter_write_boundary.md",
+      "tokens": 837,
+      "type": "context"
+    },
+    {
+      "importance": 55,
+      "path": "packages/pipeline/evaluation_harness_ab/embeddings_a_b_result_voyage_4_vs_voyage_law_2.md",
+      "tokens": 645,
+      "type": "context"
+    },
+    {
       "importance": 50,
       "path": "agent_architecture/amendment_pipeline_and_prompt/amendment_pipeline_and_prompt_guardrails.md",
       "tokens": 181,
@@ -33,167 +51,61 @@
     {
       "importance": 50,
       "path": "agent_architecture/context/context.md",
-      "tokens": 111,
+      "tokens": 95,
       "type": "context"
     },
     {
-      "abstractPath": "agent_architecture/context/curated_context_extraction_notes.abstract.md",
-      "abstractTokens": 41,
       "importance": 50,
-      "path": "agent_architecture/context/curated_context_extraction_notes.md",
+      "path": "agent_architecture/context/curated_context.abstract.md",
+      "tokens": 32,
+      "type": "context"
+    },
+    {
+      "importance": 50,
+      "path": "agent_architecture/context/curated_context.md",
+      "tokens": 215,
+      "type": "context"
+    },
+    {
+      "importance": 50,
+      "path": "agent_architecture/context/curated_context.overview.md",
+      "tokens": 183,
+      "type": "context"
+    },
+    {
+      "importance": 50,
+      "path": "agent_architecture/context/curated_context_extraction_notes.abstract.md",
       "tokens": 41,
       "type": "context"
     },
     {
-      "abstractPath": "agent_architecture/context/curated_operational_knowledge.abstract.md",
-      "abstractTokens": 52,
       "importance": 50,
-      "path": "agent_architecture/context/curated_operational_knowledge.md",
+      "path": "agent_architecture/context/curated_context_extraction_notes.overview.md",
+      "tokens": 309,
+      "type": "context"
+    },
+    {
+      "importance": 50,
+      "path": "agent_architecture/context/curated_operational_knowledge.abstract.md",
       "tokens": 52,
       "type": "context"
     },
     {
-      "abstractPath": "agent_architecture/context/epsdt_exception_completeness_workstream_e.abstract.md",
-      "abstractTokens": 33,
       "importance": 50,
-      "path": "agent_architecture/context/epsdt_exception_completeness_workstream_e.md",
+      "path": "agent_architecture/context/curated_operational_knowledge.md",
+      "tokens": 517,
+      "type": "context"
+    },
+    {
+      "importance": 50,
+      "path": "agent_architecture/context/epsdt_exception_completeness_workstream_e.abstract.md",
       "tokens": 33,
       "type": "context"
     },
     {
       "importance": 50,
-      "path": "agent_architecture/context.md",
-      "tokens": 158,
-      "type": "context"
-    },
-    {
-      "abstractPath": "agent_architecture/deep_research_workflow/deep_research_workflow.abstract.md",
-      "abstractTokens": 56,
-      "importance": 50,
-      "path": "agent_architecture/deep_research_workflow/deep_research_workflow.md",
-      "tokens": 56,
-      "type": "context"
-    },
-    {
-      "abstractPath": "agent_architecture/deep_research_workflow/deep_research_workflow_fixes.abstract.md",
-      "abstractTokens": 49,
-      "importance": 50,
-      "path": "agent_architecture/deep_research_workflow/deep_research_workflow_fixes.md",
-      "tokens": 49,
-      "type": "context"
-    },
-    {
-      "abstractPath": "agent_architecture/local_dev_setup/ci_workflow_concurrency_and_test_gates.abstract.md",
-      "abstractTokens": 49,
-      "importance": 50,
-      "path": "agent_architecture/local_dev_setup/ci_workflow_concurrency_and_test_gates.md",
-      "tokens": 49,
-      "type": "context"
-    },
-    {
-      "abstractPath": "agent_architecture/local_dev_setup/env_consolidation/repository_doc_audit_findings.abstract.md",
-      "abstractTokens": 48,
-      "importance": 50,
-      "path": "agent_architecture/local_dev_setup/env_consolidation/repository_doc_audit_findings.md",
-      "tokens": 48,
-      "type": "context"
-    },
-    {
-      "importance": 50,
-      "path": "agent_architecture/local_dev_setup/env_consolidation/root_environment_consolidation.md",
-      "tokens": 407,
-      "type": "context"
-    },
-    {
-      "importance": 50,
-      "path": "agent_architecture/local_dev_setup/local_development_setup.md",
-      "tokens": 240,
-      "type": "context"
-    },
-    {
-      "importance": 50,
-      "path": "agent_architecture/mastra_server_configuration/mastra_server_timeout_tuning.md",
-      "tokens": 187,
-      "type": "context"
-    },
-    {
-      "importance": 50,
-      "path": "agent_architecture/navigate_tools/getamendments_optional_match_filtering.md",
-      "tokens": 180,
-      "type": "context"
-    },
-    {
-      "importance": 50,
-      "path": "agent_architecture/nc_medicaid_agent/cli_runner.md",
-      "tokens": 207,
-      "type": "context"
-    },
-    {
-      "importance": 50,
-      "path": "agent_architecture/nc_medicaid_agent/libsql_storage_fix_for_railway.md",
-      "tokens": 542,
-      "type": "context"
-    },
-    {
-      "importance": 50,
-      "path": "agent_architecture/nc_medicaid_agent/nc_medicaid_navigator_agent.md",
-      "tokens": 264,
-      "type": "context"
-    },
-    {
-      "importance": 50,
-      "path": "agent_architecture/nc_medicaid_agent/ssa_and_cfr_reference_resolution_fixes.md",
-      "tokens": 458,
-      "type": "context"
-    },
-    {
-      "importance": 50,
-      "path": "agent_architecture/nc_medicaid_agent/startup_and_web_ui_hardening.md",
-      "tokens": 214,
-      "type": "context"
-    },
-    {
-      "importance": 50,
-      "path": "agent_architecture/neo4j_tool_output_validation/neo4j_tool_output_validation.md",
-      "tokens": 205,
-      "type": "context"
-    },
-    {
-      "importance": 50,
-      "path": "agent_architecture/packages_pipeline/context.md",
-      "tokens": 105,
-      "type": "context"
-    },
-    {
-      "abstractPath": "agent_architecture/packages_pipeline/crawler_cli_and_package_docs.abstract.md",
-      "abstractTokens": 42,
-      "importance": 50,
-      "path": "agent_architecture/packages_pipeline/crawler_cli_and_package_docs.md",
-      "tokens": 42,
-      "type": "context"
-    },
-    {
-      "abstractPath": "agent_architecture/packages_pipeline/crawler_sync_behavior/crawler_sync_behavior.abstract.md",
-      "abstractTokens": 41,
-      "importance": 50,
-      "path": "agent_architecture/packages_pipeline/crawler_sync_behavior/crawler_sync_behavior.md",
-      "tokens": 41,
-      "type": "context"
-    },
-    {
-      "abstractPath": "agent_architecture/packages_pipeline/retrieval_fixes/retrieval_fixes.abstract.md",
-      "abstractTokens": 41,
-      "importance": 50,
-      "path": "agent_architecture/packages_pipeline/retrieval_fixes/retrieval_fixes.md",
-      "tokens": 41,
-      "type": "context"
-    },
-    {
-      "abstractPath": "agent_architecture/packages_pipeline/ssa_parser_subsection_splitting_fix.abstract.md",
-      "abstractTokens": 57,
-      "importance": 50,
-      "path": "agent_architecture/packages_pipeline/ssa_parser_subsection_splitting_fix.md",
-      "tokens": 57,
+      "path": "agent_architecture/context/epsdt_exception_completeness_workstream_e.md",
+      "tokens": 228,
       "type": "context"
     },
     {
@@ -202,13 +114,13 @@
       "type": "stub"
     }
   ],
-  "generated_at": "2026-06-23T01:54:34.878Z",
+  "generated_at": "2026-06-23T16:53:47.679Z",
   "lane_tokens": {
-    "contexts": 3968,
+    "contexts": 4000,
     "stubs": 104,
-    "summaries": 1973
+    "summaries": 1921
   },
-  "source_fingerprint": "a9752c0ffcbb6b8c6c76777d5b7220e09273a0835085126bce96cfe56f50ea8e",
-  "total_tokens": 6045,
+  "source_fingerprint": "dc703203053f122415ea9424c928def216f6c1b0db16420a30fcf4ccd1c986a8",
+  "total_tokens": 6025,
   "version": 1
 }
