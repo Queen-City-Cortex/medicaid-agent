@@ -1,3 +1,4 @@
+import type { AnswerFrame, AnswerFrameSection } from '@nc-medicaid/policy-corpus';
 import { getConfig } from './config.js';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -76,47 +77,8 @@ interface FollowReferencesResult {
   }>;
 }
 
-interface AnswerFrameSection {
-  id: string;
-  title: string | null;
-  sectionNumber: string | null;
-  content: string | null;
-  effectiveDate: string | null;
-  lastRevised: string | null;
-  federalRegisterCite: string | null;
-  documentId: string | null;
-  documentTitle: string | null;
-  documentType: string | null;
-  policyNumber: string | null;
-  url: string | null;
-  citationLink: string | null;
-  reason: string | null;
-}
-
 interface ResolveAnswerFrameResult {
-  frame: {
-    questionType: string;
-    route: {
-      lane: string;
-      rationale: string;
-      widening_policy: string;
-      determinism_hints: {
-        numeric_evidence_only: boolean;
-        latest_revision_only: boolean;
-        cite_scope_and_not_covered: boolean;
-      };
-    };
-    authoritativeDocuments: Array<DocumentMetadata & { reason: string | null }>;
-    primarySections: AnswerFrameSection[];
-    supportingSections: AnswerFrameSection[];
-    avoidSections: AnswerFrameSection[];
-    latestRevision: {
-      marker: string | null;
-      document: (DocumentMetadata & { reason: string | null }) | null;
-      section: AnswerFrameSection | null;
-    } | null;
-    variantReasoning: string | null;
-  };
+  frame: AnswerFrame;
 }
 
 // ── Evidence tools ───────────────────────────────────────────────────────────

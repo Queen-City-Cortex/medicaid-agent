@@ -8,10 +8,6 @@ const REQUIREMENT_QUERY_TERMS = ['requirement', 'requirements', 'documentation',
 // "small" ("minor home modifications" under CAP/DA), not "a child".
 const PEDIATRIC_QUERY_TERMS = ['under 21', 'child', 'children', 'pediatric', 'pediatrics', 'adolescent', 'youth'];
 
-export function includesAnyTerm(text: string, terms: string[]): boolean {
-  return terms.some((term) => text.includes(term));
-}
-
 export function isPriorAuthorizationQuery(queryLower: string): boolean {
   return (
     queryLower.includes('prior authorization') ||
@@ -29,7 +25,7 @@ export function isReimbursementQuery(queryLower: string): boolean {
     /\brates?\b/.test(queryLower) ||
     /\bpayments?\b/.test(queryLower) ||
     /\b(?:hcpcs|cpt)\b/.test(queryLower) ||
-    includesAnyTerm(queryLower, [
+    includesPhrase(queryLower, [
       'fee schedule',
       'fee schedules',
       'allowed amount',
@@ -50,7 +46,7 @@ export function isHistoricalReimbursementQuery(queryLower: string, requestedYear
     // 'prior' is bounded and must not be the 'prior authorization/approval'
     // term — those questions are about criteria, not history.
     /\bprior\b(?!\s+(?:authorization|approval|auth))/.test(queryLower) ||
-    includesAnyTerm(queryLower, [
+    includesPhrase(queryLower, [
       'histor',
       'previous',
       'earlier',
@@ -69,7 +65,7 @@ export function variantDateMatchesRequestedYear(variantDate: string | null, requ
 }
 
 export function isBillingWorkflowQuery(queryLower: string): boolean {
-  return includesAnyTerm(queryLower, [
+  return includesPhrase(queryLower, [
     'billing',
     'claims',
     'claim ',
@@ -85,7 +81,7 @@ export function isBillingWorkflowQuery(queryLower: string): boolean {
 }
 
 export function isManagedCareOperationsQuery(queryLower: string): boolean {
-  return includesAnyTerm(queryLower, [
+  return includesPhrase(queryLower, [
     'managed care',
     'health plan',
     'provider playbook',
@@ -154,7 +150,7 @@ export function isTelehealthQuery(queryLower: string): boolean {
 export function asksForTelehealthServiceList(queryLower: string): boolean {
   return (
     isTelehealthQuery(queryLower) &&
-    includesAnyTerm(queryLower, [
+    includesPhrase(queryLower, [
       'which services',
       'what services',
       'which service',

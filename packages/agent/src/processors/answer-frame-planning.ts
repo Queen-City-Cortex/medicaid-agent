@@ -1,44 +1,9 @@
 import type { Processor, ProcessInputStepArgs, ProcessInputStepResult } from '@mastra/core/processors';
+import type { AnswerFrame, AnswerFrameDocument, AnswerFrameSection } from '@nc-medicaid/policy-corpus';
 import { contentText, latestToolResult, latestUserText } from './message-utils.js';
 
-interface AnswerFrameDocument {
-  title: string | null;
-  policyNumber: string | null;
-}
-
-interface AnswerFrameSection {
-  id: string;
-  title: string | null;
-  sectionNumber: string | null;
-  content: string | null;
-  documentTitle: string | null;
-  policyNumber: string | null;
-  reason: string | null;
-}
-
 interface ResolveAnswerFrameResult {
-  frame: {
-    questionType: 'coverage' | 'prior_authorization' | 'amendment' | 'federal_authority' | 'policy_variant' | 'general';
-    route: {
-      lane: 'baseline_hybrid' | 'graph_reasoning' | 'deterministic_evidence';
-      rationale: string;
-      widening_policy: 'none' | 'one_step' | 'family_expansion';
-      determinism_hints: {
-        numeric_evidence_only: boolean;
-        latest_revision_only: boolean;
-        cite_scope_and_not_covered: boolean;
-      };
-    };
-    authoritativeDocuments: AnswerFrameDocument[];
-    primarySections: AnswerFrameSection[];
-    supportingSections: AnswerFrameSection[];
-    avoidSections: AnswerFrameSection[];
-    latestRevision: {
-      marker: string | null;
-      section: AnswerFrameSection | null;
-    } | null;
-    variantReasoning: string | null;
-  };
+  frame: AnswerFrame;
 }
 
 const PLAN_MARKER = '[answer-frame-plan]';

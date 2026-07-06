@@ -12,6 +12,8 @@ import {
   combineText,
   dedupeTerms,
   includesPhrase,
+  isWaiverApplicationRebalanceSectionNumber,
+  isWaiverAuthorityImplementingSectionNumber,
   normalizeSearchText,
   uniqueBy,
 } from '../../internal/shared.js';
@@ -49,7 +51,7 @@ const WAIVER_HINT: FederalQueryHint = {
     return (
       isFederalSection(section) &&
       !includesPhrase(text, WAIVER_APPLICATION_AVOID_TERMS) &&
-      (sectionNumber.startsWith('441.30') || sectionNumber === '440.180')
+      isWaiverApplicationRebalanceSectionNumber(sectionNumber)
     );
   },
   isAvoid: (section) =>
@@ -75,10 +77,7 @@ const WAIVER_AUTHORITY_HINT: FederalQueryHint = {
   isPrimary: (section) => {
     const policy = policyNumberUpper(section);
     if (policy !== '42-CFR-441') return false;
-    const sn = normalizeSearchText(section.sectionNumber);
-    if (!sn.startsWith('441.')) return false;
-    const num = Number.parseFloat(sn);
-    return Number.isFinite(num) && num >= 441.300 && num <= 441.310;
+    return isWaiverAuthorityImplementingSectionNumber(normalizeSearchText(section.sectionNumber));
   },
 };
 

@@ -49,7 +49,6 @@ _.table_structure_options
 close_driver
 _parse_response
 primary_hit_rate
-_.mark_document_status
 
 # --- SourceFamilyManifest schema fields (populated from corpus-manifest.json) ---
 allowed_domains

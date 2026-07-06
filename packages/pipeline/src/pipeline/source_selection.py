@@ -8,6 +8,12 @@ from pathlib import Path
 import re
 from typing import Any, Mapping
 
+# Registry rows always carry data-dir-relative paths (the crawler's downloader
+# writes them that way), so the default data_dir is never exercised here and
+# this module stays config-independent — unlike audit.py/loader.py, which pass
+# their own monkeypatchable CRAWLER_DATA_DIR because they handle absolute paths.
+from pipeline.crawler_registry import normalize_local_path as _normalize_local_path
+
 
 FEE_SCHEDULE_HISTORY_WINDOW = 3
 
@@ -162,13 +168,6 @@ class FeeScheduleBacklogGroup:
     downloaded_history: int
     discovered_history: int
     candidates: tuple[FeeScheduleBacklogCandidate, ...]
-
-
-def _normalize_local_path(local_path: str | None) -> str | None:
-    if not local_path:
-        return None
-    path = Path(local_path)
-    return str(path).replace("\\", "/")
 
 
 def _normalize_source_format(source_format: str | None) -> str | None:

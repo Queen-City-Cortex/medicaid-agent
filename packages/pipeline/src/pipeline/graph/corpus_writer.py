@@ -198,12 +198,6 @@ class CorpusGraphWriter:
 
         return len(links)
 
-    def mark_document_status(self, document_ids: list[str], status: str) -> None:
-        with self._session_factory() as session:
-            self._execute_write(
-                session, self._mark_document_statuses, "mark_document_status", document_ids, status
-            )
-
     def _write_sections(self, tx: ManagedTransaction, sections: list, doc_id: str) -> None:
         section_rows = [
             {

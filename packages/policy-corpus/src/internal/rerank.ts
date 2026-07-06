@@ -11,7 +11,6 @@ import type { CorpusRetrievalHit } from '../types.js';
 import { combineText, includesPhrase, normalizeSearchText, scorePhraseMatches } from './base.js';
 import {
   asksForPublicNoticeDetails,
-  includesAnyTerm,
   isBillingWorkflowQuery,
   isChangeNoticeQuery,
   isCoverageQuestion,
@@ -98,8 +97,8 @@ import { documentKeyForHit } from './document-selection.js';
 
 export function isModificationReviewQuery(queryLower: string): boolean {
   return (
-    includesAnyTerm(queryLower, ['home modification', 'home modifications', 'equipment', 'technology', 'modification']) &&
-    includesAnyTerm(queryLower, ['multidisciplinary team', 'mdt'])
+    includesPhrase(queryLower, ['home modification', 'home modifications', 'equipment', 'technology', 'modification']) &&
+    includesPhrase(queryLower, ['multidisciplinary team', 'mdt'])
   );
 }
 
@@ -500,8 +499,8 @@ const scoreModificationReview: HitScorer = (score, hit, context) => {
     return score;
   }
   const hitText = `${normalizeSearchText(hit.sectionTitle)} ${normalizeSearchText(hit.content)}`;
-  const matchesModificationTopic = includesAnyTerm(hitText, ['equipment', 'modification', 'technology', 'home modification']);
-  const matchesReviewSignal = includesAnyTerm(hitText, ['multidisciplinary', 'mdt']);
+  const matchesModificationTopic = includesPhrase(hitText, ['equipment', 'modification', 'technology', 'home modification']);
+  const matchesReviewSignal = includesPhrase(hitText, ['multidisciplinary', 'mdt']);
   if (matchesModificationTopic && matchesReviewSignal) {
     return score + MODIFICATION_REVIEW_CLUSTER_BOOST;
   }

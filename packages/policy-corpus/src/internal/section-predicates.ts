@@ -161,3 +161,44 @@ export function isOperationalSourceHit(hit: CorpusRetrievalHit): boolean {
     hit.answerRole === 'managed_care_contract'
   );
 }
+
+// ── Waiver section-number predicates ─────────────────────────────────────────
+// "Which CFR sections are waiver-primary" deliberately differs by phase:
+// evidence anchoring casts wider (Subparts G and H) than rebalance reordering
+// (Subpart G only), and the rerank scorer uses the curated
+// WAIVER_APPLICATION_PRIMARY_SECTION_NUMBERS set from term-lists.ts
+// (§§ 441.300–.303, 441.350–.355, 440.180). These encodings used to be inlined
+// at each site and drifted silently; keep every variant here, side by side, so
+// a range change is a visible decision rather than an accident.
+
+/** The 1915 waiver statute itself (SSA Title XIX § 1915). */
+export function isSsaWaiverStatuteHit(hit: {
+  policyNumber?: string | null;
+  sectionNumber?: string | null;
+}): boolean {
+  return (
+    hit.policyNumber?.toUpperCase() === 'SSA-TITLE-19' &&
+    normalizeSearchText(hit.sectionNumber) === '1915'
+  );
+}
+
+/** Evidence-anchoring range: 42 CFR 441 Subparts G and H (§§ 441.30x, 441.35x).
+ *  Takes a normalizeSearchText()-normalized section number. */
+export function isWaiverAuthorityAnchorSectionNumber(sectionNumber: string): boolean {
+  return /^441\.(30\d|35\d)$/.test(sectionNumber);
+}
+
+/** 1915(c) HCBS implementing regulations, 42 CFR 441 Subpart G only
+ *  (§§ 441.300–441.310). Takes a normalized section number. */
+export function isWaiverAuthorityImplementingSectionNumber(sectionNumber: string): boolean {
+  if (!sectionNumber.startsWith('441.')) return false;
+  const num = Number.parseFloat(sectionNumber);
+  return Number.isFinite(num) && num >= 441.300 && num <= 441.310;
+}
+
+/** Waiver-application rebalance primaries: §§ 441.30x plus § 440.180.
+ *  Narrower than the rerank set — no Subpart H. Takes a normalized section
+ *  number. */
+export function isWaiverApplicationRebalanceSectionNumber(sectionNumber: string): boolean {
+  return sectionNumber.startsWith('441.30') || sectionNumber === '440.180';
+}

@@ -1,4 +1,5 @@
 import type { UIMessage } from 'ai';
+import { OK_PART_TYPE, REWRITE_PART_TYPE } from './message-parts';
 import { generateUUID } from './utils';
 
 /**
@@ -24,7 +25,7 @@ function convertV4PartsToV5(v4Parts: Array<Record<string, unknown>>): UIMessage[
         input: inv.args,
         output: inv.state === 'result' ? inv.result : undefined,
       });
-    } else if (type === 'data-verification-rewrite' || type === 'data-verification-ok') {
+    } else if (type === REWRITE_PART_TYPE || type === OK_PART_TYPE) {
       // Preserve the verifier's confidence state so the trust badge restores
       // on reload (extractVerificationState reads these parts). Other data-*
       // parts — notably observational-memory `data-om-*` — stay dropped as
@@ -146,7 +147,7 @@ function mergeAssistantTurn(turn: RawThreadMessage[]): UIMessage | null {
       } else if (type === 'text' && typeof part.text === 'string' && part.text.trim()) {
         texts.push(part);
         anchor = msg;
-      } else if (type === 'data-verification-rewrite' || type === 'data-verification-ok') {
+      } else if (type === REWRITE_PART_TYPE || type === OK_PART_TYPE) {
         verifications.push(part);
       }
       // Drop data-om-*, step-start, and anything else — internal/structural

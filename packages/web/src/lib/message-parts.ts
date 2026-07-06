@@ -79,8 +79,8 @@ export interface VerificationState {
   pureMarkerFallback: boolean;
 }
 
-const REWRITE_PART_TYPE = 'data-verification-rewrite';
-const OK_PART_TYPE = 'data-verification-ok';
+export const REWRITE_PART_TYPE = 'data-verification-rewrite';
+export const OK_PART_TYPE = 'data-verification-ok';
 
 function coerceCounts(raw: unknown): VerificationState['counts'] {
   const counts = (raw ?? {}) as Record<string, unknown>;
@@ -199,22 +199,6 @@ export function normalizeCitationUrl(url: string | null | undefined): string | n
   } catch {
     return trimmed.toLowerCase();
   }
-}
-
-/**
- * Build a `normalizedUrl -> 1-indexed source number` map so inline
- * markdown citations in the answer body can be decorated with a footnote
- * superscript that matches the Sources-panel row.
- */
-export function buildSourceIndex(sources: MessageSource[]): Map<string, number> {
-  const index = new Map<string, number>();
-  sources.forEach((source, i) => {
-    const normalized = normalizeCitationUrl(source.url);
-    if (normalized && !index.has(normalized)) {
-      index.set(normalized, i + 1);
-    }
-  });
-  return index;
 }
 
 export type CitationResolver = (

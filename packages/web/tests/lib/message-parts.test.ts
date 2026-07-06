@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import type { UIMessage } from 'ai';
 import {
   buildCitationResolver,
-  buildSourceIndex,
   extractMessageSources,
   extractVerificationState,
   getToolName,
@@ -370,41 +369,6 @@ describe('normalizeCitationUrl', () => {
     const a = normalizeCitationUrl('https://medicaid.ncdhhs.gov/8c-main/download');
     const b = normalizeCitationUrl('https://medicaid.ncdhhs.gov/8c-cpt-codes/download');
     expect(a).not.toBe(b);
-  });
-});
-
-describe('buildSourceIndex', () => {
-  const makeSource = (key: string, url: string): MessageSource => ({
-    key,
-    label: `Label ${key}`,
-    title: null,
-    url,
-    originTool: 'getSection',
-    sectionNumber: null,
-    snippet: null,
-  });
-
-  it('indexes sources 1-based in array order', () => {
-    const sources = [
-      makeSource('a', 'https://example.com/a'),
-      makeSource('b', 'https://example.com/b'),
-      makeSource('c', 'https://example.com/c'),
-    ];
-    const index = buildSourceIndex(sources);
-    expect(index.get('https://example.com/a')).toBe(1);
-    expect(index.get('https://example.com/b')).toBe(2);
-    expect(index.get('https://example.com/c')).toBe(3);
-  });
-
-  it('matches agent citations through normalization', () => {
-    const sources = [
-      makeSource('a', 'https://medicaid.ncdhhs.gov/8c/download'),
-    ];
-    const index = buildSourceIndex(sources);
-    // Agent may emit the URL with `?attachment`; index lookup must still hit.
-    const normalized = normalizeCitationUrl('https://medicaid.ncdhhs.gov/8c/download?attachment');
-    expect(normalized).not.toBeNull();
-    expect(index.get(normalized!)).toBe(1);
   });
 });
 

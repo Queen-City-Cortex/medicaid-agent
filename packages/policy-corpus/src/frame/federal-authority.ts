@@ -43,7 +43,9 @@ import {
   filterHitsToFocusedContent,
   includesPhrase,
   isMlrQuery,
+  isSsaWaiverStatuteHit,
   isWaiverApplicationQuery,
+  isWaiverAuthorityAnchorSectionNumber,
   isWaiverAuthorityQuery,
   matchesToken,
   normalizeSearchText,
@@ -192,15 +194,14 @@ function isWaiverAuthorityAnchorHit(hit: {
   policyNumber?: string | null;
   sectionNumber?: string | null;
 }): boolean {
-  const sectionNumber = normalizeSearchText(hit.sectionNumber);
   const policyNumber = hit.policyNumber?.toUpperCase();
 
   if (policyNumber === 'SSA-TITLE-19') {
-    return sectionNumber === '1915';
+    return isSsaWaiverStatuteHit(hit);
   }
 
   if (policyNumber === '42-CFR-441') {
-    return /^441\.(30\d|35\d)$/.test(sectionNumber);
+    return isWaiverAuthorityAnchorSectionNumber(normalizeSearchText(hit.sectionNumber));
   }
 
   return false;
@@ -487,9 +488,7 @@ async function buildFederalPrimaryEvidence(
   const waiverStatutoryCandidates =
     signals.waiverApplicationQuery || signals.waiverAuthorityQuery
       ? buildSectionCandidates(
-          filteredPrimaryFederalHits.filter(
-            (hit) => hit.policyNumber?.toUpperCase() === 'SSA-TITLE-19' && normalizeSearchText(hit.sectionNumber) === '1915',
-          ),
+          filteredPrimaryFederalHits.filter((hit) => isSsaWaiverStatuteHit(hit)),
           primaryIncludeTerms,
           [],
           1,

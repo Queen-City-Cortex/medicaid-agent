@@ -11,6 +11,7 @@ from rich.console import Console
 
 from pipeline.config import PARSED_DATA_DIR, CRAWLER_DATA_DIR, CRAWLER_DB_PATH, SOURCE_TYPE_DIRS
 from pipeline.corpus_manifest import get_source_family
+from pipeline.crawler_registry import normalize_local_path, read_registry_rows
 from pipeline.parse.post_process import (
     extract_section_number,
     infer_level_from_number,
@@ -332,22 +333,10 @@ def read_crawler_metadata(source_type: str, filename_stem: str) -> dict:
         conn.close()
 
 
-def _read_all_crawler_rows() -> list[dict]:
-    if not CRAWLER_DB_PATH.exists():
-        return []
-
-    conn = sqlite3.connect(str(CRAWLER_DB_PATH))
-    conn.row_factory = sqlite3.Row
-    try:
-        return [dict(row) for row in conn.execute("SELECT * FROM documents ORDER BY id")]
-    finally:
-        conn.close()
-
-
 @lru_cache(maxsize=4)
 def _build_cached_source_selection_index(db_path: str, db_mtime_ns: int | None) -> dict[str, object]:
     del db_path, db_mtime_ns
-    return build_source_selection_index(_read_all_crawler_rows())
+    return build_source_selection_index(read_registry_rows(CRAWLER_DB_PATH))
 
 
 def _source_selection_index() -> dict[str, object]:
@@ -357,30 +346,17 @@ def _source_selection_index() -> dict[str, object]:
 
 def read_crawler_metadata_by_local_path(source_type: str, local_path: str) -> dict:
     """Read metadata from the crawler registry by exact local file path."""
-    import sqlite3
-
     if not CRAWLER_DB_PATH.exists():
         return {}
-
-    candidate_paths = {Path(local_path).as_posix()}
-    try:
-        local_path_obj = Path(local_path)
-        if local_path_obj.is_absolute():
-            candidate_paths.add(local_path_obj.relative_to(CRAWLER_DATA_DIR).as_posix())
-    except ValueError:
-        pass
 
     conn = sqlite3.connect(str(CRAWLER_DB_PATH))
     conn.row_factory = sqlite3.Row
     try:
-        for candidate_path in candidate_paths:
-            row = conn.execute(
-                "SELECT * FROM documents WHERE source_type = ? AND local_path = ?",
-                (source_type, candidate_path),
-            ).fetchone()
-            if row:
-                return dict(row)
-        return {}
+        row = conn.execute(
+            "SELECT * FROM documents WHERE source_type = ? AND local_path = ?",
+            (source_type, normalize_local_path(local_path, CRAWLER_DATA_DIR)),
+        ).fetchone()
+        return dict(row) if row else {}
     finally:
         conn.close()
 

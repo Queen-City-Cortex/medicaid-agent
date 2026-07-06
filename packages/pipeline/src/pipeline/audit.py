@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import sqlite3
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
@@ -12,12 +11,12 @@ from typing import Any
 from pipeline.config import (
     AUDIT_DATA_DIR,
     CRAWLER_DATA_DIR,
-    CRAWLER_DB_PATH,
     PARSED_DATA_DIR,
     PARSE_SUPPORTED_FILE_FORMATS,
     SOURCE_TYPE_DIRS,
 )
 from pipeline.corpus_manifest import CORPUS_MANIFEST, SourceFamilyManifest
+from pipeline.crawler_registry import normalize_local_path, read_registry_rows
 from pipeline.graph.connection import get_session
 from pipeline.source_selection import (
     build_source_selection_index,
@@ -38,15 +37,7 @@ FAILURE_REASONS = (
 
 
 def _normalize_local_path(path_value: str | None) -> str | None:
-    if not path_value:
-        return None
-    path = Path(path_value)
-    if path.is_absolute():
-        try:
-            return str(path.relative_to(CRAWLER_DATA_DIR))
-        except ValueError:
-            return str(path)
-    return str(path)
+    return normalize_local_path(path_value, CRAWLER_DATA_DIR)
 
 
 def _resolve_local_path(path_value: str | None) -> Path | None:
@@ -56,18 +47,6 @@ def _resolve_local_path(path_value: str | None) -> Path | None:
     if path.is_absolute():
         return path
     return CRAWLER_DATA_DIR / path
-
-
-def read_registry_rows(db_path: Path = CRAWLER_DB_PATH) -> list[dict[str, Any]]:
-    if not db_path.exists():
-        return []
-
-    conn = sqlite3.connect(str(db_path))
-    conn.row_factory = sqlite3.Row
-    try:
-        return [dict(row) for row in conn.execute("SELECT * FROM documents ORDER BY id")]
-    finally:
-        conn.close()
 
 
 def scan_downloaded_files(
