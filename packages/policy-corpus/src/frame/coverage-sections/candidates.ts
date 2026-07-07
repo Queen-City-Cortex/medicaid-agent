@@ -90,13 +90,16 @@ export function buildCoverageQueryFlags(queryLower: string): CoverageQueryFlags 
 
 // --- Profile model ---------------------------------------------------------
 
+// All-readonly: profiles are module-level singletons shared across every
+// call since the rule-table conversion — an accidental write would corrupt
+// results for all callers for the lifetime of the module.
 export interface CoverageDocumentCandidateProfile {
-  id: string;
-  collector: 'section' | 'likely_limitation';
-  includeTerms: readonly string[];
-  avoidTerms: readonly string[];
-  reason: string;
-  limit: number;
+  readonly id: string;
+  readonly collector: 'section' | 'likely_limitation';
+  readonly includeTerms: readonly string[];
+  readonly avoidTerms: readonly string[];
+  readonly reason: string;
+  readonly limit: number;
 }
 
 export interface CoverageDocumentCandidateProfileSets {
@@ -157,8 +160,8 @@ export function buildCoverageDocumentCandidateProfiles(
   const signals = buildCoverageDocumentCandidateSignals(queryLower, flags);
 
   return {
-    primaryProfiles: buildCoveragePrimaryProfiles(signals),
-    supportingProfiles: buildCoverageSupportingProfiles(signals),
+    primaryProfiles: profilesFor(COVERAGE_PRIMARY_PROFILE_RULES, signals),
+    supportingProfiles: profilesFor(COVERAGE_SUPPORTING_PROFILE_RULES, signals),
   };
 }
 
@@ -177,397 +180,326 @@ function buildCoverageDocumentCandidateSignals(
   };
 }
 
-// --- Primary profiles ------------------------------------------------------
+// --- Profile rules ----------------------------------------------------------
+//
+// Each rule pairs a gate over the derived signals with the static profiles it
+// contributes. profilesFor() walks a table in order and concatenates matching
+// rules' profiles — TABLE ORDER IS LOAD-BEARING: selection downstream is
+// positional and collectProfiles() dedupes first-wins on section id, so
+// reordering rules changes which profile claims a shared section.
 
-function buildCoveragePrimaryProfiles(signals: CoverageDocumentCandidateSignals): CoverageDocumentCandidateProfile[] {
-  return [
-    ...buildEligibilityPrimaryProfiles(signals),
-    ...buildYesNoCoveragePrimaryProfiles(signals),
-    ...buildPediatricPrimaryProfiles(signals),
-    ...buildModificationPrimaryProfiles(signals),
-    ...buildTelehealthPrimaryProfiles(signals),
-    ...buildCertificationPrimaryProfiles(signals),
-    ...buildHcwdPrimaryProfiles(signals),
-    ...buildCoverageDetailPrimaryProfiles(signals),
-    ...buildCongregatePrimaryProfiles(signals),
-  ];
+interface CoverageProfileRule {
+  when: (signals: CoverageDocumentCandidateSignals) => boolean;
+  profiles: readonly CoverageDocumentCandidateProfile[];
 }
 
-function buildEligibilityPrimaryProfiles(
+function profilesFor(
+  rules: readonly CoverageProfileRule[],
   signals: CoverageDocumentCandidateSignals,
 ): CoverageDocumentCandidateProfile[] {
-  if (!signals.generalCriteriaRequested) return [];
-  return [
-    makeSectionProfile(
-      'eligibility-baseline-primary',
-      ELIGIBILITY_BASELINE_SECTION_TERMS,
-      COVERAGE_AVOID_TERMS,
-      'Baseline Medicaid-program eligibility section from the preferred document.',
-      FRAME_PRIMARY_LIMIT,
-    ),
-    makeSectionProfile(
-      'eligibility-general-primary',
-      GENERAL_CRITERIA_SECTION_TERMS,
-      NOT_COVERED_SECTION_TERMS,
-      'General eligibility or coverage section from the preferred document.',
-      FRAME_PRIMARY_LIMIT,
-    ),
-  ];
+  return rules.filter((rule) => rule.when(signals)).flatMap((rule) => [...rule.profiles]);
 }
 
-function buildYesNoCoveragePrimaryProfiles(
-  signals: CoverageDocumentCandidateSignals,
-): CoverageDocumentCandidateProfile[] {
-  if (!signals.flags.yesNoCoverageQuery) return [];
-  return [
-    makeSectionProfile(
-      'coverage-scope-primary',
-      COVERAGE_SCOPE_SECTION_TERMS,
-      COVERAGE_SCOPE_AVOID_TERMS,
-      'Scope or description section for the yes/no coverage question.',
-      FRAME_PRIMARY_LIMIT,
-    ),
-    makeSectionProfile(
-      'yes-no-coverage-primary',
-      YES_NO_COVERAGE_SECTION_TERMS,
-      COVERAGE_SCOPE_AVOID_TERMS,
-      'Scope or not-covered section for the yes/no coverage question.',
-      FRAME_PRIMARY_LIMIT,
-    ),
-  ];
-}
+const COVERAGE_PRIMARY_PROFILE_RULES: readonly CoverageProfileRule[] = [
+  {
+    when: (s) => s.generalCriteriaRequested,
+    profiles: [
+      makeSectionProfile(
+        'eligibility-baseline-primary',
+        ELIGIBILITY_BASELINE_SECTION_TERMS,
+        COVERAGE_AVOID_TERMS,
+        'Baseline Medicaid-program eligibility section from the preferred document.',
+        FRAME_PRIMARY_LIMIT,
+      ),
+      makeSectionProfile(
+        'eligibility-general-primary',
+        GENERAL_CRITERIA_SECTION_TERMS,
+        NOT_COVERED_SECTION_TERMS,
+        'General eligibility or coverage section from the preferred document.',
+        FRAME_PRIMARY_LIMIT,
+      ),
+    ],
+  },
+  {
+    when: (s) => s.flags.yesNoCoverageQuery,
+    profiles: [
+      makeSectionProfile(
+        'coverage-scope-primary',
+        COVERAGE_SCOPE_SECTION_TERMS,
+        COVERAGE_SCOPE_AVOID_TERMS,
+        'Scope or description section for the yes/no coverage question.',
+        FRAME_PRIMARY_LIMIT,
+      ),
+      makeSectionProfile(
+        'yes-no-coverage-primary',
+        YES_NO_COVERAGE_SECTION_TERMS,
+        COVERAGE_SCOPE_AVOID_TERMS,
+        'Scope or not-covered section for the yes/no coverage question.',
+        FRAME_PRIMARY_LIMIT,
+      ),
+    ],
+  },
+  {
+    when: (s) => s.pediatricRequested,
+    profiles: [
+      makeSectionProfile(
+        'pediatric-primary',
+        PEDIATRIC_COVERAGE_SECTION_TERMS,
+        COVERAGE_AVOID_TERMS,
+        'EPSDT or pediatric service section from the preferred document.',
+        FRAME_PRIMARY_LIMIT,
+      ),
+    ],
+  },
+  {
+    when: (s) => s.modificationRequested,
+    profiles: [
+      makeSectionProfile(
+        'modification-primary',
+        MODIFICATION_SECTION_TERMS,
+        COVERAGE_AVOID_TERMS,
+        'Coverage or documentation section for the requested modification service.',
+        FRAME_PRIMARY_LIMIT,
+      ),
+    ],
+  },
+  {
+    when: (s) => s.flags.telehealthQuery,
+    profiles: [
+      makeSectionProfile(
+        'telehealth-primary',
+        TELEHEALTH_PRIMARY_SECTION_TERMS,
+        TELEHEALTH_COVERAGE_AVOID_TERMS,
+        'Telehealth coverage section from the preferred document.',
+        FRAME_PRIMARY_LIMIT,
+      ),
+    ],
+  },
+  {
+    when: (s) => s.flags.certificationQuery,
+    profiles: [
+      makeSectionProfile(
+        'certification-primary',
+        CERTIFICATION_SECTION_TERMS,
+        COVERAGE_AVOID_TERMS,
+        'Certification or recertification section from the preferred document.',
+        FRAME_PRIMARY_LIMIT,
+      ),
+    ],
+  },
+  {
+    when: (s) => s.flags.hcwdIncomePremiumQuery,
+    profiles: [
+      makeSectionProfile(
+        'hcwd-primary',
+        HCWD_PRIMARY_SECTION_TERMS,
+        HCWD_DOCUMENT_AVOID_TERMS,
+        'Income, fee, or premium section from the preferred HCWD document.',
+        FRAME_PRIMARY_LIMIT,
+      ),
+    ],
+  },
+  {
+    when: (s) => s.coverRequested,
+    profiles: [
+      makeSectionProfile(
+        'coverage-detail-primary',
+        COVERAGE_DETAIL_SECTION_TERMS,
+        NOT_COVERED_SECTION_TERMS,
+        'Direct coverage-detail section from the preferred document.',
+        FRAME_PRIMARY_LIMIT,
+      ),
+    ],
+  },
+  {
+    when: (s) => s.flags.congregatePcsQuery,
+    profiles: [
+      makeSectionProfile(
+        'congregate-criteria-primary',
+        CONGREGATE_PCS_CRITERIA_SECTION_TERMS,
+        COVERAGE_SCOPE_AVOID_TERMS,
+        'Congregate PCS beneficiary and facility criteria section from the preferred document.',
+        FRAME_PRIMARY_LIMIT,
+      ),
+      makeSectionProfile(
+        'congregate-service-primary',
+        CONGREGATE_PCS_COVERED_SERVICE_SECTION_TERMS,
+        COVERAGE_SCOPE_AVOID_TERMS,
+        'Congregate PCS covered-service section from the preferred document.',
+        FRAME_PRIMARY_LIMIT,
+      ),
+      makeSectionProfile(
+        'congregate-support-primary',
+        CONGREGATE_PCS_SUPPORT_SECTION_TERMS,
+        COVERAGE_SCOPE_AVOID_TERMS,
+        'Congregate PCS covered-service or non-covered section from the preferred document.',
+        FRAME_PRIMARY_LIMIT,
+      ),
+    ],
+  },
+];
 
-function buildPediatricPrimaryProfiles(
-  signals: CoverageDocumentCandidateSignals,
-): CoverageDocumentCandidateProfile[] {
-  if (!signals.pediatricRequested) return [];
-  return [
-    makeSectionProfile(
-      'pediatric-primary',
-      PEDIATRIC_COVERAGE_SECTION_TERMS,
-      COVERAGE_AVOID_TERMS,
-      'EPSDT or pediatric service section from the preferred document.',
-      FRAME_PRIMARY_LIMIT,
-    ),
-  ];
-}
-
-function buildModificationPrimaryProfiles(
-  signals: CoverageDocumentCandidateSignals,
-): CoverageDocumentCandidateProfile[] {
-  if (!signals.modificationRequested) return [];
-  return [
-    makeSectionProfile(
-      'modification-primary',
-      MODIFICATION_SECTION_TERMS,
-      COVERAGE_AVOID_TERMS,
-      'Coverage or documentation section for the requested modification service.',
-      FRAME_PRIMARY_LIMIT,
-    ),
-  ];
-}
-
-function buildTelehealthPrimaryProfiles(
-  signals: CoverageDocumentCandidateSignals,
-): CoverageDocumentCandidateProfile[] {
-  if (!signals.flags.telehealthQuery) return [];
-  return [
-    makeSectionProfile(
-      'telehealth-primary',
-      TELEHEALTH_PRIMARY_SECTION_TERMS,
-      TELEHEALTH_COVERAGE_AVOID_TERMS,
-      'Telehealth coverage section from the preferred document.',
-      FRAME_PRIMARY_LIMIT,
-    ),
-  ];
-}
-
-function buildCertificationPrimaryProfiles(
-  signals: CoverageDocumentCandidateSignals,
-): CoverageDocumentCandidateProfile[] {
-  if (!signals.flags.certificationQuery) return [];
-  return [
-    makeSectionProfile(
-      'certification-primary',
-      CERTIFICATION_SECTION_TERMS,
-      COVERAGE_AVOID_TERMS,
-      'Certification or recertification section from the preferred document.',
-      FRAME_PRIMARY_LIMIT,
-    ),
-  ];
-}
-
-function buildHcwdPrimaryProfiles(
-  signals: CoverageDocumentCandidateSignals,
-): CoverageDocumentCandidateProfile[] {
-  if (!signals.flags.hcwdIncomePremiumQuery) return [];
-  return [
-    makeSectionProfile(
-      'hcwd-primary',
-      HCWD_PRIMARY_SECTION_TERMS,
-      HCWD_DOCUMENT_AVOID_TERMS,
-      'Income, fee, or premium section from the preferred HCWD document.',
-      FRAME_PRIMARY_LIMIT,
-    ),
-  ];
-}
-
-function buildCoverageDetailPrimaryProfiles(
-  signals: CoverageDocumentCandidateSignals,
-): CoverageDocumentCandidateProfile[] {
-  if (!signals.coverRequested) return [];
-  return [
-    makeSectionProfile(
-      'coverage-detail-primary',
-      COVERAGE_DETAIL_SECTION_TERMS,
-      NOT_COVERED_SECTION_TERMS,
-      'Direct coverage-detail section from the preferred document.',
-      FRAME_PRIMARY_LIMIT,
-    ),
-  ];
-}
-
-function buildCongregatePrimaryProfiles(
-  signals: CoverageDocumentCandidateSignals,
-): CoverageDocumentCandidateProfile[] {
-  if (!signals.flags.congregatePcsQuery) return [];
-  return [
-    makeSectionProfile(
-      'congregate-criteria-primary',
-      CONGREGATE_PCS_CRITERIA_SECTION_TERMS,
-      COVERAGE_SCOPE_AVOID_TERMS,
-      'Congregate PCS beneficiary and facility criteria section from the preferred document.',
-      FRAME_PRIMARY_LIMIT,
-    ),
-    makeSectionProfile(
-      'congregate-service-primary',
-      CONGREGATE_PCS_COVERED_SERVICE_SECTION_TERMS,
-      COVERAGE_SCOPE_AVOID_TERMS,
-      'Congregate PCS covered-service section from the preferred document.',
-      FRAME_PRIMARY_LIMIT,
-    ),
-    makeSectionProfile(
-      'congregate-support-primary',
-      CONGREGATE_PCS_SUPPORT_SECTION_TERMS,
-      COVERAGE_SCOPE_AVOID_TERMS,
-      'Congregate PCS covered-service or non-covered section from the preferred document.',
-      FRAME_PRIMARY_LIMIT,
-    ),
-  ];
-}
-
-// --- Supporting profiles ---------------------------------------------------
-
-function buildCoverageSupportingProfiles(
-  signals: CoverageDocumentCandidateSignals,
-): CoverageDocumentCandidateProfile[] {
-  return [
-    ...buildNotCoveredSupportingProfiles(signals),
-    ...buildEligibilitySupportingProfiles(signals),
-    ...buildYesNoCoverageSupportingProfiles(signals),
-    ...buildPediatricSupportingProfiles(signals),
-    ...buildModificationSupportingProfiles(signals),
-    ...buildTelehealthSupportingProfiles(signals),
-    ...buildCertificationSupportingProfiles(signals),
-    ...buildHcwdSupportingProfiles(signals),
-    ...buildLimitationSupportingProfiles(signals),
-    ...buildCongregateSupportingProfiles(signals),
-    ...buildEpsdtExceptionSupportingProfiles(signals),
-  ];
-}
-
-// Adult coverage/exclusion questions: surface the policy's standard EPSDT
-// special-provision section (template heading, usually 2.2.x) so the answer
-// can state the under-21 contrast WITH a citation. Pediatric questions
-// already get the dedicated pediatric profiles, so this is gated off there.
-// Evidence-driven: pulls the section from the preferred document only if it
-// actually exists; the planning directive downstream fires only on surfaced
-// evidence.
-function buildEpsdtExceptionSupportingProfiles(
-  signals: CoverageDocumentCandidateSignals,
-): CoverageDocumentCandidateProfile[] {
-  const adultExclusionContext =
-    signals.flags.yesNoCoverageQuery || signals.notCoveredRequested || signals.coverRequested;
-  if (!adultExclusionContext || signals.pediatricRequested) return [];
-  return [
-    makeSectionProfile(
-      'epsdt-exception-supporting',
-      EPSDT_EXCEPTION_SECTION_TERMS,
-      COVERAGE_SCOPE_AVOID_TERMS,
-      'EPSDT special-provision section that may modify policy limitations for beneficiaries under 21.',
-      1,
-    ),
-  ];
-}
-
-function buildNotCoveredSupportingProfiles(
-  signals: CoverageDocumentCandidateSignals,
-): CoverageDocumentCandidateProfile[] {
-  if (!signals.notCoveredRequested) return [];
-  return [
-    makeSectionProfile(
-      'not-covered-supporting',
-      NOT_COVERED_SECTION_TERMS,
-      [],
-      'Not-covered section from the preferred document.',
-      FRAME_SUPPORT_LIMIT,
-    ),
-  ];
-}
-
-function buildEligibilitySupportingProfiles(
-  signals: CoverageDocumentCandidateSignals,
-): CoverageDocumentCandidateProfile[] {
-  if (!signals.flags.eligibilityFrameworkQuery) return [];
-  return [
-    makeSectionProfile(
-      'eligibility-scope-supporting',
-      ELIGIBILITY_SCOPE_SECTION_TERMS,
-      COVERAGE_AVOID_TERMS,
-      'Program scope or description section from the preferred document.',
-      FRAME_SUPPORT_LIMIT,
-    ),
-  ];
-}
-
-function buildYesNoCoverageSupportingProfiles(
-  signals: CoverageDocumentCandidateSignals,
-): CoverageDocumentCandidateProfile[] {
-  if (!signals.flags.yesNoCoverageQuery) return [];
-  return [
-    makeSectionProfile(
-      'coverage-scope-supporting',
-      COVERAGE_SCOPE_SECTION_TERMS,
-      COVERAGE_SCOPE_AVOID_TERMS,
-      'Additional scope or description section for the yes/no coverage question.',
-      FRAME_SUPPORT_LIMIT,
-    ),
-    makeSectionProfile(
-      'yes-no-coverage-supporting',
-      YES_NO_COVERAGE_SECTION_TERMS,
-      COVERAGE_SCOPE_AVOID_TERMS,
-      'Additional scope or not-covered section for the yes/no coverage question.',
-      FRAME_SUPPORT_LIMIT,
-    ),
-  ];
-}
-
-function buildPediatricSupportingProfiles(
-  signals: CoverageDocumentCandidateSignals,
-): CoverageDocumentCandidateProfile[] {
-  if (!signals.pediatricRequested) return [];
-  return [
-    makeSectionProfile(
-      'pediatric-supporting',
-      PEDIATRIC_COVERAGE_SECTION_TERMS,
-      COVERAGE_AVOID_TERMS,
-      'Additional EPSDT or pediatric service section from the preferred document.',
-      FRAME_SUPPORT_LIMIT,
-    ),
-  ];
-}
-
-function buildModificationSupportingProfiles(
-  signals: CoverageDocumentCandidateSignals,
-): CoverageDocumentCandidateProfile[] {
-  if (!signals.modificationRequested) return [];
-  return [
-    makeSectionProfile(
-      'modification-supporting',
-      MODIFICATION_SECTION_TERMS,
-      COVERAGE_AVOID_TERMS,
-      'Additional coverage or documentation section for the requested modification service.',
-      FRAME_SUPPORT_LIMIT,
-    ),
-  ];
-}
-
-function buildTelehealthSupportingProfiles(
-  signals: CoverageDocumentCandidateSignals,
-): CoverageDocumentCandidateProfile[] {
-  if (!signals.flags.telehealthQuery) return [];
-  return [
-    makeSectionProfile(
-      'telehealth-supporting',
-      TELEHEALTH_SUPPORT_SECTION_TERMS,
-      TELEHEALTH_COVERAGE_AVOID_TERMS,
-      'Service-specific telehealth section from the preferred document.',
-      FRAME_SUPPORT_LIMIT,
-    ),
-  ];
-}
-
-function buildCertificationSupportingProfiles(
-  signals: CoverageDocumentCandidateSignals,
-): CoverageDocumentCandidateProfile[] {
-  if (!signals.flags.certificationQuery) return [];
-  return [
-    makeSectionProfile(
-      'certification-supporting',
-      CERTIFICATION_SECTION_TERMS,
-      COVERAGE_AVOID_TERMS,
-      'Additional certification or recertification section from the preferred document.',
-      FRAME_SUPPORT_LIMIT,
-    ),
-  ];
-}
-
-function buildHcwdSupportingProfiles(
-  signals: CoverageDocumentCandidateSignals,
-): CoverageDocumentCandidateProfile[] {
-  if (!signals.flags.hcwdIncomePremiumQuery) return [];
-  return [
-    makeSectionProfile(
-      'hcwd-supporting',
-      HCWD_PRIMARY_SECTION_TERMS,
-      HCWD_DOCUMENT_AVOID_TERMS,
-      'Additional income, fee, or premium section from the preferred HCWD document.',
-      FRAME_SUPPORT_LIMIT,
-    ),
-  ];
-}
-
-function buildLimitationSupportingProfiles(
-  signals: CoverageDocumentCandidateSignals,
-): CoverageDocumentCandidateProfile[] {
-  if (!signals.flags.yesNoCoverageQuery && !signals.notCoveredRequested) return [];
-  return [
-    makeLimitationProfile(
-      'likely-limitation-supporting',
-      'Likely limitation or non-covered subsection from the preferred document.',
-      FRAME_SUPPORT_LIMIT,
-    ),
-  ];
-}
-
-function buildCongregateSupportingProfiles(
-  signals: CoverageDocumentCandidateSignals,
-): CoverageDocumentCandidateProfile[] {
-  if (!signals.flags.congregatePcsQuery) return [];
-  return [
-    makeSectionProfile(
-      'congregate-service-supporting',
-      CONGREGATE_PCS_COVERED_SERVICE_SECTION_TERMS,
-      COVERAGE_SCOPE_AVOID_TERMS,
-      'Additional congregate PCS covered-service section from the preferred document.',
-      FRAME_SUPPORT_LIMIT,
-    ),
-    makeSectionProfile(
-      'congregate-not-covered-supporting',
-      CONGREGATE_PCS_NOT_COVERED_SECTION_TERMS,
-      COVERAGE_SCOPE_AVOID_TERMS,
-      'Room-and-board or specific non-covered congregate PCS section from the preferred document.',
-      FRAME_SUPPORT_LIMIT,
-    ),
-    makeSectionProfile(
-      'congregate-support-supporting',
-      CONGREGATE_PCS_SUPPORT_SECTION_TERMS,
-      COVERAGE_SCOPE_AVOID_TERMS,
-      'Additional congregate PCS covered-service or non-covered section from the preferred document.',
-      FRAME_SUPPORT_LIMIT,
-    ),
-  ];
-}
+const COVERAGE_SUPPORTING_PROFILE_RULES: readonly CoverageProfileRule[] = [
+  {
+    when: (s) => s.notCoveredRequested,
+    profiles: [
+      makeSectionProfile(
+        'not-covered-supporting',
+        NOT_COVERED_SECTION_TERMS,
+        [],
+        'Not-covered section from the preferred document.',
+        FRAME_SUPPORT_LIMIT,
+      ),
+    ],
+  },
+  {
+    when: (s) => s.flags.eligibilityFrameworkQuery,
+    profiles: [
+      makeSectionProfile(
+        'eligibility-scope-supporting',
+        ELIGIBILITY_SCOPE_SECTION_TERMS,
+        COVERAGE_AVOID_TERMS,
+        'Program scope or description section from the preferred document.',
+        FRAME_SUPPORT_LIMIT,
+      ),
+    ],
+  },
+  {
+    when: (s) => s.flags.yesNoCoverageQuery,
+    profiles: [
+      makeSectionProfile(
+        'coverage-scope-supporting',
+        COVERAGE_SCOPE_SECTION_TERMS,
+        COVERAGE_SCOPE_AVOID_TERMS,
+        'Additional scope or description section for the yes/no coverage question.',
+        FRAME_SUPPORT_LIMIT,
+      ),
+      makeSectionProfile(
+        'yes-no-coverage-supporting',
+        YES_NO_COVERAGE_SECTION_TERMS,
+        COVERAGE_SCOPE_AVOID_TERMS,
+        'Additional scope or not-covered section for the yes/no coverage question.',
+        FRAME_SUPPORT_LIMIT,
+      ),
+    ],
+  },
+  {
+    when: (s) => s.pediatricRequested,
+    profiles: [
+      makeSectionProfile(
+        'pediatric-supporting',
+        PEDIATRIC_COVERAGE_SECTION_TERMS,
+        COVERAGE_AVOID_TERMS,
+        'Additional EPSDT or pediatric service section from the preferred document.',
+        FRAME_SUPPORT_LIMIT,
+      ),
+    ],
+  },
+  {
+    when: (s) => s.modificationRequested,
+    profiles: [
+      makeSectionProfile(
+        'modification-supporting',
+        MODIFICATION_SECTION_TERMS,
+        COVERAGE_AVOID_TERMS,
+        'Additional coverage or documentation section for the requested modification service.',
+        FRAME_SUPPORT_LIMIT,
+      ),
+    ],
+  },
+  {
+    when: (s) => s.flags.telehealthQuery,
+    profiles: [
+      makeSectionProfile(
+        'telehealth-supporting',
+        TELEHEALTH_SUPPORT_SECTION_TERMS,
+        TELEHEALTH_COVERAGE_AVOID_TERMS,
+        'Service-specific telehealth section from the preferred document.',
+        FRAME_SUPPORT_LIMIT,
+      ),
+    ],
+  },
+  {
+    when: (s) => s.flags.certificationQuery,
+    profiles: [
+      makeSectionProfile(
+        'certification-supporting',
+        CERTIFICATION_SECTION_TERMS,
+        COVERAGE_AVOID_TERMS,
+        'Additional certification or recertification section from the preferred document.',
+        FRAME_SUPPORT_LIMIT,
+      ),
+    ],
+  },
+  {
+    when: (s) => s.flags.hcwdIncomePremiumQuery,
+    profiles: [
+      makeSectionProfile(
+        'hcwd-supporting',
+        HCWD_PRIMARY_SECTION_TERMS,
+        HCWD_DOCUMENT_AVOID_TERMS,
+        'Additional income, fee, or premium section from the preferred HCWD document.',
+        FRAME_SUPPORT_LIMIT,
+      ),
+    ],
+  },
+  {
+    when: (s) => s.flags.yesNoCoverageQuery || s.notCoveredRequested,
+    profiles: [
+      makeLimitationProfile(
+        'likely-limitation-supporting',
+        'Likely limitation or non-covered subsection from the preferred document.',
+        FRAME_SUPPORT_LIMIT,
+      ),
+    ],
+  },
+  {
+    when: (s) => s.flags.congregatePcsQuery,
+    profiles: [
+      makeSectionProfile(
+        'congregate-service-supporting',
+        CONGREGATE_PCS_COVERED_SERVICE_SECTION_TERMS,
+        COVERAGE_SCOPE_AVOID_TERMS,
+        'Additional congregate PCS covered-service section from the preferred document.',
+        FRAME_SUPPORT_LIMIT,
+      ),
+      makeSectionProfile(
+        'congregate-not-covered-supporting',
+        CONGREGATE_PCS_NOT_COVERED_SECTION_TERMS,
+        COVERAGE_SCOPE_AVOID_TERMS,
+        'Room-and-board or specific non-covered congregate PCS section from the preferred document.',
+        FRAME_SUPPORT_LIMIT,
+      ),
+      makeSectionProfile(
+        'congregate-support-supporting',
+        CONGREGATE_PCS_SUPPORT_SECTION_TERMS,
+        COVERAGE_SCOPE_AVOID_TERMS,
+        'Additional congregate PCS covered-service or non-covered section from the preferred document.',
+        FRAME_SUPPORT_LIMIT,
+      ),
+    ],
+  },
+  // Adult coverage/exclusion questions: surface the policy's standard EPSDT
+  // special-provision section (template heading, usually 2.2.x) so the answer
+  // can state the under-21 contrast WITH a citation. Pediatric questions
+  // already get the dedicated pediatric profiles, so this is gated off there.
+  // Evidence-driven: pulls the section from the preferred document only if it
+  // actually exists; the planning directive downstream fires only on surfaced
+  // evidence.
+  {
+    when: (s) =>
+      (s.flags.yesNoCoverageQuery || s.notCoveredRequested || s.coverRequested) && !s.pediatricRequested,
+    profiles: [
+      makeSectionProfile(
+        'epsdt-exception-supporting',
+        EPSDT_EXCEPTION_SECTION_TERMS,
+        COVERAGE_SCOPE_AVOID_TERMS,
+        'EPSDT special-provision section that may modify policy limitations for beneficiaries under 21.',
+        1,
+      ),
+    ],
+  },
+];
 
 // --- Profile execution -----------------------------------------------------
 
