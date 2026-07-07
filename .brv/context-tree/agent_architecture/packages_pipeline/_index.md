@@ -1,114 +1,93 @@
 ---
-children_hash: 5114bc22a4368bec1ebc62c627e260a81ebf0bec7d8d77c859d8c46c57f4b39f
-compression_ratio: 0.5338882282996433
+children_hash: 33ac2a5728c065d24f2f3a5f26aec3091205718d1348d7a5cc3ba1b8608171c6
+compression_ratio: 0.3103615627274933
 condensation_order: 1
-covers: [context.md, crawler_cli_and_package_docs.md, crawler_sync_behavior/_index.md, retrieval_fixes/_index.md, ssa_parser_subsection_splitting_fix.md]
-covers_token_total: 2523
+covers: [context.md, crawler_cli_and_package_docs.abstract.md, crawler_cli_and_package_docs.md, crawler_cli_and_package_docs.overview.md, crawler_source_factories.md, crawler_sync_behavior/_index.md, retrieval_fixes/_index.md, ssa_parser_subsection_splitting_fix.abstract.md, ssa_parser_subsection_splitting_fix.md, ssa_parser_subsection_splitting_fix.overview.md]
+covers_token_total: 4121
 summary_level: d1
-token_count: 1347
+token_count: 1279
 type: summary
 ---
 # packages_pipeline
 
-Structural overview of the retrieval and parsing-related pipeline knowledge. The children below split into two main concerns: **policy corpus retrieval behavior** and **SSA statute subsection parsing**.
+Structural overview of retrieval, crawler, and SSA parsing work under the packages pipeline. The child entries show two main themes: policy-corpus retrieval correctness and crawler/parser infrastructure behavior. Drill down into the named entries below for implementation details and exact rules.
 
-## Core retrieval architecture
+## Core retrieval backend
+- **context.md** establishes the retrieval focus: reliable hybrid policy search.
+- Key retrieval concepts:
+  - **Neo4j `queryNodes(k)`** returns global top-k and cannot be used for post-filtered per-group retrieval.
+  - **`vectorScanK` overscan** is required to preserve coverage before filtering.
+  - **fulltext recovery** and **sectionId deduplication** are central to hybrid ranking.
+- Related drill-down:
+  - **retrieval_fixes.md** for the detailed vector overscan and hybrid collector behavior.
 
-### `context.md`
-- Sets the top-level scope: reliable hybrid policy search in the retrieval backend.
-- Key concepts to retain:
-  - Neo4j `queryNodes`
-  - `vectorScanK` overscan
-  - fulltext recovery
-  - `sectionId` deduplication
-- Use as the entry point for how retrieval behavior is organized and why the fixes exist.
+## Crawler CLI, package docs, and source discovery
+- **crawler_cli_and_package_docs.md** documents the public crawler interface and README expectations.
+  - The crawler exposes a **commander-based CLI via `src/index.ts`**.
+  - Commands remain valid after source reorganization and are available through npm shortcuts.
+  - Common commands include **`crawl`**, **`check`**, **`stats`**, plus examples like `crawl --source clinical_policy` and `export --output registry.json`.
+  - The README points to **`docs/superpowers/specs/2026-03-26-nc-medicaid-crawler-design.md`** as the design spec.
+- **crawler_source_factories.md** captures the refactor that introduced reusable crawler source factories.
+  - `crawl-helpers.ts` exports **`singleIndexSource`**, **`pageCrawlSource`**, and **`pushNewDocuments`**.
+  - `singleIndexSource(logPrefix, indexUrl, parse)` handles single-index discovery.
+  - `pageCrawlSource(logPrefix, startUrls, parsePage, extractSubpageUrls?, derivePageFromDocument?)` performs **BFS traversal** with `visited`, `queued`, and `seenDocs` sets.
+  - Factory-built sources ignore **`sinceYear`** by design.
+  - Migrated sources include:
+    - single-index: **clinical-policies**, **nctracks**, **dhhs-policies**
+    - page crawl: **billing-guidance**, **managed-care-guidance**, **managed-care-contracts**
+  - Managed-care contracts uses **`derivePageFromDocument`** for detail-page derivation and keeps bespoke handling for fee-schedules, bulletins, state-plan, and waivers.
+- Related drill-down:
+  - **crawler_cli_and_package_docs.md**
+  - **crawler_source_factories.md**
 
-### `retrieval_fixes/_index.md` → `retrieval_fixes.md`
-- Documents the main backend correction for **coverage-preserving vector retrieval**.
-- Architectural split:
-  - **Section vector backend** (`packages/policy-corpus/src/retrieval/backends/section-vector.ts`)
-    - iterates `profile.typeGroups`
-    - uses `vectorScanK(profile.perGroupK)` for per-group overscan
-    - filters by `document_type` after retrieval
-  - **Hybrid collector** (`packages/policy-corpus/src/retrieval/collector.ts`)
-    - merges by `sectionId`
-    - absorbs fulltext and expansion hits
-    - reranks before final `topK`
-- Important relationship:
-  - `queryNodes(k)` is global top-k, so it cannot satisfy post-filtered per-group retrieval by itself.
-  - Overscan is required, with an 8x cap at 200, followed by group filtering and `LIMIT k`.
-- Ranking behavior:
-  - fulltext-only matches get mid-range scores so they survive reranking
-  - existing fulltext hits receive `FULLTEXT_BOOST`
-  - deduplication happens on `sectionId` before final trim
-
-### `crawler_cli_and_package_docs.md`
-- Documents crawler package CLI structure and the README expectations.
-- The crawler entrypoint is `src/index.ts`, which registers commands in `src/cli/`.
-- Common commands and npm shortcuts remain valid after the source split: `crawl`, `check`, `stats`.
-- README structure combines usage, sources, testing, and design references.
-- The README points to `docs/superpowers/specs/2026-03-26-nc-medicaid-crawler-design.md`.
-- Drill down here for the command surface and package documentation conventions.
-
-### `crawler_sync_behavior/_index.md` → `crawler_sync_behavior.md`
-- Captures sync lifecycle behavior in `packages/crawler/src/crawl/sync.ts`.
-- Main design goal:
-  - avoid premature deletion
-  - prevent duplicate work across download and check phases
-- Key structure:
-  - `SyncStats`, `SyncContext`, `applyResult`, `processDocuments`, `runDownloadPhase`, `runCheckPhase`
-  - filenames are tracked lazily per source type to keep collision handling correct
-  - `runDownloadPhase` returns processed IDs so `runCheckPhase` can skip them
-- Important rules:
-  - download and check phases are separated
-  - first 404 does not remove documents
-  - removal occurs only after `config.notFoundRemovalThreshold` or the default threshold
-  - processed IDs are excluded later via `skipIds`
-- Notable facts:
+## Crawler sync behavior
+- **crawler_sync_behavior/_index.md** summarizes sync lifecycle behavior in `packages/crawler/src/crawl/sync.ts`.
+- Main structure:
+  - `SyncStats`
+  - `SyncContext`
+  - `applyResult`
+  - `processDocuments`
+  - `runDownloadPhase`
+  - `runCheckPhase`
+- Key behavior:
+  - Download and check phases are separated to reduce duplicate work.
+  - Documents are not removed on the first 404; removal happens only after the configured not-found threshold.
+  - Processed IDs from download are passed into check via `skipIds`.
+  - Error handling tracks consecutive 404s and other failures before status transitions.
+- Dependencies:
+  - registry, fetcher, downloader, and source-type directory mapping.
+- Key facts:
   - `HttpStatusError` carries `statusCode`
-  - default removal threshold is 3 consecutive 404s
+  - default removal threshold is **3 consecutive 404s**
   - HTML payloads are rejected for binary-only families
   - `better-sqlite3` 12 is required for Node 26
+- Drill-down:
+  - **crawler_sync_behavior.md**
 
-## SSA parsing and subsection splitting
-
-### `ssa_parser_subsection_splitting_fix.md`
-- Documents the fix for splitting large USC statute sections into stable SSA child subsections.
-- Core change:
-  - split only **top-level lettered subsections**
-  - preserve parent section full text so IDs and citations remain stable
-  - enforce strict expected-letter sequencing to avoid misreading nested roman numeral markers
-  - skip unmapped or freestanding USC sections using USC-to-SSA mappings
-- Flow:
-  - parse USC HTML → find section heads → map USC to SSA → retain parent section → split oversized sections into top-level lettered children → ingest and embed
-- Dependencies:
+## SSA parser subsection splitting
+- **ssa_parser_subsection_splitting_fix.md** documents a parser fix for large USC statute sections.
+- Main decision:
+  - Only **top-level lettered subsections** are split into child sections.
+  - Parent section text is preserved so citations and IDs remain stable.
+  - Nested roman numeral markers are ignored unless they match the expected next letter.
+- Parsing flow:
+  - parse USC HTML → find section heads → map USC to SSA → retain parent section → split oversized sections → ingest and embed
+- Important rules:
+  - Sections larger than **`SUBSECTION_SPLIT_MIN_CHARS` = 30,000** are eligible.
+  - Subsection letters must follow strict sequence: `a -> b -> ... -> z -> aa -> ...`
+  - Unmapped USC sections are skipped with a warning or note.
+- Key entities:
+  - `packages/pipeline/src/pipeline/federal/ssa_parser.py`
   - `USC_TO_SSA`
   - `FREESTANDING_USC_SECTIONS`
-  - downstream `ingest-ssa` and embedding workflows
-- Rules to preserve:
-  - only sections larger than `SUBSECTION_SPLIT_MIN_CHARS` (30,000) are eligible
-  - subsections must follow strict sequence `a → b → … → z → aa → …`
-  - nested roman numeral starts are not top-level boundaries unless they match the next expected letter
-- Key facts:
-  - child ids are formed as `<parent>-<letter>`
-  - parent IDs remain stable
-  - 235 subsections exist across 15 statutes in real USC HTML
-  - section `1905(r)` is a 3.9K-char EPSDT-definition section
-  - parser changes require follow-up ingest and embed steps
+- Facts:
+  - Child subsection IDs use `<parent>-<letter>`
+  - Parent citations remain stable
+  - Real USC HTML contains **235 subsections across 15 statutes**
+- Drill-down:
+  - **ssa_parser_subsection_splitting_fix.md**
 
-## Cross-entry relationships
-
-- `context.md` ties the retrieval work together and points to:
-  - `retrieval_fixes.md` for backend ranking/coverage behavior
-  - `crawler_cli_and_package_docs.md` for crawler packaging/documentation
-- `crawler_sync_behavior/_index.md` and `crawler_cli_and_package_docs.md` both describe crawler behavior, but from different angles:
-  - CLI surface and docs
-  - sync lifecycle and state transitions
-- `ssa_parser_subsection_splitting_fix.md` is connected to the same pipeline area through SSA ingestion and downstream indexing, especially where stable section identities matter.
-
-## Drill-down guide
-
-- Retrieval backend coverage and scoring: `retrieval_fixes.md`
-- Crawler command surface and docs: `crawler_cli_and_package_docs.md`
-- Crawler sync lifecycle and 404 handling: `crawler_sync_behavior.md`
-- SSA subsection split logic and identity stability: `ssa_parser_subsection_splitting_fix.md`
+## Structural relationships
+- The retrieval work in **context.md** and **retrieval_fixes.md** is about preserving recall and ranking correctness in the policy-corpus backend.
+- The crawler work in **crawler_cli_and_package_docs.md**, **crawler_source_factories.md**, and **crawler_sync_behavior/_index.md** describes how policy sources are discovered, queued, deduplicated, and synchronized.
+- The SSA parser fix in **ssa_parser_subsection_splitting_fix.md** supports stable downstream ingestion and citation integrity, aligning with the broader pipeline and retrieval goals.

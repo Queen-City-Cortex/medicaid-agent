@@ -1,65 +1,122 @@
 ---
-children_hash: f934087bc13405f7b55954060ae9824a1339e5d1c357405c5fd69c5617c97dfb
-compression_ratio: 0.31879460745440125
+children_hash: 9afa173417fbdab71c71d102039d97d87321e36894e9c3231811d01f8e926657
+compression_ratio: 0.42768595041322316
 condensation_order: 1
-covers: [context.md, deploy_data_script_and_refresh_workflow.md, neo4j_hybrid_search_indexing.md, voyage_4_embedding_migration_on_railway_production.md]
-covers_token_total: 2522
+covers: [context.md, deploy_data_script_and_refresh_workflow.abstract.md, deploy_data_script_and_refresh_workflow.md, deploy_data_script_and_refresh_workflow.overview.md, neo4j_hybrid_search_indexing.md, source_selection_metadata_for_fee_schedules.md, voyage_4_embedding_migration_on_railway_production.md]
+covers_token_total: 3388
 summary_level: d1
-token_count: 804
+token_count: 1449
 type: summary
 ---
-## database_operations/neo4j_hybrid_search
+# Database Operations: Neo4j Hybrid Search and Production Refresh
 
-This topic covers the Neo4j hybrid retrieval stack for the pipeline, centered on vector and chunk embeddings, keyword fulltext search, and concept graph matching. It connects closely to `database_operations/neo4j_auth/railway_neo4j_auth_handling.md` and is the shared foundation for both indexing and production embedding migration work.
+This area covers three closely related operational themes: **hybrid retrieval in Neo4j**, **remote graph refresh/deployment workflows**, and **production embedding migration / source selection metadata**. The entries share a common focus on how the medicaid-agent pipeline indexes, refreshes, and queries graph data in Railway-hosted Neo4j.
 
-### Core retrieval structure
-- **`context.md`** defines the overall scope: search indexing, vector/chunk embedding indexes, and Reciprocal Rank Fusion (RRF) hybrid retrieval.
-- Key retrieval signals:
-  - vector embeddings per document-type group
-  - chunk embeddings
-  - fulltext search over `Section.title` and `Section.content_text`
-  - concept graph matches gated by `query_text`
-- RRF uses **`RRF_K = 60`** as the smoothing constant.
+## 1) Hybrid search indexing and retrieval
+**Drill down:** `neo4j_hybrid_search_indexing.md`, `context.md`
 
-### Indexing and fusion logic
-- **`neo4j_hybrid_search_indexing.md`** documents the indexing and query pipeline:
-  - `ensure_vector_index` asserts required indexes exist: `section_embeddings`, `chunk_embeddings`, and `section_fulltext`
-  - `vector_search` collects `vector_rows`, `chunk_rows`, `concept_rows`, and optional fulltext rows
-  - results are deduplicated by `section_id` before fusion
-  - `_rrf_fuse` combines the signals and returns top-k results
-- Rules and constraints preserved in this entry:
-  - deduplicate each source list by keeping the highest score per `section_id`
-  - concept matches require `query_text`
-  - concept matches use a fixed `CONCEPT_MATCH_SCORE = 0.70`
-  - fulltext search respects the same document-type grouping as vector search
-- Facts captured in this entry emphasize:
-  - hybrid search fuses embeddings, concept matches, and fulltext hits with RRF
-  - chunk searches run per document-type group
-  - `section_fulltext` indexes `Section.title` and `Section.content_text`
+- The hybrid search pipeline combines **section embeddings**, **chunk embeddings**, **concept graph matches**, and **fulltext keyword hits**.
+- Retrieval uses **Reciprocal Rank Fusion** with `RRF_K = 60`.
+- The index setup ensures required indexes exist, including:
+  - `section_embeddings`
+  - `chunk_embeddings`
+  - `section_fulltext` for `Section.title` and `Section.content_text`
+- Concept matching is **gated by `query_text`** and respects document-type filters.
+- Results from each source are **deduplicated by `section_id` before fusion**, keeping the highest score per section.
+- Chunk search mirrors the document-type-group iteration used by section embedding search.
 
-### Production embedding migration
-- **`voyage_4_embedding_migration_on_railway_production.md`** records a Railway production deployment that migrated the remote Neo4j graph to **voyage-4** embeddings.
-- Operational sequence:
-  - authenticate Railway CLI
+### Key relationships
+- `context.md` frames the topic as Neo4j search indexing plus hybrid retrieval.
+- `neo4j_hybrid_search_indexing.md` contains the implementation-level behavior and rules.
+- Related operational context is linked to `railway_neo4j_auth_handling.md`.
+
+## 2) Remote Neo4j refresh pipeline
+**Drill down:** `deploy_data_script_and_refresh_workflow.md`, `deploy_data_script_and_refresh_workflow.overview.md`, `deploy_data_script_and_refresh_workflow.abstract.md`
+
+- `scripts/deploy-data.sh` is a **remote Neo4j deployment / refresh script**.
+- It requires:
+  - `NEO4J_HOST`
+  - Railway CLI login
+  - Railway TCP proxy enabled
+  - credentials from `NEO4J_AUTH`
+- The script runs a fixed **10-step pipeline**:
+  1. schema creation
+  2. `load --reset` destructive wipe
+  3. ingest CFR
+  4. ingest SSA
+  5. extract refs
+  6. detect amendments
+  7. embed
+  8. seed concepts
+  9. link concepts
+  10. stats
+- The destructive reset is the central safety boundary:
+  - explicit confirmation is required
+  - non-interactive shells refuse to proceed without confirmation
+  - `--yes` bypasses the prompt
+- The TCP proxy should be disabled after migration completes.
+
+### Key relationship
+- This workflow is the destructive counterpart to the non-destructive production re-embedding noted in `voyage_4_embedding_migration_on_railway_production.md`.
+
+## 3) Production embedding migration on Railway
+**Drill down:** `voyage_4_embedding_migration_on_railway_production.md`
+
+- Documents a **Railway production migration** of Neo4j embeddings to **`voyage-4`**.
+- Sequence:
+  - authenticate Railway CLI with account API token
   - create a temporary Neo4j TCP proxy
-  - null and re-embed the remote graph in place
+  - null embeddings and re-embed in place
   - push commit `b739229` to `main`
   - verify `/healthz` and live vector retrieval
   - delete the proxy
-- Important operational facts:
-  - the migration was **non-destructive**
-  - the temporary proxy was required because direct Neo4j access needed a GraphQL `tcpProxyCreate`
-  - deploy was triggered by a GitHub repo push to `main`
-  - the web service was skipped because the change did not affect it
-  - rollback is possible by nulling embeddings and re-embedding with `voyage-law-2`
-- Verified outcomes include:
-  - `19,855` sections and `2,821` chunks re-embedded
-  - `1024` dimensions
-  - `0` errors and `0` missing embeddings
-  - `/healthz` confirmed Neo4j connectivity and writable storage
-  - live retrieval returned expected clinical policy sections with `0.83+` cosine similarity
+- The migration was **non-destructive** and explicitly did **not** use the wipe-and-rebuild deploy script.
+- Verification confirmed:
+  - service health
+  - writable storage
+  - correct retrieval quality
+  - vector query results with `0.83+` cosine similarity
+- Rollback path is preserved by re-nullifying embeddings and re-embedding with `voyage-law-2`.
 
-### Drill-down map
-- `context.md` — topic overview and scope
-- `neo4j_hybrid_search_indexing.md` — index creation and hybrid ranking pipeline
-- `voyage_4_embedding_migration_on_railway_production.md` — production embedding migration and verification
+### Important facts
+- Railway account API token works for project commands, but `railway whoami` fails with account tokens.
+- Production data included remote graph re-embedding of **19,855 sections** and **2,821 chunks** at **1024 dimensions** with **0 errors** and **0 missing embeddings**.
+- Agent deployment was triggered by GitHub repo push to `main`; web service was skipped as irrelevant.
+
+## 4) Fee schedule source selection metadata
+**Drill down:** `source_selection_metadata_for_fee_schedules.md`
+
+- `source_selection.py` defines:
+  - `SourceSelectionMetadata`
+  - backlog candidate/group dataclasses
+  - normalization helpers
+  - date extraction helpers
+  - grouping logic
+  - markdown rendering for fee-schedule backlog reporting
+- The logic groups fee-schedule variants by **normalized variant group** and **variant date**, then buckets them into:
+  - primary
+  - history
+  - archive
+  - companion
+  - reference
+- Retrieval-ready entries are only **non-reference items in primary or history buckets**.
+- The module intentionally remains **config-independent** because registry rows are always **data-dir-relative**.
+- A review issue about using a module-local `CRAWLER_DATA_DIR` was resolved by a documenting comment instead of changing the kwarg behavior.
+- PR 58 was scored **5/5 safe-to-merge** by Greptile.
+- Pattern captured: `^source_type == "fee_schedule"$`
+
+## Shared architectural pattern
+Across these entries, the recurring design is:
+
+- **Neo4j indexing and retrieval** are treated as a structured, multi-signal search problem.
+- **Deployment and refresh operations** distinguish between destructive graph rebuilds and non-destructive production migrations.
+- **Railway connectivity and proxy management** are central operational prerequisites.
+- **Metadata-driven selection logic** is kept deliberately stable and config-independent when the data model guarantees path semantics.
+
+## Entry map for drill-down
+- `context.md` — high-level overview of hybrid search
+- `neo4j_hybrid_search_indexing.md` — index creation and RRF retrieval behavior
+- `deploy_data_script_and_refresh_workflow.md` — destructive remote refresh pipeline
+- `deploy_data_script_and_refresh_workflow.overview.md` — concise workflow summary
+- `voyage_4_embedding_migration_on_railway_production.md` — non-destructive production re-embedding
+- `source_selection_metadata_for_fee_schedules.md` — fee-schedule source grouping and backlog metadata

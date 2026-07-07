@@ -1,213 +1,344 @@
 ---
-children_hash: 94dedc379768f7bf8a48ca354d58b10a1d8e7a023ecd8ff8d990c75c84efff62
-compression_ratio: 0.19284802043422733
+children_hash: 23fae577824e7dccd20f5fc97795d3abf2bbf2ba46fe1840e35a20dc13da9d2a
+compression_ratio: 0.19244594946600677
 condensation_order: 3
-covers: [agent_architecture/_index.md, amendment_detection/_index.md, auth_integration/_index.md, database_operations/_index.md, evaluation/_index.md, facts/_index.md, frontend_ui/_index.md, packages/_index.md, packages_pipeline/_index.md, qa/_index.md]
-covers_token_total: 16443
+covers: [agent_architecture/_index.md, amendment_detection/_index.md, architecture/_index.md, auth_integration/_index.md, database_operations/_index.md, evaluation/_index.md, facts/_index.md, frontend_ui/_index.md, packages/_index.md, packages_pipeline/_index.md, qa/_index.md]
+covers_token_total: 19195
 summary_level: d3
-token_count: 3171
+token_count: 3694
 type: summary
 ---
-# Structural Summary: d3
+# d3 Structural Summary
 
-This set of entries describes the project’s core reliability contract across architecture, retrieval, evaluation, QA, and operational setup: **preserve runtime correctness, stage retrieval instead of trusting naive top-k, and verify grounded output before it is trusted**. The child entries repeatedly reinforce the same pattern: detailed implementation knowledge is organized into drill-down topics, while higher-level summaries preserve the architectural decisions, fixed rules, and cross-domain relationships.
+## Repository-wide architectural spine
+This level continues to organize the codebase around a few recurring system contracts:
 
-## 1) Agent architecture, runtime boundaries, and operational guardrails
+- **Runtime-boundary correctness**: values that depend on deployment, auth state, or live infrastructure must be resolved at runtime, not assumed from build-time or first-run state.
+- **Staged retrieval**: broad candidate collection must be followed by filtering, deduplication, reranking, and fusion rather than global top-k selection.
+- **Schema-aware validation**: graph writes, retrieval results, and evaluation outputs are guarded by normalization and structural checks.
+- **Durable curation**: knowledge is preserved as structured context rather than ephemeral notes, using a repeatable recon → extract → curate → verify workflow.
+- **End-to-end trust**: retrieval, verification, evaluation, and QA are treated as one chain of correctness.
 
-### `agent_architecture/_index.md`
-- Central architecture layer for the NC Medicaid Navigator, covering amendment interpretation, durable context curation, server configuration, local development setup, Neo4j tool validation, search tooling, and deep research workflow.
-- Recurring principle: **context and runtime state must be handled deliberately**, with durable knowledge captured in structured topics rather than left in chat memory.
-- Key drill-down topics:
-  - `amendment_pipeline_and_prompt/_index.md` → amendment detection and prompt guardrails
-  - `context.md` / `context/_index.md` → curation workflow and durable operational knowledge
-  - `local_dev_setup/_index.md` → repository setup, CI gates, and env consolidation
-  - `mastra_server_configuration/_index.md` → long-running SSE / timeout tuning
-  - `navigate_tools/_index.md` → `getAmendments` OPTIONAL MATCH behavior
-  - `nc_medicaid_agent/_index.md` → agent startup, CLI runner, storage, and citation fixes
-  - `neo4j_tool_output_validation/_index.md` → schema-valid read-tool output
-  - `packages_pipeline/_index.md` → retrieval/parsing pipeline behavior
-  - `search_tooling/_index.md` → hybrid policy search stack
-- Important architectural decision: long-running research needs a **10-minute Mastra server timeout** to support SSE workflows exceeding 180 seconds.
+## Agent architecture and operational guardrails
+**Drill down:** `agent_architecture/_index.md`
 
-### `auth_integration/_index.md`
-- Shared architectural rule: **do not trust build-time values for runtime-only identity and origin data**.
-- Core fix pattern:
-  - resolve callback origin dynamically at runtime
-  - keep env ownership centralized
-  - treat runtime transport/auth state as mutable and re-resolved
-- Key relationships:
-  - `auth-and-deployment-fixes-are-driven-by-runtime-environment-boundaries.md` → callback origin resolution flow
-  - `workos_authkit_nextjs/_index.md` → computed `baseURL` for `handleAuth`
-  - `runtime-boundary-correctness-is-the-shared-fix-for-auth-chat-transport-and-datab.md` → auth-aware chat transport identity
-  - `runtime-boundary-bugs-cluster-around-deployment-auth-and-database-initialization.md` → shared runtime-boundary failure class
-- Shared conclusion: public callback origins, app transport identity, and database auth behavior all depend on **live runtime context**, not static defaults.
+The agent architecture cluster holds the repo’s highest-level operating rules for the NC Medicaid Navigator agent and its supporting workflows.
 
-### `database_operations/_index.md`
-- Operational database knowledge for Neo4j deployments, auth handling, incremental writes, and retrieval consistency.
-- Strong emphasis on **environment-sensitive Neo4j operations** plus **schema-aware validation**.
-- Core clusters:
-  - `neo4j_auth/_index.md` → Railway password handling, `NEO4J_AUTH`, production refresh flow
-  - `neo4j_hybrid_search/_index.md` → hybrid retrieval stack and embedding migration
-  - `neo4j_write_read_consistency/_index.md` → managed writes, cleanup, and rerun safety
-- Key facts:
-  - Railway URL-decodes env vars, so `+` may become a space and corrupt passwords.
-  - `NEO4J_AUTH` only applies on first volume initialization.
-  - Safe remediation is rotating to an alphanumeric password via live password change.
-- Cross-cutting synthesis entries tie graph writes, retrieval, and QA together through a common rule: **normalize, filter, validate, then trust**.
+### Core themes
+- `agent_architecture/context.md` and `context/_index.md` define the home for:
+  - agent bootstrapping
+  - memory setup
+  - tool wiring
+  - policy-specific prompts
+  - guardrails and citation rules
+- The curation pattern is explicitly preserved:
+  - recon first
+  - single-pass when possible
+  - extract → dedup/group → UPSERT curate → verify applied paths
+- Durable knowledge is preferred over chat-only context for:
+  - retrieval heuristics
+  - message parsing
+  - EPSDT completeness work
+  - verification by curated output paths
 
-### `amendment_detection/_index.md`
-- Graph-based DHHS amendment detection for Medicaid documentation.
-- Core flow:
-  - scan documents
-  - detect change notices / revised SPAs
-  - extract MA/SPA references and surrounding sentence context
-  - write batched `AMENDS` relationships into Neo4j
-  - mark source documents as `status="amendment"`
-- Important behavior:
-  - sentence boundary detection avoids splitting inside MA-series identifiers
-  - signal sections are preferred over fallback bodies
-  - `(source, target)` change descriptions are deduplicated before merge
-- Drill-down: `pipeline_detection/_index.md` and `amendment_detection_pipeline.md`
+### Key subtopics
+- `amendment_pipeline_and_prompt/_index.md`
+  - canonical source: `amendment_pipeline_and_prompt_guardrails.md`
+  - covers amendment-graph interpretation, authoritative change-summary extraction, and system-prompt guardrails for policy QA
+- `deep_research_workflow/_index.md`
+  - baseline plan → approval → research → synthesize → verify flow
+  - later hardening in `deep_research_workflow_fixes.md`
+- `mastra_server_configuration/_index.md`
+  - canonical timeout tuning
+  - preserves the 10-minute timeout and SSE lifecycle constraints
+- `neo4j_tool_output_validation/_index.md`
+  - read-tool validation for numeric normalization, Zod-compatible payloads, and structured output
+- `search_tooling/_index.md`
+  - hybrid policy search via embeddings, graph matching, reciprocal rank fusion, and Neo4j indexes
 
-## 2) Agent runtime, CLI, storage, and startup hardening
+### Cross-linking architectural conclusion
+The agent layer, deep research pipeline, and search tooling all enforce the same rule: **runtime correctness and citation fidelity depend on structured, staged processing rather than one-shot generation**.
 
-### `nc_medicaid_agent/_index.md`
-- Consolidates the main agent implementation and hardening notes.
-- Main topics:
-  - `startup_and_web_ui_hardening.md` → startup checks, Mastra config, UI constraints
-  - `cli_runner.md` → iteration behavior, memory payloads, cleanup, thread naming
-  - `libsql_storage_fix_for_railway.md` → LibSQL replacement for DuckDB/MastraCompositeStore
-  - `ssa_and_cfr_reference_resolution_fixes.md` → citation and parser resolution fixes
-  - `nc_medicaid_navigator_agent.md` → prompt and metadata guidance
-- Key decisions:
-  - LibSQL is the durable persistence backend used to avoid Alpine/musl DuckDB crashes.
-  - CLI iteration must preserve memory, avoid unsafe retries, and shut down cleanly.
-  - Citation correctness depends on SSA/CFR reference resolution fixes and metadata guidance.
+## Runtime boundaries, auth, and deployment reliability
+**Drill down:** `auth_integration/_index.md`
 
-### `runtime_boundary_bugs_cluster_around_deploy_auth_and_database_initialization.md`
-- Recurrent failure mode across auth, deployment, chat transport, and Neo4j initialization:
-  - build-time assumptions used where runtime state is required
-  - callback origin resolution must happen live
-  - database auth differs between first initialization and existing volumes
-- This cluster reinforces the same project-wide rule: **runtime boundaries are a correctness boundary**.
+This cluster is the canonical articulation of the project’s runtime-boundary rule set.
 
-## 3) Local development, CI, and environment ownership
+### Shared contract
+- Resolve public-facing values at **request/runtime**
+- Keep a **single source of truth** for environment config
+- Treat **Neo4j auth as initialization-only** on first volume setup
+- Reinitialize chat transport and related runtime state when auth/resource identity changes
 
-### `local_dev_setup/_index.md`
-- Repository-level operational guidance for bringing up and validating the local environment.
-- Main child topics:
-  - `local_development_setup.md`
-  - `ci_workflow_concurrency_and_test_gates.md`
-  - `env_consolidation/_index.md`
-  - `repository_doc_audit_findings.md`
-- Key decisions:
-  - CI is split into a main `test` job and a parallel `docker-build` job.
-  - Branch/PR jobs may be canceled, but main runs must remain active because Railway deploys are commit-specific.
-  - The root `.env` is the single source of truth; package env files are symlinked.
-- `env_consolidation/_index.md` preserves the rule that package env files must stay synchronized with the root env, removing prior circular symlink behavior.
-- `repository_doc_audit_findings.md` records documentation audit results and corrections, including stale README content and theme persistence behavior.
+### Main entry points
+- `auth-and-deployment-fixes-are-driven-by-runtime-environment-boundaries.md`
+  - dynamic callback origin resolution
+  - `NEXT_PUBLIC_WORKOS_REDIRECT_URI` → `WORKOS_REDIRECT_URI` → `RAILWAY_PUBLIC_DOMAIN`
+- `workos_authkit_nextjs/_index.md`
+  - computed public `baseURL` passed to `handleAuth`
+  - prevents redirecting to internal hosts like `0.0.0.0`
+- `environment-boundaries-drive-both-deployment-fixes-and-auth-reliability.md`
+  - root `.env` as source of truth
+- `runtime-boundary-correctness-is-the-shared-fix-for-auth-chat-transport-and-datab.md`
+  - `useChat` identity expands from `threadId` to `threadId:resourceId`
+  - `DefaultChatTransport` memoizes on `threadId`, `resourceId`, and `getAccessToken`
+- `runtime-boundary-bugs-cluster-around-deploy-auth-and-database-initialization.md`
+  - clusters auth, deployment, and database-init failures into one class
 
-## 4) Retrieval, parsing, crawler, and policy-corpus pipeline
+### Relationship summary
+Auth, deploy, frontend transport, and database initialization are all treated as the same architectural problem: **live state must override static assumptions**.
+
+## Database operations, graph safety, and hybrid search
+**Drill down:** `database_operations/_index.md`
+
+This domain captures how the system interacts with Neo4j in production, during refreshes, and during retrieval.
+
+### Neo4j auth and production refresh
+See `neo4j_auth/_index.md`.
+- Railway URL-decodes environment variables, so `+` can corrupt passwords
+- `NEO4J_AUTH` only applies on first volume initialization
+- Safe remediation path:
+  - rotate to an alphanumeric-only password
+  - apply it through the bolt TCP proxy with `ALTER CURRENT USER SET PASSWORD`
+- Production refreshes should be targeted and non-destructive
+
+### Neo4j hybrid search and migration
+See `neo4j_hybrid_search/_index.md`.
+- Retrieval combines:
+  - section embeddings
+  - chunk embeddings
+  - concept graph matches
+  - fulltext keyword hits
+- Uses Reciprocal Rank Fusion with `RRF_K = 60`
+- Required indexes:
+  - `section_embeddings`
+  - `chunk_embeddings`
+  - `section_fulltext`
+- Operational workflows include:
+  - `deploy_data_script_and_refresh_workflow.md`
+  - `voyage_4_embedding_migration_on_railway_production.md`
+  - `source_selection_metadata_for_fee_schedules.md`
+
+### Write/read consistency and validation
+The schema-aware validation synthesis entries describe one guardrail across graph writes, retrieval, and evaluation:
+- normalize uncertain or numeric output
+- filter null rows after `OPTIONAL MATCH`
+- validate against Zod-compatible schemas
+- preserve relationship whitelisting and guarded Cypher execution
+
+### Write boundary and incremental cleanup
+See `neo4j_write_read_consistency/_index.md`.
+- `connection.py` owns session acquisition and driver lifecycle
+- `corpus_writer.py` owns all graph mutations
+- `get_session()` is the single access choke point
+- cleanup is incremental and doc-scoped:
+  - merge document
+  - write sections
+  - delete stale sections
+  - clear changed embeddings/chunks
+  - merge relationships
+
+## Retrieval, crawler, parser, and ranking pipeline
+**Drill down:** `packages/_index.md` and `packages_pipeline/_index.md`
+
+This family of entries defines the project’s retrieval contract: **do not use global top-k where grouped coverage is required**.
+
+### Core retrieval principle
+Across the staged-retrieval synthesis entries, the same flow appears:
+- query intent
+- candidate scoring
+- vector overscan
+- topical/type filtering
+- deduplication by stable identity such as `sectionId`
+- group-specific ranking
+- RRF merge or final rerank
+
+### Why it matters
+- Neo4j `queryNodes(k)` is global top-k and too lossy for grouped coverage
+- Coverage-preserving systems must overscan first, then filter and rerank
+- Retrieval quality depends on coverage preservation and decontamination, not just ranking
+- Evaluation must happen at the same layer as the user-facing behavior
 
 ### `packages_pipeline/_index.md`
-- Structural overview of retrieval and parsing knowledge.
-- Major topic split:
-  - `retrieval_fixes/_index.md` → retrieval collector and finalization behavior
-  - `crawler_cli_and_package_docs.md` → crawler CLI and package documentation conventions
-  - `crawler_sync_behavior/_index.md` → sync lifecycle and lazy filename tracking
-  - `ssa_parser_subsection_splitting_fix.md` → stable SSA subsection identities
-- Core architecture:
-  - retrieval is **staged**, not one-shot
-  - `queryNodes(k)` is global top-k and therefore insufficient alone
-  - overscan per group, dedupe by `sectionId`, and rerank/fuse at the end
-- The crawler layer preserves runtime semantics while making fetch behavior safe under Node 26.
-- `search_tooling/_index.md` documents the hybrid policy search stack using Voyage embeddings, concept graph matching, reciprocal rank fusion, and Neo4j indexes.
-
-### `packages_pipeline/retrieval_fixes/_index.md`
-- Focuses on `collectHybridHitMap` and `finalizeHybridHits`.
+This cluster focuses on the policy-corpus retrieval collector.
+- `collectHybridHitMap` and `finalizeHybridHits` define stage-ordered collection and ranking
+- Merge key is `^sectionId$`
 - Locked-in behavior:
-  - stage-1 backends merge into a section map
-  - fulltext recovery adds `FULLTEXT_BOOST`
-  - merge-max semantics determine winner per `sectionId`
-  - final ranking truncates by `topK` when reranking is absent
-- The test suite preserves deterministic collection/ranking behavior and clearly separates injected backends from the fulltext stage.
+  - merge-max semantics
+  - silent skipping of unknown backends
+  - fulltext recovery boosts
+  - deterministic final ranking when rerankers are absent
 
-### `packages/_index.md`
-- Broad contract across crawler, retrieval quality, policy corpus, and evaluation:
-  - **overscan / isolate / filter / dedupe / rerank / verify**
-- Key subdomains:
-  - `crawler/_index.md` → undici redirect interceptor fix and Node 26 hardening
-  - `retrieval_quality/_index.md` → staged retrieval with vector overscan and RRF
-  - `policy_corpus/_index.md` → staged retrieval, coverage boosts, reranker gates, and scoring
-  - `pipeline/_index.md` → CLI package split and A/B evaluation harness
-- Important policy-corpus rules:
-  - `mergeMax` keeps the best hit per `sectionId`
-  - `computeDocumentCoverageBoosts()` is intentionally called twice
-  - reranking is gated and fail-open unless conditions justify it
-  - selection and narrowing must respect ordering constraints
-- Evaluation results in this family show that retrieval quality is structural, not solely model-dependent.
+### `crawler/_index.md`
+- Fetcher reliability fix for Node 26
+- Uses a private undici dispatcher inside `createFetcher()`
+- Redirects handled by `interceptors.redirect({ maxRedirections })`
+- Preserves:
+  - per-domain serialization
+  - rate limiting
+  - retry/backoff
+  - file streaming
 
-## 5) Evaluation, QA, and trust enforcement
+### Major retrieval subdomains
+- `crawler_cli_and_package_docs.md`
+  - crawler CLI and README contract
+- `crawler_source_factories.md`
+  - reusable source factories:
+    - `singleIndexSource`
+    - `pageCrawlSource`
+    - `pushNewDocuments`
+- `crawler_sync_behavior/_index.md`
+  - separated download/check phases
+  - default removal threshold of 3 consecutive 404s
+- `ssa_parser_subsection_splitting_fix.md`
+  - only top-level lettered subsections are split
+  - parent section text is preserved
+- `retrieval_fixes/_index.md`
+  - collector orchestration and ranking behavior
+- `policy_corpus/_index.md`
+  - central overview for retrieval, reranking, routing, coverage frame assembly, and test contracts
 
-### `evaluation/_index.md`
-- Central evaluation domain for answer-quality scoring and cross-reference resolution.
-- Shared pipeline:
-  - golden entries → agent execution → Neo4j evidence lookup → judgment/scoring → aggregation
-- Main topics:
-  - `answer_quality/_index.md`
-  - `cross_reference_resolution/_index.md`
-  - `pipeline_overview/_index.md`
-- Key answer-quality facts:
-  - implemented in `packages/pipeline/src/pipeline/eval/levels/answer.py`
+### Architectural conclusion
+Retrieval is treated as a staged contract across crawler, collector, routing, and evaluation layers. The repeated rule is: **coverage first, then select**.
+
+## Policy corpus architecture and ranking contract
+**Drill down:** `packages/_index.md`
+
+The policy corpus cluster is the main structural summary for retrieval/reranking and coverage assembly.
+
+### Major components
+- retrieval / reranking
+- coverage routing
+- document selection
+- coverage frame assembly
+- section candidate profiles
+- internal helper contracts
+- test predicates
+- rerank scoring
+- refactoring risk
+
+### Important behavior
+- Rule order is load-bearing
+- First-wins deduplication depends on ordered candidate tables
+- `computeDocumentCoverageBoosts()` is intentionally called twice in the collector pipeline
+- `shouldAttemptRerank()` is selective and fail-open
+- Reranking must be evaluated at the answer level, not retrieval-only level
+
+### Refactoring and contract stability
+- Ordered rule tables replaced imperative branching in multiple places
+- Canonical helpers and types are centralized
+- Floating-point accumulation order is considered critical
+- Waiver-authority logic is duplicated enough to require consolidation
+
+## Evaluation, QA, and trust chain
+**Drill down:** `evaluation/_index.md` and `qa/_index.md`
+
+These clusters show that answer quality, cross-reference correctness, hallucination defense, and UI QA are all parts of the same trust pipeline.
+
+### Evaluation domain
+- `answer_quality/_index.md`
+  - Level 3 answer-quality evaluation
+  - golden entries → agent invocation → Neo4j evidence → `judge_answer` → aggregation
   - agent invocation is HTTP-first with CLI fallback
-  - answer extraction reads content after `---ANSWER---`
-  - failures are handled distinctly: judge failures become `None`, agent failures become `0`
-- Cross-reference resolution validates `REFERENCES_DOCUMENT`, `AMENDS`, `HAS_SECTION`, and `REFERENCES` relationships.
-- The embedded embedding comparison showed `voyage-4-large` was effectively a wash versus `voyage-law-2`, suggesting the bottleneck is structural rather than model choice.
+- `cross_reference_resolution/_index.md`
+  - Level 2 graph relationship validation
+  - prioritizes document-level then section-level cross-reference recovery
+- `pipeline_overview/_index.md`
+  - shared evaluation structure and dependencies
 
-### `qa/_index.md`
-- QA domain for Playwright E2E infrastructure and the broader trust chain.
-- Core scope:
-  - mocked and smoke Playwright suites
-  - Mastra streaming and memory API mocks
-  - chat and thread-sidebar page objects
-- The trust pipeline is consistent across QA, evaluation, and hallucination verification:
-  - retrieve evidence
-  - verify or rewrite unsupported output
-  - score only grounded answers
-- Drill-down:
-  - `playwright_e2e/_index.md`
-  - `hallucination_verifier/_index.md`
-  - `evaluation_pipeline/_index.md`
-  - `launch_blockers/_index.md`
+### Key evaluation facts
+- judge failures yield `None`
+- agent failures yield zero scores plus error explanation
+- agent timeout is 180 seconds
+- `primary_hit` is set when score is at least 2
+- A/B retrieval results show that model choice alone is not the main bottleneck; the bottleneck is likely structural
 
-### `frontend_ui/_index.md`
-- Chat UI stability depends on **runtime identity alignment** across transport, cache, parsing, and sidebar operations.
-- Main clusters:
-  - chat page layout and scroll stability
-  - thread cache restoration and auth retries
-  - streaming and error handling
-  - design system and proxy/auth handling
-- Key architectural decisions:
-  - `useChat` identity expands from `threadId` to `threadId:resourceId`
-  - `DefaultChatTransport` must be memoized on auth-sensitive inputs
-  - thread cache restoration must wait for a fresh `useChat` instance
-  - theme persistence is cookie-first, with WorkOS used for sync/backfill
-- Design system topic preserves the Document of Record editorial language, including typography, paper-grain presentation, and `data-testid` stability.
+### QA domain
+- `playwright_e2e/_index.md` is the main UI test architecture entry
+- `hallucination_verifier/_index.md` defines the final-answer-only verifier
+- `launch_blockers/_index.md` ties remediation to trust and grounding failures
 
-## 6) Shared theme across domains
+### Trust-chain conclusion
+The repo treats trust as a chain:
+1. retrieve evidence
+2. verify or rewrite unsupported output
+3. score only grounded answers
 
-Across the entries, the same structural rules recur:
-- **Runtime correctness beats build-time assumptions**
-- **Staged retrieval beats naive global top-k**
-- **Ordering and gating rules are contractual**
-- **Validation must happen before trust**
-- **Durable knowledge should be curated into structured drill-down topics**
+This is the same invariant enforced by evaluation, QA, and agent prompt rules.
 
-### Best drill-down entry names by theme
-- Runtime boundaries and auth: `auth-and-deployment-fixes-are-driven-by-runtime-environment-boundaries.md`, `workos_authkit_nextjs/_index.md`
-- Agent and CLI hardening: `nc_medicaid_agent/_index.md`, `startup_and_web_ui_hardening.md`, `cli_runner.md`
-- Retrieval and ranking: `retrieval_fixes/_index.md`, `retrieval_quality/_index.md`, `hybrid_policy_search_tool.md`
-- Policy corpus structure: `policy_corpus/_index.md`, `coverage_frame_assembly/_index.md`, `reranker_gate_logic_and_a_b_evaluation.md`
-- Evaluation and QA trust chain: `evaluation/_index.md`, `qa/_index.md`, `hallucination_verifier/_index.md`, `evaluation_pipeline/_index.md`
-- Frontend runtime identity: `chat_page_thread_cache/_index.md`, `chat_page_transport/_index.md`, `thread_sidebar/_index.md`, `proxy_handling/_index.md`
+## Frontend UI: runtime identity, persistence, and testing
+**Drill down:** `frontend_ui/_index.md`
+
+The frontend UI cluster centers on chat stability and the hidden dependency between auth, thread identity, and persisted state.
+
+### Core contract
+- thread identity, auth state, and cached UI state must stay aligned
+- runtime identity must be recomputed on auth transitions
+- structured message parts must survive reloads and remounts
+
+### Major subtopics
+- `chat_page_review_fixes.md`
+  - `packages/web/src/app/chat/page.tsx` decomposed into:
+    - `EmptyState`
+    - `MessageList`
+    - `ChatInput`
+    - `ResearchTrace`
+- `chat_page_scroll_stability.md`
+  - keeps the sidebar visible while message history updates
+  - prefers `viewport.scrollTo` over `scrollIntoView`
+- `authenticated_chat_transport_reinitialization.md`
+  - `threadId` becomes `threadId:resourceId`
+  - `resourceId` defaults to `anonymous`
+- `chat_thread_cache_restoration.md`
+  - cached thread state restored after `useChat` recreation
+- `message_persistence_parsing.md`
+  - structured `UIMessage` reconstruction from persisted Mastra thread messages
+- `message_citations/message_citation_resolution.md`
+  - shared citation resolver used by markdown rendering and clipboard generation
+- `message_feedback_flow.md`
+  - feedback pipeline through LibSQL, API routes, client, and UI actions
+- `thread_sidebar_fetch_resilience.md`
+  - abortable thread fetches and auth-aware client recreation
+- `proxy_handling/context.md`
+  - Next.js 16 proxy migration with `authkitProxy`
+- `web_theme_persistence.md`
+  - cookie-first theme persistence, WorkOS metadata as secondary sync/backfill
+
+### Structural conclusion
+The UI is built around one hidden coupling: **runtime identity controls transport, cache validity, and restored state**.
+
+## Facts and durable curation knowledge
+**Drill down:** `facts/_index.md`
+
+This domain records the curation discipline used to preserve project knowledge.
+
+### Core conventions
+- Raw Concept + Narrative + Facts is the standard knowledge shape
+- Entries are organized as domain / topic / subtopic
+- Verification is required after curation
+- UPSERT-first is the default
+- Single-pass mode is preferred when recon allows it
+- Raw context should not be printed
+
+### Project-level durable knowledge
+- `environment_parsing_helpers_and_verifier_toggle.md`
+  - env helper consolidation in `packages/agent/src/env.ts`
+  - `boolEnv` and `intEnv` semantics
+  - verifier remains enabled unless `VERIFIER_ENABLED === 'false'`
+- `dependency_upgrade_migration_fixes.md`
+  - migration compatibility fixes and blockers
+- `policy_corpus_coverage_scoring.md`
+  - ordered scoring behavior for coverage sections
+  - exact anchored rules and weights
+- `curated_context_snippet.*`
+  - support durable knowledge extraction and storage patterns
+
+### Cross-cutting curation rule
+Knowledge entries here are meant to preserve exact technical constraints, runtime/type boundaries, defaults, blockers, and flag-gated logic as stable recall items.
+
+## Main structural relationships to retain
+- `agent_architecture` anchors agent behavior, curation, and research workflow rules.
+- `auth_integration` and `frontend_ui` together define runtime identity correctness across backend auth and client transport.
+- `database_operations` and `packages` define the graph retrieval, refresh, and ranking contract.
+- `evaluation` and `qa` define the trust chain from retrieval to verified final answers.
+- `facts` holds the durable knowledge model and the rules for curating the rest of the system.

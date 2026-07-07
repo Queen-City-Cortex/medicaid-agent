@@ -1,80 +1,82 @@
 ---
-children_hash: b6010c5c91fda6a0f90bf4333802a0840ed2a7a721840afaa5d830e6e22a24c6
-compression_ratio: 0.33569460842188115
+children_hash: 5d7c3a999c5dfc38f7534ab0736baa5a7f236854f569683a77b8b5694a1b5730
+compression_ratio: 0.25695364238410595
 condensation_order: 1
-covers: [corpus_graph_writer_incremental_cleanup.md, corpusgraphwriter_write_boundary.md, incremental_crawl_ingest_run_19.md]
-covers_token_total: 2541
+covers: [context.md, corpus_graph_writer_incremental_cleanup.abstract.md, corpus_graph_writer_incremental_cleanup.md, corpus_graph_writer_incremental_cleanup.overview.md, corpusgraphwriter_write_boundary.md, incremental_crawl_ingest_run_19.md, neo4j_session_and_corpus_writer_boundary.md]
+covers_token_total: 3775
 summary_level: d1
-token_count: 853
+token_count: 970
 type: summary
 ---
-## Corpus Graph Writer and Incremental Ingest
+# neo4j_write_read_consistency
 
-These entries describe the write-side behavior of `CorpusGraphWriter` and how it supports surgical incremental reprocessing during crawl ingest runs. The common theme is **managed Neo4j writes + selective section cleanup + preserved embeddings for unchanged content**, so reruns avoid full corpus re-embeds.
+## Structural Overview
+This topic captures the Neo4j boundary design for the pipeline: `connection.py` owns session acquisition and the module-global driver lifecycle, while `corpus_writer.py` owns all graph mutations through `CorpusGraphWriter`. The core pattern is a managed write boundary using `session.execute_write(...)`, with MERGE-based, doc-scoped cleanup that makes retries safe and reruns idempotent.
 
-### `corpusgraphwriter_write_boundary.md`
-- Establishes the **managed transaction boundary** for `CorpusGraphWriter` public write methods.
-- Public writes now use `session.execute_write(work_fn)` with per-method `_work(tx)` closures.
-- Managed transactions provide commit/rollback semantics and **auto-retry transient errors**.
-- Writes are **MERGE-based and idempotent**, with doc-scoped cleanup so operations are safe to rerun.
-- Test coverage uses `FakeSession.execute_write` to verify:
-  - success path
-  - rollback on error
-  - transient retry behavior
-  - cleanup behavior
-- Reference batching is split by type:
-  - `REFERENCES` → `MERGE_REFERENCES_BATCH`
-  - `REFERENCES_DOCUMENT` → `MERGE_REFERENCES_DOCUMENT_BATCH`
-- Related drill-down: `corpus_graph_writer_incremental_cleanup.md`, `incremental_crawl_ingest_run_19.md`
+## Main Subtopics
 
-### `corpus_graph_writer_incremental_cleanup.md`
-- Focuses on the **incremental cleanup rules** inside the corpus graph writer.
-- Workflow:
+### Neo4j Session and Corpus Writer Boundary
+See **neo4j_session_and_corpus_writer_boundary.md** for the top-level architecture of `connection.py` and `corpus_writer.py`.
+
+- `get_session()` is the single Neo4j access choke point.
+- `get_driver()` / `close_driver()` manage a module-singleton driver lifecycle.
+- Multi-statement mutations must run inside managed transactions, not ad hoc auto-commit calls.
+- Loader stages route through `graph_writer` instead of calling `get_session()` directly.
+
+### Corpus Graph Writer Incremental Cleanup
+See **corpus_graph_writer_incremental_cleanup.md** and **corpus_graph_writer_incremental_cleanup.overview.md** for write-path cleanup behavior.
+
+- `CorpusGraphWriter` is the single write-side boundary for corpus graph mutations.
+- Document bundle flow:
   - merge document
   - write sections
   - delete stale sections
-  - clear changed embeddings
+  - clear changed embeddings/chunks
   - merge relationships
-- Cleanup is **surgical**:
+- Cleanup is surgical:
   - stale sections are removed
-  - only changed sections lose embeddings/chunks
-  - unchanged sections retain prior embeddings
-- Documents a single write-side boundary for:
-  - document bundles
-  - relationships
-  - status updates
-- Relationship paths are separated:
-  - `merge_reference_edges`
-  - `merge_amendments`
-  - `merge_supersessions`
-  - `merge_concept_links`
-- Key rule: rerunning the loader should not force full re-embedding.
-- Related drill-down: `corpusgraphwriter_write_boundary.md`
+  - unchanged sections keep embeddings and chunks
+  - only changed sections are invalidated
+- Section writes are batched with `GRAPH_BATCH_SIZE`.
 
-### `incremental_crawl_ingest_run_19.md`
-- Records **crawl run #19** into Railway production using voyage-4.
-- Operational outcome:
-  - 34 targeted docs ingested
-  - production corpus grew from 6693 to 6725 docs
-  - 1533 sections added
-  - retrieval verified for `MA-3234 Expanded Foster Care` at 0.86 cosine
-- Main operational lesson: avoid full reprocessing of fee schedule PDFs because byte churn can make unchanged documents look modified.
-- Preferred selection logic emphasizes:
-  - `status='downloaded'`
-  - `first_seen_at>=run_start`
-  - `last_changed_at>=run_start and source_type!=fee_schedule`
-- Ingest path:
-  - crawl
-  - select targeted docs
-  - parse
-  - `load_document(parsed_json_path, source_type)`
-  - incremental embed
-  - verify retrieval
-- Important gotcha: multiprocessing spawn fails when invoked from stdin/heredoc; use a real `.py` file or parse in-process with a reused converter.
-- Local Docker/Neo4j were unavailable during the run, so only production was updated; local resync remains needed.
-- Related drill-down: `corpusgraphwriter_write_boundary.md`
+### CorpusGraphWriter Write Boundary
+See **corpusgraphwriter_write_boundary.md** for the managed transaction and retry model.
 
-### Cross-entry pattern
-- `CorpusGraphWriter` provides the mutation boundary that makes incremental ingest safe.
-- The cleanup model ensures **doc-scoped updates** rather than full rebuilds.
-- `incremental_crawl_ingest_run_19.md` is the operational example of the same design: targeted ingest, incremental embedding, and no unnecessary corpus-wide reprocessing.
+- Public write methods now route through `session.execute_write(work_fn)`.
+- Each public method builds a `_work(tx)` closure.
+- Managed transactions provide commit/rollback behavior and transient retry handling.
+- Tests cover success, rollback, retry, and cleanup behavior using `FakeSession.execute_write`.
+
+### Incremental Crawl Ingest Run 19
+See **incremental_crawl_ingest_run_19.md** for the operational ingest example tied to this write boundary.
+
+- Crawl run #19 ingested 34 targeted docs into Railway prod using voyage-4.
+- Production corpus grew from 6693 to 6725 docs.
+- 1533 sections were added with no missing embeddings.
+- Retrieval verification succeeded for MA-3234 Expanded Foster Care at 0.86 cosine.
+- A key operational rule is to avoid fee_schedule byte-churn by selecting only real incremental candidates.
+
+## Cross-Cutting Patterns
+
+- **Single access boundary**: `get_session()` is the choke point for Neo4j access.
+- **Single write boundary**: `CorpusGraphWriter` centralizes all graph mutations.
+- **Managed transaction semantics**: `session.execute_write(...)` preserves atomicity and retries transient failures.
+- **Idempotent cleanup**: deterministic MERGE-based writes plus doc-scoped cleanup make reruns safe.
+- **Selective re-embed**: unchanged sections are preserved; only changed sections lose embeddings/chunks.
+- **Relationship specialization**: separate merge paths exist for:
+  - references
+  - amendments
+  - supersessions
+  - concept links
+
+## Key Dependencies
+- `pipeline.config` for `NEO4J_URI`, `NEO4J_USER`, `NEO4J_PASSWORD`, `NEO4J_DATABASE`, and `GRAPH_BATCH_SIZE`
+- Neo4j managed transaction semantics
+- query constants / Cypher statements in the pipeline’s queries module
+- pipeline loaders that route through `CorpusGraphWriter`
+
+## Drill-Down Map
+- **neo4j_session_and_corpus_writer_boundary.md** — overall session and writer architecture
+- **corpus_graph_writer_incremental_cleanup.md** — incremental cleanup and rerun safety
+- **corpusgraphwriter_write_boundary.md** — managed write boundary, retries, and test behavior
+- **incremental_crawl_ingest_run_19.md** — real ingest run illustrating the operational consequences
