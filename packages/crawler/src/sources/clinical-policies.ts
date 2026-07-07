@@ -1,7 +1,8 @@
 import * as cheerio from 'cheerio';
 import { config } from '../config.js';
 import { logger } from '../utils/logger.js';
-import type { DiscoveredDocument, Fetcher } from './types.js';
+import { singleIndexSource } from './crawl-helpers.js';
+import type { DiscoveredDocument } from './types.js';
 
 const BASE_URL = 'https://medicaid.ncdhhs.gov';
 
@@ -94,21 +95,10 @@ export function parseClinicalPoliciesPage(
   return docs;
 }
 
-export const clinicalPoliciesSource = {
-  // sinceYear ignored: this index lists the current clinical coverage policy set;
-  // there is no year-level metadata on the listing page to filter on.
-  async discover(fetcher: Fetcher, _sinceYear: number): Promise<DiscoveredDocument[]> {
-    const indexUrl = config.sources.clinical_policy.indexUrl;
-    logger.info(`clinical-policies: fetching index ${indexUrl}`);
-
-    const { body, statusCode } = await fetcher.fetchHtml(indexUrl);
-    if (statusCode !== 200) {
-      logger.warn(`clinical-policies: unexpected status ${statusCode} for ${indexUrl}`);
-      return [];
-    }
-
-    const docs = parseClinicalPoliciesPage(body, indexUrl);
-    logger.info(`clinical-policies: discovered ${docs.length} documents`);
-    return docs;
-  },
-};
+// sinceYear ignored: this index lists the current clinical coverage policy set;
+// there is no year-level metadata on the listing page to filter on.
+export const clinicalPoliciesSource = singleIndexSource({
+  logPrefix: 'clinical-policies',
+  indexUrl: () => config.sources.clinical_policy.indexUrl,
+  parse: parseClinicalPoliciesPage,
+});

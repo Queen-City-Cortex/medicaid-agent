@@ -1,6 +1,7 @@
 import * as cheerio from 'cheerio';
 import { config } from '../config.js';
 import { logger } from '../utils/logger.js';
+import { pushNewDocuments } from './crawl-helpers.js';
 import { MEDICAID_BASE_URL, absoluteMedicaidUrl, collectDrupalDocumentLinks } from './medicaid-page-documents.js';
 import type { DiscoveredDocument, Fetcher } from './types.js';
 
@@ -66,11 +67,11 @@ export const feeSchedulesSource = {
           break;
         }
 
-        for (const doc of collectDrupalDocumentLinks(body, currentUrl, 'fee_schedule', 'Fee Schedules')) {
-          if (seenDocumentUrls.has(doc.source_url)) continue;
-          seenDocumentUrls.add(doc.source_url);
-          docs.push(doc);
-        }
+        pushNewDocuments(
+          seenDocumentUrls,
+          docs,
+          collectDrupalDocumentLinks(body, currentUrl, 'fee_schedule', 'Fee Schedules'),
+        );
 
         const { detailUrls, nextPageUrl } = parseFeeScheduleListingPage(body, currentUrl);
         for (const detailUrl of detailUrls) {
@@ -78,11 +79,11 @@ export const feeSchedulesSource = {
           visitedDetailUrls.add(detailUrl);
           const detailResponse = await fetcher.fetchHtml(detailUrl);
           if (detailResponse.statusCode !== 200) continue;
-          for (const doc of parseFeeScheduleDetailPage(detailResponse.body, detailUrl)) {
-            if (seenDocumentUrls.has(doc.source_url)) continue;
-            seenDocumentUrls.add(doc.source_url);
-            docs.push(doc);
-          }
+          pushNewDocuments(
+            seenDocumentUrls,
+            docs,
+            parseFeeScheduleDetailPage(detailResponse.body, detailUrl),
+          );
         }
 
         currentUrl = nextPageUrl;

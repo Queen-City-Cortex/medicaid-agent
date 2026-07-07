@@ -1,7 +1,8 @@
 import * as cheerio from 'cheerio';
 import { config } from '../config.js';
 import { logger } from '../utils/logger.js';
-import type { DiscoveredDocument, Fetcher } from './types.js';
+import { singleIndexSource } from './crawl-helpers.js';
+import type { DiscoveredDocument } from './types.js';
 
 /**
  * Parse the DHHS Policies Repository page for Health Benefits / NC Medicaid documents.
@@ -107,23 +108,10 @@ export function parseDhhsPoliciesPage(
   return docs;
 }
 
-export const dhhsPoliciesSource = {
-  // sinceYear ignored: the DHHS policies landing page enumerates the current
-  // MA-series policies; discovery has no year metadata to filter on.
-  async discover(fetcher: Fetcher, _sinceYear: number): Promise<DiscoveredDocument[]> {
-    const indexUrl = config.sources.dhhs_policy.indexUrl;
-    logger.info(`dhhs-policies: fetching index ${indexUrl}`);
-
-    const { body, statusCode } = await fetcher.fetchHtml(indexUrl);
-    if (statusCode !== 200) {
-      logger.warn(
-        `dhhs-policies: unexpected status ${statusCode} for ${indexUrl}`,
-      );
-      return [];
-    }
-
-    const docs = parseDhhsPoliciesPage(body, indexUrl);
-    logger.info(`dhhs-policies: discovered ${docs.length} documents`);
-    return docs;
-  },
-};
+// sinceYear ignored: the DHHS policies landing page enumerates the current
+// MA-series policies; discovery has no year metadata to filter on.
+export const dhhsPoliciesSource = singleIndexSource({
+  logPrefix: 'dhhs-policies',
+  indexUrl: () => config.sources.dhhs_policy.indexUrl,
+  parse: parseDhhsPoliciesPage,
+});

@@ -1,7 +1,8 @@
 import * as cheerio from 'cheerio';
 import { config } from '../config.js';
 import { logger } from '../utils/logger.js';
-import type { DiscoveredDocument, Fetcher } from './types.js';
+import { singleIndexSource } from './crawl-helpers.js';
+import type { DiscoveredDocument } from './types.js';
 
 const BASE_URL = 'https://www.nctracks.nc.gov';
 
@@ -74,20 +75,9 @@ export function parseNcTracksPage(
   return docs;
 }
 
-export const ncTracksSource = {
-  // sinceYear ignored: NCTracks surfaces only the current provider manuals.
-  async discover(fetcher: Fetcher, _sinceYear: number): Promise<DiscoveredDocument[]> {
-    const indexUrl = config.sources.provider_manual.indexUrl;
-    logger.info(`nctracks: fetching index ${indexUrl}`);
-
-    const { body, statusCode } = await fetcher.fetchHtml(indexUrl);
-    if (statusCode !== 200) {
-      logger.warn(`nctracks: unexpected status ${statusCode} for ${indexUrl}`);
-      return [];
-    }
-
-    const docs = parseNcTracksPage(body, indexUrl);
-    logger.info(`nctracks: discovered ${docs.length} documents`);
-    return docs;
-  },
-};
+// sinceYear ignored: NCTracks surfaces only the current provider manuals.
+export const ncTracksSource = singleIndexSource({
+  logPrefix: 'nctracks',
+  indexUrl: () => config.sources.provider_manual.indexUrl,
+  parse: parseNcTracksPage,
+});

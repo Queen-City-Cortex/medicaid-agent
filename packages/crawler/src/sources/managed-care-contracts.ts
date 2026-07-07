@@ -1,12 +1,12 @@
 import { config } from '../config.js';
-import { logger } from '../utils/logger.js';
+import { pageCrawlSource } from './crawl-helpers.js';
 import {
   absoluteMedicaidUrl,
   collectDrupalDocumentLinks,
   collectInternalPageLinks,
   MEDICAID_BASE_URL,
 } from './medicaid-page-documents.js';
-import type { DiscoveredDocument, Fetcher } from './types.js';
+import type { DiscoveredDocument } from './types.js';
 
 const SUBPAGE_PREFIXES = [
   '/providers/provider-contracting-health-plans',
@@ -84,53 +84,12 @@ export function deriveManagedCareContractDetailPageUrl(documentUrl: string): str
   return parsed.toString();
 }
 
-export const managedCareContractsSource = {
-  // sinceYear ignored: managed-care contract discovery traverses current contract
-  // pages; amendment chains live inside the downloaded PDFs, not the index.
-  async discover(fetcher: Fetcher, _sinceYear: number): Promise<DiscoveredDocument[]> {
-    const docs: DiscoveredDocument[] = [];
-    const seenDocs = new Set<string>();
-    const visitedPages = new Set<string>();
-    const queuedPages = new Set<string>();
-    const queue = [...config.sources.managed_care_contract.landingPages];
-
-    for (const pageUrl of queue) {
-      queuedPages.add(pageUrl);
-    }
-
-    while (queue.length > 0) {
-      const pageUrl = queue.shift();
-      if (!pageUrl || visitedPages.has(pageUrl)) continue;
-      visitedPages.add(pageUrl);
-
-      logger.info(`managed-care-contracts: fetching ${pageUrl}`);
-      const { body, statusCode } = await fetcher.fetchHtml(pageUrl);
-      if (statusCode !== 200) {
-        logger.warn(`managed-care-contracts: unexpected status ${statusCode} for ${pageUrl}`);
-        continue;
-      }
-
-      for (const doc of parseManagedCareContractsPage(body, pageUrl)) {
-        if (seenDocs.has(doc.source_url)) continue;
-        seenDocs.add(doc.source_url);
-        docs.push(doc);
-
-        const detailPageUrl = deriveManagedCareContractDetailPageUrl(doc.source_url);
-        if (detailPageUrl && !visitedPages.has(detailPageUrl) && !queuedPages.has(detailPageUrl)) {
-          queuedPages.add(detailPageUrl);
-          queue.push(detailPageUrl);
-        }
-      }
-
-      for (const subpageUrl of extractManagedCareContractSubpageUrls(body, pageUrl)) {
-        if (!visitedPages.has(subpageUrl) && !queuedPages.has(subpageUrl)) {
-          queuedPages.add(subpageUrl);
-          queue.push(subpageUrl);
-        }
-      }
-    }
-
-    logger.info(`managed-care-contracts: discovered ${docs.length} documents`);
-    return docs;
-  },
-};
+// sinceYear ignored: managed-care contract discovery traverses current contract
+// pages; amendment chains live inside the downloaded PDFs, not the index.
+export const managedCareContractsSource = pageCrawlSource({
+  logPrefix: 'managed-care-contracts',
+  startUrls: () => config.sources.managed_care_contract.landingPages,
+  parsePage: parseManagedCareContractsPage,
+  extractSubpageUrls: extractManagedCareContractSubpageUrls,
+  derivePageFromDocument: deriveManagedCareContractDetailPageUrl,
+});

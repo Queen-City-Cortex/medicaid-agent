@@ -1,10 +1,10 @@
 import { config } from '../config.js';
-import { logger } from '../utils/logger.js';
+import { pageCrawlSource } from './crawl-helpers.js';
 import {
   collectDrupalDocumentLinks,
   collectInternalPageLinks,
 } from './medicaid-page-documents.js';
-import type { DiscoveredDocument, Fetcher } from './types.js';
+import type { DiscoveredDocument } from './types.js';
 
 const SUBPAGE_PREFIXES = [
   '/providers/provider-playbook-medicaid-managed-care',
@@ -30,40 +30,10 @@ export function extractManagedCareGuidanceSubpageUrls(
   return collectInternalPageLinks(html, pageUrl, SUBPAGE_PREFIXES);
 }
 
-export const managedCareGuidanceSource = {
-  // sinceYear ignored: managed-care guidance pages expose only the current set.
-  async discover(fetcher: Fetcher, _sinceYear: number): Promise<DiscoveredDocument[]> {
-    const docs: DiscoveredDocument[] = [];
-    const seenDocs = new Set<string>();
-    const visitedPages = new Set<string>();
-    const queue = [...config.sources.managed_care_guidance.landingPages];
-
-    while (queue.length > 0) {
-      const pageUrl = queue.shift();
-      if (!pageUrl || visitedPages.has(pageUrl)) continue;
-      visitedPages.add(pageUrl);
-
-      logger.info(`managed-care-guidance: fetching ${pageUrl}`);
-      const { body, statusCode } = await fetcher.fetchHtml(pageUrl);
-      if (statusCode !== 200) {
-        logger.warn(`managed-care-guidance: unexpected status ${statusCode} for ${pageUrl}`);
-        continue;
-      }
-
-      for (const doc of parseManagedCareGuidancePage(body, pageUrl)) {
-        if (seenDocs.has(doc.source_url)) continue;
-        seenDocs.add(doc.source_url);
-        docs.push(doc);
-      }
-
-      for (const subpageUrl of extractManagedCareGuidanceSubpageUrls(body, pageUrl)) {
-        if (!visitedPages.has(subpageUrl)) {
-          queue.push(subpageUrl);
-        }
-      }
-    }
-
-    logger.info(`managed-care-guidance: discovered ${docs.length} documents`);
-    return docs;
-  },
-};
+// sinceYear ignored: managed-care guidance pages expose only the current set.
+export const managedCareGuidanceSource = pageCrawlSource({
+  logPrefix: 'managed-care-guidance',
+  startUrls: () => config.sources.managed_care_guidance.landingPages,
+  parsePage: parseManagedCareGuidancePage,
+  extractSubpageUrls: extractManagedCareGuidanceSubpageUrls,
+});

@@ -1,7 +1,7 @@
 import { config } from '../config.js';
-import { logger } from '../utils/logger.js';
+import { pageCrawlSource } from './crawl-helpers.js';
 import { collectDrupalDocumentLinks } from './medicaid-page-documents.js';
-import type { DiscoveredDocument, Fetcher } from './types.js';
+import type { DiscoveredDocument } from './types.js';
 
 export function parseBillingGuidancePage(
   html: string,
@@ -15,28 +15,9 @@ export function parseBillingGuidancePage(
   );
 }
 
-export const billingGuidanceSource = {
-  // sinceYear ignored: billing guidance pages list only the current documents.
-  async discover(fetcher: Fetcher, _sinceYear: number): Promise<DiscoveredDocument[]> {
-    const docs: DiscoveredDocument[] = [];
-    const seenUrls = new Set<string>();
-
-    for (const pageUrl of config.sources.billing_guidance.landingPages) {
-      logger.info(`billing-guidance: fetching ${pageUrl}`);
-      const { body, statusCode } = await fetcher.fetchHtml(pageUrl);
-      if (statusCode !== 200) {
-        logger.warn(`billing-guidance: unexpected status ${statusCode} for ${pageUrl}`);
-        continue;
-      }
-
-      for (const doc of parseBillingGuidancePage(body, pageUrl)) {
-        if (seenUrls.has(doc.source_url)) continue;
-        seenUrls.add(doc.source_url);
-        docs.push(doc);
-      }
-    }
-
-    logger.info(`billing-guidance: discovered ${docs.length} documents`);
-    return docs;
-  },
-};
+// sinceYear ignored: billing guidance pages list only the current documents.
+export const billingGuidanceSource = pageCrawlSource({
+  logPrefix: 'billing-guidance',
+  startUrls: () => config.sources.billing_guidance.landingPages,
+  parsePage: parseBillingGuidancePage,
+});
