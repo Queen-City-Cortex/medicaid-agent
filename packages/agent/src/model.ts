@@ -1,5 +1,6 @@
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createOpenAI } from '@ai-sdk/openai';
+import { strEnv } from './env.js';
 
 // The model instance the AI-SDK providers return. Aliasing the provider's own
 // return type (rather than `ai`'s `LanguageModel`, which pins a newer provider
@@ -19,7 +20,7 @@ const openai = createOpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-export const AGENT_MODEL = process.env.AGENT_MODEL || 'gpt-5.4';
+export const AGENT_MODEL = strEnv('AGENT_MODEL', 'gpt-5.4');
 
 /** Resolve a model id ("gpt-5.4", "claude-…") to an AI SDK model instance.
  *  OpenAI reasoning models use the o1/o3/o4 prefixes; everything non-OpenAI

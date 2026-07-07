@@ -38,6 +38,7 @@ import { FeedbackRepository } from './feedback/repository.js';
 import { feedbackApiRoutes } from './feedback/routes.js';
 import { corpusStatusRoute } from './corpus-status.js';
 import { buildSystemPrompt } from './prompt.js';
+import { intEnv, isVerifierEnabled, strEnv } from './env.js';
 
 // ── Startup validation ────────────────────────────────────────────────────────
 
@@ -49,7 +50,7 @@ const REQUIRED_ENV = ['VOYAGE_API_KEY', 'OPENAI_API_KEY'] as const;
 
 function validateEnv() {
   const missing: string[] = REQUIRED_ENV.filter((v) => !process.env[v]);
-  const agentModel = process.env.AGENT_MODEL || '';
+  const agentModel = strEnv('AGENT_MODEL', '');
   if (agentModel.startsWith('claude-') && !process.env.ANTHROPIC_API_KEY) {
     missing.push('ANTHROPIC_API_KEY (required for Claude AGENT_MODEL)');
   }
@@ -67,14 +68,15 @@ const CLI_ARGS = process.argv.slice(2);
 const IS_DEEP_RESEARCH_CLI = CLI_ARGS[0] === '--deep-research';
 const CLI_QUESTION = IS_DEEP_RESEARCH_CLI ? CLI_ARGS[1] : CLI_ARGS[0];
 const IS_CLI_RUN = Boolean(CLI_QUESTION);
-const OBSERVABILITY_DB_PATH = process.env.MASTRA_OBSERVABILITY_PATH || (IS_CLI_RUN ? ':memory:' : 'mastra.duckdb');
+const OBSERVABILITY_DB_PATH = strEnv('MASTRA_OBSERVABILITY_PATH', IS_CLI_RUN ? ':memory:' : 'mastra.duckdb');
+const DATABASE_URL = strEnv('DATABASE_URL', 'file:./mastra.db');
 
 const libsql = new LibSQLStore({
   id: 'mastra-storage',
-  url: process.env.DATABASE_URL || 'file:./mastra.db',
+  url: DATABASE_URL,
 });
 
-const feedbackRepo = new FeedbackRepository(process.env.DATABASE_URL || 'file:./mastra.db');
+const feedbackRepo = new FeedbackRepository(DATABASE_URL);
 
 const storage = new MastraCompositeStore({
   id: 'composite-storage',
@@ -144,8 +146,7 @@ const inputProcessors = IS_CLI_RUN
 // directly after `agent.generate()` completes. That keeps eval scores aligned
 // with what web users see while still letting VERIFIER_ENABLED=false skip the
 // extra cost for fast debug runs.
-const verifierEnabled = process.env.VERIFIER_ENABLED !== 'false';
-const outputProcessors = verifierEnabled && !IS_CLI_RUN ? [hallucinationVerifier] : [];
+const outputProcessors = isVerifierEnabled() && !IS_CLI_RUN ? [hallucinationVerifier] : [];
 
 const MAX_STEPS = 99;
 
@@ -217,7 +218,7 @@ export const mastra = new Mastra({
   logger: new PinoLogger({ name: 'mastra', level: 'info' }),
   server: {
     host: '0.0.0.0',
-    port: parseInt(process.env.PORT || '4111'),
+    port: intEnv('PORT', 4111),
     timeout: 10 * 60 * 1000, // 10 minutes — agent research can take many tool calls
     auth: new (class extends MastraAuthWorkos {
       async authorizeUser() { return true; } // allow any authenticated WorkOS user
@@ -226,7 +227,7 @@ export const mastra = new Mastra({
     // request to operate on the authenticated user's own resource (anti-IDOR).
     middleware: [bindResourceToAuthenticatedUser],
     cors: {
-      origin: (process.env.CORS_ORIGINS || 'http://localhost:3000').split(','),
+      origin: strEnv('CORS_ORIGINS', 'http://localhost:3000').split(','),
       credentials: true,
     },
     // Mastra catches route handler errors itself, so the global Sentry handlers
@@ -366,7 +367,7 @@ if (IS_DEEP_RESEARCH_CLI && CLI_QUESTION) {
 
     let finalAnswer = result.text ?? '';
 
-    if (verifierEnabled && finalAnswer) {
+    if (isVerifierEnabled() && finalAnswer) {
       try {
         // Prefer raw tool results (AI SDK shape); fall back to message parsing
         // if extractSourcesFromToolResults returns nothing.

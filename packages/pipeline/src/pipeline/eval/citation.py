@@ -24,6 +24,8 @@ from typing import Iterable
 _CLAIM_TOKENS_RE = re.compile(
     r"(?:\$|%"
     r"|\bPolicy\s+\w|Policy\s*\d"
+    # Loose CFR/USC/SSA *detector* — deliberately not the parsing regex in
+    # pipeline.references.citations.CFR_CITATION_RE.
     r"|\b\d{1,4}\s*(?:CFR|USC|SSA)\b"
     r"|\bMA-\d"
     r"|\b§|\bsection\s+\d|\bsubsection\b"

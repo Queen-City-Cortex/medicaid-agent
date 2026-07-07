@@ -1,10 +1,12 @@
+import { intEnv, isVerifierEnabled, strEnv } from '../../env.js';
+
 // ── Config ───────────────────────────────────────────────────────────────────
 
 export function getConfig() {
-  const maxTokens = parseInt(process.env.VERIFIER_MAX_SOURCE_TOKENS || '30000', 10);
+  const maxTokens = intEnv('VERIFIER_MAX_SOURCE_TOKENS', 30000);
   return {
-    enabled: process.env.VERIFIER_ENABLED !== 'false',
-    model: process.env.VERIFIER_MODEL || 'gpt-5.4-mini',
+    enabled: isVerifierEnabled(),
+    model: strEnv('VERIFIER_MODEL', 'gpt-5.4-mini'),
     maxSourceChars: maxTokens * 4,
   };
 }

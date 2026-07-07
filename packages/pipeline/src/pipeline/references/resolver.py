@@ -6,15 +6,14 @@ import re
 from pipeline.graph.connection import get_session
 from pipeline.graph.corpus_types import ReferenceEdge
 from pipeline.graph.corpus_writer import graph_writer
+from pipeline.references.citations import (
+    CFR_CITATION_RE,
+    federal_regulation_doc_id,
+    federal_statute_doc_id,
+)
 from pipeline.references.extractor import ReferenceMatch
 from pipeline.references.supersessions import CfrSupersession, load_cfr_supersessions
 from pipeline.config import PARSED_DATA_DIR
-
-# Matches "42 CFR 440.70" and variants with optional § and spaces
-CFR_CITATION_RE = re.compile(
-    r"(\d+)\s*C\.?\s?F\.?\s?R\.?\s*(?:Part\s+)?§{0,2}\s*([\d]+(?:\.[\d]+)*)",
-    re.IGNORECASE,
-)
 
 # Superseded CFR parts: old → current. Citations to the old part resolve to the
 # replacement part instead. The shared loader keeps the effective/reason
@@ -122,6 +121,218 @@ def parse_cfr_citation(text: str) -> dict | None:
     return {"title": title, "section": section, "part": part}
 
 
+def _document_result(node_id: str) -> dict:
+    """Successful resolution payload for a document-level target."""
+    return {
+        "resolved": True,
+        "target_node_id": node_id,
+        "target_type": "document",
+        "edge_type": "REFERENCES_DOCUMENT",
+    }
+
+
+def _section_result(node_id: str) -> dict:
+    """Successful resolution payload for a section-level target."""
+    return {
+        "resolved": True,
+        "target_node_id": node_id,
+        "target_type": "section",
+        "edge_type": "REFERENCES",
+    }
+
+
+def _find_canonical_document(session, match_clause: str, params: dict) -> str | None:
+    """Run a document MATCH clause with the canonical ordering; return d.id or None."""
+    result = session.run(
+        f"{match_clause}RETURN d.id {_CANONICAL_DOCUMENT_ORDER}",
+        params,
+    )
+    record = result.single()
+    return record["d.id"] if record else None
+
+
+def _find_document_by_id(session, doc_id: str) -> str | None:
+    result = session.run(
+        "MATCH (d:Document {id: $doc_id}) RETURN d.id",
+        {"doc_id": doc_id},
+    )
+    record = result.single()
+    return record["d.id"] if record else None
+
+
+def _find_section_by_number(session, doc_id: str, section_number: str) -> str | None:
+    result = session.run(
+        "MATCH (s:Section {document_id: $doc_id, section_number: $sn}) RETURN s.id",
+        {"doc_id": doc_id, "sn": section_number},
+    )
+    record = result.single()
+    return record["s.id"] if record else None
+
+
+def _resolve_cross_document(session, ref, source_document_id, preferred_document_id):
+    # 1. Exact match on policy_number
+    doc_id = _find_canonical_document(
+        session,
+        "MATCH (d:Document {policy_number: $pn}) ",
+        {"pn": ref.target_id},
+    )
+    if doc_id:
+        return _document_result(doc_id)
+
+    # 2. Normalized match (strip hyphens): "1-H" matches "1H", "8-D2" matches "8D-2"
+    normalized = ref.target_id.replace("-", "")
+    doc_id = _find_canonical_document(
+        session,
+        "MATCH (d:Document) "
+        "WHERE REPLACE(d.policy_number, '-', '') = $normalized ",
+        {"normalized": normalized},
+    )
+    if doc_id:
+        return _document_result(doc_id)
+
+    # 3. Prefix match for parent references: "5A" → "5A-1", "3H" → "3H-1"
+    doc_id = _find_canonical_document(
+        session,
+        "MATCH (d:Document) "
+        "WHERE d.policy_number STARTS WITH $target "
+        "AND d.document_type = 'clinical_policy' ",
+        {"target": ref.target_id},
+    )
+    if doc_id:
+        return _document_result(doc_id)
+
+    return None
+
+
+def _resolve_section(session, ref, source_document_id, preferred_document_id):
+    target_documents = []
+    if preferred_document_id and preferred_document_id != source_document_id:
+        target_documents.append(preferred_document_id)
+    target_documents.append(source_document_id)
+
+    for target_document_id in target_documents:
+        section_id = _resolve_section_in_document(
+            session,
+            target_document_id,
+            ref.target_id,
+            title_hint=ref.target_id,
+        )
+        if section_id:
+            return _section_result(section_id)
+
+    return None
+
+
+def _resolve_attachment(session, ref, source_document_id, preferred_document_id):
+    section_num = f"Attachment {ref.target_id}"
+    section_id = _resolve_section_in_document(
+        session,
+        source_document_id,
+        section_num,
+        title_hint=section_num,
+    )
+    if section_id:
+        return _section_result(section_id)
+
+    return None
+
+
+def _resolve_spa(session, ref, source_document_id, preferred_document_id):
+    candidates = _spa_candidates(ref.target_id)
+    doc_id = _find_canonical_document(
+        session,
+        "MATCH (d:Document) "
+        "WHERE d.document_type = 'state_plan_amendment' "
+        "AND (toUpper(coalesce(d.policy_number, '')) IN $candidates "
+        "     OR any(candidate IN $candidates WHERE toUpper(coalesce(d.title, '')) CONTAINS candidate)) ",
+        {"candidates": candidates},
+    )
+    if doc_id:
+        return _document_result(doc_id)
+
+    return None
+
+
+def _resolve_federal(session, ref, source_document_id, preferred_document_id):
+    # Handle SSA-Title references (LLM outputs like "SSA-Title-19")
+    ssa_match = re.match(r"^SSA-Title-(\d+|XIX|XXI?)$", ref.target_id, re.IGNORECASE)
+    if ssa_match:
+        raw = ssa_match.group(1)
+        roman_map = {"XIX": 19, "XXI": 21, "XX": 20}
+        title_num = roman_map.get(raw.upper()) or int(raw)
+        found_id = _find_document_by_id(session, federal_statute_doc_id(title_num))
+        if found_id:
+            return _document_result(found_id)
+
+    # Try standard CFR parse: "42 CFR 440.70"
+    parsed = parse_cfr_citation(ref.target_id)
+
+    # Fallback: normalize LLM hyphenated format "42-CFR-441" → "42 CFR 441"
+    if not parsed:
+        cfr_norm = re.match(r"^(\d+)-CFR-(.+)$", ref.target_id)
+        if cfr_norm:
+            normalized = f"{cfr_norm.group(1)} CFR {cfr_norm.group(2)}"
+            parsed = parse_cfr_citation(normalized)
+
+    if parsed:
+        doc_id = federal_regulation_doc_id(parsed["title"], parsed["part"])
+
+        # Section-level resolution (has dot in section number)
+        if "." in parsed["section"]:
+            section_id = _find_section_by_number(session, doc_id, parsed["section"])
+            if section_id:
+                return _section_result(section_id)
+
+        # Document-level fallback (e.g., "42-CFR-441" with no specific section)
+        found_id = _find_document_by_id(session, doc_id)
+        if found_id:
+            return _document_result(found_id)
+
+    return None
+
+
+def _resolve_ssa_section(session, ref, source_document_id, preferred_document_id):
+    for title_num in [19, 21]:
+        doc_id = federal_statute_doc_id(title_num)
+        section_id = _find_section_by_number(session, doc_id, ref.target_id)
+        if section_id:
+            return _section_result(section_id)
+
+    return None
+
+
+def _resolve_waiver(session, ref, source_document_id, preferred_document_id):
+    # Normalize: "1915 (c)" → "1915(c)", "1915(C)" → "1915(c)"
+    target = re.sub(
+        r"1915\s*\(([a-zA-Z])\)",
+        lambda m: f"1915({m.group(1).lower()})",
+        ref.target_id,
+    )
+    doc_id = _find_canonical_document(
+        session,
+        "MATCH (d:Document {policy_number: $pn}) ",
+        {"pn": target},
+    )
+    if doc_id:
+        return _document_result(doc_id)
+
+    return None
+
+
+# Per-ref_type resolution handlers, each (session, ref, source_document_id,
+# preferred_document_id) -> resolution dict | None (None means unresolved).
+_REF_TYPE_HANDLERS = {
+    "cross_document": _resolve_cross_document,
+    "section": _resolve_section,
+    "attachment": _resolve_attachment,
+    "spa": _resolve_spa,
+    "federal_regulation": _resolve_federal,
+    "federal_statute": _resolve_federal,
+    "ssa_section": _resolve_ssa_section,
+    "waiver": _resolve_waiver,
+}
+
+
 def resolve_reference(
     ref: ReferenceMatch,
     source_document_id: str,
@@ -138,212 +349,12 @@ def resolve_reference(
         "edge_type": str,
         }
     """
-    with get_session() as session:
-        if ref.ref_type == "cross_document":
-            # 1. Exact match on policy_number
-            result = session.run(
-                f"MATCH (d:Document {{policy_number: $pn}}) "
-                f"RETURN d.id {_CANONICAL_DOCUMENT_ORDER}",
-                {"pn": ref.target_id},
-            )
-            record = result.single()
-            if record:
-                return {
-                    "resolved": True,
-                    "target_node_id": record["d.id"],
-                    "target_type": "document",
-                    "edge_type": "REFERENCES_DOCUMENT",
-                }
-
-            # 2. Normalized match (strip hyphens): "1-H" matches "1H", "8-D2" matches "8D-2"
-            normalized = ref.target_id.replace("-", "")
-            result = session.run(
-                "MATCH (d:Document) "
-                "WHERE REPLACE(d.policy_number, '-', '') = $normalized "
-                f"RETURN d.id {_CANONICAL_DOCUMENT_ORDER}",
-                {"normalized": normalized},
-            )
-            record = result.single()
-            if record:
-                return {
-                    "resolved": True,
-                    "target_node_id": record["d.id"],
-                    "target_type": "document",
-                    "edge_type": "REFERENCES_DOCUMENT",
-                }
-
-            # 3. Prefix match for parent references: "5A" → "5A-1", "3H" → "3H-1"
-            result = session.run(
-                "MATCH (d:Document) "
-                "WHERE d.policy_number STARTS WITH $target "
-                "AND d.document_type = 'clinical_policy' "
-                f"RETURN d.id {_CANONICAL_DOCUMENT_ORDER}",
-                {"target": ref.target_id},
-            )
-            record = result.single()
-            if record:
-                return {
-                    "resolved": True,
-                    "target_node_id": record["d.id"],
-                    "target_type": "document",
-                    "edge_type": "REFERENCES_DOCUMENT",
-                }
-
-        elif ref.ref_type == "section":
-            target_documents = []
-            if preferred_document_id and preferred_document_id != source_document_id:
-                target_documents.append(preferred_document_id)
-            target_documents.append(source_document_id)
-
-            for target_document_id in target_documents:
-                section_id = _resolve_section_in_document(
-                    session,
-                    target_document_id,
-                    ref.target_id,
-                    title_hint=ref.target_id,
-                )
-                if section_id:
-                    return {
-                        "resolved": True,
-                        "target_node_id": section_id,
-                        "target_type": "section",
-                        "edge_type": "REFERENCES",
-                    }
-
-        elif ref.ref_type == "attachment":
-            section_num = f"Attachment {ref.target_id}"
-            section_id = _resolve_section_in_document(
-                session,
-                source_document_id,
-                section_num,
-                title_hint=section_num,
-            )
-            if section_id:
-                return {
-                    "resolved": True,
-                    "target_node_id": section_id,
-                    "target_type": "section",
-                    "edge_type": "REFERENCES",
-                }
-
-        elif ref.ref_type == "spa":
-            candidates = _spa_candidates(ref.target_id)
-            result = session.run(
-                "MATCH (d:Document) "
-                "WHERE d.document_type = 'state_plan_amendment' "
-                "AND (toUpper(coalesce(d.policy_number, '')) IN $candidates "
-                "     OR any(candidate IN $candidates WHERE toUpper(coalesce(d.title, '')) CONTAINS candidate)) "
-                f"RETURN d.id {_CANONICAL_DOCUMENT_ORDER}",
-                {"candidates": candidates},
-            )
-            record = result.single()
-            if record:
-                return {
-                    "resolved": True,
-                    "target_node_id": record["d.id"],
-                    "target_type": "document",
-                    "edge_type": "REFERENCES_DOCUMENT",
-                }
-
-        elif ref.ref_type in ("federal_regulation", "federal_statute"):
-            # Handle SSA-Title references (LLM outputs like "SSA-Title-19")
-            ssa_match = re.match(r"^SSA-Title-(\d+|XIX|XXI?)$", ref.target_id, re.IGNORECASE)
-            if ssa_match:
-                raw = ssa_match.group(1)
-                roman_map = {"XIX": 19, "XXI": 21, "XX": 20}
-                title_num = roman_map.get(raw.upper()) or int(raw)
-                doc_id = f"doc:federal_statute:ssa-title-{title_num}"
-                result = session.run(
-                    "MATCH (d:Document {id: $doc_id}) RETURN d.id",
-                    {"doc_id": doc_id},
-                )
-                record = result.single()
-                if record:
-                    return {
-                        "resolved": True,
-                        "target_node_id": record["d.id"],
-                        "target_type": "document",
-                        "edge_type": "REFERENCES_DOCUMENT",
-                    }
-
-            # Try standard CFR parse: "42 CFR 440.70"
-            parsed = parse_cfr_citation(ref.target_id)
-
-            # Fallback: normalize LLM hyphenated format "42-CFR-441" → "42 CFR 441"
-            if not parsed:
-                cfr_norm = re.match(r"^(\d+)-CFR-(.+)$", ref.target_id)
-                if cfr_norm:
-                    normalized = f"{cfr_norm.group(1)} CFR {cfr_norm.group(2)}"
-                    parsed = parse_cfr_citation(normalized)
-
-            if parsed:
-                doc_id = f"doc:federal_regulation:{parsed['title']}-CFR-{parsed['part']}"
-
-                # Section-level resolution (has dot in section number)
-                if "." in parsed["section"]:
-                    result = session.run(
-                        "MATCH (s:Section {document_id: $doc_id, section_number: $sn}) RETURN s.id",
-                        {"doc_id": doc_id, "sn": parsed["section"]},
-                    )
-                    record = result.single()
-                    if record:
-                        return {
-                            "resolved": True,
-                            "target_node_id": record["s.id"],
-                            "target_type": "section",
-                            "edge_type": "REFERENCES",
-                        }
-
-                # Document-level fallback (e.g., "42-CFR-441" with no specific section)
-                result = session.run(
-                    "MATCH (d:Document {id: $doc_id}) RETURN d.id",
-                    {"doc_id": doc_id},
-                )
-                record = result.single()
-                if record:
-                    return {
-                        "resolved": True,
-                        "target_node_id": record["d.id"],
-                        "target_type": "document",
-                        "edge_type": "REFERENCES_DOCUMENT",
-                    }
-
-        elif ref.ref_type == "ssa_section":
-            for title_num in [19, 21]:
-                doc_id = f"doc:federal_statute:ssa-title-{title_num}"
-                result = session.run(
-                    "MATCH (s:Section {document_id: $doc_id, section_number: $sn}) RETURN s.id",
-                    {"doc_id": doc_id, "sn": ref.target_id},
-                )
-                record = result.single()
-                if record:
-                    return {
-                        "resolved": True,
-                        "target_node_id": record["s.id"],
-                        "target_type": "section",
-                        "edge_type": "REFERENCES",
-                    }
-
-        elif ref.ref_type == "waiver":
-            # Normalize: "1915 (c)" → "1915(c)", "1915(C)" → "1915(c)"
-            target = re.sub(
-                r"1915\s*\(([a-zA-Z])\)",
-                lambda m: f"1915({m.group(1).lower()})",
-                ref.target_id,
-            )
-            result = session.run(
-                f"MATCH (d:Document {{policy_number: $pn}}) "
-                f"RETURN d.id {_CANONICAL_DOCUMENT_ORDER}",
-                {"pn": target},
-            )
-            record = result.single()
-            if record:
-                return {
-                    "resolved": True,
-                    "target_node_id": record["d.id"],
-                    "target_type": "document",
-                    "edge_type": "REFERENCES_DOCUMENT",
-                }
+    handler = _REF_TYPE_HANDLERS.get(ref.ref_type)
+    if handler:
+        with get_session() as session:
+            resolution = handler(session, ref, source_document_id, preferred_document_id)
+            if resolution:
+                return resolution
 
     return {
         "resolved": False,

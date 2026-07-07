@@ -1,6 +1,7 @@
 import { createWorkflow, createStep } from '@mastra/core/workflows';
 import type { OnIterationCompleteHandler } from '@mastra/core/agent';
 import { z } from 'zod';
+import { isVerifierEnabled } from '../env.js';
 import { log } from '../logger.js';
 import {
   extractSourcesFromToolResults,
@@ -400,7 +401,7 @@ const verifyStep = createStep({
   inputSchema: SynthStepOut,
   outputSchema: DeepResearchReportSchema,
   execute: async ({ inputData, writer }) => {
-    const verifierEnabled = process.env.VERIFIER_ENABLED !== 'false';
+    const verifierEnabled = isVerifierEnabled();
     let reportMarkdown = inputData.reportMarkdown;
     let verification = null as null | {
       checkedCitations: number;

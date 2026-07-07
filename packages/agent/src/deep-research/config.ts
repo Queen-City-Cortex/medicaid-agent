@@ -1,18 +1,12 @@
+import { intEnv, strEnv } from '../env.js';
 import { AGENT_MODEL } from '../model.js';
 
 // Deep Research tuning knobs. These bound the fan-out so a run stays inside the
 // server's 10-minute request timeout and within a sane token budget — a
 // multi-agent research run can otherwise cost ~10-15x a single chat answer.
 
-function intEnv(name: string, fallback: number): number {
-  const raw = process.env[name];
-  if (!raw) return fallback;
-  const n = parseInt(raw, 10);
-  return Number.isFinite(n) ? n : fallback;
-}
-
 /** Model for the deep-research agents; defaults to the chat agent's model. */
-export const DEEP_RESEARCH_MODEL = process.env.DEEP_RESEARCH_MODEL || AGENT_MODEL;
+export const DEEP_RESEARCH_MODEL = strEnv('DEEP_RESEARCH_MODEL', AGENT_MODEL);
 
 /** Max sub-questions the planner may propose (and we will research). */
 export const MAX_SUB_QUESTIONS = intEnv('DEEP_RESEARCH_MAX_SUB_QUESTIONS', 6);
@@ -39,6 +33,6 @@ export const RESEARCH_CONCURRENCY = intEnv('DEEP_RESEARCH_CONCURRENCY', 3);
 export const NOVELTY_MIN_NEW_IDS = intEnv('DEEP_RESEARCH_NOVELTY_MIN_NEW_IDS', 2);
 
 /** Exa web search. When unset, web augmentation is disabled (corpus-only). */
-export const EXA_API_KEY = process.env.EXA_API_KEY || '';
+export const EXA_API_KEY = strEnv('EXA_API_KEY', '');
 export const WEB_SEARCH_ENABLED = Boolean(EXA_API_KEY);
 export const WEB_SEARCH_MAX_RESULTS = intEnv('DEEP_RESEARCH_WEB_MAX_RESULTS', 5);

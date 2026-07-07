@@ -1,8 +1,9 @@
 import neo4j, { Driver, Session } from 'neo4j-driver';
+import { strEnv } from './env.js';
 
-const NEO4J_URI = process.env.NEO4J_URI || 'bolt://localhost:7687';
-const NEO4J_USER = process.env.NEO4J_USER || 'neo4j';
-const NEO4J_PASSWORD = process.env.NEO4J_PASSWORD || 'medicaid-dev';
+const NEO4J_URI = strEnv('NEO4J_URI', 'bolt://localhost:7687');
+const NEO4J_USER = strEnv('NEO4J_USER', 'neo4j');
+const NEO4J_PASSWORD = strEnv('NEO4J_PASSWORD', 'medicaid-dev');
 
 let driver: Driver | null = null;
 

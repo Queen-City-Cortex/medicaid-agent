@@ -8,6 +8,7 @@ from pipeline.federal.parser import parse_part_xml
 from pipeline.graph.corpus_types import DocumentBundle, DocumentNode, SectionNode, SupersessionEdge
 from pipeline.graph.corpus_writer import graph_writer
 from pipeline.graph.schema import ensure_schema
+from pipeline.references.citations import federal_regulation_doc_id, federal_statute_doc_id
 from pipeline.references.supersessions import load_cfr_supersessions
 
 console = Console()
@@ -78,7 +79,7 @@ def load_cfr_part(title: int, part: int, refresh: bool = False) -> dict:
     xml_text = fetch_part_xml(title, part, refresh=refresh)
     sections = _add_sequential_siblings(parse_part_xml(xml_text, title, part))
 
-    doc_id = f"doc:federal_regulation:{title}-CFR-{part}"
+    doc_id = federal_regulation_doc_id(title, part)
     graph_writer.upsert_document_bundle(
         _build_federal_document_bundle(
             document_id=doc_id,
@@ -111,7 +112,7 @@ def load_ssa(refresh: bool = False) -> dict:
     stats = {"titles_loaded": 0, "sections_total": 0, "errors": 0}
 
     for title_num in [19, 21]:
-        doc_id = f"doc:federal_statute:ssa-title-{title_num}"
+        doc_id = federal_statute_doc_id(title_num)
         title_name = "XIX" if title_num == 19 else "XXI"
         program = "Medicaid" if title_num == 19 else "CHIP"
         console.print(f"  SSA Title {title_name} ({program})...", end=" ")
@@ -187,8 +188,8 @@ def load_cfr_supersession_stubs() -> dict:
     stats = {"stubs": 0, "edges": 0}
 
     for entry in supersessions.values():
-        old_id = f"doc:federal_regulation:{entry.old_title}-CFR-{entry.old_part}"
-        new_id = f"doc:federal_regulation:{entry.new_title}-CFR-{entry.new_part}"
+        old_id = federal_regulation_doc_id(entry.old_title, entry.old_part)
+        new_id = federal_regulation_doc_id(entry.new_title, entry.new_part)
         graph_writer.upsert_document_bundle(
             DocumentBundle(
                 document=DocumentNode(

@@ -4,6 +4,8 @@ import re
 import xml.etree.ElementTree as ET
 from datetime import datetime
 
+from pipeline.references.citations import federal_regulation_doc_id
+
 # Parse dates from CITA text. eCFR uses a few forms:
 #   "Oct. 1, 1981"  /  "May 10, 2024"  /  "Jan. 16, 2014"
 _CITA_DATE_FORMATS = ["%b. %d, %Y", "%B %d, %Y", "%b %d, %Y"]
@@ -51,7 +53,7 @@ def parse_part_xml(xml_text: str, title: int, part: int) -> list[dict]:
     Sections are DIV8 elements with TYPE="SECTION" in the eCFR XML format.
     """
     root = ET.fromstring(xml_text)
-    doc_id = f"doc:federal_regulation:{title}-CFR-{part}"
+    doc_id = federal_regulation_doc_id(title, part)
     sections: list[dict] = []
 
     # Find all DIV8 section elements.

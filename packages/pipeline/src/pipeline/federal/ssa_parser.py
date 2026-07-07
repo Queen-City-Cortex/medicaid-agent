@@ -12,6 +12,7 @@ from html.parser import HTMLParser
 from rich.console import Console
 
 from pipeline.federal.ssa_client import FREESTANDING_USC_SECTIONS, USC_TO_SSA
+from pipeline.references.citations import federal_statute_doc_id
 
 console = Console()
 
@@ -56,7 +57,7 @@ def parse_usc_subchapter(html: str, title_num: int) -> list[dict]:
     Each section is identified by its SSA section number (e.g., "1902")
     for consistency with how NC Medicaid documents cite the law.
     """
-    doc_id = f"doc:federal_statute:ssa-title-{title_num}"
+    doc_id = federal_statute_doc_id(title_num)
     sections: list[dict] = []
 
     # The USC page marks each section with <h3 class="section-head">. The

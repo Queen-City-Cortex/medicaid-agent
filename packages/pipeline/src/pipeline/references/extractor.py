@@ -3,6 +3,8 @@
 import re
 from dataclasses import dataclass
 
+from pipeline.references.citations import CFR_CITATION_RE
+
 
 @dataclass
 class ReferenceMatch:
@@ -42,11 +44,9 @@ PATTERNS: list[tuple[str, re.Pattern]] = [
     (
         "federal_regulation",
         # Accepts "42 CFR 440.70", the dotted "42 C.F.R. § 440.70" form
-        # (~10K corpus occurrences), and "42 CFR Part 438".
-        re.compile(
-            r"(\d+)\s*C\.?\s?F\.?\s?R\.?\s*(?:Part\s+)?§{0,2}\s*([\d]+(?:\.[\d]+)*)",
-            re.IGNORECASE,
-        ),
+        # (~10K corpus occurrences), and "42 CFR Part 438". Shared with the
+        # resolver, which re-parses the joined "{title} CFR {part}" target_id.
+        CFR_CITATION_RE,
     ),
     (
         "spa",
