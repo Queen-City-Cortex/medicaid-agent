@@ -1,31 +1,18 @@
 """Test Neo4j schema helpers."""
 
-from contextlib import contextmanager
-
 from pipeline.graph import schema
-
-
-class FakeSession:
-    def __init__(self):
-        self.commands: list[str] = []
-
-    def run(self, query: str):
-        self.commands.append(query)
+from tests.fakes import RecordingSession, session_factory
 
 
 def test_ensure_schema_runs_constraints_and_indexes(monkeypatch):
-    session = FakeSession()
+    session = RecordingSession()
 
-    @contextmanager
-    def fake_get_session():
-        yield session
-
-    monkeypatch.setattr(schema, "get_session", fake_get_session)
+    monkeypatch.setattr(schema, "get_session", session_factory(session))
 
     schema.ensure_schema()
 
-    assert len(session.commands) == len(schema.CONSTRAINTS) + len(schema.INDEXES)
+    assert len(session.queries) == len(schema.CONSTRAINTS) + len(schema.INDEXES)
     for constraint in schema.CONSTRAINTS:
-        assert constraint in session.commands
+        assert constraint in session.queries
     for index in schema.INDEXES:
-        assert index in session.commands
+        assert index in session.queries

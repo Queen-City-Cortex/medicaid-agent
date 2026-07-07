@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { QueryAnalysis } from '../src/contracts.js';
 import type { CorpusRetrievalHit } from '../src/types.js';
 import { applyRerankOrdering, maybeRerankHits, shouldAttemptRerank } from '../src/retrieval/rerank.js';
+import { makeHit as baseMakeHit } from './helpers/objects.js';
 
 function makeAnalysis(overrides: Partial<QueryAnalysis> = {}): QueryAnalysis {
   return {
@@ -62,9 +63,10 @@ function makeAnalysis(overrides: Partial<QueryAnalysis> = {}): QueryAnalysis {
   };
 }
 
+// Wrapper over the shared base: fields here are computed from the positional index.
 function makeHit(index: number, overrides: Partial<CorpusRetrievalHit> = {}): CorpusRetrievalHit {
   const documentIndex = Math.floor(index / 2) + 1;
-  return {
+  return baseMakeHit({
     sectionId: `sec-${index}`,
     sectionNumber: `${index}`,
     sectionTitle: `Section ${index}`,
@@ -73,16 +75,8 @@ function makeHit(index: number, overrides: Partial<CorpusRetrievalHit> = {}): Co
     policyNumber: `P-${documentIndex}`,
     content: `Content for section ${index}`,
     score: 1 - index * 0.01,
-    authorityTier: null,
-    answerRole: null,
-    sourceFormat: null,
-    answerReady: true,
-    corpusBucket: null,
-    variantGroup: null,
-    variantDate: null,
-    retrievalReady: true,
     ...overrides,
-  };
+  });
 }
 
 describe('retrieval rerank gating', () => {

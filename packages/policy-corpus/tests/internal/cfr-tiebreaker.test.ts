@@ -1,26 +1,19 @@
 import { describe, it, expect } from 'vitest';
 import { selectPreferredDocumentTitlesByFocus } from '../../src/internal/shared.js';
 import type { CorpusRetrievalHit } from '../../src/types.js';
+import { makeHit as baseMakeHit } from '../helpers/objects.js';
 
-function makeHit(overrides: Partial<CorpusRetrievalHit>): CorpusRetrievalHit {
-  return {
-    sectionId: overrides.sectionId ?? 'sec:x',
-    sectionNumber: overrides.sectionNumber ?? null,
-    sectionTitle: overrides.sectionTitle ?? null,
-    documentTitle: overrides.documentTitle ?? null,
-    documentType: overrides.documentType ?? 'federal_regulation',
-    policyNumber: overrides.policyNumber ?? null,
-    content: overrides.content ?? null,
-    score: overrides.score ?? 0,
-    authorityTier: null,
-    answerRole: null,
-    sourceFormat: null,
+// Wrapper over the shared base: this file's defaults differ (federal-regulation
+// hits with score 0 and null answerReady/retrievalReady).
+function makeHit(overrides: Partial<CorpusRetrievalHit> = {}): CorpusRetrievalHit {
+  return baseMakeHit({
+    sectionId: 'sec:x',
+    documentType: 'federal_regulation',
+    score: 0,
     answerReady: null,
-    corpusBucket: null,
-    variantGroup: null,
-    variantDate: null,
     retrievalReady: null,
-  };
+    ...overrides,
+  });
 }
 
 describe('selectPreferredDocumentTitlesByFocus — CFR-part tiebreaker', () => {

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import type { AnswerFrameSection } from '../src/types.js';
 import { normalizeSearchText } from '../src/internal/shared.js';
 import { buildCoverageQueryFlags } from '../src/frame/coverage-sections/candidates.js';
 import { collectCoverageSectionGroups, scoreCoverageSections } from '../src/frame/coverage-sections/selection.js';
+import { makeSection } from './helpers/objects.js';
 
 describe('coverage support seams', () => {
   it('collects eligibility anchors, context, and administrative sections separately', () => {
@@ -77,31 +77,3 @@ describe('coverage support seams', () => {
     expect(byId.get('telehealth-table')!.primaryScore).toBeGreaterThan(byId.get('tangential')!.primaryScore);
   });
 });
-
-function makeSection(overrides: Partial<AnswerFrameSection> & { id: string }): AnswerFrameSection {
-  return {
-    title: null,
-    sectionNumber: null,
-    content: null,
-    effectiveDate: null,
-    lastRevised: null,
-    federalRegisterCite: null,
-    documentId: 'doc:test',
-    documentTitle: 'Test Document',
-    documentType: 'clinical_policy',
-    policyNumber: '10A',
-    url: null,
-    citationLink: null,
-    status: 'current',
-    authorityTier: 'state',
-    answerRole: 'governing',
-    sourceFormat: 'pdf',
-    answerReady: true,
-    corpusBucket: 'state_policy',
-    variantGroup: null,
-    variantDate: null,
-    retrievalReady: true,
-    reason: null,
-    ...overrides,
-  };
-}

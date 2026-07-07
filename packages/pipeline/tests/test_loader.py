@@ -17,6 +17,7 @@ from pipeline.graph.loader import (
 from pipeline.source_selection import build_source_selection_index
 from docling_core.types.doc import DocItemLabel
 from pipeline.parse.post_process import build_document_id
+from tests.fakes import RecordingGraphWriter
 
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
@@ -276,17 +277,12 @@ def test_load_document_emits_document_bundle_through_graph_writer(monkeypatch, t
         lambda source_type, title, sections: "2025-01-01",
     )
 
-    captured: dict[str, object] = {}
-
-    class FakeWriter:
-        def upsert_document_bundle(self, bundle):
-            captured["bundle"] = bundle
-
-    monkeypatch.setattr("pipeline.graph.loader.graph_writer", FakeWriter())
+    writer = RecordingGraphWriter()
+    monkeypatch.setattr("pipeline.graph.loader.graph_writer", writer)
 
     result = load_document(json_path, "dhhs_policy")
 
-    bundle = captured["bundle"]
+    (bundle,) = writer.received("upsert_document_bundle")
     assert result == {"document_id": "doc:test:8c", "sections": 1}
     assert bundle.document.id == "doc:test:8c"
     assert bundle.document.title == "Policy 8C"
@@ -326,16 +322,13 @@ def test_load_document_does_not_infer_policy_number_for_change_notice(monkeypatc
         captured["policy_number"] = policy_number
         return "doc:test:change-notice"
 
-    class FakeWriter:
-        def upsert_document_bundle(self, bundle):
-            captured["bundle"] = bundle
-
+    writer = RecordingGraphWriter()
     monkeypatch.setattr("pipeline.graph.loader.build_document_id", fake_build_document_id)
-    monkeypatch.setattr("pipeline.graph.loader.graph_writer", FakeWriter())
+    monkeypatch.setattr("pipeline.graph.loader.graph_writer", writer)
 
     result = load_document(json_path, "dhhs_policy")
 
-    bundle = captured["bundle"]
+    (bundle,) = writer.received("upsert_document_bundle")
     assert result == {"document_id": "doc:test:change-notice", "sections": 0}
     assert captured["policy_number"] is None
     assert bundle.document.policy_number is None

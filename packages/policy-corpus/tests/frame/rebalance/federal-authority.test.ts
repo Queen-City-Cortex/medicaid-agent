@@ -1,46 +1,44 @@
 import { describe, it, expect } from 'vitest';
 import { rebalanceFederalAuthorityFrame } from '../../../src/frame/rebalance/federal-authority.js';
 import type { AnswerFrame, AnswerFrameSection } from '../../../src/types.js';
+import { makeFrame as baseMakeFrame, makeSection as baseMakeSection } from '../../helpers/objects.js';
 
-function makeSection(overrides: Partial<AnswerFrameSection>): AnswerFrameSection {
-  return {
-    id: overrides.id ?? 'sec:x',
-    title: overrides.title ?? null,
-    sectionNumber: overrides.sectionNumber ?? null,
-    content: overrides.content ?? null,
-    effectiveDate: null,
-    lastRevised: null,
-    federalRegisterCite: null,
-    documentId: overrides.documentId ?? null,
-    documentTitle: overrides.documentTitle ?? null,
-    documentType: overrides.documentType ?? 'federal_regulation',
-    policyNumber: overrides.policyNumber ?? null,
-    url: null,
-    citationLink: null,
+// Wrapper over the shared base: this file's defaults differ (bare
+// federal-regulation sections with null document/authority metadata).
+function makeSection(overrides: Partial<AnswerFrameSection> = {}): AnswerFrameSection {
+  return baseMakeSection({
+    id: 'sec:x',
+    documentId: null,
+    documentTitle: null,
+    documentType: 'federal_regulation',
+    policyNumber: null,
     status: null,
     authorityTier: null,
     answerRole: null,
     sourceFormat: null,
     answerReady: null,
     corpusBucket: null,
-    variantGroup: null,
-    variantDate: null,
     retrievalReady: null,
-    reason: null,
-  };
+    ...overrides,
+  });
 }
 
+// Wrapper over the shared base: keeps this file's positional-sections signature.
 function makeFrame(sections: AnswerFrameSection[]): AnswerFrame {
-  return {
+  return baseMakeFrame({
     questionType: 'federal_authority',
-    route: { lane: 'graph_reasoning', rationale: '', widening_policy: 'family_expansion', determinism_hints: { numeric_evidence_only: false, latest_revision_only: false, cite_scope_and_not_covered: false } },
-    authoritativeDocuments: [],
+    route: {
+      lane: 'graph_reasoning',
+      rationale: '',
+      widening_policy: 'family_expansion',
+      determinism_hints: {
+        numeric_evidence_only: false,
+        latest_revision_only: false,
+        cite_scope_and_not_covered: false,
+      },
+    },
     primarySections: sections,
-    supportingSections: [],
-    avoidSections: [],
-    latestRevision: null,
-    variantReasoning: null,
-  } as any;
+  });
 }
 
 describe('rebalanceFederalAuthorityFrame — widened beyond waiver queries', () => {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import type { AnswerFrame, AnswerFrameSection } from '../src/types.js';
+import type { AnswerFrameSection } from '../src/types.js';
 import { normalizeSearchText } from '../src/internal/shared.js';
+import { makeFrame, makeSection as baseMakeSection } from './helpers/objects.js';
 import { buildCoverageQueryFlags } from '../src/frame/coverage-sections/candidates.js';
 import {
   assembleCoverageSections,
@@ -206,52 +207,7 @@ describe('coverage rebalance helpers', () => {
   });
 });
 
+// Wrapper over the shared base: this file defaults policyNumber to '5B'.
 function makeSection(overrides: Partial<AnswerFrameSection> & { id: string }): AnswerFrameSection {
-  return {
-    title: null,
-    sectionNumber: null,
-    content: null,
-    effectiveDate: null,
-    lastRevised: null,
-    federalRegisterCite: null,
-    documentId: 'doc:test',
-    documentTitle: 'Test Document',
-    documentType: 'clinical_policy',
-    policyNumber: '5B',
-    url: null,
-    citationLink: null,
-    status: 'current',
-    authorityTier: 'state',
-    answerRole: 'governing',
-    sourceFormat: 'pdf',
-    answerReady: true,
-    corpusBucket: 'state_policy',
-    variantGroup: null,
-    variantDate: null,
-    retrievalReady: true,
-    reason: null,
-    ...overrides,
-  };
-}
-
-function makeFrame(): AnswerFrame {
-  return {
-    questionType: 'coverage',
-    route: {
-      lane: 'baseline_hybrid',
-      rationale: 'test',
-      widening_policy: 'none',
-      determinism_hints: {
-        numeric_evidence_only: false,
-        latest_revision_only: false,
-        cite_scope_and_not_covered: false,
-      },
-    },
-    authoritativeDocuments: [],
-    primarySections: [],
-    supportingSections: [],
-    avoidSections: [],
-    latestRevision: null,
-    variantReasoning: null,
-  };
+  return baseMakeSection({ policyNumber: '5B', ...overrides });
 }

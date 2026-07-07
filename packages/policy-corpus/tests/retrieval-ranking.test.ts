@@ -3,28 +3,7 @@ import type { CorpusRetrievalHit } from '../src/types.js';
 import { buildRerankQueryContext, rerankRetrievalHit, type RerankQueryContext } from '../src/internal/shared.js';
 import { analyzeQuery } from '../src/query/analysis.js';
 import { buildRetrievalProfileSignals } from '../src/profiles/retrieval-signals.js';
-
-function makeHit(overrides: Partial<CorpusRetrievalHit>): CorpusRetrievalHit {
-  return {
-    sectionId: 'sec:test',
-    sectionNumber: null,
-    sectionTitle: null,
-    documentTitle: null,
-    documentType: null,
-    policyNumber: null,
-    content: null,
-    score: 1,
-    authorityTier: null,
-    answerRole: null,
-    sourceFormat: null,
-    answerReady: true,
-    corpusBucket: null,
-    variantGroup: null,
-    variantDate: null,
-    retrievalReady: true,
-    ...overrides,
-  };
-}
+import { makeHit } from './helpers/objects.js';
 
 function contextForQuery(
   query: string,

@@ -6,36 +6,9 @@ import type { CoverageQueryFlags } from '../../../src/frame/coverage-sections/ca
 // this a focused unit test of selection/scoring.ts. Runs against the REAL shared.ts
 // helpers and term lists — no mocks — so the assertions lock in the actual formula.
 import { scoreCoverageSections } from '../../../src/frame/coverage-sections/selection/scoring.js';
+import { makeSection } from '../../helpers/objects.js';
 
 // ── Fixtures ─────────────────────────────────────────────────────────────────
-
-function makeSection(overrides: Partial<AnswerFrameSection> & { id: string }): AnswerFrameSection {
-  return {
-    title: null,
-    sectionNumber: null,
-    content: null,
-    effectiveDate: null,
-    lastRevised: null,
-    federalRegisterCite: null,
-    documentId: 'doc:test',
-    documentTitle: 'Test Document',
-    documentType: 'clinical_policy',
-    policyNumber: '10A',
-    url: null,
-    citationLink: null,
-    status: 'current',
-    authorityTier: 'state',
-    answerRole: 'governing',
-    sourceFormat: 'pdf',
-    answerReady: true,
-    corpusBucket: 'state_policy',
-    variantGroup: null,
-    variantDate: null,
-    retrievalReady: true,
-    reason: null,
-    ...overrides,
-  };
-}
 
 function makeFlags(overrides: Partial<CoverageQueryFlags> = {}): CoverageQueryFlags {
   return {

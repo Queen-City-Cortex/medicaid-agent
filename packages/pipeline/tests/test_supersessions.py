@@ -7,37 +7,17 @@ provenance survives loading, lands on a SUPERSEDED_BY edge, and that the stub
 documents for superseded parts can never leak into retrieval.
 """
 
-from contextlib import contextmanager
 from unittest.mock import patch
 
 from pipeline.graph import queries
 from pipeline.graph.corpus_types import SupersessionEdge
 from pipeline.graph.corpus_writer import CorpusGraphWriter
 from pipeline.references.supersessions import load_cfr_supersessions
+from tests.fakes import RecordingGraphWriter, RecordingSession, session_factory
 
 
-class FakeSession:
-    def __init__(self):
-        self.calls: list[tuple[str, dict]] = []
-        self.commits = 0
-
-    def run(self, query: str, params: dict | None = None):
-        self.calls.append((query, params or {}))
-        return []
-
-    def execute_write(self, fn, *args, **kwargs):
-        # The transaction is the session: .run keeps recording to .calls.
-        result = fn(self, *args, **kwargs)
-        self.commits += 1
-        return result
-
-
-def _writer_for(session: FakeSession) -> CorpusGraphWriter:
-    @contextmanager
-    def fake_session_factory():
-        yield session
-
-    return CorpusGraphWriter(fake_session_factory)
+def _writer_for(session: RecordingSession) -> CorpusGraphWriter:
+    return CorpusGraphWriter(session_factory(session))
 
 
 def test_load_cfr_supersessions_includes_provenance():
@@ -55,7 +35,7 @@ def test_load_cfr_supersessions_includes_provenance():
 
 
 def test_merge_supersessions_runs_batch_merge_with_provenance():
-    session = FakeSession()
+    session = RecordingSession()
     writer = _writer_for(session)
 
     count = writer.merge_supersessions([
@@ -78,7 +58,7 @@ def test_merge_supersessions_runs_batch_merge_with_provenance():
 
 
 def test_merge_supersessions_no_edges_is_a_noop():
-    session = FakeSession()
+    session = RecordingSession()
     writer = _writer_for(session)
     assert writer.merge_supersessions([]) == 0
     assert session.calls == []
@@ -87,19 +67,12 @@ def test_merge_supersessions_no_edges_is_a_noop():
 def test_stub_documents_are_superseded_and_not_retrievable():
     from pipeline.federal import loader as federal_loader
 
-    bundles = []
-    edges = []
-
-    class FakeWriter:
-        def upsert_document_bundle(self, bundle):
-            bundles.append(bundle)
-
-        def merge_supersessions(self, batch):
-            edges.extend(batch)
-            return len(batch)
-
-    with patch.object(federal_loader, "graph_writer", FakeWriter()):
+    writer = RecordingGraphWriter()
+    with patch.object(federal_loader, "graph_writer", writer):
         stats = federal_loader.load_cfr_supersession_stubs()
+
+    bundles = writer.received("upsert_document_bundle")
+    edges = [edge for batch in writer.received("merge_supersessions") for edge in batch]
 
     assert stats["stubs"] == len(bundles) >= 2
     for bundle in bundles:

@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 
-import type { AnswerFrameSection, CorpusRetrievalHit } from '../../src/types.js';
 import {
   buildHitText,
   extractTitleClusterTerms,
@@ -25,57 +24,7 @@ import {
   isYearSpecificPremiumTitle,
 } from '../../src/internal/section-predicates.js';
 
-// ── Fixtures ─────────────────────────────────────────────────────────────────
-
-function makeSection(overrides: Partial<AnswerFrameSection> & { id: string }): AnswerFrameSection {
-  return {
-    title: null,
-    sectionNumber: null,
-    content: null,
-    effectiveDate: null,
-    lastRevised: null,
-    federalRegisterCite: null,
-    documentId: 'doc:test',
-    documentTitle: 'Test Document',
-    documentType: 'clinical_policy',
-    policyNumber: '10A',
-    url: null,
-    citationLink: null,
-    status: 'current',
-    authorityTier: 'state',
-    answerRole: 'governing',
-    sourceFormat: 'pdf',
-    answerReady: true,
-    corpusBucket: 'state_policy',
-    variantGroup: null,
-    variantDate: null,
-    retrievalReady: true,
-    reason: null,
-    ...overrides,
-  };
-}
-
-function makeHit(overrides: Partial<CorpusRetrievalHit>): CorpusRetrievalHit {
-  return {
-    sectionId: 'sec:test',
-    sectionNumber: null,
-    sectionTitle: null,
-    documentTitle: null,
-    documentType: null,
-    policyNumber: null,
-    content: null,
-    score: 1,
-    authorityTier: null,
-    answerRole: null,
-    sourceFormat: null,
-    answerReady: true,
-    corpusBucket: null,
-    variantGroup: null,
-    variantDate: null,
-    retrievalReady: true,
-    ...overrides,
-  };
-}
+import { makeHit, makeSection } from '../helpers/objects.js';
 
 // ── Hit text + role predicates ───────────────────────────────────────────────
 

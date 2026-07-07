@@ -1,33 +1,7 @@
 """Test amendment detection: two-tier extraction and change_description."""
 
-from contextlib import contextmanager
-
 from pipeline.references import amendments
-
-
-class FakeResult(list):
-    pass
-
-
-class FakeSession:
-    def __init__(self):
-        self.calls: list[tuple[str, dict]] = []
-
-    def run(self, query: str, params: dict | None = None):
-        params = params or {}
-        self.calls.append((query, params))
-        if "RETURN d.id AS doc_id, d.title AS title" in query:
-            return FakeResult(self._docs)
-        if "RETURN d.id AS doc_id, s.title AS sec_title" in query:
-            return FakeResult(self._sections)
-        return FakeResult()
-
-
-def _make_session(docs, sections):
-    session = FakeSession()
-    session._docs = docs
-    session._sections = sections
-    return session
+from tests.fakes import RecordingSession, session_factory
 
 
 class FakeGraphWriter:
@@ -39,6 +13,19 @@ class FakeGraphWriter:
         self.edges = list(edges)
         self.amendment_doc_ids = list(amendment_doc_ids)
         return len(edges)
+
+
+def _detect(monkeypatch, docs, sections) -> FakeGraphWriter:
+    """Run detect_amendments() against an in-memory doc/section corpus."""
+    session = RecordingSession(handlers=[
+        (lambda q, p: "RETURN d.id AS doc_id, d.title AS title" in q, docs),
+        (lambda q, p: "RETURN d.id AS doc_id, s.title AS sec_title" in q, sections),
+    ])
+    fake_writer = FakeGraphWriter()
+    monkeypatch.setattr(amendments, "get_session", session_factory(session))
+    monkeypatch.setattr(amendments, "graph_writer", fake_writer)
+    amendments.detect_amendments()
+    return fake_writer
 
 
 # ── Tier 1: signal sections preferred ────────────────────────────────────────
@@ -65,16 +52,7 @@ def test_signal_sections_preferred_over_background(monkeypatch):
             "is_signal": True,
         },
     ]
-    session = _make_session(docs, sections)
-
-    @contextmanager
-    def fake_get_session():
-        yield session
-
-    fake_writer = FakeGraphWriter()
-    monkeypatch.setattr(amendments, "get_session", fake_get_session)
-    monkeypatch.setattr(amendments, "graph_writer", fake_writer)
-    amendments.detect_amendments()
+    fake_writer = _detect(monkeypatch, docs, sections)
 
     # Should create edge to MA-2230 (in signal section) but NOT MA-2180 (only in background)
     target_ids = {edge.target_id for edge in fake_writer.edges}
@@ -96,16 +74,7 @@ def test_policy_update_heading_is_signal(monkeypatch):
             "is_signal": True,
         },
     ]
-    session = _make_session(docs, sections)
-
-    @contextmanager
-    def fake_get_session():
-        yield session
-
-    fake_writer = FakeGraphWriter()
-    monkeypatch.setattr(amendments, "get_session", fake_get_session)
-    monkeypatch.setattr(amendments, "graph_writer", fake_writer)
-    amendments.detect_amendments()
+    fake_writer = _detect(monkeypatch, docs, sections)
 
     assert fake_writer.edges[0].target_id == "doc:target"
 
@@ -124,16 +93,7 @@ def test_ma_number_in_section_title_is_signal(monkeypatch):
             "is_signal": True,
         },
     ]
-    session = _make_session(docs, sections)
-
-    @contextmanager
-    def fake_get_session():
-        yield session
-
-    fake_writer = FakeGraphWriter()
-    monkeypatch.setattr(amendments, "get_session", fake_get_session)
-    monkeypatch.setattr(amendments, "graph_writer", fake_writer)
-    amendments.detect_amendments()
+    fake_writer = _detect(monkeypatch, docs, sections)
 
     assert fake_writer.edges[0].target_id == "doc:target"
 
@@ -155,16 +115,7 @@ def test_fallback_to_all_text_when_no_signal_sections(monkeypatch):
             "is_signal": False,
         },
     ]
-    session = _make_session(docs, sections)
-
-    @contextmanager
-    def fake_get_session():
-        yield session
-
-    fake_writer = FakeGraphWriter()
-    monkeypatch.setattr(amendments, "get_session", fake_get_session)
-    monkeypatch.setattr(amendments, "graph_writer", fake_writer)
-    amendments.detect_amendments()
+    fake_writer = _detect(monkeypatch, docs, sections)
 
     assert fake_writer.edges[0].target_id == "doc:target"
 
@@ -186,16 +137,7 @@ def test_change_description_stored_on_edge(monkeypatch):
             "is_signal": True,
         },
     ]
-    session = _make_session(docs, sections)
-
-    @contextmanager
-    def fake_get_session():
-        yield session
-
-    fake_writer = FakeGraphWriter()
-    monkeypatch.setattr(amendments, "get_session", fake_get_session)
-    monkeypatch.setattr(amendments, "graph_writer", fake_writer)
-    amendments.detect_amendments()
+    fake_writer = _detect(monkeypatch, docs, sections)
 
     assert "MA-2180" in fake_writer.edges[0].change_description
     assert "earned income cap" in fake_writer.edges[0].change_description
@@ -221,16 +163,7 @@ def test_change_description_concatenates_multiple_excerpts(monkeypatch):
             "is_signal": True,
         },
     ]
-    session = _make_session(docs, sections)
-
-    @contextmanager
-    def fake_get_session():
-        yield session
-
-    fake_writer = FakeGraphWriter()
-    monkeypatch.setattr(amendments, "get_session", fake_get_session)
-    monkeypatch.setattr(amendments, "graph_writer", fake_writer)
-    amendments.detect_amendments()
+    fake_writer = _detect(monkeypatch, docs, sections)
 
     desc = fake_writer.edges[0].change_description
     assert "is revised" in desc
@@ -244,16 +177,7 @@ def test_title_only_match_uses_title_as_description(monkeypatch):
         {"doc_id": "doc:target", "title": "MA-2180", "doc_type": "dhhs_policy", "policy_number": "MA-2180"},
     ]
     sections = []  # No sections at all
-    session = _make_session(docs, sections)
-
-    @contextmanager
-    def fake_get_session():
-        yield session
-
-    fake_writer = FakeGraphWriter()
-    monkeypatch.setattr(amendments, "get_session", fake_get_session)
-    monkeypatch.setattr(amendments, "graph_writer", fake_writer)
-    amendments.detect_amendments()
+    fake_writer = _detect(monkeypatch, docs, sections)
 
     assert fake_writer.edges[0].change_description == "CHANGE NOTICE FOR MANUAL NO. 03-18, MA-2180 Premiums"
 

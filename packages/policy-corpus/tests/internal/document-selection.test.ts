@@ -20,27 +20,13 @@ import {
   selectSettingPreferredDocuments,
 } from '../../src/internal/document-selection.js';
 
+import { makeHit as baseMakeHit } from '../helpers/objects.js';
+
 // ── Fixtures ─────────────────────────────────────────────────────────────────
 
+// Wrapper over the shared base: this file defaults documentType to 'clinical_policy'.
 function makeHit(overrides: Partial<CorpusRetrievalHit> & { sectionId: string }): CorpusRetrievalHit {
-  return {
-    sectionNumber: null,
-    sectionTitle: null,
-    documentTitle: null,
-    documentType: 'clinical_policy',
-    policyNumber: null,
-    content: null,
-    score: 1,
-    authorityTier: null,
-    answerRole: null,
-    sourceFormat: null,
-    answerReady: true,
-    corpusBucket: null,
-    variantGroup: null,
-    variantDate: null,
-    retrievalReady: true,
-    ...overrides,
-  };
+  return baseMakeHit({ documentType: 'clinical_policy', ...overrides });
 }
 
 function makeDocView(overrides: Partial<DocumentView> & { id: string }): DocumentView {

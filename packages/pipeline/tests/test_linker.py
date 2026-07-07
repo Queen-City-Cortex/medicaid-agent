@@ -1,43 +1,22 @@
 """Tests for concept link planning through the graph writer boundary."""
 
-from contextlib import contextmanager
-
 from pipeline.concepts import linker
-
-
-class FakeSession:
-    def __init__(self, sections):
-        self.sections = sections
-
-    def run(self, query: str, params: dict | None = None):
-        if "MATCH (s:Section) RETURN s.id, s.title, s.content_text" in query:
-            return self.sections
-        return []
+from tests.fakes import RecordingGraphWriter, RecordingSession, session_factory
 
 
 def _run_linker(monkeypatch, sections):
-    session = FakeSession(sections)
+    session = RecordingSession(handlers=[
+        (lambda q, p: "MATCH (s:Section) RETURN s.id, s.title, s.content_text" in q, sections),
+    ])
+    fake_writer = RecordingGraphWriter()
 
-    @contextmanager
-    def fake_get_session():
-        yield session
-
-    class FakeWriter:
-        def __init__(self):
-            self.links = None
-
-        def merge_concept_links(self, links):
-            self.links = list(links)
-            return len(links)
-
-    fake_writer = FakeWriter()
-
-    monkeypatch.setattr(linker, "get_session", fake_get_session)
+    monkeypatch.setattr(linker, "get_session", session_factory(session))
     monkeypatch.setattr(linker, "graph_writer", fake_writer)
     monkeypatch.setattr(linker, "track", lambda iterable, description=None: iterable)
 
     stats = linker.link_concepts()
-    return stats, fake_writer.links
+    merges = fake_writer.received("merge_concept_links")
+    return stats, list(merges[0]) if merges else []
 
 
 def test_link_concepts_emits_relationships_through_graph_writer(monkeypatch):

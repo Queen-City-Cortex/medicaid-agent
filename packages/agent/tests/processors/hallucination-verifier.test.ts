@@ -7,6 +7,7 @@ vi.mock('ai', () => ({
 import { generateObject } from 'ai';
 
 import type { ProcessOutputStepArgs } from '@mastra/core/processors';
+import { makeDocument, makeFrame, makeSection } from '../helpers/answer-frame-fixtures.js';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -257,32 +258,20 @@ describe('extractSources', () => {
           toolCallId: 'call-frame',
           toolName: 'resolveAnswerFrame',
           output: {
-            frame: {
+            frame: makeFrame({
               questionType: 'coverage',
-              route: {
-                lane: 'baseline_hybrid',
-                rationale: 'single_document_coverage',
-                widening_policy: 'one_step',
-                determinism_hints: {
-                  numeric_evidence_only: false,
-                  latest_revision_only: false,
-                  cite_scope_and_not_covered: false,
-                },
-              },
               authoritativeDocuments: [
-                {
+                makeDocument({
                   id: 'doc-10a',
                   title: 'Clinical Coverage Policy 10A',
-                  documentType: 'clinical_policy',
                   policyNumber: '10A',
                   effectiveDate: '2025-01-01',
                   url: 'https://example.com/10A',
-                  status: 'current',
                   reason: 'Preferred service-specific policy.',
-                },
+                }),
               ],
               primarySections: [
-                {
+                makeSection({
                   id: 'sec-10a-coverage',
                   title: 'Coverage Criteria',
                   sectionNumber: '3.1',
@@ -290,16 +279,11 @@ describe('extractSources', () => {
                   effectiveDate: '2025-01-01',
                   documentId: 'doc-10a',
                   documentTitle: 'Clinical Coverage Policy 10A',
-                  documentType: 'clinical_policy',
                   policyNumber: '10A',
                   reason: 'Primary coverage evidence.',
-                },
+                }),
               ],
-              supportingSections: [],
-              avoidSections: [],
-              latestRevision: null,
-              variantReasoning: null,
-            },
+            }),
           },
         },
       ]),

@@ -23,31 +23,11 @@ vi.mock('../../src/retrieval/backends/fulltext.js', () => ({
 
 import { fulltextBackend } from '../../src/retrieval/backends/fulltext.js';
 import { collectHybridHitMap, finalizeHybridHits } from '../../src/retrieval/collector.js';
+import { makeHit } from '../helpers/objects.js';
 
 const fulltextRetrieve = vi.mocked(fulltextBackend.retrieve);
 
 // ── Fixtures ─────────────────────────────────────────────────────────────────
-
-function makeHit(overrides: Partial<CorpusRetrievalHit> & { sectionId: string }): CorpusRetrievalHit {
-  return {
-    sectionNumber: null,
-    sectionTitle: null,
-    documentTitle: null,
-    documentType: null,
-    policyNumber: null,
-    content: null,
-    score: 1,
-    authorityTier: null,
-    answerRole: null,
-    sourceFormat: null,
-    answerReady: true,
-    corpusBucket: null,
-    variantGroup: null,
-    variantDate: null,
-    retrievalReady: true,
-    ...overrides,
-  };
-}
 
 /** A stage-1 backend that returns a fixed set of hits, ignoring the session. */
 function makeBackend(name: string, hits: CorpusRetrievalHit[]): RetrievalBackend {
