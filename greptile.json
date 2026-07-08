@@ -1,0 +1,4 @@
+{
+  "ignorePatterns": ".brv/**\ngraphify-out/**",
+  "disabledLabels": ["skip-review"]
+}
