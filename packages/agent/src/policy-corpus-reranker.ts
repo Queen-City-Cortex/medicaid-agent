@@ -1,5 +1,5 @@
 import './load-env.js';
-import { generateObject } from 'ai';
+import { generateObject, type LanguageModel } from 'ai';
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createOpenAI } from '@ai-sdk/openai';
 import { z } from 'zod';
@@ -19,6 +19,18 @@ const anthropic = createAnthropic({
 
 const openai = createOpenAI({
   apiKey: process.env.OPENAI_API_KEY,
+});
+
+// Groq serves open-weight models behind an OpenAI-compatible endpoint at
+// several times OpenAI's mini-tier throughput. That matters here because the
+// rerank call races POLICY_CORPUS_RERANK_TIMEOUT_MS and a timeout silently
+// degrades to the raw vector order (see diagnostics below). Select via a
+// groq/ model prefix, e.g. POLICY_CORPUS_RERANK_MODEL=groq/openai/gpt-oss-20b
+// (Groq's own ids may contain slashes; only the leading groq/ is stripped).
+const groq = createOpenAI({
+  name: 'groq',
+  apiKey: process.env.GROQ_API_KEY,
+  baseURL: 'https://api.groq.com/openai/v1',
 });
 
 // `reason` must be `.nullable()` but NOT `.optional()`. OpenAI's structured-output
@@ -46,7 +58,18 @@ function debugReranker(enabled: boolean, message: string): void {
   }
 }
 
-function createModel(modelId: string) {
+/** Exported for routing tests. Explicit return type: the inferred type points
+ *  at a non-portable AI-SDK internal and breaks declaration emit (TS2883). */
+export function createRerankerModel(modelId: string): LanguageModel {
+  if (modelId.startsWith('groq/')) {
+    if (!process.env.GROQ_API_KEY) {
+      // Without this guard @ai-sdk/openai's key loader silently falls back to
+      // OPENAI_API_KEY and sends it to api.groq.com — a confusing 401 in the
+      // fallback diagnostics and a key sent to the wrong provider.
+      throw new Error('GROQ_API_KEY is required for groq/ reranker models');
+    }
+    return groq(modelId.slice('groq/'.length));
+  }
   if (modelId.startsWith('openai/')) {
     return openai(modelId.slice('openai/'.length));
   }
@@ -161,7 +184,7 @@ export function createPolicyCorpusReranker(
 
     try {
       const { object } = await generateObject({
-        model: createModel(config.model),
+        model: createRerankerModel(config.model),
         temperature: 0,
         abortSignal: buildAbortSignal(config.timeoutMs),
         schema: RerankResponseSchema,

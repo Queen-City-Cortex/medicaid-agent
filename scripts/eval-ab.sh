@@ -28,6 +28,8 @@ set -euo pipefail
 #   BASELINE_VERIFIER  (default: gpt-5.4-mini)
 #   CANDIDATE_VERIFIER (default: gpt-5.4-nano)
 #   RERANK_BASELINE_MODEL (default: gpt-5-mini)
+#   RERANK_CANDIDATE_MODEL optional third reranker arm, e.g. groq/openai/gpt-oss-20b
+#                          (groq/ models need GROQ_API_KEY in the environment)
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PIPELINE_DIR="$REPO_ROOT/packages/pipeline"
@@ -48,6 +50,7 @@ CANDIDATE_DIMS="${CANDIDATE_DIMS:-1024}"
 BASELINE_VERIFIER="${BASELINE_VERIFIER:-gpt-5.4-mini}"
 CANDIDATE_VERIFIER="${CANDIDATE_VERIFIER:-gpt-5.4-nano}"
 RERANK_BASELINE_MODEL="${RERANK_BASELINE_MODEL:-gpt-5-mini}"
+RERANK_CANDIDATE_MODEL="${RERANK_CANDIDATE_MODEL:-}"
 
 cd "$PIPELINE_DIR"
 
@@ -148,11 +151,17 @@ gate_reranker() {
   # We therefore measure the reranker through the answer eval, where it engages.
   answer_arm "rerank-on ($RERANK_BASELINE_MODEL)" \
     POLICY_CORPUS_RERANK_ENABLED=true "POLICY_CORPUS_RERANK_MODEL=$RERANK_BASELINE_MODEL"
+  local arms=2
+  if [ -n "$RERANK_CANDIDATE_MODEL" ]; then
+    answer_arm "rerank-candidate ($RERANK_CANDIDATE_MODEL)" \
+      POLICY_CORPUS_RERANK_ENABLED=true "POLICY_CORPUS_RERANK_MODEL=$RERANK_CANDIDATE_MODEL"
+    arms=3
+  fi
   answer_arm "rerank-off" POLICY_CORPUS_RERANK_ENABLED=false
 
-  banner "Stability across all $((RUNS * 2)) runs"
-  "${PY[@]}" eval-answer-stability --last "$((RUNS * 2))" || true
-  echo "Compare the two arms' summaries above (printed after each arm)."
+  banner "Stability across all $((RUNS * arms)) runs"
+  "${PY[@]}" eval-answer-stability --last "$((RUNS * arms))" || true
+  echo "Compare the arms' summaries above (printed after each arm)."
   echo "(To A/B Voyage rerank-2.5 once implemented: set RERANK_BASELINE_MODEL to it and re-run.)"
 }
 

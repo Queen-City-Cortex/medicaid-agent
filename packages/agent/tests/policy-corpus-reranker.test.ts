@@ -7,6 +7,7 @@ import { generateObject } from 'ai';
 
 import {
   createPolicyCorpusReranker,
+  createRerankerModel,
   getPolicyCorpusRerankerDiagnostics,
   resetPolicyCorpusRerankerDiagnostics,
   type PolicyCorpusRerankConfig,
@@ -98,5 +99,49 @@ describe('createPolicyCorpusReranker', () => {
     await reranker(makeArgs(3));
     await reranker(makeArgs(3));
     expect(getPolicyCorpusRerankerDiagnostics().fallbackCount).toBe(2);
+  });
+});
+
+describe('createRerankerModel routing', () => {
+  // LanguageModel is a union that admits bare string ids; the router always
+  // returns a provider model object, so narrow before reading its fields.
+  function routedModel(modelId: string) {
+    const model = createRerankerModel(modelId);
+    if (typeof model === 'string') throw new Error(`expected a model object for ${modelId}`);
+    return model;
+  }
+
+  it('routes groq/ ids to the Groq provider, keeping Groq-internal slashes', () => {
+    process.env.GROQ_API_KEY = 'test-key';
+    try {
+      const model = routedModel('groq/openai/gpt-oss-20b');
+      expect(model.modelId).toBe('openai/gpt-oss-20b');
+      expect(model.provider).toContain('groq');
+    } finally {
+      delete process.env.GROQ_API_KEY;
+    }
+  });
+
+  it('throws a clear error for groq/ ids without GROQ_API_KEY (never falls back to OPENAI_API_KEY)', () => {
+    delete process.env.GROQ_API_KEY;
+    expect(() => createRerankerModel('groq/openai/gpt-oss-20b')).toThrow(/GROQ_API_KEY/);
+  });
+
+  it('routes openai/ ids to OpenAI', () => {
+    const model = routedModel('openai/gpt-5-mini');
+    expect(model.modelId).toBe('gpt-5-mini');
+    expect(model.provider).toContain('openai');
+  });
+
+  it('routes bare gpt- ids to OpenAI', () => {
+    const model = routedModel('gpt-5-mini');
+    expect(model.modelId).toBe('gpt-5-mini');
+    expect(model.provider).toContain('openai');
+  });
+
+  it('routes anthropic/ ids to Anthropic', () => {
+    const model = routedModel('anthropic/claude-haiku-4-5');
+    expect(model.modelId).toBe('claude-haiku-4-5');
+    expect(model.provider).toContain('anthropic');
   });
 });
