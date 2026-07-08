@@ -163,13 +163,18 @@ export function isOperationalSourceHit(hit: CorpusRetrievalHit): boolean {
 }
 
 // ── Waiver section-number predicates ─────────────────────────────────────────
-// "Which CFR sections are waiver-primary" deliberately differs by phase:
-// evidence anchoring casts wider (Subparts G and H) than rebalance reordering
-// (Subpart G only), and the rerank scorer uses the curated
-// WAIVER_APPLICATION_PRIMARY_SECTION_NUMBERS set from term-lists.ts
-// (§§ 441.300–.303, 441.350–.355, 440.180). These encodings used to be inlined
-// at each site and drifted silently; keep every variant here, side by side, so
-// a range change is a visible decision rather than an accident.
+// "Which CFR sections are waiver-primary" deliberately differs by phase, and
+// the Subpart G/H split is the reason:
+//   Subpart G (§§ 441.300–.310) implements 1915(c) — the authority behind
+//   NC's CAP/DA and Innovations waivers. Subpart H (§§ 441.350–.365) is the
+//   parallel-numbered application process for 1915(d) waivers (age 65+),
+//   which NC does not operate.
+// Collection anchoring and the rerank scorer's curated
+// WAIVER_APPLICATION_PRIMARY_SECTION_NUMBERS set (term-lists.ts) therefore
+// cast wide across BOTH subparts — golden question q-045 expects § 441.351 as
+// *supporting* evidence for Part 441 waiver-application questions — while the
+// rebalance hints promote only Subpart G (+ § 440.180) to *primary*, so
+// 1915(d) sections can never displace the 1915(c) citation NC questions need.
 
 /** The 1915 waiver statute itself (SSA Title XIX § 1915). */
 export function isSsaWaiverStatuteHit(hit: {
@@ -182,14 +187,17 @@ export function isSsaWaiverStatuteHit(hit: {
   );
 }
 
-/** Evidence-anchoring range: 42 CFR 441 Subparts G and H (§§ 441.30x, 441.35x).
- *  Takes a normalizeSearchText()-normalized section number. */
+/** Evidence-anchoring range: 42 CFR 441 Subparts G and H (§§ 441.30x, 441.35x)
+ *  — both 1915(c) and the parallel 1915(d) application sections, so Subpart H
+ *  can surface as supporting evidence. Takes a normalizeSearchText()-normalized
+ *  section number. */
 export function isWaiverAuthorityAnchorSectionNumber(sectionNumber: string): boolean {
   return /^441\.(30\d|35\d)$/.test(sectionNumber);
 }
 
 /** 1915(c) HCBS implementing regulations, 42 CFR 441 Subpart G only
- *  (§§ 441.300–441.310). Takes a normalized section number. */
+ *  (§§ 441.300–441.310) — authority questions must never cite the 1915(d)
+ *  subpart. Takes a normalized section number. */
 export function isWaiverAuthorityImplementingSectionNumber(sectionNumber: string): boolean {
   if (!sectionNumber.startsWith('441.')) return false;
   const num = Number.parseFloat(sectionNumber);
@@ -197,8 +205,9 @@ export function isWaiverAuthorityImplementingSectionNumber(sectionNumber: string
 }
 
 /** Waiver-application rebalance primaries: §§ 441.30x plus § 440.180.
- *  Narrower than the rerank set — no Subpart H. Takes a normalized section
- *  number. */
+ *  Deliberately no Subpart H — 1915(d) sections rank as supporting evidence
+ *  via the rerank set, never as the primary citation. Takes a normalized
+ *  section number. */
 export function isWaiverApplicationRebalanceSectionNumber(sectionNumber: string): boolean {
   return sectionNumber.startsWith('441.30') || sectionNumber === '440.180';
 }
