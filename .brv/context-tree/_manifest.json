@@ -8,20 +8,8 @@
     },
     {
       "order": 2,
-      "path": "auth_integration/_index.md",
-      "tokens": 1137,
-      "type": "summary"
-    },
-    {
-      "order": 1,
-      "path": "agent_architecture/amendment_pipeline_and_prompt/_index.md",
-      "tokens": 131,
-      "type": "summary"
-    },
-    {
-      "order": 1,
-      "path": "agent_architecture/mastra_server_configuration/_index.md",
-      "tokens": 126,
+      "path": "architecture/_index.md",
+      "tokens": 1417,
       "type": "summary"
     },
     {
@@ -114,13 +102,13 @@
       "type": "stub"
     }
   ],
-  "generated_at": "2026-07-08T01:54:12.517Z",
+  "generated_at": "2026-07-08T02:45:04.557Z",
   "lane_tokens": {
     "contexts": 4000,
     "stubs": 104,
-    "summaries": 1921
+    "summaries": 1944
   },
-  "source_fingerprint": "83bcc35cebfe84a1e36e43bffd9666075e439c0e6a40477751a9f720f5984394",
-  "total_tokens": 6025,
+  "source_fingerprint": "c082bf24e2096daace5558ca4ab285dda236af2d798d23d74dc590b23c317dd9",
+  "total_tokens": 6048,
   "version": 1
 }

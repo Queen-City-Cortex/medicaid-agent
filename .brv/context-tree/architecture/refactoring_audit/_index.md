@@ -1,106 +1,91 @@
 ---
-children_hash: 4be3a472be53bf0f9c317ef3886976ef43417f5271e1db7bde5c5c50175af52f
-compression_ratio: 0.3215434083601286
+children_hash: 2fb6857fc56244d0bef957b831424df9f1e4e55a5703d45a3136d3dd63e603f9
+compression_ratio: 0.24026933815076368
 condensation_order: 1
-covers: [checklist_rule_table_refactor.md, pr_63_refactor_completion_and_import_cycle_fix.md, quick_wins_and_latent_bugs_refactor_tranche.md, repo_wide_refactoring_audit.md, shared_test_fixture_layer.md, shared_test_fixtures_guard_against_api_drift.md]
-covers_token_total: 5287
+covers: [checklist_rule_table_refactor.md, ci_artifact_only_pr_skip_rules.md, pr_63_refactor_completion_and_import_cycle_fix.md, quick_wins_and_latent_bugs_refactor_tranche.md, repo_wide_refactoring_audit.md, shared_test_fixture_layer.md, shared_test_fixtures_guard_against_api_drift.md]
+covers_token_total: 6089
 summary_level: d1
-token_count: 1700
+token_count: 1463
 type: summary
 ---
-# Refactoring Audit and Shared Test-Fixture Layer
+## Refactoring Audit and Test Infrastructure
 
-This cluster documents a repo-wide refactoring audit and the follow-on tranches that converted repeated builder logic into data tables, removed dead code, hardened test fixtures, and fixed import-cycle and API-drift issues. The shared theme is structural simplification with behavior preserved through differential or suite-based verification.
+This cluster captures the repo-wide refactoring audit and the follow-up tranches that turned repeated logic into tables, removed dead code, hardened test fixtures, and closed import-cycle and CI-skip issues. The dominant theme across the child entries is replacing duplicated or imperative patterns with canonical shared structures, while preserving behavior through differential testing and green suites.
 
-## Core refactoring patterns
+### Core refactor patterns
+- **Rules-as-data / table-driven refactors**:  
+  - `checklist_rule_table_refactor.md` replaces six `buildXxxChecklist` chains in `packages/agent/src/processors/answer-frame-planning.ts` with ordered `ChecklistRule<C>` tables consumed by `evaluateRules()`.
+  - `repo_wide_refactoring_audit.md` identifies the same pattern more broadly in policy-corpus builders and agent checklist builders.
+- **Shared canonical helpers and types**:  
+  - `quick_wins_and_latent_bugs_refactor_tranche.md` consolidates matching helpers, exports part-type constants, and centralizes path normalization.
+  - `shared_test_fixture_layer.md` and `shared_test_fixtures_guard_against_api_drift.md` build canonical fixture layers and validate them against real APIs.
 
-- **Rules-as-data / table-driven logic** is the main architectural direction.
-  - See **Repo-wide Refactoring Audit** for the original audit framing.
-  - See **Checklist Rule Table Refactor** for the answer-frame planner conversion from `buildXxxChecklist` chains to ordered `ChecklistRule<C>` tables consumed by `evaluateRules()`.
-  - See **Quick Wins and Latent Bugs Refactor Tranche** for similar consolidation work across phrase matching, path normalization, and section predicates.
+### Behavior-preserving verification
+- The checklist refactor relied on a **differential harness** over 26 frames and 27 questions, proving **0 mismatches** before removing the temporary test harness.
+- The shared fixture tranche reported **zero expected-value changes** and preserved pinned floats bit-identical.
+- Multiple entries emphasize the same verification pattern: **refactor, compare outputs, then delete temporary scaffolding**.
 
-- **Canonical shared types and helpers** replace duplicated local copies.
-  - `AnswerFrame` types are centralized through **policy-corpus**.
-  - `includesAnyTerm` was merged into `includesPhrase`.
-  - `REWRITE_PART_TYPE` and `OK_PART_TYPE` were exported from `message-parts.ts`.
-  - `normalize_local_path` and registry access were centralized in pipeline code.
+### Import-cycle and API-safety fixes
+- `pr_63_refactor_completion_and_import_cycle_fix.md` closes PR 63 and completes the refactoring audit across PRs 58–63.
+- It also:
+  - documents `strEnv ||` semantics,
+  - guards `resolve_reference` against unknown ref types before Neo4j session creation,
+  - moves message-part guards into `packages/web/src/lib/message-part-guards.ts`,
+  - converts `message-parts.ts` into a pure barrel,
+  - establishes a future web import rule: **never value-import from `message-parts` inside a module the barrel re-exports; import from `message-part-guards` or the sibling module instead**.
 
-## Refactor tranche details
+### Dead code and helper consolidation
+- `quick_wins_and_latent_bugs_refactor_tranche.md` removes:
+  - `CorpusGraphWriter.mark_document_status` and its whitelist entry,
+  - dead `web buildSourceIndex`,
+  - duplicated `includesAnyTerm` in favor of `includesPhrase`.
+- It also centralizes:
+  - `normalize_local_path` and registry access in `packages/pipeline/src/pipeline/crawler_registry.py`,
+  - waiver CFR section predicates in `packages/policy-corpus/src/internal/section-predicates.ts`.
 
-### Checklist Rule Table Refactor
-Focuses on `packages/agent/src/processors/answer-frame-planning.ts`.
-- Six `buildXxxChecklist` if-chains were replaced by ordered `ChecklistRule<C>` tables.
-- `evaluateRules()` now drives checklist generation.
-- Behavior remained identical under a differential harness.
-- Rule ordering is load-bearing because `CHECKLIST_LIMIT = 6` truncates output.
-- The checklist families include coverage, prior authorization, federal authority, amendment history, policy variants, and general cases.
-- Verification used **26 frames x 27 questions = 702 combinations** with **0 mismatches**, and **215 tests** stayed green.
+### CI and review-bot suppression for artifact-only PRs
+- `ci_artifact_only_pr_skip_rules.md` documents CI optimizations for artifact-only pull requests:
+  - `ci.yml` and `claude-code-review.yml` add `pull_request paths-ignore` for `.brv/**` and `graphify-out/**`,
+  - `greptile.json` adds matching `ignorePatterns`,
+  - the `skip-review` label suppresses Greptile,
+  - `push:main` intentionally keeps no `paths-ignore` because Railway deploy gates depend on commit-specific CI.
+- Key semantic rule: `paths-ignore` only skips when **every changed file** matches the ignored paths, so mixed source+artifact PRs still run full CI.
 
-### Quick Wins and Latent Bugs Refactor Tranche
-Covers pipeline and policy-corpus cleanup.
-- Deleted dead `CorpusGraphWriter.mark_document_status` plus its vulture whitelist entry.
-- Deleted dead web `buildSourceIndex`.
-- Consolidated `includesAnyTerm` into `includesPhrase`.
-- Unified `AnswerFrame` imports through policy-corpus.
-- Moved crawler registry access and local path normalization into `packages/pipeline/src/pipeline/crawler_registry.py`.
-- Hoisted waiver CFR encodings into documented predicates in `section-predicates.ts`.
-- The waiver logic now distinguishes anchor, implementing, and rebalance ranges explicitly rather than inlining them.
-- All suites were green: **pipeline 305, policy-corpus 239, agent 215, web 251**.
+### Shared test-fixture architecture
+- `shared_test_fixture_layer.md` splits fixture responsibility into three layers:
+  - **pipeline**: in-memory Neo4j session and graph-writer fakes,
+  - **policy-corpus**: canonical domain-object factories,
+  - **agent**: typed answer-frame fixtures and section helpers.
+- Important design choices:
+  - production code still reaches Neo4j via `get_session()` and the graph-writer singleton,
+  - corpus-writer failure-injecting sessions stay local because they have a specialized protocol,
+  - agent fixtures import canonical types from `@nc-medicaid/policy-corpus`.
 
-### Repo-wide Refactoring Audit
-Provides the original cross-repo analysis and motivates the later tranches.
-- Repeated rules-as-code builders were identified in policy-corpus and agent processors.
-- Duplicate crawler discover flows and divergent local path normalization were identified.
-- Write-boundary bypass risk, dead code, and missing fixture builders were flagged.
-- Example targets include `buildCoverageDocumentCandidateProfiles`, `buildCoveragePrimaryProfiles`, `buildCoverageSupportingProfiles`, `buildCoverageQueryFlags`, `buildCoverageChecklist`, and `buildPriorAuthChecklist`.
-- The audit’s central thesis: **rules-as-code should become rules-as-data**.
+### Fixture drift protection and API validation
+- `shared_test_fixtures_guard_against_api_drift.md` hardens `RecordingGraphWriter` so method names are validated against the real `CorpusGraphWriter`.
+- It introduces `_first_argument(args, kwargs)` so recorded-call behavior works with kwargs and sized-return semantics.
+- The test strategy intentionally mocks only the fulltext backend while using real shared helpers and injected stage-1 backends.
 
-## Test-fixture architecture
+### Cross-cutting architecture signals
+- The audit entries agree on the same structural priorities:
+  - **canonical types over local copies**,
+  - **shared helpers over duplicated call-site logic**,
+  - **path normalization and write boundaries as central invariants**,
+  - **test fixtures that fail loudly on API drift**.
+- Several entries reference the same domains and drill-down points:
+  - `architecture/refactoring_audit/checklist_rule_table_refactor.md`
+  - `architecture/refactoring_audit/shared_test_fixture_layer.md`
+  - `architecture/refactoring_audit/shared_test_fixtures_guard_against_api_drift.md`
+  - `architecture/refactoring_audit/ci_artifact_only_pr_skip_rules.md`
+  - `architecture/refactoring_audit/pr_63_refactor_completion_and_import_cycle_fix.md`
+  - `architecture/refactoring_audit/quick_wins_and_latent_bugs_refactor_tranche.md`
+  - `architecture/refactoring_audit/repo_wide_refactoring_audit.md`
 
-### Shared Test-Fixture Layer
-Defines a three-layer fixture strategy across pipeline, policy-corpus, and agent tests.
-- Pipeline tests use shared in-memory fakes for Neo4j session and graph-writer seams.
-- Policy-corpus tests centralize canonical domain-object fixtures.
-- Agent tests use typed answer-frame fixtures and section helpers built on policy-corpus types.
-- Specialized failure-injecting sessions remain local to corpus-writer tests.
-- The shared helper set includes `RecordingSession`, `FakeResult`, `session_factory`, `RecordingGraphWriter`, `makeHit`, `makeSection`, `makeFrame`, `makeRoute`, `makeDocument`, and `sectionMaker`.
-- Tests preserve bit-identical outputs and reported no expected-value changes.
-
-### Shared Test Fixtures Guard Against API Drift
-Hardens the fake layer against silent breakage.
-- `RecordingGraphWriter.__getattr__` now validates method names against the real `CorpusGraphWriter`.
-- `_first_argument(args, kwargs)` makes `received()` and len-return behavior kwargs-tolerant.
-- `collector.test.ts` moved `makeHit` import above `vi.mocked` const.
-- A stale Greptile P2 finding about `retrievalReady: null` was explicitly not fixed.
-- The fake writer now fails loudly on typos or renamed methods instead of recording them silently.
-- Only the fulltext backend is mocked in `collector.test.ts`; the rest of the orchestration uses real shared helpers.
-
-## Import-cycle and resolver safety
-
-### PR 63 Refactor Completion and Import-Cycle Fix
-Covers the final audit closure and a structural web import fix.
-- PR 63 merged as **f489bc5**.
-- The refactoring audit across PRs 58–63 was completed.
-- API documentation was added for `strEnv ||` semantics.
-- `resolve_reference` now guards unknown ref types before Neo4j session creation, checking `_REF_TYPE_HANDLERS` first.
-- Message-part guards were moved to `packages/web/src/lib/message-part-guards.ts`.
-- `message-parts.ts` became a pure barrel, with dependent imports updated accordingly.
-- A future rule was established: **never value-import from `message-parts` inside a module the barrel re-exports**; import from `message-part-guards` or the specific sibling module instead.
-- The fix is described as both ESM-safe and CJS-safe.
-
-## Key relationships and drill-down map
-
-- **Repo-wide Refactoring Audit** → source of the cross-cutting refactor themes and target inventory.
-- **Checklist Rule Table Refactor** → detailed example of table-driven rules replacing branch chains in agent answer-frame planning.
-- **Quick Wins and Latent Bugs Refactor Tranche** → cleanup and normalization tranche spanning pipeline, policy-corpus, and shared predicates.
-- **Shared Test-Fixture Layer** → canonical fixture architecture for pipeline, policy-corpus, and agent tests.
-- **Shared Test Fixtures Guard Against API Drift** → hardening of the shared fake layer and collector test behavior.
-- **PR 63 Refactor Completion and Import-Cycle Fix** → final audit closure, resolver guard, and web module-cycle resolution.
-
-## Cross-cutting rules preserved in the refactors
-
-- Rule ordering is load-bearing where truncation occurs (`CHECKLIST_LIMIT = 6`).
-- Canonical types should come from shared packages, not local copies.
-- Path normalization must use `CRAWLER_DATA_DIR`-relative POSIX joins.
-- Shared test fakes should validate against real production APIs.
-- Value imports must not re-enter a barrel that re-exports the importing module.
+### Stable outcomes and constraints
+- The refactors consistently preserved behavior, kept suites green, and converted hidden coupling into explicit rules.
+- Load-bearing constraints called out in these entries include:
+  - `CHECKLIST_LIMIT = 6` for answer-frame planning,
+  - Railway deployment dependence on `push:main` CI,
+  - explicit waiver section encodings,
+  - import-path restrictions to prevent barrel cycles,
+  - test-fake validation against the live writer API.
