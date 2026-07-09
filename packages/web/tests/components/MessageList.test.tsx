@@ -543,4 +543,44 @@ describe('MessageList', () => {
     await user.click(screen.getByTestId('version-prev'));
     expect(onSelectVersion).toHaveBeenCalledWith('user-1', 1);
   });
+
+  it('renders a guard tripwire as a friendly blocked-message notice, not a blank bubble', () => {
+    renderMessageList([
+      {
+        id: 'assistant-blocked',
+        role: 'assistant',
+        parts: [
+          {
+            type: 'data-tripwire',
+            data: {
+              reason: 'off-topic request blocked',
+              metadata: { code: 'off-topic', userMessage: 'I can only help with NC Medicaid questions.' },
+              processorId: 'scope-gate',
+            },
+          } as unknown as UIMessage['parts'][number],
+        ],
+      },
+    ]);
+    expect(screen.getByTestId('blocked-message')).toHaveTextContent('I can only help with NC Medicaid questions.');
+    expect(screen.queryByTestId('ended-without-answer')).not.toBeInTheDocument();
+  });
+
+  it('falls back to generic blocked-message copy when the tripwire carries no userMessage', () => {
+    renderMessageList(
+      [
+        {
+          id: 'assistant-blocked',
+          role: 'assistant',
+          parts: [
+            { type: 'data-tripwire', data: { reason: 'blocked' } } as unknown as UIMessage['parts'][number],
+          ],
+        },
+      ],
+      // Streaming: the tripwire part must also count as renderable so the
+      // "Starting research..." spinner yields to the notice.
+      { isStreaming: true },
+    );
+    expect(screen.getByTestId('blocked-message')).toHaveTextContent("couldn't be processed");
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+  });
 });

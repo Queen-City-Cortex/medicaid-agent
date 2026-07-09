@@ -23,10 +23,12 @@ import {
   hasRenderableAssistantPart,
   isTextPart,
   isToolPart,
+  isTripwirePart,
   splitSourcesByCited,
   type CitationResolver,
   type MessageSource,
   type ToolMessagePart,
+  type TripwireMessagePart,
 } from '@/lib/message-parts';
 
 // Answer prose reads like a printed document: Newsreader at a comfortable
@@ -191,6 +193,13 @@ function AssistantMessage({
   // which is indistinguishable from "finished". Show an explicit notice.
   const endedWithoutAnswer =
     !isStreaming && lastToolIndex !== -1 && finalAnswerText.trim().length === 0;
+  // An input guard (scope gate, length guard, injection detector) aborted the
+  // run before generation. Without explicit rendering these turns were blank —
+  // the stream carries only the data-tripwire part and a finish.
+  const tripwirePart = parts.find(isTripwirePart) as TripwireMessagePart | undefined;
+  const blockedMessage =
+    tripwirePart?.data?.metadata?.userMessage ??
+    (tripwirePart ? "This message couldn't be processed. Please rephrase and try again." : null);
   const toolStepCount = parts.filter(isToolPart).length;
   // Once a run completes with an answer, the tool loop collapses into a
   // single "Research trail" below the answer — ten full-width step cards
@@ -321,7 +330,17 @@ function AssistantMessage({
         </div>
       )}
 
-      {endedWithoutAnswer && (
+      {blockedMessage && (
+        <div
+          data-testid="blocked-message"
+          role="alert"
+          className="my-4 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-foreground"
+        >
+          <p>{blockedMessage}</p>
+        </div>
+      )}
+
+      {endedWithoutAnswer && !blockedMessage && (
         <div
           data-testid="ended-without-answer"
           role="alert"

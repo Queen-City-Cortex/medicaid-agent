@@ -31,8 +31,12 @@ import {
 import { AnswerFramePrefetchProcessor } from './processors/answer-frame-prefetch.js';
 import { AnswerFramePlanningProcessor } from './processors/answer-frame-planning.js';
 import { OpenAIResponsesDedupProcessor } from './processors/openai-responses-dedup.js';
+import { MessageLengthGuard } from './processors/message-length-guard.js';
+import { ScopeGateProcessor } from './processors/scope-gate.js';
+import { RateLimitRepository } from './rate-limit/repository.js';
+import { createBodySizeGuard, createRateLimitMiddleware } from './rate-limit/middleware.js';
 import { MastraAuthWorkos } from '@mastra/auth-workos';
-import { bindResourceToAuthenticatedUser } from './auth-middleware.js';
+import { createResourceBindingMiddleware } from './auth-middleware.js';
 import { PinoLogger } from '@mastra/loggers';
 import { FeedbackRepository } from './feedback/repository.js';
 import { feedbackApiRoutes } from './feedback/routes.js';
@@ -77,6 +81,7 @@ const libsql = new LibSQLStore({
 });
 
 const feedbackRepo = new FeedbackRepository(DATABASE_URL);
+const rateLimitRepo = new RateLimitRepository(DATABASE_URL);
 
 const storage = new MastraCompositeStore({
   id: 'composite-storage',
@@ -127,6 +132,12 @@ const inputProcessors = IS_CLI_RUN
       }),
     ]
   : [
+      // Cheapest-first: the free deterministic length check runs before the
+      // two classifier calls, and the scope gate before the injection
+      // detector because off-topic volume is the common abuse case — most
+      // blocked messages cost exactly one mini call and zero main-model tokens.
+      new MessageLengthGuard(),
+      new ScopeGateProcessor(),
       new PromptInjectionDetector({
         model: 'openai/gpt-5-mini',
         threshold: 0.8,
@@ -223,9 +234,18 @@ export const mastra = new Mastra({
     auth: new (class extends MastraAuthWorkos {
       async authorizeUser() { return true; } // allow any authenticated WorkOS user
     })(),
-    // Runs after Mastra's auth middleware: forces every memory/thread/chat
-    // request to operate on the authenticated user's own resource (anti-IDOR).
-    middleware: [bindResourceToAuthenticatedUser],
+    // Mastra authenticates per-route AFTER server.middleware runs, so the
+    // binding middleware verifies the Bearer token itself (trustJwtClaims =
+    // local JWKS check, no per-request WorkOS API call) and forces every
+    // memory/thread/chat request onto the authenticated user's own resource
+    // (anti-IDOR). It must come first: the rate limiter reads the id it
+    // binds. Then the abuse guards, cheapest-first — header-only body-size
+    // check before the per-user rate limit.
+    middleware: [
+      createResourceBindingMiddleware(new MastraAuthWorkos({ trustJwtClaims: true })),
+      createBodySizeGuard(),
+      createRateLimitMiddleware(rateLimitRepo),
+    ],
     cors: {
       origin: strEnv('CORS_ORIGINS', 'http://localhost:3000').split(','),
       credentials: true,

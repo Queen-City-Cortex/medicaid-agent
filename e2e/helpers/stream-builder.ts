@@ -88,9 +88,18 @@ export class AISdkStreamBuilder {
     return this;
   }
 
-  /** Emit the finish event that signals end of stream. */
-  finish(): this {
-    this.sse({ type: 'finish', finishReason: 'stop' });
+  /** Emit an arbitrary data part (e.g. data-tripwire from an aborted input
+   *  guard). Ends any open text block first. */
+  dataPart(type: string, data: unknown): this {
+    this.endTextBlock();
+    this.sse({ type, data });
+    return this;
+  }
+
+  /** Emit the finish event that signals end of stream. Guard tripwires
+   *  finish with reason 'other' rather than a normal 'stop'. */
+  finish(finishReason: string = 'stop'): this {
+    this.sse({ type: 'finish', finishReason });
     return this;
   }
 

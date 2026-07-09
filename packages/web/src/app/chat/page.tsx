@@ -11,6 +11,7 @@ import { MessageList } from '@/components/MessageList';
 import { ScrollToBottom } from '@/components/ScrollToBottom';
 import { ThreadSidebar } from '@/components/ThreadSidebar';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { parseChatError } from '@/lib/parse-chat-error';
 import { useIsMobile } from '@/lib/use-is-mobile';
 import { useMastraClientRunner } from '@/lib/use-mastra-client';
 import { useAnswerVersions } from '@/lib/use-answer-versions';
@@ -264,20 +265,34 @@ export default function ChatPage() {
               onSelectVersion={selectVersion}
             />
 
-            {error && (
-              <div data-testid="assistant-message" className="pl-2 mt-6 animate-in fade-in slide-in-from-bottom-2 duration-200">
-                <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-                  <p>Sorry, there was an error processing your question.</p>
-                  <button
-                    type="button"
-                    onClick={() => regenerate()}
-                    className="mt-2 inline-flex items-center rounded-md border border-destructive/40 px-3 py-1 text-xs font-medium text-destructive hover:bg-destructive/10 transition-colors"
+            {error && (() => {
+              const info = parseChatError(error);
+              // Retrying a rate-limited request immediately just re-429s, so
+              // the guard errors show the server's message without the button.
+              const message =
+                info.kind === 'generic'
+                  ? 'Sorry, there was an error processing your question.'
+                  : info.message;
+              return (
+                <div data-testid="assistant-message" className="pl-2 mt-6 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                  <div
+                    data-testid={info.kind === 'generic' ? 'chat-error' : `chat-error-${info.kind}`}
+                    className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive"
                   >
-                    Try again
-                  </button>
+                    <p>{message}</p>
+                    {info.kind === 'generic' && (
+                      <button
+                        type="button"
+                        onClick={() => regenerate()}
+                        className="mt-2 inline-flex items-center rounded-md border border-destructive/40 px-3 py-1 text-xs font-medium text-destructive hover:bg-destructive/10 transition-colors"
+                      >
+                        Try again
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
             </>
             )}
           </div>

@@ -60,6 +60,17 @@ AGENT_MODEL=gpt-5.4-mini npx mastra dev --dir src
 AGENT_MODEL=claude-sonnet-4-6 npx mastra dev --dir src
 ```
 
+### Abuse Protections
+
+WorkOS signup is open self-registration, so every authenticated-user protection matters. The web chat path (CLI/eval runs are unaffected) has four layers, all env-tunable:
+
+- **Scope gate** — one `gpt-5-mini` call classifies each message; clearly-off-topic requests (creative writing, homework, general trivia) are blocked before the main model runs. Ambiguous/messy benefits questions always pass. Kill switch: `SCOPE_GATE_ENABLED=false`; model override: `SCOPE_GATE_MODEL`. Fails open (logged + Sentry).
+- **Rate limits** — per-user sliding windows on agent-run starts (chat + deep-research): `RATE_LIMIT_MESSAGES_PER_HOUR` (30) and `RATE_LIMIT_MESSAGES_PER_DAY` (150). Set a window `<= 0` to disable it. Counters live in the `rate_limit_events` table in the LibSQL store (durable across deploys; doubles as a usage audit log). To raise limits for a trusted org, bump the env vars on the Railway agent service.
+- **Input caps** — `MAX_MESSAGE_CHARS` (10,000; server-side mirror of the browser cap) and `MAX_BODY_BYTES` (2 MB per request; the body carries the whole thread history).
+- **Prompt injection detector** — pre-existing Mastra processor; blocks injection/jailbreak attempts.
+
+Blocked messages render as an amber notice in the chat UI; rate-limited requests return `429` with a `Retry-After` header and a user-readable message. Deferred known gap: observational/working-memory ingest is not sanitized.
+
 ## Running the Web UI
 
 Start both services:
