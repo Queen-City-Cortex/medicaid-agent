@@ -19,7 +19,7 @@ Copy `.env.example` to `.env` at the repo root and fill in keys. The agent and w
 | `EVAL_OPENAI_API_KEY` | No | falls back to `OPENAI_API_KEY` | OpenAI key the **answer-level eval** runs the agent on, isolated from production. Set it to a separate OpenAI project/account so a research run can't drain the live agent's quota (which would surface to users as failing chats). |
 | `VOYAGE_API_KEY` | Yes (search/embed) | — | Voyage AI API key for embeddings |
 | `ANTHROPIC_API_KEY` | Only for Claude `AGENT_MODEL` | — | Anthropic API key; needed only when `AGENT_MODEL` is a `claude-*` model |
-| `AGENT_MODEL` | No | `gpt-5.4` | Main agent model (`gpt-*`/`o3*`/`o4*` route to OpenAI, anything else to Anthropic) |
+| `AGENT_MODEL` | No | `gpt-5.6-terra` | Main agent model (`gpt-*`/`o3*`/`o4*` route to OpenAI, anything else to Anthropic) |
 | `VERIFIER_MODEL` | No | `gpt-5.4-mini` | Hallucination-verifier model |
 | `NEO4J_URI` | No | `bolt://localhost:7687` | Neo4j connection URI |
 | `NEO4J_USER` | No | `neo4j` | Neo4j username |
@@ -47,10 +47,10 @@ To enable in production (Railway):
 
 ### Model Selection
 
-The agent defaults to **`gpt-5.4`** (OpenAI). Override `AGENT_MODEL` to experiment with other models — Claude models work for the main agent loop, but the verifier, injection detector, and observational memory remain OpenAI-wired, so `OPENAI_API_KEY` is required regardless:
+The agent defaults to **`gpt-5.6-terra`** (OpenAI) — adopted 2026-07-09 after an A/B gate (`scripts/eval-ab.sh agent`) showed it matched or beat the prior `gpt-5.4` default on every judge dimension at the same price. Override `AGENT_MODEL` to experiment with other models — Claude models work for the main agent loop, but the verifier, injection detector, and observational memory remain OpenAI-wired, so `OPENAI_API_KEY` is required regardless:
 
 ```bash
-# Default (gpt-5.4)
+# Default (gpt-5.6-terra)
 npx mastra dev --dir src
 
 # Cheaper OpenAI model

@@ -16,6 +16,7 @@ set -euo pipefail
 # Usage:
 #   scripts/eval-ab.sh embeddings           # needs candidate corpus on the AB container
 #   scripts/eval-ab.sh verifier
+#   scripts/eval-ab.sh agent
 #
 # Key env knobs (all have defaults):
 #   DATASET            golden dataset (default: held-out paraphrases)
@@ -25,6 +26,8 @@ set -euo pipefail
 #   CANDIDATE_DIMS     candidate embedding dimensions  (default: 2048)
 #   BASELINE_VERIFIER  (default: gpt-5.4-mini)
 #   CANDIDATE_VERIFIER (default: gpt-5.4-nano)
+#   BASELINE_AGENT     (default: gpt-5.4)
+#   CANDIDATE_AGENT    (default: gpt-5.6-terra)
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PIPELINE_DIR="$REPO_ROOT/packages/pipeline"
@@ -44,6 +47,12 @@ CANDIDATE_MODEL="${CANDIDATE_MODEL:-voyage-4-large}"
 CANDIDATE_DIMS="${CANDIDATE_DIMS:-1024}"
 BASELINE_VERIFIER="${BASELINE_VERIFIER:-gpt-5.4-mini}"
 CANDIDATE_VERIFIER="${CANDIDATE_VERIFIER:-gpt-5.4-nano}"
+BASELINE_AGENT="${BASELINE_AGENT:-gpt-5.4}"
+CANDIDATE_AGENT="${CANDIDATE_AGENT:-gpt-5.6-terra}"
+# A candidate is a regression if its mean `overall` drops more than this below
+# the baseline's. The gate exits non-zero on a regression so an automated run
+# can't silently approve a worse model.
+EVAL_REGRESSION_THRESHOLD="${EVAL_REGRESSION_THRESHOLD:-0.05}"
 
 cd "$PIPELINE_DIR"
 
@@ -100,6 +109,39 @@ answer_arm() {
   done
 }
 
+# Programmatic verdict for a two-arm answer gate. The last 2*RUNS answer result
+# files are this gate's runs in chronological order: the first RUNS are the
+# baseline arm, the last RUNS the candidate. Prints each arm's mean `overall`
+# and the delta, and returns non-zero when the candidate regresses by more than
+# EVAL_REGRESSION_THRESHOLD — so an automated run fails loudly instead of
+# exiting 0 on a worse model. (The per-dimension summaries above still print
+# for the human read; this only gates on the headline `overall` metric.)
+compare_answer_arms() {
+  local baseline_label="$1" candidate_label="$2"
+  .venv/bin/python - "$RESULTS_DIR" "$RUNS" "$EVAL_REGRESSION_THRESHOLD" "$baseline_label" "$candidate_label" <<'PY'
+import json, sys, glob, os, statistics
+results_dir, runs, thr, base_label, cand_label = sys.argv[1], int(sys.argv[2]), float(sys.argv[3]), sys.argv[4], sys.argv[5]
+files = sorted(glob.glob(os.path.join(results_dir, "*_answer.json")), key=os.path.getmtime)[-2*runs:]
+if len(files) < 2*runs:
+    print(f"  verdict: not enough runs ({len(files)}/{2*runs}) to compare — inspect summaries manually"); sys.exit(0)
+def mean_overall(fs):
+    vals = [json.load(open(f)).get("aggregate", {}).get("overall") for f in fs]
+    vals = [v for v in vals if v is not None]
+    return statistics.mean(vals) if vals else None
+base = mean_overall(files[:runs]); cand = mean_overall(files[runs:])
+if base is None or cand is None:
+    print("  verdict: missing overall aggregate — inspect summaries manually"); sys.exit(0)
+delta = cand - base
+print(f"  {base_label}: overall {base:.3f}")
+print(f"  {cand_label}: overall {cand:.3f}")
+print(f"  delta: {delta:+.3f}  (regression threshold: -{thr:.3f})")
+if delta < -thr:
+    print(f"  VERDICT: REGRESSION — {cand_label} is worse than {base_label}; do NOT adopt.")
+    sys.exit(1)
+print(f"  VERDICT: no regression — {cand_label} holds within noise or better.")
+PY
+}
+
 # ── Gates ─────────────────────────────────────────────────────────────────────
 
 # Build the controlled mixed corpus on the AB container at a given embedding
@@ -135,6 +177,25 @@ gate_embeddings() {
   "${PY[@]}" eval-compare "$run_a" "$run_b"
 }
 
+gate_agent() {
+  banner "Gate: agent model — $BASELINE_AGENT vs $CANDIDATE_AGENT ($RUNS runs each, stochastic)"
+  # Swaps the main agent loop's model. Measured through the full answer eval
+  # (tool calls + synthesis), not retrieval, since the model only changes the
+  # agent's own behaviour. A swap is adopted only if the candidate holds the
+  # judge dimensions within noise vs the baseline.
+  answer_arm "agent-baseline ($BASELINE_AGENT)" "AGENT_MODEL=$BASELINE_AGENT"
+  answer_arm "agent-candidate ($CANDIDATE_AGENT)" "AGENT_MODEL=$CANDIDATE_AGENT"
+
+  banner "Stability across all $((RUNS * 2)) runs"
+  "${PY[@]}" eval-answer-stability --last "$((RUNS * 2))" || true
+
+  banner "Verdict: $CANDIDATE_AGENT vs $BASELINE_AGENT (overall, threshold -$EVAL_REGRESSION_THRESHOLD)"
+  # Non-zero exit on a real regression so an automated run can't approve a
+  # worse default model. `set -e` (top of file) propagates it as the gate's
+  # exit status.
+  compare_answer_arms "agent-baseline ($BASELINE_AGENT)" "agent-candidate ($CANDIDATE_AGENT)"
+}
+
 gate_verifier() {
   banner "Gate: verifier — $BASELINE_VERIFIER vs $CANDIDATE_VERIFIER ($RUNS runs each, stochastic)"
 
@@ -154,10 +215,12 @@ gate_verifier() {
 case "${1:-}" in
   embeddings) gate_embeddings ;;
   verifier)   gate_verifier ;;
+  agent)      gate_agent ;;
   *)
-    echo "usage: scripts/eval-ab.sh {embeddings|verifier}" >&2
+    echo "usage: scripts/eval-ab.sh {embeddings|verifier|agent}" >&2
     echo "  embeddings: builds BOTH arms as a matched mixed corpus on the AB container (~slow)" >&2
     echo "  verifier: stochastic answer eval, RUNS repeats per arm" >&2
+    echo "  agent: main-agent model swap (BASELINE_AGENT vs CANDIDATE_AGENT), answer eval, RUNS per arm" >&2
     exit 2
     ;;
 esac

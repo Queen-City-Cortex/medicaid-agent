@@ -20,9 +20,15 @@ const openai = createOpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-export const AGENT_MODEL = strEnv('AGENT_MODEL', 'gpt-5.4');
+// Default chosen by the 2026-07-09 agent-model A/B gate (scripts/eval-ab.sh
+// agent, 3 runs × 50 held-out questions per arm): gpt-5.6-terra matched or beat
+// gpt-5.4 on every judge dimension — overall 2.800 vs 2.760, hallucination
+// 2.640 vs 2.553 (the safety-critical one) — at the SAME price ($2.50/$15) and
+// a generation newer. Both arms' stable misses were the pre-existing
+// judge-variance questions, not model regressions.
+export const AGENT_MODEL = strEnv('AGENT_MODEL', 'gpt-5.6-terra');
 
-/** Resolve a model id ("gpt-5.4", "claude-…") to an AI SDK model instance.
+/** Resolve a model id ("gpt-5.6-terra", "claude-…") to an AI SDK model instance.
  *  OpenAI reasoning models use the o1/o3/o4 prefixes; everything non-OpenAI
  *  (claude-*) routes to Anthropic. */
 export function createModel(modelId: string): ProviderModel {
