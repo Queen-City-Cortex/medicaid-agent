@@ -16,14 +16,20 @@ import * as Sentry from '@sentry/node';
 // Sentry.init also installs global uncaughtException / unhandledRejection
 // handlers, covering crashes outside the request path.
 const dsn = process.env.SENTRY_DSN;
-const environment = process.env.SENTRY_ENVIRONMENT ?? process.env.NODE_ENV;
+// Require an EXPLICITLY declared deploy environment: a local run (mastra dev,
+// or an eval with SENTRY_DSN in .env) without SENTRY_ENVIRONMENT no-ops instead
+// of leaking into the shared Sentry project. Deploys set it to production/staging.
+const environment = process.env.SENTRY_ENVIRONMENT;
 
-if (dsn && environment !== 'development') {
+if (dsn && environment && environment !== 'development') {
   Sentry.init({
     dsn,
     environment,
     release: process.env.SENTRY_RELEASE,
-    tracesSampleRate: Number(process.env.SENTRY_TRACES_SAMPLE_RATE ?? 0),
+    // Default 0.1 (10%) so production errors carry transaction/span context —
+    // the chat route's server-side failures were previously captured with no
+    // trace. Override with SENTRY_TRACES_SAMPLE_RATE.
+    tracesSampleRate: Number(process.env.SENTRY_TRACES_SAMPLE_RATE ?? 0.1),
   });
 }
 
