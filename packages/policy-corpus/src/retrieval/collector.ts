@@ -1,4 +1,4 @@
-import type { CorpusReranker, QueryAnalysis, RetrievalBackend, RetrievalProfile } from '../contracts.js';
+import type { QueryAnalysis, RetrievalBackend, RetrievalProfile } from '../contracts.js';
 import type { CorpusRetrievalHit, SearchSectionsInput, SessionExecutor } from '../types.js';
 import {
   FULLTEXT_BOOST,
@@ -16,7 +16,6 @@ import {
   retrieveDocumentExpansionHits,
 } from './backends/document-expansion.js';
 import { fulltextBackend } from './backends/fulltext.js';
-import { maybeRerankHits } from './rerank.js';
 
 type HitMap = Map<string, CorpusRetrievalHit>;
 
@@ -188,21 +187,15 @@ function mergeFulltextHits(sectionMap: HitMap, fulltextHits: CorpusRetrievalHit[
   }
 }
 
-export async function finalizeHybridHits({
-  input,
+export function finalizeHybridHits({
   sectionMap,
   analysis,
-  profile,
   topK,
-  rerankHits,
 }: {
-  input: SearchSectionsInput;
   sectionMap: HitMap;
   analysis: QueryAnalysis;
-  profile: RetrievalProfile;
   topK: number;
-  rerankHits?: CorpusReranker;
-}): Promise<CorpusRetrievalHit[]> {
+}): CorpusRetrievalHit[] {
   const hits = Array.from(sectionMap.values());
   const documentCoverageBoosts = computeDocumentCoverageBoosts(hits, analysis.searchTerms);
   const latestChangeMarkerValue = analysis.flags.isLatestChangeNoticeQuery
@@ -229,14 +222,5 @@ export async function finalizeHybridHits({
     .map((hit) => rerankRetrievalHit(hit, rerankContext))
     .sort((left, right) => right.score - left.score);
 
-  const finalHits = await maybeRerankHits({
-    input,
-    analysis,
-    profile,
-    topK,
-    baselineHits,
-    rerankHits,
-  });
-
-  return finalHits.slice(0, topK);
+  return baselineHits.slice(0, topK);
 }

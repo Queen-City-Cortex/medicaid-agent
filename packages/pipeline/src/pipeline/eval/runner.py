@@ -59,21 +59,12 @@ def run_eval(
         config_overrides["from_result"] = str(from_result)
 
     # Stamp model/infra provenance so eval-compare can distinguish A/B arms.
-    # Without this, two retrieval runs over different embedding corpora or
-    # reranker configs produce indistinguishable result files.
-    import os
-
+    # Without this, two retrieval runs over different embedding corpora
+    # produce indistinguishable result files.
     from pipeline.config import EMBEDDING_DIMENSIONS, NEO4J_URI
 
     config_overrides["embedding_dimensions"] = EMBEDDING_DIMENSIONS
     config_overrides["neo4j_uri"] = NEO4J_URI
-    if level in ("retrieval", "answer"):
-        rerank_enabled = os.environ.get("POLICY_CORPUS_RERANK_ENABLED")
-        config_overrides["reranker"] = {
-            # "default" = env unset, agent uses its built-in default (enabled).
-            "enabled": rerank_enabled if rerank_enabled is not None else "default",
-            "model": os.environ.get("POLICY_CORPUS_RERANK_MODEL", "gpt-5-mini"),
-        }
 
     path = save_result(level, per_question, config_overrides)
 

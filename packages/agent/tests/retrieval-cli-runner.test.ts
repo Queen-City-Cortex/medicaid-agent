@@ -47,7 +47,7 @@ describe('executeRetrievalCli', () => {
     });
   });
 
-  it('uses createAgentPolicyCorpus for each batch request so injected rerankers are preserved', async () => {
+  it('uses createAgentPolicyCorpus for each batch request so the injected batch embedder is used', async () => {
     const createCorpus = vi.fn((options?: { embedQuery?: (query: string) => Promise<number[]> }) => ({
       searchSectionsDetailed: vi.fn(async (input: { query: string }) => {
         const embedQuery = options?.embedQuery;

@@ -4,10 +4,9 @@ set -euo pipefail
 # A/B model-comparison eval runner.
 #
 # Wraps the existing pipeline eval harness to compare a candidate model against
-# the current baseline for three swaps from the mid-2026 model-cost research:
+# the current baseline for two swaps from the mid-2026 model-cost research:
 #
 #   embeddings  voyage-law-2  vs  a candidate embedder (deterministic retrieval)
-#   reranker    LLM reranker  vs  none / another reranker (deterministic retrieval)
 #   verifier    gpt-5.4-mini  vs  gpt-5.4-nano (stochastic answer+citation, 3-run)
 #
 # All comparisons run against the held-out paraphrase split — the only honest
@@ -16,7 +15,6 @@ set -euo pipefail
 #
 # Usage:
 #   scripts/eval-ab.sh embeddings           # needs candidate corpus on the AB container
-#   scripts/eval-ab.sh reranker
 #   scripts/eval-ab.sh verifier
 #
 # Key env knobs (all have defaults):
@@ -27,9 +25,6 @@ set -euo pipefail
 #   CANDIDATE_DIMS     candidate embedding dimensions  (default: 2048)
 #   BASELINE_VERIFIER  (default: gpt-5.4-mini)
 #   CANDIDATE_VERIFIER (default: gpt-5.4-nano)
-#   RERANK_BASELINE_MODEL (default: gpt-5-mini)
-#   RERANK_CANDIDATE_MODEL optional third reranker arm, e.g. groq/openai/gpt-oss-20b
-#                          (groq/ models need GROQ_API_KEY in the environment)
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PIPELINE_DIR="$REPO_ROOT/packages/pipeline"
@@ -49,8 +44,6 @@ CANDIDATE_MODEL="${CANDIDATE_MODEL:-voyage-4-large}"
 CANDIDATE_DIMS="${CANDIDATE_DIMS:-1024}"
 BASELINE_VERIFIER="${BASELINE_VERIFIER:-gpt-5.4-mini}"
 CANDIDATE_VERIFIER="${CANDIDATE_VERIFIER:-gpt-5.4-nano}"
-RERANK_BASELINE_MODEL="${RERANK_BASELINE_MODEL:-gpt-5-mini}"
-RERANK_CANDIDATE_MODEL="${RERANK_CANDIDATE_MODEL:-}"
 
 cd "$PIPELINE_DIR"
 
@@ -91,9 +84,9 @@ banner() { echo; echo "── $* ───────────────�
 
 # Run RUNS answer-level evals for one arm under the given env assignments, then
 # print that arm's mean ± std for the key judge dimensions over its own runs.
-# Used by the reranker and verifier gates — both vary behaviour only inside the
-# full agent, so they must be measured via the (stochastic) answer eval, not the
-# deterministic retrieval eval.
+# Used by the verifier gate — it varies behaviour only inside the full agent, so
+# it must be measured via the (stochastic) answer eval, not the deterministic
+# retrieval eval.
 answer_arm() {
   local label="$1"; shift   # remaining args are VAR=value assignments
   echo "[$label] $RUNS answer runs — env: $*"
@@ -142,29 +135,6 @@ gate_embeddings() {
   "${PY[@]}" eval-compare "$run_a" "$run_b"
 }
 
-gate_reranker() {
-  banner "Gate: reranker — $RERANK_BASELINE_MODEL (on) vs disabled"
-  # IMPORTANT: reranking is gated by shouldAttemptRerank(), which only fires for
-  # "hard"/"ambiguous" queries using the route analysis built in the FULL AGENT
-  # path. The standalone retrieval CLI carries no such analysis, so a retrieval-
-  # level A/B skips with reason=not_hard_query and shows a misleading 0.000 delta.
-  # We therefore measure the reranker through the answer eval, where it engages.
-  answer_arm "rerank-on ($RERANK_BASELINE_MODEL)" \
-    POLICY_CORPUS_RERANK_ENABLED=true "POLICY_CORPUS_RERANK_MODEL=$RERANK_BASELINE_MODEL"
-  local arms=2
-  if [ -n "$RERANK_CANDIDATE_MODEL" ]; then
-    answer_arm "rerank-candidate ($RERANK_CANDIDATE_MODEL)" \
-      POLICY_CORPUS_RERANK_ENABLED=true "POLICY_CORPUS_RERANK_MODEL=$RERANK_CANDIDATE_MODEL"
-    arms=3
-  fi
-  answer_arm "rerank-off" POLICY_CORPUS_RERANK_ENABLED=false
-
-  banner "Stability across all $((RUNS * arms)) runs"
-  "${PY[@]}" eval-answer-stability --last "$((RUNS * arms))" || true
-  echo "Compare the arms' summaries above (printed after each arm)."
-  echo "(To A/B Voyage rerank-2.5 once implemented: set RERANK_BASELINE_MODEL to it and re-run.)"
-}
-
 gate_verifier() {
   banner "Gate: verifier — $BASELINE_VERIFIER vs $CANDIDATE_VERIFIER ($RUNS runs each, stochastic)"
 
@@ -183,12 +153,11 @@ gate_verifier() {
 
 case "${1:-}" in
   embeddings) gate_embeddings ;;
-  reranker)   gate_reranker ;;
   verifier)   gate_verifier ;;
   *)
-    echo "usage: scripts/eval-ab.sh {embeddings|reranker|verifier}" >&2
+    echo "usage: scripts/eval-ab.sh {embeddings|verifier}" >&2
     echo "  embeddings: builds BOTH arms as a matched mixed corpus on the AB container (~slow)" >&2
-    echo "  reranker/verifier: stochastic answer eval, RUNS repeats per arm" >&2
+    echo "  verifier: stochastic answer eval, RUNS repeats per arm" >&2
     exit 2
     ;;
 esac

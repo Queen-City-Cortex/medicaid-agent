@@ -153,19 +153,16 @@ describe('finalizeHybridHits', () => {
     return new Map(hits.map((h) => [h.sectionId, h]));
   }
 
-  async function finalize(hits: CorpusRetrievalHit[], topK: number) {
+  function finalize(hits: CorpusRetrievalHit[], topK: number) {
     return finalizeHybridHits({
-      input,
       sectionMap: mapOf(hits),
       analysis: makeAnalysis(),
-      profile: makeProfile(),
       topK,
-      // No reranker → maybeRerankHits returns the baseline (sorted) hits.
     });
   }
 
-  it('returns hits sorted by score descending, capped at topK', async () => {
-    const result = await finalize(
+  it('returns hits sorted by score descending, capped at topK', () => {
+    const result = finalize(
       [
         makeHit({ sectionId: 'low', score: 0.3 }),
         makeHit({ sectionId: 'high', score: 0.9 }),
@@ -179,13 +176,13 @@ describe('finalizeHybridHits', () => {
     }
   });
 
-  it('returns every hit when topK exceeds the map size', async () => {
-    const result = await finalize([makeHit({ sectionId: 'a', score: 0.5 }), makeHit({ sectionId: 'b', score: 0.8 })], 10);
+  it('returns every hit when topK exceeds the map size', () => {
+    const result = finalize([makeHit({ sectionId: 'a', score: 0.5 }), makeHit({ sectionId: 'b', score: 0.8 })], 10);
     expect(result).toHaveLength(2);
     expect(result.map((h) => h.sectionId).sort()).toEqual(['a', 'b']);
   });
 
-  it('returns [] for an empty section map', async () => {
-    expect(await finalize([], 5)).toEqual([]);
+  it('returns [] for an empty section map', () => {
+    expect(finalize([], 5)).toEqual([]);
   });
 });

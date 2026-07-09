@@ -1,4 +1,3 @@
-import { getPolicyCorpusRerankerDiagnostics } from '../../policy-corpus-reranker.js';
 import { getConfig } from './config.js';
 import { type SourceEntry, buildSourceText } from './evidence.js';
 import { type VerificationResult, VERIFICATION_UNAVAILABLE, verifyAnswer } from './verify.js';
@@ -37,8 +36,6 @@ export interface VerifierTelemetry {
   major_relevance_issue: boolean;
   verifier_unavailable: boolean;
   verifier_model: string;
-  reranker_fallback_count: number;
-  reranker_last_error: string | null;
   source_entry_count: number;
   evidence_bytes: number;
   confidence: number;
@@ -157,7 +154,6 @@ export async function runVerificationForAnswer({
     fabricatedUrlCount: urlValidation.unknownUrls.length,
     fabricatedQuoteCount: quoteValidation.unknownQuotes.length,
   });
-  const rerankerDiagnostics = getPolicyCorpusRerankerDiagnostics();
 
   // Deterministic sanitization counts as a rewrite: the processor keys
   // message replacement off this flag, and the modified text must land.
@@ -174,8 +170,6 @@ export async function runVerificationForAnswer({
     major_relevance_issue: hasMajorRelevanceIssue,
     verifier_unavailable: verifierUnavailable,
     verifier_model: getConfig().model,
-    reranker_fallback_count: rerankerDiagnostics.fallbackCount,
-    reranker_last_error: rerankerDiagnostics.lastError,
     source_entry_count: sources.length,
     evidence_bytes: sources.reduce((total, source) => total + source.text.length, 0),
     confidence: confidence.confidence,

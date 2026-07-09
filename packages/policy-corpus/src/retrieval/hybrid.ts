@@ -1,5 +1,4 @@
 import type { EmbedQuery, SearchSectionsInput, SessionExecutor } from '../types.js';
-import type { CorpusReranker } from '../contracts.js';
 import { analyzeQuery } from '../query/analysis.js';
 import { selectRetrievalProfile } from '../profiles/retrieval.js';
 import { debugSearch, timeSearchStep } from '../internal/shared.js';
@@ -9,12 +8,10 @@ import { collectHybridHitMap, finalizeHybridHits } from './collector.js';
 export function createHybridRetriever({
   withSession,
   embedQuery,
-  rerankHits,
   defaultTopK = 10,
 }: {
   withSession: SessionExecutor;
   embedQuery: EmbedQuery;
-  rerankHits?: CorpusReranker;
   defaultTopK?: number;
 }) {
   const searchSectionsDetailed = async (input: SearchSectionsInput) => {
@@ -40,13 +37,10 @@ export function createHybridRetriever({
       embedding,
       backends: RETRIEVAL_BACKENDS,
     });
-    const finalHits = await finalizeHybridHits({
-      input: queryInput,
+    const finalHits = finalizeHybridHits({
       sectionMap,
       analysis,
-      profile,
       topK,
-      rerankHits,
     });
     debugSearch(`search end query="${queryInput.query}" hits=${finalHits.length}`);
     return finalHits;

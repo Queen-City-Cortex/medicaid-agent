@@ -9,14 +9,12 @@ export { SEARCH_SNIPPET_CHARS } from './internal/shared.js';
 export function createNeo4jPolicyCorpus({
   withSession,
   embedQuery,
-  rerankHits,
   defaultTopK = 10,
 }: PolicyCorpusDependencies): PolicyCorpus {
   const primitives = createLegalPrimitiveService({ withSession });
   const retriever = createHybridRetriever({
     withSession,
     embedQuery,
-    rerankHits,
     defaultTopK,
   });
   const frames = createAnswerFrameResolver({

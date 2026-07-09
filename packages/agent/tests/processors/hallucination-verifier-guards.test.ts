@@ -284,7 +284,7 @@ describe('runVerificationForAnswer guards', () => {
     for (const field of [
       'rewrote', 'supported', 'relevant', 'citations_complete', 'unsupported_claim_count',
       'missing_citation_count', 'relevance_issue_count', 'major_relevance_issue',
-      'verifier_unavailable', 'verifier_model', 'reranker_fallback_count', 'reranker_last_error',
+      'verifier_unavailable', 'verifier_model',
       'source_entry_count', 'evidence_bytes', 'confidence', 'severity', 'pure_marker_fallback',
     ]) {
       expect(result.telemetry).toHaveProperty(field);

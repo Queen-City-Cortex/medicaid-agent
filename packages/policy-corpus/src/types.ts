@@ -262,6 +262,5 @@ export interface PolicyCorpus {
 export interface PolicyCorpusDependencies {
   withSession: SessionExecutor;
   embedQuery: EmbedQuery;
-  rerankHits?: import('./contracts.js').CorpusReranker;
   defaultTopK?: number;
 }

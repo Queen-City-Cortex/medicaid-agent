@@ -105,21 +105,6 @@ export interface RetrievalBackend {
   retrieve(args: RetrievalBackendArgs): Promise<CorpusRetrievalHit[]>;
 }
 
-export interface CorpusRerankerArgs {
-  query: string;
-  analysis: QueryAnalysis;
-  profile: RetrievalProfile;
-  topK: number;
-  candidates: CorpusRetrievalHit[];
-}
-
-export interface CorpusRerankerResult {
-  sectionIds: string[];
-  reason?: string | null;
-}
-
-export type CorpusReranker = (args: CorpusRerankerArgs) => Promise<CorpusRerankerResult | null>;
-
 export interface LegalPrimitiveService {
   getSection(sectionId: string): Promise<SectionView | null>;
   getDocument(documentId: string): Promise<DocumentWithSectionsView | null>;
