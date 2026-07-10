@@ -183,6 +183,13 @@ async function askQuestion(page) {
   const sourcesLabel = normalizeWhitespace(
     (await sourcesPanel.getByTestId('sources-panel-trigger').textContent()) ?? 'Sources panel visible',
   );
+  // P2 UX: once a run completes, tool steps collapse into the "Research
+  // trail" Collapsible and the step cards are UNMOUNTED until expanded —
+  // expand it first or the count below reads 0 on every healthy answer.
+  const trailTrigger = assistant.getByTestId('research-trail-trigger');
+  if (await trailTrigger.count()) {
+    await trailTrigger.click();
+  }
   const toolSteps = await assistant.getByTestId('tool-step').count();
 
   if (toolSteps < 1) {

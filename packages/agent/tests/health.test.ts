@@ -35,6 +35,30 @@ describe('checkProviders', () => {
     await expect(checkProviders()).resolves.toEqual({ voyage: 'error', openai: 'error' });
   });
 
+  it('treats an OpenAI quota/rate 429 as an outage', async () => {
+    const fetchMock = vi.fn(async (url: string | URL | Request) =>
+      String(url).includes('openai')
+        ? { ok: false, status: 429, text: async () => 'insufficient_quota' }
+        : { ok: true },
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(checkProviders()).resolves.toEqual({ voyage: 'ok', openai: 'error' });
+  });
+
+  it('treats a non-auth/quota OpenAI 4xx as healthy (key and billing proven)', async () => {
+    // gpt-5-mini spends the 1-token probe budget on reasoning and returns an
+    // invalid_request 400 — the key and quota are fine, so this must not page.
+    const fetchMock = vi.fn(async (url: string | URL | Request) =>
+      String(url).includes('openai')
+        ? { ok: false, status: 400, text: async () => 'output limit was reached' }
+        : { ok: true },
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(checkProviders()).resolves.toEqual({ voyage: 'ok', openai: 'ok' });
+  });
+
   it('caches results so repeated probes do not re-hit the providers', async () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: true });
     vi.stubGlobal('fetch', fetchMock);

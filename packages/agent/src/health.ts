@@ -70,7 +70,18 @@ async function checkOpenAI(): Promise<ProviderHealth> {
       }),
       signal: AbortSignal.timeout(PROVIDER_CHECK_TIMEOUT_MS),
     });
-    if (!response.ok) {
+    // Classify by status, not response.ok: 401/403 (bad key), 429 (quota /
+    // rate) and 5xx (provider down) are the outages chats would hit. Other
+    // 4xx prove the key AND billing work — e.g. gpt-5-mini spends its 1-token
+    // budget on reasoning and returns an invalid_request "output limit
+    // reached" 400 (observed 2026-07-10 right after the quota top-up), which
+    // must not read as an outage.
+    if (
+      response.status === 401 ||
+      response.status === 403 ||
+      response.status === 429 ||
+      response.status >= 500
+    ) {
       const text = await response.text().catch(() => '');
       log.error('healthz.openai_failed', { status: response.status, errText: text.slice(0, 300) });
       return 'error';
