@@ -1,0 +1,26 @@
+{
+  "comment": "TEST ONLY keypair for hermetic e2e auth — grants access to nothing real. The private key signs a fake WorkOS access token that only the local jwks-stub validates.",
+  "kid": "e2e-test-key-1",
+  "privateJwk": {
+    "kty": "RSA",
+    "n": "zqfETkR1FBbmWeaVm_PnkMnljqV6hvKNCM_LdiPVdN9mZ9sPC95GVWPHGXGJJ6VZZ3WFlNu5RkVtOi3QCjuHYUsYWkCAhVnVpeOF1XSn5U2sIYxFlskZq_UiFsVepqoIbYwAB-K-fkeVEqP0RrTvirwqOSlM1HZE_T4HO8kdBc2hTYzEbN5egGRhlFoeSVLsN6gO9RpzglWYscBqfU4kbYG-ZEpz4A5Zq8SMquYxPEx2yUirl5BTauW0PXcCLUYh8QgA3QED5Mk_UwQAn461bfXOQiBE662vHCRf1jyZaegExA8Kk3p46EDOj-k3ZO7x3Zc9VlTm3CVzUa0hvz_9YQ",
+    "e": "AQAB",
+    "d": "RSQ-es1Ourz6ryOF9NrDJF9YjcRx3Uqzwzn64fkVRvgjxCW3wAnLUHCEwc-Jyxj4c7QPUIG_WHKMHAYN8A6Auh2s9S1Vksg-wjUApy1Tq1W0fLj4430_OJhYonPAulRzY2uO6xSDFa8PgmAWr72D09Am9F8MFJ3JcU1akDc2naTX4mmQixVaaxUNvXvsg5DDhlqIH4vVPnNvyz0CwpTy8QqMUvhBIsqqc7aLpjvSIURfDwJHsIHSgFw21jzCfmWhWaxpx41B3YS_qZLlyo1p9DNdohfbLVHKtfEZgUk5LTdW-iqETr14yLddI1TvJBgX22UL2utnnKdXQFyODVuZDQ",
+    "p": "87zA_zvJwfWSs_Gb9ORrUsSliJket6hPtGVSYwkDIdE6zLwHaF0eH3p1BzEjgI4Vrkmp3jMZ49K5-OemXG-oN29oHEk_pL8iLpLGuRtTugF7RM3fljSLwpYykTc78x75l7ydFiJ3kmbVoWrt9EmuWJvuAtYGwIo6Rn3o4hunJPs",
+    "q": "2Q1pKbHzlqQpApbTkuh03fsSI_vl0nOK7T7XnmgMmcSk17KNdfno9moKPLITYlznGMik5nYcAxty8paU38CgqaLL2yTjXV0IOTmJg3aCf3ZFNP21qfMqkCoiPe1Sgo_O9ZBCiWaucsGhR81h4XqZpS7Ilb4WPjrcYkSD7PT9AFM",
+    "dp": "u-kD6kLP84c-iRh2okEQNQmCjWNveSx79po_ADdMgN_sMzerhlx0AtTIMLlDo7LnKC2GltZS2X_2_NyrN4yl5ccwPs6CEKOC2OEz8DYPQNIvlQYboJP2RBjD94zb3T4-Myuo-A2uneJGRWJI_hNoJMxinTEgl4R6FSqxRtEG9c0",
+    "dq": "KTM6ewekTTvr7OnkT0aAqII390yhW0lDXbVICHGHssh44diqsXI2nk-SkeLbexhXZYTwiC5zMsPLFfEvYSmXVZvpRjfCUL6QCQy65ZFhRACXMm_WQ-Q8eBEHXunld5MEneg8OQicpHvMuWxq3_n9oDU5LfNfFYDmxGBtClWWkLE",
+    "qi": "XOpHAUN8F1dQ5jAnnvvTR1uHCUmeA28Zc7gO_jkOlazRid2KhGQFaIg-__7KlEXVG_i0BURg-vBLvk9yvvHICegGGPPRWusk_KGWFSsefaGhdXYDq1WDF2qOI3CS4pPGUbkTDRjnduquwscrh9kAWt-SluXy6dViLXPjL4MXoA8",
+    "kid": "e2e-test-key-1",
+    "alg": "RS256",
+    "use": "sig"
+  },
+  "publicJwk": {
+    "kty": "RSA",
+    "n": "zqfETkR1FBbmWeaVm_PnkMnljqV6hvKNCM_LdiPVdN9mZ9sPC95GVWPHGXGJJ6VZZ3WFlNu5RkVtOi3QCjuHYUsYWkCAhVnVpeOF1XSn5U2sIYxFlskZq_UiFsVepqoIbYwAB-K-fkeVEqP0RrTvirwqOSlM1HZE_T4HO8kdBc2hTYzEbN5egGRhlFoeSVLsN6gO9RpzglWYscBqfU4kbYG-ZEpz4A5Zq8SMquYxPEx2yUirl5BTauW0PXcCLUYh8QgA3QED5Mk_UwQAn461bfXOQiBE662vHCRf1jyZaegExA8Kk3p46EDOj-k3ZO7x3Zc9VlTm3CVzUa0hvz_9YQ",
+    "e": "AQAB",
+    "kid": "e2e-test-key-1",
+    "alg": "RS256",
+    "use": "sig"
+  }
+}

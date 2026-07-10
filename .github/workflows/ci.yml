@@ -20,11 +20,6 @@ concurrency:
   # behind a later skipped commit (the af1fad7 -> ecc6f43 shape from 2026-06-13).
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
-# No e2e job: e2e/tests/auth.setup.ts requires live WorkOS hosted-login
-# credentials (TEST_USER_EMAIL/TEST_USER_PASSWORD against a real WorkOS
-# environment), so even the mocked tier can't run hermetically in CI.
-# Tracked in the remediation plan (P2).
-
 jobs:
   test:
     runs-on: blacksmith-4vcpu-ubuntu-2404
@@ -92,6 +87,43 @@ jobs:
       # no pipeline data load is required.
       - name: Agent integration tests (real Neo4j)
         run: npm run test:integration -w @nc-medicaid/agent
+
+  # Mocked e2e tier, hermetically: HERMETIC_AUTH mints a sealed test session
+  # and verifies it against a local JWKS stub, so no WorkOS credentials or
+  # network access are needed (see e2e/helpers/test-auth.ts). The Mastra
+  # backend is mocked by the suite itself. This tier previously rotted
+  # because it couldn't run in CI (F-E2E-001).
+  e2e-mocked:
+    name: Mocked e2e (hermetic auth)
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Install e2e dependencies
+        run: npm ci
+        working-directory: e2e
+
+      - name: Install Playwright chromium
+        run: npx playwright install --with-deps chromium
+        working-directory: e2e
+
+      - name: Run mocked e2e suite
+        run: HERMETIC_AUTH=1 npx playwright test --project=mocked
+        working-directory: e2e
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: e2e/playwright-report
+          retention-days: 7
 
   # Builds the same images Railway deploys, so production-only bundling
   # failures are caught here instead of at deploy time. The agent build runs
