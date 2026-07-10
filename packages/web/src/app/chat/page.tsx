@@ -18,6 +18,7 @@ import { useMastraClientRunner } from '@/lib/use-mastra-client';
 import { useAnswerVersions } from '@/lib/use-answer-versions';
 import { useChatThread } from '@/lib/use-chat-thread';
 import { useDeepResearch } from '@/lib/use-deep-research';
+import { useCorpusStatus } from '@/lib/use-corpus-status';
 import { useFeedback } from '@/lib/use-feedback';
 import { usePinnedScroll } from '@/lib/use-pinned-scroll';
 import { useSidebarState } from '@/lib/use-sidebar-state';
@@ -29,6 +30,17 @@ export default function ChatPage() {
   const isMobile = useIsMobile();
 
   const resourceId = user?.id ?? 'anonymous';
+
+  // Corpus freshness in the masthead: the EmptyState version disappears after
+  // the first message, but "how current is this?" matters most mid-research.
+  const corpusStatus = useCorpusStatus();
+  const corpusUpdatedLabel = corpusStatus?.lastUpdated
+    ? new Date(corpusStatus.lastUpdated).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      })
+    : null;
 
   const [input, setInput] = useState('');
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -232,6 +244,9 @@ export default function ChatPage() {
               </h1>
               <span className="mt-1 hidden font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground md:block">
                 Policy Research · Queen City Cortex
+                {corpusUpdatedLabel && (
+                  <span data-testid="masthead-corpus-status"> · Corpus updated {corpusUpdatedLabel}</span>
+                )}
               </span>
             </div>
             <div className="ml-auto">

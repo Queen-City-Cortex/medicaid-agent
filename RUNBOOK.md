@@ -89,6 +89,43 @@ npm run dev
 
 Open `http://localhost:3000` to use the chat interface.
 
+## Automated Refresh & Backups (launchd)
+
+The daily/weekly data operations below are automated on the ops laptop via
+launchd, with [healthchecks.io](https://healthchecks.io) as a dead-man's
+switch (an alert fires when a job *doesn't run* — laptop off, plist unloaded —
+not just when it fails):
+
+| Job | Schedule | Script | Healthcheck env |
+|---|---|---|---|
+| Daily document check | 07:30 | `scripts/ops/daily-check.sh` | `HC_URL_DAILY` |
+| Prod chat-store backup | 06:45 | `scripts/ops/backup-mastra.sh` | `HC_URL_MASTRA_BACKUP` |
+| Weekly refresh + deploy + backup | Sat 08:00 | `scripts/ops/weekly-refresh.sh` | `HC_URL_WEEKLY` |
+
+Install/refresh the schedules: `scripts/ops/install-launchd.sh` (idempotent;
+`--uninstall` removes them). launchd coalesces runs missed while the laptop
+slept into one run at wake. Logs: `~/Library/Logs/nc-medicaid/`. Ping URLs and
+bucket config live in `~/.config/nc-medicaid/ops.env`.
+
+**The weekly refresh** runs: crawl → `pipeline run-all` → `audit-corpus` →
+**eval gate** → **change gate** → deploy-data to prod (TCP proxy opened and
+closed automatically around the push, with an EXIT trap + post-check so it is
+never left open) → prod healthz + smoke → corpus backup.
+
+- **Eval gate** (`scripts/ops/eval-gate.sh`): `eval-validate`, a retrieval
+  eval, then `eval-compare --fail-on-regression` against the last-known-good
+  run (`~/.cache/nc-medicaid/last-good-eval`). A regression aborts before
+  prod is touched — prod keeps last week's graph and the alert carries the
+  comparison report. After investigating, rerun; the baseline only advances
+  on a pass.
+- **Change gate**: the destructive deploy (full wipe + Voyage re-embed) is
+  skipped when the crawl found nothing and the parsed-artifact manifest hash
+  matches the last deploy (`~/.cache/nc-medicaid/last-deploy.manifest`).
+  `FORCE_DEPLOY=1` overrides; `SKIP_DEPLOY=1` refreshes local only.
+
+Run any piece manually by invoking its script; a supervised end-to-end run is
+`launchctl kickstart -k gui/$(id -u)/com.ncmedicaid.weekly-refresh`.
+
 ## Daily: Check for Document Changes
 
 ```bash
