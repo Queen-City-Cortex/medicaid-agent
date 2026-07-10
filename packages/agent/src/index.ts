@@ -2,12 +2,13 @@ import './load-env.js';
 import { Sentry } from './sentry.js';
 import { log, errorFields } from './logger.js';
 import { Mastra } from '@mastra/core';
-import { Agent, type OnIterationCompleteHandler } from '@mastra/core/agent';
+import { Agent, type AgentExecutionOptions, type OnIterationCompleteHandler } from '@mastra/core/agent';
 import { PromptInjectionDetector, TokenLimiterProcessor } from '@mastra/core/processors';
 import { MastraCompositeStore } from '@mastra/core/storage';
 import { createModel, AGENT_MODEL } from './model.js';
 import { deepResearchWorkflow } from './deep-research/workflow.js';
-import { chatRoute } from '@mastra/ai-sdk';
+import { handleChatStream } from '@mastra/ai-sdk';
+import { createUIMessageStreamResponse } from 'ai';
 import { registerApiRoute } from '@mastra/core/server';
 import { Memory } from '@mastra/memory';
 import { LibSQLStore } from '@mastra/libsql';
@@ -37,7 +38,8 @@ import { ScopeGateProcessor } from './processors/scope-gate.js';
 import { RateLimitRepository } from './rate-limit/repository.js';
 import { createBodySizeGuard, createRateLimitMiddleware } from './rate-limit/middleware.js';
 import { MastraAuthWorkos } from '@mastra/auth-workos';
-import { createResourceBindingMiddleware } from './auth-middleware.js';
+import { createResourceBindingMiddleware, getBoundUserId } from './auth-middleware.js';
+import { UsageRepository } from './usage/repository.js';
 import { PinoLogger } from '@mastra/loggers';
 import { FeedbackRepository } from './feedback/repository.js';
 import { feedbackApiRoutes } from './feedback/routes.js';
@@ -83,6 +85,7 @@ const libsql = new LibSQLStore({
 
 const feedbackRepo = new FeedbackRepository(DATABASE_URL);
 const rateLimitRepo = new RateLimitRepository(DATABASE_URL);
+const usageRepo = new UsageRepository(DATABASE_URL);
 
 const storage = new MastraCompositeStore({
   id: 'composite-storage',
@@ -183,6 +186,11 @@ const AGENT_RUN_LIMITS = {
   onIterationComplete,
 } as const;
 
+// The finish event carries totalUsage + model + runId. Derived from the
+// agent execution options ('@mastra/core/stream' doesn't re-export
+// MastraOnFinishCallbackArgs publicly).
+type ChatFinishEvent = Parameters<NonNullable<AgentExecutionOptions['onFinish']>>[0];
+
 export const ncMedicaidAgent = new Agent({
   id: 'nc-medicaid-navigator',
   name: 'NC Medicaid Navigator',
@@ -260,24 +268,73 @@ export const mastra = new Mastra({
       return c.json({ error: 'Internal server error' }, 500);
     },
     apiRoutes: [
-      chatRoute({
-        path: '/chat',
-        agent: 'ncMedicaidAgent',
-        version: 'v6',
-        defaultOptions: {
-          ...AGENT_RUN_LIMITS,
-          savePerStep: true,
-          onStepFinish: async (step) => {
-            log.debug('chat.step_finished', {
-              stepType: step.stepType,
-              textChars: step.text?.length ?? 0,
-              toolCalls: step.toolCalls?.length ?? 0,
+      // Hand-rolled equivalent of @mastra/ai-sdk's chatRoute({path: '/chat',
+      // agent, version: 'v6'}): chatRoute's options are static, but usage
+      // attribution needs the authenticated user + a per-request onFinish —
+      // so this registers the same handleChatStream flow with a per-request
+      // closure. Param plumbing mirrors chatRoute's handler (body → params,
+      // requestContext priority, abort signal, createUIMessageStreamResponse).
+      registerApiRoute('/chat', {
+        method: 'POST',
+        handler: async (c) => {
+          const body = await c.req.json();
+          const userId = getBoundUserId(c);
+          const threadId = (body?.memory as { thread?: string } | undefined)?.thread;
+
+          const onFinish = (event: ChatFinishEvent) => {
+            const usage = event.totalUsage;
+            // Fire-and-forget by design: usage accounting must never fail or
+            // delay a chat that already succeeded (record() also try/catches).
+            void usageRepo.record({
+              userId: userId ?? 'unknown',
+              route: 'chat',
+              runId: event.runId,
+              threadId,
+              modelId: event.model?.modelId ?? AGENT_MODEL,
+              provider: event.model?.provider,
+              inputTokens: usage?.inputTokens,
+              outputTokens: usage?.outputTokens,
+              totalTokens: usage?.totalTokens,
+              reasoningTokens: usage?.reasoningTokens,
+              cachedInputTokens: usage?.cachedInputTokens,
             });
-          },
-          onError: (err) => {
-            log.error('chat.stream_error', errorFields(err));
-            Sentry.captureException(err, { tags: { route: 'chat' } });
-          },
+            log.info('chat.usage', {
+              userId: userId ?? 'unknown',
+              modelId: event.model?.modelId ?? AGENT_MODEL,
+              inputTokens: usage?.inputTokens,
+              outputTokens: usage?.outputTokens,
+              cachedInputTokens: usage?.cachedInputTokens,
+            });
+          };
+
+          const stream = await handleChatStream({
+            mastra: c.get('mastra'),
+            agentId: 'ncMedicaidAgent',
+            version: 'v6',
+            params: {
+              ...body,
+              // Middleware > body, mirroring chatRoute's priority order.
+              requestContext: c.get('requestContext') ?? body?.requestContext,
+              abortSignal: c.req.raw.signal,
+              onFinish,
+            },
+            defaultOptions: {
+              ...AGENT_RUN_LIMITS,
+              savePerStep: true,
+              onStepFinish: async (step) => {
+                log.debug('chat.step_finished', {
+                  stepType: step.stepType,
+                  textChars: step.text?.length ?? 0,
+                  toolCalls: step.toolCalls?.length ?? 0,
+                });
+              },
+              onError: (err) => {
+                log.error('chat.stream_error', errorFields(err));
+                Sentry.captureException(err, { tags: { route: 'chat' } });
+              },
+            },
+          });
+          return createUIMessageStreamResponse({ stream });
         },
       }),
       ...feedbackApiRoutes(feedbackRepo),

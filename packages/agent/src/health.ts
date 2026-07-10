@@ -1,4 +1,5 @@
 import { VOYAGE_API_KEY, VOYAGE_API_URL, VOYAGE_MODEL } from './config.js';
+import { strEnv } from './env.js';
 import { log, errorFields } from './logger.js';
 
 // Provider reachability checks for /healthz. Neo4j and LibSQL decide the
@@ -47,13 +48,31 @@ async function checkVoyage(): Promise<ProviderHealth> {
 
 async function checkOpenAI(): Promise<ProviderHealth> {
   try {
-    // GET /v1/models validates the key and reachability with no token cost.
-    const response = await fetch('https://api.openai.com/v1/models', {
-      headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY ?? ''}` },
+    // A minimal 1-token completion, NOT GET /v1/models: the models endpoint
+    // is free and returns 200 even when the account's quota is exhausted —
+    // which is exactly the failure mode that takes every chat down (observed
+    // in production 2026-07-10). Cost is ~nothing at one call per cache
+    // window; during an actual quota outage the call is free (it fails).
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY ?? ''}`,
+      },
+      body: JSON.stringify({
+        // gpt-5-mini is itself on the chat request path (prompt-injection
+        // detector, scope gate), so a key that can't call it can't serve
+        // chats either. Override if that ever diverges, so the probe can't
+        // page on a model the deployment doesn't actually use.
+        model: strEnv('HEALTHZ_OPENAI_PROBE_MODEL', 'gpt-5-mini'),
+        messages: [{ role: 'user', content: 'ok' }],
+        max_completion_tokens: 1,
+      }),
       signal: AbortSignal.timeout(PROVIDER_CHECK_TIMEOUT_MS),
     });
     if (!response.ok) {
-      log.error('healthz.openai_failed', { status: response.status });
+      const text = await response.text().catch(() => '');
+      log.error('healthz.openai_failed', { status: response.status, errText: text.slice(0, 300) });
       return 'error';
     }
     return 'ok';
