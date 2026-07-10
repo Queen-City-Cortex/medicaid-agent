@@ -12,6 +12,14 @@ export async function register() {
   // Deploys set SENTRY_ENVIRONMENT (=production/staging); local runs don't —
   // the server-side analogue of the client hostname guard.
   const environment = process.env.SENTRY_ENVIRONMENT;
+  if (process.env.SENTRY_DSN && !environment) {
+    // A deploy with a DSN but no declared environment silently loses all
+    // error tracking — warn loudly instead of no-opping in silence.
+    console.warn(
+      '⚠️  SENTRY_DSN is set but SENTRY_ENVIRONMENT is not — Sentry is DISABLED. ' +
+        'Set SENTRY_ENVIRONMENT=production (or staging) on this service to enable error tracking.',
+    );
+  }
   if (!process.env.SENTRY_DSN || !environment || environment === 'development') return;
 
   const options = {

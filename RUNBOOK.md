@@ -24,6 +24,8 @@ Copy `.env.example` to `.env` at the repo root and fill in keys. The agent and w
 | `NEO4J_URI` | No | `bolt://localhost:7687` | Neo4j connection URI |
 | `NEO4J_USER` | No | `neo4j` | Neo4j username |
 | `NEO4J_PASSWORD` | No | `medicaid-dev` | Neo4j password |
+| `NEO4J_QUERY_TIMEOUT_MS` | No | `30000` | Server-side transaction timeout applied to every corpus query via `withSession` — bounds how long one slow query can hold a chat request |
+| `VOYAGE_TIMEOUT_MS` | No | `15000` | Per-request timeout on Voyage embedding calls (the agent retries once on 429/5xx/timeout) |
 | `DATABASE_URL` | No | `file:./mastra.db` | LibSQL storage URL for Mastra |
 | `PORT` | No | `4111` | Mastra server port |
 | `SENTRY_DSN` | No | — | Server-side error tracking for both agent and web. Unset = Sentry disabled (no-op). **Also skipped when the resolved environment is `development`** (see below), so a DSN in local `.env` does not report dev errors. Set per service in Railway. |

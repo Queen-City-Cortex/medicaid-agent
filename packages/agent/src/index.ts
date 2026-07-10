@@ -20,6 +20,7 @@ import { findConceptSections } from './tools/concepts.js';
 import { lookupPolicy } from './tools/lookup.js';
 import { resolveAnswerFrame } from './tools/answer-frame.js';
 import { closeDriver, getDriver } from './neo4j.js';
+import { checkProviders } from './health.js';
 import {
   HallucinationVerifier,
   extractSources,
@@ -308,8 +309,18 @@ export const mastra = new Mastra({
           const storage: 'writable' | 'readonly' =
             (await feedbackRepo.probeWritable()) ? 'writable' : 'readonly';
 
+          // Provider reachability (Voyage, OpenAI) is informational: an
+          // expired key must be visible here (it breaks every chat) but must
+          // NOT 503 the deploy — Railway would roll a healthy build back for
+          // an upstream blip it can't fix. Results are cached ~60s in
+          // health.ts so probes don't burn quota.
+          const providers = await checkProviders();
+
           const ok = neo4j === 'connected' && storage === 'writable';
-          return c.json({ status: ok ? 'ok' : 'degraded', neo4j, storage }, ok ? 200 : 503);
+          return c.json(
+            { status: ok ? 'ok' : 'degraded', neo4j, storage, ...providers },
+            ok ? 200 : 503,
+          );
         },
       }),
     ],

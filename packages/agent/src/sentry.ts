@@ -21,6 +21,16 @@ const dsn = process.env.SENTRY_DSN;
 // of leaking into the shared Sentry project. Deploys set it to production/staging.
 const environment = process.env.SENTRY_ENVIRONMENT;
 
+if (dsn && !environment) {
+  // A deploy with a DSN but no declared environment silently loses all error
+  // tracking — the single most likely Sentry misconfiguration. Fail loud at
+  // startup (plain console: the logger isn't initialised yet this early).
+  console.warn(
+    '⚠️  SENTRY_DSN is set but SENTRY_ENVIRONMENT is not — Sentry is DISABLED. ' +
+      'Set SENTRY_ENVIRONMENT=production (or staging) on this service to enable error tracking.',
+  );
+}
+
 if (dsn && environment && environment !== 'development') {
   Sentry.init({
     dsn,
