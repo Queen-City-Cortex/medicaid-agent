@@ -9,6 +9,19 @@ const PROSE =
 
 function VerificationLine({ v }: { v: DeepResearchReport['verification'] }) {
   if (!v) return null;
+  // "0/0 verified" is not a clean bill of health — with nothing checked, a
+  // green badge would overstate the guarantee. Show a neutral note instead.
+  if (v.checkedCitations === 0) {
+    return (
+      <div
+        data-testid="deep-research-verification"
+        className="mt-1 inline-flex items-center gap-2 rounded-md border border-border bg-muted/40 px-3 py-1.5 text-xs text-muted-foreground"
+      >
+        <ShieldAlert className="size-3.5" />
+        <span>No citations to verify in this report</span>
+      </div>
+    );
+  }
   const clean = v.fabricatedCitations === 0;
   const Icon = clean ? ShieldCheck : ShieldAlert;
   return (
@@ -38,16 +51,22 @@ export function DeepResearchReportView({ report }: { report: DeepResearchReport 
       <article className={PROSE}>
         <ReactMarkdown
           components={{
-            a: ({ children, href }) => (
-              <a
-                href={href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-foreground underline decoration-muted-foreground/30 underline-offset-2 transition-colors hover:text-accent hover:decoration-accent/60"
-              >
-                {children}
-              </a>
-            ),
+            // The report markdown is model-generated: only render real
+            // http(s) links as anchors; anything else (javascript:, data:,
+            // relative fabrications) degrades to plain text.
+            a: ({ children, href }) =>
+              href && /^https?:\/\//i.test(href) ? (
+                <a
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-foreground underline decoration-muted-foreground/30 underline-offset-2 transition-colors hover:text-accent hover:decoration-accent/60"
+                >
+                  {children}
+                </a>
+              ) : (
+                <span>{children}</span>
+              ),
           }}
         >
           {report.reportMarkdown}

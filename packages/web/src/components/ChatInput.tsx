@@ -129,7 +129,14 @@ export function ChatInput({
       </div>
       <div className="max-w-3xl mx-auto mt-2 flex items-baseline justify-between gap-4">
         <p id={helperTextId} className="text-xs text-muted-foreground">
-          Answers are AI-generated from NC Medicaid policy documents. Verify critical information with DHHS.
+          Answers are AI-generated from NC Medicaid policy documents. Verify critical information with DHHS.{' '}
+          <a href="/terms" className="underline underline-offset-2 hover:text-foreground">
+            Terms
+          </a>
+          {' · '}
+          <a href="/privacy" className="underline underline-offset-2 hover:text-foreground">
+            Privacy
+          </a>
         </p>
         {showCounter && (
           <p

@@ -97,8 +97,9 @@ test.describe('Tool calls', () => {
     await expect(panel).toContainText('Sources');
     await expect(panel).toContainText('2 sources');
 
-    // Expand and verify the links.
-    await page.getByTestId('sources-panel-trigger').click();
+    // G9 trust guard: the panel auto-opens whenever the agent consulted any
+    // sources — even uncited ones like these — so the rows are already in
+    // the DOM without a click.
     const items = page.getByTestId('source-item');
     await expect(items).toHaveCount(2);
 

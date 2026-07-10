@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import type { UIMessage } from 'ai';
+import { debugLog } from '@/lib/debug';
 import { generateUUID } from '@/lib/utils';
 import { coalesceThreadMessages } from '@/lib/parse-message';
 import { MASTRA_URL } from '@/lib/mastra-url';
@@ -110,7 +111,7 @@ export function useChatThread({
   // fires after the new instance mounts and applies the pending restore.
   useEffect(() => {
     if (pendingRestore.current) {
-      console.log(`[chat] restoring ${pendingRestore.current.length} cached messages`);
+      debugLog(`[chat] restoring ${pendingRestore.current.length} cached messages`);
       setMessages(pendingRestore.current);
       pendingRestore.current = null;
     }
@@ -123,11 +124,11 @@ export function useChatThread({
       const parts = messages.filter(m => m.role === 'assistant').flatMap(m => m.parts);
       const textLen = parts.filter(p => p.type === 'text').reduce((n, p) => n + ((p as { text: string }).text?.length ?? 0), 0);
       const toolCount = parts.filter(p => p.type !== 'text' && p.type !== 'step-start').length;
-      console.log(`[chat] status: ${prevStatus.current} → ${status} | msgs: ${messages.length} | parts: ${parts.length} (text: ${textLen} chars, tools: ${toolCount})`);
+      debugLog(`[chat] status: ${prevStatus.current} → ${status} | msgs: ${messages.length} | parts: ${parts.length} (text: ${textLen} chars, tools: ${toolCount})`);
 
       if (prevStatus.current === 'streaming' && status === 'ready' && messages.length > 0) {
         messageCache.current.set(threadId, messages);
-        console.log(`[chat] cached ${messages.length} messages for thread ${threadId.slice(0, 8)}…`);
+        debugLog(`[chat] cached ${messages.length} messages for thread ${threadId.slice(0, 8)}…`);
       }
       if (status === 'error') {
         console.error('[chat] entered error state', error);
@@ -167,7 +168,7 @@ export function useChatThread({
       // renders like the live stream (Research trail, footnotes, trust badge).
       const converted = coalesceThreadMessages(dbMessages);
       const assistantParts = converted.filter(m => m.role === 'assistant').flatMap(m => m.parts);
-      console.log(`[chat] loadThread ${tid.slice(0, 8)}… | ${dbMessages.length} db msgs → ${converted.length} ui msgs | assistant parts: ${assistantParts.length} (types: ${[...new Set(assistantParts.map(p => p.type))].join(',')})`);
+      debugLog(`[chat] loadThread ${tid.slice(0, 8)}… | ${dbMessages.length} db msgs → ${converted.length} ui msgs | assistant parts: ${assistantParts.length} (types: ${[...new Set(assistantParts.map(p => p.type))].join(',')})`);
       setMessages(converted);
       await loadThreadFeedback(tid, () => activeThreadRef.current === tid);
     } catch (err) {
@@ -178,7 +179,7 @@ export function useChatThread({
 
   const handleSelectThread = useCallback(async (tid: string) => {
     const hasCached = messageCache.current.has(tid);
-    console.log(`[chat] selectThread ${tid.slice(0, 8)}… | cached: ${hasCached}`);
+    debugLog(`[chat] selectThread ${tid.slice(0, 8)}… | cached: ${hasCached}`);
     activeThreadRef.current = tid;
     setThreadId(tid);
     onThreadSwitch();

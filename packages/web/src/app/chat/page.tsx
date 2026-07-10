@@ -6,6 +6,7 @@ import { useAuth, useAccessToken } from '@workos-inc/authkit-nextjs/components';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ChatInput } from '@/components/ChatInput';
 import { DeepResearchView } from '@/components/DeepResearchView';
+import { DisclaimerNotice } from '@/components/DisclaimerNotice';
 import { EmptyState } from '@/components/EmptyState';
 import { MessageList } from '@/components/MessageList';
 import { ScrollToBottom } from '@/components/ScrollToBottom';
@@ -300,6 +301,7 @@ export default function ChatPage() {
         <ScrollToBottom viewport={viewport} hasMessages={messages.length > 0 || isLoading} />
         </div>
 
+        <DisclaimerNotice />
         <ChatInput
           input={input}
           setInput={setInput}

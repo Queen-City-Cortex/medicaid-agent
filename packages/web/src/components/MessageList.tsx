@@ -215,11 +215,13 @@ function AssistantMessage({
     ? visibleParts.filter(({ index }) => index > lastToolIndex)
     : visibleParts;
   const resolveCitation = buildCitationResolver(sources);
-  // Open by default when the answer actually cites sources — hiding the
+  // Open by default whenever the agent consulted any sources — hiding the
   // panel behind a click is the wrong default for a verification-first
-  // product. The user's explicit toggle always wins once made.
+  // product, and an answer with consulted-but-uncited sources is exactly the
+  // case a skeptical reader should see. The user's explicit toggle always
+  // wins once made.
   const [panelOpenOverride, setPanelOpenOverride] = useState<boolean | null>(null);
-  const panelOpen = panelOpenOverride ?? citedCount > 0;
+  const panelOpen = panelOpenOverride ?? sources.length > 0;
   const setPanelOpen = setPanelOpenOverride;
   const [highlightedKey, setHighlightedKey] = useState<string | null>(null);
 
