@@ -156,7 +156,14 @@ def eval_mixed_corpus(level: str | None, top_k: int | None, category: str | None
 @cli.command("eval-compare")
 @click.argument("run_a")
 @click.argument("run_b")
-def eval_compare(run_a: str, run_b: str):
+@click.option(
+    "--fail-on-regression",
+    is_flag=True,
+    default=False,
+    help="Exit non-zero when any metric regresses beyond the threshold (or a "
+         "run can't be found). Lets automation gate a deploy on this comparison.",
+)
+def eval_compare(run_a: str, run_b: str, fail_on_regression: bool):
     """Compare two eval runs for regression detection."""
     from pipeline.eval.results import load_result, list_results
     from pipeline.eval.metrics import compare_runs
@@ -170,12 +177,27 @@ def eval_compare(run_a: str, run_b: str):
 
     if not file_a or not file_b:
         console.print("[red]Could not find both result files[/red]")
+        # A gate that can't find its baseline must block, not wave through.
+        if fail_on_regression:
+            raise SystemExit(1)
         return
 
     result_a = load_result(file_a)
     result_b = load_result(file_b)
-    diffs = compare_runs(result_a, result_b, threshold=EVAL_REGRESSION_THRESHOLD)
+    try:
+        diffs = compare_runs(result_a, result_b, threshold=EVAL_REGRESSION_THRESHOLD)
+    except ValueError as exc:
+        # Different eval levels — a shape mismatch, not a metric drop.
+        console.print(f"[red]{exc}[/red]")
+        if fail_on_regression:
+            raise SystemExit(1) from exc
+        return
     print_comparison_report(diffs)
+
+    regressed = [d["metric"] for d in diffs if d["regression"]]
+    if regressed and fail_on_regression:
+        console.print(f"[red]Regressions detected: {', '.join(regressed)}[/red]")
+        raise SystemExit(1)
 
 
 @cli.command("eval-runs")

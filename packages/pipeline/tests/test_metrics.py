@@ -79,6 +79,26 @@ class TestCompareRuns:
         diff = compare_runs(run_a, run_b, threshold=0.05)
         assert not any(d.get("regression") for d in diff)
 
+    def test_error_counters_are_higher_is_worse(self):
+        run_a = {"aggregate": {"judge_errors": 1, "agent_errors": 3}}
+        run_b = {"aggregate": {"judge_errors": 4, "agent_errors": 0}}
+        diff = {d["metric"]: d for d in compare_runs(run_a, run_b, threshold=0.05)}
+        # More judge errors → regression; fewer agent errors → improvement.
+        assert diff["judge_errors"]["regression"] is True
+        assert diff["agent_errors"]["regression"] is False
+
+    def test_scorable_count_is_informational(self):
+        run_a = {"aggregate": {"scorable_count": 50}}
+        run_b = {"aggregate": {"scorable_count": 40}}
+        diff = compare_runs(run_a, run_b, threshold=0.05)
+        assert not any(d["regression"] for d in diff)
+
+    def test_rejects_cross_level_comparison(self):
+        run_a = {"level": "answer", "aggregate": {"overall": 2.8}}
+        run_b = {"level": "retrieval", "aggregate": {"precision_at_k": 0.9}}
+        with pytest.raises(ValueError, match="different levels"):
+            compare_runs(run_a, run_b, threshold=0.05)
+
 
 class TestSummarizeAnswerStability:
     def test_flags_stable_misses_and_variance(self):

@@ -1,9 +1,29 @@
 """Eval orchestrator — selects level, iterates questions, collects results."""
 
+import json
 from pathlib import Path
 
 from pipeline.eval.dataset import load_dataset, filter_dataset
 from pipeline.eval.results import save_result
+
+
+def _dataset_from_cached_result(from_result: str) -> Path | None:
+    """Resolve the dataset a cached answer run was produced from, if recorded.
+
+    Older runs (no `config.dataset`) return None → the golden default.
+    Relative paths were recorded relative to the pipeline package root, so
+    anchor them there rather than trusting the current working directory.
+    """
+    config = json.loads(Path(from_result).read_text()).get("config", {})
+    recorded = config.get("dataset")
+    if not recorded:
+        return None
+    path = Path(recorded)
+    if not path.is_absolute():
+        from pipeline.config import PROJECT_ROOT
+
+        path = PROJECT_ROOT / path
+    return path
 
 
 def run_eval(
@@ -17,6 +37,14 @@ def run_eval(
     dataset_path: Path | None = None,
 ) -> dict:
     """Run an evaluation at the specified level. Returns the result dict."""
+    if level == "citation" and from_result and dataset_path is None:
+        # The citation level grades a cached answer run. Grading it against a
+        # different dataset than the one that produced the answers makes every
+        # ID lookup miss (q-* golden IDs vs h-* held-out IDs) and nulls the
+        # whole run — inherit the cached run's dataset unless one was
+        # explicitly passed.
+        dataset_path = _dataset_from_cached_result(from_result)
+
     entries = load_dataset(dataset_path)
     entries = filter_dataset(
         entries,

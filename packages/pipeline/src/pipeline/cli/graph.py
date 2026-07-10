@@ -12,6 +12,17 @@ def stats():
     from pipeline.graph import queries
 
     with get_session() as session:
+        # Freshness first — the number an operator checks before trusting
+        # anything else here. Same max(last_indexed) the agent's
+        # /corpus-status endpoint serves to the web UI.
+        fresh = session.run(
+            "MATCH (d:Document) RETURN max(d.last_indexed) AS last_indexed, count(d) AS docs"
+        ).single()
+        if fresh and fresh["docs"]:
+            console.print(
+                f"\n[bold]Corpus:[/bold] {fresh['docs']} documents · last indexed {fresh['last_indexed'] or 'unknown'}"
+            )
+
         nodes = session.run(queries.COUNT_NODES)
         console.print("\n[bold]Nodes:[/bold]")
         for r in nodes:
@@ -51,6 +62,13 @@ def stats():
             console.print(f"  Covered via chunks:    {r['chunked']}")
             console.print(f"  Total covered:         {covered}/{with_content} ({100 * covered // with_content if with_content else 0}%)")
             console.print(f"  Empty (structural):    {r['empty']}")
+            # Retrieval silently degrades for whatever isn't covered — make a
+            # gap impossible to miss when stats runs in the weekly cycle.
+            if with_content and covered / with_content < 0.99:
+                console.print(
+                    f"  [red]WARNING: embedding coverage below 99% "
+                    f"({with_content - covered} content sections uncovered) — run `pipeline.cli embed`[/red]"
+                )
 
         chunk_result = session.run("""
             MATCH (ch:Chunk)

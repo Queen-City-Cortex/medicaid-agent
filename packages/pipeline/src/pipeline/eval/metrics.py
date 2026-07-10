@@ -40,7 +40,20 @@ def compare_runs(
     run_b: dict,
     threshold: float = 0.05,
 ) -> list[dict]:
-    """Compare two eval runs and flag regressions."""
+    """Compare two eval runs and flag regressions.
+
+    Raises ValueError when the runs are different eval levels: their aggregate
+    shapes don't overlap, so the union comparison would report every
+    baseline-only metric as a drop to 0.0 — noise, not signal, and fatal to a
+    --fail-on-regression gate.
+    """
+    level_a = run_a.get("level")
+    level_b = run_b.get("level")
+    if level_a and level_b and level_a != level_b:
+        raise ValueError(
+            f"cannot compare runs of different levels ({level_a} vs {level_b})"
+        )
+
     diffs: list[dict] = []
     agg_a = run_a.get("aggregate", {})
     agg_b = run_b.get("aggregate", {})
@@ -50,12 +63,23 @@ def compare_runs(
         val_a = agg_a.get(metric, 0.0)
         val_b = agg_b.get(metric, 0.0)
         delta = val_b - val_a
+        if metric.endswith("_errors"):
+            # Error counters are higher-is-worse: any increase is a
+            # regression, and a decrease is an improvement — the score-metric
+            # rule would get both exactly backwards.
+            regression = delta > 0
+        elif metric == "scorable_count":
+            # Informational; a shrunken denominator shows up in the score
+            # metrics themselves.
+            regression = False
+        else:
+            regression = delta < -threshold
         diffs.append({
             "metric": metric,
             "before": val_a,
             "after": val_b,
             "delta": delta,
-            "regression": delta < -threshold,
+            "regression": regression,
         })
 
     return diffs
