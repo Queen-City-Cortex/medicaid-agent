@@ -45,7 +45,7 @@ import { FeedbackRepository } from './feedback/repository.js';
 import { feedbackApiRoutes } from './feedback/routes.js';
 import { corpusStatusRoute } from './corpus-status.js';
 import { buildSystemPrompt } from './prompt.js';
-import { intEnv, isVerifierEnabled, strEnv } from './env.js';
+import { boolEnv, intEnv, isVerifierEnabled, strEnv } from './env.js';
 
 // ── Startup validation ────────────────────────────────────────────────────────
 
@@ -95,16 +95,26 @@ const storage = new MastraCompositeStore({
   },
 });
 
+// Kill switch for the cross-conversation memory features (observational +
+// working memory). They store a per-user profile server-side — disclosed in
+// the privacy policy — and an org may reasonably want them off entirely.
+// Thread history/persistence is unaffected.
+const MEMORY_FEATURES_ENABLED = boolEnv('OBSERVATIONAL_MEMORY_ENABLED', true);
+
 const memory = IS_CLI_RUN
   ? undefined
   : new Memory({
       storage: libsql,
       options: {
-        observationalMemory: {
-          model: 'openai/gpt-5.4-mini',
-        },
+        ...(MEMORY_FEATURES_ENABLED
+          ? {
+              observationalMemory: {
+                model: 'openai/gpt-5.4-mini',
+              },
+            }
+          : {}),
         workingMemory: {
-          enabled: true,
+          enabled: MEMORY_FEATURES_ENABLED,
           scope: 'resource',
           template: `# User Profile
 - Name:

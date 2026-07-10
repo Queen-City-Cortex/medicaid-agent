@@ -93,7 +93,31 @@ export class FeedbackRepository {
       args: [id, input.threadId, input.messageId, input.resourceId, input.rating, comment, new Date().toISOString()],
     });
 
+    // Opportunistic orphan prune: deleting a thread (Mastra's memory API)
+    // removes its mastra_threads row and messages but knows nothing about
+    // this table, so feedback for deleted conversations — including user
+    // comments — would otherwise accumulate forever. Best-effort by design.
+    void this.pruneOrphans();
+
     return { id, isNew };
+  }
+
+  /**
+   * Delete feedback whose thread no longer exists. Never throws; returns 0
+   * when the mastra_threads table isn't there yet (a fresh DB where Mastra
+   * hasn't initialised its schema has no threads and no orphans).
+   */
+  async pruneOrphans(): Promise<number> {
+    try {
+      await this.ensureTable();
+      const result = await this.client.execute(
+        `DELETE FROM feedback
+         WHERE thread_id NOT IN (SELECT id FROM mastra_threads)`,
+      );
+      return result.rowsAffected ?? 0;
+    } catch {
+      return 0;
+    }
   }
 
   async delete(id: string, resourceId: string): Promise<boolean> {

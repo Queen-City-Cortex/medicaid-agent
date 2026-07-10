@@ -21,6 +21,7 @@ Copy `.env.example` to `.env` at the repo root and fill in keys. The agent and w
 | `ANTHROPIC_API_KEY` | Only for Claude `AGENT_MODEL` | — | Anthropic API key; needed only when `AGENT_MODEL` is a `claude-*` model |
 | `AGENT_MODEL` | No | `gpt-5.6-terra` | Main agent model (`gpt-*`/`o3*`/`o4*` route to OpenAI, anything else to Anthropic) |
 | `VERIFIER_MODEL` | No | `gpt-5.4-mini` | Hallucination-verifier model |
+| `OBSERVATIONAL_MEMORY_ENABLED` | No | `true` | Kill switch for the cross-conversation memory features (observational + working memory), which store a per-user profile server-side (disclosed in /privacy). `false` disables both; thread history is unaffected. |
 | `NEO4J_URI` | No | `bolt://localhost:7687` | Neo4j connection URI |
 | `NEO4J_USER` | No | `neo4j` | Neo4j username |
 | `NEO4J_PASSWORD` | No | `medicaid-dev` | Neo4j password |
@@ -61,6 +62,38 @@ AGENT_MODEL=gpt-5.4-mini npx mastra dev --dir src
 # Claude (also requires ANTHROPIC_API_KEY)
 AGENT_MODEL=claude-sonnet-4-6 npx mastra dev --dir src
 ```
+
+### Data classification & retention
+
+The LibSQL store on the agent's Railway volume (`/data/mastra.db`) holds
+**user-generated content that may contain client PII**: chat threads (legal
+aid attorneys and case managers paste real case details despite the UI's
+guidance not to), working/observational memory profiles, and feedback
+comments. Treat that file — and its dated backups in the Railway bucket
+(`agent/mastra/`, 30-day retention; see Backups & Restore) — accordingly:
+access is operational-only, never for content review.
+
+Retention in force:
+- **Chat threads** — user-controlled; sidebar delete removes the thread and
+  its messages server-side. Feedback rows for deleted threads are pruned
+  opportunistically (`FeedbackRepository.pruneOrphans`).
+- **Rate-limit events** — pruned after ~25h; **usage events** — pruned after
+  `USAGE_RETENTION_DAYS` (default 400).
+- **Memory profiles** — kept while the account exists; disable entirely with
+  `OBSERVATIONAL_MEMORY_ENABLED=false`.
+- **Account deletion requests** (privacy policy contact): delete the user in
+  WorkOS, their threads via the memory API (each thread delete also removes
+  its messages; orphaned feedback is pruned automatically), then remove the
+  remaining rows directly on the agent volume (or work on a downloaded
+  backup, verify, and upload — see Backups & Restore):
+
+  ```sql
+  -- sqlite3 /data/mastra.db, with <id> = the WorkOS user id
+  DELETE FROM mastra_threads     WHERE resourceId = '<id>';   -- if any remain
+  DELETE FROM feedback           WHERE resource_id = '<id>';
+  DELETE FROM usage_events       WHERE user_id = '<id>';
+  DELETE FROM rate_limit_events  WHERE user_id = '<id>';
+  ```
 
 ### Abuse Protections
 

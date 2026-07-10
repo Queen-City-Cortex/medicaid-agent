@@ -133,6 +133,32 @@ describe('FeedbackRepository', () => {
   });
 
 
+  describe('pruneOrphans', () => {
+    const clientOf = (r: FeedbackRepository) =>
+      (r as unknown as { client: { execute: (q: string | { sql: string; args: unknown[] }) => Promise<{ rows: Record<string, unknown>[] }> } }).client;
+
+    it('deletes feedback whose thread no longer exists in mastra_threads', async () => {
+      const client = clientOf(repo);
+      await client.execute('CREATE TABLE mastra_threads (id TEXT NOT NULL PRIMARY KEY)');
+      await client.execute({ sql: 'INSERT INTO mastra_threads (id) VALUES (?)', args: ['t-alive'] });
+
+      await repo.upsert({ id: 'fb-1', threadId: 't-alive', messageId: 'm1', resourceId: 'u1', rating: 'up', comment: null });
+      await repo.upsert({ id: 'fb-2', threadId: 't-deleted', messageId: 'm2', resourceId: 'u1', rating: 'down', comment: 'sensitive note' });
+
+      // upsert() also fires the prune opportunistically, so the orphan may
+      // already be gone by now — assert the end state, not the return count.
+      await repo.pruneOrphans();
+      expect(await repo.getByThread('t-alive', 'u1')).toHaveLength(1);
+      expect(await repo.getByThread('t-deleted', 'u1')).toHaveLength(0);
+    });
+
+    it('returns 0 (not throw) when mastra_threads does not exist yet', async () => {
+      await repo.upsert({ id: 'fb-1', threadId: 't1', messageId: 'm1', resourceId: 'u1', rating: 'up', comment: null });
+      expect(await repo.pruneOrphans()).toBe(0);
+      expect(await repo.getByThread('t1', 'u1')).toHaveLength(1);
+    });
+  });
+
   describe('probeWritable', () => {
     it('returns true when the store accepts writes', async () => {
       expect(await repo.probeWritable()).toBe(true);
