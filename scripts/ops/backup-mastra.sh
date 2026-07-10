@@ -39,13 +39,24 @@ log "mastra backup starting (stamp $STAMP)"
 # 1. Consistent snapshot inside the container via sqlite3 (installed in the
 #    runner image alongside gosu — the mastra bundle does not expose a usable
 #    node_modules tree, so a node/@libsql fallback is not reliable there).
-railway_cli ssh -s "$AGENT_SERVICE" -- sh -c "
-  command -v sqlite3 >/dev/null 2>&1 || { echo 'sqlite3 missing in the runner image — redeploy with the updated Dockerfile' >&2; exit 1; }
-  sqlite3 /data/mastra.db \"VACUUM INTO '$REMOTE_SNAP'\"
-"
+#    Two hazards, both observed on the first live run:
+#    - The remote command must be ONE argument: ssh joins arguments with
+#      spaces and the remote shell re-parses them, so a multi-line
+#      `sh -c "…"` arrives as `sh -c` with the script on the next line.
+#    - `railway ssh` exits 0 even when the remote command fails, so success
+#      is confirmed by a sentinel in the output, not the exit code.
+#    rm -f first: VACUUM INTO refuses to overwrite, which would fail every
+#    same-day retry after a partial run.
+SNAP_OUT="$(railway_cli ssh -s "$AGENT_SERVICE" -- \
+  "command -v sqlite3 >/dev/null 2>&1 && rm -f '$REMOTE_SNAP' && sqlite3 /data/mastra.db \"VACUUM INTO '$REMOTE_SNAP'\" && echo SNAPSHOT_OK || echo SNAPSHOT_FAILED" 2>&1)"
+if ! grep -q 'SNAPSHOT_OK' <<<"$SNAP_OUT"; then
+  log "in-container snapshot failed: $SNAP_OUT"
+  exit 1
+fi
 
 # 2. Download the snapshot, verify integrity locally, push to the bucket.
-railway_cli service files download -s "$AGENT_SERVICE" "$REMOTE_SNAP" "$LOCAL_SNAP"
+#    (-s is an option of `service files`, not of the download subcommand.)
+railway_cli service files -s "$AGENT_SERVICE" download --overwrite "$REMOTE_SNAP" "$LOCAL_SNAP"
 INTEGRITY="$(sqlite3 "$LOCAL_SNAP" 'PRAGMA integrity_check;')"
 if [[ "$INTEGRITY" != "ok" ]]; then
   log "integrity check FAILED: $INTEGRITY"
