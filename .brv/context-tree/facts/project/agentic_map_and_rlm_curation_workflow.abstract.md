@@ -1,0 +1,1 @@
+This document defines the RLM curation workflow: use the precomputed recon, extract in single-pass or chunked mode with mapExtract timeout rules, deduplicate and group facts, UPSERT curate, and verify via applied file paths.

@@ -1,9 +1,18 @@
 {
-  "curationsSinceDream": 10,
+  "curationsSinceDream": 13,
   "lastDreamAt": "2026-06-21T19:25:08.202Z",
   "lastDreamLogId": "drm-1782069712962",
   "pendingMerges": [],
-  "staleSummaryPaths": [],
+  "staleSummaryPaths": [
+    {
+      "enqueuedAt": 1783649591565,
+      "path": "facts/project/curated_context_snippet.md"
+    },
+    {
+      "enqueuedAt": 1783649829988,
+      "path": "facts/project/agentic_map_and_rlm_curation_workflow.md"
+    }
+  ],
   "totalDreams": 9,
   "version": 1
 }

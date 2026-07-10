@@ -1,1 +1,1 @@
-This document records project curation rules for preserving durable knowledge, emphasizing structured context fields, exact fact and timestamp retention, UPSERT-based updates, and verification of applied results.
+This note captures curation workflow guidance for preserving durable project knowledge, using an RLM approach, and verifying results via applied file paths.

@@ -1,0 +1,9 @@
+- Defines the required RLM curation workflow: use the precomputed recon result, then choose single-pass or chunked extraction, deduplicate/group facts if needed, UPSERT curate, and verify results via applied file paths.
+- Emphasizes execution constraints: do not recompute recon, do not print raw context, and do not call tools.curation.recon because recon has already been completed.
+- Notes that the provided context was small enough to suggest single-pass extraction, with a suggestedChunkCount of 1.
+- Specifies that mapExtract is only for chunked contexts, and the outer code_exec call that contains mapExtract must use a 300000 timeout.
+- Requires using taskId as a bare variable rather than a string when calling mapExtract.
+- Verification must be done through result.applied[].filePath, and not by calling readFile.
+- Mentions curation helper behaviors and preferences: tools.curation.dedup(), tools.curation.groupBySubject(), and UPSERT-based curation.
+- Structure includes: Reason, Raw Concept, Narrative, and Facts sections, with the narrative explaining dependencies, highlights, and explicit rules.
+- Notable entities and patterns include tools.curation.recon, tools.curation.mapExtract(), tools.curation.dedup(), tools.curation.groupBySubject(), result.applied[].filePath, and the single-pass vs. chunked extraction decision path.
