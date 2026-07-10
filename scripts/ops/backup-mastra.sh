@@ -23,6 +23,11 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 HC_URL="${HC_URL_MASTRA_BACKUP:-}"
 LOG_FILE="$LOG_DIR/backup-mastra-$(date +%F).log"
 exec > >(tee -a "$LOG_FILE") 2>&1
+
+# Overlapping runs (a manual retry racing the scheduled job) share the same
+# dated snapshot path in the container — one run's rm -f/cleanup would clobber
+# the other's snapshot mid-download. One run at a time.
+acquire_lock mastra-backup || exit 0
 hc_trap
 hc_start
 
