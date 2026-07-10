@@ -271,6 +271,49 @@ npm run smoke:prod
 
 `npm run smoke:prod` uses `TEST_USER_EMAIL` and `TEST_USER_PASSWORD` from the environment or local env files, asks a real production question, checks for a substantive answer with tool steps and sources, and writes a screenshot to `/tmp/nc-medicaid-prod-smoke.png` by default. Override with `SMOKE_BASE_URL`, `SMOKE_QUESTION`, `SMOKE_TIMEOUT_MS`, or `SMOKE_SCREENSHOT_PATH` when needed.
 
+## Backups & Restore
+
+Production's data has three tiers, each with its own backup path. Off-platform
+copies live in the Railway bucket (`backups`, region iad) — rclone remote
+`ncmedicaid:`, configured on the ops laptop (`~/.config/rclone/rclone.conf`,
+credentials via `railway bucket credentials --bucket backups`). Script config
+(bucket name, healthchecks ping URLs) lives in `~/.config/nc-medicaid/ops.env`.
+
+| Data | Where | Backup | Cadence | Retention |
+|---|---|---|---|---|
+| Crawler registry (`crawler.db`) | laptop | `VACUUM INTO` snapshot → bucket `crawler/registry/` | weekly (`backup-corpus.sh`) | 90 days of dated copies |
+| Downloaded PDFs (~3 GB) | laptop | `rclone sync` → `crawler/documents/` (+`crawler/deleted/<date>/` undo) | weekly | deleted-file undo kept 120d |
+| Parsed artifacts (~3 GB) | laptop | `rclone sync` → `pipeline/parsed/` (+undo) | weekly | deleted-file undo kept 120d |
+| Golden/audits/references/ecfr-cache/eval-results | laptop | `rclone sync` → `pipeline/<dir>/` | weekly | mirrors |
+| LibSQL `mastra.db` (chat history, feedback, rate limits) | Railway agent volume | in-container `VACUUM INTO` → download → bucket `agent/mastra/` | daily (`backup-mastra.sh`) | 30 days of dated copies |
+| Neo4j graph | Railway volume | **none — rebuilt from artifacts** (see below) | n/a | n/a |
+
+Also enable **Railway-native volume backups** (dashboard → service → volume →
+Backups → Daily + Weekly) on both the agent volume and the Neo4j volume. They
+restore fastest but live in the same project — the bucket copies above are the
+independent tier.
+
+Run manually:
+
+```bash
+scripts/ops/backup-corpus.sh    # weekly corpus/crawler backup
+scripts/ops/backup-mastra.sh    # daily prod chat-store backup
+```
+
+One-time prereqs for `backup-mastra.sh`: `railway ssh keys add` and
+`ssh-keyscan ssh.railway.com >> ~/.ssh/known_hosts` (the script snapshots
+inside the container over Railway SSH, then downloads via
+`railway service files download`).
+
+### Restore
+
+- **Crawler registry:** `rclone copyto ncmedicaid:<bucket>/crawler/registry/crawler-<date>.db packages/crawler/data/crawler.db`
+- **Documents / parsed artifacts:** `rclone sync ncmedicaid:<bucket>/crawler/documents packages/crawler/data/documents` (same pattern for `pipeline/parsed`). A file deleted or overwritten by a bad sync also survives under `.../deleted/<date>/`.
+- **mastra.db (prod chat store):** pick a dated copy, `sqlite3 file 'PRAGMA integrity_check;'`, then `railway service files upload -s '@nc-medicaid/agent' <file> /data/mastra.db` **while the service is stopped/redeploying**, or use a Railway volume-backup restore for same-project incidents.
+- **Neo4j (prod graph): rebuild, don't restore.** The graph is a pure derivation of the parsed artifacts + federal caches. Restore those (above) if the laptop is lost, then `npm run deploy-data`. RPO = age of the last corpus backup; RTO ≈ 30 min + Voyage re-embed. Community-edition dumps would need downtime on every backup and buy little — this is the deliberate DR story.
+
+**Quarterly restore drill:** pull the newest `mastra-<date>.db`, run `PRAGMA integrity_check`, and spot-restore 5 random parsed JSONs, diffing against local.
+
 ## Full Rebuild (Nuclear Option)
 
 If the graph is corrupted or you need to rebuild from scratch. **`load --reset` drops every node and relationship in the graph that `NEO4J_URI` points at** — double-check it targets the intended instance before running. (For remote/production rebuilds use `npm run deploy-data`, which prints the target graph's contents and requires explicit confirmation.)

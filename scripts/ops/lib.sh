@@ -1,0 +1,120 @@
+#!/usr/bin/env bash
+# Shared helpers for the ops scripts (backups, refresh cycle). Sourced, not run.
+#
+# Conventions:
+# - Secrets/config live in ~/.config/nc-medicaid/ops.env (chmod 600), NOT in
+#   the repo: BACKUP_REMOTE, BACKUP_BUCKET, HC_URL_* healthchecks ping URLs,
+#   optional RAILWAY_TOKEN.
+# - Every railway CLI call must strip the stale shell RAILWAY_API_TOKEN:
+#   use the `railway_cli` wrapper below.
+# - Logs go to ~/Library/Logs/nc-medicaid/<script>-<date>.log (launchd also
+#   captures stdout/stderr there).
+
+set -euo pipefail
+
+OPS_ENV="${OPS_ENV:-$HOME/.config/nc-medicaid/ops.env}"
+if [[ -f "$OPS_ENV" ]]; then
+  # shellcheck disable=SC1090
+  source "$OPS_ENV"
+fi
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+LOG_DIR="$HOME/Library/Logs/nc-medicaid"
+CACHE_DIR="$HOME/.cache/nc-medicaid"
+mkdir -p "$LOG_DIR" "$CACHE_DIR"
+
+# ── Logging ──────────────────────────────────────────────────────────────────
+
+log() { printf '%s %s\n' "$(date '+%Y-%m-%dT%H:%M:%S%z')" "$*"; }
+
+# ── healthchecks.io dead-man's-switch pings ─────────────────────────────────
+# Each script sets HC_URL before using these (from an HC_URL_* in ops.env).
+# All pings are best-effort: a healthchecks outage must never fail a backup.
+
+hc_start() { [[ -n "${HC_URL:-}" ]] && curl -fsS -m 10 --retry 3 "$HC_URL/start" >/dev/null || true; }
+hc_ok()    { [[ -n "${HC_URL:-}" ]] && curl -fsS -m 10 --retry 3 "$HC_URL" >/dev/null || true; }
+hc_fail()  {
+  # Attach the tail of the current log (if any) so the alert email carries
+  # the failure context.
+  [[ -n "${HC_URL:-}" ]] || return 0
+  local body=""
+  [[ -n "${LOG_FILE:-}" && -f "$LOG_FILE" ]] && body="$(tail -c 8000 "$LOG_FILE")"
+  curl -fsS -m 10 --retry 3 --data-raw "$body" "$HC_URL/fail" >/dev/null || true
+}
+
+# ── Composable EXIT hooks ────────────────────────────────────────────────────
+# bash `trap ... EXIT` REPLACES any previous trap, so helpers that each need
+# exit-time work (healthcheck fail ping, lock cleanup, proxy teardown) must
+# register through one dispatcher instead of setting their own traps —
+# otherwise whichever helper ran last silently disables the others.
+
+_EXIT_HOOKS=()
+_EXIT_CODE=0
+_run_exit_hooks() {
+  _EXIT_CODE=$?
+  # LIFO (like `defer`): later-registered cleanup (e.g. the proxy teardown)
+  # runs BEFORE the earlier-registered healthcheck fail ping, so a failing
+  # cleanup can still mark the run failed and be reported.
+  local i hook
+  for ((i = ${#_EXIT_HOOKS[@]} - 1; i >= 0; i--)); do
+    hook="${_EXIT_HOOKS[$i]}"
+    if ! eval "$hook"; then
+      log "exit hook failed: $hook"
+      _hc_failed=1
+    fi
+  done
+}
+add_exit_hook() {
+  _EXIT_HOOKS+=("$1")
+  trap _run_exit_hooks EXIT
+}
+
+# Wire ERR/EXIT so any failure pings /fail exactly once. Scripts call
+# `hc_trap` after setting HC_URL/LOG_FILE — and BEFORE registering cleanup
+# hooks that must be able to fail the run (LIFO ordering above).
+_hc_failed=0
+_hc_on_err() { _hc_failed=1; }
+_hc_on_exit() {
+  if [[ ${_EXIT_CODE:-0} -ne 0 || $_hc_failed -ne 0 ]]; then hc_fail; fi
+  # rmdir_lock and friends registered before hc_trap still run after this.
+  return 0
+}
+hc_trap() {
+  trap _hc_on_err ERR
+  add_exit_hook '_hc_on_exit'
+}
+
+# ── Locking (macOS has no flock(1); mkdir is atomic) ─────────────────────────
+
+acquire_lock() {
+  local name="$1"
+  local lock_dir="$CACHE_DIR/$name.lock"
+  if ! mkdir "$lock_dir" 2>/dev/null; then
+    log "lock $name held ($(cat "$lock_dir/pid" 2>/dev/null || echo '?')) — exiting"
+    return 1
+  fi
+  echo $$ > "$lock_dir/pid"
+  add_exit_hook "rmdir_lock '$lock_dir'"
+}
+
+rmdir_lock() { rm -f "$1/pid" 2>/dev/null; rmdir "$1" 2>/dev/null || true; }
+
+is_locked() { [[ -d "$CACHE_DIR/$1.lock" ]]; }
+
+# ── Tools ────────────────────────────────────────────────────────────────────
+
+railway_cli() { env -u RAILWAY_API_TOKEN railway "$@"; }
+
+require_docker() {
+  if ! docker info >/dev/null 2>&1; then
+    log "Docker is not running — aborting"
+    return 1
+  fi
+}
+
+require_tool() {
+  command -v "$1" >/dev/null 2>&1 || { log "missing required tool: $1"; return 1; }
+}
+
+# Remote path helper: bucket-qualified rclone destination.
+bucket_path() { printf '%s:%s/%s' "${BACKUP_REMOTE:?set in ops.env}" "${BACKUP_BUCKET:?set in ops.env}" "$1"; }

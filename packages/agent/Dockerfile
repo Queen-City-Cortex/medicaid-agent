@@ -31,9 +31,11 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV SENTRY_RELEASE=$RAILWAY_GIT_COMMIT_SHA
 # gosu lets the entrypoint drop from root to `node` after it chowns the
-# root-owned Railway volume (see docker-entrypoint.sh).
+# root-owned Railway volume (see docker-entrypoint.sh). sqlite3 exists for
+# the daily off-platform backup (scripts/ops/backup-mastra.sh), which takes a
+# consistent VACUUM INTO snapshot of /data/mastra.db inside the container.
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends gosu \
+  && apt-get install -y --no-install-recommends gosu sqlite3 \
   && rm -rf /var/lib/apt/lists/*
 COPY --from=builder /app/packages/agent/.mastra/output ./
 COPY packages/agent/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
