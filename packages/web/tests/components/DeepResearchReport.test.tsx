@@ -12,7 +12,8 @@ function makeReport(overrides: Partial<DeepResearchReport> = {}): DeepResearchRe
     subQuestions: [],
     corpusSources: [],
     webSources: [],
-    verification: { checkedCitations: 3, groundedCitations: 3, fabricatedCitations: 0 },
+    workerFailures: [],
+    citationProvenance: { checkedCitations: 3, retrievedCitations: 3, unknownCitations: 0 },
     stats: { reflectionRounds: 1, subQuestionCount: 2, corpusSourceCount: 3, webSourceCount: 0 },
     ...overrides,
   };
@@ -30,7 +31,7 @@ describe('DeepResearchReportView verification line (G9 guards)', () => {
     render(
       <DeepResearchReportView
         report={makeReport({
-          verification: { checkedCitations: 0, groundedCitations: 0, fabricatedCitations: 0 },
+          citationProvenance: { checkedCitations: 0, retrievedCitations: 0, unknownCitations: 0 },
         })}
       />,
     );
@@ -40,7 +41,7 @@ describe('DeepResearchReportView verification line (G9 guards)', () => {
   });
 
   it('omits the line entirely when verification is absent', () => {
-    render(<DeepResearchReportView report={makeReport({ verification: null })} />);
+    render(<DeepResearchReportView report={makeReport({ citationProvenance: null })} />);
     expect(screen.queryByTestId('deep-research-verification')).not.toBeInTheDocument();
   });
 });

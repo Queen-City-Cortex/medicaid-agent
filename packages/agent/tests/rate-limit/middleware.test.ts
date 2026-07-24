@@ -56,7 +56,7 @@ describe('createRateLimitMiddleware', () => {
   it('counts deep-research workflow starts against the same quota', async () => {
     const app = buildApp(createRateLimitMiddleware(repo), 'user_A');
     await app.request('/chat', { method: 'POST' });
-    await app.request('/api/workflows/deepResearchWorkflow/start-async', { method: 'POST' });
+    await app.request('/research/runs', { method: 'POST' });
     const denied = await app.request('/chat', { method: 'POST' });
     expect(denied.status).toBe(429);
   });

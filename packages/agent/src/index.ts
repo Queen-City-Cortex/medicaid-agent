@@ -44,11 +44,15 @@ import { FeedbackRepository } from './feedback/repository.js';
 import { feedbackApiRoutes } from './feedback/routes.js';
 import { corpusStatusRoute } from './corpus-status.js';
 import { buildSystemPrompt } from './prompt.js';
-import { boolEnv, isVerifierEnabled } from './env.js';
+import { boolEnv, intEnv, isVerifierEnabled } from './env.js';
 import { loadRuntimeConfig } from './runtime-config.js';
 import { AppDatabase } from './storage/app-database.js';
 import { createExecutionGateway } from './execution-gateway.js';
 import { healthApiRoutes } from './readiness.js';
+import { ResearchRepository } from './deep-research/repository.js';
+import { ResearchService } from './deep-research/service.js';
+import { researchApiRoutes } from './deep-research/routes.js';
+import { extractText, findSensitiveIdentifiers } from './sensitive-data.js';
 
 // ── Startup validation ────────────────────────────────────────────────────────
 
@@ -71,6 +75,12 @@ await appDatabase.migrate();
 const feedbackRepo = new FeedbackRepository(appDatabase);
 const rateLimitRepo = new RateLimitRepository(appDatabase);
 const usageRepo = new UsageRepository(appDatabase);
+const researchRepo = new ResearchRepository(appDatabase);
+const researchService = new ResearchService(
+  researchRepo,
+  intEnv('DEEP_RESEARCH_SERVICE_CONCURRENCY', 2),
+  usageRepo,
+);
 
 // Bound operational data even when no user manually deletes it. The timer is
 // unref'd so it never keeps CLI runs or graceful shutdown alive.
@@ -258,8 +268,6 @@ export const mastra = new Mastra({
       createResourceBindingMiddleware(new MastraAuthWorkos({ trustJwtClaims: true })),
       createExecutionGateway({
         allowStudio: boolEnv('ALLOW_MASTRA_STUDIO', false),
-        // PR 3 replaces these three calls with owned /research/runs routes.
-        allowLegacyResearchWorkflow: true,
       }),
       createBodySizeGuard(),
       createRateLimitMiddleware(rateLimitRepo),
@@ -295,6 +303,14 @@ export const mastra = new Mastra({
             return c.json({
               error: { code: 'unauthorized', message: 'Authentication required' },
             }, 401);
+          }
+          if (findSensitiveIdentifiers(extractText(body)).length) {
+            return c.json({
+              error: {
+                code: 'client_identifier_detected',
+                message: 'Remove client-identifying information before sending this question.',
+              },
+            }, 422);
           }
           const threadId = (body?.memory as { thread?: string } | undefined)?.thread;
 
@@ -355,31 +371,40 @@ export const mastra = new Mastra({
         },
       }),
       ...feedbackApiRoutes(feedbackRepo),
+      ...researchApiRoutes(researchService),
       corpusStatusRoute(),
       ...healthApiRoutes(appDatabase),
     ],
   },
 });
 
+if (!IS_CLI_RUN) {
+  void researchService.recover(mastra);
+}
+
 // ─── CLI runner ────────────────────────────────────────────────────────────────
 // Usage: npx tsx --env-file=.env src/index.ts "your question here"
 //        npx tsx --env-file=.env src/index.ts --deep-research "your question"
 
 if (IS_DEEP_RESEARCH_CLI && CLI_QUESTION) {
-  // Headless deep-research run: auto-approve the plan so the suspend gate is
-  // skipped, then print the final report. Progress is visible via the logger.
+  // Internal-only CLI runner: suspend for approval, then approve directly on
+  // the in-process workflow. No public autoApprove input exists.
   try {
     const run = await mastra.getWorkflow('deepResearchWorkflow').createRun();
-    const result = await run.start({ inputData: { question: CLI_QUESTION, autoApprove: true } });
+    const planned = await run.start({ inputData: { question: CLI_QUESTION } });
+    if (planned.status !== 'suspended') {
+      throw new Error(`Planner did not suspend for approval (status ${planned.status})`);
+    }
+    const result = await run.resume({ step: 'plan-approval', resumeData: { approved: true } });
     if (result.status === 'success') {
       const report = result.result;
       console.log('\n---PLAN---\n');
       console.log(JSON.stringify({ brief: report.brief, subQuestions: report.subQuestions }, null, 2));
       console.log('\n---STATS---\n');
       console.log(JSON.stringify(report.stats));
-      if (report.verification) {
+      if (report.citationProvenance) {
         console.log('\n---VERIFIER---\n');
-        console.log(JSON.stringify(report.verification));
+        console.log(JSON.stringify(report.citationProvenance));
       }
       console.log('\n---REPORT---\n');
       console.log(report.reportMarkdown);

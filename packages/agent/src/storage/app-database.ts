@@ -84,6 +84,13 @@ const MIGRATIONS: ReadonlyArray<{ version: number; statements: string[] }> = [
       'ALTER TABLE usage_events ADD COLUMN estimated_cost_usd REAL',
     ],
   },
+  {
+    version: 4,
+    statements: [
+      `CREATE INDEX IF NOT EXISTS idx_research_resource_created
+       ON research_runs (resource_id, created_at)`,
+    ],
+  },
 ];
 
 export class AppDatabase {

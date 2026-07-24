@@ -36,3 +36,45 @@ export const NOVELTY_MIN_NEW_IDS = intEnv('DEEP_RESEARCH_NOVELTY_MIN_NEW_IDS', 2
 export const EXA_API_KEY = strEnv('EXA_API_KEY', '');
 export const WEB_SEARCH_ENABLED = Boolean(EXA_API_KEY);
 export const WEB_SEARCH_MAX_RESULTS = intEnv('DEEP_RESEARCH_WEB_MAX_RESULTS', 5);
+
+export interface DeepResearchConfigValues {
+  maxSubQuestions: number;
+  maxReflectionRounds: number;
+  workerMaxSteps: number;
+  plannerMaxSteps: number;
+  researchConcurrency: number;
+  noveltyMinNewIds: number;
+  webSearchMaxResults: number;
+}
+
+export function validateDeepResearchConfig(values: DeepResearchConfigValues): void {
+  const ranges: ReadonlyArray<readonly [
+    keyof DeepResearchConfigValues,
+    number,
+    number,
+  ]> = [
+    ['maxSubQuestions', 1, 8],
+    ['maxReflectionRounds', 0, 5],
+    ['workerMaxSteps', 4, 32],
+    ['plannerMaxSteps', 1, 12],
+    ['researchConcurrency', 1, 6],
+    ['noveltyMinNewIds', 0, 20],
+    ['webSearchMaxResults', 1, 20],
+  ];
+  for (const [key, minimum, maximum] of ranges) {
+    const value = values[key];
+    if (!Number.isInteger(value) || value < minimum || value > maximum) {
+      throw new Error(`${key} must be an integer between ${minimum} and ${maximum}`);
+    }
+  }
+}
+
+validateDeepResearchConfig({
+  maxSubQuestions: MAX_SUB_QUESTIONS,
+  maxReflectionRounds: MAX_REFLECTION_ROUNDS,
+  workerMaxSteps: WORKER_MAX_STEPS,
+  plannerMaxSteps: PLANNER_MAX_STEPS,
+  researchConcurrency: RESEARCH_CONCURRENCY,
+  noveltyMinNewIds: NOVELTY_MIN_NEW_IDS,
+  webSearchMaxResults: WEB_SEARCH_MAX_RESULTS,
+});

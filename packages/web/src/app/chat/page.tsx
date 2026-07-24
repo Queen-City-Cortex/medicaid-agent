@@ -73,7 +73,7 @@ export default function ChatPage() {
   // then a long cited report, driven by the deepResearchWorkflow via the
   // Mastra client — separate from the streaming chat agent.
   const [deepMode, setDeepMode] = useState(false);
-  const deepResearch = useDeepResearch({ run });
+  const deepResearch = useDeepResearch({ getAccessToken });
   // Pull out the stable `reset` callback so onThreadSwitch can depend on it
   // rather than the whole `deepResearch` object (a new reference every render),
   // keeping onThreadSwitch — and the useChatThread callbacks that list it —

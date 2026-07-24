@@ -151,6 +151,15 @@ export function DeepResearchView({ controller }: { controller: DeepResearchContr
               ))}
             </ul>
           )}
+          <Button
+            data-testid="cancel-research"
+            onClick={() => controller.cancel()}
+            variant="outline"
+            size="sm"
+            className="font-mono text-xs uppercase tracking-wider"
+          >
+            Cancel research
+          </Button>
         </div>
       )}
 

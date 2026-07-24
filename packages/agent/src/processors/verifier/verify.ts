@@ -76,10 +76,11 @@ export async function verifyAnswer(
   question: string,
   answerText: string,
   sourceText: string,
+  onUsage?: (usage: unknown) => void,
 ): Promise<VerificationResult> {
   try {
     const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY });
-    const { object } = await generateObject({
+    const { object, usage } = await generateObject({
       model: openai(getConfig().model),
       schema: VerificationSchema,
       system: VERIFIER_PROMPT,
@@ -90,6 +91,7 @@ export async function verifyAnswer(
         },
       ],
     });
+    onUsage?.(usage);
 
     return object;
   } catch (err) {

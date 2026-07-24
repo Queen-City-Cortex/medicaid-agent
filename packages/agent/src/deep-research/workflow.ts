@@ -5,6 +5,7 @@ import { isVerifierEnabled } from '../env.js';
 import { log } from '../logger.js';
 import {
   extractSourcesFromToolResults,
+  runVerificationForAnswer,
   validateAnswerUrls,
   type SourceEntry,
   type ToolResultRecord,
@@ -35,7 +36,14 @@ import {
   RESEARCH_CONCURRENCY,
   NOVELTY_MIN_NEW_IDS,
   WEB_SEARCH_ENABLED,
+  DEEP_RESEARCH_MODEL,
 } from './config.js';
+import { markResearchVerifying, recordResearchUsage } from './usage.js';
+import {
+  isSystemicWorkerError,
+  runSettledBatches,
+  workerFailureMessage,
+} from './worker-pool.js';
 
 // ── Internal schemas (carry heavy state between steps) ────────────────────────
 
@@ -53,7 +61,6 @@ const FindingOut = z.object({
 
 const PlanStepOut = z.object({
   question: z.string(),
-  autoApprove: z.boolean().optional(),
   brief: z.string(),
   subQuestions: z.array(SubQuestionSchema),
 });
@@ -64,6 +71,7 @@ const ApprovalStepOut = z.object({
 });
 const ResearchStepOut = ApprovalStepOut.extend({
   findings: z.array(FindingOut),
+  workerFailures: z.array(z.object({ subQuestion: z.string(), message: z.string() })),
   corpusSources: z.array(SourceEntrySchema),
   webSources: z.array(WebSourceSchema),
   reflectionRounds: z.number(),
@@ -75,6 +83,7 @@ const SynthStepOut = z.object({
   reportMarkdown: z.string(),
   corpusSources: z.array(SourceEntrySchema),
   webSources: z.array(WebSourceSchema),
+  workerFailures: z.array(z.object({ subQuestion: z.string(), message: z.string() })),
   reflectionRounds: z.number(),
 });
 
@@ -186,25 +195,25 @@ async function researchOne(sq: SubQuestion): Promise<ResearchOutcome> {
     maxSteps: WORKER_MAX_STEPS,
     onIterationComplete: forceWorkerSynthesis,
   });
+  recordResearchUsage('worker', DEEP_RESEARCH_MODEL, res);
   const records = normalizeToolResults(res.toolResults);
   const corpus = extractSourcesFromToolResults(records);
   const web = extractWebSources(records);
-  const summary = res.text ?? '';
+  let summary = res.text ?? '';
+  if (isVerifierEnabled() && summary && corpus.length > 0) {
+    const verified = await runVerificationForAnswer({
+      question: sq.question,
+      answerText: summary,
+      sources: corpus,
+      onUsage: (usage) => recordResearchUsage('verifier', DEEP_RESEARCH_MODEL, { usage }),
+    });
+    summary = verified.finalAnswer;
+  }
   return {
     finding: { subQuestion: sq.question, summary, foundEvidence: corpus.length > 0 || web.length > 0 },
     corpus,
     web,
   };
-}
-
-/** Run `fn` over items in batches so peak concurrency stays at `limit`. */
-async function mapBatched<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
-  const out: R[] = [];
-  for (let i = 0; i < items.length; i += limit) {
-    const batch = items.slice(i, i + limit);
-    out.push(...(await Promise.all(batch.map(fn))));
-  }
-  return out;
 }
 
 // ── Step 1: plan ──────────────────────────────────────────────────────────────
@@ -219,13 +228,14 @@ const planStep = createStep({
       `Plan a deep-research run for this NC Medicaid question:\n\n${inputData.question}`,
       { structuredOutput: { schema: ResearchPlanSchema }, maxSteps: PLANNER_MAX_STEPS },
     );
+    recordResearchUsage('planner', DEEP_RESEARCH_MODEL, res);
     const plan = res.object as { brief: string; subQuestions: SubQuestion[] } | undefined;
     if (!plan?.subQuestions?.length) {
       throw new Error('Planner did not produce a research plan');
     }
     const subQuestions = plan.subQuestions.slice(0, MAX_SUB_QUESTIONS);
     log.info('deep_research.planned', { subQuestions: subQuestions.length });
-    return { question: inputData.question, autoApprove: inputData.autoApprove, brief: plan.brief, subQuestions };
+    return { question: inputData.question, brief: plan.brief, subQuestions };
   },
 });
 
@@ -242,9 +252,6 @@ const approvalStep = createStep({
   suspendSchema: z.object({ brief: z.string(), subQuestions: z.array(SubQuestionSchema) }),
   execute: async ({ inputData, resumeData, suspend, writer, bail }) => {
     const base = { question: inputData.question, brief: inputData.brief, subQuestions: inputData.subQuestions };
-
-    // Headless / CLI: skip the approval gate entirely.
-    if (inputData.autoApprove) return base;
 
     // First pass — pause and ask the user to approve or edit the plan.
     if (!resumeData) {
@@ -263,7 +270,8 @@ const approvalStep = createStep({
         subQuestions: inputData.subQuestions,
         corpusSources: [],
         webSources: [],
-        verification: null,
+        workerFailures: [],
+        citationProvenance: null,
         stats: { reflectionRounds: 0, subQuestionCount: 0, corpusSourceCount: 0, webSourceCount: 0 },
       });
     }
@@ -287,6 +295,7 @@ const researchStep = createStep({
     const findings: Finding[] = [];
     const corpusByKey = new Map<string, SourceEntry>();
     const webByUrl = new Map<string, WebSource>();
+    const workerFailures: Array<{ subQuestion: string; message: string }> = [];
     const seenIds = new Set<string>();
 
     const absorb = (outcomes: ResearchOutcome[]) => {
@@ -304,14 +313,27 @@ const researchStep = createStep({
     let done = 0;
     const total = inputData.subQuestions.length;
     await emit(writer, { stage: 'researching', detail: `Researching ${total} sub-questions…`, current: 0, total });
-    absorb(
-      await mapBatched(inputData.subQuestions, RESEARCH_CONCURRENCY, async (sq) => {
+    const initial = await runSettledBatches(
+      inputData.subQuestions,
+      RESEARCH_CONCURRENCY,
+      async (sq) => {
         const outcome = await researchOne(sq);
         done += 1;
         await emit(writer, { stage: 'researching', detail: sq.question, current: done, total });
         return outcome;
-      }),
+      },
     );
+    absorb(initial.values);
+    workerFailures.push(...initial.failures.map(({ item, error }) => ({
+      subQuestion: item.question,
+      message: workerFailureMessage(error),
+    })));
+    if (
+      initial.failures.some(({ error }) => isSystemicWorkerError(error))
+      || initial.failures.length > inputData.subQuestions.length / 2
+    ) {
+      throw new Error('Deep research stopped because the worker pool had a systemic or majority failure');
+    }
 
     // Bounded reflection loop with a closed-corpus novelty stop.
     let reflectionRounds = 0;
@@ -325,6 +347,7 @@ const researchStep = createStep({
         structuredOutput: { schema: ReflectionSchema },
         maxSteps: PLANNER_MAX_STEPS,
       });
+      recordResearchUsage('reflection', DEEP_RESEARCH_MODEL, reflRes);
       const reflection = reflRes.object as
         | { sufficient: boolean; followUps: SubQuestion[] }
         | undefined;
@@ -336,14 +359,27 @@ const researchStep = createStep({
       const before = seenIds.size;
       const fuTotal = followUps.length;
       let fuDone = 0;
-      absorb(
-        await mapBatched(followUps, RESEARCH_CONCURRENCY, async (sq) => {
+      const followUpResults = await runSettledBatches(
+        followUps,
+        RESEARCH_CONCURRENCY,
+        async (sq) => {
           const outcome = await researchOne(sq);
           fuDone += 1;
           await emit(writer, { stage: 'researching', detail: sq.question, current: fuDone, total: fuTotal });
           return outcome;
-        }),
+        },
       );
+      absorb(followUpResults.values);
+      workerFailures.push(...followUpResults.failures.map(({ item, error }) => ({
+        subQuestion: item.question,
+        message: workerFailureMessage(error),
+      })));
+      if (
+        followUpResults.failures.some(({ error }) => isSystemicWorkerError(error))
+        || followUpResults.failures.length > followUps.length / 2
+      ) {
+        throw new Error('Deep research stopped because the worker pool had a systemic or majority failure');
+      }
       reflectionRounds += 1;
       if (seenIds.size - before < NOVELTY_MIN_NEW_IDS) break; // corpus exhausted
     }
@@ -359,6 +395,7 @@ const researchStep = createStep({
       brief,
       subQuestions: allSubQuestions,
       findings,
+      workerFailures,
       corpusSources: [...corpusByKey.values()],
       webSources: [...webByUrl.values()],
       reflectionRounds,
@@ -382,6 +419,7 @@ const synthesizeStep = createStep({
       : '';
     const prompt = `Original question:\n${inputData.question}\n\nResearch brief:\n${inputData.brief}\n\nFindings (each already carries inline citations):\n\n${findingsBlock}${webBlock}\n\nWrite the full report now.`;
     const res = await deepResearchReportAgent.generate(prompt);
+    recordResearchUsage('reporter', DEEP_RESEARCH_MODEL, res);
     return {
       question: inputData.question,
       brief: inputData.brief,
@@ -389,6 +427,7 @@ const synthesizeStep = createStep({
       reportMarkdown: res.text ?? '',
       corpusSources: inputData.corpusSources,
       webSources: inputData.webSources,
+      workerFailures: inputData.workerFailures,
       reflectionRounds: inputData.reflectionRounds,
     };
   },
@@ -403,25 +442,30 @@ const verifyStep = createStep({
   execute: async ({ inputData, writer }) => {
     const verifierEnabled = isVerifierEnabled();
     let reportMarkdown = inputData.reportMarkdown;
-    let verification = null as null | {
+    let citationProvenance = null as null | {
       checkedCitations: number;
-      groundedCitations: number;
-      fabricatedCitations: number;
+      retrievedCitations: number;
+      unknownCitations: number;
     };
+    await markResearchVerifying();
 
     if (verifierEnabled && reportMarkdown) {
       await emit(writer, { stage: 'verifying', detail: 'Verifying citations against the corpus…' });
       try {
         const sources: SourceEntry[] = inputData.corpusSources;
-        // Deterministic citation grounding: any link not backed by a retrieved
-        // source is demoted to plain text (not clickable) and counted. This is
-        // the right check for long reports — it never strips real, cited claims.
+        const verified = await runVerificationForAnswer({
+          question: inputData.question,
+          answerText: reportMarkdown,
+          sources,
+          onUsage: (usage) => recordResearchUsage('verifier', DEEP_RESEARCH_MODEL, { usage }),
+        });
+        reportMarkdown = verified.finalAnswer;
         const { validatedAnswer, unknownUrls, checkedUrlCount } = validateAnswerUrls(reportMarkdown, sources);
         reportMarkdown = validatedAnswer;
-        verification = {
+        citationProvenance = {
           checkedCitations: checkedUrlCount,
-          groundedCitations: checkedUrlCount - unknownUrls.length,
-          fabricatedCitations: unknownUrls.length,
+          retrievedCitations: checkedUrlCount - unknownUrls.length,
+          unknownCitations: unknownUrls.length,
         };
         if (unknownUrls.length > 0) {
           log.warn('deep_research.fabricated_citations', { count: unknownUrls.length });
@@ -440,7 +484,8 @@ const verifyStep = createStep({
       subQuestions: inputData.subQuestions,
       corpusSources: inputData.corpusSources.map((s) => ({ key: s.key, label: sourceLabel(s), link: s.link ?? null })),
       webSources: inputData.webSources,
-      verification,
+      workerFailures: inputData.workerFailures,
+      citationProvenance,
       stats: {
         reflectionRounds: inputData.reflectionRounds,
         subQuestionCount: inputData.subQuestions.length,

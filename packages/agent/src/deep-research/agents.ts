@@ -1,4 +1,5 @@
 import { Agent } from '@mastra/core/agent';
+import { PromptInjectionDetector } from '@mastra/core/processors';
 import { createModel } from '../model.js';
 import { CITATION_GUIDANCE } from '../prompt.js';
 import { DEEP_RESEARCH_MODEL, WEB_SEARCH_ENABLED } from './config.js';
@@ -9,6 +10,8 @@ import { findConceptSections } from '../tools/concepts.js';
 import { lookupPolicy } from '../tools/lookup.js';
 import { resolveAnswerFrame } from '../tools/answer-frame.js';
 import { webSearch } from '../tools/web-search.js';
+import { MessageLengthGuard } from '../processors/message-length-guard.js';
+import { ScopeGateProcessor } from '../processors/scope-gate.js';
 
 const CORPUS_TOOLS = {
   resolveAnswerFrame,
@@ -49,6 +52,16 @@ Each sub-question must be self-contained (a worker researches it with no other c
 
 Prefer fewer, high-leverage sub-questions over many overlapping ones. You may run a couple of probe searches to ground the decomposition, but do not try to answer the question yourself.`,
   tools: { resolveAnswerFrame, searchSections, lookupPolicy },
+  inputProcessors: [
+    new MessageLengthGuard(),
+    new ScopeGateProcessor(),
+    new PromptInjectionDetector({
+      model: 'openai/gpt-5-mini',
+      threshold: 0.8,
+      strategy: 'block',
+      detectionTypes: ['injection', 'jailbreak', 'system-override'],
+    }),
+  ],
 });
 
 // ── Worker ──────────────────────────────────────────────────────────────────

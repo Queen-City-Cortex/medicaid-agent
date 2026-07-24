@@ -24,6 +24,9 @@ const OWNED_ROUTES: readonly RouteRule[] = [
   rule(['GET', 'POST'], /^\/feedback$/),
   rule(['DELETE'], /^\/feedback\/[^/]+$/),
   rule(['GET'], /^\/corpus-status$/),
+  rule(['POST'], /^\/research\/runs$/),
+  rule(['GET'], /^\/research\/runs\/[^/]+$/),
+  rule(['POST'], /^\/research\/runs\/[^/]+\/(?:decision|cancel)$/),
   rule(['GET'], /^\/(?:livez|readyz|dependencyz|healthz)$/, { public: true }),
   rule(['GET', 'POST'], /^\/api\/memory\/threads$/),
   rule(['GET', 'PATCH', 'DELETE'], /^\/api\/memory\/threads\/[^/]+$/),
@@ -31,40 +34,25 @@ const OWNED_ROUTES: readonly RouteRule[] = [
   rule(['POST'], /^\/api\/memory\/threads\/[^/]+\/clone$/),
 ];
 
-const LEGACY_RESEARCH_ROUTES: readonly RouteRule[] = [
-  rule(['POST'], /^\/api\/workflows\/deepResearchWorkflow\/create-run$/),
-  rule(['POST'], /^\/api\/workflows\/deepResearchWorkflow\/start-async$/),
-  rule(['POST'], /^\/api\/workflows\/deepResearchWorkflow\/resume-async$/),
-];
-
 function matchingRule(
   method: string,
   path: string,
-  allowLegacyResearchWorkflow: boolean,
 ): RouteRule | null {
-  const candidates = allowLegacyResearchWorkflow
-    ? [...OWNED_ROUTES, ...LEGACY_RESEARCH_ROUTES]
-    : OWNED_ROUTES;
   const upperMethod = method.toUpperCase();
   if (upperMethod === 'OPTIONS') {
-    return candidates.find((candidate) => candidate.pattern.test(path)) ?? null;
+    return OWNED_ROUTES.find((candidate) => candidate.pattern.test(path)) ?? null;
   }
-  return candidates.find((candidate) =>
+  return OWNED_ROUTES.find((candidate) =>
     candidate.methods.has(upperMethod) && candidate.pattern.test(path)) ?? null;
 }
 
 export interface ExecutionGatewayOptions {
   allowStudio?: boolean;
-  allowLegacyResearchWorkflow?: boolean;
 }
 
 export function createExecutionGateway(options: ExecutionGatewayOptions = {}): GuardMiddleware {
   return async function executionGateway(c: ContextWithMastra, next: Next): Promise<Response | void> {
-    const route = matchingRule(
-      c.req.method,
-      c.req.path,
-      options.allowLegacyResearchWorkflow ?? false,
-    );
+    const route = matchingRule(c.req.method, c.req.path);
     if (route) {
       if (c.req.method.toUpperCase() !== 'OPTIONS' && !route.public && !getBoundUserId(c)) {
         return c.json({

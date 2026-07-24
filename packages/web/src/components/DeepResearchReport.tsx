@@ -7,7 +7,7 @@ import type { DeepResearchReport } from '@/lib/use-deep-research';
 const PROSE =
   'prose dark:prose-invert max-w-none text-[16px] prose-headings:font-heading prose-headings:tracking-tight prose-h2:text-xl prose-h3:text-lg prose-p:leading-[1.75] prose-li:leading-[1.7] prose-li:my-1 prose-strong:text-foreground prose-strong:font-semibold';
 
-function VerificationLine({ v }: { v: DeepResearchReport['verification'] }) {
+function VerificationLine({ v }: { v: DeepResearchReport['citationProvenance'] }) {
   if (!v) return null;
   // "0/0 verified" is not a clean bill of health — with nothing checked, a
   // green badge would overstate the guarantee. Show a neutral note instead.
@@ -22,7 +22,7 @@ function VerificationLine({ v }: { v: DeepResearchReport['verification'] }) {
       </div>
     );
   }
-  const clean = v.fabricatedCitations === 0;
+  const clean = v.unknownCitations === 0;
   const Icon = clean ? ShieldCheck : ShieldAlert;
   return (
     <div
@@ -36,8 +36,8 @@ function VerificationLine({ v }: { v: DeepResearchReport['verification'] }) {
       <Icon className="size-3.5" />
       <span>
         {clean
-          ? `Citations verified: ${v.groundedCitations}/${v.checkedCitations} resolve to retrieved corpus sources`
-          : `${v.fabricatedCitations} of ${v.checkedCitations} citation(s) did not match a retrieved source and were demoted`}
+          ? `Citations verified: ${v.retrievedCitations}/${v.checkedCitations} resolve to retrieved corpus sources`
+          : `${v.unknownCitations} of ${v.checkedCitations} citation(s) did not match a retrieved source and were demoted`}
       </span>
     </div>
   );
@@ -46,7 +46,13 @@ function VerificationLine({ v }: { v: DeepResearchReport['verification'] }) {
 export function DeepResearchReportView({ report }: { report: DeepResearchReport }) {
   return (
     <div data-testid="deep-research-report" className="space-y-6">
-      <VerificationLine v={report.verification} />
+      <VerificationLine v={report.citationProvenance} />
+
+      {report.workerFailures.length > 0 && (
+        <div role="alert" className="rounded-md border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-sm text-amber-800 dark:text-amber-300">
+          {report.workerFailures.length} research worker(s) failed; the report preserves the successful findings and may have unresolved gaps.
+        </div>
+      )}
 
       <article className={PROSE}>
         <ReactMarkdown

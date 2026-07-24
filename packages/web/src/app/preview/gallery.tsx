@@ -156,7 +156,8 @@ Mental-health parity rules limit NQTLs such as PA [42 CFR § 438.910](https://ec
     { key: 'sec:8c:cn3', label: 'Policy 8C Change Notice 3', link: 'https://medicaid.ncdhhs.gov/8c-cn3' },
   ],
   webSources: [{ title: 'CMS behavioral health parity guidance', url: 'https://cms.gov/parity' }],
-  verification: { checkedCitations: 12, groundedCitations: 12, fabricatedCitations: 0 },
+  workerFailures: [],
+  citationProvenance: { checkedCitations: 12, retrievedCitations: 12, unknownCitations: 0 },
   stats: { reflectionRounds: 1, subQuestionCount: 3, corpusSourceCount: 3, webSourceCount: 1 },
 };
 
@@ -175,6 +176,7 @@ function makeController(over: Partial<DeepResearchController>): DeepResearchCont
     start: asyncNoop,
     approve: asyncNoop,
     decline: asyncNoop,
+    cancel: asyncNoop,
     reset: noop,
     ...over,
   };

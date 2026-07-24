@@ -56,8 +56,20 @@ describe('execution gateway', () => {
     })).status).toBe(200);
   });
 
-  it('can preserve only the legacy deep-research calls needed until PR 3', async () => {
-    const gateway = app('user-1', { allowLegacyResearchWorkflow: true });
+  it('allows owned research routes and hides every generic workflow route', async () => {
+    const gateway = app('user-1');
+    for (const [method, path] of [
+      ['POST', '/research/runs'],
+      ['GET', '/research/runs/run-1'],
+      ['POST', '/research/runs/run-1/decision'],
+      ['POST', '/research/runs/run-1/cancel'],
+    ]) {
+      expect((await gateway.request(path, {
+        method,
+        headers: { 'content-type': 'application/json' },
+        body: method === 'POST' ? '{}' : undefined,
+      })).status).toBe(200);
+    }
 
     for (const path of [
       '/api/workflows/deepResearchWorkflow/create-run',
@@ -68,14 +80,8 @@ describe('execution gateway', () => {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: '{}',
-      })).status).toBe(200);
+      })).status).toBe(404);
     }
-
-    expect((await gateway.request('/api/workflows/otherWorkflow/start-async', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: '{}',
-    })).status).toBe(404);
   });
 
   it.each([
@@ -106,7 +112,7 @@ describe('execution gateway', () => {
     ['POST', '/api/workflows/deepResearchWorkflow/stream'],
     ['POST', '/api/memory/save-messages'],
   ])('hides unowned framework operation %s %s', async (method, path) => {
-    expect((await app('user-1', { allowLegacyResearchWorkflow: true }).request(path, {
+    expect((await app('user-1').request(path, {
       method,
       headers: { 'content-type': 'application/json' },
       body: method === 'POST' ? '{}' : undefined,

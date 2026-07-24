@@ -1,60 +1,17 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { MastraRunner } from './use-mastra-client';
+import type {
+  ResearchPlan,
+  ResearchReport,
+  ResearchRun,
+  ResearchSubQuestion,
+} from '@nc-medicaid/contracts';
+import { MASTRA_URL } from './mastra-url';
 
-// Client-side mirror of the agent's deep-research output schema
-// (packages/agent/src/deep-research/schemas.ts). Kept as a local interface so
-// the web package doesn't take a build-time dependency on the agent package.
-
-const WORKFLOW_ID = 'deepResearchWorkflow';
-const APPROVAL_STEP = 'plan-approval';
-
-export interface DeepResearchSubQuestion {
-  question: string;
-  rationale: string;
-  channels: string[];
-  useWeb: boolean;
-}
-
-export interface DeepResearchPlan {
-  brief: string;
-  subQuestions: DeepResearchSubQuestion[];
-}
-
-export interface DeepResearchCorpusSource {
-  key: string;
-  label: string;
-  link: string | null;
-}
-
-export interface DeepResearchWebSource {
-  title: string;
-  url: string;
-}
-
-export interface DeepResearchVerification {
-  checkedCitations: number;
-  groundedCitations: number;
-  fabricatedCitations: number;
-}
-
-export interface DeepResearchReport {
-  status: 'completed' | 'cancelled';
-  question: string;
-  brief: string;
-  reportMarkdown: string;
-  subQuestions: DeepResearchSubQuestion[];
-  corpusSources: DeepResearchCorpusSource[];
-  webSources: DeepResearchWebSource[];
-  verification: DeepResearchVerification | null;
-  stats: {
-    reflectionRounds: number;
-    subQuestionCount: number;
-    corpusSourceCount: number;
-    webSourceCount: number;
-  };
-}
+export type DeepResearchSubQuestion = ResearchSubQuestion;
+export type DeepResearchPlan = ResearchPlan;
+export type DeepResearchReport = ResearchReport;
 
 export type DeepResearchStatus =
   | 'idle'
@@ -65,158 +22,213 @@ export type DeepResearchStatus =
   | 'cancelled'
   | 'error';
 
-interface WorkflowRun {
-  readonly runId: string;
-  startAsync(params: { inputData: Record<string, unknown> }): Promise<unknown>;
-  resumeAsync(params: { step?: string; resumeData?: Record<string, unknown> }): Promise<unknown>;
+interface ErrorEnvelope {
+  error?: { message?: string } | string;
 }
 
-/** Minimal shape of the `client.getWorkflow(id)` resource we use. */
-interface WorkflowResource {
-  createRun(params?: { runId?: string }): Promise<WorkflowRun>;
+type GetAccessToken = () => Promise<string | null | undefined>;
+
+function errorMessage(payload: ErrorEnvelope, status: number): string {
+  if (typeof payload.error === 'string') return payload.error;
+  return payload.error?.message ?? `Research request failed (${status})`;
 }
 
-interface RawWorkflowResult {
-  status: string;
-  // Mastra keys the top-level suspend payload by step id, e.g.
-  // { 'plan-approval': { brief, subQuestions } }.
-  suspendPayload?: Record<string, DeepResearchPlan> & Partial<DeepResearchPlan>;
-  steps?: Record<string, { suspendPayload?: DeepResearchPlan }>;
-  result?: DeepResearchReport;
-  error?: unknown;
-}
-
-/** Narrow the loosely-typed WorkflowRunResult into the cases we care about. */
-function asResult(r: unknown): RawWorkflowResult {
-  return (r ?? {}) as RawWorkflowResult;
-}
-
-/** The plan-approval suspend payload lives at one of a few locations depending
- *  on Mastra version; check them all. */
-function extractPlan(r: RawWorkflowResult): DeepResearchPlan | null {
-  const byStepMap = r.suspendPayload?.[APPROVAL_STEP];
-  if (byStepMap?.subQuestions) return byStepMap;
-  const byStepResult = r.steps?.[APPROVAL_STEP]?.suspendPayload;
-  if (byStepResult?.subQuestions) return byStepResult;
-  if (r.suspendPayload?.subQuestions) return r.suspendPayload as DeepResearchPlan;
-  return null;
-}
-
-/**
- * Drives the deep-research workflow from the browser:
- *   start(question) → plan (suspends) → approve()/decline() → report.
- *
- * Control flow uses startAsync/resumeAsync (which carry an explicit status,
- * suspendPayload, and result) rather than chunk parsing — robust for the MVP.
- * Progress is reported at phase granularity ('planning' / 'researching').
- */
-export function useDeepResearch({ run }: { run: MastraRunner }) {
+export function useDeepResearch({ getAccessToken }: { getAccessToken: GetAccessToken }) {
   const [status, setStatus] = useState<DeepResearchStatus>('idle');
   const [plan, setPlan] = useState<DeepResearchPlan | null>(null);
   const [report, setReport] = useState<DeepResearchReport | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [question, setQuestion] = useState<string>('');
+  const [question, setQuestion] = useState('');
   const [startedAt, setStartedAt] = useState<number | null>(null);
-  const [now, setNow] = useState<number>(0);
-
-  // Store the runId (not the run handle): on resume we re-attach with a
-  // freshly-tokened client so a suspended run survives the access token
-  // expiring during the plan-approval gate.
+  const [now, setNow] = useState(0);
   const runIdRef = useRef<string | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const statusRef = useRef<DeepResearchStatus>('idle');
+  statusRef.current = status;
 
-  // Elapsed-time ticker while a phase is actively working.
   const working = status === 'planning' || status === 'researching';
   useEffect(() => {
     if (!working) return;
-    const id = setInterval(() => setNow(Date.now()), 1000);
+    const id = setInterval(() => setNow(Date.now()), 1_000);
     return () => clearInterval(id);
   }, [working]);
+  useEffect(() => () => abortRef.current?.abort(), []);
 
-  const start = useCallback(
-    async (q: string) => {
-      setQuestion(q);
-      setPlan(null);
-      setReport(null);
-      setError(null);
-      setStatus('planning');
-      setStartedAt(Date.now());
-      setNow(Date.now());
-      try {
-        const res = asResult(
-          await run(async (client) => {
-            const wf = client.getWorkflow(WORKFLOW_ID) as unknown as WorkflowResource;
-            const wfRun = await wf.createRun();
-            runIdRef.current = wfRun.runId;
-            return wfRun.startAsync({ inputData: { question: q } });
-          }),
-        );
-        const extracted = extractPlan(res);
-        if (res.status === 'suspended' && extracted) {
-          setPlan(extracted);
-          setStatus('awaiting-approval');
-        } else if (res.status === 'success' && res.result) {
-          // Shouldn't normally happen (the plan gate suspends), but handle it.
-          setReport(res.result);
-          setStatus('done');
-        } else {
-          setError(`Planning ended with status: ${res.status}`);
-          setStatus('error');
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : String(err));
-        setStatus('error');
-      }
-    },
-    [run],
-  );
+  const request = useCallback(async <T,>(
+    path: string,
+    init: RequestInit,
+    signal: AbortSignal,
+  ): Promise<T> => {
+    const token = await getAccessToken();
+    if (!token) throw new Error('Authentication expired. Sign in again and retry.');
+    const response = await fetch(`${MASTRA_URL}${path}`, {
+      ...init,
+      signal,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        ...(init.body ? { 'Content-Type': 'application/json' } : {}),
+        ...init.headers,
+      },
+    });
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({})) as ErrorEnvelope;
+      throw new Error(errorMessage(payload, response.status));
+    }
+    return (response.status === 204 ? undefined : await response.json()) as T;
+  }, [getAccessToken]);
+  const requestRef = useRef(request);
+  requestRef.current = request;
 
-  const finishResume = useCallback(async (resumeData: Record<string, unknown>) => {
-    const runId = runIdRef.current;
-    if (!runId) return;
-    try {
-      // Re-attach to the suspended run with a fresh-token client — the plan
-      // gate can sit minutes between start and approve, outliving the token.
-      const res = asResult(
-        await run(async (client) => {
-          const wf = client.getWorkflow(WORKFLOW_ID) as unknown as WorkflowResource;
-          const wfRun = await wf.createRun({ runId });
-          return wfRun.resumeAsync({ step: APPROVAL_STEP, resumeData });
-        }),
+  const applyRun = useCallback((run: ResearchRun): boolean => {
+    setPlan(run.plan);
+    if (run.state === 'awaiting_approval') {
+      setStatus('awaiting-approval');
+      return true;
+    }
+    if (run.state === 'completed' && run.report) {
+      setReport(run.report);
+      setStatus('done');
+      return true;
+    }
+    if (run.state === 'cancelled') {
+      setReport(run.report);
+      setStatus('cancelled');
+      return true;
+    }
+    if (run.state === 'failed') {
+      setError(run.error ?? 'Research failed.');
+      setStatus('error');
+      return true;
+    }
+    setStatus(run.state === 'queued' || run.state === 'planning' ? 'planning' : 'researching');
+    return false;
+  }, []);
+
+  const poll = useCallback(async (runId: string, signal: AbortSignal): Promise<void> => {
+    for (;;) {
+      if (signal.aborted) return;
+      const run = await request<ResearchRun>(
+        `/research/runs/${encodeURIComponent(runId)}`,
+        { method: 'GET' },
+        signal,
       );
-      if (res.status === 'success' && res.result) {
-        setReport(res.result);
-        setStatus(res.result.status === 'cancelled' ? 'cancelled' : 'done');
-      } else {
-        setError(`Research ended with status: ${res.status}`);
-        setStatus('error');
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      if (applyRun(run)) return;
+      await new Promise<void>((resolve, reject) => {
+        const timer = setTimeout(resolve, 1_500);
+        signal.addEventListener('abort', () => {
+          clearTimeout(timer);
+          reject(new DOMException('Aborted', 'AbortError'));
+        }, { once: true });
+      });
+    }
+  }, [applyRun, request]);
+
+  const start = useCallback(async (q: string) => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    setQuestion(q);
+    setPlan(null);
+    setReport(null);
+    setError(null);
+    setStatus('planning');
+    setStartedAt(Date.now());
+    setNow(Date.now());
+    try {
+      const run = await request<ResearchRun>('/research/runs', {
+        method: 'POST',
+        body: JSON.stringify({ question: q }),
+      }, controller.signal);
+      runIdRef.current = run.runId;
+      applyRun(run);
+      await poll(run.runId, controller.signal);
+    } catch (cause) {
+      if (controller.signal.aborted) return;
+      setError(cause instanceof Error ? cause.message : String(cause));
       setStatus('error');
     }
-  }, [run]);
+  }, [applyRun, poll, request]);
 
-  const approve = useCallback(
-    async (editedSubQuestions?: DeepResearchSubQuestion[]) => {
-      setStatus('researching');
-      setStartedAt(Date.now());
-      setNow(Date.now());
-      await finishResume(
-        editedSubQuestions?.length ? { approved: true, editedSubQuestions } : { approved: true },
-      );
-    },
-    [finishResume],
-  );
+  const approve = useCallback(async (editedSubQuestions?: DeepResearchSubQuestion[]) => {
+    const runId = runIdRef.current;
+    if (!runId) return;
+    setStatus('researching');
+    setStartedAt(Date.now());
+    setNow(Date.now());
+    try {
+      const controller = abortRef.current ?? new AbortController();
+      abortRef.current = controller;
+      await request(`/research/runs/${encodeURIComponent(runId)}/decision`, {
+        method: 'POST',
+        body: JSON.stringify(editedSubQuestions?.length
+          ? { approved: true, editedSubQuestions }
+          : { approved: true }),
+      }, controller.signal);
+      await poll(runId, controller.signal);
+    } catch (cause) {
+      if (abortRef.current?.signal.aborted) return;
+      setError(cause instanceof Error ? cause.message : String(cause));
+      setStatus('error');
+    }
+  }, [poll, request]);
 
   const decline = useCallback(async () => {
-    // The decline round-trip just bails the workflow to a cancelled report, so
-    // show the cancelled state immediately rather than flashing "Researching…".
+    const runId = runIdRef.current;
+    if (!runId) return;
     setStatus('cancelled');
-    await finishResume({ approved: false });
-  }, [finishResume]);
+    try {
+      const controller = abortRef.current ?? new AbortController();
+      abortRef.current = controller;
+      await request(`/research/runs/${encodeURIComponent(runId)}/decision`, {
+        method: 'POST',
+        body: JSON.stringify({ approved: false }),
+      }, controller.signal);
+    } catch (cause) {
+      if (abortRef.current?.signal.aborted) return;
+      setError(cause instanceof Error ? cause.message : String(cause));
+      setStatus('error');
+    }
+  }, [request]);
+
+  const cancel = useCallback(async () => {
+    const runId = runIdRef.current;
+    if (!runId) return;
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    try {
+      await request(
+        `/research/runs/${encodeURIComponent(runId)}/cancel`,
+        { method: 'POST', body: '{}' },
+        controller.signal,
+      );
+      setStatus('cancelled');
+    } catch (cause) {
+      if (controller.signal.aborted) return;
+      setError(cause instanceof Error ? cause.message : String(cause));
+      setStatus('error');
+    }
+  }, [request]);
 
   const reset = useCallback(() => {
+    const runId = runIdRef.current;
+    abortRef.current?.abort();
+    abortRef.current = null;
     runIdRef.current = null;
+    if (runId && ['planning', 'awaiting-approval', 'researching'].includes(statusRef.current)) {
+      void (async () => {
+        const controller = new AbortController();
+        try {
+          await requestRef.current(
+            `/research/runs/${encodeURIComponent(runId)}/cancel`,
+            { method: 'POST', body: '{}' },
+            controller.signal,
+          );
+        } catch {
+          // Navigation/reset is best-effort; the durable lease still bounds work.
+        }
+      })();
+    }
     setStatus('idle');
     setPlan(null);
     setReport(null);
@@ -227,8 +239,20 @@ export function useDeepResearch({ run }: { run: MastraRunner }) {
 
   const elapsedMs = startedAt ? Math.max(0, now - startedAt) : 0;
   const isBusy = status === 'planning' || status === 'researching';
-
-  return { status, plan, report, error, question, elapsedMs, isBusy, start, approve, decline, reset };
+  return {
+    status,
+    plan,
+    report,
+    error,
+    question,
+    elapsedMs,
+    isBusy,
+    start,
+    approve,
+    decline,
+    cancel,
+    reset,
+  };
 }
 
 export type DeepResearchController = ReturnType<typeof useDeepResearch>;

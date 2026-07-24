@@ -79,13 +79,15 @@ export async function runVerificationForAnswer({
   question,
   answerText,
   sources,
+  onUsage,
 }: {
   question: string;
   answerText: string;
   sources: SourceEntry[];
+  onUsage?: (usage: unknown) => void;
 }): Promise<VerificationRunResult> {
   const sourceText = buildSourceText(sources, answerText);
-  const verification = await verifyAnswer(question, answerText, sourceText);
+  const verification = await verifyAnswer(question, answerText, sourceText, onUsage);
 
   const hasMajorRelevanceIssue = verification.relevanceIssues?.some(
     (issue) => issue.severity === 'major',

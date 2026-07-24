@@ -19,7 +19,7 @@ function countedRoute(c: ContextWithMastra): RateLimitRoute | null {
   if (c.req.method !== 'POST') return null;
   const path = c.req.path;
   if (path === '/chat') return 'chat';
-  if (path === '/api/workflows/deepResearchWorkflow/start-async') return 'deep-research';
+  if (path === '/research/runs') return 'deep-research';
   return null;
 }
 

@@ -18,7 +18,7 @@ describe('AppDatabase', () => {
     await database.migrate();
     await database.migrate();
     const result = await database.client.execute('SELECT version FROM _app_migrations ORDER BY version');
-    expect(result.rows.map((row) => Number(row.version))).toEqual([1, 2, 3]);
+    expect(result.rows.map((row) => Number(row.version))).toEqual([1, 2, 3, 4]);
   });
 
   it('adopts a lazily bootstrapped latest usage schema', async () => {
@@ -33,7 +33,7 @@ describe('AppDatabase', () => {
 
     await expect(database.migrate()).resolves.toBeUndefined();
     const versions = await database.client.execute('SELECT version FROM _app_migrations ORDER BY version');
-    expect(versions.rows.map((row) => Number(row.version))).toEqual([1, 2, 3]);
+    expect(versions.rows.map((row) => Number(row.version))).toEqual([1, 2, 3, 4]);
   });
 
   it('deletes all app-owned data for one resource only', async () => {
