@@ -20,8 +20,7 @@ import { followReferences, getAmendments } from './tools/navigate.js';
 import { findConceptSections } from './tools/concepts.js';
 import { lookupPolicy } from './tools/lookup.js';
 import { resolveAnswerFrame } from './tools/answer-frame.js';
-import { closeDriver, getDriver } from './neo4j.js';
-import { checkProviders } from './health.js';
+import { closeDriver } from './neo4j.js';
 import {
   HallucinationVerifier,
   extractSources,
@@ -47,6 +46,9 @@ import { corpusStatusRoute } from './corpus-status.js';
 import { buildSystemPrompt } from './prompt.js';
 import { boolEnv, isVerifierEnabled } from './env.js';
 import { loadRuntimeConfig } from './runtime-config.js';
+import { AppDatabase } from './storage/app-database.js';
+import { createExecutionGateway } from './execution-gateway.js';
+import { healthApiRoutes } from './readiness.js';
 
 // ── Startup validation ────────────────────────────────────────────────────────
 
@@ -64,9 +66,20 @@ const libsql = new LibSQLStore({
   url: runtimeConfig.databaseUrl,
 });
 
-const feedbackRepo = new FeedbackRepository(runtimeConfig.databaseUrl);
-const rateLimitRepo = new RateLimitRepository(runtimeConfig.databaseUrl);
-const usageRepo = new UsageRepository(runtimeConfig.databaseUrl);
+const appDatabase = new AppDatabase(runtimeConfig.databaseUrl);
+await appDatabase.migrate();
+const feedbackRepo = new FeedbackRepository(appDatabase);
+const rateLimitRepo = new RateLimitRepository(appDatabase);
+const usageRepo = new UsageRepository(appDatabase);
+
+// Bound operational data even when no user manually deletes it. The timer is
+// unref'd so it never keeps CLI runs or graceful shutdown alive.
+const runRetention = () => appDatabase.runRetention(runtimeConfig.retention).catch((err) => {
+  log.error('storage.retention_failed', errorFields(err));
+  Sentry.captureException(err, { tags: { component: 'retention' } });
+});
+void runRetention();
+if (!IS_CLI_RUN) setInterval(runRetention, 24 * 60 * 60 * 1000).unref();
 
 const storage = new MastraCompositeStore({
   id: 'composite-storage',
@@ -243,6 +256,11 @@ export const mastra = new Mastra({
     // check before the per-user rate limit.
     middleware: [
       createResourceBindingMiddleware(new MastraAuthWorkos({ trustJwtClaims: true })),
+      createExecutionGateway({
+        allowStudio: boolEnv('ALLOW_MASTRA_STUDIO', false),
+        // PR 3 replaces these three calls with owned /research/runs routes.
+        allowLegacyResearchWorkflow: true,
+      }),
       createBodySizeGuard(),
       createRateLimitMiddleware(rateLimitRepo),
     ],
@@ -270,6 +288,14 @@ export const mastra = new Mastra({
         handler: async (c) => {
           const body = await c.req.json();
           const userId = getBoundUserId(c);
+          // The execution gateway already enforces this, but keep the
+          // attribution invariant local to the charged handler too: no model
+          // run may start unless its usage has a concrete owner.
+          if (!userId) {
+            return c.json({
+              error: { code: 'unauthorized', message: 'Authentication required' },
+            }, 401);
+          }
           const threadId = (body?.memory as { thread?: string } | undefined)?.thread;
 
           const onFinish = (event: ChatFinishEvent) => {
@@ -277,7 +303,7 @@ export const mastra = new Mastra({
             // Fire-and-forget by design: usage accounting must never fail or
             // delay a chat that already succeeded (record() also try/catches).
             void usageRepo.record({
-              userId: userId ?? 'unknown',
+              userId,
               route: 'chat',
               runId: event.runId,
               threadId,
@@ -290,7 +316,7 @@ export const mastra = new Mastra({
               cachedInputTokens: usage?.cachedInputTokens,
             });
             log.info('chat.usage', {
-              userId: userId ?? 'unknown',
+              userId,
               modelId: event.model?.modelId ?? AGENT_MODEL,
               inputTokens: usage?.inputTokens,
               outputTokens: usage?.outputTokens,
@@ -330,47 +356,7 @@ export const mastra = new Mastra({
       }),
       ...feedbackApiRoutes(feedbackRepo),
       corpusStatusRoute(),
-      registerApiRoute('/healthz', {
-        method: 'GET',
-        requiresAuth: false,
-        handler: async (c) => {
-          let neo4j: 'connected' | 'error' = 'error';
-          try {
-            const session = getDriver().session();
-            try {
-              await session.run('RETURN 1');
-              neo4j = 'connected';
-            } finally {
-              await session.close();
-            }
-          } catch (err) {
-            // Distinguish a network blip from a permanent outage for on-call:
-            // healthz returns 503 either way, but the cause only lives here.
-            log.error('healthz.neo4j_failed', errorFields(err));
-          }
-
-          // Verify the LibSQL store (chat memory + feedback, on the Railway
-          // volume) actually accepts writes. Connectivity alone is not enough:
-          // a read-only volume passes a liveness check but breaks every chat
-          // write, so a write-broken deploy must fail this healthcheck and be
-          // rejected rather than promoted.
-          const storage: 'writable' | 'readonly' =
-            (await feedbackRepo.probeWritable()) ? 'writable' : 'readonly';
-
-          // Provider reachability (Voyage, OpenAI) is informational: an
-          // expired key must be visible here (it breaks every chat) but must
-          // NOT 503 the deploy — Railway would roll a healthy build back for
-          // an upstream blip it can't fix. Results are cached ~60s in
-          // health.ts so probes don't burn quota.
-          const providers = await checkProviders();
-
-          const ok = neo4j === 'connected' && storage === 'writable';
-          return c.json(
-            { status: ok ? 'ok' : 'degraded', neo4j, storage, ...providers },
-            ok ? 200 : 503,
-          );
-        },
-      }),
+      ...healthApiRoutes(appDatabase),
     ],
   },
 });

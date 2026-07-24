@@ -32,6 +32,7 @@ export type Feedback = z.infer<typeof FeedbackSchema>;
 export const ProviderHealthSchema = z.enum(['ok', 'error', 'disabled']);
 export const ReadinessSchema = z.object({
   status: z.enum(['ok', 'degraded']),
+  config: z.literal('valid'),
   neo4j: z.enum(['connected', 'error']),
   storage: z.enum(['writable', 'readonly']),
   releaseId: z.string().min(1).max(128).nullable().optional(),
@@ -42,6 +43,7 @@ export const DependencyHealthSchema = z.object({
   status: z.enum(['ok', 'degraded']),
   voyage: ProviderHealthSchema,
   openai: ProviderHealthSchema,
+  anthropic: ProviderHealthSchema.optional(),
 });
 export type DependencyHealth = z.infer<typeof DependencyHealthSchema>;
 

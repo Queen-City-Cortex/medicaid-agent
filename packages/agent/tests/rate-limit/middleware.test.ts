@@ -21,7 +21,7 @@ function buildApp(middleware: unknown, boundUserId?: string) {
   app.post('/chat', (c) => c.json({ ok: true }));
   app.get('/chat', (c) => c.json({ ok: true }));
   app.post('/feedback', (c) => c.json({ ok: true }));
-  app.post('/api/workflows/deepResearchWorkflow/startAsync', (c) => c.json({ ok: true }));
+  app.post('/api/workflows/deepResearchWorkflow/start-async', (c) => c.json({ ok: true }));
   return app;
 }
 
@@ -37,6 +37,7 @@ describe('createRateLimitMiddleware', () => {
   afterEach(() => {
     delete process.env.RATE_LIMIT_MESSAGES_PER_HOUR;
     delete process.env.RATE_LIMIT_MESSAGES_PER_DAY;
+    delete process.env.NODE_ENV;
   });
 
   it('passes requests under the limit and 429s over it with a renderable body', async () => {
@@ -55,7 +56,7 @@ describe('createRateLimitMiddleware', () => {
   it('counts deep-research workflow starts against the same quota', async () => {
     const app = buildApp(createRateLimitMiddleware(repo), 'user_A');
     await app.request('/chat', { method: 'POST' });
-    await app.request('/api/workflows/deepResearchWorkflow/startAsync', { method: 'POST' });
+    await app.request('/api/workflows/deepResearchWorkflow/start-async', { method: 'POST' });
     const denied = await app.request('/chat', { method: 'POST' });
     expect(denied.status).toBe(429);
   });
@@ -80,6 +81,14 @@ describe('createRateLimitMiddleware', () => {
     vi.spyOn(repo, 'checkAndRecord').mockRejectedValue(new Error('disk full'));
     const app = buildApp(createRateLimitMiddleware(repo), 'user_A');
     expect((await app.request('/chat', { method: 'POST' })).status).toBe(200);
+  });
+
+  it('fails closed in production when quota storage is unavailable', async () => {
+    process.env.NODE_ENV = 'production';
+    vi.spyOn(repo, 'checkAndRecord').mockRejectedValue(new Error('disk full'));
+    const response = await buildApp(createRateLimitMiddleware(repo), 'user_A')
+      .request('/chat', { method: 'POST' });
+    expect(response.status).toBe(503);
   });
 });
 
@@ -113,13 +122,24 @@ describe('createBodySizeGuard', () => {
     expect(res.status).toBe(413);
   });
 
-  it('does not police uncounted routes', async () => {
+  it('rejects a non-decimal Content-Length instead of bypassing the cap', async () => {
+    process.env.MAX_BODY_BYTES = '100';
+    const app = buildApp(createBodySizeGuard(), 'user_A');
+    const res = await app.request('/feedback', {
+      method: 'POST',
+      headers: { 'content-length': 'not-a-number' },
+    });
+    expect(res.status).toBe(400);
+    expect(await res.json()).toMatchObject({ error: 'invalid_content_length' });
+  });
+
+  it('enforces the global limit on every JSON write route', async () => {
     process.env.MAX_BODY_BYTES = '100';
     const app = buildApp(createBodySizeGuard(), 'user_A');
     const res = await app.request('/feedback', {
       method: 'POST',
       headers: { 'content-length': '10000' },
     });
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(413);
   });
 });

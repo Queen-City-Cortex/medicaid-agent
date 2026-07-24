@@ -10,12 +10,28 @@ beforeEach(() => {
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
+  delete process.env.AGENT_MODEL;
+  delete process.env.ANTHROPIC_API_KEY;
 });
 
 describe('checkProviders', () => {
   it('reports ok when both providers respond', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }));
     await expect(checkProviders()).resolves.toEqual({ voyage: 'ok', openai: 'ok' });
+  });
+
+  it('checks Anthropic when the configured agent model requires it', async () => {
+    process.env.AGENT_MODEL = 'claude-sonnet-4-5';
+    process.env.ANTHROPIC_API_KEY = 'test-anthropic';
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200 });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(checkProviders()).resolves.toEqual({
+      voyage: 'ok',
+      openai: 'ok',
+      anthropic: 'ok',
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
   it('reports error per provider on non-OK responses and logs the status', async () => {
@@ -27,7 +43,7 @@ describe('checkProviders', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     await expect(checkProviders()).resolves.toEqual({ voyage: 'error', openai: 'ok' });
-    expect(log.error).toHaveBeenCalledWith('healthz.voyage_failed', { status: 401 });
+    expect(log.error).toHaveBeenCalledWith('dependencyz.voyage_failed', { status: 401 });
   });
 
   it('reports error when the request throws (network / timeout)', async () => {

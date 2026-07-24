@@ -19,12 +19,12 @@ function countedRoute(c: ContextWithMastra): RateLimitRoute | null {
   if (c.req.method !== 'POST') return null;
   const path = c.req.path;
   if (path === '/chat') return 'chat';
-  if (/^\/api\/workflows\/deepResearchWorkflow\/.*start/.test(path)) return 'deep-research';
+  if (path === '/api/workflows/deepResearchWorkflow/start-async') return 'deep-research';
   return null;
 }
 
 /**
- * Rejects oversized chat bodies on the Content-Length header alone — no body
+ * Rejects oversized JSON write bodies on the Content-Length header alone — no body
  * read, so a multi-hundred-MB payload is refused before it is ever parsed.
  * The body carries the whole thread history (useChat transport), so the cap
  * is per-request, not per-message; MessageLengthGuard enforces the
@@ -33,7 +33,7 @@ function countedRoute(c: ContextWithMastra): RateLimitRoute | null {
 export function createBodySizeGuard(): GuardMiddleware {
   return async function bodySizeGuard(c: ContextWithMastra, next: Next): Promise<Response | void> {
     const maxBytes = intEnv('MAX_BODY_BYTES', 2 * 1024 * 1024);
-    if (maxBytes > 0 && countedRoute(c) !== null) {
+    if (maxBytes > 0 && ['POST', 'PUT', 'PATCH'].includes(c.req.method)) {
       const rawLength = c.req.header('content-length');
       // A chunked / lengthless body would otherwise skip the cap and get
       // buffered downstream unbounded. The web client always sends
@@ -46,8 +46,17 @@ export function createBodySizeGuard(): GuardMiddleware {
           413,
         );
       }
+      if (!/^\d+$/.test(rawLength)) {
+        return c.json(
+          {
+            error: 'invalid_content_length',
+            message: 'Content-Length must be a non-negative decimal integer.',
+          },
+          400,
+        );
+      }
       const contentLength = Number(rawLength);
-      if (!Number.isFinite(contentLength) || contentLength > maxBytes) {
+      if (!Number.isSafeInteger(contentLength) || contentLength > maxBytes) {
         return c.json(
           {
             error: 'payload_too_large',
@@ -65,8 +74,9 @@ export function createBodySizeGuard(): GuardMiddleware {
  * Per-user sliding-window rate limit on agent-run starts. Reads the user id
  * bound by createResourceBindingMiddleware (which must run earlier in the
  * middleware array — Mastra's own auth is per-route and runs too late).
- * Fails OPEN on storage errors — a limiter outage must not take down chat —
- * and requests with no bound user pass through (route-level auth 401s them).
+ * In production, storage errors fail closed so a database outage cannot turn
+ * into unmetered model usage. Development remains fail-open for local work.
+ * Requests with no bound user pass through (the execution gateway 401s them).
  */
 export function createRateLimitMiddleware(repo: RateLimitRepository): GuardMiddleware {
   return async function chatRateLimiter(c: ContextWithMastra, next: Next): Promise<Response | void> {
@@ -102,8 +112,15 @@ export function createRateLimitMiddleware(repo: RateLimitRepository): GuardMiddl
         );
       }
     } catch (err) {
-      log.error('rate_limit.failed_open', errorFields(err));
+      const failClosed = process.env.NODE_ENV === 'production';
+      log.error(failClosed ? 'rate_limit.failed_closed' : 'rate_limit.failed_open', errorFields(err));
       Sentry.captureException(err, { tags: { component: 'rate-limit' } });
+      if (failClosed) {
+        return c.json({
+          error: 'temporarily_unavailable',
+          message: 'Usage limits are temporarily unavailable. Please try again shortly.',
+        }, 503);
+      }
     }
     await next();
   };

@@ -35,5 +35,11 @@ src = ["src"]
 # Vulture whitelist is intentionally a list of bare names (would trip F821).
 extend-exclude = ["vulture_whitelist.py"]
 
+[tool.ruff.lint]
+# Keep the project's established Ruff baseline explicit. Ruff 0.15 broadened
+# its implicit defaults, which turned a dependency update into 73 unrelated
+# style failures without the project opting into those additional rule sets.
+select = ["E4", "E7", "E9", "F"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
