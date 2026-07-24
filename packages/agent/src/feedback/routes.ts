@@ -1,15 +1,8 @@
 import { registerApiRoute } from '@mastra/core/server';
 import type { ContextWithMastra } from '@mastra/core/server';
-import { z } from 'zod';
+import { FeedbackInputSchema } from '@nc-medicaid/contracts';
 import type { FeedbackRepository } from './repository.js';
 import { log } from '../logger.js';
-
-const FeedbackBodySchema = z.object({
-  messageId: z.string().min(1),
-  threadId: z.string().min(1),
-  rating: z.enum(['up', 'down']),
-  comment: z.string().optional(),
-});
 
 export function getResourceId(c: ContextWithMastra): string | null {
   const rc = c.get('requestContext');
@@ -31,7 +24,7 @@ export function createFeedbackRoutes(repo: FeedbackRepository): {
       return c.json({ error: 'Invalid JSON' }, 400);
     }
 
-    const parsed = FeedbackBodySchema.safeParse(body);
+    const parsed = FeedbackInputSchema.safeParse(body);
     if (!parsed.success) {
       return c.json({ error: 'Validation failed', details: parsed.error.flatten() }, 400);
     }

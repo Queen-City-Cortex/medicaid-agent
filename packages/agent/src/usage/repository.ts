@@ -1,10 +1,13 @@
 import { createClient, type Client } from '@libsql/client';
 import { intEnv } from '../env.js';
 import { log, errorFields } from '../logger.js';
+import type { AppDatabase } from '../storage/app-database.js';
+import { estimateCostUsd } from './pricing.js';
 
 export interface UsageEvent {
   userId: string;
   route: 'chat' | 'deep-research';
+  phase?: 'planner' | 'worker' | 'reflection' | 'reporter' | 'verifier';
   runId?: string;
   threadId?: string;
   modelId: string;
@@ -35,8 +38,12 @@ export class UsageRepository {
   private client: Client;
   private initialized = false;
 
-  constructor(url: string) {
-    this.client = createClient({ url });
+  constructor(database: string | Client | AppDatabase) {
+    this.client = typeof database === 'string'
+      ? createClient({ url: database })
+      : 'client' in database
+        ? database.client
+        : database;
   }
 
   private async ensureTable(): Promise<void> {
@@ -55,6 +62,8 @@ export class UsageRepository {
         total_tokens INTEGER,
         reasoning_tokens INTEGER,
         cached_input_tokens INTEGER,
+        phase TEXT,
+        estimated_cost_usd REAL,
         created_at INTEGER NOT NULL
       )
     `);
@@ -71,12 +80,13 @@ export class UsageRepository {
   async record(event: UsageEvent, now = Date.now()): Promise<void> {
     try {
       await this.ensureTable();
+      const { costUsd } = estimateCostUsd(event);
       await this.client.execute({
         sql: `INSERT INTO usage_events
                 (user_id, route, run_id, thread_id, model_id, provider,
                  input_tokens, output_tokens, total_tokens, reasoning_tokens,
-                 cached_input_tokens, created_at)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                 cached_input_tokens, phase, estimated_cost_usd, created_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         args: [
           event.userId,
           event.route,
@@ -89,6 +99,8 @@ export class UsageRepository {
           event.totalTokens ?? null,
           event.reasoningTokens ?? null,
           event.cachedInputTokens ?? null,
+          event.phase ?? null,
+          costUsd,
           now,
         ],
       });

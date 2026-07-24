@@ -1,5 +1,6 @@
 import { createClient, type Client } from '@libsql/client';
 import { intEnv } from '../env.js';
+import type { AppDatabase } from '../storage/app-database.js';
 
 export type RateLimitRoute = 'chat' | 'deep-research';
 
@@ -22,8 +23,12 @@ export class RateLimitRepository {
   private client: Client;
   private initialized = false;
 
-  constructor(url: string) {
-    this.client = createClient({ url });
+  constructor(database: string | Client | AppDatabase) {
+    this.client = typeof database === 'string'
+      ? createClient({ url: database })
+      : 'client' in database
+        ? database.client
+        : database;
   }
 
   private async ensureTable(): Promise<void> {

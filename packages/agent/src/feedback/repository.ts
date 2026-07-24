@@ -1,14 +1,8 @@
 import { createClient, type Client } from '@libsql/client';
+import type { AppDatabase } from '../storage/app-database.js';
+import type { Feedback as FeedbackContract } from '@nc-medicaid/contracts';
 
-export interface Feedback {
-  id: string;
-  threadId: string;
-  messageId: string;
-  resourceId: string;
-  rating: 'up' | 'down';
-  comment: string | null;
-  createdAt: string;
-}
+export type Feedback = FeedbackContract;
 
 export type FeedbackInput = Omit<Feedback, 'createdAt'> & { comment?: string | null };
 
@@ -17,8 +11,12 @@ export class FeedbackRepository {
   private initialized = false;
   private probeInitialized = false;
 
-  constructor(url: string) {
-    this.client = createClient({ url });
+  constructor(database: string | Client | AppDatabase) {
+    this.client = typeof database === 'string'
+      ? createClient({ url: database })
+      : 'client' in database
+        ? database.client
+        : database;
   }
 
   /**
@@ -74,24 +72,17 @@ export class FeedbackRepository {
   async upsert(input: FeedbackInput): Promise<{ id: string; isNew: boolean }> {
     await this.ensureTable();
 
-    const existing = await this.client.execute({
-      sql: 'SELECT id FROM feedback WHERE message_id = ? AND resource_id = ?',
-      args: [input.messageId, input.resourceId],
-    });
-    const isNew = existing.rows.length === 0;
-    // Re-rating updates the existing row in place: the id and created_at are
-    // stable so clients can hold onto the id across rating/comment changes.
-    const id = isNew ? input.id : (existing.rows[0].id as string);
-
     const comment = input.rating === 'up' ? null : (input.comment ?? null);
-
-    await this.client.execute({
+    const result = await this.client.execute({
       sql: `INSERT INTO feedback (id, thread_id, message_id, resource_id, rating, comment, created_at)
             VALUES (?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT (message_id, resource_id)
-            DO UPDATE SET rating = excluded.rating, comment = excluded.comment`,
-      args: [id, input.threadId, input.messageId, input.resourceId, input.rating, comment, new Date().toISOString()],
+            DO UPDATE SET rating = excluded.rating, comment = excluded.comment
+            RETURNING id`,
+      args: [input.id, input.threadId, input.messageId, input.resourceId, input.rating, comment, new Date().toISOString()],
     });
+    const id = result.rows[0]?.id as string;
+    const isNew = id === input.id;
 
     // Opportunistic orphan prune: deleting a thread (Mastra's memory API)
     // removes its mastra_threads row and messages but knows nothing about

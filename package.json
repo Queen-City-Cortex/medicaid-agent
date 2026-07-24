@@ -6,7 +6,21 @@
     "packages/*"
   ],
   "engines": {
-    "node": ">=22.12.0"
+    "node": "22.22.0",
+    "npm": "11.11.0"
+  },
+  "overrides": {
+    "ajv": {
+      "fast-uri": "4.1.1"
+    },
+    "cheerio": {
+      "undici": "7.28.0"
+    }
+  },
+  "dependencies": {
+    "fast-uri": "4.1.1",
+    "undici": "7.28.0",
+    "ws": "8.21.1"
   },
   "scripts": {
     "build": "turbo run build",
@@ -15,11 +29,12 @@
     "test:coverage": "turbo run test:coverage",
     "lint": "turbo run lint",
     "typecheck:tests": "turbo run typecheck:tests",
-    "test:e2e": "cd e2e && npx playwright test --project=mocked",
+    "audit:production": "node scripts/check-production-audit.mjs",
+    "test:e2e": "cd e2e && HERMETIC_AUTH=1 npx playwright test --project=mocked",
     "test:e2e:smoke": "cd e2e && npx playwright test --project=smoke",
     "smoke:prod": "cd e2e && node scripts/smoke-production.mjs",
     "test:e2e:all": "cd e2e && npx playwright test",
-    "test:e2e:ui": "cd e2e && npx playwright test --project=mocked --ui",
+    "test:e2e:ui": "cd e2e && HERMETIC_AUTH=1 npx playwright test --project=mocked --ui",
     "deploy-data": "bash scripts/deploy-data.sh",
     "dev": "docker volume create neo4j-medicaid-data >/dev/null && docker compose up -d --wait neo4j && npm run dev -w @nc-medicaid/web & npm run dev -w @nc-medicaid/agent & wait",
     "dev:infra": "docker volume create neo4j-medicaid-data >/dev/null && docker compose up -d",
@@ -28,6 +43,7 @@
     "dev:agent": "npm run dev -w @nc-medicaid/agent"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^4.1.9",
     "turbo": "^2.9.18",
     "typescript": "^6.0.3"
   }

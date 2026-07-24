@@ -27,6 +27,7 @@
     "@mastra/loggers": "^1.2.0",
     "@mastra/memory": "^1.21.0",
     "@mastra/observability": "^1.15.0",
+    "@nc-medicaid/contracts": "*",
     "@nc-medicaid/policy-corpus": "*",
     "@sentry/node": "^10.60.0",
     "ai": "^6.0.209",

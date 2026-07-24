@@ -45,28 +45,10 @@ import { FeedbackRepository } from './feedback/repository.js';
 import { feedbackApiRoutes } from './feedback/routes.js';
 import { corpusStatusRoute } from './corpus-status.js';
 import { buildSystemPrompt } from './prompt.js';
-import { boolEnv, intEnv, isVerifierEnabled, strEnv } from './env.js';
+import { boolEnv, isVerifierEnabled } from './env.js';
+import { loadRuntimeConfig } from './runtime-config.js';
 
 // ── Startup validation ────────────────────────────────────────────────────────
-
-// OPENAI_API_KEY is always required: even with a Claude AGENT_MODEL override,
-// the hallucination verifier, prompt-injection detector, and observational
-// memory run on OpenAI models. ANTHROPIC_API_KEY is only needed when
-// AGENT_MODEL points at a Claude model.
-const REQUIRED_ENV = ['VOYAGE_API_KEY', 'OPENAI_API_KEY'] as const;
-
-function validateEnv() {
-  const missing: string[] = REQUIRED_ENV.filter((v) => !process.env[v]);
-  const agentModel = strEnv('AGENT_MODEL', '');
-  if (agentModel.startsWith('claude-') && !process.env.ANTHROPIC_API_KEY) {
-    missing.push('ANTHROPIC_API_KEY (required for Claude AGENT_MODEL)');
-  }
-  if (missing.length > 0) {
-    throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
-  }
-}
-
-validateEnv();
 
 // CLI usage:
 //   npx tsx src/index.ts "question"                  → chat agent (one-shot)
@@ -75,23 +57,22 @@ const CLI_ARGS = process.argv.slice(2);
 const IS_DEEP_RESEARCH_CLI = CLI_ARGS[0] === '--deep-research';
 const CLI_QUESTION = IS_DEEP_RESEARCH_CLI ? CLI_ARGS[1] : CLI_ARGS[0];
 const IS_CLI_RUN = Boolean(CLI_QUESTION);
-const OBSERVABILITY_DB_PATH = strEnv('MASTRA_OBSERVABILITY_PATH', IS_CLI_RUN ? ':memory:' : 'mastra.duckdb');
-const DATABASE_URL = strEnv('DATABASE_URL', 'file:./mastra.db');
+const runtimeConfig = loadRuntimeConfig(process.env, { cli: IS_CLI_RUN });
 
 const libsql = new LibSQLStore({
   id: 'mastra-storage',
-  url: DATABASE_URL,
+  url: runtimeConfig.databaseUrl,
 });
 
-const feedbackRepo = new FeedbackRepository(DATABASE_URL);
-const rateLimitRepo = new RateLimitRepository(DATABASE_URL);
-const usageRepo = new UsageRepository(DATABASE_URL);
+const feedbackRepo = new FeedbackRepository(runtimeConfig.databaseUrl);
+const rateLimitRepo = new RateLimitRepository(runtimeConfig.databaseUrl);
+const usageRepo = new UsageRepository(runtimeConfig.databaseUrl);
 
 const storage = new MastraCompositeStore({
   id: 'composite-storage',
   default: libsql,
   domains: {
-    observability: await new DuckDBStore({ path: OBSERVABILITY_DB_PATH }).getStore('observability'),
+    observability: await new DuckDBStore({ path: runtimeConfig.observabilityPath }).getStore('observability'),
   },
 });
 
@@ -248,7 +229,7 @@ export const mastra = new Mastra({
   logger: new PinoLogger({ name: 'mastra', level: 'info' }),
   server: {
     host: '0.0.0.0',
-    port: intEnv('PORT', 4111),
+    port: runtimeConfig.port,
     timeout: 10 * 60 * 1000, // 10 minutes — agent research can take many tool calls
     auth: new (class extends MastraAuthWorkos {
       async authorizeUser() { return true; } // allow any authenticated WorkOS user
@@ -266,7 +247,7 @@ export const mastra = new Mastra({
       createRateLimitMiddleware(rateLimitRepo),
     ],
     cors: {
-      origin: strEnv('CORS_ORIGINS', 'http://localhost:3000').split(','),
+      origin: runtimeConfig.corsOrigins,
       credentials: true,
     },
     // Mastra catches route handler errors itself, so the global Sentry handlers

@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["mandatory", "overridable", "evaluation"],
+  "additionalProperties": false,
+  "properties": {
+    "mandatory": { "type": "object" },
+    "overridable": { "type": "object" },
+    "evaluation": { "type": "object" }
+  }
+}

@@ -1,4 +1,5 @@
-FROM node:22-alpine AS base
+FROM node:22.22.0-alpine@sha256:e4bf2a82ad0a4037d28035ae71529873c069b13eb0455466ae0bc13363826e34 AS base
+RUN npm install --global npm@11.11.0
 
 # --- deps: install workspace dependencies ---
 # Installs dev dependencies too: the builder stage needs them (Next.js,
@@ -7,7 +8,8 @@ FROM base AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
 COPY packages/web/package.json ./packages/web/
-RUN npm ci --workspace=@nc-medicaid/web
+COPY packages/contracts/package.json ./packages/contracts/
+RUN npm ci --workspace=@nc-medicaid/contracts --workspace=@nc-medicaid/web
 
 # --- builder: build Next.js standalone output ---
 # NEXT_PUBLIC_* vars must be available at build time (Next.js inlines them).
@@ -27,7 +29,6 @@ ARG SENTRY_PROJECT
 ARG RAILWAY_GIT_COMMIT_SHA
 ENV NEXT_PUBLIC_SENTRY_DSN=$NEXT_PUBLIC_SENTRY_DSN \
     NEXT_PUBLIC_SENTRY_ENVIRONMENT=$NEXT_PUBLIC_SENTRY_ENVIRONMENT \
-    SENTRY_AUTH_TOKEN=$SENTRY_AUTH_TOKEN \
     SENTRY_ORG=$SENTRY_ORG \
     SENTRY_PROJECT=$SENTRY_PROJECT \
     SENTRY_RELEASE=$RAILWAY_GIT_COMMIT_SHA
@@ -36,7 +37,8 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/packages/web/node_modules ./packages/web/node_modules
 COPY package.json package-lock.json tsconfig.json turbo.json ./
 COPY packages/web ./packages/web
-RUN npm run build --workspace=@nc-medicaid/web
+COPY packages/contracts ./packages/contracts
+RUN SENTRY_AUTH_TOKEN="$SENTRY_AUTH_TOKEN" npm run build --workspace=@nc-medicaid/web
 
 # --- runner: minimal production image ---
 FROM base AS runner

@@ -29,7 +29,10 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  // A cold Next.js dev compile is not stable under Playwright's default of
+  // one worker per CPU core. Keep local runs parallel but bounded; CI remains
+  // serialized for deterministic diagnostics.
+  workers: process.env.CI ? 1 : 4,
   reporter: [['html', { open: 'never' }], ['list']],
 
   use: {
@@ -53,7 +56,9 @@ export default defineConfig({
         storageState: 'playwright/.auth/user.json',
       },
       dependencies: ['setup'],
-      timeout: 15_000,
+      // Next dev may perform a cold compile on the first browser worker.
+      // Keep assertions bounded while avoiding false failures on that compile.
+      timeout: 30_000,
     },
     // The smoke project exists only outside hermetic mode: it covers the REAL
     // hosted WorkOS login and a live backend, which the synthetic cookie

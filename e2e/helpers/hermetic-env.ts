@@ -16,4 +16,7 @@ export const HERMETIC_ENV = {
   WORKOS_COOKIE_PASSWORD: 'e2e-test-cookie-password-0123456789abcdef',
   WORKOS_REDIRECT_URI: 'http://localhost:3000/auth/callback',
   NEXT_PUBLIC_WORKOS_REDIRECT_URI: 'http://localhost:3000/auth/callback',
+  // Keep the browser bundle and CSP aligned with the API origin intercepted
+  // by Playwright's hermetic route mocks.
+  NEXT_PUBLIC_MASTRA_URL: 'http://localhost:4111',
 } as const;

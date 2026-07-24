@@ -1,4 +1,5 @@
-FROM node:22-slim AS base
+FROM node:22.22.0-bookworm-slim@sha256:dd9d21971ec4395903fa6143c2b9267d048ae01ca6d3ea96f16cb30df6187d94 AS base
+RUN npm install --global npm@11.11.0
 
 # --- deps: install workspace dependencies ---
 # Installs dev dependencies too: the builder stage needs them (mastra CLI,
@@ -8,7 +9,8 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 COPY packages/agent/package.json ./packages/agent/
 COPY packages/policy-corpus/package.json ./packages/policy-corpus/
-RUN npm ci --workspace=@nc-medicaid/policy-corpus --workspace=@nc-medicaid/agent
+COPY packages/contracts/package.json ./packages/contracts/
+RUN npm ci --workspace=@nc-medicaid/contracts --workspace=@nc-medicaid/policy-corpus --workspace=@nc-medicaid/agent
 
 # --- builder: bundle with mastra build ---
 FROM base AS builder
@@ -18,6 +20,7 @@ COPY --from=deps /app/packages/agent/node_modules ./packages/agent/node_modules
 COPY package.json package-lock.json tsconfig.json turbo.json ./
 COPY packages/agent ./packages/agent
 COPY packages/policy-corpus ./packages/policy-corpus
+COPY packages/contracts ./packages/contracts
 WORKDIR /app/packages/agent
 RUN npx mastra build --dir src
 
