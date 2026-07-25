@@ -11,7 +11,7 @@ from pathlib import Path
 
 from rich.console import Console
 
-from pipeline.config import ECFR_CACHE_DIR
+from pipeline.config import ECFR_CACHE_DIR, SSA_CACHE_MAX_AGE_DAYS
 
 console = Console()
 
@@ -126,7 +126,16 @@ def _cache_path(title_num: int) -> Path:
 def fetch_usc_subchapter(title_num: int, refresh: bool = False) -> str:
     """Fetch the full USC subchapter HTML from uscode.house.gov."""
     cache = _cache_path(title_num)
-    if not refresh and cache.exists():
+    cache_age_days = (
+        (time.time() - cache.stat().st_mtime) / 86_400
+        if cache.exists()
+        else None
+    )
+    if (
+        not refresh
+        and cache_age_days is not None
+        and cache_age_days < SSA_CACHE_MAX_AGE_DAYS
+    ):
         return cache.read_text(encoding="utf-8")
 
     url = USC_URLS[title_num]

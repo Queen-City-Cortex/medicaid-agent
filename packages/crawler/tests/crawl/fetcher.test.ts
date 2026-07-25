@@ -1,5 +1,13 @@
+import { createServer } from 'node:http';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { describe, it, expect } from 'vitest';
-import { createFetcher } from '../../src/crawl/fetcher.js';
+import {
+  createFetcher,
+  FileTooLargeError,
+  UrlRejectedError,
+} from '../../src/crawl/fetcher.js';
 
 // We test the rate-limiting and retry logic, not actual HTTP
 // Actual HTTP is tested in integration tests
@@ -51,5 +59,91 @@ describe('rate limiting', () => {
 
     fetcher.setCrawlDelay('example.com', 5000);
     expect(fetcher.getDelayForDomain('example.com')).toBe(5000);
+  });
+});
+
+describe('request safety', () => {
+  it('checks redirect targets before sending the redirected request', async () => {
+    const server = createServer((_request, response) => {
+      response.writeHead(302, {
+        location: 'http://outside.invalid/policy.pdf',
+      });
+      response.end();
+    });
+    await new Promise<void>((resolve) =>
+      server.listen(0, '127.0.0.1', resolve),
+    );
+    const address = server.address();
+    if (!address || typeof address === 'string') {
+      throw new Error('test server did not expose a port');
+    }
+
+    try {
+      const fetcher = createFetcher({
+        userAgent: 'TestBot/1.0',
+        defaultDelayMs: 0,
+        requestTimeoutMs: 1000,
+        maxRetries: 0,
+        backoffBaseMs: 1,
+        backoffMaxMs: 1,
+        maxRedirects: 2,
+      });
+      const url = `http://127.0.0.1:${address.port}/redirect`;
+
+      await expect(
+        fetcher.fetchHtml(
+          url,
+          (candidate) => new URL(candidate).hostname === '127.0.0.1',
+        ),
+      ).rejects.toBeInstanceOf(UrlRejectedError);
+    } finally {
+      await new Promise<void>((resolve, reject) =>
+        server.close((error) => (error ? reject(error) : resolve())),
+      );
+    }
+  });
+
+  it('aborts a chunked download as soon as the byte limit is exceeded', async () => {
+    const server = createServer((_request, response) => {
+      response.writeHead(200, { 'content-type': 'application/pdf' });
+      response.write(Buffer.alloc(8, 1));
+      response.end(Buffer.alloc(8, 2));
+    });
+    await new Promise<void>((resolve) =>
+      server.listen(0, '127.0.0.1', resolve),
+    );
+    const address = server.address();
+    if (!address || typeof address === 'string') {
+      throw new Error('test server did not expose a port');
+    }
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'fetch-limit-'));
+    const destination = path.join(tempDir, 'download.tmp');
+
+    try {
+      const fetcher = createFetcher({
+        userAgent: 'TestBot/1.0',
+        defaultDelayMs: 0,
+        requestTimeoutMs: 1000,
+        maxRetries: 0,
+        backoffBaseMs: 1,
+        backoffMaxMs: 1,
+        maxRedirects: 0,
+      });
+
+      await expect(
+        fetcher.fetchFile(
+          `http://127.0.0.1:${address.port}/large`,
+          destination,
+          { maxBytes: 10, isAllowedUrl: () => true },
+        ),
+      ).rejects.toBeInstanceOf(FileTooLargeError);
+      expect(fs.existsSync(destination)).toBe(true);
+      expect(fs.statSync(destination).size).toBeLessThanOrEqual(10);
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+      await new Promise<void>((resolve, reject) =>
+        server.close((error) => (error ? reject(error) : resolve())),
+      );
+    }
   });
 });

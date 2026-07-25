@@ -215,6 +215,30 @@ describe('DocumentRegistry', () => {
     });
   });
 
+  describe('rejected URLs', () => {
+    it('records rejections separately and increments repeated occurrences', () => {
+      registry.recordRejectedUrl(
+        'https://outside.example/policy.pdf',
+        'clinical_policy',
+        'domain not allowed',
+      );
+      registry.recordRejectedUrl(
+        'https://outside.example/policy.pdf',
+        'clinical_policy',
+        'domain not allowed',
+      );
+
+      expect(registry.getRejectedUrls()).toEqual([
+        expect.objectContaining({
+          source_url: 'https://outside.example/policy.pdf',
+          source_type: 'clinical_policy',
+          reason: 'domain not allowed',
+          occurrences: 2,
+        }),
+      ]);
+    });
+  });
+
   describe('getDocumentsToCheck', () => {
     it('returns downloaded and updated documents', () => {
       const id = registry.upsertDiscovered(sampleDoc);
@@ -510,7 +534,7 @@ describe('DocumentRegistry', () => {
   });
 
   describe('crawl runs', () => {
-    it('creates and completes a crawl run', () => {
+    it('creates and completes a crawl run with source freshness metadata', () => {
       const runId = registry.startCrawlRun(['clinical_policy']);
       registry.completeCrawlRun(runId, {
         documents_discovered: 10,
@@ -519,7 +543,13 @@ describe('DocumentRegistry', () => {
         documents_updated: 1,
         documents_errored: 1,
       });
-      // No assertion needed beyond not throwing — the run is in the DB
+      expect(registry.getSourceFreshness()).toEqual([
+        {
+          source_type: 'clinical_policy',
+          last_successful_discovery_at: expect.any(String),
+          last_content_change_at: null,
+        },
+      ]);
     });
   });
 });

@@ -223,8 +223,8 @@ describe('downloadDocument', () => {
   function makeDoc(overrides: Partial<DocumentRecord> = {}): DocumentRecord {
     return {
       id: nextId++,
-      source_url: 'https://example.com/policy.pdf',
-      discovered_from: 'https://example.com/index',
+      source_url: 'https://medicaid.ncdhhs.gov/policy.pdf',
+      discovered_from: 'https://medicaid.ncdhhs.gov/index',
       source_type: 'clinical_policy',
       title: 'Test Policy',
       policy_number: '1A-1',
@@ -308,6 +308,23 @@ describe('downloadDocument', () => {
     expect(result.info?.detected_content_type).toBe('application/pdf');
     const savedPath = path.join(config.documentsDir, result.info!.local_path);
     expect(fs.existsSync(savedPath)).toBe(true);
+  });
+
+  it('rejects a final redirect URL outside the source-family allowlist', async () => {
+    const fetcher = fetcherWriting(Buffer.from('%PDF-1.4\n'));
+    const originalFetchFile = fetcher.fetchFile;
+    fetcher.fetchFile = async (...args) => ({
+      ...(await originalFetchFile(...args)),
+      finalUrl: 'https://outside.example/policy.pdf',
+    });
+
+    const result = await downloadDocument(makeDoc(), fetcher, new Set());
+
+    expect(result).toMatchObject({
+      action: 'error',
+      rejectedUrl: 'https://outside.example/policy.pdf',
+      rejectionReason: 'redirect target outside source-family allowlist',
+    });
   });
 
   it('carries a structured 404 status code instead of a message substring', async () => {

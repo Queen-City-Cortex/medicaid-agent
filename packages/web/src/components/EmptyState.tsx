@@ -1,7 +1,7 @@
 'use client';
 
 import { ArrowUpRight } from 'lucide-react';
-import { useCorpusStatus } from '@/lib/use-corpus-status';
+import type { CorpusStatus } from '@/lib/use-corpus-status';
 
 // First-run guidance, kept deliberately quiet: a scope line (what document
 // families the corpus covers), a limits line (what this tool must never be
@@ -36,10 +36,10 @@ const EXAMPLE_GROUPS: { persona: string; questions: string[] }[] = [
 
 interface EmptyStateProps {
   onSelectExample: (question: string) => void;
+  corpusStatus?: CorpusStatus | null;
 }
 
-export function EmptyState({ onSelectExample }: EmptyStateProps) {
-  const corpusStatus = useCorpusStatus();
+export function EmptyState({ onSelectExample, corpusStatus = null }: EmptyStateProps) {
   const corpusUpdated = corpusStatus?.lastUpdated
     ? new Date(corpusStatus.lastUpdated).toLocaleDateString('en-US', {
         year: 'numeric',
@@ -74,6 +74,15 @@ export function EmptyState({ onSelectExample }: EmptyStateProps) {
       {corpusUpdated && (
         <p data-testid="empty-state-corpus-status" className="mx-auto mt-3 font-mono text-[11px] tracking-tight text-muted-foreground/70">
           {corpusStatus!.documentCount.toLocaleString('en-US')} documents · last updated {corpusUpdated}
+        </p>
+      )}
+      {corpusStatus?.retrievalMode === 'lexical-degraded' && (
+        <p
+          data-testid="degraded-search-notice"
+          className="mx-auto mt-3 max-w-xl text-xs leading-relaxed text-muted-foreground"
+        >
+          Semantic matching is temporarily unavailable. Search is still using source-text
+          keywords and citations.
         </p>
       )}
       <div className="mt-12 grid gap-7 max-w-xl mx-auto text-left">

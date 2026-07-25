@@ -227,8 +227,8 @@ describe('crawl sync phases', () => {
       expect(registry.getById(id)!.status).toBe('discovered');
     });
 
-    it('skips documents disallowed by robots.txt', async () => {
-      addDiscovered('https://example.com/blocked.pdf');
+    it('rejects and records documents disallowed before queueing', async () => {
+      const id = addDiscovered('https://example.com/blocked.pdf');
 
       const calls: string[] = [];
       const ctx = makeContext(
@@ -242,6 +242,13 @@ describe('crawl sync phases', () => {
 
       await runDownloadPhase(ctx);
       expect(calls).toEqual([]);
+      expect(registry.getById(id)?.status).toBe('error');
+      expect(registry.getRejectedUrls()).toEqual([
+        expect.objectContaining({
+          source_url: 'https://example.com/blocked.pdf',
+          reason: 'URL rejected before download queueing',
+        }),
+      ]);
     });
   });
 });

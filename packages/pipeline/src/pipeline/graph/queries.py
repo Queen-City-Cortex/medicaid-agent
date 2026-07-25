@@ -21,6 +21,14 @@ SET d.title = $title,
     d.variant_group = $variant_group,
     d.variant_date = $variant_date,
     d.retrieval_ready = $retrieval_ready,
+    d.source_checked_at = CASE
+      WHEN $source_checked_at IS NULL THEN NULL
+      ELSE datetime($source_checked_at)
+    END,
+    d.source_changed_at = CASE
+      WHEN $source_changed_at IS NULL THEN NULL
+      ELSE datetime($source_changed_at)
+    END,
     d.last_indexed = datetime()
 RETURN d
 """

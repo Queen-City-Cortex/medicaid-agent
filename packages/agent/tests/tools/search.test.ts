@@ -41,7 +41,7 @@ function setupSearchSession(
   return session;
 }
 
-function mockFetchEmbedding(embedding: number[] = [0.1, 0.2, 0.3]) {
+function mockFetchEmbedding(embedding: number[] = Array(1024).fill(0.1)) {
   globalThis.fetch = vi.fn(async () =>
     ({
       ok: true,
@@ -106,6 +106,7 @@ describe('searchSections', () => {
 
     const result = await runTool(searchSections, { query: 'test query' });
 
+    expect(result.retrievalMode).toBe('hybrid');
     expect(result.sections).toHaveLength(2);
     expect(result.sections[0]).toEqual({
       sectionId: 'sec-1',
@@ -332,7 +333,7 @@ describe('searchSections', () => {
     ]);
   });
 
-  it('throws on Voyage API error', async () => {
+  it('falls back to lexical retrieval on Voyage API error', async () => {
     globalThis.fetch = vi.fn(async () =>
       ({
         ok: false,
@@ -343,8 +344,38 @@ describe('searchSections', () => {
 
     setupSession([{ records: [] }, { records: [] }]);
 
-    await expect(runTool(searchSections, { query: 'test' })).rejects.toThrow(
-      'Voyage API error 401: Unauthorized',
-    );
+    const result = await runTool(searchSections, { query: 'test' });
+
+    expect(result.retrievalMode).toBe('lexical-degraded');
+    expect(result.sections).toEqual([]);
+  });
+
+  it('keeps retrieval mode scoped to each concurrent search', async () => {
+    globalThis.fetch = vi.fn(async (_url, init) => {
+      const body = JSON.parse(String(init?.body)) as { input: string[] };
+      if (body.input[0] === 'degraded') {
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        return {
+          ok: false,
+          status: 401,
+          text: async () => 'Unauthorized',
+        } as Response;
+      }
+      return {
+        ok: true,
+        json: async () => ({
+          data: [{ embedding: Array(1024).fill(0.1) }],
+        }),
+      } as Response;
+    });
+    setupSearchSession([]);
+
+    const [degraded, hybrid] = await Promise.all([
+      runTool(searchSections, { query: 'degraded' }),
+      runTool(searchSections, { query: 'hybrid' }),
+    ]);
+
+    expect(degraded.retrievalMode).toBe('lexical-degraded');
+    expect(hybrid.retrievalMode).toBe('hybrid');
   });
 });

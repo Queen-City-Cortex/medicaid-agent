@@ -1,24 +1,23 @@
 import { registerApiRoute } from '@mastra/core/server';
+import type { CorpusStatus } from '@nc-medicaid/contracts';
+import { getRetrievalMode } from './policy-corpus.js';
 import { withSession } from './neo4j.js';
 import { Sentry } from './sentry.js';
 import { log, errorFields } from './logger.js';
 
-export interface CorpusStatus {
-  /** ISO timestamp of the most recent document (re-)index, or null if the graph is empty. */
-  lastUpdated: string | null;
-  documentCount: number;
-}
-
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
-let cached: { value: CorpusStatus; expiresAt: number } | null = null;
+type CachedCorpusStatus = Omit<CorpusStatus, 'retrievalMode'>;
+let cached: { value: CachedCorpusStatus; expiresAt: number } | null = null;
 
 // Every Document node carries last_indexed (set by the pipeline loader), so
 // max(last_indexed) is the real "corpus last updated" moment — not an
 // invented date. Cached for 5 minutes: the value changes only when the
 // pipeline runs, and the empty state requests it on every page load.
 export async function getCorpusStatus(now: () => number = Date.now): Promise<CorpusStatus> {
-  if (cached && cached.expiresAt > now()) return cached.value;
+  if (cached && cached.expiresAt > now()) {
+    return { ...cached.value, retrievalMode: getRetrievalMode() };
+  }
 
   const value = await withSession(async (session) => {
     const result = await session.run(
@@ -34,7 +33,7 @@ export async function getCorpusStatus(now: () => number = Date.now): Promise<Cor
   });
 
   cached = { value, expiresAt: now() + CACHE_TTL_MS };
-  return value;
+  return { ...value, retrievalMode: getRetrievalMode() };
 }
 
 export function resetCorpusStatusCache() {

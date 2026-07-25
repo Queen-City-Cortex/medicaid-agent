@@ -44,6 +44,28 @@ def test_audit_marks_supported_download_without_sidecar_as_missing_parsed(tmp_pa
     assert entry["states"] == ["discovered", "downloaded"]
 
 
+def test_audit_reports_per_family_discovery_freshness():
+    report = build_corpus_audit_report(
+        source_families=(get_source_family("bulletin"),),
+        registry_rows=[],
+        local_files=[],
+        parsed_sidecars=[],
+        graph_documents=[],
+        source_freshness=[
+            {
+                "source_type": "bulletin",
+                "last_successful_discovery_at": "2099-01-01T00:00:00+00:00",
+                "last_content_change_at": "2098-12-31T00:00:00+00:00",
+            }
+        ],
+    )
+
+    family = report["source_families"][0]
+    assert family["freshness_status"] == "fresh"
+    assert family["discovery_interval_hours"] == 24
+    assert family["freshness_sla_days"] == 1
+
+
 def test_audit_surfaces_parse_quality_and_missing_graph_load(tmp_path):
     source_file = tmp_path / "documents" / "eligibility.pdf"
     source_file.parent.mkdir(parents=True)
@@ -79,15 +101,15 @@ def test_audit_surfaces_parse_quality_and_missing_graph_load(tmp_path):
     assert entry["states"] == ["discovered", "downloaded", "parsed"]
 
 
-def test_audit_marks_legacy_xls_as_unsupported_format(tmp_path):
-    source_file = tmp_path / "documents" / "rate-sheet.xls"
+def test_audit_marks_remaining_legacy_ppt_as_unsupported_format(tmp_path):
+    source_file = tmp_path / "documents" / "legacy-slides.ppt"
     source_file.parent.mkdir(parents=True)
     source_file.write_bytes(b"legacy xls")
 
     report = build_corpus_audit_report(
-        source_families=(get_source_family("fee_schedule"),),
-        registry_rows=[_registry_row("fee_schedule", source_file)],
-        local_files=[_local_file("fee_schedule", source_file)],
+        source_families=(get_source_family("managed_care_guidance"),),
+        registry_rows=[_registry_row("managed_care_guidance", source_file)],
+        local_files=[_local_file("managed_care_guidance", source_file)],
         parsed_sidecars=[],
         graph_documents=[],
     )

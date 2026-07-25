@@ -5,6 +5,8 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import subprocess
+import tempfile
 import time
 from datetime import datetime, timezone
 from multiprocessing import get_context
@@ -21,7 +23,9 @@ from docling.document_converter import DocumentConverter, PdfFormatOption
 from docling_core.types.doc import DocItemLabel
 from docx import Document as WordDocument
 from openpyxl import load_workbook
+from pptx import Presentation
 from rich.console import Console
+import xlrd
 
 from pipeline.config import (
     CRAWLER_DATA_DIR,
@@ -32,7 +36,7 @@ from pipeline.config import (
 from pipeline.parse.post_process import extract_section_number
 
 console = Console()
-PARSE_CACHE_VERSION = 3
+PARSE_CACHE_VERSION = 4
 DEFAULT_PARSE_TIMEOUT_SECONDS = 600
 
 
@@ -411,6 +415,153 @@ def parse_xlsx(xlsx_path: Path) -> dict:
     }
 
 
+def parse_xls(xls_path: Path) -> dict:
+    """Extract legacy XLS workbooks directly into synthetic sections."""
+    start = time.time()
+    workbook = xlrd.open_workbook(str(xls_path), on_demand=True)
+    sections: list[dict] = []
+    try:
+        for sheet in workbook.sheets():
+            rows: list[list[str]] = []
+            for row_index in range(sheet.nrows):
+                values = [
+                    str(sheet.cell_value(row_index, column_index)).strip()
+                    for column_index in range(sheet.ncols)
+                ]
+                if any(values):
+                    rows.append(values)
+            if not rows:
+                continue
+
+            section = _new_synthetic_section(sheet.name, 1)
+            section["content_text"] = "\n".join(
+                " | ".join(values) for values in rows
+            )
+            section["has_tables"] = True
+            sections.append(section)
+    finally:
+        workbook.release_resources()
+
+    quality_flags = _compute_quality_flags(
+        sections,
+        reported_section_count=len(sections),
+    )
+    return {
+        "payload": {
+            "synthetic_sections": sections,
+            "source_format": "xls",
+        },
+        "markdown": _render_synthetic_markdown(sections),
+        "section_count": len(sections),
+        "table_count": len(sections),
+        "page_count": len(sections),
+        "content_char_count": sum(
+            len(section["content_text"]) for section in sections
+        ),
+        "parse_time_seconds": round(time.time() - start, 2),
+        "source_format": "xls",
+        "parse_backend": "xlrd",
+        "parse_status": "parsed",
+        "quality_flags": quality_flags,
+        "answer_ready": len(quality_flags) == 0,
+    }
+
+
+def parse_pptx(pptx_path: Path) -> dict:
+    """Extract slide text and tables into one synthetic section per slide."""
+    start = time.time()
+    presentation = Presentation(str(pptx_path))
+    sections: list[dict] = []
+    table_count = 0
+
+    for index, slide in enumerate(presentation.slides, start=1):
+        title_shape = slide.shapes.title
+        title = (
+            title_shape.text.strip()
+            if title_shape is not None and title_shape.text
+            else f"Slide {index}"
+        )
+        section = _new_synthetic_section(title, 1)
+
+        for shape in slide.shapes:
+            if (
+                getattr(shape, "has_text_frame", False)
+                and shape is not title_shape
+            ):
+                _append_section_content(section, shape.text)
+            if getattr(shape, "has_table", False):
+                rows = [
+                    " | ".join(cell.text.strip() for cell in row.cells)
+                    for row in shape.table.rows
+                ]
+                _append_section_content(section, "\n".join(rows))
+                section["has_tables"] = True
+                table_count += 1
+
+        if section["content_text"].strip() or title:
+            sections.append(section)
+
+    quality_flags = _compute_quality_flags(
+        sections,
+        reported_section_count=len(sections),
+    )
+    return {
+        "payload": {
+            "synthetic_sections": sections,
+            "source_format": "pptx",
+        },
+        "markdown": _render_synthetic_markdown(sections),
+        "section_count": len(sections),
+        "table_count": table_count,
+        "page_count": len(sections),
+        "content_char_count": sum(
+            len(section["content_text"]) for section in sections
+        ),
+        "parse_time_seconds": round(time.time() - start, 2),
+        "source_format": "pptx",
+        "parse_backend": "python-pptx",
+        "parse_status": "parsed",
+        "quality_flags": quality_flags,
+        "answer_ready": len(quality_flags) == 0,
+    }
+
+
+def parse_doc(doc_path: Path) -> dict:
+    """Convert legacy DOC through headless LibreOffice, then parse the DOCX."""
+    libreoffice_binary = os.getenv("LIBREOFFICE_BINARY", "soffice").strip()
+    if not libreoffice_binary:
+        raise RuntimeError("LIBREOFFICE_BINARY must not be empty")
+
+    with tempfile.TemporaryDirectory(prefix="medicaid-doc-") as temp_dir:
+        completed = subprocess.run(
+            [
+                libreoffice_binary,
+                "--headless",
+                "--convert-to",
+                "docx",
+                "--outdir",
+                temp_dir,
+                str(doc_path),
+            ],
+            capture_output=True,
+            text=True,
+            timeout=120,
+            check=False,
+        )
+        converted = Path(temp_dir) / f"{doc_path.stem}.docx"
+        if completed.returncode != 0 or not converted.exists():
+            detail = (completed.stderr or completed.stdout).strip()[:500]
+            raise RuntimeError(
+                f"LibreOffice DOC conversion failed: {detail or 'no output'}"
+            )
+
+        parsed = parse_docx(converted)
+        parsed["source_format"] = "doc"
+        parsed["parse_backend"] = "libreoffice+python-docx"
+        parsed["payload"]["source_format"] = "doc"
+        return parsed
+
+
 def save_parsed(
     source_path: Path,
     parsed: dict,
@@ -462,8 +613,11 @@ def save_parse_error(source_path: Path, source_type: str, error: Exception) -> N
         "source_format": source_path.suffix.lower().lstrip("."),
         "parse_backend": {
             ".pdf": "docling",
+            ".doc": "libreoffice+python-docx",
             ".docx": "python-docx",
+            ".xls": "xlrd",
             ".xlsx": "openpyxl",
+            ".pptx": "python-pptx",
         }.get(source_path.suffix.lower(), "unknown"),
         "parse_status": "parse_exception",
         "quality_flags": ["parse_exception"],
@@ -475,6 +629,37 @@ def save_parse_error(source_path: Path, source_type: str, error: Exception) -> N
         "content_char_count": 0,
         "parse_time_seconds": 0,
         "warnings": ["parse_exception"],
+    }
+    meta_path.write_text(json.dumps(meta, indent=2))
+
+
+def save_unsupported_format(
+    source_path: Path,
+    source_type: str,
+) -> None:
+    """Persist an explicit quarantine sidecar for an unsupported artifact."""
+    _, _, meta_path = parsed_output_paths(source_path, source_type)
+    source_hash = f"sha256:{file_sha256(source_path)}"
+    suffix = source_path.suffix.lower() or "(none)"
+    meta = {
+        "source_file": str(source_path),
+        "source_file_hash": source_hash,
+        "parsed_at": datetime.now(timezone.utc).isoformat(),
+        "parse_cache_version": PARSE_CACHE_VERSION,
+        "source_format": suffix.lstrip("."),
+        "parse_backend": "unsupported",
+        "parse_status": "unsupported_format",
+        "quality_flags": ["unsupported_format"],
+        "answer_ready": False,
+        "error_message": (
+            f"Unsupported source format {suffix}; artifact quarantined from loading"
+        ),
+        "section_count": 0,
+        "table_count": 0,
+        "page_count": 0,
+        "content_char_count": 0,
+        "parse_time_seconds": 0,
+        "warnings": ["unsupported_format"],
     }
     meta_path.write_text(json.dumps(meta, indent=2))
 
@@ -499,6 +684,37 @@ def discover_source_files(source_type: str | None = None) -> list[Path]:
     return source_files
 
 
+def discover_unsupported_files(
+    source_type: str | None = None,
+) -> list[Path]:
+    """Find downloaded artifacts that have no parser implementation."""
+    unsupported: list[Path] = []
+
+    def collect_from_directory(dir_name: str) -> None:
+        source_dir = CRAWLER_DATA_DIR / dir_name
+        if not source_dir.exists():
+            return
+        unsupported.extend(
+            sorted(
+                path
+                for path in source_dir.iterdir()
+                if path.is_file()
+                and not path.name.startswith(".")
+                and path.suffix.lower() not in PARSE_SUPPORTED_FILE_FORMATS
+            )
+        )
+
+    if source_type:
+        collect_from_directory(
+            SOURCE_TYPE_DIRS.get(source_type, source_type)
+        )
+    else:
+        for dir_name in SOURCE_TYPE_DIRS.values():
+            collect_from_directory(dir_name)
+
+    return unsupported
+
+
 def source_type_for_file(source_path: Path) -> str:
     """Infer source_type from the source file's parent directory name."""
     dir_name = source_path.parent.name
@@ -519,8 +735,14 @@ def parse_supported_file(
         return parse_pdf(source_path, converter)
     if suffix == ".docx":
         return parse_docx(source_path)
+    if suffix == ".doc":
+        return parse_doc(source_path)
     if suffix == ".xlsx":
         return parse_xlsx(source_path)
+    if suffix == ".xls":
+        return parse_xls(source_path)
+    if suffix == ".pptx":
+        return parse_pptx(source_path)
     raise ValueError(f"Unsupported parse format: {source_path.suffix}")
 
 
@@ -611,12 +833,33 @@ def parse_all(
     """Parse all supported source files. Returns stats dict."""
     converter: DocumentConverter | None = None
     parse_timeout_seconds = get_parse_timeout_seconds()
-    stats = {"parsed": 0, "skipped": 0, "errors": 0, "timed_out": 0}
+    stats = {
+        "parsed": 0,
+        "skipped": 0,
+        "errors": 0,
+        "timed_out": 0,
+        "quarantined": 0,
+    }
 
     if file_path:
-        source_files = [file_path]
+        if file_path.suffix.lower() in PARSE_SUPPORTED_FILE_FORMATS:
+            source_files = [file_path]
+            unsupported_files: list[Path] = []
+        else:
+            source_files = []
+            unsupported_files = [file_path]
     else:
         source_files = discover_source_files(source_type)
+        unsupported_files = discover_unsupported_files(source_type)
+
+    for unsupported_path in unsupported_files:
+        source_type_name = source_type_for_file(unsupported_path)
+        save_unsupported_format(unsupported_path, source_type_name)
+        stats["quarantined"] += 1
+        console.print(
+            f"  Quarantined {unsupported_path.name} "
+            f"(unsupported format {unsupported_path.suffix.lower() or '(none)'})"
+        )
 
     console.print(f"[bold]Found {len(source_files)} supported source files to process[/bold]")
 

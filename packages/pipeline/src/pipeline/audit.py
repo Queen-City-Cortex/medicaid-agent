@@ -16,7 +16,11 @@ from pipeline.config import (
     SOURCE_TYPE_DIRS,
 )
 from pipeline.corpus_manifest import CORPUS_MANIFEST, SourceFamilyManifest
-from pipeline.crawler_registry import normalize_local_path, read_registry_rows
+from pipeline.crawler_registry import (
+    normalize_local_path,
+    read_registry_rows,
+    read_source_freshness,
+)
 from pipeline.graph.connection import get_session
 from pipeline.identity import build_document_id
 from pipeline.source_selection import (
@@ -311,6 +315,7 @@ def build_corpus_audit_report(
     parsed_sidecars: list[dict[str, Any]],
     graph_documents: list[dict[str, Any]],
     graph_error: str | None = None,
+    source_freshness: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     selection_index = build_source_selection_index(registry_rows)
     local_by_path = {
@@ -342,6 +347,10 @@ def build_corpus_audit_report(
     matched_parsed_sources: set[str] = set()
 
     source_family_map = {family.source_type: family for family in source_families}
+    freshness_by_source = {
+        row["source_type"]: row
+        for row in (source_freshness or [])
+    }
 
     for registry_row in registry_rows:
         source_family = source_family_map[registry_row["source_type"]]
@@ -470,6 +479,23 @@ def build_corpus_audit_report(
         authoritative_count = (
             len(family_docs) if source_family.authority_tier == "authoritative" else 0
         )
+        freshness = freshness_by_source.get(source_family.source_type, {})
+        last_discovery = freshness.get("last_successful_discovery_at")
+        freshness_status = "never"
+        if last_discovery:
+            checked_at = datetime.fromisoformat(
+                str(last_discovery).replace("Z", "+00:00")
+            )
+            if checked_at.tzinfo is None:
+                checked_at = checked_at.replace(tzinfo=timezone.utc)
+            age_days = (
+                datetime.now(timezone.utc) - checked_at.astimezone(timezone.utc)
+            ).total_seconds() / 86_400
+            freshness_status = (
+                "fresh"
+                if age_days <= source_family.freshness_sla_days
+                else "stale"
+            )
         source_family_reports.append(
             {
                 "source_type": source_family.source_type,
@@ -477,6 +503,11 @@ def build_corpus_audit_report(
                 "answer_role": source_family.answer_role,
                 "required_for_answering": source_family.required_for_answering,
                 "freshness_expectation": source_family.freshness_expectation,
+                "discovery_interval_hours": source_family.discovery_interval_hours,
+                "freshness_sla_days": source_family.freshness_sla_days,
+                "last_successful_discovery_at": last_discovery,
+                "last_content_change_at": freshness.get("last_content_change_at"),
+                "freshness_status": freshness_status,
                 "counts": counts,
                 "corpus_buckets": dict(sorted(bucket_counts.items())),
                 "authoritative_documents": authoritative_count,
@@ -512,8 +543,8 @@ def render_audit_markdown(report: dict[str, Any]) -> str:
 
     lines.extend([
         "",
-        "| Source Family | Tier | Docs | Downloaded | Parsed | Loaded | Answer Ready | Failures |",
-        "| --- | --- | ---: | ---: | ---: | ---: | ---: | --- |",
+        "| Source Family | Tier | Freshness | Docs | Downloaded | Parsed | Loaded | Answer Ready | Failures |",
+        "| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | --- |",
     ])
 
     for family in report["source_families"]:
@@ -522,9 +553,10 @@ def render_audit_markdown(report: dict[str, Any]) -> str:
             for reason, count in family["failure_reasons"].items()
         ) or "none"
         lines.append(
-            "| {source_type} | {authority_tier} | {discovered} | {downloaded} | {parsed} | {loaded} | {answer_ready} | {failures} |".format(
+            "| {source_type} | {authority_tier} | {freshness_status} | {discovered} | {downloaded} | {parsed} | {loaded} | {answer_ready} | {failures} |".format(
                 source_type=family["source_type"],
                 authority_tier=family["authority_tier"],
+                freshness_status=family["freshness_status"],
                 discovered=family["counts"]["discovered"],
                 downloaded=family["counts"]["downloaded"],
                 parsed=family["counts"]["parsed"],
@@ -542,7 +574,7 @@ def render_audit_markdown(report: dict[str, Any]) -> str:
             )
         ):
             lines.append(
-                "|  |  |  |  |  |  | retrieval-ready: {retrieval_ready} | buckets: {buckets} |".format(
+                "|  |  |  |  |  |  |  | retrieval-ready: {retrieval_ready} | buckets: {buckets} |".format(
                     retrieval_ready=family["counts"]["retrieval_ready"],
                     buckets=", ".join(
                         f"{bucket}:{count}"
@@ -567,6 +599,7 @@ def run_corpus_audit(
         parsed_sidecars=read_parsed_sidecars(),
         graph_documents=graph_documents,
         graph_error=graph_error,
+        source_freshness=read_source_freshness(),
     )
 
     markdown = render_audit_markdown(report)

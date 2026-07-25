@@ -6,13 +6,17 @@ from pathlib import Path
 from docling_core.types.doc import DocItemLabel
 from docx import Document as WordDocument
 from openpyxl import Workbook
+from pptx import Presentation
 
 from pipeline.parse.converter import (
     PARSE_CACHE_VERSION,
     artifact_stem_for_source_path,
     parse_all,
+    parse_doc,
     parse_docx,
     parse_pdf,
+    parse_pptx,
+    parse_xls,
     parse_xlsx,
     should_parse,
 )
@@ -58,6 +62,92 @@ def test_parse_xlsx_extracts_sheets_into_synthetic_sections(tmp_path):
     assert parsed["answer_ready"] is True
     assert parsed["payload"]["synthetic_sections"][0]["title"] == "Rates"
     assert "T1001" in parsed["payload"]["synthetic_sections"][0]["content_text"]
+
+
+def test_parse_xls_extracts_legacy_workbook_rows(monkeypatch, tmp_path):
+    source_path = tmp_path / "legacy-rates.xls"
+    source_path.write_bytes(b"legacy workbook")
+
+    class FakeSheet:
+        name = "Rates"
+        nrows = 2
+        ncols = 2
+
+        def cell_value(self, row, column):
+            return [["Code", "Rate"], ["T1001", 125.0]][row][column]
+
+    class FakeWorkbook:
+        def sheets(self):
+            return [FakeSheet()]
+
+        def release_resources(self):
+            return None
+
+    monkeypatch.setattr(
+        "pipeline.parse.converter.xlrd.open_workbook",
+        lambda *_args, **_kwargs: FakeWorkbook(),
+    )
+
+    parsed = parse_xls(source_path)
+
+    assert parsed["source_format"] == "xls"
+    assert parsed["parse_backend"] == "xlrd"
+    assert parsed["answer_ready"] is True
+    assert "T1001" in parsed["payload"]["synthetic_sections"][0]["content_text"]
+
+
+def test_parse_pptx_extracts_slide_text_and_tables(tmp_path):
+    source_path = tmp_path / "managed-care.pptx"
+    presentation = Presentation()
+    slide = presentation.slides.add_slide(presentation.slide_layouts[5])
+    slide.shapes.title.text = "Provider Requirements"
+    text_box = slide.shapes.add_textbox(0, 0, 100, 100)
+    text_box.text = "Plans must publish current guidance."
+    table = slide.shapes.add_table(2, 2, 0, 0, 100, 100).table
+    table.cell(0, 0).text = "Plan"
+    table.cell(0, 1).text = "Requirement"
+    table.cell(1, 0).text = "PHP"
+    table.cell(1, 1).text = "Notice"
+    presentation.save(source_path)
+
+    parsed = parse_pptx(source_path)
+
+    assert parsed["source_format"] == "pptx"
+    assert parsed["parse_backend"] == "python-pptx"
+    assert parsed["table_count"] == 1
+    content = parsed["payload"]["synthetic_sections"][0]["content_text"]
+    assert "publish current guidance" in content
+    assert "PHP | Notice" in content
+
+
+def test_parse_doc_uses_headless_libreoffice_conversion(monkeypatch, tmp_path):
+    source_path = tmp_path / "legacy-manual.doc"
+    source_path.write_bytes(b"legacy doc")
+
+    def fake_run(args, **_kwargs):
+        output_dir = Path(args[args.index("--outdir") + 1])
+        document = WordDocument()
+        document.add_heading("Overview", level=1)
+        document.add_paragraph("Converted legacy content.")
+        document.save(output_dir / "legacy-manual.docx")
+
+        class Completed:
+            returncode = 0
+            stdout = ""
+            stderr = ""
+
+        return Completed()
+
+    monkeypatch.setattr(
+        "pipeline.parse.converter.subprocess.run",
+        fake_run,
+    )
+
+    parsed = parse_doc(source_path)
+
+    assert parsed["source_format"] == "doc"
+    assert parsed["parse_backend"] == "libreoffice+python-docx"
+    assert "Converted legacy content" in parsed["markdown"]
 
 
 class _FakeDocItem:
@@ -170,7 +260,49 @@ def test_parse_all_records_timeout_failures(monkeypatch, tmp_path):
     stats = parse_all(source_type="managed_care_contract")
     meta = json.loads(meta_path.read_text())
 
-    assert stats == {"parsed": 0, "skipped": 0, "errors": 1, "timed_out": 1}
+    assert stats == {
+        "parsed": 0,
+        "skipped": 0,
+        "errors": 1,
+        "timed_out": 1,
+        "quarantined": 0,
+    }
     assert meta["parse_status"] == "parse_exception"
     assert meta["answer_ready"] is False
     assert "timed out after 1 seconds" in meta["error_message"]
+
+
+def test_parse_all_quarantines_unsupported_formats(monkeypatch, tmp_path):
+    source_path = tmp_path / "legacy-slides.ppt"
+    source_path.write_bytes(b"legacy presentation")
+    meta_path = tmp_path / "legacy-slides__ppt.meta.json"
+
+    monkeypatch.setattr(
+        "pipeline.parse.converter.discover_source_files",
+        lambda _source_type=None: [],
+    )
+    monkeypatch.setattr(
+        "pipeline.parse.converter.discover_unsupported_files",
+        lambda _source_type=None: [source_path],
+    )
+    monkeypatch.setattr(
+        "pipeline.parse.converter.source_type_for_file",
+        lambda _source_path: "managed_care_guidance",
+    )
+    monkeypatch.setattr(
+        "pipeline.parse.converter.parsed_output_paths",
+        lambda _source_path, _source_type: (
+            tmp_path / "legacy-slides__ppt.json",
+            tmp_path / "legacy-slides__ppt.md",
+            meta_path,
+        ),
+    )
+
+    stats = parse_all(source_type="managed_care_guidance")
+    meta = json.loads(meta_path.read_text())
+
+    assert stats["quarantined"] == 1
+    assert stats["errors"] == 0
+    assert meta["parse_status"] == "unsupported_format"
+    assert meta["answer_ready"] is False
+    assert "artifact quarantined" in meta["error_message"]

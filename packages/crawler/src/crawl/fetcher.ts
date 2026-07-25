@@ -1,10 +1,15 @@
-import { request, Agent, interceptors } from 'undici';
+import { request, Agent } from 'undici';
 import type { Dispatcher } from 'undici';
 import fs from 'node:fs';
+import { Transform } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import PQueue from 'p-queue';
 import { logger } from '../utils/logger.js';
-import type { Fetcher, FetchFileResult } from '../sources/types.js';
+import type {
+  Fetcher,
+  FetchFileOptions,
+  FetchFileResult,
+} from '../sources/types.js';
 
 type BodyReadable = Dispatcher.ResponseData['body'];
 
@@ -23,6 +28,26 @@ export class HttpStatusError extends Error {
   }
 }
 
+export class UrlRejectedError extends Error {
+  readonly url: string;
+
+  constructor(url: string) {
+    super(`URL is outside the allowed domains: ${url}`);
+    this.name = 'UrlRejectedError';
+    this.url = url;
+  }
+}
+
+export class FileTooLargeError extends Error {
+  readonly maxBytes: number;
+
+  constructor(maxBytes: number) {
+    super(`Download exceeded ${maxBytes} byte limit`);
+    this.name = 'FileTooLargeError';
+    this.maxBytes = maxBytes;
+  }
+}
+
 export interface FetcherOptions {
   userAgent: string;
   defaultDelayMs: number;
@@ -31,6 +56,8 @@ export interface FetcherOptions {
   backoffBaseMs: number;
   backoffMaxMs: number;
   maxRedirects: number;
+  maxConcurrentRequests?: number;
+  isAllowedUrl?: (url: string) => boolean;
 }
 
 interface RateLimitedFetcher extends Fetcher {
@@ -49,9 +76,12 @@ function sleep(ms: number): Promise<void> {
 export function createFetcher(options: FetcherOptions): RateLimitedFetcher {
   const domainDelays = new Map<string, number>();
   const lastRequestTime = new Map<string, number>();
-  // One queue per domain with concurrency=1 serializes requests to the same host.
-  // Without this, concurrent callers can race through `waitForRateLimit` and both
-  // fire a request simultaneously, tripping 429s on the target site.
+  // Each individual request passes through both queues: the global queue bounds
+  // simultaneous domains, while the keyed queue keeps each host serial and
+  // preserves its politeness delay even across redirect chains.
+  const requestQueue = new PQueue({
+    concurrency: Math.max(1, options.maxConcurrentRequests ?? 3),
+  });
   const domainQueues = new Map<string, PQueue>();
   let runWide429Count = 0;
 
@@ -91,56 +121,104 @@ export function createFetcher(options: FetcherOptions): RateLimitedFetcher {
     'accept-encoding': 'identity',
   };
 
-  // Private dispatcher with the redirect interceptor. We must NOT rely on the
-  // undici GLOBAL dispatcher: importing `cheerio` (in the source modules) calls
-  // setGlobalDispatcher() to install its own redirect-interceptor dispatcher,
-  // which makes passing `maxRedirections` to request() throw
-  // "maxRedirections is not supported, use the redirect interceptor". Owning our
-  // dispatcher isolates the crawler from that global mutation and is forward-
-  // compatible with undici 7 (which drops `maxRedirections` from request()).
-  const dispatcher = new Agent().compose(
-    interceptors.redirect({ maxRedirections: options.maxRedirects }),
-  );
+  // Follow redirects ourselves. An automatic interceptor would fetch the next
+  // host before the source-family allowlist can approve it.
+  const dispatcher = new Agent({
+    connect: { timeout: options.requestTimeoutMs },
+  });
 
-  function fetchWithRetry(
-    url: string,
-    extraHeaders: Record<string, string> = {},
-    retries: number = options.maxRetries,
-  ): Promise<{ statusCode: number; headers: Record<string, string | string[] | undefined>; body: BodyReadable }> {
-    const domain = extractDomain(url);
-    return getDomainQueue(domain).add(async () => fetchWithRetryUnqueued(url, domain, extraHeaders, retries)) as Promise<{
-      statusCode: number;
-      headers: Record<string, string | string[] | undefined>;
-      body: BodyReadable;
-    }>;
-  }
+  type FetchResponse = {
+    statusCode: number;
+    headers: Record<string, string | string[] | undefined>;
+    body: BodyReadable;
+    finalUrl: string;
+  };
 
-  async function fetchWithRetryUnqueued(
+  async function requestOnce(
     url: string,
-    domain: string,
     extraHeaders: Record<string, string>,
-    retries: number,
-  ): Promise<{ statusCode: number; headers: Record<string, string | string[] | undefined>; body: BodyReadable }> {
-    let lastError: Error | null = null;
-
-    for (let attempt = 0; attempt <= retries; attempt++) {
-      await waitForRateLimit(domain);
-
-      const startTime = Date.now();
-      try {
-        const response = await request(url, {
+  ): Promise<Awaited<ReturnType<typeof request>>> {
+    const domain = extractDomain(url);
+    return getDomainQueue(domain).add(() =>
+      requestQueue.add(async () => {
+        await waitForRateLimit(domain);
+        return request(url, {
           method: 'GET',
           headers: { ...commonHeaders, ...extraHeaders },
           dispatcher,
           bodyTimeout: options.requestTimeoutMs,
           headersTimeout: options.requestTimeoutMs,
         });
+      }),
+    ) as Promise<Awaited<ReturnType<typeof request>>>;
+  }
+
+  function fetchWithRetry(
+    url: string,
+    extraHeaders: Record<string, string> = {},
+    retries: number = options.maxRetries,
+    isAllowedUrl: (url: string) => boolean =
+      options.isAllowedUrl ?? (() => true),
+  ): Promise<FetchResponse> {
+    return fetchWithRetryUnqueued(
+      url,
+      extraHeaders,
+      retries,
+      isAllowedUrl,
+    );
+  }
+
+  async function fetchWithRetryUnqueued(
+    url: string,
+    extraHeaders: Record<string, string>,
+    retries: number,
+    isAllowedUrl: (url: string) => boolean,
+  ): Promise<FetchResponse> {
+    let lastError: Error | null = null;
+
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      const startTime = Date.now();
+      try {
+        let currentUrl = url;
+        let response: Awaited<ReturnType<typeof request>> | null = null;
+
+        for (
+          let redirectCount = 0;
+          redirectCount <= options.maxRedirects;
+          redirectCount++
+        ) {
+          if (!isAllowedUrl(currentUrl)) {
+            throw new UrlRejectedError(currentUrl);
+          }
+
+          response = await requestOnce(currentUrl, extraHeaders);
+          const locationHeader = response.headers.location;
+          const isRedirect =
+            response.statusCode >= 300 &&
+            response.statusCode < 400 &&
+            Boolean(locationHeader);
+          if (!isRedirect) break;
+
+          await response.body.text();
+          if (redirectCount === options.maxRedirects) {
+            throw new Error(`Too many redirects from ${url}`);
+          }
+          const location = Array.isArray(locationHeader)
+            ? locationHeader[0]
+            : locationHeader;
+          if (!location) break;
+          currentUrl = new URL(location, currentUrl).toString();
+        }
+
+        if (!response) {
+          throw new Error(`No response from ${url}`);
+        }
 
         const elapsed = Date.now() - startTime;
         logger.debug(
-          `GET ${url} -> ${response.statusCode} (${elapsed}ms)`,
+          `GET ${currentUrl} -> ${response.statusCode} (${elapsed}ms)`,
           {
-            url,
+            url: currentUrl,
             statusCode: response.statusCode,
             elapsed,
             contentLength: response.headers['content-length'],
@@ -153,6 +231,7 @@ export function createFetcher(options: FetcherOptions): RateLimitedFetcher {
             statusCode: response.statusCode,
             headers: response.headers as Record<string, string | string[] | undefined>,
             body: response.body,
+            finalUrl: currentUrl,
           };
         }
 
@@ -184,6 +263,9 @@ export function createFetcher(options: FetcherOptions): RateLimitedFetcher {
 
         lastError = new HttpStatusError(response.statusCode, url);
       } catch (err) {
+        if (err instanceof UrlRejectedError) {
+          throw err;
+        }
         const elapsed = Date.now() - startTime;
         logger.error(
           `Request failed for ${url} after ${elapsed}ms: ${(err as Error).message}`,
@@ -206,28 +288,38 @@ export function createFetcher(options: FetcherOptions): RateLimitedFetcher {
   return {
     async fetchHtml(
       url: string,
-    ): Promise<{ body: string; statusCode: number }> {
+      isAllowedUrl?: (url: string) => boolean,
+    ): Promise<{ body: string; statusCode: number; finalUrl: string }> {
       const response = await fetchWithRetry(url, {
         accept: 'text/html, */*',
-      });
+      }, options.maxRetries, isAllowedUrl);
       const body = await response.body.text();
-      return { body, statusCode: response.statusCode };
+      return {
+        body,
+        statusCode: response.statusCode,
+        finalUrl: response.finalUrl,
+      };
     },
 
     async fetchFile(
       url: string,
       destPath: string,
-      conditionalHeaders?: { etag?: string; lastModified?: string },
+      fileOptions: FetchFileOptions = {},
     ): Promise<FetchFileResult> {
       const extraHeaders: Record<string, string> = {};
-      if (conditionalHeaders?.etag) {
-        extraHeaders['if-none-match'] = conditionalHeaders.etag;
+      if (fileOptions.etag) {
+        extraHeaders['if-none-match'] = fileOptions.etag;
       }
-      if (conditionalHeaders?.lastModified) {
-        extraHeaders['if-modified-since'] = conditionalHeaders.lastModified;
+      if (fileOptions.lastModified) {
+        extraHeaders['if-modified-since'] = fileOptions.lastModified;
       }
 
-      const response = await fetchWithRetry(url, extraHeaders, 1);
+      const response = await fetchWithRetry(
+        url,
+        extraHeaders,
+        1,
+        fileOptions.isAllowedUrl,
+      );
 
       if (response.statusCode === 304) {
         // Consume the body
@@ -237,6 +329,7 @@ export function createFetcher(options: FetcherOptions): RateLimitedFetcher {
           headers: response.headers,
           filePath: null,
           downloaded: false,
+          finalUrl: response.finalUrl,
         };
       }
 
@@ -247,18 +340,47 @@ export function createFetcher(options: FetcherOptions): RateLimitedFetcher {
           headers: response.headers,
           filePath: null,
           downloaded: false,
+          finalUrl: response.finalUrl,
         };
       }
 
-      // Stream to disk
+      const contentLengthHeader = response.headers['content-length'];
+      const contentLengthValue = Array.isArray(contentLengthHeader)
+        ? contentLengthHeader[0]
+        : contentLengthHeader;
+      const contentLength = Number(contentLengthValue);
+      if (
+        fileOptions.maxBytes !== undefined &&
+        Number.isFinite(contentLength) &&
+        contentLength > fileOptions.maxBytes
+      ) {
+        await response.body.text();
+        throw new FileTooLargeError(fileOptions.maxBytes);
+      }
+
+      let bytesWritten = 0;
+      const byteLimiter = new Transform({
+        transform(chunk: Buffer, _encoding, callback) {
+          bytesWritten += chunk.length;
+          if (
+            fileOptions.maxBytes !== undefined &&
+            bytesWritten > fileOptions.maxBytes
+          ) {
+            callback(new FileTooLargeError(fileOptions.maxBytes));
+            return;
+          }
+          callback(null, chunk);
+        },
+      });
       const writeStream = fs.createWriteStream(destPath);
-      await pipeline(response.body, writeStream);
+      await pipeline(response.body, byteLimiter, writeStream);
 
       return {
         statusCode: 200,
         headers: response.headers,
         filePath: destPath,
         downloaded: true,
+        finalUrl: response.finalUrl,
       };
     },
 

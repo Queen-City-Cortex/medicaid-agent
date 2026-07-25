@@ -38,3 +38,26 @@ def read_registry_rows(db_path: Path = CRAWLER_DB_PATH) -> list[dict[str, Any]]:
         return [dict(row) for row in conn.execute("SELECT * FROM documents ORDER BY id")]
     finally:
         conn.close()
+
+
+def read_source_freshness(
+    db_path: Path = CRAWLER_DB_PATH,
+) -> list[dict[str, Any]]:
+    """Read per-family successful discovery timestamps from newer registries."""
+    if not db_path.exists():
+        return []
+
+    conn = sqlite3.connect(str(db_path))
+    conn.row_factory = sqlite3.Row
+    try:
+        try:
+            return [
+                dict(row)
+                for row in conn.execute(
+                    "SELECT * FROM source_freshness ORDER BY source_type"
+                )
+            ]
+        except sqlite3.OperationalError:
+            return []
+    finally:
+        conn.close()

@@ -4,6 +4,8 @@ Large sections (>= MAX_CHUNK_CHARS) are split into Chunk nodes and embedded
 per-chunk. Small sections are embedded directly on the Section node.
 """
 
+import math
+
 from rich.console import Console
 from rich.progress import track
 
@@ -12,6 +14,7 @@ from pipeline.config import (
     EMBEDDING_MODEL,
     EMBED_BATCH_SIZE,
     EMBED_WRITE_BATCH_SIZE,
+    EMBEDDING_DIMENSIONS,
 )
 from pipeline.embeddings.voyage_client import embed as voyage_embed
 from pipeline.graph.bulk import write_chunks
@@ -29,37 +32,38 @@ _CHARS_PER_TOKEN = 3
 _MAX_BATCH_TOKENS = 60_000  # conservative flush threshold (Voyage limit: 120K)
 
 
-def build_embedding_text(section_id: str) -> tuple[str, str]:
-    """Build contextualized embedding text for a section.
+def build_embedding_texts(section_ids: list[str]) -> dict[str, str]:
+    """Read contextualized embedding text for many sections in one query."""
+    if not section_ids:
+        return {}
 
-    Prepends the heading hierarchy (ancestors) to the section content.
-    Returns (section_id, embedding_text).
-    """
     with get_session() as session:
-        result = session.run("""
-            MATCH (s:Section {id: $sid})
-            OPTIONAL MATCH path = (ancestor:Section)-[:PARENT_OF*]->(s)
-            WITH s, collect(ancestor) AS ancestors
+        result = session.run(
+            """
+            UNWIND $section_ids AS sid
+            MATCH (s:Section {id: sid})
+            OPTIONAL MATCH (ancestor:Section)-[:PARENT_OF*]->(s)
+            WITH sid, s, collect(DISTINCT ancestor.title) AS ancestor_titles
             MATCH (d:Document)-[:HAS_SECTION]->(s)
-            RETURN d.title AS doc_title, s.title AS sec_title,
-                   s.content_text AS content,
-                   [a IN ancestors | a.title] AS ancestor_titles
-        """, {"sid": section_id})
-
-        record = result.single()
-        if not record:
-            return section_id, ""
-
-        chain_parts = [record["doc_title"]] if record["doc_title"] else []
-        if record["ancestor_titles"]:
-            chain_parts.extend([t for t in record["ancestor_titles"] if t])
-        if record["sec_title"]:
-            chain_parts.append(record["sec_title"])
-
-        heading_chain = " > ".join(chain_parts)
-        content = record["content"] or ""
-
-        return section_id, f"{heading_chain}\n{content}"
+            RETURN sid, d.title AS doc_title, s.title AS sec_title,
+                   s.content_text AS content, ancestor_titles
+            """,
+            {"section_ids": section_ids},
+        )
+        texts: dict[str, str] = {}
+        for record in result:
+            chain = [record["doc_title"]] if record["doc_title"] else []
+            chain.extend(
+                title
+                for title in (record["ancestor_titles"] or [])
+                if title
+            )
+            if record["sec_title"]:
+                chain.append(record["sec_title"])
+            texts[record["sid"]] = (
+                f"{' > '.join(chain)}\n{record['content'] or ''}"
+            )
+        return texts
 
 
 def _create_chunks_in_neo4j(
@@ -82,6 +86,24 @@ def _flush_batch(
         return
     try:
         embeddings = voyage_embed(batch_texts, model=model, input_type="document")
+        if len(embeddings) != len(batch_texts):
+            raise RuntimeError(
+                "Voyage returned "
+                f"{len(embeddings)} embeddings for {len(batch_texts)} inputs"
+            )
+        if any(
+            len(embedding) != EMBEDDING_DIMENSIONS
+            or any(
+                not isinstance(value, (int, float))
+                or not math.isfinite(value)
+                for value in embedding
+            )
+            for embedding in embeddings
+        ):
+            raise RuntimeError(
+                "Voyage returned an invalid embedding; expected "
+                f"{EMBEDDING_DIMENSIONS} finite dimensions"
+            )
         with get_session() as session:
             section_rows = [
                 {"id": node_id, "embedding": emb}
@@ -101,6 +123,43 @@ def _flush_batch(
     except Exception as e:
         console.print(f"[red]Batch error: {e}[/red]")
         stats["errors"] += len(batch_ids)
+        raise
+
+
+def validate_embedding_coverage() -> tuple[int, int]:
+    """Require every non-empty section to have a complete embedding path."""
+    with get_session() as session:
+        coverage = session.run(
+            """
+            MATCH (s:Section)
+            WHERE s.content_length > 0
+            OPTIONAL MATCH (s)-[:HAS_CHUNK]->(ch:Chunk)
+            WITH s, collect(ch) AS chunks
+            WITH count(s) AS total,
+                 sum(
+                   CASE
+                     WHEN s.content_length < $max_chars
+                       AND s.embedding IS NOT NULL
+                     THEN 1
+                     WHEN s.content_length >= $max_chars
+                       AND size(chunks) > 0
+                       AND all(ch IN chunks WHERE ch.embedding IS NOT NULL)
+                     THEN 1
+                     ELSE 0
+                   END
+                 ) AS covered
+            RETURN total, covered
+            """,
+            {"max_chars": MAX_CHUNK_CHARS},
+        ).single()
+
+    total = int(coverage["total"]) if coverage else 0
+    covered = int(coverage["covered"]) if coverage else 0
+    if covered != total:
+        raise RuntimeError(
+            f"Embedding coverage incomplete: {covered}/{total} sections"
+        )
+    return total, covered
 
 
 def embed_all(model: str | None = None) -> dict:
@@ -113,8 +172,7 @@ def embed_all(model: str | None = None) -> dict:
     """
     model = model or EMBEDDING_MODEL
     if not VOYAGE_API_KEY:
-        console.print("[red]VOYAGE_API_KEY not set. Export it as an environment variable.[/red]")
-        return {"embedded": 0, "errors": 0, "chunks_created": 0}
+        raise RuntimeError("VOYAGE_API_KEY not set")
 
     # Clear stale truncated embeddings (sections that are too large but were
     # previously embedded via truncation)
@@ -158,6 +216,7 @@ def embed_all(model: str | None = None) -> dict:
 
     total_work = len(section_ids) + len(large_section_ids) + len(pending_chunks)
     if total_work == 0:
+        validate_embedding_coverage()
         console.print("All sections and chunks already have embeddings.")
         return {"embedded": 0, "errors": 0, "chunks_created": 0}
 
@@ -193,16 +252,18 @@ def embed_all(model: str | None = None) -> dict:
         batch_token_estimate += token_est
 
     # 1. Embed small sections directly
+    section_texts = build_embedding_texts(section_ids)
     for sid in track(section_ids, description="Small sections..."):
-        _, text = build_embedding_text(sid)
+        text = section_texts.get(sid, "")
         if not text.strip():
             continue
         _add_item(sid, text, "section")
         _maybe_flush()
 
     # 2. Chunk large sections and queue their chunks
+    large_section_texts = build_embedding_texts(large_section_ids)
     for sid in track(large_section_ids, description="Chunking large sections..."):
-        _, text = build_embedding_text(sid)
+        text = large_section_texts.get(sid, "")
         if not text.strip():
             continue
         heading_prefix = text.split("\n")[0]
@@ -223,5 +284,7 @@ def embed_all(model: str | None = None) -> dict:
     # Flush remaining
     if batch_texts:
         _flush_batch(model, batch_ids, batch_texts, batch_kinds, stats)
+
+    validate_embedding_coverage()
 
     return stats

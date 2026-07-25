@@ -56,6 +56,22 @@ export interface StatRow {
   count: number;
 }
 
+export interface RejectedUrlRecord {
+  id: number;
+  source_url: string;
+  source_type: string | null;
+  reason: string;
+  first_rejected_at: string;
+  last_rejected_at: string;
+  occurrences: number;
+}
+
+export interface SourceFreshnessRecord {
+  source_type: string;
+  last_successful_discovery_at: string | null;
+  last_content_change_at: string | null;
+}
+
 export interface DocumentRegistry {
   upsertDiscovered(doc: DiscoveredDocument): number;
   getByUrl(url: string): DocumentRecord | null;
@@ -71,6 +87,13 @@ export interface DocumentRegistry {
    */
   recordNotFound(id: number, message: string): number;
   markRemoved(id: number): void;
+  recordRejectedUrl(
+    url: string,
+    sourceType: string | null,
+    reason: string,
+  ): void;
+  getRejectedUrls(): RejectedUrlRecord[];
+  getSourceFreshness(): SourceFreshnessRecord[];
   getDocumentsToCheck(sourceType?: string): DocumentRecord[];
   getDocumentsToDownload(sourceType?: string): DocumentRecord[];
   getBySourceType(sourceType: string): DocumentRecord[];
@@ -78,7 +101,11 @@ export interface DocumentRegistry {
   getStats(): StatRow[];
   getAllDocuments(): DocumentRecord[];
   startCrawlRun(sourceTypes: string[]): number;
-  completeCrawlRun(runId: number, stats: CrawlRunStats): void;
+  completeCrawlRun(
+    runId: number,
+    stats: CrawlRunStats,
+    successfulSourceTypes?: string[],
+  ): void;
   failCrawlRun(runId: number): void;
 }
 
@@ -188,6 +215,26 @@ export function createRegistry(db: Database.Database): DocumentRegistry {
     WHERE id = ?
   `);
 
+  const recordRejectedUrlStmt = db.prepare(`
+    INSERT INTO rejected_urls (source_url, source_type, reason)
+    VALUES (@source_url, @source_type, @reason)
+    ON CONFLICT(source_url, source_type, reason) DO UPDATE SET
+      last_rejected_at = datetime('now'),
+      occurrences = occurrences + 1
+  `);
+
+  const getRejectedUrlsStmt = db.prepare(`
+    SELECT *
+    FROM rejected_urls
+    ORDER BY last_rejected_at DESC, id DESC
+  `);
+
+  const getSourceFreshnessStmt = db.prepare(`
+    SELECT *
+    FROM source_freshness
+    ORDER BY source_type
+  `);
+
   // 'error' is included so transient failures self-heal on the next run
   // instead of stranding the document forever. Only 'removed' (confirmed gone
   // after repeated 404s) and 'discovered' (handled by the download phase) are
@@ -257,6 +304,39 @@ export function createRegistry(db: Database.Database): DocumentRegistry {
     WHERE id = ?
   `);
 
+  const getRunStmt = db.prepare(`
+    SELECT source_types
+    FROM crawl_runs
+    WHERE id = ?
+  `);
+
+  const updateSourceFreshnessStmt = db.prepare(`
+    INSERT INTO source_freshness (
+      source_type,
+      last_successful_discovery_at,
+      last_content_change_at
+    )
+    VALUES (
+      @source_type,
+      datetime('now'),
+      (
+        SELECT max(last_changed_at)
+        FROM documents
+        WHERE source_type = @source_type
+      )
+    )
+    ON CONFLICT(source_type) DO UPDATE SET
+      last_successful_discovery_at = datetime('now'),
+      last_content_change_at = COALESCE(
+        (
+          SELECT max(last_changed_at)
+          FROM documents
+          WHERE source_type = @source_type
+        ),
+        source_freshness.last_content_change_at
+      )
+  `);
+
   // Wrap a registry write so a SQLite failure (locked db, disk full, constraint
   // violation) is attributable to its operation and document instead of crashing
   // the sync phase with no signal about which write failed. Re-throws — behavior
@@ -323,6 +403,28 @@ export function createRegistry(db: Database.Database): DocumentRegistry {
       runWrite('markRemoved', id, () => markRemovedStmt.run(id));
     },
 
+    recordRejectedUrl(
+      url: string,
+      sourceType: string | null,
+      reason: string,
+    ): void {
+      runWrite('recordRejectedUrl', null, () =>
+        recordRejectedUrlStmt.run({
+          source_url: url,
+          source_type: sourceType,
+          reason,
+        }),
+      );
+    },
+
+    getRejectedUrls(): RejectedUrlRecord[] {
+      return getRejectedUrlsStmt.all() as RejectedUrlRecord[];
+    },
+
+    getSourceFreshness(): SourceFreshnessRecord[] {
+      return getSourceFreshnessStmt.all() as SourceFreshnessRecord[];
+    },
+
     getDocumentsToCheck(sourceType?: string): DocumentRecord[] {
       if (sourceType) {
         return getToCheckBySourceStmt.all(sourceType) as DocumentRecord[];
@@ -358,8 +460,27 @@ export function createRegistry(db: Database.Database): DocumentRegistry {
       return Number(result.lastInsertRowid);
     },
 
-    completeCrawlRun(runId: number, stats: CrawlRunStats): void {
-      completeRunStmt.run({ id: runId, ...stats });
+    completeCrawlRun(
+      runId: number,
+      stats: CrawlRunStats,
+      successfulSourceTypes?: string[],
+    ): void {
+      runWrite('completeCrawlRun', runId, () => {
+        db.transaction(() => {
+          completeRunStmt.run({ id: runId, ...stats });
+          const run = getRunStmt.get(runId) as
+            | { source_types: string }
+            | undefined;
+          const sourceTypes = successfulSourceTypes ?? (
+            run
+              ? JSON.parse(run.source_types) as string[]
+              : []
+          );
+          for (const sourceType of sourceTypes) {
+            updateSourceFreshnessStmt.run({ source_type: sourceType });
+          }
+        })();
+      });
     },
 
     failCrawlRun(runId: number): void {

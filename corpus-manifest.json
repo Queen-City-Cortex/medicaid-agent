@@ -7,6 +7,8 @@
       "answer_role": "coverage",
       "required_for_answering": true,
       "freshness_expectation": "weekly",
+      "discovery_interval_hours": 24,
+      "freshness_sla_days": 7,
       "allowed_domains": ["medicaid.ncdhhs.gov"],
       "allowed_file_formats": [".pdf"],
       "landing_pages": [
@@ -21,6 +23,8 @@
       "answer_role": "implementation",
       "required_for_answering": true,
       "freshness_expectation": "daily",
+      "discovery_interval_hours": 24,
+      "freshness_sla_days": 1,
       "allowed_domains": ["medicaid.ncdhhs.gov"],
       "allowed_file_formats": [".pdf", ".docx"],
       "landing_pages": [
@@ -38,6 +42,8 @@
       "answer_role": "federal_authority",
       "required_for_answering": true,
       "freshness_expectation": "weekly",
+      "discovery_interval_hours": 24,
+      "freshness_sla_days": 7,
       "allowed_domains": ["medicaid.ncdhhs.gov"],
       "allowed_file_formats": [".pdf"],
       "landing_pages": [
@@ -52,6 +58,8 @@
       "answer_role": "coverage",
       "required_for_answering": true,
       "freshness_expectation": "weekly",
+      "discovery_interval_hours": 24,
+      "freshness_sla_days": 7,
       "allowed_domains": ["medicaid.ncdhhs.gov"],
       "allowed_file_formats": [".pdf"],
       "landing_pages": [
@@ -70,6 +78,8 @@
       "answer_role": "billing",
       "required_for_answering": false,
       "freshness_expectation": "weekly",
+      "discovery_interval_hours": 24,
+      "freshness_sla_days": 7,
       "allowed_domains": ["www.nctracks.nc.gov", "nctracks.nc.gov"],
       "allowed_file_formats": [".pdf", ".docx", ".xlsx"],
       "landing_pages": [
@@ -84,6 +94,8 @@
       "answer_role": "eligibility",
       "required_for_answering": true,
       "freshness_expectation": "weekly",
+      "discovery_interval_hours": 24,
+      "freshness_sla_days": 7,
       "allowed_domains": ["policies.ncdhhs.gov"],
       "allowed_file_formats": [".pdf", ".doc", ".docx", ".xls", ".xlsx"],
       "landing_pages": [
@@ -98,6 +110,8 @@
       "answer_role": "reimbursement",
       "required_for_answering": false,
       "freshness_expectation": "weekly",
+      "discovery_interval_hours": 24,
+      "freshness_sla_days": 7,
       "allowed_domains": ["medicaid.ncdhhs.gov"],
       "allowed_file_formats": [".pdf", ".xlsx", ".xls"],
       "landing_pages": [
@@ -113,6 +127,8 @@
       "answer_role": "billing",
       "required_for_answering": false,
       "freshness_expectation": "weekly",
+      "discovery_interval_hours": 24,
+      "freshness_sla_days": 7,
       "allowed_domains": ["medicaid.ncdhhs.gov", "www.nctracks.nc.gov", "nctracks.nc.gov"],
       "allowed_file_formats": [".pdf", ".docx", ".xlsx"],
       "landing_pages": [
@@ -128,8 +144,10 @@
       "answer_role": "managed_care",
       "required_for_answering": false,
       "freshness_expectation": "weekly",
+      "discovery_interval_hours": 24,
+      "freshness_sla_days": 7,
       "allowed_domains": ["medicaid.ncdhhs.gov"],
-      "allowed_file_formats": [".pdf", ".docx", ".xlsx"],
+      "allowed_file_formats": [".pdf", ".docx", ".xlsx", ".pptx"],
       "landing_pages": [
         "https://medicaid.ncdhhs.gov/providers",
         "https://medicaid.ncdhhs.gov/providers/provider-playbook-nc-medicaid-managed-care"
@@ -143,12 +161,36 @@
       "answer_role": "managed_care_contract",
       "required_for_answering": false,
       "freshness_expectation": "weekly",
+      "discovery_interval_hours": 24,
+      "freshness_sla_days": 7,
       "allowed_domains": ["medicaid.ncdhhs.gov"],
       "allowed_file_formats": [".pdf", ".docx", ".xlsx"],
       "landing_pages": [
         "https://medicaid.ncdhhs.gov/providers/provider-contracting-health-plans"
       ],
       "seed_urls": []
+    }
+  ],
+  "federal_sources": [
+    {
+      "source_type": "federal_regulation",
+      "authority_tier": "authoritative",
+      "answer_role": "federal_authority",
+      "required_for_answering": true,
+      "freshness_expectation": "weekly",
+      "refresh_interval_hours": 168,
+      "freshness_sla_days": 7,
+      "source_url": "https://www.ecfr.gov/"
+    },
+    {
+      "source_type": "federal_statute",
+      "authority_tier": "authoritative",
+      "answer_role": "federal_authority",
+      "required_for_answering": true,
+      "freshness_expectation": "monthly",
+      "refresh_interval_hours": 720,
+      "freshness_sla_days": 30,
+      "source_url": "https://uscode.house.gov/"
     }
   ]
 }

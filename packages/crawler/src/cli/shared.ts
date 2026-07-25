@@ -7,7 +7,10 @@ import Database from 'better-sqlite3';
 import fs from 'node:fs';
 import path from 'node:path';
 import { config } from '../config.js';
-import { MANIFEST_SOURCE_TYPES } from '../corpus-manifest.js';
+import {
+  isAllowedCorpusUrl,
+  MANIFEST_SOURCE_TYPES,
+} from '../corpus-manifest.js';
 import { initializeSchema } from '../db/schema.js';
 import { createRegistry } from '../db/registry.js';
 import { createFetcher } from '../crawl/fetcher.js';
@@ -53,5 +56,7 @@ export function buildFetcher(): ReturnType<typeof createFetcher> {
     backoffBaseMs: config.backoffBaseMs,
     backoffMaxMs: config.backoffMaxMs,
     maxRedirects: config.maxRedirects,
+    maxConcurrentRequests: config.maxConcurrentDomains,
+    isAllowedUrl: isAllowedCorpusUrl,
   });
 }

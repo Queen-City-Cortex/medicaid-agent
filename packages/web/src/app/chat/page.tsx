@@ -248,6 +248,14 @@ export default function ChatPage() {
                   <span data-testid="masthead-corpus-status"> · Corpus updated {corpusUpdatedLabel}</span>
                 )}
               </span>
+              {corpusStatus?.retrievalMode === 'lexical-degraded' && (
+                <span
+                  data-testid="masthead-degraded-search"
+                  className="mt-1 block text-[11px] text-muted-foreground"
+                >
+                  Semantic matching is temporarily unavailable; source-text search remains active.
+                </span>
+              )}
             </div>
             <div className="ml-auto">
               <ThemeToggle />
@@ -263,7 +271,10 @@ export default function ChatPage() {
             ) : (
             <>
             {messages.length === 0 && !isLoading && (
-              <EmptyState onSelectExample={handleSelectExample} />
+              <EmptyState
+                onSelectExample={handleSelectExample}
+                corpusStatus={corpusStatus}
+              />
             )}
 
             <MessageList

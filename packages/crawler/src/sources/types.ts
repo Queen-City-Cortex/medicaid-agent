@@ -31,12 +31,22 @@ export interface SourceModule {
 
 // Forward reference — defined in fetcher.ts, imported by source modules
 export interface Fetcher {
-  fetchHtml(url: string): Promise<{ body: string; statusCode: number }>;
+  fetchHtml(
+    url: string,
+    isAllowedUrl?: (url: string) => boolean,
+  ): Promise<{ body: string; statusCode: number; finalUrl?: string }>;
   fetchFile(
     url: string,
     destPath: string,
-    conditionalHeaders?: { etag?: string; lastModified?: string },
+    options?: FetchFileOptions,
   ): Promise<FetchFileResult>;
+}
+
+export interface FetchFileOptions {
+  etag?: string;
+  lastModified?: string;
+  isAllowedUrl?: (url: string) => boolean;
+  maxBytes?: number;
 }
 
 export interface FetchFileResult {
@@ -44,4 +54,5 @@ export interface FetchFileResult {
   headers: Record<string, string | string[] | undefined>;
   filePath: string | null; // null if 304
   downloaded: boolean;
+  finalUrl?: string;
 }

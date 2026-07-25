@@ -452,6 +452,8 @@ def _build_document_bundle(
             variant_group=selection.variant_group,
             variant_date=selection.variant_date,
             retrieval_ready=selection.retrieval_ready,
+            source_checked_at=crawler_meta.get("last_checked_at"),
+            source_changed_at=crawler_meta.get("last_changed_at"),
         ),
         sections=section_nodes,
     )

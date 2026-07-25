@@ -24,7 +24,11 @@ async function runWithTimers(promise: Promise<unknown>): Promise<unknown> {
   return promise;
 }
 
-const okResponse = { ok: true, json: async () => ({ data: [{ embedding: [0.1, 0.2] }] }) };
+const validEmbedding = Array(1024).fill(0.1);
+const okResponse = {
+  ok: true,
+  json: async () => ({ data: [{ embedding: validEmbedding }] }),
+};
 
 describe('embedQueries (Voyage) retry and failure logging', () => {
   it('logs and rethrows when the fetch fails on both attempts (network)', async () => {
@@ -54,7 +58,7 @@ describe('embedQueries (Voyage) retry and failure logging', () => {
       .mockResolvedValueOnce(okResponse);
     vi.stubGlobal('fetch', fetchMock);
 
-    await expect(runWithTimers(embedQueries(['a']))).resolves.toEqual([[0.1, 0.2]]);
+    await expect(runWithTimers(embedQueries(['a']))).resolves.toEqual([validEmbedding]);
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(error).not.toHaveBeenCalled();
   });
@@ -98,7 +102,7 @@ describe('embedQueries (Voyage) retry and failure logging', () => {
     const error = vi.spyOn(log, 'error').mockImplementation(() => {});
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(okResponse));
 
-    await expect(embedQueries(['a'])).resolves.toEqual([[0.1, 0.2]]);
+    await expect(embedQueries(['a'])).resolves.toEqual([validEmbedding]);
     expect(error).not.toHaveBeenCalled();
   });
 });

@@ -30,6 +30,8 @@ class DocumentNode:
     variant_group: str | None = None
     variant_date: str | None = None
     retrieval_ready: bool = True
+    source_checked_at: str | None = None
+    source_changed_at: str | None = None
 
 
 @dataclass(frozen=True)

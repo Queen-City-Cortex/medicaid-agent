@@ -6,6 +6,7 @@ import { registerListCommand } from './cli/list.js';
 import { registerAddUrlCommand } from './cli/add-url.js';
 import { registerExportCommand } from './cli/export.js';
 import { registerUpdateFixturesCommand } from './cli/update-fixtures.js';
+import { registerReconcileCommand } from './cli/reconcile.js';
 
 const program = new Command()
   .name('nc-medicaid-crawler')
@@ -19,5 +20,6 @@ registerListCommand(program);
 registerAddUrlCommand(program);
 registerExportCommand(program);
 registerUpdateFixturesCommand(program);
+registerReconcileCommand(program);
 
 program.parse();

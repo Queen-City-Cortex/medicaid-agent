@@ -1,8 +1,8 @@
 // searchSections / searchSectionsDetailed: hybrid scoring, grouped retrieval,
 // document-type routing, and source-family preferences.
 
-import { describe, expect, it } from 'vitest';
-import { SEARCH_SNIPPET_CHARS } from '../src/index.js';
+import { describe, expect, it, vi } from 'vitest';
+import { createNeo4jPolicyCorpus, SEARCH_SNIPPET_CHARS } from '../src/index.js';
 import { createCorpus, queries, sectionHit } from './helpers/graph-fixtures.js';
 
 describe('searchSections', () => {
@@ -73,6 +73,23 @@ describe('searchSections', () => {
     expect(sections[0]?.contentSnippet).toBe('A'.repeat(SEARCH_SNIPPET_CHARS));
     expect(sections[1]?.sectionId).toBe('sec-clinical');
     expectAllHandlersUsed();
+  });
+
+  it('uses lexical backends without issuing vector queries when embedding is unavailable', async () => {
+    const session = {
+      run: vi.fn(async (_query: string) => ({ records: [] })),
+    };
+    const corpus = createNeo4jPolicyCorpus({
+      withSession: async (fn) => fn(session),
+      embedQuery: async () => [],
+      defaultTopK: 10,
+    });
+
+    await corpus.searchSections({ query: 'coverage requirements' });
+
+    const queriesRun = session.run.mock.calls.map(([query]) => query as string);
+    expect(queriesRun.some((query) => query.includes('section_fulltext'))).toBe(true);
+    expect(queriesRun.some((query) => query.includes('db.index.vector.queryNodes'))).toBe(false);
   });
 });
 

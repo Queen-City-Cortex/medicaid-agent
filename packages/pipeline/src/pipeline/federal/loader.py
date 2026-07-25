@@ -1,5 +1,7 @@
 """Load parsed CFR sections into Neo4j."""
 
+from datetime import datetime, timezone
+
 from rich.console import Console
 
 from pipeline.config import CFR_PARTS
@@ -69,6 +71,7 @@ def _build_federal_document_bundle(
             answer_role="federal_authority",
             source_format="xml",
             answer_ready=True,
+            source_checked_at=datetime.now(timezone.utc).isoformat(),
         ),
         sections=section_nodes,
     )

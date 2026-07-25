@@ -32,6 +32,8 @@ unresolved_refs
 seed_concepts_cmd
 link_concepts_cmd
 detect_amendments_cmd
+answer_ready_snapshot
+acknowledge_answer_ready_snapshot_command
 
 # --- html.parser.HTMLParser overrides (called by the stdlib parser) ---
 _.handle_starttag
@@ -55,3 +57,7 @@ allowed_domains
 allowed_file_formats
 landing_pages
 seed_urls
+discovery_interval_hours
+freshness_sla_days
+refresh_interval_hours
+federal_sources

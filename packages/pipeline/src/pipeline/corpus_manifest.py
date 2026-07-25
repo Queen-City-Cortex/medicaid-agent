@@ -18,6 +18,8 @@ class SourceFamilyManifest:
     answer_role: str
     required_for_answering: bool
     freshness_expectation: str
+    discovery_interval_hours: int
+    freshness_sla_days: int
     allowed_domains: tuple[str, ...]
     allowed_file_formats: tuple[str, ...]
     landing_pages: tuple[str, ...]
@@ -27,6 +29,19 @@ class SourceFamilyManifest:
 @dataclass(frozen=True)
 class CorpusManifest:
     source_families: tuple[SourceFamilyManifest, ...]
+    federal_sources: tuple["FederalSourceManifest", ...]
+
+
+@dataclass(frozen=True)
+class FederalSourceManifest:
+    source_type: str
+    authority_tier: str
+    answer_role: str
+    required_for_answering: bool
+    freshness_expectation: str
+    refresh_interval_hours: int
+    freshness_sla_days: int
+    source_url: str
 
 
 def load_corpus_manifest() -> CorpusManifest:
@@ -48,6 +63,8 @@ def load_corpus_manifest() -> CorpusManifest:
                 answer_role=raw_family["answer_role"],
                 required_for_answering=bool(raw_family["required_for_answering"]),
                 freshness_expectation=raw_family["freshness_expectation"],
+                discovery_interval_hours=int(raw_family["discovery_interval_hours"]),
+                freshness_sla_days=int(raw_family["freshness_sla_days"]),
                 allowed_domains=tuple(raw_family["allowed_domains"]),
                 allowed_file_formats=tuple(raw_family["allowed_file_formats"]),
                 landing_pages=tuple(raw_family.get("landing_pages", [])),
@@ -58,7 +75,31 @@ def load_corpus_manifest() -> CorpusManifest:
     if not families:
         raise ValueError("Corpus manifest must declare at least one source family")
 
-    return CorpusManifest(source_families=tuple(families))
+    federal_sources = tuple(
+        FederalSourceManifest(
+            source_type=raw_source["source_type"],
+            authority_tier=raw_source["authority_tier"],
+            answer_role=raw_source["answer_role"],
+            required_for_answering=bool(raw_source["required_for_answering"]),
+            freshness_expectation=raw_source["freshness_expectation"],
+            refresh_interval_hours=int(raw_source["refresh_interval_hours"]),
+            freshness_sla_days=int(raw_source["freshness_sla_days"]),
+            source_url=raw_source["source_url"],
+        )
+        for raw_source in payload.get("federal_sources", [])
+    )
+    if not federal_sources:
+        raise ValueError("Corpus manifest must declare federal_sources")
+    for source in federal_sources:
+        if source.refresh_interval_hours < 1 or source.freshness_sla_days < 1:
+            raise ValueError(
+                f"Invalid federal freshness metadata: {source.source_type}"
+            )
+
+    return CorpusManifest(
+        source_families=tuple(families),
+        federal_sources=federal_sources,
+    )
 
 
 CORPUS_MANIFEST = load_corpus_manifest()

@@ -10,6 +10,7 @@ import { billingGuidanceSource } from '../sources/billing-guidance.js';
 import { managedCareGuidanceSource } from '../sources/managed-care-guidance.js';
 import { managedCareContractsSource } from '../sources/managed-care-contracts.js';
 import { logger } from '../utils/logger.js';
+import { config } from '../config.js';
 
 // Source modules registered here — add new sources as they're implemented
 const sourceModules: Partial<Record<SourceType, SourceModule>> = {
@@ -29,27 +30,48 @@ export async function discoverDocuments(
   fetcher: Fetcher,
   sourceTypes: SourceType[],
   sinceYear: number,
-): Promise<DiscoveredDocument[]> {
-  const allDocuments: DiscoveredDocument[] = [];
+): Promise<{
+  documents: DiscoveredDocument[];
+  successfulSourceTypes: SourceType[];
+  failedSourceTypes: SourceType[];
+}> {
+  const queue = [...sourceTypes];
+  const workerCount = Math.min(
+    Math.max(1, config.maxConcurrentDomains),
+    queue.length,
+  );
+  const successfulSourceTypes: SourceType[] = [];
+  const failedSourceTypes: SourceType[] = [];
+  const workers = Array.from({ length: workerCount }, async () => {
+    const documents: DiscoveredDocument[] = [];
+    while (queue.length > 0) {
+      const sourceType = queue.shift();
+      if (!sourceType) break;
+      const module = sourceModules[sourceType];
+      if (!module) {
+        logger.warn(`No discovery module for source type: ${sourceType}`);
+        failedSourceTypes.push(sourceType);
+        continue;
+      }
 
-  for (const sourceType of sourceTypes) {
-    const module = sourceModules[sourceType];
-    if (!module) {
-      logger.warn(`No discovery module for source type: ${sourceType}`);
-      continue;
+      try {
+        documents.push(...(await module.discover(fetcher, sinceYear)));
+        successfulSourceTypes.push(sourceType);
+      } catch (err) {
+        failedSourceTypes.push(sourceType);
+        logger.error(
+          `Discovery failed for ${sourceType}: ${(err as Error).message}`,
+          err,
+        );
+        // Continue with other sources — don't crash the run
+      }
     }
+    return documents;
+  });
 
-    try {
-      const documents = await module.discover(fetcher, sinceYear);
-      allDocuments.push(...documents);
-    } catch (err) {
-      logger.error(
-        `Discovery failed for ${sourceType}: ${(err as Error).message}`,
-        err,
-      );
-      // Continue with other sources — don't crash the run
-    }
-  }
-
-  return allDocuments;
+  return {
+    documents: (await Promise.all(workers)).flat(),
+    successfulSourceTypes,
+    failedSourceTypes,
+  };
 }

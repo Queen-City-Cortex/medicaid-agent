@@ -59,6 +59,26 @@ CREATE TABLE IF NOT EXISTS crawl_runs (
   documents_errored INTEGER DEFAULT 0,
   status TEXT NOT NULL DEFAULT 'running'
 );
+
+CREATE TABLE IF NOT EXISTS rejected_urls (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  source_url TEXT NOT NULL,
+  source_type TEXT,
+  reason TEXT NOT NULL,
+  first_rejected_at TEXT NOT NULL DEFAULT (datetime('now')),
+  last_rejected_at TEXT NOT NULL DEFAULT (datetime('now')),
+  occurrences INTEGER NOT NULL DEFAULT 1,
+  UNIQUE(source_url, source_type, reason)
+);
+
+CREATE INDEX IF NOT EXISTS idx_rejected_urls_last_rejected
+  ON rejected_urls(last_rejected_at);
+
+CREATE TABLE IF NOT EXISTS source_freshness (
+  source_type TEXT PRIMARY KEY,
+  last_successful_discovery_at TEXT,
+  last_content_change_at TEXT
+);
 `;
 
 function ensureColumn(

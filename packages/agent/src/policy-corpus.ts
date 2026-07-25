@@ -1,5 +1,7 @@
 import './load-env.js';
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { createNeo4jPolicyCorpus } from '@nc-medicaid/policy-corpus';
+import type { SearchSectionsInput } from '@nc-medicaid/policy-corpus';
 import { DEFAULT_TOP_K, VOYAGE_API_KEY, VOYAGE_API_URL, VOYAGE_MODEL } from './config.js';
 import { intEnv } from './env.js';
 import { withSession } from './neo4j.js';
@@ -14,6 +16,15 @@ import { log, errorFields } from './logger.js';
 // AbortSignal.timeout throw — one bad deploy variable must not kill retrieval.
 const VOYAGE_TIMEOUT_MS = Math.max(1, intEnv('VOYAGE_TIMEOUT_MS', 15_000));
 const VOYAGE_RETRY_BACKOFF_MS = 1_000;
+const EMBEDDING_DIMENSIONS = Math.max(1, intEnv('EMBEDDING_DIMENSIONS', 1024));
+
+export type RetrievalMode = 'hybrid' | 'lexical-degraded';
+let retrievalMode: RetrievalMode = 'hybrid';
+const retrievalModeContext = new AsyncLocalStorage<{ mode: RetrievalMode }>();
+
+export function getRetrievalMode(): RetrievalMode {
+  return retrievalMode;
+}
 
 function isRetryableStatus(status: number): boolean {
   return status === 429 || status >= 500;
@@ -36,6 +47,8 @@ async function voyageRequest(queries: string[]): Promise<Response> {
 }
 
 export async function embedQueries(queries: string[]): Promise<number[][]> {
+  if (queries.length === 0) return [];
+
   // A failure here cascades to all retrieval, so make the cause (network vs
   // HTTP status vs empty body) visible rather than letting a bare throw
   // bubble up unattributed.
@@ -74,17 +87,43 @@ export async function embedQueries(queries: string[]): Promise<number[][]> {
     throw new Error(`Voyage API error ${response.status}: ${text}`);
   }
 
-  const data = (await response.json()) as { data: Array<{ embedding: number[] }> };
-  return data.data.map((item) => item.embedding);
+  const data = (await response.json()) as { data?: Array<{ embedding?: number[] }> };
+  if (!Array.isArray(data.data) || data.data.length !== queries.length) {
+    throw new Error(
+      `Voyage API returned ${data.data?.length ?? 0} embeddings for ${queries.length} queries`,
+    );
+  }
+
+  const embeddings = data.data.map((item) => item.embedding);
+  if (
+    embeddings.some(
+      (embedding) =>
+        !Array.isArray(embedding) ||
+        embedding.length !== EMBEDDING_DIMENSIONS ||
+        embedding.some((value) => typeof value !== 'number' || !Number.isFinite(value)),
+    )
+  ) {
+    throw new Error(
+      `Voyage API returned an invalid query embedding; expected ${EMBEDDING_DIMENSIONS} finite dimensions`,
+    );
+  }
+  return embeddings as number[][];
 }
 
 async function embedQuery(query: string): Promise<number[]> {
-  const [embedding] = await embedQueries([query]);
-  if (!embedding) {
-    log.error('voyage.embed_empty', { queries: 1 });
-    throw new Error('Voyage API returned no embedding for query');
+  try {
+    const [embedding] = await embedQueries([query]);
+    retrievalMode = 'hybrid';
+    const context = retrievalModeContext.getStore();
+    if (context) context.mode = 'hybrid';
+    return embedding;
+  } catch (err) {
+    retrievalMode = 'lexical-degraded';
+    const context = retrievalModeContext.getStore();
+    if (context) context.mode = 'lexical-degraded';
+    log.warn('voyage.embed_degraded_to_lexical', errorFields(err));
+    return [];
   }
-  return embedding;
 }
 
 export function createAgentPolicyCorpus({
@@ -100,3 +139,17 @@ export function createAgentPolicyCorpus({
 }
 
 export const policyCorpus = createAgentPolicyCorpus();
+
+export async function searchPolicySections(input: SearchSectionsInput) {
+  return retrievalModeContext.run(
+    { mode: 'hybrid' },
+    async () => {
+      const context = retrievalModeContext.getStore();
+      const sections = await policyCorpus.searchSections(input);
+      return {
+        sections,
+        retrievalMode: context?.mode ?? getRetrievalMode(),
+      };
+    },
+  );
+}

@@ -1,6 +1,6 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
-import { policyCorpus } from '../policy-corpus.js';
+import { searchPolicySections } from '../policy-corpus.js';
 
 const SectionResult = z.object({
   sectionId: z.string(),
@@ -27,8 +27,9 @@ export const searchSections = createTool({
   }),
   outputSchema: z.object({
     sections: z.array(SectionResult),
+    retrievalMode: z.enum(['hybrid', 'lexical-degraded']),
   }),
   execute: async (inputData) => {
-    return { sections: await policyCorpus.searchSections(inputData) };
+    return searchPolicySections(inputData);
   },
 });

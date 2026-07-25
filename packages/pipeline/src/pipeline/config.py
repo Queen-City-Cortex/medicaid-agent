@@ -9,7 +9,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 
 # Monorepo root is two levels above PROJECT_ROOT (packages/pipeline/ → packages/ → root)
 _MONOREPO_ROOT = PROJECT_ROOT.parent.parent
-load_dotenv(_MONOREPO_ROOT / ".env", override=True)
+load_dotenv(_MONOREPO_ROOT / ".env", override=False)
 
 # Crawler paths (sibling package in monorepo)
 CRAWLER_DATA_DIR = PROJECT_ROOT.parent / "crawler" / "data" / "documents"
@@ -50,12 +50,15 @@ SOURCE_TYPE_DIRS = {
     family.source_type: family.directory_name
     for family in CORPUS_MANIFEST.source_families
 }
-PARSE_SUPPORTED_FILE_FORMATS = frozenset({".pdf", ".docx", ".xlsx"})
+PARSE_SUPPORTED_FILE_FORMATS = frozenset(
+    {".pdf", ".doc", ".docx", ".xls", ".xlsx", ".pptx"}
+)
 
 # eCFR (Federal Regulations)
 ECFR_API_BASE = "https://www.ecfr.gov/api/versioner/v1"
 ECFR_CACHE_DIR = PROJECT_ROOT / "data" / "ecfr-cache"
-ECFR_CACHE_MAX_AGE_DAYS = 90
+ECFR_CACHE_MAX_AGE_DAYS = 7
+SSA_CACHE_MAX_AGE_DAYS = 30
 # Agent (sibling package in monorepo)
 AGENT_DIR = PROJECT_ROOT.parent / "agent"
 

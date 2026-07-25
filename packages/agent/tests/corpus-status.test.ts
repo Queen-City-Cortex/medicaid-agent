@@ -41,7 +41,11 @@ describe('corpus-status route failure logging', () => {
 
     await handleCorpusStatusRequest({ json });
 
-    expect(json).toHaveBeenCalledWith({ lastUpdated: null, documentCount: 0 });
+    expect(json).toHaveBeenCalledWith({
+      lastUpdated: null,
+      documentCount: 0,
+      retrievalMode: 'hybrid',
+    });
     expect(error).not.toHaveBeenCalled();
   });
 });

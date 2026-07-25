@@ -5,6 +5,8 @@ import { discoverDocuments } from '../crawl/discovery.js';
 import { mergeStats, runCheckPhase, runDownloadPhase } from '../crawl/sync.js';
 import { logger } from '../utils/logger.js';
 import { buildFetcher, initDb, parseSourceTypes } from './shared.js';
+import { isAllowedSourceUrl } from '../corpus-manifest.js';
+import type { SourceType } from '../sources/types.js';
 
 export function registerCrawlCommand(program: Command): void {
   program
@@ -57,10 +59,20 @@ export function registerCrawlCommand(program: Command): void {
       logger.info(`Starting crawl run #${runId}`);
 
       // Discovery phase
-      const discovered = await discoverDocuments(fetcher, sourceTypes, sinceYear);
+      const discovery = await discoverDocuments(fetcher, sourceTypes, sinceYear);
+      const discovered = discovery.documents;
 
       let newCount = 0;
       for (const doc of discovered) {
+        if (!isAllowedSourceUrl(doc.source_type, doc.source_url)) {
+          registry.recordRejectedUrl(
+            doc.source_url,
+            doc.source_type,
+            'domain not allowed by corpus manifest',
+          );
+          logger.warn(`Rejected out-of-scope URL: ${doc.source_url}`);
+          continue;
+        }
         if (!robots.isAllowed(doc.source_url)) {
           logger.debug(`Blocked by robots.txt: ${doc.source_url}`);
           continue;
@@ -76,13 +88,17 @@ export function registerCrawlCommand(program: Command): void {
 
       if (dryRun) {
         logger.info('Dry run — skipping downloads');
-        registry.completeCrawlRun(runId, {
-          documents_discovered: newCount,
-          documents_downloaded: 0,
-          documents_unchanged: 0,
-          documents_updated: 0,
-          documents_errored: 0,
-        });
+        registry.completeCrawlRun(
+          runId,
+          {
+            documents_discovered: newCount,
+            documents_downloaded: 0,
+            documents_unchanged: 0,
+            documents_updated: 0,
+            documents_errored: discovery.failedSourceTypes.length,
+          },
+          discovery.successfulSourceTypes,
+        );
         registry.close();
         return;
       }
@@ -95,7 +111,8 @@ export function registerCrawlCommand(program: Command): void {
         registry,
         fetcher,
         sourceTypes,
-        isAllowed: (url: string) => robots.isAllowed(url),
+        isAllowed: (url: string, sourceType: SourceType) =>
+          isAllowedSourceUrl(sourceType, url) && robots.isAllowed(url),
       };
       const download = await runDownloadPhase(ctx);
       const check = await runCheckPhase(ctx, download.processedIds);
@@ -106,17 +123,27 @@ export function registerCrawlCommand(program: Command): void {
         documents_downloaded: totals.downloaded,
         documents_unchanged: totals.unchanged,
         documents_updated: totals.updated,
-        documents_errored: totals.errored,
+        documents_errored:
+          totals.errored + discovery.failedSourceTypes.length,
       };
 
       const elapsed = ((Date.now() - startTime) / 1000).toFixed(0);
-      registry.completeCrawlRun(runId, stats);
+      registry.completeCrawlRun(
+        runId,
+        stats,
+        discovery.successfulSourceTypes,
+      );
       logger.info(`Crawl run #${runId} complete`);
       logger.info(`  Discovered: ${stats.documents_discovered} new documents`);
       logger.info(`  Downloaded: ${stats.documents_downloaded}`);
       logger.info(`  Unchanged: ${stats.documents_unchanged}`);
       logger.info(`  Updated: ${stats.documents_updated}`);
       logger.info(`  Errors: ${stats.documents_errored}`);
+      if (discovery.failedSourceTypes.length > 0) {
+        logger.warn(
+          `  Discovery failed: ${discovery.failedSourceTypes.join(', ')}`,
+        );
+      }
       logger.info(`  Duration: ${elapsed}s`);
 
       registry.close();

@@ -1,12 +1,19 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileTypeFromBuffer } from 'file-type';
-import { HttpStatusError } from './fetcher.js';
+import {
+  FileTooLargeError,
+  HttpStatusError,
+  UrlRejectedError,
+} from './fetcher.js';
 import { hashFile } from '../utils/hash.js';
 import { buildFilename } from '../utils/naming.js';
 import { logger } from '../utils/logger.js';
 import { config, SOURCE_TYPE_DIRS } from '../config.js';
-import { getSourceFamily } from '../corpus-manifest.js';
+import {
+  getSourceFamily,
+  isAllowedSourceUrl,
+} from '../corpus-manifest.js';
 import type { DocumentRecord, DownloadedInfo } from '../db/registry.js';
 import type { Fetcher, FetchFileResult, SourceType } from '../sources/types.js';
 
@@ -186,6 +193,8 @@ export interface DownloadResult {
    * Undefined for non-HTTP failures (network errors, rejected payloads).
    */
   statusCode?: number;
+  rejectedUrl?: string;
+  rejectionReason?: string;
 }
 
 export async function downloadDocument(
@@ -201,19 +210,28 @@ export async function downloadDocument(
 
   // Build a temporary path for the download
   const tmpPath = path.join(sourceDir, `.download-${doc.id}.tmp`);
+  const sourceType = doc.source_type as SourceType;
+  const sourceFamily = getSourceFamily(sourceType);
+  const isAllowedUrl = (value: string): boolean =>
+    isAllowedSourceUrl(sourceType, value);
 
   try {
     // Prepare conditional headers
-    const conditionalHeaders =
-      doc.etag || doc.last_modified
-        ? { etag: doc.etag ?? undefined, lastModified: doc.last_modified ?? undefined }
-        : undefined;
-
     const result: FetchFileResult = await fetcher.fetchFile(
       doc.source_url,
       tmpPath,
-      conditionalHeaders,
+      {
+        etag: doc.etag ?? undefined,
+        lastModified: doc.last_modified ?? undefined,
+        isAllowedUrl,
+        maxBytes: config.maxFileSizeBytes,
+      },
     );
+
+    const finalUrl = result.finalUrl ?? doc.source_url;
+    if (!isAllowedUrl(finalUrl)) {
+      throw new UrlRejectedError(finalUrl);
+    }
 
     // 304 Not Modified
     if (result.statusCode === 304) {
@@ -259,7 +277,6 @@ export async function downloadDocument(
     // the occasional surprise binary (see RUNBOOK troubleshooting note).
     // doc.source_type is typed as `string` in the registry schema; narrow it
     // back to SourceType for the manifest lookup.
-    const sourceFamily = getSourceFamily(doc.source_type as SourceType);
     if (!detectedTypeMatchesAllowedFormats(detectedContentType, sourceFamily.allowed_file_formats)) {
       fs.unlinkSync(tmpPath);
       logger.warn(
@@ -301,7 +318,7 @@ export async function downloadDocument(
     const ext = detectedContentType?.includes('pdf')
       ? '.pdf'
       : path.extname(
-          contentDisposition ?? new URL(doc.source_url).pathname,
+          contentDisposition ?? new URL(finalUrl).pathname,
         ) || '.pdf';
 
     // Archive old version BEFORE building filename so the old name
@@ -359,6 +376,13 @@ export async function downloadDocument(
       action: 'error',
       error: (err as Error).message,
       statusCode: err instanceof HttpStatusError ? err.statusCode : undefined,
+      rejectedUrl: err instanceof UrlRejectedError ? err.url : undefined,
+      rejectionReason:
+        err instanceof UrlRejectedError
+          ? 'redirect target outside source-family allowlist'
+          : err instanceof FileTooLargeError
+            ? `download exceeded ${err.maxBytes} byte limit`
+            : undefined,
     };
   }
 }

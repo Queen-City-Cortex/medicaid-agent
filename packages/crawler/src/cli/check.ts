@@ -4,6 +4,7 @@ import { createRobotsChecker } from '../crawl/robots.js';
 import { runCheckPhase } from '../crawl/sync.js';
 import { logger } from '../utils/logger.js';
 import type { SourceType } from '../sources/types.js';
+import { isAllowedSourceUrl } from '../corpus-manifest.js';
 import { buildFetcher, initDb, parseSourceTypes } from './shared.js';
 
 export function registerCheckCommand(program: Command): void {
@@ -35,7 +36,8 @@ export function registerCheckCommand(program: Command): void {
         registry,
         fetcher,
         sourceTypes,
-        isAllowed: (url: string) => robots.isAllowed(url),
+        isAllowed: (url: string, sourceType: SourceType) =>
+          isAllowedSourceUrl(sourceType, url) && robots.isAllowed(url),
       });
 
       logger.info(

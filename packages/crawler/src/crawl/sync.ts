@@ -18,11 +18,13 @@ export interface SyncContext {
   registry: DocumentRegistry;
   fetcher: Fetcher;
   sourceTypes: SourceType[];
-  isAllowed: (url: string) => boolean;
+  isAllowed: (url: string, sourceType: SourceType) => boolean;
   /** Injectable for tests; defaults to the real downloader. */
   download?: typeof downloadDocument;
   /** Consecutive 404s before a document is marked removed. */
   notFoundRemovalThreshold?: number;
+  /** Maximum number of source-family download workers. */
+  concurrency?: number;
 }
 
 function emptyStats(): SyncStats {
@@ -92,6 +94,13 @@ function applyResult(
       logger.debug(`${docLabel(doc)}... unchanged`);
       break;
     case 'error': {
+      if (result.rejectedUrl) {
+        ctx.registry.recordRejectedUrl(
+          result.rejectedUrl,
+          doc.source_type,
+          result.rejectionReason ?? result.error ?? 'URL rejected',
+        );
+      }
       if (result.statusCode === 404) {
         const threshold =
           ctx.notFoundRemovalThreshold ?? config.notFoundRemovalThreshold;
@@ -126,14 +135,73 @@ async function processDocuments(
   processedIds: Set<number>,
 ): Promise<void> {
   const download = ctx.download ?? downloadDocument;
-  const filenames = new Map<string, Set<string>>();
-
+  const eligible: DocumentRecord[] = [];
   for (const doc of docs) {
     if (!ctx.sourceTypes.includes(doc.source_type as SourceType)) continue;
-    if (!ctx.isAllowed(doc.source_url)) continue;
+    if (!ctx.isAllowed(doc.source_url, doc.source_type as SourceType)) {
+      const reason = 'URL rejected before download queueing';
+      ctx.registry.recordRejectedUrl(doc.source_url, doc.source_type, reason);
+      ctx.registry.markError(doc.id, reason);
+      stats.errored++;
+      processedIds.add(doc.id);
+      continue;
+    }
+    eligible.push(doc);
+  }
 
-    const names = getFilenames(filenames, doc.source_type);
-    const result = await download(doc, ctx.fetcher, names);
+  const bySourceType = new Map<string, DocumentRecord[]>();
+  for (const doc of eligible) {
+    const group = bySourceType.get(doc.source_type) ?? [];
+    group.push(doc);
+    bySourceType.set(doc.source_type, group);
+  }
+
+  const queue = [...bySourceType.entries()];
+  const concurrency = Math.max(
+    1,
+    Math.min(8, ctx.concurrency ?? config.maxConcurrentDomains),
+  );
+  const completed: Array<{
+    doc: DocumentRecord;
+    result: DownloadResult;
+  }> = [];
+
+  await Promise.all(
+    Array.from(
+      { length: Math.min(concurrency, queue.length) },
+      async () => {
+        while (queue.length > 0) {
+          const next = queue.shift();
+          if (!next) break;
+          const [sourceType, sourceDocs] = next;
+          const names = getFilenames(new Map(), sourceType);
+          for (const doc of sourceDocs) {
+            try {
+              completed.push({
+                doc,
+                result: await download(doc, ctx.fetcher, names),
+              });
+            } catch (error) {
+              completed.push({
+                doc,
+                result: {
+                  action: 'error',
+                  error:
+                    error instanceof Error
+                      ? error.message
+                      : String(error),
+                },
+              });
+            }
+          }
+        }
+      },
+    ),
+  );
+
+  // better-sqlite3 writes are synchronous. Apply every mutation in one
+  // serialized pass after the bounded network/file work completes.
+  for (const { doc, result } of completed) {
     applyResult(ctx, doc, result, stats);
     processedIds.add(doc.id);
   }

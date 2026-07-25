@@ -85,6 +85,8 @@ class CorpusGraphWriter:
                 "variant_group": document.variant_group,
                 "variant_date": document.variant_date,
                 "retrieval_ready": document.retrieval_ready,
+                "source_checked_at": document.source_checked_at,
+                "source_changed_at": document.source_changed_at,
             })
             self._write_sections(tx, bundle.sections, document.id)
 

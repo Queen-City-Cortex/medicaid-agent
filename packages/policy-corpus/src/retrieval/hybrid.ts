@@ -5,6 +5,8 @@ import { debugSearch, timeSearchStep } from '../internal/shared.js';
 import { RETRIEVAL_BACKENDS } from './backend-registry.js';
 import { collectHybridHitMap, finalizeHybridHits } from './collector.js';
 
+const VECTOR_BACKEND_NAMES = new Set(['section_vector', 'chunk_vector', 'policy_scoped']);
+
 export function createHybridRetriever({
   withSession,
   embedQuery,
@@ -25,6 +27,12 @@ export function createHybridRetriever({
 
     debugSearch(`search start query="${queryInput.query}" topK=${topK}`);
     const embedding = await timeSearchStep('embed query', () => embedQuery(queryInput.query));
+    const backends =
+      embedding.length > 0
+        ? RETRIEVAL_BACKENDS
+        : new Map(
+            [...RETRIEVAL_BACKENDS].filter(([name]) => !VECTOR_BACKEND_NAMES.has(name)),
+          );
 
     debugSearch(`typeGroups=${profile.typeGroups.map((group) => group.join('+')).join(',')} perGroupK=${profile.perGroupK}`);
     // The collector acquires a session per concurrent query branch, so it
@@ -35,7 +43,7 @@ export function createHybridRetriever({
       analysis,
       profile,
       embedding,
-      backends: RETRIEVAL_BACKENDS,
+      backends,
     });
     const finalHits = finalizeHybridHits({
       sectionMap,
