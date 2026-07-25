@@ -1,5 +1,6 @@
 import type Database from 'better-sqlite3';
 import type { DiscoveredDocument } from '../sources/types.js';
+import { canonicalizeSourceUrl } from '../identity.js';
 import { logger } from '../utils/logger.js';
 
 export interface DocumentRecord {
@@ -22,6 +23,7 @@ export interface DocumentRecord {
   last_checked_at: string | null;
   last_downloaded_at: string | null;
   last_changed_at: string | null;
+  removed_at: string | null;
   status: string;
   error_message: string | null;
   download_attempts: number;
@@ -88,7 +90,12 @@ export function createRegistry(db: Database.Database): DocumentRegistry {
     ON CONFLICT(source_url) DO UPDATE SET
       title = COALESCE(@title, title),
       policy_number = COALESCE(@policy_number, policy_number),
-      category = COALESCE(@category, category)
+      category = COALESCE(@category, category),
+      status = CASE WHEN status = 'removed' THEN 'discovered' ELSE status END,
+      removed_at = CASE WHEN status = 'removed' THEN NULL ELSE removed_at END,
+      error_message = CASE WHEN status = 'removed' THEN NULL ELSE error_message END,
+      consecutive_errors = CASE WHEN status = 'removed' THEN 0 ELSE consecutive_errors END,
+      consecutive_not_found = CASE WHEN status = 'removed' THEN 0 ELSE consecutive_not_found END
   `);
 
   const getByUrlStmt = db.prepare(
@@ -176,7 +183,8 @@ export function createRegistry(db: Database.Database): DocumentRegistry {
   const markRemovedStmt = db.prepare(`
     UPDATE documents SET
       last_checked_at = datetime('now'),
-      status = 'removed'
+      status = 'removed',
+      removed_at = datetime('now')
     WHERE id = ?
   `);
 
@@ -270,13 +278,19 @@ export function createRegistry(db: Database.Database): DocumentRegistry {
 
   return {
     upsertDiscovered(doc: DiscoveredDocument): number {
-      runWrite('upsertDiscovered', null, () => insertStmt.run(doc));
-      const row = getByUrlStmt.get(doc.source_url) as DocumentRecord;
+      const canonicalDoc = {
+        ...doc,
+        source_url: canonicalizeSourceUrl(doc.source_url),
+      };
+      runWrite('upsertDiscovered', null, () => insertStmt.run(canonicalDoc));
+      const row = getByUrlStmt.get(canonicalDoc.source_url) as DocumentRecord;
       return row.id;
     },
 
     getByUrl(url: string): DocumentRecord | null {
-      return (getByUrlStmt.get(url) as DocumentRecord) ?? null;
+      return (
+        (getByUrlStmt.get(canonicalizeSourceUrl(url)) as DocumentRecord) ?? null
+      );
     },
 
     getById(id: number): DocumentRecord | null {

@@ -7,7 +7,7 @@ canonical ``build_document_id`` instead of hand-formatted f-strings.
 
 import re
 
-from pipeline.parse.post_process import build_document_id
+from pipeline.identity import build_document_id
 
 # Matches "42 CFR 440.70" and variants with optional § and spaces, the dotted
 # "42 C.F.R. § 440.70" form, and "42 CFR Part 438".
@@ -18,12 +18,17 @@ CFR_CITATION_RE = re.compile(
 
 
 def federal_regulation_doc_id(title: int, part: int) -> str:
-    """Canonical document id for a CFR part, e.g. ``doc:federal_regulation:42-CFR-440``."""
-    policy_number = f"{title}-CFR-{part}"
-    return build_document_id("federal_regulation", policy_number, policy_number)
+    """Canonical document id for one CFR part."""
+    return build_document_id(
+        "federal_regulation",
+        f"https://www.ecfr.gov/current/title-{title}/part-{part}",
+    )
 
 
 def federal_statute_doc_id(title_number: int) -> str:
-    """Canonical document id for an SSA title, e.g. ``doc:federal_statute:ssa-title-19``."""
-    slug = f"ssa-title-{title_number}"
-    return build_document_id("federal_statute", slug, slug)
+    """Canonical document id for one Social Security Act title."""
+    return build_document_id(
+        "federal_statute",
+        "https://uscode.house.gov/view.xhtml"
+        f"?req=granuleid:USC-prelim-title42-chapter7-subchapter{title_number}",
+    )

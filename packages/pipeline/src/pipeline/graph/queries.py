@@ -25,6 +25,16 @@ SET d.title = $title,
 RETURN d
 """
 
+DELETE_DOCUMENT = """
+MATCH (d:Document {id: $doc_id})
+OPTIONAL MATCH (d)-[:HAS_SECTION]->(s:Section)
+OPTIONAL MATCH (s)-[:HAS_CHUNK]->(chunk:Chunk)
+WITH d, collect(DISTINCT s) AS sections, collect(DISTINCT chunk) AS chunks
+FOREACH (item IN chunks | DETACH DELETE item)
+FOREACH (item IN sections | DETACH DELETE item)
+DETACH DELETE d
+"""
+
 MERGE_SECTIONS_BATCH = """
 UNWIND $sections AS section
 MERGE (s:Section {id: section.id})

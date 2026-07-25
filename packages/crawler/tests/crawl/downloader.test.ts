@@ -241,6 +241,7 @@ describe('downloadDocument', () => {
       last_checked_at: null,
       last_downloaded_at: null,
       last_changed_at: null,
+      removed_at: null,
       status: 'discovered',
       error_message: null,
       download_attempts: 0,

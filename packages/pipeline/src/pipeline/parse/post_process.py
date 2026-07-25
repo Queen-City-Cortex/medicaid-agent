@@ -1,8 +1,6 @@
 """Post-processing for Docling output: section number extraction and hierarchy repair."""
 
-import hashlib
 import re
-
 
 # Match section numbers at the start of heading text
 # Patterns: "5.0", "5.1.3", "Section 5.1", "Subsection 5.2.1"
@@ -58,34 +56,3 @@ def build_section_id(
             return f"sec:{document_id}:{section_number}:dup{occurrence}"
         return f"sec:{document_id}:{section_number}"
     return f"sec:{document_id}:_s{index}"
-
-
-def build_document_id(source_type: str, policy_number: str | None, slug: str, source_url: str | None = None) -> str:
-    """Build a unique document ID for the graph.
-
-    Most source types can key directly on policy_number when present.
-    DHHS policies cannot: change notices, translations, and annual revisions
-    often share the same policy_number but are still distinct documents.
-
-    For DHHS policies, use the source URL as the primary unique discriminator and
-    keep the policy number only as a readable prefix when available. This keeps
-    IDs stable across filename changes without collapsing distinct documents.
-
-    Other source types fall back from policy_number -> source_url hash -> slug.
-    """
-    if source_type == "dhhs_policy":
-        if source_url:
-            url_hash = hashlib.sha256(source_url.encode()).hexdigest()[:12]
-            if policy_number:
-                return f"doc:{source_type}:{policy_number}:url-{url_hash}"
-            return f"doc:{source_type}:url-{url_hash}"
-        if policy_number:
-            return f"doc:{source_type}:{policy_number}:{slug}"
-        return f"doc:{source_type}:{slug}"
-
-    if policy_number:
-        return f"doc:{source_type}:{policy_number}"
-    if source_url:
-        url_hash = hashlib.sha256(source_url.encode()).hexdigest()[:12]
-        return f"doc:{source_type}:url-{url_hash}"
-    return f"doc:{source_type}:{slug}"

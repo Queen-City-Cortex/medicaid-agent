@@ -18,6 +18,7 @@ from pipeline.config import (
 from pipeline.corpus_manifest import CORPUS_MANIFEST, SourceFamilyManifest
 from pipeline.crawler_registry import normalize_local_path, read_registry_rows
 from pipeline.graph.connection import get_session
+from pipeline.identity import build_document_id
 from pipeline.source_selection import (
     build_source_selection_index,
     resolve_source_selection_metadata,
@@ -33,7 +34,9 @@ FAILURE_REASONS = (
     "zero_section_parse",
     "title_only_or_blank_body",
     "missing_graph_load",
+    "ineligible_graph_load",
 )
+_ACTIVE_REGISTRY_STATUSES = frozenset({"downloaded", "updated", "unchanged"})
 
 
 def _normalize_local_path(path_value: str | None) -> str | None:
@@ -238,8 +241,16 @@ def classify_document_entry(
         failure_reasons.append("zero_section_parse")
     if "title_only_or_blank_body" in quality_flags:
         failure_reasons.append("title_only_or_blank_body")
-    if parsed and not loaded:
+    should_load = bool(
+        registry_status in _ACTIVE_REGISTRY_STATUSES
+        and parsed
+        and parsed_entry
+        and parsed_entry.get("answer_ready")
+    )
+    if should_load and not loaded:
         failure_reasons.append("missing_graph_load")
+    if loaded and not should_load:
+        failure_reasons.append("ineligible_graph_load")
 
     reconciliation_issues: list[str] = []
     if registry_row and local_path and not downloaded:
@@ -408,6 +419,38 @@ def build_corpus_audit_report(
 
     source_family_reports: list[dict[str, Any]] = []
     failure_counter: Counter[str] = Counter()
+    graph_id_counts = Counter(
+        entry["id"] for entry in graph_documents if entry.get("id")
+    )
+    registry_id_counts: Counter[str] = Counter()
+    for row in registry_rows:
+        try:
+            registry_id_counts[
+                build_document_id(
+                    row["source_type"],
+                    row.get("source_url"),
+                    _normalize_local_path(row.get("local_path")),
+                )
+            ] += 1
+        except (KeyError, TypeError, ValueError):
+            # Other reconciliation checks report malformed registry rows. Keep
+            # the audit available so those errors can be inspected and fixed.
+            continue
+
+    duplicate_document_id_values = sorted(
+        {
+            document_id
+            for counts in (registry_id_counts, graph_id_counts)
+            for document_id, count in counts.items()
+            if count > 1
+        }
+    )
+    duplicate_document_ids = sum(
+        count - 1
+        for counts in (registry_id_counts, graph_id_counts)
+        for count in counts.values()
+        if count > 1
+    )
 
     for source_family in source_families:
         family_docs = [entry for entry in documents if entry["source_type"] == source_family.source_type]
@@ -449,6 +492,8 @@ def build_corpus_audit_report(
         "summary": {
             "documents_total": len(documents),
             "by_failure_reason": dict(sorted(failure_counter.items())),
+            "duplicate_document_ids": duplicate_document_ids,
+            "duplicate_document_id_values": duplicate_document_id_values,
         },
         "source_families": source_family_reports,
         "documents": documents,

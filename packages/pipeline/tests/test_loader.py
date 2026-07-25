@@ -11,12 +11,13 @@ from pipeline.graph.loader import (
     build_sections_from_items,
     build_sections_from_synthetic_items,
     _extract_dhhs_policy_number,
+    load_all,
     load_document,
     read_crawler_metadata_by_local_path,
 )
 from pipeline.source_selection import build_source_selection_index
 from docling_core.types.doc import DocItemLabel
-from pipeline.parse.post_process import build_document_id
+from pipeline.identity import build_document_id, canonicalize_source_url
 from tests.fakes import RecordingGraphWriter
 
 
@@ -200,39 +201,61 @@ class TestExtractDhhsPolicyNumber:
 
 
 class TestBuildDocumentId:
-    def test_dhhs_policy_uses_source_url_as_unique_discriminator(self):
-        doc_id = build_document_id(
-            "dhhs_policy",
-            "MA-3200",
-            "ma-3200-application",
-            "https://example.com/MA-3200.pdf",
+    def test_canonical_url_matches_the_cross_runtime_contract(self):
+        assert canonicalize_source_url(
+            "https://EXAMPLE.com:443/policy.pdf?note=one two&b=!'()*~#page=3"
+        ) == (
+            "https://example.com/policy.pdf?"
+            "b=%21%27%28%29%2A~&note=one%20two"
         )
 
-        assert doc_id.startswith("doc:dhhs_policy:MA-3200:url-")
-
-    def test_dhhs_policy_same_policy_number_but_different_urls_get_distinct_ids(self):
-        first = build_document_id(
+    def test_source_url_is_the_only_document_identity_input(self):
+        doc_id = build_document_id(
             "dhhs_policy",
-            "MA-3200",
-            "ma-3200-application",
+            "https://EXAMPLE.com/policies/MA-3200.pdf#page=2",
+        )
+
+        assert doc_id == build_document_id(
+            "dhhs_policy",
+            "https://example.com/policies/MA-3200.pdf",
+        )
+        assert doc_id.startswith("doc:dhhs_policy:")
+
+    def test_every_source_family_distinguishes_different_urls(self):
+        first = build_document_id(
+            "state_plan_amendment",
             "https://example.com/MA-3200.pdf",
         )
         second = build_document_id(
-            "dhhs_policy",
-            "MA-3200",
-            "change-notice-for-manual-no-01-24-ma-3200-application",
+            "state_plan_amendment",
             "https://example.com/CN-01-24.pdf",
         )
 
         assert first != second
 
-    def test_other_source_types_still_key_on_policy_number(self):
-        assert build_document_id(
+    def test_normalized_registry_path_is_used_only_without_a_url(self):
+        from_path = build_document_id(
             "clinical_policy",
-            "1A",
-            "home-health-services",
-            "https://example.com/1A.pdf",
-        ) == "doc:clinical_policy:1A"
+            None,
+            "clinical-policies/../clinical-policies/home-health.pdf",
+        )
+        assert from_path == build_document_id(
+            "clinical_policy",
+            None,
+            "clinical-policies/home-health.pdf",
+        )
+
+    def test_registry_path_cannot_escape_the_crawler_root(self):
+        with pytest.raises(ValueError, match="must stay within"):
+            build_document_id(
+                "clinical_policy",
+                None,
+                "../outside/home-health.pdf",
+            )
+
+    def test_document_identity_requires_a_url_or_registry_path(self):
+        with pytest.raises(ValueError, match="source URL or registry path"):
+            build_document_id("clinical_policy", None, None)
 
 
 def test_load_document_emits_document_bundle_through_graph_writer(monkeypatch, tmp_path):
@@ -248,6 +271,7 @@ def test_load_document_emits_document_bundle_through_graph_writer(monkeypatch, t
             "policy_number": "8C",
             "category": "eligibility",
             "source_url": "https://example.com/8C",
+            "status": "downloaded",
         },
     )
     monkeypatch.setattr(
@@ -270,7 +294,7 @@ def test_load_document_emits_document_bundle_through_graph_writer(monkeypatch, t
     )
     monkeypatch.setattr(
         "pipeline.graph.loader.build_document_id",
-        lambda source_type, policy_number, filename_stem, source_url: "doc:test:8c",
+        lambda source_type, source_url, registry_path: "doc:test:8c",
     )
     monkeypatch.setattr(
         "pipeline.graph.loader._extract_effective_date",
@@ -305,11 +329,26 @@ def test_load_document_does_not_infer_policy_number_for_change_notice(monkeypatc
             "policy_number": None,
             "category": "eligibility",
             "source_url": "https://example.com/CN-01-24.pdf",
+            "status": "downloaded",
         },
     )
     monkeypatch.setattr(
         "pipeline.graph.loader.build_sections_from_items",
-        lambda doc_dict, document_id: [],
+        lambda doc_dict, document_id: [
+            {
+                "id": f"sec:{document_id}:1.0",
+                "document_id": document_id,
+                "section_number": "1.0",
+                "title": "Change",
+                "level": 1,
+                "content_text": "Changed text",
+                "content_length": 12,
+                "has_tables": False,
+                "has_definitions": False,
+                "parent_id": None,
+                "prev_sibling_id": None,
+            }
+        ],
     )
     monkeypatch.setattr(
         "pipeline.graph.loader._extract_effective_date",
@@ -318,8 +357,8 @@ def test_load_document_does_not_infer_policy_number_for_change_notice(monkeypatc
 
     captured: dict[str, object] = {}
 
-    def fake_build_document_id(source_type, policy_number, filename_stem, source_url):
-        captured["policy_number"] = policy_number
+    def fake_build_document_id(source_type, source_url, registry_path):
+        captured["source_url"] = source_url
         return "doc:test:change-notice"
 
     writer = RecordingGraphWriter()
@@ -329,9 +368,91 @@ def test_load_document_does_not_infer_policy_number_for_change_notice(monkeypatc
     result = load_document(json_path, "dhhs_policy")
 
     (bundle,) = writer.received("upsert_document_bundle")
-    assert result == {"document_id": "doc:test:change-notice", "sections": 0}
-    assert captured["policy_number"] is None
+    assert result == {"document_id": "doc:test:change-notice", "sections": 1}
+    assert captured["source_url"] == "https://example.com/CN-01-24.pdf"
     assert bundle.document.policy_number is None
+
+
+def test_load_document_removes_a_registry_document_marked_removed(
+    monkeypatch,
+    tmp_path,
+):
+    json_path = tmp_path / "removed.json"
+    json_path.write_text("{}")
+    json_path.with_suffix(".meta.json").write_text(
+        json.dumps(
+            {
+                "source_file": "removed.pdf",
+                "parse_status": "parsed",
+                "answer_ready": True,
+                "section_count": 1,
+            }
+        )
+    )
+    monkeypatch.setattr(
+        "pipeline.graph.loader.read_crawler_metadata",
+        lambda source_type, filename_stem: {
+            "title": "Removed policy",
+            "source_url": "https://example.com/removed.pdf",
+            "local_path": "state-plan-amendments/removed.pdf",
+            "status": "removed",
+        },
+    )
+    writer = RecordingGraphWriter()
+    monkeypatch.setattr("pipeline.graph.loader.graph_writer", writer)
+
+    result = load_document(json_path, "state_plan_amendment")
+
+    assert result["skipped"] == "inactive_registry_status:removed"
+    assert writer.received("upsert_document_bundle") == []
+    assert writer.received("delete_document") == [result["document_id"]]
+
+
+@pytest.mark.parametrize(
+    ("meta_overrides", "reason"),
+    [
+        ({"parse_status": "parse_exception"}, "parse_status:parse_exception"),
+        ({"answer_ready": False}, "not_answer_ready"),
+        ({"quality_flags": ["title_only_or_blank_body"]}, "not_answer_ready"),
+        ({"section_count": 0}, "zero_section_parse"),
+    ],
+)
+def test_load_document_rejects_parses_that_are_not_answer_ready(
+    monkeypatch,
+    tmp_path,
+    meta_overrides,
+    reason,
+):
+    json_path = tmp_path / "quarantined.json"
+    json_path.write_text("{}")
+    json_path.with_suffix(".meta.json").write_text(
+        json.dumps(
+            {
+                "source_file": "quarantined.pdf",
+                "parse_status": "parsed",
+                "answer_ready": True,
+                "section_count": 1,
+                **meta_overrides,
+            }
+        )
+    )
+    monkeypatch.setattr(
+        "pipeline.graph.loader.read_crawler_metadata",
+        lambda source_type, filename_stem: {
+            "title": "Quarantined policy",
+            "source_url": "https://example.com/quarantined.pdf",
+            "local_path": "state-plan-amendments/quarantined.pdf",
+            "status": "unchanged",
+        },
+    )
+    writer = RecordingGraphWriter()
+    monkeypatch.setattr("pipeline.graph.loader.graph_writer", writer)
+
+    result = load_document(json_path, "state_plan_amendment")
+
+    assert result["skipped"] == reason
+    assert writer.received("upsert_document_bundle") == []
+    assert writer.received("delete_document") == [result["document_id"]]
 
 
 def test_read_crawler_metadata_by_local_path_normalizes_absolute_paths(monkeypatch, tmp_path):
@@ -470,3 +591,244 @@ def test_build_document_bundle_applies_fee_schedule_selection(monkeypatch, tmp_p
     assert bundle.document.variant_group == "ambulance fee schedule"
     assert bundle.document.variant_date == "2022-01-01"
     assert bundle.document.retrieval_ready is True
+
+
+def test_load_all_counts_duplicate_parsed_artifacts_as_one_document(
+    monkeypatch,
+    tmp_path,
+):
+    parsed_dir = tmp_path / "state-plan-amendments"
+    parsed_dir.mkdir()
+    for name in ("attachment.json", "attachment-copy.json"):
+        (parsed_dir / name).write_text("{}")
+
+    monkeypatch.setattr("pipeline.graph.loader.PARSED_DATA_DIR", tmp_path)
+    monkeypatch.setattr(
+        "pipeline.graph.loader.SOURCE_TYPE_DIRS",
+        {"state_plan_amendment": "state-plan-amendments"},
+    )
+    monkeypatch.setattr("pipeline.graph.schema.ensure_schema", lambda: None)
+    monkeypatch.setattr(
+        "pipeline.graph.loader._resolve_document_load_context",
+        lambda json_path, source_type: {
+            "document_id": "doc:state_plan_amendment:same",
+            "exclusion_reason": None,
+        },
+    )
+    monkeypatch.setattr(
+        "pipeline.graph.loader.load_document",
+        lambda json_path, source_type, load_context: {
+            "document_id": "doc:state_plan_amendment:same",
+            "sections": 2,
+        },
+    )
+
+    assert load_all(source_type="state_plan_amendment") == {
+        "loaded": 1,
+        "sections_total": 2,
+        "skipped": 1,
+        "errors": 0,
+    }
+
+
+def test_load_all_deduplicates_before_an_ineligible_artifact_can_delete(
+    monkeypatch,
+    tmp_path,
+):
+    parsed_dir = tmp_path / "state-plan-amendments"
+    parsed_dir.mkdir()
+    valid_path = parsed_dir / "a-valid.json"
+    quarantined_path = parsed_dir / "z-quarantined.json"
+    valid_path.write_text("{}")
+    quarantined_path.write_text("{}")
+    valid_path.with_suffix(".meta.json").write_text(
+        json.dumps(
+            {
+                "source_file": "valid.pdf",
+                "parse_status": "parsed",
+                "answer_ready": True,
+                "section_count": 1,
+            }
+        )
+    )
+    quarantined_path.with_suffix(".meta.json").write_text(
+        json.dumps(
+            {
+                "source_file": "quarantined.pdf",
+                "parse_status": "parsed",
+                "answer_ready": False,
+                "section_count": 1,
+            }
+        )
+    )
+
+    monkeypatch.setattr("pipeline.graph.loader.PARSED_DATA_DIR", tmp_path)
+    monkeypatch.setattr(
+        "pipeline.graph.loader.SOURCE_TYPE_DIRS",
+        {"state_plan_amendment": "state-plan-amendments"},
+    )
+    monkeypatch.setattr("pipeline.graph.schema.ensure_schema", lambda: None)
+    monkeypatch.setattr(
+        "pipeline.graph.loader.read_crawler_metadata_by_local_path",
+        lambda source_type, local_path: {
+            "title": "One registry document",
+            "source_url": "https://example.com/attachment.pdf",
+            "local_path": "state-plan-amendments/attachment.pdf",
+            "status": "unchanged",
+        },
+    )
+    monkeypatch.setattr(
+        "pipeline.graph.loader.build_sections_from_items",
+        lambda doc_dict, document_id: [
+            {
+                "id": f"sec:{document_id}:1",
+                "document_id": document_id,
+                "section_number": "1",
+                "title": "Section 1",
+                "level": 1,
+                "content_text": "Answer-ready content",
+                "content_length": 20,
+                "has_tables": False,
+                "has_definitions": False,
+                "parent_id": None,
+                "prev_sibling_id": None,
+            }
+        ],
+    )
+    writer = RecordingGraphWriter()
+    monkeypatch.setattr("pipeline.graph.loader.graph_writer", writer)
+
+    assert load_all(source_type="state_plan_amendment") == {
+        "loaded": 1,
+        "sections_total": 1,
+        "skipped": 1,
+        "errors": 0,
+    }
+    assert len(writer.received("upsert_document_bundle")) == 1
+    assert writer.received("delete_document") == []
+
+
+def test_load_all_prefers_the_parse_matching_the_current_registry_hash(
+    monkeypatch,
+    tmp_path,
+):
+    parsed_dir = tmp_path / "state-plan-amendments"
+    parsed_dir.mkdir()
+    old_path = parsed_dir / "a-old.json"
+    current_path = parsed_dir / "z-current.json"
+    old_path.write_text(json.dumps({"content": "Stale content"}))
+    current_path.write_text(json.dumps({"content": "Current content"}))
+    old_path.with_suffix(".meta.json").write_text(
+        json.dumps(
+            {
+                "source_file": "old.pdf",
+                "source_file_hash": "sha256:old-hash",
+                "parsed_at": "2026-01-01T00:00:00+00:00",
+                "parse_status": "parsed",
+                "answer_ready": True,
+                "section_count": 1,
+            }
+        )
+    )
+    current_path.with_suffix(".meta.json").write_text(
+        json.dumps(
+            {
+                "source_file": "current.pdf",
+                "source_file_hash": "sha256:current-hash",
+                "parsed_at": "2026-07-01T00:00:00+00:00",
+                "parse_status": "parsed",
+                "answer_ready": True,
+                "section_count": 1,
+            }
+        )
+    )
+
+    monkeypatch.setattr("pipeline.graph.loader.PARSED_DATA_DIR", tmp_path)
+    monkeypatch.setattr(
+        "pipeline.graph.loader.SOURCE_TYPE_DIRS",
+        {"state_plan_amendment": "state-plan-amendments"},
+    )
+    monkeypatch.setattr("pipeline.graph.schema.ensure_schema", lambda: None)
+    monkeypatch.setattr(
+        "pipeline.graph.loader.read_crawler_metadata_by_local_path",
+        lambda source_type, local_path: {
+            "title": "Current registry document",
+            "source_url": "https://example.com/attachment.pdf",
+            "local_path": "state-plan-amendments/attachment.pdf",
+            "file_hash": "current-hash",
+            "status": "unchanged",
+        },
+    )
+    monkeypatch.setattr(
+        "pipeline.graph.loader.build_sections_from_items",
+        lambda doc_dict, document_id: [
+            {
+                "id": f"sec:{document_id}:1",
+                "document_id": document_id,
+                "section_number": "1",
+                "title": "Section 1",
+                "level": 1,
+                "content_text": doc_dict["content"],
+                "content_length": len(doc_dict["content"]),
+                "has_tables": False,
+                "has_definitions": False,
+                "parent_id": None,
+                "prev_sibling_id": None,
+            }
+        ],
+    )
+    writer = RecordingGraphWriter()
+    monkeypatch.setattr("pipeline.graph.loader.graph_writer", writer)
+
+    assert load_all(source_type="state_plan_amendment") == {
+        "loaded": 1,
+        "sections_total": 1,
+        "skipped": 1,
+        "errors": 0,
+    }
+    (bundle,) = writer.received("upsert_document_bundle")
+    assert bundle.sections[0].content_text == "Current content"
+
+
+def test_load_all_refuses_ambiguous_duplicate_parse_content(
+    monkeypatch,
+    tmp_path,
+):
+    parsed_dir = tmp_path / "state-plan-amendments"
+    parsed_dir.mkdir()
+    (parsed_dir / "a-current.json").write_text('{"content": "Current content"}')
+    (parsed_dir / "z-stale.json").write_text('{"content": "Stale content"}')
+
+    monkeypatch.setattr("pipeline.graph.loader.PARSED_DATA_DIR", tmp_path)
+    monkeypatch.setattr(
+        "pipeline.graph.loader.SOURCE_TYPE_DIRS",
+        {"state_plan_amendment": "state-plan-amendments"},
+    )
+    monkeypatch.setattr("pipeline.graph.schema.ensure_schema", lambda: None)
+    monkeypatch.setattr(
+        "pipeline.graph.loader._resolve_document_load_context",
+        lambda json_path, source_type: {
+            "document_id": "doc:state_plan_amendment:same",
+            "exclusion_reason": None,
+            "meta": {},
+            "crawler_meta": {},
+        },
+    )
+    loaded_paths = []
+    monkeypatch.setattr(
+        "pipeline.graph.loader.load_document",
+        lambda json_path, source_type, load_context: loaded_paths.append(json_path),
+    )
+    writer = RecordingGraphWriter()
+    monkeypatch.setattr("pipeline.graph.loader.graph_writer", writer)
+
+    assert load_all(source_type="state_plan_amendment") == {
+        "loaded": 0,
+        "sections_total": 0,
+        "skipped": 1,
+        "errors": 1,
+    }
+    assert loaded_paths == []
+    assert writer.received("delete_document") == [
+        "doc:state_plan_amendment:same"
+    ]

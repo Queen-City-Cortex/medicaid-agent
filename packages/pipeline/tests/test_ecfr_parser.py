@@ -4,6 +4,7 @@ import pytest
 from pathlib import Path
 
 from pipeline.federal.parser import parse_part_xml
+from pipeline.references.citations import federal_regulation_doc_id
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
@@ -48,13 +49,16 @@ class TestParsePartXml:
 
     def test_section_ids_are_correct_format(self, sample_xml):
         sections = parse_part_xml(sample_xml, 42, 440)
+        document_id = federal_regulation_doc_id(42, 440)
         for s in sections:
-            assert s["id"].startswith("sec:doc:federal_regulation:42-CFR-440:")
+            assert s["id"].startswith(f"sec:{document_id}:")
 
     def test_section_440_70_id(self, sample_xml):
         sections = parse_part_xml(sample_xml, 42, 440)
         by_num = {s["section_number"]: s for s in sections}
-        assert by_num["440.70"]["id"] == "sec:doc:federal_regulation:42-CFR-440:440.70"
+        assert by_num["440.70"]["id"] == (
+            f"sec:{federal_regulation_doc_id(42, 440)}:440.70"
+        )
 
     def test_heading_markers_stripped(self, sample_xml):
         sections = parse_part_xml(sample_xml, 42, 440)
@@ -81,7 +85,7 @@ class TestParsePartXml:
     def test_document_id_on_sections(self, sample_xml):
         sections = parse_part_xml(sample_xml, 42, 440)
         for s in sections:
-            assert s["document_id"] == "doc:federal_regulation:42-CFR-440"
+            assert s["document_id"] == federal_regulation_doc_id(42, 440)
 
     def test_level_is_one(self, sample_xml):
         sections = parse_part_xml(sample_xml, 42, 440)

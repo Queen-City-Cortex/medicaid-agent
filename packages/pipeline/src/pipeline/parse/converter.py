@@ -32,7 +32,7 @@ from pipeline.config import (
 from pipeline.parse.post_process import extract_section_number
 
 console = Console()
-PARSE_CACHE_VERSION = 2
+PARSE_CACHE_VERSION = 3
 DEFAULT_PARSE_TIMEOUT_SECONDS = 600
 
 

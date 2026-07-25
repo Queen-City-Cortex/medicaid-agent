@@ -73,7 +73,6 @@ def test_audit_surfaces_parse_quality_and_missing_graph_load(tmp_path):
 
     entry = report["documents"][0]
     assert entry["failure_reasons"] == [
-        "missing_graph_load",
         "title_only_or_blank_body",
         "zero_section_parse",
     ]
@@ -172,3 +171,66 @@ def test_audit_reports_fee_schedule_retrieval_buckets(tmp_path):
         "history": 1,
         "primary": 1,
     }
+
+
+def test_audit_reports_duplicate_graph_document_ids_as_a_release_blocker():
+    graph_document = {
+        "id": "doc:state_plan_amendment:duplicate",
+        "source_type": "state_plan_amendment",
+        "source_url": "https://example.test/spa-a.pdf",
+        "source_path": "state-plan-amendments/spa-a.pdf",
+        "answer_ready": True,
+        "source_format": "pdf",
+        "authority_tier": "authoritative",
+        "answer_role": "governing",
+        "corpus_bucket": None,
+        "variant_group": None,
+        "variant_date": None,
+        "retrieval_ready": True,
+    }
+
+    report = build_corpus_audit_report(
+        source_families=(get_source_family("state_plan_amendment"),),
+        registry_rows=[],
+        local_files=[],
+        parsed_sidecars=[],
+        graph_documents=[
+            graph_document,
+            {
+                **graph_document,
+                "source_url": "https://example.test/spa-b.pdf",
+                "source_path": "state-plan-amendments/spa-b.pdf",
+            },
+        ],
+    )
+
+    assert report["summary"]["duplicate_document_ids"] == 1
+    assert report["summary"]["duplicate_document_id_values"] == [
+        "doc:state_plan_amendment:duplicate"
+    ]
+
+
+def test_audit_reports_duplicate_registry_identities_as_a_release_blocker(tmp_path):
+    first = _registry_row(
+        "state_plan_amendment",
+        tmp_path / "spa-a.pdf",
+    )
+    second = {
+        **_registry_row(
+            "state_plan_amendment",
+            tmp_path / "spa-a-copy.pdf",
+        ),
+        "id": 2,
+        "source_url": f"{first['source_url']}#page=4",
+    }
+
+    report = build_corpus_audit_report(
+        source_families=(get_source_family("state_plan_amendment"),),
+        registry_rows=[first, second],
+        local_files=[],
+        parsed_sidecars=[],
+        graph_documents=[],
+    )
+
+    assert report["summary"]["duplicate_document_ids"] == 1
+    assert len(report["summary"]["duplicate_document_id_values"]) == 1

@@ -1,5 +1,6 @@
 """Load parsed Docling JSON into Neo4j as Document and Section nodes."""
 
+import hashlib
 import json
 import re
 import sqlite3
@@ -12,11 +13,11 @@ from rich.console import Console
 from pipeline.config import PARSED_DATA_DIR, CRAWLER_DATA_DIR, CRAWLER_DB_PATH, SOURCE_TYPE_DIRS
 from pipeline.corpus_manifest import get_source_family
 from pipeline.crawler_registry import normalize_local_path, read_registry_rows
+from pipeline.identity import build_document_id, canonicalize_source_url
 from pipeline.parse.post_process import (
     extract_section_number,
     infer_level_from_number,
     build_section_id,
-    build_document_id,
 )
 from pipeline.graph.corpus_types import DocumentBundle, DocumentNode, SectionNode
 from pipeline.graph.corpus_writer import graph_writer
@@ -30,6 +31,28 @@ _DHHS_CHANGE_NOTICE_RE = re.compile(
     r"CHANGE\s+NOTICE\s+FOR\s+MANUAL\s+NO\.",
     re.IGNORECASE,
 )
+_ACTIVE_REGISTRY_STATUSES = frozenset({"downloaded", "updated", "unchanged"})
+
+
+def _document_exclusion_reason(meta: dict, crawler_meta: dict) -> str | None:
+    """Return why a parsed artifact must stay out of the release graph."""
+    if not crawler_meta:
+        return "missing_registry_record"
+
+    registry_status = crawler_meta.get("status")
+    if registry_status not in _ACTIVE_REGISTRY_STATUSES:
+        return f"inactive_registry_status:{registry_status or 'missing'}"
+
+    parse_status = meta.get("parse_status") or "parsed"
+    if parse_status != "parsed":
+        return f"parse_status:{parse_status}"
+
+    quality_flags = list(meta.get("quality_flags") or [])
+    if meta.get("answer_ready") is False or quality_flags:
+        return "not_answer_ready"
+    if meta.get("section_count") == 0:
+        return "zero_section_parse"
+    return None
 
 
 def build_sections_from_items(doc_dict: dict, document_id: str) -> list[dict]:
@@ -411,7 +434,11 @@ def _build_document_bundle(
             policy_number=policy_number or waiver_id,
             category=crawler_meta.get("category"),
             status="current",
-            source_url=crawler_meta.get("source_url", ""),
+            source_url=(
+                canonicalize_source_url(crawler_meta["source_url"])
+                if crawler_meta.get("source_url")
+                else ""
+            ),
             local_path=str(json_path),
             pdf_path=source_file,
             page_count=meta.get("page_count", 0),
@@ -430,15 +457,12 @@ def _build_document_bundle(
     )
 
 
-def load_document(json_path: Path, source_type: str) -> dict:
-    """Load a single parsed document into Neo4j. Returns stats."""
+def _resolve_document_load_context(json_path: Path, source_type: str) -> dict:
+    """Resolve identity and eligibility without mutating the graph."""
     meta_path = json_path.with_suffix("").with_suffix(".meta.json")
-    doc_dict = json.loads(json_path.read_text())
     meta = json.loads(meta_path.read_text()) if meta_path.exists() else {}
-
     source_file = meta.get("source_file") or meta.get("source_pdf")
     source_file_path = Path(source_file) if source_file else None
-
     crawler_meta = (
         read_crawler_metadata_by_local_path(source_type, str(source_file_path))
         if source_file_path
@@ -448,9 +472,92 @@ def load_document(json_path: Path, source_type: str) -> dict:
         filename_stem = source_file_path.stem if source_file_path else json_path.stem
         crawler_meta = read_crawler_metadata(source_type, filename_stem)
 
-    # Build document identity and metadata. DHHS policy numbers are not unique
-    # across translated notices, annual revisions, and change notices, so
-    # `build_document_id(...)` handles them specially.
+    source_url = crawler_meta.get("source_url")
+    registry_path = crawler_meta.get("local_path")
+    if not registry_path and source_file_path:
+        registry_path = normalize_local_path(str(source_file_path), CRAWLER_DATA_DIR)
+    doc_id = build_document_id(source_type, source_url, registry_path)
+    return {
+        "meta": meta,
+        "source_file_path": source_file_path,
+        "crawler_meta": crawler_meta,
+        "document_id": doc_id,
+        "exclusion_reason": _document_exclusion_reason(meta, crawler_meta),
+    }
+
+
+def _parse_artifact_authority_key(
+    candidate: tuple[Path, dict],
+) -> tuple[int, int, str, int]:
+    """Rank duplicates by current registry artifact, parse time, and cache version."""
+    _, context = candidate
+    meta = context.get("meta", {})
+    crawler_meta = context.get("crawler_meta", {})
+    registry_hash = str(crawler_meta.get("file_hash") or "").removeprefix("sha256:")
+    parsed_hash = str(
+        meta.get("source_file_hash") or meta.get("source_pdf_hash") or ""
+    ).removeprefix("sha256:")
+    checksum_matches = int(bool(registry_hash and parsed_hash == registry_hash))
+    source_file_path = context.get("source_file_path")
+    registry_path = crawler_meta.get("local_path")
+    source_path_matches = int(
+        bool(
+            source_file_path
+            and registry_path
+            and normalize_local_path(str(source_file_path), CRAWLER_DATA_DIR)
+            == normalize_local_path(str(registry_path), CRAWLER_DATA_DIR)
+        )
+    )
+    parsed_at = str(meta.get("parsed_at") or "")
+    try:
+        cache_version = int(meta.get("parse_cache_version") or 0)
+    except (TypeError, ValueError):
+        cache_version = 0
+    return checksum_matches, source_path_matches, parsed_at, cache_version
+
+
+def _parsed_artifact_digest(json_path: Path) -> bytes:
+    digest = hashlib.sha256()
+    with json_path.open("rb") as artifact:
+        for chunk in iter(lambda: artifact.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.digest()
+
+
+def _select_authoritative_parse(
+    candidates: list[tuple[Path, dict]],
+) -> tuple[Path, dict]:
+    ranked = [
+        (_parse_artifact_authority_key(candidate), candidate)
+        for candidate in candidates
+    ]
+    best_key = max(key for key, _ in ranked)
+    tied = [candidate for key, candidate in ranked if key == best_key]
+    if len(tied) == 1:
+        return tied[0]
+
+    if len({_parsed_artifact_digest(path) for path, _ in tied}) == 1:
+        return min(tied, key=lambda candidate: candidate[0].name)
+
+    names = ", ".join(sorted(path.name for path, _ in tied))
+    raise ValueError(f"ambiguous duplicate parsed artifacts: {names}")
+
+
+def load_document(
+    json_path: Path,
+    source_type: str,
+    *,
+    load_context: dict | None = None,
+) -> dict:
+    """Load a single parsed document into Neo4j. Returns stats."""
+    context = load_context or _resolve_document_load_context(json_path, source_type)
+    meta = context["meta"]
+    source_file_path = context["source_file_path"]
+    crawler_meta = context["crawler_meta"]
+    doc_id = context["document_id"]
+
+    # Build identity exclusively from the immutable source key. Policy number,
+    # title, language, revision, and filename remain mutable metadata.
     policy_number = crawler_meta.get("policy_number")
     title = crawler_meta.get("title", source_file_path.stem if source_file_path else json_path.stem)
 
@@ -470,15 +577,28 @@ def load_document(json_path: Path, source_type: str) -> dict:
             crawler_meta.get("title", source_file_path.stem if source_file_path else json_path.stem)
         )
 
-    source_url = crawler_meta.get("source_url")
-    slug = source_file_path.stem if source_file_path else json_path.stem
-    doc_id = build_document_id(source_type, policy_number, slug, source_url)
+    exclusion_reason = context["exclusion_reason"]
+    if exclusion_reason:
+        graph_writer.delete_document(doc_id)
+        return {
+            "document_id": doc_id,
+            "sections": 0,
+            "skipped": exclusion_reason,
+        }
 
+    doc_dict = json.loads(json_path.read_text())
     sections = (
         build_sections_from_synthetic_items(doc_dict, doc_id)
         if "synthetic_sections" in doc_dict
         else build_sections_from_items(doc_dict, doc_id)
     )
+    if not sections:
+        graph_writer.delete_document(doc_id)
+        return {
+            "document_id": doc_id,
+            "sections": 0,
+            "skipped": "zero_section_parse",
+        }
 
     # Extract effective date from content
     effective_date = _extract_effective_date(source_type, title, sections)
@@ -512,8 +632,7 @@ def load_all(source_type: str | None = None, reset: bool = False) -> dict:
 
     ensure_schema()
 
-    stats = {"loaded": 0, "sections_total": 0, "errors": 0}
-
+    stats = {"loaded": 0, "sections_total": 0, "skipped": 0, "errors": 0}
     if source_type:
         dirs = [(source_type, SOURCE_TYPE_DIRS.get(source_type, source_type))]
     else:
@@ -528,10 +647,62 @@ def load_all(source_type: str | None = None, reset: bool = False) -> dict:
         # Exclude .meta.json files
         json_files = [f for f in json_files if not f.name.endswith(".meta.json")]
 
+        candidates_by_document: dict[str, list[tuple[Path, dict]]] = {}
         for json_path in json_files:
             try:
+                context = _resolve_document_load_context(json_path, st)
+                candidates_by_document.setdefault(
+                    context["document_id"],
+                    [],
+                ).append((json_path, context))
+            except Exception as e:
+                console.print(f"  Loading {json_path.name}... [red]ERROR: {e}[/red]")
+                stats["errors"] += 1
+
+        for candidates in candidates_by_document.values():
+            eligible = [
+                candidate
+                for candidate in candidates
+                if candidate[1]["exclusion_reason"] is None
+            ]
+            duplicate_count = len(candidates) - 1
+            if duplicate_count:
+                stats["skipped"] += duplicate_count
+
+            try:
+                if eligible:
+                    json_path, context = _select_authoritative_parse(eligible)
+                else:
+                    json_path, context = candidates[0]
+            except Exception as e:
+                console.print(f"  Loading duplicate group... [red]ERROR: {e}[/red]")
+                stats["errors"] += 1
+                document_id = candidates[0][1]["document_id"]
+                try:
+                    graph_writer.delete_document(document_id)
+                except Exception as cleanup_error:
+                    console.print(
+                        "  Removing ambiguous graph document "
+                        f"{document_id}... [red]ERROR: {cleanup_error}[/red]"
+                    )
+                    stats["errors"] += 1
+                continue
+
+            if duplicate_count:
+                for duplicate_path, _ in candidates:
+                    if duplicate_path != json_path:
+                        console.print(
+                            f"  Skipping {duplicate_path.name}... "
+                            "[yellow]SKIPPED[/yellow] (duplicate parsed artifact)"
+                        )
+
+            try:
                 console.print(f"  Loading {json_path.name}...", end=" ")
-                result = load_document(json_path, st)
+                result = load_document(json_path, st, load_context=context)
+                if result.get("skipped"):
+                    console.print(f"[yellow]SKIPPED[/yellow] ({result['skipped']})")
+                    stats["skipped"] += 1
+                    continue
                 console.print(f"[green]OK[/green] ({result['sections']} sections)")
                 stats["loaded"] += 1
                 stats["sections_total"] += result["sections"]

@@ -75,6 +75,7 @@ def _run_mixed_corpus_build(
         console.print(
             f"  {load_stats['loaded']} documents, "
             f"{load_stats['sections_total']} sections, "
+            f"{load_stats.get('skipped', 0)} skipped, "
             f"{load_stats['errors']} errors\n"
         )
 
@@ -170,7 +171,11 @@ def load(source_type: str | None, reset: bool):
     from pipeline.graph.loader import load_all
 
     stats = load_all(source_type=source_type, reset=reset)
-    console.print(f"\n[bold]Load complete:[/bold] {stats['loaded']} documents, {stats['sections_total']} sections, {stats['errors']} errors")
+    console.print(
+        f"\n[bold]Load complete:[/bold] {stats['loaded']} documents, "
+        f"{stats['sections_total']} sections, {stats.get('skipped', 0)} skipped, "
+        f"{stats['errors']} errors"
+    )
 
 
 @cli.command()
@@ -220,7 +225,10 @@ def run_all(source_type: str | None, llm_assist: bool):
 
     console.print("[bold]Stage 2: Load[/bold]")
     load_stats = load_all(source_type=source_type)
-    console.print(f"  {load_stats['loaded']} documents, {load_stats['sections_total']} sections\n")
+    console.print(
+        f"  {load_stats['loaded']} documents, {load_stats['sections_total']} sections, "
+        f"{load_stats.get('skipped', 0)} skipped\n"
+    )
 
     console.print("[bold]Stage 2.5: Federal Regulations[/bold]")
     from pipeline.federal.loader import load_all_cfr

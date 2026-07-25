@@ -91,6 +91,15 @@ class CorpusGraphWriter:
         with self._session_factory() as session:
             self._execute_write(session, _work, "upsert_document_bundle")
 
+    def delete_document(self, document_id: str) -> None:
+        """Remove a source document and all retrievable descendants."""
+
+        def _work(tx: ManagedTransaction) -> None:
+            tx.run(queries.DELETE_DOCUMENT, {"doc_id": document_id})
+
+        with self._session_factory() as session:
+            self._execute_write(session, _work, "delete_document")
+
     def merge_reference_edges(self, edges: list[ReferenceEdge]) -> int:
         if not edges:
             return 0

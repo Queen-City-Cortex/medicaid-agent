@@ -164,6 +164,16 @@ def test_upsert_document_bundle_writes_document_and_section_structure():
     assert session.calls[5][1] == {"doc_id": "doc:test", "section_ids": ["sec:1", "sec:2"]}
 
 
+def test_delete_document_removes_the_document_through_one_transaction():
+    session = FakeSession()
+    writer = _writer_for(session)
+
+    writer.delete_document("doc:test")
+
+    assert session.calls == [(queries.DELETE_DOCUMENT, {"doc_id": "doc:test"})]
+    assert session.commits == 1
+
+
 def test_upsert_document_bundle_keeps_embeddings_for_unchanged_sections():
     # Both sections already exist with identical content — nothing gets cleared.
     session = FakeSession(existing_sections={

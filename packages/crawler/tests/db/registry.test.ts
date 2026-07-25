@@ -56,11 +56,43 @@ describe('DocumentRegistry', () => {
       expect(id1).toBe(id2);
     });
 
+    it('uses a canonical URL so fragments cannot create duplicate documents', () => {
+      const id1 = registry.upsertDiscovered({
+        ...sampleDoc,
+        source_url: 'https://EXAMPLE.com/doc.pdf#page=1',
+      });
+      const id2 = registry.upsertDiscovered({
+        ...sampleDoc,
+        source_url: 'https://example.com/doc.pdf#attachment',
+      });
+
+      expect(id1).toBe(id2);
+      expect(registry.getById(id1)?.source_url).toBe(
+        'https://example.com/doc.pdf',
+      );
+    });
+
     it('updates title if re-discovered with different title', () => {
       registry.upsertDiscovered(sampleDoc);
       registry.upsertDiscovered({ ...sampleDoc, title: 'Updated Title' });
       const doc = registry.getByUrl(sampleDoc.source_url);
       expect(doc?.title).toBe('Updated Title');
+    });
+
+    it('revives removed documents and clears removal metadata', () => {
+      const id = registry.upsertDiscovered(sampleDoc);
+      registry.markRemoved(id);
+
+      expect(registry.getById(id)?.removed_at).not.toBeNull();
+
+      expect(registry.upsertDiscovered(sampleDoc)).toBe(id);
+      expect(registry.getById(id)).toMatchObject({
+        status: 'discovered',
+        removed_at: null,
+        error_message: null,
+        consecutive_errors: 0,
+        consecutive_not_found: 0,
+      });
     });
   });
 
@@ -174,11 +206,12 @@ describe('DocumentRegistry', () => {
   });
 
   describe('markRemoved', () => {
-    it('sets status to removed', () => {
+    it('sets status to removed and records when removal occurred', () => {
       const id = registry.upsertDiscovered(sampleDoc);
       registry.markRemoved(id);
       const doc = registry.getByUrl(sampleDoc.source_url);
       expect(doc!.status).toBe('removed');
+      expect(doc!.removed_at).not.toBeNull();
     });
   });
 
@@ -277,6 +310,202 @@ describe('DocumentRegistry', () => {
       const id = oldRegistry.upsertDiscovered(sampleDoc);
       expect(oldRegistry.recordNotFound(id, '404 Not Found')).toBe(1);
       oldDb.close();
+    });
+
+    it('merges legacy fragment variants into one canonical registry row', () => {
+      const legacyDb = new Database(':memory:');
+      initializeSchema(legacyDb);
+      legacyDb.prepare(`
+        INSERT INTO documents (
+          source_url, discovered_from, source_type, title, status, local_path
+        ) VALUES (?, ?, ?, ?, ?, ?)
+      `).run(
+        'https://EXAMPLE.com/policy.pdf#page=1',
+        'https://example.com/index',
+        'state_plan_amendment',
+        'Policy page 1',
+        'removed',
+        null,
+      );
+      legacyDb.prepare(`
+        INSERT INTO documents (
+          source_url, discovered_from, source_type, title, status, local_path
+        ) VALUES (?, ?, ?, ?, ?, ?)
+      `).run(
+        'https://example.com/policy.pdf#page=2',
+        'https://example.com/index',
+        'state_plan_amendment',
+        'Policy page 2',
+        'downloaded',
+        'state-plan-amendments/policy.pdf',
+      );
+
+      initializeSchema(legacyDb);
+
+      const rows = legacyDb
+        .prepare('SELECT source_url, status, local_path FROM documents')
+        .all();
+      expect(rows).toEqual([
+        {
+          source_url: 'https://example.com/policy.pdf',
+          status: 'downloaded',
+          local_path: 'state-plan-amendments/policy.pdf',
+        },
+      ]);
+      legacyDb.close();
+    });
+
+    it('keeps the freshest active artifact when canonical rows collide', () => {
+      const legacyDb = new Database(':memory:');
+      initializeSchema(legacyDb);
+      const insert = legacyDb.prepare(`
+        INSERT INTO documents (
+          source_url, discovered_from, source_type, title, status,
+          local_path, file_hash, last_checked_at, last_downloaded_at,
+          last_changed_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+      insert.run(
+        'https://example.com/policy.pdf#old',
+        'https://example.com/index',
+        'state_plan_amendment',
+        'Old artifact',
+        'unchanged',
+        'state-plan-amendments/policy-old.pdf',
+        'old-hash',
+        '2026-08-01 00:00:00',
+        '2026-01-01 00:00:00',
+        '2026-01-01 00:00:00',
+      );
+      insert.run(
+        'https://example.com/policy.pdf#new',
+        'https://example.com/index',
+        'state_plan_amendment',
+        'New artifact',
+        'updated',
+        'state-plan-amendments/policy-new.pdf',
+        'new-hash',
+        '2026-07-01 00:00:00',
+        '2026-07-01 00:00:00',
+        '2026-07-01 00:00:00',
+      );
+
+      initializeSchema(legacyDb);
+
+      expect(
+        legacyDb
+          .prepare(`
+            SELECT
+              source_url, title, status, local_path, file_hash, last_changed_at
+            FROM documents
+          `)
+          .get(),
+      ).toEqual({
+        source_url: 'https://example.com/policy.pdf',
+        title: 'New artifact',
+        status: 'updated',
+        local_path: 'state-plan-amendments/policy-new.pdf',
+        file_hash: 'new-hash',
+        last_changed_at: '2026-07-01 00:00:00',
+      });
+      legacyDb.close();
+    });
+
+    it('refuses to discard conflicting artifacts with equal authority', () => {
+      const legacyDb = new Database(':memory:');
+      initializeSchema(legacyDb);
+      const insert = legacyDb.prepare(`
+        INSERT INTO documents (
+          source_url, discovered_from, source_type, title, status,
+          local_path, file_hash, last_downloaded_at, last_changed_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+      insert.run(
+        'https://example.com/policy.pdf#first',
+        'https://example.com/index',
+        'state_plan_amendment',
+        'First artifact',
+        'unchanged',
+        'state-plan-amendments/policy-first.pdf',
+        'first-hash',
+        '2026-07-01 00:00:00',
+        '2026-07-01 00:00:00',
+      );
+      insert.run(
+        'https://example.com/policy.pdf#second',
+        'https://example.com/index',
+        'state_plan_amendment',
+        'Second artifact',
+        'updated',
+        'state-plan-amendments/policy-second.pdf',
+        'second-hash',
+        '2026-07-01 00:00:00',
+        '2026-07-01 00:00:00',
+      );
+
+      expect(() => initializeSchema(legacyDb)).toThrow(
+        /ambiguous canonical registry artifacts/,
+      );
+      expect(
+        legacyDb.prepare('SELECT source_url FROM documents ORDER BY id').all(),
+      ).toEqual([
+        { source_url: 'https://example.com/policy.pdf#first' },
+        { source_url: 'https://example.com/policy.pdf#second' },
+      ]);
+      legacyDb.close();
+    });
+
+    it('keeps a retained artifact over an artifact-less discovered row', () => {
+      const legacyDb = new Database(':memory:');
+      initializeSchema(legacyDb);
+      legacyDb.prepare(`
+        INSERT INTO documents (
+          source_url, discovered_from, source_type, title, status,
+          local_path, file_hash, last_downloaded_at, last_changed_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        'https://example.com/policy.pdf#artifact',
+        'https://example.com/index',
+        'state_plan_amendment',
+        'Retained artifact',
+        'error',
+        'state-plan-amendments/policy.pdf',
+        'artifact-hash',
+        '2026-07-01 00:00:00',
+        '2026-07-01 00:00:00',
+      );
+      legacyDb.prepare(`
+        INSERT INTO documents (
+          source_url, discovered_from, source_type, title, status,
+          local_path, file_hash, last_checked_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        'https://example.com/policy.pdf#placeholder',
+        'https://example.com/index',
+        'state_plan_amendment',
+        'Placeholder',
+        'discovered',
+        null,
+        null,
+        '2026-08-01 00:00:00',
+      );
+
+      initializeSchema(legacyDb);
+
+      expect(
+        legacyDb
+          .prepare(`
+            SELECT source_url, status, local_path, file_hash
+            FROM documents
+          `)
+          .get(),
+      ).toEqual({
+        source_url: 'https://example.com/policy.pdf',
+        status: 'error',
+        local_path: 'state-plan-amendments/policy.pdf',
+        file_hash: 'artifact-hash',
+      });
+      legacyDb.close();
     });
   });
 

@@ -12,6 +12,7 @@ from unittest.mock import patch
 from pipeline.graph import queries
 from pipeline.graph.corpus_types import SupersessionEdge
 from pipeline.graph.corpus_writer import CorpusGraphWriter
+from pipeline.references.citations import federal_regulation_doc_id
 from pipeline.references.supersessions import load_cfr_supersessions
 from tests.fakes import RecordingGraphWriter, RecordingSession, session_factory
 
@@ -85,6 +86,6 @@ def test_stub_documents_are_superseded_and_not_retrievable():
         assert document.policy_number in {"45-CFR-74", "45-CFR-75"}
 
     targets = {edge.target_id for edge in edges}
-    assert targets == {"doc:federal_regulation:2-CFR-200"}
+    assert targets == {federal_regulation_doc_id(2, 200)}
     assert all(edge.reason for edge in edges)
     assert all(edge.effective for edge in edges)

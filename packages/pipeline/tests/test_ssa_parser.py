@@ -9,6 +9,7 @@ from pipeline.federal.ssa_client import (
     USC_TO_SSA,
 )
 from pipeline.federal.ssa_parser import parse_usc_subchapter
+from pipeline.references.citations import federal_statute_doc_id
 
 
 def _h3(num_html: str, title: str) -> str:
@@ -93,7 +94,9 @@ class TestParseUscSubchapter:
     def test_section_ids_and_titles_use_ssa_numbers(self):
         html = _section("1396n", "Compliance with State plan requirements")
         sections = parse_usc_subchapter(html, 19)
-        assert sections[0]["id"] == "sec:doc:federal_statute:ssa-title-19:1915"
+        assert sections[0]["id"] == (
+            f"sec:{federal_statute_doc_id(19)}:1915"
+        )
         assert sections[0]["title"].startswith("Section 1915.")
 
 class TestStatuteSubsectionSplitting:
@@ -135,4 +138,3 @@ class TestStatuteSubsectionSplitting:
         html = _section("1396d", "Definitions", "(a) Small.\n(b) Also small.")
         sections = parse_usc_subchapter(html, 19)
         assert [s["level"] for s in sections] == [1]
-
