@@ -18,12 +18,15 @@ else
 fi
 mkdir -p "$RELEASES_DIR"
 
-for tool in railway curl jq rclone; do
-  require_tool "$tool"
-done
-[[ -x "$PY" ]] || {
-  echo "Pipeline Python does not exist: $PY" >&2
-  exit 69
+validate_runtime() {
+  local tool
+  for tool in railway curl jq rclone; do
+    require_tool "$tool"
+  done
+  [[ -x "$PY" ]] || {
+    echo "Pipeline Python does not exist: $PY" >&2
+    return 69
+  }
 }
 
 agent_variables() {
@@ -214,23 +217,83 @@ recover_failed_cutover() {
   return "$repair_failed"
 }
 
+graph_is_ready() {
+  local uri="$1"
+  local password="$2"
+  (
+    cd "$PIPELINE_DIR"
+    NEO4J_URI="$uri" \
+    NEO4J_PASSWORD="$password" \
+    "$PY" -m pipeline.cli schema-version >/dev/null 2>&1
+  )
+}
+
 wait_for_graph() {
   local uri="$1"
   local password="$2"
   local attempt
   for attempt in $(seq 1 30); do
-    if (
-      cd "$PIPELINE_DIR"
-      NEO4J_URI="$uri" \
-      NEO4J_PASSWORD="$password" \
-      "$PY" -m pipeline.cli schema-version >/dev/null 2>&1
-    ); then
+    if graph_is_ready "$uri" "$password"; then
       return 0
     fi
     sleep 10
   done
   echo "Neo4j did not become ready at $uri" >&2
   return 1
+}
+
+wait_for_railway_deployment() {
+  local service="$1"
+  local deployment_id="$2"
+  local attempts="${RAILWAY_DEPLOYMENT_WAIT_ATTEMPTS:-120}"
+  local interval="${RAILWAY_DEPLOYMENT_WAIT_INTERVAL_SECONDS:-5}"
+  local attempt deployments status
+
+  [[ "$attempts" =~ ^[1-9][0-9]*$ ]] || {
+    echo "RAILWAY_DEPLOYMENT_WAIT_ATTEMPTS must be a positive integer" >&2
+    return 64
+  }
+  [[ "$interval" =~ ^[1-9][0-9]*$ ]] || {
+    echo "RAILWAY_DEPLOYMENT_WAIT_INTERVAL_SECONDS must be a positive integer" >&2
+    return 64
+  }
+
+  for attempt in $(seq 1 "$attempts"); do
+    deployments="$(railway_cli deployment list \
+      --environment "$ENVIRONMENT" \
+      --service "$service" \
+      --limit 20 \
+      --json)" || return
+    status="$(jq -r --arg id "$deployment_id" \
+      '.[] | select(.id == $id) | .status' <<<"$deployments")" || return
+    case "$status" in
+      SUCCESS) return 0 ;;
+      FAILED | CRASHED | REMOVED | REMOVING)
+        echo "Railway deployment $deployment_id for $service ended as $status" >&2
+        return 1
+        ;;
+    esac
+    sleep "$interval"
+  done
+
+  echo "Railway deployment $deployment_id for $service did not become ready" >&2
+  return 1
+}
+
+redeploy_graph() {
+  local service="$1"
+  local uri="$2"
+  local password="$3"
+  local response deployment_id
+
+  response="$(railway_cli redeploy \
+    --environment "$ENVIRONMENT" \
+    --service "$service" \
+    --yes \
+    --json)" || return
+  deployment_id="$(jq -er '.id' <<<"$response")" || return
+  wait_for_railway_deployment "$service" "$deployment_id" || return
+  wait_for_graph "$uri" "$password"
 }
 
 bootstrap() {
@@ -273,11 +336,7 @@ bootstrap() {
   release_id="${REQUESTED_CORPUS_RELEASE_ID:-$(date -u +%Y%m%dT%H%M%SZ)-${RAILWAY_GIT_COMMIT_SHA:0:7}}"
   manifest="$RELEASES_DIR/$release_id.json"
 
-  railway_cli redeploy \
-    --environment "$ENVIRONMENT" \
-    --service "$target_service" \
-    --yes
-  wait_for_graph "$target_uri" "$target_password"
+  redeploy_graph "$target_service" "$target_uri" "$target_password"
 
   (
     cd "$PIPELINE_DIR"
@@ -353,11 +412,7 @@ promote() {
   release_id="${REQUESTED_CORPUS_RELEASE_ID:-$(date -u +%Y%m%dT%H%M%SZ)-${RAILWAY_GIT_COMMIT_SHA:0:7}}"
   manifest="$RELEASES_DIR/$release_id.json"
 
-  railway_cli redeploy \
-    --environment "$ENVIRONMENT" \
-    --service "$target_service" \
-    --yes
-  wait_for_graph "$target_uri" "$target_password"
+  redeploy_graph "$target_service" "$target_uri" "$target_password"
 
   prepare_args=(
     --release-id "$release_id"
@@ -485,11 +540,10 @@ rollback() {
     "$PY" -m pipeline.cli release-check-rollback \
       --previous-manifest "$previous_manifest"
   )
-  railway_cli redeploy \
-    --environment "$ENVIRONMENT" \
-    --service "neo4j-$previous_color" \
-    --yes
-  wait_for_graph "$previous_uri" "$previous_password"
+  redeploy_graph \
+    "neo4j-$previous_color" \
+    "$previous_uri" \
+    "$previous_password"
 
   set_agent_target \
     "$previous_uri" \
@@ -522,12 +576,19 @@ rollback() {
   echo "Rollback verified: $previous_release on neo4j-$previous_color"
 }
 
-case "$ACTION" in
-  bootstrap) bootstrap ;;
-  promote) promote ;;
-  rollback) rollback ;;
-  *)
-    echo "Usage: $0 {bootstrap|promote|rollback}" >&2
-    exit 64
-    ;;
-esac
+main() {
+  validate_runtime
+  case "$ACTION" in
+    bootstrap) bootstrap ;;
+    promote) promote ;;
+    rollback) rollback ;;
+    *)
+      echo "Usage: $0 {bootstrap|promote|rollback}" >&2
+      exit 64
+      ;;
+  esac
+}
+
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+  main
+fi

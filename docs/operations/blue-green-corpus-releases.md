@@ -17,7 +17,10 @@ Create these services in the existing production environment:
 
 Do not add public domains or permanent TCP proxies to either Neo4j service.
 Railway private networking provides
-`neo4j-blue.railway.internal` and `neo4j-green.railway.internal`. The two
+`neo4j-blue.railway.internal` and `neo4j-green.railway.internal`. Railway can
+assign an unrelated generated private DNS name when a service is created, so
+set each service's private DNS name explicitly under **Settings → Private
+Networking** before configuring these URIs. The two
 graphs must use different generated passwords. Apply the non-secret settings
 in [`deploy/railway/neo4j.env.example`](../../deploy/railway/neo4j.env.example).
 
