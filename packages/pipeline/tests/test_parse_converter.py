@@ -1,6 +1,9 @@
 """Tests for supported source-file parsing beyond PDFs."""
 
 import json
+import subprocess
+import sys
+import textwrap
 from pathlib import Path
 
 from docling_core.types.doc import DocItemLabel
@@ -20,6 +23,38 @@ from pipeline.parse.converter import (
     parse_xlsx,
     should_parse,
 )
+
+
+def test_converter_preloads_stdlib_typing_before_docling_imports():
+    script = textwrap.dedent(
+        """
+        import builtins
+        import sys
+
+        real_import = builtins.__import__
+        sys.modules.pop("typing", None)
+
+        def guarded_import(name, globals=None, locals=None, fromlist=(), level=0):
+            if (name == "docling" or name.startswith("docling.")) and "typing" not in sys.modules:
+                raise RuntimeError("docling imported before standard-library typing")
+            return real_import(name, globals, locals, fromlist, level)
+
+        builtins.__import__ = guarded_import
+        import pipeline.parse.converter
+
+        typing_path = getattr(sys.modules["typing"], "__file__", "")
+        assert "site-packages/cv2/typing" not in typing_path
+        """
+    )
+
+    result = subprocess.run(
+        [sys.executable, "-c", script],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
 
 
 def test_artifact_stem_adds_format_suffix_for_non_pdf_sources():

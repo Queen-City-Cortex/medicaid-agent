@@ -12,6 +12,9 @@ from datetime import datetime, timezone
 from multiprocessing import get_context
 from pathlib import Path
 from queue import Empty
+# Keep stdlib typing loaded before Docling; OpenCV's loader temporarily
+# exposes cv2/typing as a top-level import path in fresh spawn workers.
+from typing import Any
 
 import docling
 from docling.datamodel.base_models import InputFormat
@@ -767,7 +770,7 @@ def parse_and_save_supported_file(
 def _parse_supported_file_worker(
     source_path_str: str,
     source_type: str,
-    result_queue,
+    result_queue: Any,
 ) -> None:
     source_path = Path(source_path_str)
     try:
