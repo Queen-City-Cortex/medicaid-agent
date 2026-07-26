@@ -37,6 +37,7 @@ from pipeline.config import (
     SOURCE_TYPE_DIRS,
 )
 from pipeline.parse.post_process import extract_section_number
+from pipeline.parse.worker import parse_supported_file_worker
 
 console = Console()
 PARSE_CACHE_VERSION = 4
@@ -795,7 +796,7 @@ def parse_and_save_supported_file_with_timeout(
     ctx = get_context("spawn")
     result_queue = ctx.Queue()
     process = ctx.Process(
-        target=_parse_supported_file_worker,
+        target=parse_supported_file_worker,
         args=(str(source_path), source_type, result_queue),
     )
     process.start()

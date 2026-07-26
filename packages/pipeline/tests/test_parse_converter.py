@@ -11,6 +11,7 @@ from docx import Document as WordDocument
 from openpyxl import Workbook
 from pptx import Presentation
 
+from pipeline.parse import worker as parse_worker
 from pipeline.parse.converter import (
     PARSE_CACHE_VERSION,
     artifact_stem_for_source_path,
@@ -23,6 +24,32 @@ from pipeline.parse.converter import (
     parse_xlsx,
     should_parse,
 )
+
+
+def test_spawn_worker_reports_bootstrap_errors(monkeypatch):
+    queued_results = []
+
+    class RecordingQueue:
+        def put(self, result):
+            queued_results.append(result)
+
+    def fail_bootstrap():
+        raise ImportError("bad bootstrap")
+
+    monkeypatch.setattr(parse_worker, "_preload_stdlib_typing", fail_bootstrap)
+
+    parse_worker.parse_supported_file_worker(
+        "/tmp/source.xlsx",
+        "fee_schedule",
+        RecordingQueue(),
+    )
+
+    assert queued_results == [
+        {
+            "ok": False,
+            "error_message": "ImportError: bad bootstrap",
+        }
+    ]
 
 
 def test_converter_preloads_stdlib_typing_before_docling_imports():
@@ -52,6 +79,47 @@ def test_converter_preloads_stdlib_typing_before_docling_imports():
         check=False,
         capture_output=True,
         text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+
+
+def test_spawn_worker_repairs_an_inherited_opencv_import_path(tmp_path):
+    script = textwrap.dedent(
+        f"""
+        import os
+        import sys
+        from pathlib import Path
+
+        os.environ["CORPUS_DATA_ROOT"] = {str(tmp_path)!r}
+
+        from openpyxl import Workbook
+        from pipeline.parse.converter import parse_and_save_supported_file_with_timeout
+
+        source_path = Path({str(tmp_path / "worker-smoke.xlsx")!r})
+        workbook = Workbook()
+        workbook.active.append(["Code", "Rate"])
+        workbook.active.append(["T1001", "125.00"])
+        workbook.save(source_path)
+
+        import cv2
+
+        sys.path.insert(0, str(Path(cv2.__file__).parent))
+        result = parse_and_save_supported_file_with_timeout(
+            source_path,
+            "fee_schedule",
+            timeout_seconds=30,
+        )
+        assert result["section_count"] == 1
+        """
+    )
+
+    result = subprocess.run(
+        [sys.executable, "-c", script],
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=60,
     )
 
     assert result.returncode == 0, result.stderr
