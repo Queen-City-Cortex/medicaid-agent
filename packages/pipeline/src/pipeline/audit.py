@@ -608,6 +608,8 @@ def run_corpus_audit(
     json_path = json_output_path or output_dir / "latest-corpus-audit.json"
     md_path = markdown_output_path or output_dir / "latest-corpus-audit.md"
 
+    json_path.parent.mkdir(parents=True, exist_ok=True)
+    md_path.parent.mkdir(parents=True, exist_ok=True)
     json_path.write_text(json.dumps(report, indent=2))
     md_path.write_text(markdown)
 

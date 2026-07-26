@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from pipeline.audit import build_corpus_audit_report
+from pipeline.audit import build_corpus_audit_report, run_corpus_audit
 from pipeline.corpus_manifest import get_source_family
 
 
@@ -256,3 +256,28 @@ def test_audit_reports_duplicate_registry_identities_as_a_release_blocker(tmp_pa
 
     assert report["summary"]["duplicate_document_ids"] == 1
     assert len(report["summary"]["duplicate_document_id_values"]) == 1
+
+
+def test_run_corpus_audit_creates_custom_output_directories(
+    monkeypatch,
+    tmp_path,
+):
+    monkeypatch.setattr("pipeline.audit.read_graph_documents", lambda: ([], None))
+    monkeypatch.setattr("pipeline.audit.read_registry_rows", lambda: [])
+    monkeypatch.setattr("pipeline.audit.scan_downloaded_files", lambda: [])
+    monkeypatch.setattr("pipeline.audit.read_parsed_sidecars", lambda: [])
+    monkeypatch.setattr("pipeline.audit.read_source_freshness", lambda: [])
+
+    release_dir = tmp_path / "releases" / "release-1"
+    json_path = release_dir / "corpus-audit.json"
+    markdown_path = release_dir / "corpus-audit.md"
+
+    result = run_corpus_audit(
+        json_output_path=json_path,
+        markdown_output_path=markdown_path,
+    )
+
+    assert json_path.is_file()
+    assert markdown_path.is_file()
+    assert result["json_path"] == str(json_path)
+    assert result["markdown_path"] == str(markdown_path)

@@ -1,3 +1,4 @@
+import os
 import subprocess
 from pathlib import Path
 
@@ -125,3 +126,126 @@ def test_redeploy_graph_does_not_probe_after_deployment_failure() -> None:
     )
     assert result.returncode == 7
     assert "readiness probe should not run" not in result.stderr
+
+
+def run_restore_shell(
+    tmp_path: Path,
+    *,
+    layout: str,
+) -> tuple[subprocess.CompletedProcess[str], Path, Path]:
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    rclone_log = tmp_path / "rclone.log"
+    data_root = tmp_path / "data"
+    fake_rclone = fake_bin / "rclone"
+    fake_rclone.write_text(
+        """#!/usr/bin/env bash
+set -euo pipefail
+printf '%s\\n' "$*" >> "$RCLONE_LOG"
+
+if [[ "$1" == "lsf" ]]; then
+  if [[ "$FAKE_RCLONE_LAYOUT" == "current" ]]; then
+    case "$2" in
+      */corpus/current/crawler)
+        printf 'crawler.db\\ndocuments/\\n'
+        ;;
+      */corpus/current/pipeline/parsed)
+        printf 'parsed.json\\n'
+        ;;
+    esac
+  else
+    case "$2" in
+      */crawler/registry)
+        printf 'crawler-2026-07-03.db\\ncrawler-2026-07-10.db\\n'
+        ;;
+      */crawler/documents)
+        printf 'policy.pdf\\n'
+        ;;
+      */pipeline/parsed)
+        printf 'policy.json\\n'
+        ;;
+    esac
+  fi
+  exit 0
+fi
+
+if [[ "$1" == "copyto" ]]; then
+  mkdir -p "$(dirname "$3")"
+  printf 'registry' > "$3"
+  exit 0
+fi
+
+if [[ "$1" == "copy" ]]; then
+  mkdir -p "$3"
+  case "$2" in
+    */corpus/current/crawler)
+      printf 'registry' > "$3/crawler.db"
+      mkdir -p "$3/documents"
+      printf 'pdf' > "$3/documents/policy.pdf"
+      ;;
+    */crawler/documents)
+      printf 'pdf' > "$3/policy.pdf"
+      ;;
+    */pipeline/parsed|*/corpus/current/pipeline/parsed)
+      printf '{}' > "$3/policy.json"
+      ;;
+  esac
+  exit 0
+fi
+"""
+    )
+    fake_rclone.chmod(0o755)
+
+    env = {
+        **os.environ,
+        "ACCESS_KEY_ID": "test-access",
+        "BUCKET": "bucket",
+        "CORPUS_DATA_ROOT": str(data_root),
+        "ENDPOINT": "https://objects.example.test",
+        "FAKE_RCLONE_LAYOUT": layout,
+        "PATH": f"{fake_bin}{os.pathsep}{os.environ['PATH']}",
+        "RCLONE_LOG": str(rclone_log),
+        "SECRET_ACCESS_KEY": "test-secret",
+    }
+    result = subprocess.run(
+        [str(REPO_ROOT / "scripts/ops/restore-corpus-artifacts.sh")],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        check=False,
+        env=env,
+        text=True,
+    )
+    return result, data_root, rclone_log
+
+
+def test_restore_corpus_prefers_current_object_layout(tmp_path: Path) -> None:
+    result, data_root, rclone_log = run_restore_shell(
+        tmp_path,
+        layout="current",
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert (data_root / "crawler/crawler.db").is_file()
+    assert (data_root / "crawler/documents/policy.pdf").is_file()
+    assert (data_root / "pipeline/parsed/policy.json").is_file()
+    assert "corpus/current/crawler" in rclone_log.read_text()
+    assert "crawler/registry" not in rclone_log.read_text()
+
+
+def test_restore_corpus_falls_back_to_legacy_object_layout(
+    tmp_path: Path,
+) -> None:
+    result, data_root, rclone_log = run_restore_shell(
+        tmp_path,
+        layout="legacy",
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "restoring the legacy corpus layout" in result.stdout
+    assert (data_root / "crawler/crawler.db").read_text() == "registry"
+    assert (data_root / "crawler/documents/policy.pdf").is_file()
+    assert (data_root / "pipeline/parsed/policy.json").is_file()
+    log = rclone_log.read_text()
+    assert "crawler/registry/crawler-2026-07-10.db" in log
+    assert "copy release:bucket/crawler/documents" in log
+    assert "copy release:bucket/pipeline/parsed" in log
