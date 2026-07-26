@@ -154,3 +154,6 @@ jobs:
           --build-arg SENTRY_ORG=
           --build-arg SENTRY_PROJECT=
           -t web-ci .
+
+      - name: Build corpus-job image
+        run: docker build -f packages/pipeline/Dockerfile -t corpus-job-ci .

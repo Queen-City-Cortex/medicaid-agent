@@ -66,3 +66,16 @@ def test_unacknowledged_snapshot_remains_retryable(tmp_path):
     assert first_attempt["changed"] is True
     assert retry_attempt["changed"] is True
     assert not state.exists()
+
+
+def test_snapshot_changes_when_parsed_content_changes(tmp_path):
+    parsed = tmp_path / "parsed"
+    write_meta(parsed, "one")
+    payload = parsed / "one.json"
+    payload.write_text('{"sections": [{"content": "before"}]}')
+
+    before = build_answer_ready_snapshot(parsed)
+    payload.write_text('{"sections": [{"content": "after"}]}')
+    after = build_answer_ready_snapshot(parsed)
+
+    assert before["snapshot_hash"] != after["snapshot_hash"]

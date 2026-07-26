@@ -1,0 +1,28 @@
+{
+  "policyVersion": 1,
+  "mandatory": {
+    "duplicateIdentities": 0,
+    "missingAnswerReadyLoads": 0,
+    "requiredCurrentParseExceptions": 0,
+    "embeddingCoverage": 1.0,
+    "invalidEmbeddingDimensions": 0,
+    "requiredSourceFamiliesPresent": 1
+  },
+  "overridable": {
+    "maxSourceFamilyDocumentDrop": 0.05,
+    "maxAnswerReadyDrop": 0.02,
+    "freshnessSlaMet": 1
+  },
+  "evaluation": {
+    "retrievalPrecision": 0.9,
+    "retrievalRecall": 0.9,
+    "primaryDocumentHitRate": 0.95,
+    "answerScore": 2.75,
+    "hallucinationScore": 2.5,
+    "maxAggregateRegression": 0.15
+  },
+  "operations": {
+    "rollbackWindowHours": 24,
+    "volumeRetentionDays": 7
+  }
+}

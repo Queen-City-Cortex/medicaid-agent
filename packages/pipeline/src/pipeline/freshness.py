@@ -30,6 +30,14 @@ def build_answer_ready_snapshot(
         if parse_status != "parsed" or not answer_ready or quality_flags:
             continue
 
+        payload_path = meta_path.with_name(
+            meta_path.name.removesuffix(".meta.json") + ".json"
+        )
+        try:
+            payload_hash = hashlib.sha256(payload_path.read_bytes()).hexdigest()
+        except OSError:
+            payload_hash = ""
+
         documents.append(
             {
                 "artifact": str(meta_path.relative_to(parsed_dir)),
@@ -38,6 +46,7 @@ def build_answer_ready_snapshot(
                     or meta.get("source_pdf_hash")
                     or ""
                 ),
+                "parsed_payload_hash": payload_hash,
             }
         )
 

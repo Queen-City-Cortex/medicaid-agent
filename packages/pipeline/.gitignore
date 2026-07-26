@@ -6,3 +6,5 @@ dist/
 data/parsed/
 data/unresolved-references.json
 data/ecfr-cache/
+data/releases/
+data/release-state/

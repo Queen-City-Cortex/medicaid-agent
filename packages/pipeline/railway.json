@@ -1,0 +1,24 @@
+{
+  "$schema": "https://railway.com/railway.schema.json",
+  "build": {
+    "builder": "DOCKERFILE",
+    "dockerfilePath": "packages/pipeline/Dockerfile",
+    "watchPatterns": [
+      "/corpus-manifest.json",
+      "/corpus-release-policy.json",
+      "/package.json",
+      "/package-lock.json",
+      "/packages/agent/**",
+      "/packages/contracts/**",
+      "/packages/crawler/**",
+      "/packages/pipeline/**",
+      "/packages/policy-corpus/**",
+      "/scripts/ops/**"
+    ]
+  },
+  "deploy": {
+    "startCommand": "bash scripts/ops/railway-corpus-job.sh",
+    "cronSchedule": "0 10 * * *",
+    "restartPolicyType": "NEVER"
+  }
+}

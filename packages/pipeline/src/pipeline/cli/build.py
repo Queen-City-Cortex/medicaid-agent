@@ -151,7 +151,13 @@ def _run_mixed_corpus_build(
 @click.option("--file", "file_path", type=click.Path(exists=True, path_type=Path), help="Parse a specific supported source file")
 @click.option("--source", "source_type", type=str, help="Parse only this source type")
 @click.option("--force", is_flag=True, help="Re-parse even if cached")
-def parse(file_path: Path | None, source_type: str | None, force: bool):
+@click.option("--strict", is_flag=True, help="Exit nonzero on any parse error or timeout")
+def parse(
+    file_path: Path | None,
+    source_type: str | None,
+    force: bool,
+    strict: bool,
+):
     """Parse supported source files into structured JSON."""
     from pipeline.parse.converter import parse_all
 
@@ -161,6 +167,8 @@ def parse(file_path: Path | None, source_type: str | None, force: bool):
         f"{stats['skipped']} skipped, {stats['errors']} errors"
         + (f", {stats['timed_out']} timed out" if stats.get("timed_out") else "")
     )
+    if strict and (stats.get("errors", 0) or stats.get("timed_out", 0)):
+        raise click.ClickException("Strict parse failed")
 
 
 @cli.command()

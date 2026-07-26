@@ -57,6 +57,75 @@ describe('readiness', () => {
     });
   });
 
+  it('fails readiness when the configured release does not match the graph', async () => {
+    const previous = process.env.CORPUS_RELEASE_ID;
+    process.env.CORPUS_RELEASE_ID = 'release-green';
+    try {
+      const response = await handleReadiness(
+        context(),
+        { probeWritable: async () => true },
+        async () => ({ connected: true, releaseId: 'release-blue' }),
+      );
+      expect(response.status).toBe(503);
+      expect(await response.json()).toMatchObject({
+        status: 'degraded',
+        neo4j: 'error',
+        releaseId: 'release-blue',
+      });
+    } finally {
+      if (previous === undefined) {
+        delete process.env.CORPUS_RELEASE_ID;
+      } else {
+        process.env.CORPUS_RELEASE_ID = previous;
+      }
+    }
+  });
+
+  it('fails production readiness when the expected release is not configured', async () => {
+    const previousNodeEnv = process.env.NODE_ENV;
+    const previousRelease = process.env.CORPUS_RELEASE_ID;
+    process.env.NODE_ENV = 'production';
+    delete process.env.CORPUS_RELEASE_ID;
+    try {
+      const response = await handleReadiness(
+        context(),
+        { probeWritable: async () => true },
+        async () => ({ connected: true, releaseId: 'release-blue' }),
+      );
+      expect(response.status).toBe(503);
+      expect(await response.json()).toMatchObject({
+        status: 'degraded',
+        neo4j: 'error',
+        releaseId: 'release-blue',
+      });
+    } finally {
+      if (previousNodeEnv === undefined) {
+        delete process.env.NODE_ENV;
+      } else {
+        process.env.NODE_ENV = previousNodeEnv;
+      }
+      if (previousRelease === undefined) {
+        delete process.env.CORPUS_RELEASE_ID;
+      } else {
+        process.env.CORPUS_RELEASE_ID = previousRelease;
+      }
+    }
+  });
+
+  it('fails readiness when the reachable graph has no release marker', async () => {
+    const response = await handleReadiness(
+      context(),
+      { probeWritable: async () => true },
+      async () => ({ connected: true, releaseId: null }),
+    );
+    expect(response.status).toBe(503);
+    expect(await response.json()).toMatchObject({
+      status: 'degraded',
+      neo4j: 'error',
+      releaseId: null,
+    });
+  });
+
   it('returns 503 when a required provider is unavailable', async () => {
     const response = await handleDependencies(
       context(),

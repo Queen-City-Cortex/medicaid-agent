@@ -4,6 +4,10 @@ import { CORPUS_MANIFEST, getSourceFamily } from './corpus-manifest.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, '..');
+const corpusDataRoot = process.env.CORPUS_DATA_ROOT?.trim();
+const dataRoot = corpusDataRoot
+  ? path.resolve(corpusDataRoot, 'crawler')
+  : path.join(projectRoot, 'data');
 
 const clinicalPolicySource = getSourceFamily('clinical_policy');
 const bulletinSource = getSourceFamily('bulletin');
@@ -18,10 +22,10 @@ const managedCareContractSource = getSourceFamily('managed_care_contract');
 
 export const config = {
   // Paths (resolved relative to crawler/ root)
-  dataDir: path.join(projectRoot, 'data'),
-  documentsDir: path.join(projectRoot, 'data', 'documents'),
-  dbPath: path.join(projectRoot, 'data', 'crawler.db'),
-  logPath: path.join(projectRoot, 'data', 'crawl.log'),
+  dataDir: dataRoot,
+  documentsDir: path.join(dataRoot, 'documents'),
+  dbPath: path.join(dataRoot, 'crawler.db'),
+  logPath: path.join(dataRoot, 'crawl.log'),
 
   // Rate limiting
   defaultDelayMs: 2000,

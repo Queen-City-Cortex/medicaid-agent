@@ -21,14 +21,20 @@ export async function getCorpusStatus(now: () => number = Date.now): Promise<Cor
 
   const value = await withSession(async (session) => {
     const result = await session.run(
-      'MATCH (d:Document) RETURN max(d.last_indexed) AS lastUpdated, count(d) AS documentCount',
+      `MATCH (d:Document)
+       OPTIONAL MATCH (release:CorpusRelease {id: 'current'})
+       RETURN max(d.last_indexed) AS lastUpdated,
+              count(DISTINCT d) AS documentCount,
+              release.release_id AS releaseId`,
     );
     const record = result.records[0];
     const lastUpdated = record?.get('lastUpdated');
     const documentCount = record?.get('documentCount');
+    const releaseId = record?.get('releaseId');
     return {
       lastUpdated: lastUpdated ? new Date(lastUpdated.toString()).toISOString() : null,
       documentCount: typeof documentCount?.toNumber === 'function' ? documentCount.toNumber() : Number(documentCount ?? 0),
+      releaseId: typeof releaseId === 'string' ? releaseId : null,
     };
   });
 

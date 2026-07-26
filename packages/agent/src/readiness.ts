@@ -9,11 +9,23 @@ type JsonContext = {
   json: (body: unknown, status?: number) => Response;
 };
 
-async function defaultNeo4jProbe(): Promise<boolean> {
+export interface Neo4jProbeResult {
+  connected: boolean;
+  releaseId: string | null;
+}
+
+async function defaultNeo4jProbe(): Promise<Neo4jProbeResult> {
   const session = getDriver().session();
   try {
-    await session.run('RETURN 1');
-    return true;
+    const result = await session.run(
+      `OPTIONAL MATCH (release:CorpusRelease {id: 'current'})
+       RETURN release.release_id AS releaseId`,
+    );
+    const releaseId = result.records[0]?.get('releaseId');
+    return {
+      connected: true,
+      releaseId: typeof releaseId === 'string' ? releaseId : null,
+    };
   } finally {
     await session.close();
   }
@@ -26,11 +38,37 @@ export function handleLiveness(c: JsonContext): Response {
 export async function handleReadiness(
   c: JsonContext,
   database: Pick<AppDatabase, 'probeWritable'>,
-  probeNeo4j: () => Promise<boolean> = defaultNeo4jProbe,
+  probeNeo4j: () => Promise<boolean | Neo4jProbeResult> = defaultNeo4jProbe,
 ): Promise<Response> {
   let neo4j: Readiness['neo4j'] = 'error';
+  let graphReleaseId: string | null = null;
+  const configuredReleaseId = process.env.CORPUS_RELEASE_ID?.trim() || null;
   try {
-    if (await probeNeo4j()) neo4j = 'connected';
+    const probe = await probeNeo4j();
+    const connected = typeof probe === 'boolean' ? probe : probe.connected;
+    graphReleaseId = typeof probe === 'boolean' ? null : probe.releaseId;
+    const releaseConfigured = (
+      process.env.NODE_ENV !== 'production'
+      || configuredReleaseId !== null
+    );
+    const releaseMatches = (
+      typeof probe === 'boolean'
+        ? process.env.NODE_ENV !== 'production' && !configuredReleaseId
+        : releaseConfigured
+          && graphReleaseId !== null
+          && (
+            configuredReleaseId === null
+            || graphReleaseId === configuredReleaseId
+          )
+    );
+    if (connected && releaseMatches) {
+      neo4j = 'connected';
+    } else if (connected) {
+      log.error('readyz.release_identity_failed', {
+        configuredReleaseId,
+        graphReleaseId,
+      });
+    }
   } catch (err) {
     log.error('readyz.neo4j_failed', errorFields(err));
   }
@@ -48,7 +86,7 @@ export async function handleReadiness(
     config: 'valid',
     neo4j,
     storage,
-    releaseId: process.env.CORPUS_RELEASE_ID?.trim() || null,
+    releaseId: graphReleaseId ?? configuredReleaseId,
   };
   return c.json(body, ok ? 200 : 503);
 }

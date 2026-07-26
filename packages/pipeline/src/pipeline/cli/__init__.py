@@ -10,7 +10,7 @@ can keep referring to them as `pipeline.cli.<helper>`.
 from pipeline.cli._shared import cli, console
 
 # Importing each command module registers its commands on `cli`.
-from pipeline.cli import build, references, federal, graph, eval, audit, freshness  # noqa: F401
+from pipeline.cli import audit, build, eval, federal, freshness, graph, references, release  # noqa: F401
 
 # Back-compat re-exports: these helpers used to live directly in cli.py.
 from pipeline.cli.build import _run_mixed_corpus_build, _fail_on_embed_errors  # noqa: F401

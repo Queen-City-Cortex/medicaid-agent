@@ -184,6 +184,21 @@ export const ReleaseGateResultSchema = z.object({
   overrideReason: z.string().min(10).max(2_000).nullable(),
 });
 
+export const ReleaseStageResultSchema = z.object({
+  status: z.enum(['running', 'passed', 'failed']),
+  attempt: z.number().int().positive(),
+  startedAt: z.string().datetime(),
+  finishedAt: z.string().datetime().nullable(),
+  result: z.unknown().nullable(),
+  error: z.string().max(2_000).nullable(),
+});
+
+export const ReleaseEventSchema = z.object({
+  type: z.string().min(1).max(128),
+  at: z.string().datetime(),
+  details: z.record(z.string(), z.unknown()),
+});
+
 export const ReleaseManifestSchema = z.object({
   schemaVersion: z.literal(1),
   releaseId: IdentifierSchema,
@@ -197,8 +212,30 @@ export const ReleaseManifestSchema = z.object({
   auditResults: z.record(z.string(), z.unknown()),
   evaluationResults: z.record(z.string(), z.number()),
   gates: z.array(ReleaseGateResultSchema),
-  promotionState: z.enum(['building', 'rejected', 'validated', 'promoted', 'rolled_back']),
+  stageResults: z.record(z.string(), ReleaseStageResultSchema),
+  events: z.array(ReleaseEventSchema),
+  promotionState: z.enum([
+    'building',
+    'rejected',
+    'validated',
+    'recovery_pending',
+    'promoted',
+    'rolled_back',
+  ]),
   createdAt: z.string().datetime(),
+  validatedAt: z.string().datetime().nullable(),
   promotedAt: z.string().datetime().nullable(),
+  rolledBackAt: z.string().datetime().nullable(),
+  rollbackWindowEndsAt: z.string().datetime().nullable(),
+  volumeRetainUntil: z.string().datetime().nullable(),
+  answerReadySnapshot: z.object({
+    answerReadyDocuments: z.number().int().nonnegative(),
+  }).optional(),
+  supersededByReleaseId: IdentifierSchema.optional(),
+  rolledBackToReleaseId: IdentifierSchema.optional(),
+  recoveryTargetReleaseId: IdentifierSchema.optional(),
+  rollbackRestoredAt: z.string().datetime().optional(),
+  rollbackFromReleaseId: IdentifierSchema.optional(),
+  serviceStoppedAt: z.string().datetime().optional(),
 });
 export type ReleaseManifest = z.infer<typeof ReleaseManifestSchema>;

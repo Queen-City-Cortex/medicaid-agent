@@ -11,13 +11,30 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 _MONOREPO_ROOT = PROJECT_ROOT.parent.parent
 load_dotenv(_MONOREPO_ROOT / ".env", override=False)
 
+_CORPUS_DATA_ROOT_VALUE = os.environ.get("CORPUS_DATA_ROOT", "").strip()
+CORPUS_DATA_ROOT = (
+    Path(_CORPUS_DATA_ROOT_VALUE).expanduser().resolve()
+    if _CORPUS_DATA_ROOT_VALUE
+    else None
+)
+
 # Crawler paths (sibling package in monorepo)
-CRAWLER_DATA_DIR = PROJECT_ROOT.parent / "crawler" / "data" / "documents"
-CRAWLER_DB_PATH = PROJECT_ROOT.parent / "crawler" / "data" / "crawler.db"
+_CRAWLER_ROOT = (
+    CORPUS_DATA_ROOT / "crawler"
+    if CORPUS_DATA_ROOT
+    else PROJECT_ROOT.parent / "crawler" / "data"
+)
+CRAWLER_DATA_DIR = _CRAWLER_ROOT / "documents"
+CRAWLER_DB_PATH = _CRAWLER_ROOT / "crawler.db"
 
 # Pipeline output
-PARSED_DATA_DIR = PROJECT_ROOT / "data" / "parsed"
-AUDIT_DATA_DIR = PROJECT_ROOT / "data" / "audits"
+PIPELINE_DATA_DIR = (
+    CORPUS_DATA_ROOT / "pipeline"
+    if CORPUS_DATA_ROOT
+    else PROJECT_ROOT / "data"
+)
+PARSED_DATA_DIR = PIPELINE_DATA_DIR / "parsed"
+AUDIT_DATA_DIR = PIPELINE_DATA_DIR / "audits"
 
 # Neo4j
 NEO4J_URI = os.environ.get("NEO4J_URI", "bolt://localhost:7687")
@@ -56,16 +73,18 @@ PARSE_SUPPORTED_FILE_FORMATS = frozenset(
 
 # eCFR (Federal Regulations)
 ECFR_API_BASE = "https://www.ecfr.gov/api/versioner/v1"
-ECFR_CACHE_DIR = PROJECT_ROOT / "data" / "ecfr-cache"
+ECFR_CACHE_DIR = PIPELINE_DATA_DIR / "ecfr-cache"
 ECFR_CACHE_MAX_AGE_DAYS = 7
 SSA_CACHE_MAX_AGE_DAYS = 30
 # Agent (sibling package in monorepo)
 AGENT_DIR = PROJECT_ROOT.parent / "agent"
 
 # Evaluation harness
+# Golden inputs are versioned with the image/commit. Only generated eval
+# outputs belong on the persistent corpus-job volume.
 GOLDEN_DATASET_PATH = PROJECT_ROOT / "data" / "golden" / "dataset.json"
 GOLDEN_DATASET_SCHEMA = PROJECT_ROOT / "data" / "golden" / "dataset.schema.json"
-EVAL_RESULTS_DIR = PROJECT_ROOT / "data" / "eval-results"
+EVAL_RESULTS_DIR = PIPELINE_DATA_DIR / "eval-results"
 EVAL_DEFAULT_TOP_K = 10
 EVAL_REGRESSION_THRESHOLD = 0.05  # 5% drop = regression flag
 EVAL_JUDGE_MODEL = "claude-sonnet-4-6"
