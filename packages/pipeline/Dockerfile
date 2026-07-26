@@ -9,7 +9,7 @@ ARG TARGETARCH
 ARG RAILWAY_CLI_VERSION=5.17.0
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-      age build-essential ca-certificates curl jq libreoffice \
+      age build-essential ca-certificates curl jq libgl1 libreoffice \
       python3 python3-dev python3-venv rclone sqlite3 \
     && npm install --global npm@11.11.0 \
     && case "$TARGETARCH" in \
@@ -41,6 +41,7 @@ COPY corpus-manifest.json corpus-release-policy.json ./
 COPY scripts ./scripts
 RUN cd packages/pipeline \
     && uv sync --frozen --extra dev \
+    && .venv/bin/python -c "import cv2" \
     && chmod +x /app/scripts/ops/*.sh
 
 CMD ["bash", "scripts/ops/railway-corpus-job.sh"]

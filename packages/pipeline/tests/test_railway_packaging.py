@@ -16,6 +16,13 @@ def test_railway_corpus_image_delegates_storage_to_platform_volume() -> None:
     assert "CORPUS_DATA_ROOT=/data" in dockerfile
 
 
+def test_railway_corpus_image_installs_and_smoke_tests_opencv_runtime() -> None:
+    dockerfile = (REPO_ROOT / "packages/pipeline/Dockerfile").read_text()
+
+    assert "libgl1" in dockerfile
+    assert '.venv/bin/python -c "import cv2"' in dockerfile
+
+
 def test_railway_corpus_job_exposes_guarded_bootstrap_mode() -> None:
     entrypoint = (
         REPO_ROOT / "scripts/ops/railway-corpus-job.sh"
