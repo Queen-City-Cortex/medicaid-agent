@@ -13,6 +13,9 @@ SNAPSHOT_DIR="$CORPUS_DATA_ROOT/pipeline/release-state"
 SNAPSHOT_STATE="$SNAPSHOT_DIR/answer-ready.json"
 SNAPSHOT_RESULT="$SNAPSHOT_DIR/answer-ready-result.json"
 JOB_MODE="${CORPUS_JOB_MODE:-scheduled}"
+HC_URL="${HC_URL_CORPUS_JOB:-}"
+hc_trap
+hc_start
 
 mkdir -p \
   "$CORPUS_DATA_ROOT/crawler/documents" \
@@ -114,23 +117,25 @@ scheduled() {
 case "$JOB_MODE" in
   scheduled) scheduled ;;
   discover) discover_and_release ;;
-  release) exec "$REPO_ROOT/scripts/ops/corpus-release.sh" promote ;;
-  rollback) exec "$REPO_ROOT/scripts/ops/corpus-release.sh" rollback ;;
-  cleanup) exec "$REPO_ROOT/scripts/ops/corpus-release-cleanup.sh" ;;
+  bootstrap) "$REPO_ROOT/scripts/ops/corpus-release.sh" bootstrap ;;
+  release) "$REPO_ROOT/scripts/ops/corpus-release.sh" promote ;;
+  rollback) "$REPO_ROOT/scripts/ops/corpus-release.sh" rollback ;;
+  cleanup) "$REPO_ROOT/scripts/ops/corpus-release-cleanup.sh" ;;
   audit)
     active_graph_env
     cd "$PIPELINE_DIR"
-    exec "$PY" -m pipeline.cli audit-corpus
+    "$PY" -m pipeline.cli audit-corpus
     ;;
   evaluate)
     active_graph_env
     cd "$PIPELINE_DIR"
     "$PY" -m pipeline.cli eval --level retrieval
-    exec "$PY" -m pipeline.cli eval --level answer
+    "$PY" -m pipeline.cli eval --level answer
     ;;
-  backup) exec "$REPO_ROOT/scripts/ops/object-storage-backup.sh" ;;
+  backup) "$REPO_ROOT/scripts/ops/object-storage-backup.sh" ;;
   *)
     echo "Unknown CORPUS_JOB_MODE: $JOB_MODE" >&2
     exit 64
     ;;
 esac
+hc_ok

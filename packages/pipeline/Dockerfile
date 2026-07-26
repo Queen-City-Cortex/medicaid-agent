@@ -43,5 +43,4 @@ RUN cd packages/pipeline \
     && uv sync --frozen --extra dev \
     && chmod +x /app/scripts/ops/*.sh
 
-VOLUME ["/data"]
 CMD ["bash", "scripts/ops/railway-corpus-job.sh"]

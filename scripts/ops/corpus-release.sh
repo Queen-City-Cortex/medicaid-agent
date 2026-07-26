@@ -233,6 +233,79 @@ wait_for_graph() {
   return 1
 }
 
+bootstrap() {
+  local variables current_uri target_color expected_confirmation
+  local target_service target_uri target_password release_id manifest
+
+  target_color="${BOOTSTRAP_TARGET_COLOR:-}"
+  [[ "$target_color" == "blue" || "$target_color" == "green" ]] || {
+    echo "BOOTSTRAP_TARGET_COLOR must be blue or green" >&2
+    exit 64
+  }
+  target_service="neo4j-$target_color"
+  expected_confirmation="$target_service"
+  [[ "${BOOTSTRAP_RESET_CONFIRM:-}" == "$expected_confirmation" ]] || {
+    echo "BOOTSTRAP_RESET_CONFIRM must equal $expected_confirmation" >&2
+    exit 64
+  }
+
+  target_uri="$(color_uri "$target_color")"
+  target_password="$(color_password "$target_color")"
+  variables="$(agent_variables)"
+  current_uri="$(variable_from "$variables" NEO4J_URI)"
+  [[ -n "$current_uri" ]] || {
+    echo "Agent NEO4J_URI is missing" >&2
+    exit 64
+  }
+  [[ "$current_uri" != "$target_uri" ]] || {
+    echo "Refusing to bootstrap the graph currently serving the agent" >&2
+    exit 64
+  }
+
+  (
+    cd "$PIPELINE_DIR"
+    "$PY" -m pipeline.cli release-retention-check \
+      --releases-dir "$RELEASES_DIR" \
+      --target-color "$target_color"
+  )
+
+  : "${RAILWAY_GIT_COMMIT_SHA:?RAILWAY_GIT_COMMIT_SHA is required}"
+  release_id="${REQUESTED_CORPUS_RELEASE_ID:-$(date -u +%Y%m%dT%H%M%SZ)-${RAILWAY_GIT_COMMIT_SHA:0:7}}"
+  manifest="$RELEASES_DIR/$release_id.json"
+
+  railway_cli redeploy \
+    --environment "$ENVIRONMENT" \
+    --service "$target_service" \
+    --yes
+  wait_for_graph "$target_uri" "$target_password"
+
+  (
+    cd "$PIPELINE_DIR"
+    "$PY" -m pipeline.cli release-prepare \
+      --release-id "$release_id" \
+      --commit-sha "$RAILWAY_GIT_COMMIT_SHA" \
+      --target-color "$target_color" \
+      --output "$manifest"
+    NEO4J_URI="$target_uri" \
+    NEO4J_PASSWORD="$target_password" \
+    MASTRA_OBSERVABILITY_PATH=":memory:" \
+      "$PY" -m pipeline.cli release-build-graph --manifest "$manifest"
+    NEO4J_URI="$target_uri" \
+    NEO4J_PASSWORD="$target_password" \
+    MASTRA_OBSERVABILITY_PATH=":memory:" \
+      "$PY" -m pipeline.cli release-validate --manifest "$manifest"
+    NEO4J_URI="$target_uri" \
+    NEO4J_PASSWORD="$target_password" \
+      "$PY" -m pipeline.cli release-mark-graph \
+        --manifest "$manifest" \
+        --state validated
+  )
+
+  "$REPO_ROOT/scripts/ops/sync-corpus-artifacts.sh" "$release_id" "$manifest"
+  echo "Bootstrap release validated: $release_id on $target_service"
+  echo "The agent target was not changed"
+}
+
 promote() {
   local variables active_color current_release current_uri current_password
   local inactive_color
@@ -450,10 +523,11 @@ rollback() {
 }
 
 case "$ACTION" in
+  bootstrap) bootstrap ;;
   promote) promote ;;
   rollback) rollback ;;
   *)
-    echo "Usage: $0 {promote|rollback}" >&2
+    echo "Usage: $0 {bootstrap|promote|rollback}" >&2
     exit 64
     ;;
 esac

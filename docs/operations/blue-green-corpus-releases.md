@@ -44,6 +44,7 @@ SYNTHETIC_ACCESS_TOKEN=<restricted-test-user-token>
 SYNTHETIC_RESOURCE_ID=<restricted-test-user-id>
 BACKUP_AGE_RECIPIENT=<age-public-recipient>
 RAILWAY_TOKEN=<project-scoped-token>
+HC_URL_CORPUS_JOB=<optional-healthchecks-io-ping-url>
 ```
 
 Inject `BUCKET`, `ACCESS_KEY_ID`, `SECRET_ACCESS_KEY`, `REGION`, and `ENDPOINT`
@@ -58,9 +59,20 @@ previous one is still active, so a stuck job must be treated as an incident.
 The first conversion from the legacy single `neo4j` service is supervised:
 
 1. Create blue and green with their volumes and backups.
-2. Build and validate `neo4j-blue` using the release CLI without changing the
-   agent target.
-3. Stamp the validated release into blue with `release-mark-graph`.
+2. Set these one-time variables on `corpus-job` and redeploy it:
+
+   ```text
+   CORPUS_JOB_MODE=bootstrap
+   BOOTSTRAP_TARGET_COLOR=blue
+   BOOTSTRAP_RESET_CONFIRM=neo4j-blue
+   ```
+
+   Bootstrap refuses to reset the graph currently serving the agent, requires
+   the exact target-service confirmation, builds and validates the selected
+   graph, stamps its release marker, and never changes the agent target.
+3. Record the validated release ID from the successful job, remove
+   `BOOTSTRAP_TARGET_COLOR` and `BOOTSTRAP_RESET_CONFIRM`, and restore
+   `CORPUS_JOB_MODE=scheduled`.
 4. Set the agent variables atomically:
 
    ```text
