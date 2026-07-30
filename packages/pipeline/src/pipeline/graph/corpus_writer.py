@@ -77,6 +77,8 @@ class CorpusGraphWriter:
                 "page_count": document.page_count,
                 "section_count": document.section_count,
                 "effective_date": document.effective_date,
+                "source_modified_date": document.source_modified_date,
+                "retrieved_at": document.retrieved_at,
                 "authority_tier": document.authority_tier,
                 "answer_role": document.answer_role,
                 "source_format": document.source_format,

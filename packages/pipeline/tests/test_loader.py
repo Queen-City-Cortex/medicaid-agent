@@ -11,6 +11,7 @@ from pipeline.graph.loader import (
     build_sections_from_items,
     build_sections_from_synthetic_items,
     _extract_dhhs_policy_number,
+    _extract_effective_date,
     load_all,
     load_document,
     read_crawler_metadata_by_local_path,
@@ -22,6 +23,27 @@ from tests.fakes import RecordingGraphWriter
 
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
+
+
+def test_beneficiary_guidance_does_not_invent_document_effective_date():
+    sections = [
+        {
+            "title": "Upcoming changes",
+            "content_text": (
+                "One provision begins October 1, 2026. "
+                "A different requirement begins January 1, 2027."
+            ),
+        }
+    ]
+
+    assert (
+        _extract_effective_date(
+            "beneficiary_guidance",
+            "Medicaid is Changing",
+            sections,
+        )
+        is None
+    )
 
 
 class TestWalkDoclingDocument:

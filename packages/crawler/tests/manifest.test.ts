@@ -19,6 +19,7 @@ describe('corpus manifest', () => {
       'billing_guidance',
       'managed_care_guidance',
       'managed_care_contract',
+      'beneficiary_guidance',
     ]);
   });
 
@@ -32,5 +33,14 @@ describe('corpus manifest', () => {
       expect(Array.isArray(family.landing_pages)).toBe(true);
       expect(Array.isArray(family.seed_urls)).toBe(true);
     }
+  });
+
+  it('keeps beneficiary guidance optional for corpus promotion', () => {
+    const family = CORPUS_MANIFEST.source_families.find(
+      (candidate) => candidate.source_type === 'beneficiary_guidance',
+    );
+
+    expect(family?.authority_tier).toBe('supporting');
+    expect(family?.required_for_answering).toBe(false);
   });
 });

@@ -119,6 +119,8 @@ export interface SectionRecordFields extends TierFields {
   documentType?: string | null;
   policyNumber?: string | null;
   effectiveDate?: string | null;
+  sourceModifiedDate?: string | null;
+  retrievedAt?: string | null;
   url?: string | null;
   status?: string | null;
 }
@@ -136,6 +138,8 @@ export function sectionRecord(fields: SectionRecordFields): StubRecord {
     documentType: null,
     policyNumber: null,
     effectiveDate: null,
+    sourceModifiedDate: null,
+    retrievedAt: null,
     url: null,
     status: null,
     ...TIER_DEFAULTS,
@@ -156,6 +160,8 @@ export interface DocumentRecordFields extends TierFields {
   documentType?: string | null;
   policyNumber?: string | null;
   effectiveDate?: string | null;
+  sourceModifiedDate?: string | null;
+  retrievedAt?: string | null;
   url?: string | null;
   status?: string | null;
   /** Only declare for queries that RETURN a sections collection. */
@@ -170,6 +176,8 @@ export function documentRecord(fields: DocumentRecordFields): StubRecord {
     documentType: null,
     policyNumber: null,
     effectiveDate: null,
+    sourceModifiedDate: null,
+    retrievedAt: null,
     url: null,
     status: null,
     ...TIER_DEFAULTS,
@@ -190,6 +198,8 @@ export function amendmentRecord(fields: AmendmentRecordFields): StubRecord {
     documentType: null,
     policyNumber: null,
     effectiveDate: null,
+    sourceModifiedDate: null,
+    retrievedAt: null,
     url: null,
     status: null,
     ...TIER_DEFAULTS,
@@ -206,6 +216,8 @@ export interface ContainerChildrenRecordFields extends TierFields {
   documentType?: string | null;
   policyNumber?: string | null;
   effectiveDate?: string | null;
+  sourceModifiedDate?: string | null;
+  retrievedAt?: string | null;
   url?: string | null;
   status?: string | null;
 }
@@ -218,6 +230,8 @@ export function containerChildrenRecord(fields: ContainerChildrenRecordFields): 
     documentType: null,
     policyNumber: null,
     effectiveDate: null,
+    sourceModifiedDate: null,
+    retrievedAt: null,
     url: null,
     status: null,
     ...TIER_DEFAULTS,

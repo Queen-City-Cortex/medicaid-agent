@@ -17,7 +17,7 @@ import {
 } from './helpers/graph-fixtures.js';
 
 describe('getSection', () => {
-  it('returns document metadata, citationLink, and effectiveDate', async () => {
+  it('returns citation, effective, source-modified, and retrieval metadata', async () => {
     const { corpus } = createCorpusWithRuns([
       {
         records: [
@@ -31,6 +31,8 @@ describe('getSection', () => {
             documentType: 'dhhs_policy',
             policyNumber: '8C',
             effectiveDate: '2025-01-01',
+            sourceModifiedDate: '2024-12-15',
+            retrievedAt: '2025-02-01T12:30:00Z',
             url: 'https://example.com/8C',
             status: 'current',
           }),
@@ -46,6 +48,8 @@ describe('getSection', () => {
       sectionNumber: '4.1',
       content: 'Full section content here.',
       effectiveDate: '2025-01-01',
+      sourceModifiedDate: '2024-12-15',
+      retrievedAt: '2025-02-01T12:30:00Z',
       lastRevised: null,
       federalRegisterCite: null,
       documentId: 'doc-1',
@@ -318,6 +322,8 @@ describe('lookupPolicy', () => {
             documentType: 'federal_regulation',
             policyNumber: '45-CFR-74',
             effectiveDate: '2025-10-01',
+            sourceModifiedDate: null,
+            retrievedAt: null,
             url: 'https://www.ecfr.gov/current/title-45/part-74',
             status: 'superseded',
             authorityTier: null,

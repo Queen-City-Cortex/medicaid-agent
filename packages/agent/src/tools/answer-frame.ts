@@ -23,6 +23,8 @@ const AnswerFrameSectionSchema = z.object({
   sectionNumber: z.string().nullable(),
   content: z.string().nullable(),
   effectiveDate: z.string().nullable(),
+  sourceModifiedDate: z.string().nullable().optional(),
+  retrievedAt: z.string().nullable().optional(),
   // Revision metadata the system prompt instructs the model to surface for
   // temporal questions — omitting these from the schema silently strips them.
   lastRevised: z.string().nullable(),

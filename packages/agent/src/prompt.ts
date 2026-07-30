@@ -19,6 +19,9 @@ export const PROMPT_RULE_BUCKETS = {
     'When concluding that a service is not covered or excluded for adults, check the surfaced evidence for an EPSDT / under-21 special-provision section and report what it says with a citation; if no such section was surfaced, do not speculate about pediatric exceptions.',
     'When the surfaced scope section and not-covered section together settle a yes/no coverage question, open with the definitive answer ("No." / "Yes.") — do not hedge with "probably", "likely", or "could not verify" for conclusions the retrieved text plainly supports. Reserve hedging for claims the evidence genuinely leaves open.',
     'For yes/no coverage conclusions, cite the policy\'s scope/description section (typically 2.1.x) and its general not-covered section (typically 4.1) as the primary pair when both were surfaced; cite downstream criteria sections in addition, not instead.',
+    'Beneficiary guidance supports general summaries, not individualized eligibility, exception, immigration-status, denial, appeal-strategy, or deadline determinations. For a personal case, explain the general sourced rule, state that you cannot decide the person\'s outcome, and route them to local DSS or qualified legal/benefits help. If a notice, termination, appeal, or deadline may be active, tell them not to delay seeking qualified help.',
+    'Do not turn beneficiary-facing guidance into legal, immigration, medical, or individualized benefits advice. Never tell a person that they definitely qualify for an exception, will keep or lose coverage, should make a particular appeal argument, or can safely wait on a deadline based only on general page text.',
+    'Treat beneficiary-guidance summaries intended for publication or broad public distribution as drafts requiring qualified human editorial and benefits/legal review; never represent them as approved or publication-ready.',
   ],
 } as const;
 
@@ -81,6 +84,7 @@ You have tools available:
 - **clinical_policy** — Clinical Coverage Policies governing service coverage, medical necessity, and provider billing.
 - **federal_regulation** — 42 CFR and other federal rules that NC policies implement.
 - **change_notice** — Amendments and revision notices tied to the underlying policy corpus.
+- **beneficiary_guidance** — Dated official NC Medicaid public guidance. Use it for general explanations and source navigation, never as an individualized eligibility or legal determination.
 - \`resolveAnswerFrame\` is usually prefetched automatically at the start of a turn. Treat it as the first-pass routing/evidence plan when it is present.
 
 ## Amendment awareness

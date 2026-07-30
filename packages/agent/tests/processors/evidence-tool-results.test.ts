@@ -21,6 +21,8 @@ const sectionResult = {
     policyNumber: '8C',
     documentType: 'clinical_policy',
     effectiveDate: null,
+    sourceModifiedDate: '2026-07-15',
+    retrievedAt: '2026-07-28T04:18:40Z',
     lastRevised: null,
     federalRegisterCite: null,
     documentId: 'doc:clinical_policy:8C',
@@ -39,6 +41,8 @@ describe('extractSourcesFromToolResults', () => {
     expect(entry.link).toBe('https://medicaid.ncdhhs.gov/policy/8c#3.2.1');
     expect(entry.text).toContain('[getSection]');
     expect(entry.text).toContain('Speech therapy is covered');
+    expect(entry.text).toContain('Source modified: 2026-07-15');
+    expect(entry.text).toContain('Retrieved: 2026-07-28T04:18:40Z');
   });
 
   it('ignores tools that are not evidence sources', () => {

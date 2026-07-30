@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import * as cheerio from 'cheerio';
 import { fileTypeFromBuffer } from 'file-type';
 import {
   FileTooLargeError,
@@ -44,6 +45,14 @@ const TEXT_FORMAT_EXTENSIONS = new Set([
   '.json',
   '.md',
 ]);
+
+const HTML_FORMAT_EXTENSIONS = new Set(['.html', '.htm']);
+
+export function requiresSemanticArticleHtml(allowedFormats: readonly string[]): boolean {
+  return allowedFormats.length > 0 && allowedFormats.every((format) =>
+    HTML_FORMAT_EXTENSIONS.has(format.toLowerCase()),
+  );
+}
 
 export function detectedTypeMatchesAllowedFormats(
   detectedMime: string | null,
@@ -113,6 +122,48 @@ export function looksLikeTextPayload(header: Buffer): boolean {
     }
   }
   return printable / bytes.length >= 0.97;
+}
+
+function normalizeHtmlText(value: string): string {
+  return value.replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
+/**
+ * Validate the semantic contract consumed by the HTML parser. MIME alone is
+ * insufficient because Drupal can return a branded maintenance page or soft
+ * 404 with HTTP 200 and `text/html`.
+ */
+export function validateSemanticArticleHtml(
+  filePath: string,
+  expectedTitle: string | null,
+): string | null {
+  const html = fs.readFileSync(filePath, 'utf8');
+  const $ = cheerio.load(html);
+  const article = $('article').first();
+  if (article.length === 0) {
+    return 'HTML payload is missing the required semantic article';
+  }
+
+  // Mirror the downstream parser's ignored-tag contract so navigation or
+  // form boilerplate cannot make an otherwise empty article look substantive.
+  const semanticArticle = article.clone();
+  semanticArticle.find('script, style, nav, aside, form').remove();
+
+  const heading = normalizeHtmlText(semanticArticle.find('h1').first().text());
+  const normalizedExpectedTitle = normalizeHtmlText(expectedTitle ?? '');
+  if (
+    normalizedExpectedTitle
+    && (!heading || !heading.includes(normalizedExpectedTitle))
+  ) {
+    return 'HTML semantic article does not match the expected document title';
+  }
+
+  const body = normalizeHtmlText(semanticArticle.find('p, li').text());
+  if (body.length < 50) {
+    return 'HTML semantic article lacks substantive body content';
+  }
+
+  return null;
 }
 
 export function parseContentDisposition(
@@ -212,6 +263,9 @@ export async function downloadDocument(
   const tmpPath = path.join(sourceDir, `.download-${doc.id}.tmp`);
   const sourceType = doc.source_type as SourceType;
   const sourceFamily = getSourceFamily(sourceType);
+  const semanticHtmlRequired = requiresSemanticArticleHtml(
+    sourceFamily.allowed_file_formats,
+  );
   const isAllowedUrl = (value: string): boolean =>
     isAllowedSourceUrl(sourceType, value);
 
@@ -221,8 +275,10 @@ export async function downloadDocument(
       doc.source_url,
       tmpPath,
       {
-        etag: doc.etag ?? undefined,
-        lastModified: doc.last_modified ?? undefined,
+        // HTML-only guidance is tiny and must be checked against the current
+        // semantic contract on every crawl, not trusted through stale 304s.
+        etag: semanticHtmlRequired ? undefined : (doc.etag ?? undefined),
+        lastModified: semanticHtmlRequired ? undefined : (doc.last_modified ?? undefined),
         isAllowedUrl,
         maxBytes: config.maxFileSizeBytes,
       },
@@ -235,6 +291,21 @@ export async function downloadDocument(
 
     // 304 Not Modified
     if (result.statusCode === 304) {
+      if (semanticHtmlRequired) {
+        const existingPath = doc.local_path
+          ? path.join(config.documentsDir, doc.local_path)
+          : null;
+        if (!existingPath || !fs.existsSync(existingPath)) {
+          return {
+            action: 'error',
+            error: 'Cannot validate a 304 HTML response without a stored document',
+          };
+        }
+        const validationError = validateSemanticArticleHtml(existingPath, doc.title);
+        if (validationError) {
+          return { action: 'error', error: validationError };
+        }
+      }
       return { action: 'unchanged' };
     }
 
@@ -260,23 +331,29 @@ export async function downloadDocument(
       };
     }
 
-    // Compute hash
-    const fileHash = await hashFile(tmpPath);
-
-    // Check if content actually changed (for servers that don't support conditional requests)
-    if (doc.file_hash && fileHash === doc.file_hash) {
-      fs.unlinkSync(tmpPath);
-      return { action: 'unchanged' };
-    }
-
-    // Detect content type from magic bytes
-    const detectedContentType = await detectContentType(tmpPath);
+    // Text formats have no magic bytes. For an HTML-only source family, infer
+    // text/html from the markup itself rather than trusting a missing, generic,
+    // or differently-cased response MIME.
+    const responseContentType = (result.headers['content-type'] as string | undefined)
+      ?.split(';')[0]
+      ?.trim()
+      ?.toLowerCase() ?? null;
+    const header = readFileHeader(tmpPath);
+    const textLikePayload = looksLikeTextPayload(header);
+    const magicContentType = await detectContentType(tmpPath);
+    const detectedContentType =
+      magicContentType
+      ?? (
+        textLikePayload && semanticHtmlRequired
+          ? 'text/html'
+          : textLikePayload && allowsTextFormats(sourceFamily.allowed_file_formats)
+            ? responseContentType
+            : null
+      );
 
     // Reject files whose detected magic bytes don't match the source family's
     // allowed_file_formats. Catches HTML error pages masquerading as PDFs and
     // the occasional surprise binary (see RUNBOOK troubleshooting note).
-    // doc.source_type is typed as `string` in the registry schema; narrow it
-    // back to SourceType for the manifest lookup.
     if (!detectedTypeMatchesAllowedFormats(detectedContentType, sourceFamily.allowed_file_formats)) {
       fs.unlinkSync(tmpPath);
       logger.warn(
@@ -289,6 +366,18 @@ export async function downloadDocument(
       };
     }
 
+    if (semanticHtmlRequired || detectedContentType === 'text/html') {
+      const validationError = validateSemanticArticleHtml(tmpPath, doc.title);
+      if (validationError) {
+        fs.unlinkSync(tmpPath);
+        logger.warn(`${doc.source_url} ${validationError.toLowerCase()} — rejected`);
+        return {
+          action: 'error',
+          error: validationError,
+        };
+      }
+    }
+
     // file-type cannot detect text formats, so a null detection may be an HTML
     // soft-404 or maintenance page served with a 200. If the source family
     // only allows binary document formats, reject text-looking payloads
@@ -296,7 +385,7 @@ export async function downloadDocument(
     if (
       detectedContentType === null &&
       !allowsTextFormats(sourceFamily.allowed_file_formats) &&
-      looksLikeTextPayload(readFileHeader(tmpPath))
+      textLikePayload
     ) {
       fs.unlinkSync(tmpPath);
       logger.warn(
@@ -309,21 +398,38 @@ export async function downloadDocument(
       };
     }
 
+    // Hash short-circuit only after semantic/type validation. This revalidates
+    // payloads accepted by older crawler versions even when bytes are identical.
+    const fileHash = await hashFile(tmpPath);
+    const detectedExtension = MIME_TO_EXTENSIONS[detectedContentType ?? '']?.[0] ?? null;
+    const needsExtensionMigration = Boolean(
+      doc.local_path
+      && detectedExtension
+      && path.extname(doc.local_path).toLowerCase() !== detectedExtension,
+    );
+    if (doc.file_hash && fileHash === doc.file_hash && !needsExtensionMigration) {
+      fs.unlinkSync(tmpPath);
+      return { action: 'unchanged' };
+    }
+
     // Parse Content-Disposition
     const contentDisposition = parseContentDisposition(
       result.headers['content-disposition'] as string | undefined,
     );
 
     // Determine file extension
-    const ext = detectedContentType?.includes('pdf')
-      ? '.pdf'
-      : path.extname(
-          contentDisposition ?? new URL(finalUrl).pathname,
-        ) || '.pdf';
+    const ext =
+      MIME_TO_EXTENSIONS[detectedContentType ?? '']?.[0]
+      ?? (path.extname(contentDisposition ?? new URL(finalUrl).pathname) || '.pdf');
 
     // Archive old version BEFORE building filename so the old name
-    // is freed from the collision set
-    if (doc.local_path && doc.file_hash && fileHash !== doc.file_hash) {
+    // is freed from the collision set. This also migrates HTML payloads that
+    // older crawlers saved with a fallback .pdf extension.
+    if (
+      doc.local_path
+      && doc.file_hash
+      && (fileHash !== doc.file_hash || needsExtensionMigration)
+    ) {
       const oldFullPath = path.join(config.documentsDir, doc.local_path);
       const oldFilename = path.basename(doc.local_path);
       archiveOldVersion(oldFullPath);
@@ -350,9 +456,7 @@ export async function downloadDocument(
       filename,
     );
 
-    const mimeType = (result.headers['content-type'] as string)
-      ?.split(';')[0]
-      ?.trim() ?? null;
+    const mimeType = responseContentType;
 
     const info: DownloadedInfo = {
       local_path: relativePath,

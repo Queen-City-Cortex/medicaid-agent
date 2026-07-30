@@ -348,8 +348,14 @@ def read_crawler_metadata(source_type: str, filename_stem: str) -> dict:
     try:
         # Exact match: local_path ends with /{filename_stem}.pdf (or other extensions)
         row = conn.execute(
-            "SELECT * FROM documents WHERE source_type = ? AND (local_path LIKE ? OR local_path LIKE ? OR local_path LIKE ?)",
-            (source_type, f"%/{filename_stem}.pdf", f"%/{filename_stem}.docx", f"%/{filename_stem}.xlsx"),
+            "SELECT * FROM documents WHERE source_type = ? AND (local_path LIKE ? OR local_path LIKE ? OR local_path LIKE ? OR local_path LIKE ?)",
+            (
+                source_type,
+                f"%/{filename_stem}.pdf",
+                f"%/{filename_stem}.docx",
+                f"%/{filename_stem}.xlsx",
+                f"%/{filename_stem}.html",
+            ),
         ).fetchone()
         return dict(row) if row else {}
     finally:
@@ -444,6 +450,12 @@ def _build_document_bundle(
             page_count=meta.get("page_count", 0),
             section_count=len(section_nodes),
             effective_date=effective_date,
+            source_modified_date=meta.get("source_modified_date"),
+            retrieved_at=(
+                crawler_meta.get("last_checked_at")
+                or crawler_meta.get("last_downloaded_at")
+                or crawler_meta.get("first_seen_at")
+            ),
             authority_tier=source_family.authority_tier,
             answer_role=source_family.answer_role,
             source_format=meta.get("source_format"),

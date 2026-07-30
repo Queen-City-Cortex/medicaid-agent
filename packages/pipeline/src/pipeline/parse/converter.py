@@ -5,10 +5,12 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import subprocess
 import tempfile
 import time
 from datetime import datetime, timezone
+from html.parser import HTMLParser
 from multiprocessing import get_context
 from pathlib import Path
 from queue import Empty
@@ -566,6 +568,125 @@ def parse_doc(doc_path: Path) -> dict:
         return parsed
 
 
+class _ArticleHTMLParser(HTMLParser):
+    """Extract semantic blocks from the page's main article only."""
+
+    _IGNORED_TAGS = {"script", "style", "nav", "aside", "form"}
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.article_depth = 0
+        self.ignored_depth = 0
+        self.heading_level: int | None = None
+        self.block_depth = 0
+        self.buffer: list[str] = []
+        self.sections: list[dict] = []
+        self.current_section: dict | None = None
+
+    def handle_starttag(self, tag: str, attrs) -> None:
+        del attrs
+        if tag == "article":
+            self.article_depth += 1
+            return
+        if not self.article_depth:
+            return
+        if tag in self._IGNORED_TAGS:
+            self.ignored_depth += 1
+            return
+        if self.ignored_depth:
+            return
+        if len(tag) == 2 and tag[0] == "h" and tag[1].isdigit():
+            self.heading_level = int(tag[1])
+            self.buffer = []
+        elif tag in {"p", "li"}:
+            if self.block_depth == 0:
+                self.buffer = []
+            self.block_depth += 1
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag == "article":
+            self.article_depth = max(0, self.article_depth - 1)
+            return
+        if not self.article_depth:
+            return
+        if tag in self._IGNORED_TAGS and self.ignored_depth:
+            self.ignored_depth -= 1
+            return
+        if self.ignored_depth:
+            return
+        if self.heading_level is not None and tag == f"h{self.heading_level}":
+            title = " ".join("".join(self.buffer).split())
+            if self.current_section is not None:
+                self.sections.append(self.current_section)
+            self.current_section = _new_synthetic_section(title or None, self.heading_level)
+            self.heading_level = None
+            self.buffer = []
+        elif tag in {"p", "li"} and self.block_depth:
+            self.block_depth -= 1
+            if self.block_depth == 0:
+                text = " ".join("".join(self.buffer).split())
+                if text:
+                    if self.current_section is None:
+                        self.current_section = _new_synthetic_section(None, 0)
+                    _append_section_content(self.current_section, text)
+                self.buffer = []
+
+    def handle_data(self, data: str) -> None:
+        if self.article_depth and not self.ignored_depth and (
+            self.heading_level is not None or self.block_depth > 0
+        ):
+            self.buffer.append(data)
+
+    def finish(self) -> list[dict]:
+        if self.current_section is not None:
+            self.sections.append(self.current_section)
+            self.current_section = None
+        return self.sections
+
+
+_PAGE_MODIFIED_RE = re.compile(
+    r"This page was last modified on\s+(\d{2}/\d{2}/\d{4})",
+    re.IGNORECASE,
+)
+
+
+def parse_html(html_path: Path) -> dict:
+    """Extract headings and beneficiary-facing text from an official HTML page."""
+    start = time.time()
+    html = html_path.read_text(encoding="utf-8", errors="replace")
+    parser = _ArticleHTMLParser()
+    parser.feed(html)
+    sections = parser.finish()
+    quality_flags = _compute_quality_flags(sections, reported_section_count=len(sections))
+    content_char_count = sum(
+        len((section.get("content_text") or "").strip()) for section in sections
+    )
+    modified_match = _PAGE_MODIFIED_RE.search(html)
+    source_modified_date = None
+    if modified_match:
+        month, day, year = modified_match.group(1).split("/")
+        source_modified_date = f"{year}-{month}-{day}"
+
+    return {
+        "payload": {
+            "synthetic_sections": sections,
+            "source_format": "html",
+        },
+        "markdown": _render_synthetic_markdown(sections),
+        "section_count": len(sections),
+        "table_count": 0,
+        "page_count": 1,
+        "content_char_count": content_char_count,
+        "parse_time_seconds": round(time.time() - start, 2),
+        "source_format": "html",
+        "parse_backend": "stdlib-html-parser",
+        "parse_status": "parsed",
+        "quality_flags": quality_flags,
+        "answer_ready": len(quality_flags) == 0,
+        "source_modified_date": source_modified_date,
+    }
+
+
 def save_parsed(
     source_path: Path,
     parsed: dict,
@@ -596,6 +717,7 @@ def save_parsed(
         "page_count": parsed["page_count"],
         "content_char_count": parsed["content_char_count"],
         "parse_time_seconds": parsed["parse_time_seconds"],
+        "source_modified_date": parsed.get("source_modified_date"),
         "warnings": parsed["quality_flags"],
     }
     meta_path.write_text(json.dumps(meta, indent=2))
@@ -622,6 +744,7 @@ def save_parse_error(source_path: Path, source_type: str, error: Exception) -> N
             ".xls": "xlrd",
             ".xlsx": "openpyxl",
             ".pptx": "python-pptx",
+            ".html": "stdlib-html-parser",
         }.get(source_path.suffix.lower(), "unknown"),
         "parse_status": "parse_exception",
         "quality_flags": ["parse_exception"],
@@ -747,6 +870,8 @@ def parse_supported_file(
         return parse_xls(source_path)
     if suffix == ".pptx":
         return parse_pptx(source_path)
+    if suffix == ".html":
+        return parse_html(source_path)
     raise ValueError(f"Unsupported parse format: {source_path.suffix}")
 
 

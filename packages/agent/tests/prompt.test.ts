@@ -34,5 +34,8 @@ describe('buildSystemPrompt', () => {
     // Messy real-world questions must remain in scope — the refusal rule only
     // targets clearly-unrelated use.
     expect(prompt).toContain('emotionally charged real-world questions');
+    expect(prompt).toContain('not individualized eligibility');
+    expect(prompt).toContain('tell them not to delay seeking qualified help');
+    expect(prompt).toContain('drafts requiring qualified human editorial and benefits/legal review');
   });
 });

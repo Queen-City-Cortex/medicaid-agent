@@ -169,6 +169,25 @@
         "https://medicaid.ncdhhs.gov/providers/provider-contracting-health-plans"
       ],
       "seed_urls": []
+    },
+    {
+      "source_type": "beneficiary_guidance",
+      "directory_name": "beneficiary-guidance",
+      "authority_tier": "supporting",
+      "answer_role": "beneficiary_guidance",
+      "required_for_answering": false,
+      "freshness_expectation": "daily",
+      "discovery_interval_hours": 24,
+      "freshness_sla_days": 1,
+      "allowed_domains": ["medicaid.ncdhhs.gov"],
+      "allowed_file_formats": [".html"],
+      "landing_pages": [
+        "https://medicaid.ncdhhs.gov/beneficiaries/impact-hr-1-and-federal-changes-medicaid"
+      ],
+      "seed_urls": [
+        "https://medicaid.ncdhhs.gov/beneficiaries/medicaid-is-changing",
+        "https://medicaid.ncdhhs.gov/beneficiaries/impact-hr-1-and-federal-changes-medicaid/nc-medicaid-work-and-community-engagement-requirements"
+      ]
     }
   ],
   "federal_sources": [

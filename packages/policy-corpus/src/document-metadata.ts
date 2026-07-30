@@ -6,6 +6,8 @@ type MetadataField =
   | 'documentType'
   | 'policyNumber'
   | 'effectiveDate'
+  | 'sourceModifiedDate'
+  | 'retrievedAt'
   | 'url'
   | 'status'
   | 'authorityTier'
@@ -23,6 +25,8 @@ const FIELD_EXPR: Record<MetadataField, string> = {
   documentType: 'document_type',
   policyNumber: 'policy_number',
   effectiveDate: 'effective_date',
+  sourceModifiedDate: 'source_modified_date',
+  retrievedAt: 'retrieved_at',
   url: 'source_url',
   status: 'status',
   authorityTier: 'authority_tier',
@@ -41,6 +45,8 @@ const FIELDS: MetadataField[] = [
   'documentType',
   'policyNumber',
   'effectiveDate',
+  'sourceModifiedDate',
+  'retrievedAt',
   'url',
   'status',
   'authorityTier',
@@ -75,12 +81,16 @@ function recordBooleanValue(record: SessionRecordLike, prefix: string, field: Me
 export function mapDocumentMetadataRecord(record: SessionRecordLike, prefix = ''): DocumentView {
   const title = recordStringValue(record, prefix, 'title');
   const url = recordStringValue(record, prefix, 'url');
+  const sourceModifiedDate = recordStringValue(record, prefix, 'sourceModifiedDate');
+  const retrievedAt = recordStringValue(record, prefix, 'retrievedAt');
   return {
     id: recordStringValue(record, prefix, 'id') ?? '',
     title,
     documentType: recordStringValue(record, prefix, 'documentType'),
     policyNumber: recordStringValue(record, prefix, 'policyNumber'),
     effectiveDate: recordStringValue(record, prefix, 'effectiveDate'),
+    ...(sourceModifiedDate !== null ? { sourceModifiedDate } : {}),
+    ...(retrievedAt !== null ? { retrievedAt } : {}),
     url,
     citationLink: title && url ? `[${title}](${url})` : null,
     status: recordStringValue(record, prefix, 'status'),

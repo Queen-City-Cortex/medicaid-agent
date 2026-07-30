@@ -100,12 +100,16 @@ export function mapDocumentSections(rawSections: Array<{
 export function buildSectionView(record: SessionRecordLike, content: string | null): SectionView {
   const documentTitle = (record.get('documentTitle') as string | null | undefined) ?? null;
   const url = (record.get('url') as string | null | undefined) ?? null;
+  const sourceModifiedDate = (record.get('sourceModifiedDate') as string | null | undefined) ?? null;
+  const retrievedAt = (record.get('retrievedAt') as string | null | undefined) ?? null;
   return {
     id: record.get('id') as string,
     title: (record.get('title') as string | null | undefined) ?? null,
     sectionNumber: (record.get('sectionNumber') as string | null | undefined) ?? null,
     content,
     effectiveDate: (record.get('effectiveDate') as string | null | undefined) ?? null,
+    ...(sourceModifiedDate !== null ? { sourceModifiedDate } : {}),
+    ...(retrievedAt !== null ? { retrievedAt } : {}),
     lastRevised: (record.get('lastRevised') as string | null | undefined) ?? null,
     federalRegisterCite: (record.get('federalRegisterCite') as string | null | undefined) ?? null,
     documentId: (record.get('documentId') as string | null | undefined) ?? null,
@@ -138,6 +142,8 @@ export function extractDocumentView(document: DocumentWithSectionsView): Documen
     documentType: document.documentType,
     policyNumber: document.policyNumber,
     effectiveDate: document.effectiveDate,
+    ...(document.sourceModifiedDate != null ? { sourceModifiedDate: document.sourceModifiedDate } : {}),
+    ...(document.retrievedAt != null ? { retrievedAt: document.retrievedAt } : {}),
     url: document.url,
     citationLink: document.citationLink,
     status: document.status,

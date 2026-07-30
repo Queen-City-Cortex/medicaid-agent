@@ -22,6 +22,8 @@ class DocumentNode:
     page_count: int
     section_count: int
     effective_date: str | None
+    source_modified_date: str | None = None
+    retrieved_at: str | None = None
     authority_tier: str = "supporting"
     answer_role: str | None = None
     source_format: str | None = None

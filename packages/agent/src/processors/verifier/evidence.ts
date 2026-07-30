@@ -23,6 +23,8 @@ interface GetSectionResult {
     sectionNumber: string | null;
     content: string | null;
     effectiveDate: string | null;
+    sourceModifiedDate?: string | null;
+    retrievedAt?: string | null;
     lastRevised: string | null;
     federalRegisterCite: string | null;
     documentId: string | null;
@@ -39,6 +41,8 @@ interface DocumentMetadata {
   documentType: string | null;
   policyNumber: string | null;
   effectiveDate: string | null;
+  sourceModifiedDate?: string | null;
+  retrievedAt?: string | null;
   url: string | null;
   status: string | null;
 }
@@ -100,6 +104,8 @@ function formatDocMeta(doc: DocumentMetadata): string {
   if (doc.policyNumber) parts.push(`Policy: ${doc.policyNumber}`);
   if (doc.documentType) parts.push(`Type: ${doc.documentType}`);
   if (doc.effectiveDate) parts.push(`Effective: ${doc.effectiveDate}`);
+  if (doc.sourceModifiedDate) parts.push(`Source modified: ${doc.sourceModifiedDate}`);
+  if (doc.retrievedAt) parts.push(`Retrieved: ${doc.retrievedAt}`);
   if (doc.status) parts.push(`Status: ${doc.status}`);
   if (doc.url) parts.push(`URL: ${doc.url}`);
   return parts.join('\n');
@@ -123,6 +129,8 @@ function extractGetSection(result: GetSectionResult): SourceEntry | null {
   if (sec.policyNumber) lines.push(`Policy: ${sec.policyNumber}`);
   if (sec.documentType) lines.push(`Type: ${sec.documentType}`);
   if (sec.effectiveDate) lines.push(`Effective: ${sec.effectiveDate}`);
+  if (sec.sourceModifiedDate) lines.push(`Source modified: ${sec.sourceModifiedDate}`);
+  if (sec.retrievedAt) lines.push(`Retrieved: ${sec.retrievedAt}`);
   if (sec.lastRevised) lines.push(`Last revised: ${sec.lastRevised}`);
   if (sec.federalRegisterCite) lines.push(`Federal Register cite: ${sec.federalRegisterCite}`);
   if (sec.citationLink) lines.push(`Citation link: ${sec.citationLink}`);

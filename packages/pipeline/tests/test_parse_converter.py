@@ -18,6 +18,7 @@ from pipeline.parse.converter import (
     parse_all,
     parse_doc,
     parse_docx,
+    parse_html,
     parse_pdf,
     parse_pptx,
     parse_xls,
@@ -251,6 +252,29 @@ def test_parse_doc_uses_headless_libreoffice_conversion(monkeypatch, tmp_path):
     assert parsed["source_format"] == "doc"
     assert parsed["parse_backend"] == "libreoffice+python-docx"
     assert "Converted legacy content" in parsed["markdown"]
+
+
+def test_parse_html_extracts_only_article_content_and_modified_date(tmp_path):
+    source_path = tmp_path / "medicaid-is-changing.html"
+    source_path.write_text(
+        """<!doctype html><html><body><nav>Ignore this menu</nav><article>
+        <h1>Medicaid is Changing</h1><p>General beneficiary guidance.</p>
+        <h2>Exceptions and exclusions</h2><p>Ask DSS about individual facts.</p>
+        <p>This page was last modified on 07/15/2026</p>
+        </article><footer>Ignore this footer</footer></body></html>"""
+    )
+
+    parsed = parse_html(source_path)
+
+    assert parsed["source_format"] == "html"
+    assert parsed["source_modified_date"] == "2026-07-15"
+    assert parsed["answer_ready"] is True
+    assert [section["title"] for section in parsed["payload"]["synthetic_sections"]] == [
+        "Medicaid is Changing",
+        "Exceptions and exclusions",
+    ]
+    assert "Ignore this menu" not in parsed["markdown"]
+    assert "Ignore this footer" not in parsed["markdown"]
 
 
 class _FakeDocItem:

@@ -19,6 +19,8 @@ export interface DocumentView {
   documentType: string | null;
   policyNumber: string | null;
   effectiveDate: string | null;
+  sourceModifiedDate?: string | null;
+  retrievedAt?: string | null;
   url: string | null;
   citationLink: string | null;
   status: string | null;
@@ -61,6 +63,8 @@ export interface SectionView {
   sectionNumber: string | null;
   content: string | null;
   effectiveDate: string | null;
+  sourceModifiedDate?: string | null;
+  retrievedAt?: string | null;
   // Per-section revision metadata captured from eCFR `<CITA>` tags. Present for
   // CFR sections that have been revised at least once; null for everything else.
   lastRevised: string | null;

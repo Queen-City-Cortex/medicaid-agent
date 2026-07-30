@@ -6,6 +6,8 @@ export const DocumentMetadataSchema = z.object({
   documentType: z.string().nullable(),
   policyNumber: z.string().nullable(),
   effectiveDate: z.string().nullable(),
+  sourceModifiedDate: z.string().nullable().optional(),
+  retrievedAt: z.string().nullable().optional(),
   url: z.string().nullable(),
   /** Pre-built markdown link for citations — paste verbatim into answers. */
   citationLink: z.string().nullable(),

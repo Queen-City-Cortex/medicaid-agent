@@ -8,7 +8,8 @@ export type SourceType =
   | 'fee_schedule'
   | 'billing_guidance'
   | 'managed_care_guidance'
-  | 'managed_care_contract';
+  | 'managed_care_contract'
+  | 'beneficiary_guidance';
 
 export interface DiscoveredDocument {
   source_url: string;

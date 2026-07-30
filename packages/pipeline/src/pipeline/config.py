@@ -68,7 +68,7 @@ SOURCE_TYPE_DIRS = {
     for family in CORPUS_MANIFEST.source_families
 }
 PARSE_SUPPORTED_FILE_FORMATS = frozenset(
-    {".pdf", ".doc", ".docx", ".xls", ".xlsx", ".pptx"}
+    {".pdf", ".doc", ".docx", ".xls", ".xlsx", ".pptx", ".html"}
 )
 
 # eCFR (Federal Regulations)

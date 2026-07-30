@@ -14,6 +14,7 @@ import {
 import { HttpStatusError } from '../../src/crawl/fetcher.js';
 import { config, SOURCE_TYPE_DIRS } from '../../src/config.js';
 import { logger } from '../../src/utils/logger.js';
+import { hashBuffer } from '../../src/utils/hash.js';
 import type { DocumentRecord } from '../../src/db/registry.js';
 import type { Fetcher } from '../../src/sources/types.js';
 
@@ -325,6 +326,193 @@ describe('downloadDocument', () => {
       rejectedUrl: 'https://outside.example/policy.pdf',
       rejectionReason: 'redirect target outside source-family allowlist',
     });
+  });
+
+  it('accepts and saves HTML for an HTML source family', async () => {
+    const doc = makeDoc({
+      source_url: 'https://medicaid.ncdhhs.gov/beneficiaries/medicaid-is-changing',
+      source_type: 'beneficiary_guidance',
+      title: 'Medicaid is Changing',
+      policy_number: null,
+    });
+    const html = `<!DOCTYPE html><html><body><article>
+      <h1>Medicaid is Changing</h1>
+      <p>This official beneficiary page summarizes upcoming Medicaid changes and directs readers to current program resources.</p>
+    </article></body></html>`;
+
+    const result = await downloadDocument(
+      doc,
+      fetcherWriting(html, { 'content-type': 'text/html; charset=UTF-8' }),
+      new Set(),
+    );
+
+    expect(result.action).toBe('downloaded');
+    expect(result.info?.detected_content_type).toBe('text/html');
+    expect(result.info?.local_path).toMatch(/beneficiary-guidance\/medicaid-is-changing\.html$/);
+  });
+
+  it('rejects an HTML soft error that lacks the semantic article contract', async () => {
+    const doc = makeDoc({
+      source_url: 'https://medicaid.ncdhhs.gov/beneficiaries/medicaid-is-changing',
+      source_type: 'beneficiary_guidance',
+      title: 'Medicaid is Changing',
+      policy_number: null,
+    });
+    const html = `<!DOCTYPE html><html><body>
+      <main><h1>Service temporarily unavailable</h1><p>Please try again later.</p></main>
+    </body></html>`;
+
+    const result = await downloadDocument(
+      doc,
+      fetcherWriting(html, { 'content-type': 'text/html' }),
+      new Set(),
+    );
+
+    expect(result.action).toBe('error');
+    expect(result.error).toMatch(/semantic article/i);
+  });
+
+  it('rejects an article shell without substantive body content', async () => {
+    const doc = makeDoc({
+      source_url: 'https://medicaid.ncdhhs.gov/beneficiaries/medicaid-is-changing',
+      source_type: 'beneficiary_guidance',
+      title: 'Medicaid is Changing',
+      policy_number: null,
+    });
+    const html = '<!DOCTYPE html><html><body><article><h1>Medicaid is Changing</h1></article></body></html>';
+
+    const result = await downloadDocument(
+      doc,
+      fetcherWriting(html, { 'content-type': 'text/html' }),
+      new Set(),
+    );
+
+    expect(result.action).toBe('error');
+    expect(result.error).toMatch(/substantive body content/i);
+  });
+
+  it('rejects a substantive soft-error article with the wrong title', async () => {
+    const doc = makeDoc({
+      source_url: 'https://medicaid.ncdhhs.gov/beneficiaries/medicaid-is-changing',
+      source_type: 'beneficiary_guidance',
+      title: 'Medicaid is Changing',
+      policy_number: null,
+    });
+    const html = `<!DOCTYPE html><html><body><article>
+      <h1>Page not found</h1>
+      <p>The requested page is unavailable. Visit the NC Medicaid home page or contact support for assistance with locating another resource.</p>
+    </article></body></html>`;
+
+    const result = await downloadDocument(
+      doc,
+      fetcherWriting(html, { 'content-type': 'text/html' }),
+      new Set(),
+    );
+
+    expect(result.action).toBe('error');
+    expect(result.error).toMatch(/expected document title/i);
+  });
+
+  it('ignores navigation and form text when measuring substantive article content', async () => {
+    const doc = makeDoc({
+      source_url: 'https://medicaid.ncdhhs.gov/beneficiaries/medicaid-is-changing',
+      source_type: 'beneficiary_guidance',
+      title: 'Medicaid is Changing',
+      policy_number: null,
+    });
+    const html = `<!DOCTYPE html><html><body><article>
+      <h1>Medicaid is Changing</h1>
+      <nav><p>This navigation boilerplate is intentionally long enough to exceed the substantive-content threshold while containing no guidance.</p></nav>
+      <form><p>Use this maintenance form to search for another page or contact site support for help.</p></form>
+    </article></body></html>`;
+
+    const result = await downloadDocument(
+      doc,
+      fetcherWriting(html, { 'content-type': 'text/html' }),
+      new Set(),
+    );
+
+    expect(result.action).toBe('error');
+    expect(result.error).toMatch(/substantive body content/i);
+  });
+
+  it.each([
+    ['a missing Content-Type', {}],
+    ['an unknown Content-Type', { 'content-type': 'application/octet-stream' }],
+    ['a differently cased Content-Type', { 'content-type': 'Text/HTML; Charset=UTF-8' }],
+  ])('validates HTML-only sources served with %s', async (_label, headers) => {
+    const doc = makeDoc({
+      source_url: 'https://medicaid.ncdhhs.gov/beneficiaries/medicaid-is-changing',
+      source_type: 'beneficiary_guidance',
+      title: 'Medicaid is Changing',
+      policy_number: null,
+    });
+    const html = `<!DOCTYPE html><html><body><article>
+      <h1>Page not found</h1>
+      <p>The requested page is unavailable. Visit the NC Medicaid home page or contact support for assistance with locating another resource.</p>
+    </article></body></html>`;
+
+    const result = await downloadDocument(
+      doc,
+      fetcherWriting(html, headers),
+      new Set(),
+    );
+
+    expect(result.action).toBe('error');
+    expect(result.error).toMatch(/expected document title/i);
+  });
+
+  it('revalidates identical HTML before returning unchanged', async () => {
+    const html = `<!DOCTYPE html><html><body><article>
+      <h1>Page not found</h1>
+      <p>The requested page is unavailable. Visit the NC Medicaid home page or contact support for assistance with locating another resource.</p>
+    </article></body></html>`;
+    const doc = makeDoc({
+      source_url: 'https://medicaid.ncdhhs.gov/beneficiaries/medicaid-is-changing',
+      source_type: 'beneficiary_guidance',
+      title: 'Medicaid is Changing',
+      policy_number: null,
+      file_hash: hashBuffer(Buffer.from(html)),
+    });
+
+    const result = await downloadDocument(
+      doc,
+      fetcherWriting(html, { 'content-type': 'text/html' }),
+      new Set(),
+    );
+
+    expect(result.action).toBe('error');
+    expect(result.error).toMatch(/expected document title/i);
+  });
+
+  it('revalidates the stored HTML document on a 304 response', async () => {
+    const localPath = 'beneficiary-guidance/medicaid-is-changing.html';
+    const storedPath = path.join(config.documentsDir, localPath);
+    fs.mkdirSync(path.dirname(storedPath), { recursive: true });
+    fs.writeFileSync(
+      storedPath,
+      '<!DOCTYPE html><html><body><h1>Service unavailable</h1></body></html>',
+    );
+    const doc = makeDoc({
+      source_url: 'https://medicaid.ncdhhs.gov/beneficiaries/medicaid-is-changing',
+      source_type: 'beneficiary_guidance',
+      title: 'Medicaid is Changing',
+      policy_number: null,
+      local_path: localPath,
+    });
+    const fetcher: Fetcher = {
+      fetchHtml: () => {
+        throw new Error('not used');
+      },
+      async fetchFile() {
+        return { statusCode: 304, headers: {}, filePath: null, downloaded: false };
+      },
+    };
+
+    const result = await downloadDocument(doc, fetcher, new Set());
+
+    expect(result.action).toBe('error');
+    expect(result.error).toMatch(/semantic article/i);
   });
 
   it('carries a structured 404 status code instead of a message substring', async () => {

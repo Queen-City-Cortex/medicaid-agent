@@ -19,6 +19,7 @@ const feeScheduleSource = getSourceFamily('fee_schedule');
 const billingGuidanceSource = getSourceFamily('billing_guidance');
 const managedCareGuidanceSource = getSourceFamily('managed_care_guidance');
 const managedCareContractSource = getSourceFamily('managed_care_contract');
+const beneficiaryGuidanceSource = getSourceFamily('beneficiary_guidance');
 
 export const config = {
   // Paths (resolved relative to crawler/ root)
@@ -94,6 +95,11 @@ export const config = {
     },
     managed_care_contract: {
       landingPages: managedCareContractSource.landing_pages,
+      enabled: true,
+    },
+    beneficiary_guidance: {
+      landingPages: beneficiaryGuidanceSource.landing_pages,
+      seedUrls: beneficiaryGuidanceSource.seed_urls,
       enabled: true,
     },
   },
