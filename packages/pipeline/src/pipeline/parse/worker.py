@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib
+import multiprocessing
 import sys
 import sysconfig
 from pathlib import Path
@@ -37,13 +38,23 @@ def _preload_stdlib_typing() -> None:
         )
 
 
+def _configure_semaphore_prefix(semaphore_prefix: str | None) -> None:
+    """Give this spawn worker an ownership-safe POSIX semaphore namespace."""
+    if not semaphore_prefix:
+        return
+    process_config = getattr(multiprocessing.current_process(), "_config")
+    process_config["semprefix"] = semaphore_prefix
+
+
 def parse_supported_file_worker(
     source_path_str: str,
     source_type: str,
     result_connection,
+    semaphore_prefix: str | None = None,
 ) -> None:
     """Enter the heavy parser only after repairing the inherited import path."""
     try:
+        _configure_semaphore_prefix(semaphore_prefix)
         _preload_stdlib_typing()
 
         from pipeline.parse.converter import _parse_supported_file_worker

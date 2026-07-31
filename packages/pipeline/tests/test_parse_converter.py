@@ -12,6 +12,7 @@ from docx import Document as WordDocument
 from openpyxl import Workbook
 from pptx import Presentation
 
+from pipeline.parse import converter as parse_converter
 from pipeline.parse import worker as parse_worker
 from pipeline.parse.converter import (
     PARSE_CACHE_VERSION,
@@ -296,6 +297,50 @@ def test_worker_parent_receives_before_join_for_pipe_payload(monkeypatch, tmp_pa
     assert events.index("recv") < events.index("join")
 
 
+def test_worker_success_gets_natural_exit_grace_without_forced_cleanup(
+    monkeypatch, tmp_path
+):
+    events = []
+    summary = {"section_count": 1, "table_count": 0, "parse_time_seconds": 0.1}
+    parent = _FakePipeEnd(
+        events,
+        result={"ok": True, "summary": summary},
+        readable=True,
+    )
+    child = _FakePipeEnd(events)
+
+    class NaturalExitProcess(_FakeProcess):
+        def join(self, *_args):
+            self.events.append("join")
+            self.alive = False
+            self.exitcode = 0
+
+    process = NaturalExitProcess(events, alive=True)
+
+    class Context:
+        def Pipe(self, **_kwargs):
+            return parent, child
+
+        def Process(self, **_kwargs):
+            return process
+
+    monkeypatch.setattr(parse_converter, "get_context", lambda *_args: Context())
+    cleaned = []
+    monkeypatch.setattr(
+        parse_converter,
+        "_cleanup_killed_worker_semaphores",
+        cleaned.append,
+    )
+
+    assert (
+        parse_and_save_supported_file_with_timeout(tmp_path / "x.pdf", "test", 1)
+        == summary
+    )
+    assert "terminate" not in events
+    assert "kill" not in events
+    assert cleaned == []
+
+
 @pytest.mark.parametrize(
     ("result", "readable", "alive", "eof", "message"),
     [
@@ -322,6 +367,140 @@ def test_worker_timeout_repeatedly_closes_and_reaps(monkeypatch, tmp_path):
         assert "terminate" in events
         assert "join" in events
         assert events.count("close") == 2
+
+
+def test_worker_timeout_unlinks_spawn_semaphores_created_by_killed_child(
+    monkeypatch, tmp_path
+):
+    cleaned_prefixes = []
+    monkeypatch.setattr(
+        parse_converter,
+        "_cleanup_killed_worker_semaphores",
+        cleaned_prefixes.append,
+    )
+    _install_fake_context(monkeypatch, readable=False, alive=True)
+
+    with pytest.raises(TimeoutError):
+        parse_and_save_supported_file_with_timeout(tmp_path / "x.pdf", "test", 0)
+
+    assert len(cleaned_prefixes) == 1
+    assert cleaned_prefixes[0].startswith("/pipeline-pdf-")
+
+
+def test_worker_cleanup_does_not_unlink_namespace_until_worker_is_reaped(
+    monkeypatch, tmp_path
+):
+    events = []
+    parent = _FakePipeEnd(events)
+    child = _FakePipeEnd(events)
+
+    class UnreapableProcess(_FakeProcess):
+        def terminate(self):
+            self.events.append("terminate")
+
+        def kill(self):
+            self.events.append("kill")
+
+    process = UnreapableProcess(events, alive=True)
+
+    class Context:
+        def Pipe(self, **_kwargs):
+            return parent, child
+
+        def Process(self, **_kwargs):
+            return process
+
+    monkeypatch.setattr(parse_converter, "get_context", lambda *_args: Context())
+    cleaned = []
+    monkeypatch.setattr(
+        parse_converter,
+        "_cleanup_killed_worker_semaphores",
+        cleaned.append,
+    )
+
+    with pytest.raises(TimeoutError):
+        parse_and_save_supported_file_with_timeout(tmp_path / "x.pdf", "test", 0)
+
+    assert "terminate" in events
+    assert "kill" in events
+    assert cleaned == []
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="requires Linux /dev/shm semantics")
+def test_killed_spawn_worker_exits_without_resource_tracker_semaphore_warning(tmp_path):
+    script = tmp_path / "semaphore_cleanup_repro.py"
+    ready = tmp_path / "ready"
+    script.write_text(
+        textwrap.dedent(
+            """
+            import multiprocessing as mp
+            import sys
+            import time
+            from pathlib import Path
+
+            from pipeline.parse.converter import (
+                _cleanup_killed_worker_semaphores,
+            )
+            from pipeline.parse.worker import _configure_semaphore_prefix
+
+
+            def worker(prefix, ready_path):
+                _configure_semaphore_prefix(prefix)
+                semaphore = mp.Semaphore(1)
+                Path(ready_path).write_text(semaphore._semlock.name)
+                time.sleep(30)
+
+
+            if __name__ == "__main__":
+                prefix_a = "/pipeline-test-a"
+                prefix_b = "/pipeline-test-b"
+                ready_a = Path(sys.argv[1])
+                ready_b = ready_a.with_name("ready-b")
+                context = mp.get_context("spawn")
+                default_semaphore = context.Semaphore(1)
+                default_path = Path(
+                    "/dev/shm/sem." + default_semaphore._semlock.name.lstrip("/")
+                )
+                process_a = context.Process(
+                    target=worker,
+                    args=(prefix_a, ready_a),
+                )
+                process_b = context.Process(
+                    target=worker,
+                    args=(prefix_b, ready_b),
+                )
+                process_a.start()
+                process_b.start()
+                deadline = time.monotonic() + 15
+                while not (ready_a.exists() and ready_b.exists()):
+                    if time.monotonic() >= deadline:
+                        raise RuntimeError("workers did not create semaphores")
+                    time.sleep(0.05)
+                semaphore_b_path = Path(
+                    "/dev/shm/sem." + ready_b.read_text().lstrip("/")
+                )
+                process_a.terminate()
+                process_a.join(5)
+                _cleanup_killed_worker_semaphores(prefix_a)
+                assert semaphore_b_path.exists()
+                assert default_path.exists()
+                process_b.terminate()
+                process_b.join(5)
+                _cleanup_killed_worker_semaphores(prefix_b)
+            """
+        )
+    )
+
+    result = subprocess.run(
+        [sys.executable, str(script), str(ready)],
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=30,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "leaked semaphore" not in result.stderr
 
 
 def test_worker_start_failure_preserves_error_and_closes_pipe(monkeypatch, tmp_path):

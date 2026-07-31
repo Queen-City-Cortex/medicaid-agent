@@ -9,6 +9,7 @@ import re
 import subprocess
 import tempfile
 import time
+import uuid
 
 from datetime import datetime, timezone
 from html.parser import HTMLParser
@@ -54,6 +55,7 @@ DEFAULT_PARSE_TIMEOUT_SECONDS = 600
 WORKER_ERROR_MESSAGE_LIMIT = 4096
 WORKER_CLEANUP_RESERVE_SECONDS = 5
 WORKER_TERMINATE_GRACE_SECONDS = 2
+WORKER_NORMAL_EXIT_GRACE_SECONDS = 1
 MIN_SUBSTANTIVE_PAGE_CHARS = 40
 ACTIVE_REGISTRY_STATUSES = frozenset({"downloaded", "updated", "unchanged", "error"})
 
@@ -1218,19 +1220,59 @@ def _validate_worker_result(result: Any) -> dict:
     return result
 
 
+def _worker_named_semaphores(semaphore_prefix: str) -> frozenset[str]:
+    """Return named semaphores from one cryptographically unique worker namespace."""
+    if os.name != "posix":
+        return frozenset()
+    file_prefix = f"sem.{semaphore_prefix.lstrip('/')}-"
+    try:
+        return frozenset(
+            f"/{path.name.removeprefix('sem.')}"
+            for path in Path("/dev/shm").glob(f"{file_prefix}*")
+            if path.is_file()
+        )
+    except OSError:
+        return frozenset()
+
+
+def _unlink_tracked_semaphore(name: str) -> None:
+    """Unlink a killed spawn worker's semaphore and clear its tracker record."""
+    from _multiprocessing import sem_unlink
+    from multiprocessing import resource_tracker
+
+    try:
+        sem_unlink(name)
+    except FileNotFoundError:
+        pass
+    resource_tracker.unregister(name, "semaphore")
+
+
+def _cleanup_killed_worker_semaphores(semaphore_prefix: str) -> None:
+    """Clean named semaphores owned by one reaped, forcibly-stopped worker."""
+    for name in sorted(_worker_named_semaphores(semaphore_prefix)):
+        try:
+            _unlink_tracked_semaphore(name)
+        except (OSError, RuntimeError, ValueError) as error:
+            console.print(
+                f"[yellow]Warning: could not clean worker semaphore {name}: {error}[/yellow]"
+            )
+
+
 def parse_and_save_supported_file_with_timeout(
     source_path: Path,
     source_type: str,
     timeout_seconds: int,
 ) -> dict:
     ctx = get_context("spawn")
+    semaphore_prefix = f"/pipeline-pdf-{os.getpid()}-{uuid.uuid4().hex}"
     parent_connection, child_connection = ctx.Pipe(duplex=False)
     process = ctx.Process(
         target=parse_supported_file_worker,
-        args=(str(source_path), source_type, child_connection),
+        args=(str(source_path), source_type, child_connection, semaphore_prefix),
     )
     result: Any = None
     process_started = False
+    process_forcibly_stopped = False
     child_connection_closed = False
     deadline = time.monotonic() + max(0, timeout_seconds)
     try:
@@ -1257,7 +1299,10 @@ def parse_and_save_supported_file_with_timeout(
                     f"parse worker exited without result (exit code {process.exitcode})"
                 )
     finally:
+        if process_started and result is not None and process.is_alive():
+            process.join(WORKER_NORMAL_EXIT_GRACE_SECONDS)
         if process_started and process.is_alive():
+            process_forcibly_stopped = True
             process.terminate()
             process.join(WORKER_TERMINATE_GRACE_SECONDS)
         if process_started and process.is_alive():
@@ -1265,6 +1310,16 @@ def parse_and_save_supported_file_with_timeout(
         if process_started:
             process.join(
                 max(0, WORKER_CLEANUP_RESERVE_SECONDS - WORKER_TERMINATE_GRACE_SECONDS)
+            )
+        worker_reaped = (
+            process_started and not process.is_alive() and process.exitcode is not None
+        )
+        if process_forcibly_stopped and worker_reaped:
+            _cleanup_killed_worker_semaphores(semaphore_prefix)
+        elif process_forcibly_stopped:
+            console.print(
+                "[yellow]Warning: parse worker could not be reaped; "
+                "leaving its semaphore namespace intact[/yellow]"
             )
         try:
             if not child_connection_closed:
