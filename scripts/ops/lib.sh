@@ -101,6 +101,33 @@ rmdir_lock() { rm -f "$1/pid" 2>/dev/null; rmdir "$1" 2>/dev/null || true; }
 
 is_locked() { [[ -d "$CACHE_DIR/$1.lock" ]]; }
 
+# Acquire a non-blocking advisory lock at an explicit path. Unlike acquire_lock,
+# this is suitable for a Railway persistent volume: the kernel releases flock
+# automatically after TERM, INT, or a hard container stop, while the lock file
+# remains as useful owner metadata. The caller must ensure flock(1) is present.
+acquire_path_lock() {
+  local lock_file="$1"
+  local name="${2:-$(basename "$lock_file")}" lock_fd owner
+
+  mkdir -p "$(dirname "$lock_file")"
+  exec {lock_fd}>>"$lock_file"
+  if ! flock -n "$lock_fd"; then
+    owner="$(tr '\n' ' ' < "$lock_file" 2>/dev/null || true)"
+    log "lock $name held (${owner:-owner unknown}) — refusing overlap"
+    eval "exec ${lock_fd}>&-"
+    return 1
+  fi
+
+  printf 'pid=%s started_at=%s\n' "$$" "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" > "$lock_file"
+  add_exit_hook "release_path_lock '$lock_fd'"
+}
+
+release_path_lock() {
+  local lock_fd="$1"
+  flock -u "$lock_fd" 2>/dev/null || true
+  eval "exec ${lock_fd}>&-"
+}
+
 # ── Tools ────────────────────────────────────────────────────────────────────
 
 railway_cli() { env -u RAILWAY_API_TOKEN railway "$@"; }

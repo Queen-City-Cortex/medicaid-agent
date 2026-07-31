@@ -40,7 +40,7 @@ def _preload_stdlib_typing() -> None:
 def parse_supported_file_worker(
     source_path_str: str,
     source_type: str,
-    result_queue,
+    result_connection,
 ) -> None:
     """Enter the heavy parser only after repairing the inherited import path."""
     try:
@@ -48,11 +48,13 @@ def parse_supported_file_worker(
 
         from pipeline.parse.converter import _parse_supported_file_worker
 
-        _parse_supported_file_worker(source_path_str, source_type, result_queue)
+        _parse_supported_file_worker(source_path_str, source_type, result_connection)
     except Exception as error:  # pragma: no cover - parent wrapper owns reporting
-        result_queue.put(
+        result_connection.send(
             {
                 "ok": False,
-                "error_message": f"{type(error).__name__}: {error}",
+                "error_message": f"{type(error).__name__}: {error}"[:4096],
             }
         )
+    finally:
+        result_connection.close()

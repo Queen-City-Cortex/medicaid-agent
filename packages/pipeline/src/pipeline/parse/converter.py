@@ -9,11 +9,12 @@ import re
 import subprocess
 import tempfile
 import time
+
 from datetime import datetime, timezone
 from html.parser import HTMLParser
 from multiprocessing import get_context
 from pathlib import Path
-from queue import Empty
+
 # Keep stdlib typing loaded before Docling; OpenCV's loader temporarily
 # exposes cv2/typing as a top-level import path in fresh spawn workers.
 from typing import Any
@@ -29,27 +30,38 @@ from docling_core.types.doc import DocItemLabel
 from docx import Document as WordDocument
 from openpyxl import load_workbook
 from pptx import Presentation
+from pypdf import PdfReader
 from rich.console import Console
 import xlrd
 
 from pipeline.config import (
     CRAWLER_DATA_DIR,
+    CRAWLER_DB_PATH,
     PARSED_DATA_DIR,
+    PIPELINE_DATA_DIR,
     PARSE_SUPPORTED_FILE_FORMATS,
     SOURCE_TYPE_DIRS,
 )
+from pipeline.crawler_registry import normalize_local_path, read_registry_rows
 from pipeline.parse.post_process import extract_section_number
 from pipeline.parse.worker import parse_supported_file_worker
+from pipeline.corpus_manifest import SOURCE_FAMILY_MAP
 
 console = Console()
-PARSE_CACHE_VERSION = 4
+PARSE_CACHE_VERSION = 5
+MIGRATABLE_PARSE_CACHE_VERSIONS = frozenset({4})
 DEFAULT_PARSE_TIMEOUT_SECONDS = 600
+WORKER_ERROR_MESSAGE_LIMIT = 4096
+WORKER_CLEANUP_RESERVE_SECONDS = 5
+WORKER_TERMINATE_GRACE_SECONDS = 2
+MIN_SUBSTANTIVE_PAGE_CHARS = 40
+ACTIVE_REGISTRY_STATUSES = frozenset({"downloaded", "updated", "unchanged", "error"})
 
 
-def create_converter() -> DocumentConverter:
-    """Create a Docling DocumentConverter with OCR and table extraction enabled."""
+def create_converter(*, do_ocr: bool = False) -> DocumentConverter:
+    """Create a Docling converter; callers opt into expensive OCR explicitly."""
     pipeline_options = PdfPipelineOptions()
-    pipeline_options.do_ocr = True
+    pipeline_options.do_ocr = do_ocr
     pipeline_options.do_table_structure = True
     pipeline_options.table_structure_options = TableStructureOptions(
         do_cell_matching=True,
@@ -107,19 +119,46 @@ def should_parse(source_path: Path, meta_path: Path) -> bool:
         return True
     try:
         meta = json.loads(meta_path.read_text())
-        if meta.get("parse_cache_version") != PARSE_CACHE_VERSION:
+        if meta.get("parse_status") != "parsed" or not meta.get("answer_ready", False):
             return True
         stored_hash = meta.get("source_file_hash") or meta.get("source_pdf_hash") or ""
         current_hash = f"sha256:{file_sha256(source_path)}"
-        return stored_hash != current_hash
-    except (json.JSONDecodeError, KeyError):
+        if stored_hash != current_hash:
+            return True
+        json_path, md_path, _ = parsed_output_paths(
+            source_path, source_type_for_file(source_path)
+        )
+        if meta.get("parse_cache_version") != PARSE_CACHE_VERSION:
+            return not _migrate_legacy_parsed_sidecar(
+                meta_path=meta_path,
+                meta=meta,
+                json_path=json_path,
+                md_path=md_path,
+            )
+        artifacts = meta.get("artifacts")
+        if not isinstance(artifacts, dict):
+            return True
+        for name, path in (("json", json_path), ("markdown", md_path)):
+            expected = artifacts.get(name, {}).get("sha256")
+            if not isinstance(expected, str) or not path.is_file():
+                return True
+            if f"sha256:{file_sha256(path)}" != expected:
+                return True
+        try:
+            payload = json.loads(json_path.read_text())
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+            return True
+        return not isinstance(payload, dict)
+    except (OSError, json.JSONDecodeError, KeyError, TypeError):
         return True
 
 
 def _new_synthetic_section(title: str | None, level: int) -> dict:
     normalized_title = title.strip() if title else None
     return {
-        "section_number": extract_section_number(normalized_title) if normalized_title else None,
+        "section_number": extract_section_number(normalized_title)
+        if normalized_title
+        else None,
         "title": normalized_title,
         "level": level,
         "content_text": "",
@@ -141,7 +180,7 @@ def _render_docling_table(table_entry: dict | None) -> str:
     if not isinstance(table_entry, dict):
         return ""
 
-    table_cells = (((table_entry.get("data") or {}).get("table_cells")) or [])
+    table_cells = ((table_entry.get("data") or {}).get("table_cells")) or []
     if not isinstance(table_cells, list):
         return ""
 
@@ -185,11 +224,15 @@ def _compute_quality_flags(
     reported_section_count: int | None = None,
 ) -> list[str]:
     quality_flags: list[str] = []
-    section_count = reported_section_count if reported_section_count is not None else len(sections)
+    section_count = (
+        reported_section_count if reported_section_count is not None else len(sections)
+    )
     if section_count == 0:
         quality_flags.append("zero_section_parse")
 
-    content_char_count = sum(len((section.get("content_text") or "").strip()) for section in sections)
+    content_char_count = sum(
+        len((section.get("content_text") or "").strip()) for section in sections
+    )
     if content_char_count == 0:
         quality_flags.append("title_only_or_blank_body")
 
@@ -216,7 +259,7 @@ def _render_synthetic_markdown(sections: list[dict]) -> str:
     return "\n\n".join(part for part in parts if part).strip()
 
 
-def parse_pdf(pdf_path: Path, converter: DocumentConverter) -> dict:
+def _parse_pdf_once(pdf_path: Path, converter: DocumentConverter) -> dict:
     """Parse a single PDF and return the parsed payload plus metadata."""
     start = time.time()
     result = converter.convert(str(pdf_path))
@@ -225,17 +268,29 @@ def parse_pdf(pdf_path: Path, converter: DocumentConverter) -> dict:
     doc = result.document
     doc_dict = doc.export_to_dict()
     md_text = doc.export_to_markdown()
-    table_entries = iter(doc_dict.get("tables", [])) if isinstance(doc_dict.get("tables"), list) else iter(())
+    table_entries = (
+        iter(doc_dict.get("tables", []))
+        if isinstance(doc_dict.get("tables"), list)
+        else iter(())
+    )
 
     section_count = 0
     table_count = 0
     content_char_count = 0
     synthetic_sections: list[dict] = []
     current_section: dict | None = None
+    page_content: dict[int, list[str]] = {}
 
     for item, level in doc.iterate_items():
         label = getattr(item, "label", None)
         text = (getattr(item, "text", "") or "").strip()
+        provenance = getattr(item, "prov", None) or []
+        item_pages = {
+            int(getattr(prov, "page_no", 0))
+            for prov in provenance
+            if isinstance(getattr(prov, "page_no", None), int)
+            and int(getattr(prov, "page_no")) > 0
+        }
 
         if label in (DocItemLabel.SECTION_HEADER, DocItemLabel.TITLE):
             if current_section is not None:
@@ -251,6 +306,8 @@ def parse_pdf(pdf_path: Path, converter: DocumentConverter) -> dict:
             if table_text:
                 _append_section_content(current_section, table_text)
                 content_char_count += len(table_text)
+                for page_no in item_pages:
+                    page_content.setdefault(page_no, []).append(table_text)
         elif label in (
             DocItemLabel.PARAGRAPH,
             DocItemLabel.LIST_ITEM,
@@ -265,6 +322,8 @@ def parse_pdf(pdf_path: Path, converter: DocumentConverter) -> dict:
                 current_section = _new_synthetic_section(None, 0)
             _append_section_content(current_section, text)
             content_char_count += len(text)
+            for page_no in item_pages:
+                page_content.setdefault(page_no, []).append(text)
 
     if current_section is not None:
         synthetic_sections.append(current_section)
@@ -277,7 +336,9 @@ def parse_pdf(pdf_path: Path, converter: DocumentConverter) -> dict:
     else:
         page_count = len(getattr(doc, "pages", []))
 
-    reported_section_count = section_count if section_count > 0 else len(synthetic_sections)
+    reported_section_count = (
+        section_count if section_count > 0 else len(synthetic_sections)
+    )
     quality_flags = _compute_quality_flags(
         synthetic_sections,
         reported_section_count=reported_section_count,
@@ -296,7 +357,120 @@ def parse_pdf(pdf_path: Path, converter: DocumentConverter) -> dict:
         "parse_status": "parsed",
         "quality_flags": quality_flags,
         "answer_ready": len(quality_flags) == 0,
+        "page_content": {
+            page_no: " ".join(parts) for page_no, parts in page_content.items()
+        },
     }
+
+
+def _normalize_pdf_text(text: str) -> str:
+    return " ".join(re.findall(r"[a-z0-9]+", text.lower()))
+
+
+def _page_has_images(page: Any) -> bool:
+    try:
+        resources = page.get("/Resources") or {}
+        xobjects = resources.get("/XObject") or {}
+        xobjects = (
+            xobjects.get_object() if hasattr(xobjects, "get_object") else xobjects
+        )
+        return any(
+            (obj.get_object() if hasattr(obj, "get_object") else obj).get("/Subtype")
+            == "/Image"
+            for obj in xobjects.values()
+        )
+    except Exception:
+        return True
+
+
+def evaluate_no_ocr_pdf(pdf_path: Path, parsed: dict) -> tuple[bool, str, list[dict]]:
+    """Prove every nonblank source page survived no-OCR parsing, or fail closed."""
+    evidence: list[dict] = []
+    try:
+        pages = PdfReader(str(pdf_path), strict=False).pages
+        for page_no, page in enumerate(pages, start=1):
+            source = _normalize_pdf_text(page.extract_text() or "")
+            extracted = _normalize_pdf_text(
+                parsed.get("page_content", {}).get(page_no, "")
+            )
+            has_images = _page_has_images(page)
+            source_tokens = source.split()
+            extracted_tokens = extracted.split()
+            sequence_matches = source_tokens == extracted_tokens
+            coverage = 1.0 if sequence_matches else 0.0
+            source_chars = len(source.replace(" ", ""))
+            extracted_chars = len(extracted.replace(" ", ""))
+            blank = source_chars == 0 and not has_images
+            evidence.append(
+                {
+                    "page": page_no,
+                    "source_text_chars": source_chars,
+                    "docling_text_chars": extracted_chars,
+                    "normalized_token_coverage": round(coverage, 3),
+                    "normalized_token_sequence_matches": sequence_matches,
+                    "has_images": has_images,
+                    "source_blank": blank,
+                }
+            )
+            if blank:
+                continue
+            if source_chars < MIN_SUBSTANTIVE_PAGE_CHARS:
+                return False, f"page_{page_no}_image_or_sparse_source", evidence
+            if extracted_chars < MIN_SUBSTANTIVE_PAGE_CHARS:
+                return False, f"page_{page_no}_missing_substantive_provenance", evidence
+            character_coverage = extracted_chars / source_chars if source_chars else 1.0
+            evidence[-1]["normalized_character_coverage"] = round(character_coverage, 3)
+            if not sequence_matches or character_coverage != 1.0:
+                return False, f"page_{page_no}_insufficient_text_coverage", evidence
+            if int(parsed.get("table_count", 0)) > 0:
+                return False, "table_structure_requires_ocr", evidence
+    except Exception as error:
+        evidence.append(
+            {"preflight_error": f"{type(error).__name__}: {str(error)[:500]}"}
+        )
+        return False, "pypdf_preflight_failed", evidence
+    if not evidence:
+        return False, "pdf_has_no_pages", evidence
+    return True, "all_nonblank_pages_match_source_token_sequence_exactly", evidence
+
+
+def parse_pdf(pdf_path: Path, converter: DocumentConverter) -> dict:
+    """Accept no-OCR only after conservative page-level completeness proof."""
+    first = _parse_pdf_once(pdf_path, converter)
+    no_ocr_accepted, no_ocr_reason, page_coverage = evaluate_no_ocr_pdf(pdf_path, first)
+    attempts = [
+        {
+            "attempt": 1,
+            "ocr": False,
+            "parse_time_seconds": first["parse_time_seconds"],
+            "quality_flags": first["quality_flags"],
+        }
+    ]
+    selected = first
+    ocr_attempted = not (first["answer_ready"] and no_ocr_accepted)
+    if ocr_attempted:
+        fallback = _parse_pdf_once(pdf_path, create_converter(do_ocr=True))
+        attempts.append(
+            {
+                "attempt": 2,
+                "ocr": True,
+                "parse_time_seconds": fallback["parse_time_seconds"],
+                "quality_flags": fallback["quality_flags"],
+            }
+        )
+        selected = fallback
+
+    selected["ocr_attempted"] = ocr_attempted
+    selected["ocr_used"] = ocr_attempted
+    selected["no_ocr_acceptance_reason"] = no_ocr_reason if no_ocr_accepted else None
+    selected["no_ocr_rejection_reason"] = None if no_ocr_accepted else no_ocr_reason
+    selected["page_coverage_evidence"] = page_coverage
+    selected.pop("page_content", None)
+    selected["parse_attempts"] = attempts
+    selected["parse_time_seconds"] = round(
+        sum(float(attempt["parse_time_seconds"]) for attempt in attempts), 2
+    )
+    return selected
 
 
 def _docx_heading_level(style_name: str | None) -> int | None:
@@ -352,8 +526,12 @@ def parse_docx(docx_path: Path) -> dict:
     if current_section is not None:
         sections.append(current_section)
 
-    quality_flags = _compute_quality_flags(sections, reported_section_count=len(sections))
-    content_char_count = sum(len((section.get("content_text") or "").strip()) for section in sections)
+    quality_flags = _compute_quality_flags(
+        sections, reported_section_count=len(sections)
+    )
+    content_char_count = sum(
+        len((section.get("content_text") or "").strip()) for section in sections
+    )
 
     return {
         "payload": {
@@ -384,7 +562,9 @@ def parse_xlsx(xlsx_path: Path) -> dict:
         for sheet in workbook.worksheets:
             rows: list[list[str]] = []
             for row in sheet.iter_rows(values_only=True):
-                values = [str(value).strip() if value is not None else "" for value in row]
+                values = [
+                    str(value).strip() if value is not None else "" for value in row
+                ]
                 if any(values):
                     rows.append(values)
 
@@ -399,8 +579,12 @@ def parse_xlsx(xlsx_path: Path) -> dict:
     finally:
         workbook.close()
 
-    quality_flags = _compute_quality_flags(sections, reported_section_count=len(sections))
-    content_char_count = sum(len((section.get("content_text") or "").strip()) for section in sections)
+    quality_flags = _compute_quality_flags(
+        sections, reported_section_count=len(sections)
+    )
+    content_char_count = sum(
+        len((section.get("content_text") or "").strip()) for section in sections
+    )
 
     return {
         "payload": {
@@ -440,9 +624,7 @@ def parse_xls(xls_path: Path) -> dict:
                 continue
 
             section = _new_synthetic_section(sheet.name, 1)
-            section["content_text"] = "\n".join(
-                " | ".join(values) for values in rows
-            )
+            section["content_text"] = "\n".join(" | ".join(values) for values in rows)
             section["has_tables"] = True
             sections.append(section)
     finally:
@@ -461,9 +643,7 @@ def parse_xls(xls_path: Path) -> dict:
         "section_count": len(sections),
         "table_count": len(sections),
         "page_count": len(sections),
-        "content_char_count": sum(
-            len(section["content_text"]) for section in sections
-        ),
+        "content_char_count": sum(len(section["content_text"]) for section in sections),
         "parse_time_seconds": round(time.time() - start, 2),
         "source_format": "xls",
         "parse_backend": "xlrd",
@@ -490,10 +670,7 @@ def parse_pptx(pptx_path: Path) -> dict:
         section = _new_synthetic_section(title, 1)
 
         for shape in slide.shapes:
-            if (
-                getattr(shape, "has_text_frame", False)
-                and shape is not title_shape
-            ):
+            if getattr(shape, "has_text_frame", False) and shape is not title_shape:
                 _append_section_content(section, shape.text)
             if getattr(shape, "has_table", False):
                 rows = [
@@ -520,9 +697,7 @@ def parse_pptx(pptx_path: Path) -> dict:
         "section_count": len(sections),
         "table_count": table_count,
         "page_count": len(sections),
-        "content_char_count": sum(
-            len(section["content_text"]) for section in sections
-        ),
+        "content_char_count": sum(len(section["content_text"]) for section in sections),
         "parse_time_seconds": round(time.time() - start, 2),
         "source_format": "pptx",
         "parse_backend": "python-pptx",
@@ -618,7 +793,9 @@ class _ArticleHTMLParser(HTMLParser):
             title = " ".join("".join(self.buffer).split())
             if self.current_section is not None:
                 self.sections.append(self.current_section)
-            self.current_section = _new_synthetic_section(title or None, self.heading_level)
+            self.current_section = _new_synthetic_section(
+                title or None, self.heading_level
+            )
             self.heading_level = None
             self.buffer = []
         elif tag in {"p", "li"} and self.block_depth:
@@ -632,8 +809,10 @@ class _ArticleHTMLParser(HTMLParser):
                 self.buffer = []
 
     def handle_data(self, data: str) -> None:
-        if self.article_depth and not self.ignored_depth and (
-            self.heading_level is not None or self.block_depth > 0
+        if (
+            self.article_depth
+            and not self.ignored_depth
+            and (self.heading_level is not None or self.block_depth > 0)
         ):
             self.buffer.append(data)
 
@@ -657,7 +836,9 @@ def parse_html(html_path: Path) -> dict:
     parser = _ArticleHTMLParser()
     parser.feed(html)
     sections = parser.finish()
-    quality_flags = _compute_quality_flags(sections, reported_section_count=len(sections))
+    quality_flags = _compute_quality_flags(
+        sections, reported_section_count=len(sections)
+    )
     content_char_count = sum(
         len((section.get("content_text") or "").strip()) for section in sections
     )
@@ -687,6 +868,86 @@ def parse_html(html_path: Path) -> dict:
     }
 
 
+def _attempt_counts(meta_path: Path, source_hash: str) -> tuple[int, int]:
+    try:
+        current = json.loads(meta_path.read_text()) if meta_path.exists() else {}
+        total = (
+            max(
+                0,
+                int(
+                    current.get("attempt_count_total", current.get("attempt_count", 0))
+                ),
+            )
+            + 1
+        )
+        same_generation = (
+            current.get("source_file_hash") == source_hash
+            and current.get("parse_cache_version") == PARSE_CACHE_VERSION
+        )
+        previous_generation = current.get(
+            "attempt_count_generation", current.get("attempt_count", 0)
+        )
+        generation = max(0, int(previous_generation)) + 1 if same_generation else 1
+        return generation, total
+    except (json.JSONDecodeError, TypeError, ValueError):
+        return 1, 1
+
+
+def _atomic_write_text(path: Path, content: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, temporary_name = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    temporary = Path(temporary_name)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            handle.write(content)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, path)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def _migrate_legacy_parsed_sidecar(
+    *,
+    meta_path: Path,
+    meta: dict[str, Any],
+    json_path: Path,
+    md_path: Path,
+) -> bool:
+    """Upgrade a valid v4 success in place without re-running expensive OCR."""
+    if meta.get("parse_cache_version") not in MIGRATABLE_PARSE_CACHE_VERSIONS:
+        return False
+    if (
+        not meta.get("answer_ready", False)
+        or not json_path.is_file()
+        or not md_path.is_file()
+    ):
+        return False
+    try:
+        payload = json.loads(json_path.read_text())
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        return False
+    if not isinstance(payload, dict):
+        return False
+
+    migrated = dict(meta)
+    migrated.update(
+        {
+            "parse_cache_version": PARSE_CACHE_VERSION,
+            "attempt_count_generation": 0,
+            "attempt_count_total": max(0, int(meta.get("attempt_count", 0))),
+            "artifacts": {
+                "json": {"sha256": f"sha256:{file_sha256(json_path)}"},
+                "markdown": {"sha256": f"sha256:{file_sha256(md_path)}"},
+            },
+            "cache_migrated_at": datetime.now(timezone.utc).isoformat(),
+            "cache_migrated_from_version": meta.get("parse_cache_version"),
+        }
+    )
+    _atomic_write_text(meta_path, json.dumps(migrated, indent=2))
+    return True
+
+
 def save_parsed(
     source_path: Path,
     parsed: dict,
@@ -695,10 +956,11 @@ def save_parsed(
     """Save parsed JSON, markdown, and metadata sidecar."""
     json_path, md_path, meta_path = parsed_output_paths(source_path, source_type)
 
-    json_path.write_text(json.dumps(parsed["payload"], indent=2, default=str))
-    md_path.write_text(parsed["markdown"])
-
     source_hash = f"sha256:{file_sha256(source_path)}"
+    attempt_generation, attempt_total = _attempt_counts(meta_path, source_hash)
+    _atomic_write_text(json_path, json.dumps(parsed["payload"], indent=2, default=str))
+    _atomic_write_text(md_path, parsed["markdown"])
+
     meta = {
         "source_file": str(source_path),
         "source_file_hash": source_hash,
@@ -707,6 +969,9 @@ def save_parsed(
         "parsed_at": datetime.now(timezone.utc).isoformat(),
         "docling_version": getattr(docling, "__version__", "unknown"),
         "parse_cache_version": PARSE_CACHE_VERSION,
+        "attempt_count": attempt_generation,
+        "attempt_count_generation": attempt_generation,
+        "attempt_count_total": attempt_total,
         "source_format": parsed["source_format"],
         "parse_backend": parsed["parse_backend"],
         "parse_status": parsed["parse_status"],
@@ -719,8 +984,18 @@ def save_parsed(
         "parse_time_seconds": parsed["parse_time_seconds"],
         "source_modified_date": parsed.get("source_modified_date"),
         "warnings": parsed["quality_flags"],
+        "ocr_attempted": parsed.get("ocr_attempted", False),
+        "ocr_used": parsed.get("ocr_used", False),
+        "parse_attempts": parsed.get("parse_attempts", []),
+        "no_ocr_acceptance_reason": parsed.get("no_ocr_acceptance_reason"),
+        "no_ocr_rejection_reason": parsed.get("no_ocr_rejection_reason"),
+        "page_coverage_evidence": parsed.get("page_coverage_evidence", []),
+        "artifacts": {
+            "json": {"sha256": f"sha256:{file_sha256(json_path)}"},
+            "markdown": {"sha256": f"sha256:{file_sha256(md_path)}"},
+        },
     }
-    meta_path.write_text(json.dumps(meta, indent=2))
+    _atomic_write_text(meta_path, json.dumps(meta, indent=2))
 
     return json_path
 
@@ -729,6 +1004,7 @@ def save_parse_error(source_path: Path, source_type: str, error: Exception) -> N
     """Persist parse failure metadata so audit-corpus can classify exceptions explicitly."""
     _, _, meta_path = parsed_output_paths(source_path, source_type)
     source_hash = f"sha256:{file_sha256(source_path)}"
+    attempt_generation, attempt_total = _attempt_counts(meta_path, source_hash)
     meta = {
         "source_file": str(source_path),
         "source_file_hash": source_hash,
@@ -736,6 +1012,11 @@ def save_parse_error(source_path: Path, source_type: str, error: Exception) -> N
         "source_pdf_hash": source_hash,
         "parsed_at": datetime.now(timezone.utc).isoformat(),
         "docling_version": getattr(docling, "__version__", "unknown"),
+        "parse_cache_version": PARSE_CACHE_VERSION,
+        "failure_kind": "timeout" if isinstance(error, TimeoutError) else "exception",
+        "attempt_count": attempt_generation,
+        "attempt_count_generation": attempt_generation,
+        "attempt_count_total": attempt_total,
         "source_format": source_path.suffix.lower().lstrip("."),
         "parse_backend": {
             ".pdf": "docling",
@@ -757,7 +1038,7 @@ def save_parse_error(source_path: Path, source_type: str, error: Exception) -> N
         "parse_time_seconds": 0,
         "warnings": ["parse_exception"],
     }
-    meta_path.write_text(json.dumps(meta, indent=2))
+    _atomic_write_text(meta_path, json.dumps(meta, indent=2))
 
 
 def save_unsupported_format(
@@ -767,12 +1048,17 @@ def save_unsupported_format(
     """Persist an explicit quarantine sidecar for an unsupported artifact."""
     _, _, meta_path = parsed_output_paths(source_path, source_type)
     source_hash = f"sha256:{file_sha256(source_path)}"
+    attempt_generation, attempt_total = _attempt_counts(meta_path, source_hash)
     suffix = source_path.suffix.lower() or "(none)"
     meta = {
         "source_file": str(source_path),
         "source_file_hash": source_hash,
         "parsed_at": datetime.now(timezone.utc).isoformat(),
         "parse_cache_version": PARSE_CACHE_VERSION,
+        "failure_kind": "unsupported_format",
+        "attempt_count": attempt_generation,
+        "attempt_count_generation": attempt_generation,
+        "attempt_count_total": attempt_total,
         "source_format": suffix.lstrip("."),
         "parse_backend": "unsupported",
         "parse_status": "unsupported_format",
@@ -788,7 +1074,7 @@ def save_unsupported_format(
         "parse_time_seconds": 0,
         "warnings": ["unsupported_format"],
     }
-    meta_path.write_text(json.dumps(meta, indent=2))
+    _atomic_write_text(meta_path, json.dumps(meta, indent=2))
 
 
 def discover_source_files(source_type: str | None = None) -> list[Path]:
@@ -832,9 +1118,7 @@ def discover_unsupported_files(
         )
 
     if source_type:
-        collect_from_directory(
-            SOURCE_TYPE_DIRS.get(source_type, source_type)
-        )
+        collect_from_directory(SOURCE_TYPE_DIRS.get(source_type, source_type))
     else:
         for dir_name in SOURCE_TYPE_DIRS.values():
             collect_from_directory(dir_name)
@@ -896,21 +1180,42 @@ def parse_and_save_supported_file(
 def _parse_supported_file_worker(
     source_path_str: str,
     source_type: str,
-    result_queue: Any,
+    result_connection: Any,
 ) -> None:
     source_path = Path(source_path_str)
     try:
         converter = create_converter() if source_path.suffix.lower() == ".pdf" else None
         parsed = parse_supported_file(source_path, converter)
         save_parsed(source_path, parsed, source_type)
-        result_queue.put({"ok": True, "summary": summarize_parsed_output(parsed)})
+        result_connection.send({"ok": True, "summary": summarize_parsed_output(parsed)})
     except Exception as error:  # pragma: no cover - exercised via parent wrapper
-        result_queue.put(
+        result_connection.send(
             {
                 "ok": False,
-                "error_message": f"{type(error).__name__}: {error}",
+                "error_message": (f"{type(error).__name__}: {error}")[
+                    :WORKER_ERROR_MESSAGE_LIMIT
+                ],
             }
         )
+
+
+def _validate_worker_result(result: Any) -> dict:
+    if not isinstance(result, dict) or type(result.get("ok")) is not bool:
+        raise RuntimeError("parse worker returned malformed result")
+    if result["ok"]:
+        summary = result.get("summary")
+        if not isinstance(summary, dict):
+            raise RuntimeError("parse worker returned malformed success result")
+        for key in ("section_count", "table_count", "parse_time_seconds"):
+            value = summary.get(key)
+            if not isinstance(value, (int, float)) or isinstance(value, bool):
+                raise RuntimeError("parse worker returned malformed success result")
+        return result
+    message = result.get("error_message")
+    if not isinstance(message, str) or not message:
+        raise RuntimeError("parse worker returned malformed error result")
+    result["error_message"] = message[:WORKER_ERROR_MESSAGE_LIMIT]
+    return result
 
 
 def parse_and_save_supported_file_with_timeout(
@@ -919,120 +1224,528 @@ def parse_and_save_supported_file_with_timeout(
     timeout_seconds: int,
 ) -> dict:
     ctx = get_context("spawn")
-    result_queue = ctx.Queue()
+    parent_connection, child_connection = ctx.Pipe(duplex=False)
     process = ctx.Process(
         target=parse_supported_file_worker,
-        args=(str(source_path), source_type, result_queue),
+        args=(str(source_path), source_type, child_connection),
     )
-    process.start()
-    process.join(timeout_seconds)
-
-    if process.is_alive():
-        process.terminate()
-        process.join(5)
-        if process.is_alive():
-            process.kill()
-            process.join()
-        raise TimeoutError(
-            f"parse timed out after {timeout_seconds} seconds"
-        )
-
+    result: Any = None
+    process_started = False
+    child_connection_closed = False
+    deadline = time.monotonic() + max(0, timeout_seconds)
     try:
-        result = result_queue.get(timeout=1)
-    except Empty as error:
-        exit_code = process.exitcode
-        raise RuntimeError(
-            f"parse worker exited without result (exit code {exit_code})"
-        ) from error
+        process.start()
+        process_started = True
+        child_connection.close()
+        child_connection_closed = True
+        while True:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise TimeoutError(f"parse timed out after {timeout_seconds} seconds")
+            if parent_connection.poll(min(0.05, remaining)):
+                try:
+                    result = parent_connection.recv()
+                except (EOFError, OSError) as error:
+                    raise RuntimeError(
+                        f"parse worker exited without result (exit code {process.exitcode})"
+                    ) from error
+                break
+            if not process.is_alive():
+                if parent_connection.poll(0):
+                    continue
+                raise RuntimeError(
+                    f"parse worker exited without result (exit code {process.exitcode})"
+                )
     finally:
-        result_queue.close()
-        result_queue.join_thread()
+        if process_started and process.is_alive():
+            process.terminate()
+            process.join(WORKER_TERMINATE_GRACE_SECONDS)
+        if process_started and process.is_alive():
+            process.kill()
+        if process_started:
+            process.join(
+                max(0, WORKER_CLEANUP_RESERVE_SECONDS - WORKER_TERMINATE_GRACE_SECONDS)
+            )
+        try:
+            if not child_connection_closed:
+                child_connection.close()
+        finally:
+            parent_connection.close()
 
+    result = _validate_worker_result(result)
     if not result.get("ok"):
         raise RuntimeError(result.get("error_message") or "parse worker failed")
 
     return result["summary"]
 
 
+def _inspect_parse_artifacts(source_path: Path) -> dict[str, Any] | None:
+    source_type = source_type_for_file(source_path)
+    required = SOURCE_FAMILY_MAP.get(source_type)
+    required_for_answering = (
+        required.required_for_answering if required is not None else True
+    )
+    base = {
+        "source_file": str(source_path),
+        "source_type": source_type,
+        "required_for_answering": required_for_answering,
+    }
+    if not source_path.exists() or not source_path.is_file():
+        return {
+            **base,
+            "parse_status": "missing_source_file",
+            "attempt_count_generation": 0,
+            "retryable": False,
+        }
+    json_path, md_path, meta_path = parsed_output_paths(source_path, source_type)
+    try:
+        meta = json.loads(meta_path.read_text())
+    except FileNotFoundError:
+        return {
+            **base,
+            "parse_status": "missing_sidecar",
+            "attempt_count_generation": 0,
+        }
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        return {
+            **base,
+            "parse_status": "malformed_sidecar",
+            "attempt_count_generation": 0,
+        }
+    if not isinstance(meta, dict):
+        return {
+            **base,
+            "parse_status": "malformed_sidecar",
+            "attempt_count_generation": 0,
+        }
+    if (
+        meta.get("parse_status") == "parsed"
+        and meta.get("answer_ready", False)
+        and meta.get("parse_cache_version") != PARSE_CACHE_VERSION
+    ):
+        # Migrate valid v4 successes before selecting a failure-only recovery
+        # batch, so deploying the new cache contract does not reparse thousands
+        # of already-good OCR artifacts.
+        if not should_parse(source_path, meta_path):
+            return None
+    attempts = meta.get("attempt_count_generation", meta.get("attempt_count", 0))
+    try:
+        attempts = max(0, int(attempts))
+    except (TypeError, ValueError):
+        attempts = 0
+    status = meta.get("parse_status")
+    if status != "parsed":
+        return {
+            **base,
+            "parse_status": status or "malformed_sidecar",
+            "attempt_count_generation": attempts,
+        }
+    if not meta.get("answer_ready", False):
+        return {
+            **base,
+            "parse_status": "not_answer_ready",
+            "attempt_count_generation": attempts,
+        }
+    current_hash = f"sha256:{file_sha256(source_path)}"
+    if (
+        meta.get("source_file_hash", meta.get("source_pdf_hash")) != current_hash
+        or meta.get("parse_cache_version") != PARSE_CACHE_VERSION
+    ):
+        return {**base, "parse_status": "stale_sidecar", "attempt_count_generation": 0}
+    artifacts = meta.get("artifacts")
+    for name, path in (("json", json_path), ("markdown", md_path)):
+        if not path.is_file():
+            return {
+                **base,
+                "parse_status": "missing_output_artifact",
+                "artifact": name,
+                "attempt_count_generation": attempts,
+            }
+        expected = (
+            artifacts.get(name, {}).get("sha256")
+            if isinstance(artifacts, dict)
+            else None
+        )
+        if not isinstance(expected, str) or expected != f"sha256:{file_sha256(path)}":
+            return {
+                **base,
+                "parse_status": "invalid_output_artifact",
+                "artifact": name,
+                "attempt_count_generation": attempts,
+            }
+    try:
+        if not isinstance(json.loads(json_path.read_text()), dict):
+            raise ValueError("parsed JSON is not an object")
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError, ValueError):
+        return {
+            **base,
+            "parse_status": "invalid_output_artifact",
+            "artifact": "json",
+            "attempt_count_generation": attempts,
+        }
+    return None
+
+
+def _active_registry_files(
+    source_files: list[Path] | None = None,
+    *,
+    selected_file: Path | None = None,
+    selected_source_type: str | None = None,
+) -> list[Path]:
+    files = discover_source_files() if source_files is None else source_files
+    registry_rows = read_registry_rows()
+    if registry_rows:
+        active_paths = {
+            (
+                Path(normalized)
+                if Path(normalized).is_absolute()
+                else CRAWLER_DATA_DIR / normalized
+            )
+            for row in registry_rows
+            if row.get("status") in ACTIVE_REGISTRY_STATUSES
+            and (normalized := normalize_local_path(row.get("local_path")))
+        }
+        if selected_file is not None:
+            files = [selected_file]
+        elif selected_source_type is not None:
+            files = [
+                path
+                for path in active_paths
+                if source_type_for_file(path) == selected_source_type
+            ]
+        else:
+            files = list(active_paths)
+    return sorted(files, key=str)
+
+
+def inventory_parse_failures(
+    source_files: list[Path] | None = None,
+    *,
+    selected_file: Path | None = None,
+    selected_source_type: str | None = None,
+) -> list[dict[str, Any]]:
+    """Inventory active registry sources, classifying required and optional failures."""
+    if CRAWLER_DB_PATH.exists() and not read_registry_rows():
+        return [
+            {
+                "source_file": str(CRAWLER_DB_PATH),
+                "source_type": "crawler_registry",
+                "parse_status": "empty_registry",
+                "required_for_answering": True,
+                "attempt_count_generation": 0,
+                "retryable": False,
+            }
+        ]
+    return [
+        failure
+        for path in _active_registry_files(
+            source_files,
+            selected_file=selected_file,
+            selected_source_type=selected_source_type,
+        )
+        if (failure := _inspect_parse_artifacts(path)) is not None
+    ]
+
+
+def _existing_file_hash(path: Path) -> str | None:
+    if not path.exists() or not path.is_file():
+        return None
+    return f"sha256:{file_sha256(path)}"
+
+
+def build_parse_inventory_evidence(
+    source_files: list[Path] | None = None,
+    *,
+    selected_file: Path | None = None,
+    selected_source_type: str | None = None,
+) -> dict[str, Any]:
+    """Return deterministic active-source evidence for release mutation checks."""
+    if CRAWLER_DB_PATH.exists() and not read_registry_rows():
+        records = [
+            {
+                "source_file": normalize_local_path(str(CRAWLER_DB_PATH)),
+                "source_type": "crawler_registry",
+                "required_for_answering": True,
+                "source_hash": f"sha256:{file_sha256(CRAWLER_DB_PATH)}",
+                "parse_status": "empty_registry",
+            }
+        ]
+        encoded = json.dumps(records, sort_keys=True, separators=(",", ":")).encode()
+        return {
+            "inventory_hash": f"sha256:{hashlib.sha256(encoded).hexdigest()}",
+            "active_source_count": 0,
+            "unresolved_count": 1,
+            "unresolved_required_count": 1,
+            "unresolved_optional_count": 0,
+            "unresolved": records,
+            "registry_status": "empty",
+        }
+    records: list[dict[str, Any]] = []
+    unresolved: list[dict[str, Any]] = []
+    for path in _active_registry_files(
+        source_files,
+        selected_file=selected_file,
+        selected_source_type=selected_source_type,
+    ):
+        source_type = source_type_for_file(path)
+        family = SOURCE_FAMILY_MAP.get(source_type)
+        failure = _inspect_parse_artifacts(path)
+        json_path, markdown_path, metadata_path = parsed_output_paths(path, source_type)
+        record = {
+            "source_file": normalize_local_path(str(path)),
+            "source_type": source_type,
+            "required_for_answering": (
+                family.required_for_answering if family is not None else True
+            ),
+            "source_hash": _existing_file_hash(path),
+            "parse_status": failure.get("parse_status") if failure else "parsed",
+            "artifact_hashes": {
+                "json": _existing_file_hash(json_path),
+                "markdown": _existing_file_hash(markdown_path),
+                "metadata": _existing_file_hash(metadata_path),
+            },
+        }
+        records.append(record)
+        if failure:
+            unresolved.append(record)
+    encoded = json.dumps(records, sort_keys=True, separators=(",", ":")).encode()
+    return {
+        "inventory_hash": f"sha256:{hashlib.sha256(encoded).hexdigest()}",
+        "active_source_count": len(records),
+        "unresolved_count": len(unresolved),
+        "unresolved_required_count": sum(
+            1 for record in unresolved if record["required_for_answering"]
+        ),
+        "unresolved_optional_count": sum(
+            1 for record in unresolved if not record["required_for_answering"]
+        ),
+        "unresolved": unresolved,
+    }
+
+
+def _write_run_state(state: dict) -> Path:
+    state_path = PIPELINE_DATA_DIR / "run-state" / "latest-parse.json"
+    state_path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = state_path.with_suffix(".tmp")
+    temporary.write_text(json.dumps(state, indent=2, default=str))
+    os.replace(temporary, state_path)
+    return state_path
+
+
 def parse_all(
     source_type: str | None = None,
     force: bool = False,
     file_path: Path | None = None,
+    *,
+    retry_failures: bool = False,
+    limit: int | None = None,
+    max_runtime_seconds: int | None = None,
+    max_consecutive_timeouts: int | None = None,
 ) -> dict:
-    """Parse all supported source files. Returns stats dict."""
+    """Parse selected source files and persist an atomic, resumable run summary."""
     converter: DocumentConverter | None = None
     parse_timeout_seconds = get_parse_timeout_seconds()
+    started = time.monotonic()
+    started_at = datetime.now(timezone.utc).isoformat()
+    terminal_state = "running"
     stats = {
         "parsed": 0,
         "skipped": 0,
         "errors": 0,
         "timed_out": 0,
         "quarantined": 0,
+        "remaining_failures": 0,
+        "remaining_required_failures": 0,
+        "remaining_optional_failures": 0,
+        "terminal_state": terminal_state,
     }
 
     if file_path:
         if file_path.suffix.lower() in PARSE_SUPPORTED_FILE_FORMATS:
-            source_files = [file_path]
+            all_source_files = [file_path]
             unsupported_files: list[Path] = []
         else:
-            source_files = []
+            all_source_files = []
             unsupported_files = [file_path]
     else:
-        source_files = discover_source_files(source_type)
+        all_source_files = discover_source_files(source_type)
         unsupported_files = discover_unsupported_files(source_type)
 
-    for unsupported_path in unsupported_files:
-        source_type_name = source_type_for_file(unsupported_path)
-        save_unsupported_format(unsupported_path, source_type_name)
-        stats["quarantined"] += 1
-        console.print(
-            f"  Quarantined {unsupported_path.name} "
-            f"(unsupported format {unsupported_path.suffix.lower() or '(none)'})"
-        )
-
-    console.print(f"[bold]Found {len(source_files)} supported source files to process[/bold]")
-
-    total_files = len(source_files)
-    for index, source_path in enumerate(source_files, start=1):
-        source_type_name = source_type_for_file(source_path)
-        _, _, meta_path = parsed_output_paths(source_path, source_type_name)
-
-        if not force and not should_parse(source_path, meta_path):
-            stats["skipped"] += 1
-            console.print(f"  [{index}/{total_files}] Skipping {source_path.name} (cached)")
-            continue
-
-        try:
-            console.print(f"  [{index}/{total_files}] Parsing {source_path.name}...", end=" ")
-            if source_path.suffix.lower() == ".pdf" and parse_timeout_seconds > 0:
-                parsed_summary = parse_and_save_supported_file_with_timeout(
-                    source_path,
-                    source_type_name,
-                    parse_timeout_seconds,
-                )
-            else:
-                converter_to_use: DocumentConverter | None = None
-                if source_path.suffix.lower() == ".pdf":
-                    if converter is None:
-                        converter = create_converter()
-                    converter_to_use = converter
-                parsed_summary = parse_and_save_supported_file(
-                    source_path,
-                    source_type_name,
-                    converter_to_use,
-                )
-            console.print(
-                f"[green]OK[/green] "
-                f"({parsed_summary['section_count']} sections, "
-                f"{parsed_summary['table_count']} tables, "
-                f"{parsed_summary['parse_time_seconds']}s)"
+    source_files = all_source_files
+    selected_inventory_file = (
+        file_path
+        if file_path and file_path.suffix.lower() in PARSE_SUPPORTED_FILE_FORMATS
+        else None
+    )
+    if retry_failures:
+        failures_by_path = {
+            Path(failure["source_file"]): failure
+            for failure in inventory_parse_failures(
+                source_files,
+                selected_file=selected_inventory_file,
+                selected_source_type=source_type,
             )
-            stats["parsed"] += 1
-        except Exception as e:
-            save_parse_error(source_path, source_type_name, e)
-            console.print(f"[red]ERROR: {e}[/red]")
-            stats["errors"] += 1
-            if isinstance(e, TimeoutError):
-                stats["timed_out"] += 1
+            if failure.get("retryable", True)
+        }
+        source_files = sorted(
+            failures_by_path,
+            key=lambda path: (
+                failures_by_path[path].get("attempt_count_generation", 0),
+                str(path),
+            ),
+        )
+    if limit is not None:
+        source_files = source_files[: max(0, limit)]
+
+    run_state = {
+        "started_at": started_at,
+        "status": "running",
+        "source_type": source_type,
+        "retry_failures": retry_failures,
+        "selected_file_count": len(source_files),
+        "total_file_count": len(all_source_files),
+        "processed_file_count": 0,
+        "last_source_file": None,
+    }
+    _write_run_state(run_state)
+
+    try:
+        for unsupported_path in unsupported_files:
+            source_type_name = source_type_for_file(unsupported_path)
+            save_unsupported_format(unsupported_path, source_type_name)
+            stats["quarantined"] += 1
+            console.print(
+                f"  Quarantined {unsupported_path.name} "
+                f"(unsupported format {unsupported_path.suffix.lower() or '(none)'})"
+            )
+
+        console.print(
+            f"[bold]Found {len(source_files)} supported source files to process[/bold]"
+        )
+        consecutive_timeouts = 0
+        total_files = len(source_files)
+        for index, source_path in enumerate(source_files, start=1):
+            worker_timeout = parse_timeout_seconds
+            if max_runtime_seconds is not None:
+                remaining_runtime = max_runtime_seconds - (time.monotonic() - started)
+                available_worker_time = (
+                    remaining_runtime - WORKER_CLEANUP_RESERVE_SECONDS
+                )
+                if available_worker_time <= 0:
+                    terminal_state = "max_runtime_reached"
+                    break
+                worker_timeout = min(
+                    parse_timeout_seconds, max(1, int(available_worker_time))
+                )
+
+            source_type_name = source_type_for_file(source_path)
+            _, _, meta_path = parsed_output_paths(source_path, source_type_name)
+            run_state["last_source_file"] = str(source_path)
+
+            if not force and not should_parse(source_path, meta_path):
+                stats["skipped"] += 1
+                run_state["processed_file_count"] += 1
+                run_state["stats"] = {**stats, "terminal_state": "running"}
+                _write_run_state(run_state)
+                console.print(
+                    f"  [{index}/{total_files}] Skipping {source_path.name} (cached)"
+                )
+                continue
+
+            try:
+                console.print(
+                    f"  [{index}/{total_files}] Parsing {source_path.name}...", end=" "
+                )
+                if source_path.suffix.lower() == ".pdf" and parse_timeout_seconds > 0:
+                    parsed_summary = parse_and_save_supported_file_with_timeout(
+                        source_path, source_type_name, worker_timeout
+                    )
+                else:
+                    converter_to_use: DocumentConverter | None = None
+                    if source_path.suffix.lower() == ".pdf":
+                        if converter is None:
+                            converter = create_converter()
+                        converter_to_use = converter
+                    parsed_summary = parse_and_save_supported_file(
+                        source_path, source_type_name, converter_to_use
+                    )
+                console.print(
+                    f"[green]OK[/green] ({parsed_summary['section_count']} sections, "
+                    f"{parsed_summary['table_count']} tables, "
+                    f"{parsed_summary['parse_time_seconds']}s)"
+                )
+                stats["parsed"] += 1
+                consecutive_timeouts = 0
+            except Exception as error:
+                _, _, committed_meta = parsed_output_paths(
+                    source_path, source_type_name
+                )
+                if committed_meta.exists() and not should_parse(
+                    source_path, committed_meta
+                ):
+                    stats["parsed"] += 1
+                    consecutive_timeouts = 0
+                    console.print(
+                        "[green]OK[/green] "
+                        "(artifacts committed before worker IPC closed)"
+                    )
+                    continue
+                save_parse_error(source_path, source_type_name, error)
+                console.print(f"[red]ERROR: {error}[/red]")
+                stats["errors"] += 1
+                if isinstance(error, TimeoutError):
+                    stats["timed_out"] += 1
+                    consecutive_timeouts += 1
+                else:
+                    consecutive_timeouts = 0
+            finally:
+                run_state["processed_file_count"] += 1
+                run_state["stats"] = {**stats, "terminal_state": "running"}
+                _write_run_state(run_state)
+
+            if (
+                max_consecutive_timeouts is not None
+                and max_consecutive_timeouts > 0
+                and consecutive_timeouts >= max_consecutive_timeouts
+            ):
+                terminal_state = "max_consecutive_timeouts_reached"
+                break
+        else:
+            terminal_state = "completed"
+    except BaseException:
+        terminal_state = "interrupted"
+        raise
+    finally:
+        failures = inventory_parse_failures(
+            all_source_files,
+            selected_file=selected_inventory_file,
+            selected_source_type=source_type,
+        )
+        stats["remaining_failures"] = len(failures)
+        required_failures = [
+            failure for failure in failures if failure["required_for_answering"]
+        ]
+        optional_failures = [
+            failure for failure in failures if not failure["required_for_answering"]
+        ]
+        stats["remaining_required_failures"] = len(required_failures)
+        stats["remaining_optional_failures"] = len(optional_failures)
+        stats["inventory_evidence"] = build_parse_inventory_evidence(
+            all_source_files,
+            selected_file=selected_inventory_file,
+            selected_source_type=source_type,
+        )
+        stats["terminal_state"] = terminal_state
+        run_state.update(
+            {
+                "status": terminal_state,
+                "finished_at": datetime.now(timezone.utc).isoformat(),
+                "stats": stats,
+                "remaining_failures": failures,
+                "remaining_required_failures": required_failures,
+                "remaining_optional_failures": optional_failures,
+            }
+        )
+        _write_run_state(run_state)
 
     return stats

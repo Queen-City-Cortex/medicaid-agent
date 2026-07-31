@@ -39,11 +39,35 @@ def _parse_strict() -> dict:
     result = parse_all()
     errors = int(result.get("errors", 0))
     timed_out = int(result.get("timed_out", 0))
-    if errors or timed_out:
+    remaining_failures = int(result.get("remaining_required_failures", 0))
+    terminal_state = result.get("terminal_state")
+    if remaining_failures or terminal_state != "completed":
         raise RuntimeError(
-            f"parse reported {errors} errors and {timed_out} timeouts"
+            f"parse reported {errors} errors, {timed_out} timeouts, "
+            f"{remaining_failures} remaining required failures, and "
+            f"terminal state {terminal_state!r}"
         )
     return result
+
+
+def _require_parse_inventory_unchanged(release: dict) -> dict:
+    from pipeline.parse.converter import build_parse_inventory_evidence
+
+    expected = (
+        release.get("stageResults", {})
+        .get("parse", {})
+        .get("result", {})
+        .get("inventory_evidence")
+    )
+    if not isinstance(expected, dict) or not expected.get("inventory_hash"):
+        raise RuntimeError("release manifest is missing parse inventory evidence")
+    current = build_parse_inventory_evidence()
+    if current.get("inventory_hash") != expected.get("inventory_hash"):
+        raise RuntimeError(
+            "active parse inventory changed after release preparation: "
+            f"expected {expected.get('inventory_hash')}, got {current.get('inventory_hash')}"
+        )
+    return current
 
 
 @cli.command("release-prepare")
@@ -72,11 +96,7 @@ def release_prepare(
     output: Path,
 ) -> None:
     """Parse strictly and initialize a durable release manifest."""
-    previous = (
-        load_json_object(previous_manifest)
-        if previous_manifest
-        else None
-    )
+    previous = load_json_object(previous_manifest) if previous_manifest else None
     initial_snapshot = build_answer_ready_snapshot(PARSED_DATA_DIR)
     manifest = create_release_manifest(
         release_id=release_id,
@@ -141,6 +161,7 @@ def release_validate(
     from pipeline.eval.runner import run_eval
 
     release = load_json_object(manifest)
+    _require_parse_inventory_unchanged(release)
     release_id = release["releaseId"]
     release_dir = manifest.parent / release_id
     audit_json = release_dir / "corpus-audit.json"
@@ -180,10 +201,7 @@ def release_validate(
         retrieval_result = run_eval(level="retrieval")
         if "error" in retrieval_result:
             raise RuntimeError(retrieval_result["error"])
-        source = (
-            EVAL_RESULTS_DIR
-            / f"{retrieval_result['run_id']}_retrieval.json"
-        )
+        source = EVAL_RESULTS_DIR / f"{retrieval_result['run_id']}_retrieval.json"
         destination = release_dir / "retrieval-evaluation.json"
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source, destination)
@@ -214,11 +232,7 @@ def release_validate(
 
     record_release_stage(manifest, "answerEvaluation", answer_operation)
 
-    previous = (
-        load_json_object(previous_manifest)
-        if previous_manifest
-        else None
-    )
+    previous = load_json_object(previous_manifest) if previous_manifest else None
     overrides = load_json_object(override_file) if override_file else {}
     finalized = finalize_release_manifest(
         manifest,
@@ -235,9 +249,7 @@ def release_validate(
             for gate in finalized["gates"]
             if not gate["passed"] and not gate["overrideReason"]
         ]
-        raise click.ClickException(
-            f"Corpus release rejected by: {', '.join(failed)}"
-        )
+        raise click.ClickException(f"Corpus release rejected by: {', '.join(failed)}")
 
     record_release_stage(
         manifest,

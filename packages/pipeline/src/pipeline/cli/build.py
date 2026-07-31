@@ -64,7 +64,11 @@ def _run_mixed_corpus_build(
                 f"  {parse_stats['parsed']} parsed, "
                 f"{parse_stats['skipped']} skipped, "
                 f"{parse_stats['errors']} errors"
-                + (f", {parse_stats['timed_out']} timed out" if parse_stats.get("timed_out") else "")
+                + (
+                    f", {parse_stats['timed_out']} timed out"
+                    if parse_stats.get("timed_out")
+                    else ""
+                )
                 + "\n"
             )
 
@@ -101,8 +105,7 @@ def _run_mixed_corpus_build(
     ref_stats = extract_and_resolve_all(llm_assist=llm_assist)
     stats["references"] = ref_stats
     console.print(
-        f"  {ref_stats['resolved']} resolved, "
-        f"{ref_stats['unresolved']} unresolved"
+        f"  {ref_stats['resolved']} resolved, {ref_stats['unresolved']} unresolved"
     )
     if llm_assist:
         console.print(
@@ -126,8 +129,7 @@ def _run_mixed_corpus_build(
         ensure_vector_index()
         stats["embeddings"] = embed_stats
         console.print(
-            f"  {embed_stats['embedded']} embedded, "
-            f"{embed_stats['errors']} errors\n"
+            f"  {embed_stats['embedded']} embedded, {embed_stats['errors']} errors\n"
         )
         _fail_on_embed_errors(embed_stats)
 
@@ -139,35 +141,77 @@ def _run_mixed_corpus_build(
             "seeded": seed_count,
             "linked": link_stats["edges_created"],
         }
-        console.print(
-            f"  {seed_count} concepts, "
-            f"{link_stats['edges_created']} links\n"
-        )
+        console.print(f"  {seed_count} concepts, {link_stats['edges_created']} links\n")
 
     return stats
 
 
 @cli.command()
-@click.option("--file", "file_path", type=click.Path(exists=True, path_type=Path), help="Parse a specific supported source file")
+@click.option(
+    "--file",
+    "file_path",
+    type=click.Path(exists=True, path_type=Path),
+    help="Parse a specific supported source file",
+)
 @click.option("--source", "source_type", type=str, help="Parse only this source type")
 @click.option("--force", is_flag=True, help="Re-parse even if cached")
-@click.option("--strict", is_flag=True, help="Exit nonzero on any parse error or timeout")
+@click.option(
+    "--retry-failures", is_flag=True, help="Process only sources with failed sidecars"
+)
+@click.option(
+    "--limit", type=click.IntRange(min=0), default=None, help="Maximum selected files"
+)
+@click.option("--max-runtime-seconds", type=click.IntRange(min=0), default=None)
+@click.option("--max-consecutive-timeouts", type=click.IntRange(min=1), default=None)
+@click.option(
+    "--strict", is_flag=True, help="Exit nonzero on any parse error or timeout"
+)
+@click.option(
+    "--strict-required",
+    is_flag=True,
+    help="Exit nonzero only when required-for-answering inputs remain unresolved",
+)
 def parse(
     file_path: Path | None,
     source_type: str | None,
     force: bool,
+    retry_failures: bool,
+    limit: int | None,
+    max_runtime_seconds: int | None,
+    max_consecutive_timeouts: int | None,
     strict: bool,
+    strict_required: bool,
 ):
     """Parse supported source files into structured JSON."""
     from pipeline.parse.converter import parse_all
 
-    stats = parse_all(source_type=source_type, force=force, file_path=file_path)
+    stats = parse_all(
+        source_type=source_type,
+        force=force,
+        file_path=file_path,
+        retry_failures=retry_failures,
+        limit=limit,
+        max_runtime_seconds=max_runtime_seconds,
+        max_consecutive_timeouts=max_consecutive_timeouts,
+    )
     console.print(
         f"\n[bold]Parse complete:[/bold] {stats['parsed']} parsed, "
         f"{stats['skipped']} skipped, {stats['errors']} errors"
         + (f", {stats['timed_out']} timed out" if stats.get("timed_out") else "")
     )
-    if strict and (stats.get("errors", 0) or stats.get("timed_out", 0)):
+    if strict and strict_required:
+        raise click.UsageError("Use either --strict or --strict-required, not both")
+    terminal_incomplete = stats.get("terminal_state") != "completed"
+    strict_failed = strict and (
+        stats.get("errors", 0)
+        or stats.get("timed_out", 0)
+        or stats.get("remaining_failures", 0)
+        or terminal_incomplete
+    )
+    required_failed = strict_required and (
+        stats.get("remaining_required_failures", 0) or terminal_incomplete
+    )
+    if strict_failed or required_failed:
         raise click.ClickException("Strict parse failed")
 
 
@@ -206,13 +250,17 @@ def embed(model: str | None):
 
     stats = embed_all(model=model)
     ensure_vector_index()
-    console.print(f"\n[bold]Embedding complete:[/bold] {stats['embedded']} embedded, {stats['errors']} errors")
+    console.print(
+        f"\n[bold]Embedding complete:[/bold] {stats['embedded']} embedded, {stats['errors']} errors"
+    )
     _fail_on_embed_errors(stats)
 
 
 @cli.command("run-all")
 @click.option("--source", "source_type", type=str, help="Process only this source type")
-@click.option("--llm-assist", is_flag=True, help="Use LLM for cross-reference extraction")
+@click.option(
+    "--llm-assist", is_flag=True, help="Use LLM for cross-reference extraction"
+)
 def run_all(source_type: str | None, llm_assist: bool):
     """Run the full pipeline: parse → load → extract-refs → embed → seed → link."""
     from pipeline.parse.converter import parse_all
@@ -227,7 +275,11 @@ def run_all(source_type: str | None, llm_assist: bool):
     parse_stats = parse_all(source_type=source_type)
     console.print(
         f"  {parse_stats['parsed']} parsed, {parse_stats['skipped']} skipped"
-        + (f", {parse_stats['timed_out']} timed out" if parse_stats.get("timed_out") else "")
+        + (
+            f", {parse_stats['timed_out']} timed out"
+            if parse_stats.get("timed_out")
+            else ""
+        )
         + "\n"
     )
 
@@ -240,31 +292,44 @@ def run_all(source_type: str | None, llm_assist: bool):
 
     console.print("[bold]Stage 2.5: Federal Regulations[/bold]")
     from pipeline.federal.loader import load_all_cfr
+
     cfr_stats = load_all_cfr()
-    console.print(f"  {cfr_stats['parts_loaded']} CFR parts, {cfr_stats['sections_total']} sections\n")
+    console.print(
+        f"  {cfr_stats['parts_loaded']} CFR parts, {cfr_stats['sections_total']} sections\n"
+    )
 
     console.print("[bold]Stage 2.6: Social Security Act[/bold]")
     from pipeline.federal.loader import load_ssa
+
     ssa_stats = load_ssa()
-    console.print(f"  {ssa_stats['titles_loaded']} titles, {ssa_stats['sections_total']} sections\n")
+    console.print(
+        f"  {ssa_stats['titles_loaded']} titles, {ssa_stats['sections_total']} sections\n"
+    )
 
     console.print("[bold]Stage 3: Cross-references[/bold]")
     ref_stats = extract_and_resolve_all(llm_assist=llm_assist)
-    console.print(f"  {ref_stats['resolved']} resolved, {ref_stats['unresolved']} unresolved")
+    console.print(
+        f"  {ref_stats['resolved']} resolved, {ref_stats['unresolved']} unresolved"
+    )
     if llm_assist:
-        console.print(f"  LLM: {ref_stats.get('llm_resolved', 0)} additional resolved\n")
+        console.print(
+            f"  LLM: {ref_stats.get('llm_resolved', 0)} additional resolved\n"
+        )
     else:
         console.print()
 
     console.print("[bold]Stage 3.5: Amendments[/bold]")
     from pipeline.references.amendments import detect_amendments
+
     amend_stats = detect_amendments()
     console.print(f"  {amend_stats['edges_created']} amendment edges\n")
 
     console.print("[bold]Stage 4: Embeddings[/bold]")
     embed_stats = embed_all()
     ensure_vector_index()
-    console.print(f"  {embed_stats['embedded']} embedded, {embed_stats['errors']} errors\n")
+    console.print(
+        f"  {embed_stats['embedded']} embedded, {embed_stats['errors']} errors\n"
+    )
     _fail_on_embed_errors(embed_stats)
 
     console.print("[bold]Stage 5: Concepts[/bold]")
@@ -273,6 +338,7 @@ def run_all(source_type: str | None, llm_assist: bool):
     console.print(f"  {seed_count} concepts, {link_stats['edges_created']} links\n")
 
     from pipeline.graph.schema_version import write_schema_version
+
     schema_info = write_schema_version()
     console.print(
         f"  SchemaVersion updated: manifest_hash={schema_info['manifest_hash'][:12] or '(none)'} "
@@ -295,18 +361,40 @@ def schema_version_cmd(write: bool):
 
     current = read_schema_version()
     if current is None:
-        console.print("[yellow]No SchemaVersion node exists yet. Run `run-all` or `schema-version --write`.[/yellow]")
+        console.print(
+            "[yellow]No SchemaVersion node exists yet. Run `run-all` or `schema-version --write`.[/yellow]"
+        )
         return
     console.print(current)
 
 
 @cli.command("build-mixed-corpus")
-@click.option("--reset/--no-reset", default=True, help="Drop existing graph data before the first mixed-corpus load")
-@click.option("--parse/--skip-parse", default=True, help="Re-run parse for the mixed-corpus state sources")
-@click.option("--embed/--no-embed", default=True, help="Generate embeddings after the corpus build")
-@click.option("--with-concepts/--skip-concepts", default=False, help="Also seed and link policy concepts")
-@click.option("--refresh-federal", is_flag=True, help="Force re-fetch CFR and SSA sources")
-@click.option("--llm-assist", is_flag=True, help="Use LLM-assisted cross-reference extraction")
+@click.option(
+    "--reset/--no-reset",
+    default=True,
+    help="Drop existing graph data before the first mixed-corpus load",
+)
+@click.option(
+    "--parse/--skip-parse",
+    default=True,
+    help="Re-run parse for the mixed-corpus state sources",
+)
+@click.option(
+    "--embed/--no-embed",
+    default=True,
+    help="Generate embeddings after the corpus build",
+)
+@click.option(
+    "--with-concepts/--skip-concepts",
+    default=False,
+    help="Also seed and link policy concepts",
+)
+@click.option(
+    "--refresh-federal", is_flag=True, help="Force re-fetch CFR and SSA sources"
+)
+@click.option(
+    "--llm-assist", is_flag=True, help="Use LLM-assisted cross-reference extraction"
+)
 def build_mixed_corpus(
     reset: bool,
     parse: bool,
