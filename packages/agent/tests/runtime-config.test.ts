@@ -17,6 +17,27 @@ describe('loadRuntimeConfig', () => {
     expect(config.retention.conversationsDays).toBe(90);
   });
 
+  it('persists traces to DuckDB only outside production and CLI runs', () => {
+    const production = {
+      ...KEYS,
+      NODE_ENV: 'production',
+      WORKOS_CLIENT_ID: 'client',
+      WORKOS_API_KEY: 'secret',
+      DATABASE_URL: 'file:/data/mastra.db',
+      NEO4J_URI: 'bolt://neo4j.internal:7687',
+      NEO4J_PASSWORD: 'secure-test-password',
+      CORS_ORIGINS: 'https://app.example.test',
+    };
+    expect(loadRuntimeConfig({ ...KEYS, NODE_ENV: 'development' }).traceStore).toBe('duckdb');
+    expect(loadRuntimeConfig({ ...KEYS, NODE_ENV: 'development' }, { cli: true }).traceStore).toBe('off');
+    expect(loadRuntimeConfig(production).traceStore).toBe('off');
+    expect(loadRuntimeConfig({ ...production, TRACE_STORE: 'duckdb' }).traceStore).toBe('duckdb');
+    expect(loadRuntimeConfig({ ...production, MASTRA_OBSERVABILITY_PATH: '/data/traces.duckdb' }).tracePath)
+      .toBe('/data/traces.duckdb');
+    expect(() => loadRuntimeConfig({ ...KEYS, NODE_ENV: 'development', TRACE_STORE: 'postgres' }))
+      .toThrow('TRACE_STORE');
+  });
+
   it('rejects ephemeral production storage', () => {
     expect(() => loadRuntimeConfig({
       ...KEYS,

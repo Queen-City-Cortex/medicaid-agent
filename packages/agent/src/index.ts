@@ -12,7 +12,6 @@ import { createUIMessageStreamResponse } from 'ai';
 import { registerApiRoute } from '@mastra/core/server';
 import { Memory } from '@mastra/memory';
 import { LibSQLStore } from '@mastra/libsql';
-import { DuckDBStore } from '@mastra/duckdb';
 import { Observability, DefaultExporter, SensitiveDataFilter } from '@mastra/observability';
 import { searchSections } from './tools/search.js';
 import { getSection, getDocument, getSectionContext } from './tools/read.js';
@@ -91,13 +90,38 @@ const runRetention = () => appDatabase.runRetention(runtimeConfig.retention).cat
 void runRetention();
 if (!IS_CLI_RUN) setInterval(runRetention, 24 * 60 * 60 * 1000).unref();
 
-const storage = new MastraCompositeStore({
-  id: 'composite-storage',
-  default: libsql,
-  domains: {
-    observability: await new DuckDBStore({ path: runtimeConfig.observabilityPath }).getStore('observability'),
-  },
-});
+// Periodic process-memory snapshot so a slow leak is attributable from logs
+// (JS heap vs native/external) instead of only visible as a Railway bill.
+if (!IS_CLI_RUN) {
+  const logMemory = () => {
+    const m = process.memoryUsage();
+    const mb = (n: number) => Math.round(n / 1024 / 1024);
+    log.info('process.memory', {
+      rss_mb: mb(m.rss),
+      heap_used_mb: mb(m.heapUsed),
+      heap_total_mb: mb(m.heapTotal),
+      external_mb: mb(m.external),
+      array_buffers_mb: mb(m.arrayBuffers),
+    });
+  };
+  logMemory();
+  setInterval(logMemory, 15 * 60 * 1000).unref();
+}
+
+// The DuckDB module is imported lazily so its native binary never loads when
+// traces are off (see runtime-config.ts for why that is the production default).
+const storage =
+  runtimeConfig.traceStore === 'duckdb'
+    ? new MastraCompositeStore({
+        id: 'composite-storage',
+        default: libsql,
+        domains: {
+          observability: await new (await import('@mastra/duckdb')).DuckDBStore({
+            path: runtimeConfig.tracePath,
+          }).getStore('observability'),
+        },
+      })
+    : libsql;
 
 // Kill switch for the cross-conversation memory features (observational +
 // working memory). They store a per-user profile server-side — disclosed in
@@ -240,15 +264,18 @@ export const mastra = new Mastra({
   agents: { ncMedicaidAgent },
   workflows: { deepResearchWorkflow },
   storage,
-  observability: new Observability({
-    configs: {
-      default: {
-        serviceName: 'nc-medicaid-navigator',
-        exporters: [new DefaultExporter()],
-        spanOutputProcessors: [new SensitiveDataFilter()],
-      },
-    },
-  }),
+  observability:
+    runtimeConfig.traceStore === 'off'
+      ? undefined
+      : new Observability({
+          configs: {
+            default: {
+              serviceName: 'nc-medicaid-navigator',
+              exporters: [new DefaultExporter()],
+              spanOutputProcessors: [new SensitiveDataFilter()],
+            },
+          },
+        }),
   logger: new PinoLogger({ name: 'mastra', level: 'info' }),
   server: {
     host: '0.0.0.0',

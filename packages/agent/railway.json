@@ -15,6 +15,12 @@
     "healthcheckPath": "/readyz",
     "healthcheckTimeout": 300,
     "restartPolicyType": "ON_FAILURE",
-    "restartPolicyMaxRetries": 10
+    "restartPolicyMaxRetries": 10,
+    "sleepApplication": true,
+    "limitOverride": {
+      "containers": {
+        "memoryBytes": 4294967296
+      }
+    }
   }
 }

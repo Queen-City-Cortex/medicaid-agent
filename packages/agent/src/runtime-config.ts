@@ -50,7 +50,10 @@ const RuntimeConfigShape = z.object({
   publicProduction: z.boolean(),
   port: z.number().int().min(1).max(65_535),
   databaseUrl: z.string().min(1),
-  observabilityPath: z.string().min(1),
+  // Where Mastra persists traces/metrics. `off` skips the store and exporter
+  // entirely; `duckdb` keeps a local DuckDB file for Mastra Studio.
+  traceStore: z.enum(['duckdb', 'off']),
+  tracePath: z.string().min(1),
   corsOrigins: z.array(z.string().url()).min(1),
   neo4j: z.object({
     uri: z.string().min(1),
@@ -88,6 +91,15 @@ export function loadRuntimeConfig(
     password: nonEmpty(env, 'NEO4J_PASSWORD') ?? 'medicaid-dev',
   };
   const corsOrigins = parseOrigins(nonEmpty(env, 'CORS_ORIGINS') ?? 'http://localhost:3000');
+  // Trace persistence defaults off in production and for one-shot CLI runs:
+  // the DuckDB store lives on the container's ephemeral disk (lost on every
+  // deploy), nothing reads it unless Mastra Studio is enabled, and its buffer
+  // pool is bounded only by host RAM — on Railway that let the agent grow to
+  // ~10 GB idle. Local `mastra dev` keeps it so Studio still shows traces.
+  const traceStore = nonEmpty(env, 'TRACE_STORE') ?? (production || options.cli ? 'off' : 'duckdb');
+  if (traceStore !== 'duckdb' && traceStore !== 'off') {
+    throw new Error(`TRACE_STORE has unsupported value: ${traceStore}`);
+  }
 
   const missing: string[] = [];
   if (!nonEmpty(env, 'OPENAI_API_KEY')) missing.push('OPENAI_API_KEY');
@@ -130,7 +142,8 @@ export function loadRuntimeConfig(
     publicProduction,
     port: parseInteger(env, 'PORT', 4111),
     databaseUrl,
-    observabilityPath: nonEmpty(env, 'MASTRA_OBSERVABILITY_PATH') ?? (options.cli ? ':memory:' : 'mastra.duckdb'),
+    traceStore,
+    tracePath: nonEmpty(env, 'MASTRA_OBSERVABILITY_PATH') ?? 'mastra.duckdb',
     corsOrigins,
     neo4j,
     agentModel,

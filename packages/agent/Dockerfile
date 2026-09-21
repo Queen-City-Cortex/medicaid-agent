@@ -32,6 +32,10 @@ FROM base AS runner
 ARG RAILWAY_GIT_COMMIT_SHA
 WORKDIR /app
 ENV NODE_ENV=production
+# Cap the V8 heap so a JS-side leak restarts the container (Railway's
+# ON_FAILURE policy) instead of growing the bill; native/DuckDB memory is
+# bounded separately by TRACE_STORE=off and the railway.json memory limit.
+ENV NODE_OPTIONS=--max-old-space-size=2048
 ENV SENTRY_RELEASE=$RAILWAY_GIT_COMMIT_SHA
 # gosu lets the entrypoint drop from root to `node` after it chowns the
 # root-owned Railway volume (see docker-entrypoint.sh). sqlite3 exists for

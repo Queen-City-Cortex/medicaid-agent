@@ -21,6 +21,7 @@ Copy `.env.example` to `.env` at the repo root and fill in keys. The agent and w
 | `ANTHROPIC_API_KEY` | Only for Claude `AGENT_MODEL` | — | Anthropic API key; needed only when `AGENT_MODEL` is a `claude-*` model |
 | `AGENT_MODEL` | No | `gpt-5.6-terra` | Main agent model (`gpt-*`/`o3*`/`o4*` route to OpenAI, anything else to Anthropic) |
 | `VERIFIER_MODEL` | No | `gpt-5.4-mini` | Hallucination-verifier model |
+| `TRACE_STORE` | No | `off` in production and CLI runs, else `duckdb` | Where Mastra persists traces/metrics for Studio. `duckdb` writes a local DuckDB file (`MASTRA_OBSERVABILITY_PATH`, default `mastra.duckdb`); `off` skips the store and exporter entirely. Off in production because the file is ephemeral, nothing reads it without Studio, and DuckDB's buffer pool grew the agent to ~10 GB idle on Railway. |
 | `OBSERVATIONAL_MEMORY_ENABLED` | No | `true` | Kill switch for the cross-conversation memory features (observational + working memory), which store a per-user profile server-side (disclosed in /privacy). `false` disables both; thread history is unaffected. |
 | `NEO4J_URI` | No | `bolt://localhost:7687` | Neo4j connection URI |
 | `NEO4J_USER` | No | `neo4j` | Neo4j username |
@@ -305,6 +306,31 @@ The service configs live at:
 - `packages/agent/railway.json`
 
 In Railway, set each service's config file path to the matching repo-root path (`/packages/web/railway.json` and `/packages/agent/railway.json`). Keep the agent watch paths broad enough to include both `/packages/agent/**` and `/packages/policy-corpus/**`; the agent Docker build imports the local policy-corpus workspace.
+
+Cost controls live in the checked-in `railway.json` files and on the Neo4j
+service, not in code:
+
+- **Serverless (app sleeping)** is on for web and agent (`deploy.sleepApplication`).
+  Railway sleeps a service after ~5 minutes with no outbound traffic and wakes
+  it on the next public or private-network request, so an idle stack costs
+  almost nothing. The first request after a sleep pays a cold start (the agent
+  ready check allows 300 s). Anything that talks outbound on a timer (a
+  synthetic monitor, a keepalive) defeats sleeping — keep such probes coarse.
+- **Memory limits** (`deploy.limitOverride.containers.memoryBytes`): agent 4 GiB,
+  web 1 GiB. A service that exceeds its limit is restarted rather than billed
+  for open-ended growth. Railway bills RAM at $10/GB-month, so memory is the
+  whole bill; check `railway usage` and
+  `railway metrics --service '@nc-medicaid/agent' --since 7d --memory` when
+  the estimate climbs. The agent logs `process.memory` every 15 minutes
+  (rss/heap/external) so a ramp is attributable from logs.
+- **Neo4j** has no config file (it deploys from the `neo4j` image), so its heap
+  and page cache are capped by service variables:
+  `NEO4J_server_memory_heap_initial__size=512m`,
+  `NEO4J_server_memory_heap_max__size=512m`,
+  `NEO4J_server_memory_pagecache_size=512m` (2.3 GB → ~1.2 GB idle).
+- Workspace usage limits (`railway usage limit status`): the **hard** limit
+  stops every service in the workspace when reached — raise it before it trips
+  rather than after.
 
 Check current deploy status:
 
