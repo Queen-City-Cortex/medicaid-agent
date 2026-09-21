@@ -314,9 +314,17 @@ service, not in code:
 - **Serverless (app sleeping)** is on for web and agent (`deploy.sleepApplication`).
   Railway sleeps a service after ~5 minutes with no outbound traffic and wakes
   it on the next public or private-network request, so an idle stack costs
-  almost nothing. The first request after a sleep pays a cold start (the agent
-  ready check allows 300 s). Anything that talks outbound on a timer (a
-  synthetic monitor, a keepalive) defeats sleeping — keep such probes coarse.
+  almost nothing. Observed on 2026-09-21: the agent was stopped 8 minutes after
+  its last packet and answered its first request after a 7 s cold start (web:
+  ~2 s); the agent ready check allows 300 s. Anything that talks outbound on a
+  timer (a synthetic monitor, a keepalive, an idle database connection) defeats
+  sleeping — keep such probes coarse. `NEXT_TELEMETRY_DISABLED=1` is set on the
+  web service because Railway lists Next.js telemetry as a known blocker.
+  **Railway's metrics feed lags ~10 minutes**, so to know whether a service is
+  actually asleep read its deploy logs (`Mastra shutdown completed` /
+  `Starting Container`) rather than the memory graph. The agent logs
+  `LibSQLStore: Failed to checkpoint WAL before close` on every sleep; LibSQL
+  replays the WAL on the next open, so nothing is lost.
 - **Memory limits** (`deploy.limitOverride.containers.memoryBytes`): agent 4 GiB,
   web 1 GiB. A service that exceeds its limit is restarted rather than billed
   for open-ended growth. Railway bills RAM at $10/GB-month, so memory is the
