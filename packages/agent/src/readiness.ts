@@ -2,7 +2,7 @@ import { registerApiRoute } from '@mastra/core/server';
 import type { DependencyHealth, Readiness } from '@nc-medicaid/contracts';
 import { checkProviders, type ProviderStatuses } from './health.js';
 import { log, errorFields } from './logger.js';
-import { getDriver } from './neo4j.js';
+import { withSession } from './neo4j.js';
 import type { AppDatabase } from './storage/app-database.js';
 
 type JsonContext = {
@@ -15,20 +15,18 @@ export interface Neo4jProbeResult {
 }
 
 async function defaultNeo4jProbe(): Promise<Neo4jProbeResult> {
-  const session = getDriver().session();
-  try {
-    const result = await session.run(
+  // withSession so the probe counts as driver activity for the idle close.
+  const result = await withSession((session) =>
+    session.run(
       `OPTIONAL MATCH (release:CorpusRelease {id: 'current'})
        RETURN release.release_id AS releaseId`,
-    );
-    const releaseId = result.records[0]?.get('releaseId');
-    return {
-      connected: true,
-      releaseId: typeof releaseId === 'string' ? releaseId : null,
-    };
-  } finally {
-    await session.close();
-  }
+    ),
+  );
+  const releaseId = result.records[0]?.get('releaseId');
+  return {
+    connected: true,
+    releaseId: typeof releaseId === 'string' ? releaseId : null,
+  };
 }
 
 export function handleLiveness(c: JsonContext): Response {

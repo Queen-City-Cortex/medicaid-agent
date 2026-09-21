@@ -24,6 +24,7 @@ Copy `.env.example` to `.env` at the repo root and fill in keys. The agent and w
 | `TRACE_STORE` | No | `off` in production and CLI runs, else `duckdb` | Where Mastra persists traces/metrics for Studio. `duckdb` writes a local DuckDB file (`MASTRA_OBSERVABILITY_PATH`, default `mastra.duckdb`); `off` skips the store and exporter entirely. Off in production because the file is ephemeral, nothing reads it without Studio, and DuckDB's buffer pool grew the agent to ~10 GB idle on Railway. |
 | `OBSERVATIONAL_MEMORY_ENABLED` | No | `true` | Kill switch for the cross-conversation memory features (observational + working memory), which store a per-user profile server-side (disclosed in /privacy). `false` disables both; thread history is unaffected. |
 | `NEO4J_URI` | No | `bolt://localhost:7687` | Neo4j connection URI |
+| `NEO4J_IDLE_CLOSE_MS` | No | `300000` (5 min) | Close the Neo4j driver after this long with no session in flight; the next use reconnects. Keeps an idle agent free of bolt keep-alive/ACK packets so Railway's Serverless sleep can trigger. `0` disables. |
 | `NEO4J_USER` | No | `neo4j` | Neo4j username |
 | `NEO4J_PASSWORD` | No | `medicaid-dev` | Neo4j password |
 | `NEO4J_QUERY_TIMEOUT_MS` | No | `30000` | Server-side transaction timeout applied to every corpus query via `withSession` — bounds how long one slow query can hold a chat request |
@@ -327,7 +328,13 @@ service, not in code:
   and page cache are capped by service variables:
   `NEO4J_server_memory_heap_initial__size=512m`,
   `NEO4J_server_memory_heap_max__size=512m`,
-  `NEO4J_server_memory_pagecache_size=512m` (2.3 GB → ~1.2 GB idle).
+  `NEO4J_server_memory_pagecache_size=512m` (2.3 GB → ~1.6 GB idle), and
+  `NEO4J_server_bolt_connection__keep__alive__for__requests=OFF`. Note that an
+  idle bolt connection was still measured exchanging one packet each way per
+  minute with that set (Neo4j's keep-alive scheduler), and each packet counts as
+  activity for Railway's Serverless sleep. The mechanism that actually lets the
+  agent sleep is `NEO4J_IDLE_CLOSE_MS`: the agent drops its driver, and with it
+  the connection, after that long without a session.
 - Workspace usage limits (`railway usage limit status`): the **hard** limit
   stops every service in the workspace when reached — raise it before it trips
   rather than after.
