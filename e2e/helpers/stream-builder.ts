@@ -99,6 +99,9 @@ export class AISdkStreamBuilder {
   /** Emit the finish event that signals end of stream. Guard tripwires
    *  finish with reason 'other' rather than a normal 'stop'. */
   finish(finishReason: string = 'stop'): this {
+    if (this.textCounter > 0 && !this.events.some(e => e.includes('data-verification-status'))) {
+      this.dataPart('data-verification-status', { status: 'passed', passCount: 1 });
+    }
     this.sse({ type: 'finish', finishReason });
     return this;
   }

@@ -1,3 +1,4 @@
+import { VERIFICATION_PART, UNVERIFIED_HISTORY } from '@nc-medicaid/contracts';
 import { describe, it, expect } from 'vitest';
 import { coalesceThreadMessages, convertThreadMessageToUIMessage, extractText } from '../../src/lib/parse-message';
 import { extractVerificationState, getTrailingAssistantText, isToolPart } from '../../src/lib/message-parts';
@@ -141,8 +142,8 @@ describe('convertThreadMessageToUIMessage', () => {
       expect(result).not.toBeNull();
       expect(result!.id).toBe('msg-v2');
       expect(result!.parts).toHaveLength(3);
-      expect(result!.parts[0]).toEqual({ type: 'text', text: 'Let me search for that.' });
-      expect(result!.parts[1]).toEqual({
+      expect(result!.parts[1]).toEqual({ type: 'text', text: UNVERIFIED_HISTORY });
+      expect(result!.parts[0]).toEqual({
         type: 'dynamic-tool',
         toolName: 'searchSections',
         toolCallId: 'tc-1',
@@ -150,10 +151,10 @@ describe('convertThreadMessageToUIMessage', () => {
         input: { query: 'chiropractic' },
         output: { sections: [] },
       });
-      expect(result!.parts[2]).toEqual({ type: 'text', text: '## Answer\n\nChiropractic services are...' });
+      expect(result!.parts[2]).toMatchObject({ type: VERIFICATION_PART, data: { status: 'withheld' } });
     });
 
-    it('preserves text-only V2 messages', () => {
+    it('withholds unchecked text-only V2 messages', () => {
       const result = convertThreadMessageToUIMessage({
         id: 'msg-text',
         role: 'assistant',
@@ -166,7 +167,7 @@ describe('convertThreadMessageToUIMessage', () => {
       });
 
       expect(result).not.toBeNull();
-      expect(result!.parts).toEqual([{ type: 'text', text: 'Hello there.' }]);
+      expect(result!.parts[0]).toEqual({ type: 'text', text: UNVERIFIED_HISTORY });
     });
 
     it('handles step-start parts', () => {
@@ -193,7 +194,7 @@ describe('convertThreadMessageToUIMessage', () => {
       });
 
       expect(result).not.toBeNull();
-      expect(result!.parts).toHaveLength(3);
+      expect(result!.parts).toHaveLength(4);
       expect(result!.parts[0]).toEqual({ type: 'step-start' });
     });
 
@@ -246,7 +247,7 @@ describe('coalesceThreadMessages', () => {
   // Mirrors how Mastra persists one agent turn: the answer text + verifier
   // state in one message (timestamped FIRST), tool calls in another (later),
   // and observational-memory (data-om-*) noise scattered + an om-only tail.
-  const v2 = (parts: unknown[]) => ({ format: 2, parts });
+  const v2 = (parts: unknown[]) => ({ format: 2, parts: [...parts, { type: VERIFICATION_PART, data: { status: 'passed', passCount: 1 } }] });
   const turn = [
     { id: 'u1', role: 'user', createdAt: '2026-06-22T18:08:10Z',
       content: v2([{ type: 'text', text: 'Does NC Medicaid cover chiropractic, with visit limits?' }]) },

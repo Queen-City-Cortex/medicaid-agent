@@ -77,12 +77,26 @@ export const ResearchPlanSchema = z.object({
 });
 export type ResearchPlan = z.infer<typeof ResearchPlanSchema>;
 
+/** Server-authored terminal decision; never accept this from a chat request. */
+export const VerificationOutcomeSchema = z.object({
+  status: z.enum(['passed', 'corrected', 'withheld']),
+  reason: z.enum(['unavailable', 'unsupported', 'invalid_citation', 'unusable_correction', 'unverified_history']).optional(),
+  passCount: z.number().int().min(0).max(2),
+});
+export type VerificationOutcome = z.infer<typeof VerificationOutcomeSchema>;
+export const VerificationProgressSchema = z.union([z.object({ status: z.literal('verifying') }), VerificationOutcomeSchema]);
+export type VerificationProgress = z.infer<typeof VerificationProgressSchema>;
+export const VERIFICATION_PART = 'data-verification-status' as const;
+export const WITHHELD_ANSWER = 'I could not verify this answer against the retrieved sources. Please review the sources below or try again.';
+export const UNVERIFIED_HISTORY = 'This previous answer was not verified before release. Please run the question again.';
+
 export const ResearchRunStateSchema = z.enum([
   'queued',
   'planning',
   'awaiting_approval',
   'researching',
   'verifying',
+  'recovering',
   'completed',
   'cancelled',
   'failed',
@@ -103,6 +117,7 @@ export type ResearchDecisionInput = z.infer<typeof ResearchDecisionInputSchema>;
 export const CitationProvenanceSchema = z.object({
   checkedCitations: z.number().int().nonnegative(),
   retrievedCitations: z.number().int().nonnegative(),
+  allowedCitations: z.number().int().nonnegative().optional(),
   unknownCitations: z.number().int().nonnegative(),
 });
 export type CitationProvenance = z.infer<typeof CitationProvenanceSchema>;
@@ -127,6 +142,7 @@ export const ResearchWorkerFailureSchema = z.object({
 export type ResearchWorkerFailure = z.infer<typeof ResearchWorkerFailureSchema>;
 
 export const ResearchReportSchema = z.object({
+  verification: VerificationOutcomeSchema.optional(),
   status: z.enum(['completed', 'cancelled']),
   question: z.string(),
   brief: z.string(),
@@ -146,6 +162,11 @@ export const ResearchReportSchema = z.object({
 export type ResearchReport = z.infer<typeof ResearchReportSchema>;
 
 export const ResearchRunSchema = z.object({
+  recoveryProgress: z.object({ completedQuestions: z.number().int().nonnegative(), checkpoints: z.number().int().nonnegative() }).default({ completedQuestions: 0, checkpoints: 0 }),
+  recoveryCount: z.number().int().min(0).max(2).default(0),
+  nextRetryAt: z.string().datetime().nullable().default(null),
+  verification: VerificationOutcomeSchema.nullable().default(null),
+  sources: z.array(ResearchCorpusSourceSchema).default([]),
   runId: IdentifierSchema,
   state: ResearchRunStateSchema,
   question: z.string().max(10_000),
@@ -166,11 +187,12 @@ export const DeepResearchProgressSchema = z.object({
     'reflecting',
     'synthesizing',
     'verifying',
+    'recovering',
     'done',
     'cancelled',
   ]),
   detail: z.string(),
-  current: z.number().int().positive().optional(),
+  current: z.number().int().nonnegative().optional(),
   total: z.number().int().positive().optional(),
 });
 export type DeepResearchProgress = z.infer<typeof DeepResearchProgressSchema>;

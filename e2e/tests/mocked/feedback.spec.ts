@@ -112,6 +112,7 @@ test.describe('Message Feedback', () => {
                 },
               },
               { type: 'text', text: '## Answer\n\nYes, NC Medicaid covers chiropractic services under Policy 1F.' },
+              { type: 'data-verification-status', data: { status: 'passed', passCount: 1 } },
             ],
           },
         },

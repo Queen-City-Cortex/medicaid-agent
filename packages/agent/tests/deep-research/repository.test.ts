@@ -70,15 +70,15 @@ describe('ResearchRepository', () => {
       .toBe(false);
   });
 
-  it('fails expired leased work instead of replaying charged provider work', async () => {
+  it('queues expired leased work for bounded recovery', async () => {
     const startedAt = Date.parse('2026-07-23T12:00:00.000Z');
     await repository.create('run-1', 'user-1', 'First', startedAt);
     await repository.acquire('run-1', 'queued', 'planning', 'worker-1', 2, startedAt);
 
-    expect(await repository.failExpiredLeases(startedAt + 15 * 60_000 + 1)).toBe(1);
+    expect(await repository.recoverExpiredLeases(startedAt + 15 * 60_000 + 1)).toBe(1);
     expect(await repository.get('run-1', 'user-1')).toMatchObject({
-      state: 'failed',
-      error: 'Research worker lease expired before completion',
+      state: 'recovering',
+      recoveryCount: 0,
     });
   });
 
@@ -110,5 +110,68 @@ describe('ResearchRepository', () => {
     const after = await repository.getInternal('run-1');
     expect(after).toMatchObject({ state: 'planning', leaseOwner: 'worker-1' });
     expect(after!.leaseExpiresAt).toBeGreaterThan(before!.leaseExpiresAt!);
+  });
+});
+
+describe('recovery lease and budget invariants', () => {
+  let db: AppDatabase;
+  let repo: ResearchRepository;
+  beforeEach(async () => { db = new AppDatabase(':memory:'); repo = new ResearchRepository(db); await repo.create('run', 'owner', 'q'); });
+  afterEach(() => db.close());
+
+  it('allows only two recovery claims and never creates another daily start', async () => {
+    let now = Date.now();
+    await repo.acquire('run', 'queued', 'researching', 'worker0', 2, now);
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      now += 16 * 60_000;
+      await repo.recoverExpiredLeases(now);
+      const claims = await Promise.all([
+        repo.acquire('run', 'recovering', 'researching', `worker${attempt}`, 2, now),
+        repo.acquire('run', 'recovering', 'researching', 'competitor', 2, now),
+      ]);
+      expect(claims.filter(Boolean)).toHaveLength(1);
+      expect((await repo.get('run', 'owner'))?.recoveryCount).toBe(attempt);
+    }
+    await repo.recoverExpiredLeases(now + 16 * 60_000);
+    expect((await repo.get('run', 'owner'))?.state).toBe('failed');
+    expect((await db.client.execute('SELECT count(*) AS n FROM research_runs')).rows[0].n).toBe(1);
+  });
+  it('rejects stale writes, renewal, and late failures after cancellation', async () => {
+    await repo.acquire('run', 'queued', 'researching', 'worker', 2);
+    await repo.cancel('run', 'owner');
+    await expect(repo.saveCheckpoint('run', 'worker', 'draft', 'PRIVATE_DRAFT_SENTINEL')).rejects.toThrow('lease');
+    await expect(repo.reserveStep('run', 'worker', 'worker', 3)).rejects.toThrow();
+    expect(await repo.renewLease('run', 'worker')).toBe(false);
+    await repo.failOrRetry('run', new Error('ECONNRESET'), 'worker');
+    expect((await repo.get('run', 'owner'))?.state).toBe('cancelled');
+  });
+  it('does not reset consumed steps after reacquiring a run', async () => {
+    await repo.acquire('run', 'queued', 'researching', 'worker', 2);
+    await repo.reserveStep('run', 'worker', 'question', 1);
+    await expect(repo.reserveStep('run', 'worker', 'question', 100)).rejects.toThrow('budget');
+    await repo.failOrRetry('run', new Error('ECONNRESET'), 'worker');
+    const retry = (await repo.get('run', 'owner'))!.nextRetryAt!;
+    await repo.acquire('run', 'recovering', 'researching', 'new', 2, Date.parse(retry));
+    await expect(repo.reserveStep('run', 'new', 'question', 100)).rejects.toThrow('budget');
+  });
+  it('cleans private checkpoints and budgets on account deletion', async () => {
+    await repo.acquire('run', 'queued', 'researching', 'worker', 2);
+    await repo.saveCheckpoint('run', 'worker', 'draft', 'PRIVATE_DRAFT_SENTINEL');
+    await repo.reserveStep('run', 'worker', 'question', 3);
+    await db.deleteUserData('owner');
+    for (const table of ['research_checkpoints', 'research_budgets']) {
+      expect((await db.client.execute(`SELECT * FROM ${table}`)).rows).toHaveLength(0);
+    }
+  });
+  it('rejects incompatible checkpoint versions', async () => {
+    await repo.acquire('run', 'queued', 'researching', 'worker', 2);
+    await repo.saveCheckpoint('run', 'worker', 'draft', 'private');
+    await db.client.execute('UPDATE research_checkpoints SET version = 999');
+    await expect(repo.checkpoint('run', 'draft')).rejects.toThrow('Incompatible');
+  });
+  it.each(['401 invalid API key', '403 unauthorized', 'Research step budget exhausted', 'Answer grounding failed'])('never retries %s', async error => {
+    await repo.acquire('run', 'queued', 'researching', 'worker', 2);
+    await repo.failOrRetry('run', new Error(error), 'worker');
+    expect((await repo.get('run', 'owner'))?.state).toBe('failed');
   });
 });

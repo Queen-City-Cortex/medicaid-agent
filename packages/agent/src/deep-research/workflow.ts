@@ -1,7 +1,10 @@
+import { getConfig as getVerifierConfig } from '../processors/verifier/config.js';
 import { createWorkflow, createStep } from '@mastra/core/workflows';
 import type { OnIterationCompleteHandler } from '@mastra/core/agent';
 import { z } from 'zod';
-import { isVerifierEnabled } from '../env.js';
+import { checkpointed, questionKey, researchLimits, researchApproval, reserveResearchStep, publishResearchVerification } from './checkpoints.js';
+import { VerificationWithheldError, isRetryableResearchError } from './recovery-errors.js';
+import { verifyAnswer, VERIFICATION_UNAVAILABLE } from '../processors/verifier/verify.js';
 import { log } from '../logger.js';
 import {
   extractSourcesFromToolResults,
@@ -28,16 +31,7 @@ import {
   type WebSource,
   type DeepResearchProgress,
 } from './schemas.js';
-import {
-  MAX_SUB_QUESTIONS,
-  MAX_REFLECTION_ROUNDS,
-  WORKER_MAX_STEPS,
-  PLANNER_MAX_STEPS,
-  RESEARCH_CONCURRENCY,
-  NOVELTY_MIN_NEW_IDS,
-  WEB_SEARCH_ENABLED,
-  DEEP_RESEARCH_MODEL,
-} from './config.js';
+import { WEB_SEARCH_ENABLED, DEEP_RESEARCH_MODEL } from './config.js';
 import { markResearchVerifying, recordResearchUsage } from './usage.js';
 import {
   isSystemicWorkerError,
@@ -152,12 +146,19 @@ function extractWebSources(records: ToolResultRecord[]): WebSource[] {
   const web: WebSource[] = [];
   for (const r of records) {
     if (r.toolName !== 'webSearch') continue;
-    const results = (r.result as { results?: Array<{ title?: string; url?: string }> })?.results ?? [];
+    const results = (r.result as { results?: Array<{ title?: string; url?: string; snippet?: string }> })?.results ?? [];
     for (const item of results) {
-      if (item?.url) web.push({ title: item.title ?? item.url, url: item.url });
+      if (item?.url) web.push({ title: item.title ?? item.url, url: item.url, snippet: item.snippet });
     }
   }
   return web;
+}
+
+function verificationSources(corpus: SourceEntry[], web: WebSource[]): SourceEntry[] {
+  return [...corpus, ...web.filter(source => source.snippet?.trim()).map(source => ({
+    evidenceRole: 'supplementary' as const, toolName: 'webSearch', key: `web:${source.url}`, link: source.url,
+    text: `Title: ${source.title}\nSupplementary web evidence (not governing NC Medicaid policy):\n${source.snippet}`,
+  }))];
 }
 
 function workerPrompt(sq: SubQuestion): string {
@@ -180,7 +181,7 @@ interface ResearchOutcome {
 // and the report writer has nothing to synthesize. Mirror the chat agent: two
 // steps before the limit, force the worker to stop and write its summary.
 const forceWorkerSynthesis: OnIterationCompleteHandler = ({ iteration, finishReason }) => {
-  if (iteration >= WORKER_MAX_STEPS - 2 && finishReason === 'tool-calls') {
+  if (iteration >= researchLimits().workerMaxSteps - 2 && finishReason === 'tool-calls') {
     return {
       feedback:
         'You are out of research steps. Stop calling tools and write your final compressed, citation-bearing summary NOW from what you have already read. Cite each claim with the citationLink from the tool results; state explicitly where the corpus was silent.',
@@ -190,30 +191,47 @@ const forceWorkerSynthesis: OnIterationCompleteHandler = ({ iteration, finishRea
   return undefined;
 };
 
-async function researchOne(sq: SubQuestion): Promise<ResearchOutcome> {
-  const res = await deepResearchWorkerAgent.generate(workerPrompt(sq), {
-    maxSteps: WORKER_MAX_STEPS,
-    onIterationComplete: forceWorkerSynthesis,
+async function verifyResearchAnswer(key: string, question: string, answerText: string, sources: SourceEntry[]) {
+  let pass = 0;
+  return runVerificationForAnswer({ question, answerText, sources,
+    onUsage: usage => recordResearchUsage('verifier', getVerifierConfig().model, { usage }),
+    verify: (...args) => checkpointed(`${key}:verification:${++pass}`, () => verifyAnswer(...args),
+      value => !value.unsupportedClaims.some(c => c.reason === VERIFICATION_UNAVAILABLE)),
   });
-  recordResearchUsage('worker', DEEP_RESEARCH_MODEL, res);
-  const records = normalizeToolResults(res.toolResults);
-  const corpus = extractSourcesFromToolResults(records);
-  const web = extractWebSources(records);
-  let summary = res.text ?? '';
-  if (isVerifierEnabled() && summary && corpus.length > 0) {
-    const verified = await runVerificationForAnswer({
-      question: sq.question,
-      answerText: summary,
-      sources: corpus,
-      onUsage: (usage) => recordResearchUsage('verifier', DEEP_RESEARCH_MODEL, { usage }),
+}
+
+async function researchOne(sq: SubQuestion): Promise<ResearchOutcome> {
+  const key = `worker:${questionKey(sq)}`;
+  return checkpointed(key, async () => {
+    const draft = await checkpointed(`${key}:draft`, async () => {
+      const res = await deepResearchWorkerAgent.generate(workerPrompt(sq), {
+        maxSteps: researchLimits().workerMaxSteps,
+        prepareStep: async () => { await reserveResearchStep(key, researchLimits().workerMaxSteps); },
+        onIterationComplete: forceWorkerSynthesis,
+      });
+      recordResearchUsage('worker', DEEP_RESEARCH_MODEL, res);
+      const records = normalizeToolResults(res.toolResults);
+      return { text: res.text ?? '', corpus: extractSourcesFromToolResults(records), web: extractWebSources(records) };
     });
-    summary = verified.finalAnswer;
-  }
-  return {
-    finding: { subQuestion: sq.question, summary, foundEvidence: corpus.length > 0 || web.length > 0 },
-    corpus,
-    web,
-  };
+    const sources = verificationSources(draft.corpus, draft.web);
+    const verified = await verifyResearchAnswer(key, sq.question, draft.text, sources);
+    if (verified.outcome.status === 'withheld') {
+      await publishResearchVerification(verified.outcome, sources.map(s => ({ key: s.key, label: sourceLabel(s), link: s.link ?? null })));
+      throw new VerificationWithheldError(verified.retryable);
+    }
+    return { finding: { subQuestion: sq.question, summary: verified.finalAnswer, foundEvidence: sources.length > 0 },
+      corpus: draft.corpus, web: draft.web };
+  });
+}
+
+function uniqueQuestions(questions: SubQuestion[], prior: SubQuestion[] = []): SubQuestion[] {
+  const seen = new Set(prior.map(questionKey));
+  return questions.filter(question => {
+    const key = questionKey(question);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 // ── Step 1: plan ──────────────────────────────────────────────────────────────
@@ -222,21 +240,22 @@ const planStep = createStep({
   id: 'plan',
   inputSchema: DeepResearchInputSchema,
   outputSchema: PlanStepOut,
-  execute: async ({ inputData, writer }) => {
+  execute: async ({ inputData, writer }) => checkpointed('plan', async () => {
     await emit(writer, { stage: 'planning', detail: 'Decomposing the question into a research plan…' });
     const res = await deepResearchPlannerAgent.generate(
       `Plan a deep-research run for this NC Medicaid question:\n\n${inputData.question}`,
-      { structuredOutput: { schema: ResearchPlanSchema }, maxSteps: PLANNER_MAX_STEPS },
+      { structuredOutput: { schema: ResearchPlanSchema }, maxSteps: researchLimits().plannerMaxSteps,
+        prepareStep: async () => { await reserveResearchStep('plan', researchLimits().plannerMaxSteps); } },
     );
     recordResearchUsage('planner', DEEP_RESEARCH_MODEL, res);
     const plan = res.object as { brief: string; subQuestions: SubQuestion[] } | undefined;
     if (!plan?.subQuestions?.length) {
       throw new Error('Planner did not produce a research plan');
     }
-    const subQuestions = plan.subQuestions.slice(0, MAX_SUB_QUESTIONS);
+    const subQuestions = plan.subQuestions.slice(0, researchLimits().maxSubQuestions);
     log.info('deep_research.planned', { subQuestions: subQuestions.length });
     return { question: inputData.question, brief: plan.brief, subQuestions };
-  },
+  }),
 });
 
 // ── Step 2: plan approval (HITL suspend/resume) ───────────────────────────────
@@ -254,6 +273,7 @@ const approvalStep = createStep({
     const base = { question: inputData.question, brief: inputData.brief, subQuestions: inputData.subQuestions };
 
     // First pass — pause and ask the user to approve or edit the plan.
+    resumeData = researchApproval() ?? resumeData;
     if (!resumeData) {
       await emit(writer, { stage: 'awaiting-approval', detail: 'Waiting for you to approve the research plan.' });
       return await suspend({ brief: inputData.brief, subQuestions: inputData.subQuestions });
@@ -275,10 +295,10 @@ const approvalStep = createStep({
         stats: { reflectionRounds: 0, subQuestionCount: 0, corpusSourceCount: 0, webSourceCount: 0 },
       });
     }
-    const subQuestions = (resumeData.editedSubQuestions?.length
+    const subQuestions = uniqueQuestions(resumeData.editedSubQuestions?.length
       ? resumeData.editedSubQuestions
       : inputData.subQuestions
-    ).slice(0, MAX_SUB_QUESTIONS);
+    ).slice(0, researchLimits().maxSubQuestions);
     return { ...base, subQuestions };
   },
 });
@@ -289,7 +309,7 @@ const researchStep = createStep({
   id: 'research',
   inputSchema: ApprovalStepOut,
   outputSchema: ResearchStepOut,
-  execute: async ({ inputData, writer }) => {
+  execute: async ({ inputData, writer }) => checkpointed('research', async () => {
     const { question, brief } = inputData;
     const allSubQuestions: SubQuestion[] = [...inputData.subQuestions];
     const findings: Finding[] = [];
@@ -315,7 +335,7 @@ const researchStep = createStep({
     await emit(writer, { stage: 'researching', detail: `Researching ${total} sub-questions…`, current: 0, total });
     const initial = await runSettledBatches(
       inputData.subQuestions,
-      RESEARCH_CONCURRENCY,
+      researchLimits().researchConcurrency,
       async (sq) => {
         const outcome = await researchOne(sq);
         done += 1;
@@ -328,32 +348,36 @@ const researchStep = createStep({
       subQuestion: item.question,
       message: workerFailureMessage(error),
     })));
+    const fatalInitial = initial.failures.find(f => isRetryableResearchError(f.error) || f.error instanceof VerificationWithheldError || /budget|lease|corpus|checkpoint/i.test(String(f.error)));
+    if (fatalInitial) throw fatalInitial.error;
     if (
       initial.failures.some(({ error }) => isSystemicWorkerError(error))
       || initial.failures.length > inputData.subQuestions.length / 2
     ) {
-      throw new Error('Deep research stopped because the worker pool had a systemic or majority failure');
+      throw initial.failures[0].error;
     }
 
     // Bounded reflection loop with a closed-corpus novelty stop.
     let reflectionRounds = 0;
-    let remaining = MAX_SUB_QUESTIONS - allSubQuestions.length;
-    while (reflectionRounds < MAX_REFLECTION_ROUNDS && remaining > 0) {
+    let remaining = researchLimits().maxSubQuestions - allSubQuestions.length;
+    while (reflectionRounds < researchLimits().maxReflectionRounds && remaining > 0) {
       await emit(writer, { stage: 'reflecting', detail: `Checking for gaps (round ${reflectionRounds + 1})…` });
       const reflPrompt = `Research brief:\n${brief}\n\nFindings so far:\n${findings
         .map((f, i) => `${i + 1}. ${f.subQuestion}\n${f.summary}`)
         .join('\n\n')}\n\nIdentify remaining gaps versus the brief and propose up to ${remaining} follow-up sub-questions that would close them. If the findings already cover the brief, set sufficient=true and return no follow-ups.`;
-      const reflRes = await deepResearchPlannerAgent.generate(reflPrompt, {
-        structuredOutput: { schema: ReflectionSchema },
-        maxSteps: PLANNER_MAX_STEPS,
+      const reflection = await checkpointed(`reflection:${reflectionRounds}`, async () => {
+        const reflRes = await deepResearchPlannerAgent.generate(reflPrompt, {
+          structuredOutput: { schema: ReflectionSchema },
+          maxSteps: researchLimits().plannerMaxSteps,
+          prepareStep: async () => { await reserveResearchStep(`reflection:${reflectionRounds}`, researchLimits().plannerMaxSteps); },
+        });
+        recordResearchUsage('reflection', DEEP_RESEARCH_MODEL, reflRes);
+        return ReflectionSchema.parse(reflRes.object);
       });
-      recordResearchUsage('reflection', DEEP_RESEARCH_MODEL, reflRes);
-      const reflection = reflRes.object as
-        | { sufficient: boolean; followUps: SubQuestion[] }
-        | undefined;
       if (!reflection || reflection.sufficient || !reflection.followUps?.length) break;
 
-      const followUps: SubQuestion[] = reflection.followUps.slice(0, remaining);
+      const followUps: SubQuestion[] = uniqueQuestions(reflection.followUps, allSubQuestions).slice(0, remaining);
+      if (!followUps.length) break;
       remaining -= followUps.length;
       allSubQuestions.push(...followUps);
       const before = seenIds.size;
@@ -361,7 +385,7 @@ const researchStep = createStep({
       let fuDone = 0;
       const followUpResults = await runSettledBatches(
         followUps,
-        RESEARCH_CONCURRENCY,
+        researchLimits().researchConcurrency,
         async (sq) => {
           const outcome = await researchOne(sq);
           fuDone += 1;
@@ -374,14 +398,16 @@ const researchStep = createStep({
         subQuestion: item.question,
         message: workerFailureMessage(error),
       })));
+      const fatalFollowup = followUpResults.failures.find(f => isRetryableResearchError(f.error) || f.error instanceof VerificationWithheldError || /budget|lease|corpus|checkpoint/i.test(String(f.error)));
+      if (fatalFollowup) throw fatalFollowup.error;
       if (
         followUpResults.failures.some(({ error }) => isSystemicWorkerError(error))
         || followUpResults.failures.length > followUps.length / 2
       ) {
-        throw new Error('Deep research stopped because the worker pool had a systemic or majority failure');
+        throw followUpResults.failures[0].error;
       }
       reflectionRounds += 1;
-      if (seenIds.size - before < NOVELTY_MIN_NEW_IDS) break; // corpus exhausted
+      if (seenIds.size - before < researchLimits().noveltyMinNewIds) break; // corpus exhausted
     }
 
     log.info('deep_research.researched', {
@@ -400,7 +426,7 @@ const researchStep = createStep({
       webSources: [...webByUrl.values()],
       reflectionRounds,
     };
-  },
+  }),
 });
 
 // ── Step 4: synthesize the report ─────────────────────────────────────────────
@@ -409,7 +435,7 @@ const synthesizeStep = createStep({
   id: 'synthesize',
   inputSchema: ResearchStepOut,
   outputSchema: SynthStepOut,
-  execute: async ({ inputData, writer }) => {
+  execute: async ({ inputData, writer }) => checkpointed('synthesis', async () => {
     await emit(writer, { stage: 'synthesizing', detail: 'Writing the research report…' });
     const findingsBlock = inputData.findings
       .map((f, i) => `### Sub-question ${i + 1}: ${f.subQuestion}\n${f.summary}`)
@@ -418,7 +444,9 @@ const synthesizeStep = createStep({
       ? `\n\nSupplementary web sources consulted:\n${inputData.webSources.map((w) => `- ${w.title} (${w.url})`).join('\n')}`
       : '';
     const prompt = `Original question:\n${inputData.question}\n\nResearch brief:\n${inputData.brief}\n\nFindings (each already carries inline citations):\n\n${findingsBlock}${webBlock}\n\nWrite the full report now.`;
-    const res = await deepResearchReportAgent.generate(prompt);
+    const res = await deepResearchReportAgent.generate(prompt, {
+      maxSteps: 1, prepareStep: async () => { await reserveResearchStep('synthesis', 1); },
+    });
     recordResearchUsage('reporter', DEEP_RESEARCH_MODEL, res);
     return {
       question: inputData.question,
@@ -430,7 +458,7 @@ const synthesizeStep = createStep({
       workerFailures: inputData.workerFailures,
       reflectionRounds: inputData.reflectionRounds,
     };
-  },
+  }),
 });
 
 // ── Step 5: verify (reuse the hallucination verifier) ─────────────────────────
@@ -439,51 +467,28 @@ const verifyStep = createStep({
   id: 'verify',
   inputSchema: SynthStepOut,
   outputSchema: DeepResearchReportSchema,
-  execute: async ({ inputData, writer }) => {
-    const verifierEnabled = isVerifierEnabled();
-    let reportMarkdown = inputData.reportMarkdown;
-    let citationProvenance = null as null | {
-      checkedCitations: number;
-      retrievedCitations: number;
-      unknownCitations: number;
-    };
+  execute: async ({ inputData, writer }) => checkpointed('report', async () => {
     await markResearchVerifying();
-
-    if (verifierEnabled && reportMarkdown) {
-      await emit(writer, { stage: 'verifying', detail: 'Verifying citations against the corpus…' });
-      try {
-        const sources: SourceEntry[] = inputData.corpusSources;
-        const verified = await runVerificationForAnswer({
-          question: inputData.question,
-          answerText: reportMarkdown,
-          sources,
-          onUsage: (usage) => recordResearchUsage('verifier', DEEP_RESEARCH_MODEL, { usage }),
-        });
-        reportMarkdown = verified.finalAnswer;
-        const { validatedAnswer, unknownUrls, checkedUrlCount } = validateAnswerUrls(reportMarkdown, sources);
-        reportMarkdown = validatedAnswer;
-        citationProvenance = {
-          checkedCitations: checkedUrlCount,
-          retrievedCitations: checkedUrlCount - unknownUrls.length,
-          unknownCitations: unknownUrls.length,
-        };
-        if (unknownUrls.length > 0) {
-          log.warn('deep_research.fabricated_citations', { count: unknownUrls.length });
-        }
-      } catch (err) {
-        log.error('deep_research.verify_failed', { error: String(err) });
-      }
-    }
+    await emit(writer, { stage: 'verifying', detail: 'Checking the report against sources…' });
+    const sources = verificationSources(inputData.corpusSources, inputData.webSources);
+    const verified = await verifyResearchAnswer('report', inputData.question, inputData.reportMarkdown, sources);
+    const safeSources = sources.map(s => ({ key: s.key, label: sourceLabel(s), link: s.link ?? null }));
+    await publishResearchVerification(verified.outcome, safeSources);
+    if (verified.outcome.status === 'withheld') throw new VerificationWithheldError(verified.retryable);
+    const reportMarkdown = verified.finalAnswer;
+    const urls = validateAnswerUrls(reportMarkdown, sources);
+    const citationProvenance = { checkedCitations: urls.checkedUrlCount, retrievedCitations: urls.retrievedUrlCount, allowedCitations: urls.allowedUrlCount, unknownCitations: urls.unknownUrls.length };
 
     await emit(writer, { stage: 'done', detail: 'Research complete.' });
     return {
+      verification: verified.outcome,
       status: 'completed' as const,
       question: inputData.question,
       brief: inputData.brief,
       reportMarkdown,
       subQuestions: inputData.subQuestions,
       corpusSources: inputData.corpusSources.map((s) => ({ key: s.key, label: sourceLabel(s), link: s.link ?? null })),
-      webSources: inputData.webSources,
+      webSources: inputData.webSources.map(({ title, url }) => ({ title, url })),
       workerFailures: inputData.workerFailures,
       citationProvenance,
       stats: {
@@ -493,7 +498,7 @@ const verifyStep = createStep({
         webSourceCount: inputData.webSources.length,
       },
     };
-  },
+  }),
 });
 
 // ── Workflow ──────────────────────────────────────────────────────────────────

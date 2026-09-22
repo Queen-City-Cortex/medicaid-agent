@@ -11,3 +11,8 @@ Current tracked milestones:
 
 Before promoting a new milestone, prefer complete benchmark runs over targeted
 single-question or exploratory outputs.
+
+The `milestones/2026-09-22-verified-release/` directory contains the matched
+50-question baseline and release-gate comparison, with dataset provenance and
+verification latency/outcome summaries. See the [validation report](../../../../docs/validation/verified-release-2026-09-22.md)
+for corpus compatibility limits and the final release assessment.

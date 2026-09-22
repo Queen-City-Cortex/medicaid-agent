@@ -18,7 +18,7 @@ describe('AppDatabase', () => {
     await database.migrate();
     await database.migrate();
     const result = await database.client.execute('SELECT version FROM _app_migrations ORDER BY version');
-    expect(result.rows.map((row) => Number(row.version))).toEqual([1, 2, 3, 4]);
+    expect(result.rows.map((row) => Number(row.version))).toEqual([1, 2, 3, 4, 5, 6]);
   });
 
   it('adopts a lazily bootstrapped latest usage schema', async () => {
@@ -33,7 +33,7 @@ describe('AppDatabase', () => {
 
     await expect(database.migrate()).resolves.toBeUndefined();
     const versions = await database.client.execute('SELECT version FROM _app_migrations ORDER BY version');
-    expect(versions.rows.map((row) => Number(row.version))).toEqual([1, 2, 3, 4]);
+    expect(versions.rows.map((row) => Number(row.version))).toEqual([1, 2, 3, 4, 5, 6]);
   });
 
   it('deletes all app-owned data for one resource only', async () => {
@@ -58,5 +58,19 @@ describe('AppDatabase', () => {
     expect((await database.client.execute('SELECT id FROM feedback')).rows.map((row) => row.id)).toEqual(['f2']);
     expect((await database.client.execute('SELECT id FROM mastra_threads')).rows.map((row) => row.id)).toEqual(['t2']);
     expect((await database.client.execute('SELECT id FROM mastra_messages')).rows.map((row) => row.id)).toEqual(['m2']);
+  });
+
+  it('retains checkpoints with their run and removes expired private drafts and budgets', async () => {
+    const database = createDatabase();
+    await database.migrate();
+    for (const [id, date] of [['old', '2020-01-01T00:00:00.000Z'], ['recent', new Date().toISOString()]]) {
+      await database.client.execute({ sql: 'INSERT INTO research_runs (id, resource_id, state, question, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)', args: [id, 'owner', 'completed', 'q', date, date] });
+      await database.client.execute({ sql: 'INSERT INTO research_checkpoints VALUES (?, ?, ?, ?)', args: [id, 'synthesis', '"PRIVATE_DRAFT_SENTINEL"', 1] });
+      await database.client.execute({ sql: 'INSERT INTO research_budgets VALUES (?, ?, ?, ?)', args: [id, 'synthesis', 1, 1] });
+    }
+    await database.runRetention({ conversationsDays: 90, feedbackDays: 90, usageDays: 90, rateLimitHours: 1 });
+    for (const table of ['research_checkpoints', 'research_budgets']) {
+      expect((await database.client.execute(`SELECT run_id FROM ${table}`)).rows.map(row => row.run_id)).toEqual(['recent']);
+    }
   });
 });

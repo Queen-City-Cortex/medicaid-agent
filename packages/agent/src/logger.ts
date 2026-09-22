@@ -50,9 +50,9 @@ export const log = {
  * "fetch failed".
  */
 export function errorFields(err: unknown): Fields {
-  if (err instanceof Error) {
-    const fields: Fields = { err: err.message, errName: err.name };
-    if (err.cause !== undefined) {
+  if (err && typeof err === 'object' && 'message' in err) {
+    const fields: Fields = { err: String(err.message), errName: 'name' in err ? String(err.name) : 'Error' };
+    if ('cause' in err && err.cause !== undefined) {
       fields.cause = err.cause instanceof Error ? err.cause.message : String(err.cause);
     }
     return fields;

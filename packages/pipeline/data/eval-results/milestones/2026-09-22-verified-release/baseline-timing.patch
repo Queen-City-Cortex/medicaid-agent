@@ -1,0 +1,28 @@
+diff --git a/packages/agent/src/processors/verifier/run.ts b/packages/agent/src/processors/verifier/run.ts
+index 2c6fcc3..4bc88fe 100644
+--- a/packages/agent/src/processors/verifier/run.ts
++++ b/packages/agent/src/processors/verifier/run.ts
+@@ -26,6 +26,7 @@ const VERIFICATION_DISCLAIMER =
+  * these fields by name. Do not rename them.
+  */
+ export interface VerifierTelemetry {
++  latency_ms: number;
+   rewrote: boolean;
+   supported: boolean;
+   relevant: boolean;
+@@ -86,6 +87,7 @@ export async function runVerificationForAnswer({
+   sources: SourceEntry[];
+   onUsage?: (usage: unknown) => void;
+ }): Promise<VerificationRunResult> {
++  const started = Date.now();
+   const sourceText = buildSourceText(sources, answerText);
+   const verification = await verifyAnswer(question, answerText, sourceText, onUsage);
+ 
+@@ -162,6 +164,7 @@ export async function runVerificationForAnswer({
+   const rewroteFinal = rewrote || sanitized;
+ 
+   const telemetry: VerifierTelemetry = {
++    latency_ms: Date.now() - started,
+     rewrote: rewroteFinal,
+     supported: verification.supported,
+     relevant: verification.relevant,

@@ -1,0 +1,196 @@
+{
+  "observedAt": "2026-09-22T07:31:27.572Z",
+  "candidateCommit": "5f7ab7b",
+  "corpusRelease": "legacy-20260725-ae8595c",
+  "runId": "tagged-validation-2c2a89ca-d15d-4c24-9677-20d0e64bba48",
+  "question": "Does Policy 1-H authorize routine general-wellness telehealth visits without a specific clinical indication?",
+  "finalState": "completed",
+  "error": null,
+  "verification": {
+    "status": "corrected",
+    "passCount": 2
+  },
+  "reportReleased": true,
+  "reportCharacters": 2359,
+  "approval": {
+    "approved": true,
+    "editedSubQuestions": [
+      {
+        "question": "Does Policy 1-H authorize routine general-wellness telehealth visits without a specific clinical indication?",
+        "rationale": "Determine the policy scope and clinical-indication requirement from the governing text.",
+        "channels": [
+          "vector",
+          "keyword"
+        ],
+        "useWeb": false
+      }
+    ]
+  },
+  "limits": {
+    "maxSubQuestions": 1,
+    "maxReflectionRounds": 0,
+    "workerMaxSteps": 16,
+    "plannerMaxSteps": 6,
+    "researchConcurrency": 3,
+    "noveltyMinNewIds": 2
+  },
+  "recoveryCount": 2,
+  "executionCount": 3,
+  "interruptions": [
+    "worker:e4448ad5e1e215810d82b924",
+    "report:verification:1"
+  ],
+  "checkpointWrites": [
+    "plan",
+    "worker:e4448ad5e1e215810d82b924:draft",
+    "worker:e4448ad5e1e215810d82b924:verification:1",
+    "worker:e4448ad5e1e215810d82b924",
+    "research",
+    "synthesis",
+    "report:verification:1",
+    "report:verification:2",
+    "report"
+  ],
+  "budgets": [
+    {
+      "key": "plan",
+      "used": 2,
+      "limit_value": 6
+    },
+    {
+      "key": "worker:e4448ad5e1e215810d82b924",
+      "used": 7,
+      "limit_value": 16
+    },
+    {
+      "key": "synthesis",
+      "used": 1,
+      "limit_value": 1
+    }
+  ],
+  "usage": [
+    {
+      "phase": "planner",
+      "model_id": "gpt-5.6-terra",
+      "calls": 1,
+      "tokens": 6119
+    },
+    {
+      "phase": "reporter",
+      "model_id": "gpt-5.6-terra",
+      "calls": 1,
+      "tokens": 4612
+    },
+    {
+      "phase": "verifier",
+      "model_id": "gpt-5.6-terra",
+      "calls": 3,
+      "tokens": 32253
+    },
+    {
+      "phase": "worker",
+      "model_id": "gpt-5.6-terra",
+      "calls": 1,
+      "tokens": 67931
+    }
+  ],
+  "states": [
+    {
+      "at": "2026-09-22T07:27:11.337Z",
+      "state": "researching",
+      "recoveryCount": 0,
+      "progress": {
+        "completedQuestions": 0,
+        "checkpoints": 1
+      },
+      "nextRetryAt": null,
+      "verification": null
+    },
+    {
+      "at": "2026-09-22T07:27:50.427Z",
+      "state": "recovering",
+      "recoveryCount": 0,
+      "progress": {
+        "completedQuestions": 1,
+        "checkpoints": 4
+      },
+      "nextRetryAt": "2026-09-22T07:28:20.172Z",
+      "verification": null
+    },
+    {
+      "at": "2026-09-22T07:28:20.596Z",
+      "state": "researching",
+      "recoveryCount": 1,
+      "progress": {
+        "completedQuestions": 1,
+        "checkpoints": 5
+      },
+      "nextRetryAt": null,
+      "verification": null
+    },
+    {
+      "at": "2026-09-22T07:28:57.287Z",
+      "state": "verifying",
+      "recoveryCount": 1,
+      "progress": {
+        "completedQuestions": 1,
+        "checkpoints": 6
+      },
+      "nextRetryAt": null,
+      "verification": null
+    },
+    {
+      "at": "2026-09-22T07:29:23.920Z",
+      "state": "recovering",
+      "recoveryCount": 1,
+      "progress": {
+        "completedQuestions": 1,
+        "checkpoints": 7
+      },
+      "nextRetryAt": "2026-09-22T07:31:23.486Z",
+      "verification": null
+    },
+    {
+      "at": "2026-09-22T07:31:23.544Z",
+      "state": "researching",
+      "recoveryCount": 2,
+      "progress": {
+        "completedQuestions": 1,
+        "checkpoints": 7
+      },
+      "nextRetryAt": null,
+      "verification": null
+    },
+    {
+      "at": "2026-09-22T07:31:24.047Z",
+      "state": "verifying",
+      "recoveryCount": 2,
+      "progress": {
+        "completedQuestions": 1,
+        "checkpoints": 7
+      },
+      "nextRetryAt": null,
+      "verification": null
+    },
+    {
+      "at": "2026-09-22T07:31:27.571Z",
+      "state": "completed",
+      "recoveryCount": 2,
+      "progress": {
+        "completedQuestions": 1,
+        "checkpoints": 9
+      },
+      "nextRetryAt": null,
+      "verification": {
+        "status": "corrected",
+        "passCount": 2
+      }
+    }
+  ],
+  "agentGenerateCalls": {
+    "deepResearchPlannerAgent": 1,
+    "deepResearchWorkerAgent": 1,
+    "deepResearchReportAgent": 1
+  },
+  "process_cleanup_note": "All workflow assertions passed. Mastra emitted a SQLite WAL-checkpoint warning during standalone harness shutdown while the application connection was still open."
+}

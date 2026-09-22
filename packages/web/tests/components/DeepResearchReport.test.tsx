@@ -27,6 +27,11 @@ describe('DeepResearchReportView verification line (G9 guards)', () => {
     );
   });
 
+  it('separates allowed portal links from retrieved evidence', () => {
+    render(<DeepResearchReportView report={makeReport({ citationProvenance: { checkedCitations: 2, retrievedCitations: 1, allowedCitations: 1, unknownCitations: 0 } })} />);
+    expect(screen.getByTestId('deep-research-verification')).toHaveTextContent('1/2 resolve to retrieved sources; 1 allowed reference link(s)');
+  });
+
   it('does not claim verification when zero citations were checked', () => {
     render(
       <DeepResearchReportView

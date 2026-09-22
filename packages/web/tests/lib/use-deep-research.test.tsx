@@ -1,4 +1,4 @@
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, act, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { useDeepResearch } from '@/lib/use-deep-research';
 
@@ -61,12 +61,48 @@ function setup() {
     throw new Error(`Unexpected fetch ${url}`);
   });
   const getAccessToken = vi.fn().mockResolvedValue('token');
-  return { ...renderHook(() => useDeepResearch({ getAccessToken })), fetchMock };
+  return { ...renderHook(() => useDeepResearch({ getAccessToken, userId: 'owner' })), fetchMock };
 }
 
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => { vi.restoreAllMocks(); sessionStorage.clear(); });
 
 describe('useDeepResearch', () => {
+  it('does not restore another account or an ownerless legacy run', async () => {
+    sessionStorage.setItem('nc-medicaid-research-run:other-user', 'private-run');
+    sessionStorage.setItem('nc-medicaid-research-run', 'legacy-run');
+    const { result, fetchMock } = setup();
+    expect(result.current.status).toBe('idle');
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(sessionStorage.getItem('nc-medicaid-research-run')).toBeNull();
+  });
+  it.each([401, 403, 404])('forgets inaccessible restored runs (%s)', async status => {
+    sessionStorage.setItem('nc-medicaid-research-run:owner', 'missing');
+    vi.spyOn(globalThis, 'fetch').mockImplementation(() => json({ error: 'Not accessible' }, status));
+    const { result } = renderHook(() => useDeepResearch({ getAccessToken: async () => 'token', userId: 'owner' }));
+    await waitFor(() => expect(result.current.status).toBe('error'));
+    expect(sessionStorage.getItem('nc-medicaid-research-run:owner')).toBeNull();
+  });
+  it('ignores an old account response after the account changes', async () => {
+    sessionStorage.setItem('nc-medicaid-research-run:owner', 'run-1');
+    let complete!: (response: Response) => void;
+    vi.spyOn(globalThis, 'fetch').mockImplementation(() => new Promise(resolve => { complete = resolve; }));
+    const getAccessToken = async () => 'token';
+    const { result, rerender } = renderHook(({ userId }) => useDeepResearch({ getAccessToken, userId }), { initialProps: { userId: 'owner' } });
+    await waitFor(() => expect(complete).toBeDefined());
+    rerender({ userId: 'other-user' });
+    await act(async () => { complete(await json(run('completed', { report: REPORT }))); });
+    expect(result.current.status).toBe('idle');
+    expect(result.current.report).toBeNull();
+    expect(result.current.question).toBe('');
+  });
+
+  it('reloads a waiting plan without approving or starting a new run', async () => {
+    sessionStorage.setItem('nc-medicaid-research-run:owner', 'run-1');
+    const { result, fetchMock } = setup();
+    await waitFor(() => expect(result.current.status).toBe('awaiting-approval'));
+    expect(result.current.question).toBe('Does X?');
+    expect(fetchMock.mock.calls.every(([, init]) => init?.method === 'GET')).toBe(true);
+  });
   it('starts an owned run and surfaces its durable plan', async () => {
     const { result, fetchMock } = setup();
     await act(async () => { await result.current.start('Does X?'); });

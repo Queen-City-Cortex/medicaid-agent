@@ -167,6 +167,9 @@ const asyncNoop = async () => {};
 function makeController(over: Partial<DeepResearchController>): DeepResearchController {
   return {
     status: 'idle',
+    recoveryCount: 0,
+    recoveryProgress: { completedQuestions: 0, checkpoints: 0 },
+    sources: [],
     plan: null,
     report: null,
     error: null,

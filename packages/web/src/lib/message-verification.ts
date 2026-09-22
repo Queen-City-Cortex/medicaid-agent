@@ -1,3 +1,5 @@
+import { VERIFICATION_PART, type VerificationOutcome } from '@nc-medicaid/contracts';
+export { VERIFICATION_PART };
 // Owns verifier-confidence state: extracting the streamed `data-verification-*`
 // parts into a per-message VerificationState.
 
@@ -6,6 +8,7 @@ import type { UIMessage } from 'ai';
 export type VerificationSeverity = 'high' | 'medium' | 'low';
 
 export interface VerificationState {
+  outcome?: VerificationOutcome;
   severity: VerificationSeverity;
   /** 0..1 */
   confidence: number;
@@ -53,6 +56,10 @@ export function extractVerificationState(msg: UIMessage): VerificationState | nu
     if (!Number.isFinite(confidence) || (severity !== 'high' && severity !== 'medium' && severity !== 'low')) {
       continue;
     }
+    if (part.type === VERIFICATION_PART && ['passed', 'corrected', 'withheld'].includes(String(data.status))) {
+      return { outcome: data as unknown as VerificationOutcome, severity, confidence,
+        rewrote: data.status === 'corrected', counts: coerceCounts(data.counts), pureMarkerFallback: false };
+    }
     if (part.type === REWRITE_PART_TYPE) {
       return {
         severity,
@@ -73,4 +80,12 @@ export function extractVerificationState(msg: UIMessage): VerificationState | nu
     }
   }
   return ok;
+}
+
+export function extractReleaseState(msg: UIMessage): VerificationOutcome | { status: 'verifying' } | null {
+  const parts = msg.parts as Array<{ type: string; data?: VerificationOutcome | { status: 'verifying' } }>;
+  for (let i = parts.length - 1; i >= 0; i--) {
+    if (parts[i].type === VERIFICATION_PART) return parts[i].data ?? null;
+  }
+  return null;
 }

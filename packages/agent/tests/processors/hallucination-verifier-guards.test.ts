@@ -1,3 +1,4 @@
+import { WITHHELD_ANSWER } from '@nc-medicaid/contracts';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   VERIFIER_PROMPT,
@@ -57,7 +58,7 @@ describe('VERIFIER_PROMPT content', () => {
   });
 
   it('forbids replacing the answer body with meta-commentary', () => {
-    expect(VERIFIER_PROMPT).toMatch(/NEVER replace the answer body with meta-commentary/);
+    expect(VERIFIER_PROMPT).toMatch(/retaining correct cited content/);
   });
 });
 
@@ -76,6 +77,13 @@ describe('normalizeUrl', () => {
 });
 
 describe('validateAnswerUrls', () => {
+  it('distinguishes retrieved citations, allowed references, and unknown URLs', () => {
+    const result = validateAnswerUrls('[Evidence](https://example.gov/evidence) [Portal](https://medicaid.ncdhhs.gov) [Unknown](https://example.gov/unknown)', [
+      { toolName: 'getSection', key: 'evidence', text: 'Evidence', link: 'https://example.gov/evidence' },
+    ]);
+    expect(result).toMatchObject({ checkedUrlCount: 3, retrievedUrlCount: 1, allowedUrlCount: 1, unknownUrls: ['https://example.gov/unknown'] });
+  });
+
   it('passes through answers whose markdown URLs all match source links', () => {
     const answer = 'PCS is covered [Policy 3L-1 § 3.2.1](https://medicaid.ncdhhs.gov/3l-1-pcs).';
     const result = validateAnswerUrls(answer, [makeSource()]);
@@ -207,7 +215,7 @@ describe('runVerificationForAnswer guards', () => {
     '[Policy 3L-1 § 3.2.1](https://medicaid.ncdhhs.gov/3l-1-pcs). The beneficiary must meet functional ' +
     'eligibility criteria, and section 3.3 sets the assessment process.';
 
-  it('falls back to the original answer when the rewrite loses its substance', async () => {
+  it('withholds an unusable rewrite without restoring unchecked claims', async () => {
     vi.mocked(generateObject).mockResolvedValueOnce({
       object: makeVerification({
         supported: false,
@@ -226,9 +234,8 @@ describe('runVerificationForAnswer guards', () => {
       sources: [makeSource()],
     });
 
-    expect(result.finalAnswer).toBe(original);
-    expect(result.telemetry.substance_loss_fallback).toBe(true);
-    expect(result.telemetry.rewrite_substance_ratio).not.toBeNull();
+    expect(result.finalAnswer).toBe(WITHHELD_ANSWER);
+    expect(result.outcome.status).toBe('withheld');
     expect(result.telemetry.confidence).toBeLessThanOrEqual(0.55);
     expect(result.telemetry.severity).toBe('low');
   });
@@ -245,7 +252,7 @@ describe('runVerificationForAnswer guards', () => {
 
     expect(result.rewrote).toBe(true);
     expect(result.finalAnswer).not.toContain(FABRICATED_URL);
-    expect(result.finalAnswer).toContain('Change notice');
+    expect(result.finalAnswer).toBe(WITHHELD_ANSWER);
     expect(result.telemetry.fabricated_url_count).toBe(1);
     expect(result.telemetry.confidence).toBeLessThan(1);
   });
@@ -261,7 +268,7 @@ describe('runVerificationForAnswer guards', () => {
     });
 
     expect(result.rewrote).toBe(true);
-    expect(result.finalAnswer).toContain('[unverified quote — not found in retrieved sources]');
+    expect(result.finalAnswer).toBe(WITHHELD_ANSWER);
     expect(result.telemetry.fabricated_quote_count).toBe(1);
   });
 
@@ -290,4 +297,40 @@ describe('runVerificationForAnswer guards', () => {
       expect(result.telemetry).toHaveProperty(field);
     }
   });
+});
+
+it('rechecks a concise correction after unsupported content is removed', async () => {
+  vi.mocked(generateObject).mockReset();
+  const correction = 'The service requires prior approval. [Policy](https://example.gov/policy)';
+  vi.mocked(generateObject).mockResolvedValueOnce({ object: makeVerification({ supported: false,
+    unsupportedClaims: [{ claim: 'Extended draft', reason: 'Contains unsupported details' }],
+    correctedAnswer: correction,
+  }) } as any).mockResolvedValueOnce({ object: makeVerification() } as any);
+  const result = await runVerificationForAnswer({ question: 'Is prior approval required?',
+    answerText: 'Unsupported details about eligibility and payment. '.repeat(40),
+    sources: [makeSource({ text: 'The service requires prior approval.', link: 'https://example.gov/policy' })],
+  });
+  expect(result.finalAnswer).toBe(correction);
+  expect(result.outcome).toEqual({ status: 'corrected', passCount: 2 });
+  expect(result.telemetry.rewrite_substance_ratio).toBeLessThan(0.4);
+  expect(generateObject).toHaveBeenCalledTimes(2);
+});
+
+it('feeds deterministic quotation failures into the correction pass and rechecks the repair', async () => {
+  vi.mocked(generateObject).mockReset();
+  const correction = 'The service requires prior approval. [Policy](https://example.gov/policy)';
+  vi.mocked(generateObject).mockResolvedValueOnce({ object: makeVerification({ correctedAnswer: correction }) } as any)
+    .mockResolvedValueOnce({ object: makeVerification() } as any);
+  const result = await runVerificationForAnswer({ question: 'Is approval required?',
+    answerText: 'The policy says "Every covered service receives instant approval without a review." [Policy](https://example.gov/policy)',
+    sources: [makeSource({ text: 'The service requires prior approval.', link: 'https://example.gov/policy' })],
+  });
+  expect(result.finalAnswer).toBe(correction);
+  expect(result.outcome).toEqual({ status: 'corrected', passCount: 2 });
+  const firstPrompt = (vi.mocked(generateObject).mock.calls[0][0].messages![0] as any).content;
+  const secondPrompt = (vi.mocked(generateObject).mock.calls[1][0].messages![0] as any).content;
+  expect(firstPrompt).toContain('DETERMINISTIC VALIDATION FINDINGS');
+  expect(firstPrompt).toContain('unknownQuotes');
+  expect(secondPrompt).not.toContain('DETERMINISTIC VALIDATION FINDINGS');
+  expect(secondPrompt).toContain(correction);
 });

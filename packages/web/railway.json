@@ -6,7 +6,8 @@
     "watchPatterns": [
       "/package.json",
       "/package-lock.json",
-      "/packages/web/**"
+      "/packages/web/**",
+      "/packages/contracts/**"
     ]
   },
   "deploy": {

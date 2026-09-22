@@ -97,14 +97,10 @@ export interface RewriteSubstanceCheck {
 const REWRITE_SUBSTANCE_MIN_RATIO = 0.4;
 
 /**
- * Detect rewrites that destroyed the answer: the verifier is instructed to
- * wrap minimal spans, but a misfiring model can return a "corrected" answer
- * that is nothing but wrong-source/unverified meta-commentary (observed with
- * h-005 in the 2026-06-12 eval — the entire substantive answer was replaced
- * by two markers). Marker spans are removed INCLUDING their content (in the
- * failure mode the content is meta-commentary, not original prose) and the
- * remaining substance is compared to the original. A false trigger is safe:
- * the caller falls back to the original answer with clamped confidence.
+ * Retain the legacy rewrite-length telemetry, excluding warning markers.
+ * Length is informational: removing unsupported claims can correctly shorten
+ * an answer. The release gate always rechecks the correction's actual text
+ * and never restores the original based on this ratio.
  */
 export function assessRewriteSubstance(
   originalAnswer: string,
@@ -158,6 +154,8 @@ export interface UrlValidationResult {
   /** Original (un-normalized) URLs that appear in no retrieved source. */
   unknownUrls: string[];
   checkedUrlCount: number;
+  retrievedUrlCount: number;
+  allowedUrlCount: number;
 }
 
 /**
@@ -169,24 +167,43 @@ export interface UrlValidationResult {
  * Unknown links are demoted to plain text so they are not clickable.
  */
 export function validateAnswerUrls(answerText: string, sources: SourceEntry[]): UrlValidationResult {
-  const allowed = new Set(ALWAYS_ALLOWED_URLS);
+  const retrieved = new Set<string>();
   for (const source of sources) {
-    if (source.link) allowed.add(normalizeUrl(source.link));
+    if (source.link) retrieved.add(normalizeUrl(source.link));
     for (const url of source.text.match(BARE_URL_PATTERN) ?? []) {
-      allowed.add(normalizeUrl(url));
+      retrieved.add(normalizeUrl(url));
     }
   }
 
   const unknownUrls: string[] = [];
   let checkedUrlCount = 0;
-  const validatedAnswer = answerText.replace(MARKDOWN_LINK_PATTERN, (match, label: string, url: string) => {
+  let retrievedUrlCount = 0;
+  let allowedUrlCount = 0;
+  const check = (url: string): boolean => {
     checkedUrlCount += 1;
-    if (allowed.has(normalizeUrl(url))) return match;
+    const normalized = normalizeUrl(url);
+    if (retrieved.has(normalized)) { retrievedUrlCount += 1; return true; }
+    if (ALWAYS_ALLOWED_URLS.has(normalized)) { allowedUrlCount += 1; return true; }
     unknownUrls.push(url);
+    return false;
+  };
+  const validatedAnswer = answerText.replace(MARKDOWN_LINK_PATTERN, (match, label: string, url: string) => {
+    if (check(url)) return match;
     return label;
   });
 
-  return { validatedAnswer, unknownUrls, checkedUrlCount };
+  // Markdown autolinks, reference definitions and plain URLs must obey the
+  // same allowlist as inline links. Check each URL once across formats.
+  const seen = new Set([...answerText.matchAll(MARKDOWN_LINK_PATTERN)].map(match => normalizeUrl(match[2])));
+  for (const rawUrl of answerText.match(BARE_URL_PATTERN) ?? []) {
+    const url = rawUrl.replace(/[.,;:!`*]+$/, '');
+    const normalized = normalizeUrl(url);
+    if (seen.has(normalized)) continue;
+    seen.add(normalized);
+    check(url);
+  }
+
+  return { validatedAnswer, unknownUrls, checkedUrlCount, retrievedUrlCount, allowedUrlCount };
 }
 
 export interface QuoteValidationResult {
@@ -223,7 +240,9 @@ export function validateAnswerQuotes(
   options: { minLength?: number } = {},
 ): QuoteValidationResult {
   const minLength = options.minLength ?? QUOTE_MIN_LENGTH;
-  const haystack = normalizeQuotedText(sources.map((source) => source.text).join('\n'));
+  const haystack = normalizeQuotedText(sources
+    .filter(source => source.toolName !== 'resolveAnswerFrame')
+    .map(source => source.text).join('\n'));
 
   const unknownQuotes: string[] = [];
   let checkedQuoteCount = 0;
@@ -238,6 +257,17 @@ export function validateAnswerQuotes(
       return `${match}${UNVERIFIED_QUOTE_MARK}`;
     },
   );
+
+  // A blockquote also claims to reproduce source wording. Join wrapped lines
+  // and omit a trailing citation before matching the actual quotation.
+  for (const block of answerText.match(/(?:^|\n)(?:[ \t]*>[^\n]*(?:\n|$))+/g) ?? []) {
+    const quote = block.replace(/^[ \t]*>[ \t]?/gm, '')
+      .replace(MARKDOWN_LINK_PATTERN, '').trim();
+    const normalized = normalizeQuotedText(quote);
+    if (normalized.length < minLength) continue;
+    checkedQuoteCount += 1;
+    if (!haystack.includes(normalized) && !unknownQuotes.includes(quote)) unknownQuotes.push(quote);
+  }
 
   return { validatedAnswer, unknownQuotes, checkedQuoteCount };
 }

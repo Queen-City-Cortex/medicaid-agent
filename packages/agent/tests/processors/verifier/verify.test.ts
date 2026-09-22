@@ -29,6 +29,15 @@ describe('verifyAnswer fail-closed logging', () => {
     expect(result.unsupportedClaims[0]?.reason).toBe(VERIFICATION_UNAVAILABLE);
   });
 
+  it('enforces supplementary evidence authority in the system instructions', async () => {
+    mockGenerateObject.mockResolvedValue({ object: { supported: true } });
+    await verifyAnswer('q', 'a', 'sources', undefined, undefined, {
+      unknownUrls: [], unknownQuotes: [], hasSupplementaryEvidence: true,
+    });
+    expect(mockGenerateObject.mock.calls[0][0].system).toContain('It cannot independently support ANY governing policy claim');
+    expect(mockGenerateObject.mock.calls[0][0].system).toContain('matching web URL or quotation proves provenance only');
+  });
+
   it('does not log on a successful verification', async () => {
     const error = vi.spyOn(log, 'error').mockImplementation(() => {});
     mockGenerateObject.mockResolvedValue({

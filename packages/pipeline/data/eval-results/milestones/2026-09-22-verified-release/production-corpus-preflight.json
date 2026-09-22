@@ -1,0 +1,595 @@
+{
+  "observedAt": "2026-09-22T07:14:30.022Z",
+  "configuredReleaseId": "legacy-20260725-ae8595c",
+  "release": [
+    {
+      "release": {
+        "release_id": "legacy-20260725-ae8595c",
+        "commit_sha": "ae8595c",
+        "target_color": "legacy",
+        "marked_at": {
+          "year": 2026,
+          "month": 7,
+          "day": 26,
+          "hour": 0,
+          "minute": 31,
+          "second": 59,
+          "nanosecond": 246000000,
+          "timeZoneOffsetSeconds": 0
+        },
+        "id": "current",
+        "promotion_state": "bootstrap"
+      }
+    }
+  ],
+  "counts": [
+    {
+      "documents": 6725,
+      "sections": 67457,
+      "chunks": 6640,
+      "lastIndexed": {
+        "year": 2026,
+        "month": 6,
+        "day": 17,
+        "hour": 3,
+        "minute": 43,
+        "second": 6,
+        "nanosecond": 778000000,
+        "timeZoneOffsetSeconds": 0
+      }
+    }
+  ],
+  "indexes": [
+    {
+      "name": "chunk_embeddings",
+      "state": "ONLINE",
+      "populationPercent": 100
+    },
+    {
+      "name": "chunk_id",
+      "state": "ONLINE",
+      "populationPercent": 100
+    },
+    {
+      "name": "concept_id",
+      "state": "ONLINE",
+      "populationPercent": 100
+    },
+    {
+      "name": "doc_answer_ready",
+      "state": "ONLINE",
+      "populationPercent": 100
+    },
+    {
+      "name": "doc_authority_tier",
+      "state": "ONLINE",
+      "populationPercent": 100
+    },
+    {
+      "name": "doc_corpus_bucket",
+      "state": "ONLINE",
+      "populationPercent": 100
+    },
+    {
+      "name": "doc_document_type",
+      "state": "ONLINE",
+      "populationPercent": 100
+    },
+    {
+      "name": "doc_id",
+      "state": "ONLINE",
+      "populationPercent": 100
+    },
+    {
+      "name": "doc_policy_number",
+      "state": "ONLINE",
+      "populationPercent": 100
+    },
+    {
+      "name": "doc_retrieval_ready",
+      "state": "ONLINE",
+      "populationPercent": 100
+    },
+    {
+      "name": "doc_status",
+      "state": "ONLINE",
+      "populationPercent": 100
+    },
+    {
+      "name": "doc_variant_group",
+      "state": "ONLINE",
+      "populationPercent": 100
+    },
+    {
+      "name": "index_343aff4e",
+      "state": "ONLINE",
+      "populationPercent": 100
+    },
+    {
+      "name": "index_f7700477",
+      "state": "ONLINE",
+      "populationPercent": 100
+    },
+    {
+      "name": "section_document_id_section_number",
+      "state": "ONLINE",
+      "populationPercent": 100
+    },
+    {
+      "name": "section_embeddings",
+      "state": "ONLINE",
+      "populationPercent": 100
+    },
+    {
+      "name": "section_fulltext",
+      "state": "ONLINE",
+      "populationPercent": 100
+    },
+    {
+      "name": "section_id",
+      "state": "ONLINE",
+      "populationPercent": 100
+    }
+  ],
+  "datasets": {
+    "current55": {
+      "questions": 55,
+      "references": 112,
+      "missing": [
+        {
+          "questionId": "q-001",
+          "sectionId": "sec:doc:clinical_policy:b1d5bbb6d3448fea:2.1.1"
+        },
+        {
+          "questionId": "q-001",
+          "sectionId": "sec:doc:clinical_policy:b1d5bbb6d3448fea:3.1"
+        },
+        {
+          "questionId": "q-001",
+          "sectionId": "sec:doc:clinical_policy:b1d5bbb6d3448fea:3.2.1"
+        },
+        {
+          "questionId": "q-002",
+          "sectionId": "sec:doc:clinical_policy:fbd1a3f77a625d8d:4.1"
+        },
+        {
+          "questionId": "q-002",
+          "sectionId": "sec:doc:clinical_policy:fbd1a3f77a625d8d:4.2.1"
+        },
+        {
+          "questionId": "q-002",
+          "sectionId": "sec:doc:clinical_policy:fbd1a3f77a625d8d:3.1"
+        },
+        {
+          "questionId": "q-002",
+          "sectionId": "sec:doc:clinical_policy:fbd1a3f77a625d8d:3.2.1"
+        },
+        {
+          "questionId": "q-003",
+          "sectionId": "sec:doc:clinical_policy:402b600bc86e3f2e:3.2.1.1"
+        },
+        {
+          "questionId": "q-003",
+          "sectionId": "sec:doc:clinical_policy:402b600bc86e3f2e:3.2.1.2"
+        },
+        {
+          "questionId": "q-003",
+          "sectionId": "sec:doc:clinical_policy:402b600bc86e3f2e:3.2.1.3"
+        },
+        {
+          "questionId": "q-003",
+          "sectionId": "sec:doc:clinical_policy:402b600bc86e3f2e:3.1"
+        },
+        {
+          "questionId": "q-004",
+          "sectionId": "sec:doc:clinical_policy:6a038eaf968a9a33:2.2.1"
+        },
+        {
+          "questionId": "q-004",
+          "sectionId": "sec:doc:clinical_policy:6a038eaf968a9a33:3.1.2"
+        },
+        {
+          "questionId": "q-004",
+          "sectionId": "sec:doc:clinical_policy:6a038eaf968a9a33:3.2.1.3"
+        },
+        {
+          "questionId": "q-004",
+          "sectionId": "sec:doc:clinical_policy:6a038eaf968a9a33:3.2.1.4"
+        },
+        {
+          "questionId": "q-004",
+          "sectionId": "sec:doc:clinical_policy:b1d5bbb6d3448fea:2.2.1"
+        },
+        {
+          "questionId": "q-005",
+          "sectionId": "sec:doc:clinical_policy:ccd86bd576397408:3.2.1"
+        },
+        {
+          "questionId": "q-005",
+          "sectionId": "sec:doc:clinical_policy:ccd86bd576397408:3.3"
+        },
+        {
+          "questionId": "q-005",
+          "sectionId": "sec:doc:clinical_policy:ccd86bd576397408:4.2.1.2"
+        },
+        {
+          "questionId": "q-005",
+          "sectionId": "sec:doc:clinical_policy:5e145e0df4520f7e:3.3"
+        },
+        {
+          "questionId": "q-006",
+          "sectionId": "sec:doc:clinical_policy:fbd1a3f77a625d8d:4.1"
+        },
+        {
+          "questionId": "q-006",
+          "sectionId": "sec:doc:clinical_policy:fbd1a3f77a625d8d:2.1.1"
+        },
+        {
+          "questionId": "q-007",
+          "sectionId": "sec:doc:clinical_policy:6a038eaf968a9a33:3.2.1.6"
+        },
+        {
+          "questionId": "q-007",
+          "sectionId": "sec:doc:clinical_policy:6a038eaf968a9a33:3.1"
+        },
+        {
+          "questionId": "q-008",
+          "sectionId": "sec:doc:clinical_policy:b1d5bbb6d3448fea:3.3"
+        },
+        {
+          "questionId": "q-008",
+          "sectionId": "sec:doc:clinical_policy:b1d5bbb6d3448fea:3.2.4"
+        },
+        {
+          "questionId": "q-009",
+          "sectionId": "sec:doc:dhhs_policy:b10088932232d220:_s6"
+        },
+        {
+          "questionId": "q-009",
+          "sectionId": "sec:doc:dhhs_policy:b10088932232d220:_s3"
+        },
+        {
+          "questionId": "q-009",
+          "sectionId": "sec:doc:dhhs_policy:b10088932232d220:_s16"
+        },
+        {
+          "questionId": "q-010",
+          "sectionId": "sec:doc:federal_statute:93f24f3c5092a397:1915"
+        },
+        {
+          "questionId": "q-010",
+          "sectionId": "sec:doc:federal_regulation:22dfab6c7a192acc:441.301"
+        },
+        {
+          "questionId": "q-010",
+          "sectionId": "sec:doc:federal_regulation:22dfab6c7a192acc:441.303"
+        },
+        {
+          "questionId": "q-010",
+          "sectionId": "sec:doc:clinical_policy:b1d5bbb6d3448fea:3.1"
+        },
+        {
+          "questionId": "q-011",
+          "sectionId": "sec:doc:clinical_policy:b1d5bbb6d3448fea:5.9.1"
+        },
+        {
+          "questionId": "q-011",
+          "sectionId": "sec:doc:clinical_policy:b1d5bbb6d3448fea:3.4.5"
+        },
+        {
+          "questionId": "q-012",
+          "sectionId": "sec:doc:clinical_policy:3dc3044161c0c207:5.8"
+        },
+        {
+          "questionId": "q-012",
+          "sectionId": "sec:doc:clinical_policy:3dc3044161c0c207:5.2.2"
+        },
+        {
+          "questionId": "q-012",
+          "sectionId": "sec:doc:clinical_policy:3dc3044161c0c207:5.2.3"
+        },
+        {
+          "questionId": "q-013",
+          "sectionId": "sec:doc:clinical_policy:5455fd215c3fd6f6:5.2.4.1"
+        },
+        {
+          "questionId": "q-014",
+          "sectionId": "sec:doc:clinical_policy:ccd86bd576397408:5.6"
+        },
+        {
+          "questionId": "q-015",
+          "sectionId": "sec:doc:federal_regulation:6e79727337800325:440.70"
+        },
+        {
+          "questionId": "q-015",
+          "sectionId": "sec:doc:federal_statute:93f24f3c5092a397:1905"
+        },
+        {
+          "questionId": "q-015",
+          "sectionId": "sec:doc:clinical_policy:c4ea20d2964f1236:3.2.1"
+        },
+        {
+          "questionId": "q-016",
+          "sectionId": "sec:doc:clinical_policy:2ba7e7aec2ea91af:5.4.1"
+        },
+        {
+          "questionId": "q-016",
+          "sectionId": "sec:doc:clinical_policy:2ba7e7aec2ea91af:5.4.3"
+        },
+        {
+          "questionId": "q-016",
+          "sectionId": "sec:doc:clinical_policy:2ba7e7aec2ea91af:3.2.1"
+        },
+        {
+          "questionId": "q-017",
+          "sectionId": "sec:doc:clinical_policy:df7d256757fe4914:4.2.1.4"
+        },
+        {
+          "questionId": "q-017",
+          "sectionId": "sec:doc:clinical_policy:df7d256757fe4914:3.2.1.1"
+        },
+        {
+          "questionId": "q-018",
+          "sectionId": "sec:doc:clinical_policy:3d04b79c3c3a598b:5.4.3"
+        },
+        {
+          "questionId": "q-018",
+          "sectionId": "sec:doc:clinical_policy:3d04b79c3c3a598b:_s260"
+        },
+        {
+          "questionId": "q-018",
+          "sectionId": "sec:doc:clinical_policy:3d04b79c3c3a598b:Attachment K"
+        },
+        {
+          "questionId": "q-019",
+          "sectionId": "sec:doc:clinical_policy:6a038eaf968a9a33:3.1.1"
+        },
+        {
+          "questionId": "q-019",
+          "sectionId": "sec:doc:clinical_policy:6a038eaf968a9a33:3.2.1.3"
+        },
+        {
+          "questionId": "q-020",
+          "sectionId": "sec:doc:dhhs_policy:9c740a6f1f22f51c:_s2"
+        },
+        {
+          "questionId": "q-021",
+          "sectionId": "sec:doc:federal_regulation:9abe74a2a6cfee6c:438.8"
+        },
+        {
+          "questionId": "q-021",
+          "sectionId": "sec:doc:federal_regulation:9abe74a2a6cfee6c:438.2"
+        },
+        {
+          "questionId": "q-022",
+          "sectionId": "sec:doc:clinical_policy:f93b64666b9055af:3.2.1"
+        },
+        {
+          "questionId": "q-023",
+          "sectionId": "sec:doc:clinical_policy:e3a7cd834a0ebd1f:7.2"
+        },
+        {
+          "questionId": "q-024",
+          "sectionId": "sec:doc:clinical_policy:51e218070890fe07:_s564"
+        },
+        {
+          "questionId": "q-025",
+          "sectionId": "sec:doc:clinical_policy:b7202c2e4e6b9cff:6.2.1"
+        },
+        {
+          "questionId": "q-025",
+          "sectionId": "sec:doc:clinical_policy:b7202c2e4e6b9cff:6.2.5"
+        },
+        {
+          "questionId": "q-026",
+          "sectionId": "sec:doc:clinical_policy:fbd1a3f77a625d8d:2.1.1"
+        },
+        {
+          "questionId": "q-026",
+          "sectionId": "sec:doc:clinical_policy:fbd1a3f77a625d8d:4.1"
+        },
+        {
+          "questionId": "q-027",
+          "sectionId": "sec:doc:clinical_policy:cc1ad3d15a7a506e:2.1.1"
+        },
+        {
+          "questionId": "q-027",
+          "sectionId": "sec:doc:clinical_policy:cc1ad3d15a7a506e:4.1"
+        },
+        {
+          "questionId": "q-028",
+          "sectionId": "sec:doc:clinical_policy:402b600bc86e3f2e:2.1.1"
+        },
+        {
+          "questionId": "q-028",
+          "sectionId": "sec:doc:clinical_policy:402b600bc86e3f2e:4.1"
+        },
+        {
+          "questionId": "q-029",
+          "sectionId": "sec:doc:clinical_policy:6a038eaf968a9a33:2.1.1"
+        },
+        {
+          "questionId": "q-029",
+          "sectionId": "sec:doc:clinical_policy:6a038eaf968a9a33:4.1"
+        },
+        {
+          "questionId": "q-029",
+          "sectionId": "sec:doc:clinical_policy:6a038eaf968a9a33:2.2.1"
+        },
+        {
+          "questionId": "q-030",
+          "sectionId": "sec:doc:clinical_policy:3d04b79c3c3a598b:4.1"
+        },
+        {
+          "questionId": "q-031",
+          "sectionId": "sec:doc:clinical_policy:0f7ef850e723556c:2.1.1"
+        },
+        {
+          "questionId": "q-031",
+          "sectionId": "sec:doc:clinical_policy:0f7ef850e723556c:4.1"
+        },
+        {
+          "questionId": "q-032",
+          "sectionId": "sec:doc:clinical_policy:3d04b79c3c3a598b:2.1.1"
+        },
+        {
+          "questionId": "q-032",
+          "sectionId": "sec:doc:clinical_policy:3d04b79c3c3a598b:4.1"
+        },
+        {
+          "questionId": "q-033",
+          "sectionId": "sec:doc:federal_regulation:07ef8df866ef204f:431.220"
+        },
+        {
+          "questionId": "q-034",
+          "sectionId": "sec:doc:clinical_policy:3e43ff175d169b09:4.1"
+        },
+        {
+          "questionId": "q-035",
+          "sectionId": "sec:doc:clinical_policy:aa4e5eecdda151ba:3.2.1"
+        },
+        {
+          "questionId": "q-035",
+          "sectionId": "sec:doc:clinical_policy:aa4e5eecdda151ba:4.2.1"
+        },
+        {
+          "questionId": "q-036",
+          "sectionId": "sec:doc:clinical_policy:e9c1fe4b166ed0e5:2.1.1"
+        },
+        {
+          "questionId": "q-037",
+          "sectionId": "sec:doc:dhhs_policy:9c740a6f1f22f51c:_s2"
+        },
+        {
+          "questionId": "q-038",
+          "sectionId": "sec:doc:clinical_policy:b1d5bbb6d3448fea:4.1"
+        },
+        {
+          "questionId": "q-039",
+          "sectionId": "sec:doc:clinical_policy:5455fd215c3fd6f6:2.1.1"
+        },
+        {
+          "questionId": "q-039",
+          "sectionId": "sec:doc:clinical_policy:5455fd215c3fd6f6:3.2.1"
+        },
+        {
+          "questionId": "q-040",
+          "sectionId": "sec:doc:clinical_policy:3d04b79c3c3a598b:3.2.1"
+        },
+        {
+          "questionId": "q-041",
+          "sectionId": "sec:doc:federal_regulation:b542b5e6b323b910:200.104"
+        },
+        {
+          "questionId": "q-041",
+          "sectionId": "sec:doc:federal_regulation:b542b5e6b323b910:200.100"
+        },
+        {
+          "questionId": "q-041",
+          "sectionId": "sec:doc:federal_regulation:f8e557026ca6658c:430.30"
+        },
+        {
+          "questionId": "q-042",
+          "sectionId": "sec:doc:dhhs_policy:9c740a6f1f22f51c:_s2"
+        },
+        {
+          "questionId": "q-043",
+          "sectionId": "sec:doc:clinical_policy:402b600bc86e3f2e:1.0"
+        },
+        {
+          "questionId": "q-043",
+          "sectionId": "sec:doc:clinical_policy:402b600bc86e3f2e:_s74"
+        },
+        {
+          "questionId": "q-044",
+          "sectionId": "sec:doc:clinical_policy:b1d5bbb6d3448fea:1.0"
+        },
+        {
+          "questionId": "q-045",
+          "sectionId": "sec:doc:federal_regulation:22dfab6c7a192acc:441.301"
+        },
+        {
+          "questionId": "q-045",
+          "sectionId": "sec:doc:federal_regulation:22dfab6c7a192acc:441.351"
+        },
+        {
+          "questionId": "q-046",
+          "sectionId": "sec:doc:federal_regulation:22dfab6c7a192acc:441.301"
+        },
+        {
+          "questionId": "q-046",
+          "sectionId": "sec:doc:federal_regulation:22dfab6c7a192acc:441.302"
+        },
+        {
+          "questionId": "q-046",
+          "sectionId": "sec:doc:federal_regulation:22dfab6c7a192acc:441.303"
+        },
+        {
+          "questionId": "q-047",
+          "sectionId": "sec:doc:federal_regulation:f8e557026ca6658c:430.12"
+        },
+        {
+          "questionId": "q-048",
+          "sectionId": "sec:doc:federal_regulation:9abe74a2a6cfee6c:438.8"
+        },
+        {
+          "questionId": "q-048",
+          "sectionId": "sec:doc:federal_regulation:9abe74a2a6cfee6c:438.2"
+        },
+        {
+          "questionId": "q-049",
+          "sectionId": "sec:doc:federal_regulation:22dfab6c7a192acc:441.50"
+        },
+        {
+          "questionId": "q-049",
+          "sectionId": "sec:doc:federal_regulation:22dfab6c7a192acc:441.56"
+        },
+        {
+          "questionId": "q-050",
+          "sectionId": "sec:doc:federal_regulation:3e6a5fae7ea1e6b5:455.410"
+        },
+        {
+          "questionId": "q-050",
+          "sectionId": "sec:doc:federal_regulation:3e6a5fae7ea1e6b5:455.450"
+        },
+        {
+          "questionId": "q-051",
+          "sectionId": "sec:doc:beneficiary_guidance:url-6eef78c0a53d:_s4"
+        },
+        {
+          "questionId": "q-052",
+          "sectionId": "sec:doc:beneficiary_guidance:url-c2e25b19c9c6:_s8"
+        },
+        {
+          "questionId": "q-052",
+          "sectionId": "sec:doc:beneficiary_guidance:url-c2e25b19c9c6:_s9"
+        },
+        {
+          "questionId": "q-053",
+          "sectionId": "sec:doc:beneficiary_guidance:url-6eef78c0a53d:_s3"
+        },
+        {
+          "questionId": "q-053",
+          "sectionId": "sec:doc:beneficiary_guidance:url-6eef78c0a53d:_s5"
+        },
+        {
+          "questionId": "q-054",
+          "sectionId": "sec:doc:beneficiary_guidance:url-6eef78c0a53d:_s5"
+        },
+        {
+          "questionId": "q-055",
+          "sectionId": "sec:doc:beneficiary_guidance:url-6eef78c0a53d:_s2"
+        },
+        {
+          "questionId": "q-055",
+          "sectionId": "sec:doc:beneficiary_guidance:url-6eef78c0a53d:_s4"
+        }
+      ]
+    },
+    "historical50": {
+      "questions": 50,
+      "references": 104,
+      "missing": []
+    }
+  }
+}

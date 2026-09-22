@@ -1,5 +1,7 @@
 'use client';
 
+import { WITHHELD_ANSWER, UNVERIFIED_HISTORY } from '@nc-medicaid/contracts';
+import { extractReleaseState } from '@/lib/message-verification';
 import { useState, type RefObject } from 'react';
 import ReactMarkdown from 'react-markdown';
 import type { UIMessage } from 'ai';
@@ -158,9 +160,12 @@ function AssistantMessage({
   onClearRating: (messageId: string) => void;
   onComment: (messageId: string, comment: string) => void;
 }) {
-  const parts = msg.parts ?? [];
+  const release = extractReleaseState(msg);
+  const canShowAnswer = release?.status === 'passed' || release?.status === 'corrected';
+  const parts = (msg.parts ?? []).filter(p => p.type !== 'text' || canShowAnswer);
+  if (release?.status === 'withheld') parts.push({ type: 'text', text: release.reason === 'unverified_history' ? UNVERIFIED_HISTORY : WITHHELD_ANSWER });
   const lastToolIndex = parts.reduce((latest, part, index) => (isToolPart(part) ? index : latest), -1);
-  const finalAnswerText = getTrailingAssistantText(msg);
+  const finalAnswerText = getTrailingAssistantText({ ...msg, parts });
   const visibleParts = parts
     .map((part, index) => ({ part, index }))
     .filter(({ part }) => isToolPart(part) || (isTextPart(part) && part.text.trim().length > 0));
@@ -319,6 +324,9 @@ function AssistantMessage({
         </div>
       )}
 
+      {release?.status === 'verifying' && <p role="status" data-testid="verification-progress" className="my-3 text-sm text-muted-foreground">Checking the answer against sources…</p>}
+      {release?.status === 'withheld' && <Button variant="outline" size="sm" onClick={handleRerun} data-testid="verification-retry">Try again</Button>}
+
       {narration && (
         <div
           data-testid="progress-narration"
@@ -366,7 +374,7 @@ function AssistantMessage({
         </div>
       )}
 
-      {!isStreaming && verification && finalAnswerText && (
+      {!isStreaming && release?.status !== 'withheld' && verification && finalAnswerText && (
         <VerificationBadge verification={verification} />
       )}
 

@@ -1,3 +1,12 @@
+import { withResearchCheckpoints, DEFAULT_RESEARCH_LIMITS } from './checkpoints.js';
+import { withSession } from '../neo4j.js';
+
+async function currentCorpusRelease(): Promise<string | null> {
+  return withSession(async session => {
+    const result = await session.run("OPTIONAL MATCH (r:CorpusRelease {id: 'current'}) RETURN r.release_id AS releaseId");
+    return result.records[0]?.get('releaseId') ?? null;
+  });
+}
 import {
   ResearchPlanSchema,
   ResearchReportSchema,
@@ -14,6 +23,7 @@ interface WorkflowResultLike {
   suspendPayload?: Record<string, unknown>;
   steps?: Record<string, { suspendPayload?: unknown }>;
   result?: unknown;
+  error?: unknown;
 }
 
 interface WorkflowRunLike {
@@ -55,25 +65,34 @@ export class ResearchService {
     readonly repository: ResearchRepository,
     readonly maxConcurrent = 2,
     readonly usageRepository?: UsageRepository,
+    private readonly getCorpusRelease: () => Promise<string | null> = currentCorpusRelease,
   ) {
     if (!Number.isInteger(maxConcurrent) || maxConcurrent < 1 || maxConcurrent > 6) {
       throw new Error('DEEP_RESEARCH_SERVICE_CONCURRENCY must be an integer between 1 and 6');
     }
   }
 
-  private schedulePlanning(runId: string, mastra: ResearchMastra): void {
+  private schedulePlanning(runId: string, mastra: ResearchMastra, delayMs = 5_000): void {
     if (this.retryTimers.has(runId)) return;
     const timer = setTimeout(() => {
       this.retryTimers.delete(runId);
       void this.plan(runId, mastra);
-    }, 5_000);
+    }, delayMs);
     timer.unref?.();
     this.retryTimers.set(runId, timer);
   }
 
+  private async handleFailure(runId: string, error: unknown, leaseOwner: string, mastra: ResearchMastra): Promise<void> {
+    await this.repository.failOrRetry(runId, error, leaseOwner);
+    const run = await this.repository.getInternal(runId);
+    if (run?.state === 'recovering' && run.nextRetryAt) {
+      this.schedulePlanning(runId, mastra, Math.max(0, Date.parse(run.nextRetryAt) - Date.now()));
+    }
+  }
+
   private async sweepRecovery(mastra: ResearchMastra): Promise<void> {
-    const expired = await this.repository.failExpiredLeases();
-    if (expired) log.warn('deep_research.expired_leases_failed', { count: expired });
+    const expired = await this.repository.recoverExpiredLeases();
+    if (expired) log.warn('deep_research.expired_leases_recovering', { count: expired });
     for (const runId of await this.repository.listQueued()) {
       this.schedulePlanning(runId, mastra);
     }
@@ -139,16 +158,18 @@ export class ResearchService {
   }
 
   async plan(runId: string, mastra: ResearchMastra): Promise<void> {
-    const leaseOwner = `${this.instanceId}:plan:${runId}`;
+    const pending = await this.repository.getInternal(runId);
+    if (!pending || !['queued', 'recovering'].includes(pending.state)) return;
+    const leaseOwner = `${this.instanceId}:plan:${runId}:${crypto.randomUUID()}`;
     const acquired = await this.repository.acquire(
       runId,
-      'queued',
-      'planning',
+      pending.state,
+      pending.approval ? 'researching' : 'planning',
       leaseOwner,
       this.maxConcurrent,
     );
     if (!acquired) {
-      if ((await this.repository.getInternal(runId))?.state === 'queued') {
+      if (['queued', 'recovering'].includes((await this.repository.getInternal(runId))?.state ?? '')) {
         this.schedulePlanning(runId, mastra);
       }
       return;
@@ -168,14 +189,20 @@ export class ResearchService {
       const result = await this.withLeaseHeartbeat(
         runId,
         leaseOwner,
-        () => this.usageRepository
+        () => this.withCheckpoints(runId, leaseOwner, () => this.usageRepository
           ? withResearchUsageContext(
-              { repository: this.usageRepository, userId: current.resourceId, runId },
+              { repository: this.usageRepository, userId: current.resourceId, runId, stateRepository: this.repository, leaseOwner },
               start,
             )
-          : start(),
+          : start()),
         () => workflowRun.cancel(),
       );
+      if (current.approval) {
+        if (result.status !== 'success') throw result.error ?? new Error('Research recovery did not complete');
+        await this.repository.complete(runId, ResearchReportSchema.parse(result.result), leaseOwner);
+        return;
+      }
+      if (result.error) throw result.error;
       const plan = extractPlan(result);
       if (result.status !== 'suspended' || !plan) {
         throw new Error(`Research planning did not suspend for approval (status ${result.status ?? 'unknown'})`);
@@ -185,7 +212,7 @@ export class ResearchService {
       }
     } catch (error) {
       log.error('deep_research.plan_failed', { runId, ...errorFields(error) });
-      await this.repository.fail(runId, error, leaseOwner);
+      await this.handleFailure(runId, error, leaseOwner, mastra);
     }
   }
 
@@ -215,6 +242,12 @@ export class ResearchService {
       return 'accepted';
     }
 
+    // Store the actual approved questions even when the user made no edits.
+    // Recovery must never substitute a newly generated plan for this decision.
+    const approvedDecision: ResearchDecisionInput = { approved: true,
+      editedSubQuestions: (decision.editedSubQuestions ?? owned.plan?.subQuestions)
+        ?.slice(0, internal.limits?.maxSubQuestions ?? DEFAULT_RESEARCH_LIMITS.maxSubQuestions) };
+
     const leaseOwner = `${this.instanceId}:research:${runId}`;
     if (!await this.repository.acquire(
       runId,
@@ -222,15 +255,17 @@ export class ResearchService {
       'researching',
       leaseOwner,
       this.maxConcurrent,
+      Date.now(),
+      approvedDecision,
     )) return 'conflict';
 
     void (async () => {
       try {
-        const resume = () => workflowRun.resume({ step: 'plan-approval', resumeData: decision });
+        const resume = () => workflowRun.resume({ step: 'plan-approval', resumeData: approvedDecision });
         const result = await this.withLeaseHeartbeat(
           runId,
           leaseOwner,
-          () => this.usageRepository
+          () => this.withCheckpoints(runId, leaseOwner, () => this.usageRepository
             ? withResearchUsageContext(
                 {
                   repository: this.usageRepository,
@@ -241,26 +276,54 @@ export class ResearchService {
                 },
                 resume,
               )
-            : resume(),
+            : resume()),
           () => workflowRun.cancel(),
         );
         if (result.status !== 'success') {
-          throw new Error(`Research workflow ended with status ${result.status ?? 'unknown'}`);
+          throw result.error ?? new Error(`Research workflow ended with status ${result.status ?? 'unknown'}`);
         }
         const report = ResearchReportSchema.parse(result.result);
         await this.repository.complete(runId, report, leaseOwner);
       } catch (error) {
         log.error('deep_research.run_failed', { runId, ...errorFields(error) });
-        await this.repository.fail(runId, error, leaseOwner);
+        await this.handleFailure(runId, error, leaseOwner, mastra);
       }
     })();
     return 'accepted';
+  }
+
+  private async withCheckpoints<T>(runId: string, owner: string, work: () => Promise<T>): Promise<T> {
+    const release = await this.getCorpusRelease();
+    await this.repository.initializeCheckpointRun(runId, owner, DEFAULT_RESEARCH_LIMITS, release);
+    const current = await this.repository.getInternal(runId);
+    if (!current || current.checkpointVersion !== 1) throw new Error('Incompatible research checkpoint; start a new run');
+    if (current.corpusRelease !== release) throw new Error('Corpus release changed; start a new research run');
+    if (current.recoveryCount > 0 && release === null) throw new Error('Corpus release cannot be identified; start a new research run');
+    if (current.recoveryCount > 0 && current.approval && await this.repository.checkpoint(runId, 'plan') === undefined) {
+      throw new Error('Incompatible research checkpoint: approved plan is missing; start a new run');
+    }
+    const result = await withResearchCheckpoints({ repository: this.repository, runId, owner,
+      approval: current.approval, limits: current.limits as typeof DEFAULT_RESEARCH_LIMITS,
+      assertCorpus: async () => {
+        if (await this.getCorpusRelease() !== release) throw new Error('Corpus release changed; start a new research run');
+      },
+    }, work);
+    if (await this.getCorpusRelease() !== release) throw new Error('Corpus release changed; start a new research run');
+    return result;
+  }
+
+  dispose(): void {
+    if (this.recoveryTimer) clearInterval(this.recoveryTimer);
+    for (const timer of this.retryTimers.values()) clearTimeout(timer);
+    this.retryTimers.clear();
   }
 
   async cancel(runId: string, resourceId: string, mastra: ResearchMastra): Promise<boolean> {
     const internal = await this.repository.getInternal(runId);
     if (!internal || !(await this.repository.get(runId, resourceId))) return false;
     const priorState = internal.state;
+    clearTimeout(this.retryTimers.get(runId));
+    this.retryTimers.delete(runId);
     const cancelled = await this.repository.cancel(runId, resourceId);
     if (!cancelled || cancelled.state !== 'cancelled' || priorState === 'cancelled') return false;
     if (internal.workflowRunId) {

@@ -1,4 +1,10 @@
+import { isRetryableResearchError } from './recovery-errors.js';
+import { log } from '../logger.js';
 import {
+  ResearchDecisionInputSchema,
+  VerificationOutcomeSchema,
+  type ResearchDecisionInput,
+  type VerificationOutcome,
   ResearchPlanSchema,
   ResearchReportSchema,
   ResearchRunSchema,
@@ -11,6 +17,7 @@ import type { Row } from '@libsql/client';
 import type { AppDatabase } from '../storage/app-database.js';
 
 const ACTIVE_STATES: readonly ResearchRunState[] = [
+  'recovering',
   'queued',
   'planning',
   'awaiting_approval',
@@ -19,8 +26,16 @@ const ACTIVE_STATES: readonly ResearchRunState[] = [
 ];
 const DAY_MS = 86_400_000;
 const LEASE_MS = 15 * 60_000;
+const RUN_SELECT = `SELECT research_runs.*,
+  (SELECT COUNT(*) FROM research_checkpoints WHERE run_id = research_runs.id AND key GLOB 'worker:*' AND key NOT LIKE '%:draft' AND key NOT LIKE '%:verification:%') AS completed_questions,
+  (SELECT COUNT(*) FROM research_checkpoints WHERE run_id = research_runs.id) AS checkpoint_count
+  FROM research_runs`;
 
 export interface InternalResearchRun extends ResearchRun {
+  approval: ResearchDecisionInput | null;
+  limits: Record<string, number> | null;
+  corpusRelease: string | null;
+  checkpointVersion: number;
   resourceId: string;
   workflowRunId: string | null;
   leaseOwner: string | null;
@@ -47,13 +62,22 @@ function parseJson<T>(
 }
 
 function toRun(row: Row): ResearchRun {
+  const report = parseJson(row.report_json, ResearchReportSchema);
+  const plan = parseJson(row.plan_json, ResearchPlanSchema);
+  const approval = parseJson(row.approval_json, ResearchDecisionInputSchema);
+  const legacy = row.state === 'completed' && report && !report.verification;
   return ResearchRunSchema.parse({
+    recoveryProgress: { completedQuestions: Number(row.completed_questions ?? 0), checkpoints: Number(row.checkpoint_count ?? 0) },
+    recoveryCount: row.recovery_count ?? 0,
+    nextRetryAt: typeof row.next_retry_at === 'number' ? new Date(row.next_retry_at).toISOString() : null,
+    verification: parseJson(row.verification_json, VerificationOutcomeSchema),
+    sources: typeof row.sources_json === 'string' ? JSON.parse(row.sources_json) : [],
     runId: row.id,
-    state: row.state,
+    state: legacy ? 'failed' : row.state,
     question: row.question,
-    plan: parseJson(row.plan_json, ResearchPlanSchema),
-    report: parseJson(row.report_json, ResearchReportSchema),
-    error: row.error,
+    plan: plan && approval?.editedSubQuestions ? { ...plan, subQuestions: approval.editedSubQuestions } : plan,
+    report: row.state === 'completed' && report?.verification && report.verification.status !== 'withheld' ? report : null,
+    error: legacy ? 'This previous report was not verified before release. Please start a new run.' : row.error,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   });
@@ -62,6 +86,10 @@ function toRun(row: Row): ResearchRun {
 function toInternalRun(row: Row): InternalResearchRun {
   return {
     ...toRun(row),
+    approval: parseJson(row.approval_json, ResearchDecisionInputSchema),
+    limits: typeof row.limits_json === 'string' ? JSON.parse(row.limits_json) : null,
+    corpusRelease: typeof row.corpus_release === 'string' ? row.corpus_release : null,
+    checkpointVersion: Number(row.checkpoint_version),
     resourceId: String(row.resource_id),
     workflowRunId: typeof row.workflow_run_id === 'string' ? row.workflow_run_id : null,
     leaseOwner: typeof row.lease_owner === 'string' ? row.lease_owner : null,
@@ -122,7 +150,7 @@ export class ResearchRepository {
   async get(runId: string, resourceId: string): Promise<ResearchRun | null> {
     await this.database.migrate();
     const result = await this.database.client.execute({
-      sql: 'SELECT * FROM research_runs WHERE id = ? AND resource_id = ?',
+      sql: `${RUN_SELECT} WHERE id = ? AND resource_id = ?`,
       args: [runId, resourceId],
     });
     return result.rows[0] ? toRun(result.rows[0]) : null;
@@ -131,7 +159,7 @@ export class ResearchRepository {
   async getInternal(runId: string): Promise<InternalResearchRun | null> {
     await this.database.migrate();
     const result = await this.database.client.execute({
-      sql: 'SELECT * FROM research_runs WHERE id = ?',
+      sql: `${RUN_SELECT} WHERE id = ?`,
       args: [runId],
     });
     return result.rows[0] ? toInternalRun(result.rows[0]) : null;
@@ -140,7 +168,7 @@ export class ResearchRepository {
   async listQueued(): Promise<string[]> {
     await this.database.migrate();
     const result = await this.database.client.execute(
-      `SELECT id FROM research_runs WHERE state = 'queued' ORDER BY created_at`,
+      `SELECT id FROM research_runs WHERE state = 'queued' OR (state = 'recovering' AND next_retry_at <= ${Date.now()}) ORDER BY created_at`,
     );
     return result.rows.map((row) => String(row.id));
   }
@@ -152,36 +180,44 @@ export class ResearchRepository {
     leaseOwner: string,
     maxConcurrent: number,
     now = Date.now(),
+    approval?: ResearchDecisionInput,
   ): Promise<boolean> {
     await this.database.migrate();
     const result = await this.database.client.execute({
       sql: `UPDATE research_runs
-            SET state = ?, lease_owner = ?, lease_expires_at = ?, updated_at = ?
+            SET state = ?, lease_owner = ?, lease_expires_at = ?, updated_at = ?,
+                approval_json = COALESCE(?, approval_json),
+                recovery_count = recovery_count + CASE WHEN state = 'recovering' THEN 1 ELSE 0 END,
+                next_retry_at = NULL
             WHERE id = ? AND state = ?
+              AND (state != 'recovering' OR (recovery_count < 2 AND next_retry_at <= ?))
               AND (
                 SELECT COUNT(*) FROM research_runs
                 WHERE state IN ('planning', 'researching', 'verifying')
                   AND lease_expires_at > ?
               ) < ?
-            RETURNING id`,
+            RETURNING id, recovery_count`,
       args: [
         toState,
         leaseOwner,
         now + LEASE_MS,
         new Date(now).toISOString(),
+        approval ? JSON.stringify(approval) : null,
         runId,
         fromState,
+        now,
         now,
         maxConcurrent,
       ],
     });
+    if (result.rows[0] && fromState === 'recovering') log.info('deep_research.recovery_claimed', { runId, attempt: result.rows[0].recovery_count });
     return result.rows.length === 1;
   }
 
   async attachWorkflow(runId: string, workflowRunId: string, leaseOwner: string): Promise<boolean> {
     const result = await this.database.client.execute({
       sql: `UPDATE research_runs SET workflow_run_id = ?
-            WHERE id = ? AND lease_owner = ? AND state = 'planning'
+            WHERE id = ? AND lease_owner = ? AND state IN ('planning', 'researching', 'verifying') AND lease_expires_at > ${Date.now()}
             RETURNING id`,
       args: [workflowRunId, runId, leaseOwner],
     });
@@ -193,7 +229,7 @@ export class ResearchRepository {
       sql: `UPDATE research_runs
             SET lease_expires_at = ?, updated_at = ?
             WHERE id = ?
-              AND lease_owner = ?
+              AND lease_owner = ? AND lease_expires_at > ${now}
               AND state IN ('planning', 'researching', 'verifying')
             RETURNING id`,
       args: [now + LEASE_MS, new Date(now).toISOString(), runId, leaseOwner],
@@ -206,38 +242,17 @@ export class ResearchRepository {
     const result = await this.database.client.execute({
       sql: `UPDATE research_runs
             SET state = 'cancelled',
+                next_retry_at = NULL,
                 lease_owner = NULL,
                 lease_expires_at = NULL,
                 updated_at = ?
             WHERE id = ? AND resource_id = ?
-              AND state IN ('queued', 'planning', 'awaiting_approval', 'researching', 'verifying')
+              AND state IN ('queued', 'planning', 'awaiting_approval', 'researching', 'verifying', 'recovering')
             RETURNING *`,
       args: [new Date(now).toISOString(), runId, resourceId],
     });
     if (result.rows[0]) return toRun(result.rows[0]);
     return this.get(runId, resourceId);
-  }
-
-  async setPlan(
-    runId: string,
-    plan: ResearchPlan,
-    workflowRunId: string,
-    now = Date.now(),
-  ): Promise<ResearchRun | null> {
-    const parsed = ResearchPlanSchema.parse(plan);
-    const result = await this.database.client.execute({
-      sql: `UPDATE research_runs
-            SET state = 'awaiting_approval',
-                plan_json = ?,
-                workflow_run_id = ?,
-                lease_owner = NULL,
-                lease_expires_at = NULL,
-                updated_at = ?
-            WHERE id = ? AND state = 'planning'
-            RETURNING *`,
-      args: [JSON.stringify(parsed), workflowRunId, new Date(now).toISOString(), runId],
-    });
-    return result.rows[0] ? toRun(result.rows[0]) : null;
   }
 
   async awaitingApproval(
@@ -254,7 +269,7 @@ export class ResearchRepository {
                 lease_owner = NULL,
                 lease_expires_at = NULL,
                 updated_at = ?
-            WHERE id = ? AND state = 'planning' AND lease_owner = ?
+            WHERE id = ? AND state = 'planning' AND lease_owner = ? AND lease_expires_at > ${now}
             RETURNING id`,
       args: [JSON.stringify(parsed), new Date(now).toISOString(), runId, leaseOwner],
     });
@@ -265,7 +280,7 @@ export class ResearchRepository {
     const result = await this.database.client.execute({
       sql: `UPDATE research_runs
             SET state = 'verifying', updated_at = ?
-            WHERE id = ? AND state = 'researching' AND lease_owner = ?
+            WHERE id = ? AND state = 'researching' AND lease_owner = ? AND lease_expires_at > ${now}
             RETURNING id`,
       args: [new Date(now).toISOString(), runId, leaseOwner],
     });
@@ -279,6 +294,7 @@ export class ResearchRepository {
     now = Date.now(),
   ): Promise<boolean> {
     const parsed = ResearchReportSchema.parse(report);
+    if (!parsed.verification || parsed.verification.status === 'withheld') throw new Error('Unverified research report cannot be released');
     const result = await this.database.client.execute({
       sql: `UPDATE research_runs
             SET state = 'completed',
@@ -287,7 +303,7 @@ export class ResearchRepository {
                 lease_owner = NULL,
                 lease_expires_at = NULL,
                 updated_at = ?
-            WHERE id = ? AND state IN ('researching', 'verifying') AND lease_owner = ?
+            WHERE id = ? AND state IN ('researching', 'verifying') AND lease_owner = ? AND lease_expires_at > ${now}
             RETURNING id`,
       args: [JSON.stringify(parsed), new Date(now).toISOString(), runId, leaseOwner],
     });
@@ -300,8 +316,13 @@ export class ResearchRepository {
     leaseOwner?: string,
     now = Date.now(),
   ): Promise<boolean> {
-    const message = error instanceof Error ? error.message : String(error);
-    const leaseClause = leaseOwner ? ' AND lease_owner = ?' : '';
+    const detail = error && typeof error === 'object' && 'message' in error ? String(error.message) : String(error);
+    const message = /^(Corpus release|Incompatible research checkpoint|Research (step budget|execution lease|recovery attempts)|Answer grounding failed|Verification service unavailable)/.test(detail)
+      ? detail : 'Research could not be completed. Please start a new run.';
+    const leaseClause = leaseOwner ? ` AND lease_owner = ? AND lease_expires_at > ${now}` : '';
+    const category = /corpus/i.test(detail) ? 'corpus_changed' : /checkpoint/i.test(detail) ? 'checkpoint_incompatible'
+      : /budget/i.test(detail) ? 'budget_exhausted' : /grounding/i.test(detail) ? 'grounding_failed'
+      : /recovery attempts/i.test(detail) ? 'recovery_exhausted' : /auth|api.?key|credential|config|401|403/i.test(detail) ? 'configuration' : 'execution_failed';
     const result = await this.database.client.execute({
       sql: `UPDATE research_runs
             SET state = 'failed',
@@ -318,15 +339,17 @@ export class ResearchRepository {
         ...(leaseOwner ? [leaseOwner] : []),
       ],
     });
+    if (result.rows.length) log.warn('deep_research.terminal_failure', { runId, category });
     return result.rows.length === 1;
   }
 
-  async failExpiredLeases(now = Date.now()): Promise<number> {
+  async recoverExpiredLeases(now = Date.now()): Promise<number> {
     await this.database.migrate();
     const result = await this.database.client.execute({
       sql: `UPDATE research_runs
-            SET state = 'failed',
-                error = 'Research worker lease expired before completion',
+            SET state = CASE WHEN recovery_count < 2 THEN 'recovering' ELSE 'failed' END,
+                next_retry_at = CASE WHEN recovery_count < 2 THEN ${now} ELSE NULL END,
+                error = 'Research execution was interrupted; recovery attempts are bounded at two',
                 lease_owner = NULL,
                 lease_expires_at = NULL,
                 updated_at = ?
@@ -336,5 +359,66 @@ export class ResearchRepository {
       args: [new Date(now).toISOString(), now],
     });
     return result.rows.length;
+  }
+
+  async initializeCheckpointRun(runId: string, owner: string, limits: Record<string, number>, corpusRelease: string | null): Promise<void> {
+    const result = await this.database.client.execute({
+      sql: `UPDATE research_runs SET limits_json = COALESCE(limits_json, ?), corpus_release = CASE WHEN limits_json IS NULL THEN ? ELSE corpus_release END
+        WHERE id = ? AND lease_owner = ? AND lease_expires_at > ? RETURNING id`,
+      args: [JSON.stringify(limits), corpusRelease, runId, owner, Date.now()],
+    });
+    if (!result.rows.length) throw new Error('Research execution lease was lost');
+  }
+
+  async checkpoint<T>(runId: string, key: string): Promise<T | undefined> {
+    const result = await this.database.client.execute({ sql: 'SELECT value_json, version FROM research_checkpoints WHERE run_id = ? AND key = ?', args: [runId, key] });
+    const row = result.rows[0];
+    if (!row) return undefined;
+    if (row.version !== 1) throw new Error('Incompatible research checkpoint; start a new run');
+    return JSON.parse(String(row.value_json)) as T;
+  }
+
+  async saveCheckpoint(runId: string, owner: string, key: string, value: unknown): Promise<void> {
+    const result = await this.database.client.execute({
+      sql: `INSERT INTO research_checkpoints (run_id, key, value_json, version)
+        SELECT id, ?, ?, 1 FROM research_runs WHERE id = ? AND lease_owner = ? AND lease_expires_at > ?
+        AND state IN ('planning', 'researching', 'verifying')
+        ON CONFLICT(run_id, key) DO UPDATE SET value_json = excluded.value_json RETURNING run_id`,
+      args: [key, JSON.stringify(value), runId, owner, Date.now()],
+    });
+    if (!result.rows.length) throw new Error('Research execution lease was lost');
+  }
+
+  async reserveStep(runId: string, owner: string, key: string, limit: number): Promise<void> {
+    const result = await this.database.client.execute({
+      sql: `INSERT INTO research_budgets (run_id, key, used, limit_value)
+        SELECT id, ?, 1, ? FROM research_runs WHERE id = ? AND lease_owner = ? AND lease_expires_at > ?
+        AND state IN ('planning', 'researching', 'verifying')
+        ON CONFLICT(run_id, key) DO UPDATE SET used = used + 1 WHERE used < limit_value RETURNING used`,
+      args: [key, limit, runId, owner, Date.now()],
+    });
+    if (!result.rows.length) throw new Error('Research step budget exhausted or execution lease lost');
+  }
+
+  async saveVerification(runId: string, owner: string, outcome: VerificationOutcome, sources: unknown): Promise<void> {
+    const result = await this.database.client.execute({
+      sql: `UPDATE research_runs SET verification_json = ?, sources_json = ? WHERE id = ? AND lease_owner = ? AND lease_expires_at > ? RETURNING id`,
+      args: [JSON.stringify(outcome), JSON.stringify(sources), runId, owner, Date.now()],
+    });
+    if (!result.rows.length) throw new Error('Research execution lease was lost');
+  }
+
+  async failOrRetry(runId: string, error: unknown, owner: string, now = Date.now()): Promise<void> {
+    if (!isRetryableResearchError(error)) { await this.fail(runId, error, owner, now); return; }
+    const result = await this.database.client.execute({
+      sql: `UPDATE research_runs SET state = 'recovering', error = 'Research was interrupted. Recovering completed work.',
+        next_retry_at = ? + CASE WHEN recovery_count = 0 THEN 30000 ELSE 120000 END,
+        lease_owner = NULL, lease_expires_at = NULL, updated_at = ?
+        WHERE id = ? AND lease_owner = ? AND lease_expires_at > ? AND recovery_count < 2
+        AND state IN ('planning', 'researching', 'verifying') RETURNING id, recovery_count, next_retry_at`,
+      args: [now, new Date(now).toISOString(), runId, owner, now],
+    });
+    if (result.rows[0]) log.info('deep_research.recovery_scheduled', { runId, attemptsUsed: result.rows[0].recovery_count, nextRetryAt: result.rows[0].next_retry_at });
+    else await this.fail(runId, new Error('Research recovery attempts exhausted. Please start a new run.'), owner, now);
   }
 }

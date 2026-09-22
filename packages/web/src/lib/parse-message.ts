@@ -1,3 +1,4 @@
+import { VERIFICATION_PART, UNVERIFIED_HISTORY } from '@nc-medicaid/contracts';
 import type { UIMessage } from 'ai';
 import { OK_PART_TYPE, REWRITE_PART_TYPE } from './message-parts';
 import { generateUUID } from './utils';
@@ -25,7 +26,7 @@ function convertV4PartsToV5(v4Parts: Array<Record<string, unknown>>): UIMessage[
         input: inv.args,
         output: inv.state === 'result' ? inv.result : undefined,
       });
-    } else if (type === REWRITE_PART_TYPE || type === OK_PART_TYPE) {
+    } else if (type === REWRITE_PART_TYPE || type === OK_PART_TYPE || type === VERIFICATION_PART) {
       // Preserve the verifier's confidence state so the trust badge restores
       // on reload (extractVerificationState reads these parts). Other data-*
       // parts — notably observational-memory `data-om-*` — stay dropped as
@@ -85,7 +86,7 @@ function getRawParts(content: unknown): Array<Record<string, unknown>> {
 export function convertThreadMessageToUIMessage(msg: RawThreadMessage): UIMessage | null {
   const role = msg.role;
   if (role !== 'user' && role !== 'assistant') return null;
-  const parts = convertV4PartsToV5(getRawParts(msg.content));
+  const parts = convertV4PartsToV5(safeRawParts(msg));
   if (parts.length === 0) return null;
   return { id: resolveMessageId(msg.id), role, parts, metadata: createdAtMetadata(msg.createdAt) };
 }
@@ -140,14 +141,14 @@ function mergeAssistantTurn(turn: RawThreadMessage[]): UIMessage | null {
   let anchor: RawThreadMessage | null = null; // the answer-text-bearing message
 
   for (const msg of turn) {
-    for (const part of getRawParts(msg.content)) {
+    for (const part of safeRawParts(msg)) {
       const type = part.type as string;
       if (type === 'tool-invocation') {
         tools.push(part);
       } else if (type === 'text' && typeof part.text === 'string' && part.text.trim()) {
         texts.push(part);
         anchor = msg;
-      } else if (type === REWRITE_PART_TYPE || type === OK_PART_TYPE) {
+      } else if (type === REWRITE_PART_TYPE || type === OK_PART_TYPE || type === VERIFICATION_PART) {
         verifications.push(part);
       }
       // Drop data-om-*, step-start, and anything else — internal/structural
@@ -194,4 +195,13 @@ export function extractText(content: unknown): string {
   }
 
   return '';
+}
+
+function safeRawParts(msg: RawThreadMessage): Array<Record<string, unknown>> {
+  const parts = getRawParts(msg.content);
+  if (msg.role !== 'assistant' || parts.some(p => p.type === VERIFICATION_PART)) return parts;
+  if (!parts.some(p => p.type === 'text')) return parts;
+  return [...parts.filter(p => p.type !== 'text' && p.type !== 'reasoning'),
+    { type: 'text', text: UNVERIFIED_HISTORY },
+    { type: VERIFICATION_PART, data: { status: 'withheld', reason: 'unverified_history', passCount: 0 } }];
 }

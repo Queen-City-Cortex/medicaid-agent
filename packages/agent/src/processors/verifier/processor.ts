@@ -1,6 +1,7 @@
 import type { Processor, ProcessOutputStepArgs } from '@mastra/core/processors';
 import type { MastraDBMessage } from '@mastra/core/memory';
-import { getConfig } from './config.js';
+import { VERIFICATION_PART } from '@nc-medicaid/contracts';
+import { releaseMessage } from '../../answer-release.js';
 import { extractSources } from './evidence.js';
 import { emitVerifierTelemetry, runVerificationForAnswer } from './run.js';
 
@@ -36,65 +37,23 @@ export class HallucinationVerifier implements Processor {
   readonly id = 'hallucination-verifier';
   readonly name = 'Hallucination Verifier';
 
-  async processOutputStep({
-    text,
-    finishReason,
-    toolCalls,
-    messages,
-    writer,
-  }: ProcessOutputStepArgs): Promise<MastraDBMessage[]> {
-    if (!getConfig().enabled) return messages;
-
-    // Only verify the final answer (model stopped, no pending tool calls, has text)
-    if (finishReason !== 'stop' || (toolCalls && toolCalls.length > 0) || !text) {
-      return messages;
+  async processOutputStep({ text, finishReason, toolCalls, messages, writer, abortSignal }: ProcessOutputStepArgs): Promise<MastraDBMessage[]> {
+    if (finishReason !== 'stop' || toolCalls?.length || !text) {
+      // Interim narration must not enter memory or future model context.
+      const lastUser = messages.reduce((last, m, i) => m.role === 'user' ? i : last, -1);
+      return messages.map((m, i) => i > lastUser && m.role === 'assistant'
+        ? { ...m, content: { ...m.content, parts: m.content.parts.filter(p => p.type !== 'text' && p.type !== 'reasoning') } }
+        : m);
     }
-
-    const question = extractLatestUserQuestion(messages);
-    const sources = extractSources(messages as any);
-    const { finalAnswer, rewrote, telemetry, verification, confidence } =
-      await runVerificationForAnswer({ question, answerText: text, sources });
-
-    if (!rewrote) {
-      if (writer) {
-        // Emit a positive-path event so the UI can render a green confidence
-        // indicator even when nothing needed correcting.
-        await writer.custom({
-          type: 'data-verification-ok',
-          data: {
-            confidence: confidence.confidence,
-            severity: confidence.severity,
-            counts: confidence.counts,
-          },
-        } as any);
-      } else {
-        // Non-streaming path — emit telemetry so the eval harness can capture it.
-        emitVerifierTelemetry(telemetry);
-      }
-      return messages;
-    }
-
-    if (writer) {
-      await writer.custom({
-        type: 'data-verification-rewrite',
-        data: {
-          unsupportedClaims: verification.unsupportedClaims,
-          missingCitationClaims: verification.missingCitationClaims,
-          relevanceIssues: verification.relevanceIssues,
-          correctedAnswer: finalAnswer,
-          confidence: confidence.confidence,
-          severity: confidence.severity,
-          counts: confidence.counts,
-          pureMarkerFallback: confidence.pureMarkerFallback,
-          substanceLossFallback: confidence.substanceLossFallback,
-        },
-      } as any);
-    } else {
-      // Non-streaming path — emit telemetry so the eval harness can capture it.
-      emitVerifierTelemetry(telemetry);
-    }
-
-    return replaceFinalAnswerText(messages, finalAnswer);
+    await writer?.custom({ type: VERIFICATION_PART, data: { status: 'verifying' } } as any);
+    const result = await runVerificationForAnswer({ question: extractLatestUserQuestion(messages), answerText: text, sources: extractSources(messages as any), signal: abortSignal });
+    const { finalAnswer, outcome, confidence, telemetry } = result;
+    const last = messages.reduce((last, m, i) => m.role === 'assistant' ? i : last, -1);
+    const released = messages.map((m, i) => i === last ? releaseMessage(m, finalAnswer, outcome) : m);
+    await writer?.custom({ type: VERIFICATION_PART, data: { ...outcome, answer: finalAnswer,
+      confidence: confidence.confidence, severity: confidence.severity, counts: confidence.counts } } as any);
+    if (!writer) emitVerifierTelemetry(telemetry);
+    return released;
   }
 }
 

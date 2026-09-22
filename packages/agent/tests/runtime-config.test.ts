@@ -7,6 +7,9 @@ const KEYS = {
 };
 
 describe('loadRuntimeConfig', () => {
+  it('forbids disabling verification in production', () => {
+    expect(() => loadRuntimeConfig({ NODE_ENV: 'production', VERIFIER_ENABLED: 'false' })).toThrow('VERIFIER_ENABLED');
+  });
   it('normalizes CORS origins and development defaults', () => {
     const config = loadRuntimeConfig({
       ...KEYS,

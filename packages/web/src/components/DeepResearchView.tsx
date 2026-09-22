@@ -135,11 +135,11 @@ export function DeepResearchView({ controller }: { controller: DeepResearchContr
         </div>
       )}
 
-      {status === 'researching' && (
+      {['researching', 'recovering', 'verifying'].includes(status) && (
         <div className="space-y-3">
           <Phase
-            label="Researching…"
-            sub={`Investigating ${plan?.subQuestions.length ?? ''} sub-questions, reading sections, and verifying citations · ${fmtElapsed(elapsedMs)}`}
+            label={status === 'recovering' ? `Recovering completed work (${controller.recoveryCount}/2 retries used)…` : status === 'verifying' ? 'Checking the report against sources…' : 'Researching…'}
+            sub={status === 'recovering' ? `${controller.recoveryProgress?.completedQuestions ?? 0} completed questions saved. Your approved plan and original limits are preserved.` : `Investigating ${plan?.subQuestions.length ?? ''} sub-questions, reading sections, and verifying citations · ${fmtElapsed(elapsedMs)}`}
           />
           {plan && (
             <ul className="space-y-1 pl-1 text-sm text-muted-foreground">
@@ -176,7 +176,8 @@ export function DeepResearchView({ controller }: { controller: DeepResearchContr
         <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
           <AlertTriangle className="mt-0.5 size-4 shrink-0" />
           <div>
-            <p>Deep research failed.</p>
+            <p>The research report could not be released.</p>
+            {controller.sources?.length > 0 && <ul className="mt-2">{controller.sources.map(source => <li key={source.key}>{source.link && /^https?:\/\//.test(source.link) ? <a href={source.link} target="_blank" rel="noopener noreferrer">{source.label}</a> : source.label}</li>)}</ul>}
             {error && <p className="mt-1 font-mono text-xs opacity-80">{error}</p>}
             <Button variant="link" size="sm" onClick={controller.reset} className="mt-1 h-auto p-0 text-accent">
               Try again

@@ -51,6 +51,8 @@ export type CorpusSource = z.infer<typeof CorpusSourceSchema>;
 export const WebSourceSchema = z.object({
   title: z.string(),
   url: z.string(),
+  // Private checkpoint evidence; stripped from the public report.
+  snippet: z.string().optional(),
 });
 export type WebSource = z.infer<typeof WebSourceSchema>;
 

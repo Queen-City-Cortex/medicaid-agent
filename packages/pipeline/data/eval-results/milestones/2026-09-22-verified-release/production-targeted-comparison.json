@@ -1,0 +1,339 @@
+{
+  "question_ids": [
+    "q-001",
+    "q-028",
+    "q-036",
+    "q-047",
+    "q-050"
+  ],
+  "corpus_release": "legacy-20260725-ae8595c",
+  "candidate_commit": "bbc3a67",
+  "baseline_commit": "93d9b34",
+  "full_benchmark": false,
+  "transport": "one private SSH connection multiplexing read-only Bolt connections",
+  "provider_calls_overlapped": "Both matched batches and research smoke (including one invalid-input harness attempt) ran concurrently; latency is observational.",
+  "baseline": {
+    "aggregate": {
+      "precision_at_k": 1.0,
+      "recall_at_k": 0.9333333333333333,
+      "mrr": 0.9333333333333333,
+      "primary_hit_rate": 1.0,
+      "factual_accuracy": 2.8,
+      "completeness": 2.8,
+      "hallucination": 2.8,
+      "citation_quality": 2.8,
+      "overall": 3.0
+    },
+    "verification_median_ms": 1743,
+    "verification_max_ms": 6165,
+    "per_question": [
+      {
+        "id": "q-001",
+        "overall": 3,
+        "verifier": {
+          "latency_ms": 847,
+          "rewrote": false,
+          "supported": true,
+          "relevant": true,
+          "citations_complete": true,
+          "unsupported_claim_count": 0,
+          "missing_citation_count": 0,
+          "relevance_issue_count": 0,
+          "major_relevance_issue": false,
+          "verifier_unavailable": false,
+          "verifier_model": "gpt-5.4-mini",
+          "source_entry_count": 6,
+          "evidence_bytes": 35067,
+          "confidence": 1,
+          "severity": "high",
+          "pure_marker_fallback": false,
+          "substance_loss_fallback": false,
+          "rewrite_substance_ratio": null,
+          "fabricated_url_count": 0,
+          "fabricated_quote_count": 0
+        }
+      },
+      {
+        "id": "q-028",
+        "overall": 3,
+        "verifier": {
+          "latency_ms": 2278,
+          "rewrote": true,
+          "supported": true,
+          "relevant": true,
+          "citations_complete": false,
+          "unsupported_claim_count": 0,
+          "missing_citation_count": 5,
+          "relevance_issue_count": 1,
+          "major_relevance_issue": false,
+          "verifier_unavailable": false,
+          "verifier_model": "gpt-5.4-mini",
+          "source_entry_count": 6,
+          "evidence_bytes": 48214,
+          "confidence": 0.15000000000000002,
+          "severity": "low",
+          "pure_marker_fallback": false,
+          "substance_loss_fallback": false,
+          "rewrite_substance_ratio": null,
+          "fabricated_url_count": 0,
+          "fabricated_quote_count": 0
+        }
+      },
+      {
+        "id": "q-036",
+        "overall": 3,
+        "verifier": {
+          "latency_ms": 6165,
+          "rewrote": true,
+          "supported": false,
+          "relevant": false,
+          "citations_complete": false,
+          "unsupported_claim_count": 5,
+          "missing_citation_count": 5,
+          "relevance_issue_count": 2,
+          "major_relevance_issue": false,
+          "verifier_unavailable": false,
+          "verifier_model": "gpt-5.4-mini",
+          "source_entry_count": 10,
+          "evidence_bytes": 29428,
+          "confidence": 0,
+          "severity": "low",
+          "pure_marker_fallback": false,
+          "substance_loss_fallback": false,
+          "rewrite_substance_ratio": 0.5303723056825604,
+          "fabricated_url_count": 0,
+          "fabricated_quote_count": 0
+        }
+      },
+      {
+        "id": "q-047",
+        "overall": 3,
+        "verifier": {
+          "latency_ms": 912,
+          "rewrote": false,
+          "supported": true,
+          "relevant": true,
+          "citations_complete": true,
+          "unsupported_claim_count": 0,
+          "missing_citation_count": 0,
+          "relevance_issue_count": 0,
+          "major_relevance_issue": false,
+          "verifier_unavailable": false,
+          "verifier_model": "gpt-5.4-mini",
+          "source_entry_count": 6,
+          "evidence_bytes": 56829,
+          "confidence": 1,
+          "severity": "high",
+          "pure_marker_fallback": false,
+          "substance_loss_fallback": false,
+          "rewrite_substance_ratio": null,
+          "fabricated_url_count": 0,
+          "fabricated_quote_count": 0
+        }
+      },
+      {
+        "id": "q-050",
+        "overall": 3,
+        "verifier": {
+          "latency_ms": 1743,
+          "rewrote": false,
+          "supported": true,
+          "relevant": true,
+          "citations_complete": true,
+          "unsupported_claim_count": 0,
+          "missing_citation_count": 0,
+          "relevance_issue_count": 0,
+          "major_relevance_issue": false,
+          "verifier_unavailable": false,
+          "verifier_model": "gpt-5.4-mini",
+          "source_entry_count": 7,
+          "evidence_bytes": 59494,
+          "confidence": 1,
+          "severity": "high",
+          "pure_marker_fallback": false,
+          "substance_loss_fallback": false,
+          "rewrite_substance_ratio": null,
+          "fabricated_url_count": 0,
+          "fabricated_quote_count": 0
+        }
+      }
+    ]
+  },
+  "candidate": {
+    "aggregate": {
+      "precision_at_k": 1.0,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "primary_hit_rate": 1.0,
+      "factual_accuracy": 3.0,
+      "completeness": 3.0,
+      "hallucination": 2.8,
+      "citation_quality": 3.0,
+      "overall": 3.0
+    },
+    "verification_median_ms": 2739,
+    "verification_max_ms": 4694,
+    "per_question": [
+      {
+        "id": "q-001",
+        "overall": 3,
+        "verifier": {
+          "latency_ms": 2739,
+          "pass_count": 1,
+          "withholding_reason": null,
+          "outcome": {
+            "status": "passed",
+            "passCount": 1
+          },
+          "rewrote": false,
+          "supported": true,
+          "relevant": true,
+          "citations_complete": true,
+          "unsupported_claim_count": 0,
+          "missing_citation_count": 0,
+          "relevance_issue_count": 0,
+          "major_relevance_issue": false,
+          "verifier_unavailable": false,
+          "verifier_model": "gpt-5.6-terra",
+          "source_entry_count": 8,
+          "evidence_bytes": 62843,
+          "confidence": 1,
+          "severity": "high",
+          "pure_marker_fallback": false,
+          "substance_loss_fallback": false,
+          "rewrite_substance_ratio": null,
+          "fabricated_url_count": 0,
+          "fabricated_quote_count": 0
+        }
+      },
+      {
+        "id": "q-028",
+        "overall": 3,
+        "verifier": {
+          "latency_ms": 4694,
+          "pass_count": 1,
+          "withholding_reason": null,
+          "outcome": {
+            "status": "passed",
+            "passCount": 1
+          },
+          "rewrote": false,
+          "supported": true,
+          "relevant": true,
+          "citations_complete": true,
+          "unsupported_claim_count": 0,
+          "missing_citation_count": 0,
+          "relevance_issue_count": 0,
+          "major_relevance_issue": false,
+          "verifier_unavailable": false,
+          "verifier_model": "gpt-5.6-terra",
+          "source_entry_count": 12,
+          "evidence_bytes": 50571,
+          "confidence": 1,
+          "severity": "high",
+          "pure_marker_fallback": false,
+          "substance_loss_fallback": false,
+          "rewrite_substance_ratio": null,
+          "fabricated_url_count": 0,
+          "fabricated_quote_count": 0
+        }
+      },
+      {
+        "id": "q-036",
+        "overall": 3,
+        "verifier": {
+          "latency_ms": 1980,
+          "pass_count": 1,
+          "withholding_reason": null,
+          "outcome": {
+            "status": "passed",
+            "passCount": 1
+          },
+          "rewrote": false,
+          "supported": true,
+          "relevant": true,
+          "citations_complete": true,
+          "unsupported_claim_count": 0,
+          "missing_citation_count": 0,
+          "relevance_issue_count": 0,
+          "major_relevance_issue": false,
+          "verifier_unavailable": false,
+          "verifier_model": "gpt-5.6-terra",
+          "source_entry_count": 14,
+          "evidence_bytes": 30348,
+          "confidence": 1,
+          "severity": "high",
+          "pure_marker_fallback": false,
+          "substance_loss_fallback": false,
+          "rewrite_substance_ratio": null,
+          "fabricated_url_count": 0,
+          "fabricated_quote_count": 0
+        }
+      },
+      {
+        "id": "q-047",
+        "overall": 3,
+        "verifier": {
+          "latency_ms": 1688,
+          "pass_count": 1,
+          "withholding_reason": null,
+          "outcome": {
+            "status": "passed",
+            "passCount": 1
+          },
+          "rewrote": false,
+          "supported": true,
+          "relevant": true,
+          "citations_complete": true,
+          "unsupported_claim_count": 0,
+          "missing_citation_count": 0,
+          "relevance_issue_count": 0,
+          "major_relevance_issue": false,
+          "verifier_unavailable": false,
+          "verifier_model": "gpt-5.6-terra",
+          "source_entry_count": 13,
+          "evidence_bytes": 58798,
+          "confidence": 1,
+          "severity": "high",
+          "pure_marker_fallback": false,
+          "substance_loss_fallback": false,
+          "rewrite_substance_ratio": null,
+          "fabricated_url_count": 0,
+          "fabricated_quote_count": 0
+        }
+      },
+      {
+        "id": "q-050",
+        "overall": 3,
+        "verifier": {
+          "latency_ms": 2908,
+          "pass_count": 1,
+          "withholding_reason": null,
+          "outcome": {
+            "status": "passed",
+            "passCount": 1
+          },
+          "rewrote": false,
+          "supported": true,
+          "relevant": true,
+          "citations_complete": true,
+          "unsupported_claim_count": 0,
+          "missing_citation_count": 0,
+          "relevance_issue_count": 0,
+          "major_relevance_issue": false,
+          "verifier_unavailable": false,
+          "verifier_model": "gpt-5.6-terra",
+          "source_entry_count": 14,
+          "evidence_bytes": 62477,
+          "confidence": 1,
+          "severity": "high",
+          "pure_marker_fallback": false,
+          "substance_loss_fallback": false,
+          "rewrite_substance_ratio": null,
+          "fabricated_url_count": 0,
+          "fabricated_quote_count": 0
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,636 @@
+{
+  "source_results": {
+    "baseline": "baseline.json",
+    "candidate": "initial-gate.json"
+  },
+  "baseline": {
+    "questions": 50,
+    "scored_questions": 50,
+    "agent_errors": [],
+    "judge_errors": [],
+    "mean_scores_all": {
+      "factual_accuracy": 2.76,
+      "completeness": 2.76,
+      "hallucination": 2.56,
+      "citation_quality": 2.74,
+      "overall": 2.7
+    },
+    "mean_scores_released": {
+      "factual_accuracy": 2.76,
+      "completeness": 2.76,
+      "hallucination": 2.56,
+      "citation_quality": 2.74,
+      "overall": 2.7
+    },
+    "outcomes": {
+      "legacy_unchecked_release": 50
+    },
+    "withholding_reasons": {},
+    "withheld_questions": [],
+    "legacy_rewrites": 28,
+    "verifier_unavailable": 0,
+    "verification_ms": {
+      "n": 50,
+      "mean": 4981.84,
+      "median": 2522.0,
+      "p95": 15520.7,
+      "max": 31225
+    },
+    "agent_elapsed_seconds": {
+      "n": 50,
+      "mean": 26.48,
+      "median": 22.163,
+      "p95": 51.62,
+      "max": 85.599
+    },
+    "verification_pass_counts": {
+      "not_recorded": 50
+    }
+  },
+  "candidate": {
+    "questions": 50,
+    "scored_questions": 50,
+    "agent_errors": [],
+    "judge_errors": [],
+    "mean_scores_all": {
+      "factual_accuracy": 2.02,
+      "completeness": 2,
+      "hallucination": 2.82,
+      "citation_quality": 1.96,
+      "overall": 1.92
+    },
+    "mean_scores_released": {
+      "factual_accuracy": 2.886,
+      "completeness": 2.857,
+      "hallucination": 2.743,
+      "citation_quality": 2.8,
+      "overall": 2.743
+    },
+    "outcomes": {
+      "corrected": 13,
+      "passed": 22,
+      "withheld": 15
+    },
+    "withholding_reasons": {
+      "unsupported": 8,
+      "unusable_correction": 5,
+      "invalid_citation": 2
+    },
+    "withheld_questions": [
+      "q-005",
+      "q-008",
+      "q-009",
+      "q-010",
+      "q-011",
+      "q-014",
+      "q-018",
+      "q-024",
+      "q-033",
+      "q-036",
+      "q-040",
+      "q-041",
+      "q-042",
+      "q-046",
+      "q-048"
+    ],
+    "legacy_rewrites": null,
+    "verifier_unavailable": 0,
+    "verification_ms": {
+      "n": 50,
+      "mean": 5858.44,
+      "median": 5058.5,
+      "p95": 16627.2,
+      "max": 23620
+    },
+    "agent_elapsed_seconds": {
+      "n": 50,
+      "mean": 28.14,
+      "median": 22.9005,
+      "p95": 58.91,
+      "max": 85.092
+    },
+    "verification_pass_counts": {
+      "2": 23,
+      "1": 27
+    }
+  },
+  "matched_released_subset": {
+    "count": 35,
+    "baseline": {
+      "factual_accuracy": 2.8,
+      "completeness": 2.8,
+      "hallucination": 2.571,
+      "citation_quality": 2.743,
+      "overall": 2.743
+    },
+    "candidate": {
+      "factual_accuracy": 2.886,
+      "completeness": 2.857,
+      "hallucination": 2.743,
+      "citation_quality": 2.8,
+      "overall": 2.743
+    }
+  },
+  "question_comparison": [
+    {
+      "id": "q-001",
+      "baseline_overall": 3,
+      "candidate_overall": 3,
+      "delta": 0,
+      "outcome": "corrected",
+      "withholding_reason": null,
+      "baseline_verifier_ms": 12898,
+      "candidate_verifier_ms": 9524
+    },
+    {
+      "id": "q-002",
+      "baseline_overall": 3,
+      "candidate_overall": 3,
+      "delta": 0,
+      "outcome": "passed",
+      "withholding_reason": null,
+      "baseline_verifier_ms": 1721,
+      "candidate_verifier_ms": 1173
+    },
+    {
+      "id": "q-003",
+      "baseline_overall": 3,
+      "candidate_overall": 3,
+      "delta": 0,
+      "outcome": "corrected",
+      "withholding_reason": null,
+      "baseline_verifier_ms": 2156,
+      "candidate_verifier_ms": 5533
+    },
+    {
+      "id": "q-004",
+      "baseline_overall": 3,
+      "candidate_overall": 3,
+      "delta": 0,
+      "outcome": "corrected",
+      "withholding_reason": null,
+      "baseline_verifier_ms": 11784,
+      "candidate_verifier_ms": 6462
+    },
+    {
+      "id": "q-005",
+      "baseline_overall": 3,
+      "candidate_overall": 0,
+      "delta": -3,
+      "outcome": "withheld",
+      "withholding_reason": "unsupported",
+      "baseline_verifier_ms": 1044,
+      "candidate_verifier_ms": 10351
+    },
+    {
+      "id": "q-006",
+      "baseline_overall": 3,
+      "candidate_overall": 3,
+      "delta": 0,
+      "outcome": "passed",
+      "withholding_reason": null,
+      "baseline_verifier_ms": 3051,
+      "candidate_verifier_ms": 1897
+    },
+    {
+      "id": "q-007",
+      "baseline_overall": 3,
+      "candidate_overall": 3,
+      "delta": 0,
+      "outcome": "passed",
+      "withholding_reason": null,
+      "baseline_verifier_ms": 15480,
+      "candidate_verifier_ms": 1409
+    },
+    {
+      "id": "q-008",
+      "baseline_overall": 3,
+      "candidate_overall": 0,
+      "delta": -3,
+      "outcome": "withheld",
+      "withholding_reason": "unsupported",
+      "baseline_verifier_ms": 31225,
+      "candidate_verifier_ms": 20880
+    },
+    {
+      "id": "q-009",
+      "baseline_overall": 3,
+      "candidate_overall": 0,
+      "delta": -3,
+      "outcome": "withheld",
+      "withholding_reason": "unsupported",
+      "baseline_verifier_ms": 11545,
+      "candidate_verifier_ms": 17520
+    },
+    {
+      "id": "q-010",
+      "baseline_overall": 3,
+      "candidate_overall": 0,
+      "delta": -3,
+      "outcome": "withheld",
+      "withholding_reason": "unusable_correction",
+      "baseline_verifier_ms": 1236,
+      "candidate_verifier_ms": 14994
+    },
+    {
+      "id": "q-011",
+      "baseline_overall": 2,
+      "candidate_overall": 0,
+      "delta": -2,
+      "outcome": "withheld",
+      "withholding_reason": "unsupported",
+      "baseline_verifier_ms": 2005,
+      "candidate_verifier_ms": 23620
+    },
+    {
+      "id": "q-012",
+      "baseline_overall": 3,
+      "candidate_overall": 3,
+      "delta": 0,
+      "outcome": "passed",
+      "withholding_reason": null,
+      "baseline_verifier_ms": 841,
+      "candidate_verifier_ms": 1730
+    },
+    {
+      "id": "q-013",
+      "baseline_overall": 2,
+      "candidate_overall": 2,
+      "delta": 0,
+      "outcome": "corrected",
+      "withholding_reason": null,
+      "baseline_verifier_ms": 1198,
+      "candidate_verifier_ms": 10991
+    },
+    {
+      "id": "q-014",
+      "baseline_overall": 3,
+      "candidate_overall": 0,
+      "delta": -3,
+      "outcome": "withheld",
+      "withholding_reason": "unsupported",
+      "baseline_verifier_ms": 1864,
+      "candidate_verifier_ms": 7837
+    },
+    {
+      "id": "q-015",
+      "baseline_overall": 3,
+      "candidate_overall": 3,
+      "delta": 0,
+      "outcome": "corrected",
+      "withholding_reason": null,
+      "baseline_verifier_ms": 3190,
+      "candidate_verifier_ms": 6454
+    },
+    {
+      "id": "q-016",
+      "baseline_overall": 3,
+      "candidate_overall": 3,
+      "delta": 0,
+      "outcome": "passed",
+      "withholding_reason": null,
+      "baseline_verifier_ms": 1011,
+      "candidate_verifier_ms": 1012
+    },
+    {
+      "id": "q-017",
+      "baseline_overall": 3,
+      "candidate_overall": 3,
+      "delta": 0,
+      "outcome": "passed",
+      "withholding_reason": null,
+      "baseline_verifier_ms": 1040,
+      "candidate_verifier_ms": 984
+    },
+    {
+      "id": "q-018",
+      "baseline_overall": 3,
+      "candidate_overall": 0,
+      "delta": -3,
+      "outcome": "withheld",
+      "withholding_reason": "invalid_citation",
+      "baseline_verifier_ms": 8227,
+      "candidate_verifier_ms": 15536
+    },
+    {
+      "id": "q-019",
+      "baseline_overall": 3,
+      "candidate_overall": 3,
+      "delta": 0,
+      "outcome": "passed",
+      "withholding_reason": null,
+      "baseline_verifier_ms": 861,
+      "candidate_verifier_ms": 1043
+    },
+    {
+      "id": "q-020",
+      "baseline_overall": 3,
+      "candidate_overall": 3,
+      "delta": 0,
+      "outcome": "passed",
+      "withholding_reason": null,
+      "baseline_verifier_ms": 972,
+      "candidate_verifier_ms": 1151
+    },
+    {
+      "id": "q-021",
+      "baseline_overall": 3,
+      "candidate_overall": 3,
+      "delta": 0,
+      "outcome": "passed",
+      "withholding_reason": null,
+      "baseline_verifier_ms": 15554,
+      "candidate_verifier_ms": 1462
+    },
+    {
+      "id": "q-022",
+      "baseline_overall": 3,
+      "candidate_overall": 3,
+      "delta": 0,
+      "outcome": "passed",
+      "withholding_reason": null,
+      "baseline_verifier_ms": 1106,
+      "candidate_verifier_ms": 3554
+    },
+    {
+      "id": "q-023",
+      "baseline_overall": 3,
+      "candidate_overall": 3,
+      "delta": 0,
+      "outcome": "corrected",
+      "withholding_reason": null,
+      "baseline_verifier_ms": 1239,
+      "candidate_verifier_ms": 6764
+    },
+    {
+      "id": "q-024",
+      "baseline_overall": 2,
+      "candidate_overall": 0,
+      "delta": -2,
+      "outcome": "withheld",
+      "withholding_reason": "invalid_citation",
+      "baseline_verifier_ms": 7505,
+      "candidate_verifier_ms": 14973
+    },
+    {
+      "id": "q-025",
+      "baseline_overall": 3,
+      "candidate_overall": 3,
+      "delta": 0,
+      "outcome": "passed",
+      "withholding_reason": null,
+      "baseline_verifier_ms": 1037,
+      "candidate_verifier_ms": 933
+    },
+    {
+      "id": "q-026",
+      "baseline_overall": 2,
+      "candidate_overall": 2,
+      "delta": 0,
+      "outcome": "passed",
+      "withholding_reason": null,
+      "baseline_verifier_ms": 1169,
+      "candidate_verifier_ms": 884
+    },
+    {
+      "id": "q-027",
+      "baseline_overall": 3,
+      "candidate_overall": 3,
+      "delta": 0,
+      "outcome": "passed",
+      "withholding_reason": null,
+      "baseline_verifier_ms": 2393,
+      "candidate_verifier_ms": 1064
+    },
+    {
+      "id": "q-028",
+      "baseline_overall": 3,
+      "candidate_overall": 3,
+      "delta": 0,
+      "outcome": "passed",
+      "withholding_reason": null,
+      "baseline_verifier_ms": 4072,
+      "candidate_verifier_ms": 1826
+    },
+    {
+      "id": "q-029",
+      "baseline_overall": 2,
+      "candidate_overall": 2,
+      "delta": 0,
+      "outcome": "corrected",
+      "withholding_reason": null,
+      "baseline_verifier_ms": 2121,
+      "candidate_verifier_ms": 5581
+    },
+    {
+      "id": "q-030",
+      "baseline_overall": 3,
+      "candidate_overall": 3,
+      "delta": 0,
+      "outcome": "passed",
+      "withholding_reason": null,
+      "baseline_verifier_ms": 2651,
+      "candidate_verifier_ms": 1985
+    },
+    {
+      "id": "q-031",
+      "baseline_overall": 2,
+      "candidate_overall": 2,
+      "delta": 0,
+      "outcome": "corrected",
+      "withholding_reason": null,
+      "baseline_verifier_ms": 10244,
+      "candidate_verifier_ms": 6845
+    },
+    {
+      "id": "q-032",
+      "baseline_overall": 3,
+      "candidate_overall": 3,
+      "delta": 0,
+      "outcome": "corrected",
+      "withholding_reason": null,
+      "baseline_verifier_ms": 7213,
+      "candidate_verifier_ms": 5174
+    },
+    {
+      "id": "q-033",
+      "baseline_overall": 3,
+      "candidate_overall": 0,
+      "delta": -3,
+      "outcome": "withheld",
+      "withholding_reason": "unsupported",
+      "baseline_verifier_ms": 4621,
+      "candidate_verifier_ms": 11598
+    },
+    {
+      "id": "q-034",
+      "baseline_overall": 3,
+      "candidate_overall": 3,
+      "delta": 0,
+      "outcome": "passed",
+      "withholding_reason": null,
+      "baseline_verifier_ms": 730,
+      "candidate_verifier_ms": 1429
+    },
+    {
+      "id": "q-035",
+      "baseline_overall": 2,
+      "candidate_overall": 2,
+      "delta": 0,
+      "outcome": "corrected",
+      "withholding_reason": null,
+      "baseline_verifier_ms": 1193,
+      "candidate_verifier_ms": 6879
+    },
+    {
+      "id": "q-036",
+      "baseline_overall": 3,
+      "candidate_overall": 0,
+      "delta": -3,
+      "outcome": "withheld",
+      "withholding_reason": "unusable_correction",
+      "baseline_verifier_ms": 1047,
+      "candidate_verifier_ms": 5836
+    },
+    {
+      "id": "q-037",
+      "baseline_overall": 3,
+      "candidate_overall": 2,
+      "delta": -1,
+      "outcome": "corrected",
+      "withholding_reason": null,
+      "baseline_verifier_ms": 3688,
+      "candidate_verifier_ms": 4953
+    },
+    {
+      "id": "q-038",
+      "baseline_overall": 3,
+      "candidate_overall": 3,
+      "delta": 0,
+      "outcome": "passed",
+      "withholding_reason": null,
+      "baseline_verifier_ms": 2984,
+      "candidate_verifier_ms": 1740
+    },
+    {
+      "id": "q-039",
+      "baseline_overall": 3,
+      "candidate_overall": 3,
+      "delta": 0,
+      "outcome": "passed",
+      "withholding_reason": null,
+      "baseline_verifier_ms": 2195,
+      "candidate_verifier_ms": 1562
+    },
+    {
+      "id": "q-040",
+      "baseline_overall": 2,
+      "candidate_overall": 0,
+      "delta": -2,
+      "outcome": "withheld",
+      "withholding_reason": "unsupported",
+      "baseline_verifier_ms": 3082,
+      "candidate_verifier_ms": 7138
+    },
+    {
+      "id": "q-041",
+      "baseline_overall": 2,
+      "candidate_overall": 0,
+      "delta": -2,
+      "outcome": "withheld",
+      "withholding_reason": "unusable_correction",
+      "baseline_verifier_ms": 4790,
+      "candidate_verifier_ms": 3344
+    },
+    {
+      "id": "q-042",
+      "baseline_overall": 3,
+      "candidate_overall": 0,
+      "delta": -3,
+      "outcome": "withheld",
+      "withholding_reason": "unsupported",
+      "baseline_verifier_ms": 8404,
+      "candidate_verifier_ms": 11659
+    },
+    {
+      "id": "q-043",
+      "baseline_overall": 2,
+      "candidate_overall": 2,
+      "delta": 0,
+      "outcome": "passed",
+      "withholding_reason": null,
+      "baseline_verifier_ms": 1738,
+      "candidate_verifier_ms": 1229
+    },
+    {
+      "id": "q-044",
+      "baseline_overall": 3,
+      "candidate_overall": 3,
+      "delta": 0,
+      "outcome": "corrected",
+      "withholding_reason": null,
+      "baseline_verifier_ms": 1387,
+      "candidate_verifier_ms": 5483
+    },
+    {
+      "id": "q-045",
+      "baseline_overall": 2,
+      "candidate_overall": 2,
+      "delta": 0,
+      "outcome": "passed",
+      "withholding_reason": null,
+      "baseline_verifier_ms": 8848,
+      "candidate_verifier_ms": 906
+    },
+    {
+      "id": "q-046",
+      "baseline_overall": 2,
+      "candidate_overall": 0,
+      "delta": -2,
+      "outcome": "withheld",
+      "withholding_reason": "unusable_correction",
+      "baseline_verifier_ms": 4324,
+      "candidate_verifier_ms": 3076
+    },
+    {
+      "id": "q-047",
+      "baseline_overall": 3,
+      "candidate_overall": 3,
+      "delta": 0,
+      "outcome": "passed",
+      "withholding_reason": null,
+      "baseline_verifier_ms": 3531,
+      "candidate_verifier_ms": 890
+    },
+    {
+      "id": "q-048",
+      "baseline_overall": 2,
+      "candidate_overall": 0,
+      "delta": -2,
+      "outcome": "withheld",
+      "withholding_reason": "unusable_correction",
+      "baseline_verifier_ms": 20340,
+      "candidate_verifier_ms": 5164
+    },
+    {
+      "id": "q-049",
+      "baseline_overall": 2,
+      "candidate_overall": 2,
+      "delta": 0,
+      "outcome": "corrected",
+      "withholding_reason": null,
+      "baseline_verifier_ms": 994,
+      "candidate_verifier_ms": 7673
+    },
+    {
+      "id": "q-050",
+      "baseline_overall": 2,
+      "candidate_overall": 3,
+      "delta": 1,
+      "outcome": "passed",
+      "withholding_reason": null,
+      "baseline_verifier_ms": 5543,
+      "candidate_verifier_ms": 1217
+    }
+  ]
+}

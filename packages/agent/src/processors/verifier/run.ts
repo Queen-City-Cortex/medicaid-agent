@@ -3,7 +3,6 @@ import { type SourceEntry, buildSourceText } from './evidence.js';
 import { type VerificationResult, VERIFICATION_UNAVAILABLE, verifyAnswer } from './verify.js';
 import {
   assessRewriteSubstance,
-  renderCorrectedAnswer,
   validateAnswerQuotes,
   validateAnswerUrls,
 } from './answer-validation.js';
@@ -13,8 +12,8 @@ import {
   computeVerificationConfidence,
 } from './confidence.js';
 
-const VERIFICATION_DISCLAIMER =
-  '\n\n---\n*Note: This answer could not be verified against source documents. Please verify critical details with [NC DHHS](https://medicaid.ncdhhs.gov/).*';
+import { WITHHELD_ANSWER, type VerificationOutcome } from '@nc-medicaid/contracts';
+import { log } from '../../logger.js';
 
 // ── Shared verification flow ────────────────────────────────────────────────
 
@@ -26,6 +25,10 @@ const VERIFICATION_DISCLAIMER =
  * these fields by name. Do not rename them.
  */
 export interface VerifierTelemetry {
+  latency_ms: number;
+  pass_count: number;
+  withholding_reason: string | null;
+  outcome: VerificationOutcome;
   rewrote: boolean;
   supported: boolean;
   relevant: boolean;
@@ -50,8 +53,9 @@ export interface VerifierTelemetry {
 }
 
 export interface VerificationRunResult {
-  /** Answer text after applying the verifier's rewrite (the original text
-   *  when no rewrite was needed or the rewrite was unusable). */
+  retryable: boolean;
+  outcome: VerificationOutcome;
+  /** Verified outgoing text, or the fixed withholding explanation. */
   finalAnswer: string;
   /** True when any check failed and a rewrite was attempted. */
   rewrote: boolean;
@@ -67,121 +71,80 @@ export function emitVerifierTelemetry(telemetry: object): void {
   console.log(JSON.stringify(telemetry));
 }
 
-/**
- * Run the full hallucination-verification flow for a finished answer:
- * build the source text, verify, render the corrected answer (with the
- * pure-marker fallback guard), and compute confidence + telemetry.
- *
- * Shared by the CLI/eval runner in `index.ts` and the streaming
- * `HallucinationVerifier` processor so the two paths can't drift.
- */
-export async function runVerificationForAnswer({
-  question,
-  answerText,
-  sources,
-  onUsage,
-}: {
+/** Verify the exact outgoing text. A failed candidate is never a fallback. */
+export async function runVerificationForAnswer({ question, answerText, sources, onUsage, signal, verify = verifyAnswer }: {
   question: string;
   answerText: string;
   sources: SourceEntry[];
   onUsage?: (usage: unknown) => void;
+  signal?: AbortSignal;
+  verify?: typeof verifyAnswer;
 }): Promise<VerificationRunResult> {
-  const sourceText = buildSourceText(sources, answerText);
-  const verification = await verifyAnswer(question, answerText, sourceText, onUsage);
-
-  const hasMajorRelevanceIssue = verification.relevanceIssues?.some(
-    (issue) => issue.severity === 'major',
-  ) ?? false;
-  const citationsComplete = verification.citationsComplete !== false;
-  const rewrote = !(
-    verification.supported
-    && verification.relevant
-    && !hasMajorRelevanceIssue
-    && citationsComplete
-  );
-  const verifierUnavailable = verification.unsupportedClaims?.some(
-    (claim) => claim.reason === VERIFICATION_UNAVAILABLE,
-  ) ?? false;
-
-  let finalAnswer = answerText;
-  let pureMarkerFallback = false;
-  let substanceLossFallback = false;
-  let rewriteSubstanceRatio: number | null = null;
-  if (rewrote) {
-    // Apply the verifier's correctedAnswer directly — no retry. Retries cause
-    // the agent to over-correct and hedge everything. When the verification
-    // service itself was unavailable, keep the original answer but append a
-    // "could not be verified" disclaimer.
-    const rawCorrected = verification.correctedAnswer
-      || (verifierUnavailable ? answerText + VERIFICATION_DISCLAIMER : answerText);
-    // Move [missing citation: ...] markers out of sentence flow into a footer;
-    // keep [unverified: ...] / [wrong source: ...] inline (hallucination
-    // signal). Pass the original text as a fallback so a rewrite that is pure
-    // markers (body empty after extraction) doesn't nuke the answer.
-    finalAnswer = renderCorrectedAnswer(rawCorrected, answerText);
-    // Detect the pure-marker fallback so confidence reflects that the rewrite
-    // was unusable (same signal as the q-006 regression guard).
-    pureMarkerFallback =
-      (verification.correctedAnswer ?? '').trim().length > 0
-      && finalAnswer.trim() === answerText.trim();
-    // Substance-loss guard: a rewrite whose non-marker content is a small
-    // fraction of the original replaced the answer with meta-commentary
-    // (h-005 regression guard). Keep the original; confidence is clamped.
-    if (!pureMarkerFallback && (verification.correctedAnswer ?? '').trim()) {
-      const substance = assessRewriteSubstance(answerText, verification.correctedAnswer);
-      rewriteSubstanceRatio = substance.ratio;
-      if (substance.lostSubstance) {
-        finalAnswer = answerText;
-        substanceLossFallback = true;
-      }
+  const started = Date.now();
+  let candidate = answerText;
+  let verification!: VerificationResult;
+  let outcome: VerificationOutcome = { status: 'withheld', reason: 'unsupported', passCount: 0 };
+  let fabricatedUrlCount = 0;
+  let fabricatedQuoteCount = 0;
+  const substanceLoss = false;
+  let substanceRatio: number | null = null;
+  let unavailable = false;
+  for (let pass = 1; pass <= 2; pass++) {
+    const urls = validateAnswerUrls(candidate, sources);
+    const quotes = validateAnswerQuotes(candidate, sources);
+    verification = await verify(question, candidate, buildSourceText(sources, candidate), onUsage, signal,
+      { unknownUrls: urls.unknownUrls, unknownQuotes: quotes.unknownQuotes,
+        ...(sources.some(source => source.evidenceRole === 'supplementary') ? { hasSupplementaryEvidence: true } : {}),
+      });
+    outcome.passCount = pass;
+    unavailable = verification.unsupportedClaims.some(c => c.reason === VERIFICATION_UNAVAILABLE);
+    if (unavailable) { outcome.reason = 'unavailable'; break; }
+    fabricatedUrlCount += urls.unknownUrls.length;
+    fabricatedQuoteCount += quotes.unknownQuotes.length;
+    const majorRelevance = verification.relevanceIssues?.some(i => i.severity === 'major')
+      || (!verification.relevant && !verification.relevanceIssues?.some(i => i.severity === 'minor'));
+    const clean = verification.supported && !majorRelevance && verification.citationsComplete
+      && verification.unsupportedClaims.length === 0 && (verification.missingCitationClaims?.length ?? 0) === 0
+      && urls.unknownUrls.length === 0 && quotes.unknownQuotes.length === 0
+      && !/\[(?:unverified|wrong source|missing citation):/i.test(candidate);
+    if (clean && candidate.trim() && sources.some(s => s.text.trim())) {
+      outcome = { status: pass === 1 ? 'passed' : 'corrected', passCount: pass };
+      break;
     }
+    outcome.reason = urls.unknownUrls.length || quotes.unknownQuotes.length ? 'invalid_citation' : 'unsupported';
+    if (pass === 2) break;
+    const correction = verification.correctedAnswer?.trim();
+    if (!correction || correction === candidate || /\[(?:unverified|wrong source|missing citation):/i.test(correction)) {
+      outcome.reason = 'unusable_correction'; break;
+    }
+    const substance = assessRewriteSubstance(answerText, correction);
+    substanceRatio = substance.ratio;
+    // Removing unsupported claims may substantially shorten an answer. The
+    // exact correction must pass the recheck; length alone is not grounding.
+    candidate = correction;
   }
-
-  // Deterministic guards run on the outgoing text regardless of whether the
-  // LLM checks passed — a fabricated URL in an otherwise-clean answer is
-  // exactly the case the LLM misses.
-  const urlValidation = validateAnswerUrls(finalAnswer, sources);
-  if (urlValidation.unknownUrls.length > 0) {
-    finalAnswer = urlValidation.validatedAnswer;
-  }
-  const quoteValidation = validateAnswerQuotes(finalAnswer, sources);
-  if (quoteValidation.unknownQuotes.length > 0) {
-    finalAnswer = quoteValidation.validatedAnswer;
-  }
-  const sanitized = urlValidation.unknownUrls.length > 0 || quoteValidation.unknownQuotes.length > 0;
-
+  const withheld = outcome.status === 'withheld';
   const confidence = computeVerificationConfidence(verification, {
-    pureMarkerFallback,
-    substanceLossFallback,
-    fabricatedUrlCount: urlValidation.unknownUrls.length,
-    fabricatedQuoteCount: quoteValidation.unknownQuotes.length,
+    pureMarkerFallback: false, substanceLossFallback: substanceLoss,
+    fabricatedUrlCount, fabricatedQuoteCount,
   });
-
-  // Deterministic sanitization counts as a rewrite: the processor keys
-  // message replacement off this flag, and the modified text must land.
-  const rewroteFinal = rewrote || sanitized;
-
+  if (withheld) { confidence.confidence = 0; confidence.severity = 'low'; }
+  const rewrote = outcome.status !== 'passed';
   const telemetry: VerifierTelemetry = {
-    rewrote: rewroteFinal,
-    supported: verification.supported,
-    relevant: verification.relevant,
-    citations_complete: citationsComplete,
-    unsupported_claim_count: verification.unsupportedClaims?.length ?? 0,
+    latency_ms: Date.now() - started, pass_count: outcome.passCount, withholding_reason: outcome.reason ?? null,
+    outcome, rewrote, supported: !withheld && verification.supported,
+    relevant: verification.relevant, citations_complete: verification.citationsComplete,
+    unsupported_claim_count: verification.unsupportedClaims.length,
     missing_citation_count: verification.missingCitationClaims?.length ?? 0,
     relevance_issue_count: verification.relevanceIssues?.length ?? 0,
-    major_relevance_issue: hasMajorRelevanceIssue,
-    verifier_unavailable: verifierUnavailable,
-    verifier_model: getConfig().model,
-    source_entry_count: sources.length,
-    evidence_bytes: sources.reduce((total, source) => total + source.text.length, 0),
-    confidence: confidence.confidence,
-    severity: confidence.severity,
-    pure_marker_fallback: pureMarkerFallback,
-    substance_loss_fallback: substanceLossFallback,
-    rewrite_substance_ratio: rewriteSubstanceRatio,
-    fabricated_url_count: urlValidation.unknownUrls.length,
-    fabricated_quote_count: quoteValidation.unknownQuotes.length,
+    major_relevance_issue: verification.relevanceIssues?.some(i => i.severity === 'major') ?? false,
+    verifier_unavailable: unavailable, verifier_model: getConfig().model,
+    source_entry_count: sources.length, evidence_bytes: sources.reduce((n,s) => n+s.text.length,0),
+    confidence: confidence.confidence, severity: confidence.severity,
+    pure_marker_fallback: false, substance_loss_fallback: substanceLoss,
+    rewrite_substance_ratio: substanceRatio, fabricated_url_count: fabricatedUrlCount,
+    fabricated_quote_count: fabricatedQuoteCount,
   };
-
-  return { finalAnswer, rewrote: rewroteFinal, telemetry, verification, confidence };
+  log.info('verification.release', { ...outcome, latencyMs: Date.now()-started });
+  return { retryable: unavailable && verification.failureRetryable === true, finalAnswer: withheld ? WITHHELD_ANSWER : candidate, outcome, rewrote, telemetry, verification, confidence };
 }

@@ -1,3 +1,4 @@
+import { VERIFICATION_PART, UNVERIFIED_HISTORY } from '@nc-medicaid/contracts';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
@@ -12,6 +13,7 @@ vi.mock('@/components/MessageActions', () => ({
 }));
 
 function renderMessageList(messages: UIMessage[], options?: {
+  explicitRelease?: boolean;
   isStreaming?: boolean;
   status?: string;
   onRerun?: (messageIndex: number, userIndex: number) => void;
@@ -19,6 +21,12 @@ function renderMessageList(messages: UIMessage[], options?: {
   activeVersion?: Record<string, number>;
   onSelectVersion?: (userMsgId: string, version: number) => void;
 }) {
+  const releasedFixture = (m: UIMessage): UIMessage => m.role === 'assistant' && m.parts.some(p => p.type === 'text') && !m.parts.some(p => p.type === VERIFICATION_PART)
+    ? { ...m, parts: [...m.parts, { type: VERIFICATION_PART, data: { status: 'passed', passCount: 1 } }] } : m;
+  if (!options?.explicitRelease) {
+    messages = messages.map(releasedFixture);
+    if (options?.archivedVersions) options.archivedVersions = Object.fromEntries(Object.entries(options.archivedVersions).map(([key, versions]) => [key, versions.map(releasedFixture)]));
+  }
   const messagesEndRef = { current: null };
 
   render(
@@ -279,7 +287,7 @@ describe('MessageList', () => {
 
     // Completed run: the answer is visible immediately, the tool loop is
     // collapsed into the research trail.
-    const finalAnswer = screen.getByText('Here is the final answer.');
+    const finalAnswer = screen.getAllByText(UNVERIFIED_HISTORY)[0];
     const trigger = screen.getByTestId('research-trail-trigger');
     expect(
       finalAnswer.compareDocumentPosition(trigger) & Node.DOCUMENT_POSITION_FOLLOWING,
@@ -288,9 +296,8 @@ describe('MessageList', () => {
     const user = userEvent.setup();
     await user.click(trigger);
 
-    const firstNote = screen.getByText('First note.');
-    const toolLabel = screen.getByText('Searching policies');
-    expect(firstNote.compareDocumentPosition(toolLabel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.queryByText('First note.')).not.toBeInTheDocument();
+    expect(screen.getByText('Searching policies')).toBeInTheDocument();
   });
 
   it('shows an explicit "ended without answer" notice + Rerun when tools ran but no final text was produced', () => {
@@ -582,5 +589,29 @@ describe('MessageList', () => {
     );
     expect(screen.getByTestId('blocked-message')).toHaveTextContent("couldn't be processed");
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+  });
+});
+
+
+describe('verification release UI', () => {
+  it('never renders unchecked draft text while verifying', () => {
+    renderMessageList([{ id: 'draft', role: 'assistant', parts: [
+      { type: 'text', text: 'PRIVATE_DRAFT_SENTINEL' },
+      { type: VERIFICATION_PART, data: { status: 'verifying' } },
+    ] }], { isStreaming: true, explicitRelease: true });
+    expect(screen.queryByText('PRIVATE_DRAFT_SENTINEL')).not.toBeInTheDocument();
+    expect(screen.getByTestId('verification-progress')).toHaveTextContent('Checking the answer against sources');
+  });
+  it('does not render an unsigned cached message', () => {
+    renderMessageList([{ id: 'draft', role: 'assistant', parts: [{ type: 'text', text: 'PRIVATE_DRAFT_SENTINEL' }] }], { explicitRelease: true });
+    expect(screen.queryByText('PRIVATE_DRAFT_SENTINEL')).not.toBeInTheDocument();
+  });
+  it('offers retry on a withheld answer', async () => {
+    const rerun = vi.fn();
+    renderMessageList([{ id: 'user', role: 'user', parts: [{ type: 'text', text: 'Question' }] },
+      { id: 'answer', role: 'assistant', parts: [{ type: 'text', text: UNVERIFIED_HISTORY },
+        { type: VERIFICATION_PART, data: { status: 'withheld', passCount: 0 } }] }], { explicitRelease: true, onRerun: rerun });
+    await userEvent.setup().click(screen.getByTestId('verification-retry'));
+    expect(rerun).toHaveBeenCalledWith(1, 0);
   });
 });

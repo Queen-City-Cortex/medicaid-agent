@@ -36,8 +36,8 @@ function VerificationLine({ v }: { v: DeepResearchReport['citationProvenance'] }
       <Icon className="size-3.5" />
       <span>
         {clean
-          ? `Citations verified: ${v.retrievedCitations}/${v.checkedCitations} resolve to retrieved corpus sources`
-          : `${v.unknownCitations} of ${v.checkedCitations} citation(s) did not match a retrieved source and were demoted`}
+          ? `Citations verified: ${v.retrievedCitations}/${v.checkedCitations} resolve to retrieved sources${v.allowedCitations ? `; ${v.allowedCitations} allowed reference link(s)` : ''}`
+          : `${v.unknownCitations} of ${v.checkedCitations} citation(s) did not match a retrieved source `}
       </span>
     </div>
   );

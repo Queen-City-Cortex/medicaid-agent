@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "main": "src/index.ts",
-  "types": "src/index.ts",
+  "main": "src/schemas.ts",
+  "types": "src/schemas.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/schemas.ts"
   },
   "scripts": {
     "build": "tsc",

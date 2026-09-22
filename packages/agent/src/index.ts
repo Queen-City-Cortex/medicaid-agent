@@ -1,3 +1,5 @@
+import { verifyCliAnswer } from './cli-verification.js';
+import { configureAnswerRelease, installMemoryReleaseGate, gateAnswerStream, trustedChatInput } from './answer-release.js';
 import './load-env.js';
 import { Sentry } from './sentry.js';
 import { log, errorFields } from './logger.js';
@@ -24,8 +26,6 @@ import {
   HallucinationVerifier,
   extractSources,
   extractSourcesFromToolResults,
-  runVerificationForAnswer,
-  emitVerifierTelemetry,
   type ToolResultRecord,
 } from './processors/hallucination-verifier.js';
 import { AnswerFramePrefetchProcessor } from './processors/answer-frame-prefetch.js';
@@ -71,6 +71,8 @@ const libsql = new LibSQLStore({
 
 const appDatabase = new AppDatabase(runtimeConfig.databaseUrl);
 await appDatabase.migrate();
+configureAnswerRelease(String((await appDatabase.client.execute('SELECT secret FROM answer_release_keys WHERE id = 1')).rows[0].secret));
+installMemoryReleaseGate((await libsql.getStore('memory'))!);
 const feedbackRepo = new FeedbackRepository(appDatabase);
 const rateLimitRepo = new RateLimitRepository(appDatabase);
 const usageRepo = new UsageRepository(appDatabase);
@@ -141,20 +143,10 @@ const memory = IS_CLI_RUN
               },
             }
           : {}),
-        workingMemory: {
-          enabled: MEMORY_FEATURES_ENABLED,
-          scope: 'resource',
-          template: `# User Profile
-- Name:
-- Role: [e.g., Legal aid attorney, Case manager, Beneficiary, Family member]
-- Organization:
-- Counties/Region of interest:
-
-# Conversation Preferences
-- Detail level: [e.g., Technical/legal detail, Plain language summary]
-- Common topics of interest:
-`,
-        },
+        // The model-written profile tool bypasses answer verification. Keep
+        // recall on guarded messages/observations until profile writes have
+        // their own verified provenance.
+        workingMemory: { enabled: false },
       },
     });
 
@@ -199,7 +191,7 @@ const inputProcessors = IS_CLI_RUN
 // directly after `agent.generate()` completes. That keeps eval scores aligned
 // with what web users see while still letting VERIFIER_ENABLED=false skip the
 // extra cost for fast debug runs.
-const outputProcessors = isVerifierEnabled() && !IS_CLI_RUN ? [hallucinationVerifier] : [];
+const outputProcessors = !IS_CLI_RUN ? [hallucinationVerifier] : [];
 
 const MAX_STEPS = 99;
 
@@ -372,9 +364,10 @@ export const mastra = new Mastra({
             agentId: 'ncMedicaidAgent',
             version: 'v6',
             params: {
-              ...body,
+              // Only accept the newest user input; history comes from guarded memory.
+              ...trustedChatInput(body, userId),
               // Middleware > body, mirroring chatRoute's priority order.
-              requestContext: c.get('requestContext') ?? body?.requestContext,
+              requestContext: c.get('requestContext'),
               abortSignal: c.req.raw.signal,
               onFinish,
             },
@@ -394,7 +387,7 @@ export const mastra = new Mastra({
               },
             },
           });
-          return createUIMessageStreamResponse({ stream });
+          return createUIMessageStreamResponse({ stream: gateAnswerStream(stream) });
         },
       }),
       ...feedbackApiRoutes(feedbackRepo),
@@ -485,34 +478,11 @@ if (IS_DEEP_RESEARCH_CLI && CLI_QUESTION) {
     let finalAnswer = result.text ?? '';
 
     if (isVerifierEnabled() && finalAnswer) {
-      try {
-        // Prefer raw tool results (AI SDK shape); fall back to message parsing
-        // if extractSourcesFromToolResults returns nothing.
-        let sources = extractSourcesFromToolResults(toolResults);
-        if (sources.length === 0) {
-          const messages =
-            (result as any).response?.messages
-            ?? (result as any).messages
-            ?? [];
-          sources = extractSources(messages);
-        }
-        // Emit the extracted sources so the eval harness can give the judge
-        // the same evidence the verifier sees. Single-line JSON so the
-        // `last JSON object line` extractor on the Python side parses cleanly.
-        const evidenceBytes = sources.reduce((n, s) => n + s.text.length, 0);
-        console.log('\n---EVIDENCE---\n');
-        console.log(JSON.stringify({ sources, evidence_bytes: evidenceBytes }));
-
-        const run = await runVerificationForAnswer({
-          question: CLI_QUESTION,
-          answerText: finalAnswer,
-          sources,
-        });
-        emitVerifierTelemetry(run.telemetry);
-        finalAnswer = run.finalAnswer;
-      } catch (err) {
-        emitVerifierTelemetry({ error: String(err), rewrote: false });
-      }
+      finalAnswer = await verifyCliAnswer({ question: CLI_QUESTION, answerText: finalAnswer, getSources: () => {
+        const sources = extractSourcesFromToolResults(toolResults);
+        if (sources.length > 0) return sources;
+        return extractSources((result as any).response?.messages ?? (result as any).messages ?? []);
+      } });
     }
 
     console.log('\n---ANSWER---\n');

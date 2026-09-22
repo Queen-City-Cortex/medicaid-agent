@@ -1,0 +1,24 @@
+{
+  "observed_on": "2026-09-22",
+  "graph_release": "legacy-20260725-ae8595c",
+  "graph_unchanged": true,
+  "application_database": "temporary local SQLite only",
+  "answer_candidate_commit": "bbc3a67",
+  "recovery_candidate_commit": "5f7ab7b",
+  "baseline_commit": "93d9b34",
+  "current_dataset_references": 112,
+  "current_dataset_missing_references": 112,
+  "historical_dataset_references": 104,
+  "historical_dataset_missing_references": 0,
+  "release_gate": "blocked: current 55-question dataset does not match active graph",
+  "answer_results": "production-targeted-comparison.json",
+  "preflight": "production-corpus-preflight.json",
+  "research_harness": "tagged-research-smoke.mts",
+  "notes": [
+    "The five-question targeted sample does not replace the complete local 50-question comparison.",
+    "Discarded the first targeted run after the SSH transport reached Railway connection limits.",
+    "A live interruption found and led to the checkpoint error-classification fix; the prior failed smoke is preserved separately."
+  ],
+  "research_results": "tagged-research-recovery.json",
+  "research_outcome": "passed: two recoveries, three executions, no duplicate planner/worker/reporter calls, corrected report released after recheck"
+}

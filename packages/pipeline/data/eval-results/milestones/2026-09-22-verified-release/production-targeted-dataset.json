@@ -1,0 +1,238 @@
+[
+  {
+    "id": "q-001",
+    "version": 1,
+    "created": "2026-03-26",
+    "updated": "2026-03-26",
+    "question": "What are the general eligibility criteria for CAP/DA services under NC Medicaid?",
+    "difficulty": "simple",
+    "reasoning_type": "single_lookup",
+    "topics": [
+      "cap_da",
+      "eligibility",
+      "waiver"
+    ],
+    "target_users": [
+      "beneficiary",
+      "care_coordinator"
+    ],
+    "answer": {
+      "text": "CAP/DA (Community Alternatives Program for Disabled Adults) is available to Medicaid beneficiaries who are aged 18 or older, meet institutional level of care criteria, and require nursing facility level services but can safely receive care in the community. Beneficiaries must have a functional need for assistance with activities of daily living.",
+      "confidence": "high",
+      "caveats": [
+        "EPSDT exception may apply for beneficiaries under 21"
+      ]
+    },
+    "evidence": {
+      "primary_sections": [
+        {
+          "document_id": "doc:clinical_policy:3K-2",
+          "section_id": "sec:doc:clinical_policy:3K-2:2.1.1",
+          "section_number": "2.1.1",
+          "relevance": "General eligibility provisions for CAP/DA"
+        },
+        {
+          "document_id": "doc:clinical_policy:3K-2",
+          "section_id": "sec:doc:clinical_policy:3K-2:3.1",
+          "section_number": "3.1",
+          "relevance": "General criteria covered under CAP/DA"
+        }
+      ],
+      "supporting_sections": [
+        {
+          "document_id": "doc:clinical_policy:3K-2",
+          "section_id": "sec:doc:clinical_policy:3K-2:3.2.1",
+          "section_number": "3.2.1",
+          "relevance": "Specific Medicaid coverage criteria"
+        }
+      ],
+      "cross_references": [],
+      "federal_references": []
+    },
+    "source": "lived_experience",
+    "notes": "Basic CAP/DA eligibility question. Section 2.1.1 covers general provisions."
+  },
+  {
+    "id": "q-028",
+    "version": 1,
+    "created": "2026-04-16",
+    "updated": "2026-04-16",
+    "question": "Is acupuncture a covered service under Clinical Coverage Policy 8C (Outpatient Behavioral Health)?",
+    "difficulty": "simple",
+    "reasoning_type": "negative_answer",
+    "topics": [
+      "coverage_exclusions",
+      "acupuncture",
+      "behavioral_health",
+      "8C"
+    ],
+    "target_users": [
+      "beneficiary",
+      "provider"
+    ],
+    "answer": {
+      "text": "No. Policy 8C governs outpatient behavioral health services (section 2.1.1 scope). Acupuncture is not a behavioral health service and falls outside 8C's scope; section 4.1 confirms acupuncture is not among the covered behavioral health modalities. Any acupuncture coverage would be governed by a different clinical policy, not 8C.",
+      "confidence": "high",
+      "caveats": [
+        "EPSDT may permit broader coverage for beneficiaries under 21 when medically necessary"
+      ]
+    },
+    "evidence": {
+      "primary_sections": [
+        {
+          "document_id": "doc:clinical_policy:8C",
+          "section_id": "sec:doc:clinical_policy:8C:2.1.1",
+          "section_number": "2.1.1",
+          "relevance": "Policy 8C scope \u2014 acupuncture out of scope"
+        },
+        {
+          "document_id": "doc:clinical_policy:8C",
+          "section_id": "sec:doc:clinical_policy:8C:4.1",
+          "section_number": "4.1",
+          "relevance": "Policy 8C not-covered section"
+        }
+      ],
+      "supporting_sections": [],
+      "cross_references": [],
+      "federal_references": []
+    },
+    "source": "legal_aid",
+    "notes": "Verified against live graph 2026-04-16: 8C:2.1.1 and 8C:4.1 exist. Tests scope + not-covered determinism hint pairing."
+  },
+  {
+    "id": "q-036",
+    "version": 1,
+    "created": "2026-04-16",
+    "updated": "2026-04-16",
+    "question": "Does Policy 1-H authorize routine general-wellness telehealth visits without a specific clinical indication?",
+    "difficulty": "moderate",
+    "reasoning_type": "negative_answer",
+    "topics": [
+      "coverage_exclusions",
+      "telehealth",
+      "1H",
+      "scope"
+    ],
+    "target_users": [
+      "provider",
+      "beneficiary"
+    ],
+    "answer": {
+      "text": "No. Policy 1-H governs telehealth as a modality for delivering specific covered clinical services; it does not authorize routine general-wellness visits via telehealth absent a clinical indication. The covered service must itself be a Medicaid-covered benefit, and the telehealth modality must meet the policy's technical and clinical requirements.",
+      "confidence": "medium",
+      "caveats": [
+        "Coverage depends on the underlying service being a benefit; general wellness is typically not a standalone benefit",
+        "NEEDS_VALIDATION"
+      ]
+    },
+    "evidence": {
+      "primary_sections": [
+        {
+          "document_id": "doc:clinical_policy:1H",
+          "section_id": "sec:doc:clinical_policy:1H:2.1.1",
+          "section_number": "2.1.1",
+          "relevance": "Telehealth scope \u2014 modality for covered services, not a standalone benefit"
+        }
+      ],
+      "supporting_sections": [],
+      "cross_references": [],
+      "federal_references": []
+    },
+    "source": "regression",
+    "notes": "Per AGENTS.md:49, 1-H telehealth sections can be thin in the graph; NEEDS_VALIDATION before scoring."
+  },
+  {
+    "id": "q-047",
+    "version": 1,
+    "created": "2026-04-16",
+    "updated": "2026-04-16",
+    "question": "Which federal regulation governs timeliness requirements for state Medicaid plan amendments (SPAs)?",
+    "difficulty": "moderate",
+    "reasoning_type": "federal_reference",
+    "topics": [
+      "federal_authority",
+      "spa",
+      "state_plan",
+      "timeliness"
+    ],
+    "target_users": [
+      "legal_aid",
+      "policy_researcher"
+    ],
+    "answer": {
+      "text": "42 CFR \u00a7 430.12 governs the submission and amendment of the state Medicaid plan, including requirements for timely submission of plan amendments to CMS for review and approval. It establishes when states must submit SPAs and the federal review timeline.",
+      "confidence": "high",
+      "caveats": []
+    },
+    "evidence": {
+      "primary_sections": [
+        {
+          "document_id": "doc:federal_regulation:42-CFR-430",
+          "section_id": "sec:doc:federal_regulation:42-CFR-430:430.12",
+          "section_number": "430.12",
+          "relevance": "Submission of plan and plan amendments"
+        }
+      ],
+      "supporting_sections": [],
+      "cross_references": [],
+      "federal_references": [
+        {
+          "citation": "42 CFR \u00a7 430.12",
+          "note": "Submission of plan and plan amendments"
+        }
+      ]
+    },
+    "source": "legal_aid",
+    "notes": "NEEDS_VALIDATION: confirm 42 CFR Part 430 is ingested."
+  },
+  {
+    "id": "q-050",
+    "version": 1,
+    "created": "2026-04-16",
+    "updated": "2026-04-16",
+    "question": "What federal regulation governs provider enrollment screening requirements for Medicaid?",
+    "difficulty": "moderate",
+    "reasoning_type": "federal_reference",
+    "topics": [
+      "federal_authority",
+      "provider_enrollment",
+      "screening",
+      "42_cfr_455"
+    ],
+    "target_users": [
+      "provider",
+      "legal_aid"
+    ],
+    "answer": {
+      "text": "42 CFR Part 455 Subpart E (\u00a7\u00a7 455.400\u2013455.470) governs Medicaid provider enrollment and screening requirements. It establishes risk-based screening levels (limited, moderate, high), fingerprint-based background checks for high-risk categories, site visits, and revalidation requirements. States must screen all providers at enrollment and re-validate at least every five years.",
+      "confidence": "high",
+      "caveats": []
+    },
+    "evidence": {
+      "primary_sections": [
+        {
+          "document_id": "doc:federal_regulation:42-CFR-455",
+          "section_id": "sec:doc:federal_regulation:42-CFR-455:455.410",
+          "section_number": "455.410",
+          "relevance": "Enrollment and screening of providers"
+        },
+        {
+          "document_id": "doc:federal_regulation:42-CFR-455",
+          "section_id": "sec:doc:federal_regulation:42-CFR-455:455.450",
+          "section_number": "455.450",
+          "relevance": "Screening levels for Medicaid providers"
+        }
+      ],
+      "supporting_sections": [],
+      "cross_references": [],
+      "federal_references": [
+        {
+          "citation": "42 CFR Part 455 Subpart E",
+          "note": "Provider enrollment and screening"
+        }
+      ]
+    },
+    "source": "regression",
+    "notes": "Federal-reference. NEEDS_VALIDATION: confirm 42 CFR Part 455 is ingested in the corpus."
+  }
+]

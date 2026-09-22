@@ -1,0 +1,106 @@
+{
+  "observedAt": "2026-09-22T07:24:53.030Z",
+  "candidateCommit": "bbc3a67",
+  "corpusRelease": "legacy-20260725-ae8595c",
+  "runId": "tagged-validation-ef5b5002-acf8-4558-aaca-0854ba333c19",
+  "question": "Does Policy 1-H authorize routine general-wellness telehealth visits without a specific clinical indication?",
+  "finalState": "failed",
+  "error": "Research could not be completed. Please start a new run.",
+  "verification": null,
+  "reportReleased": false,
+  "reportCharacters": 0,
+  "approval": {
+    "approved": true,
+    "editedSubQuestions": [
+      {
+        "question": "Does Policy 1-H authorize routine general-wellness telehealth visits without a specific clinical indication?",
+        "rationale": "Determine the policy scope and clinical-indication requirement from the governing text.",
+        "channels": [
+          "vector",
+          "keyword"
+        ],
+        "useWeb": false
+      }
+    ]
+  },
+  "limits": {
+    "maxSubQuestions": 1,
+    "maxReflectionRounds": 0,
+    "workerMaxSteps": 16,
+    "plannerMaxSteps": 6,
+    "researchConcurrency": 3,
+    "noveltyMinNewIds": 2
+  },
+  "recoveryCount": 0,
+  "executionCount": 1,
+  "interruptions": [
+    "worker:e4448ad5e1e215810d82b924"
+  ],
+  "checkpointWrites": [
+    "plan",
+    "worker:e4448ad5e1e215810d82b924:draft",
+    "worker:e4448ad5e1e215810d82b924:verification:1",
+    "worker:e4448ad5e1e215810d82b924:verification:2",
+    "worker:e4448ad5e1e215810d82b924"
+  ],
+  "budgets": [
+    {
+      "key": "plan",
+      "used": 2,
+      "limit_value": 6
+    },
+    {
+      "key": "worker:e4448ad5e1e215810d82b924",
+      "used": 6,
+      "limit_value": 16
+    }
+  ],
+  "usage": [
+    {
+      "phase": "planner",
+      "model_id": "gpt-5.6-terra",
+      "calls": 1,
+      "tokens": 6105
+    },
+    {
+      "phase": "verifier",
+      "model_id": "gpt-5.6-terra",
+      "calls": 2,
+      "tokens": 18268
+    },
+    {
+      "phase": "worker",
+      "model_id": "gpt-5.6-terra",
+      "calls": 1,
+      "tokens": 51366
+    }
+  ],
+  "states": [
+    {
+      "at": "2026-09-22T07:24:09.703Z",
+      "state": "researching",
+      "recoveryCount": 0,
+      "progress": {
+        "completedQuestions": 0,
+        "checkpoints": 1
+      },
+      "nextRetryAt": null,
+      "verification": null
+    },
+    {
+      "at": "2026-09-22T07:24:53.029Z",
+      "state": "failed",
+      "recoveryCount": 0,
+      "progress": {
+        "completedQuestions": 1,
+        "checkpoints": 5
+      },
+      "nextRetryAt": null,
+      "verification": null
+    }
+  ],
+  "agentGenerateCalls": {
+    "deepResearchPlannerAgent": 1,
+    "deepResearchWorkerAgent": 1
+  }
+}

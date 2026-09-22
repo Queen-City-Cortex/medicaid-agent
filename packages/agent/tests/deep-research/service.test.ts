@@ -59,7 +59,7 @@ describe('ResearchService', () => {
     const mastra = {
       getWorkflow: vi.fn(() => ({ createRun })),
     } as unknown as ResearchMastra;
-    const service = new ResearchService(repository);
+    const service = new ResearchService(repository, 2, undefined, async () => 'release-1');
 
     await service.plan('run-1', mastra);
     await service.plan('run-1', mastra);
@@ -84,7 +84,7 @@ describe('ResearchService', () => {
       .mockResolvedValueOnce({ runId: 'workflow-1', start, resume, cancel })
       .mockResolvedValue({ runId: 'workflow-1', start, resume, cancel });
     const mastra = { getWorkflow: vi.fn(() => ({ createRun })) } as unknown as ResearchMastra;
-    const service = new ResearchService(repository);
+    const service = new ResearchService(repository, 2, undefined, async () => 'release-1');
     await service.plan('run-1', mastra);
 
     expect(await service.decide('run-1', 'user-1', { approved: true }, mastra))
@@ -109,7 +109,7 @@ describe('ResearchService', () => {
       const mastra = {
         getWorkflow: vi.fn(() => ({ createRun: vi.fn().mockResolvedValue(workflowRun) })),
       } as unknown as ResearchMastra;
-      const service = new ResearchService(repository);
+      const service = new ResearchService(repository, 2, undefined, async () => 'release-1');
 
       const planning = service.plan('run-1', mastra);
       await vi.advanceTimersByTimeAsync(16 * 60_000);
@@ -125,23 +125,23 @@ describe('ResearchService', () => {
     }
   });
 
-  it('revisits a valid lease after restart and fails it once it expires', async () => {
+  it('revisits a valid lease after restart and recovers it once it expires', async () => {
     vi.useFakeTimers();
     vi.setSystemTime('2026-07-24T12:00:00.000Z');
     try {
       await repository.create('run-1', 'user-1', 'First');
       await repository.acquire('run-1', 'queued', 'planning', 'dead-instance:plan:run-1', 2);
-      const service = new ResearchService(repository);
+      const service = new ResearchService(repository, 2, undefined, async () => 'release-1');
       const mastra = {
-        getWorkflow: vi.fn(() => ({ createRun: vi.fn() })),
+        getWorkflow: vi.fn(() => ({ createRun: vi.fn().mockResolvedValue({ runId: 'retry-workflow', start: vi.fn().mockResolvedValue({ status: 'suspended', suspendPayload: { 'plan-approval': PLAN } }), cancel: vi.fn() }) })),
       } as unknown as ResearchMastra;
 
       await service.recover(mastra);
       expect(await repository.get('run-1', 'user-1')).toMatchObject({ state: 'planning' });
       await vi.advanceTimersByTimeAsync(16 * 60_000);
       expect(await repository.get('run-1', 'user-1')).toMatchObject({
-        state: 'failed',
-        error: 'Research worker lease expired before completion',
+        state: 'awaiting_approval',
+        recoveryCount: 1,
       });
     } finally {
       vi.useRealTimers();
@@ -162,7 +162,7 @@ describe('ResearchService', () => {
           createRun: vi.fn().mockResolvedValue(workflowRun),
         })),
       } as unknown as ResearchMastra;
-      const service = new ResearchService(repository);
+      const service = new ResearchService(repository, 2, undefined, async () => 'release-1');
 
       const planning = service.plan('run-1', mastra);
       await vi.advanceTimersByTimeAsync(60_000);

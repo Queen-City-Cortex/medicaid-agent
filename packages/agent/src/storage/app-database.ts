@@ -91,6 +91,28 @@ const MIGRATIONS: ReadonlyArray<{ version: number; statements: string[] }> = [
        ON research_runs (resource_id, created_at)`,
     ],
   },
+  {
+    version: 5,
+    statements: [
+      `CREATE TABLE IF NOT EXISTS answer_release_keys (id INTEGER PRIMARY KEY CHECK(id = 1), secret TEXT NOT NULL)`,
+      `INSERT OR IGNORE INTO answer_release_keys (id, secret) VALUES (1, lower(hex(randomblob(32))))`,
+    ],
+  },
+  {
+    version: 6,
+    statements: [
+      'ALTER TABLE research_runs ADD COLUMN approval_json TEXT',
+      'ALTER TABLE research_runs ADD COLUMN limits_json TEXT',
+      'ALTER TABLE research_runs ADD COLUMN corpus_release TEXT',
+      'ALTER TABLE research_runs ADD COLUMN checkpoint_version INTEGER NOT NULL DEFAULT 1',
+      'ALTER TABLE research_runs ADD COLUMN recovery_count INTEGER NOT NULL DEFAULT 0',
+      'ALTER TABLE research_runs ADD COLUMN next_retry_at INTEGER',
+      'ALTER TABLE research_runs ADD COLUMN verification_json TEXT',
+      'ALTER TABLE research_runs ADD COLUMN sources_json TEXT',
+      `CREATE TABLE research_checkpoints (run_id TEXT NOT NULL, key TEXT NOT NULL, value_json TEXT NOT NULL, version INTEGER NOT NULL, PRIMARY KEY(run_id, key))`,
+      `CREATE TABLE research_budgets (run_id TEXT NOT NULL, key TEXT NOT NULL, used INTEGER NOT NULL, limit_value INTEGER NOT NULL, PRIMARY KEY(run_id, key))`,
+    ],
+  },
 ];
 
 export class AppDatabase {
@@ -181,8 +203,17 @@ export class AppDatabase {
       { sql: 'DELETE FROM feedback WHERE created_at < ?', args: [feedbackCutoff] },
       { sql: 'DELETE FROM usage_events WHERE created_at < ?', args: [usageCutoff] },
       { sql: 'DELETE FROM rate_limit_events WHERE created_at < ?', args: [rateLimitCutoff] },
+      ...['research_checkpoints', 'research_budgets'].map(table => ({ sql: `DELETE FROM ${table} WHERE run_id IN (SELECT id FROM research_runs WHERE updated_at < ?)`, args: [conversationCutoff] })),
       { sql: 'DELETE FROM research_runs WHERE updated_at < ?', args: [conversationCutoff] },
     ];
+    if (await this.hasTable('mastra_workflow_snapshot')) {
+      statements.unshift({
+        sql: `DELETE FROM mastra_workflow_snapshot WHERE "resourceId" IN
+          (SELECT id FROM research_runs WHERE updated_at < ?)
+          OR run_id IN (SELECT workflow_run_id FROM research_runs WHERE updated_at < ?)`,
+        args: [conversationCutoff, conversationCutoff],
+      });
+    }
 
     if (await this.hasTable('mastra_threads')) {
       statements.push(
@@ -221,8 +252,17 @@ export class AppDatabase {
       { sql: 'DELETE FROM feedback WHERE resource_id = ?', args: [resourceId] },
       { sql: 'DELETE FROM rate_limit_events WHERE user_id = ?', args: [resourceId] },
       { sql: 'DELETE FROM usage_events WHERE user_id = ?', args: [resourceId] },
+      ...['research_checkpoints', 'research_budgets'].map(table => ({ sql: `DELETE FROM ${table} WHERE run_id IN (SELECT id FROM research_runs WHERE resource_id = ?)`, args: [resourceId] })),
       { sql: 'DELETE FROM research_runs WHERE resource_id = ?', args: [resourceId] },
     ];
+    if (await this.hasTable('mastra_workflow_snapshot')) {
+      statements.unshift({
+        sql: `DELETE FROM mastra_workflow_snapshot WHERE "resourceId" IN
+          (SELECT id FROM research_runs WHERE resource_id = ?)
+          OR run_id IN (SELECT workflow_run_id FROM research_runs WHERE resource_id = ?)`,
+        args: [resourceId, resourceId],
+      });
+    }
 
     if (await this.hasTable('mastra_threads')) {
       if (await this.hasTable('mastra_thread_state')) {

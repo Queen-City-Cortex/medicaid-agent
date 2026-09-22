@@ -4,6 +4,8 @@ import { getConfig } from './config.js';
 // ── Types ────────────────────────────────────────────────────────────────────
 
 export interface SourceEntry {
+  /** Server-assigned role; web context cannot establish governing policy. */
+  evidenceRole?: 'supplementary';
   toolName: string;
   key: string;   // section or document ID
   text: string;  // serialized evidence text
@@ -246,7 +248,7 @@ function formatFrameSection(section: AnswerFrameSection): string {
   if (section.citationLink) lines.push(`Citation link: ${section.citationLink}`);
   else if (section.url) lines.push(`URL: ${section.url}`);
   if (section.reason) lines.push(`Reason: ${section.reason}`);
-  if (section.content) lines.push(`Content:\n${section.content}`);
+  // Routing advice is separate from the original corpus text below.
   return lines.join('\n');
 }
 
@@ -319,6 +321,23 @@ function extractResolveAnswerFrame(result: ResolveAnswerFrameResult, toolCallId:
   return { toolName: 'resolveAnswerFrame', key, text: lines.join('\n').trimEnd(), link };
 }
 
+/** The planner's source bodies come directly from the corpus, while its
+ * routing reasons are advisory. Keep those two kinds of information separate. */
+function extractFrameCorpusSections(result: ResolveAnswerFrameResult): SourceEntry[] {
+  const frame = result?.frame;
+  if (!frame) return [];
+  const seen = new Set<string>();
+  return [...frame.primarySections, ...frame.supportingSections,
+    ...(frame.latestRevision?.section ? [frame.latestRevision.section] : [])]
+    .flatMap(section => {
+      if (!section.content?.trim() || seen.has(section.id)) return [];
+      seen.add(section.id);
+      const entry = extractGetSection({ section })!;
+      return [{ ...entry, toolName: 'resolveAnswerFrame:section',
+        text: entry.text.replace('[getSection]', '[corpusSection]') }];
+    });
+}
+
 // ── extractSources ───────────────────────────────────────────────────────────
 
 export interface ToolResultRecord {
@@ -361,6 +380,7 @@ export function extractSourcesFromToolResults(
         break;
     }
     if (entry) sources.push(entry);
+    if (tr.toolName === 'resolveAnswerFrame') sources.push(...extractFrameCorpusSections(tr.result as ResolveAnswerFrameResult));
   }
   return sources;
 }
@@ -408,6 +428,7 @@ export function extractSources(messages: Array<{ content?: { parts?: any[] } }>)
       }
 
       if (entry) sources.push(entry);
+      if (toolName === 'resolveAnswerFrame') sources.push(...extractFrameCorpusSections(result as ResolveAnswerFrameResult));
     }
   }
 
@@ -448,7 +469,10 @@ export function buildSourceText(
   let total = 0;
 
   for (const s of ordered) {
-    const block = s.text + '\n\n---\n\n';
+    const evidence = s.evidenceRole === 'supplementary'
+      ? JSON.stringify({ evidenceRole: 'supplementary', url: s.link, excerpt: s.text })
+      : s.text;
+    const block = evidence + '\n\n---\n\n';
     if (total + block.length > limit) {
       // Try to fit a truncation notice instead
       const notice = `[${ordered.length - parts.length} additional source(s) truncated due to length limit.]`;

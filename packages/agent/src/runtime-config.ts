@@ -108,6 +108,8 @@ export function loadRuntimeConfig(
     missing.push('ANTHROPIC_API_KEY (required for Claude AGENT_MODEL)');
   }
 
+  if (production && env.VERIFIER_ENABLED === 'false') throw new Error('VERIFIER_ENABLED cannot be false in production');
+
   if (production && !options.cli) {
     for (const name of ['WORKOS_CLIENT_ID', 'WORKOS_API_KEY']) {
       if (!nonEmpty(env, name)) missing.push(name);

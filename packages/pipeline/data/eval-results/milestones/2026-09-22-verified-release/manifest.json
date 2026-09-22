@@ -1,0 +1,96 @@
+{
+  "baseline_commit": "93d9b34",
+  "candidate_commit": "fce8923",
+  "baseline_modifications": "Elapsed verification time instrumentation only; see baseline-timing.patch.",
+  "dataset_source": "baa9f38^:packages/pipeline/data/golden/dataset.json",
+  "dataset_sha256": "1a96023e0ba02863ece6204eba0540337bff323c1ca3a4db56f4da7254c878fd",
+  "question_count": 50,
+  "dataset_notes": "Questions, golden answers, difficulty and reasoning types match q-001 through q-050 in the current 55-question dataset. The local graph predates immutable document identifiers; q-051 through q-055 are excluded. Historical source references validated successfully.",
+  "corpus": {
+    "uri": "bolt://localhost:7687",
+    "documents": 7589,
+    "sections": 71695,
+    "chunks": 11477,
+    "release_id": null,
+    "read_only_during_evaluation": true,
+    "indexes": "chunk_embeddings, section_embeddings, section_fulltext ONLINE (100%)"
+  },
+  "settings": {
+    "VERIFIER_ENABLED": true,
+    "MASTRA_OBSERVABILITY_PATH": ":memory:",
+    "AGENT_EVAL_TIMEOUT_SECS": 240,
+    "judge_model": "claude-sonnet-4-6",
+    "AGENT_MODEL": "gpt-5.6-terra",
+    "VERIFIER_MODEL": "gpt-5.4-mini",
+    "VOYAGE_MODEL": "voyage-4",
+    "embedding_model": "voyage-4",
+    "embedding_dimensions": 1024
+  },
+  "execution": "Baseline and candidate run concurrently, each processes its 50 questions sequentially; isolated SQLite databases and result roots.",
+  "execution_notes": [
+    "Three additional candidate-only diagnostic agent calls ran during the full comparison to investigate repeated withholding (q-005 once, q-009 twice). Latency is observational under concurrent load, not a controlled isolated performance benchmark."
+  ],
+  "diagnostics": {
+    "stronger_verifier_model": "gpt-5.6-terra",
+    "selected_questions": [
+      "q-005",
+      "q-006",
+      "q-008",
+      "q-009",
+      "q-010",
+      "q-011",
+      "q-013",
+      "q-018",
+      "q-020",
+      "q-021"
+    ],
+    "notes": "Additional candidate-only live diagnostic runs overlapped the full comparison. Verification latency is observational under concurrent load, not an isolated performance benchmark. Prompt/evidence diagnostics used temporary modules; the full comparison continued using unchanged committed runtime modules."
+  },
+  "final_full_run": {
+    "implementation_commit": "1d93d60",
+    "validation_head": "81558df",
+    "verifier_model": "gpt-5.6-terra",
+    "reasoning_effort": "low",
+    "questions": 50,
+    "batches": 2,
+    "partition": "alternating question IDs, 25 per batch",
+    "diagnostic_provider_calls_during_run": false
+  },
+  "quote_feedback_fix": {
+    "implementation_commit": "d52b284",
+    "affected_questions": [
+      "q-036",
+      "q-050"
+    ],
+    "reason": "These were the only questions in the complete final run with deterministic URL/quotation findings. Both model verdicts were otherwise clean and provided no correction. Deterministic findings now participate in the first verification pass so they can be repaired before recheck.",
+    "results": [
+      {
+        "id": "q-036",
+        "overall": 3,
+        "outcome": {
+          "status": "corrected",
+          "passCount": 2
+        },
+        "verification_ms": 27914
+      },
+      {
+        "id": "q-050",
+        "overall": 3,
+        "outcome": {
+          "status": "corrected",
+          "passCount": 2
+        },
+        "verification_ms": 17724
+      }
+    ]
+  },
+  "ci_validated_before_final_docs": {
+    "commit": "81558df",
+    "run_url": "https://github.com/Queen-City-Cortex/medicaid-agent/actions/runs/35695863773",
+    "jobs": [
+      "test",
+      "Mocked e2e (hermetic auth)",
+      "Production Docker builds"
+    ]
+  }
+}
