@@ -4,6 +4,34 @@ import { mockMastraAPI } from '../../helpers/mock-routes';
 import { AISdkStreamBuilder } from '../../helpers/stream-builder';
 
 const PRIVATE = 'PRIVATE_DRAFT_SENTINEL';
+test('corrected answers stay verified in the stream and after history reload', async ({ page }, testInfo) => {
+  const stream = new AISdkStreamBuilder().start().textDelta('A corrected policy answer.')
+    .dataPart('data-verification-status', {
+      status: 'corrected', passCount: 2, severity: 'high', confidence: 1,
+      counts: { unsupported: 0, missingCitation: 0, relevanceMajor: 0, relevanceMinor: 0 },
+    }).finish();
+  await mockMastraAPI(page, {
+    streamResponse: stream,
+    threads: [{ id: 'corrected', title: 'Corrected research' }],
+    threadMessages: [{ id: 'a', role: 'assistant', content: { format: 2, parts: [
+      { type: 'text', text: 'A corrected policy answer.' },
+      { type: 'data-verification-status', data: { status: 'corrected', passCount: 2 } },
+    ] } }],
+  });
+  const chat = new ChatPage(page);
+  await chat.goto();
+  await chat.sendMessage('What is covered?');
+  const badge = page.getByTestId('verification-badge');
+  await expect(badge).toHaveText('Corrected and verified against cited sources');
+  await expect(badge).toHaveAttribute('data-outcome', 'corrected');
+  await page.getByText('Corrected research', { exact: true }).click();
+  await expect(badge).toHaveText('Corrected and verified against cited sources');
+  await page.reload();
+  await page.getByText('Corrected research', { exact: true }).click();
+  await expect(badge).toHaveText('Corrected and verified against cited sources');
+  await page.screenshot({ path: testInfo.outputPath('corrected-history.png'), fullPage: true });
+});
+
 test('withheld output cannot reveal draft prose and provides retry', async ({ page }) => {
   const stream = new AISdkStreamBuilder().start().textDelta(PRIVATE)
     .dataPart('data-verification-status', { status: 'withheld', reason: 'unavailable', passCount: 1 }).finish();

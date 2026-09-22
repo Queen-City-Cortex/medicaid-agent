@@ -374,8 +374,8 @@ function AssistantMessage({
         </div>
       )}
 
-      {!isStreaming && release?.status !== 'withheld' && verification && finalAnswerText && (
-        <VerificationBadge verification={verification} />
+      {!isStreaming && canShowAnswer && finalAnswerText && (
+        <VerificationBadge verification={verification} outcome={release} />
       )}
 
       {collapseTrail && (

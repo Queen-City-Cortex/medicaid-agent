@@ -15,6 +15,29 @@ function state(overrides: Partial<VerificationState>): VerificationState {
 }
 
 describe('VerificationBadge', () => {
+  it('uses the corrected release outcome instead of confidence from repaired claims', () => {
+    render(<VerificationBadge verification={state({
+      outcome: { status: 'corrected', passCount: 2 },
+      severity: 'low',
+      rewrote: true,
+    })} />);
+    const badge = screen.getByTestId('verification-badge');
+    expect(badge).toHaveTextContent('Corrected and verified against cited sources');
+    expect(badge).not.toHaveTextContent(/Partially verified|could not be completed|Low confidence/);
+    expect(badge).toHaveAttribute('data-outcome', 'corrected');
+  });
+
+  it('preserves the release label when history has no confidence telemetry', () => {
+    render(<VerificationBadge outcome={{ status: 'passed', passCount: 1 }} />);
+    expect(screen.getByTestId('verification-badge')).toHaveTextContent('Verified against cited sources');
+  });
+
+  it('never labels a withheld outcome as verified even with high confidence telemetry', () => {
+    render(<VerificationBadge verification={state({})} outcome={{ status: 'withheld', reason: 'unavailable', passCount: 1 }} />);
+    expect(screen.getByTestId('verification-badge')).toHaveTextContent('Answer withheld');
+    expect(screen.getByTestId('verification-badge')).not.toHaveTextContent('Verified against cited sources');
+  });
+
   it('shows the verified state in plain language', () => {
     render(<VerificationBadge verification={state({})} />);
     expect(screen.getByTestId('verification-badge')).toHaveTextContent('Verified against cited sources');

@@ -178,6 +178,13 @@ async function askQuestion(page) {
     throw new Error(`Agent returned an error-like answer: ${answerText.slice(0, 200)}`);
   }
 
+  const verification = assistant.getByTestId('verification-badge');
+  await verification.waitFor({ state: 'visible', timeout: 15_000 });
+  const outcome = await verification.getAttribute('data-outcome');
+  if (!['passed', 'corrected'].includes(outcome)) {
+    throw new Error(`Expected a verified release outcome, received ${outcome}.`);
+  }
+
   const sourcesPanel = assistant.getByTestId('sources-panel');
   await sourcesPanel.waitFor({ state: 'visible', timeout: 15_000 });
   const sourcesLabel = normalizeWhitespace(

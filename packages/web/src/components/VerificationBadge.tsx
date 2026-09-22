@@ -3,6 +3,7 @@
 import { CircleCheck, TriangleAlert, ShieldAlert } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { VerificationState } from '@/lib/message-parts';
+import type { VerificationOutcome } from '@nc-medicaid/contracts';
 
 /**
  * Plain-language verification status rendered directly under every answer.
@@ -60,13 +61,39 @@ function describe(v: VerificationState): BadgePresentation {
   };
 }
 
-export function VerificationBadge({ verification }: { verification: VerificationState }) {
-  const { icon: Icon, text, detail, className } = describe(verification);
+export function VerificationBadge({ verification, outcome = verification?.outcome }: {
+  verification?: VerificationState | null;
+  outcome?: VerificationOutcome;
+}) {
+  // The final release outcome describes the outgoing answer. Rewrite/confidence
+  // telemetry can include issues repaired before that answer passed its recheck.
+  const presentation: BadgePresentation | null = outcome
+    ? outcome.status === 'withheld'
+      ? {
+          icon: ShieldAlert,
+          text: 'Answer withheld',
+          detail: 'The answer could not be verified against the retrieved sources.',
+          className: 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300',
+        }
+      : {
+          icon: CircleCheck,
+          text: outcome.status === 'corrected'
+            ? 'Corrected and verified against cited sources'
+            : 'Verified against cited sources',
+          detail: verification?.counts.relevanceMinor
+            ? 'Minor relevance observations were noted during verification.'
+            : null,
+          className: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+        }
+    : verification ? describe(verification) : null;
+  if (!presentation) return null;
+  const { icon: Icon, text, detail, className } = presentation;
 
   return (
     <div
       data-testid="verification-badge"
-      data-severity={verification.severity}
+      data-severity={verification?.severity}
+      data-outcome={outcome?.status}
       className={cn(
         'mt-3 flex items-start gap-2 rounded-lg border px-3 py-2 text-xs',
         className,
