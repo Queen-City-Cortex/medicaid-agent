@@ -56,7 +56,7 @@ def atomic_write_json(path: Path, payload: dict[str, Any]) -> None:
 
 def load_release_policy(path: Path = POLICY_PATH) -> dict[str, Any]:
     policy = load_json_object(path)
-    if policy.get("policyVersion") != 1:
+    if policy.get("policyVersion") != 2:
         raise ValueError("Unsupported corpus release policy version")
     for section in ("mandatory", "overridable", "evaluation", "operations"):
         if not isinstance(policy.get(section), dict):
@@ -620,8 +620,9 @@ def evaluate_release_manifest(
             overridable=False,
         ),
     ]
+    # Sparse golden relevance labels cannot support an absolute precision@10
+    # threshold. Precision remains reported and compared against the baseline.
     for name in (
-        "retrievalPrecision",
         "retrievalRecall",
         "primaryDocumentHitRate",
         "answerScore",

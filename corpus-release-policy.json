@@ -1,5 +1,5 @@
 {
-  "policyVersion": 1,
+  "policyVersion": 2,
   "mandatory": {
     "duplicateIdentities": 0,
     "missingAnswerReadyLoads": 0,
@@ -14,7 +14,6 @@
     "freshnessSlaMet": 1
   },
   "evaluation": {
-    "retrievalPrecision": 0.9,
     "retrievalRecall": 0.9,
     "primaryDocumentHitRate": 0.95,
     "answerScore": 2.75,

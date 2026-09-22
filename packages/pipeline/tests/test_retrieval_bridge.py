@@ -55,7 +55,11 @@ def test_search_sections_via_agent_cli_returns_normalized_results(monkeypatch):
             "score": 0.97,
         }
     ]
-    assert calls["command"] == ["npx", "tsx", "src/retrieval-cli.ts"]
+    assert calls["command"] == [
+        "node",
+        str(AGENT_DIR.parent.parent / "node_modules" / "tsx" / "dist" / "cli.mjs"),
+        "src/retrieval-cli.ts",
+    ]
     assert calls["kwargs"]["cwd"] == str(AGENT_DIR)
     assert json.loads(calls["kwargs"]["input"]) == {
         "query": "eligibility",
@@ -159,7 +163,11 @@ def test_search_sections_batch_via_agent_cli_returns_normalized_results(monkeypa
         ],
         "q-2": [],
     }
-    assert calls["command"] == ["npx", "tsx", "src/retrieval-cli.ts"]
+    assert calls["command"] == [
+        "node",
+        str(AGENT_DIR.parent.parent / "node_modules" / "tsx" / "dist" / "cli.mjs"),
+        "src/retrieval-cli.ts",
+    ]
     assert calls["kwargs"]["cwd"] == str(AGENT_DIR)
     assert json.loads(calls["kwargs"]["input"]) == {
         "requests": [

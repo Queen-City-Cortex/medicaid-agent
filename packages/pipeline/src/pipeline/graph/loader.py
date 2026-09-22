@@ -67,7 +67,7 @@ def build_sections_from_items(doc_dict: dict, document_id: str) -> list[dict]:
     section_index = 0
     section_number_occurrences: dict[str, int] = {}
 
-    for item, level in doc.iterate_items():
+    for item, level in doc.iterate_items(traverse_pictures=True):
         label = getattr(item, "label", None)
         text = getattr(item, "text", "") or ""
 
@@ -136,6 +136,8 @@ def build_sections_from_items(doc_dict: dict, document_id: str) -> list[dict]:
         elif label in (
             DocItemLabel.PARAGRAPH,
             DocItemLabel.LIST_ITEM,
+            DocItemLabel.CHECKBOX_SELECTED,
+            DocItemLabel.CHECKBOX_UNSELECTED,
             DocItemLabel.TEXT,
             DocItemLabel.FOOTNOTE,
             DocItemLabel.CAPTION,

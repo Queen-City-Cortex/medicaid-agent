@@ -7,7 +7,11 @@ import sys
 
 from pipeline.config import AGENT_DIR
 
-RETRIEVAL_CLI_COMMAND = ["npx", "tsx", "src/retrieval-cli.ts"]
+RETRIEVAL_CLI_COMMAND = [
+    "node",
+    str(AGENT_DIR.parent.parent / "node_modules" / "tsx" / "dist" / "cli.mjs"),
+    "src/retrieval-cli.ts",
+]
 RETRIEVAL_CLI_TIMEOUT_SECONDS = int(os.environ.get("RETRIEVAL_CLI_TIMEOUT_SECONDS", "600"))
 RETRIEVAL_BATCH_CLI_TIMEOUT_SECONDS = int(os.environ.get("RETRIEVAL_BATCH_CLI_TIMEOUT_SECONDS", "1200"))
 

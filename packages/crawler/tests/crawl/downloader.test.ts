@@ -311,6 +311,86 @@ describe('downloadDocument', () => {
     expect(fs.existsSync(savedPath)).toBe(true);
   });
 
+  function dhhsWrapper(links: string, title = 'Test Policy'): string {
+    return `<!DOCTYPE html><html><body><main>
+      <h2 class="wp-block-post-title">${title}</h2>
+      <div class="wp-block-post-content">${links}</div>
+      </main><footer><a href="https://policies.ncdhhs.gov/footer.pdf">Unrelated</a></footer>
+      </body></html>`;
+  }
+
+  const wrapperUrl = 'https://policies.ncdhhs.gov/document/test-policy/';
+  const attachmentUrl = 'https://policies.ncdhhs.gov/wp-content/uploads/current.pdf';
+
+  it('replaces an old HTML payload with the single validated DHHS attachment', async () => {
+    const doc = makeDoc({
+      source_type: 'dhhs_policy', source_url: wrapperUrl, policy_number: null,
+      local_path: 'dhhs-policies/test-policy.pdf', file_hash: hashBuffer(Buffer.from('old HTML')),
+      etag: 'old-validator', last_modified: 'yesterday',
+    });
+    const oldPath = path.join(config.documentsDir, doc.local_path!);
+    fs.mkdirSync(path.dirname(oldPath), { recursive: true });
+    fs.writeFileSync(oldPath, 'old HTML');
+    const fetcher = fetcherWriting('unused');
+    fetcher.fetchFile = vi.fn(async (url, destPath, options) => {
+      expect(options?.etag).toBeUndefined();
+      expect(options?.lastModified).toBeUndefined();
+      expect(options?.isAllowedUrl?.('https://outside.example/document.pdf')).toBe(false);
+      expect(options?.maxBytes).toBe(config.maxFileSizeBytes);
+      fs.writeFileSync(destPath, url === wrapperUrl
+        ? dhhsWrapper(`<a href="${attachmentUrl}">Current</a><a href="${attachmentUrl}#page=1">Again</a>`)
+        : '%PDF-1.4\nattachment content');
+      return { statusCode: 200, headers: {}, filePath: destPath, downloaded: true };
+    });
+    const result = await downloadDocument(doc, fetcher, new Set(['test-policy.pdf']));
+    expect(result.action).toBe('updated');
+    expect(result.info?.detected_content_type).toBe('application/pdf');
+    expect(fetcher.fetchFile).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(fetcher.fetchFile).mock.calls[1]?.[0]).toBe(attachmentUrl);
+    expect(fs.readFileSync(oldPath, 'utf8')).toContain('%PDF');
+    expect(fs.readdirSync(path.join(path.dirname(oldPath), '.versions'))).toHaveLength(1);
+    expect(doc.source_url).toBe(wrapperUrl);
+  });
+
+  it.each([
+    ['no attachment', dhhsWrapper('<p>No file</p>')],
+    ['ambiguous attachments', dhhsWrapper(`<a href="${attachmentUrl}">A</a><a href="/other.pdf">B</a>`)],
+    ['wrong document', dhhsWrapper(`<a href="${attachmentUrl}">A</a>`, 'Different Policy')],
+    ['unapproved attachment', dhhsWrapper('<a href="https://outside.example/policy.pdf">A</a>')],
+  ])('rejects a DHHS wrapper with %s', async (_label, html) => {
+    const fetcher = fetcherWriting(html);
+    fetcher.fetchFile = vi.fn(fetcher.fetchFile);
+    const result = await downloadDocument(makeDoc({
+      source_type: 'dhhs_policy', source_url: wrapperUrl,
+    }), fetcher, new Set());
+    expect(result.action).toBe('error');
+    expect(fetcher.fetchFile).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not recursively follow another HTML attachment', async () => {
+    const fetcher = fetcherWriting(dhhsWrapper(`<a href="${attachmentUrl}">A</a>`));
+    fetcher.fetchFile = vi.fn(fetcher.fetchFile);
+    const result = await downloadDocument(makeDoc({
+      source_type: 'dhhs_policy', source_url: wrapperUrl,
+    }), fetcher, new Set());
+    expect(result.action).toBe('error');
+    expect(result.error).toMatch(/HTML\/text/);
+    expect(fetcher.fetchFile).toHaveBeenCalledTimes(2);
+  });
+
+  it('rejects an attachment redirect outside the DHHS allowlist', async () => {
+    const fetcher = fetcherWriting(dhhsWrapper(`<a href="${attachmentUrl}">A</a>`));
+    const original = fetcher.fetchFile;
+    fetcher.fetchFile = async (...args) => ({
+      ...(await original(...args)),
+      finalUrl: args[0] === wrapperUrl ? wrapperUrl : 'https://outside.example/policy.pdf',
+    });
+    const result = await downloadDocument(makeDoc({
+      source_type: 'dhhs_policy', source_url: wrapperUrl,
+    }), fetcher, new Set());
+    expect(result).toMatchObject({ action: 'error', rejectedUrl: 'https://outside.example/policy.pdf' });
+  });
+
   it('rejects a final redirect URL outside the source-family allowlist', async () => {
     const fetcher = fetcherWriting(Buffer.from('%PDF-1.4\n'));
     const originalFetchFile = fetcher.fetchFile;

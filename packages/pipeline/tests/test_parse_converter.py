@@ -840,7 +840,7 @@ class _FakeDoc:
             "| PHP Name | Contract Name |\n| Healthy Blue | Provider Payment Appendix |"
         )
 
-    def iterate_items(self):
+    def iterate_items(self, **_kwargs):
         yield _FakeDocItem(DocItemLabel.TABLE), 0
 
 
@@ -891,8 +891,9 @@ def test_should_parse_reprocesses_when_cache_version_changes(tmp_path):
     assert should_parse(source_path, meta_path) is True
 
 
-def test_should_parse_migrates_valid_v4_success_without_reparsing(
-    monkeypatch, tmp_path
+@pytest.mark.parametrize("version", [4, 5])
+def test_should_parse_migrates_valid_success_without_reparsing(
+    monkeypatch, tmp_path, version
 ):
     source_path = tmp_path / "already-good.pdf"
     source_path.write_bytes(b"%PDF-1.4 already parsed")
@@ -908,7 +909,11 @@ def test_should_parse_migrates_valid_v4_success_without_reparsing(
         json.dumps(
             {
                 "source_file_hash": source_hash,
-                "parse_cache_version": 4,
+                "parse_cache_version": version,
+                "artifacts": {
+                    "json": {"sha256": f"sha256:{parse_converter.file_sha256(json_path)}"},
+                    "markdown": {"sha256": f"sha256:{parse_converter.file_sha256(md_path)}"},
+                },
                 "parse_status": "parsed",
                 "answer_ready": True,
                 "attempt_count": 2,
@@ -927,7 +932,7 @@ def test_should_parse_migrates_valid_v4_success_without_reparsing(
     assert should_parse(source_path, meta_path) is False
     migrated = json.loads(meta_path.read_text())
     assert migrated["parse_cache_version"] == PARSE_CACHE_VERSION
-    assert migrated["cache_migrated_from_version"] == 4
+    assert migrated["cache_migrated_from_version"] == version
     assert migrated["attempt_count_total"] == 2
     assert migrated["artifacts"]["json"]["sha256"].startswith("sha256:")
     assert migrated["artifacts"]["markdown"]["sha256"].startswith("sha256:")
@@ -1194,14 +1199,14 @@ def test_pdf_uses_no_ocr_first_and_falls_back_for_blank_output(monkeypatch, tmp_
         def export_to_markdown(self):
             return ""
 
-        def iterate_items(self):
+        def iterate_items(self, **_kwargs):
             return iter(())
 
     class TextDoc(BlankDoc):
         def export_to_markdown(self):
             return "Recovered text"
 
-        def iterate_items(self):
+        def iterate_items(self, **_kwargs):
             return iter([(_FakeDocItem(DocItemLabel.TEXT, "Recovered text"), 0)])
 
     class Converter:
@@ -1575,3 +1580,46 @@ def test_parse_all_preserves_valid_commit_when_worker_result_is_lost(
     assert stats["errors"] == 0
     assert stats["remaining_failures"] == 0
     assert meta["attempt_count_total"] == 1
+
+
+def test_preserves_figure_and_checkbox_text_in_parse_and_graph_sections(tmp_path):
+    from types import SimpleNamespace
+    from docling_core.types.doc import DoclingDocument
+    from pipeline.graph.loader import build_sections_from_items
+
+    doc = DoclingDocument(name="Figure and checklist evidence")
+    doc.add_heading(text="Coverage evidence", level=1)
+    picture = doc.add_picture()
+    figure_text = "The regional network serves the listed counties."
+    unchecked_text = "Complete the application and sign the form."
+    checked_text = "Include the required supporting documents."
+    doc.add_text(label=DocItemLabel.TEXT, text=figure_text, parent=picture)
+    doc.add_text(label=DocItemLabel.CHECKBOX_UNSELECTED, text=unchecked_text)
+    doc.add_text(label=DocItemLabel.CHECKBOX_SELECTED, text=checked_text)
+    converter = SimpleNamespace(convert=lambda _: SimpleNamespace(document=doc))
+
+    parsed = parse_converter._parse_pdf_once(tmp_path / "evidence.pdf", converter)
+    assert parsed["answer_ready"] is True
+    assert parsed["content_char_count"] == sum(map(len, [figure_text, unchecked_text, checked_text]))
+    sections = build_sections_from_items(parsed["payload"], "doc:evidence")
+    assert len(sections) == 1
+    for text in [figure_text, unchecked_text, checked_text]:
+        assert text in sections[0]["content_text"]
+
+
+@pytest.mark.parametrize("artifact", ["json", "markdown"])
+def test_v5_migration_rejects_changed_artifacts(tmp_path, artifact):
+    json_path = tmp_path / "parsed.json"
+    md_path = tmp_path / "parsed.md"
+    meta_path = tmp_path / "parsed.meta.json"
+    json_path.write_text('{"name":"evidence"}')
+    md_path.write_text("Evidence")
+    meta = {"parse_cache_version": 5, "answer_ready": True, "artifacts": {
+        "json": {"sha256": f"sha256:{parse_converter.file_sha256(json_path)}"},
+        "markdown": {"sha256": f"sha256:{parse_converter.file_sha256(md_path)}"},
+    }}
+    (json_path if artifact == "json" else md_path).write_text('{}')
+    assert parse_converter._migrate_legacy_parsed_sidecar(
+        meta_path=meta_path, meta=meta, json_path=json_path, md_path=md_path,
+    ) is False
+    assert not meta_path.exists()

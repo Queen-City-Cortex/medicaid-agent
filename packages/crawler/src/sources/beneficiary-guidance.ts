@@ -10,7 +10,7 @@ const TITLES = new Map<string, string>([
   ],
   [
     'https://medicaid.ncdhhs.gov/beneficiaries/impact-hr-1-and-federal-changes-medicaid/nc-medicaid-work-and-community-engagement-requirements',
-    'NC Medicaid Work and Community Engagement Requirements',
+    'The Work and Community Engagement Requirement',
   ],
 ]);
 

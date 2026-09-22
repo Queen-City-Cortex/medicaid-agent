@@ -57,7 +57,7 @@ discover_and_release() {
   log "daily discovery starting"
   (
     cd "$CRAWLER_DIR"
-    npx tsx src/index.ts crawl
+    node "$REPO_ROOT/node_modules/tsx/dist/cli.mjs" src/index.ts crawl
   )
   (
     cd "$PIPELINE_DIR"

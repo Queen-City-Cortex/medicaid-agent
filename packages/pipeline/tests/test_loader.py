@@ -83,7 +83,7 @@ class TestWalkDoclingDocument:
                 self.text = text
 
         class FakeDoc:
-            def iterate_items(self):
+            def iterate_items(self, **_kwargs):
                 yield FakeItem(DocItemLabel.SECTION_HEADER, "Attachment B"), 1
                 yield FakeItem(DocItemLabel.PARAGRAPH, "First body"), 1
                 yield FakeItem(DocItemLabel.SECTION_HEADER, "Attachment B"), 1
@@ -112,7 +112,7 @@ class TestWalkDoclingDocument:
                 self.text = text
 
         class FakeDoc:
-            def iterate_items(self):
+            def iterate_items(self, **_kwargs):
                 yield FakeItem(DocItemLabel.SECTION_HEADER, "I. BACKGROUND"), 1
                 yield FakeItem(DocItemLabel.TEXT, "DHB has updated MA-2910 charts."), 1
                 yield FakeItem(DocItemLabel.FOOTNOTE, "See attachment A."), 1
@@ -146,7 +146,7 @@ class TestWalkDoclingDocument:
                 return FakeDataFrame()
 
         class FakeDoc:
-            def iterate_items(self):
+            def iterate_items(self, **_kwargs):
                 yield FakeTableItem(), 0
 
         monkeypatch.setattr(

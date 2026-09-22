@@ -57,6 +57,24 @@ provide the current OpenAI, Voyage, WorkOS, and evaluation-judge secrets.
 The scheduled job exits after each run. Railway skips a cron occurrence if the
 previous one is still active, so a stuck job must be treated as an incident.
 
+## Supervised inspection and source preparation
+
+For an interrupted initial ingest, temporarily set the corpus-job config file to
+`/deploy/railway/corpus-maintenance.json` and upload a clean checkout. This starts
+an idle container with the existing volume and no cron schedule. The file takes
+precedence over the service start-command field, so confirm the effective
+`serviceManifest.deploy` in deployment metadata before connecting. Redeploying
+an old upload may reuse its old config-file metadata.
+
+Inspect the crawler registry and `pipeline/run-state/latest-parse.json`, then
+refresh stale required sources and any new benchmark source families under the
+existing `/data/.locks/corpus-job.lock`. Bootstrap parses and validates existing
+files; it does not perform discovery or update downloaded sources itself.
+Leave the active graph unchanged throughout this preparation. Restore the
+regular config path and `CORPUS_JOB_MODE=scheduled` only after successful initial
+cutover. The maintenance container must be stopped or restored when supervised
+work finishes.
+
 ## Initial bootstrap
 
 The first conversion from the legacy single `neo4j` service is supervised:
@@ -102,6 +120,16 @@ required-document parse exceptions, incomplete/wrong-dimension embeddings,
 missing required source families, and evaluation failures cannot be
 overridden. Only source-family count drop, total answer-ready drop, and
 freshness SLA failures accept a recorded reason of at least ten characters.
+
+Policy version 2 requires retrieval recall of at least 0.9, primary-evidence hit
+rate of at least 0.95, answer score of at least 2.75, hallucination score of at
+least 2.5, and aggregate regression of at most 0.15. Precision remains in release
+reports and baseline comparisons, without an absolute threshold. The golden
+benchmark names a sparse set of known relevant sections: at ten returned
+results, its current mean precision ceiling is about 0.21, so a 0.9 threshold
+would reject even perfect retrieval of the labeled evidence. A future absolute
+precision gate requires broader relevance labeling and calibration. Server-side
+answer verification remains mandatory independently of these corpus metrics.
 
 The promotion flow is:
 

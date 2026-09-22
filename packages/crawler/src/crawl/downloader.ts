@@ -248,6 +248,41 @@ export interface DownloadResult {
   rejectionReason?: string;
 }
 
+function isDhhsDocumentPage(sourceType: string, url: string): boolean {
+  const parsed = new URL(url);
+  return sourceType === 'dhhs_policy'
+    && parsed.hostname === 'policies.ncdhhs.gov'
+    && parsed.pathname.startsWith('/document/');
+}
+
+/** Follow one unambiguous attachment in the official WordPress document body. */
+function dhhsDocumentAttachment(
+  filePath: string,
+  pageUrl: string,
+  expectedTitle: string | null,
+  allowedFormats: readonly string[],
+): string {
+  const $ = cheerio.load(fs.readFileSync(filePath, 'utf8'));
+  const title = $('main .wp-block-post-title').first().text();
+  if (!title || (expectedTitle && normalizeHtmlText(title) !== normalizeHtmlText(expectedTitle))) {
+    throw new Error('DHHS document page title does not match the registered document');
+  }
+  const candidates = new Set<string>();
+  $('main .wp-block-post-content a[href]').each((_index, anchor) => {
+    const url = new URL($(anchor).attr('href')!, pageUrl);
+    const extension = path.extname(url.pathname).toLowerCase();
+    if (allowedFormats.includes(extension) && !TEXT_FORMAT_EXTENSIONS.has(extension)) {
+      if (!isAllowedSourceUrl('dhhs_policy', url.href)) throw new UrlRejectedError(url.href);
+      url.hash = '';
+      candidates.add(url.href);
+    }
+  });
+  if (candidates.size !== 1) {
+    throw new Error(`DHHS document page has ${candidates.size} attachments; expected exactly one`);
+  }
+  return [...candidates][0]!;
+}
+
 export async function downloadDocument(
   doc: DocumentRecord,
   fetcher: Fetcher,
@@ -268,25 +303,50 @@ export async function downloadDocument(
   );
   const isAllowedUrl = (value: string): boolean =>
     isAllowedSourceUrl(sourceType, value);
+  const dhhsDocumentPage = isDhhsDocumentPage(sourceType, doc.source_url);
 
   try {
     // Prepare conditional headers
-    const result: FetchFileResult = await fetcher.fetchFile(
+    let result: FetchFileResult = await fetcher.fetchFile(
       doc.source_url,
       tmpPath,
       {
         // HTML-only guidance is tiny and must be checked against the current
         // semantic contract on every crawl, not trusted through stale 304s.
-        etag: semanticHtmlRequired ? undefined : (doc.etag ?? undefined),
-        lastModified: semanticHtmlRequired ? undefined : (doc.last_modified ?? undefined),
+        etag: semanticHtmlRequired || dhhsDocumentPage ? undefined : (doc.etag ?? undefined),
+        lastModified: semanticHtmlRequired || dhhsDocumentPage ? undefined : (doc.last_modified ?? undefined),
         isAllowedUrl,
         maxBytes: config.maxFileSizeBytes,
       },
     );
 
-    const finalUrl = result.finalUrl ?? doc.source_url;
+    let finalUrl = result.finalUrl ?? doc.source_url;
     if (!isAllowedUrl(finalUrl)) {
       throw new UrlRejectedError(finalUrl);
+    }
+
+    if (
+      dhhsDocumentPage && result.statusCode === 200 && result.filePath
+      && looksLikeTextPayload(readFileHeader(tmpPath))
+    ) {
+      if (!isDhhsDocumentPage(sourceType, finalUrl)) {
+        throw new Error('DHHS document page redirected away from the document repository');
+      }
+      const attachmentUrl = dhhsDocumentAttachment(
+        tmpPath, finalUrl, doc.title, sourceFamily.allowed_file_formats,
+      );
+      fs.unlinkSync(tmpPath);
+      // Attachment validators cannot validate the wrapper, or vice versa.
+      // Fetch both without conditional headers and never recurse into HTML.
+      result = await fetcher.fetchFile(attachmentUrl, tmpPath, {
+        isAllowedUrl,
+        maxBytes: config.maxFileSizeBytes,
+      });
+      finalUrl = result.finalUrl ?? attachmentUrl;
+      if (!isAllowedUrl(finalUrl)) throw new UrlRejectedError(finalUrl);
+    }
+    if (dhhsDocumentPage && result.statusCode === 304) {
+      throw new Error('Cannot validate a 304 DHHS document page or attachment');
     }
 
     // 304 Not Modified

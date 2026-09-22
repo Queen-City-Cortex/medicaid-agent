@@ -34,7 +34,8 @@ COPY packages/crawler/package.json packages/crawler/package.json
 COPY packages/pipeline/package.json packages/pipeline/package.json
 COPY packages/policy-corpus/package.json packages/policy-corpus/package.json
 COPY packages/web/package.json packages/web/package.json
-RUN npm ci
+RUN npm ci \
+    && node node_modules/tsx/dist/cli.mjs --version
 
 COPY packages ./packages
 COPY corpus-manifest.json corpus-release-policy.json ./
@@ -42,6 +43,10 @@ COPY scripts ./scripts
 RUN cd packages/pipeline \
     && uv sync --frozen --extra dev \
     && .venv/bin/python -c "import cv2" \
+    && .venv/bin/python -c "from pipeline.eval.dataset import validate_dataset; errors = validate_dataset(); assert not errors, errors" \
+    && .venv/bin/python -c "from pipeline.references.supersessions import load_cfr_supersessions; assert load_cfr_supersessions(), 'Missing CFR supersession rules'" \
     && chmod +x /app/scripts/ops/*.sh
+
+COPY tsconfig.json ./
 
 CMD ["bash", "scripts/ops/railway-corpus-job.sh"]

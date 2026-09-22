@@ -19,7 +19,7 @@ describe('beneficiary guidance source', () => {
       expect.objectContaining({
         source_url: WORK_REQUIREMENTS_URL,
         source_type: 'beneficiary_guidance',
-        title: 'NC Medicaid Work and Community Engagement Requirements',
+        title: 'The Work and Community Engagement Requirement',
       }),
     ]);
   });

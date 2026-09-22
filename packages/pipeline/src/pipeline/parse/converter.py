@@ -49,8 +49,8 @@ from pipeline.parse.worker import parse_supported_file_worker
 from pipeline.corpus_manifest import SOURCE_FAMILY_MAP
 
 console = Console()
-PARSE_CACHE_VERSION = 5
-MIGRATABLE_PARSE_CACHE_VERSIONS = frozenset({4})
+PARSE_CACHE_VERSION = 6
+MIGRATABLE_PARSE_CACHE_VERSIONS = frozenset({4, 5})
 DEFAULT_PARSE_TIMEOUT_SECONDS = 600
 WORKER_ERROR_MESSAGE_LIMIT = 4096
 WORKER_CLEANUP_RESERVE_SECONDS = 5
@@ -283,7 +283,7 @@ def _parse_pdf_once(pdf_path: Path, converter: DocumentConverter) -> dict:
     current_section: dict | None = None
     page_content: dict[int, list[str]] = {}
 
-    for item, level in doc.iterate_items():
+    for item, level in doc.iterate_items(traverse_pictures=True):
         label = getattr(item, "label", None)
         text = (getattr(item, "text", "") or "").strip()
         provenance = getattr(item, "prov", None) or []
@@ -313,6 +313,8 @@ def _parse_pdf_once(pdf_path: Path, converter: DocumentConverter) -> dict:
         elif label in (
             DocItemLabel.PARAGRAPH,
             DocItemLabel.LIST_ITEM,
+            DocItemLabel.CHECKBOX_SELECTED,
+            DocItemLabel.CHECKBOX_UNSELECTED,
             DocItemLabel.TEXT,
             DocItemLabel.FOOTNOTE,
             DocItemLabel.CAPTION,
@@ -916,7 +918,7 @@ def _migrate_legacy_parsed_sidecar(
     json_path: Path,
     md_path: Path,
 ) -> bool:
-    """Upgrade a valid v4 success in place without re-running expensive OCR."""
+    """Upgrade valid v4/v5 payloads; figure and checkbox text already exists in them."""
     if meta.get("parse_cache_version") not in MIGRATABLE_PARSE_CACHE_VERSIONS:
         return False
     if (
@@ -932,12 +934,23 @@ def _migrate_legacy_parsed_sidecar(
     if not isinstance(payload, dict):
         return False
 
+    # v5 introduced artifact integrity hashes. Migration must not bless a
+    # modified payload merely by calculating a new hash for it.
+    if meta.get("parse_cache_version") == 5:
+        artifacts = meta.get("artifacts")
+        if not isinstance(artifacts, dict):
+            return False
+        for name, path in (("json", json_path), ("markdown", md_path)):
+            expected = artifacts.get(name)
+            if not isinstance(expected, dict) or expected.get("sha256") != f"sha256:{file_sha256(path)}":
+                return False
+
     migrated = dict(meta)
     migrated.update(
         {
             "parse_cache_version": PARSE_CACHE_VERSION,
             "attempt_count_generation": 0,
-            "attempt_count_total": max(0, int(meta.get("attempt_count", 0))),
+            "attempt_count_total": max(0, int(meta.get("attempt_count_total", meta.get("attempt_count", 0)))),
             "artifacts": {
                 "json": {"sha256": f"sha256:{file_sha256(json_path)}"},
                 "markdown": {"sha256": f"sha256:{file_sha256(md_path)}"},
@@ -1378,7 +1391,7 @@ def _inspect_parse_artifacts(source_path: Path) -> dict[str, Any] | None:
         and meta.get("answer_ready", False)
         and meta.get("parse_cache_version") != PARSE_CACHE_VERSION
     ):
-        # Migrate valid v4 successes before selecting a failure-only recovery
+        # Migrate valid v4/v5 successes before selecting a failure-only recovery
         # batch, so deploying the new cache contract does not reparse thousands
         # of already-good OCR artifacts.
         if not should_parse(source_path, meta_path):

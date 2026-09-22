@@ -15,6 +15,7 @@ from pipeline.release import (
     find_cleanup_candidate,
     find_color_retention_blocker,
     load_json_object,
+    load_release_policy,
     mark_manifest_cutover_restored,
     mark_manifest_promoted,
     mark_manifest_recovery_pending,
@@ -37,7 +38,7 @@ def passing_manifest():
             "freshnessSlaMet": 1,
         },
         "evaluationResults": {
-            "retrievalPrecision": 0.91,
+            "retrievalPrecision": 0.2,
             "retrievalRecall": 0.91,
             "primaryDocumentHitRate": 0.96,
             "answerScore": 2.8,
@@ -131,6 +132,72 @@ def answer_result():
 def test_passing_manifest_is_promotable():
     assert release_is_promotable(evaluate_release_manifest(passing_manifest()))
 
+
+
+def test_sparse_label_precision_is_reported_without_an_absolute_gate():
+    manifest = passing_manifest()
+    measured = retrieval_result()
+    measured['aggregate']['precision_at_k'] = 0.2
+    manifest['evaluationResults'] = build_release_evaluation_results(
+        measured, answer_result(), None,
+    )
+
+    gates = evaluate_release_manifest(manifest)
+
+    assert manifest['evaluationResults']['retrievalPrecision'] == 0.2
+    assert not any(gate['name'] == 'retrievalPrecision' for gate in gates)
+    assert release_is_promotable(gates)
+
+
+@pytest.mark.parametrize(('metric', 'failing_value'), [
+    ('retrievalRecall', 0.89),
+    ('primaryDocumentHitRate', 0.94),
+    ('answerScore', 2.74),
+    ('hallucinationScore', 2.49),
+    ('aggregateRegression', 0.151),
+])
+@pytest.mark.parametrize('failure', ['below_threshold', 'missing', 'non_finite'])
+def test_retained_evaluation_gates_still_fail_closed(metric, failing_value, failure):
+    manifest = passing_manifest()
+    if failure == 'missing':
+        del manifest['evaluationResults'][metric]
+    else:
+        manifest['evaluationResults'][metric] = (
+            float('nan') if failure == 'non_finite' else failing_value
+        )
+
+    gates = evaluate_release_manifest(manifest)
+
+    assert not release_is_promotable(gates)
+    failed = next(gate for gate in gates if gate['name'] == metric)
+    assert not failed['passed']
+    assert not failed['overridable']
+
+
+def test_precision_regression_still_contributes_to_baseline_comparison():
+    measured = retrieval_result()
+    measured['aggregate']['precision_at_k'] = 0.1
+    evaluation = build_release_evaluation_results(
+        measured, answer_result(), {'evaluationResults': {'retrievalPrecision': 0.3}},
+    )
+    manifest = passing_manifest()
+    manifest['evaluationResults'] = evaluation
+
+    assert evaluation['retrievalPrecision'] == 0.1
+    assert evaluation['aggregateRegression'] == pytest.approx(0.2)
+    assert not release_is_promotable(evaluate_release_manifest(manifest))
+
+
+def test_updated_release_policy_rejects_the_old_gate_contract(tmp_path):
+    policy = load_release_policy()
+    assert policy['policyVersion'] == 2
+    assert 'retrievalPrecision' not in policy['evaluation']
+    policy['policyVersion'] = 1
+    path = tmp_path / 'old-policy.json'
+    path.write_text(json.dumps(policy))
+
+    with pytest.raises(ValueError, match='Unsupported corpus release policy version'):
+        load_release_policy(path)
 
 def test_mandatory_gate_cannot_be_overridden():
     manifest = passing_manifest()

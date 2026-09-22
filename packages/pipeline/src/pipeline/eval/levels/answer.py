@@ -187,7 +187,7 @@ def _invoke_agent_cli(question: str, *, progress_label: str | None = None) -> tu
     agent_env["AGENT_EVAL_CAPTURE_ROUTE"] = "true"
 
     proc = subprocess.Popen(
-        ["npx", "tsx", "src/index.ts", question],
+        ["node", str(AGENT_DIR.parent.parent / "node_modules/tsx/dist/cli.mjs"), "src/index.ts", question],
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
