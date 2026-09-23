@@ -4,6 +4,7 @@ import { chromium } from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
+import { activeThreadForRestore, threadByExactTitle } from './smoke-thread.mjs';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -58,14 +59,19 @@ try {
 
   await openAuthenticatedChat(page);
   await verifyExpectedRelease();
-  await startFreshThread(page);
-  const result = await askQuestion(page);
+  const existingTitle = process.env.SMOKE_RESTORE_THREAD_TITLE;
+  if (existingTitle) {
+    await threadByExactTitle(page, existingTitle).click({ timeout: 30_000 });
+  } else {
+    await startFreshThread(page);
+  }
+  const result = await askQuestion(page, Boolean(existingTitle));
   await verifyRestoredAnswer(page, result);
   if (process.env.SMOKE_EXPECTED_RELEASE_ID) {
     const status = await verifyExpectedRelease();
     if (!process.env.SMOKE_ACTIVATION_NONCE || !process.env.SMOKE_RECEIPT_PATH) throw new Error('Activation receipt nonce and path required');
     const receipt = { releaseId: status.releaseId, activationNonce: process.env.SMOKE_ACTIVATION_NONCE,
-      outcome: result.outcome, checks: ['thread_switch', 'reload'], checkedAt: new Date().toISOString() };
+      outcome: result.outcome, mode: existingTitle ? 'existing_verified_thread' : 'new_verified_answer', checks: ['thread_switch', 'reload'], checkedAt: new Date().toISOString() };
     fs.writeFileSync(process.env.SMOKE_RECEIPT_PATH + '.tmp', JSON.stringify(receipt));
     fs.renameSync(process.env.SMOKE_RECEIPT_PATH + '.tmp', process.env.SMOKE_RECEIPT_PATH);
   }
@@ -153,12 +159,14 @@ async function startFreshThread(page) {
   }
 }
 
-async function askQuestion(page) {
+async function askQuestion(page, existing = false) {
   const input = page.getByTestId('chat-input');
   const sendButton = page.getByTestId('send-button');
 
-  await input.fill(question);
-  await sendButton.click();
+  if (!existing) {
+    await input.fill(question);
+    await sendButton.click();
+  }
 
   const assistant = page.getByTestId('assistant-message').last();
   await assistant.waitFor({ state: 'visible', timeout: 30_000 });
@@ -182,6 +190,13 @@ async function askQuestion(page) {
     throw new Error(`Web UI rendered the chat error state: ${assistantText.slice(0, 200)}`);
   }
 
+  const verification = assistant.getByTestId('verification-badge');
+  await verification.waitFor({ state: 'visible', timeout: 15_000 });
+  const outcome = await verification.getAttribute('data-outcome');
+  if (!['passed', 'corrected'].includes(outcome)) {
+    throw new Error(`Expected a verified release outcome, received ${outcome}.`);
+  }
+
   const answer = assistant.locator('.prose').last();
   if ((await answer.count()) === 0) {
     throw new Error(`Assistant message did not contain final answer markup: ${assistantText.slice(0, 200)}`);
@@ -195,13 +210,6 @@ async function askQuestion(page) {
   }
   if (/error processing your question|agent finished without a final answer/i.test(answerText)) {
     throw new Error(`Agent returned an error-like answer: ${answerText.slice(0, 200)}`);
-  }
-
-  const verification = assistant.getByTestId('verification-badge');
-  await verification.waitFor({ state: 'visible', timeout: 15_000 });
-  const outcome = await verification.getAttribute('data-outcome');
-  if (!['passed', 'corrected'].includes(outcome)) {
-    throw new Error(`Expected a verified release outcome, received ${outcome}.`);
   }
 
   const sourcesPanel = assistant.getByTestId('sources-panel');
@@ -232,15 +240,13 @@ async function askQuestion(page) {
 }
 
 async function verifyRestoredAnswer(page, expected) {
-  const latestThread = page.getByTestId('thread-item').first();
-  await latestThread.waitFor({ state: 'visible', timeout: 15_000 });
-  const title = (await latestThread.textContent()).trim();
+  const title = await activeThreadForRestore(page);
   await startFreshThread(page);
-  await page.getByTestId('thread-item').filter({ hasText: title }).first().click();
+  await threadByExactTitle(page, title).click();
   for (const reload of [false, true]) {
     if (reload) {
       await page.reload();
-      await page.getByTestId('thread-item').filter({ hasText: title }).first().click();
+      await threadByExactTitle(page, title).click();
     }
     const assistant = page.getByTestId('assistant-message').last();
     const badge = assistant.getByTestId('verification-badge');

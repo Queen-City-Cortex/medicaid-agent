@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "releaseEligible": false,
+  "object": "releases/evidence/source-audit-2026-09-23/source-audit-2026-09-23-evidence.tar.gz",
+  "sha256": "e69f5550ae971018ce79404c6910b8ec603bba6c0606fe46b78d0c63df6c7a14",
+  "bytes": 7692453,
+  "files": 198,
+  "captures": 171,
+  "backupReceiptObject": "backups/corpus/receipts/corpus-2026-09-23T215205Z.tar.gz.age.json",
+  "backupReceiptSha256": "f1940456c53c9aca405205c5c046f3955b590d5966d1a6e20f21502de5086266",
+  "uploadVerified": true,
+  "verifiedAt": "2026-09-23T22:08:15.830890+00:00"
+}

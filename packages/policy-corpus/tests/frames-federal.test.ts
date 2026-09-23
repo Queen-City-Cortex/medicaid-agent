@@ -879,6 +879,105 @@ describe('federal authority statute pairing', () => {
     expect(frame.authoritativeDocuments[0]?.policyNumber).toBe('42-CFR-441');
   });
 
+  it('retrieves missing statutory evidence for a general EPSDT overview', async () => {
+    // h-049 regression: 440.345 ("EPSDT and other required benefits", the
+    // benchmark-plan context) had the highest raw score, and single-document
+    // title preference scoped out both 441 Subpart B and the SSA statute.
+    const DOC_441: GraphDocument = {
+      id: 'doc-441',
+      title: '42 CFR Part 441',
+      documentType: 'federal_regulation',
+      policyNumber: '42-CFR-441',
+      effectiveDate: '2024-07-01',
+      url: 'https://example.com/441',
+      sections: [
+        {
+          id: 'sec-44150',
+          number: '441.50',
+          title: 'Basis and purpose',
+          content: 'This subpart implements sections 1902(a)(43) and 1905(a)(4)(B) and (r) of the Act on early and periodic screening, diagnosis, and treatment of individuals under age 21.',
+          chars: 900,
+        },
+        {
+          id: 'sec-44156',
+          number: '441.56',
+          title: 'Required activities: Early and periodic screening, diagnosis, and treatment of individuals under age 21',
+          content: 'The agency must require screening, diagnosis, and treatment services for eligible EPSDT recipients.',
+          chars: 900,
+        },
+      ],
+    };
+    const DOC_440: GraphDocument = {
+      id: 'doc-440',
+      title: '42 CFR Part 440',
+      documentType: 'federal_regulation',
+      policyNumber: '42-CFR-440',
+      effectiveDate: '2024-07-01',
+      url: 'https://example.com/440',
+      sections: [
+        {
+          id: 'sec-440345',
+          number: '440.345',
+          title: 'EPSDT and other required benefits',
+          content: 'Benchmark and benchmark-equivalent plans must include EPSDT benefits for children.',
+          chars: 900,
+        },
+      ],
+    };
+    const DOC_SSA: GraphDocument = {
+      id: 'doc-ssa',
+      title: 'Social Security Act — Title XIX (Medicaid)',
+      documentType: 'federal_statute',
+      policyNumber: 'SSA-Title-19',
+      effectiveDate: null,
+      url: 'https://example.com/ssa-title-19',
+      sections: [
+        {
+          id: 'sec-1905',
+          number: '1905',
+          title: 'Section 1905. Definitions',
+          content: 'The term medical assistance includes early and periodic screening, diagnostic, and treatment services for individuals under age 21, as defined in subsection (r).',
+          chars: 900,
+        },
+      ],
+    };
+
+    const { corpus } = createCorpus([
+      {
+        // ONE combined federal scan covers both federal docTypes.
+        label: 'vector federal',
+        match: queries.sectionVector('federal_regulation'),
+        result: {
+          records: [
+            hitFor(DOC_440, 'sec-440345', 1.0),
+            hitFor(DOC_441, 'sec-44156', 0.97),
+            hitFor(DOC_441, 'sec-44150', 0.94),
+          ],
+        },
+      },
+      { label: 'statute fallback', match: queries.sectionVector('federal_statute'), result: { records: [hitFor(DOC_SSA, 'sec-1905', 0.9)] } },
+      ...documentGraphHandlers(DOC_441),
+      ...documentGraphHandlers(DOC_440),
+      ...documentGraphHandlers(DOC_SSA),
+    ]);
+
+    const frame = await resolveTypedFrame(
+      corpus,
+      'general',
+      'What does EPSDT require?',
+    );
+
+    const primaryNumbers = frame.primarySections.map((section) => section.sectionNumber);
+    expect(primaryNumbers.some((sectionNumber) => sectionNumber?.startsWith('441.5'))).toBe(true);
+    expect(primaryNumbers).toContain('1905');
+    expect(primaryNumbers).not.toContain('440.345');
+    expect(frame.primarySections.some((section) => section.documentType === 'federal_statute')).toBe(true);
+    const authoritativePolicyNumbers = frame.authoritativeDocuments.map((document) => document.policyNumber);
+    expect(authoritativePolicyNumbers).toContain('42-CFR-441');
+    expect(authoritativePolicyNumbers).toContain('SSA-Title-19');
+    expect(frame.authoritativeDocuments[0]?.policyNumber).toBe('42-CFR-441');
+  });
+
   it('adds SSA section 1915 alongside Part 441 Subpart G on a 1915(c) authority question', async () => {
     // h-046 regression: the waiver-authority path anchored only 42-CFR-441
     // and never surfaced the statutory authority the question asks about.

@@ -119,6 +119,8 @@ export function isAllowedSourceUrl(
     const hostname = parsed.hostname.toLowerCase();
     return getSourceFamily(sourceType).allowed_domains.some((allowed) => {
       const domain = allowed.toLowerCase().replace(/^\./, '');
+      // Archive provenance establishes this exact official host only.
+      if (domain === 'policies-inactive.ncdhhs.gov') return hostname === domain;
       return hostname === domain || hostname.endsWith(`.${domain}`);
     });
   } catch {

@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "code_commit": "78e00cdf8eef3d99c24e02f76900885f8197b32b",
+  "parse_cache_version": 6,
+  "code_hashes": {
+    "packages/pipeline/src/pipeline/parse/converter.py": "sha256:6762ec647e6016a11f911f5ee7fe3b981272dbc8d8d7ef22763118f8dd75f4e1",
+    "packages/pipeline/src/pipeline/parse/worker.py": "sha256:f29002a7cf17d112ee9a999e9c429ff60958806adf92c987f00d89f68f0487f2",
+    "packages/pipeline/src/pipeline/parse/post_process.py": "sha256:12fc5e946b13347c55730936db43b1078fcb31d36f0815b49862f77753f8da1e",
+    "packages/pipeline/src/pipeline/config.py": "sha256:be42701bde32bccf5fb40a2c8d5d51933cc6fb69a19f4913811d0ac43ecd749d",
+    "packages/pipeline/src/pipeline/corpus_manifest.py": "sha256:69f37e70b6dc26f48e221b6b8c419f02f720d906a666cb6513551b7214bd0389",
+    "packages/pipeline/pyproject.toml": "sha256:d451e0e237c7e3532f6c253b2b80eaaf3da1d4b18cbde5540740f750815f17eb",
+    "packages/pipeline/uv.lock": "sha256:46586e52d1de711130d2755e0d5a3bdc64e48d9cf967f35ba11956215deb7790",
+    "corpus-manifest.json": "sha256:ca18f7c5ad9c6b36892a8fa1d11f479c12c03f4ab63e65ada047d1851b98da24"
+  },
+  "files": [
+    {
+      "file": "dhhs-policies/unknown-document.pdf",
+      "source_url": "https://policies.ncdhhs.gov/document/dhb-administrative-letter-no-11-20-medicaid-covid-19-optional-testing-group-obsolete-2/",
+      "source_hash": "sha256:9c29d1a82a40a5314c658e628c949a2b83f6cd5865fd2b2a32007642de3361d9",
+      "metadata_hash": "sha256:792438e12a1e39ec2c4fc64b2dd932e2196d4b6234b2c13261fcb197bd61b944"
+    }
+  ]
+}

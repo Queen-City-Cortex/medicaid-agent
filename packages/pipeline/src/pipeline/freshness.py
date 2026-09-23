@@ -9,7 +9,7 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 from pipeline.config import PARSED_DATA_DIR, CRAWLER_DB_PATH
-from pipeline.retirement import read_retirements
+from pipeline.source_lifecycle import lifecycle_snapshot
 
 
 def build_answer_ready_snapshot(
@@ -51,8 +51,17 @@ def build_answer_ready_snapshot(
             }
         )
 
+    hashes = {}
+    sources = CRAWLER_DB_PATH.parent / "documents"
+    for source in sorted(sources.rglob("*")):
+        if source.is_file():
+            digest = hashlib.sha256()
+            with source.open("rb") as stream:
+                for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+                    digest.update(chunk)
+            hashes["crawler/documents/" + source.relative_to(sources).as_posix()] = "sha256:" + digest.hexdigest()
     encoded = json.dumps(
-        {"documents": documents, "retirements": read_retirements(CRAWLER_DB_PATH)},
+        {"documents": documents, "lifecycle": lifecycle_snapshot(CRAWLER_DB_PATH, hashes)},
         sort_keys=True,
         separators=(",", ":"),
     ).encode()

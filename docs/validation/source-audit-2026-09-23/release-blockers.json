@@ -1,0 +1,1008 @@
+{
+  "releaseEligible": false,
+  "requiredSourceFailures": [
+    {
+      "registry_id": 875,
+      "source_url": "https://covid19.ncdhhs.gov/swso-pharmacists-dispense-otc-covid-19-tests/download?attachment=",
+      "title": "State Standing Order",
+      "failure": "parse_exception",
+      "evidence": {
+        "main_audit": "source-audit.json",
+        "followup_audit": "standing-audit.json"
+      },
+      "reason": "No explicit withdrawal or recoverable official attachment; remains mandatory"
+    },
+    {
+      "registry_id": 1905,
+      "source_url": "https://policies.ncdhhs.gov/document/dhb-5097-gu-%e0%aa%ae%e0%aa%be%e0%aa%b9%e0%aa%bf%e0%aa%a4%e0%ab%80-%e0%aa%ae%e0%aa%be%e0%aa%9f%e0%ab%87%e0%aa%b5%e0%aa%bf%e0%aa%a8-%e0%aa%82%e0%aa%a4%e0%ab%80/",
+      "title": "DHB-5097 GU \u0aae\u0abe\u0ab9\u0abf\u0aa4\u0ac0 \u0aae\u0abe\u0a9f\u0ac7\u0ab5\u0abf\u0aa8 \u0a82\u0aa4\u0ac0",
+      "failure": "parse_exception",
+      "evidence": {
+        "main_audit": "source-audit.json",
+        "followup_audit": "source-audit.json"
+      },
+      "reason": "No explicit withdrawal or recoverable official attachment; remains mandatory"
+    },
+    {
+      "registry_id": 11805,
+      "source_url": "https://policies.ncdhhs.gov/document/2025-magi-medicaid-income-limits-2/",
+      "title": "2025 MAGI MEDICAID INCOME LIMITS",
+      "failure": "missing_payload",
+      "reason": "DHHS document page has 0 attachments; expected exactly one",
+      "evidence": "source-audit.json"
+    },
+    {
+      "registry_id": 11806,
+      "source_url": "https://policies.ncdhhs.gov/document/2025-magi-medicaid-income-limits/",
+      "title": "2025 MAGI MEDICAID INCOME LIMITS",
+      "failure": "missing_payload",
+      "reason": "DHHS document page has 0 attachments; expected exactly one",
+      "evidence": "source-audit.json"
+    },
+    {
+      "registry_id": 12820,
+      "source_url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/attachment__b-__zixmail_instructions_with_e-mail_examples_for_submitting_state_appeal_requests__-004.pdf",
+      "title": null,
+      "failure": "missing_payload",
+      "reason": "Official archive hostname DNS failure; unvisited URLs remain unresolved",
+      "evidence": "archive-audit.json"
+    },
+    {
+      "registry_id": 12821,
+      "source_url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/attachment_dhb_self_attestation_8-2020_final.pdf",
+      "title": null,
+      "failure": "missing_payload",
+      "reason": "Official archive hostname DNS failure; unvisited URLs remain unresolved",
+      "evidence": "archive-audit.json"
+    },
+    {
+      "registry_id": 12822,
+      "source_url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_-al08-20-magi-deduction-procedures-docx.pdf",
+      "title": null,
+      "failure": "missing_payload",
+      "reason": "Official archive hostname DNS failure; unvisited URLs remain unresolved",
+      "evidence": "archive-audit.json"
+    },
+    {
+      "registry_id": 12823,
+      "source_url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_-al_09-20-amended-2-1.pdf",
+      "title": null,
+      "failure": "missing_payload",
+      "reason": "Official archive hostname DNS failure; unvisited URLs remain unresolved",
+      "evidence": "archive-audit.json"
+    },
+    {
+      "registry_id": 12824,
+      "source_url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_-al_09-20-amended.pdf",
+      "title": null,
+      "failure": "missing_payload",
+      "reason": "Official archive hostname DNS failure; unvisited URLs remain unresolved",
+      "evidence": "archive-audit.json"
+    },
+    {
+      "registry_id": 12825,
+      "source_url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma__al_06-20_covid-19-_self-attestation_and_reports_final_-1.pdf",
+      "title": null,
+      "failure": "missing_payload",
+      "reason": "Official archive hostname DNS failure; unvisited URLs remain unresolved",
+      "evidence": "archive-audit.json"
+    },
+    {
+      "registry_id": 12826,
+      "source_url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_al-01-20-20200807.pdf",
+      "title": null,
+      "failure": "missing_payload",
+      "reason": "Official archive hostname DNS failure; unvisited URLs remain unresolved",
+      "evidence": "archive-audit.json"
+    },
+    {
+      "registry_id": 12827,
+      "source_url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_al-01-20-add-1-att-1a-20200807.pdf",
+      "title": null,
+      "failure": "missing_payload",
+      "reason": "Official archive hostname DNS failure; unvisited URLs remain unresolved",
+      "evidence": "archive-audit.json"
+    },
+    {
+      "registry_id": 12828,
+      "source_url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_al-01-20-add-1-att-2-20200807-1.pdf",
+      "title": null,
+      "failure": "missing_payload",
+      "reason": "Official archive hostname DNS failure; unvisited URLs remain unresolved",
+      "evidence": "archive-audit.json"
+    },
+    {
+      "registry_id": 12829,
+      "source_url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_al-01-21-20210122.pdf",
+      "title": null,
+      "failure": "missing_payload",
+      "reason": "Official archive hostname DNS failure; unvisited URLs remain unresolved",
+      "evidence": "archive-audit.json"
+    },
+    {
+      "registry_id": 12830,
+      "source_url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_al-05-20-20200812.pdf",
+      "title": null,
+      "failure": "missing_payload",
+      "reason": "Official archive hostname DNS failure; unvisited URLs remain unresolved",
+      "evidence": "archive-audit.json"
+    },
+    {
+      "registry_id": 12831,
+      "source_url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_al-09-20.pdf",
+      "title": null,
+      "failure": "missing_payload",
+      "reason": "Official archive hostname DNS failure; unvisited URLs remain unresolved",
+      "evidence": "archive-audit.json"
+    },
+    {
+      "registry_id": 12832,
+      "source_url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_al-10-20-elc-for-covid-19.pdf",
+      "title": null,
+      "failure": "missing_payload",
+      "reason": "Official archive hostname DNS failure; unvisited URLs remain unresolved",
+      "evidence": "archive-audit.json"
+    },
+    {
+      "registry_id": 12833,
+      "source_url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_al_07-20-amended-2.pdf",
+      "title": null,
+      "failure": "missing_payload",
+      "reason": "Official archive hostname DNS failure; unvisited URLs remain unresolved",
+      "evidence": "archive-audit.json"
+    },
+    {
+      "registry_id": 12834,
+      "source_url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_al_07-20__policy_procedures_covid-19_amended_final.pdf",
+      "title": null,
+      "failure": "missing_payload",
+      "reason": "Official archive hostname DNS failure; unvisited URLs remain unresolved",
+      "evidence": "archive-audit.json"
+    }
+  ],
+  "undocumentedRemovals": [
+    {
+      "registry_id": 665,
+      "source_url": "https://medicaid.ncdhhs.gov/nc-credentialing-committee-bylaws/download?attachment=",
+      "source_type": "bulletin",
+      "title": "NC Credentialing Committee Bylaws",
+      "original_artifact_hash": null,
+      "historical_consecutive_404s": 0,
+      "still_linked_from": [
+        "https://medicaid.ncdhhs.gov/blog/2025/07/03/credentialing-committee-bylaws-public-review-period-now-open"
+      ],
+      "disposition": "unresolved",
+      "registry_at_collection": {
+        "id": 665,
+        "source_url": "https://medicaid.ncdhhs.gov/nc-credentialing-committee-bylaws/download?attachment=",
+        "discovered_from": "https://medicaid.ncdhhs.gov/blog/2025/07/03/credentialing-committee-bylaws-public-review-period-now-open",
+        "source_type": "bulletin",
+        "title": "NC Credentialing Committee Bylaws",
+        "policy_number": null,
+        "category": null,
+        "local_path": null,
+        "file_hash": null,
+        "file_size": null,
+        "mime_type": null,
+        "detected_content_type": null,
+        "content_disposition_filename": null,
+        "etag": null,
+        "last_modified": null,
+        "first_seen_at": "2026-03-27 00:00:31",
+        "last_checked_at": "2026-03-27 00:08:43",
+        "last_downloaded_at": null,
+        "last_changed_at": null,
+        "status": "removed",
+        "error_message": null,
+        "download_attempts": 0,
+        "consecutive_errors": 0,
+        "consecutive_not_found": 0,
+        "removed_at": null
+      },
+      "evidence": {
+        "main_audit": "source-audit.json",
+        "followup_audit": "followup-audit.json"
+      },
+      "reason": "Only two fresh audit observations; no recorded three-404 threshold or explicit official withdrawal/supersession. Historical index link remains broken.",
+      "download_history": {
+        "current": {
+          "source_url": "https://medicaid.ncdhhs.gov/nc-credentialing-committee-bylaws/download?attachment=",
+          "first_seen_at": "2026-03-27 00:00:31",
+          "local_path": null,
+          "file_hash": null,
+          "file_size": null,
+          "last_downloaded_at": null,
+          "last_changed_at": null,
+          "download_attempts": 0
+        },
+        "retained": {
+          "source_url": "https://medicaid.ncdhhs.gov/nc-credentialing-committee-bylaws/download?attachment=",
+          "first_seen_at": "2026-03-27 00:00:31",
+          "local_path": null,
+          "file_hash": null,
+          "file_size": null,
+          "last_downloaded_at": null,
+          "last_changed_at": null,
+          "download_attempts": 0
+        },
+        "retained_artifacts": [],
+        "archive_sha256": "beccc6a69f45e01fdd52dcebd7912f1eae3fa4c9ececb7fbdb6a09f63264c38c",
+        "restore_receipt": "retained-restore-receipt.json",
+        "finding": "Registry and restored backup agree on zero download attempts and no payload metadata; this does not establish the separate retirement availability/withdrawal criterion."
+      }
+    },
+    {
+      "registry_id": 686,
+      "source_url": "https://medicaid.ncdhhs.gov/processes-and-frequently-asked-questions-1915i-services/download?attachment=",
+      "source_type": "bulletin",
+      "title": "Processes and Frequently Asked Questions for 1915(i) Services",
+      "original_artifact_hash": null,
+      "historical_consecutive_404s": 0,
+      "still_linked_from": [
+        "https://medicaid.ncdhhs.gov/blog/2025/03/13/nc-medicaid-provider-update-march-13"
+      ],
+      "disposition": "unresolved",
+      "registry_at_collection": {
+        "id": 686,
+        "source_url": "https://medicaid.ncdhhs.gov/processes-and-frequently-asked-questions-1915i-services/download?attachment=",
+        "discovered_from": "https://medicaid.ncdhhs.gov/blog/2025/03/13/nc-medicaid-provider-update-march-13",
+        "source_type": "bulletin",
+        "title": "Processes and Frequently Asked Questions for 1915(i) Services",
+        "policy_number": null,
+        "category": null,
+        "local_path": null,
+        "file_hash": null,
+        "file_size": null,
+        "mime_type": null,
+        "detected_content_type": null,
+        "content_disposition_filename": null,
+        "etag": null,
+        "last_modified": null,
+        "first_seen_at": "2026-03-27 00:00:31",
+        "last_checked_at": "2026-03-27 00:09:15",
+        "last_downloaded_at": null,
+        "last_changed_at": null,
+        "status": "removed",
+        "error_message": null,
+        "download_attempts": 0,
+        "consecutive_errors": 0,
+        "consecutive_not_found": 0,
+        "removed_at": null
+      },
+      "evidence": {
+        "main_audit": "source-audit.json",
+        "followup_audit": "followup-audit.json"
+      },
+      "reason": "Only two fresh audit observations; no recorded three-404 threshold or explicit official withdrawal/supersession. Historical index link remains broken.",
+      "download_history": {
+        "current": {
+          "source_url": "https://medicaid.ncdhhs.gov/processes-and-frequently-asked-questions-1915i-services/download?attachment=",
+          "first_seen_at": "2026-03-27 00:00:31",
+          "local_path": null,
+          "file_hash": null,
+          "file_size": null,
+          "last_downloaded_at": null,
+          "last_changed_at": null,
+          "download_attempts": 0
+        },
+        "retained": {
+          "source_url": "https://medicaid.ncdhhs.gov/processes-and-frequently-asked-questions-1915i-services/download?attachment=",
+          "first_seen_at": "2026-03-27 00:00:31",
+          "local_path": null,
+          "file_hash": null,
+          "file_size": null,
+          "last_downloaded_at": null,
+          "last_changed_at": null,
+          "download_attempts": 0
+        },
+        "retained_artifacts": [],
+        "archive_sha256": "beccc6a69f45e01fdd52dcebd7912f1eae3fa4c9ececb7fbdb6a09f63264c38c",
+        "restore_receipt": "retained-restore-receipt.json",
+        "finding": "Registry and restored backup agree on zero download attempts and no payload metadata; this does not establish the separate retirement availability/withdrawal criterion."
+      }
+    },
+    {
+      "registry_id": 786,
+      "source_url": "https://medicaid.ncdhhs.gov/north-carolinas-transition-1915b3-benefits-1915i/download?attachment=",
+      "source_type": "bulletin",
+      "title": "Transition of 1915(b)(3) Benefits to 1915(i)",
+      "original_artifact_hash": null,
+      "historical_consecutive_404s": 0,
+      "still_linked_from": [
+        "https://medicaid.ncdhhs.gov/blog/2024/06/27/1915b3-service-transition-tp-eligible-members"
+      ],
+      "disposition": "unresolved",
+      "registry_at_collection": {
+        "id": 786,
+        "source_url": "https://medicaid.ncdhhs.gov/north-carolinas-transition-1915b3-benefits-1915i/download?attachment=",
+        "discovered_from": "https://medicaid.ncdhhs.gov/blog/2024/06/27/1915b3-service-transition-tp-eligible-members",
+        "source_type": "bulletin",
+        "title": "Transition of 1915(b)(3) Benefits to 1915(i)",
+        "policy_number": null,
+        "category": null,
+        "local_path": null,
+        "file_hash": null,
+        "file_size": null,
+        "mime_type": null,
+        "detected_content_type": null,
+        "content_disposition_filename": null,
+        "etag": null,
+        "last_modified": null,
+        "first_seen_at": "2026-03-27 00:00:31",
+        "last_checked_at": "2026-03-27 00:10:03",
+        "last_downloaded_at": null,
+        "last_changed_at": null,
+        "status": "removed",
+        "error_message": null,
+        "download_attempts": 0,
+        "consecutive_errors": 0,
+        "consecutive_not_found": 0,
+        "removed_at": null
+      },
+      "evidence": {
+        "main_audit": "source-audit.json",
+        "followup_audit": "followup-audit.json"
+      },
+      "reason": "Only two fresh audit observations; no recorded three-404 threshold or explicit official withdrawal/supersession. Historical index link remains broken.",
+      "download_history": {
+        "current": {
+          "source_url": "https://medicaid.ncdhhs.gov/north-carolinas-transition-1915b3-benefits-1915i/download?attachment=",
+          "first_seen_at": "2026-03-27 00:00:31",
+          "local_path": null,
+          "file_hash": null,
+          "file_size": null,
+          "last_downloaded_at": null,
+          "last_changed_at": null,
+          "download_attempts": 0
+        },
+        "retained": {
+          "source_url": "https://medicaid.ncdhhs.gov/north-carolinas-transition-1915b3-benefits-1915i/download?attachment=",
+          "first_seen_at": "2026-03-27 00:00:31",
+          "local_path": null,
+          "file_hash": null,
+          "file_size": null,
+          "last_downloaded_at": null,
+          "last_changed_at": null,
+          "download_attempts": 0
+        },
+        "retained_artifacts": [],
+        "archive_sha256": "beccc6a69f45e01fdd52dcebd7912f1eae3fa4c9ececb7fbdb6a09f63264c38c",
+        "restore_receipt": "retained-restore-receipt.json",
+        "finding": "Registry and restored backup agree on zero download attempts and no payload metadata; this does not establish the separate retirement availability/withdrawal criterion."
+      }
+    },
+    {
+      "registry_id": 818,
+      "source_url": "https://medicaid.ncdhhs.gov/advanced-medical-home-provider-manual/download?attachment=",
+      "source_type": "bulletin",
+      "title": "Advanced Medical Home Manual",
+      "original_artifact_hash": null,
+      "historical_consecutive_404s": 0,
+      "still_linked_from": [
+        "https://medicaid.ncdhhs.gov/blog/2024/01/30/nc-managed-care-capitation-rates-updated-care-management-assumptions-expansion-population"
+      ],
+      "disposition": "unresolved",
+      "registry_at_collection": {
+        "id": 818,
+        "source_url": "https://medicaid.ncdhhs.gov/advanced-medical-home-provider-manual/download?attachment=",
+        "discovered_from": "https://medicaid.ncdhhs.gov/blog/2024/01/30/nc-managed-care-capitation-rates-updated-care-management-assumptions-expansion-population",
+        "source_type": "bulletin",
+        "title": "Advanced Medical Home Manual",
+        "policy_number": null,
+        "category": null,
+        "local_path": null,
+        "file_hash": null,
+        "file_size": null,
+        "mime_type": null,
+        "detected_content_type": null,
+        "content_disposition_filename": null,
+        "etag": null,
+        "last_modified": null,
+        "first_seen_at": "2026-03-27 00:00:31",
+        "last_checked_at": "2026-03-27 00:10:20",
+        "last_downloaded_at": null,
+        "last_changed_at": null,
+        "status": "removed",
+        "error_message": null,
+        "download_attempts": 0,
+        "consecutive_errors": 0,
+        "consecutive_not_found": 0,
+        "removed_at": null
+      },
+      "evidence": {
+        "main_audit": "source-audit.json",
+        "followup_audit": "followup-audit.json"
+      },
+      "reason": "Only two fresh audit observations; no recorded three-404 threshold or explicit official withdrawal/supersession. Historical index link remains broken.",
+      "download_history": {
+        "current": {
+          "source_url": "https://medicaid.ncdhhs.gov/advanced-medical-home-provider-manual/download?attachment=",
+          "first_seen_at": "2026-03-27 00:00:31",
+          "local_path": null,
+          "file_hash": null,
+          "file_size": null,
+          "last_downloaded_at": null,
+          "last_changed_at": null,
+          "download_attempts": 0
+        },
+        "retained": {
+          "source_url": "https://medicaid.ncdhhs.gov/advanced-medical-home-provider-manual/download?attachment=",
+          "first_seen_at": "2026-03-27 00:00:31",
+          "local_path": null,
+          "file_hash": null,
+          "file_size": null,
+          "last_downloaded_at": null,
+          "last_changed_at": null,
+          "download_attempts": 0
+        },
+        "retained_artifacts": [],
+        "archive_sha256": "beccc6a69f45e01fdd52dcebd7912f1eae3fa4c9ececb7fbdb6a09f63264c38c",
+        "restore_receipt": "retained-restore-receipt.json",
+        "finding": "Registry and restored backup agree on zero download attempts and no payload metadata; this does not establish the separate retirement availability/withdrawal criterion."
+      }
+    },
+    {
+      "registry_id": 824,
+      "source_url": "https://medicaid.ncdhhs.gov/1e-5-obstetrical-servicespdf/download?attachment=",
+      "source_type": "bulletin",
+      "title": "Clinical Coverage Policy 1E-5 Obstetrical Services",
+      "original_artifact_hash": null,
+      "historical_consecutive_404s": 0,
+      "still_linked_from": [
+        "https://medicaid.ncdhhs.gov/blog/2024/01/24/additional-nc-medicaid-respiratory-syncytial-virus-rsv-guidelines-2023-2024"
+      ],
+      "disposition": "unresolved",
+      "registry_at_collection": {
+        "id": 824,
+        "source_url": "https://medicaid.ncdhhs.gov/1e-5-obstetrical-servicespdf/download?attachment=",
+        "discovered_from": "https://medicaid.ncdhhs.gov/blog/2024/01/24/additional-nc-medicaid-respiratory-syncytial-virus-rsv-guidelines-2023-2024",
+        "source_type": "bulletin",
+        "title": "Clinical Coverage Policy 1E-5 Obstetrical Services",
+        "policy_number": null,
+        "category": null,
+        "local_path": null,
+        "file_hash": null,
+        "file_size": null,
+        "mime_type": null,
+        "detected_content_type": null,
+        "content_disposition_filename": null,
+        "etag": null,
+        "last_modified": null,
+        "first_seen_at": "2026-03-27 00:00:31",
+        "last_checked_at": "2026-03-27 00:10:30",
+        "last_downloaded_at": null,
+        "last_changed_at": null,
+        "status": "removed",
+        "error_message": null,
+        "download_attempts": 0,
+        "consecutive_errors": 0,
+        "consecutive_not_found": 0,
+        "removed_at": null
+      },
+      "evidence": {
+        "main_audit": "source-audit.json",
+        "followup_audit": "followup-audit.json"
+      },
+      "reason": "Only two fresh audit observations; no recorded three-404 threshold or explicit official withdrawal/supersession. Historical index link remains broken.",
+      "download_history": {
+        "current": {
+          "source_url": "https://medicaid.ncdhhs.gov/1e-5-obstetrical-servicespdf/download?attachment=",
+          "first_seen_at": "2026-03-27 00:00:31",
+          "local_path": null,
+          "file_hash": null,
+          "file_size": null,
+          "last_downloaded_at": null,
+          "last_changed_at": null,
+          "download_attempts": 0
+        },
+        "retained": {
+          "source_url": "https://medicaid.ncdhhs.gov/1e-5-obstetrical-servicespdf/download?attachment=",
+          "first_seen_at": "2026-03-27 00:00:31",
+          "local_path": null,
+          "file_hash": null,
+          "file_size": null,
+          "last_downloaded_at": null,
+          "last_changed_at": null,
+          "download_attempts": 0
+        },
+        "retained_artifacts": [],
+        "archive_sha256": "beccc6a69f45e01fdd52dcebd7912f1eae3fa4c9ececb7fbdb6a09f63264c38c",
+        "restore_receipt": "retained-restore-receipt.json",
+        "finding": "Registry and restored backup agree on zero download attempts and no payload metadata; this does not establish the separate retirement availability/withdrawal criterion."
+      }
+    },
+    {
+      "registry_id": 860,
+      "source_url": "https://medicaid.ncdhhs.gov/north-carolinas-transition-1915b3-benefits-1915i-0/download?attachment=",
+      "source_type": "bulletin",
+      "title": "NC Transition of 1915(b)(3) Benefits to 1915(I)",
+      "original_artifact_hash": null,
+      "historical_consecutive_404s": 0,
+      "still_linked_from": [
+        "https://medicaid.ncdhhs.gov/blog/2023/10/02/nc-medicaid-managed-care-provider-update-oct-2-2023"
+      ],
+      "disposition": "unresolved",
+      "registry_at_collection": {
+        "id": 860,
+        "source_url": "https://medicaid.ncdhhs.gov/north-carolinas-transition-1915b3-benefits-1915i-0/download?attachment=",
+        "discovered_from": "https://medicaid.ncdhhs.gov/blog/2023/10/02/nc-medicaid-managed-care-provider-update-oct-2-2023",
+        "source_type": "bulletin",
+        "title": "NC Transition of 1915(b)(3) Benefits to 1915(I)",
+        "policy_number": null,
+        "category": null,
+        "local_path": null,
+        "file_hash": null,
+        "file_size": null,
+        "mime_type": null,
+        "detected_content_type": null,
+        "content_disposition_filename": null,
+        "etag": null,
+        "last_modified": null,
+        "first_seen_at": "2026-03-27 00:00:31",
+        "last_checked_at": "2026-03-27 00:10:50",
+        "last_downloaded_at": null,
+        "last_changed_at": null,
+        "status": "removed",
+        "error_message": null,
+        "download_attempts": 0,
+        "consecutive_errors": 0,
+        "consecutive_not_found": 0,
+        "removed_at": null
+      },
+      "evidence": {
+        "main_audit": "source-audit.json",
+        "followup_audit": "followup-audit.json"
+      },
+      "reason": "Only two fresh audit observations; no recorded three-404 threshold or explicit official withdrawal/supersession. Historical index link remains broken.",
+      "download_history": {
+        "current": {
+          "source_url": "https://medicaid.ncdhhs.gov/north-carolinas-transition-1915b3-benefits-1915i-0/download?attachment=",
+          "first_seen_at": "2026-03-27 00:00:31",
+          "local_path": null,
+          "file_hash": null,
+          "file_size": null,
+          "last_downloaded_at": null,
+          "last_changed_at": null,
+          "download_attempts": 0
+        },
+        "retained": {
+          "source_url": "https://medicaid.ncdhhs.gov/north-carolinas-transition-1915b3-benefits-1915i-0/download?attachment=",
+          "first_seen_at": "2026-03-27 00:00:31",
+          "local_path": null,
+          "file_hash": null,
+          "file_size": null,
+          "last_downloaded_at": null,
+          "last_changed_at": null,
+          "download_attempts": 0
+        },
+        "retained_artifacts": [],
+        "archive_sha256": "beccc6a69f45e01fdd52dcebd7912f1eae3fa4c9ececb7fbdb6a09f63264c38c",
+        "restore_receipt": "retained-restore-receipt.json",
+        "finding": "Registry and restored backup agree on zero download attempts and no payload metadata; this does not establish the separate retirement availability/withdrawal criterion."
+      }
+    },
+    {
+      "registry_id": 868,
+      "source_url": "https://medicaid.ncdhhs.gov/tailored-care-management-provider-fact-sheet-0/download?attachment=",
+      "source_type": "bulletin",
+      "title": "Tailored Care Management",
+      "original_artifact_hash": null,
+      "historical_consecutive_404s": 0,
+      "still_linked_from": [
+        "https://medicaid.ncdhhs.gov/blog/2023/07/20/nc-medicaid-managed-care-provider-update-july-20-2023"
+      ],
+      "disposition": "unresolved",
+      "registry_at_collection": {
+        "id": 868,
+        "source_url": "https://medicaid.ncdhhs.gov/tailored-care-management-provider-fact-sheet-0/download?attachment=",
+        "discovered_from": "https://medicaid.ncdhhs.gov/blog/2023/07/20/nc-medicaid-managed-care-provider-update-july-20-2023",
+        "source_type": "bulletin",
+        "title": "Tailored Care Management",
+        "policy_number": null,
+        "category": null,
+        "local_path": null,
+        "file_hash": null,
+        "file_size": null,
+        "mime_type": null,
+        "detected_content_type": null,
+        "content_disposition_filename": null,
+        "etag": null,
+        "last_modified": null,
+        "first_seen_at": "2026-03-27 00:00:31",
+        "last_checked_at": "2026-03-27 00:10:56",
+        "last_downloaded_at": null,
+        "last_changed_at": null,
+        "status": "removed",
+        "error_message": null,
+        "download_attempts": 0,
+        "consecutive_errors": 0,
+        "consecutive_not_found": 0,
+        "removed_at": null
+      },
+      "evidence": {
+        "main_audit": "source-audit.json",
+        "followup_audit": "followup-audit.json"
+      },
+      "reason": "Only two fresh audit observations; no recorded three-404 threshold or explicit official withdrawal/supersession. Historical index link remains broken.",
+      "download_history": {
+        "current": {
+          "source_url": "https://medicaid.ncdhhs.gov/tailored-care-management-provider-fact-sheet-0/download?attachment=",
+          "first_seen_at": "2026-03-27 00:00:31",
+          "local_path": null,
+          "file_hash": null,
+          "file_size": null,
+          "last_downloaded_at": null,
+          "last_changed_at": null,
+          "download_attempts": 0
+        },
+        "retained": {
+          "source_url": "https://medicaid.ncdhhs.gov/tailored-care-management-provider-fact-sheet-0/download?attachment=",
+          "first_seen_at": "2026-03-27 00:00:31",
+          "local_path": null,
+          "file_hash": null,
+          "file_size": null,
+          "last_downloaded_at": null,
+          "last_changed_at": null,
+          "download_attempts": 0
+        },
+        "retained_artifacts": [],
+        "archive_sha256": "beccc6a69f45e01fdd52dcebd7912f1eae3fa4c9ececb7fbdb6a09f63264c38c",
+        "restore_receipt": "retained-restore-receipt.json",
+        "finding": "Registry and restored backup agree on zero download attempts and no payload metadata; this does not establish the separate retirement availability/withdrawal criterion."
+      }
+    },
+    {
+      "registry_id": 869,
+      "source_url": "https://medicaid.ncdhhs.gov/providerfactsheettp-enrollment-and-timeline/download?attachment=",
+      "source_type": "bulletin",
+      "title": "Tailored Plan Enrollment and Timeline",
+      "original_artifact_hash": null,
+      "historical_consecutive_404s": 0,
+      "still_linked_from": [
+        "https://medicaid.ncdhhs.gov/blog/2023/07/20/nc-medicaid-managed-care-provider-update-july-20-2023"
+      ],
+      "disposition": "unresolved",
+      "registry_at_collection": {
+        "id": 869,
+        "source_url": "https://medicaid.ncdhhs.gov/providerfactsheettp-enrollment-and-timeline/download?attachment=",
+        "discovered_from": "https://medicaid.ncdhhs.gov/blog/2023/07/20/nc-medicaid-managed-care-provider-update-july-20-2023",
+        "source_type": "bulletin",
+        "title": "Tailored Plan Enrollment and Timeline",
+        "policy_number": null,
+        "category": null,
+        "local_path": null,
+        "file_hash": null,
+        "file_size": null,
+        "mime_type": null,
+        "detected_content_type": null,
+        "content_disposition_filename": null,
+        "etag": null,
+        "last_modified": null,
+        "first_seen_at": "2026-03-27 00:00:31",
+        "last_checked_at": "2026-03-27 00:10:58",
+        "last_downloaded_at": null,
+        "last_changed_at": null,
+        "status": "removed",
+        "error_message": null,
+        "download_attempts": 0,
+        "consecutive_errors": 0,
+        "consecutive_not_found": 0,
+        "removed_at": null
+      },
+      "evidence": {
+        "main_audit": "source-audit.json",
+        "followup_audit": "followup-audit.json"
+      },
+      "reason": "Only two fresh audit observations; no recorded three-404 threshold or explicit official withdrawal/supersession. Historical index link remains broken.",
+      "download_history": {
+        "current": {
+          "source_url": "https://medicaid.ncdhhs.gov/providerfactsheettp-enrollment-and-timeline/download?attachment=",
+          "first_seen_at": "2026-03-27 00:00:31",
+          "local_path": null,
+          "file_hash": null,
+          "file_size": null,
+          "last_downloaded_at": null,
+          "last_changed_at": null,
+          "download_attempts": 0
+        },
+        "retained": {
+          "source_url": "https://medicaid.ncdhhs.gov/providerfactsheettp-enrollment-and-timeline/download?attachment=",
+          "first_seen_at": "2026-03-27 00:00:31",
+          "local_path": null,
+          "file_hash": null,
+          "file_size": null,
+          "last_downloaded_at": null,
+          "last_changed_at": null,
+          "download_attempts": 0
+        },
+        "retained_artifacts": [],
+        "archive_sha256": "beccc6a69f45e01fdd52dcebd7912f1eae3fa4c9ececb7fbdb6a09f63264c38c",
+        "restore_receipt": "retained-restore-receipt.json",
+        "finding": "Registry and restored backup agree on zero download attempts and no payload metadata; this does not establish the separate retirement availability/withdrawal criterion."
+      }
+    },
+    {
+      "registry_id": 889,
+      "source_url": "https://medicaid.ncdhhs.gov/certified-tailored-care-management-providers-readiness-reviews-completed/download?attachment=",
+      "source_type": "bulletin",
+      "title": "Certified CMAs and AMH+ providers",
+      "original_artifact_hash": null,
+      "historical_consecutive_404s": 0,
+      "still_linked_from": [
+        "https://medicaid.ncdhhs.gov/blog/2023/05/26/enhanced-medical-home-payments-extended-through-sept-30-2023"
+      ],
+      "disposition": "unresolved",
+      "registry_at_collection": {
+        "id": 889,
+        "source_url": "https://medicaid.ncdhhs.gov/certified-tailored-care-management-providers-readiness-reviews-completed/download?attachment=",
+        "discovered_from": "https://medicaid.ncdhhs.gov/blog/2023/05/26/enhanced-medical-home-payments-extended-through-sept-30-2023",
+        "source_type": "bulletin",
+        "title": "Certified CMAs and AMH+ providers",
+        "policy_number": null,
+        "category": null,
+        "local_path": null,
+        "file_hash": null,
+        "file_size": null,
+        "mime_type": null,
+        "detected_content_type": null,
+        "content_disposition_filename": null,
+        "etag": null,
+        "last_modified": null,
+        "first_seen_at": "2026-03-27 00:00:31",
+        "last_checked_at": "2026-03-27 00:11:27",
+        "last_downloaded_at": null,
+        "last_changed_at": null,
+        "status": "removed",
+        "error_message": null,
+        "download_attempts": 0,
+        "consecutive_errors": 0,
+        "consecutive_not_found": 0,
+        "removed_at": null
+      },
+      "evidence": {
+        "main_audit": "source-audit.json",
+        "followup_audit": "followup-audit.json"
+      },
+      "reason": "Only two fresh audit observations; no recorded three-404 threshold or explicit official withdrawal/supersession. Historical index link remains broken.",
+      "download_history": {
+        "current": {
+          "source_url": "https://medicaid.ncdhhs.gov/certified-tailored-care-management-providers-readiness-reviews-completed/download?attachment=",
+          "first_seen_at": "2026-03-27 00:00:31",
+          "local_path": null,
+          "file_hash": null,
+          "file_size": null,
+          "last_downloaded_at": null,
+          "last_changed_at": null,
+          "download_attempts": 0
+        },
+        "retained": {
+          "source_url": "https://medicaid.ncdhhs.gov/certified-tailored-care-management-providers-readiness-reviews-completed/download?attachment=",
+          "first_seen_at": "2026-03-27 00:00:31",
+          "local_path": null,
+          "file_hash": null,
+          "file_size": null,
+          "last_downloaded_at": null,
+          "last_changed_at": null,
+          "download_attempts": 0
+        },
+        "retained_artifacts": [],
+        "archive_sha256": "beccc6a69f45e01fdd52dcebd7912f1eae3fa4c9ececb7fbdb6a09f63264c38c",
+        "restore_receipt": "retained-restore-receipt.json",
+        "finding": "Registry and restored backup agree on zero download attempts and no payload metadata; this does not establish the separate retirement availability/withdrawal criterion."
+      }
+    },
+    {
+      "registry_id": 909,
+      "source_url": "https://medicaid.ncdhhs.gov/tailored-care-management-capacity-building-funds-guidance/download?attachment=",
+      "source_type": "bulletin",
+      "title": "Advanced Medical Home Plus (AMH+) and Care Management Agency (CMA) Tailored Care Management Capacity Building Funds Guidance",
+      "original_artifact_hash": null,
+      "historical_consecutive_404s": 0,
+      "still_linked_from": [
+        "https://medicaid.ncdhhs.gov/blog/2023/02/06/tailored-care-management-capacity-building-funds-guidance-released"
+      ],
+      "disposition": "unresolved",
+      "registry_at_collection": {
+        "id": 909,
+        "source_url": "https://medicaid.ncdhhs.gov/tailored-care-management-capacity-building-funds-guidance/download?attachment=",
+        "discovered_from": "https://medicaid.ncdhhs.gov/blog/2023/02/06/tailored-care-management-capacity-building-funds-guidance-released",
+        "source_type": "bulletin",
+        "title": "Advanced Medical Home Plus (AMH+) and Care Management Agency (CMA) Tailored Care Management Capacity Building Funds Guidance",
+        "policy_number": null,
+        "category": null,
+        "local_path": null,
+        "file_hash": null,
+        "file_size": null,
+        "mime_type": null,
+        "detected_content_type": null,
+        "content_disposition_filename": null,
+        "etag": null,
+        "last_modified": null,
+        "first_seen_at": "2026-03-27 00:00:31",
+        "last_checked_at": "2026-03-27 00:11:47",
+        "last_downloaded_at": null,
+        "last_changed_at": null,
+        "status": "removed",
+        "error_message": null,
+        "download_attempts": 0,
+        "consecutive_errors": 0,
+        "consecutive_not_found": 0,
+        "removed_at": null
+      },
+      "evidence": {
+        "main_audit": "source-audit.json",
+        "followup_audit": "followup-audit.json"
+      },
+      "reason": "Only two fresh audit observations; no recorded three-404 threshold or explicit official withdrawal/supersession. Historical index link remains broken.",
+      "download_history": {
+        "current": {
+          "source_url": "https://medicaid.ncdhhs.gov/tailored-care-management-capacity-building-funds-guidance/download?attachment=",
+          "first_seen_at": "2026-03-27 00:00:31",
+          "local_path": null,
+          "file_hash": null,
+          "file_size": null,
+          "last_downloaded_at": null,
+          "last_changed_at": null,
+          "download_attempts": 0
+        },
+        "retained": {
+          "source_url": "https://medicaid.ncdhhs.gov/tailored-care-management-capacity-building-funds-guidance/download?attachment=",
+          "first_seen_at": "2026-03-27 00:00:31",
+          "local_path": null,
+          "file_hash": null,
+          "file_size": null,
+          "last_downloaded_at": null,
+          "last_changed_at": null,
+          "download_attempts": 0
+        },
+        "retained_artifacts": [],
+        "archive_sha256": "beccc6a69f45e01fdd52dcebd7912f1eae3fa4c9ececb7fbdb6a09f63264c38c",
+        "restore_receipt": "retained-restore-receipt.json",
+        "finding": "Registry and restored backup agree on zero download attempts and no payload metadata; this does not establish the separate retirement availability/withdrawal criterion."
+      }
+    },
+    {
+      "registry_id": 5997,
+      "source_url": "https://medicaid.ncdhhs.gov/processes-and-frequently-asked-questions-1915i-services/open",
+      "source_type": "managed_care_guidance",
+      "title": "Processes and Frequently Asked Questions for 1915(i) Services",
+      "original_artifact_hash": null,
+      "historical_consecutive_404s": 0,
+      "still_linked_from": [
+        "https://medicaid.ncdhhs.gov/providers/provider-playbook-medicaid-managed-care/fact-sheets"
+      ],
+      "disposition": "unresolved",
+      "registry_at_collection": {
+        "id": 5997,
+        "source_url": "https://medicaid.ncdhhs.gov/processes-and-frequently-asked-questions-1915i-services/open",
+        "discovered_from": "https://medicaid.ncdhhs.gov/providers/provider-playbook-medicaid-managed-care/fact-sheets",
+        "source_type": "managed_care_guidance",
+        "title": "Processes and Frequently Asked Questions for 1915(i) Services",
+        "policy_number": null,
+        "category": "NC Medicaid Programs and Services",
+        "local_path": null,
+        "file_hash": null,
+        "file_size": null,
+        "mime_type": null,
+        "detected_content_type": null,
+        "content_disposition_filename": null,
+        "etag": null,
+        "last_modified": null,
+        "first_seen_at": "2026-04-10 19:54:03",
+        "last_checked_at": "2026-04-10 19:55:37",
+        "last_downloaded_at": null,
+        "last_changed_at": null,
+        "status": "removed",
+        "error_message": null,
+        "download_attempts": 0,
+        "consecutive_errors": 0,
+        "consecutive_not_found": 0,
+        "removed_at": null
+      },
+      "evidence": {
+        "main_audit": "source-audit.json",
+        "followup_audit": "followup-audit.json"
+      },
+      "reason": "Only two fresh audit observations; no recorded three-404 threshold or explicit official withdrawal/supersession. Historical index link remains broken.",
+      "download_history": {
+        "current": {
+          "source_url": "https://medicaid.ncdhhs.gov/processes-and-frequently-asked-questions-1915i-services/open",
+          "first_seen_at": "2026-04-10 19:54:03",
+          "local_path": null,
+          "file_hash": null,
+          "file_size": null,
+          "last_downloaded_at": null,
+          "last_changed_at": null,
+          "download_attempts": 0
+        },
+        "retained": {
+          "source_url": "https://medicaid.ncdhhs.gov/processes-and-frequently-asked-questions-1915i-services/open",
+          "first_seen_at": "2026-04-10 19:54:03",
+          "local_path": null,
+          "file_hash": null,
+          "file_size": null,
+          "last_downloaded_at": null,
+          "last_changed_at": null,
+          "download_attempts": 0
+        },
+        "retained_artifacts": [],
+        "archive_sha256": "beccc6a69f45e01fdd52dcebd7912f1eae3fa4c9ececb7fbdb6a09f63264c38c",
+        "restore_receipt": "retained-restore-receipt.json",
+        "finding": "Registry and restored backup agree on zero download attempts and no payload metadata; this does not establish the separate retirement availability/withdrawal criterion."
+      }
+    },
+    {
+      "registry_id": 6560,
+      "source_url": "https://medicaid.ncdhhs.gov/media/11452/download?attachment=",
+      "source_type": "managed_care_contract",
+      "title": "NC Medicaid Managed Care: Contracting with Tailored Plans Provider fact sheet",
+      "original_artifact_hash": null,
+      "historical_consecutive_404s": 0,
+      "still_linked_from": [
+        "https://medicaid.ncdhhs.gov/blog/2022/08/26/tailored-plan-panel-membership"
+      ],
+      "disposition": "unresolved",
+      "registry_at_collection": {
+        "id": 6560,
+        "source_url": "https://medicaid.ncdhhs.gov/media/11452/download?attachment=",
+        "discovered_from": "https://medicaid.ncdhhs.gov/blog/2022/08/26/tailored-plan-panel-membership",
+        "source_type": "managed_care_contract",
+        "title": "NC Medicaid Managed Care: Contracting with Tailored Plans Provider fact sheet",
+        "policy_number": null,
+        "category": "Tailored Plan Panel Membership NC Medicaid is sharing a list of member counts for Advanced Medical Home practices affiliated with Tailored Plans",
+        "local_path": null,
+        "file_hash": null,
+        "file_size": null,
+        "mime_type": null,
+        "detected_content_type": null,
+        "content_disposition_filename": null,
+        "etag": null,
+        "last_modified": null,
+        "first_seen_at": "2026-04-10 23:08:36",
+        "last_checked_at": "2026-04-10 23:12:26",
+        "last_downloaded_at": null,
+        "last_changed_at": null,
+        "status": "removed",
+        "error_message": null,
+        "download_attempts": 0,
+        "consecutive_errors": 0,
+        "consecutive_not_found": 0,
+        "removed_at": null
+      },
+      "evidence": {
+        "main_audit": "source-audit.json",
+        "followup_audit": "followup-audit.json"
+      },
+      "reason": "Only two fresh audit observations; no recorded three-404 threshold or explicit official withdrawal/supersession. Historical index link remains broken.",
+      "download_history": {
+        "current": {
+          "source_url": "https://medicaid.ncdhhs.gov/media/11452/download?attachment=",
+          "first_seen_at": "2026-04-10 23:08:36",
+          "local_path": null,
+          "file_hash": null,
+          "file_size": null,
+          "last_downloaded_at": null,
+          "last_changed_at": null,
+          "download_attempts": 0
+        },
+        "retained": {
+          "source_url": "https://medicaid.ncdhhs.gov/media/11452/download?attachment=",
+          "first_seen_at": "2026-04-10 23:08:36",
+          "local_path": null,
+          "file_hash": null,
+          "file_size": null,
+          "last_downloaded_at": null,
+          "last_changed_at": null,
+          "download_attempts": 0
+        },
+        "retained_artifacts": [],
+        "archive_sha256": "beccc6a69f45e01fdd52dcebd7912f1eae3fa4c9ececb7fbdb6a09f63264c38c",
+        "restore_receipt": "retained-restore-receipt.json",
+        "finding": "Registry and restored backup agree on zero download attempts and no payload metadata; this does not establish the separate retirement availability/withdrawal criterion."
+      }
+    }
+  ],
+  "optionalFailureCount": 313,
+  "epsdtBatchPassed": false,
+  "blueEvaluation": "not_run_source_and_smoke_gates_failed"
+}

@@ -216,3 +216,15 @@ describe('extractSearchTerms duplication fix', () => {
     expect(terms).toContain('language');
   });
 });
+
+
+describe('EPSDT overview authority routing', () => {
+  it('keeps statutory and regulatory grounding available for a generic model hint', () => {
+    expect(detectAnswerQuestionType('what does epsdt require?', 'general')).toBe('federal_authority');
+    expect(detectAnswerQuestionType('what is epsdt?')).toBe('federal_authority');
+  });
+  it('preserves service-specific coverage and explicit PA routing', () => {
+    expect(detectAnswerQuestionType('does epsdt cover private duty nursing?')).toBe('coverage');
+    expect(detectAnswerQuestionType('what does epsdt require?', 'prior_authorization')).toBe('prior_authorization');
+  });
+});

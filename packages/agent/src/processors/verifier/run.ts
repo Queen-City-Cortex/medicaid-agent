@@ -1,3 +1,4 @@
+import { createPrivateVerificationCapture, type PrivateVerificationCapture } from './diagnostics.js';
 import { getConfig } from './config.js';
 import { type SourceEntry, buildSourceText } from './evidence.js';
 import { type VerificationResult, VERIFICATION_UNAVAILABLE, verifyAnswer } from './verify.js';
@@ -72,15 +73,17 @@ export function emitVerifierTelemetry(telemetry: object): void {
 }
 
 /** Verify the exact outgoing text. A failed candidate is never a fallback. */
-export async function runVerificationForAnswer({ question, answerText, sources, onUsage, signal, verify = verifyAnswer }: {
+export async function runVerificationForAnswer({ question, answerText, sources, onUsage, signal, verify = verifyAnswer, capture = createPrivateVerificationCapture() }: {
   question: string;
   answerText: string;
   sources: SourceEntry[];
   onUsage?: (usage: unknown) => void;
   signal?: AbortSignal;
   verify?: typeof verifyAnswer;
+  capture?: PrivateVerificationCapture;
 }): Promise<VerificationRunResult> {
   const started = Date.now();
+  capture?.({ stage: 'input', question, sources, answerText });
   let candidate = answerText;
   let verification!: VerificationResult;
   let outcome: VerificationOutcome = { status: 'withheld', reason: 'unsupported', passCount: 0 };
@@ -96,6 +99,7 @@ export async function runVerificationForAnswer({ question, answerText, sources, 
       { unknownUrls: urls.unknownUrls, unknownQuotes: quotes.unknownQuotes,
         ...(sources.some(source => source.evidenceRole === 'supplementary') ? { hasSupplementaryEvidence: true } : {}),
       });
+    capture?.({ stage: 'pass', pass, candidate, evidenceText: buildSourceText(sources, candidate), deterministic: { urls, quotes }, verification });
     outcome.passCount = pass;
     unavailable = verification.unsupportedClaims.some(c => c.reason === VERIFICATION_UNAVAILABLE);
     if (unavailable) { outcome.reason = 'unavailable'; break; }
@@ -145,6 +149,7 @@ export async function runVerificationForAnswer({ question, answerText, sources, 
     rewrite_substance_ratio: substanceRatio, fabricated_url_count: fabricatedUrlCount,
     fabricated_quote_count: fabricatedQuoteCount,
   };
+  capture?.({ stage: 'outcome', outcome, telemetry });
   log.info('verification.release', { ...outcome, latencyMs: Date.now()-started });
   return { retryable: unavailable && verification.failureRetryable === true, finalAnswer: withheld ? WITHHELD_ANSWER : candidate, outcome, rewrote, telemetry, verification, confidence };
 }

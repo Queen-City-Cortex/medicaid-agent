@@ -35,7 +35,18 @@ def read_registry_rows(db_path: Path = CRAWLER_DB_PATH) -> list[dict[str, Any]]:
     conn = sqlite3.connect(str(db_path))
     conn.row_factory = sqlite3.Row
     try:
-        return [dict(row) for row in conn.execute("SELECT * FROM documents ORDER BY id")]
+        order = "id" if any(row[1] == "id" for row in conn.execute("PRAGMA table_info(documents)")) else "source_url"
+        rows = [dict(row) for row in conn.execute(f"SELECT * FROM documents ORDER BY {order}")]
+        if conn.execute("SELECT 1 FROM sqlite_master WHERE name='source_classifications'").fetchone():
+            from pipeline.source_audit import validate_classifications
+            validate_classifications(db_path)
+            roles = dict(conn.execute("SELECT source_url,resource_role FROM source_classifications"))
+            for row in rows:
+                row["resource_role"] = roles.get(row["source_url"], "document")
+                if row["resource_role"] == "index":
+                    row["registry_status"] = row["status"]
+                    row["status"] = "index"
+        return rows
     finally:
         conn.close()
 

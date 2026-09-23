@@ -354,8 +354,15 @@ export function isWaiverAuthorityQuery(queryLower: string): boolean {
  * federal-authority frame, where it turns on statute+regulation pairing.
  * Generic legal phrasing only; no program or section identifiers.
  */
+/** A program overview needs governing authority, even without the word federal.
+ * Keep service-specific coverage/PA questions on their existing policy paths. */
+export function isEpsdtOverviewQuery(queryLower: string): boolean {
+  return /^(?:what does epsdt require|what is epsdt|what are (?:the )?epsdt requirements|(?:explain|summarize|describe) epsdt(?: requirements)?)[?.!\s]*$/.test(queryLower.trim());
+}
+
 export function asksForAuthorityCitation(queryLower: string): boolean {
   return (
+    isEpsdtOverviewQuery(queryLower) ||
     /\bauthoriz(e|es|ed|ing|ation)\b/.test(queryLower) ||
     /\bauthority\b/.test(queryLower) ||
     /\bstatutory basis\b/.test(queryLower) ||
@@ -420,6 +427,8 @@ export function detectAnswerQuestionType(
   queryLower: string,
   requestedType?: AnswerQuestionType,
 ): AnswerQuestionType {
+  // A model-supplied generic hint must not hide the governing EPSDT sources.
+  if ((!requestedType || requestedType === 'general') && isEpsdtOverviewQuery(queryLower)) return 'federal_authority';
   if (requestedType) return requestedType;
   if (isChangeNoticeQuery(queryLower)) return 'amendment';
   // Federal authority outranks prior-auth: "what federal regulation governs
@@ -495,6 +504,7 @@ export function queryMentionsPolicyNumber(queryLower: string, policyNumber: stri
 
 export function isFederalAuthorityQuery(queryLower: string): boolean {
   return (
+    isEpsdtOverviewQuery(queryLower) ||
     queryLower.includes('federal') ||
     queryLower.includes('statutory') ||
     queryLower.includes('social security act') ||

@@ -9,8 +9,13 @@ import subprocess
 import tarfile
 import tempfile
 import uuid
+import sys
 from datetime import UTC, datetime
 from pathlib import Path
+
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "packages/pipeline/src"))
+from pipeline.source_lifecycle import lifecycle_snapshot, validate_never_downloaded  # noqa: E402
 
 
 def keychain_identity():
@@ -48,7 +53,7 @@ def keychain_identity():
         security.SecKeychainItemFreeContent(None, pointer)
 
 
-def inspect_archive(stream):
+def inspect_archive(stream, *, include_history=False):
     hashes, metas = {}, {}
     counts = {"sourceFiles": 0, "parsedFiles": 0}
     byte_count = 0
@@ -69,7 +74,8 @@ def inspect_archive(stream):
                     and member.name.endswith(".meta.json")
                     and not Path(member.name).name.startswith("._")
                 )
-                keep = is_meta or member.name in [
+                is_evidence = member.name.startswith(("pipeline/source-audit-evidence/", "pipeline/source-retirement-evidence/"))
+                keep = is_meta or is_evidence or member.name in [
                     "crawler/crawler.db",
                     "crawler/crawler.db-wal",
                     "crawler/crawler.db-shm",
@@ -92,6 +98,10 @@ def inspect_archive(stream):
                     data = b"".join(content)
                     if is_meta:
                         metas[member.name] = json.loads(data)
+                    elif is_evidence:
+                        target = Path(temporary) / member.name
+                        target.parent.mkdir(parents=True, exist_ok=True)
+                        target.write_bytes(data)
                     else:
                         (Path(temporary) / Path(member.name).name).write_bytes(data)
         db_path = Path(temporary) / "crawler.db"
@@ -105,6 +115,7 @@ def inspect_archive(stream):
                 "SELECT count(*) FROM documents"
             ).fetchone()[0]
             db.row_factory = sqlite3.Row
+            registry = [dict(row) for row in db.execute("SELECT * FROM documents ORDER BY source_url")]
             retirements = (
                 [
                     dict(r)
@@ -115,6 +126,7 @@ def inspect_archive(stream):
                 ).fetchone()
                 else []
             )
+        lifecycle = lifecycle_snapshot(db_path, hashes)
         checked = 0
         for name, meta in metas.items():
             for kind, suffix in [("json", ".json"), ("markdown", ".md")]:
@@ -127,6 +139,33 @@ def inspect_archive(stream):
             for capture in json.loads(row["evidence_json"])["evidence"]:
                 if hashes.get(capture["capture_path"]) != "sha256:" + capture["sha256"]:
                     raise ValueError("Retirement evidence missing or changed in backup")
+        for row in lifecycle["classifications"]:
+            capture = json.loads(row["evidence_json"])["capture"]
+            if hashes.get(capture["capture_path"]) != "sha256:" + capture["sha256"]:
+                raise ValueError("Classification evidence missing or changed in backup")
+        by_url = {row["source_url"]: row for row in registry}
+        for row in lifecycle["classifications"]:
+            evidence = json.loads(row["evidence_json"])
+            if row["source_url"] not in by_url or evidence.get("schema_version") != 1 or evidence.get("resource_role") != row["resource_role"]:
+                raise ValueError("Invalid classification identity in backup")
+            if evidence["resource_role"] == "index" and (not evidence.get("children") or any(url not in by_url for url in evidence["children"])):
+                raise ValueError("Classified index children missing from backup registry")
+        for row in retirements:
+            evidence = json.loads(row["evidence_json"])
+            if row.get("reactivated_at") is None:
+                document = by_url.get(row["source_url"])
+                if not document or document.get("status") != "removed":
+                    raise ValueError("Retirement identity missing from backup registry")
+                if evidence.get("schema_version") == 2 and evidence.get("payload_state") == "never_downloaded":
+                    validate_never_downloaded(Path(temporary), document, evidence.get("download_history", {}))
+                elif hashes.get("crawler/documents/" + (document.get("local_path") or "")) != evidence.get("original_artifact_hash") or not evidence.get("original_artifact_hash"):
+                    raise ValueError("Retired original artifact hash mismatch in backup")
+            if evidence.get("schema_version") not in {1, 2}:
+                raise ValueError("Incompatible retirement evidence")
+            for snapshot in evidence.get("download_history", {}).get("retained_snapshots", []):
+                for capture in [snapshot, snapshot["restore_receipt"]]:
+                    if hashes.get(capture["capture_path"]) != "sha256:" + capture["sha256"]:
+                        raise ValueError("Download-history evidence missing or changed in backup")
         if (
             not counts["sourceFiles"]
             or not counts["parsedFiles"]
@@ -160,17 +199,28 @@ def inspect_archive(stream):
             "sha256:"
             + hashlib.sha256(
                 json.dumps(
-                    {"documents": documents, "retirements": retirements},
+                    {"documents": documents, "lifecycle": lifecycle},
                     sort_keys=True,
                     separators=(",", ":"),
                 ).encode()
             ).hexdigest()
         )
         return {
+            **({"_history": {
+                "schema_version": 1,
+                "registry_sha256": hashes["crawler/crawler.db"],
+                "documents": registry,
+                "source_artifacts": {
+                    row["source_url"]: ([{"path": "crawler/documents/" + row["local_path"], "sha256": hashes["crawler/documents/" + row["local_path"]]}] if row.get("local_path") and "crawler/documents/" + row["local_path"] in hashes else [])
+                    for row in registry
+                },
+            }} if include_history else {}),
             "sourceSnapshotHash": snapshot,
             "sqliteIntegrity": integrity,
             "artifactHashesChecked": checked,
             "retirementRecordsChecked": len(retirements),
+            "classificationRecordsChecked": len(lifecycle["classifications"]),
+            "snapshotSchemaVersion": 2,
             "uncompressedBytes": byte_count,
             "counts": counts,
         }
@@ -180,6 +230,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--archive", type=Path, required=True)
     parser.add_argument("--receipt", type=Path, required=True)
+    parser.add_argument("--history-output", type=Path, help="Private retained registry/artifact evidence for source audit")
     parser.add_argument(
         "--image", required=True, help="Locally built corpus-job image containing age"
     )
@@ -216,7 +267,7 @@ def main():
             proc.stdin.write(identity)
             proc.stdin.close()
             del identity
-            result = inspect_archive(proc.stdout)
+            result = inspect_archive(proc.stdout, include_history=bool(args.history_output))
             while proc.stdout.read(1024 * 1024):
                 pass
             if proc.wait(timeout=60) != 0:
@@ -231,6 +282,13 @@ def main():
             proc.stdout.close()
     with archive.open("rb") as source:
         digest = hashlib.file_digest(source, "sha256").hexdigest()
+    if args.history_output:
+        history = result.pop("_history")
+        history["archive_sha256"] = digest
+        args.history_output.parent.mkdir(parents=True, exist_ok=True)
+        with tempfile.NamedTemporaryFile("w", dir=args.history_output.parent, delete=False) as output:
+            json.dump(history, output, indent=2)
+        Path(output.name).replace(args.history_output)
     receipt = {
         "schemaVersion": 1,
         "archiveObject": "backups/corpus/" + archive.name,

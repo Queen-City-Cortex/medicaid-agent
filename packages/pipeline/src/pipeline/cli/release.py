@@ -77,6 +77,11 @@ def _require_parse_inventory_unchanged(release: dict) -> dict:
             "active parse inventory changed after release preparation: "
             f"expected {expected.get('inventory_hash')}, got {current.get('inventory_hash')}"
         )
+    from pipeline.freshness import build_answer_ready_snapshot
+    from pipeline.release import source_snapshot_hash
+    snapshot = source_snapshot_hash(build_answer_ready_snapshot())
+    if snapshot != release.get("sourceSnapshotHash"):
+        raise RuntimeError("Complete source snapshot changed after release preparation")
     return current
 
 

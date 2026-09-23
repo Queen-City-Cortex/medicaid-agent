@@ -136,3 +136,61 @@ def test_release_rechecks_captured_evidence_after_retirement(retirement):
     (root / evidence["evidence"][0]["capture_path"]).unlink()
     with pytest.raises(RuntimeError, match="changed after investigation"):
         require_documented_removals(root / "crawler/crawler.db")
+
+
+def test_v2_original_present_keeps_hash_requirement(retirement):
+    root, source, evidence = retirement
+    evidence.update(schema_version=2, payload_state="original_present")
+    assert retire_source(root, evidence)["status"] == "validated"
+    source.unlink()
+    with pytest.raises(ValueError, match="Original"):
+        retire_source(root, evidence, apply=True)
+
+
+def test_v2_never_downloaded_requires_independent_history(retirement):
+    from pipeline.source_lifecycle import validate_never_downloaded
+    root, _, evidence = retirement
+    row = dict(source_url=evidence["source_url"], first_seen_at="2026-01-01", local_path=None, file_hash=None, file_size=None, last_downloaded_at=None, last_changed_at=None, download_attempts=0)
+    with pytest.raises(ValueError, match="Retained"):
+        validate_never_downloaded(root, row, {"history_complete": True})
+
+    def capture(name, data):
+        file = root / name
+        file.write_text(json.dumps(data))
+        return {"capture_path": name, "sha256": hashlib.sha256(file.read_bytes()).hexdigest()}
+
+    receipt = capture("receipt.json", {"archiveSha256": "a" * 64, "decryptionVerified": True, "sqliteIntegrity": "ok"})
+    snapshot = capture("history.json", {"schema_version": 1, "archive_sha256": "a" * 64, "documents": [row], "source_artifacts": {row["source_url"]: []}})
+    snapshot["restore_receipt"] = receipt
+    proof = {"history_complete": True, "retained_snapshots": [snapshot]}
+    validate_never_downloaded(root, row, proof)
+    with pytest.raises(ValueError, match="Lost originals"):
+        validate_never_downloaded(root, {**row, "last_downloaded_at": "2026-02-01"}, proof)
+    with pytest.raises(ValueError, match="hash mismatch"):
+        (root / "history.json").write_text("changed")
+        validate_never_downloaded(root, row, proof)
+
+
+def test_audit_resumes_retirement_committed_before_journal(retirement, monkeypatch):
+    import pipeline.source_audit as audit
+    from pipeline.source_lifecycle import stable_hash
+    root, _, evidence = retirement
+    with sqlite3.connect(root / 'crawler/crawler.db') as db:
+        db.row_factory = sqlite3.Row
+        row = dict(db.execute('SELECT * FROM documents').fetchone())
+    action = {'action_id': 'interrupted-retirement', 'source_url': row['source_url'], 'registry_hash': stable_hash(row), 'original_artifact_hash': evidence['original_artifact_hash'], 'disposition': 'retire', 'evidence': evidence}
+    reviewed = {'schema_version': 1, 'actions': [action]}
+    original = audit.retire_source_locked
+    def interrupted(*args, **kwargs):
+        original(*args, **kwargs)
+        raise RuntimeError('interrupted after retirement commit')
+    monkeypatch.setattr(audit, 'retire_source_locked', interrupted)
+    with pytest.raises(RuntimeError, match='interrupted'):
+        audit.apply_source_audit(root, reviewed, apply=True)
+    monkeypatch.setattr(audit, 'retire_source_locked', original)
+    result = audit.apply_source_audit(root, reviewed, apply=True)
+    assert result[0]['status'] == 'already_retired'
+    assert audit.apply_source_audit(root, reviewed, apply=True) == result
+    with sqlite3.connect(root / 'crawler/crawler.db') as db:
+        assert db.execute('SELECT count(*) FROM source_retirements').fetchone()[0] == 1
+        assert db.execute('SELECT count(*) FROM source_audit_actions').fetchone()[0] == 1

@@ -39,6 +39,13 @@ def _document_exclusion_reason(meta: dict, crawler_meta: dict) -> str | None:
     if not crawler_meta:
         return "missing_registry_record"
 
+    from pipeline.source_lifecycle import read_table
+    classifications = read_table(CRAWLER_DB_PATH, "source_classifications")
+    if classifications:
+        from pipeline.source_audit import validate_classifications
+        validate_classifications(CRAWLER_DB_PATH)
+        if any(row["source_url"] == crawler_meta.get("source_url") and row["resource_role"] == "index" for row in classifications):
+            return "classified_discovery_index"
     registry_status = crawler_meta.get("status")
     if registry_status not in _ACTIVE_REGISTRY_STATUSES:
         return f"inactive_registry_status:{registry_status or 'missing'}"

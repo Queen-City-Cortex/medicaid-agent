@@ -56,15 +56,19 @@ def run_eval(
     if not entries:
         return {"error": "No matching entries found"}
 
+    from pipeline.eval.identity import load_normalizer
+    normalizer = load_normalizer() if level in {"retrieval", "answer"} else None
+    raw_entries = normalizer.graph_entries(entries) if normalizer else entries
+
     if level == "retrieval":
         from pipeline.eval.levels.retrieval import evaluate_retrieval
-        per_question = evaluate_retrieval(entries, top_k=top_k)
+        per_question = evaluate_retrieval(raw_entries, top_k=top_k)
     elif level == "cross-ref":
         from pipeline.eval.levels.cross_ref import evaluate_cross_refs
         per_question = evaluate_cross_refs(entries)
     elif level == "answer":
         from pipeline.eval.levels.answer import evaluate_answers
-        per_question = evaluate_answers(entries, use_unified_evidence=not legacy_evidence)
+        per_question = evaluate_answers(raw_entries, use_unified_evidence=not legacy_evidence)
     elif level == "citation":
         from pipeline.eval.levels.citation import evaluate_citations
         per_question = evaluate_citations(entries, from_result=from_result)
@@ -73,6 +77,18 @@ def run_eval(
 
     # Save results
     config_overrides = {}
+    if normalizer:
+        config_overrides["evidence_normalization"] = normalizer.evidence()
+        for row, entry, raw_entry in zip(per_question, entries, raw_entries, strict=True):
+            row["evidence_identity"] = {
+                "raw_retrieved": row.get("retrieved", []),
+                "normalized_retrieved": [normalizer.normalized(raw) for raw in row.get("retrieved", [])],
+                "raw_expected_primary": [s["section_id"] for s in raw_entry["evidence"].get("primary_sections", [])],
+                "raw_expected_supporting": [s["section_id"] for s in raw_entry["evidence"].get("supporting_sections", [])],
+                "canonical_expected_supporting": [s["section_id"] for s in entry["evidence"].get("supporting_sections", [])],
+                "canonical_expected_primary": [s["section_id"] for s in entry["evidence"].get("primary_sections", [])],
+                "mapping_hash": normalizer.mapping_hash,
+            }
     if dataset_path:
         # Recorded so eval-compare and eval-runs can tell held-out runs apart
         # from main-dataset runs.

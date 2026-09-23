@@ -349,3 +349,21 @@ def eval_validate(dataset: str | None):
     console.print(f"\nDataset: {len(entries)} entries")
     console.print(f"Difficulties: {', '.join(sorted(difficulties))}")
     console.print(f"Categories: {', '.join(sorted(categories))}")
+
+
+@cli.command("eval-identity-catalog")
+@click.option("--output", type=click.Path(dir_okay=False, path_type=str), required=True)
+def eval_identity_catalog(output: str):
+    """Freeze canonical evidence identities from approved parses and federal caches."""
+    from pathlib import Path
+    from pipeline.config import CORPUS_DATA_ROOT
+    from pipeline.eval.dataset import load_dataset
+    from pipeline.eval.identity import build_catalog
+    from pipeline.release import atomic_write_json
+    from pipeline.retirement import corpus_writer_lock
+    if CORPUS_DATA_ROOT is None:
+        raise click.ClickException("CORPUS_DATA_ROOT is required")
+    with corpus_writer_lock(CORPUS_DATA_ROOT):
+        catalog = build_catalog(load_dataset())
+        atomic_write_json(Path(output), catalog)
+    click.echo(f"Frozen evidence catalog: {catalog['catalogHash']}")

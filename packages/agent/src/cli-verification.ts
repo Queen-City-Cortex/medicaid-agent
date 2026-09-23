@@ -1,19 +1,21 @@
+import type { PrivateVerificationCapture } from './processors/verifier/diagnostics.js';
 import { WITHHELD_ANSWER } from '@nc-medicaid/contracts';
 import { emitVerifierTelemetry, runVerificationForAnswer } from './processors/verifier/run.js';
 import { type SourceEntry } from './processors/verifier/evidence.js';
 
 /** Keep the CLI's exception path behind the same release boundary as success. */
-export async function verifyCliAnswer({ question, answerText, getSources }: {
+export async function verifyCliAnswer({ question, answerText, getSources, capture }: {
   question: string;
   answerText: string;
   getSources: () => SourceEntry[];
+  capture?: PrivateVerificationCapture;
 }): Promise<string> {
   const started = Date.now();
   try {
     const sources = getSources();
     console.log('\n---EVIDENCE---\n');
     console.log(JSON.stringify({ sources, evidence_bytes: sources.reduce((n, s) => n + s.text.length, 0) }));
-    const result = await runVerificationForAnswer({ question, answerText, sources });
+    const result = await runVerificationForAnswer({ question, answerText, sources, capture });
     emitVerifierTelemetry(result.telemetry);
     return result.finalAnswer;
   } catch {

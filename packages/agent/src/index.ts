@@ -1,3 +1,4 @@
+import { createPrivateVerificationCapture } from './processors/verifier/diagnostics.js';
 import { verifyCliAnswer } from './cli-verification.js';
 import { configureAnswerRelease, installMemoryReleaseGate, gateAnswerStream, trustedChatInput } from './answer-release.js';
 import './load-env.js';
@@ -451,6 +452,7 @@ if (IS_DEEP_RESEARCH_CLI && CLI_QUESTION) {
   // response format the agent returns doesn't carry tool-invocation parts in a
   // shape extractSources can parse.
   const toolResults: ToolResultRecord[] = [];
+  const captureGeneration = createPrivateVerificationCapture();
 
   try {
     const result = await agent.generate(CLI_QUESTION, {
@@ -475,10 +477,11 @@ if (IS_DEEP_RESEARCH_CLI && CLI_QUESTION) {
       },
     } as any);
 
+    captureGeneration?.({ stage: 'generation', question: CLI_QUESTION, toolResults, messages: result.response?.messages });
     let finalAnswer = result.text ?? '';
 
     if (isVerifierEnabled() && finalAnswer) {
-      finalAnswer = await verifyCliAnswer({ question: CLI_QUESTION, answerText: finalAnswer, getSources: () => {
+      finalAnswer = await verifyCliAnswer({ question: CLI_QUESTION, answerText: finalAnswer, capture: captureGeneration, getSources: () => {
         const sources = extractSourcesFromToolResults(toolResults);
         if (sources.length > 0) return sources;
         return extractSources((result as any).response?.messages ?? (result as any).messages ?? []);

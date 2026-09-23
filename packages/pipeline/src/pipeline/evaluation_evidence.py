@@ -5,6 +5,8 @@ import json
 import math
 import os
 import statistics
+from pathlib import Path
+from pipeline.source_lifecycle import stable_hash
 
 from pipeline.config import (
     EMBEDDING_DIMENSIONS,
@@ -19,6 +21,8 @@ from pipeline.release import REPO_ROOT, build_release_evaluation_results
 def evaluation_fingerprint() -> dict:
     if os.environ.get("VERIFIER_ENABLED", "true").lower() == "false":
         raise ValueError("Release evaluations require answer verification")
+    if not os.environ.get("EVAL_IDENTITY_CATALOG"):
+        raise ValueError("Release evaluations require a frozen EVAL_IDENTITY_CATALOG")
     # The agent's dotenv loader must not override the release's verifier setting.
     os.environ["VERIFIER_ENABLED"] = "true"
     os.environ["MASTRA_OBSERVABILITY_PATH"] = ":memory:"
@@ -51,11 +55,21 @@ def evaluation_fingerprint() -> dict:
             if (
                 key.endswith("_MODEL")
                 or key.endswith("_TEMPERATURE")
-                or key.startswith("VERIFIER_")
+                or key in {"VERIFIER_ENABLED", "VERIFIER_MAX_SOURCE_TOKENS"}
             )
             and not any(secret in key for secret in ["KEY", "TOKEN", "SECRET"])
         },
         "verificationRequired": True,
+        "evidenceNormalization": {
+            "version": 1,
+            "catalogHash": stable_hash(
+                json.loads(Path(os.environ["EVAL_IDENTITY_CATALOG"]).read_text())[
+                    "sections"
+                ]
+            )
+            if os.environ.get("EVAL_IDENTITY_CATALOG")
+            else None,
+        },
     }
 
 
@@ -77,6 +91,36 @@ def require_complete_results(retrieval: dict, answer: dict) -> None:
             raise ValueError(
                 "Evaluation infrastructure errors invalidate release evidence"
             )
+    normalizations = [
+        result.get("config", {}).get("evidence_normalization")
+        for result in [retrieval, answer]
+    ]
+    if not all(normalizations) or any(
+        n.get("version") != 1 or not n.get("mappingHash") for n in normalizations
+    ):
+        raise ValueError(
+            "Release comparisons require evidence identity mappings for both evaluation levels"
+        )
+    if (
+        normalizations[0]["catalogHash"] != normalizations[1]["catalogHash"]
+        or normalizations[0]["mappingHash"] != normalizations[1]["mappingHash"]
+    ):
+        raise ValueError(
+            "Evaluation graph identity changed between retrieval and answer runs"
+        )
+    for normalization in normalizations:
+        if (
+            not isinstance(normalization.get("mappings"), list)
+            or stable_hash(normalization["mappings"]) != normalization["mappingHash"]
+        ):
+            raise ValueError("Evidence identity mapping hash mismatch")
+        catalog_path = os.environ.get("EVAL_IDENTITY_CATALOG")
+        if (
+            catalog_path
+            and stable_hash(json.loads(Path(catalog_path).read_text())["sections"])
+            != normalization["catalogHash"]
+        ):
+            raise ValueError("Evaluation identity catalog mismatch")
     verification_summary(answer)
 
 

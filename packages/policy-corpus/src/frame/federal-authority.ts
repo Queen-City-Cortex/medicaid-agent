@@ -248,6 +248,10 @@ async function retrieveAndRankFederalHits(
     ],
     (hit) => hit.sectionId,
   );
+  if (signals.authorityCitationQuery && !mergedFederalHits.some(hit => hit.documentType === 'federal_statute')) {
+    const statutes = await context.searchSectionsDetailed({ query: signals.focusedFederalQuery ?? query, topK: 3, documentTypes: ['federal_statute'] });
+    mergedFederalHits.push(...statutes.filter(hit => !mergedFederalHits.some(existing => existing.sectionId === hit.sectionId)));
+  }
   const focusRankedFederalHits = rankHitsByQueryFocus(mergedFederalHits, signals.focusTerms, signals.quotedPhrases);
   // Authority-citation questions get a section-TITLE phrase boost: a section
   // whose heading carries the program's official multi-word name (e.g.

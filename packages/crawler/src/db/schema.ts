@@ -59,6 +59,12 @@ CREATE TABLE IF NOT EXISTS source_retirements (
 CREATE UNIQUE INDEX IF NOT EXISTS source_retirements_active
 ON source_retirements(source_url) WHERE reactivated_at IS NULL;
 
+CREATE TABLE IF NOT EXISTS source_classifications (
+ source_url TEXT PRIMARY KEY, schema_version INTEGER NOT NULL,
+ resource_role TEXT NOT NULL CHECK(resource_role IN ('document','index')),
+ evidence_json TEXT NOT NULL, classified_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS crawl_runs (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   started_at TEXT NOT NULL DEFAULT (datetime('now')),

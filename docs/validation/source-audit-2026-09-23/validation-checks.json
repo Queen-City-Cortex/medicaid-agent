@@ -1,0 +1,41 @@
+{
+  "crawler": {
+    "passed": 249
+  },
+  "pipeline": {
+    "passed": 501,
+    "skipped": 4
+  },
+  "policyCorpus": {
+    "passed": 238
+  },
+  "agent": {
+    "passed": 393,
+    "skipped": 9,
+    "typeScriptBuild": "passed",
+    "productionDockerMastraBuild": "passed"
+  },
+  "web": {
+    "passed": 281,
+    "productionBuild": "passed"
+  },
+  "contracts": {
+    "passed": 4,
+    "build": "passed"
+  },
+  "mockedBrowser": {
+    "passed": 39
+  },
+  "opsNode": {
+    "passed": 16
+  },
+  "opsLinuxShell": {
+    "passed": 7
+  },
+  "browserSmokeRegression": {
+    "passed": 2
+  },
+  "affectedLint": "passed",
+  "productionReleaseGate": "failed",
+  "fullReleaseEvaluation": "not_run_blocked"
+}

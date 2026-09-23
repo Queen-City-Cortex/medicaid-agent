@@ -161,8 +161,15 @@ all source and evaluation gates pass.
    Baseline and candidate require the identical benchmark, implementation and
    model fingerprint. Partial runs, infrastructure errors, missing verification
    telemetry and disabled verification fail. Observability uses `:memory:`.
-   Historical section IDs may not match the current benchmark; investigate and
-   record that mismatch rather than substituting a different baseline benchmark.
+   Generate the canonical catalog once from the frozen source artifacts with
+   `eval-identity-catalog --output /data/pipeline/releases/evidence-identities.json`.
+   Set `EVAL_IDENTITY_CATALOG` to that same file for the baseline, candidate,
+   activation, and later scheduled validation. The 55 questions remain unchanged.
+   Mapping uses canonical source URL, family, and section identity; duplicate or
+   unnumbered sections need exact content and structure. Missing sections count
+   as misses; ambiguous mappings invalidate the comparison. Both results retain
+   raw/canonical identities, mapping evidence, and graph-specific mapping hashes.
+   Those graph hashes are excluded from the common configuration fingerprint.
 3. Build only the confirmed inactive blue graph using the existing bootstrap
    workflow, under the supervised writer lock. Set `CORPUS_JOB_MODE=bootstrap`,
    `BOOTSTRAP_TARGET_COLOR=blue`, `BOOTSTRAP_RESET_CONFIRM=neo4j-blue`, and
@@ -338,3 +345,84 @@ Railway references:
 - [Volumes and live resizing](https://docs.railway.com/volumes)
 - [Volume backups](https://docs.railway.com/volumes/backups)
 - [Storage buckets](https://docs.railway.com/storage-buckets)
+
+
+## Resumable source audit
+
+Keep `corpus-job` in maintenance mode and leave the agent on legacy while any
+required source, undocumented removal, classification, identity, or release gate
+is unresolved. Use the existing writer lock for all mutations and inventories.
+
+1. Capture a selected `documents` array from a locked read of the crawler registry.
+   From `packages/pipeline`, run
+   `CORPUS_DATA_ROOT=/data uv run python -m pipeline.cli source-audit --collect-input selection.json --output /data/pipeline/source-audit-evidence/<audit-id>`.
+   Optional `urls` add reviewed official index/replacement leads. Captures preserve
+   registry/download history, canonical URLs, redirects, timestamps and SHA-256
+   response hashes. Collection uses the normal crawler rate, robots, retry and
+   domain checks. The exact archive hostname is allowed only because an official
+   index links to it. Failed DNS observations cannot become 404 evidence.
+2. Resume with the same input/output. Cached captures are hash-checked and do not
+   increment attempts or availability counters. After exhausted DNS retries, other
+   links on that host are explicitly recorded as unvisited. Use a new directory
+   for a deliberate fresh observation; never relabel a cached response as fresh.
+3. Author a version-1 reviewed action bundle. Each action has a unique `action_id`,
+   `source_url`, SHA-256 `registry_hash` (canonical sorted JSON), original artifact
+   hash when present, `disposition` (`retire`, `classify`, or `unresolved`), and
+   reviewed evidence. Run `source-audit --reviewed actions.json` to validate;
+   only `--apply` mutates state. Application rechecks current registry and original
+   bytes while locked and journals each action. Resume with the same IDs after
+   interruption; changing an existing action's evidence is rejected.
+4. A classification includes `schema_version: 1`, `resource_role`, a substantive
+   finding, the exact source capture and all `children` from that captured index.
+   Every document child is registered transactionally before index exclusion.
+   Missing children remain required failures. Retain the index artifact.
+5. Version-2 retirement evidence requires explicit `payload_state`:
+   `original_present` retains the original SHA-256, while `never_downloaded`
+   requires consistent empty registry history, `history_complete: true`, retained
+   registry/artifact snapshots and their tested encrypted-backup restore receipts.
+   Lost originals and contradictory histories cannot use this exception. Version-1
+   records still require their original hashes. Retirement also requires three
+   confirmed 404s plus official index/replacement investigation, or an explicit
+   official withdrawal/supersession notice. Redirects, missing attachments, DNS
+   failures and similarly titled newer documents are insufficient by themselves.
+6. Recover failed downloads, undocumented tombstones or formal retirements with
+   `scripts/ops/reactivate-source.sh --url <canonical-url> --expected-registry-hash <hash> --recovery-id <reviewed-attempt-id>`.
+   Validate first, then repeat with `--apply`. Reuse the recovery ID after a crash
+   or duplicate invocation; a subsequent lifecycle recovery needs a new ID.
+   Normal payload checks and exact source identity are mandatory. Original bytes
+   are versioned before replacement. Parse recovered bytes normally and use the
+   existing guarded `parse-import` for isolated parser output.
+
+`recovery-inventory` reports every required/optional failure, missing payload,
+undocumented tombstone, classification and retirement. Snapshot schema 2 includes
+all source identities and artifact hashes, including originals and retained
+versions. Incremental sync, restore and encrypted backups include the audit
+captures. Backups made before dispositions cannot authorize activation.
+
+## Private answer diagnosis
+
+Set `VERIFIER_PRIVATE_DIAGNOSTICS_DIR` only for an explicit diagnostic run. It must
+be an absolute private directory (0700); captures are exclusive 0600 JSON files.
+They contain retrieved evidence, candidate answers, deterministic URL/quotation
+findings, corrections, exact rechecks and outcomes. CLI runs also retain private
+generation/tool results. Never include these files in ordinary logs, SSE, history,
+public release evidence or unencrypted artifact uploads. Use isolated observability
+storage and the production agent's actual graph and model configuration; corpus-job
+credentials may point at a different graph account.
+
+After a demonstrated fix, run exactly three independent fresh-authenticated EPSDT
+smokes and retain every result, including failures. Require all three to release
+`passed` or `corrected` answers with citations before freezing configuration. A
+successful CLI reproduction alone does not replace the HTTP and browser checks.
+The server's two-pass verification limit and withholding behavior remain mandatory.
+
+For a persistence-only diagnostic, set `SMOKE_RESTORE_THREAD_TITLE` to the exact
+existing sidebar title. The browser receipt records `existing_verified_thread`;
+this never substitutes for a fresh-answer release smoke or the fixed three-attempt
+EPSDT batch. The check waits for the active sidebar row, because the first row can
+still describe a previous conversation during asynchronous refresh. Duplicate
+visible titles fail rather than selecting an arbitrary thread.
+
+The [2026-09-23 source audit](../validation/source-audit-2026-09-23/README.md)
+records the current blocked inventory, per-source dispositions, identity preflight,
+failed fixed smoke batch, verified browser persistence and matching restored backup.

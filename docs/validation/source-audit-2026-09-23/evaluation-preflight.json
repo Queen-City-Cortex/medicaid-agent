@@ -1,0 +1,68 @@
+{
+  "status": "comparison_blocked",
+  "benchmarkQuestions": 55,
+  "benchmarkSha256": "97242b70394a511ba54760468536428944c31f87d9c5c039e24c54b10677f0ff",
+  "normalizationVersion": 1,
+  "catalogHash": "acfeb98a087ba3875e338f27b194216596e2566237517bed5a3df65e4f3f536e",
+  "legacyMappingHash": "ae0070f890dfeb0b652af3aab1431a548ad71a40b4c7b8d3bd8bb779d952c6ff",
+  "expectedDistinctIdentities": 99,
+  "mappedExpectedIdentities": 90,
+  "ambiguousMappings": 0,
+  "missingEvidence": [
+    {
+      "canonical_id": "sec:doc:beneficiary_guidance:1c5dc4106026216e:_s0",
+      "source_url": "https://medicaid.ncdhhs.gov/beneficiaries/impact-hr-1-and-federal-changes-medicaid/nc-medicaid-work-and-community-engagement-requirements",
+      "source_family": "beneficiary_guidance"
+    },
+    {
+      "canonical_id": "sec:doc:beneficiary_guidance:1c5dc4106026216e:_s1",
+      "source_url": "https://medicaid.ncdhhs.gov/beneficiaries/impact-hr-1-and-federal-changes-medicaid/nc-medicaid-work-and-community-engagement-requirements",
+      "source_family": "beneficiary_guidance"
+    },
+    {
+      "canonical_id": "sec:doc:beneficiary_guidance:1c5dc4106026216e:_s14",
+      "source_url": "https://medicaid.ncdhhs.gov/beneficiaries/impact-hr-1-and-federal-changes-medicaid/nc-medicaid-work-and-community-engagement-requirements",
+      "source_family": "beneficiary_guidance"
+    },
+    {
+      "canonical_id": "sec:doc:beneficiary_guidance:1c5dc4106026216e:_s15",
+      "source_url": "https://medicaid.ncdhhs.gov/beneficiaries/impact-hr-1-and-federal-changes-medicaid/nc-medicaid-work-and-community-engagement-requirements",
+      "source_family": "beneficiary_guidance"
+    },
+    {
+      "canonical_id": "sec:doc:beneficiary_guidance:1c5dc4106026216e:_s4",
+      "source_url": "https://medicaid.ncdhhs.gov/beneficiaries/impact-hr-1-and-federal-changes-medicaid/nc-medicaid-work-and-community-engagement-requirements",
+      "source_family": "beneficiary_guidance"
+    },
+    {
+      "canonical_id": "sec:doc:beneficiary_guidance:1c5dc4106026216e:_s6",
+      "source_url": "https://medicaid.ncdhhs.gov/beneficiaries/impact-hr-1-and-federal-changes-medicaid/nc-medicaid-work-and-community-engagement-requirements",
+      "source_family": "beneficiary_guidance"
+    },
+    {
+      "canonical_id": "sec:doc:beneficiary_guidance:1c5dc4106026216e:_s7",
+      "source_url": "https://medicaid.ncdhhs.gov/beneficiaries/impact-hr-1-and-federal-changes-medicaid/nc-medicaid-work-and-community-engagement-requirements",
+      "source_family": "beneficiary_guidance"
+    },
+    {
+      "canonical_id": "sec:doc:beneficiary_guidance:c9205b2a192a4a15:_s11",
+      "source_url": "https://medicaid.ncdhhs.gov/beneficiaries/medicaid-is-changing",
+      "source_family": "beneficiary_guidance"
+    },
+    {
+      "canonical_id": "sec:doc:beneficiary_guidance:c9205b2a192a4a15:_s15",
+      "source_url": "https://medicaid.ncdhhs.gov/beneficiaries/medicaid-is-changing",
+      "source_family": "beneficiary_guidance"
+    }
+  ],
+  "legacyGraphMutated": false,
+  "fullLegacyBaselineRun": false,
+  "blueCandidateRun": false,
+  "precision": null,
+  "recall": null,
+  "primaryEvidenceHitRate": null,
+  "answerScore": null,
+  "hallucinationScore": null,
+  "aggregateRegression": null,
+  "reason": "Required source and fixed EPSDT smoke gates failed before release freeze; mapping preflight is not retrieval or answer evaluation."
+}

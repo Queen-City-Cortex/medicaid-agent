@@ -43,3 +43,20 @@ test('rejects a healthy endpoint serving a stale release', async () => {
   const env = { AGENT_PUBLIC_URL: 'https://agent.example', SYNTHETIC_RESOURCE_ID: 'u', SYNTHETIC_ACCESS_TOKEN: token('u', Date.now()/1000+3600) };
   await assert.rejects(runSmoke('new', env, async () => ({ ok: true, json: async () => ({ status: 'ok', releaseId: 'old' }) })), /expected healthy release/);
 });
+
+test('retains only safe withholding metadata in failed smoke receipts', () => {
+  const withheld = [{ type: 'data-verification-status', data: {
+    status: 'withheld', reason: 'unavailable', passCount: 1, draft: 'PRIVATE_DRAFT_SENTINEL',
+  } }];
+  assert.throws(() => checkAnswerStream(stream(withheld)), error => {
+    assert.deepEqual(error.verification, { status: 'withheld', reason: 'unavailable', passCount: 1 });
+    assert.ok(!JSON.stringify(error).includes('PRIVATE_DRAFT_SENTINEL'));
+    return true;
+  });
+  withheld[0].data.passCount = 'PRIVATE_DRAFT_SENTINEL';
+  assert.throws(() => checkAnswerStream(stream(withheld)), error => {
+    assert.equal(error.verification.passCount, null);
+    assert.ok(!JSON.stringify(error).includes('PRIVATE_DRAFT_SENTINEL'));
+    return true;
+  });
+});

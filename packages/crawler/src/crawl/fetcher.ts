@@ -60,7 +60,16 @@ export interface FetcherOptions {
   isAllowedUrl?: (url: string) => boolean;
 }
 
+export interface EvidenceResponse {
+  body: Buffer;
+  statusCode: number;
+  headers: Record<string, string | string[] | undefined>;
+  finalUrl: string;
+  redirects: Array<{ url: string; statusCode: number; location: string }>;
+}
+
 interface RateLimitedFetcher extends Fetcher {
+  fetchEvidence(url: string, maxBytes: number, isAllowedUrl: (url: string) => boolean, beforeRequest: (url: string) => Promise<void>): Promise<EvidenceResponse>;
   setCrawlDelay(domain: string, delayMs: number): void;
   getDelayForDomain(domain: string): number;
 }
@@ -132,6 +141,7 @@ export function createFetcher(options: FetcherOptions): RateLimitedFetcher {
     headers: Record<string, string | string[] | undefined>;
     body: BodyReadable;
     finalUrl: string;
+    redirects: EvidenceResponse['redirects'];
   };
 
   async function requestOnce(
@@ -159,12 +169,14 @@ export function createFetcher(options: FetcherOptions): RateLimitedFetcher {
     retries: number = options.maxRetries,
     isAllowedUrl: (url: string) => boolean =
       options.isAllowedUrl ?? (() => true),
+    beforeRequest?: (url: string) => Promise<void>,
   ): Promise<FetchResponse> {
     return fetchWithRetryUnqueued(
       url,
       extraHeaders,
       retries,
       isAllowedUrl,
+      beforeRequest,
     );
   }
 
@@ -173,6 +185,7 @@ export function createFetcher(options: FetcherOptions): RateLimitedFetcher {
     extraHeaders: Record<string, string>,
     retries: number,
     isAllowedUrl: (url: string) => boolean,
+    beforeRequest?: (url: string) => Promise<void>,
   ): Promise<FetchResponse> {
     let lastError: Error | null = null;
 
@@ -180,6 +193,7 @@ export function createFetcher(options: FetcherOptions): RateLimitedFetcher {
       const startTime = Date.now();
       try {
         let currentUrl = url;
+        const redirects: EvidenceResponse['redirects'] = [];
         let response: Awaited<ReturnType<typeof request>> | null = null;
 
         for (
@@ -191,6 +205,7 @@ export function createFetcher(options: FetcherOptions): RateLimitedFetcher {
             throw new UrlRejectedError(currentUrl);
           }
 
+          await beforeRequest?.(currentUrl);
           response = await requestOnce(currentUrl, extraHeaders);
           const locationHeader = response.headers.location;
           const isRedirect =
@@ -207,6 +222,7 @@ export function createFetcher(options: FetcherOptions): RateLimitedFetcher {
             ? locationHeader[0]
             : locationHeader;
           if (!location) break;
+          redirects.push({ url: currentUrl, statusCode: response.statusCode, location: new URL(location, currentUrl).toString() });
           currentUrl = new URL(location, currentUrl).toString();
         }
 
@@ -232,6 +248,7 @@ export function createFetcher(options: FetcherOptions): RateLimitedFetcher {
             headers: response.headers as Record<string, string | string[] | undefined>,
             body: response.body,
             finalUrl: currentUrl,
+            redirects,
           };
         }
 
@@ -286,6 +303,21 @@ export function createFetcher(options: FetcherOptions): RateLimitedFetcher {
   }
 
   return {
+    async fetchEvidence(url, maxBytes, isAllowedUrl, beforeRequest) {
+      const response = await fetchWithRetry(url, {}, options.maxRetries, isAllowedUrl, beforeRequest);
+      const chunks: Buffer[] = [];
+      let length = 0;
+      for await (const chunk of response.body) {
+        length += chunk.length;
+        if (length > maxBytes) {
+          response.body.destroy();
+          throw new FileTooLargeError(maxBytes);
+        }
+        chunks.push(Buffer.from(chunk));
+      }
+      return { ...response, body: Buffer.concat(chunks) };
+    },
+
     async fetchHtml(
       url: string,
       isAllowedUrl?: (url: string) => boolean,

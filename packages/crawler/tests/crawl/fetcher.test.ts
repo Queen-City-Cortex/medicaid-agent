@@ -147,3 +147,26 @@ describe('request safety', () => {
     }
   });
 });
+
+describe('audit evidence transport', () => {
+  it('captures redirect history and 404 bodies while checking robots at each hop', async () => {
+    const seen: string[] = [];
+    const server = createServer((request, response) => {
+      if (request.url === '/start') response.writeHead(302, { location: '/missing' }).end();
+      else response.writeHead(404, { 'content-type': 'text/html' }).end('Official missing document');
+    });
+    await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
+    const address = server.address();
+    if (!address || typeof address === 'string') throw new Error('Missing test port');
+    const base = `http://127.0.0.1:${address.port}`;
+    const fetcher = createFetcher({ userAgent: 'Test', defaultDelayMs: 0, requestTimeoutMs: 1000, maxRetries: 0, backoffBaseMs: 1, backoffMaxMs: 1, maxRedirects: 3 });
+    try {
+      const result = await fetcher.fetchEvidence(base + '/start', 1024, url => new URL(url).origin === base, async url => { seen.push(url); });
+      expect(result.statusCode).toBe(404);
+      expect(result.body.toString()).toBe('Official missing document');
+      expect(result.redirects).toEqual([{ url: base + '/start', statusCode: 302, location: base + '/missing' }]);
+      expect(seen).toEqual([base + '/start', base + '/missing']);
+      await expect(fetcher.fetchEvidence(base + '/start', 1024, () => true, async () => { throw new Error('robots disallows'); })).rejects.toThrow('robots');
+    } finally { server.closeAllConnections(); await new Promise<void>(resolve => server.close(() => resolve())); }
+  });
+});

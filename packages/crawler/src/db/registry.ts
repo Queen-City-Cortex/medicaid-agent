@@ -110,6 +110,9 @@ export interface DocumentRegistry {
 }
 
 export function createRegistry(db: Database.Database): DocumentRegistry {
+  // Validation-only commands must also work against pre-classification snapshots.
+  const hasClassifications = Boolean(db.prepare("SELECT 1 FROM sqlite_master WHERE name='source_classifications'").get());
+  const documentFilter = hasClassifications ? "AND NOT EXISTS (SELECT 1 FROM source_classifications c WHERE c.source_url=documents.source_url AND c.resource_role='index')" : '';
   // Prepare statements
   const insertStmt = db.prepare(`
     INSERT INTO documents (source_url, discovered_from, source_type, title, policy_number, category)
@@ -117,12 +120,7 @@ export function createRegistry(db: Database.Database): DocumentRegistry {
     ON CONFLICT(source_url) DO UPDATE SET
       title = COALESCE(@title, title),
       policy_number = COALESCE(@policy_number, policy_number),
-      category = COALESCE(@category, category),
-      status = CASE WHEN status = 'removed' AND NOT EXISTS (SELECT 1 FROM source_retirements r WHERE r.source_url = documents.source_url AND r.reactivated_at IS NULL) THEN 'discovered' ELSE status END,
-      removed_at = CASE WHEN status = 'removed' AND NOT EXISTS (SELECT 1 FROM source_retirements r WHERE r.source_url = documents.source_url AND r.reactivated_at IS NULL) THEN NULL ELSE removed_at END,
-      error_message = CASE WHEN status = 'removed' AND NOT EXISTS (SELECT 1 FROM source_retirements r WHERE r.source_url = documents.source_url AND r.reactivated_at IS NULL) THEN NULL ELSE error_message END,
-      consecutive_errors = CASE WHEN status = 'removed' AND NOT EXISTS (SELECT 1 FROM source_retirements r WHERE r.source_url = documents.source_url AND r.reactivated_at IS NULL) THEN 0 ELSE consecutive_errors END,
-      consecutive_not_found = CASE WHEN status = 'removed' AND NOT EXISTS (SELECT 1 FROM source_retirements r WHERE r.source_url = documents.source_url AND r.reactivated_at IS NULL) THEN 0 ELSE consecutive_not_found END
+      category = COALESCE(@category, category)
   `);
 
   const getByUrlStmt = db.prepare(
@@ -242,25 +240,27 @@ export function createRegistry(db: Database.Database): DocumentRegistry {
   const getToCheckStmt = db.prepare(`
     SELECT * FROM documents
     WHERE status IN ('downloaded', 'updated', 'unchanged', 'error')
+      ${documentFilter}
     ORDER BY last_checked_at ASC NULLS FIRST
   `);
 
   const getToCheckBySourceStmt = db.prepare(`
     SELECT * FROM documents
     WHERE status IN ('downloaded', 'updated', 'unchanged', 'error')
+      ${documentFilter}
       AND source_type = ?
     ORDER BY last_checked_at ASC NULLS FIRST
   `);
 
   const getToDownloadStmt = db.prepare(`
     SELECT * FROM documents
-    WHERE status = 'discovered'
+    WHERE status = 'discovered' ${documentFilter}
     ORDER BY first_seen_at ASC
   `);
 
   const getToDownloadBySourceStmt = db.prepare(`
     SELECT * FROM documents
-    WHERE status = 'discovered' AND source_type = ?
+    WHERE status = 'discovered' ${documentFilter} AND source_type = ?
     ORDER BY first_seen_at ASC
   `);
 

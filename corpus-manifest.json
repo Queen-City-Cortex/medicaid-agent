@@ -25,7 +25,7 @@
       "freshness_expectation": "daily",
       "discovery_interval_hours": 24,
       "freshness_sla_days": 1,
-      "allowed_domains": ["medicaid.ncdhhs.gov"],
+      "allowed_domains": ["medicaid.ncdhhs.gov", "covid19.ncdhhs.gov", "www.dph.ncdhhs.gov"],
       "allowed_file_formats": [".pdf", ".docx"],
       "landing_pages": [
         "https://medicaid.ncdhhs.gov/providers/medicaid-bulletin",
@@ -96,7 +96,7 @@
       "freshness_expectation": "weekly",
       "discovery_interval_hours": 24,
       "freshness_sla_days": 7,
-      "allowed_domains": ["policies.ncdhhs.gov"],
+      "allowed_domains": ["policies.ncdhhs.gov", "policies-inactive.ncdhhs.gov"],
       "allowed_file_formats": [".pdf", ".doc", ".docx", ".xls", ".xlsx"],
       "landing_pages": [
         "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"

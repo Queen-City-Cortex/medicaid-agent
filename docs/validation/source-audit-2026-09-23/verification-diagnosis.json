@@ -1,0 +1,79 @@
+{
+  "originalFailure": {
+    "question": "What does EPSDT require?",
+    "outcome": "withheld",
+    "reason": "unsupported",
+    "passCount": 2,
+    "verifierLatencyMs": 32303,
+    "originalCandidateRetained": false
+  },
+  "reproduction": {
+    "graph": "legacy-20260725-ae8595c",
+    "agentModel": "gpt-5.4",
+    "verifierModel": "gpt-5.6-terra",
+    "demonstratedCause": "Broad hybrid retrieval for a generic EPSDT overview omitted SSA 1905(r) and surfaced unrelated CFR context. First-pass findings identified unsupported treatment scope and nonliteral quotations. Correction repaired them and passed.",
+    "repair": "Route narrow EPSDT overview to federal authority and supplement missing statute evidence with a statute-only search.",
+    "privateAfterRepair": {
+      "outcome": "passed",
+      "passCount": 1,
+      "verifierLatencyMs": 8375,
+      "sourceCount": 22,
+      "includesSsa1905": true
+    }
+  },
+  "fixedHttpBatch": {
+    "passed": false,
+    "attempts": [
+      {
+        "attempt": 1,
+        "outcome": "passed",
+        "passCount": 1,
+        "verifierLatencyMs": 8536,
+        "loggedAt": "2026-09-23T21:50:01.707Z"
+      },
+      {
+        "attempt": 2,
+        "outcome": "withheld",
+        "passCount": 1,
+        "reason": "unavailable",
+        "errorClass": "TimeoutError",
+        "verifierLatencyMs": 30008,
+        "loggedAt": "2026-09-23T21:51:04.668Z"
+      },
+      {
+        "attempt": 3,
+        "outcome": "corrected",
+        "passCount": 2,
+        "verifierLatencyMs": 33752,
+        "loggedAt": "2026-09-23T21:52:09.474Z"
+      }
+    ],
+    "withholdingRate": 0.3333333333333333,
+    "meanVerificationLatencyMs": 24098.666666666668,
+    "source": "Supplemental safe metadata from the exact agent deployment logs; original batch receipt is retained unchanged."
+  },
+  "browserChecks": [
+    {
+      "mode": "new_answer",
+      "result": "comparison_failed",
+      "cause": "Sidebar first row had not refreshed and selected an older EPSDT answer; regression fixed and tested."
+    },
+    {
+      "mode": "new_answer",
+      "result": "withheld",
+      "cause": "The follow-up generation was withheld. Retained separately; it does not replace any fixed-batch result."
+    },
+    {
+      "mode": "existing_verified_thread",
+      "result": "passed",
+      "outcome": "corrected",
+      "checks": [
+        "thread_switch",
+        "reload"
+      ],
+      "receipt": "browser-persistence-receipt.json"
+    }
+  ],
+  "privateCapturePublished": false,
+  "releaseConfigurationFrozen": false
+}

@@ -6,6 +6,14 @@ from pipeline.eval.dataset import load_dataset
 
 def complete_result():
     return {
+        "config": {
+            "evidence_normalization": {
+                "version": 1,
+                "catalogHash": "c",
+                "mappingHash": evidence.stable_hash([]),
+                "mappings": [],
+            }
+        },
         "per_question": [
             {
                 "question_id": item["id"],
@@ -87,3 +95,29 @@ def test_withholding_and_latency_are_reported():
     assert summary["withholdingRate"] == 1 / len(answer["per_question"])
     assert summary["latencyMsMedian"] == 1000
     assert summary["withholdingReasons"] == {"unsupported": 1}
+
+
+def test_graph_specific_mappings_do_not_enter_common_fingerprint():
+    result = complete_result()
+    missing = {**result, "config": {}}
+    with pytest.raises(ValueError, match="identity mappings"):
+        evidence.require_complete_results(missing, result)
+    changed = {
+        **result,
+        "config": {
+            "evidence_normalization": {
+                "version": 1,
+                "catalogHash": "c",
+                "mappingHash": "different",
+            }
+        },
+    }
+    with pytest.raises(ValueError, match="graph identity changed"):
+        evidence.require_complete_results(result, changed)
+
+
+def test_tampered_identity_mapping_invalidates_comparison():
+    result = complete_result()
+    result["config"]["evidence_normalization"]["mappings"] = [{"raw_id": "changed"}]
+    with pytest.raises(ValueError, match="mapping hash mismatch"):
+        evidence.require_complete_results(result, result)

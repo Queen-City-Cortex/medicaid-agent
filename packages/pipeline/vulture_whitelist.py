@@ -24,6 +24,8 @@ eval_compare
 eval_runs
 eval_answer_stability
 eval_validate
+eval_identity_catalog
+source_audit
 ingest_cfr
 ingest_ssa
 inspect

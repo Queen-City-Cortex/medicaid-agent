@@ -1,0 +1,15 @@
+{
+  "sourceUrl": "https://policies.ncdhhs.gov/document/dhb-administrative-letter-no-11-20-medicaid-covid-19-optional-testing-group-obsolete-2/",
+  "registryId": 12835,
+  "sourceFile": "dhhs-policies/unknown-document.pdf",
+  "sourceSha256": "9c29d1a82a40a5314c658e628c949a2b83f6cd5865fd2b2a32007642de3361d9",
+  "parserCodeCommit": "78e00cdf8eef3d99c24e02f76900885f8197b32b",
+  "sections": 17,
+  "qualityFlags": [],
+  "parseCacheVersion": 6,
+  "importBatch": "bc8152ecd1c141f187cdfb8fefe7096c",
+  "duplicateBatch": "1fda373ae926446d92ce095c92447fae",
+  "attemptCountAfterImport": 1,
+  "duplicateResult": "already_valid",
+  "priorSuccessfulRecoveriesPreserved": 7
+}

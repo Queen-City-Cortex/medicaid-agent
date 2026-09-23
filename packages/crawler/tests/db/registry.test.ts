@@ -90,7 +90,7 @@ describe('DocumentRegistry', () => {
       expect(db.prepare('SELECT count(*) AS n FROM source_retirements').get()).toEqual({ n: 1 });
     });
 
-    it('revives removed documents and clears removal metadata', () => {
+    it('preserves undocumented tombstones on rediscovery', () => {
       const id = registry.upsertDiscovered(sampleDoc);
       registry.markRemoved(id);
 
@@ -98,8 +98,8 @@ describe('DocumentRegistry', () => {
 
       expect(registry.upsertDiscovered(sampleDoc)).toBe(id);
       expect(registry.getById(id)).toMatchObject({
-        status: 'discovered',
-        removed_at: null,
+        status: 'removed',
+        removed_at: expect.any(String),
         error_message: null,
         consecutive_errors: 0,
         consecutive_not_found: 0,

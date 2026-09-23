@@ -73,3 +73,45 @@ describe('documented source reactivation', () => {
     expect(fs.readFileSync(path.join(config.documentsDir, 'dhhs-policies/form.pdf'), 'utf8')).toBe('original invalid payload');
   });
 });
+
+it('recovers an undocumented tombstone and makes duplicate application a no-op', async () => {
+  let db = new Database(config.dbPath);
+  db.prepare('DELETE FROM source_retirements').run(); db.close();
+  vi.mocked(downloadDocument).mockClear();
+  await run(true);
+  await run(true);
+  expect(downloadDocument).toHaveBeenCalledTimes(1);
+  db = new Database(config.dbPath);
+  expect(db.prepare('SELECT status,download_attempts FROM documents').get()).toEqual({ status: 'downloaded', download_attempts: 1 });
+  db.close();
+});
+
+it('resumes a crash after file replacement without repeating the download', async () => {
+  let db = new Database(config.dbPath);
+  db.exec("CREATE TRIGGER interrupt_recovery BEFORE UPDATE OF status ON documents WHEN NEW.status='downloaded' BEGIN SELECT RAISE(ABORT, 'interrupted'); END"); db.close();
+  vi.mocked(downloadDocument).mockClear();
+  await expect(run(true)).rejects.toThrow('interrupted');
+  db = new Database(config.dbPath); db.exec('DROP TRIGGER interrupt_recovery'); db.close();
+  await run(true);
+  expect(downloadDocument).toHaveBeenCalledTimes(1);
+  db = new Database(config.dbPath);
+  expect(db.prepare('SELECT download_attempts FROM documents').get()).toEqual({ download_attempts: 1 }); db.close();
+});
+
+it('resumes a never-downloaded source after file rename without a second download', async () => {
+  let db = new Database(config.dbPath);
+  db.exec("UPDATE documents SET local_path=NULL; CREATE TRIGGER interrupt_recovery BEFORE UPDATE OF status ON documents WHEN NEW.status='downloaded' BEGIN SELECT RAISE(ABORT, 'interrupted'); END"); db.close();
+  fs.rmSync(path.join(config.documentsDir, 'dhhs-policies/form.pdf'));
+  vi.mocked(downloadDocument).mockClear();
+  await expect(run(true)).rejects.toThrow('interrupted');
+  db = new Database(config.dbPath); db.exec('DROP TRIGGER interrupt_recovery'); db.close();
+  await run(true);
+  expect(downloadDocument).toHaveBeenCalledTimes(1);
+});
+
+it('rejects another source artifact at the recovered path', async () => {
+  const db = new Database(config.dbPath);
+  db.exec("UPDATE documents SET local_path=NULL; INSERT INTO documents(source_url,source_type,discovered_from,local_path) VALUES('https://policies.ncdhhs.gov/document/sibling/', 'dhhs_policy','https://policies.ncdhhs.gov/','dhhs-policies/form.pdf')"); db.close();
+  await expect(run(true)).rejects.toThrow('another artifact');
+  expect(fs.readFileSync(path.join(config.documentsDir, 'dhhs-policies/form.pdf'), 'utf8')).toBe('original invalid payload');
+});

@@ -8,6 +8,7 @@ import { registerExportCommand } from './cli/export.js';
 import { registerUpdateFixturesCommand } from './cli/update-fixtures.js';
 import { registerReconcileCommand } from './cli/reconcile.js';
 
+import { registerSourceAuditCommand } from './cli/source-audit.js';
 import { registerReactivateCommand } from './cli/reactivate.js';
 
 const program = new Command()
@@ -24,5 +25,6 @@ registerExportCommand(program);
 registerUpdateFixturesCommand(program);
 registerReconcileCommand(program);
 registerReactivateCommand(program);
+registerSourceAuditCommand(program);
 
 program.parse();

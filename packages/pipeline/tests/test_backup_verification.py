@@ -21,20 +21,27 @@ def archive(tmp_path, *, tamper=False, omit_evidence=False):
     evidence = b"Official removal notice and index"
     capture = "pipeline/source-retirement-evidence/notice.html"
     with sqlite3.connect(db_path) as db:
-        db.execute("CREATE TABLE documents(id)")
-        db.execute("INSERT INTO documents VALUES(1)")
-        db.execute("CREATE TABLE source_retirements(id INTEGER, evidence_json TEXT)")
+        db.execute("CREATE TABLE documents(id,source_url,local_path,status)")
         db.execute(
-            "INSERT INTO source_retirements VALUES(1,?)",
+            "INSERT INTO documents VALUES(1,'https://policies.ncdhhs.gov/test.pdf','test.pdf','removed')"
+        )
+        db.execute(
+            "CREATE TABLE source_retirements(id INTEGER, source_url TEXT, evidence_json TEXT)"
+        )
+        db.execute(
+            "INSERT INTO source_retirements VALUES(1,'https://policies.ncdhhs.gov/test.pdf',?)",
             (
                 json.dumps(
                     {
+                        "schema_version": 1,
+                        "original_artifact_hash": "sha256:"
+                        + hashlib.sha256(b"%PDF-test").hexdigest(),
                         "evidence": [
                             {
                                 "capture_path": capture,
                                 "sha256": hashlib.sha256(evidence).hexdigest(),
                             }
-                        ]
+                        ],
                     }
                 ),
             ),
@@ -76,3 +83,29 @@ def test_restored_archive_checks_database_and_retirement_evidence(tmp_path):
 def test_archive_tampering_and_missing_retirement_capture_fail(tmp_path, mutation):
     with pytest.raises(ValueError, match="hash mismatch|Retirement evidence"):
         backup.inspect_archive(archive(tmp_path, **{mutation: True}))
+
+
+@pytest.mark.parametrize("registry_directory", ["crawler", "packages/crawler/data"])
+def test_live_and_restored_snapshot_share_source_artifact_namespace(
+    tmp_path, monkeypatch, registry_directory
+):
+    from pipeline import freshness
+
+    source_archive = archive(tmp_path)
+    restored = backup.inspect_archive(source_archive)
+    source_archive.seek(0)
+    live = tmp_path / "live"
+    with tarfile.open(fileobj=source_archive, mode="r:gz") as tar:
+        for member in tar:
+            relative = member.name
+            if relative.startswith("crawler/"):
+                relative = registry_directory + "/" + relative.removeprefix("crawler/")
+            target = live / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(tar.extractfile(member).read())
+    monkeypatch.setattr(freshness, "CRAWLER_DB_PATH", live / registry_directory / "crawler.db")
+    parsed = live / "pipeline/parsed"
+    before = freshness.build_answer_ready_snapshot(parsed)
+    assert "sha256:" + before["snapshot_hash"] == restored["sourceSnapshotHash"]
+    (live / registry_directory / "documents/test.pdf").write_bytes(b"changed source")
+    assert freshness.build_answer_ready_snapshot(parsed)["snapshot_hash"] != before["snapshot_hash"]

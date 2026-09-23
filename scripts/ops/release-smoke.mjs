@@ -19,7 +19,14 @@ export function checkAnswerStream(body, minimumCharacters = 200) {
     if (event.type === 'data-verification-status') {
       if (event.data?.status === 'verifying' && !outcome) continue;
       if (outcome || !['passed', 'corrected'].includes(event.data?.status)
-          || ![1, 2].includes(event.data?.passCount)) throw new Error('Answer was not verified');
+          || ![1, 2].includes(event.data?.passCount)) {
+        const error = new Error('Answer was not verified');
+        if (event.data?.status === 'withheld') error.verification = {
+          status: 'withheld', passCount: [0, 1, 2].includes(event.data.passCount) ? event.data.passCount : null,
+          reason: ['unsupported', 'invalid_citation', 'unusable_correction', 'unavailable'].includes(event.data.reason) ? event.data.reason : 'unknown',
+        };
+        throw error;
+      }
       outcome = event.data;
     }
     if (event.type === 'text-start') {

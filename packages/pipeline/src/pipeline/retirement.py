@@ -12,6 +12,7 @@ from pathlib import Path
 from urllib.parse import urlsplit, urlunsplit
 
 from pipeline.corpus_manifest import load_corpus_manifest
+from pipeline.source_lifecycle import private_path, validate_never_downloaded, verify_capture
 
 RETIREMENT_SCHEMA = """
 CREATE TABLE IF NOT EXISTS source_retirements (
@@ -83,11 +84,27 @@ def require_documented_removals(db_path: Path) -> None:
         )
     for row in read_retirements(db_path):
         evidence = json.loads(row["evidence_json"])
-        if row["schema_version"] != 1 or evidence.get("schema_version") != 1:
+        if row["schema_version"] not in {1, 2} or evidence.get("schema_version") != row["schema_version"]:
             raise RuntimeError("Incompatible retirement evidence version")
+        if row["reactivated_at"] is None:
+            with sqlite3.connect(f"file:{db_path}?mode=ro", uri=True) as db:
+                db.row_factory = sqlite3.Row
+                document = dict(db.execute("SELECT * FROM documents WHERE source_url=?", (row["source_url"],)).fetchone())
+            if evidence.get("payload_state") == "never_downloaded":
+                validate_never_downloaded(db_path.parent.parent, document, evidence.get("download_history", {}))
+            else:
+                original = private_path(db_path.parent / "documents", document.get("local_path") or "")
+                if not original.is_file() or "sha256:" + hashlib.sha256(original.read_bytes()).hexdigest() != evidence.get("original_artifact_hash"):
+                    raise RuntimeError("Retired original artifact changed or disappeared")
+        if evidence.get("payload_state") == "never_downloaded":
+            root = db_path.parent.parent
+            for snapshot in evidence.get("download_history", {}).get("retained_snapshots", []):
+                verify_capture(root, snapshot)
+                verify_capture(root, snapshot["restore_receipt"])
+
         for item in evidence["evidence"]:
             relative = Path(item["capture_path"])
-            capture = db_path.parent.parent / relative
+            capture = private_path(db_path.parent.parent, str(relative))
             if (
                 relative.is_absolute()
                 or ".." in relative.parts
@@ -100,26 +117,37 @@ def require_documented_removals(db_path: Path) -> None:
 def retire_source(root: Path, evidence: dict, *, apply: bool = False) -> dict:
     """Validate an operator-authored evidence bundle, then atomically retire."""
     with corpus_writer_lock(root):
-        db_path = root / "crawler/crawler.db"
-        with sqlite3.connect(
-            f"file:{db_path}?mode={'rw' if apply else 'ro'}", uri=True
-        ) as db:
-            db.row_factory = sqlite3.Row
-            url = canonical_url(evidence["source_url"])
-            row = db.execute(
-                "SELECT * FROM documents WHERE source_url=?", (url,)
-            ).fetchone()
-            if row is None:
-                raise ValueError("Unknown source identity")
-            if (
-                evidence.get("schema_version") != 1
-                or len(evidence.get("reason", "").strip()) < 20
-            ):
-                raise ValueError(
-                    "Versioned evidence and a substantive retirement reason are required"
-                )
+        return retire_source_locked(root, evidence, apply=apply)
+
+
+def retire_source_locked(root: Path, evidence: dict, *, apply: bool = False) -> dict:
+    """Internal entrypoint; the caller must hold corpus_writer_lock."""
+    db_path = root / "crawler/crawler.db"
+    with sqlite3.connect(
+        f"file:{db_path}?mode={'rw' if apply else 'ro'}", uri=True
+    ) as db:
+        db.row_factory = sqlite3.Row
+        url = canonical_url(evidence["source_url"])
+        row = db.execute(
+            "SELECT * FROM documents WHERE source_url=?", (url,)
+        ).fetchone()
+        if row is None:
+            raise ValueError("Unknown source identity")
+        if (
+            evidence.get("schema_version") not in {1, 2}
+            or len(evidence.get("reason", "").strip()) < 20
+        ):
+            raise ValueError(
+                "Versioned evidence and a substantive retirement reason are required"
+            )
+        payload_state = evidence.get("payload_state", "original_present" if evidence["schema_version"] == 1 else None)
+        if payload_state == "never_downloaded" and evidence["schema_version"] == 2:
+            if evidence.get("original_artifact_hash") is not None:
+                raise ValueError("Never-downloaded evidence cannot claim an original hash")
+            validate_never_downloaded(root, dict(row), evidence.get("download_history", {}))
+        elif payload_state == "original_present":
             rel = Path(row["local_path"] or "")
-            source = root / "crawler/documents" / rel
+            source = private_path(root / "crawler/documents", str(rel))
             if (
                 not rel.parts
                 or rel.is_absolute()
@@ -130,89 +158,90 @@ def retire_source(root: Path, evidence: dict, *, apply: bool = False) -> dict:
             digest = "sha256:" + hashlib.sha256(source.read_bytes()).hexdigest()
             if digest != evidence.get("original_artifact_hash"):
                 raise ValueError("Original artifact changed")
-            family = next(
-                f
-                for f in load_corpus_manifest().source_families
-                if f.source_type == row["source_type"]
+        else:
+            raise ValueError("Explicit original_present or proven never_downloaded state is required")
+        family = next(
+            f
+            for f in load_corpus_manifest().source_families
+            if f.source_type == row["source_type"]
+        )
+        findings = set()
+        for item in evidence.get("evidence", []):
+            official = urlsplit(canonical_url(item["url"]))
+            if official.hostname not in family.allowed_domains:
+                raise ValueError(
+                    "Retirement evidence must come from an allowed official domain"
+                )
+            checked = datetime.fromisoformat(
+                item["checked_at"].replace("Z", "+00:00")
             )
-            findings = set()
-            for item in evidence.get("evidence", []):
-                official = urlsplit(canonical_url(item["url"]))
-                if official.hostname not in family.allowed_domains:
-                    raise ValueError(
-                        "Retirement evidence must come from an allowed official domain"
-                    )
-                checked = datetime.fromisoformat(
-                    item["checked_at"].replace("Z", "+00:00")
-                )
-                if checked.tzinfo is None or checked > datetime.now(UTC):
-                    raise ValueError("Invalid evidence timestamp")
-                if (
-                    len(item.get("finding", "").strip()) < 20
-                    or len(item.get("sha256", "")) != 64
-                ):
-                    raise ValueError(
-                        "Evidence needs a finding and captured response hash"
-                    )
-                int(item["sha256"], 16)
-                capture = Path(item.get("capture_path", ""))
-                if not capture.parts or capture.is_absolute() or ".." in capture.parts:
-                    raise ValueError("Captured official response is required")
-                artifact = root / capture
-                if (
-                    not artifact.is_file()
-                    or hashlib.sha256(artifact.read_bytes()).hexdigest()
-                    != item["sha256"]
-                ):
-                    raise ValueError("Captured official response hash mismatch")
-                findings.add(item.get("kind"))
-            if "index_investigation" not in findings:
-                raise ValueError(
-                    "Official-index and replacement investigation is required"
-                )
-            basis = evidence.get("basis")
-            if basis == "not_found":
-                if int(row["consecutive_not_found"]) < 3:
-                    raise ValueError("Three consecutive confirmed 404s are required")
-            elif basis in {"withdrawn", "superseded"}:
-                if "withdrawal_notice" not in findings:
-                    raise ValueError(
-                        "Explicit official withdrawal or supersession evidence is required"
-                    )
-            else:
-                raise ValueError(
-                    "Temporary failures and missing attachments cannot justify retirement"
-                )
-            replacement = evidence.get("replacement_url")
+            if checked.tzinfo is None or checked > datetime.now(UTC):
+                raise ValueError("Invalid evidence timestamp")
             if (
-                replacement
-                and urlsplit(canonical_url(replacement)).hostname
-                not in family.allowed_domains
+                len(item.get("finding", "").strip()) < 20
+                or len(item.get("sha256", "")) != 64
             ):
-                raise ValueError("Replacement must be an official source")
-            result = {"source_url": url, "apply": apply, "status": "validated"}
-            if apply:
-                db.executescript(RETIREMENT_SCHEMA)
-                encoded = json.dumps({**evidence, "source_url": url}, sort_keys=True)
-                current = db.execute(
-                    "SELECT evidence_json FROM source_retirements WHERE source_url=? AND reactivated_at IS NULL",
-                    (url,),
-                ).fetchone()
-                if current:
-                    if current["evidence_json"] != encoded:
-                        raise ValueError("An existing retirement cannot be overwritten")
-                    return {**result, "status": "already_retired"}
-                db.execute(
-                    "INSERT INTO source_retirements(source_url,evidence_json,retired_at) VALUES(?,?,?)",
-                    (url, encoded, datetime.now(UTC).isoformat()),
+                raise ValueError(
+                    "Evidence needs a finding and captured response hash"
                 )
-                db.execute(
-                    "UPDATE documents SET status='removed', removed_at=datetime('now') WHERE source_url=?",
-                    (url,),
+            int(item["sha256"], 16)
+            capture = Path(item.get("capture_path", ""))
+            if not capture.parts or capture.is_absolute() or ".." in capture.parts:
+                raise ValueError("Captured official response is required")
+            artifact = private_path(root, str(capture))
+            if (
+                not artifact.is_file()
+                or hashlib.sha256(artifact.read_bytes()).hexdigest()
+                != item["sha256"]
+            ):
+                raise ValueError("Captured official response hash mismatch")
+            findings.add(item.get("kind"))
+        if "index_investigation" not in findings:
+            raise ValueError(
+                "Official-index and replacement investigation is required"
+            )
+        basis = evidence.get("basis")
+        if basis == "not_found":
+            if int(row["consecutive_not_found"]) < 3:
+                raise ValueError("Three consecutive confirmed 404s are required")
+        elif basis in {"withdrawn", "superseded"}:
+            if "withdrawal_notice" not in findings:
+                raise ValueError(
+                    "Explicit official withdrawal or supersession evidence is required"
                 )
-                result["status"] = "retired"
-            return result
-
+        else:
+            raise ValueError(
+                "Temporary failures and missing attachments cannot justify retirement"
+            )
+        replacement = evidence.get("replacement_url")
+        if (
+            replacement
+            and urlsplit(canonical_url(replacement)).hostname
+            not in family.allowed_domains
+        ):
+            raise ValueError("Replacement must be an official source")
+        result = {"source_url": url, "apply": apply, "status": "validated"}
+        if apply:
+            db.executescript(RETIREMENT_SCHEMA)
+            encoded = json.dumps({**evidence, "source_url": url}, sort_keys=True)
+            current = db.execute(
+                "SELECT evidence_json FROM source_retirements WHERE source_url=? AND reactivated_at IS NULL",
+                (url,),
+            ).fetchone()
+            if current:
+                if current["evidence_json"] != encoded:
+                    raise ValueError("An existing retirement cannot be overwritten")
+                return {**result, "status": "already_retired"}
+            db.execute(
+                "INSERT INTO source_retirements(source_url,schema_version,evidence_json,retired_at) VALUES(?,?,?,?)",
+                (url, evidence["schema_version"], encoded, datetime.now(UTC).isoformat()),
+            )
+            db.execute(
+                "UPDATE documents SET status='removed', removed_at=datetime('now') WHERE source_url=?",
+                (url,),
+            )
+            result["status"] = "retired"
+        return result
 
 def read_retirements(db_path: Path) -> list[dict]:
     if not db_path.exists():

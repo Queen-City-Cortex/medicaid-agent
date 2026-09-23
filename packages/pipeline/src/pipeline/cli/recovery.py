@@ -38,6 +38,11 @@ def recovery_inventory(output: Path) -> None:
         report["active_file_count"] = report["active_source_count"]
         report["active_source_count"] += len(report["unresolved_downloads"])
         report["undocumented_removals"] = undocumented_removals(CRAWLER_DB_PATH)
+        from pipeline.freshness import build_answer_ready_snapshot
+        from pipeline.source_lifecycle import read_table
+        report["source_classifications"] = read_table(CRAWLER_DB_PATH, "source_classifications")
+        report["source_retirements"] = read_table(CRAWLER_DB_PATH, "source_retirements")
+        report["complete_snapshot"] = build_answer_ready_snapshot()
         atomic_write_json(output, report)
     click.echo(
         json.dumps(
@@ -84,3 +89,34 @@ def retire(evidence: Path, apply: bool) -> None:
             )
         )
     )
+
+
+@cli.command("source-audit")
+@click.option("--reviewed", type=click.Path(path_type=Path, exists=True, dir_okay=False))
+@click.option("--collect-input", type=click.Path(path_type=Path, exists=True, dir_okay=False), help="Locked registry selection to collect or resume")
+@click.option("--output", type=click.Path(path_type=Path, file_okay=False), help="Private capture directory")
+@click.option("--apply", is_flag=True, help="Apply reviewed dispositions; otherwise validate only")
+def source_audit(reviewed: Path | None, collect_input: Path | None, output: Path | None, apply: bool) -> None:
+    """Collect resumable evidence or validate/apply explicitly reviewed dispositions."""
+    from pipeline.source_audit import apply_source_audit
+    if CORPUS_DATA_ROOT is None:
+        raise click.ClickException("CORPUS_DATA_ROOT is required")
+    if collect_input:
+        if reviewed or apply or not output:
+            raise click.UsageError("Collection requires --output and cannot apply dispositions")
+        import subprocess
+        import sqlite3
+        from pipeline.release import REPO_ROOT
+        from pipeline.source_lifecycle import stable_hash
+        selection = json.loads(collect_input.read_text())
+        with corpus_writer_lock(CORPUS_DATA_ROOT), sqlite3.connect(f"file:{CRAWLER_DB_PATH}?mode=ro", uri=True) as db:
+            db.row_factory = sqlite3.Row
+            for row in selection["documents"]:
+                current = db.execute("SELECT * FROM documents WHERE source_url=?", (row["source_url"],)).fetchone()
+                if current is None or stable_hash(dict(current)) != stable_hash(row):
+                    raise click.ClickException("Registry differs from the selected audit snapshot")
+        subprocess.run(["node", str(REPO_ROOT / "node_modules/tsx/dist/cli.mjs"), str(REPO_ROOT / "packages/crawler/src/index.ts"), "source-audit-collect", "--input", str(collect_input.resolve()), "--output", str(output.resolve())], check=True)
+        return
+    if not reviewed or output:
+        raise click.UsageError("Specify --reviewed, or --collect-input with --output")
+    click.echo(json.dumps(apply_source_audit(CORPUS_DATA_ROOT, json.loads(reviewed.read_text()), apply=apply)))
