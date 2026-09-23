@@ -82,6 +82,9 @@ jobs:
         run: .venv/bin/python -m pytest tests/ -v
         working-directory: packages/pipeline
 
+      - name: Test corpus operational scripts
+        run: npm run test:ops
+
       # Hermetic against the Neo4j service: the suite creates its own vector
       # indexes and `test:`-prefixed fixtures and mocks the embedding API, so
       # no pipeline data load is required.

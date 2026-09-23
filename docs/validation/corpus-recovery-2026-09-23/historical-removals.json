@@ -1,0 +1,1274 @@
+{
+  "count": 140,
+  "families": {
+    "bulletin": 11,
+    "state_plan_amendment": 9,
+    "waiver": 1,
+    "dhhs_policy": 117,
+    "managed_care_guidance": 1,
+    "managed_care_contract": 1
+  },
+  "no_original": 12,
+  "rows": [
+    {
+      "id": 665,
+      "source_url": "https://medicaid.ncdhhs.gov/nc-credentialing-committee-bylaws/download?attachment=",
+      "local_path": null,
+      "source_type": "bulletin",
+      "consecutive_not_found": 0,
+      "error_message": null,
+      "discovered_from": "https://medicaid.ncdhhs.gov/blog/2025/07/03/credentialing-committee-bylaws-public-review-period-now-open"
+    },
+    {
+      "id": 668,
+      "source_url": "https://medicaid.ncdhhs.gov/provider-quick-reference-guide-standard-plans/download?attachment=",
+      "local_path": "bulletins/provider-quick-reference-guide-for-standard-plans.pdf",
+      "source_type": "bulletin",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://medicaid.ncdhhs.gov/blog/2025/07/03/quarterly-provider-update-summer-2025"
+    },
+    {
+      "id": 686,
+      "source_url": "https://medicaid.ncdhhs.gov/processes-and-frequently-asked-questions-1915i-services/download?attachment=",
+      "local_path": null,
+      "source_type": "bulletin",
+      "consecutive_not_found": 0,
+      "error_message": null,
+      "discovered_from": "https://medicaid.ncdhhs.gov/blog/2025/03/13/nc-medicaid-provider-update-march-13"
+    },
+    {
+      "id": 786,
+      "source_url": "https://medicaid.ncdhhs.gov/north-carolinas-transition-1915b3-benefits-1915i/download?attachment=",
+      "local_path": null,
+      "source_type": "bulletin",
+      "consecutive_not_found": 0,
+      "error_message": null,
+      "discovered_from": "https://medicaid.ncdhhs.gov/blog/2024/06/27/1915b3-service-transition-tp-eligible-members"
+    },
+    {
+      "id": 818,
+      "source_url": "https://medicaid.ncdhhs.gov/advanced-medical-home-provider-manual/download?attachment=",
+      "local_path": null,
+      "source_type": "bulletin",
+      "consecutive_not_found": 0,
+      "error_message": null,
+      "discovered_from": "https://medicaid.ncdhhs.gov/blog/2024/01/30/nc-managed-care-capitation-rates-updated-care-management-assumptions-expansion-population"
+    },
+    {
+      "id": 824,
+      "source_url": "https://medicaid.ncdhhs.gov/1e-5-obstetrical-servicespdf/download?attachment=",
+      "local_path": null,
+      "source_type": "bulletin",
+      "consecutive_not_found": 0,
+      "error_message": null,
+      "discovered_from": "https://medicaid.ncdhhs.gov/blog/2024/01/24/additional-nc-medicaid-respiratory-syncytial-virus-rsv-guidelines-2023-2024"
+    },
+    {
+      "id": 860,
+      "source_url": "https://medicaid.ncdhhs.gov/north-carolinas-transition-1915b3-benefits-1915i-0/download?attachment=",
+      "local_path": null,
+      "source_type": "bulletin",
+      "consecutive_not_found": 0,
+      "error_message": null,
+      "discovered_from": "https://medicaid.ncdhhs.gov/blog/2023/10/02/nc-medicaid-managed-care-provider-update-oct-2-2023"
+    },
+    {
+      "id": 868,
+      "source_url": "https://medicaid.ncdhhs.gov/tailored-care-management-provider-fact-sheet-0/download?attachment=",
+      "local_path": null,
+      "source_type": "bulletin",
+      "consecutive_not_found": 0,
+      "error_message": null,
+      "discovered_from": "https://medicaid.ncdhhs.gov/blog/2023/07/20/nc-medicaid-managed-care-provider-update-july-20-2023"
+    },
+    {
+      "id": 869,
+      "source_url": "https://medicaid.ncdhhs.gov/providerfactsheettp-enrollment-and-timeline/download?attachment=",
+      "local_path": null,
+      "source_type": "bulletin",
+      "consecutive_not_found": 0,
+      "error_message": null,
+      "discovered_from": "https://medicaid.ncdhhs.gov/blog/2023/07/20/nc-medicaid-managed-care-provider-update-july-20-2023"
+    },
+    {
+      "id": 889,
+      "source_url": "https://medicaid.ncdhhs.gov/certified-tailored-care-management-providers-readiness-reviews-completed/download?attachment=",
+      "local_path": null,
+      "source_type": "bulletin",
+      "consecutive_not_found": 0,
+      "error_message": null,
+      "discovered_from": "https://medicaid.ncdhhs.gov/blog/2023/05/26/enhanced-medical-home-payments-extended-through-sept-30-2023"
+    },
+    {
+      "id": 909,
+      "source_url": "https://medicaid.ncdhhs.gov/tailored-care-management-capacity-building-funds-guidance/download?attachment=",
+      "local_path": null,
+      "source_type": "bulletin",
+      "consecutive_not_found": 0,
+      "error_message": null,
+      "discovered_from": "https://medicaid.ncdhhs.gov/blog/2023/02/06/tailored-care-management-capacity-building-funds-guidance-released"
+    },
+    {
+      "id": 914,
+      "source_url": "https://medicaid.ncdhhs.gov/medex-abp1-revised/download?attachment=",
+      "local_path": "state-plan-amendments/abp1-populations.pdf",
+      "source_type": "state_plan_amendment",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://medicaid.ncdhhs.gov/meetingsnotices/medicaid-state-plan-public-notices"
+    },
+    {
+      "id": 915,
+      "source_url": "https://medicaid.ncdhhs.gov/med-ex-abp-2-revised/download?attachment=",
+      "local_path": "state-plan-amendments/abp2-voluntary-benefit-package-selection-assurances.pdf",
+      "source_type": "state_plan_amendment",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://medicaid.ncdhhs.gov/meetingsnotices/medicaid-state-plan-public-notices"
+    },
+    {
+      "id": 916,
+      "source_url": "https://medicaid.ncdhhs.gov/medex-abp3-selection-benchmark-benefit-package/download?attachment=",
+      "local_path": "state-plan-amendments/abp3-selection-of-benchmark-benefit-package.pdf",
+      "source_type": "state_plan_amendment",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://medicaid.ncdhhs.gov/meetingsnotices/medicaid-state-plan-public-notices"
+    },
+    {
+      "id": 917,
+      "source_url": "https://medicaid.ncdhhs.gov/med-ex-abp4-revised/download?attachment=",
+      "local_path": "state-plan-amendments/abp4-alternative-benefit-plan-cost-sharing.pdf",
+      "source_type": "state_plan_amendment",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://medicaid.ncdhhs.gov/meetingsnotices/medicaid-state-plan-public-notices"
+    },
+    {
+      "id": 918,
+      "source_url": "https://medicaid.ncdhhs.gov/medex-abp5-revised/download?attachment=",
+      "local_path": "state-plan-amendments/abp5-benefits-description.pdf",
+      "source_type": "state_plan_amendment",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://medicaid.ncdhhs.gov/meetingsnotices/medicaid-state-plan-public-notices"
+    },
+    {
+      "id": 919,
+      "source_url": "https://medicaid.ncdhhs.gov/medex-abp-7-revised/download?attachment=",
+      "local_path": "state-plan-amendments/abp7-benefits-assurances.pdf",
+      "source_type": "state_plan_amendment",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://medicaid.ncdhhs.gov/meetingsnotices/medicaid-state-plan-public-notices"
+    },
+    {
+      "id": 920,
+      "source_url": "https://medicaid.ncdhhs.gov/medex-abp8-revised/download?attachment=",
+      "local_path": "state-plan-amendments/abp8-service-delivery-systems.pdf",
+      "source_type": "state_plan_amendment",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://medicaid.ncdhhs.gov/meetingsnotices/medicaid-state-plan-public-notices"
+    },
+    {
+      "id": 921,
+      "source_url": "https://medicaid.ncdhhs.gov/medex-abp10-revised/download?attachment=",
+      "local_path": "state-plan-amendments/abp10-general-assurances.pdf",
+      "source_type": "state_plan_amendment",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://medicaid.ncdhhs.gov/meetingsnotices/medicaid-state-plan-public-notices"
+    },
+    {
+      "id": 922,
+      "source_url": "https://medicaid.ncdhhs.gov/medex-abp11-revised/download?attachment=",
+      "local_path": "state-plan-amendments/abp11-payment-methodology.pdf",
+      "source_type": "state_plan_amendment",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://medicaid.ncdhhs.gov/meetingsnotices/medicaid-state-plan-public-notices"
+    },
+    {
+      "id": 1356,
+      "source_url": "https://medicaid.ncdhhs.gov/documents/health-plan-contact-information-20240201/download?attachment=",
+      "local_path": "waivers/see-contact-information-for-all-medicaid-health-plans.pdf",
+      "source_type": "waiver",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://medicaid.ncdhhs.gov/beneficiaries/1915i"
+    },
+    {
+      "id": 1431,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al01-11.pdf",
+      "local_path": "dhhs-policies/administrative-letter-no-01-11-self-certification-for-life-line-link-up.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 1885,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/DHB-5079-11.2020.pdf",
+      "local_path": "dhhs-policies/dhb-5079-breast-and-cervical-cancer-medicaid-application.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 1886,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/DHB-5079-SP.pdf",
+      "local_path": "dhhs-policies/dhb-5079sp-solicitud-de-medicaid-para-cncer-de-seno-y-de-cuello-uterino.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 1901,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/dhb-5097-9-2023.pdf",
+      "local_path": "dhhs-policies/dhb-5097-request-for-information.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 1913,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/dhb-5097sp-9-2023.pdf",
+      "local_path": "dhhs-policies/dhb-5097sp-ia-solicitud-de-informacin.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 1978,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al05-09.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-05-09-computer-based-training.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 1981,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al07-09add1.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-07-09-low-income-subsidy-lis.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 1982,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al07-09.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-07-09-low-income-subsidy-lis-application-for-medicaid.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 1984,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al02-10.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-dma-2-2010-new-procedures-for-releasing-tax-intercepts-and-changes-to.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 1986,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al01-09.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-01-09-american-recovery-and-reinvestment-act-of-2009.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 1987,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al01-10add1.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-01-10-addendum-1-mqb-budgeting.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 1988,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al01-10add2.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-01-10-addendum-2-mqb-budgeting.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 1989,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al01-10.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-01-10-mqb-budgeting.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 1990,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al01-15.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-01-15-spousal-impoverishment-standards.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 1993,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al02-05.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-02-05-administrative-cost-reimbursement-day-sheet-coding-and-report.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 1994,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al02-11.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-02-11-federal-poverty-level-change-review-for-ongoing-mqb-b-e-cases.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 1995,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al02-12.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-02-12-referral-of-recipient-fraud-to-law-enforcement.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 1996,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al02-13.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-02-13-dma-administrative-letter-no-02-13-federal-poverty-level-chan.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 1997,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al02-15.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-02-15-title-iv-e-and-special-needs-adoption-children.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2001,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al03-09.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-03-09-ccncca.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2002,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al03-09add1.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-03-09-addendum-1-ccncca.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2003,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al03-09add2.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-03-09-addendum-2-ccncca.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2004,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al03-10.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-03-10-dss-administrative-letter-performance-managementreporting-and.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2005,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al03-11.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-03-11-automated-terminations-of-mic-north-carolina-health-choice-ca.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2006,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al03-14-1.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-03-14-asset-verification-system-avs.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2010,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al04-05a.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-04-05-use-of-social-security-numbers.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2011,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al04-07-1.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-04-07-transportation-audit.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2012,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al04-09.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-04-09-medicaid-card-changes.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2013,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al04-10.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-04-10-community-alternative-program-cap-community-alternative-progr.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2014,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al04-12.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-04-12-nemt-vendor-obligations-and-policy-implementation-timeline.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2015,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al04-14.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-04-14-medicaid-recertification.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2016,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al04-15-1.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-04-15-certification-period.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2018,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al05-07.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-05-07-medicare-buy-in-report.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2019,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al05-11.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-05-11-citizenshipidentity-retroactive-review-requirements.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2020,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al05-15.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-05-15-social-security-and-va-cost-of-living-adjustment.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2021,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al06-15.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-05-15-unconverted-medicaid-cases.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2023,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al06-03a1.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-06-03-addendum-1-cbt-course-update.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2024,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al06-03.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-06-03-computer-based-training.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2025,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al06-03add2.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-06-03-family-cbt.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2026,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al06-08.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-06-08-2008-economic-stimulus-tax-rebate.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2027,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al06-10.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-06-10-puerto-rican-issued-birth-certificates.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2030,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al07-05.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-07-05-piedmont-cardinal-health-plan-pchp-07-05.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2031,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al07-08add1.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-07-08-addendum-1-eis-code-instructions-and-eligibility-policy-for-a.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2032,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al07-08.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-07-08-iraqi-and-afghanistan-special-immigrants.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2033,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al07-10.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-07-10-dss-administrative-letter-performance-managementreporting-and.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2034,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al07-14.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-07-14-eugenics-asexualization-and-sterilization-compensation.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2038,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al08-08.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-08-08-dss-administrative-letter-performance-managementreporting-and.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2039,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al08-13add1.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-08-13-addendum-1-health-coverage-for-workers-with-disabilities.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2040,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al8-13.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-08-13-health-coverage-for-workers-with-disabilities.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2041,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al09-05.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-09-05-life-estate-subject-to-estate-recovery-09-05.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2042,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al09-08add1.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-09-08-addendum-1-medicaid-suspension.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2043,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al09-08add2.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-09-08-addendum-2-medicaid-suspension.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2044,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al09-08.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-09-08-medicaid-suspension.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2045,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al09-10.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-09-10-medicare-savings-program-resource-limit-increase.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2046,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al09-13.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-09-13-residency-for-adoptive-children-medicaid.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2047,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al09-14.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-09-14-2101-f-north-carolina-health-choice-children.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2048,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al10-08_ccnc-ca.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-10-08-ccncca-exemptions.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2049,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al10-12.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-10-12-verification-of-veterans-benefits.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2050,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al11-08add1.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-11-08-adendum-1-guidance-regarding-immigration-status-undocumented.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2051,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al11-08.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-11-08-guidance-regarding-immigration-status-undocumented-immigrants.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2052,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al11-13add3.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-11-13-addendum-3-hospital-provider-instructions-for-determining-pre.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2053,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al11-13.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-11-13-hospital-provider-instructions-for-determining-presumptive-el.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2054,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al12-13.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-12-13-affordable-care-act-aca-overview-of-changes-to-the-applicatio.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2055,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al13-13.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-13-13-mic-1-children-age-6-through-age-18-107-133-fpl.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2056,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al14-03add17.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-14-03-addendum-17-mqb-e-certification-period-extension-to-93008.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2057,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al14-03add18.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-14-03-addendum-18-mqb-e-certification-period-extension-to-12312008.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2058,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al14-03.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-14-03-certification-period-extension-for-qualifying-individuals-qi1.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2059,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al14-03add16.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-14-03-mqb-e-certification-period-extension-to-6302008.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2060,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al14-13.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-14-13-medicaid-to-former-foster-care-children-mfc.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2061,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al15-04.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-15-04-enrolled-presumptive-eligibility-providers.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2062,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al15-13.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-15-13-certification-and-authorization-periods-for-applications-take.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2063,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al16-13.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-16-13-affordable-care-act-aca-changes-to-citizenship-and-identity-v.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2064,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al18-13add4.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-18-13-addendum-4-provider-instructions-for-presumptive-eligibility.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2065,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al18-13.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-18-13-provider-instructions-for-presumptive-eligibility-for-pregnan.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2066,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al01-08.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-01-08-use-of-electronic-signatures.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2078,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al02-08.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-02-08-policy-and-procedures-for-program-of-all-inclusive-care-for-t.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2080,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al02-09.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-02-09-update-to-life-expectancy-table.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2089,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al03-07.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-03-07-daas-administrative-letter-no-07-10-family-support-and-child.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2099,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al04-06a1.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-04-06-addendum-1-notice-to-clients-of-upcoming-citizenshipidentity.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2101,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al04-06.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-04-06-outreach-to-tell-clients-of-upcoming-change.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2113,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al05-08.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-05-08-obsolete-current-administrative-letters.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2121,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al06-06.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-06-06-medicaidnchc-inquiries-and-dma-contact-list.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2127,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al06-11.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-06-11-social-security-and-va-cost-of-living-adjustment-cola.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2138,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al07-12.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-07-12-lifelinelink-up.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2143,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al08-04.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-08-04-epics.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2145,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al08-07.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-08-07-daas-administrative-letter-no-07-20-family-support-and-child.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2147,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al08-07addendum1.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-08-07-daas-administrative-letter-no-07-20-family-support-and-chil_3.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2150,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al08-09.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-08-09-citizenship-documentation.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2155,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al09-07.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-09-07-social-security-and-va-cost-of-living-adjustment-cola.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2160,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al09-12.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-09-12-social-security-and-va-cost-of-living-adjustment-cola.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2168,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al10-13.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-10-13-social-security-and-va-cost-of-living-adjustment-cola.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2170,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al10-14.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-10-14-social-security-and-va-cost-of-living-adjustment-cola.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2176,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al12-08.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-12-08-social-security-and-va-cost-of-living-adjustment-cola.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2185,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al16-02a1.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-16-02-addendum-1-security-of-internal-revenue-service-frr-and-socia.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2186,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al16-02a2.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-16-02-addendum-2-frrbeer-security-obsolete.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2187,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al16-02a3.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-16-02-addendum-3-frrbeer-security-obsolete.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2191,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al16-02.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-16-02-security-of-internal-revenue-service-and-social-security-admi.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2194,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al17-06.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-17-06-medicaid-transportation-revisions.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2196,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al18-01.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-18-01-nc-health-choice-cases-with-eis-cert-periods-that-do-not-matc.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2198,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al18-03.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-18-03-new-medicaid-profile-indicator-and-follow-up-case-management.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2203,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al24-02.pdf",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-24-02-new-validation-process-for-epics-referrals.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2251,
+      "source_url": "https://policies.ncdhhs.gov/document/dma-3085-ia-session-law-2013-306-pcs-training-attestation-form-may-30-2018/",
+      "local_path": "dhhs-policies/dma-3085-ia-session-law-2013-306-pcs-training-attestation-form-may-30-2018.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2260,
+      "source_url": "https://policies.ncdhhs.gov/document/dma-3137-personal-care-services-pcs-icd-10-transition-form-jun-01-2018/",
+      "local_path": "dhhs-policies/dma-3137-personal-care-services-pcs-icd-10-transition-form-jun-01-2018.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2290,
+      "source_url": "https://policies.ncdhhs.gov/document/dma-5001sp-aviso-del-uso-de-numeros-de-seguro-social-feb-04-2022/",
+      "local_path": "dhhs-policies/dma-5001sp-aviso-del-uso-de-numeros-de-seguro-social-feb-04-2022.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2306,
+      "source_url": "https://policies.ncdhhs.gov/document/dma-5024sp-ia-notificacion-de-solicitud-de-transporte-jan-26-2021/",
+      "local_path": "dhhs-policies/dma-5024sp-ia-notificacion-de-solicitud-de-transporte-jan-26-2021.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2325,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/dma-5043.pdf",
+      "local_path": "dhhs-policies/dma-5043-self-employment-income-and-expenses-verification-form.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2326,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/dma-5043-ia.pdf",
+      "local_path": "dhhs-policies/dma-5043-ia-self-employment-income-and-expenses-verification-form.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2387,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/dma-5146.pdf",
+      "local_path": "dhhs-policies/dma-5146-health-coverage-for-workers-with-disabilities-premium-notice.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2388,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/dma-5147.pdf",
+      "local_path": "dhhs-policies/dma-5147-hcwd-denial-for-non-payment-of-premium.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2389,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/dma-5148.pdf",
+      "local_path": "dhhs-policies/dma-5148-hcwd-termination-for-non-payment-of-premiums.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2390,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/dma-5149.pdf",
+      "local_path": "dhhs-policies/dma-5149-hcwd-enrollment-fee-notice.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2391,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/dma-5151.pdf",
+      "local_path": "dhhs-policies/dma-5151-health-coverage-for-workers-with-disabilities-hcwd-medical-information-release-authoriz.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2453,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al05-13.pdf",
+      "local_path": "dhhs-policies/dss-administrative-letter-no-performance-managementreporting-and-evaluation-management-07-2013-d.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2455,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al08-10.pdf",
+      "local_path": "dhhs-policies/dss-administrative-letter-performance-managementreporting-and-evaluation-management-pm-rem-al-08.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2457,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al05-10.pdf",
+      "local_path": "dhhs-policies/dss-administrative-letter-pm-rem-al-06-10-dma-administrative-letter-no-05-10-daas-administrative.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2460,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al04-13.pdf",
+      "local_path": "dhhs-policies/dss-administrative-letter-performance-managementreporting-and-evaluation-management-pm-rem-al-06.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 2653,
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al03-13.pdf",
+      "local_path": "dhhs-policies/performance-managementreporting-and-evaluation-management-pm-rem-al-02-2013-dma-administrative-l.pdf",
+      "source_type": "dhhs_policy",
+      "consecutive_not_found": 3,
+      "error_message": "HTTP 404",
+      "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
+    },
+    {
+      "id": 5997,
+      "source_url": "https://medicaid.ncdhhs.gov/processes-and-frequently-asked-questions-1915i-services/open",
+      "local_path": null,
+      "source_type": "managed_care_guidance",
+      "consecutive_not_found": 0,
+      "error_message": null,
+      "discovered_from": "https://medicaid.ncdhhs.gov/providers/provider-playbook-medicaid-managed-care/fact-sheets"
+    },
+    {
+      "id": 6560,
+      "source_url": "https://medicaid.ncdhhs.gov/media/11452/download?attachment=",
+      "local_path": null,
+      "source_type": "managed_care_contract",
+      "consecutive_not_found": 0,
+      "error_message": null,
+      "discovered_from": "https://medicaid.ncdhhs.gov/blog/2022/08/26/tailored-plan-panel-membership"
+    }
+  ]
+}

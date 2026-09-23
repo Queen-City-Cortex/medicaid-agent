@@ -1,0 +1,106 @@
+[
+  {
+    "id": 1833,
+    "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/DHB-5001N_French_20240501.pdf",
+    "local_path": "dhhs-policies/dhb-5001n-french-avis-sur-lutilisation-des-numros-de-scurit-sociale.pdf",
+    "status": "unchanged",
+    "parse_status": "parsed",
+    "answer_ready": true
+  },
+  {
+    "id": 1834,
+    "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/DHB-5001N.pdf",
+    "local_path": "dhhs-policies/dhb-5001n-notice-on-the-use-of-social-security-numbers.pdf",
+    "status": "unchanged",
+    "parse_status": "parsed",
+    "answer_ready": true
+  },
+  {
+    "id": 1835,
+    "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/DHB-5001N_sp.pdf",
+    "local_path": "dhhs-policies/dhb-5001nsp-aviso-sobre-el-uso-de-los-nmeros-de-seguro-social.pdf",
+    "status": "unchanged",
+    "parse_status": "parsed",
+    "answer_ready": true
+  },
+  {
+    "id": 1855,
+    "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/DHB-5024-1.pdf",
+    "local_path": "dhhs-policies/dhb-5024-transportation-assessment-notification.pdf",
+    "status": "unchanged",
+    "parse_status": "parsed",
+    "answer_ready": true
+  },
+  {
+    "id": 1856,
+    "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/DHB-5024sp-1.pdf",
+    "local_path": "dhhs-policies/dhb-5024sp-aviso-de-evaluacin-de-transporte.pdf",
+    "status": "unchanged",
+    "parse_status": "parsed",
+    "answer_ready": true
+  },
+  {
+    "id": 2250,
+    "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/dma-3085-I.pdf",
+    "local_path": "dhhs-policies/dma-3085-i-session-law-2013-306-pcs-training-attestation-form-dma-3085.pdf",
+    "status": "unchanged",
+    "parse_status": "parsed",
+    "answer_ready": true
+  },
+  {
+    "id": 2251,
+    "source_url": "https://policies.ncdhhs.gov/document/dma-3085-ia-session-law-2013-306-pcs-training-attestation-form-may-30-2018/",
+    "local_path": "dhhs-policies/dma-3085-ia-session-law-2013-306-pcs-training-attestation-form-may-30-2018.pdf",
+    "status": "removed",
+    "parse_status": "parse_exception",
+    "answer_ready": false
+  },
+  {
+    "id": 2260,
+    "source_url": "https://policies.ncdhhs.gov/document/dma-3137-personal-care-services-pcs-icd-10-transition-form-jun-01-2018/",
+    "local_path": "dhhs-policies/dma-3137-personal-care-services-pcs-icd-10-transition-form-jun-01-2018.pdf",
+    "status": "removed",
+    "parse_status": "parse_exception",
+    "answer_ready": false
+  },
+  {
+    "id": 2261,
+    "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/dma-3137-i.pdf",
+    "local_path": "dhhs-policies/dma-3137-i-personal-care-services-pcs-icd-10-transition-form-instructions.pdf",
+    "status": "unchanged",
+    "parse_status": "parsed",
+    "answer_ready": true
+  },
+  {
+    "id": 2290,
+    "source_url": "https://policies.ncdhhs.gov/document/dma-5001sp-aviso-del-uso-de-numeros-de-seguro-social-feb-04-2022/",
+    "local_path": "dhhs-policies/dma-5001sp-aviso-del-uso-de-numeros-de-seguro-social-feb-04-2022.pdf",
+    "status": "removed",
+    "parse_status": "parse_exception",
+    "answer_ready": false
+  },
+  {
+    "id": 2306,
+    "source_url": "https://policies.ncdhhs.gov/document/dma-5024sp-ia-notificacion-de-solicitud-de-transporte-jan-26-2021/",
+    "local_path": "dhhs-policies/dma-5024sp-ia-notificacion-de-solicitud-de-transporte-jan-26-2021.pdf",
+    "status": "removed",
+    "parse_status": "parse_exception",
+    "answer_ready": false
+  },
+  {
+    "id": 12167,
+    "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/DHB-5024.pdf",
+    "local_path": "dhhs-policies/dhb-5024-transportation-assessment-notification_2.pdf",
+    "status": "downloaded",
+    "parse_status": "parsed",
+    "answer_ready": true
+  },
+  {
+    "id": 12168,
+    "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/DHB-5024sp-ia.pdf",
+    "local_path": "dhhs-policies/dhb-5024sp-aviso-de-evaluacin-de-transporte_2.pdf",
+    "status": "downloaded",
+    "parse_status": "parsed",
+    "answer_ready": true
+  }
+]

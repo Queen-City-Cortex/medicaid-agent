@@ -1,0 +1,4346 @@
+{
+  "inventory_hash": "sha256:95530b09746216b8c240b3542dc81b6343819e7d00d4103164fa0cfb3d28bd64",
+  "active_source_count": 4400,
+  "unresolved_count": 318,
+  "unresolved_required_count": 5,
+  "unresolved_optional_count": 313,
+  "unresolved": [
+    {
+      "source_file": "billing-guidance/federal-regulation-guidelines-for-ordering-prescribing-or-referring-opr-providers.pdf",
+      "source_type": "billing_guidance",
+      "required_for_answering": false,
+      "source_hash": "sha256:e83fba3c3997e68716f14d5183db2a2127c0af2dba58866f50101d03449bdf43",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:19c9c425738fe2f3546737ccba65ae6377b0474d240aa15ae223fb0187a73d3e"
+      }
+    },
+    {
+      "source_file": "bulletins/state-standing-order.pdf",
+      "source_type": "bulletin",
+      "required_for_answering": true,
+      "source_hash": "sha256:9614129d403f5226f8c9222a4aaa8a7389b87fa998f2702108063f7c89f04f6f",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:d2abba32397f317ee05e362f4bfe30ba48b0ac3ec5f7904d7a4118d8ffe944f0"
+      }
+    },
+    {
+      "source_file": "dhhs-policies/dhb-5097-gu.pdf",
+      "source_type": "dhhs_policy",
+      "required_for_answering": true,
+      "source_hash": "sha256:7682aa584aac795e6647a092f50987b6c1fa9efd7929b1f62fd4800378713bb6",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:4c599802102d3b9ad020284571cb0a59f37bc267ce65eef0d008637ae158c3a3"
+      }
+    },
+    {
+      "source_file": "fee-schedules/ambulatory-surgical-center-fee-schedule-april-2019-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:933b8cb7a6cef28dcc0ecc3322afae91a1c7f8bcbf96675de5ba6a7cbee54fb9",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": "sha256:9736135f3182f5c423eba94235b1b76f9409edf0f021c7dc5f19fb15ca20c007",
+        "markdown": "sha256:17395016308528994b428dc21f6465468ad2d7ee687cb3fde226d4864bac384f",
+        "metadata": "sha256:5ce949d7bfb993e6985d2296483457d469baa8a93afb006f7fc37b8ba116067b"
+      }
+    },
+    {
+      "source_file": "fee-schedules/ambulatory-surgical-center-fee-schedule-aug-19-2022-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:d3155c38e40c044f11390f63a50c4cc5337b9ab833b9d7a20458cc62468cb549",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": "sha256:f61fd634c027832576a48e3ac2744f6efb2b0cb4e45088181258c01458d5b22e",
+        "markdown": "sha256:a5650bb8a865ad7e0cc9ac9753bd4282c700b1b262ca4de9c00422311f1d9cd5",
+        "metadata": "sha256:9ce9eaeeafbc62b3daedfe011791bfafa170ea219fc5dbbbe06adfcba438bfcd"
+      }
+    },
+    {
+      "source_file": "fee-schedules/ambulatory-surgical-center-fee-schedule-aug-24-2022-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:d9d60697e24ada7b6a4ad8e59ac237c3f69229b89adce0236aa3d591142b9b4c",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": "sha256:b88abcf5fa5bfca743768d99f7f3bb2bd9786937172e4ed392be8178e35e3234",
+        "markdown": "sha256:e1079a1eecb5604bc9b2068de5a9a1be6cb16a0104355d8b042607a09a87b3b9",
+        "metadata": "sha256:8fb57b93898a68f306608fff25c00bb0eb4aebeb0bdbecd468594df73607f257"
+      }
+    },
+    {
+      "source_file": "fee-schedules/ambulatory-surgical-center-fee-schedule-august-2016-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:339c72f7714b23f35e4627cb8673b9d08cdb90de0881b6c2c2ab80c36c435ff2",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": "sha256:e9aef9c3890c4433703487101fd14723c58693707b4ac2e4fbafcd96cd308464",
+        "markdown": "sha256:0844af68efe5616adb38401bb5a0a83ad8b1766904973818439efe7288dfb75f",
+        "metadata": "sha256:0e44c2be3b99050f37e06458bbc362292f4770b00053c834de6ca06ef8b9d86b"
+      }
+    },
+    {
+      "source_file": "fee-schedules/ambulatory-surgical-center-fee-schedule-august-2019-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:339c72f7714b23f35e4627cb8673b9d08cdb90de0881b6c2c2ab80c36c435ff2",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": "sha256:7818bb538194014283575aa92b66bc8e16b59828689b026177a7cb211b81d70c",
+        "markdown": "sha256:0844af68efe5616adb38401bb5a0a83ad8b1766904973818439efe7288dfb75f",
+        "metadata": "sha256:7ec736f3299926cf44e5557f4d7618e11bb88224a810f736c9b9d15e2949743c"
+      }
+    },
+    {
+      "source_file": "fee-schedules/ambulatory-surgical-center-fee-schedule-december-2020-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:309ccccf2b3d655fba4a9c14321b6c5323dc4d4e9a72f07acfffaf608742ee9e",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": "sha256:4c95b602a0071c9d281e2b21de4c8195ad0804aef740a783e68088a17cc77321",
+        "markdown": "sha256:23bbbe1ba4c058e748318fa56c25d3a957a52ec33887a71ff964e142ac722318",
+        "metadata": "sha256:6471d18a366de54401465205a6b68405ad3c2982ed05d4d41fbcaf7ede49155d"
+      }
+    },
+    {
+      "source_file": "fee-schedules/ambulatory-surgical-center-fee-schedule-june-2018-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:0d8434d3e7855791b0ef78a7d7bbd99752e3a76ffb1273beeeee02c0e175d315",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": "sha256:8d47bc4aeff6b0bcb8fcfc80f91bbdc7c89c590dad08a6db706f0721b53deaac",
+        "markdown": "sha256:e7bb597936c39f735bc2c3fdd92b277b3cb1eb30e78599a2cf5b117056c39ef4",
+        "metadata": "sha256:557dfb5d61d6511b0bcf1123151c202abcfb59fdacce28dfce40ab1b073826c6"
+      }
+    },
+    {
+      "source_file": "fee-schedules/ambulatory-surgical-center-fee-schedule-june-2021-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:e1bd29deb42d234d765b4e0be867132439225a0afd58c5bd361b2d748941abb0",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": "sha256:37fab683c5b170818c39ef34d2dddb85c4f09085ef4708916af549de2a5be022",
+        "markdown": "sha256:45c314ffe5e1d85f1c7c76dbb4be06b88743546b3eb1306fbd16b61c74b3751e",
+        "metadata": "sha256:b293b746ecb5f8aad10b8e9931621f111951ed7be75fa9d1f962e1b8b5f7e9f2"
+      }
+    },
+    {
+      "source_file": "fee-schedules/ambulatory-surgical-center-fee-schedule-march-2018-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:99b78d02ef6c131fd2f3b6c92abc4a97d15370fc05233dbfa99b13b4928a5480",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": "sha256:0cab21dacee220b0b99552b80066f640c348a1cc9bf5b4b385267f556f47674f",
+        "markdown": "sha256:e91a869b589c50e48809b0cfbf27e96d18a68c90beac89b99108cc142eed5652",
+        "metadata": "sha256:eb392eafabcd1e4603b888f9a9e4bd113a69ca48bfe29a5bf0f024015738d4b4"
+      }
+    },
+    {
+      "source_file": "fee-schedules/ambulatory-surgical-center-fee-schedule-may-2020-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:41935e70527e959436926b7782d0854a528df27c7b349c1513c14a3a13bfd1ea",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": "sha256:de6bc4f774df59fb3e6412c6b37f3a6214183e670a3e1e66a926392f1bd2ec90",
+        "markdown": "sha256:6f656adb69f62274cd150f96a398028f13da671b17b35ad1487e76d268ca189f",
+        "metadata": "sha256:1aa94437fb9a87fd27f9912efd7ef29af793ea376661fbb30587372a745c9ed8"
+      }
+    },
+    {
+      "source_file": "fee-schedules/ambulatory-surgical-center-fee-schedule-september-2020-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:2037d0dab7d3485a89ed20d53e628eac3e56dabdddaa0506452a5c11d154f377",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": "sha256:7426b6c196bfee34133c77281e91d049e8a8227914ba2224ca05e4f4d1620135",
+        "markdown": "sha256:1fc5c8e2252d224eed5afad9238bf046d67671781879fc3043c44f8358503569",
+        "metadata": "sha256:1b5b2d7f1bddb0d8d9e7d719bf804071fd82cce5fcfbb9cfb8f188c5e33f213c"
+      }
+    },
+    {
+      "source_file": "fee-schedules/ambulatorysurgicalcentersfeeschedule20220819pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:d3155c38e40c044f11390f63a50c4cc5337b9ab833b9d7a20458cc62468cb549",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": "sha256:6447da236e81b6af2aa4613e80b0620e7fb7061907ffb5337004352020509efc",
+        "markdown": "sha256:a5650bb8a865ad7e0cc9ac9753bd4282c700b1b262ca4de9c00422311f1d9cd5",
+        "metadata": "sha256:0eb1d5e82be93bfebab58a7de1c0f4617f7f44803138bd9e6fdf5f88793df579"
+      }
+    },
+    {
+      "source_file": "fee-schedules/ambulatorysurgicalcentersfeeschedule20220829-pdfpdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:d9d60697e24ada7b6a4ad8e59ac237c3f69229b89adce0236aa3d591142b9b4c",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": "sha256:634338c3892fe36e6144188d303822f5a8faca410da6165f3255d28c0f2eb237",
+        "markdown": "sha256:e1079a1eecb5604bc9b2068de5a9a1be6cb16a0104355d8b042607a09a87b3b9",
+        "metadata": "sha256:bcd2ee63d5660eb9b52db8fa5d27718c2fb2e60740917141bbaeaf7b9c4afb9c"
+      }
+    },
+    {
+      "source_file": "fee-schedules/federally-qualified-health-center-fqhc-fee-schedule-aug-02-2022pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:32d893709d390dba92113aa4bbf5f94f5b33264bc921459f37d90cb7c6c7514a",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": "sha256:734150eb7cfb10c6a3cf709fd0f0f5838e5fed2c082bbe715de0d68ef213ffdb",
+        "markdown": "sha256:134cd4d4bda48b25bddfa3d1b435c005143677830e46540183c5e048260d0671",
+        "metadata": "sha256:7d98d5c5b8935fa1336e99d07c9534b410c6bf233664abcbf73ede99be924ab3"
+      }
+    },
+    {
+      "source_file": "fee-schedules/federally-qualified-health-center-fqhc-fee-schedule-aug-10-2022pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:4f717eafce1d8658d15d5296ec312260f429e8c4ecfccee80b584d60a582dbe6",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": "sha256:2f4ec10bc3aee5a4d332d94de76dcfbcf8524685a8f738db365daf8ea5e68449",
+        "markdown": "sha256:26afb94f9993b032c770b4b71f5f7034189a01e5863f25a2921cadc0d98d1869",
+        "metadata": "sha256:aa8596a2fe636cde4cc4b0e0af255025d8ee1e041c0aeee39412491f8f7f1632"
+      }
+    },
+    {
+      "source_file": "fee-schedules/federally-qualified-health-centers-april-17-2020-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:16a7cabd02024d74bf7cb9d5b708df34aed7439f67ae962fcf13eadbd73d431b",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": "sha256:4126fb3968acf943220c2dd516bf01e503cedffb1d55790b60ec080094980db4",
+        "markdown": "sha256:d1aa614675428bbdc0697abb0be50e1f12c81d25a2e8c03392de1603d91be395",
+        "metadata": "sha256:ad56fe0412bdf6025b80f6b1cc0aee21ddabdad687fddb0ba30d7d39b109ebbe"
+      }
+    },
+    {
+      "source_file": "fee-schedules/federally-qualified-health-centers-april-21-2020-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:60b4066d28edd5be07c3246208053e2f63b64eb15c0c8585ca761cfbca65b05f",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": "sha256:d13d978f486c023f873d877ceee390049d1c1907647cc20386f98370f3d64302",
+        "markdown": "sha256:730d8497634afd28cb93b650dd410cda0411f2cfb7ad6fff82c06c5bd0a7c235",
+        "metadata": "sha256:719bc414f44460b6ff8a3da92fde3b8eac563fd7e4deaf0e1a0fd012ec71440b"
+      }
+    },
+    {
+      "source_file": "fee-schedules/federally-qualified-health-centers-aug-10-2021-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:3dd33eeef6ce357d99f7b6e011bc676673ffc540381ec7acc092c3d4f5aac39b",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": "sha256:7fae6d74790b5f8d9e4563cd280f7b0e0e03db812404817bdd50738af004fc5a",
+        "markdown": "sha256:295e368f1dd566fb333ccd0199d33b79af205c65f61b9d6ada9b4f9a50bbea13",
+        "metadata": "sha256:381deb8e19495a53552b35afd3cf5afbe9c39b20781dd67ad13715d191f8ce3a"
+      }
+    },
+    {
+      "source_file": "fee-schedules/federally-qualified-health-centers-aug-24-2015-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:0fb1e3d3223f7354bb628bfee429c2f843cc63e680cfdd585380b18a8d9b7dac",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": "sha256:f7bd58062bf14060737a802e77599671901115c125b7f2bed7a1117c75c326a7",
+        "markdown": "sha256:1baa1a8ee15b23b3543995e6849a760fe9bcb3231ff4787d24614fa3d28dd398",
+        "metadata": "sha256:09e0b50a1ae86f1f909441607e1004aee7da828d94f640b474b813f62c3baceb"
+      }
+    },
+    {
+      "source_file": "fee-schedules/federally-qualified-health-centers-dec-29-2021-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:3ffef1fdab3b119a0e1fc9f82715e2b43a305eccc14ca5e40c9b587231112a1d",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": "sha256:8e0173842cad1a6b4fc5de6a9885fa70ee3f0ed64eabb1b0f37d103ba5cc2478",
+        "markdown": "sha256:b08c4d79d2b3cdef98ab5166a442be19f498b773649750381e99f07fcc031993",
+        "metadata": "sha256:526cdd37fba2cfead9697167c5dd0cdade9c753767790bd52b7ff6f1d4ae461e"
+      }
+    },
+    {
+      "source_file": "fee-schedules/federally-qualified-health-centers-feb-18-2013-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:0a84a0a066e748dc4b6dbfa5387d792639642d775cc1f6ef44e631e8e5bb9837",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": "sha256:53412e0cc0a4ae15d6c48e491ce5a6b4ca1b2919cbbe2b280b144739863869e7",
+        "markdown": "sha256:166f1e98f70a1296008fb7fec952e26116190588d56a020c9025f61600194674",
+        "metadata": "sha256:164bb2ace305dcecdc953bce19f8496422ecd2b9d854b620ac5d4d9c6de050d7"
+      }
+    },
+    {
+      "source_file": "fee-schedules/federally-qualified-health-centers-fqhc-fee-schedules-aug-10-2022-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:4f717eafce1d8658d15d5296ec312260f429e8c4ecfccee80b584d60a582dbe6",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": "sha256:df7554966ae5b6b769cd2de0c12acd8fc8625b0da65a7fc3fdb5a24667a2cc49",
+        "markdown": "sha256:26afb94f9993b032c770b4b71f5f7034189a01e5863f25a2921cadc0d98d1869",
+        "metadata": "sha256:24d5f73033151b67c31dfc1095a2014b90c5c68a4cceded7e80b82f8e5580761"
+      }
+    },
+    {
+      "source_file": "fee-schedules/federally-qualified-health-centers-fqhc-fee-schedules-aug-3-2022-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:32d893709d390dba92113aa4bbf5f94f5b33264bc921459f37d90cb7c6c7514a",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": "sha256:ac01170d8e9772279125d316c0beefe557ea067e9cb1c72cda632756254c37a8",
+        "markdown": "sha256:134cd4d4bda48b25bddfa3d1b435c005143677830e46540183c5e048260d0671",
+        "metadata": "sha256:9da4acc1747589a9d3599f43d63decc8f141ec09385d00cd6dc4253a0840db27"
+      }
+    },
+    {
+      "source_file": "fee-schedules/federally-qualified-health-centers-fqhc-fee-schedules-june-23-2022-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:9314de769799b628a354a3ad22c74720d527f8eadb84b7d9df38235aeae15a83",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": "sha256:26803fbdac050cc3925ef1a7995e6c14d28ab45f3c6ae5827132c1cee720f890",
+        "markdown": "sha256:5d3e44835aba76722f516d48326a09b20c8bb1118576e2eb00246668e2ca369e",
+        "metadata": "sha256:f402a7602aeac03ae9cdcad8264235379756c157a6fa1cf28651a838fff8db4c"
+      }
+    },
+    {
+      "source_file": "fee-schedules/federally-qualified-health-centers-fqhc-fee-schedules-march-7-2022-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:f8dd4d66056c08ee0cd88e4fd9b3bc3ac0ae79829e8f0981edeb753e4189a53c",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": "sha256:7919acaa0d6f6bc2274bd1e2f862e89750372ade3a9c7c3cb50e279f57380df9",
+        "markdown": "sha256:040a2d923fde4d23d4e2cbd022e48d2207fc773297449fd0c4c2afeb9f9842fb",
+        "metadata": "sha256:0047d9ccb549c77455646e0fc05adb93aa5b062bf3d0b03d9497c9cd1d399fa0"
+      }
+    },
+    {
+      "source_file": "fee-schedules/federally-qualified-health-centers-fqhc-fee-schedules-oct-17-2022-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:849be5c858c5007ab5c019a0702e4a7202106f983a737acee2e54f397aa0b47a",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:ef01fa2760d6345a4fd17035d8ca4057fdc2774bbc37975b2b524c70e64f57cd"
+      }
+    },
+    {
+      "source_file": "fee-schedules/federally-qualified-health-centers-jan-1-2008-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:ca96bbc148c3704efd86e26a22ae53d39d884078b75079aec320ca485c54b0c2",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:be17c6b4947409ef398e24d3dca765926dd1a5e6dde76d85b053b78da8f4cd73"
+      }
+    },
+    {
+      "source_file": "fee-schedules/federally-qualified-health-centers-jan-1-2011-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:b9277dc18a2d6c0c4564ccd6406bbdd003dc06a5d717c687993afff5e2bdba3a",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:c1aa0daea5bc1acc8cc9d837be1ab410fbe698bfdb164ea1cbb6e3cd134d57c7"
+      }
+    },
+    {
+      "source_file": "fee-schedules/federally-qualified-health-centers-jan-1-2012-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:2004da6ae83f963db2e9179d3a62104df26a845119ffb7e50b3d7f528de761f4",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:f6312ff25576fc77b52f299dfa82670e5a6a4503accc3d34aff206523ac7078e"
+      }
+    },
+    {
+      "source_file": "fee-schedules/federally-qualified-health-centers-jan-1-2013-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:676e7d41f9cf99700f1b09e6925a629f399343dbaf34479b5d77d55dfd0a7ea3",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:99b0f213412e621d3a917134c58b72bbbb904cbf9b2af581787280d42ae8bb06"
+      }
+    },
+    {
+      "source_file": "fee-schedules/federally-qualified-health-centers-jan-1-2015-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:65320f17f191fb5cedebf7f56801ab1d20831a31e844da712a2585017954fc55",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:d400991502e298c475ee9202ba75367b5bba67de3b2aa12d2f612bcf0aac07bc"
+      }
+    },
+    {
+      "source_file": "fee-schedules/federally-qualified-health-centers-jan-1-2016-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:7da6f6099dca4da9124cf80c55968f5c28c953d9f7b6b70a0e5bb9b2ebb1e132",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:68723b8dc850b661e24458d430976edd9336a76b155687af3e001dfe6c53160b"
+      }
+    },
+    {
+      "source_file": "fee-schedules/federally-qualified-health-centers-jan-1-2017-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:f0fc1160a5a1273ec70b659710d5dc4cc97cdae5cf1c162234b064e92370037b",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:2c18221a5a8cc79cb5900b6de54658571ef45d24ffe6d203cd2bd9e67f1ee45e"
+      }
+    },
+    {
+      "source_file": "fee-schedules/federally-qualified-health-centers-jan-1-2019-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:b4b9543982308abd53ff9aa2373effec606fae1197a7644c444e8cd0913db153",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:66613c0c9f45ebb956b4738ec8733afd0d48062332250334c400ffd83459f520"
+      }
+    },
+    {
+      "source_file": "fee-schedules/federally-qualified-health-centers-jan-1-2020-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:ed531d054d5213dc354c860e1b93140e06bc1965e0a5156355b00493a9e31c87",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:d1c4776a9ee1695a61eb8915aea519ccc9cc4ff4e4a5724b2a05e310290d4266"
+      }
+    },
+    {
+      "source_file": "fee-schedules/federally-qualified-health-centers-jan-22-2022-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:23e3ef54380b28378f8381907e6a0956663791e3cc99a69f81f639c9f9ac40f4",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:8de93b6de349348040fd8e9b25ca4c5c2c85f736e3773be0f77e93a24055bd05"
+      }
+    },
+    {
+      "source_file": "fee-schedules/federally-qualified-health-centers-july-1-2006-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:770448ad8139317cca1fd742dc2cb504bab950c2c7cf1ecd11f6d3bbdb3683e8",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:042995fc4a75a8a5ba2ccfaa77af9c1375bd6b5ba93b148bbf9ac5ae36f399d5"
+      }
+    },
+    {
+      "source_file": "fee-schedules/federally-qualified-health-centers-july-7-2021-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:4efc68612b6e9b06141804ec8e8c4ff2b15a6e83229cef1972ba9ee813da8a96",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:8538f71a1cdd98835d448bc8727182ed202a1f89951177773df5956ee34b7dd3"
+      }
+    },
+    {
+      "source_file": "fee-schedules/federally-qualified-health-centers-march-27-2014-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:090de48a86f0e1ca16cf5659484facbbdb201607b45cf9ee39db109eb1e881c0",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:b8af9c3e52060d8d2bc25e7a428bfd1a1e439f8de71459c861da451de07b89ab"
+      }
+    },
+    {
+      "source_file": "fee-schedules/federally-qualified-health-centers-nov-1-2011-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:8ecbece012f3c35cdb158b0abefb15ce928981b2c7b4d5099ac22d8bf5e2c138",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:eadd1327134f947d99a779af7e61a04559a2d7c28df429a7c93b501fbb010f8c"
+      }
+    },
+    {
+      "source_file": "fee-schedules/federally-qualified-health-centers-nov-1-2015-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:bd53b5114d076170f630b2eeaa6f8888b8a61db5a3e1285d624a9dcbf1935140",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:b7b6a6f8b2599ff6b636aa3ca89cbb80b143a70510fa6c70da3546ccc9d31a59"
+      }
+    },
+    {
+      "source_file": "fee-schedules/federally-qualified-health-centers-nov-15-2021-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:6601f86d5a9282b9f67c88b25791e2e7d76e3f42c93602392eb6eea06ace92ac",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:046929e544bf06f3946ec82b0d069807aad7a2f65212c48ecbfa7d171f509047"
+      }
+    },
+    {
+      "source_file": "fee-schedules/federally-qualified-health-centers-oct-1-2009-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:1b3bb61946dc80505f8d4a9487def0f681f299bf495a7decc0cec50eca2fcc7e",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:24817084d08401a0aa05c0520aa256636d114a0645ff8836aa1ae98677e54d55"
+      }
+    },
+    {
+      "source_file": "fee-schedules/federally-qualified-health-centers-sept-16-2020-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:5c08fd5ea7fec51ce306409c4d07a860df38a134f1ca7cfe7fe5c904c65a2072",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:f0a2f709b3039e720657bf45477293d0b7e5eb641ede6004caa95795e4ddf9b7"
+      }
+    },
+    {
+      "source_file": "fee-schedules/fqhc-fee-schedules-feb-7-2022-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:8daee69133140a4683510f0bb8bed71a1c823389bc80f76cec44edb6a7b69726",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:def2a4bb99c5c66d1cdeb10659ceff94fcadd62744af39f73f3b0e9e1b366e52"
+      }
+    },
+    {
+      "source_file": "fee-schedules/fqhcfeesch1-1-202120210211pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:0c9d3377d7ab2eb9e06409629f1bfcd2cab8d44ff323cea99a6a6b1d66116d66",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:885f5f6a7aa1f26246127f900b14d51630445c98123172c05ccbb7738eda5b1e"
+      }
+    },
+    {
+      "source_file": "fee-schedules/fqhcfeesch20200301covid-19pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:e94d9ac006e41d4ec658a5b1e896fba42e08dda76340ec31fb1ace394502deef",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:1444f5e20b6ea805f539667e2e7a4780e959fb89e693a553fe3acb0b5cbc4bc0"
+      }
+    },
+    {
+      "source_file": "fee-schedules/fqhcfeesch20201216covid-19pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:37430b70b379efc388e9a92767a1d7b307f68c1bae9aaf7a68b747e6adbfca36",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:f67188ef6319ea5641baca905ad894c89c1030c228f0f35361552dd2d43868de"
+      }
+    },
+    {
+      "source_file": "fee-schedules/fqhcpsratefee-schedule20220616-1pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:9314de769799b628a354a3ad22c74720d527f8eadb84b7d9df38235aeae15a83",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:54d5e03aac0494e7683b5a3670b9d41de3e4174b9101625eb87c9cf5d990cc7a"
+      }
+    },
+    {
+      "source_file": "fee-schedules/fqhcpsratefee-schedule20221017pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:849be5c858c5007ab5c019a0702e4a7202106f983a737acee2e54f397aa0b47a",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:dad6378cc8960061e5d0f344de96a588bf60aacc6bd756303715291abe3cb444"
+      }
+    },
+    {
+      "source_file": "fee-schedules/lhdfeeschedule20220617pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:4caea78964f091d82e046bfa718bd0ffa2622d68d34cd7577892c921ee4da4ea",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:bf8f2dbc5bc11208fa272a97e2479a2bd9fd989862a5b056cbc3a83b6a944fc2"
+      }
+    },
+    {
+      "source_file": "fee-schedules/lhdfeeschedule20220726pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:fef713bb509514042ca69f65dc7c690c9af730e3c2d710bd94de5ba733bffe0c",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:1c8c10fa6f28539be17f03ee3518c1834b93721d6e2a25bbb3e0b2e9dfe1a5b3"
+      }
+    },
+    {
+      "source_file": "fee-schedules/lhdfeeschedule20220920pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:baffa4b0a3443acd766d9ff0608fae6ec09307af3052c6baa70458237fcecfc2",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:333916da22c4dbf2572b5cea46ebc8927625707e2dfcbb4f6cc73fce0fd5c5f2"
+      }
+    },
+    {
+      "source_file": "fee-schedules/local-health-department-fee-schedule-april-19-2022-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:e61577a6bea8f95d88e29ef3e8d7128d421a48ea4db9f38cbd685035acc139a2",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:e4f04d085d6b48f01cbaa6139ae09d13c8c11f130c16b10c1e4c0a5450bdcde9"
+      }
+    },
+    {
+      "source_file": "fee-schedules/local-health-department-fee-schedule-april-25-2022-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:d3534546a122419f827e39650144de85aeab075ae50ba5916c6bfb5447ff493d",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:cc8303410a16a1971cddd18f1375af13fa6c35549f822e564a643ef2ec6f4143"
+      }
+    },
+    {
+      "source_file": "fee-schedules/local-health-department-fee-schedule-july-26-2022-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:fef713bb509514042ca69f65dc7c690c9af730e3c2d710bd94de5ba733bffe0c",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:b7dee559449138798d1cb0502b545156a91f0b575d520fe1eaf63653e2696a6b"
+      }
+    },
+    {
+      "source_file": "fee-schedules/local-health-department-fee-schedule-june-23-2022-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:4caea78964f091d82e046bfa718bd0ffa2622d68d34cd7577892c921ee4da4ea",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:b66a55240583e02bdbe226ee12c75b21c143ea83dab006e799e970fb52921477"
+      }
+    },
+    {
+      "source_file": "fee-schedules/local-health-department-fee-schedule-may-3-2022-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:c80fd7bcee56f67eee1b688e7c5026247873e22f29bf43ea1d44828b8545e2d0",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:0a56ac003d3970485ffff3e2c382e0262bbc5dadc6f6abb53b4878fd5f497863"
+      }
+    },
+    {
+      "source_file": "fee-schedules/local-health-department-fee-schedule-sept-20-2022-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:baffa4b0a3443acd766d9ff0608fae6ec09307af3052c6baa70458237fcecfc2",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:d98707d545e06a21344b0768706919f66b3383535f46dfc3fae30304841236bb"
+      }
+    },
+    {
+      "source_file": "fee-schedules/local-health-department-fee-schedules-feb-7-2022-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:b529f9df103633a46048945287abeae0fc09e1914c0da9710fdf94105ffa789d",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:16092a2bef01ee09402c6a8fe2de7c8a0c3f37feef1a6f6aa6445051cb2b5339"
+      }
+    },
+    {
+      "source_file": "fee-schedules/local-health-department-fee-schedules-jan-1-2022-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:8ae6deffe847e860b2e547b5b4c174825d38eb2f9d3c70f6b91f6b0d64d63509",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:576dbc04d27a42f624d24799c3dd6f5586b2d45ce2223ca4b0a17574ec8b5a65"
+      }
+    },
+    {
+      "source_file": "fee-schedules/local-health-department-fee-schedules-march-9-2022-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:b0b7d5eb27c7b0f723431c1e528797cd558d55c5e78f9c7454474088ac070437",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:856e8e39fb5f41de992b62c56e1a82ba4b26bf9b4fd577dba5d77b834e0b2cf4"
+      }
+    },
+    {
+      "source_file": "fee-schedules/local-health-departments-dec-29-2021-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:ef5ff7d84eb820ccc9aa156160b8237d800ec2bb1d868360bcc095fedd1fe8ab",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:032fcc098fb4db321faf24fcb7f799a573daa13b23431c82e45342d1344401b7"
+      }
+    },
+    {
+      "source_file": "fee-schedules/local-health-departments-jan-22-2022-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:be8d3647c4f36ffe95296bf7341952109257c5bb47110f1790a2249259a53d4f",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:3903ad5003953eeb5ba76a48a046e251ba0547b26021614ea951c876d4b40243"
+      }
+    },
+    {
+      "source_file": "fee-schedules/npfeeschedule20180101pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:d7d545e72e90eeea48622dd0c9d9941988c20127a8d7c1097a5d645d94296e68",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:e3fcda0137a9603ba0aa872e220beb62d1c765a770ecb4d22742c64bb33ae17f"
+      }
+    },
+    {
+      "source_file": "fee-schedules/nurse-midwives-fee-schedule-july-8-2015-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:28b5827b46dbc9d5e32904847f0fc504027f8d0a1bc5fb54d21a839b1fa57a31",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:31b197cbcb449397b3b57d92db5ce315045736d671be09ae099cafc3c574ec49"
+      }
+    },
+    {
+      "source_file": "fee-schedules/nurse-practitioner-fee-schedule-06072019.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:1ba2aae75f6aede56e90101fd2443f6bdc4bf2c32ee5d91fa3c3ded158a77b8e",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:26504dd1b8f04dc5f81a37ffeae1cf0cb312da9d91e02b5e0a52f59a966624c4"
+      }
+    },
+    {
+      "source_file": "fee-schedules/nurse-practitioner-fee-schedule-april-22-2020-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:b0509615edb941ac2764dfd967236169638afe3ab928e3fe1ce2a81779e0144f",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:a3f96d5144784794565b9196425b22db3386ef30dd8e9c3fa2f4b6adaa1fa3ae"
+      }
+    },
+    {
+      "source_file": "fee-schedules/nurse-practitioner-fee-schedule-april-25-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:f12f7469e10e441fb89329e591a57e751db72100daa1ef975d66dc3180c8c65d",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:77f5c398b8096185b7595748fee183069a6b3b4326308fa055726bcdda1848b3"
+      }
+    },
+    {
+      "source_file": "fee-schedules/nurse-practitioner-fee-schedule-aug-10-2022-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:d47504055181cb102835426de4bfff4ab703483417f376f74862662892a3a87b",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:8557d0576564059bd3e6d5a3cd12a0d660e5e2ded458a6fa3e25f870b92f39c9"
+      }
+    },
+    {
+      "source_file": "fee-schedules/nurse-practitioner-fee-schedule-aug-12-2020-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:19aed3d4c04fad744dbf75f489d082888ac2c129fd09a9938dc834841cd18746",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:82d92e3f571a0fd8271ac8e774043a2f6e81d05f4e82b40ff68cabfa9eb048af"
+      }
+    },
+    {
+      "source_file": "fee-schedules/nurse-practitioner-fee-schedule-aug-16-6022-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:b146fd680cf46c8d96e93c15a791079965c1d6cd2a117ce7e995ad7cbf16ce67",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:a53e30c4dde4be70acf534502967b15418c98666e85abdfd3a298a4f1e70dd66"
+      }
+    },
+    {
+      "source_file": "fee-schedules/nurse-practitioner-fee-schedule-aug-3-2018-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:6c1a0a6cba9b576f90875d1e705b751f175d859878ca69ab02e3327544acf727",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:7f8a6a2166696433f87f26970b9eeb375874780158656ca73283f4a9aa386540"
+      }
+    },
+    {
+      "source_file": "fee-schedules/nurse-practitioner-fee-schedule-aug-31-2018-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:1cb87989e8b717a79634f7e1d955556ff915faf7d19d593e38714eb4911eeb2a",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:63336864f4c7f5e6ae198f8b0aea6662311c8e145f8e33d68e2f403235f67252"
+      }
+    },
+    {
+      "source_file": "fee-schedules/nurse-practitioner-fee-schedule-aug-4-2022-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:a7ed1d27825757074251591b300f198cde27d2e37b29543d6a4c3764324f0d4b",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:76b799fbeb9321c82540dcbee5146dfbd30c3e5dba867e7ea23301966c02a118"
+      }
+    },
+    {
+      "source_file": "fee-schedules/nurse-practitioner-fee-schedule-august-10-2022-pdf0pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:d47504055181cb102835426de4bfff4ab703483417f376f74862662892a3a87b",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:72f36529d9c0059dd8c340d6c9a13039ae4a1d66766bf2638919e8679f0919b8"
+      }
+    },
+    {
+      "source_file": "fee-schedules/nurse-practitioner-fee-schedule-august-16-2022-pdfpdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:b146fd680cf46c8d96e93c15a791079965c1d6cd2a117ce7e995ad7cbf16ce67",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:2aee1130e111cedcdd348364938a7f999d1d7f3638581cc71b0c96140ca3263b"
+      }
+    },
+    {
+      "source_file": "fee-schedules/nurse-practitioner-fee-schedule-august-4-2022-pdfpdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:a7ed1d27825757074251591b300f198cde27d2e37b29543d6a4c3764324f0d4b",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:b9d2b834d52590604784cd65ce91360877720cfa5e1558d87304af1576d85838"
+      }
+    },
+    {
+      "source_file": "fee-schedules/nurse-practitioner-fee-schedule-dec-11-2018-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:3e58a95e9a3646f2973dbdf279463b0476289d25bb6c50f1269187ebd30d296b",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:fe442efbdb64431f2575a7eff6d2c8e1713c844d0b860864dadf15a1dc63794f"
+      }
+    },
+    {
+      "source_file": "fee-schedules/nurse-practitioner-fee-schedule-dec-21-2021-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:480358b75ecfb8bdae8f735124c4d5c50cd9d01ffd338f0ca03fe40509493b1e",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:63c17bb21a0331a8d3a6b316844b99abd0186ca22c5af342d32a4b370fa5e929"
+      }
+    },
+    {
+      "source_file": "fee-schedules/nurse-practitioner-fee-schedule-feb-1-2022-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:da58bc90e67bf598dafa8df454b5d5c684114c631ee8952dc16448a68c63a530",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:b1a0f0d1c1659beb1119b7ecfbd5febb203641323acf20b4f47d02fae8359d08"
+      }
+    },
+    {
+      "source_file": "fee-schedules/nurse-practitioner-fee-schedule-feb-12-2021-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:7f1c2ad7865998a65249c6a6433f223b289e2519b9618a295645759184b749cc",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:470591883565a78ab2524cf5a5f05808795fa62cc3e6bc5cf994bb3a8e99d3b2"
+      }
+    },
+    {
+      "source_file": "fee-schedules/nurse-practitioner-fee-schedule-feb-18-2021-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:804bd3f120026cb30bae4b4666e9350777d726a9ec73123f393ad6a254ef20d6",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:e9cad40e3ea80fa6a1a7b0dd7928b66f7b7cc630feea3b345ec3d633f512de1b"
+      }
+    },
+    {
+      "source_file": "fee-schedules/nurse-practitioner-fee-schedule-feb-28-2020-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:26e1e96a43e7b960ea03079ebd3ad6a3d8b99baca671629ec9eb1df947f5c232",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:9a7c69d2f75f75fb4db5518a436c924960c75c8df5e21844583272d8128eea62"
+      }
+    },
+    {
+      "source_file": "fee-schedules/nurse-practitioner-fee-schedule-feb-3-2021-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:4246e446697ed6931638ff23379ef3907e0652ed7783ad9bd72cacf562d08208",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:ca983f289dd11d7c3ff029757887d3dc64545c7c7fc822c718a6281c817cf8a3"
+      }
+    },
+    {
+      "source_file": "fee-schedules/nurse-practitioner-fee-schedule-jan-1-2012-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:f7fa25b0ee0d31c5c2d3296f6dfd6d0615386de904f76987e98acb0ba298c113",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:d99c38c2c09ddbadbb9a9f26f87fc195b2eb3bcbfa882bbfb0275c3e0354b281"
+      }
+    },
+    {
+      "source_file": "fee-schedules/nurse-practitioner-fee-schedule-jan-1-2013-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:8262ea2fd8b0f53184f0a0528e72df6ef1a54e1c79ed1c7ff27c85e73e6ceafa",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:c199a2b60f1921d6ad5f4a93964518b2b547df855c9a826fba50ebc1e7139f7f"
+      }
+    },
+    {
+      "source_file": "fee-schedules/nurse-practitioner-fee-schedule-jan-21-2020-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:fdbfc8fb26180619a9c24c94da614fa58e6e5c8848a8aa196f08dc14e1760107",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:c6d02517a38cf9376ff2433558c72081013a44d1e1dbd8c292af100f637f3997"
+      }
+    },
+    {
+      "source_file": "fee-schedules/nurse-practitioner-fee-schedule-jan-22-2021-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:4733d7c1efa5e10daf22aa57ccafd1daf56adb13b2cc08c461f45c93389a39e6",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:f54bd0cd1c82cb0a072544259c17df7f198627085e28233a73824e23a55925d3"
+      }
+    },
+    {
+      "source_file": "fee-schedules/nurse-practitioner-fee-schedule-jan-24-2019-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:056903732afe829d848aa85fe81f55cbc46f442fb0623d4ab2d706b6362d5ca3",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:cf2981a270f38e380983ba687b024245b848a1b5c8aecaecc7e04a33c0c7d2cc"
+      }
+    },
+    {
+      "source_file": "fee-schedules/nurse-practitioner-fee-schedule-jan-7-2015-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:7428aadb9fd9b52d1428d88c97f257cbf28c8630f55ae52d800d10979e7e27eb",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:4f7d3e7eab34e63950cc5e27a97c994d8830145599a152fbc459cbcc6d47e37f"
+      }
+    },
+    {
+      "source_file": "fee-schedules/nurse-practitioner-fee-schedule-july-1-2012-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:f493c7a1c6a1bb70d8ad250e126fa2df25ba90e323c27f7681a3e8c40eb85ebb",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:6203b3dd03843747f92ee112795dd63ee5e611c3b8c4ad0e0d7ea528908c8644"
+      }
+    },
+    {
+      "source_file": "fee-schedules/nurse-practitioner-fee-schedule-july-15-2021-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:7843058d81a2fc800e55f620caf9b24328379d4f42afc1973ff6c7d7acffdd6c",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:61bb950b5046a0b46446201804961463e9a2733c82fc52f36757876f110d0ec9"
+      }
+    },
+    {
+      "source_file": "fee-schedules/nurse-practitioner-fee-schedule-july-22-2021-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:773d54ed3daef08478c740f6297c1ec6168b33f9007fb062edce7b4aa28711f5",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:84864bcb8a62b2d52fb5a394237cad79e6b8fe53a6f32fa830a153aef8cb6d37"
+      }
+    },
+    {
+      "source_file": "fee-schedules/nurse-practitioner-fee-schedule-july-24-2018-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:d3600a65f55fa24507ae88a3115b7616bb09981553370a3de2396166c1fdd033",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:3ba14a3de8ec2391a32dd2777a9f37193ac7e3d19178152467f8dc081adeca72"
+      }
+    },
+    {
+      "source_file": "fee-schedules/nurse-practitioner-fee-schedule-july-8-2015-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:e70d10db33954d15838b0fbb80e7f42b20ff6b134d3ac90f2ac11609214e5b3b",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:0ae4e6fe91e53bee240eb68ca0ef6d7a9296aca32f971d301a3798fe73c9c14b"
+      }
+    },
+    {
+      "source_file": "fee-schedules/nurse-practitioner-fee-schedule-june-1-2018-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:dcf0a78022468eabe879eda769b6cbb5c38c8c56ba82d724f7424ab200726fb9",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:154dc92e67bca45c2adcc88ac9bb680a8d288715f7340ebcaa8e8709d93b781f"
+      }
+    },
+    {
+      "source_file": "fee-schedules/nurse-practitioner-fee-schedule-june-26-2020-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:c866af6b227fc9d055ac983d089ed3613c5e2e94101c9ce3ec9817ed2e2a16b8",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:255aa69d7160970c4bdad9ce5d8d1c1d7642a4d097e1ad12eaf8d86a7a7990db"
+      }
+    },
+    {
+      "source_file": "fee-schedules/nurse-practitioner-fee-schedule-june-28-2021-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:5195b9fe0d2529b9a3a21a575feb0e6cd03b1303313e49da5902ae276e8a9733",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:9189b855ca2634158e97cf736f90a74d7a33a3f6b8229945afb2c56c6e83978f"
+      }
+    },
+    {
+      "source_file": "fee-schedules/nurse-practitioner-fee-schedule-march-1-2018-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:0dd1915f51c2afe25eadf10824f2f82f7b7adb05bca49c5163d3bad3f6ce0df2",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:cc6331bc9f16286d229c3203c4212cf2073f3003d46d35950a33685152850e26"
+      }
+    },
+    {
+      "source_file": "fee-schedules/nurse-practitioner-fee-schedule-march-18-2020-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:52a7fbe64c049dee56f301671a90b103a7eeb18a484f8742d871a45bb0a9c168",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:eab17614c1f929bcad3473676f3901d4b1a5c6e0aae58382dd5a0dd9c32da30f"
+      }
+    },
+    {
+      "source_file": "fee-schedules/nurse-practitioner-fee-schedule-march-2-2021-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:45b5d3185d129ace6c760e350c52bf31cf70d2caf144373e8dc40095256f3bb5",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:1b26cac1386189c8148944bcd51820225d5a4a97af351e3d2470bc8d9fb39021"
+      }
+    },
+    {
+      "source_file": "fee-schedules/nurse-practitioner-fee-schedule-march-23-2021-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:7531b25e1592c640debe68356e67abf0a42dcadaa1db5a90432359c0b46ad623",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:19a798a10a99294b24ef84461cc66eed145098b6733e63c21743c72f4bcffb7a"
+      }
+    },
+    {
+      "source_file": "fee-schedules/nurse-practitioner-fee-schedule-march-24-2020-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:6fe22e8857b9e386b71d977be6f0cdf3bf676e28d98b20102144c8e0eec6ffd8",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:da44604939df41a4abca6ddda860edcc5e25f869b876d99ad6901a38d8ea9e73"
+      }
+    },
+    {
+      "source_file": "fee-schedules/nurse-practitioner-fee-schedule-may-14-2021-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:4be38e5798f5ce73d91a645fd2c7a13caeedbb9c771cde440bef53e12a0f4206",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:7cdf5d548884d68759adffbe71976fe20d942fd25f5db700cbf032d796e48bfc"
+      }
+    },
+    {
+      "source_file": "fee-schedules/nurse-practitioner-fee-schedule-may-19-2020-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:eb5c893cd0a3187419923c37549ee5421a91d2f68dd51901e7a72c0415c6fcb9",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:09a4058198b4455be5603a3e0295d3b1c894ea2722db26f2ea2d656a2fc28cd8"
+      }
+    },
+    {
+      "source_file": "fee-schedules/nurse-practitioner-fee-schedule-nov-16-2021-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:595858900c0fd79cd86fe78095bd876a1de454ee39361c707832da44826a62e3",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:1e677e3f90d4f81e57be42e1feb95bb2741e274a6232364a721a643d629f6d8f"
+      }
+    },
+    {
+      "source_file": "fee-schedules/nurse-practitioner-fee-schedule-nov-19-2021-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:909a6fd6b4ca54bf238b21f607ae17a13a5dc05a53a16f6fc41abca768d8da18",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:71811d45b704c94d079d8ff5e4b4e5f9d34bc3b74e03118f7942c238e0656b12"
+      }
+    },
+    {
+      "source_file": "fee-schedules/nurse-practitioner-fee-schedule-nov-8-2019-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:5b37ea4e238abaa9b8e732758e076907cfd12f53703c684be7db8a58b1648a17",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:823adb7b2ed698fb6d1d0685a116923bb11448881089405381937984aa60768d"
+      }
+    },
+    {
+      "source_file": "fee-schedules/nurse-practitioner-fee-schedule-oct-6-2020-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:eca2212aeb818e15a3f6d70f4789d35b532e402ce1789aab4409ea1107263594",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:102b680c796c1ed68c985953ac3699a2ca7bd5bf9f44b77a7c5f4984216b02b8"
+      }
+    },
+    {
+      "source_file": "fee-schedules/nurse-practitioner-fee-schedule-oct-7-2014-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:72612ea7952dcec99c4d0ebe38e7ebaf8af302b078220444398bb7dcc05a2bf8",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:274a97f73f7bce989fdf2638a922573cc1556e98d39c0fa3de59a3eaa1f8c0a0"
+      }
+    },
+    {
+      "source_file": "fee-schedules/nurse-practitioner-fee-schedule-oct-7-2021-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:107fa1fc012b31bd28984818caabca8b53e45ae9e6a5c07af20d9fc8bc26ff3c",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:dd3ca062735b1177a6cd12f80aa9db5f2f73370a8f2aee06a9cecf4e5d4c1c47"
+      }
+    },
+    {
+      "source_file": "fee-schedules/nurse-practitioner-fee-schedule-sept-19-2019-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:0e535ef93dba039c86a4acad4d5e01cdf4d913cb6ab48840c093bd49bafb7966",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:ec0917c514fd0b6d64d35908e679618e524e3067dfe2840719b97c4e5f44999f"
+      }
+    },
+    {
+      "source_file": "fee-schedules/nurse-practitioner-fee-schedule-sept-24-2021-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:b13c5da560245caf1b562b5555a4563b13273f1e61b1e650bd07dd7a6175261a",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:aaeaa469c4e6826c384a44992832589a4e0cb25d32062042a42e8177d854214b"
+      }
+    },
+    {
+      "source_file": "fee-schedules/nurse-practitioner-fee-schedule-sept-28-2020-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:f9464bfdc8d29a30048d74604f9cb870e61a1f4aa38be46150ec331b33457b2f",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:09a72937e972bd8d95c11c7383ea38af944a792a08d0b6cfb84381e8e576e23e"
+      }
+    },
+    {
+      "source_file": "fee-schedules/nurse-practitioner-fee-schedule-sept-3-2015-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:a9efdd431f70c120e59f893385c29cd206afcdb464dd32d461c4d8bf870bd236",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:5b0dcc1537ef0c718aecb96d57c01c4308a0f7a995d804d614330cf65ae4876b"
+      }
+    },
+    {
+      "source_file": "fee-schedules/nurse-practitioner-fee-schedules-feb-11-2022-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:e5aa217c7e1d5f1377cb7f4967c4a3a6e7e4218d83cd67a6433eb704b1cfa987",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:c9e9379487d1b4f2e3b96d0306c0da29bc3dae2df63babc2dc43e9d182c3899e"
+      }
+    },
+    {
+      "source_file": "fee-schedules/nurseprac201601192pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:324dd404c587326b29c64454dde6f433a0922fb974d2780051764fc0cd7214b6",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:feba8bffa28ad66ced5f17582dae73663a94f49f5c07f5496abcfbabef0e1bad"
+      }
+    },
+    {
+      "source_file": "fee-schedules/nursepractitioner201604pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:d09db1192933e4fade54cc799a104a5f94e309bc522e9003cf1fc2fac8609b47",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:542e2c1db62f51448a757c8c3a7cf91cab6584425df6fa9b4436244f9d19904a"
+      }
+    },
+    {
+      "source_file": "fee-schedules/nursepractitioner201606pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:691313ae6b1ef31dc1b562f3f505d44ef476e3ac65899a563634f4e3e6113264",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:a1e30b2b2cd936f16ecdb364d122a24d90305d855423310e99c87aeb3edc57b4"
+      }
+    },
+    {
+      "source_file": "fee-schedules/nursepractitioner201611pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:252fd1e04bdeb2bef0741f43823863bb9082c70ac028739d86f93f2d54128d8f",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:2561310beed52337b44dce9dd19027569ee7dfb4a66e5155329bdd24f26bb578"
+      }
+    },
+    {
+      "source_file": "fee-schedules/nursepractitioners201701260pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:646ea683dc4ac8a83c4dbf28526637394d87ff0f3f9dc1fdc11fd530a857c4b0",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:e777672ae33728f0837cc56a907cad2aa79aeb81739b82d85164f530a4abbea5"
+      }
+    },
+    {
+      "source_file": "fee-schedules/pafee201604pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:122dbf92707f963b06decd776feb06b4b684118d7cddf05a8a3b74de34e31f52",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:1b12105bc6d0b502ca0e8732ae337f14a0216a5c5f3da90f6e4d3907c3330c50"
+      }
+    },
+    {
+      "source_file": "fee-schedules/pafeeschedule201611pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:626c2b4b87353c963a0290822a3c11bf9f998af6aa2ede985436b5ecc70be7f4",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:8b70a362bb4304668e72e2d9f6b57b2b9f003265086110de99bd0de94274f27e"
+      }
+    },
+    {
+      "source_file": "fee-schedules/pafeeschedule20180101pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:4049866b7dced2e03b44a9345efd747e3b8595e8cf6a3292f825d61767781046",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:0e7cd09fed1d3d2341e3b573587fb1f1a1c5bd13923dc798b68a857cc3324ab3"
+      }
+    },
+    {
+      "source_file": "fee-schedules/phydrugncdsfeeschedule20220429pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:9ad1944a3fd55f12b60a69888e27d16ae1e95f7da3a768339ddc9168fdf88733",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:a0d938db96e1586954c42b333d2b7376b7e1017fce008e8073cf3cfd1491fddc"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-administered-drug-program-april-19-2022-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:44dcfe042f17a7b306b8bd9064ac873ae1617775b61f6104eb19e602c474c9ef",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:2829edc1d7784582ce64c808655877b3fb193a22249632a4250d07ebc303f8ca"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-administered-drug-program-june-14-2022-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:86e3dfecbb953fae234051254796b095ba4f974422420996729b1048130419c3",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:38066197051c2077ef61c8a197141d0e7c8152b0bd6b94a5cf668025a0de3fba"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-administered-drug-program-june-22-2022-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:3d795d743ef2a6580c9a9a5d48bc1fd22d369c6f61af63cc7751918d081d9982",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:ecc818d7f96c2163e035aee33bbea743be814cc89ec12e0dc2ec0c4b8e33ecc5"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-administered-drug-program-june-24-2022-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:3d795d743ef2a6580c9a9a5d48bc1fd22d369c6f61af63cc7751918d081d9982",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:ee7b2c4c441cffe866949c083036264acfe3ea2697d541f3f3db539a17602f5e"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-administered-drug-program-june-6-2022-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:0e855b7852d384e00fce6631bd7fbedb5c0e268662aa946e738070de1f9bcc1c",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:fb73e1821f8b1264bbe313b307dd5cbee48285297896662e57d4eda56b70487e"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-administered-drug-program-may-11-2022-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:4b3c4a629b4a4ea5f96516b7c087bb2972225d75de91a8b1c16f1dc04d430d5f",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:82c95db1a6a7037f157c28ed1f8dffabbd8b475f48d9d12d7af720f1d2edd4f0"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-administered-drug-program-may-19-2022-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:c31a0ce162b221a2bf53116bc49351eb82f2ef8609f05d5b77ac7284f4dd63e2",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:ff62cb377a206af5cb910bbe229fedf7d5763e1ac8494441b7b7bc95c8f9b59f"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-administered-drug-program-may-25-2022-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:64c2973ea12c9e342bf46ca5ccc88bd96d53e075e567ab61e2f88b8167c4252c",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:8eeeac000f7d1a1e329f55fbb88c5128830f0e6959efe1b686abd941dbb7c251"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-administered-drug-program-oct-12-2022-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:40e8411d656d7fa4833b668c997fe32f0c24020c558b6a2177fe68dd309ef321",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:48dea384bb6f578b3b5e2520f1cc60915e0dbc6c71adfe3b085dc6a65d3d9924"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-administered-drug-program-oct-19-2022-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:df7ed92ef4b95812d4fd7179a9e0681dc4fd5918a5e79892e2867c0c38110b4e",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:a68bf7854b1ee905caec436cdfd349c6a1a721adc0878a12552ebdcdc8e53ce4"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-administered-drug-program-sept-20-2022-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:69925274e8f5c7fb9b0f3dc3567478195f5d4994de5c25c80457d970e470a9ef",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:e47fe1b2fa50686697ce3281f35da0930fcb429a01fbe71c3891f174aafa33fb"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-administered-drug-program-sept-8-2022-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:77f4376a83ee1cd530d5d79325748d6c177da7ec04919048665c44bd74731285",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:9f57619b24e96434b57dc0441fd5f86ab7a58d670911c6e86fa3cbf0d51993b8"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-assistant-fee-schedule-april-22-2020-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:9f64afd888911baef2cb9a44bd1b47d7f964c0d8eba0ea2dba192e582ea8a684",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:55ea414dfa8879cac19c719a3fa0d1d1ccb930070fc6b6e2f3fd3aef2a676d46"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-assistant-fee-schedule-april-25-2022-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:40020648e12a8ef577004ecc306868ae5ff2f445a791fe02c8a3b5919bb478be",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:cc26e8c09d57d4cb6701d79d3e3b7dba319c7c588e866e95c9608a0aa36b6ae0"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-assistant-fee-schedule-aug-10-2022-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:b72e38c602b37473464e015a8d7174a890b7ecf9b9dff9b4be5c48356db9336d",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:7df3dd582b1c1cb56495ca5b41d9ce9d6c8f5ee14b42240caf5b398dd19ee128"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-assistant-fee-schedule-aug-3-2018-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:605c35b6f4ac39254e49700174b9c38ddf21e28806807a6563806c72a1c4e874",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:623668acdec2f4bcbc8e56e5d99a222440c1f1c6bfcfe0528a49ac565c71c08c"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-assistant-fee-schedule-aug-31-2018-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:12b0f07393c4e1b60aa4ca09f536fe343930f314ea707325319f423182366a63",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:4133c03f3b7994c0e6351a93507130bb19a424ef14868ff34f509f20b75e6f29"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-assistant-fee-schedule-aug-4-2022-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:9584e428aba5b5a0e64aaff2333940ff1683ceba585570d48a149a12ce1bfe28",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:8909a75a714b51b24dde7fa00da221fdab963cbda66dad4c8bf590eb2e0d8233"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-assistant-fee-schedule-august-10-2022-pdfpdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:b72e38c602b37473464e015a8d7174a890b7ecf9b9dff9b4be5c48356db9336d",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:7b05f3c7afd2aee8e6416388652fa0fbbb24960e0b23691a22345483658da86f"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-assistant-fee-schedule-august-4-2022-pdfpdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:9584e428aba5b5a0e64aaff2333940ff1683ceba585570d48a149a12ce1bfe28",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:498f0493e6142c5c438f787ec3659381df7b694c8e60cc3903cdc7a92bb71af7"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-assistant-fee-schedule-dec-11-2018-excel.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:233ee65af69fb47ccd7c8edfe2adc120b4cd2fd072a7da44611a35cd3bd61d68",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:84197102bd9129979b7b4ada9494bffe7de6c772461a2b728e36e2d0cbe2ccb7"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-assistant-fee-schedule-dec-21-2020-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:9dc130afac1c81755f29f888a2bab4fe09ee18d38e8e5f33228047d80b7c8c1a",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:9356c84e2015da2085cdab4737f266e74d52bffab1c4ffdb68d033f4bd86e161"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-assistant-fee-schedule-dec-22-2021-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:2655aa076b7f4747330c86b56b37da6a2a177461a1cb98468cdacd2d0a89240a",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:9ad8ae62025eb6c2503fd5ea331d6420dbdb5f336b3a7ad9539a2fcde6df1ee6"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-assistant-fee-schedule-feb-1-2022-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:658b9bba812760ab2246cf0e9242ff032efc3d57720cd9974104ce288d7563f6",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:4944afc5a4aa5eb7d0ac0f39629b9a15a0fc7b28d23eb9e35c61ba018cdb5781"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-assistant-fee-schedule-feb-11-2022-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:d4c4b15355e3ed007658fd7913d4a2d242eeba5d98eb96e8c14384890c9e8b19",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:e12bb2f14eabd8a6792c897668f0a85fb95dd9193607eda16c31b3093664838c"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-assistant-fee-schedule-feb-12-2021-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:ede110dbe762f59778ac1b3028945c20b845c50ab4e22580d7eee5c10c8dc984",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:5c74b64f6acb8078fc08ab303f8f94a4c0cd74a6f9f0bf6471d2d304e2995acb"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-assistant-fee-schedule-feb-13-2020-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:1b684165b848e2038c0aff9e670bd151712fc8fbdffc9d975f943fa3c72c9570",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:853592cae399bc8dfd416b42ed12ebc2f3969c3723d587db5856ed7a00b7cb41"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-assistant-fee-schedule-feb-18-2021-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:805c96b1cc4406c30271fbec17089adc6610a6e1a9957f35de6924055972e8a8",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:4fc5c11b6038f63c5e3489d7a733234cf730e69908a417dfe3af6b6563b3ddd9"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-assistant-fee-schedule-feb-28-2020-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:5322f8f78232c0fb0a7416042f84adb6bfaa1189118c6571209aad5bc8d63557",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:1bf8fcb0736430b6410f973bd74421afda71f7c2a7041e0047206776e6709382"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-assistant-fee-schedule-feb-3-2021-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:f1ca52821b4eeddf0b880fcc67a77c305c99c1dfdd9809e14cbbab77a7487db4",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:a204685a060d935d8e805dd15a425bed8012b999aa1eb074e1baad07a956149f"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-assistant-fee-schedule-jan-21-2020-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:8025c83912b152b3b0a48494ce6fd3a42ce13fcb8a5d7b43a72b3c7330c66252",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:bf78993257aa4fb85933454a802bf0757a6e1bddae583599a631f06f85cff2d5"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-assistant-fee-schedule-jan-22-2021-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:7544137accd6fed18a102467267fda5a6e2baf3cbdab6c1e99fd3f63c8fff7a9",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:109664b4b1c185e83ae46b6ceec0faf1261a54acf850fcf163384a223f8c1de4"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-assistant-fee-schedule-jan-22-2022-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:08bcbca112ea9ac0ad72824138380953eae2b308b59326c4f2309041e263d820",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:d52258fa81372a37a8b3380a4de797242be4fc6f88feb021a5be9d8d6f340058"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-assistant-fee-schedule-jan24-2019-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:9ce5d861f4e698afec8c9ee055c1573c1dbc9ea19ee4467dfdd0dc53fdbac060",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:428ee0fa2df099e889fea8bb1e4fcde41b6a14e3e8a23ec36bf0afd0c0c69f49"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-assistant-fee-schedule-july-15-2021-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:bb3f88aabf360ce09fe2a8373641c2d62c90bc2c5107beecd5d13f7b95d4149c",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:9fd3ae981583da5628eecd90df974a9a286cee1c6fb1479ac798fc77cf0163ac"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-assistant-fee-schedule-july-22-2021-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:b035c5c2ec09eed9086bbf522c49cb902b5285759239e43abdc07f0a261cf1e8",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:536856f36d38c92efaba520d54888648bd451101cb3ab06431517403c837ea40"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-assistant-fee-schedule-july-24-2018-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:f1708a7d50e55d2f86420cce1a9cfeaa90f17e5afd242d642debb4e757db0b8e",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:72a87aeea545ae6f2414d179844b8bdf3a13a938820a3e9c3b4a24e84453d96b"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-assistant-fee-schedule-june-1-2018-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:044aeb46597442eefdd80b873e43d85282c434fc22f8ccc52445f47edc654b80",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:af86794087ecde3ad9626f90aaac77e145d22394ef7d9cea7b2df023fe15b7a6"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-assistant-fee-schedule-june-26-2020-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:12c09b5ece0e2a9d018e7737ea96e1f5eeccc3e9e8ce4d8e10f8f7b4fee71025",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:653b64574751f2eb545f1d0a99d63c7164e686d564d27260012ca4c5b9230e0d"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-assistant-fee-schedule-june-28-2021-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:99fd1070d84a226e0270dda56424e568bb7212183b3b3b7dd9d34d722f7203b5",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:252962a8a3a3d48461ba58885bcbac9c6bdaefa2b375d06a358089ddd6b16958"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-assistant-fee-schedule-march-18-2020-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:c1ced1a986fe00e1b8e953eb8b15ef877320a0b39f6a1334c2257a378360858b",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:c4e3a8bdaed33e99573be94a57983e13c1dc845cc9f19785f97046cdb76a2df7"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-assistant-fee-schedule-march-2-2021-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:3acd9e583ac524fba232ca7a26cb9de2263b687db6ff4fa5ee805b27c5a77515",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:ad41897a702a3f464654e3ffe28481d1d81846ba44deda5741626ec0a0011a82"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-assistant-fee-schedule-march-23-2021-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:54e5c8eeb66743c57d704eeab1f628312c6d911688264d9bd0777cc28debe23a",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:f8bcf3c8ef56740545a39ada06991c2f9d9db1ed47d2029a7f94a9c46b82f3db"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-assistant-fee-schedule-march-24-2020-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:d59f85bd5182e9db854a64022fc40ab7ba5a926b99fd071c8aeda38fc469e08f",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:a0419f3e15f17318048f42e283eb815b5f94ddfcfdba5f3fe6ecc582b3306d93"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-assistant-fee-schedule-march-3-2018-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:00667914e8533eb7d6d771b9caa6c15e4d797747285d12e306a55447d3b12c3a",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:62c4eca98512a92dd908d5914c2c957074754ae07e109de1603eb9a70996e23b"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-assistant-fee-schedule-may-14-2021-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:32027c925d6586681e9adf4ade48d8cf97bff3db7f7e555d5a229438d7dfd168",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:be0ea0e10d5c89525571ea21b1fd203440aba1c766a3b9b33ec4b1c54c97aaa9"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-assistant-fee-schedule-may-19-2020-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:02552a29904cdbeebd4a7f13db41adfd8d963d44527a56140a759ed77f0b81dd",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:d700dc7be764877ab1077df4b06958ba53a6059106dd3d5d1ab917355c86823f"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-assistant-fee-schedule-nov-16-2021-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:6b1a567d07a6ec059f9bd395413a5a2c28670f20601292a004e8f9256848e23a",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:cc90a20e2ee61e4eb865830df82fdaaec7105c91537d20f464ab238cc846a703"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-assistant-fee-schedule-nov-19-2021-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:07d96f716462e56aad0df3af8c26eaf8dd07582798ee11cc0550f87dd59a2f00",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:48b91f51ce3ca5bbdd71b29af6910fbbdc24a8e474873145a0b9b40b568c7b6d"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-assistant-fee-schedule-nov-8-2019-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:157f4847ea8ee4bbd7ba3657437f4073a96728c1614a80012eb7f35b5ecff6c4",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:87348d90b7ed9af7fa3cf405b9ffcb9ecd51ebe223a14e767a6c70fa781e8bb7"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-assistant-fee-schedule-oct-6-2020-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:f431f088f0f0b48aec2ce0d09c93aac1fba2aa949cf763430963665786cf9a06",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:20e112f7563bc7715bfd587dd4ebe8163fbbb74b3cc436ef3d3f325a10c643e0"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-assistant-fee-schedule-oct-7-2021-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:295fcc5c90d344cc6fbb4c932a2dabcaa274e0ea88f6953829e56a1bef79b1e3",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:b59d2b15ecff378f6c936403ce570ed04d5cfb82f2c6307db3d8a627c828942e"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-assistant-fee-schedule-sept-19-2019-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:48fd3def4b221229042bb455f9ddc651dd600ef32246fdfb5824f0940e50203f",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:b52a35b3b00a7f738689a8088f26e4a9e34361bb92fa753debf458cc4846743f"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-assistant-fee-schedule-sept-24-2021-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:ec4367ebff64f94fb4b3081a7bc25f3f1e3e274b53a87857fb8020e9d09efba9",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:52e9fc870cfce47b01bf9ee2ab0077f7cd0b2b5639f247d5b1be2db96b3d247b"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-assistant-fee-schedule-sept-28-2020-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:981b062dfa0909b9bf8e9e6217001d9e0152de0effd07fae16776b91fab6576c",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:c02f2acfc8b3bb19c967ece20f5183027ef52813ab9616d090f5da1aa3a093c1"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-assistants-fee-schedule-06072019-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:5e67ad320b39fb429f8145e55c0d4c7b9b097c143c47bd948f5a860bf0a45819",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:b36c045ce31c009bd0e3a544650a73448de1bb2be2fe7559d6818dc7e60250d8"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-fee-schedule-jan-1-2014-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:3cde41e8805db9ed3713cc2e17730e42cd24c55d1b3aec1cc4a79b03ea9d9de3",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:2f9abbc4710587a29e8b8af2e03d4eaafd783174a74b6ef9faaef59f0d08dce2"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-fee-schedule-jan-1-2016-excel.xls",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:9a67b25c56ed39874a37b00732b25536515137e8f4f4aa389c1d5ad0ced3c5fc",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:c417f8406f441eadd5491b577e75378d394befde66761b6b24d5873f7fbff987"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-fee-schedule-jan-1-2016-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:77b9e7e8e7a7b963163be5f231a620669f3b311bb2417c1926cad8fe9ba9ab35",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:c6a0c7133793ce2716c8b23b7ae9b0139c7ba00626c8d40f73e7965e5f89605e"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-fee-schedule-july-8-2015-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:d4b8e38cd4e1957489be655c7078dad57a134750c32bc8da9a3b240698f2b618",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:7815f46582e6c231db7d1c94a7c283c1c5c5816a21ab6cfecbe6f15eb67383d0"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-fee-schedule-nov-22-2016-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:9526141f13a243543f8336f7f5c0b0e1a2c06b104d144e0313914975d9767d13",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:269d5320b48b7356709cc519750fa9640f320b8d8b5350ffe588cb89d19154dd"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-fee-schedule-october-11-2022-pdfpdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:a8bdeea38e76d64efa541f5572ceccbc0f8bf041c7c0d8c70cc053ca90d067ec",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:ee1cf28f58056e617cd1e86bd10e4cfa752c1a9145cff95f5a6a766732a34f05"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-fee-schedule-sept-3-2015-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:329163816695a110db6ccc6bcf38e467bb73a40c99b14f61fa98971b4665dc1b",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:ba026f589dfdaf83861b2c03929db551114f99d2d7749bb99cfcc2494d63dcb9"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-service-fee-schedule-april-22-2020-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:ea21cade3fe8f819f3b1091a5edc9bf483c55a6a770034eeed8419450cdbc59a",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:2a8368c9208004968f7ea9e098ae889deaeafe3313d2e89cef82da773fc40af4"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-service-fee-schedule-dec-21-2020-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:ff0f70199726ef71e16b14fe41ba721592c0bd58be17ce0575f7c22f4d6989f1",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:3a12ad529a83c53564a0f403c111d81121e346f14c05c8c5ec1e90b45c0d948f"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-service-fee-schedule-dec-21-2021-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:471e8d98605be6fc7e0e29d604909353394238722304f60f96af25e1a489cba1",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:5335aa9a523c2ee91acd898430e76b9f632100c8b1b5ce1e210f0e74fc2c3b43"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-service-fee-schedule-feb-12-2021-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:5198550a814d56f9137aba70d2df8445d9b48ee4a70fe843d23d2004a5162f01",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:0a9dc9662bd2e395ccff6eabf1d9a0859bdddfce0593637665167952edf9a271"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-service-fee-schedule-feb-18-2021-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:5d01ae76a906a647c41b90b546c49148e688e7643e0cbbe597af081c2d4718f7",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:3f9df8c91b83ccc12ee9766c477b2abb4fb10a5063f2b55297c1473b8f63c00d"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-service-fee-schedule-feb-28-2020-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:a9bd9684623de718744b4985fa4f5b7a1d09e4d8ead2259138331d11aa3fb924",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:9d1d6084f24435e4394c449336d966de854996e3906884dc6db6109474fd6435"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-service-fee-schedule-feb-3-2021-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:b6005d3d4a526054118d9e441982f0ea1b7cbc4173583356b06d84e443b747b3",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:f06359bdb997f104b3c459d9e892e5c2e9307b980ec6a0819fde18dfa212546b"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-service-fee-schedule-jan-21-2020-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:646589938d44cad50e71f6bd0d759cde8f8d140f84b93156810a1f7242af559f",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:23b389ff2ac3550655b85fecdb7967346dd21ef5b279316e66d6a166cc5bfa9c"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-service-fee-schedule-jan-22-2021-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:cd8bdea94aefe1d2ab3cb62aef2c02abdc0ba3f2ab8d2ef413ec63186aebffd7",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:fba6be16121c177d8196a1605b8e8cd4422d373014194dd8a4dc11f656aa9c1d"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-service-fee-schedule-jan-22-2022-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:9d522102b5f3cb660ace99939ae4582c5fada7a8707a477e3f4b7905057fcb95",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:c156707eec58f5a257ba1b18564cb8445e30a8d179662cffda07c84992925aac"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-service-fee-schedule-july-15-2021-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:a54b464bb3601d594a93ed7749d6f7f174c9ba4cdd3d7889624e0e64b4382cdb",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:1f90f75977589d060442c7fc575b9fed408c3f7ed807d2029756db2766d545cf"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-service-fee-schedule-july-22-2021-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:36619aa415ca300ba4285e1b059b496f72884beef71c9ab36aa62bbc7c0cc959",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:fd013358c2e9d635f02b7b684d00835c2205cf6e1c0889b88d4624bf756acc65"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-service-fee-schedule-june-28-2021-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:841b75ab9986b46becc00bb7644e5012919378df30f6a01c4a063a998925e148",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:e2c470c65f593870fcb0d37fc4808f0832b8f12881020573d6a5f4df024f4cae"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-service-fee-schedule-march-18-2020-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:5158d2285bc274ffa846f9992b826437ac0f75f4477257904a51eee5a56c05de",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:672314b13cde2005d4ac15940d35f7469eb6325cfe60574522ec97e660962b86"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-service-fee-schedule-march-2-2021-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:d661d6abd2d4beaf2616b2b99402eaa3e34517d35aee94ffd248b8cc751dee7d",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:dce9242c0a03bc18279c6df96fea0131eb249067ecce46aea94ac22fa635ba66"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-service-fee-schedule-march-23-2021-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:00cbd2d5e71a2949ad07bec7884067acb45ffac317f74b54fcd924cff2669348",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:84c65c01fc5ffe61679858ef77a4158ecba17dd02a633ee0ec0d23f947b1a202"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-service-fee-schedule-march-24-2020-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:6cdc08f56a5f11594c92dd0a096c35f57c5313111acd45a4055607681b8d9d88",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:ef4276184c1ba02b7c59240a44f495b9728fbf5a23fc4a0c36430387d5cd1b91"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-service-fee-schedule-may-14-2021-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:236261746476a9a4ada9ab87491ec939039cbf280ab65809b38e0e800a2183dd",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:fb50eb069637db91f51842eec537c162b8c6294fcfa6598870800919bcd6d87e"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-service-fee-schedule-nov-16-2021-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:a8dd94906dccede161fd675bfb1b2414df26e76ac54fe33456cfac963cb046eb",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:41e990a3a37bbb3695df21df60d34aafc8ce01cdaf9efa5c55a83f39724265b6"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-service-fee-schedule-nov-19-2021-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:0104512f601978ab2bf5aa932363702e730b55560a969bde85261f263c2ba36a",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:73ea42474095d126d965e023cf3ece3a7014a72851940c55947267f3b2ec3eb7"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-service-fee-schedule-nov-8-2019-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:1a46e9836797c9b0836dc6058d76624933006414f662bd95644961f378c5bb46",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:fc238664a8ec80b13e96a06968732048539e83ed2e02d157e86aaa5931616f5c"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-service-fee-schedule-oct-7-2021-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:fbf99845b5bf37c75d4998f95815745926ed1fede6cf62a0f675d10bad7a47a1",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:83ee4b3a564f4c3edf935725200c741a171b04e60a613e2fc0052f42160b68ad"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-service-fee-schedule-sept-19-2019-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:7d943ea12e7ea801fec19e8e55966cfabf1cb5a42980b19ac8bf0ab82003bc06",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:585510114d21b79abbfd1c2c295354994a59827ac4904fc9991c4d8db6b2edb7"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-service-fee-schedule-sept-24-2021-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:bd359e8d71989802868a8ffc71d6740573c206307774f4e560e26ec7150ad8c7",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:4c03d6c73211b528c76281fdcfa0060a3577cdc9705937326d599fc2f47e302f"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-services-fee-schedule-april-25-2022-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:b413ae3d358b7083735fc14748d79b63e38c2efc934f23cc419d56054b6b59e4",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:78a3579dd3c982f627bca658c4e5ba57720f27609aeb67e79f9498407ef7460a"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-services-fee-schedule-aug-10-2022-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:a1aed635ba3a47fb7e564a700929b4986b950491a551cda87894dc7a3454ce87",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:f603a8f3df21d0b67c4c7a66c358b37ba2aec17b895c7f4f56b4169be8b58f91"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-services-fee-schedule-aug-16-2013-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:efe49370386fe65e1995e3ab903eb1f76f880e17297142c629448b8ac779d328",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:a483ff2cfcd77c0e37a20f0899a441564cf8a9a462c802f40e9b993bcf7de780"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-services-fee-schedule-aug-3-2018-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:72d42c95f898728a5e975d42113411ce85b58f7f16797ec14d9eb7f04f065db4",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:b2d000d98db16197fe0ed9e482540c523473444a9c26bd49616858ab98eef25d"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-services-fee-schedule-aug-31-2018-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:12d3b2698d1f4bdb7f75f4c8a1f8503c09b9fabea134e72f680a68fe334167a6",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:dff6db52ad2b4da8fa3399d9e847fa5ce3eecc76e00b15ea13600564c57ac758"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-services-fee-schedule-aug-4-2022-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:5a4b44aea43451643eebe77460e322b402944e9dd7b2b558deae174696e63c1e",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:33ee708cfe14f1abb03276b81b738fa1d5bbd7b8dbda626b2aed0b65797eec51"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-services-fee-schedule-august-10-2022-pdf0pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:a1aed635ba3a47fb7e564a700929b4986b950491a551cda87894dc7a3454ce87",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:89516be827a9152abf67110d1b3a6d56778d97f61bc280cd3de1268a5429f93a"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-services-fee-schedule-august-4-2022-pdfpdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:5a4b44aea43451643eebe77460e322b402944e9dd7b2b558deae174696e63c1e",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:84e3242924cfb66e6c7ab54ba125e971e8dd7bb3f99920e428d1b9ee1174ee4c"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-services-fee-schedule-dec-11-2018-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:efcc443e325cdffabb28ab5998029f6bc834a7650c76142967af059341918bae",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:cc687cf398be371dce368e31f8ca3b5cae3112eb8b53826f430c85964defb0c4"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-services-fee-schedule-feb-1-2022-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:42163088e440640ec201ed8f04f23724da2bb6d0b9647f27529b860a066ca30a",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:4e516286d2705147d3da35bbf5dc424e6fa7f831a4bcb0d1e038b9cf26c8f976"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-services-fee-schedule-feb-11-2022-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:48ae0102c9f4fc2bfd12acb9ff416bf15891c8ecf8525d095d76f6f500bc1ba3",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:def9af494723d30e5e0e3a9315293f3a2fbef1d0f49b7e0705d2fee0f9066b39"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-services-fee-schedule-jan-1-2013-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:93bc80edd21b3e984d4ebbf47c05e15d2155f4050ebff81638620ef4cc842116",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:6321535ddad437003354a6686fa1fdc2af44fdafabfc54faff83407e24d8b41c"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-services-fee-schedule-jan-24-2019-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:cc40fecd13dad654fcaa4f301f40450cd4b11516e1def08996ca7a4d74f312fc",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:26a9af859eec9a384edea5f1ebe07fc94b8a98971fd3716230d167a14ebf7323"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-services-fee-schedule-july-24-2018-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:04abceef73b1b44d2d1c139880f720282a2c167d1b6ea4608ecfbc86318d4e86",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:691029385ed7dfc38643da458e79cbd57adf98eceefb491600a8440cb2c97108"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-services-fee-schedule-june-1-2018-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:26eb73e8cb2bc7779a358f833081fc01837d0821e1a1586628d0cf39b5ec2506",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:f67de377fc4cb5e760abb065a3195b9cee92baf2c8d50c2ee292fb46246824c5"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-services-fee-schedule-march-1-2013-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:f3247815b10ba5a8a1c38cb090dcb89fda8b278df3539b475f334c29ad2b8823",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:27e22246ea7737824875aeb485a85442a714e7ad4877440fcc7fb785940c906a"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-services-fee-schedule-march-1-2018-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:3fe73b84e60e7ab027fb25f24eadc2ddc4ac9365f1d460128198821eec99f25f",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:850a1f8e34a207a54f2bb0e6fa178e52e15660c91815f42abda17030922fde18"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-services-fee-schedule-may-3-2022-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:fa577dec3cd2f87f00cf9a17c4d9dd9e425f7bd8bd8781a4459b5742dcf098b9",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:bde5b83d4047230ebf34c554ca5f216a8563a6c89abec37bc3e8573e4a6b6dfb"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-services-fee-schedule-oct-11-2022-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:a8bdeea38e76d64efa541f5572ceccbc0f8bf041c7c0d8c70cc053ca90d067ec",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:6f45a521c09f2e7b689ebf0e10e314cf29b1cd0e2e444288c1fe20305dbaba29"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physician-services-fee-schedule-september-8-2022-pdfpdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:cc8f6c978a27ad4cb1e3958ec3e0f537a50525d780f5e9aa8624a3247fb40a18",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:e864a2019fab6b9138a11336ae2f218883def18b225a8ec284c529129c661e2e"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physicianassistantfee201606pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:40a104df39b0e378ce8d19eb6aae1a9f32bcc17e830ccf613de8db6a4834010a",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:4c73a0446c488c6e67b09082f40e0cba49c6331058ad8e34a0894dcd0e2bd9da"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physicianassistantfee201606xls.xls",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:ffe4099c8cdb7b05a6d429285dd7da9d5dfef43d28814dd777c35f7a266ed2ad",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:024420cb09cce0ea3f490d293b3839662a2c0b3627465217c6cf2b5e422460da"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physicianfeeschedule01012018.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:272d11a759054b92ca275564502a97862b1e736535a8dd717a0a50c8e1fb5b5a",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:9089a7f3a3c29c1b0029b41c88410d179d6a366b74df1b63d485996e01dab0ee"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physicianservicesfee01262017.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:fa9dd793fb8ed589869f651b4ba075845b87fafab7e1f41cfa7fe041251e3b39",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:cbb132c8e6699003747f59602b25b509294194d9111a593052a3bd41e45f00bd"
+      }
+    },
+    {
+      "source_file": "fee-schedules/physicianservicesfee04062016.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:c5adb8992ae7521a321ac8e59504591ab94737ee97e2ebda989639fdfed7130d",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:6ead1a1c3a65d39e811512ce32114e8373890f2187ab4d543776ce5ccdd2391b"
+      }
+    },
+    {
+      "source_file": "fee-schedules/rhcfeesch082415pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:91f28c40623231673901005a882f57599c8d13810eb6d168ddd202a97ae720e9",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:83b3f133c7185f6aab273478c1b00f9d9bc1c1c6f4f58965936418b491f1b81a"
+      }
+    },
+    {
+      "source_file": "fee-schedules/rhcfeeschedule20160101pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:b0eaaffad9f1b4a8e65911d449c7c6c05fc2031f49839817ede8596d8fa7854f",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:638ba2ce2d0b8636737a16277d1748c03c8dfd84c471171f802a921dffb1761d"
+      }
+    },
+    {
+      "source_file": "fee-schedules/rhcfeeschedule20170101pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:4c4dd2b41ef9b731d7ef09f709bcc307d4a20b163b7a8dcf8464225c6811650a",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:d77f31327beed97c1c18885f053e5bf7850591bd6a6cd4c02ff6c3a83af2f197"
+      }
+    },
+    {
+      "source_file": "fee-schedules/rhcfeeschedule20200301covid-19pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:639b29c5b74de32be007fe2d1c7cd881758bc2150f431ccd4f2e6031c1f06eb0",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:9c4cca20a3ebef1aa337a22a449d59a8bd5011e398708378daa393f9ad014015"
+      }
+    },
+    {
+      "source_file": "fee-schedules/rhcfeeschedule20201216covid-19pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:cf075cc8142a1b4614e8abd4e47a7ccd6fc06087f37df3687dc6f2a6dafd38c9",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:0f3ed7b7ad2babdd9e24195af846b7530b97924a06a2cde72d39b4cbef6e2369"
+      }
+    },
+    {
+      "source_file": "fee-schedules/rhcfeeschedule202101012-11-2021pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:1468b8f2c643d8a4762fb79390d65278c9077abb84cc6d74699f1e90caef675f",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:b3f3f2980b3ef92cf7044591b255a5c4e89db848b891d541a380f765f4fc0fec"
+      }
+    },
+    {
+      "source_file": "fee-schedules/rhcpsfeeschedule20220623pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:23fe3469e146506af989908ed2de52ad9ce3ad00b6b1d812acb2e4ff87da55a3",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:f587b5f9529becc10440decfd0b0fd7b5cc074841c7782987853ac36d0a54167"
+      }
+    },
+    {
+      "source_file": "fee-schedules/rhcpsratefee-schedule20221017pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:6f459be201acc4eaa432ed8998d799bca229ba5742b53f506a431d1c33166078",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:774d1815b888483781e0e97a956875447a0798f85da161a9a19047abe2876228"
+      }
+    },
+    {
+      "source_file": "fee-schedules/rural-health-clinic-april-17-2020-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:9b51ecdbea83d678b2a56a9d08db26a431db125f8368e50d7343b2c5b3268738",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:352e56b143e885e0419e3e4227d5276bc5bcad9457673694061459964473e2c8"
+      }
+    },
+    {
+      "source_file": "fee-schedules/rural-health-clinic-april-21-2020-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:d4ef3a15e23bfc042e71532c6b8ca6b1d4a0e62a700b98cfd7ffe7c19905f29d",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:8c8f5374a56f4e838d77616f2917dbc7163773a45863dd092dd42078b34d7d9d"
+      }
+    },
+    {
+      "source_file": "fee-schedules/rural-health-clinic-aug-10-2021-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:cbb196601bbe781ab4f40b615ef7ff72fccc0f4a03c465dbb4712ca762154227",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:637563ca37d2090d4156f5676a43d5695cdd37098a700b4bed63088b2a3fabad"
+      }
+    },
+    {
+      "source_file": "fee-schedules/rural-health-clinic-dec-29-2021-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:92e3572360988980687f3dbcca89005202da330355f222e1b0f0d393cee2131b",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:24a7e602cd40b25119ad65519d3b154531f903c76bd2c122d512bbbc6821b8b3"
+      }
+    },
+    {
+      "source_file": "fee-schedules/rural-health-clinic-feb-7-2022-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:0ce284a48b080d54355d422f13b882cb35d79711d00bc7cf3e2ae2c2e806ca49",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:059e1358601f7d2c7171c776736ab3f1d2e3e6d407a4248ebf02205d74cca6c6"
+      }
+    },
+    {
+      "source_file": "fee-schedules/rural-health-clinic-fee-schedule-june-23-2022-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:23fe3469e146506af989908ed2de52ad9ce3ad00b6b1d812acb2e4ff87da55a3",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:f21ff983984912646beaced88c7d079e0bc2261bece4c2a504a9cbeec75d1386"
+      }
+    },
+    {
+      "source_file": "fee-schedules/rural-health-clinic-fee-schedule-march-7-2022-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:eebe0014f1006fa6c58de00ea7ba611055346122b7bc0a7f804e4031421df569",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:837eea875dd3e5577e1bdabeb18b9beea34211efc80261ad09c827c82af1df5a"
+      }
+    },
+    {
+      "source_file": "fee-schedules/rural-health-clinic-jan-1-2015-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:7a4f23d0ee8ba85f5356f1b1487b575b61720925e8351badf31d7511537a32c3",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:f0b4dc40e80a4fe05fea28d70db6d1289a32208d309ef050818e7ee7b3d8622d"
+      }
+    },
+    {
+      "source_file": "fee-schedules/rural-health-clinic-jan-1-2019-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:f22704570b7cd7e8845217f581406a4230ea354f5890a1d2940473fc7d66ccc0",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:9c522a132ca27a260a9deb66a344430d043cc74559119eb24abc778e58fc0210"
+      }
+    },
+    {
+      "source_file": "fee-schedules/rural-health-clinic-jan-1-2020-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:fccd368178383dfa825edff98eae50c10133d1909ba50e3e1c8dbf82e6a1c09e",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:d0137b19a4188c48c7cbb0f7f4a319d5f241326ece8becd32d5444564d730be0"
+      }
+    },
+    {
+      "source_file": "fee-schedules/rural-health-clinic-jan-22-2022-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:f9bda1fc223c65c089ab19235c2eb72101e8aa3492a505e9b193c12b4983233e",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:cb846baf9b750a63b8bde448a76aab5aab0f5fa33dcbeceb94dda8c084ba1f39"
+      }
+    },
+    {
+      "source_file": "fee-schedules/rural-health-clinic-july-7-2021-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:231901243fa641faff575d84720cadf73a7d462cadc84416fb68c2bb52e96cfb",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:0554c61007bb189acae40a397a9ff8072420c6ab4381df3bc77618b451cb0161"
+      }
+    },
+    {
+      "source_file": "fee-schedules/rural-health-clinic-march-27-2014-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:f2fe211c0b6c5c077f908bdc8b3a8f72d11186a10f64577243c938985ec9ba1e",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:10b25e989b1ad61ba6326001a2b7519ad1f02403df2461cdf629c11da0033b38"
+      }
+    },
+    {
+      "source_file": "fee-schedules/rural-health-clinic-nov-15-2021-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:b38a379d61a6d71a784f1bc3f261f3efed61d241a740f32696272a2cd4321254",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:575d4f4eb1c98377d07cb4c9bb0291925d4be2fa36e1be0ecda5bd1470d0d529"
+      }
+    },
+    {
+      "source_file": "fee-schedules/rural-health-clinic-sept-16-2020-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:79214eebee40bb673aeede8933f6b4ba3895280459b25d22e3bc84307023e5e6",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:e6bcd56ec2b8a1ea11b8809ebfab7a45c2e5c2a0b83766519e4d9f38f91462bd"
+      }
+    },
+    {
+      "source_file": "fee-schedules/rural-health-clinical-fee-schedule-aug-02-2022pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:4d77593d3f949d53c67a2422a3f4bfaa5658a20727f98faa59b57f683e79f68d",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:eaa1f05d9d6c1076bb06bce7063a3e4802f83a17ba231f14fce219d9bb0e05db"
+      }
+    },
+    {
+      "source_file": "fee-schedules/rural-health-clinical-fee-schedule-aug-10-2022-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:1b0259c6906bb8c86fd12b42d5f81c0d329d0726a5cdb6efa5c7372610a85d4b",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:f1f9b6b1ff7f36e08da0730889d5d703b15dcabcf53b8e0ac858664cc50c5460"
+      }
+    },
+    {
+      "source_file": "fee-schedules/rural-health-clinical-fee-schedule-aug-10-2022pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:1b0259c6906bb8c86fd12b42d5f81c0d329d0726a5cdb6efa5c7372610a85d4b",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:0da531ae14a1061d8b8dac13753649f16066a4e68dd507a446497b14a0c6b085"
+      }
+    },
+    {
+      "source_file": "fee-schedules/rural-health-clinical-fee-schedule-aug-3-2022-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:4d77593d3f949d53c67a2422a3f4bfaa5658a20727f98faa59b57f683e79f68d",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:ffab487ee460d6c9dc8fb2c263faacd5123dd54bd239703690d17705c099ab88"
+      }
+    },
+    {
+      "source_file": "fee-schedules/rural-health-clinical-fee-schedule-july-26-2022-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:a6b31bba1543d6358e095bd8d19d5062a53da1a055b0923f4bf8789b9a36ae60",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:d2ad3c10fa20733705dfb03d0f5b697d2aad25822a0bf7e83cdf4d7939209f87"
+      }
+    },
+    {
+      "source_file": "fee-schedules/rural-health-clinical-fee-schedule-oct-17-2022-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:6f459be201acc4eaa432ed8998d799bca229ba5742b53f506a431d1c33166078",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:311fa91dbfc8bd9c4be83e250e43e13a33e64301bc2a2b9bd35c7f71926aa742"
+      }
+    },
+    {
+      "source_file": "fee-schedules/rural-health-clinical-fee-schedule-sept-19-2022-pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:7a43fddc074b528fbf8a8e204402f5f8d6a24f106fb84365e7f58db504ab77bf",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:09ee7560069f659acdd2aa00b85a730bbe71a3c93c8f5830d7eba11123788b20"
+      }
+    },
+    {
+      "source_file": "fee-schedules/rural-health-clinical-fee-schedule-sept-19-2022pdf.pdf",
+      "source_type": "fee_schedule",
+      "required_for_answering": false,
+      "source_hash": "sha256:7a43fddc074b528fbf8a8e204402f5f8d6a24f106fb84365e7f58db504ab77bf",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:7ff7eb5056f630c764d497b7d25ac0c699daf2ecf3e25effb23c857cd83338b3"
+      }
+    },
+    {
+      "source_file": "managed-care-contracts/contract-30-190029-dhb-prepaid-health-plan-services-rfp.pdf",
+      "source_type": "managed_care_contract",
+      "required_for_answering": false,
+      "source_hash": "sha256:1f2eb51ed1466a50073a9c0ecde5b4ce25d8bd18e9f0e50478b7810ee1110544",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": "sha256:44c716412df4bdd4d54de40933f31acdf8b10c54ce8c4341450f0f45d23ffc8c",
+        "markdown": "sha256:46496bf61c0c1e07b4929077b27c1a0ffb132c2573061f553e63f934b762f70f",
+        "metadata": "sha256:83f3f0bd7a815324e870d0932046d253ae3deb7941e4d3c54cbc35b8f1700629"
+      }
+    },
+    {
+      "source_file": "managed-care-contracts/contract-30-190029-prepaid-health-plan-services-amendment-2930.pdf",
+      "source_type": "managed_care_contract",
+      "required_for_answering": false,
+      "source_hash": "sha256:07ec5e505b5bf4490d456c272ec90f2a2a6d98015692ffb08d3945b9c831e09a",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": "sha256:0311dbf454cbd2da586f2f34608595915c06cc386120e6d28bc84464e06efcb1",
+        "markdown": "sha256:a736368181bd776fa32309653af79f4dec7645f34331d0d82759920c12615e76",
+        "metadata": "sha256:77eb7eecc6a728067024192381735c8d3ad4a57059e357c9e3d2519c90fdaebf"
+      }
+    },
+    {
+      "source_file": "managed-care-contracts/contract-30-2020-052-behavioral-health-and-idd-tailored-plan-amendment-1.pdf",
+      "source_type": "managed_care_contract",
+      "required_for_answering": false,
+      "source_hash": "sha256:8caff1482aabceaaf99fc3808bff2df0eaa9764fa21751de9013d42b7ee873c7",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": "sha256:57b486b0e1a8e025cfde38e027ce116cb2e0e393a677c562931a9a329951c707",
+        "markdown": "sha256:e6734080280ad801b1187b8bb0a7cadee700bbe5cf0a1920fe8f18e107ca1177",
+        "metadata": "sha256:6de74697116f81e6c06345d983207b164c1c2f66e4ac2d25420a74e3585e3d13"
+      }
+    },
+    {
+      "source_file": "managed-care-contracts/contract-30-2022-007-dhb-md-pihp-amendment-number-4.pdf",
+      "source_type": "managed_care_contract",
+      "required_for_answering": false,
+      "source_hash": "sha256:4154737303ceb6a7874018b8a634dba1453725a1065b680b5997c59115b93b5e",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": "sha256:d88ce63a05ceca845e09dcfd97df1f5b6d4d0089296b0f5812cd80ff99b6a03f",
+        "markdown": "sha256:3dbdf230b2a722cd27a4ce0f106b25b1c66863a65c9d108f102121c23c825475",
+        "metadata": "sha256:bd6d427d1dc4597abb81776794d9f00f689b49fc6cfc50aa58eba233f9a4c808"
+      }
+    },
+    {
+      "source_file": "managed-care-contracts/contract-30-2024-001-dhb-children-and-families-specialty-plan-amendment-2.pdf",
+      "source_type": "managed_care_contract",
+      "required_for_answering": false,
+      "source_hash": "sha256:f6e757444bf98e01507a9af4af3f78e0d3a5c0059b09edb8533f45f70c5ad844",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": "sha256:776358f08d44c9a1ec58c8c81a4a14225d2117495b867cff453286f17738fcd0",
+        "markdown": "sha256:0983fbfcf47dbd27e30ebbab1d9169437ee2561eca1bb53843d49a6966a51bc6",
+        "metadata": "sha256:da72edb82170db61225df59005431eb67d0270f38341f25746c51886e03ed2a8"
+      }
+    },
+    {
+      "source_file": "managed-care-contracts/contract-30-2024-001-dhb-children-and-families-specialty.pdf",
+      "source_type": "managed_care_contract",
+      "required_for_answering": false,
+      "source_hash": "sha256:7cca47c773d1902c906cfd71e85d56eefdec66c37dae691ada782df831726133",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": "sha256:4671f53451b7eeea99f476257cf35356b37d39067f057933c25ea752328c98a6",
+        "markdown": "sha256:7e9c95242a45568b379eb9ab2b7333d284dca058c04ade01bd393282f8fa4d9b",
+        "metadata": "sha256:d0723c1f799432e90ebfe3f666ff40b9bb15e183828c2a3ceaccce3432d12433"
+      }
+    },
+    {
+      "source_file": "managed-care-guidance/claims-support-for-providers-in-tailored-plan-slides-05232024.pdf",
+      "source_type": "managed_care_guidance",
+      "required_for_answering": false,
+      "source_hash": "sha256:502f465dfe12214c955515e54a4280bbd300eb8c961ce5c721d8449a7957c06d",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": "sha256:50fb87032ce997ecf05b92792551ea56b7c691a8ecba01d778495c583a131933",
+        "markdown": "sha256:0cae40036d4487c9c7f3cce5d301bf2cc82963ed78e84eeaa43d341d0f83fb13",
+        "metadata": "sha256:ab12d0e6a021bed62598f3c13924b3c005d9a90acbcab345c9acf03320c49a20"
+      }
+    },
+    {
+      "source_file": "managed-care-guidance/cocm-capfund-webinar-slides-10302024.pdf",
+      "source_type": "managed_care_guidance",
+      "required_for_answering": false,
+      "source_hash": "sha256:3f5f7bf779402dde1bd4a1aa344916b9bf1bd57419dbfde5fd3a739a25cd9bcf",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": "sha256:160753b7a97b1d921274af8e10269f8bd7db968a06a1ac856e404014816bac64",
+        "markdown": "sha256:0d1f58a84ae6962df76bc0900c03655c980f7e08a0d83f1ac2058425c2d1e1d1",
+        "metadata": "sha256:2d496b320cdb1c67691ffc5e700f796c0a124955ef087c1feba6f89ec318602b"
+      }
+    },
+    {
+      "source_file": "managed-care-guidance/cocmcapfundwebinar-slides-01282025.pdf",
+      "source_type": "managed_care_guidance",
+      "required_for_answering": false,
+      "source_hash": "sha256:5c8c9c3b90d0ed560b02445016ffe763659a0bf84aeffaeeb0b31009297bc812",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": "sha256:d0d9b4cff8e27c6126ed0aa3c9644b4fe6c80dbba9ca5dcd816a6c391090dd26",
+        "markdown": "sha256:0e4015be4a159922e329ca10887aed6df3f07c4b56b52254d917d875d687c872",
+        "metadata": "sha256:96bd1b47a7728a2ae3d337fcbaac53ef5fa457c53a3ee10781dcdc6a05151a6d"
+      }
+    },
+    {
+      "source_file": "managed-care-guidance/managed-care-hot-topics-10212021-slides.pdf",
+      "source_type": "managed_care_guidance",
+      "required_for_answering": false,
+      "source_hash": "sha256:4198993cd4c53818d369ac1005a2f226fed2b679cedb0c2a6c0a27d6ef6de001",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": "sha256:321203df50907bd5602e5f7ef747f5f4e15b411dd4d00aea83ab6dc4bf9ff499",
+        "markdown": "sha256:7af078c16092e8aace547098b39de9a7da2929d7349e92b120f57e27555573a2",
+        "metadata": "sha256:956a708eff5acb0bbcb9224451deeba39d70619d70287b1d1a67af985b93cf9c"
+      }
+    },
+    {
+      "source_file": "managed-care-guidance/north-carolinas-transition-of-1915b3-benefits-to-1915i.pdf",
+      "source_type": "managed_care_guidance",
+      "required_for_answering": false,
+      "source_hash": "sha256:77ddaab7e1b0db1599d56220c45be04833842cd1df9d41baa00fac273b771c4a",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": null,
+        "markdown": null,
+        "metadata": "sha256:890ef72171d59eef666658625d3ff776a3707e9cf0180b9f6c678cab647117f4"
+      }
+    },
+    {
+      "source_file": "managed-care-guidance/sheps-waiver-evaluation-slides-02242022.pdf",
+      "source_type": "managed_care_guidance",
+      "required_for_answering": false,
+      "source_hash": "sha256:50a5f3d022a767e24cafc3486a2ec24bc712f3479d6853ddf9f061c15d5a275b",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": "sha256:490a92d37c1aeee57dd4c28fae2ad786a26eb2b98f0fa62e060cd2d6720356f9",
+        "markdown": "sha256:c496264e8b3e99438263573076a261b49616d9d0fb9d7ee72a0c6ca7043559c2",
+        "metadata": "sha256:3070580e898cefa43a59fe2ef93dc58f9c74d008c1330f4aa3e82bd6dbb51e5d"
+      }
+    },
+    {
+      "source_file": "provider-manuals/provider-claims-and-billing-assistance-guide.pdf",
+      "source_type": "provider_manual",
+      "required_for_answering": false,
+      "source_hash": "sha256:6a1dfe43b7178cc9b1c7e6c386bedb4fcb9fb81357b86de3f8a2aae7bf5dfbce",
+      "parse_status": "parse_exception",
+      "artifact_hashes": {
+        "json": "sha256:69b761dcf38d32c6415ea0b5fc130bc87bca7a2aa090ba87a0897c2cbd18e2bf",
+        "markdown": "sha256:bdc44fa3d0a47816e8f9c2018ff602a869f205e615a57c079960d2f1b205f0b9",
+        "metadata": "sha256:c0e8895d8e5da9d7e0f8aacc6230b23d70f3607871e52e5e6ef19fe316eb164c"
+      }
+    }
+  ],
+  "unresolved_downloads": [
+    {
+      "source_url": "http://files.nc.gov/ncdma/documents/Fee-Schedules/Archives/Orthotic_and_Prosthetic/orth_prost.pdf",
+      "source_type": "fee_schedule",
+      "status": "error",
+      "error_message": "HTTP 403",
+      "required_for_answering": false
+    },
+    {
+      "source_url": "http://files.nc.gov/ncdma/documents/Fee-Schedules/Archives/Orthotic_and_Prosthetic/orth_prost_0111.pdf",
+      "source_type": "fee_schedule",
+      "status": "error",
+      "error_message": "HTTP 403",
+      "required_for_answering": false
+    },
+    {
+      "source_url": "http://files.nc.gov/ncdma/documents/Fee-Schedules/Archives/Orthotic_and_Prosthetic/orth_prost_0112.pdf",
+      "source_type": "fee_schedule",
+      "status": "error",
+      "error_message": "HTTP 403",
+      "required_for_answering": false
+    },
+    {
+      "source_url": "http://files.nc.gov/ncdma/documents/Fee-Schedules/Archives/Orthotic_and_Prosthetic/orth_prost_1111.pdf",
+      "source_type": "fee_schedule",
+      "status": "error",
+      "error_message": "HTTP 403",
+      "required_for_answering": false
+    },
+    {
+      "source_url": "http://files.nc.gov/ncdma/documents/Fee-Schedules/Archives/Personal_Care_Services/In-Home_PCS/home_care_100109.pdf",
+      "source_type": "fee_schedule",
+      "status": "error",
+      "error_message": "HTTP 403",
+      "required_for_answering": false
+    },
+    {
+      "source_url": "http://files.nc.gov/ncdma/documents/Fee-Schedules/Archives/Physician_Services/phy_fee_sch010110.pdf",
+      "source_type": "fee_schedule",
+      "status": "error",
+      "error_message": "HTTP 403",
+      "required_for_answering": false
+    },
+    {
+      "source_url": "http://files.nc.gov/ncdma/documents/Fee-Schedules/Archives/Physician_Services/phy_fee_sch010112.pdf",
+      "source_type": "fee_schedule",
+      "status": "error",
+      "error_message": "HTTP 403",
+      "required_for_answering": false
+    },
+    {
+      "source_url": "http://files.nc.gov/ncdma/documents/Fee-Schedules/Archives/Physician_Services/phy_fee_sch032912.pdf",
+      "source_type": "fee_schedule",
+      "status": "error",
+      "error_message": "HTTP 403",
+      "required_for_answering": false
+    },
+    {
+      "source_url": "http://files.nc.gov/ncdma/documents/Fee-Schedules/Archives/Physician_Services/phy_fee_sch040111.pdf",
+      "source_type": "fee_schedule",
+      "status": "error",
+      "error_message": "HTTP 403",
+      "required_for_answering": false
+    },
+    {
+      "source_url": "http://files.nc.gov/ncdma/documents/Fee-Schedules/Archives/Physician_Services/phy_fee_sch042412.pdf",
+      "source_type": "fee_schedule",
+      "status": "error",
+      "error_message": "HTTP 403",
+      "required_for_answering": false
+    },
+    {
+      "source_url": "http://files.nc.gov/ncdma/documents/Fee-Schedules/Archives/Physician_Services/phy_fee_sch070111.pdf",
+      "source_type": "fee_schedule",
+      "status": "error",
+      "error_message": "HTTP 403",
+      "required_for_answering": false
+    },
+    {
+      "source_url": "http://files.nc.gov/ncdma/documents/Fee-Schedules/Archives/Physician_Services/phy_fee_sch070112.pdf",
+      "source_type": "fee_schedule",
+      "status": "error",
+      "error_message": "HTTP 403",
+      "required_for_answering": false
+    },
+    {
+      "source_url": "http://files.nc.gov/ncdma/documents/Fee-Schedules/Archives/Physician_Services/phy_fee_sch100111.pdf",
+      "source_type": "fee_schedule",
+      "status": "error",
+      "error_message": "HTTP 403",
+      "required_for_answering": false
+    },
+    {
+      "source_url": "http://files.nc.gov/ncdma/documents/Fee-Schedules/Archives/Physician_Services/phy_fee_sch120211.pdf",
+      "source_type": "fee_schedule",
+      "status": "error",
+      "error_message": "HTTP 403",
+      "required_for_answering": false
+    },
+    {
+      "source_url": "http://files.nc.gov/ncdma/documents/Fee-Schedules/Archives/Physician_Services/phy_fee_sch120710.pdf",
+      "source_type": "fee_schedule",
+      "status": "error",
+      "error_message": "HTTP 403",
+      "required_for_answering": false
+    },
+    {
+      "source_url": "http://files.nc.gov/ncdma/documents/Fee-Schedules/Archives/Rural_Health_Clinic/rhc_fee_sch010111.pdf",
+      "source_type": "fee_schedule",
+      "status": "error",
+      "error_message": "HTTP 403",
+      "required_for_answering": false
+    },
+    {
+      "source_url": "http://files.nc.gov/ncdma/documents/Fee-Schedules/Archives/Rural_Health_Clinic/rhc_fee_sch010112.pdf",
+      "source_type": "fee_schedule",
+      "status": "error",
+      "error_message": "HTTP 403",
+      "required_for_answering": false
+    },
+    {
+      "source_url": "http://files.nc.gov/ncdma/documents/Fee-Schedules/Archives/Rural_Health_Clinic/rhc_fee_sch010113.pdf",
+      "source_type": "fee_schedule",
+      "status": "error",
+      "error_message": "HTTP 403",
+      "required_for_answering": false
+    },
+    {
+      "source_url": "http://files.nc.gov/ncdma/documents/Fee-Schedules/Archives/Rural_Health_Clinic/rhc_fee_sch021813.pdf",
+      "source_type": "fee_schedule",
+      "status": "error",
+      "error_message": "HTTP 403",
+      "required_for_answering": false
+    },
+    {
+      "source_url": "http://files.nc.gov/ncdma/documents/Fee-Schedules/Archives/Rural_Health_Clinic/rhc_fee_sch06.pdf",
+      "source_type": "fee_schedule",
+      "status": "error",
+      "error_message": "HTTP 403",
+      "required_for_answering": false
+    },
+    {
+      "source_url": "http://files.nc.gov/ncdma/documents/Fee-Schedules/Archives/Rural_Health_Clinic/rhc_fee_sch07.pdf",
+      "source_type": "fee_schedule",
+      "status": "error",
+      "error_message": "HTTP 403",
+      "required_for_answering": false
+    },
+    {
+      "source_url": "http://files.nc.gov/ncdma/documents/Fee-Schedules/Archives/Rural_Health_Clinic/rhc_fee_sch08.pdf",
+      "source_type": "fee_schedule",
+      "status": "error",
+      "error_message": "HTTP 403",
+      "required_for_answering": false
+    },
+    {
+      "source_url": "http://files.nc.gov/ncdma/documents/Fee-Schedules/Archives/Rural_Health_Clinic/rhc_fee_sch09.pdf",
+      "source_type": "fee_schedule",
+      "status": "error",
+      "error_message": "HTTP 403",
+      "required_for_answering": false
+    },
+    {
+      "source_url": "http://files.nc.gov/ncdma/documents/Fee-Schedules/Archives/Rural_Health_Clinic/rhc_fee_sch1009.pdf",
+      "source_type": "fee_schedule",
+      "status": "error",
+      "error_message": "HTTP 403",
+      "required_for_answering": false
+    },
+    {
+      "source_url": "http://files.nc.gov/ncdma/documents/Fee-Schedules/Archives/Rural_Health_Clinic/rhc_fee_sch110111.pdf",
+      "source_type": "fee_schedule",
+      "status": "error",
+      "error_message": "HTTP 403",
+      "required_for_answering": false
+    },
+    {
+      "source_url": "http://files.nc.gov/ncdma/documents/Fee-Schedules/Dialysis/Dialysis_ESRD_Fee_Schedule_2016_11.pdf",
+      "source_type": "fee_schedule",
+      "status": "error",
+      "error_message": "HTTP 403",
+      "required_for_answering": false
+    },
+    {
+      "source_url": "http://files.nc.gov/ncdma/documents/Fee-Schedules/Dialysis/Dialysis_ESRD_Fee_Schedule_2016_11.xlsx",
+      "source_type": "fee_schedule",
+      "status": "error",
+      "error_message": "HTTP 403",
+      "required_for_answering": false
+    },
+    {
+      "source_url": "http://files.nc.gov/ncdma/documents/Fee-Schedules/Physician%20Services%20Fee%20Schedule20180724.xlsx",
+      "source_type": "fee_schedule",
+      "status": "error",
+      "error_message": "HTTP 403",
+      "required_for_answering": false
+    },
+    {
+      "source_url": "https://medicaid.ncdhhs.gov/directory-affiliation-report-sp/download?attachment=",
+      "source_type": "managed_care_guidance",
+      "status": "error",
+      "error_message": "File too large: 246 MB exceeds 50 MB limit",
+      "required_for_answering": false
+    },
+    {
+      "source_url": "https://medicaid.ncdhhs.gov/directory-affiliation-report-tp/download?attachment=",
+      "source_type": "managed_care_guidance",
+      "status": "error",
+      "error_message": "File too large: 250 MB exceeds 50 MB limit",
+      "required_for_answering": false
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/document/2020-covid-19-guidance-and-procedures-administrative-letters/",
+      "source_type": "dhhs_policy",
+      "status": "error",
+      "error_message": "URL is outside the allowed domains: https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_al-10-20-elc-for-covid-19.pdf",
+      "required_for_answering": true
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/document/2025-magi-medicaid-income-limits-2/",
+      "source_type": "dhhs_policy",
+      "status": "error",
+      "error_message": "DHHS document page has 0 attachments; expected exactly one",
+      "required_for_answering": true
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/document/2025-magi-medicaid-income-limits/",
+      "source_type": "dhhs_policy",
+      "status": "error",
+      "error_message": "DHHS document page has 0 attachments; expected exactly one",
+      "required_for_answering": true
+    }
+  ],
+  "unresolved_required_download_count": 3,
+  "active_file_count": 4367,
+  "undocumented_removals": [
+    {
+      "source_url": "https://medicaid.ncdhhs.gov/1e-5-obstetrical-servicespdf/download?attachment=",
+      "source_type": "bulletin",
+      "local_path": null
+    },
+    {
+      "source_url": "https://medicaid.ncdhhs.gov/advanced-medical-home-provider-manual/download?attachment=",
+      "source_type": "bulletin",
+      "local_path": null
+    },
+    {
+      "source_url": "https://medicaid.ncdhhs.gov/certified-tailored-care-management-providers-readiness-reviews-completed/download?attachment=",
+      "source_type": "bulletin",
+      "local_path": null
+    },
+    {
+      "source_url": "https://medicaid.ncdhhs.gov/documents/health-plan-contact-information-20240201/download?attachment=",
+      "source_type": "waiver",
+      "local_path": "waivers/see-contact-information-for-all-medicaid-health-plans.pdf"
+    },
+    {
+      "source_url": "https://medicaid.ncdhhs.gov/med-ex-abp-2-revised/download?attachment=",
+      "source_type": "state_plan_amendment",
+      "local_path": "state-plan-amendments/abp2-voluntary-benefit-package-selection-assurances.pdf"
+    },
+    {
+      "source_url": "https://medicaid.ncdhhs.gov/med-ex-abp4-revised/download?attachment=",
+      "source_type": "state_plan_amendment",
+      "local_path": "state-plan-amendments/abp4-alternative-benefit-plan-cost-sharing.pdf"
+    },
+    {
+      "source_url": "https://medicaid.ncdhhs.gov/medex-abp-7-revised/download?attachment=",
+      "source_type": "state_plan_amendment",
+      "local_path": "state-plan-amendments/abp7-benefits-assurances.pdf"
+    },
+    {
+      "source_url": "https://medicaid.ncdhhs.gov/medex-abp1-revised/download?attachment=",
+      "source_type": "state_plan_amendment",
+      "local_path": "state-plan-amendments/abp1-populations.pdf"
+    },
+    {
+      "source_url": "https://medicaid.ncdhhs.gov/medex-abp10-revised/download?attachment=",
+      "source_type": "state_plan_amendment",
+      "local_path": "state-plan-amendments/abp10-general-assurances.pdf"
+    },
+    {
+      "source_url": "https://medicaid.ncdhhs.gov/medex-abp11-revised/download?attachment=",
+      "source_type": "state_plan_amendment",
+      "local_path": "state-plan-amendments/abp11-payment-methodology.pdf"
+    },
+    {
+      "source_url": "https://medicaid.ncdhhs.gov/medex-abp3-selection-benchmark-benefit-package/download?attachment=",
+      "source_type": "state_plan_amendment",
+      "local_path": "state-plan-amendments/abp3-selection-of-benchmark-benefit-package.pdf"
+    },
+    {
+      "source_url": "https://medicaid.ncdhhs.gov/medex-abp5-revised/download?attachment=",
+      "source_type": "state_plan_amendment",
+      "local_path": "state-plan-amendments/abp5-benefits-description.pdf"
+    },
+    {
+      "source_url": "https://medicaid.ncdhhs.gov/medex-abp8-revised/download?attachment=",
+      "source_type": "state_plan_amendment",
+      "local_path": "state-plan-amendments/abp8-service-delivery-systems.pdf"
+    },
+    {
+      "source_url": "https://medicaid.ncdhhs.gov/media/11452/download?attachment=",
+      "source_type": "managed_care_contract",
+      "local_path": null
+    },
+    {
+      "source_url": "https://medicaid.ncdhhs.gov/nc-credentialing-committee-bylaws/download?attachment=",
+      "source_type": "bulletin",
+      "local_path": null
+    },
+    {
+      "source_url": "https://medicaid.ncdhhs.gov/north-carolinas-transition-1915b3-benefits-1915i-0/download?attachment=",
+      "source_type": "bulletin",
+      "local_path": null
+    },
+    {
+      "source_url": "https://medicaid.ncdhhs.gov/north-carolinas-transition-1915b3-benefits-1915i/download?attachment=",
+      "source_type": "bulletin",
+      "local_path": null
+    },
+    {
+      "source_url": "https://medicaid.ncdhhs.gov/processes-and-frequently-asked-questions-1915i-services/download?attachment=",
+      "source_type": "bulletin",
+      "local_path": null
+    },
+    {
+      "source_url": "https://medicaid.ncdhhs.gov/processes-and-frequently-asked-questions-1915i-services/open",
+      "source_type": "managed_care_guidance",
+      "local_path": null
+    },
+    {
+      "source_url": "https://medicaid.ncdhhs.gov/provider-quick-reference-guide-standard-plans/download?attachment=",
+      "source_type": "bulletin",
+      "local_path": "bulletins/provider-quick-reference-guide-for-standard-plans.pdf"
+    },
+    {
+      "source_url": "https://medicaid.ncdhhs.gov/providerfactsheettp-enrollment-and-timeline/download?attachment=",
+      "source_type": "bulletin",
+      "local_path": null
+    },
+    {
+      "source_url": "https://medicaid.ncdhhs.gov/tailored-care-management-capacity-building-funds-guidance/download?attachment=",
+      "source_type": "bulletin",
+      "local_path": null
+    },
+    {
+      "source_url": "https://medicaid.ncdhhs.gov/tailored-care-management-provider-fact-sheet-0/download?attachment=",
+      "source_type": "bulletin",
+      "local_path": null
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/DHB-5079-11.2020.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dhb-5079-breast-and-cervical-cancer-medicaid-application.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/DHB-5079-SP.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dhb-5079sp-solicitud-de-medicaid-para-cncer-de-seno-y-de-cuello-uterino.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/dhb-5097-9-2023.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dhb-5097-request-for-information.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/dhb-5097sp-9-2023.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dhb-5097sp-ia-solicitud-de-informacin.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/dma-5043-ia.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-5043-ia-self-employment-income-and-expenses-verification-form.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/dma-5043.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-5043-self-employment-income-and-expenses-verification-form.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/dma-5146.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-5146-health-coverage-for-workers-with-disabilities-premium-notice.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/dma-5147.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-5147-hcwd-denial-for-non-payment-of-premium.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/dma-5148.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-5148-hcwd-termination-for-non-payment-of-premiums.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/dma-5149.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-5149-hcwd-enrollment-fee-notice.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/dma-5151.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-5151-health-coverage-for-workers-with-disabilities-hcwd-medical-information-release-authoriz.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al01-08.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-01-08-use-of-electronic-signatures.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al01-09.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-01-09-american-recovery-and-reinvestment-act-of-2009.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al01-10.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-01-10-mqb-budgeting.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al01-10add1.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-01-10-addendum-1-mqb-budgeting.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al01-10add2.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-01-10-addendum-2-mqb-budgeting.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al01-11.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/administrative-letter-no-01-11-self-certification-for-life-line-link-up.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al01-15.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-01-15-spousal-impoverishment-standards.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al02-05.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-02-05-administrative-cost-reimbursement-day-sheet-coding-and-report.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al02-08.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-02-08-policy-and-procedures-for-program-of-all-inclusive-care-for-t.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al02-09.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-02-09-update-to-life-expectancy-table.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al02-10.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-dma-2-2010-new-procedures-for-releasing-tax-intercepts-and-changes-to.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al02-11.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-02-11-federal-poverty-level-change-review-for-ongoing-mqb-b-e-cases.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al02-12.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-02-12-referral-of-recipient-fraud-to-law-enforcement.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al02-13.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-02-13-dma-administrative-letter-no-02-13-federal-poverty-level-chan.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al02-15.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-02-15-title-iv-e-and-special-needs-adoption-children.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al03-07.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-03-07-daas-administrative-letter-no-07-10-family-support-and-child.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al03-09.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-03-09-ccncca.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al03-09add1.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-03-09-addendum-1-ccncca.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al03-09add2.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-03-09-addendum-2-ccncca.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al03-10.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-03-10-dss-administrative-letter-performance-managementreporting-and.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al03-11.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-03-11-automated-terminations-of-mic-north-carolina-health-choice-ca.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al03-13.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/performance-managementreporting-and-evaluation-management-pm-rem-al-02-2013-dma-administrative-l.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al03-14-1.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-03-14-asset-verification-system-avs.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al04-05a.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-04-05-use-of-social-security-numbers.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al04-06.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-04-06-outreach-to-tell-clients-of-upcoming-change.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al04-06a1.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-04-06-addendum-1-notice-to-clients-of-upcoming-citizenshipidentity.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al04-07-1.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-04-07-transportation-audit.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al04-09.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-04-09-medicaid-card-changes.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al04-10.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-04-10-community-alternative-program-cap-community-alternative-progr.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al04-12.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-04-12-nemt-vendor-obligations-and-policy-implementation-timeline.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al04-13.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dss-administrative-letter-performance-managementreporting-and-evaluation-management-pm-rem-al-06.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al04-14.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-04-14-medicaid-recertification.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al04-15-1.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-04-15-certification-period.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al05-07.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-05-07-medicare-buy-in-report.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al05-08.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-05-08-obsolete-current-administrative-letters.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al05-09.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-05-09-computer-based-training.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al05-10.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dss-administrative-letter-pm-rem-al-06-10-dma-administrative-letter-no-05-10-daas-administrative.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al05-11.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-05-11-citizenshipidentity-retroactive-review-requirements.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al05-13.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dss-administrative-letter-no-performance-managementreporting-and-evaluation-management-07-2013-d.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al05-15.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-05-15-social-security-and-va-cost-of-living-adjustment.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al06-03.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-06-03-computer-based-training.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al06-03a1.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-06-03-addendum-1-cbt-course-update.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al06-03add2.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-06-03-family-cbt.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al06-06.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-06-06-medicaidnchc-inquiries-and-dma-contact-list.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al06-08.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-06-08-2008-economic-stimulus-tax-rebate.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al06-10.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-06-10-puerto-rican-issued-birth-certificates.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al06-11.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-06-11-social-security-and-va-cost-of-living-adjustment-cola.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al06-15.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-05-15-unconverted-medicaid-cases.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al07-05.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-07-05-piedmont-cardinal-health-plan-pchp-07-05.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al07-08.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-07-08-iraqi-and-afghanistan-special-immigrants.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al07-08add1.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-07-08-addendum-1-eis-code-instructions-and-eligibility-policy-for-a.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al07-09.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-07-09-low-income-subsidy-lis-application-for-medicaid.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al07-09add1.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-07-09-low-income-subsidy-lis.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al07-10.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-07-10-dss-administrative-letter-performance-managementreporting-and.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al07-12.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-07-12-lifelinelink-up.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al07-14.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-07-14-eugenics-asexualization-and-sterilization-compensation.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al08-04.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-08-04-epics.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al08-07.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-08-07-daas-administrative-letter-no-07-20-family-support-and-child.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al08-07addendum1.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-08-07-daas-administrative-letter-no-07-20-family-support-and-chil_3.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al08-08.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-08-08-dss-administrative-letter-performance-managementreporting-and.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al08-09.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-08-09-citizenship-documentation.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al08-10.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dss-administrative-letter-performance-managementreporting-and-evaluation-management-pm-rem-al-08.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al08-13add1.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-08-13-addendum-1-health-coverage-for-workers-with-disabilities.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al09-05.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-09-05-life-estate-subject-to-estate-recovery-09-05.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al09-07.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-09-07-social-security-and-va-cost-of-living-adjustment-cola.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al09-08.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-09-08-medicaid-suspension.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al09-08add1.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-09-08-addendum-1-medicaid-suspension.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al09-08add2.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-09-08-addendum-2-medicaid-suspension.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al09-10.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-09-10-medicare-savings-program-resource-limit-increase.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al09-12.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-09-12-social-security-and-va-cost-of-living-adjustment-cola.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al09-13.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-09-13-residency-for-adoptive-children-medicaid.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al09-14.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-09-14-2101-f-north-carolina-health-choice-children.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al10-08_ccnc-ca.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-10-08-ccncca-exemptions.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al10-12.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-10-12-verification-of-veterans-benefits.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al10-13.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-10-13-social-security-and-va-cost-of-living-adjustment-cola.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al10-14.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-10-14-social-security-and-va-cost-of-living-adjustment-cola.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al11-08.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-11-08-guidance-regarding-immigration-status-undocumented-immigrants.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al11-08add1.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-11-08-adendum-1-guidance-regarding-immigration-status-undocumented.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al11-13.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-11-13-hospital-provider-instructions-for-determining-presumptive-el.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al11-13add3.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-11-13-addendum-3-hospital-provider-instructions-for-determining-pre.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al12-08.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-12-08-social-security-and-va-cost-of-living-adjustment-cola.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al12-13.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-12-13-affordable-care-act-aca-overview-of-changes-to-the-applicatio.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al13-13.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-13-13-mic-1-children-age-6-through-age-18-107-133-fpl.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al14-03.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-14-03-certification-period-extension-for-qualifying-individuals-qi1.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al14-03add16.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-14-03-mqb-e-certification-period-extension-to-6302008.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al14-03add17.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-14-03-addendum-17-mqb-e-certification-period-extension-to-93008.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al14-03add18.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-14-03-addendum-18-mqb-e-certification-period-extension-to-12312008.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al14-13.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-14-13-medicaid-to-former-foster-care-children-mfc.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al15-04.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-15-04-enrolled-presumptive-eligibility-providers.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al15-13.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-15-13-certification-and-authorization-periods-for-applications-take.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al16-02.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-16-02-security-of-internal-revenue-service-and-social-security-admi.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al16-02a1.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-16-02-addendum-1-security-of-internal-revenue-service-frr-and-socia.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al16-02a2.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-16-02-addendum-2-frrbeer-security-obsolete.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al16-02a3.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-16-02-addendum-3-frrbeer-security-obsolete.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al16-13.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-16-13-affordable-care-act-aca-changes-to-citizenship-and-identity-v.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al17-06.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-17-06-medicaid-transportation-revisions.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al18-01.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-18-01-nc-health-choice-cases-with-eis-cert-periods-that-do-not-matc.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al18-03.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-18-03-new-medicaid-profile-indicator-and-follow-up-case-management.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al18-13.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-18-13-provider-instructions-for-presumptive-eligibility-for-pregnan.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al18-13add4.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-18-13-addendum-4-provider-instructions-for-presumptive-eligibility.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al24-02.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-24-02-new-validation-process-for-epics-referrals.pdf"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_al8-13.pdf",
+      "source_type": "dhhs_policy",
+      "local_path": "dhhs-policies/dma-administrative-letter-no-08-13-health-coverage-for-workers-with-disabilities.pdf"
+    }
+  ]
+}

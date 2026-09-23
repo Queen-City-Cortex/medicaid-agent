@@ -19,6 +19,10 @@ fi
 mkdir -p "$RELEASES_DIR"
 
 validate_runtime() {
+  : "${SYNTHETIC_USER_EMAIL:?Fresh synthetic account email is required}"
+  : "${SYNTHETIC_USER_PASSWORD:?Fresh synthetic account password is required}"
+  : "${WORKOS_CLIENT_ID:?WORKOS_CLIENT_ID is required}"
+  : "${WORKOS_API_KEY:?WORKOS_API_KEY is required}"
   local tool
   for tool in railway curl jq rclone; do
     require_tool "$tool"
@@ -92,24 +96,28 @@ set_agent_target() {
     "NEO4J_URI=$uri" \
     "NEO4J_PASSWORD=$password" \
     "CORPUS_RELEASE_ID=$release_id" \
-    "ACTIVE_CORPUS_COLOR=$color"
-  railway_cli redeploy \
+    "ACTIVE_CORPUS_COLOR=$color" || return
+  local response deployment_id
+  response="$(railway_cli redeploy \
     --environment "$ENVIRONMENT" \
     --service "$AGENT_SERVICE" \
-    --yes
+    --yes --json)" || return
+  deployment_id="$(jq -er '.id' <<<"$response")" || return
+  wait_for_railway_deployment "$AGENT_SERVICE" "$deployment_id"
 }
 
 verify_agent_release() {
   local release_id="$1"
   local ready_url="${AGENT_PUBLIC_URL:?AGENT_PUBLIC_URL is required}/readyz"
-  curl --fail --silent --show-error \
-    --retry 24 \
-    --retry-all-errors \
-    --retry-delay 10 \
-    --max-time 20 \
-    "$ready_url" \
-    | jq -e --arg release "$release_id" \
-        '.status == "ok" and .releaseId == $release' >/dev/null
+  local attempt ready
+  for attempt in $(seq 1 30); do
+    if ready="$(curl --fail --silent --show-error --max-time 20 "$ready_url")" \
+      && jq -e --arg release "$release_id" '.status == "ok" and .releaseId == $release' <<<"$ready" >/dev/null; then
+      break
+    fi
+    [[ "$attempt" -lt 30 ]] || { echo "Expected release never became ready" >&2; return 1; }
+    sleep 10
+  done
   "$REPO_ROOT/scripts/ops/authenticated-release-smoke.sh" "$release_id"
 }
 
@@ -267,7 +275,7 @@ wait_for_railway_deployment() {
     status="$(jq -r --arg id "$deployment_id" \
       '.[] | select(.id == $id) | .status' <<<"$deployments")" || return
     case "$status" in
-      SUCCESS) return 0 ;;
+      SUCCESS|SLEEPING) return 0 ;;
       FAILED | CRASHED | REMOVED | REMOVING)
         echo "Railway deployment $deployment_id for $service ended as $status" >&2
         return 1
@@ -299,6 +307,7 @@ redeploy_graph() {
 bootstrap() {
   local variables current_uri target_color expected_confirmation
   local target_service target_uri target_password release_id manifest
+  : "${BOOTSTRAP_BASELINE_EVIDENCE:?A fresh comparable legacy baseline is required}"
 
   target_color="${BOOTSTRAP_TARGET_COLOR:-}"
   [[ "$target_color" == "blue" || "$target_color" == "green" ]] || {
@@ -352,7 +361,8 @@ bootstrap() {
     NEO4J_URI="$target_uri" \
     NEO4J_PASSWORD="$target_password" \
     MASTRA_OBSERVABILITY_PATH=":memory:" \
-      "$PY" -m pipeline.cli release-validate --manifest "$manifest"
+      "$PY" -m pipeline.cli release-validate --manifest "$manifest" \
+        --baseline-evidence "$BOOTSTRAP_BASELINE_EVIDENCE"
     NEO4J_URI="$target_uri" \
     NEO4J_PASSWORD="$target_password" \
       "$PY" -m pipeline.cli release-mark-graph \

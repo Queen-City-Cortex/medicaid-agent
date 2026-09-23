@@ -25,7 +25,10 @@ for required in "$CRAWLER_DATA/documents" "$PIPELINE_DATA/parsed"; do
   }
 done
 
-rclone copyto "$CRAWLER_DATA/crawler.db" \
+TEMP_DIR="$(mktemp -d)"
+trap 'rm -rf "$TEMP_DIR"' EXIT
+sqlite3 "$CRAWLER_DATA/crawler.db" ".backup '$TEMP_DIR/crawler.db'"
+rclone copyto "$TEMP_DIR/crawler.db" \
   "$(release_object_path 'corpus/current/crawler/crawler.db')" \
   --checksum
 rclone sync "$CRAWLER_DATA/documents" \
@@ -35,7 +38,7 @@ rclone sync "$PIPELINE_DATA/parsed" \
   "$(release_object_path 'corpus/current/pipeline/parsed')" \
   --checksum --transfers "${RCLONE_TRANSFERS:-8}"
 
-for directory in audits eval-results releases ecfr-cache; do
+for directory in audits eval-results releases ecfr-cache source-retirement-evidence; do
   [[ -d "$PIPELINE_DATA/$directory" ]] || continue
   rclone sync "$PIPELINE_DATA/$directory" \
     "$(release_object_path "corpus/current/pipeline/$directory")" \

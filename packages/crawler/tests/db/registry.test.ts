@@ -79,6 +79,17 @@ describe('DocumentRegistry', () => {
       expect(doc?.title).toBe('Updated Title');
     });
 
+    it('keeps documented retirements removed when rediscovered', () => {
+      const id = registry.upsertDiscovered(sampleDoc);
+      registry.markRemoved(id);
+      db.prepare("INSERT INTO source_retirements(source_url,evidence_json,retired_at) VALUES(?, '{}', datetime('now'))").run(sampleDoc.source_url);
+      registry.upsertDiscovered(sampleDoc);
+      expect(registry.getById(id)?.status).toBe('removed');
+      expect(registry.getDocumentsToDownload()).toHaveLength(0);
+      expect(registry.getDocumentsToCheck()).toHaveLength(0);
+      expect(db.prepare('SELECT count(*) AS n FROM source_retirements').get()).toEqual({ n: 1 });
+    });
+
     it('revives removed documents and clears removal metadata', () => {
       const id = registry.upsertDiscovered(sampleDoc);
       registry.markRemoved(id);

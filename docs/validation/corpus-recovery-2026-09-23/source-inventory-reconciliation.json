@@ -1,0 +1,258 @@
+{
+  "statuses": [
+    {
+      "status": "downloaded",
+      "count": 74
+    },
+    {
+      "status": "error",
+      "count": 63
+    },
+    {
+      "status": "removed",
+      "count": 140
+    },
+    {
+      "status": "unchanged",
+      "count": 4256
+    },
+    {
+      "status": "updated",
+      "count": 7
+    }
+  ],
+  "without_payload": [
+    {
+      "source_url": "http://files.nc.gov/ncdma/documents/Fee-Schedules/Dialysis/Dialysis_ESRD_Fee_Schedule_2016_11.xlsx",
+      "source_type": "fee_schedule",
+      "status": "error",
+      "error_message": "HTTP 403",
+      "local_path": null
+    },
+    {
+      "source_url": "http://files.nc.gov/ncdma/documents/Fee-Schedules/Dialysis/Dialysis_ESRD_Fee_Schedule_2016_11.pdf",
+      "source_type": "fee_schedule",
+      "status": "error",
+      "error_message": "HTTP 403",
+      "local_path": null
+    },
+    {
+      "source_url": "http://files.nc.gov/ncdma/documents/Fee-Schedules/Archives/Orthotic_and_Prosthetic/orth_prost_0112.pdf",
+      "source_type": "fee_schedule",
+      "status": "error",
+      "error_message": "HTTP 403",
+      "local_path": null
+    },
+    {
+      "source_url": "http://files.nc.gov/ncdma/documents/Fee-Schedules/Archives/Orthotic_and_Prosthetic/orth_prost_1111.pdf",
+      "source_type": "fee_schedule",
+      "status": "error",
+      "error_message": "HTTP 403",
+      "local_path": null
+    },
+    {
+      "source_url": "http://files.nc.gov/ncdma/documents/Fee-Schedules/Archives/Orthotic_and_Prosthetic/orth_prost_0111.pdf",
+      "source_type": "fee_schedule",
+      "status": "error",
+      "error_message": "HTTP 403",
+      "local_path": null
+    },
+    {
+      "source_url": "http://files.nc.gov/ncdma/documents/Fee-Schedules/Archives/Orthotic_and_Prosthetic/orth_prost.pdf",
+      "source_type": "fee_schedule",
+      "status": "error",
+      "error_message": "HTTP 403",
+      "local_path": null
+    },
+    {
+      "source_url": "http://files.nc.gov/ncdma/documents/Fee-Schedules/Archives/Personal_Care_Services/In-Home_PCS/home_care_100109.pdf",
+      "source_type": "fee_schedule",
+      "status": "error",
+      "error_message": "HTTP 403",
+      "local_path": null
+    },
+    {
+      "source_url": "http://files.nc.gov/ncdma/documents/Fee-Schedules/Physician%20Services%20Fee%20Schedule20180724.xlsx",
+      "source_type": "fee_schedule",
+      "status": "error",
+      "error_message": "HTTP 403",
+      "local_path": null
+    },
+    {
+      "source_url": "http://files.nc.gov/ncdma/documents/Fee-Schedules/Archives/Physician_Services/phy_fee_sch010112.pdf",
+      "source_type": "fee_schedule",
+      "status": "error",
+      "error_message": "HTTP 403",
+      "local_path": null
+    },
+    {
+      "source_url": "http://files.nc.gov/ncdma/documents/Fee-Schedules/Archives/Physician_Services/phy_fee_sch070112.pdf",
+      "source_type": "fee_schedule",
+      "status": "error",
+      "error_message": "HTTP 403",
+      "local_path": null
+    },
+    {
+      "source_url": "http://files.nc.gov/ncdma/documents/Fee-Schedules/Archives/Physician_Services/phy_fee_sch042412.pdf",
+      "source_type": "fee_schedule",
+      "status": "error",
+      "error_message": "HTTP 403",
+      "local_path": null
+    },
+    {
+      "source_url": "http://files.nc.gov/ncdma/documents/Fee-Schedules/Archives/Physician_Services/phy_fee_sch032912.pdf",
+      "source_type": "fee_schedule",
+      "status": "error",
+      "error_message": "HTTP 403",
+      "local_path": null
+    },
+    {
+      "source_url": "http://files.nc.gov/ncdma/documents/Fee-Schedules/Archives/Physician_Services/phy_fee_sch120211.pdf",
+      "source_type": "fee_schedule",
+      "status": "error",
+      "error_message": "HTTP 403",
+      "local_path": null
+    },
+    {
+      "source_url": "http://files.nc.gov/ncdma/documents/Fee-Schedules/Archives/Physician_Services/phy_fee_sch070111.pdf",
+      "source_type": "fee_schedule",
+      "status": "error",
+      "error_message": "HTTP 403",
+      "local_path": null
+    },
+    {
+      "source_url": "http://files.nc.gov/ncdma/documents/Fee-Schedules/Archives/Physician_Services/phy_fee_sch040111.pdf",
+      "source_type": "fee_schedule",
+      "status": "error",
+      "error_message": "HTTP 403",
+      "local_path": null
+    },
+    {
+      "source_url": "http://files.nc.gov/ncdma/documents/Fee-Schedules/Archives/Physician_Services/phy_fee_sch100111.pdf",
+      "source_type": "fee_schedule",
+      "status": "error",
+      "error_message": "HTTP 403",
+      "local_path": null
+    },
+    {
+      "source_url": "http://files.nc.gov/ncdma/documents/Fee-Schedules/Archives/Physician_Services/phy_fee_sch120710.pdf",
+      "source_type": "fee_schedule",
+      "status": "error",
+      "error_message": "HTTP 403",
+      "local_path": null
+    },
+    {
+      "source_url": "http://files.nc.gov/ncdma/documents/Fee-Schedules/Archives/Physician_Services/phy_fee_sch010110.pdf",
+      "source_type": "fee_schedule",
+      "status": "error",
+      "error_message": "HTTP 403",
+      "local_path": null
+    },
+    {
+      "source_url": "http://files.nc.gov/ncdma/documents/Fee-Schedules/Archives/Rural_Health_Clinic/rhc_fee_sch021813.pdf",
+      "source_type": "fee_schedule",
+      "status": "error",
+      "error_message": "HTTP 403",
+      "local_path": null
+    },
+    {
+      "source_url": "http://files.nc.gov/ncdma/documents/Fee-Schedules/Archives/Rural_Health_Clinic/rhc_fee_sch010113.pdf",
+      "source_type": "fee_schedule",
+      "status": "error",
+      "error_message": "HTTP 403",
+      "local_path": null
+    },
+    {
+      "source_url": "http://files.nc.gov/ncdma/documents/Fee-Schedules/Archives/Rural_Health_Clinic/rhc_fee_sch010112.pdf",
+      "source_type": "fee_schedule",
+      "status": "error",
+      "error_message": "HTTP 403",
+      "local_path": null
+    },
+    {
+      "source_url": "http://files.nc.gov/ncdma/documents/Fee-Schedules/Archives/Rural_Health_Clinic/rhc_fee_sch110111.pdf",
+      "source_type": "fee_schedule",
+      "status": "error",
+      "error_message": "HTTP 403",
+      "local_path": null
+    },
+    {
+      "source_url": "http://files.nc.gov/ncdma/documents/Fee-Schedules/Archives/Rural_Health_Clinic/rhc_fee_sch010111.pdf",
+      "source_type": "fee_schedule",
+      "status": "error",
+      "error_message": "HTTP 403",
+      "local_path": null
+    },
+    {
+      "source_url": "http://files.nc.gov/ncdma/documents/Fee-Schedules/Archives/Rural_Health_Clinic/rhc_fee_sch1009.pdf",
+      "source_type": "fee_schedule",
+      "status": "error",
+      "error_message": "HTTP 403",
+      "local_path": null
+    },
+    {
+      "source_url": "http://files.nc.gov/ncdma/documents/Fee-Schedules/Archives/Rural_Health_Clinic/rhc_fee_sch09.pdf",
+      "source_type": "fee_schedule",
+      "status": "error",
+      "error_message": "HTTP 403",
+      "local_path": null
+    },
+    {
+      "source_url": "http://files.nc.gov/ncdma/documents/Fee-Schedules/Archives/Rural_Health_Clinic/rhc_fee_sch08.pdf",
+      "source_type": "fee_schedule",
+      "status": "error",
+      "error_message": "HTTP 403",
+      "local_path": null
+    },
+    {
+      "source_url": "http://files.nc.gov/ncdma/documents/Fee-Schedules/Archives/Rural_Health_Clinic/rhc_fee_sch07.pdf",
+      "source_type": "fee_schedule",
+      "status": "error",
+      "error_message": "HTTP 403",
+      "local_path": null
+    },
+    {
+      "source_url": "http://files.nc.gov/ncdma/documents/Fee-Schedules/Archives/Rural_Health_Clinic/rhc_fee_sch06.pdf",
+      "source_type": "fee_schedule",
+      "status": "error",
+      "error_message": "HTTP 403",
+      "local_path": null
+    },
+    {
+      "source_url": "https://medicaid.ncdhhs.gov/directory-affiliation-report-sp/download?attachment=",
+      "source_type": "managed_care_guidance",
+      "status": "error",
+      "error_message": "File too large: 246 MB exceeds 50 MB limit",
+      "local_path": null
+    },
+    {
+      "source_url": "https://medicaid.ncdhhs.gov/directory-affiliation-report-tp/download?attachment=",
+      "source_type": "managed_care_guidance",
+      "status": "error",
+      "error_message": "File too large: 250 MB exceeds 50 MB limit",
+      "local_path": null
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/document/2020-covid-19-guidance-and-procedures-administrative-letters/",
+      "source_type": "dhhs_policy",
+      "status": "error",
+      "error_message": "URL is outside the allowed domains: https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_al-10-20-elc-for-covid-19.pdf",
+      "local_path": null
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/document/2025-magi-medicaid-income-limits-2/",
+      "source_type": "dhhs_policy",
+      "status": "error",
+      "error_message": "DHHS document page has 0 attachments; expected exactly one",
+      "local_path": null
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/document/2025-magi-medicaid-income-limits/",
+      "source_type": "dhhs_policy",
+      "status": "error",
+      "error_message": "DHHS document page has 0 attachments; expected exactly one",
+      "local_path": null
+    }
+  ],
+  "duplicate_active_paths": []
+}

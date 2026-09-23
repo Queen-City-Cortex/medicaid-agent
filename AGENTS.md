@@ -10,6 +10,16 @@ This project is super greenfield. It has no users yet, no real data, etc. Be rut
 
 ## Verification
 
+- Parse inventory alone cannot find downloads that never created a `local_path`. Reconcile every non-removed registry row as well: September 2026 had 33 such failures (30 optional fee-schedule/guidance attachments and three required DHHS wrappers). `recovery-inventory` includes these and release preparation rejects missing required payloads before parsing or graph reset. The final complete inventory also exposed 283 existing optional parse exceptions, for 313 optional failures including downloads; report them separately without silently weakening source-family requirements.
+
+- The corpus-job image pins Railway CLI 5.17.0, which has no `railway api` subcommand even though a newer workstation CLI does. Initial activation uses the public GraphQL API with the project token header; validate operational adapters against the production image, not just local CLI help.
+
+- The crawler's historical `status='removed'` rows are not equivalent to evidence-backed retirement. `recovery-inventory` reports both active parse failures and removed sources without a durable retirement record; release preparation rejects either. In September 2026, checking only the nine recent parse failures hid 136 older undocumented exclusions. Do not grandfather those exclusions or create retirement evidence from a tombstone alone.
+
+- The corpus release smoke must parse final verification events and released answer text. Response byte counts or the presence of source URLs can accept a withheld answer. Require a completed SSE stream, a passed/corrected outcome, and citations in the released text.
+- A documented source retirement must survive rediscovery. Keep its SQLite evidence/history; only the guarded reactivation command may clear it after a fresh payload passes downloader checks. Repeated index links are not evidence that a missing attachment has returned.
+- Production WorkOS test-account access tokens currently last five minutes. Mint one immediately before release smoke; an expiry preflight requiring the entire five-minute lifetime plus network overhead rejects every freshly issued token.
+
 - The corpus-job image needs the versioned files under `packages/pipeline/data/golden` even though runtime corpus data must stay outside the Docker context. Preserve the targeted `.dockerignore` exceptions and the Dockerfile's dataset-validation check; a successful image build without those files only fails later at the release-evaluation stage.
 
 - `npm test -w @nc-medicaid/agent` is not enough after changing tool schemas or API payload shapes. The Vitest suite can still pass while `npm run build -w @nc-medicaid/agent` fails on null-vs-undefined or output-schema type mismatches. Run both.

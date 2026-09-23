@@ -602,6 +602,13 @@ def run_corpus_audit(
         source_freshness=read_source_freshness(),
     )
 
+    from pipeline.retirement import read_retirements, undocumented_removals
+    from pipeline.config import CRAWLER_DB_PATH
+
+    report["source_retirements"] = read_retirements(CRAWLER_DB_PATH)
+    report["undocumented_removals"] = undocumented_removals(CRAWLER_DB_PATH)
+    from pipeline.recovery_inventory import missing_source_payloads
+    report["unresolved_downloads"] = missing_source_payloads(CRAWLER_DB_PATH)
     markdown = render_audit_markdown(report)
     output_dir = AUDIT_DATA_DIR
     output_dir.mkdir(parents=True, exist_ok=True)

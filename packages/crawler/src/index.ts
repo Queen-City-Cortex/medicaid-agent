@@ -8,6 +8,8 @@ import { registerExportCommand } from './cli/export.js';
 import { registerUpdateFixturesCommand } from './cli/update-fixtures.js';
 import { registerReconcileCommand } from './cli/reconcile.js';
 
+import { registerReactivateCommand } from './cli/reactivate.js';
+
 const program = new Command()
   .name('nc-medicaid-crawler')
   .description('Polite incremental crawler for NC Medicaid policy documents')
@@ -21,5 +23,6 @@ registerAddUrlCommand(program);
 registerExportCommand(program);
 registerUpdateFixturesCommand(program);
 registerReconcileCommand(program);
+registerReactivateCommand(program);
 
 program.parse();

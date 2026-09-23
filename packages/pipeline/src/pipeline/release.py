@@ -721,6 +721,7 @@ def finalize_release_manifest(
     answer_result: dict[str, Any],
     previous_manifest: dict[str, Any] | None,
     overrides: dict[str, str] | None = None,
+    baseline_evaluation: dict[str, float] | None = None,
     now: datetime | None = None,
 ) -> dict[str, Any]:
     manifest = load_json_object(manifest_path)
@@ -732,7 +733,7 @@ def finalize_release_manifest(
     manifest["evaluationResults"] = build_release_evaluation_results(
         retrieval_result,
         answer_result,
-        previous_manifest,
+        {"evaluationResults": baseline_evaluation} if baseline_evaluation is not None else previous_manifest,
     )
     gates = evaluate_release_manifest(manifest)
     manifest["gates"] = apply_overrides(gates, overrides or {})

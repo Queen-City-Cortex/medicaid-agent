@@ -39,6 +39,7 @@ restore_current_layout() {
   copy_if_present corpus/current/pipeline/eval-results "$CORPUS_DATA_ROOT/pipeline/eval-results"
   copy_if_present corpus/current/pipeline/releases "$CORPUS_DATA_ROOT/pipeline/releases"
   copy_if_present corpus/current/pipeline/ecfr-cache "$CORPUS_DATA_ROOT/pipeline/ecfr-cache"
+  copy_if_present corpus/current/pipeline/source-retirement-evidence "$CORPUS_DATA_ROOT/pipeline/source-retirement-evidence"
 }
 
 restore_legacy_layout() {
@@ -63,6 +64,7 @@ restore_legacy_layout() {
   copy_if_present pipeline/eval-results "$CORPUS_DATA_ROOT/pipeline/eval-results"
   copy_if_present pipeline/releases "$CORPUS_DATA_ROOT/pipeline/releases"
   copy_if_present pipeline/ecfr-cache "$CORPUS_DATA_ROOT/pipeline/ecfr-cache"
+  copy_if_present pipeline/source-retirement-evidence "$CORPUS_DATA_ROOT/pipeline/source-retirement-evidence"
 }
 
 if remote_has_entries corpus/current/crawler; then

@@ -1,0 +1,87 @@
+[
+  {
+    "url": "https://policies.ncdhhs.gov/document/2020-covid-19-guidance-and-procedures-administrative-letters/",
+    "final_url": "https://policies.ncdhhs.gov/document/2020-covid-19-guidance-and-procedures-administrative-letters/",
+    "status": 200,
+    "checked_at": "2026-09-23T02:03:03.259099+00:00",
+    "sha256": "d836683a6eb8de564e55e454b51a764f0d9c5e153ab5f14d86184d75a5bc9f02",
+    "payload_or_archive_links": [
+      {
+        "text": "Extended Limits of Confinement for Inmate Release Procedures for COVID-19",
+        "url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_al-10-20-elc-for-covid-19.pdf"
+      },
+      {
+        "text": "Medicaid/NC Health Choice Recertification Procedures for COVID-19 \u2013 Amended 2 \u2013 Obsolete",
+        "url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_-al_09-20-amended-2-1.pdf"
+      },
+      {
+        "text": "Medicaid/NC Health Choice Recertification Procedures for COVID-19 \u2013 Amended \u2013 Obsolete",
+        "url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_-al_09-20-amended.pdf"
+      },
+      {
+        "text": "Medicaid/NC Health Choice Recertification Procedures for COVID-19 \u2013 Obsolete",
+        "url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_al-09-20.pdf"
+      },
+      {
+        "text": "Procedures for MAGI Deductions",
+        "url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_-al08-20-magi-deduction-procedures-docx.pdf"
+      },
+      {
+        "text": "Medicaid/NCHC Procedures for COVID-19 \u2013 Amended 2",
+        "url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_al_07-20-amended-2.pdf"
+      },
+      {
+        "text": "Medicaid/NCHC Procedures for COVID-19 \u2013 Amended Obsolete",
+        "url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_al_07-20__policy_procedures_covid-19_amended_final.pdf"
+      },
+      {
+        "text": "Attachment \u2013 ZixMail Instructions for State Appeals",
+        "url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/attachment__b-__zixmail_instructions_with_e-mail_examples_for_submitting_state_appeal_requests__-004.pdf"
+      },
+      {
+        "text": "Medicaid/NCHC Procedures for COVID-19,\u00a0Self- Attestation and\u00a0Reports",
+        "url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma__al_06-20_covid-19-_self-attestation_and_reports_final_-1.pdf"
+      },
+      {
+        "text": "Attachment \u2013 DHB Self-Attestation",
+        "url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/attachment_dhb_self_attestation_8-2020_final.pdf"
+      },
+      {
+        "text": "Medicaid/NC Health Choice Recertification Procedures for\u00a0COVID-19 \u2013 Obsolete",
+        "url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_al-05-20-20200812.pdf"
+      },
+      {
+        "text": "Medicaid/NCHC Procedures for COVID-19, Addendum 1 \u2013 Obsolete",
+        "url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_al-01-21-20210122.pdf"
+      },
+      {
+        "text": "Attachment 1 -DHB Self Attestation \u2013 Obsolete",
+        "url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_al-01-20-add-1-att-1a-20200807.pdf"
+      },
+      {
+        "text": "Attachment 2 \u2013 ZixMail Instructions for State Appeals \u2013 Obsolete",
+        "url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_al-01-20-add-1-att-2-20200807-1.pdf"
+      },
+      {
+        "text": "Medicaid/NCHC Procedures\u00a0for COVID-19 \u2013 Obsolete",
+        "url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_al-01-20-20200807.pdf"
+      }
+    ]
+  },
+  {
+    "url": "https://policies.ncdhhs.gov/document/2025-magi-medicaid-income-limits-2/",
+    "final_url": "https://policies.ncdhhs.gov/document/2025-magi-medicaid-income-limits-2/",
+    "status": 200,
+    "checked_at": "2026-09-23T02:03:03.646388+00:00",
+    "sha256": "c3c6aacf6b428642205c985bbae0ac1e947d4142ff4c92e623c611e50c61e1ac",
+    "payload_or_archive_links": []
+  },
+  {
+    "url": "https://policies.ncdhhs.gov/document/2025-magi-medicaid-income-limits/",
+    "final_url": "https://policies.ncdhhs.gov/document/2025-magi-medicaid-income-limits/",
+    "status": 200,
+    "checked_at": "2026-09-23T02:03:04.014904+00:00",
+    "sha256": "e80b367ae4ad2561b77585b86daf0d1c1e3a7d02133d8e31dc007ebb562a164e",
+    "payload_or_archive_links": []
+  }
+]

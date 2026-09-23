@@ -57,8 +57,18 @@ try {
   });
 
   await openAuthenticatedChat(page);
+  await verifyExpectedRelease();
   await startFreshThread(page);
   const result = await askQuestion(page);
+  await verifyRestoredAnswer(page, result);
+  if (process.env.SMOKE_EXPECTED_RELEASE_ID) {
+    const status = await verifyExpectedRelease();
+    if (!process.env.SMOKE_ACTIVATION_NONCE || !process.env.SMOKE_RECEIPT_PATH) throw new Error('Activation receipt nonce and path required');
+    const receipt = { releaseId: status.releaseId, activationNonce: process.env.SMOKE_ACTIVATION_NONCE,
+      outcome: result.outcome, checks: ['thread_switch', 'reload'], checkedAt: new Date().toISOString() };
+    fs.writeFileSync(process.env.SMOKE_RECEIPT_PATH + '.tmp', JSON.stringify(receipt));
+    fs.renameSync(process.env.SMOKE_RECEIPT_PATH + '.tmp', process.env.SMOKE_RECEIPT_PATH);
+  }
   await saveScreenshot(page, screenshotPath);
 
   if (browserMessages.length > 0) {
@@ -83,6 +93,15 @@ try {
   throw error;
 } finally {
   await browser?.close();
+}
+
+async function verifyExpectedRelease() {
+  if (!process.env.SMOKE_EXPECTED_RELEASE_ID) return;
+  const response = await fetch((process.env.AGENT_PUBLIC_URL ?? 'https://medicaid-agent-backend.up.railway.app') + '/readyz', { signal: AbortSignal.timeout(30_000) });
+  if (!response.ok) throw new Error('Browser smoke readiness check failed');
+  const status = await response.json();
+  if (status.status !== 'ok' || status.releaseId !== process.env.SMOKE_EXPECTED_RELEASE_ID) throw new Error('Browser smoke observed a different corpus release');
+  return status;
 }
 
 async function openAuthenticatedChat(page) {
@@ -204,10 +223,32 @@ async function askQuestion(page) {
   }
 
   return {
+    answerText,
+    outcome,
     answerLength: answerText.length,
     sourcesLabel,
     toolSteps,
   };
+}
+
+async function verifyRestoredAnswer(page, expected) {
+  const latestThread = page.getByTestId('thread-item').first();
+  await latestThread.waitFor({ state: 'visible', timeout: 15_000 });
+  const title = (await latestThread.textContent()).trim();
+  await startFreshThread(page);
+  await page.getByTestId('thread-item').filter({ hasText: title }).first().click();
+  for (const reload of [false, true]) {
+    if (reload) {
+      await page.reload();
+      await page.getByTestId('thread-item').filter({ hasText: title }).first().click();
+    }
+    const assistant = page.getByTestId('assistant-message').last();
+    const badge = assistant.getByTestId('verification-badge');
+    await badge.waitFor({ state: 'visible', timeout: 30_000 });
+    if (await badge.getAttribute('data-outcome') !== expected.outcome) throw new Error('Verification outcome changed after history restore');
+    const restoredText = normalizeWhitespace((await assistant.locator('.prose').last().textContent()) ?? '');
+    if (restoredText !== expected.answerText) throw new Error('Released answer changed after history restore');
+  }
 }
 
 async function isChatReady(page, timeout) {

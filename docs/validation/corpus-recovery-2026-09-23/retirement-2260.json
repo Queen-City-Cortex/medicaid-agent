@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "source_url": "https://policies.ncdhhs.gov/document/dma-3137-personal-care-services-pcs-icd-10-transition-form-jun-01-2018/",
+  "basis": "not_found",
+  "reason": "Three consecutive crawler-confirmed HTTP 404s; current official index and related replacement entries inspected. Original source identity and artifact are retained.",
+  "original_artifact_hash": "sha256:76972f3d93ddcedd4564ef6bb394fee97c8652fd2c9b87f6745a9d4e6a941354",
+  "evidence": [
+    {
+      "kind": "source_check",
+      "url": "https://policies.ncdhhs.gov/document/dma-3137-personal-care-services-pcs-icd-10-transition-form-jun-01-2018/",
+      "checked_at": "2026-09-23T00:56:40.481394+00:00",
+      "sha256": "85fd63cb3e1b5d95d2412d503d8d086f8f7058c77459488666e3b16050b2820f",
+      "capture_path": "pipeline/source-retirement-evidence/85fd63cb3e1b5d95d2412d503d8d086f8f7058c77459488666e3b16050b2820f.html",
+      "finding": "The registered official document URL returns HTTP 404.",
+      "http_status": 404
+    },
+    {
+      "kind": "index_investigation",
+      "url": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/dhb-forms/",
+      "checked_at": "2026-09-23T00:56:49.512328+00:00",
+      "sha256": "0a10708aea18f0ae462d3fd9dfdaaf5023842ba1d3c6f28864d878faa7e1b0ff",
+      "capture_path": "pipeline/source-retirement-evidence/0a10708aea18f0ae462d3fd9dfdaaf5023842ba1d3c6f28864d878faa7e1b0ff.html",
+      "finding": "The exact retired URL is absent from the current DHB forms index. Related current entries were inspected: [{\"text\": \"dma-3137-i Personal Care Services (PCS) ICD-10 Transition Form – Instructions\", \"url\": \"https://policies.ncdhhs.gov/document/dma-3137-i-personal-care-services-pcs-icd-10-transition-form-instructions/\"}, {\"text\": \"Open\", \"url\": \"https://policies.ncdhhs.gov/wp-content/uploads/dma-3137-i.pdf\"}]",
+      "http_status": 200
+    }
+  ]
+}

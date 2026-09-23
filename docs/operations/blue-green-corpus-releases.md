@@ -43,8 +43,14 @@ NEO4J_BLUE_PASSWORD=<secret>
 NEO4J_GREEN_PASSWORD=<secret>
 NEO4J_USER=neo4j
 AGENT_PUBLIC_URL=https://<agent-domain>
-SYNTHETIC_ACCESS_TOKEN=<restricted-test-user-token>
-SYNTHETIC_RESOURCE_ID=<restricted-test-user-id>
+SYNTHETIC_USER_EMAIL=<existing-production-test-account>
+SYNTHETIC_USER_PASSWORD=<test-account-secret>
+WORKOS_CLIENT_ID=<application-client-id>
+WORKOS_API_KEY=<secret>
+SYNTHETIC_RESOURCE_ID=<optional-account-id-binding>
+RAILWAY_PROJECT_ID=<project-uuid>
+RAILWAY_ENVIRONMENT_ID=<environment-uuid>
+RAILWAY_AGENT_SERVICE_ID=<agent-service-uuid>
 BACKUP_AGE_RECIPIENT=<age-public-recipient>
 RAILWAY_TOKEN=<project-scoped-token>
 HC_URL_CORPUS_JOB=<optional-healthchecks-io-ping-url>
@@ -75,36 +81,140 @@ regular config path and `CORPUS_JOB_MODE=scheduled` only after successful initia
 cutover. The maintenance container must be stopped or restored when supervised
 work finishes.
 
+## Recovery and retirement before bootstrap
+
+Keep the maintenance configuration active throughout preparation. Every import,
+retirement, reactivation, and inventory operation takes the existing
+`$CORPUS_DATA_ROOT/.locks/corpus-job.lock`. Do not wrap the Python operator commands
+in a second `flock`; they acquire it themselves. Shell backup/sync commands must
+run under that lock (the supervised corpus job already holds it).
+
+From `packages/pipeline`, use the guarded commands:
+
+```bash
+uv run python -m pipeline.cli parse-import /data/recovery-bundle
+uv run python -m pipeline.cli parse-import /data/recovery-bundle --apply
+uv run python -m pipeline.cli retire-source --evidence /data/retirement.json
+uv run python -m pipeline.cli retire-source --evidence /data/retirement.json --apply
+uv run python -m pipeline.cli recovery-inventory --output /data/pipeline/run-state/recovery-inventory.json
+```
+
+`parse-import` defaults to validation. Its `manifest.json` has `schema_version: 1`,
+`code_commit`, `parse_cache_version`, exact `code_hashes`, and `files` entries with
+`file` (relative crawler path), `source_url`, `source_hash`, and `metadata_hash`.
+The eight parser fingerprint paths are defined in `recovery_import.py`. Put the
+JSON, Markdown and metadata sidecars at `parsed/<source-relative-stem>.*`.
+Import rejects changed source identities/hashes, incompatible parser builds,
+quality failures and artifact tampering before writing anything. Journals retain
+prior artifacts and the local attempt metadata. A repeated import reuses valid
+output without incrementing hosted attempt counts.
+
+Retirement evidence has `schema_version: 1`, canonical `source_url`, `basis`
+(`not_found`, `withdrawn`, or `superseded`), a substantive `reason`,
+`original_artifact_hash`, optional official `replacement_url`, and an `evidence`
+list. Each finding contains `kind`, official `url`, `checked_at`, `finding`,
+`sha256` (unprefixed), and a relative `capture_path` under
+`pipeline/source-retirement-evidence`. Captured bytes must match their hash.
+An `index_investigation` must explain the current index and replacement search.
+`not_found` also requires the registry's three consecutive 404s; other bases
+require a `withdrawal_notice` that explicitly establishes withdrawal or
+supersession. Redirects, missing attachments, timeouts and server errors do not
+establish retirement. Operators must review the actual evidence, not merely
+supply a matching JSON shape.
+
+Retirement is durable across rediscovery. Original files and registry history
+remain available. To reactivate, recover a fresh payload through the normal
+crawler content/identity checks:
+
+```bash
+scripts/ops/reactivate-source.sh --url '<canonical-source-url>'
+scripts/ops/reactivate-source.sh --url '<canonical-source-url>' --apply
+```
+
+The first command only validates. A replacement with a different identity or
+format must be investigated as a separate source. Historical crawler
+`status=removed` tombstones are not retirement evidence: `recovery-inventory`
+reports them and release preparation refuses to exclude them silently. It also
+reconciles registry rows that never acquired a local payload; missing required
+downloads block release, while optional supporting-source failures remain visible
+under the existing source-family policy.
+
 ## Initial bootstrap
 
-The first conversion from the legacy single `neo4j` service is supervised:
+The legacy-to-blue transition is supervised; keep the legacy graph serving until
+all source and evaluation gates pass.
 
-1. Create blue and green with their volumes and backups.
-2. Set these one-time variables on `corpus-job` and redeploy it:
+1. Complete `recovery-inventory` with zero required failures and zero undocumented
+   removals. Freeze the code revision, source snapshot, retirement evidence and
+   the complete 55-question benchmark. Keep maintenance mode and the writer lock.
+2. Run a fresh baseline against the **legacy** graph using that exact code and
+   model configuration. Run the CLI from `packages/pipeline` with its legacy
+   `NEO4J_URI` and `NEO4J_PASSWORD` supplied securely:
 
-   ```text
-   CORPUS_JOB_MODE=bootstrap
-   BOOTSTRAP_TARGET_COLOR=blue
-   BOOTSTRAP_RESET_CONFIRM=neo4j-blue
+   ```bash
+   uv run python -m pipeline.cli release-baseline \
+     --release-id legacy-20260725-ae8595c \
+     --output /data/pipeline/releases/legacy-baseline.json
    ```
 
-   Bootstrap refuses to reset the graph currently serving the agent, requires
-   the exact target-service confirmation, builds and validates the selected
-   graph, stamps its release marker, and never changes the agent target.
-3. Record the validated release ID from the successful job, remove
-   `BOOTSTRAP_TARGET_COLOR` and `BOOTSTRAP_RESET_CONFIRM`, and restore
-   `CORPUS_JOB_MODE=scheduled`.
-4. Set the agent variables atomically:
+   This is evaluation evidence, not a fabricated legacy release manifest.
+   Baseline and candidate require the identical benchmark, implementation and
+   model fingerprint. Partial runs, infrastructure errors, missing verification
+   telemetry and disabled verification fail. Observability uses `:memory:`.
+   Historical section IDs may not match the current benchmark; investigate and
+   record that mismatch rather than substituting a different baseline benchmark.
+3. Build only the confirmed inactive blue graph using the existing bootstrap
+   workflow, under the supervised writer lock. Set `CORPUS_JOB_MODE=bootstrap`,
+   `BOOTSTRAP_TARGET_COLOR=blue`, `BOOTSTRAP_RESET_CONFIRM=neo4j-blue`, and
+   `BOOTSTRAP_BASELINE_EVIDENCE=/data/pipeline/releases/legacy-baseline.json`.
+   In the idle maintenance container, invoke `scripts/ops/railway-corpus-job.sh`
+   explicitly with those variables; do not enable cron. It runs strict parsing,
+   loading, federal ingestion, relationships, embeddings, audits and full evals.
+   Bootstrap never changes the agent target. Upload the validated manifest and
+   all audit/evaluation evidence with `sync-corpus-artifacts.sh` under the lock.
+4. Produce an encrypted backup of the final frozen snapshot and perform the
+   restore drill below. Copy its nonsecret receipt into the corpus volume. A
+   backup from before further imports/retirements cannot authorize activation.
+5. From `packages/pipeline`, run:
 
-   ```text
-   NEO4J_URI=bolt://neo4j-blue.railway.internal:7687
-   CORPUS_RELEASE_ID=<validated-release-id>
-   ACTIVE_CORPUS_COLOR=blue
+   ```bash
+   uv run python -m pipeline.cli release-activate-bootstrap \
+     --manifest /data/pipeline/releases/<release-id>.json \
+     --backup-receipt /data/pipeline/releases/backup-restore-receipt.json
    ```
 
-5. Redeploy the agent, verify `/readyz`, and run the authenticated smoke.
-6. Keep the legacy graph available until a blue-to-green promotion and a
-   green-to-blue rollback have both been rehearsed.
+   The command checks unchanged parse inventory/source snapshot, policy gates,
+   matching baseline, candidate graph marker, uploaded manifest and evidence,
+   and the tested backup receipt. It saves the exact previous target securely
+   in `pipeline/private-activation/<release-id>/state.json` (directory 0700,
+   file 0600). This contains credentials: never upload it as ordinary evidence.
+   It atomically updates URI, password, release ID and color, redeploys once,
+   waits for that deployment and graph release, and runs authenticated smoke.
+6. While activation waits, use its printed nonce and receipt path to run the
+   fresh-login browser check from the same clean checkout:
+
+   ```bash
+   SMOKE_EXPECTED_RELEASE_ID='<release-id>' \
+   SMOKE_ACTIVATION_NONCE='<printed-nonce>' \
+   SMOKE_RECEIPT_PATH=/tmp/browser-receipt.json npm run smoke:prod
+   ```
+
+   Supply `TEST_USER_EMAIL` and `TEST_USER_PASSWORD` through the existing local
+   test-account configuration. Securely copy the receipt to the printed corpus
+   volume path within ten minutes. The browser check verifies the expected
+   release before and after chat, and compares exact answer text and verification
+   outcome after thread switching and reload. Only then does activation mark
+   blue promoted and upload its promotion record.
+7. Deployment, smoke, browser or promotion-record failure restores the exact
+   previous settings, including removal of a previously absent active color,
+   and verifies legacy service recovery. If interrupted, rerun the **same**
+   activation command: it restores the saved legacy configuration before any
+   new attempt. A failed restoration retains `recovery_pending` and the private
+   checkpoint; do not delete it or attempt another release.
+8. After successful activation, restore `/packages/pipeline/railway.json` and
+   `CORPUS_JOB_MODE=scheduled`, remove bootstrap-only settings, and verify fresh
+   scheduled authentication and encrypted backup creation. Retain legacy until
+   the later blue-to-green promotion and green-to-blue rollback rehearsal pass.
 
 After bootstrap, all promotions use:
 
@@ -143,7 +253,9 @@ The promotion flow is:
 6. Set the agent URI, release ID, and active color without an intermediate
    deploy; redeploy once.
 7. Require graph-backed `/readyz`, authenticated `/corpus-status`, provider
-   health, and a deterministic citation-bearing chat.
+   health, and a complete chat stream with a terminal `passed` or `corrected` outcome,
+   nonempty released answer text and citations. Withheld, source-only and
+   interrupted streams fail.
 8. Mark and upload the promoted manifest.
 9. Keep the old service live for 24 hours. The daily cleanup job then stops
    compute while preserving its volume for at least seven days.
@@ -172,6 +284,40 @@ Railway Object Storage holds:
 - release manifests plus per-release audit/evaluation evidence;
 - generated audit and evaluation history;
 - age-encrypted full corpus archives.
+
+Retirement records live in the crawler SQLite registry; their captured official
+responses are mirrored and restored from `pipeline/source-retirement-evidence`.
+Encrypted archives include both, source originals and all parse-import journals.
+The mutable registry mirror is made through SQLite's backup operation, so WAL
+transactions are included. Never include `private-activation` in plaintext mirrors.
+
+Create one dedicated age identity in macOS Keychain under service
+`Queen-City-Cortex.medicaid-agent.corpus-backup.age`, account `production`.
+Only its public `age1...` recipient belongs in Railway's `BACKUP_AGE_RECIPIENT`.
+Keep private key material out of files, shell arguments, logs and Railway.
+Run `object-storage-backup.sh` under the corpus writer lock, download the
+resulting encrypted object, and restore-check it with a locally built corpus image:
+
+```bash
+python3 scripts/ops/verify-corpus-backup.py \
+  --archive /tmp/corpus-<timestamp>.tar.gz.age \
+  --receipt /tmp/backup-restore-receipt.json \
+  --image nc-medicaid-corpus-job
+```
+
+The tool retrieves the private key through Security.framework, pipes it into
+container tmpfs, streams decrypted archive contents, extracts SQLite into
+short-lived temporary storage, verifies database integrity, parsed-artifact and
+retirement-evidence hashes, and records the archive and source-snapshot hashes.
+It does not retain decrypted source files or private keys. Preserve and upload
+the nonsecret receipt with the release evidence. Activation requires the receipt
+to describe the exact frozen source snapshot.
+
+Fresh authentication uses the existing production test account's password grant
+immediately before each smoke run. Five-minute access tokens are intentionally
+not stored as scheduled-release configuration. The standalone smoke supports an
+explicit unexpired token for operator diagnostics, but release automation requires
+the fresh credential path. It never falls back to a cached token after auth fails.
 
 `restore-corpus-artifacts.sh` hydrates a fresh corpus-job volume. Rebuilding the
 inactive graph on every release is the graph restore drill. A release manifest

@@ -1,0 +1,151 @@
+{
+  "checked_at": "2026-09-23T02:08:45.180177+00:00",
+  "code_revision": "4ce82c53ef7a5a3d9444b28d439e35c5a05e693e",
+  "deployment_id": "2abc3fdf-af9d-4eb6-ae0d-0f055b60720b",
+  "sourceSnapshotHash": "sha256:d1dbcf86d4bfa59622b9f01b492df03562d3d48abc49d0adb686a63e149d8a21",
+  "answer_ready_documents": 4211,
+  "sqlite_integrity": "ok",
+  "retirements": [
+    {
+      "id": 1,
+      "source_url": "https://policies.ncdhhs.gov/document/dma-3085-ia-session-law-2013-306-pcs-training-attestation-form-may-30-2018/",
+      "schema_version": 1,
+      "evidence_json": "{\"basis\": \"not_found\", \"evidence\": [{\"capture_path\": \"pipeline/source-retirement-evidence/635db9266b23f71efa403102e3ea7ce6a6cdeda8f59bef36a470a3c29ba7733e.html\", \"checked_at\": \"2026-09-23T00:56:38.124398+00:00\", \"finding\": \"The registered official document URL returns HTTP 404.\", \"http_status\": 404, \"kind\": \"source_check\", \"sha256\": \"635db9266b23f71efa403102e3ea7ce6a6cdeda8f59bef36a470a3c29ba7733e\", \"url\": \"https://policies.ncdhhs.gov/document/dma-3085-ia-session-law-2013-306-pcs-training-attestation-form-may-30-2018/\"}, {\"capture_path\": \"pipeline/source-retirement-evidence/0a10708aea18f0ae462d3fd9dfdaaf5023842ba1d3c6f28864d878faa7e1b0ff.html\", \"checked_at\": \"2026-09-23T00:56:49.512328+00:00\", \"finding\": \"The exact retired URL is absent from the current DHB forms index. Related current entries were inspected: [{\\\"text\\\": \\\"dma-3085-I- Session Law 2013-306 PCS Training Attestation Form DMA-3085\\\", \\\"url\\\": \\\"https://policies.ncdhhs.gov/document/dma-3085-i-session-law-2013-306-pcs-training-attestation-form-dma-3085/\\\"}, {\\\"text\\\": \\\"Open\\\", \\\"url\\\": \\\"https://policies.ncdhhs.gov/wp-content/uploads/dma-3085-I.pdf\\\"}]\", \"http_status\": 200, \"kind\": \"index_investigation\", \"sha256\": \"0a10708aea18f0ae462d3fd9dfdaaf5023842ba1d3c6f28864d878faa7e1b0ff\", \"url\": \"https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/dhb-forms/\"}], \"original_artifact_hash\": \"sha256:c1f1f24bbaf08e5a7f96a2923317deaed12724b71efedc999f5cfb606fdf8fc9\", \"reason\": \"Three consecutive crawler-confirmed HTTP 404s; current official index and related replacement entries inspected. Original source identity and artifact are retained.\", \"schema_version\": 1, \"source_url\": \"https://policies.ncdhhs.gov/document/dma-3085-ia-session-law-2013-306-pcs-training-attestation-form-may-30-2018/\"}",
+      "retired_at": "2026-09-23T01:37:33.475382+00:00",
+      "reactivated_at": null,
+      "recovered_hash": null
+    },
+    {
+      "id": 2,
+      "source_url": "https://policies.ncdhhs.gov/document/dma-3137-personal-care-services-pcs-icd-10-transition-form-jun-01-2018/",
+      "schema_version": 1,
+      "evidence_json": "{\"basis\": \"not_found\", \"evidence\": [{\"capture_path\": \"pipeline/source-retirement-evidence/85fd63cb3e1b5d95d2412d503d8d086f8f7058c77459488666e3b16050b2820f.html\", \"checked_at\": \"2026-09-23T00:56:40.481394+00:00\", \"finding\": \"The registered official document URL returns HTTP 404.\", \"http_status\": 404, \"kind\": \"source_check\", \"sha256\": \"85fd63cb3e1b5d95d2412d503d8d086f8f7058c77459488666e3b16050b2820f\", \"url\": \"https://policies.ncdhhs.gov/document/dma-3137-personal-care-services-pcs-icd-10-transition-form-jun-01-2018/\"}, {\"capture_path\": \"pipeline/source-retirement-evidence/0a10708aea18f0ae462d3fd9dfdaaf5023842ba1d3c6f28864d878faa7e1b0ff.html\", \"checked_at\": \"2026-09-23T00:56:49.512328+00:00\", \"finding\": \"The exact retired URL is absent from the current DHB forms index. Related current entries were inspected: [{\\\"text\\\": \\\"dma-3137-i Personal Care Services (PCS) ICD-10 Transition Form \\u2013 Instructions\\\", \\\"url\\\": \\\"https://policies.ncdhhs.gov/document/dma-3137-i-personal-care-services-pcs-icd-10-transition-form-instructions/\\\"}, {\\\"text\\\": \\\"Open\\\", \\\"url\\\": \\\"https://policies.ncdhhs.gov/wp-content/uploads/dma-3137-i.pdf\\\"}]\", \"http_status\": 200, \"kind\": \"index_investigation\", \"sha256\": \"0a10708aea18f0ae462d3fd9dfdaaf5023842ba1d3c6f28864d878faa7e1b0ff\", \"url\": \"https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/dhb-forms/\"}], \"original_artifact_hash\": \"sha256:76972f3d93ddcedd4564ef6bb394fee97c8652fd2c9b87f6745a9d4e6a941354\", \"reason\": \"Three consecutive crawler-confirmed HTTP 404s; current official index and related replacement entries inspected. Original source identity and artifact are retained.\", \"schema_version\": 1, \"source_url\": \"https://policies.ncdhhs.gov/document/dma-3137-personal-care-services-pcs-icd-10-transition-form-jun-01-2018/\"}",
+      "retired_at": "2026-09-23T01:37:33.686436+00:00",
+      "reactivated_at": null,
+      "recovered_hash": null
+    },
+    {
+      "id": 3,
+      "source_url": "https://policies.ncdhhs.gov/document/dma-5001sp-aviso-del-uso-de-numeros-de-seguro-social-feb-04-2022/",
+      "schema_version": 1,
+      "evidence_json": "{\"basis\": \"not_found\", \"evidence\": [{\"capture_path\": \"pipeline/source-retirement-evidence/1c958eff35770f84ad3c5147eae90e44c11dcd155015d50759f73f08facac74b.html\", \"checked_at\": \"2026-09-23T00:56:43.851270+00:00\", \"finding\": \"The registered official document URL returns HTTP 404.\", \"http_status\": 404, \"kind\": \"source_check\", \"sha256\": \"1c958eff35770f84ad3c5147eae90e44c11dcd155015d50759f73f08facac74b\", \"url\": \"https://policies.ncdhhs.gov/document/dma-5001sp-aviso-del-uso-de-numeros-de-seguro-social-feb-04-2022/\"}, {\"capture_path\": \"pipeline/source-retirement-evidence/0a10708aea18f0ae462d3fd9dfdaaf5023842ba1d3c6f28864d878faa7e1b0ff.html\", \"checked_at\": \"2026-09-23T00:56:49.512328+00:00\", \"finding\": \"The exact retired URL is absent from the current DHB forms index. Related current entries were inspected: [{\\\"text\\\": \\\"DHB-5001N FRENCH AVIS SUR L\\u2019UTILISATION DES NUM\\u00c9ROS DE S\\u00c9CURIT\\u00c9 SOCIALE\\\", \\\"url\\\": \\\"https://policies.ncdhhs.gov/document/dhb-5001n-french-avis-sur-lutilisation-des-numeros-de-securite-sociale/\\\"}, {\\\"text\\\": \\\"Open\\\", \\\"url\\\": \\\"https://policies.ncdhhs.gov/wp-content/uploads/DHB-5001N_French_20240501.pdf\\\"}, {\\\"text\\\": \\\"DHB-5001N Notice on the Use of Social Security Numbers\\\", \\\"url\\\": \\\"https://policies.ncdhhs.gov/document/dhb-5001n-notice-on-the-use-of-social-security-numbers/\\\"}, {\\\"text\\\": \\\"Open\\\", \\\"url\\\": \\\"https://policies.ncdhhs.gov/wp-content/uploads/DHB-5001N.pdf\\\"}, {\\\"text\\\": \\\"DHB-5001N_sp AVISO SOBRE EL USO DE LOS N\\u221a\\u00f6MEROS DE SEGURO SOCIAL\\\", \\\"url\\\": \\\"https://policies.ncdhhs.gov/document/dhb-5001n_sp-aviso-sobre-el-uso-de-los-n%e2%88%9aomeros-de-seguro-social/\\\"}, {\\\"text\\\": \\\"Open\\\", \\\"url\\\": \\\"https://policies.ncdhhs.gov/wp-content/uploads/DHB-5001N_sp.pdf\\\"}]\", \"http_status\": 200, \"kind\": \"index_investigation\", \"sha256\": \"0a10708aea18f0ae462d3fd9dfdaaf5023842ba1d3c6f28864d878faa7e1b0ff\", \"url\": \"https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/dhb-forms/\"}], \"original_artifact_hash\": \"sha256:47f39294a4379c2abcbbeb26f8ce2e8782c4a0c10045ac9ea3d07a5e44ad21ab\", \"reason\": \"Three consecutive crawler-confirmed HTTP 404s; current official index and related replacement entries inspected. Original source identity and artifact are retained.\", \"schema_version\": 1, \"source_url\": \"https://policies.ncdhhs.gov/document/dma-5001sp-aviso-del-uso-de-numeros-de-seguro-social-feb-04-2022/\"}",
+      "retired_at": "2026-09-23T01:37:33.894359+00:00",
+      "reactivated_at": null,
+      "recovered_hash": null
+    },
+    {
+      "id": 4,
+      "source_url": "https://policies.ncdhhs.gov/document/dma-5024sp-ia-notificacion-de-solicitud-de-transporte-jan-26-2021/",
+      "schema_version": 1,
+      "evidence_json": "{\"basis\": \"not_found\", \"evidence\": [{\"capture_path\": \"pipeline/source-retirement-evidence/9c7c1f190f6ff6e136979869d00e8af4359848029460aa466c0dac91a225671e.html\", \"checked_at\": \"2026-09-23T00:56:46.226125+00:00\", \"finding\": \"The registered official document URL returns HTTP 404.\", \"http_status\": 404, \"kind\": \"source_check\", \"sha256\": \"9c7c1f190f6ff6e136979869d00e8af4359848029460aa466c0dac91a225671e\", \"url\": \"https://policies.ncdhhs.gov/document/dma-5024sp-ia-notificacion-de-solicitud-de-transporte-jan-26-2021/\"}, {\"capture_path\": \"pipeline/source-retirement-evidence/0a10708aea18f0ae462d3fd9dfdaaf5023842ba1d3c6f28864d878faa7e1b0ff.html\", \"checked_at\": \"2026-09-23T00:56:49.512328+00:00\", \"finding\": \"The exact retired URL is absent from the current DHB forms index. Related current entries were inspected: [{\\\"text\\\": \\\"DHB-5024 Transportation Assessment Notification\\\", \\\"url\\\": \\\"https://policies.ncdhhs.gov/document/dhb-5024-transportation-assessment-notification/\\\"}, {\\\"text\\\": \\\"Open\\\", \\\"url\\\": \\\"https://policies.ncdhhs.gov/wp-content/uploads/DHB-5024.pdf\\\"}, {\\\"text\\\": \\\"DHB-5024sp Aviso de Evaluaci\\u00f3n de Transporte\\\", \\\"url\\\": \\\"https://policies.ncdhhs.gov/document/dhb-5024sp-aviso-de-evaluacion-de-transporte/\\\"}, {\\\"text\\\": \\\"Open\\\", \\\"url\\\": \\\"https://policies.ncdhhs.gov/wp-content/uploads/DHB-5024sp-ia.pdf\\\"}]\", \"http_status\": 200, \"kind\": \"index_investigation\", \"sha256\": \"0a10708aea18f0ae462d3fd9dfdaaf5023842ba1d3c6f28864d878faa7e1b0ff\", \"url\": \"https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/dhb-forms/\"}], \"original_artifact_hash\": \"sha256:bd9749bb37f2aa8f9c7c596cabb221340d3636c93514857f10266931633474c4\", \"reason\": \"Three consecutive crawler-confirmed HTTP 404s; current official index and related replacement entries inspected. Original source identity and artifact are retained.\", \"schema_version\": 1, \"source_url\": \"https://policies.ncdhhs.gov/document/dma-5024sp-ia-notificacion-de-solicitud-de-transporte-jan-26-2021/\"}",
+      "retired_at": "2026-09-23T01:38:01.092018+00:00",
+      "reactivated_at": null,
+      "recovered_hash": null
+    }
+  ],
+  "preserved_originals": [
+    {
+      "source_url": "https://policies.ncdhhs.gov/document/dma-3085-ia-session-law-2013-306-pcs-training-attestation-form-may-30-2018/",
+      "local_path": "dhhs-policies/dma-3085-ia-session-law-2013-306-pcs-training-attestation-form-may-30-2018.pdf",
+      "sha256": "sha256:c1f1f24bbaf08e5a7f96a2923317deaed12724b71efedc999f5cfb606fdf8fc9"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/document/dma-3137-personal-care-services-pcs-icd-10-transition-form-jun-01-2018/",
+      "local_path": "dhhs-policies/dma-3137-personal-care-services-pcs-icd-10-transition-form-jun-01-2018.pdf",
+      "sha256": "sha256:76972f3d93ddcedd4564ef6bb394fee97c8652fd2c9b87f6745a9d4e6a941354"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/document/dma-5001sp-aviso-del-uso-de-numeros-de-seguro-social-feb-04-2022/",
+      "local_path": "dhhs-policies/dma-5001sp-aviso-del-uso-de-numeros-de-seguro-social-feb-04-2022.pdf",
+      "sha256": "sha256:47f39294a4379c2abcbbeb26f8ce2e8782c4a0c10045ac9ea3d07a5e44ad21ab"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/document/dma-5024sp-ia-notificacion-de-solicitud-de-transporte-jan-26-2021/",
+      "local_path": "dhhs-policies/dma-5024sp-ia-notificacion-de-solicitud-de-transporte-jan-26-2021.pdf",
+      "sha256": "sha256:bd9749bb37f2aa8f9c7c596cabb221340d3636c93514857f10266931633474c4"
+    }
+  ],
+  "imports": [
+    {
+      "batch_id": "8a7785f4fdb7418fae35ed590350a66f",
+      "completed_at": "2026-09-23T00:36:31.740612+00:00",
+      "records": [
+        {
+          "file": "bulletins/nc-resource-directory.pdf",
+          "status": "imported",
+          "attempt_count_total": 2
+        },
+        {
+          "file": "bulletins/spanish_6.pdf",
+          "status": "imported",
+          "attempt_count_total": 2
+        },
+        {
+          "file": "bulletins/english_5.pdf",
+          "status": "imported",
+          "attempt_count_total": 2
+        },
+        {
+          "file": "state-plan-amendments/state-plan-under-title-xix-of-the-social-security-act-medical-assistance-program.pdf",
+          "status": "imported",
+          "attempt_count_total": 1
+        }
+      ]
+    },
+    {
+      "status": "completed",
+      "batch_id": "f1cd2e40072e46e68d9302a664f7c147",
+      "completed_at": "2026-09-23T01:37:23.414499+00:00",
+      "records": [
+        {
+          "file": "bulletins/full-report.pdf",
+          "status": "imported",
+          "attempt_count_total": 2
+        },
+        {
+          "file": "bulletins/here.pdf",
+          "status": "imported",
+          "attempt_count_total": 2
+        }
+      ]
+    },
+    {
+      "status": "completed",
+      "batch_id": "b7cfaa83921546e6bdb9c08aa7e33a13",
+      "completed_at": "2026-09-23T01:37:34.493500+00:00",
+      "records": [
+        {
+          "file": "bulletins/full-report.pdf",
+          "status": "already_valid"
+        },
+        {
+          "file": "bulletins/here.pdf",
+          "status": "already_valid"
+        }
+      ]
+    },
+    {
+      "status": "completed",
+      "batch_id": "6c530c6df365425596ba5d74182f1af4",
+      "completed_at": "2026-09-23T01:59:19.784821+00:00",
+      "records": [
+        {
+          "file": "bulletins/report.pdf",
+          "status": "imported",
+          "attempt_count_total": 2
+        }
+      ]
+    },
+    {
+      "status": "completed",
+      "batch_id": "d5f4d9562b894042a9bd7ea9ac42ed1b",
+      "completed_at": "2026-09-23T01:59:29.924707+00:00",
+      "records": [
+        {
+          "file": "bulletins/report.pdf",
+          "status": "already_valid"
+        }
+      ]
+    }
+  ]
+}

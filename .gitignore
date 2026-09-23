@@ -2,6 +2,7 @@
 node_modules/
 dist/
 .turbo/
+__pycache__/
 *.db
 *.db-shm
 *.db-wal

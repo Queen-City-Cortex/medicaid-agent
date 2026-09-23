@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "archiveObject": "backups/corpus/corpus-2026-09-23T004015Z.tar.gz.age",
+  "archiveSha256": "c71821201c236831016fc29ab37a7f62ae973d57874fd11fa5c3e511391e17fc",
+  "decryptionVerified": true,
+  "sourceSnapshotHash": "sha256:67d8559e97ff79fbd450b5e254976b062c647f7431088a187124d67d78184bde",
+  "sqliteIntegrity": "ok",
+  "artifactHashesChecked": 8414,
+  "uncompressedBytes": 13411853106,
+  "counts": {
+    "sourceFiles": 4525,
+    "parsedFiles": 12996,
+    "registryDocuments": 4540
+  },
+  "checkedAt": "2026-09-23T01:02:03.138445+00:00"
+}

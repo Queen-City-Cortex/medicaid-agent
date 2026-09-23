@@ -287,9 +287,10 @@ export async function downloadDocument(
   doc: DocumentRecord,
   fetcher: Fetcher,
   existingFilenames: Set<string>,
+  documentsDir: string = config.documentsDir,
 ): Promise<DownloadResult> {
   const sourceDir = path.join(
-    config.documentsDir,
+    documentsDir,
     SOURCE_TYPE_DIRS[doc.source_type] ?? doc.source_type,
   );
   fs.mkdirSync(sourceDir, { recursive: true });
@@ -353,7 +354,7 @@ export async function downloadDocument(
     if (result.statusCode === 304) {
       if (semanticHtmlRequired) {
         const existingPath = doc.local_path
-          ? path.join(config.documentsDir, doc.local_path)
+          ? path.join(documentsDir, doc.local_path)
           : null;
         if (!existingPath || !fs.existsSync(existingPath)) {
           return {
@@ -490,7 +491,7 @@ export async function downloadDocument(
       && doc.file_hash
       && (fileHash !== doc.file_hash || needsExtensionMigration)
     ) {
-      const oldFullPath = path.join(config.documentsDir, doc.local_path);
+      const oldFullPath = path.join(documentsDir, doc.local_path);
       const oldFilename = path.basename(doc.local_path);
       archiveOldVersion(oldFullPath);
       existingFilenames.delete(oldFilename);

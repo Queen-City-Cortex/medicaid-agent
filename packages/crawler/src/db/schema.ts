@@ -47,6 +47,18 @@ CREATE INDEX IF NOT EXISTS idx_documents_source_type ON documents(source_type);
 CREATE INDEX IF NOT EXISTS idx_documents_last_checked ON documents(last_checked_at);
 CREATE INDEX IF NOT EXISTS idx_documents_policy_number ON documents(policy_number);
 
+CREATE TABLE IF NOT EXISTS source_retirements (
+  id INTEGER PRIMARY KEY,
+  source_url TEXT NOT NULL,
+  schema_version INTEGER NOT NULL DEFAULT 1,
+  evidence_json TEXT NOT NULL,
+  retired_at TEXT NOT NULL,
+  reactivated_at TEXT,
+  recovered_hash TEXT
+);
+CREATE UNIQUE INDEX IF NOT EXISTS source_retirements_active
+ON source_retirements(source_url) WHERE reactivated_at IS NULL;
+
 CREATE TABLE IF NOT EXISTS crawl_runs (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   started_at TEXT NOT NULL DEFAULT (datetime('now')),

@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "source_url": "https://policies.ncdhhs.gov/document/dma-5001sp-aviso-del-uso-de-numeros-de-seguro-social-feb-04-2022/",
+  "basis": "not_found",
+  "reason": "Three consecutive crawler-confirmed HTTP 404s; current official index and related replacement entries inspected. Original source identity and artifact are retained.",
+  "original_artifact_hash": "sha256:47f39294a4379c2abcbbeb26f8ce2e8782c4a0c10045ac9ea3d07a5e44ad21ab",
+  "evidence": [
+    {
+      "kind": "source_check",
+      "url": "https://policies.ncdhhs.gov/document/dma-5001sp-aviso-del-uso-de-numeros-de-seguro-social-feb-04-2022/",
+      "checked_at": "2026-09-23T00:56:43.851270+00:00",
+      "sha256": "1c958eff35770f84ad3c5147eae90e44c11dcd155015d50759f73f08facac74b",
+      "capture_path": "pipeline/source-retirement-evidence/1c958eff35770f84ad3c5147eae90e44c11dcd155015d50759f73f08facac74b.html",
+      "finding": "The registered official document URL returns HTTP 404.",
+      "http_status": 404
+    },
+    {
+      "kind": "index_investigation",
+      "url": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/dhb-forms/",
+      "checked_at": "2026-09-23T00:56:49.512328+00:00",
+      "sha256": "0a10708aea18f0ae462d3fd9dfdaaf5023842ba1d3c6f28864d878faa7e1b0ff",
+      "capture_path": "pipeline/source-retirement-evidence/0a10708aea18f0ae462d3fd9dfdaaf5023842ba1d3c6f28864d878faa7e1b0ff.html",
+      "finding": "The exact retired URL is absent from the current DHB forms index. Related current entries were inspected: [{\"text\": \"DHB-5001N FRENCH AVIS SUR L’UTILISATION DES NUMÉROS DE SÉCURITÉ SOCIALE\", \"url\": \"https://policies.ncdhhs.gov/document/dhb-5001n-french-avis-sur-lutilisation-des-numeros-de-securite-sociale/\"}, {\"text\": \"Open\", \"url\": \"https://policies.ncdhhs.gov/wp-content/uploads/DHB-5001N_French_20240501.pdf\"}, {\"text\": \"DHB-5001N Notice on the Use of Social Security Numbers\", \"url\": \"https://policies.ncdhhs.gov/document/dhb-5001n-notice-on-the-use-of-social-security-numbers/\"}, {\"text\": \"Open\", \"url\": \"https://policies.ncdhhs.gov/wp-content/uploads/DHB-5001N.pdf\"}, {\"text\": \"DHB-5001N_sp AVISO SOBRE EL USO DE LOS N√öMEROS DE SEGURO SOCIAL\", \"url\": \"https://policies.ncdhhs.gov/document/dhb-5001n_sp-aviso-sobre-el-uso-de-los-n%e2%88%9aomeros-de-seguro-social/\"}, {\"text\": \"Open\", \"url\": \"https://policies.ncdhhs.gov/wp-content/uploads/DHB-5001N_sp.pdf\"}]",
+      "http_status": 200
+    }
+  ]
+}

@@ -8,7 +8,8 @@ import os
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
-from pipeline.config import PARSED_DATA_DIR
+from pipeline.config import PARSED_DATA_DIR, CRAWLER_DB_PATH
+from pipeline.retirement import read_retirements
 
 
 def build_answer_ready_snapshot(
@@ -51,7 +52,7 @@ def build_answer_ready_snapshot(
         )
 
     encoded = json.dumps(
-        documents,
+        {"documents": documents, "retirements": read_retirements(CRAWLER_DB_PATH)},
         sort_keys=True,
         separators=(",", ":"),
     ).encode()

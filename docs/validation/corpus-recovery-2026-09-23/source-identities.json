@@ -1,0 +1,62 @@
+[
+  {
+    "id": 875,
+    "source_url": "https://covid19.ncdhhs.gov/swso-pharmacists-dispense-otc-covid-19-tests/download?attachment=",
+    "discovered_from": "https://medicaid.ncdhhs.gov/blog/2023/07/14/special-bulletin-covid-19-268-covid-19-testing-vaccination-and-counseling-coverage-after-federal",
+    "title": "State Standing Order",
+    "local_path": "bulletins/state-standing-order.pdf",
+    "file_hash": "9614129d403f5226f8c9222a4aaa8a7389b87fa998f2702108063f7c89f04f6f",
+    "consecutive_not_found": 0,
+    "status": "error"
+  },
+  {
+    "id": 1905,
+    "source_url": "https://policies.ncdhhs.gov/document/dhb-5097-gu-%e0%aa%ae%e0%aa%be%e0%aa%b9%e0%aa%bf%e0%aa%a4%e0%ab%80-%e0%aa%ae%e0%aa%be%e0%aa%9f%e0%ab%87%e0%aa%b5%e0%aa%bf%e0%aa%a8-%e0%aa%82%e0%aa%a4%e0%ab%80/",
+    "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/",
+    "title": "DHB-5097 GU \u0aae\u0abe\u0ab9\u0abf\u0aa4\u0ac0 \u0aae\u0abe\u0a9f\u0ac7\u0ab5\u0abf\u0aa8 \u0a82\u0aa4\u0ac0",
+    "local_path": "dhhs-policies/dhb-5097-gu.pdf",
+    "file_hash": "7682aa584aac795e6647a092f50987b6c1fa9efd7929b1f62fd4800378713bb6",
+    "consecutive_not_found": 0,
+    "status": "error"
+  },
+  {
+    "id": 2251,
+    "source_url": "https://policies.ncdhhs.gov/document/dma-3085-ia-session-law-2013-306-pcs-training-attestation-form-may-30-2018/",
+    "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/",
+    "title": "dma-3085-ia Session Law 2013-306 PCS Training Attestation Form  May 30, 2018",
+    "local_path": "dhhs-policies/dma-3085-ia-session-law-2013-306-pcs-training-attestation-form-may-30-2018.pdf",
+    "file_hash": "c1f1f24bbaf08e5a7f96a2923317deaed12724b71efedc999f5cfb606fdf8fc9",
+    "consecutive_not_found": 2,
+    "status": "error"
+  },
+  {
+    "id": 2260,
+    "source_url": "https://policies.ncdhhs.gov/document/dma-3137-personal-care-services-pcs-icd-10-transition-form-jun-01-2018/",
+    "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/",
+    "title": "dma-3137 Personal Care Services (PCS) ICD-10 Transition Form    Jun 01, 2018",
+    "local_path": "dhhs-policies/dma-3137-personal-care-services-pcs-icd-10-transition-form-jun-01-2018.pdf",
+    "file_hash": "76972f3d93ddcedd4564ef6bb394fee97c8652fd2c9b87f6745a9d4e6a941354",
+    "consecutive_not_found": 2,
+    "status": "error"
+  },
+  {
+    "id": 2290,
+    "source_url": "https://policies.ncdhhs.gov/document/dma-5001sp-aviso-del-uso-de-numeros-de-seguro-social-feb-04-2022/",
+    "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/",
+    "title": "dma-5001sp AVISO DEL USO DE NUMEROS DE SEGURO SOCIAL    Feb 04, 2022",
+    "local_path": "dhhs-policies/dma-5001sp-aviso-del-uso-de-numeros-de-seguro-social-feb-04-2022.pdf",
+    "file_hash": "47f39294a4379c2abcbbeb26f8ce2e8782c4a0c10045ac9ea3d07a5e44ad21ab",
+    "consecutive_not_found": 2,
+    "status": "error"
+  },
+  {
+    "id": 2306,
+    "source_url": "https://policies.ncdhhs.gov/document/dma-5024sp-ia-notificacion-de-solicitud-de-transporte-jan-26-2021/",
+    "discovered_from": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/",
+    "title": "dma-5024sp-ia Notificacion de Solicitud de Transporte   Jan 26, 2021",
+    "local_path": "dhhs-policies/dma-5024sp-ia-notificacion-de-solicitud-de-transporte-jan-26-2021.pdf",
+    "file_hash": "bd9749bb37f2aa8f9c7c596cabb221340d3636c93514857f10266931633474c4",
+    "consecutive_not_found": 2,
+    "status": "error"
+  }
+]

@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "source_url": "https://policies.ncdhhs.gov/document/dma-3085-ia-session-law-2013-306-pcs-training-attestation-form-may-30-2018/",
+  "basis": "not_found",
+  "reason": "Three consecutive crawler-confirmed HTTP 404s; current official index and related replacement entries inspected. Original source identity and artifact are retained.",
+  "original_artifact_hash": "sha256:c1f1f24bbaf08e5a7f96a2923317deaed12724b71efedc999f5cfb606fdf8fc9",
+  "evidence": [
+    {
+      "kind": "source_check",
+      "url": "https://policies.ncdhhs.gov/document/dma-3085-ia-session-law-2013-306-pcs-training-attestation-form-may-30-2018/",
+      "checked_at": "2026-09-23T00:56:38.124398+00:00",
+      "sha256": "635db9266b23f71efa403102e3ea7ce6a6cdeda8f59bef36a470a3c29ba7733e",
+      "capture_path": "pipeline/source-retirement-evidence/635db9266b23f71efa403102e3ea7ce6a6cdeda8f59bef36a470a3c29ba7733e.html",
+      "finding": "The registered official document URL returns HTTP 404.",
+      "http_status": 404
+    },
+    {
+      "kind": "index_investigation",
+      "url": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/dhb-forms/",
+      "checked_at": "2026-09-23T00:56:49.512328+00:00",
+      "sha256": "0a10708aea18f0ae462d3fd9dfdaaf5023842ba1d3c6f28864d878faa7e1b0ff",
+      "capture_path": "pipeline/source-retirement-evidence/0a10708aea18f0ae462d3fd9dfdaaf5023842ba1d3c6f28864d878faa7e1b0ff.html",
+      "finding": "The exact retired URL is absent from the current DHB forms index. Related current entries were inspected: [{\"text\": \"dma-3085-I- Session Law 2013-306 PCS Training Attestation Form DMA-3085\", \"url\": \"https://policies.ncdhhs.gov/document/dma-3085-i-session-law-2013-306-pcs-training-attestation-form-dma-3085/\"}, {\"text\": \"Open\", \"url\": \"https://policies.ncdhhs.gov/wp-content/uploads/dma-3085-I.pdf\"}]",
+      "http_status": 200
+    }
+  ]
+}

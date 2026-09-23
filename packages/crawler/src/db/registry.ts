@@ -118,11 +118,11 @@ export function createRegistry(db: Database.Database): DocumentRegistry {
       title = COALESCE(@title, title),
       policy_number = COALESCE(@policy_number, policy_number),
       category = COALESCE(@category, category),
-      status = CASE WHEN status = 'removed' THEN 'discovered' ELSE status END,
-      removed_at = CASE WHEN status = 'removed' THEN NULL ELSE removed_at END,
-      error_message = CASE WHEN status = 'removed' THEN NULL ELSE error_message END,
-      consecutive_errors = CASE WHEN status = 'removed' THEN 0 ELSE consecutive_errors END,
-      consecutive_not_found = CASE WHEN status = 'removed' THEN 0 ELSE consecutive_not_found END
+      status = CASE WHEN status = 'removed' AND NOT EXISTS (SELECT 1 FROM source_retirements r WHERE r.source_url = documents.source_url AND r.reactivated_at IS NULL) THEN 'discovered' ELSE status END,
+      removed_at = CASE WHEN status = 'removed' AND NOT EXISTS (SELECT 1 FROM source_retirements r WHERE r.source_url = documents.source_url AND r.reactivated_at IS NULL) THEN NULL ELSE removed_at END,
+      error_message = CASE WHEN status = 'removed' AND NOT EXISTS (SELECT 1 FROM source_retirements r WHERE r.source_url = documents.source_url AND r.reactivated_at IS NULL) THEN NULL ELSE error_message END,
+      consecutive_errors = CASE WHEN status = 'removed' AND NOT EXISTS (SELECT 1 FROM source_retirements r WHERE r.source_url = documents.source_url AND r.reactivated_at IS NULL) THEN 0 ELSE consecutive_errors END,
+      consecutive_not_found = CASE WHEN status = 'removed' AND NOT EXISTS (SELECT 1 FROM source_retirements r WHERE r.source_url = documents.source_url AND r.reactivated_at IS NULL) THEN 0 ELSE consecutive_not_found END
   `);
 
   const getByUrlStmt = db.prepare(

@@ -1,0 +1,13 @@
+{
+  "threadId": "release-smoke-legacy-20260725-ae8595c-c96e1a4f-ff9c-4c12-8edf-6526c12a6758",
+  "createdAt": "2026-09-23T01:39:32.664Z",
+  "outcomes": [
+    {
+      "status": "withheld",
+      "reason": "unsupported",
+      "passCount": 2
+    }
+  ],
+  "verificationLatencyMs": 32303,
+  "latencyEvidence": "agent deployment aea38eb8-4255-4302-a689-d74ad62b47e1, verification.release at 2026-09-23T01:39:32.631Z"
+}

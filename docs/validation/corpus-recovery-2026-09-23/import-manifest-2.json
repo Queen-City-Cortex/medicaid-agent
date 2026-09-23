@@ -1,0 +1,36 @@
+{
+  "code_commit": "358237d8a9c405326effe3de78320c423ff33058",
+  "parse_cache_version": 6,
+  "code_hashes": {
+    "packages/pipeline/src/pipeline/parse/converter.py": "sha256:6762ec647e6016a11f911f5ee7fe3b981272dbc8d8d7ef22763118f8dd75f4e1",
+    "packages/pipeline/src/pipeline/parse/worker.py": "sha256:f29002a7cf17d112ee9a999e9c429ff60958806adf92c987f00d89f68f0487f2",
+    "packages/pipeline/src/pipeline/parse/post_process.py": "sha256:12fc5e946b13347c55730936db43b1078fcb31d36f0815b49862f77753f8da1e",
+    "packages/pipeline/src/pipeline/config.py": "sha256:be42701bde32bccf5fb40a2c8d5d51933cc6fb69a19f4913811d0ac43ecd749d",
+    "packages/pipeline/src/pipeline/corpus_manifest.py": "sha256:69f37e70b6dc26f48e221b6b8c419f02f720d906a666cb6513551b7214bd0389",
+    "packages/pipeline/pyproject.toml": "sha256:d451e0e237c7e3532f6c253b2b80eaaf3da1d4b18cbde5540740f750815f17eb",
+    "packages/pipeline/uv.lock": "sha256:46586e52d1de711130d2755e0d5a3bdc64e48d9cf967f35ba11956215deb7790",
+    "corpus-manifest.json": "sha256:1798cfd19bf7075a8a400b40c130db43b20ca08ed56c2c2f1a28417dd1e8bcbb"
+  },
+  "files": [
+    {
+      "file": "bulletins/nc-resource-directory.pdf",
+      "source_hash": "sha256:9d7029e232bd02c5a98d59d258a26fff68655b8738df4f67bc97690b7da696f4",
+      "metadata_hash": "sha256:c54afdf37296717451eb6c307007caf800acbf16706f124781e65eabee988c1a"
+    },
+    {
+      "file": "bulletins/spanish_6.pdf",
+      "source_hash": "sha256:1078ab258983a20b193c8de290f7c3337198d9f3d29cb30d08b804005fc51839",
+      "metadata_hash": "sha256:34fd475e01dbee96f42278111c2ed7742b6b00401c4a3b080264f838167a133a"
+    },
+    {
+      "file": "bulletins/english_5.pdf",
+      "source_hash": "sha256:134f6b5869c4ad4b73234f4b11305643aee717df3d29549b85f9e87de041d9c2",
+      "metadata_hash": "sha256:d11c8c8d6da5dc6538656674d589180c1efee267356bc0466886b8dc2d0e5b22"
+    },
+    {
+      "file": "state-plan-amendments/state-plan-under-title-xix-of-the-social-security-act-medical-assistance-program.pdf",
+      "source_hash": "sha256:96c53e63184e22be071e3c49e77f6f8e64d89adeb4c6e87a249a85d7c4d9ff6b",
+      "metadata_hash": "sha256:7ae26f0f186a152a06742d8aecb7aeaf923873cc02b9548c22e2ff13131b8d32"
+    }
+  ]
+}

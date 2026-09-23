@@ -60,7 +60,7 @@ rclone sync "$PIPELINE_DATA/parsed" "$(bucket_path 'pipeline/parsed')" \
 
 # 4. Small durable pipeline data. eval-results included: it's cheap and holds
 #    the benchmark history the stability tooling reads.
-for dir in golden audits references ecfr-cache eval-results; do
+for dir in golden audits references ecfr-cache eval-results source-retirement-evidence; do
   [[ -d "$PIPELINE_DATA/$dir" ]] || continue
   rclone sync "$PIPELINE_DATA/$dir" "$(bucket_path "pipeline/$dir")" \
     --backup-dir "$(bucket_path "pipeline/deleted/$STAMP")" --stats-one-line
