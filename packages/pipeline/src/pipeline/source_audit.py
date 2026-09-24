@@ -259,6 +259,10 @@ def apply_source_audit(
                                 datetime.now(UTC).isoformat(),
                             ),
                         )
+                elif disposition == "availability":
+                    from pipeline.availability import apply_availability
+
+                    result = apply_availability(root, db, row, action["evidence"], apply=apply)
                 elif disposition == "unresolved":
                     result = {
                         "source_url": row["source_url"],

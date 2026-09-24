@@ -1,0 +1,917 @@
+{
+  "schema_version": 1,
+  "actions": [
+    {
+      "action_id": "closure-tombstone-665",
+      "source_url": "https://medicaid.ncdhhs.gov/nc-credentialing-committee-bylaws/download?attachment=",
+      "registry_hash": "32b73c82a9a10b624e4b49cd8723cf225635693f374aeb33ef6d938cf6c9da81",
+      "disposition": "retire",
+      "evidence": {
+        "schema_version": 2,
+        "payload_state": "never_downloaded",
+        "source_url": "https://medicaid.ncdhhs.gov/nc-credentialing-committee-bylaws/download?attachment=",
+        "basis": "not_found",
+        "reason": "Three independently captured and journaled HTTP 404 observations plus the official index/replacement investigation establish absence of this original source. Current and restored registry/artifact history agree that no original payload was ever downloaded.",
+        "download_history": {
+          "history_complete": true,
+          "retained_snapshots": [
+            {
+              "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/retained-registry-history.json",
+              "sha256": "5534dab7dffeccca50a5e591893d9f0d251a137598bec1c4738870775889ae53",
+              "restore_receipt": {
+                "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/retained-restore-receipt.json",
+                "sha256": "a30a1662e79ab2735ec8476177d2ad3911b4e6f685dbd30e2e04a625f1e5eb9a"
+              }
+            }
+          ]
+        },
+        "evidence": [
+          {
+            "kind": "availability",
+            "url": "https://medicaid.ncdhhs.gov/nc-credentialing-committee-bylaws/download?attachment=",
+            "checked_at": "2026-09-23T20:35:33.444Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/captures/93a7b43886deeaacec1c7e1926ba7401ae8029ffb34712503b453eff31e2d64a.bin",
+            "sha256": "93a7b43886deeaacec1c7e1926ba7401ae8029ffb34712503b453eff31e2d64a",
+            "finding": "A distinct fresh request to this exact original URL returned HTTP 404. The reviewed observation was applied once through the atomic source-audit journal, without counting copied caches or download attempts."
+          },
+          {
+            "kind": "availability",
+            "url": "https://medicaid.ncdhhs.gov/nc-credentialing-committee-bylaws/download?attachment=",
+            "checked_at": "2026-09-23T21:28:43.544Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/93a7b43886deeaacec1c7e1926ba7401ae8029ffb34712503b453eff31e2d64a.bin",
+            "sha256": "93a7b43886deeaacec1c7e1926ba7401ae8029ffb34712503b453eff31e2d64a",
+            "finding": "A distinct fresh request to this exact original URL returned HTTP 404. The reviewed observation was applied once through the atomic source-audit journal, without counting copied caches or download attempts."
+          },
+          {
+            "kind": "availability",
+            "url": "https://medicaid.ncdhhs.gov/nc-credentialing-committee-bylaws/download?attachment=",
+            "checked_at": "2026-09-23T22:22:18.181Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/third/captures/93a7b43886deeaacec1c7e1926ba7401ae8029ffb34712503b453eff31e2d64a.bin",
+            "sha256": "93a7b43886deeaacec1c7e1926ba7401ae8029ffb34712503b453eff31e2d64a",
+            "finding": "A distinct fresh request to this exact original URL returned HTTP 404. The reviewed observation was applied once through the atomic source-audit journal, without counting copied caches or download attempts."
+          },
+          {
+            "kind": "index_investigation",
+            "url": "https://medicaid.ncdhhs.gov/blog/2025/07/03/credentialing-committee-bylaws-public-review-period-now-open",
+            "checked_at": "2026-09-23T21:28:45.865Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/3c91f23d6adac833a86248bf582dc53c0c345ea87eac9890db308722444051bf.bin",
+            "sha256": "3c91f23d6adac833a86248bf582dc53c0c345ea87eac9890db308722444051bf",
+            "finding": "Reviewed the official discovery/current resource index and linked replacement leads. The original attachment remains absent after three distinct checks. Historical broken links and similarly titled current versions do not prove an exact replacement; none was substituted."
+          },
+          {
+            "kind": "index_investigation",
+            "url": "https://medicaid.ncdhhs.gov/providers/provider-playbook-medicaid-managed-care/fact-sheets",
+            "checked_at": "2026-09-23T21:29:23.768Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/caee4b3ef10698fa3cb1397d108c1f2e0894eae53f5e798dd0aa5644912f4f75.bin",
+            "sha256": "caee4b3ef10698fa3cb1397d108c1f2e0894eae53f5e798dd0aa5644912f4f75",
+            "finding": "Reviewed the official discovery/current resource index and linked replacement leads. The original attachment remains absent after three distinct checks. Historical broken links and similarly titled current versions do not prove an exact replacement; none was substituted."
+          },
+          {
+            "kind": "index_investigation",
+            "url": "https://medicaid.ncdhhs.gov/providers/medicaid-bulletin",
+            "checked_at": "2026-09-23T21:28:47.739Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/ee38408ab3f550d2857f00737bcd98b9d8a6c927e6efbc7bc5ffbc1583b7cc5c.bin",
+            "sha256": "ee38408ab3f550d2857f00737bcd98b9d8a6c927e6efbc7bc5ffbc1583b7cc5c",
+            "finding": "Reviewed the official discovery/current resource index and linked replacement leads. The original attachment remains absent after three distinct checks. Historical broken links and similarly titled current versions do not prove an exact replacement; none was substituted."
+          }
+        ]
+      }
+    },
+    {
+      "action_id": "closure-tombstone-686",
+      "source_url": "https://medicaid.ncdhhs.gov/processes-and-frequently-asked-questions-1915i-services/download?attachment=",
+      "registry_hash": "fdb3cdaf7e09a078ace0b39fc84847e46e722ce2ff530533b54c95008e9aacb4",
+      "disposition": "retire",
+      "evidence": {
+        "schema_version": 2,
+        "payload_state": "never_downloaded",
+        "source_url": "https://medicaid.ncdhhs.gov/processes-and-frequently-asked-questions-1915i-services/download?attachment=",
+        "basis": "not_found",
+        "reason": "Three independently captured and journaled HTTP 404 observations plus the official index/replacement investigation establish absence of this original source. Current and restored registry/artifact history agree that no original payload was ever downloaded.",
+        "download_history": {
+          "history_complete": true,
+          "retained_snapshots": [
+            {
+              "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/retained-registry-history.json",
+              "sha256": "5534dab7dffeccca50a5e591893d9f0d251a137598bec1c4738870775889ae53",
+              "restore_receipt": {
+                "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/retained-restore-receipt.json",
+                "sha256": "a30a1662e79ab2735ec8476177d2ad3911b4e6f685dbd30e2e04a625f1e5eb9a"
+              }
+            }
+          ]
+        },
+        "evidence": [
+          {
+            "kind": "availability",
+            "url": "https://medicaid.ncdhhs.gov/processes-and-frequently-asked-questions-1915i-services/download?attachment=",
+            "checked_at": "2026-09-23T20:35:49.647Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/captures/f462cb836bd00b01427b0b6049f78292ee048181d7f9789ba0cb34f2ed2faa62.bin",
+            "sha256": "f462cb836bd00b01427b0b6049f78292ee048181d7f9789ba0cb34f2ed2faa62",
+            "finding": "A distinct fresh request to this exact original URL returned HTTP 404. The reviewed observation was applied once through the atomic source-audit journal, without counting copied caches or download attempts."
+          },
+          {
+            "kind": "availability",
+            "url": "https://medicaid.ncdhhs.gov/processes-and-frequently-asked-questions-1915i-services/download?attachment=",
+            "checked_at": "2026-09-23T21:29:37.731Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/f462cb836bd00b01427b0b6049f78292ee048181d7f9789ba0cb34f2ed2faa62.bin",
+            "sha256": "f462cb836bd00b01427b0b6049f78292ee048181d7f9789ba0cb34f2ed2faa62",
+            "finding": "A distinct fresh request to this exact original URL returned HTTP 404. The reviewed observation was applied once through the atomic source-audit journal, without counting copied caches or download attempts."
+          },
+          {
+            "kind": "availability",
+            "url": "https://medicaid.ncdhhs.gov/processes-and-frequently-asked-questions-1915i-services/download?attachment=",
+            "checked_at": "2026-09-23T22:22:30.328Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/third/captures/f462cb836bd00b01427b0b6049f78292ee048181d7f9789ba0cb34f2ed2faa62.bin",
+            "sha256": "f462cb836bd00b01427b0b6049f78292ee048181d7f9789ba0cb34f2ed2faa62",
+            "finding": "A distinct fresh request to this exact original URL returned HTTP 404. The reviewed observation was applied once through the atomic source-audit journal, without counting copied caches or download attempts."
+          },
+          {
+            "kind": "index_investigation",
+            "url": "https://medicaid.ncdhhs.gov/blog/2025/03/13/nc-medicaid-provider-update-march-13",
+            "checked_at": "2026-09-23T21:29:39.598Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/9960d5cae8cfc3e564e25e58fa90af3ff72e699cac6bb74f1998e25d48135d38.bin",
+            "sha256": "9960d5cae8cfc3e564e25e58fa90af3ff72e699cac6bb74f1998e25d48135d38",
+            "finding": "Reviewed the official discovery/current resource index and linked replacement leads. The original attachment remains absent after three distinct checks. Historical broken links and similarly titled current versions do not prove an exact replacement; none was substituted."
+          },
+          {
+            "kind": "index_investigation",
+            "url": "https://medicaid.ncdhhs.gov/providers/provider-playbook-medicaid-managed-care/fact-sheets",
+            "checked_at": "2026-09-23T21:29:23.768Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/caee4b3ef10698fa3cb1397d108c1f2e0894eae53f5e798dd0aa5644912f4f75.bin",
+            "sha256": "caee4b3ef10698fa3cb1397d108c1f2e0894eae53f5e798dd0aa5644912f4f75",
+            "finding": "Reviewed the official discovery/current resource index and linked replacement leads. The original attachment remains absent after three distinct checks. Historical broken links and similarly titled current versions do not prove an exact replacement; none was substituted."
+          },
+          {
+            "kind": "index_investigation",
+            "url": "https://medicaid.ncdhhs.gov/providers/medicaid-bulletin",
+            "checked_at": "2026-09-23T21:28:47.739Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/ee38408ab3f550d2857f00737bcd98b9d8a6c927e6efbc7bc5ffbc1583b7cc5c.bin",
+            "sha256": "ee38408ab3f550d2857f00737bcd98b9d8a6c927e6efbc7bc5ffbc1583b7cc5c",
+            "finding": "Reviewed the official discovery/current resource index and linked replacement leads. The original attachment remains absent after three distinct checks. Historical broken links and similarly titled current versions do not prove an exact replacement; none was substituted."
+          }
+        ]
+      }
+    },
+    {
+      "action_id": "closure-tombstone-786",
+      "source_url": "https://medicaid.ncdhhs.gov/north-carolinas-transition-1915b3-benefits-1915i/download?attachment=",
+      "registry_hash": "54e9a14159c1d934b26d4f8f01d6d126e1daf6f500ec9b5f4f112e4a755f0452",
+      "disposition": "retire",
+      "evidence": {
+        "schema_version": 2,
+        "payload_state": "never_downloaded",
+        "source_url": "https://medicaid.ncdhhs.gov/north-carolinas-transition-1915b3-benefits-1915i/download?attachment=",
+        "basis": "not_found",
+        "reason": "Three independently captured and journaled HTTP 404 observations plus the official index/replacement investigation establish absence of this original source. Current and restored registry/artifact history agree that no original payload was ever downloaded.",
+        "download_history": {
+          "history_complete": true,
+          "retained_snapshots": [
+            {
+              "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/retained-registry-history.json",
+              "sha256": "5534dab7dffeccca50a5e591893d9f0d251a137598bec1c4738870775889ae53",
+              "restore_receipt": {
+                "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/retained-restore-receipt.json",
+                "sha256": "a30a1662e79ab2735ec8476177d2ad3911b4e6f685dbd30e2e04a625f1e5eb9a"
+              }
+            }
+          ]
+        },
+        "evidence": [
+          {
+            "kind": "availability",
+            "url": "https://medicaid.ncdhhs.gov/north-carolinas-transition-1915b3-benefits-1915i/download?attachment=",
+            "checked_at": "2026-09-23T20:35:53.621Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/captures/8fa372ff8c87692af9940ce83a17279e54d7d93dbfd4b38f481013da1049add6.bin",
+            "sha256": "8fa372ff8c87692af9940ce83a17279e54d7d93dbfd4b38f481013da1049add6",
+            "finding": "A distinct fresh request to this exact original URL returned HTTP 404. The reviewed observation was applied once through the atomic source-audit journal, without counting copied caches or download attempts."
+          },
+          {
+            "kind": "availability",
+            "url": "https://medicaid.ncdhhs.gov/north-carolinas-transition-1915b3-benefits-1915i/download?attachment=",
+            "checked_at": "2026-09-23T21:29:41.743Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/8fa372ff8c87692af9940ce83a17279e54d7d93dbfd4b38f481013da1049add6.bin",
+            "sha256": "8fa372ff8c87692af9940ce83a17279e54d7d93dbfd4b38f481013da1049add6",
+            "finding": "A distinct fresh request to this exact original URL returned HTTP 404. The reviewed observation was applied once through the atomic source-audit journal, without counting copied caches or download attempts."
+          },
+          {
+            "kind": "availability",
+            "url": "https://medicaid.ncdhhs.gov/north-carolinas-transition-1915b3-benefits-1915i/download?attachment=",
+            "checked_at": "2026-09-23T22:22:34.352Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/third/captures/8fa372ff8c87692af9940ce83a17279e54d7d93dbfd4b38f481013da1049add6.bin",
+            "sha256": "8fa372ff8c87692af9940ce83a17279e54d7d93dbfd4b38f481013da1049add6",
+            "finding": "A distinct fresh request to this exact original URL returned HTTP 404. The reviewed observation was applied once through the atomic source-audit journal, without counting copied caches or download attempts."
+          },
+          {
+            "kind": "index_investigation",
+            "url": "https://medicaid.ncdhhs.gov/blog/2024/06/27/1915b3-service-transition-tp-eligible-members",
+            "checked_at": "2026-09-23T21:29:43.605Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/f1acf152904391606fbf246ba469b1fd33955a727f1219a5eb57b2d92490f072.bin",
+            "sha256": "f1acf152904391606fbf246ba469b1fd33955a727f1219a5eb57b2d92490f072",
+            "finding": "Reviewed the official discovery/current resource index and linked replacement leads. The original attachment remains absent after three distinct checks. Historical broken links and similarly titled current versions do not prove an exact replacement; none was substituted."
+          },
+          {
+            "kind": "index_investigation",
+            "url": "https://medicaid.ncdhhs.gov/providers/provider-playbook-medicaid-managed-care/fact-sheets",
+            "checked_at": "2026-09-23T21:29:23.768Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/caee4b3ef10698fa3cb1397d108c1f2e0894eae53f5e798dd0aa5644912f4f75.bin",
+            "sha256": "caee4b3ef10698fa3cb1397d108c1f2e0894eae53f5e798dd0aa5644912f4f75",
+            "finding": "Reviewed the official discovery/current resource index and linked replacement leads. The original attachment remains absent after three distinct checks. Historical broken links and similarly titled current versions do not prove an exact replacement; none was substituted."
+          },
+          {
+            "kind": "index_investigation",
+            "url": "https://medicaid.ncdhhs.gov/providers/medicaid-bulletin",
+            "checked_at": "2026-09-23T21:28:47.739Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/ee38408ab3f550d2857f00737bcd98b9d8a6c927e6efbc7bc5ffbc1583b7cc5c.bin",
+            "sha256": "ee38408ab3f550d2857f00737bcd98b9d8a6c927e6efbc7bc5ffbc1583b7cc5c",
+            "finding": "Reviewed the official discovery/current resource index and linked replacement leads. The original attachment remains absent after three distinct checks. Historical broken links and similarly titled current versions do not prove an exact replacement; none was substituted."
+          }
+        ]
+      }
+    },
+    {
+      "action_id": "closure-tombstone-818",
+      "source_url": "https://medicaid.ncdhhs.gov/advanced-medical-home-provider-manual/download?attachment=",
+      "registry_hash": "626a0fce1a8dcd8ccd72e560afd06f340a936f965978934ed2c3c064421fa2c6",
+      "disposition": "retire",
+      "evidence": {
+        "schema_version": 2,
+        "payload_state": "never_downloaded",
+        "source_url": "https://medicaid.ncdhhs.gov/advanced-medical-home-provider-manual/download?attachment=",
+        "basis": "not_found",
+        "reason": "Three independently captured and journaled HTTP 404 observations plus the official index/replacement investigation establish absence of this original source. Current and restored registry/artifact history agree that no original payload was ever downloaded.",
+        "download_history": {
+          "history_complete": true,
+          "retained_snapshots": [
+            {
+              "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/retained-registry-history.json",
+              "sha256": "5534dab7dffeccca50a5e591893d9f0d251a137598bec1c4738870775889ae53",
+              "restore_receipt": {
+                "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/retained-restore-receipt.json",
+                "sha256": "a30a1662e79ab2735ec8476177d2ad3911b4e6f685dbd30e2e04a625f1e5eb9a"
+              }
+            }
+          ]
+        },
+        "evidence": [
+          {
+            "kind": "availability",
+            "url": "https://medicaid.ncdhhs.gov/advanced-medical-home-provider-manual/download?attachment=",
+            "checked_at": "2026-09-23T20:35:57.859Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/captures/c4fcd1d6f30ee05e073bb4d9ba30ca6e919a0dc9b923f7e3c9a051251eb4586d.bin",
+            "sha256": "c4fcd1d6f30ee05e073bb4d9ba30ca6e919a0dc9b923f7e3c9a051251eb4586d",
+            "finding": "A distinct fresh request to this exact original URL returned HTTP 404. The reviewed observation was applied once through the atomic source-audit journal, without counting copied caches or download attempts."
+          },
+          {
+            "kind": "availability",
+            "url": "https://medicaid.ncdhhs.gov/advanced-medical-home-provider-manual/download?attachment=",
+            "checked_at": "2026-09-23T21:29:45.745Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/c4fcd1d6f30ee05e073bb4d9ba30ca6e919a0dc9b923f7e3c9a051251eb4586d.bin",
+            "sha256": "c4fcd1d6f30ee05e073bb4d9ba30ca6e919a0dc9b923f7e3c9a051251eb4586d",
+            "finding": "A distinct fresh request to this exact original URL returned HTTP 404. The reviewed observation was applied once through the atomic source-audit journal, without counting copied caches or download attempts."
+          },
+          {
+            "kind": "availability",
+            "url": "https://medicaid.ncdhhs.gov/advanced-medical-home-provider-manual/download?attachment=",
+            "checked_at": "2026-09-23T22:22:38.355Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/third/captures/c4fcd1d6f30ee05e073bb4d9ba30ca6e919a0dc9b923f7e3c9a051251eb4586d.bin",
+            "sha256": "c4fcd1d6f30ee05e073bb4d9ba30ca6e919a0dc9b923f7e3c9a051251eb4586d",
+            "finding": "A distinct fresh request to this exact original URL returned HTTP 404. The reviewed observation was applied once through the atomic source-audit journal, without counting copied caches or download attempts."
+          },
+          {
+            "kind": "index_investigation",
+            "url": "https://medicaid.ncdhhs.gov/blog/2024/01/30/nc-managed-care-capitation-rates-updated-care-management-assumptions-expansion-population",
+            "checked_at": "2026-09-23T21:29:47.607Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/5c74ede328045ec6759033744de70c4c065ab37411ce7321a8fbaf32d3ed3c6e.bin",
+            "sha256": "5c74ede328045ec6759033744de70c4c065ab37411ce7321a8fbaf32d3ed3c6e",
+            "finding": "Reviewed the official discovery/current resource index and linked replacement leads. The original attachment remains absent after three distinct checks. Historical broken links and similarly titled current versions do not prove an exact replacement; none was substituted."
+          },
+          {
+            "kind": "index_investigation",
+            "url": "https://medicaid.ncdhhs.gov/providers/provider-playbook-medicaid-managed-care/fact-sheets",
+            "checked_at": "2026-09-23T21:29:23.768Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/caee4b3ef10698fa3cb1397d108c1f2e0894eae53f5e798dd0aa5644912f4f75.bin",
+            "sha256": "caee4b3ef10698fa3cb1397d108c1f2e0894eae53f5e798dd0aa5644912f4f75",
+            "finding": "Reviewed the official discovery/current resource index and linked replacement leads. The original attachment remains absent after three distinct checks. Historical broken links and similarly titled current versions do not prove an exact replacement; none was substituted."
+          },
+          {
+            "kind": "index_investigation",
+            "url": "https://medicaid.ncdhhs.gov/providers/medicaid-bulletin",
+            "checked_at": "2026-09-23T21:28:47.739Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/ee38408ab3f550d2857f00737bcd98b9d8a6c927e6efbc7bc5ffbc1583b7cc5c.bin",
+            "sha256": "ee38408ab3f550d2857f00737bcd98b9d8a6c927e6efbc7bc5ffbc1583b7cc5c",
+            "finding": "Reviewed the official discovery/current resource index and linked replacement leads. The original attachment remains absent after three distinct checks. Historical broken links and similarly titled current versions do not prove an exact replacement; none was substituted."
+          }
+        ]
+      }
+    },
+    {
+      "action_id": "closure-tombstone-824",
+      "source_url": "https://medicaid.ncdhhs.gov/1e-5-obstetrical-servicespdf/download?attachment=",
+      "registry_hash": "a6c9c05c6f551034fff2ca18009c65fdee2ac767e26956ce5f49d685626ae583",
+      "disposition": "retire",
+      "evidence": {
+        "schema_version": 2,
+        "payload_state": "never_downloaded",
+        "source_url": "https://medicaid.ncdhhs.gov/1e-5-obstetrical-servicespdf/download?attachment=",
+        "basis": "not_found",
+        "reason": "Three independently captured and journaled HTTP 404 observations plus the official index/replacement investigation establish absence of this original source. Current and restored registry/artifact history agree that no original payload was ever downloaded.",
+        "download_history": {
+          "history_complete": true,
+          "retained_snapshots": [
+            {
+              "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/retained-registry-history.json",
+              "sha256": "5534dab7dffeccca50a5e591893d9f0d251a137598bec1c4738870775889ae53",
+              "restore_receipt": {
+                "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/retained-restore-receipt.json",
+                "sha256": "a30a1662e79ab2735ec8476177d2ad3911b4e6f685dbd30e2e04a625f1e5eb9a"
+              }
+            }
+          ]
+        },
+        "evidence": [
+          {
+            "kind": "availability",
+            "url": "https://medicaid.ncdhhs.gov/1e-5-obstetrical-servicespdf/download?attachment=",
+            "checked_at": "2026-09-23T20:36:01.632Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/captures/3ddfccec17aaac21cd3dd9a7c883c8dbf8e253a1da5d00b7b3e52773813d5796.bin",
+            "sha256": "3ddfccec17aaac21cd3dd9a7c883c8dbf8e253a1da5d00b7b3e52773813d5796",
+            "finding": "A distinct fresh request to this exact original URL returned HTTP 404. The reviewed observation was applied once through the atomic source-audit journal, without counting copied caches or download attempts."
+          },
+          {
+            "kind": "availability",
+            "url": "https://medicaid.ncdhhs.gov/1e-5-obstetrical-servicespdf/download?attachment=",
+            "checked_at": "2026-09-23T21:29:49.743Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/3ddfccec17aaac21cd3dd9a7c883c8dbf8e253a1da5d00b7b3e52773813d5796.bin",
+            "sha256": "3ddfccec17aaac21cd3dd9a7c883c8dbf8e253a1da5d00b7b3e52773813d5796",
+            "finding": "A distinct fresh request to this exact original URL returned HTTP 404. The reviewed observation was applied once through the atomic source-audit journal, without counting copied caches or download attempts."
+          },
+          {
+            "kind": "availability",
+            "url": "https://medicaid.ncdhhs.gov/1e-5-obstetrical-servicespdf/download?attachment=",
+            "checked_at": "2026-09-23T22:22:42.326Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/third/captures/3ddfccec17aaac21cd3dd9a7c883c8dbf8e253a1da5d00b7b3e52773813d5796.bin",
+            "sha256": "3ddfccec17aaac21cd3dd9a7c883c8dbf8e253a1da5d00b7b3e52773813d5796",
+            "finding": "A distinct fresh request to this exact original URL returned HTTP 404. The reviewed observation was applied once through the atomic source-audit journal, without counting copied caches or download attempts."
+          },
+          {
+            "kind": "index_investigation",
+            "url": "https://medicaid.ncdhhs.gov/blog/2024/01/24/additional-nc-medicaid-respiratory-syncytial-virus-rsv-guidelines-2023-2024",
+            "checked_at": "2026-09-23T21:29:51.605Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/decd64717c8cbf5f3e8ac98e97a15eb802c61d9c5497c0b246d6bcf5bc1c046f.bin",
+            "sha256": "decd64717c8cbf5f3e8ac98e97a15eb802c61d9c5497c0b246d6bcf5bc1c046f",
+            "finding": "Reviewed the official discovery/current resource index and linked replacement leads. The original attachment remains absent after three distinct checks. Historical broken links and similarly titled current versions do not prove an exact replacement; none was substituted."
+          },
+          {
+            "kind": "index_investigation",
+            "url": "https://medicaid.ncdhhs.gov/providers/provider-playbook-medicaid-managed-care/fact-sheets",
+            "checked_at": "2026-09-23T21:29:23.768Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/caee4b3ef10698fa3cb1397d108c1f2e0894eae53f5e798dd0aa5644912f4f75.bin",
+            "sha256": "caee4b3ef10698fa3cb1397d108c1f2e0894eae53f5e798dd0aa5644912f4f75",
+            "finding": "Reviewed the official discovery/current resource index and linked replacement leads. The original attachment remains absent after three distinct checks. Historical broken links and similarly titled current versions do not prove an exact replacement; none was substituted."
+          },
+          {
+            "kind": "index_investigation",
+            "url": "https://medicaid.ncdhhs.gov/providers/medicaid-bulletin",
+            "checked_at": "2026-09-23T21:28:47.739Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/ee38408ab3f550d2857f00737bcd98b9d8a6c927e6efbc7bc5ffbc1583b7cc5c.bin",
+            "sha256": "ee38408ab3f550d2857f00737bcd98b9d8a6c927e6efbc7bc5ffbc1583b7cc5c",
+            "finding": "Reviewed the official discovery/current resource index and linked replacement leads. The original attachment remains absent after three distinct checks. Historical broken links and similarly titled current versions do not prove an exact replacement; none was substituted."
+          }
+        ]
+      }
+    },
+    {
+      "action_id": "closure-tombstone-860",
+      "source_url": "https://medicaid.ncdhhs.gov/north-carolinas-transition-1915b3-benefits-1915i-0/download?attachment=",
+      "registry_hash": "4c1dc8aae28bba5bfca2c0ff535fb129f702fcc6b7eceadcdc3447815a50a97c",
+      "disposition": "retire",
+      "evidence": {
+        "schema_version": 2,
+        "payload_state": "never_downloaded",
+        "source_url": "https://medicaid.ncdhhs.gov/north-carolinas-transition-1915b3-benefits-1915i-0/download?attachment=",
+        "basis": "not_found",
+        "reason": "Three independently captured and journaled HTTP 404 observations plus the official index/replacement investigation establish absence of this original source. Current and restored registry/artifact history agree that no original payload was ever downloaded.",
+        "download_history": {
+          "history_complete": true,
+          "retained_snapshots": [
+            {
+              "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/retained-registry-history.json",
+              "sha256": "5534dab7dffeccca50a5e591893d9f0d251a137598bec1c4738870775889ae53",
+              "restore_receipt": {
+                "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/retained-restore-receipt.json",
+                "sha256": "a30a1662e79ab2735ec8476177d2ad3911b4e6f685dbd30e2e04a625f1e5eb9a"
+              }
+            }
+          ]
+        },
+        "evidence": [
+          {
+            "kind": "availability",
+            "url": "https://medicaid.ncdhhs.gov/north-carolinas-transition-1915b3-benefits-1915i-0/download?attachment=",
+            "checked_at": "2026-09-23T20:36:05.907Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/captures/0f956512e01deb313dca3b8e16296452935d6c40eba17e1604a920ea9747ca3a.bin",
+            "sha256": "0f956512e01deb313dca3b8e16296452935d6c40eba17e1604a920ea9747ca3a",
+            "finding": "A distinct fresh request to this exact original URL returned HTTP 404. The reviewed observation was applied once through the atomic source-audit journal, without counting copied caches or download attempts."
+          },
+          {
+            "kind": "availability",
+            "url": "https://medicaid.ncdhhs.gov/north-carolinas-transition-1915b3-benefits-1915i-0/download?attachment=",
+            "checked_at": "2026-09-23T21:29:53.766Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/0f956512e01deb313dca3b8e16296452935d6c40eba17e1604a920ea9747ca3a.bin",
+            "sha256": "0f956512e01deb313dca3b8e16296452935d6c40eba17e1604a920ea9747ca3a",
+            "finding": "A distinct fresh request to this exact original URL returned HTTP 404. The reviewed observation was applied once through the atomic source-audit journal, without counting copied caches or download attempts."
+          },
+          {
+            "kind": "availability",
+            "url": "https://medicaid.ncdhhs.gov/north-carolinas-transition-1915b3-benefits-1915i-0/download?attachment=",
+            "checked_at": "2026-09-23T22:22:46.358Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/third/captures/0f956512e01deb313dca3b8e16296452935d6c40eba17e1604a920ea9747ca3a.bin",
+            "sha256": "0f956512e01deb313dca3b8e16296452935d6c40eba17e1604a920ea9747ca3a",
+            "finding": "A distinct fresh request to this exact original URL returned HTTP 404. The reviewed observation was applied once through the atomic source-audit journal, without counting copied caches or download attempts."
+          },
+          {
+            "kind": "index_investigation",
+            "url": "https://medicaid.ncdhhs.gov/blog/2023/10/02/nc-medicaid-managed-care-provider-update-oct-2-2023",
+            "checked_at": "2026-09-23T21:29:55.608Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/4341b1b97e9ba041745d73b8990d81c1940b13304163a27fee38476de52d9eef.bin",
+            "sha256": "4341b1b97e9ba041745d73b8990d81c1940b13304163a27fee38476de52d9eef",
+            "finding": "Reviewed the official discovery/current resource index and linked replacement leads. The original attachment remains absent after three distinct checks. Historical broken links and similarly titled current versions do not prove an exact replacement; none was substituted."
+          },
+          {
+            "kind": "index_investigation",
+            "url": "https://medicaid.ncdhhs.gov/providers/provider-playbook-medicaid-managed-care/fact-sheets",
+            "checked_at": "2026-09-23T21:29:23.768Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/caee4b3ef10698fa3cb1397d108c1f2e0894eae53f5e798dd0aa5644912f4f75.bin",
+            "sha256": "caee4b3ef10698fa3cb1397d108c1f2e0894eae53f5e798dd0aa5644912f4f75",
+            "finding": "Reviewed the official discovery/current resource index and linked replacement leads. The original attachment remains absent after three distinct checks. Historical broken links and similarly titled current versions do not prove an exact replacement; none was substituted."
+          },
+          {
+            "kind": "index_investigation",
+            "url": "https://medicaid.ncdhhs.gov/providers/medicaid-bulletin",
+            "checked_at": "2026-09-23T21:28:47.739Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/ee38408ab3f550d2857f00737bcd98b9d8a6c927e6efbc7bc5ffbc1583b7cc5c.bin",
+            "sha256": "ee38408ab3f550d2857f00737bcd98b9d8a6c927e6efbc7bc5ffbc1583b7cc5c",
+            "finding": "Reviewed the official discovery/current resource index and linked replacement leads. The original attachment remains absent after three distinct checks. Historical broken links and similarly titled current versions do not prove an exact replacement; none was substituted."
+          }
+        ]
+      }
+    },
+    {
+      "action_id": "closure-tombstone-868",
+      "source_url": "https://medicaid.ncdhhs.gov/tailored-care-management-provider-fact-sheet-0/download?attachment=",
+      "registry_hash": "f012e687704d2298a74077c503f89c5bbd027c6e25872a34f0990a0a715eb1d4",
+      "disposition": "retire",
+      "evidence": {
+        "schema_version": 2,
+        "payload_state": "never_downloaded",
+        "source_url": "https://medicaid.ncdhhs.gov/tailored-care-management-provider-fact-sheet-0/download?attachment=",
+        "basis": "not_found",
+        "reason": "Three independently captured and journaled HTTP 404 observations plus the official index/replacement investigation establish absence of this original source. Current and restored registry/artifact history agree that no original payload was ever downloaded.",
+        "download_history": {
+          "history_complete": true,
+          "retained_snapshots": [
+            {
+              "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/retained-registry-history.json",
+              "sha256": "5534dab7dffeccca50a5e591893d9f0d251a137598bec1c4738870775889ae53",
+              "restore_receipt": {
+                "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/retained-restore-receipt.json",
+                "sha256": "a30a1662e79ab2735ec8476177d2ad3911b4e6f685dbd30e2e04a625f1e5eb9a"
+              }
+            }
+          ]
+        },
+        "evidence": [
+          {
+            "kind": "availability",
+            "url": "https://medicaid.ncdhhs.gov/tailored-care-management-provider-fact-sheet-0/download?attachment=",
+            "checked_at": "2026-09-23T20:36:09.654Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/captures/6ef675527339446cdc6a618e13d7c6357c954abff89cd4aa5bf91b5fbe44d580.bin",
+            "sha256": "6ef675527339446cdc6a618e13d7c6357c954abff89cd4aa5bf91b5fbe44d580",
+            "finding": "A distinct fresh request to this exact original URL returned HTTP 404. The reviewed observation was applied once through the atomic source-audit journal, without counting copied caches or download attempts."
+          },
+          {
+            "kind": "availability",
+            "url": "https://medicaid.ncdhhs.gov/tailored-care-management-provider-fact-sheet-0/download?attachment=",
+            "checked_at": "2026-09-23T21:29:57.758Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/6ef675527339446cdc6a618e13d7c6357c954abff89cd4aa5bf91b5fbe44d580.bin",
+            "sha256": "6ef675527339446cdc6a618e13d7c6357c954abff89cd4aa5bf91b5fbe44d580",
+            "finding": "A distinct fresh request to this exact original URL returned HTTP 404. The reviewed observation was applied once through the atomic source-audit journal, without counting copied caches or download attempts."
+          },
+          {
+            "kind": "availability",
+            "url": "https://medicaid.ncdhhs.gov/tailored-care-management-provider-fact-sheet-0/download?attachment=",
+            "checked_at": "2026-09-23T22:22:50.376Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/third/captures/6ef675527339446cdc6a618e13d7c6357c954abff89cd4aa5bf91b5fbe44d580.bin",
+            "sha256": "6ef675527339446cdc6a618e13d7c6357c954abff89cd4aa5bf91b5fbe44d580",
+            "finding": "A distinct fresh request to this exact original URL returned HTTP 404. The reviewed observation was applied once through the atomic source-audit journal, without counting copied caches or download attempts."
+          },
+          {
+            "kind": "index_investigation",
+            "url": "https://medicaid.ncdhhs.gov/blog/2023/07/20/nc-medicaid-managed-care-provider-update-july-20-2023",
+            "checked_at": "2026-09-23T21:29:59.612Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/51d77f8658cf85e2b363fa2ca460fa50f8d45fc8f7db0a0d25e26bf2e2d8a8ab.bin",
+            "sha256": "51d77f8658cf85e2b363fa2ca460fa50f8d45fc8f7db0a0d25e26bf2e2d8a8ab",
+            "finding": "Reviewed the official discovery/current resource index and linked replacement leads. The original attachment remains absent after three distinct checks. Historical broken links and similarly titled current versions do not prove an exact replacement; none was substituted."
+          },
+          {
+            "kind": "index_investigation",
+            "url": "https://medicaid.ncdhhs.gov/providers/provider-playbook-medicaid-managed-care/fact-sheets",
+            "checked_at": "2026-09-23T21:29:23.768Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/caee4b3ef10698fa3cb1397d108c1f2e0894eae53f5e798dd0aa5644912f4f75.bin",
+            "sha256": "caee4b3ef10698fa3cb1397d108c1f2e0894eae53f5e798dd0aa5644912f4f75",
+            "finding": "Reviewed the official discovery/current resource index and linked replacement leads. The original attachment remains absent after three distinct checks. Historical broken links and similarly titled current versions do not prove an exact replacement; none was substituted."
+          },
+          {
+            "kind": "index_investigation",
+            "url": "https://medicaid.ncdhhs.gov/providers/medicaid-bulletin",
+            "checked_at": "2026-09-23T21:28:47.739Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/ee38408ab3f550d2857f00737bcd98b9d8a6c927e6efbc7bc5ffbc1583b7cc5c.bin",
+            "sha256": "ee38408ab3f550d2857f00737bcd98b9d8a6c927e6efbc7bc5ffbc1583b7cc5c",
+            "finding": "Reviewed the official discovery/current resource index and linked replacement leads. The original attachment remains absent after three distinct checks. Historical broken links and similarly titled current versions do not prove an exact replacement; none was substituted."
+          }
+        ]
+      }
+    },
+    {
+      "action_id": "closure-tombstone-869",
+      "source_url": "https://medicaid.ncdhhs.gov/providerfactsheettp-enrollment-and-timeline/download?attachment=",
+      "registry_hash": "80ae576448d8467d96c141ec6dd71404b50b5f3b3e37d649b68f761b0364ac74",
+      "disposition": "retire",
+      "evidence": {
+        "schema_version": 2,
+        "payload_state": "never_downloaded",
+        "source_url": "https://medicaid.ncdhhs.gov/providerfactsheettp-enrollment-and-timeline/download?attachment=",
+        "basis": "not_found",
+        "reason": "Three independently captured and journaled HTTP 404 observations plus the official index/replacement investigation establish absence of this original source. Current and restored registry/artifact history agree that no original payload was ever downloaded.",
+        "download_history": {
+          "history_complete": true,
+          "retained_snapshots": [
+            {
+              "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/retained-registry-history.json",
+              "sha256": "5534dab7dffeccca50a5e591893d9f0d251a137598bec1c4738870775889ae53",
+              "restore_receipt": {
+                "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/retained-restore-receipt.json",
+                "sha256": "a30a1662e79ab2735ec8476177d2ad3911b4e6f685dbd30e2e04a625f1e5eb9a"
+              }
+            }
+          ]
+        },
+        "evidence": [
+          {
+            "kind": "availability",
+            "url": "https://medicaid.ncdhhs.gov/providerfactsheettp-enrollment-and-timeline/download?attachment=",
+            "checked_at": "2026-09-23T20:36:13.873Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/captures/1c003a037c699b0201151ad5e2c8b68054ee2d768ba636e4f4d7c59c0fbd1e7b.bin",
+            "sha256": "1c003a037c699b0201151ad5e2c8b68054ee2d768ba636e4f4d7c59c0fbd1e7b",
+            "finding": "A distinct fresh request to this exact original URL returned HTTP 404. The reviewed observation was applied once through the atomic source-audit journal, without counting copied caches or download attempts."
+          },
+          {
+            "kind": "availability",
+            "url": "https://medicaid.ncdhhs.gov/providerfactsheettp-enrollment-and-timeline/download?attachment=",
+            "checked_at": "2026-09-23T21:30:01.748Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/1c003a037c699b0201151ad5e2c8b68054ee2d768ba636e4f4d7c59c0fbd1e7b.bin",
+            "sha256": "1c003a037c699b0201151ad5e2c8b68054ee2d768ba636e4f4d7c59c0fbd1e7b",
+            "finding": "A distinct fresh request to this exact original URL returned HTTP 404. The reviewed observation was applied once through the atomic source-audit journal, without counting copied caches or download attempts."
+          },
+          {
+            "kind": "availability",
+            "url": "https://medicaid.ncdhhs.gov/providerfactsheettp-enrollment-and-timeline/download?attachment=",
+            "checked_at": "2026-09-23T22:22:54.385Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/third/captures/1c003a037c699b0201151ad5e2c8b68054ee2d768ba636e4f4d7c59c0fbd1e7b.bin",
+            "sha256": "1c003a037c699b0201151ad5e2c8b68054ee2d768ba636e4f4d7c59c0fbd1e7b",
+            "finding": "A distinct fresh request to this exact original URL returned HTTP 404. The reviewed observation was applied once through the atomic source-audit journal, without counting copied caches or download attempts."
+          },
+          {
+            "kind": "index_investigation",
+            "url": "https://medicaid.ncdhhs.gov/blog/2023/07/20/nc-medicaid-managed-care-provider-update-july-20-2023",
+            "checked_at": "2026-09-23T21:29:59.612Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/51d77f8658cf85e2b363fa2ca460fa50f8d45fc8f7db0a0d25e26bf2e2d8a8ab.bin",
+            "sha256": "51d77f8658cf85e2b363fa2ca460fa50f8d45fc8f7db0a0d25e26bf2e2d8a8ab",
+            "finding": "Reviewed the official discovery/current resource index and linked replacement leads. The original attachment remains absent after three distinct checks. Historical broken links and similarly titled current versions do not prove an exact replacement; none was substituted."
+          },
+          {
+            "kind": "index_investigation",
+            "url": "https://medicaid.ncdhhs.gov/providers/provider-playbook-medicaid-managed-care/fact-sheets",
+            "checked_at": "2026-09-23T21:29:23.768Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/caee4b3ef10698fa3cb1397d108c1f2e0894eae53f5e798dd0aa5644912f4f75.bin",
+            "sha256": "caee4b3ef10698fa3cb1397d108c1f2e0894eae53f5e798dd0aa5644912f4f75",
+            "finding": "Reviewed the official discovery/current resource index and linked replacement leads. The original attachment remains absent after three distinct checks. Historical broken links and similarly titled current versions do not prove an exact replacement; none was substituted."
+          },
+          {
+            "kind": "index_investigation",
+            "url": "https://medicaid.ncdhhs.gov/providers/medicaid-bulletin",
+            "checked_at": "2026-09-23T21:28:47.739Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/ee38408ab3f550d2857f00737bcd98b9d8a6c927e6efbc7bc5ffbc1583b7cc5c.bin",
+            "sha256": "ee38408ab3f550d2857f00737bcd98b9d8a6c927e6efbc7bc5ffbc1583b7cc5c",
+            "finding": "Reviewed the official discovery/current resource index and linked replacement leads. The original attachment remains absent after three distinct checks. Historical broken links and similarly titled current versions do not prove an exact replacement; none was substituted."
+          }
+        ]
+      }
+    },
+    {
+      "action_id": "closure-tombstone-889",
+      "source_url": "https://medicaid.ncdhhs.gov/certified-tailored-care-management-providers-readiness-reviews-completed/download?attachment=",
+      "registry_hash": "0ae4e91a935e60129637daee33e759990c1122a108173a84e803795e59619f63",
+      "disposition": "retire",
+      "evidence": {
+        "schema_version": 2,
+        "payload_state": "never_downloaded",
+        "source_url": "https://medicaid.ncdhhs.gov/certified-tailored-care-management-providers-readiness-reviews-completed/download?attachment=",
+        "basis": "not_found",
+        "reason": "Three independently captured and journaled HTTP 404 observations plus the official index/replacement investigation establish absence of this original source. Current and restored registry/artifact history agree that no original payload was ever downloaded.",
+        "download_history": {
+          "history_complete": true,
+          "retained_snapshots": [
+            {
+              "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/retained-registry-history.json",
+              "sha256": "5534dab7dffeccca50a5e591893d9f0d251a137598bec1c4738870775889ae53",
+              "restore_receipt": {
+                "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/retained-restore-receipt.json",
+                "sha256": "a30a1662e79ab2735ec8476177d2ad3911b4e6f685dbd30e2e04a625f1e5eb9a"
+              }
+            }
+          ]
+        },
+        "evidence": [
+          {
+            "kind": "availability",
+            "url": "https://medicaid.ncdhhs.gov/certified-tailored-care-management-providers-readiness-reviews-completed/download?attachment=",
+            "checked_at": "2026-09-23T20:36:17.861Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/captures/245b3f75bcb40a8bf91a36431e224335e64d40754410ffeec4d5b58118b32607.bin",
+            "sha256": "245b3f75bcb40a8bf91a36431e224335e64d40754410ffeec4d5b58118b32607",
+            "finding": "A distinct fresh request to this exact original URL returned HTTP 404. The reviewed observation was applied once through the atomic source-audit journal, without counting copied caches or download attempts."
+          },
+          {
+            "kind": "availability",
+            "url": "https://medicaid.ncdhhs.gov/certified-tailored-care-management-providers-readiness-reviews-completed/download?attachment=",
+            "checked_at": "2026-09-23T21:30:03.607Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/245b3f75bcb40a8bf91a36431e224335e64d40754410ffeec4d5b58118b32607.bin",
+            "sha256": "245b3f75bcb40a8bf91a36431e224335e64d40754410ffeec4d5b58118b32607",
+            "finding": "A distinct fresh request to this exact original URL returned HTTP 404. The reviewed observation was applied once through the atomic source-audit journal, without counting copied caches or download attempts."
+          },
+          {
+            "kind": "availability",
+            "url": "https://medicaid.ncdhhs.gov/certified-tailored-care-management-providers-readiness-reviews-completed/download?attachment=",
+            "checked_at": "2026-09-23T22:23:00.845Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/third/captures/245b3f75bcb40a8bf91a36431e224335e64d40754410ffeec4d5b58118b32607.bin",
+            "sha256": "245b3f75bcb40a8bf91a36431e224335e64d40754410ffeec4d5b58118b32607",
+            "finding": "A distinct fresh request to this exact original URL returned HTTP 404. The reviewed observation was applied once through the atomic source-audit journal, without counting copied caches or download attempts."
+          },
+          {
+            "kind": "index_investigation",
+            "url": "https://medicaid.ncdhhs.gov/blog/2023/05/26/enhanced-medical-home-payments-extended-through-sept-30-2023",
+            "checked_at": "2026-09-23T21:30:05.624Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/1d682f8046d658929da28abf7fba3093faceb812346e45a822f9a4f494bfb88e.bin",
+            "sha256": "1d682f8046d658929da28abf7fba3093faceb812346e45a822f9a4f494bfb88e",
+            "finding": "Reviewed the official discovery/current resource index and linked replacement leads. The original attachment remains absent after three distinct checks. Historical broken links and similarly titled current versions do not prove an exact replacement; none was substituted."
+          },
+          {
+            "kind": "index_investigation",
+            "url": "https://medicaid.ncdhhs.gov/providers/provider-playbook-medicaid-managed-care/fact-sheets",
+            "checked_at": "2026-09-23T21:29:23.768Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/caee4b3ef10698fa3cb1397d108c1f2e0894eae53f5e798dd0aa5644912f4f75.bin",
+            "sha256": "caee4b3ef10698fa3cb1397d108c1f2e0894eae53f5e798dd0aa5644912f4f75",
+            "finding": "Reviewed the official discovery/current resource index and linked replacement leads. The original attachment remains absent after three distinct checks. Historical broken links and similarly titled current versions do not prove an exact replacement; none was substituted."
+          },
+          {
+            "kind": "index_investigation",
+            "url": "https://medicaid.ncdhhs.gov/providers/medicaid-bulletin",
+            "checked_at": "2026-09-23T21:28:47.739Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/ee38408ab3f550d2857f00737bcd98b9d8a6c927e6efbc7bc5ffbc1583b7cc5c.bin",
+            "sha256": "ee38408ab3f550d2857f00737bcd98b9d8a6c927e6efbc7bc5ffbc1583b7cc5c",
+            "finding": "Reviewed the official discovery/current resource index and linked replacement leads. The original attachment remains absent after three distinct checks. Historical broken links and similarly titled current versions do not prove an exact replacement; none was substituted."
+          }
+        ]
+      }
+    },
+    {
+      "action_id": "closure-tombstone-909",
+      "source_url": "https://medicaid.ncdhhs.gov/tailored-care-management-capacity-building-funds-guidance/download?attachment=",
+      "registry_hash": "e3e7d4338dc52e1ccce82288f356590e3237361ca8742fa92aabcff0a61a4572",
+      "disposition": "retire",
+      "evidence": {
+        "schema_version": 2,
+        "payload_state": "never_downloaded",
+        "source_url": "https://medicaid.ncdhhs.gov/tailored-care-management-capacity-building-funds-guidance/download?attachment=",
+        "basis": "not_found",
+        "reason": "Three independently captured and journaled HTTP 404 observations plus the official index/replacement investigation establish absence of this original source. Current and restored registry/artifact history agree that no original payload was ever downloaded.",
+        "download_history": {
+          "history_complete": true,
+          "retained_snapshots": [
+            {
+              "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/retained-registry-history.json",
+              "sha256": "5534dab7dffeccca50a5e591893d9f0d251a137598bec1c4738870775889ae53",
+              "restore_receipt": {
+                "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/retained-restore-receipt.json",
+                "sha256": "a30a1662e79ab2735ec8476177d2ad3911b4e6f685dbd30e2e04a625f1e5eb9a"
+              }
+            }
+          ]
+        },
+        "evidence": [
+          {
+            "kind": "availability",
+            "url": "https://medicaid.ncdhhs.gov/tailored-care-management-capacity-building-funds-guidance/download?attachment=",
+            "checked_at": "2026-09-23T20:36:22.145Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/captures/48a6cd37dcd7f58f70cb01ec3b2447321a53ffa31924f4eb69e9a5ef1a9178d2.bin",
+            "sha256": "48a6cd37dcd7f58f70cb01ec3b2447321a53ffa31924f4eb69e9a5ef1a9178d2",
+            "finding": "A distinct fresh request to this exact original URL returned HTTP 404. The reviewed observation was applied once through the atomic source-audit journal, without counting copied caches or download attempts."
+          },
+          {
+            "kind": "availability",
+            "url": "https://medicaid.ncdhhs.gov/tailored-care-management-capacity-building-funds-guidance/download?attachment=",
+            "checked_at": "2026-09-23T21:30:07.743Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/48a6cd37dcd7f58f70cb01ec3b2447321a53ffa31924f4eb69e9a5ef1a9178d2.bin",
+            "sha256": "48a6cd37dcd7f58f70cb01ec3b2447321a53ffa31924f4eb69e9a5ef1a9178d2",
+            "finding": "A distinct fresh request to this exact original URL returned HTTP 404. The reviewed observation was applied once through the atomic source-audit journal, without counting copied caches or download attempts."
+          },
+          {
+            "kind": "availability",
+            "url": "https://medicaid.ncdhhs.gov/tailored-care-management-capacity-building-funds-guidance/download?attachment=",
+            "checked_at": "2026-09-23T22:23:04.847Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/third/captures/48a6cd37dcd7f58f70cb01ec3b2447321a53ffa31924f4eb69e9a5ef1a9178d2.bin",
+            "sha256": "48a6cd37dcd7f58f70cb01ec3b2447321a53ffa31924f4eb69e9a5ef1a9178d2",
+            "finding": "A distinct fresh request to this exact original URL returned HTTP 404. The reviewed observation was applied once through the atomic source-audit journal, without counting copied caches or download attempts."
+          },
+          {
+            "kind": "index_investigation",
+            "url": "https://medicaid.ncdhhs.gov/blog/2023/02/06/tailored-care-management-capacity-building-funds-guidance-released",
+            "checked_at": "2026-09-23T21:30:09.620Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/cedb816e9cdb8eb6f28391b03325763871ee348d22fc4dc2e4526072c11ff7dc.bin",
+            "sha256": "cedb816e9cdb8eb6f28391b03325763871ee348d22fc4dc2e4526072c11ff7dc",
+            "finding": "Reviewed the official discovery/current resource index and linked replacement leads. The original attachment remains absent after three distinct checks. Historical broken links and similarly titled current versions do not prove an exact replacement; none was substituted."
+          },
+          {
+            "kind": "index_investigation",
+            "url": "https://medicaid.ncdhhs.gov/providers/provider-playbook-medicaid-managed-care/fact-sheets",
+            "checked_at": "2026-09-23T21:29:23.768Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/caee4b3ef10698fa3cb1397d108c1f2e0894eae53f5e798dd0aa5644912f4f75.bin",
+            "sha256": "caee4b3ef10698fa3cb1397d108c1f2e0894eae53f5e798dd0aa5644912f4f75",
+            "finding": "Reviewed the official discovery/current resource index and linked replacement leads. The original attachment remains absent after three distinct checks. Historical broken links and similarly titled current versions do not prove an exact replacement; none was substituted."
+          },
+          {
+            "kind": "index_investigation",
+            "url": "https://medicaid.ncdhhs.gov/providers/medicaid-bulletin",
+            "checked_at": "2026-09-23T21:28:47.739Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/ee38408ab3f550d2857f00737bcd98b9d8a6c927e6efbc7bc5ffbc1583b7cc5c.bin",
+            "sha256": "ee38408ab3f550d2857f00737bcd98b9d8a6c927e6efbc7bc5ffbc1583b7cc5c",
+            "finding": "Reviewed the official discovery/current resource index and linked replacement leads. The original attachment remains absent after three distinct checks. Historical broken links and similarly titled current versions do not prove an exact replacement; none was substituted."
+          }
+        ]
+      }
+    },
+    {
+      "action_id": "closure-tombstone-5997",
+      "source_url": "https://medicaid.ncdhhs.gov/processes-and-frequently-asked-questions-1915i-services/open",
+      "registry_hash": "e2cb4d1c0d09e251aa9ae2c40cc22c9ee1a18f7b9d54ad329aa5ed1105d7d2cb",
+      "disposition": "retire",
+      "evidence": {
+        "schema_version": 2,
+        "payload_state": "never_downloaded",
+        "source_url": "https://medicaid.ncdhhs.gov/processes-and-frequently-asked-questions-1915i-services/open",
+        "basis": "not_found",
+        "reason": "Three independently captured and journaled HTTP 404 observations plus the official index/replacement investigation establish absence of this original source. Current and restored registry/artifact history agree that no original payload was ever downloaded.",
+        "download_history": {
+          "history_complete": true,
+          "retained_snapshots": [
+            {
+              "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/retained-registry-history.json",
+              "sha256": "5534dab7dffeccca50a5e591893d9f0d251a137598bec1c4738870775889ae53",
+              "restore_receipt": {
+                "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/retained-restore-receipt.json",
+                "sha256": "a30a1662e79ab2735ec8476177d2ad3911b4e6f685dbd30e2e04a625f1e5eb9a"
+              }
+            }
+          ]
+        },
+        "evidence": [
+          {
+            "kind": "availability",
+            "url": "https://medicaid.ncdhhs.gov/processes-and-frequently-asked-questions-1915i-services/open",
+            "checked_at": "2026-09-23T20:40:43.891Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/captures/8193cfc6f243977d3419cb4f00b740dfc735f95450cb751488371e5dd338d3fb.bin",
+            "sha256": "8193cfc6f243977d3419cb4f00b740dfc735f95450cb751488371e5dd338d3fb",
+            "finding": "A distinct fresh request to this exact original URL returned HTTP 404. The reviewed observation was applied once through the atomic source-audit journal, without counting copied caches or download attempts."
+          },
+          {
+            "kind": "availability",
+            "url": "https://medicaid.ncdhhs.gov/processes-and-frequently-asked-questions-1915i-services/open",
+            "checked_at": "2026-09-23T21:29:19.809Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/8193cfc6f243977d3419cb4f00b740dfc735f95450cb751488371e5dd338d3fb.bin",
+            "sha256": "8193cfc6f243977d3419cb4f00b740dfc735f95450cb751488371e5dd338d3fb",
+            "finding": "A distinct fresh request to this exact original URL returned HTTP 404. The reviewed observation was applied once through the atomic source-audit journal, without counting copied caches or download attempts."
+          },
+          {
+            "kind": "availability",
+            "url": "https://medicaid.ncdhhs.gov/processes-and-frequently-asked-questions-1915i-services/open",
+            "checked_at": "2026-09-23T22:23:15.948Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/third/captures/8193cfc6f243977d3419cb4f00b740dfc735f95450cb751488371e5dd338d3fb.bin",
+            "sha256": "8193cfc6f243977d3419cb4f00b740dfc735f95450cb751488371e5dd338d3fb",
+            "finding": "A distinct fresh request to this exact original URL returned HTTP 404. The reviewed observation was applied once through the atomic source-audit journal, without counting copied caches or download attempts."
+          },
+          {
+            "kind": "index_investigation",
+            "url": "https://medicaid.ncdhhs.gov/providers/provider-playbook-medicaid-managed-care/fact-sheets",
+            "checked_at": "2026-09-23T21:29:23.768Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/caee4b3ef10698fa3cb1397d108c1f2e0894eae53f5e798dd0aa5644912f4f75.bin",
+            "sha256": "caee4b3ef10698fa3cb1397d108c1f2e0894eae53f5e798dd0aa5644912f4f75",
+            "finding": "Reviewed the official discovery/current resource index and linked replacement leads. The original attachment remains absent after three distinct checks. Historical broken links and similarly titled current versions do not prove an exact replacement; none was substituted."
+          },
+          {
+            "kind": "index_investigation",
+            "url": "https://medicaid.ncdhhs.gov/providers/provider-playbook-medicaid-managed-care/fact-sheets",
+            "checked_at": "2026-09-23T21:29:23.768Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/caee4b3ef10698fa3cb1397d108c1f2e0894eae53f5e798dd0aa5644912f4f75.bin",
+            "sha256": "caee4b3ef10698fa3cb1397d108c1f2e0894eae53f5e798dd0aa5644912f4f75",
+            "finding": "Reviewed the official discovery/current resource index and linked replacement leads. The original attachment remains absent after three distinct checks. Historical broken links and similarly titled current versions do not prove an exact replacement; none was substituted."
+          },
+          {
+            "kind": "index_investigation",
+            "url": "https://medicaid.ncdhhs.gov/providers/medicaid-bulletin",
+            "checked_at": "2026-09-23T21:28:47.739Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/ee38408ab3f550d2857f00737bcd98b9d8a6c927e6efbc7bc5ffbc1583b7cc5c.bin",
+            "sha256": "ee38408ab3f550d2857f00737bcd98b9d8a6c927e6efbc7bc5ffbc1583b7cc5c",
+            "finding": "Reviewed the official discovery/current resource index and linked replacement leads. The original attachment remains absent after three distinct checks. Historical broken links and similarly titled current versions do not prove an exact replacement; none was substituted."
+          }
+        ]
+      }
+    },
+    {
+      "action_id": "closure-tombstone-6560",
+      "source_url": "https://medicaid.ncdhhs.gov/media/11452/download?attachment=",
+      "registry_hash": "d03bb8dfb89358cb6f68db671789392106f67ee6598c2f56438fc8670921a786",
+      "disposition": "retire",
+      "evidence": {
+        "schema_version": 2,
+        "payload_state": "never_downloaded",
+        "source_url": "https://medicaid.ncdhhs.gov/media/11452/download?attachment=",
+        "basis": "not_found",
+        "reason": "Three independently captured and journaled HTTP 404 observations plus the official index/replacement investigation establish absence of this original source. Current and restored registry/artifact history agree that no original payload was ever downloaded.",
+        "download_history": {
+          "history_complete": true,
+          "retained_snapshots": [
+            {
+              "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/retained-registry-history.json",
+              "sha256": "5534dab7dffeccca50a5e591893d9f0d251a137598bec1c4738870775889ae53",
+              "restore_receipt": {
+                "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/retained-restore-receipt.json",
+                "sha256": "a30a1662e79ab2735ec8476177d2ad3911b4e6f685dbd30e2e04a625f1e5eb9a"
+              }
+            }
+          ]
+        },
+        "evidence": [
+          {
+            "kind": "availability",
+            "url": "https://medicaid.ncdhhs.gov/media/11452/download?attachment=",
+            "checked_at": "2026-09-23T20:40:50.059Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/captures/d4aed548bd2406bed0a557f1edab9e888da4de6fddca2ae4ee65e12372f5c1b0.bin",
+            "sha256": "d4aed548bd2406bed0a557f1edab9e888da4de6fddca2ae4ee65e12372f5c1b0",
+            "finding": "A distinct fresh request to this exact original URL returned HTTP 404. The reviewed observation was applied once through the atomic source-audit journal, without counting copied caches or download attempts."
+          },
+          {
+            "kind": "availability",
+            "url": "https://medicaid.ncdhhs.gov/media/11452/download?attachment=",
+            "checked_at": "2026-09-23T21:30:21.771Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/d4aed548bd2406bed0a557f1edab9e888da4de6fddca2ae4ee65e12372f5c1b0.bin",
+            "sha256": "d4aed548bd2406bed0a557f1edab9e888da4de6fddca2ae4ee65e12372f5c1b0",
+            "finding": "A distinct fresh request to this exact original URL returned HTTP 404. The reviewed observation was applied once through the atomic source-audit journal, without counting copied caches or download attempts."
+          },
+          {
+            "kind": "availability",
+            "url": "https://medicaid.ncdhhs.gov/media/11452/download?attachment=",
+            "checked_at": "2026-09-23T22:23:22.135Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/third/captures/d4aed548bd2406bed0a557f1edab9e888da4de6fddca2ae4ee65e12372f5c1b0.bin",
+            "sha256": "d4aed548bd2406bed0a557f1edab9e888da4de6fddca2ae4ee65e12372f5c1b0",
+            "finding": "A distinct fresh request to this exact original URL returned HTTP 404. The reviewed observation was applied once through the atomic source-audit journal, without counting copied caches or download attempts."
+          },
+          {
+            "kind": "index_investigation",
+            "url": "https://medicaid.ncdhhs.gov/blog/2022/08/26/tailored-plan-panel-membership",
+            "checked_at": "2026-09-23T21:30:23.625Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/8e1020818543ee538934e87044d86419b23cc8a52ac1ca0b518090dfd3a2b9a8.bin",
+            "sha256": "8e1020818543ee538934e87044d86419b23cc8a52ac1ca0b518090dfd3a2b9a8",
+            "finding": "Reviewed the official discovery/current resource index and linked replacement leads. The original attachment remains absent after three distinct checks. Historical broken links and similarly titled current versions do not prove an exact replacement; none was substituted."
+          },
+          {
+            "kind": "index_investigation",
+            "url": "https://medicaid.ncdhhs.gov/providers/provider-playbook-medicaid-managed-care/fact-sheets",
+            "checked_at": "2026-09-23T21:29:23.768Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/caee4b3ef10698fa3cb1397d108c1f2e0894eae53f5e798dd0aa5644912f4f75.bin",
+            "sha256": "caee4b3ef10698fa3cb1397d108c1f2e0894eae53f5e798dd0aa5644912f4f75",
+            "finding": "Reviewed the official discovery/current resource index and linked replacement leads. The original attachment remains absent after three distinct checks. Historical broken links and similarly titled current versions do not prove an exact replacement; none was substituted."
+          },
+          {
+            "kind": "index_investigation",
+            "url": "https://medicaid.ncdhhs.gov/providers/medicaid-bulletin",
+            "checked_at": "2026-09-23T21:28:47.739Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/ee38408ab3f550d2857f00737bcd98b9d8a6c927e6efbc7bc5ffbc1583b7cc5c.bin",
+            "sha256": "ee38408ab3f550d2857f00737bcd98b9d8a6c927e6efbc7bc5ffbc1583b7cc5c",
+            "finding": "Reviewed the official discovery/current resource index and linked replacement leads. The original attachment remains absent after three distinct checks. Historical broken links and similarly titled current versions do not prove an exact replacement; none was substituted."
+          }
+        ]
+      }
+    }
+  ]
+}

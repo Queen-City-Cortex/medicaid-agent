@@ -1,0 +1,533 @@
+{
+  "schema_version": 1,
+  "actions": [
+    {
+      "action_id": "closure-withdrawal-12832",
+      "source_url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_al-10-20-elc-for-covid-19.pdf",
+      "registry_hash": "84ff09487737d0398d3d93a0ccdba07fec8808b029393b43a084fb24aed51941",
+      "disposition": "retire",
+      "evidence": {
+        "schema_version": 2,
+        "payload_state": "never_downloaded",
+        "source_url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_al-10-20-elc-for-covid-19.pdf",
+        "basis": "withdrawn",
+        "reason": "The exact linked document is explicitly labeled Obsolete on the official index: Extended Limits of Confinement for Inmate Release Procedures for COVID-19 OBSOLETE. This finding applies only to this link; neighboring unmarked attachments are not retired.",
+        "download_history": {
+          "history_complete": true,
+          "retained_snapshots": [
+            {
+              "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/retained-registry-history.json",
+              "sha256": "5534dab7dffeccca50a5e591893d9f0d251a137598bec1c4738870775889ae53",
+              "restore_receipt": {
+                "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/retained-restore-receipt.json",
+                "sha256": "a30a1662e79ab2735ec8476177d2ad3911b4e6f685dbd30e2e04a625f1e5eb9a"
+              }
+            }
+          ]
+        },
+        "evidence": [
+          {
+            "url": "https://policies.ncdhhs.gov/document/2020-covid-19-guidance-and-procedures-administrative-letters/",
+            "checked_at": "2026-09-23T20:40:56.084Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/captures/82bb54c0fa37ad239b14130ac64ff66106f16bd87fd60e66085a8883cd5ad6eb.bin",
+            "sha256": "82bb54c0fa37ad239b14130ac64ff66106f16bd87fd60e66085a8883cd5ad6eb",
+            "finding": "The exact linked document is explicitly labeled Obsolete on the official index: Extended Limits of Confinement for Inmate Release Procedures for COVID-19 OBSOLETE. This finding applies only to this link; neighboring unmarked attachments are not retired.",
+            "kind": "withdrawal_notice"
+          },
+          {
+            "url": "https://policies.ncdhhs.gov/document/2020-covid-19-guidance-and-procedures-administrative-letters/",
+            "checked_at": "2026-09-23T20:40:56.084Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/captures/82bb54c0fa37ad239b14130ac64ff66106f16bd87fd60e66085a8883cd5ad6eb.bin",
+            "sha256": "82bb54c0fa37ad239b14130ac64ff66106f16bd87fd60e66085a8883cd5ad6eb",
+            "finding": "The exact linked document is explicitly labeled Obsolete on the official index: Extended Limits of Confinement for Inmate Release Procedures for COVID-19 OBSOLETE. This finding applies only to this link; neighboring unmarked attachments are not retired.",
+            "kind": "index_investigation"
+          }
+        ]
+      }
+    },
+    {
+      "action_id": "closure-withdrawal-12823",
+      "source_url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_-al_09-20-amended-2-1.pdf",
+      "registry_hash": "ed5aa54235715615b182a663487c849714f2f978e43637b3bb4d0a34d12f70d7",
+      "disposition": "retire",
+      "evidence": {
+        "schema_version": 2,
+        "payload_state": "never_downloaded",
+        "source_url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_-al_09-20-amended-2-1.pdf",
+        "basis": "withdrawn",
+        "reason": "The exact linked document is explicitly labeled Obsolete on the official index: Medicaid/NC Health Choice Recertification Procedures for COVID-19 \u2013 Amended 2 \u2013 Obsolete. This finding applies only to this link; neighboring unmarked attachments are not retired.",
+        "download_history": {
+          "history_complete": true,
+          "retained_snapshots": [
+            {
+              "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/retained-registry-history.json",
+              "sha256": "5534dab7dffeccca50a5e591893d9f0d251a137598bec1c4738870775889ae53",
+              "restore_receipt": {
+                "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/retained-restore-receipt.json",
+                "sha256": "a30a1662e79ab2735ec8476177d2ad3911b4e6f685dbd30e2e04a625f1e5eb9a"
+              }
+            }
+          ]
+        },
+        "evidence": [
+          {
+            "url": "https://policies.ncdhhs.gov/document/2020-covid-19-guidance-and-procedures-administrative-letters/",
+            "checked_at": "2026-09-23T20:40:56.084Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/captures/82bb54c0fa37ad239b14130ac64ff66106f16bd87fd60e66085a8883cd5ad6eb.bin",
+            "sha256": "82bb54c0fa37ad239b14130ac64ff66106f16bd87fd60e66085a8883cd5ad6eb",
+            "finding": "The exact linked document is explicitly labeled Obsolete on the official index: Medicaid/NC Health Choice Recertification Procedures for COVID-19 \u2013 Amended 2 \u2013 Obsolete. This finding applies only to this link; neighboring unmarked attachments are not retired.",
+            "kind": "withdrawal_notice"
+          },
+          {
+            "url": "https://policies.ncdhhs.gov/document/2020-covid-19-guidance-and-procedures-administrative-letters/",
+            "checked_at": "2026-09-23T20:40:56.084Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/captures/82bb54c0fa37ad239b14130ac64ff66106f16bd87fd60e66085a8883cd5ad6eb.bin",
+            "sha256": "82bb54c0fa37ad239b14130ac64ff66106f16bd87fd60e66085a8883cd5ad6eb",
+            "finding": "The exact linked document is explicitly labeled Obsolete on the official index: Medicaid/NC Health Choice Recertification Procedures for COVID-19 \u2013 Amended 2 \u2013 Obsolete. This finding applies only to this link; neighboring unmarked attachments are not retired.",
+            "kind": "index_investigation"
+          }
+        ]
+      }
+    },
+    {
+      "action_id": "closure-withdrawal-12824",
+      "source_url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_-al_09-20-amended.pdf",
+      "registry_hash": "0a367e118f9e2a29666a145c8ae63bd42a977c0eeeb7977e4b9d7cb5cfc03935",
+      "disposition": "retire",
+      "evidence": {
+        "schema_version": 2,
+        "payload_state": "never_downloaded",
+        "source_url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_-al_09-20-amended.pdf",
+        "basis": "withdrawn",
+        "reason": "The exact linked document is explicitly labeled Obsolete on the official index: Medicaid/NC Health Choice Recertification Procedures for COVID-19 \u2013 Amended \u2013 Obsolete. This finding applies only to this link; neighboring unmarked attachments are not retired.",
+        "download_history": {
+          "history_complete": true,
+          "retained_snapshots": [
+            {
+              "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/retained-registry-history.json",
+              "sha256": "5534dab7dffeccca50a5e591893d9f0d251a137598bec1c4738870775889ae53",
+              "restore_receipt": {
+                "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/retained-restore-receipt.json",
+                "sha256": "a30a1662e79ab2735ec8476177d2ad3911b4e6f685dbd30e2e04a625f1e5eb9a"
+              }
+            }
+          ]
+        },
+        "evidence": [
+          {
+            "url": "https://policies.ncdhhs.gov/document/2020-covid-19-guidance-and-procedures-administrative-letters/",
+            "checked_at": "2026-09-23T20:40:56.084Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/captures/82bb54c0fa37ad239b14130ac64ff66106f16bd87fd60e66085a8883cd5ad6eb.bin",
+            "sha256": "82bb54c0fa37ad239b14130ac64ff66106f16bd87fd60e66085a8883cd5ad6eb",
+            "finding": "The exact linked document is explicitly labeled Obsolete on the official index: Medicaid/NC Health Choice Recertification Procedures for COVID-19 \u2013 Amended \u2013 Obsolete. This finding applies only to this link; neighboring unmarked attachments are not retired.",
+            "kind": "withdrawal_notice"
+          },
+          {
+            "url": "https://policies.ncdhhs.gov/document/2020-covid-19-guidance-and-procedures-administrative-letters/",
+            "checked_at": "2026-09-23T20:40:56.084Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/captures/82bb54c0fa37ad239b14130ac64ff66106f16bd87fd60e66085a8883cd5ad6eb.bin",
+            "sha256": "82bb54c0fa37ad239b14130ac64ff66106f16bd87fd60e66085a8883cd5ad6eb",
+            "finding": "The exact linked document is explicitly labeled Obsolete on the official index: Medicaid/NC Health Choice Recertification Procedures for COVID-19 \u2013 Amended \u2013 Obsolete. This finding applies only to this link; neighboring unmarked attachments are not retired.",
+            "kind": "index_investigation"
+          }
+        ]
+      }
+    },
+    {
+      "action_id": "closure-withdrawal-12831",
+      "source_url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_al-09-20.pdf",
+      "registry_hash": "60a1892e6bede36d46f0aea6e1b7457912fe846ac03b263229b5ee2975137088",
+      "disposition": "retire",
+      "evidence": {
+        "schema_version": 2,
+        "payload_state": "never_downloaded",
+        "source_url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_al-09-20.pdf",
+        "basis": "withdrawn",
+        "reason": "The exact linked document is explicitly labeled Obsolete on the official index: Medicaid/NC Health Choice Recertification Procedures for COVID-19 \u2013 Obsolete. This finding applies only to this link; neighboring unmarked attachments are not retired.",
+        "download_history": {
+          "history_complete": true,
+          "retained_snapshots": [
+            {
+              "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/retained-registry-history.json",
+              "sha256": "5534dab7dffeccca50a5e591893d9f0d251a137598bec1c4738870775889ae53",
+              "restore_receipt": {
+                "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/retained-restore-receipt.json",
+                "sha256": "a30a1662e79ab2735ec8476177d2ad3911b4e6f685dbd30e2e04a625f1e5eb9a"
+              }
+            }
+          ]
+        },
+        "evidence": [
+          {
+            "url": "https://policies.ncdhhs.gov/document/2020-covid-19-guidance-and-procedures-administrative-letters/",
+            "checked_at": "2026-09-23T20:40:56.084Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/captures/82bb54c0fa37ad239b14130ac64ff66106f16bd87fd60e66085a8883cd5ad6eb.bin",
+            "sha256": "82bb54c0fa37ad239b14130ac64ff66106f16bd87fd60e66085a8883cd5ad6eb",
+            "finding": "The exact linked document is explicitly labeled Obsolete on the official index: Medicaid/NC Health Choice Recertification Procedures for COVID-19 \u2013 Obsolete. This finding applies only to this link; neighboring unmarked attachments are not retired.",
+            "kind": "withdrawal_notice"
+          },
+          {
+            "url": "https://policies.ncdhhs.gov/document/2020-covid-19-guidance-and-procedures-administrative-letters/",
+            "checked_at": "2026-09-23T20:40:56.084Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/captures/82bb54c0fa37ad239b14130ac64ff66106f16bd87fd60e66085a8883cd5ad6eb.bin",
+            "sha256": "82bb54c0fa37ad239b14130ac64ff66106f16bd87fd60e66085a8883cd5ad6eb",
+            "finding": "The exact linked document is explicitly labeled Obsolete on the official index: Medicaid/NC Health Choice Recertification Procedures for COVID-19 \u2013 Obsolete. This finding applies only to this link; neighboring unmarked attachments are not retired.",
+            "kind": "index_investigation"
+          }
+        ]
+      }
+    },
+    {
+      "action_id": "closure-withdrawal-12833",
+      "source_url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_al_07-20-amended-2.pdf",
+      "registry_hash": "e68531d7d52373044c5f2061391923edb300c52f8b0434f51e72a322a3860fb9",
+      "disposition": "retire",
+      "evidence": {
+        "schema_version": 2,
+        "payload_state": "never_downloaded",
+        "source_url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_al_07-20-amended-2.pdf",
+        "basis": "withdrawn",
+        "reason": "The exact linked document is explicitly labeled Obsolete on the official index: Medicaid/NCHC Procedures for COVID-19 \u2013 Amended 2 OBSOLETE. This finding applies only to this link; neighboring unmarked attachments are not retired.",
+        "download_history": {
+          "history_complete": true,
+          "retained_snapshots": [
+            {
+              "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/retained-registry-history.json",
+              "sha256": "5534dab7dffeccca50a5e591893d9f0d251a137598bec1c4738870775889ae53",
+              "restore_receipt": {
+                "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/retained-restore-receipt.json",
+                "sha256": "a30a1662e79ab2735ec8476177d2ad3911b4e6f685dbd30e2e04a625f1e5eb9a"
+              }
+            }
+          ]
+        },
+        "evidence": [
+          {
+            "url": "https://policies.ncdhhs.gov/document/2020-covid-19-guidance-and-procedures-administrative-letters/",
+            "checked_at": "2026-09-23T20:40:56.084Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/captures/82bb54c0fa37ad239b14130ac64ff66106f16bd87fd60e66085a8883cd5ad6eb.bin",
+            "sha256": "82bb54c0fa37ad239b14130ac64ff66106f16bd87fd60e66085a8883cd5ad6eb",
+            "finding": "The exact linked document is explicitly labeled Obsolete on the official index: Medicaid/NCHC Procedures for COVID-19 \u2013 Amended 2 OBSOLETE. This finding applies only to this link; neighboring unmarked attachments are not retired.",
+            "kind": "withdrawal_notice"
+          },
+          {
+            "url": "https://policies.ncdhhs.gov/document/2020-covid-19-guidance-and-procedures-administrative-letters/",
+            "checked_at": "2026-09-23T20:40:56.084Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/captures/82bb54c0fa37ad239b14130ac64ff66106f16bd87fd60e66085a8883cd5ad6eb.bin",
+            "sha256": "82bb54c0fa37ad239b14130ac64ff66106f16bd87fd60e66085a8883cd5ad6eb",
+            "finding": "The exact linked document is explicitly labeled Obsolete on the official index: Medicaid/NCHC Procedures for COVID-19 \u2013 Amended 2 OBSOLETE. This finding applies only to this link; neighboring unmarked attachments are not retired.",
+            "kind": "index_investigation"
+          }
+        ]
+      }
+    },
+    {
+      "action_id": "closure-withdrawal-12834",
+      "source_url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_al_07-20__policy_procedures_covid-19_amended_final.pdf",
+      "registry_hash": "c74d67036ea5918c48f12fad0b386b3cb203bdaad496f22a3ecf22e1bedb558b",
+      "disposition": "retire",
+      "evidence": {
+        "schema_version": 2,
+        "payload_state": "never_downloaded",
+        "source_url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_al_07-20__policy_procedures_covid-19_amended_final.pdf",
+        "basis": "withdrawn",
+        "reason": "The exact linked document is explicitly labeled Obsolete on the official index: Medicaid/NCHC Procedures for COVID-19 \u2013 Amended Obsolete. This finding applies only to this link; neighboring unmarked attachments are not retired.",
+        "download_history": {
+          "history_complete": true,
+          "retained_snapshots": [
+            {
+              "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/retained-registry-history.json",
+              "sha256": "5534dab7dffeccca50a5e591893d9f0d251a137598bec1c4738870775889ae53",
+              "restore_receipt": {
+                "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/retained-restore-receipt.json",
+                "sha256": "a30a1662e79ab2735ec8476177d2ad3911b4e6f685dbd30e2e04a625f1e5eb9a"
+              }
+            }
+          ]
+        },
+        "evidence": [
+          {
+            "url": "https://policies.ncdhhs.gov/document/2020-covid-19-guidance-and-procedures-administrative-letters/",
+            "checked_at": "2026-09-23T20:40:56.084Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/captures/82bb54c0fa37ad239b14130ac64ff66106f16bd87fd60e66085a8883cd5ad6eb.bin",
+            "sha256": "82bb54c0fa37ad239b14130ac64ff66106f16bd87fd60e66085a8883cd5ad6eb",
+            "finding": "The exact linked document is explicitly labeled Obsolete on the official index: Medicaid/NCHC Procedures for COVID-19 \u2013 Amended Obsolete. This finding applies only to this link; neighboring unmarked attachments are not retired.",
+            "kind": "withdrawal_notice"
+          },
+          {
+            "url": "https://policies.ncdhhs.gov/document/2020-covid-19-guidance-and-procedures-administrative-letters/",
+            "checked_at": "2026-09-23T20:40:56.084Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/captures/82bb54c0fa37ad239b14130ac64ff66106f16bd87fd60e66085a8883cd5ad6eb.bin",
+            "sha256": "82bb54c0fa37ad239b14130ac64ff66106f16bd87fd60e66085a8883cd5ad6eb",
+            "finding": "The exact linked document is explicitly labeled Obsolete on the official index: Medicaid/NCHC Procedures for COVID-19 \u2013 Amended Obsolete. This finding applies only to this link; neighboring unmarked attachments are not retired.",
+            "kind": "index_investigation"
+          }
+        ]
+      }
+    },
+    {
+      "action_id": "closure-withdrawal-12825",
+      "source_url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma__al_06-20_covid-19-_self-attestation_and_reports_final_-1.pdf",
+      "registry_hash": "d90b78442dd890cbc7de1f73c0370f5afe6b4e08218c4378e2a2c5039568139e",
+      "disposition": "retire",
+      "evidence": {
+        "schema_version": 2,
+        "payload_state": "never_downloaded",
+        "source_url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma__al_06-20_covid-19-_self-attestation_and_reports_final_-1.pdf",
+        "basis": "withdrawn",
+        "reason": "The exact linked document is explicitly labeled Obsolete on the official index: Medicaid/NCHC Procedures for COVID-19, Self- Attestation and Reports OBSOLETE. This finding applies only to this link; neighboring unmarked attachments are not retired.",
+        "download_history": {
+          "history_complete": true,
+          "retained_snapshots": [
+            {
+              "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/retained-registry-history.json",
+              "sha256": "5534dab7dffeccca50a5e591893d9f0d251a137598bec1c4738870775889ae53",
+              "restore_receipt": {
+                "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/retained-restore-receipt.json",
+                "sha256": "a30a1662e79ab2735ec8476177d2ad3911b4e6f685dbd30e2e04a625f1e5eb9a"
+              }
+            }
+          ]
+        },
+        "evidence": [
+          {
+            "url": "https://policies.ncdhhs.gov/document/2020-covid-19-guidance-and-procedures-administrative-letters/",
+            "checked_at": "2026-09-23T20:40:56.084Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/captures/82bb54c0fa37ad239b14130ac64ff66106f16bd87fd60e66085a8883cd5ad6eb.bin",
+            "sha256": "82bb54c0fa37ad239b14130ac64ff66106f16bd87fd60e66085a8883cd5ad6eb",
+            "finding": "The exact linked document is explicitly labeled Obsolete on the official index: Medicaid/NCHC Procedures for COVID-19, Self- Attestation and Reports OBSOLETE. This finding applies only to this link; neighboring unmarked attachments are not retired.",
+            "kind": "withdrawal_notice"
+          },
+          {
+            "url": "https://policies.ncdhhs.gov/document/2020-covid-19-guidance-and-procedures-administrative-letters/",
+            "checked_at": "2026-09-23T20:40:56.084Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/captures/82bb54c0fa37ad239b14130ac64ff66106f16bd87fd60e66085a8883cd5ad6eb.bin",
+            "sha256": "82bb54c0fa37ad239b14130ac64ff66106f16bd87fd60e66085a8883cd5ad6eb",
+            "finding": "The exact linked document is explicitly labeled Obsolete on the official index: Medicaid/NCHC Procedures for COVID-19, Self- Attestation and Reports OBSOLETE. This finding applies only to this link; neighboring unmarked attachments are not retired.",
+            "kind": "index_investigation"
+          }
+        ]
+      }
+    },
+    {
+      "action_id": "closure-withdrawal-12830",
+      "source_url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_al-05-20-20200812.pdf",
+      "registry_hash": "a5070621a3238884014cb244bfd3a1e7fafa606ed02808b22477b7080f858a06",
+      "disposition": "retire",
+      "evidence": {
+        "schema_version": 2,
+        "payload_state": "never_downloaded",
+        "source_url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_al-05-20-20200812.pdf",
+        "basis": "withdrawn",
+        "reason": "The exact linked document is explicitly labeled Obsolete on the official index: Medicaid/NC Health Choice Recertification Procedures for COVID-19 \u2013 Obsolete. This finding applies only to this link; neighboring unmarked attachments are not retired.",
+        "download_history": {
+          "history_complete": true,
+          "retained_snapshots": [
+            {
+              "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/retained-registry-history.json",
+              "sha256": "5534dab7dffeccca50a5e591893d9f0d251a137598bec1c4738870775889ae53",
+              "restore_receipt": {
+                "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/retained-restore-receipt.json",
+                "sha256": "a30a1662e79ab2735ec8476177d2ad3911b4e6f685dbd30e2e04a625f1e5eb9a"
+              }
+            }
+          ]
+        },
+        "evidence": [
+          {
+            "url": "https://policies.ncdhhs.gov/document/2020-covid-19-guidance-and-procedures-administrative-letters/",
+            "checked_at": "2026-09-23T20:40:56.084Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/captures/82bb54c0fa37ad239b14130ac64ff66106f16bd87fd60e66085a8883cd5ad6eb.bin",
+            "sha256": "82bb54c0fa37ad239b14130ac64ff66106f16bd87fd60e66085a8883cd5ad6eb",
+            "finding": "The exact linked document is explicitly labeled Obsolete on the official index: Medicaid/NC Health Choice Recertification Procedures for COVID-19 \u2013 Obsolete. This finding applies only to this link; neighboring unmarked attachments are not retired.",
+            "kind": "withdrawal_notice"
+          },
+          {
+            "url": "https://policies.ncdhhs.gov/document/2020-covid-19-guidance-and-procedures-administrative-letters/",
+            "checked_at": "2026-09-23T20:40:56.084Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/captures/82bb54c0fa37ad239b14130ac64ff66106f16bd87fd60e66085a8883cd5ad6eb.bin",
+            "sha256": "82bb54c0fa37ad239b14130ac64ff66106f16bd87fd60e66085a8883cd5ad6eb",
+            "finding": "The exact linked document is explicitly labeled Obsolete on the official index: Medicaid/NC Health Choice Recertification Procedures for COVID-19 \u2013 Obsolete. This finding applies only to this link; neighboring unmarked attachments are not retired.",
+            "kind": "index_investigation"
+          }
+        ]
+      }
+    },
+    {
+      "action_id": "closure-withdrawal-12829",
+      "source_url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_al-01-21-20210122.pdf",
+      "registry_hash": "c21240c7649d0401b0dea6324922e7d9e35722e6d0b08016e8744560fdf17605",
+      "disposition": "retire",
+      "evidence": {
+        "schema_version": 2,
+        "payload_state": "never_downloaded",
+        "source_url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_al-01-21-20210122.pdf",
+        "basis": "withdrawn",
+        "reason": "The exact linked document is explicitly labeled Obsolete on the official index: Medicaid/NCHC Procedures for COVID-19, Addendum 1 \u2013 Obsolete. This finding applies only to this link; neighboring unmarked attachments are not retired.",
+        "download_history": {
+          "history_complete": true,
+          "retained_snapshots": [
+            {
+              "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/retained-registry-history.json",
+              "sha256": "5534dab7dffeccca50a5e591893d9f0d251a137598bec1c4738870775889ae53",
+              "restore_receipt": {
+                "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/retained-restore-receipt.json",
+                "sha256": "a30a1662e79ab2735ec8476177d2ad3911b4e6f685dbd30e2e04a625f1e5eb9a"
+              }
+            }
+          ]
+        },
+        "evidence": [
+          {
+            "url": "https://policies.ncdhhs.gov/document/2020-covid-19-guidance-and-procedures-administrative-letters/",
+            "checked_at": "2026-09-23T20:40:56.084Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/captures/82bb54c0fa37ad239b14130ac64ff66106f16bd87fd60e66085a8883cd5ad6eb.bin",
+            "sha256": "82bb54c0fa37ad239b14130ac64ff66106f16bd87fd60e66085a8883cd5ad6eb",
+            "finding": "The exact linked document is explicitly labeled Obsolete on the official index: Medicaid/NCHC Procedures for COVID-19, Addendum 1 \u2013 Obsolete. This finding applies only to this link; neighboring unmarked attachments are not retired.",
+            "kind": "withdrawal_notice"
+          },
+          {
+            "url": "https://policies.ncdhhs.gov/document/2020-covid-19-guidance-and-procedures-administrative-letters/",
+            "checked_at": "2026-09-23T20:40:56.084Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/captures/82bb54c0fa37ad239b14130ac64ff66106f16bd87fd60e66085a8883cd5ad6eb.bin",
+            "sha256": "82bb54c0fa37ad239b14130ac64ff66106f16bd87fd60e66085a8883cd5ad6eb",
+            "finding": "The exact linked document is explicitly labeled Obsolete on the official index: Medicaid/NCHC Procedures for COVID-19, Addendum 1 \u2013 Obsolete. This finding applies only to this link; neighboring unmarked attachments are not retired.",
+            "kind": "index_investigation"
+          }
+        ]
+      }
+    },
+    {
+      "action_id": "closure-withdrawal-12827",
+      "source_url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_al-01-20-add-1-att-1a-20200807.pdf",
+      "registry_hash": "f437114219c9eda555fc1867230b748cfc2705e43e28cc2944cce656f644682c",
+      "disposition": "retire",
+      "evidence": {
+        "schema_version": 2,
+        "payload_state": "never_downloaded",
+        "source_url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_al-01-20-add-1-att-1a-20200807.pdf",
+        "basis": "withdrawn",
+        "reason": "The exact linked document is explicitly labeled Obsolete on the official index: Attachment 1 -DHB Self Attestation \u2013 Obsolete. This finding applies only to this link; neighboring unmarked attachments are not retired.",
+        "download_history": {
+          "history_complete": true,
+          "retained_snapshots": [
+            {
+              "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/retained-registry-history.json",
+              "sha256": "5534dab7dffeccca50a5e591893d9f0d251a137598bec1c4738870775889ae53",
+              "restore_receipt": {
+                "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/retained-restore-receipt.json",
+                "sha256": "a30a1662e79ab2735ec8476177d2ad3911b4e6f685dbd30e2e04a625f1e5eb9a"
+              }
+            }
+          ]
+        },
+        "evidence": [
+          {
+            "url": "https://policies.ncdhhs.gov/document/2020-covid-19-guidance-and-procedures-administrative-letters/",
+            "checked_at": "2026-09-23T20:40:56.084Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/captures/82bb54c0fa37ad239b14130ac64ff66106f16bd87fd60e66085a8883cd5ad6eb.bin",
+            "sha256": "82bb54c0fa37ad239b14130ac64ff66106f16bd87fd60e66085a8883cd5ad6eb",
+            "finding": "The exact linked document is explicitly labeled Obsolete on the official index: Attachment 1 -DHB Self Attestation \u2013 Obsolete. This finding applies only to this link; neighboring unmarked attachments are not retired.",
+            "kind": "withdrawal_notice"
+          },
+          {
+            "url": "https://policies.ncdhhs.gov/document/2020-covid-19-guidance-and-procedures-administrative-letters/",
+            "checked_at": "2026-09-23T20:40:56.084Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/captures/82bb54c0fa37ad239b14130ac64ff66106f16bd87fd60e66085a8883cd5ad6eb.bin",
+            "sha256": "82bb54c0fa37ad239b14130ac64ff66106f16bd87fd60e66085a8883cd5ad6eb",
+            "finding": "The exact linked document is explicitly labeled Obsolete on the official index: Attachment 1 -DHB Self Attestation \u2013 Obsolete. This finding applies only to this link; neighboring unmarked attachments are not retired.",
+            "kind": "index_investigation"
+          }
+        ]
+      }
+    },
+    {
+      "action_id": "closure-withdrawal-12828",
+      "source_url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_al-01-20-add-1-att-2-20200807-1.pdf",
+      "registry_hash": "1b3d1856499ac296339b10c04e786e457d4d0b26084c5306613312e4adb40592",
+      "disposition": "retire",
+      "evidence": {
+        "schema_version": 2,
+        "payload_state": "never_downloaded",
+        "source_url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_al-01-20-add-1-att-2-20200807-1.pdf",
+        "basis": "withdrawn",
+        "reason": "The exact linked document is explicitly labeled Obsolete on the official index: Attachment 2 \u2013 ZixMail Instructions for State Appeals \u2013 Obsolete. This finding applies only to this link; neighboring unmarked attachments are not retired.",
+        "download_history": {
+          "history_complete": true,
+          "retained_snapshots": [
+            {
+              "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/retained-registry-history.json",
+              "sha256": "5534dab7dffeccca50a5e591893d9f0d251a137598bec1c4738870775889ae53",
+              "restore_receipt": {
+                "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/retained-restore-receipt.json",
+                "sha256": "a30a1662e79ab2735ec8476177d2ad3911b4e6f685dbd30e2e04a625f1e5eb9a"
+              }
+            }
+          ]
+        },
+        "evidence": [
+          {
+            "url": "https://policies.ncdhhs.gov/document/2020-covid-19-guidance-and-procedures-administrative-letters/",
+            "checked_at": "2026-09-23T20:40:56.084Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/captures/82bb54c0fa37ad239b14130ac64ff66106f16bd87fd60e66085a8883cd5ad6eb.bin",
+            "sha256": "82bb54c0fa37ad239b14130ac64ff66106f16bd87fd60e66085a8883cd5ad6eb",
+            "finding": "The exact linked document is explicitly labeled Obsolete on the official index: Attachment 2 \u2013 ZixMail Instructions for State Appeals \u2013 Obsolete. This finding applies only to this link; neighboring unmarked attachments are not retired.",
+            "kind": "withdrawal_notice"
+          },
+          {
+            "url": "https://policies.ncdhhs.gov/document/2020-covid-19-guidance-and-procedures-administrative-letters/",
+            "checked_at": "2026-09-23T20:40:56.084Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/captures/82bb54c0fa37ad239b14130ac64ff66106f16bd87fd60e66085a8883cd5ad6eb.bin",
+            "sha256": "82bb54c0fa37ad239b14130ac64ff66106f16bd87fd60e66085a8883cd5ad6eb",
+            "finding": "The exact linked document is explicitly labeled Obsolete on the official index: Attachment 2 \u2013 ZixMail Instructions for State Appeals \u2013 Obsolete. This finding applies only to this link; neighboring unmarked attachments are not retired.",
+            "kind": "index_investigation"
+          }
+        ]
+      }
+    },
+    {
+      "action_id": "closure-withdrawal-12826",
+      "source_url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_al-01-20-20200807.pdf",
+      "registry_hash": "91bd7769bd081dc3039bd8240abf5f82cf041cb66cfcb115a456703198f8ec98",
+      "disposition": "retire",
+      "evidence": {
+        "schema_version": 2,
+        "payload_state": "never_downloaded",
+        "source_url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_al-01-20-20200807.pdf",
+        "basis": "withdrawn",
+        "reason": "The exact linked document is explicitly labeled Obsolete on the official index: Medicaid/NCHC Procedures for COVID-19 \u2013 Obsolete. This finding applies only to this link; neighboring unmarked attachments are not retired.",
+        "download_history": {
+          "history_complete": true,
+          "retained_snapshots": [
+            {
+              "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/retained-registry-history.json",
+              "sha256": "5534dab7dffeccca50a5e591893d9f0d251a137598bec1c4738870775889ae53",
+              "restore_receipt": {
+                "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/retained-restore-receipt.json",
+                "sha256": "a30a1662e79ab2735ec8476177d2ad3911b4e6f685dbd30e2e04a625f1e5eb9a"
+              }
+            }
+          ]
+        },
+        "evidence": [
+          {
+            "url": "https://policies.ncdhhs.gov/document/2020-covid-19-guidance-and-procedures-administrative-letters/",
+            "checked_at": "2026-09-23T20:40:56.084Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/captures/82bb54c0fa37ad239b14130ac64ff66106f16bd87fd60e66085a8883cd5ad6eb.bin",
+            "sha256": "82bb54c0fa37ad239b14130ac64ff66106f16bd87fd60e66085a8883cd5ad6eb",
+            "finding": "The exact linked document is explicitly labeled Obsolete on the official index: Medicaid/NCHC Procedures for COVID-19 \u2013 Obsolete. This finding applies only to this link; neighboring unmarked attachments are not retired.",
+            "kind": "withdrawal_notice"
+          },
+          {
+            "url": "https://policies.ncdhhs.gov/document/2020-covid-19-guidance-and-procedures-administrative-letters/",
+            "checked_at": "2026-09-23T20:40:56.084Z",
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/captures/82bb54c0fa37ad239b14130ac64ff66106f16bd87fd60e66085a8883cd5ad6eb.bin",
+            "sha256": "82bb54c0fa37ad239b14130ac64ff66106f16bd87fd60e66085a8883cd5ad6eb",
+            "finding": "The exact linked document is explicitly labeled Obsolete on the official index: Medicaid/NCHC Procedures for COVID-19 \u2013 Obsolete. This finding applies only to this link; neighboring unmarked attachments are not retired.",
+            "kind": "index_investigation"
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "checkedAt": "2026-09-23T22:44:45.239169+00:00",
+  "agentTarget": {
+    "NEO4J_URI": "bolt://neo4j.railway.internal:7687",
+    "CORPUS_RELEASE_ID": "legacy-20260725-ae8595c",
+    "ACTIVE_CORPUS_COLOR": null,
+    "AGENT_MODEL": "gpt-5.4",
+    "VERIFIER_MODEL": null
+  },
+  "activeColorPresent": false,
+  "graphReadiness": {
+    "status": "ok",
+    "config": "valid",
+    "neo4j": "connected",
+    "storage": "writable",
+    "releaseId": "legacy-20260725-ae8595c"
+  },
+  "corpusJob": {
+    "mode": "recover-parse",
+    "startCommand": "sleep infinity",
+    "freshAuthenticationConfigured": true,
+    "ageRecipientConfigured": true
+  },
+  "blueMutated": false,
+  "scheduledOperationEnabled": false
+}

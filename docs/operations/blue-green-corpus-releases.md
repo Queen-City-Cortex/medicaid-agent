@@ -424,5 +424,34 @@ still describe a previous conversation during asynchronous refresh. Duplicate
 visible titles fail rather than selecting an arbitrary thread.
 
 The [2026-09-23 source audit](../validation/source-audit-2026-09-23/README.md)
-records the current blocked inventory, per-source dispositions, identity preflight,
-failed fixed smoke batch, verified browser persistence and matching restored backup.
+records the initial inventory, identity preflight, failed fixed smoke batch and
+verified browser persistence. The [closure follow-up](../validation/source-closure-2026-09-23/README.md)
+records the current seven required failures, zero undocumented removals, 313 optional
+failures and matching restored backup. Production remains legacy and scheduling stays disabled.
+
+For large encrypted backups transferred through Railway SSH, retain the completed
+byte prefix if the transfer ends early. Resume with bounded object-store byte ranges,
+verify each range length and the complete object length, then run the full decrypt/
+restore check. A partial local archive never satisfies the backup gate.
+
+## Applying reviewed availability observations
+
+Collection remains read-only. To record collected HTTP checks without another
+request, use a reviewed `source-audit` action with `disposition: availability`
+and evidence `{schema_version: 1, observations: [{audit: {capture_path, sha256}}]}`.
+Each audit manifest must be an immutable corpus-relative copy and contain the
+exact source's captured response. Validate before applying under the writer lock.
+The action updates only `last_checked_at` and the consecutive-404 count; it never
+reactivates a tombstone or increments download attempts. A successful HTTP
+observation resets the streak. A redirected observation also resets it, even if
+the destination returns 404; only a direct 404 from the original source adds to
+the streak. Original URL plus request timestamp identifies
+an observation, so copied caches and new action IDs cannot count it twice.
+Out-of-order evidence, modified captures and stale registry state are rejected.
+The update and journal commit atomically. Applied observations join source
+snapshots and their captures are checked during backup restoration.
+
+A document-specific “Obsolete” label on an official index is withdrawal evidence
+when the label clearly identifies the exact linked document. Preserve the link,
+its immediate text/markup, date and captured hash. Do not extend that finding to
+nearby attachments or other versions without their own explicit evidence.

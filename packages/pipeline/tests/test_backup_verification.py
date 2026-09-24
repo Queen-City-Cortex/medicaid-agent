@@ -16,7 +16,14 @@ backup = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(backup)
 
 
-def archive(tmp_path, *, tamper=False, omit_evidence=False):
+def archive(
+    tmp_path,
+    *,
+    tamper=False,
+    omit_evidence=False,
+    availability=False,
+    omit_availability=False,
+):
     db_path = tmp_path / "crawler.db"
     evidence = b"Official removal notice and index"
     capture = "pipeline/source-retirement-evidence/notice.html"
@@ -46,6 +53,32 @@ def archive(tmp_path, *, tamper=False, omit_evidence=False):
                 ),
             ),
         )
+    if availability:
+        with sqlite3.connect(db_path) as db:
+            db.execute(
+                "CREATE TABLE source_audit_actions(action_id TEXT,source_url TEXT,disposition TEXT,result_json TEXT)"
+            )
+            db.execute(
+                "INSERT INTO source_audit_actions VALUES('observation-1','https://policies.ncdhhs.gov/test.pdf','availability',?)",
+                (
+                    json.dumps(
+                        {
+                            "observations": [
+                                {
+                                    "response_path": capture,
+                                    "response_hash": hashlib.sha256(
+                                        evidence
+                                    ).hexdigest(),
+                                    "audit": {
+                                        "capture_path": "pipeline/source-audit-evidence/audit.json",
+                                        "sha256": hashlib.sha256(b"{}").hexdigest(),
+                                    },
+                                }
+                            ]
+                        }
+                    ),
+                ),
+            )
     payload = b'{"sections":[]}'
     meta = {
         "parse_status": "parsed",
@@ -62,6 +95,8 @@ def archive(tmp_path, *, tamper=False, omit_evidence=False):
     }
     if not omit_evidence:
         files[capture] = evidence
+    if availability and not omit_availability:
+        files["pipeline/source-audit-evidence/audit.json"] = b"{}"
     data = io.BytesIO()
     with tarfile.open(fileobj=data, mode="w:gz") as tar:
         for name, content in files.items():
@@ -103,9 +138,27 @@ def test_live_and_restored_snapshot_share_source_artifact_namespace(
             target = live / relative
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes(tar.extractfile(member).read())
-    monkeypatch.setattr(freshness, "CRAWLER_DB_PATH", live / registry_directory / "crawler.db")
+    monkeypatch.setattr(
+        freshness, "CRAWLER_DB_PATH", live / registry_directory / "crawler.db"
+    )
     parsed = live / "pipeline/parsed"
     before = freshness.build_answer_ready_snapshot(parsed)
     assert "sha256:" + before["snapshot_hash"] == restored["sourceSnapshotHash"]
     (live / registry_directory / "documents/test.pdf").write_bytes(b"changed source")
-    assert freshness.build_answer_ready_snapshot(parsed)["snapshot_hash"] != before["snapshot_hash"]
+    assert (
+        freshness.build_answer_ready_snapshot(parsed)["snapshot_hash"]
+        != before["snapshot_hash"]
+    )
+
+
+def test_backup_includes_applied_availability_history(tmp_path):
+    complete = backup.inspect_archive(archive(tmp_path, availability=True))
+    assert complete["sqliteIntegrity"] == "ok"
+    assert complete["availabilityObservationsChecked"] == 1
+
+
+def test_backup_rejects_missing_availability_manifest(tmp_path):
+    with pytest.raises(ValueError, match="Availability audit"):
+        backup.inspect_archive(
+            archive(tmp_path, availability=True, omit_availability=True)
+        )

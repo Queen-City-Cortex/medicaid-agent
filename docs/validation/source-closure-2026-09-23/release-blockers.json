@@ -1,0 +1,102 @@
+{
+  "releaseEligible": false,
+  "requiredSourceFailures": [
+    {
+      "registry_id": 875,
+      "source_url": "https://covid19.ncdhhs.gov/swso-pharmacists-dispense-otc-covid-19-tests/download?attachment=",
+      "title": "State Standing Order",
+      "failure": "parse_exception",
+      "reason": "No explicit withdrawal or recoverable official attachment; remains mandatory",
+      "previousEvidence": {
+        "main_audit": "source-audit.json",
+        "followup_audit": "standing-audit.json"
+      },
+      "evidence": {
+        "previousPublication": "../source-audit-2026-09-23/evidence-publication.json",
+        "currentSupplement": "source-closure-2026-09-23-evidence.tar.gz"
+      }
+    },
+    {
+      "registry_id": 1905,
+      "source_url": "https://policies.ncdhhs.gov/document/dhb-5097-gu-%e0%aa%ae%e0%aa%be%e0%aa%b9%e0%aa%bf%e0%aa%a4%e0%ab%80-%e0%aa%ae%e0%aa%be%e0%aa%9f%e0%ab%87%e0%aa%b5%e0%aa%bf%e0%aa%a8-%e0%aa%82%e0%aa%a4%e0%ab%80/",
+      "title": "DHB-5097 GU \u0aae\u0abe\u0ab9\u0abf\u0aa4\u0ac0 \u0aae\u0abe\u0a9f\u0ac7\u0ab5\u0abf\u0aa8 \u0a82\u0aa4\u0ac0",
+      "failure": "parse_exception",
+      "reason": "No explicit withdrawal or recoverable official attachment; remains mandatory",
+      "previousEvidence": {
+        "main_audit": "source-audit.json",
+        "followup_audit": "source-audit.json"
+      },
+      "evidence": {
+        "previousPublication": "../source-audit-2026-09-23/evidence-publication.json",
+        "currentSupplement": "source-closure-2026-09-23-evidence.tar.gz"
+      },
+      "officialApiInvestigation": "The officially linked WordPress document endpoint and associated attachment listing returned HTTP 403. No replacement payload established; access controls were not bypassed."
+    },
+    {
+      "registry_id": 11805,
+      "source_url": "https://policies.ncdhhs.gov/document/2025-magi-medicaid-income-limits-2/",
+      "title": "2025 MAGI MEDICAID INCOME LIMITS",
+      "failure": "missing_payload",
+      "reason": "DHHS document page has 0 attachments; expected exactly one",
+      "previousEvidence": "source-audit.json",
+      "evidence": {
+        "previousPublication": "../source-audit-2026-09-23/evidence-publication.json",
+        "currentSupplement": "source-closure-2026-09-23-evidence.tar.gz"
+      },
+      "officialApiInvestigation": "The officially linked WordPress document endpoint and associated attachment listing returned HTTP 403. No replacement payload established; access controls were not bypassed."
+    },
+    {
+      "registry_id": 11806,
+      "source_url": "https://policies.ncdhhs.gov/document/2025-magi-medicaid-income-limits/",
+      "title": "2025 MAGI MEDICAID INCOME LIMITS",
+      "failure": "missing_payload",
+      "reason": "DHHS document page has 0 attachments; expected exactly one",
+      "previousEvidence": "source-audit.json",
+      "evidence": {
+        "previousPublication": "../source-audit-2026-09-23/evidence-publication.json",
+        "currentSupplement": "source-closure-2026-09-23-evidence.tar.gz"
+      },
+      "officialApiInvestigation": "The officially linked WordPress document endpoint and associated attachment listing returned HTTP 403. No replacement payload established; access controls were not bypassed."
+    },
+    {
+      "registry_id": 12820,
+      "source_url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/attachment__b-__zixmail_instructions_with_e-mail_examples_for_submitting_state_appeal_requests__-004.pdf",
+      "title": null,
+      "failure": "missing_payload",
+      "reason": "Exact archive link has no explicit Obsolete label. Prior audit exhausted DNS retries. Supplemental retry repeated DNS errors and was interrupted; it is not an exhausted retry receipt.",
+      "previousEvidence": "archive-audit.json",
+      "evidence": {
+        "previousPublication": "../source-audit-2026-09-23/evidence-publication.json",
+        "currentSupplement": "source-closure-2026-09-23-evidence.tar.gz"
+      }
+    },
+    {
+      "registry_id": 12821,
+      "source_url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/attachment_dhb_self_attestation_8-2020_final.pdf",
+      "title": null,
+      "failure": "missing_payload",
+      "reason": "Exact archive link has no explicit Obsolete label. Prior audit exhausted DNS retries. Supplemental retry repeated DNS errors and was interrupted; it is not an exhausted retry receipt.",
+      "previousEvidence": "archive-audit.json",
+      "evidence": {
+        "previousPublication": "../source-audit-2026-09-23/evidence-publication.json",
+        "currentSupplement": "source-closure-2026-09-23-evidence.tar.gz"
+      }
+    },
+    {
+      "registry_id": 12822,
+      "source_url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_-al08-20-magi-deduction-procedures-docx.pdf",
+      "title": null,
+      "failure": "missing_payload",
+      "reason": "Exact archive link has no explicit Obsolete label. Prior audit exhausted DNS retries. Supplemental retry repeated DNS errors and was interrupted; it is not an exhausted retry receipt.",
+      "previousEvidence": "archive-audit.json",
+      "evidence": {
+        "previousPublication": "../source-audit-2026-09-23/evidence-publication.json",
+        "currentSupplement": "source-closure-2026-09-23-evidence.tar.gz"
+      }
+    }
+  ],
+  "undocumentedRemovals": [],
+  "optionalFailureCount": 313,
+  "epsdtBatchPassed": false,
+  "blueEvaluation": "not_run_source_and_smoke_gates_failed"
+}

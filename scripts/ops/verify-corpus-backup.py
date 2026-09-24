@@ -135,6 +135,15 @@ def inspect_archive(stream, *, include_history=False):
                     if hashes.get(name.removesuffix(".meta.json") + suffix) != expected:
                         raise ValueError("Parsed artifact hash mismatch: " + name)
                     checked += 1
+        availability_checked = 0
+        for action in lifecycle.get("availability_observations", []):
+            for observation in json.loads(action["result_json"])["observations"]:
+                if hashes.get(observation["response_path"]) != "sha256:" + observation["response_hash"]:
+                    raise ValueError("Availability response missing or changed in backup")
+                audit = observation["audit"]
+                if hashes.get(audit["capture_path"]) != "sha256:" + audit["sha256"]:
+                    raise ValueError("Availability audit missing or changed in backup")
+                availability_checked += 1
         for row in retirements:
             for capture in json.loads(row["evidence_json"])["evidence"]:
                 if hashes.get(capture["capture_path"]) != "sha256:" + capture["sha256"]:
@@ -220,6 +229,7 @@ def inspect_archive(stream, *, include_history=False):
             "artifactHashesChecked": checked,
             "retirementRecordsChecked": len(retirements),
             "classificationRecordsChecked": len(lifecycle["classifications"]),
+            "availabilityObservationsChecked": availability_checked,
             "snapshotSchemaVersion": 2,
             "uncompressedBytes": byte_count,
             "counts": counts,

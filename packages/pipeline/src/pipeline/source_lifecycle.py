@@ -65,7 +65,7 @@ def read_table(db_path: Path, table: str) -> list[dict]:
             return []
         return [
             dict(row)
-            for row in db.execute(f"SELECT * FROM {table} ORDER BY source_url")
+            for row in db.execute(f"SELECT * FROM {table} ORDER BY source_url" + (", action_id" if table == "source_audit_actions" else ""))
         ]
 
 
@@ -181,7 +181,7 @@ def lifecycle_snapshot(db_path: Path, artifact_hashes: dict[str, str]) -> dict:
                 else None
             )
             sources.append(identity)
-    return {
+    result = {
         "schema_version": 2,
         "artifacts": {
             k: v
@@ -192,3 +192,10 @@ def lifecycle_snapshot(db_path: Path, artifact_hashes: dict[str, str]) -> dict:
         "classifications": read_table(db_path, "source_classifications"),
         "retirements": read_table(db_path, "source_retirements"),
     }
+
+    # Optional audit history preserves hashes for existing snapshots with no
+    # applied observations; new evidence becomes part of the frozen snapshot.
+    observations = [r for r in read_table(db_path, "source_audit_actions") if r["disposition"] == "availability"]
+    if observations:
+        result["availability_observations"] = observations
+    return result

@@ -1,0 +1,728 @@
+{
+  "availability": [
+    {
+      "consecutive_not_found": 3,
+      "new_observations": 3,
+      "observations": [
+        {
+          "audit": {
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/audit.json",
+            "sha256": "4b53dc03d0e0e40936dadc4e597387a73353636fa8c851a0737972c33540d747"
+          },
+          "checked_at": "2026-09-23T20:35:33.444000+00:00",
+          "final_url": "https://medicaid.ncdhhs.gov/nc-credentialing-committee-bylaws/download?attachment=",
+          "observation_id": "ee576ad171caf0821a0b50f4dae336c2627b73e9c54ec6d93d6bc0a5fb3fa5ea",
+          "redirects": [],
+          "response_hash": "93a7b43886deeaacec1c7e1926ba7401ae8029ffb34712503b453eff31e2d64a",
+          "response_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/captures/93a7b43886deeaacec1c7e1926ba7401ae8029ffb34712503b453eff31e2d64a.bin",
+          "source_url": "https://medicaid.ncdhhs.gov/nc-credentialing-committee-bylaws/download?attachment=",
+          "status_code": 404
+        },
+        {
+          "audit": {
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/audit.json",
+            "sha256": "de9d6594b2f08f350a4d82198f4da48de45efe8871460065412241a71d039e1b"
+          },
+          "checked_at": "2026-09-23T21:28:43.544000+00:00",
+          "final_url": "https://medicaid.ncdhhs.gov/nc-credentialing-committee-bylaws/download?attachment=",
+          "observation_id": "ae202926c91c1f55f11f356993fdeccab2e168acf92b0a2bfb4bc051f8e783cd",
+          "redirects": [],
+          "response_hash": "93a7b43886deeaacec1c7e1926ba7401ae8029ffb34712503b453eff31e2d64a",
+          "response_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/93a7b43886deeaacec1c7e1926ba7401ae8029ffb34712503b453eff31e2d64a.bin",
+          "source_url": "https://medicaid.ncdhhs.gov/nc-credentialing-committee-bylaws/download?attachment=",
+          "status_code": 404
+        },
+        {
+          "audit": {
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/third/audit.json",
+            "sha256": "ccda6066b5a6a38f55468f7ef87c27deb162422942d37ef2e119d9e5315c2d2f"
+          },
+          "checked_at": "2026-09-23T22:22:18.181000+00:00",
+          "final_url": "https://medicaid.ncdhhs.gov/nc-credentialing-committee-bylaws/download?attachment=",
+          "observation_id": "d773dbd0f9e7c09984097521263f8e47dc8d77ae447fe7b9714f3649e6daa592",
+          "redirects": [],
+          "response_hash": "93a7b43886deeaacec1c7e1926ba7401ae8029ffb34712503b453eff31e2d64a",
+          "response_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/third/captures/93a7b43886deeaacec1c7e1926ba7401ae8029ffb34712503b453eff31e2d64a.bin",
+          "source_url": "https://medicaid.ncdhhs.gov/nc-credentialing-committee-bylaws/download?attachment=",
+          "status_code": 404
+        }
+      ],
+      "source_url": "https://medicaid.ncdhhs.gov/nc-credentialing-committee-bylaws/download?attachment=",
+      "status": "recorded"
+    },
+    {
+      "consecutive_not_found": 3,
+      "new_observations": 3,
+      "observations": [
+        {
+          "audit": {
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/audit.json",
+            "sha256": "4b53dc03d0e0e40936dadc4e597387a73353636fa8c851a0737972c33540d747"
+          },
+          "checked_at": "2026-09-23T20:35:49.647000+00:00",
+          "final_url": "https://medicaid.ncdhhs.gov/processes-and-frequently-asked-questions-1915i-services/download?attachment=",
+          "observation_id": "50f46affca2a1a53cf1d16e523936318df313bc7a377c2a958203db78077c680",
+          "redirects": [],
+          "response_hash": "f462cb836bd00b01427b0b6049f78292ee048181d7f9789ba0cb34f2ed2faa62",
+          "response_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/captures/f462cb836bd00b01427b0b6049f78292ee048181d7f9789ba0cb34f2ed2faa62.bin",
+          "source_url": "https://medicaid.ncdhhs.gov/processes-and-frequently-asked-questions-1915i-services/download?attachment=",
+          "status_code": 404
+        },
+        {
+          "audit": {
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/audit.json",
+            "sha256": "de9d6594b2f08f350a4d82198f4da48de45efe8871460065412241a71d039e1b"
+          },
+          "checked_at": "2026-09-23T21:29:37.731000+00:00",
+          "final_url": "https://medicaid.ncdhhs.gov/processes-and-frequently-asked-questions-1915i-services/download?attachment=",
+          "observation_id": "52bbef9c9b6d7b1aeb33af458b03fcae8b97e72643380e0d46ec8d238ef2d897",
+          "redirects": [],
+          "response_hash": "f462cb836bd00b01427b0b6049f78292ee048181d7f9789ba0cb34f2ed2faa62",
+          "response_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/f462cb836bd00b01427b0b6049f78292ee048181d7f9789ba0cb34f2ed2faa62.bin",
+          "source_url": "https://medicaid.ncdhhs.gov/processes-and-frequently-asked-questions-1915i-services/download?attachment=",
+          "status_code": 404
+        },
+        {
+          "audit": {
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/third/audit.json",
+            "sha256": "ccda6066b5a6a38f55468f7ef87c27deb162422942d37ef2e119d9e5315c2d2f"
+          },
+          "checked_at": "2026-09-23T22:22:30.328000+00:00",
+          "final_url": "https://medicaid.ncdhhs.gov/processes-and-frequently-asked-questions-1915i-services/download?attachment=",
+          "observation_id": "4a6b2f8dee8cb671047ba42e0661bcec34b439675d73c3a11aa4f0f1fabb9a54",
+          "redirects": [],
+          "response_hash": "f462cb836bd00b01427b0b6049f78292ee048181d7f9789ba0cb34f2ed2faa62",
+          "response_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/third/captures/f462cb836bd00b01427b0b6049f78292ee048181d7f9789ba0cb34f2ed2faa62.bin",
+          "source_url": "https://medicaid.ncdhhs.gov/processes-and-frequently-asked-questions-1915i-services/download?attachment=",
+          "status_code": 404
+        }
+      ],
+      "source_url": "https://medicaid.ncdhhs.gov/processes-and-frequently-asked-questions-1915i-services/download?attachment=",
+      "status": "recorded"
+    },
+    {
+      "consecutive_not_found": 3,
+      "new_observations": 3,
+      "observations": [
+        {
+          "audit": {
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/audit.json",
+            "sha256": "4b53dc03d0e0e40936dadc4e597387a73353636fa8c851a0737972c33540d747"
+          },
+          "checked_at": "2026-09-23T20:35:53.621000+00:00",
+          "final_url": "https://medicaid.ncdhhs.gov/north-carolinas-transition-1915b3-benefits-1915i/download?attachment=",
+          "observation_id": "8cc48117aab27c9d8ef0bf30b310c183142b5cb47f77725aa6cb8b7720068619",
+          "redirects": [],
+          "response_hash": "8fa372ff8c87692af9940ce83a17279e54d7d93dbfd4b38f481013da1049add6",
+          "response_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/captures/8fa372ff8c87692af9940ce83a17279e54d7d93dbfd4b38f481013da1049add6.bin",
+          "source_url": "https://medicaid.ncdhhs.gov/north-carolinas-transition-1915b3-benefits-1915i/download?attachment=",
+          "status_code": 404
+        },
+        {
+          "audit": {
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/audit.json",
+            "sha256": "de9d6594b2f08f350a4d82198f4da48de45efe8871460065412241a71d039e1b"
+          },
+          "checked_at": "2026-09-23T21:29:41.743000+00:00",
+          "final_url": "https://medicaid.ncdhhs.gov/north-carolinas-transition-1915b3-benefits-1915i/download?attachment=",
+          "observation_id": "fdc0f33193be5cd78b88bf0bfb6a3f5bc0a54a27c4431152b50a24c7ee8ff23e",
+          "redirects": [],
+          "response_hash": "8fa372ff8c87692af9940ce83a17279e54d7d93dbfd4b38f481013da1049add6",
+          "response_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/8fa372ff8c87692af9940ce83a17279e54d7d93dbfd4b38f481013da1049add6.bin",
+          "source_url": "https://medicaid.ncdhhs.gov/north-carolinas-transition-1915b3-benefits-1915i/download?attachment=",
+          "status_code": 404
+        },
+        {
+          "audit": {
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/third/audit.json",
+            "sha256": "ccda6066b5a6a38f55468f7ef87c27deb162422942d37ef2e119d9e5315c2d2f"
+          },
+          "checked_at": "2026-09-23T22:22:34.352000+00:00",
+          "final_url": "https://medicaid.ncdhhs.gov/north-carolinas-transition-1915b3-benefits-1915i/download?attachment=",
+          "observation_id": "717288aee31cb67a0dbdbcadec3787af83462e6b50311a63ec0e17386d5f8c28",
+          "redirects": [],
+          "response_hash": "8fa372ff8c87692af9940ce83a17279e54d7d93dbfd4b38f481013da1049add6",
+          "response_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/third/captures/8fa372ff8c87692af9940ce83a17279e54d7d93dbfd4b38f481013da1049add6.bin",
+          "source_url": "https://medicaid.ncdhhs.gov/north-carolinas-transition-1915b3-benefits-1915i/download?attachment=",
+          "status_code": 404
+        }
+      ],
+      "source_url": "https://medicaid.ncdhhs.gov/north-carolinas-transition-1915b3-benefits-1915i/download?attachment=",
+      "status": "recorded"
+    },
+    {
+      "consecutive_not_found": 3,
+      "new_observations": 3,
+      "observations": [
+        {
+          "audit": {
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/audit.json",
+            "sha256": "4b53dc03d0e0e40936dadc4e597387a73353636fa8c851a0737972c33540d747"
+          },
+          "checked_at": "2026-09-23T20:35:57.859000+00:00",
+          "final_url": "https://medicaid.ncdhhs.gov/advanced-medical-home-provider-manual/download?attachment=",
+          "observation_id": "5d6f9459c0e41ee3faff10b4a4aec361c7534d0da378033a60a2cade8bdd2686",
+          "redirects": [],
+          "response_hash": "c4fcd1d6f30ee05e073bb4d9ba30ca6e919a0dc9b923f7e3c9a051251eb4586d",
+          "response_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/captures/c4fcd1d6f30ee05e073bb4d9ba30ca6e919a0dc9b923f7e3c9a051251eb4586d.bin",
+          "source_url": "https://medicaid.ncdhhs.gov/advanced-medical-home-provider-manual/download?attachment=",
+          "status_code": 404
+        },
+        {
+          "audit": {
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/audit.json",
+            "sha256": "de9d6594b2f08f350a4d82198f4da48de45efe8871460065412241a71d039e1b"
+          },
+          "checked_at": "2026-09-23T21:29:45.745000+00:00",
+          "final_url": "https://medicaid.ncdhhs.gov/advanced-medical-home-provider-manual/download?attachment=",
+          "observation_id": "fd5cb4a4a4eb15dbae48bb9d90c57af39f5b5865c85fd64ba631dd4bd783a109",
+          "redirects": [],
+          "response_hash": "c4fcd1d6f30ee05e073bb4d9ba30ca6e919a0dc9b923f7e3c9a051251eb4586d",
+          "response_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/c4fcd1d6f30ee05e073bb4d9ba30ca6e919a0dc9b923f7e3c9a051251eb4586d.bin",
+          "source_url": "https://medicaid.ncdhhs.gov/advanced-medical-home-provider-manual/download?attachment=",
+          "status_code": 404
+        },
+        {
+          "audit": {
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/third/audit.json",
+            "sha256": "ccda6066b5a6a38f55468f7ef87c27deb162422942d37ef2e119d9e5315c2d2f"
+          },
+          "checked_at": "2026-09-23T22:22:38.355000+00:00",
+          "final_url": "https://medicaid.ncdhhs.gov/advanced-medical-home-provider-manual/download?attachment=",
+          "observation_id": "4ed1a6ebbbd8f0eab678d593f477496849f1bda6933f02b2dd0fb02a9a97b51f",
+          "redirects": [],
+          "response_hash": "c4fcd1d6f30ee05e073bb4d9ba30ca6e919a0dc9b923f7e3c9a051251eb4586d",
+          "response_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/third/captures/c4fcd1d6f30ee05e073bb4d9ba30ca6e919a0dc9b923f7e3c9a051251eb4586d.bin",
+          "source_url": "https://medicaid.ncdhhs.gov/advanced-medical-home-provider-manual/download?attachment=",
+          "status_code": 404
+        }
+      ],
+      "source_url": "https://medicaid.ncdhhs.gov/advanced-medical-home-provider-manual/download?attachment=",
+      "status": "recorded"
+    },
+    {
+      "consecutive_not_found": 3,
+      "new_observations": 3,
+      "observations": [
+        {
+          "audit": {
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/audit.json",
+            "sha256": "4b53dc03d0e0e40936dadc4e597387a73353636fa8c851a0737972c33540d747"
+          },
+          "checked_at": "2026-09-23T20:36:01.632000+00:00",
+          "final_url": "https://medicaid.ncdhhs.gov/1e-5-obstetrical-servicespdf/download?attachment=",
+          "observation_id": "708ddcee02d5814af186a84a34324630a0e6ff31e43036131b0dc3f44e009658",
+          "redirects": [],
+          "response_hash": "3ddfccec17aaac21cd3dd9a7c883c8dbf8e253a1da5d00b7b3e52773813d5796",
+          "response_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/captures/3ddfccec17aaac21cd3dd9a7c883c8dbf8e253a1da5d00b7b3e52773813d5796.bin",
+          "source_url": "https://medicaid.ncdhhs.gov/1e-5-obstetrical-servicespdf/download?attachment=",
+          "status_code": 404
+        },
+        {
+          "audit": {
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/audit.json",
+            "sha256": "de9d6594b2f08f350a4d82198f4da48de45efe8871460065412241a71d039e1b"
+          },
+          "checked_at": "2026-09-23T21:29:49.743000+00:00",
+          "final_url": "https://medicaid.ncdhhs.gov/1e-5-obstetrical-servicespdf/download?attachment=",
+          "observation_id": "c5c63f54aa1c06add75965caa3e8e539088fdde7b62a25c5dd2c9c04ea979801",
+          "redirects": [],
+          "response_hash": "3ddfccec17aaac21cd3dd9a7c883c8dbf8e253a1da5d00b7b3e52773813d5796",
+          "response_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/3ddfccec17aaac21cd3dd9a7c883c8dbf8e253a1da5d00b7b3e52773813d5796.bin",
+          "source_url": "https://medicaid.ncdhhs.gov/1e-5-obstetrical-servicespdf/download?attachment=",
+          "status_code": 404
+        },
+        {
+          "audit": {
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/third/audit.json",
+            "sha256": "ccda6066b5a6a38f55468f7ef87c27deb162422942d37ef2e119d9e5315c2d2f"
+          },
+          "checked_at": "2026-09-23T22:22:42.326000+00:00",
+          "final_url": "https://medicaid.ncdhhs.gov/1e-5-obstetrical-servicespdf/download?attachment=",
+          "observation_id": "71b42b31025105cf314a114eda33ae2b4ab9409e96ef2396961da8b7aa9a668c",
+          "redirects": [],
+          "response_hash": "3ddfccec17aaac21cd3dd9a7c883c8dbf8e253a1da5d00b7b3e52773813d5796",
+          "response_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/third/captures/3ddfccec17aaac21cd3dd9a7c883c8dbf8e253a1da5d00b7b3e52773813d5796.bin",
+          "source_url": "https://medicaid.ncdhhs.gov/1e-5-obstetrical-servicespdf/download?attachment=",
+          "status_code": 404
+        }
+      ],
+      "source_url": "https://medicaid.ncdhhs.gov/1e-5-obstetrical-servicespdf/download?attachment=",
+      "status": "recorded"
+    },
+    {
+      "consecutive_not_found": 3,
+      "new_observations": 3,
+      "observations": [
+        {
+          "audit": {
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/audit.json",
+            "sha256": "4b53dc03d0e0e40936dadc4e597387a73353636fa8c851a0737972c33540d747"
+          },
+          "checked_at": "2026-09-23T20:36:05.907000+00:00",
+          "final_url": "https://medicaid.ncdhhs.gov/north-carolinas-transition-1915b3-benefits-1915i-0/download?attachment=",
+          "observation_id": "9db286d01a6d731561bf3d791d84c69465287732b10349e875bce1a7a58e52bf",
+          "redirects": [],
+          "response_hash": "0f956512e01deb313dca3b8e16296452935d6c40eba17e1604a920ea9747ca3a",
+          "response_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/captures/0f956512e01deb313dca3b8e16296452935d6c40eba17e1604a920ea9747ca3a.bin",
+          "source_url": "https://medicaid.ncdhhs.gov/north-carolinas-transition-1915b3-benefits-1915i-0/download?attachment=",
+          "status_code": 404
+        },
+        {
+          "audit": {
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/audit.json",
+            "sha256": "de9d6594b2f08f350a4d82198f4da48de45efe8871460065412241a71d039e1b"
+          },
+          "checked_at": "2026-09-23T21:29:53.766000+00:00",
+          "final_url": "https://medicaid.ncdhhs.gov/north-carolinas-transition-1915b3-benefits-1915i-0/download?attachment=",
+          "observation_id": "f13a139782708a20b2a651339ddbda10a10548596b6bdca5d04107d92ae52c5e",
+          "redirects": [],
+          "response_hash": "0f956512e01deb313dca3b8e16296452935d6c40eba17e1604a920ea9747ca3a",
+          "response_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/0f956512e01deb313dca3b8e16296452935d6c40eba17e1604a920ea9747ca3a.bin",
+          "source_url": "https://medicaid.ncdhhs.gov/north-carolinas-transition-1915b3-benefits-1915i-0/download?attachment=",
+          "status_code": 404
+        },
+        {
+          "audit": {
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/third/audit.json",
+            "sha256": "ccda6066b5a6a38f55468f7ef87c27deb162422942d37ef2e119d9e5315c2d2f"
+          },
+          "checked_at": "2026-09-23T22:22:46.358000+00:00",
+          "final_url": "https://medicaid.ncdhhs.gov/north-carolinas-transition-1915b3-benefits-1915i-0/download?attachment=",
+          "observation_id": "721abe9fe8c1a4ded3603a701da986e2bce55b5a38220eb8d71ec50c31626ba4",
+          "redirects": [],
+          "response_hash": "0f956512e01deb313dca3b8e16296452935d6c40eba17e1604a920ea9747ca3a",
+          "response_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/third/captures/0f956512e01deb313dca3b8e16296452935d6c40eba17e1604a920ea9747ca3a.bin",
+          "source_url": "https://medicaid.ncdhhs.gov/north-carolinas-transition-1915b3-benefits-1915i-0/download?attachment=",
+          "status_code": 404
+        }
+      ],
+      "source_url": "https://medicaid.ncdhhs.gov/north-carolinas-transition-1915b3-benefits-1915i-0/download?attachment=",
+      "status": "recorded"
+    },
+    {
+      "consecutive_not_found": 3,
+      "new_observations": 3,
+      "observations": [
+        {
+          "audit": {
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/audit.json",
+            "sha256": "4b53dc03d0e0e40936dadc4e597387a73353636fa8c851a0737972c33540d747"
+          },
+          "checked_at": "2026-09-23T20:36:09.654000+00:00",
+          "final_url": "https://medicaid.ncdhhs.gov/tailored-care-management-provider-fact-sheet-0/download?attachment=",
+          "observation_id": "49903dc32bc2bf0a5d59cd420b77f074fcb421c0fc5303e24f14f7b629690a67",
+          "redirects": [],
+          "response_hash": "6ef675527339446cdc6a618e13d7c6357c954abff89cd4aa5bf91b5fbe44d580",
+          "response_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/captures/6ef675527339446cdc6a618e13d7c6357c954abff89cd4aa5bf91b5fbe44d580.bin",
+          "source_url": "https://medicaid.ncdhhs.gov/tailored-care-management-provider-fact-sheet-0/download?attachment=",
+          "status_code": 404
+        },
+        {
+          "audit": {
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/audit.json",
+            "sha256": "de9d6594b2f08f350a4d82198f4da48de45efe8871460065412241a71d039e1b"
+          },
+          "checked_at": "2026-09-23T21:29:57.758000+00:00",
+          "final_url": "https://medicaid.ncdhhs.gov/tailored-care-management-provider-fact-sheet-0/download?attachment=",
+          "observation_id": "043b6d4577d4e79a6ad09fc9713f786bc7d1cd2f71cf77d7a42a7853cd741288",
+          "redirects": [],
+          "response_hash": "6ef675527339446cdc6a618e13d7c6357c954abff89cd4aa5bf91b5fbe44d580",
+          "response_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/6ef675527339446cdc6a618e13d7c6357c954abff89cd4aa5bf91b5fbe44d580.bin",
+          "source_url": "https://medicaid.ncdhhs.gov/tailored-care-management-provider-fact-sheet-0/download?attachment=",
+          "status_code": 404
+        },
+        {
+          "audit": {
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/third/audit.json",
+            "sha256": "ccda6066b5a6a38f55468f7ef87c27deb162422942d37ef2e119d9e5315c2d2f"
+          },
+          "checked_at": "2026-09-23T22:22:50.376000+00:00",
+          "final_url": "https://medicaid.ncdhhs.gov/tailored-care-management-provider-fact-sheet-0/download?attachment=",
+          "observation_id": "874f82d95fde64ccf1fd634c5ab64abaffb24b3736a84f1fde46d568c72ae283",
+          "redirects": [],
+          "response_hash": "6ef675527339446cdc6a618e13d7c6357c954abff89cd4aa5bf91b5fbe44d580",
+          "response_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/third/captures/6ef675527339446cdc6a618e13d7c6357c954abff89cd4aa5bf91b5fbe44d580.bin",
+          "source_url": "https://medicaid.ncdhhs.gov/tailored-care-management-provider-fact-sheet-0/download?attachment=",
+          "status_code": 404
+        }
+      ],
+      "source_url": "https://medicaid.ncdhhs.gov/tailored-care-management-provider-fact-sheet-0/download?attachment=",
+      "status": "recorded"
+    },
+    {
+      "consecutive_not_found": 3,
+      "new_observations": 3,
+      "observations": [
+        {
+          "audit": {
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/audit.json",
+            "sha256": "4b53dc03d0e0e40936dadc4e597387a73353636fa8c851a0737972c33540d747"
+          },
+          "checked_at": "2026-09-23T20:36:13.873000+00:00",
+          "final_url": "https://medicaid.ncdhhs.gov/providerfactsheettp-enrollment-and-timeline/download?attachment=",
+          "observation_id": "07594e90fe155601873c71695cb7ec663478bb67a145bc95204bbe7f04a69b2e",
+          "redirects": [],
+          "response_hash": "1c003a037c699b0201151ad5e2c8b68054ee2d768ba636e4f4d7c59c0fbd1e7b",
+          "response_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/captures/1c003a037c699b0201151ad5e2c8b68054ee2d768ba636e4f4d7c59c0fbd1e7b.bin",
+          "source_url": "https://medicaid.ncdhhs.gov/providerfactsheettp-enrollment-and-timeline/download?attachment=",
+          "status_code": 404
+        },
+        {
+          "audit": {
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/audit.json",
+            "sha256": "de9d6594b2f08f350a4d82198f4da48de45efe8871460065412241a71d039e1b"
+          },
+          "checked_at": "2026-09-23T21:30:01.748000+00:00",
+          "final_url": "https://medicaid.ncdhhs.gov/providerfactsheettp-enrollment-and-timeline/download?attachment=",
+          "observation_id": "e41d6c96371e47ee86d1bb3e2e34629b6b9d1356c15bbb78bb0ee78dc0fb6f38",
+          "redirects": [],
+          "response_hash": "1c003a037c699b0201151ad5e2c8b68054ee2d768ba636e4f4d7c59c0fbd1e7b",
+          "response_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/1c003a037c699b0201151ad5e2c8b68054ee2d768ba636e4f4d7c59c0fbd1e7b.bin",
+          "source_url": "https://medicaid.ncdhhs.gov/providerfactsheettp-enrollment-and-timeline/download?attachment=",
+          "status_code": 404
+        },
+        {
+          "audit": {
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/third/audit.json",
+            "sha256": "ccda6066b5a6a38f55468f7ef87c27deb162422942d37ef2e119d9e5315c2d2f"
+          },
+          "checked_at": "2026-09-23T22:22:54.385000+00:00",
+          "final_url": "https://medicaid.ncdhhs.gov/providerfactsheettp-enrollment-and-timeline/download?attachment=",
+          "observation_id": "c69c6133f358744fa93086aec426849ea666538c59bd7ff9bd57275d52f96fd8",
+          "redirects": [],
+          "response_hash": "1c003a037c699b0201151ad5e2c8b68054ee2d768ba636e4f4d7c59c0fbd1e7b",
+          "response_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/third/captures/1c003a037c699b0201151ad5e2c8b68054ee2d768ba636e4f4d7c59c0fbd1e7b.bin",
+          "source_url": "https://medicaid.ncdhhs.gov/providerfactsheettp-enrollment-and-timeline/download?attachment=",
+          "status_code": 404
+        }
+      ],
+      "source_url": "https://medicaid.ncdhhs.gov/providerfactsheettp-enrollment-and-timeline/download?attachment=",
+      "status": "recorded"
+    },
+    {
+      "consecutive_not_found": 3,
+      "new_observations": 3,
+      "observations": [
+        {
+          "audit": {
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/audit.json",
+            "sha256": "4b53dc03d0e0e40936dadc4e597387a73353636fa8c851a0737972c33540d747"
+          },
+          "checked_at": "2026-09-23T20:36:17.861000+00:00",
+          "final_url": "https://medicaid.ncdhhs.gov/certified-tailored-care-management-providers-readiness-reviews-completed/download?attachment=",
+          "observation_id": "350490e2c6fffb3efe97fd5b68b97bec36c6fed7ea1b0b3b3f7e4291daceb57b",
+          "redirects": [],
+          "response_hash": "245b3f75bcb40a8bf91a36431e224335e64d40754410ffeec4d5b58118b32607",
+          "response_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/captures/245b3f75bcb40a8bf91a36431e224335e64d40754410ffeec4d5b58118b32607.bin",
+          "source_url": "https://medicaid.ncdhhs.gov/certified-tailored-care-management-providers-readiness-reviews-completed/download?attachment=",
+          "status_code": 404
+        },
+        {
+          "audit": {
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/audit.json",
+            "sha256": "de9d6594b2f08f350a4d82198f4da48de45efe8871460065412241a71d039e1b"
+          },
+          "checked_at": "2026-09-23T21:30:03.607000+00:00",
+          "final_url": "https://medicaid.ncdhhs.gov/certified-tailored-care-management-providers-readiness-reviews-completed/download?attachment=",
+          "observation_id": "d7489cb0ed4fe442151b3a24c7a969478989f1fe4cdd19e11a3f136e83cd96f7",
+          "redirects": [],
+          "response_hash": "245b3f75bcb40a8bf91a36431e224335e64d40754410ffeec4d5b58118b32607",
+          "response_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/245b3f75bcb40a8bf91a36431e224335e64d40754410ffeec4d5b58118b32607.bin",
+          "source_url": "https://medicaid.ncdhhs.gov/certified-tailored-care-management-providers-readiness-reviews-completed/download?attachment=",
+          "status_code": 404
+        },
+        {
+          "audit": {
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/third/audit.json",
+            "sha256": "ccda6066b5a6a38f55468f7ef87c27deb162422942d37ef2e119d9e5315c2d2f"
+          },
+          "checked_at": "2026-09-23T22:23:00.845000+00:00",
+          "final_url": "https://medicaid.ncdhhs.gov/certified-tailored-care-management-providers-readiness-reviews-completed/download?attachment=",
+          "observation_id": "f95966ec4d4dcfe525c2405673d58efd3b59b30895f72de8d4293e4c2e26ecc3",
+          "redirects": [],
+          "response_hash": "245b3f75bcb40a8bf91a36431e224335e64d40754410ffeec4d5b58118b32607",
+          "response_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/third/captures/245b3f75bcb40a8bf91a36431e224335e64d40754410ffeec4d5b58118b32607.bin",
+          "source_url": "https://medicaid.ncdhhs.gov/certified-tailored-care-management-providers-readiness-reviews-completed/download?attachment=",
+          "status_code": 404
+        }
+      ],
+      "source_url": "https://medicaid.ncdhhs.gov/certified-tailored-care-management-providers-readiness-reviews-completed/download?attachment=",
+      "status": "recorded"
+    },
+    {
+      "consecutive_not_found": 3,
+      "new_observations": 3,
+      "observations": [
+        {
+          "audit": {
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/audit.json",
+            "sha256": "4b53dc03d0e0e40936dadc4e597387a73353636fa8c851a0737972c33540d747"
+          },
+          "checked_at": "2026-09-23T20:36:22.145000+00:00",
+          "final_url": "https://medicaid.ncdhhs.gov/tailored-care-management-capacity-building-funds-guidance/download?attachment=",
+          "observation_id": "36133d2d76dbf5f2e4f9fa312209c8e3bfdc6be87524e1291cbf018c44eec33e",
+          "redirects": [],
+          "response_hash": "48a6cd37dcd7f58f70cb01ec3b2447321a53ffa31924f4eb69e9a5ef1a9178d2",
+          "response_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/captures/48a6cd37dcd7f58f70cb01ec3b2447321a53ffa31924f4eb69e9a5ef1a9178d2.bin",
+          "source_url": "https://medicaid.ncdhhs.gov/tailored-care-management-capacity-building-funds-guidance/download?attachment=",
+          "status_code": 404
+        },
+        {
+          "audit": {
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/audit.json",
+            "sha256": "de9d6594b2f08f350a4d82198f4da48de45efe8871460065412241a71d039e1b"
+          },
+          "checked_at": "2026-09-23T21:30:07.743000+00:00",
+          "final_url": "https://medicaid.ncdhhs.gov/tailored-care-management-capacity-building-funds-guidance/download?attachment=",
+          "observation_id": "440ceeae1da4f42ce81b4c0c60c5d38d01334d21e110123444cdc8b643ec2e3b",
+          "redirects": [],
+          "response_hash": "48a6cd37dcd7f58f70cb01ec3b2447321a53ffa31924f4eb69e9a5ef1a9178d2",
+          "response_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/48a6cd37dcd7f58f70cb01ec3b2447321a53ffa31924f4eb69e9a5ef1a9178d2.bin",
+          "source_url": "https://medicaid.ncdhhs.gov/tailored-care-management-capacity-building-funds-guidance/download?attachment=",
+          "status_code": 404
+        },
+        {
+          "audit": {
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/third/audit.json",
+            "sha256": "ccda6066b5a6a38f55468f7ef87c27deb162422942d37ef2e119d9e5315c2d2f"
+          },
+          "checked_at": "2026-09-23T22:23:04.847000+00:00",
+          "final_url": "https://medicaid.ncdhhs.gov/tailored-care-management-capacity-building-funds-guidance/download?attachment=",
+          "observation_id": "4fa7c815e22cb16215c5fe568623514f7f6ed7cc640f2f86f82586444aab8438",
+          "redirects": [],
+          "response_hash": "48a6cd37dcd7f58f70cb01ec3b2447321a53ffa31924f4eb69e9a5ef1a9178d2",
+          "response_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/third/captures/48a6cd37dcd7f58f70cb01ec3b2447321a53ffa31924f4eb69e9a5ef1a9178d2.bin",
+          "source_url": "https://medicaid.ncdhhs.gov/tailored-care-management-capacity-building-funds-guidance/download?attachment=",
+          "status_code": 404
+        }
+      ],
+      "source_url": "https://medicaid.ncdhhs.gov/tailored-care-management-capacity-building-funds-guidance/download?attachment=",
+      "status": "recorded"
+    },
+    {
+      "consecutive_not_found": 3,
+      "new_observations": 3,
+      "observations": [
+        {
+          "audit": {
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/audit.json",
+            "sha256": "4b53dc03d0e0e40936dadc4e597387a73353636fa8c851a0737972c33540d747"
+          },
+          "checked_at": "2026-09-23T20:40:43.891000+00:00",
+          "final_url": "https://medicaid.ncdhhs.gov/processes-and-frequently-asked-questions-1915i-services/open",
+          "observation_id": "e7d475b2ebba7906491cb56b5d89b4fd81fbb002196641894786893e9b970420",
+          "redirects": [],
+          "response_hash": "8193cfc6f243977d3419cb4f00b740dfc735f95450cb751488371e5dd338d3fb",
+          "response_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/captures/8193cfc6f243977d3419cb4f00b740dfc735f95450cb751488371e5dd338d3fb.bin",
+          "source_url": "https://medicaid.ncdhhs.gov/processes-and-frequently-asked-questions-1915i-services/open",
+          "status_code": 404
+        },
+        {
+          "audit": {
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/audit.json",
+            "sha256": "de9d6594b2f08f350a4d82198f4da48de45efe8871460065412241a71d039e1b"
+          },
+          "checked_at": "2026-09-23T21:29:19.809000+00:00",
+          "final_url": "https://medicaid.ncdhhs.gov/processes-and-frequently-asked-questions-1915i-services/open",
+          "observation_id": "72a367c9d6c623137091815b30712c463deabfeedf790ec92e2d3349810fe4a3",
+          "redirects": [],
+          "response_hash": "8193cfc6f243977d3419cb4f00b740dfc735f95450cb751488371e5dd338d3fb",
+          "response_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/8193cfc6f243977d3419cb4f00b740dfc735f95450cb751488371e5dd338d3fb.bin",
+          "source_url": "https://medicaid.ncdhhs.gov/processes-and-frequently-asked-questions-1915i-services/open",
+          "status_code": 404
+        },
+        {
+          "audit": {
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/third/audit.json",
+            "sha256": "ccda6066b5a6a38f55468f7ef87c27deb162422942d37ef2e119d9e5315c2d2f"
+          },
+          "checked_at": "2026-09-23T22:23:15.948000+00:00",
+          "final_url": "https://medicaid.ncdhhs.gov/processes-and-frequently-asked-questions-1915i-services/open",
+          "observation_id": "c12b0deccaf819860dabf4dc5e8d144f181f786f3c6d2a7d4448c70105352199",
+          "redirects": [],
+          "response_hash": "8193cfc6f243977d3419cb4f00b740dfc735f95450cb751488371e5dd338d3fb",
+          "response_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/third/captures/8193cfc6f243977d3419cb4f00b740dfc735f95450cb751488371e5dd338d3fb.bin",
+          "source_url": "https://medicaid.ncdhhs.gov/processes-and-frequently-asked-questions-1915i-services/open",
+          "status_code": 404
+        }
+      ],
+      "source_url": "https://medicaid.ncdhhs.gov/processes-and-frequently-asked-questions-1915i-services/open",
+      "status": "recorded"
+    },
+    {
+      "consecutive_not_found": 3,
+      "new_observations": 3,
+      "observations": [
+        {
+          "audit": {
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/audit.json",
+            "sha256": "4b53dc03d0e0e40936dadc4e597387a73353636fa8c851a0737972c33540d747"
+          },
+          "checked_at": "2026-09-23T20:40:50.059000+00:00",
+          "final_url": "https://medicaid.ncdhhs.gov/media/11452/download?attachment=",
+          "observation_id": "7c2c9971ffcea712e8c30566a7051178880da170acef8fa23b571738c34cef4b",
+          "redirects": [],
+          "response_hash": "d4aed548bd2406bed0a557f1edab9e888da4de6fddca2ae4ee65e12372f5c1b0",
+          "response_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/first/captures/d4aed548bd2406bed0a557f1edab9e888da4de6fddca2ae4ee65e12372f5c1b0.bin",
+          "source_url": "https://medicaid.ncdhhs.gov/media/11452/download?attachment=",
+          "status_code": 404
+        },
+        {
+          "audit": {
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/audit.json",
+            "sha256": "de9d6594b2f08f350a4d82198f4da48de45efe8871460065412241a71d039e1b"
+          },
+          "checked_at": "2026-09-23T21:30:21.771000+00:00",
+          "final_url": "https://medicaid.ncdhhs.gov/media/11452/download?attachment=",
+          "observation_id": "48bfa815d8f6460d500a6f1d7a8077e17d72ca94565975b84f04e58940a4708e",
+          "redirects": [],
+          "response_hash": "d4aed548bd2406bed0a557f1edab9e888da4de6fddca2ae4ee65e12372f5c1b0",
+          "response_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/second/captures/d4aed548bd2406bed0a557f1edab9e888da4de6fddca2ae4ee65e12372f5c1b0.bin",
+          "source_url": "https://medicaid.ncdhhs.gov/media/11452/download?attachment=",
+          "status_code": 404
+        },
+        {
+          "audit": {
+            "capture_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/third/audit.json",
+            "sha256": "ccda6066b5a6a38f55468f7ef87c27deb162422942d37ef2e119d9e5315c2d2f"
+          },
+          "checked_at": "2026-09-23T22:23:22.135000+00:00",
+          "final_url": "https://medicaid.ncdhhs.gov/media/11452/download?attachment=",
+          "observation_id": "5a2255d77e4ab512e4202f3abc6edf6af6cdc11442af1bfe3ac057eff74deea6",
+          "redirects": [],
+          "response_hash": "d4aed548bd2406bed0a557f1edab9e888da4de6fddca2ae4ee65e12372f5c1b0",
+          "response_path": "pipeline/source-audit-evidence/2026-09-23-closure-reviewed/third/captures/d4aed548bd2406bed0a557f1edab9e888da4de6fddca2ae4ee65e12372f5c1b0.bin",
+          "source_url": "https://medicaid.ncdhhs.gov/media/11452/download?attachment=",
+          "status_code": 404
+        }
+      ],
+      "source_url": "https://medicaid.ncdhhs.gov/media/11452/download?attachment=",
+      "status": "recorded"
+    }
+  ],
+  "withdrawal": [
+    {
+      "apply": true,
+      "source_url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_al-10-20-elc-for-covid-19.pdf",
+      "status": "retired"
+    },
+    {
+      "apply": true,
+      "source_url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_-al_09-20-amended-2-1.pdf",
+      "status": "retired"
+    },
+    {
+      "apply": true,
+      "source_url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_-al_09-20-amended.pdf",
+      "status": "retired"
+    },
+    {
+      "apply": true,
+      "source_url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_al-09-20.pdf",
+      "status": "retired"
+    },
+    {
+      "apply": true,
+      "source_url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_al_07-20-amended-2.pdf",
+      "status": "retired"
+    },
+    {
+      "apply": true,
+      "source_url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_al_07-20__policy_procedures_covid-19_amended_final.pdf",
+      "status": "retired"
+    },
+    {
+      "apply": true,
+      "source_url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma__al_06-20_covid-19-_self-attestation_and_reports_final_-1.pdf",
+      "status": "retired"
+    },
+    {
+      "apply": true,
+      "source_url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_al-05-20-20200812.pdf",
+      "status": "retired"
+    },
+    {
+      "apply": true,
+      "source_url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_al-01-21-20210122.pdf",
+      "status": "retired"
+    },
+    {
+      "apply": true,
+      "source_url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_al-01-20-add-1-att-1a-20200807.pdf",
+      "status": "retired"
+    },
+    {
+      "apply": true,
+      "source_url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_al-01-20-add-1-att-2-20200807-1.pdf",
+      "status": "retired"
+    },
+    {
+      "apply": true,
+      "source_url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_al-01-20-20200807.pdf",
+      "status": "retired"
+    }
+  ],
+  "tombstones": [
+    {
+      "apply": true,
+      "source_url": "https://medicaid.ncdhhs.gov/nc-credentialing-committee-bylaws/download?attachment=",
+      "status": "retired"
+    },
+    {
+      "apply": true,
+      "source_url": "https://medicaid.ncdhhs.gov/processes-and-frequently-asked-questions-1915i-services/download?attachment=",
+      "status": "retired"
+    },
+    {
+      "apply": true,
+      "source_url": "https://medicaid.ncdhhs.gov/north-carolinas-transition-1915b3-benefits-1915i/download?attachment=",
+      "status": "retired"
+    },
+    {
+      "apply": true,
+      "source_url": "https://medicaid.ncdhhs.gov/advanced-medical-home-provider-manual/download?attachment=",
+      "status": "retired"
+    },
+    {
+      "apply": true,
+      "source_url": "https://medicaid.ncdhhs.gov/1e-5-obstetrical-servicespdf/download?attachment=",
+      "status": "retired"
+    },
+    {
+      "apply": true,
+      "source_url": "https://medicaid.ncdhhs.gov/north-carolinas-transition-1915b3-benefits-1915i-0/download?attachment=",
+      "status": "retired"
+    },
+    {
+      "apply": true,
+      "source_url": "https://medicaid.ncdhhs.gov/tailored-care-management-provider-fact-sheet-0/download?attachment=",
+      "status": "retired"
+    },
+    {
+      "apply": true,
+      "source_url": "https://medicaid.ncdhhs.gov/providerfactsheettp-enrollment-and-timeline/download?attachment=",
+      "status": "retired"
+    },
+    {
+      "apply": true,
+      "source_url": "https://medicaid.ncdhhs.gov/certified-tailored-care-management-providers-readiness-reviews-completed/download?attachment=",
+      "status": "retired"
+    },
+    {
+      "apply": true,
+      "source_url": "https://medicaid.ncdhhs.gov/tailored-care-management-capacity-building-funds-guidance/download?attachment=",
+      "status": "retired"
+    },
+    {
+      "apply": true,
+      "source_url": "https://medicaid.ncdhhs.gov/processes-and-frequently-asked-questions-1915i-services/open",
+      "status": "retired"
+    },
+    {
+      "apply": true,
+      "source_url": "https://medicaid.ncdhhs.gov/media/11452/download?attachment=",
+      "status": "retired"
+    }
+  ]
+}

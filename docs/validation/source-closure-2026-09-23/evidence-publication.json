@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-09-23T22:56:52.522360+00:00",
+  "object": "releases/evidence/source-closure-2026-09-23/source-closure-2026-09-23-evidence.tar.gz",
+  "sha256": "bae39143226ed29cdf983dcbc179a2b1a03c54bdbc8d032709c29a3657491e1a",
+  "backupReceiptObject": "releases/evidence/source-closure-2026-09-23/final-backup-restore-receipt.json",
+  "backupReceiptSha256": "79e85fa72a6cd97eed87c00c929e5f4f018369c4d03f1603a3fef016cd6db1a4",
+  "sourceSnapshotHash": "sha256:9fd132e8ae0a9f203ca93a61b384f0443b26bcc83ce017b1e68030e0d3d61768",
+  "previousEvidenceObject": "releases/evidence/source-audit-2026-09-23/source-audit-2026-09-23-evidence.tar.gz",
+  "previousEvidenceSha256": "e69f5550ae971018ce79404c6910b8ec603bba6c0606fe46b78d0c63df6c7a14",
+  "privateVerifierCaptureIncluded": false,
+  "uploadVerified": true,
+  "verifiedAt": "2026-09-23T22:57:25.545331+00:00"
+}
