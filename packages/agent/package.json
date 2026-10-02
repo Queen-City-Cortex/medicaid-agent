@@ -29,10 +29,10 @@
     "@mastra/observability": "^1.15.0",
     "@nc-medicaid/contracts": "*",
     "@nc-medicaid/policy-corpus": "*",
-    "@sentry/node": "^10.60.0",
+    "@sentry/node": "^10.75.3",
     "ai": "^6.0.209",
-    "exa-js": "^2.14.0",
-    "neo4j-driver": "^6.1.0",
+    "exa-js": "^2.25.0",
+    "neo4j-driver": "^6.2.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
