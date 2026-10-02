@@ -18,7 +18,7 @@
     "@nc-medicaid/contracts": "*",
     "@sentry/nextjs": "^10.75.3",
     "@tailwindcss/typography": "^0.5.20",
-    "@workos-inc/authkit-nextjs": "^4.1.1",
+    "@workos-inc/authkit-nextjs": "^4.4.0",
     "ai": "^6.0.209",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
