@@ -79,7 +79,7 @@ describe('ThreadSidebar', () => {
     );
 
     await userEvent.click(await screen.findByRole('button', { name: 'Sign out' }));
-    expect(signOut).toHaveBeenCalledOnce();
+    expect(signOut).toHaveBeenCalledExactlyOnceWith({ returnTo: new URL('/', window.location.origin).href });
   });
 
   it('uses a dedicated selection button for the thread row', async () => {
