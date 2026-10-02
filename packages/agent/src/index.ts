@@ -1,19 +1,17 @@
+import './load-env.js';
+import { createChatRoute } from './chat-route.js';
+import { createChatMemory } from './chat-memory.js';
 import { createPrivateVerificationCapture } from './processors/verifier/diagnostics.js';
 import { verifyCliAnswer } from './cli-verification.js';
-import { configureAnswerRelease, installMemoryReleaseGate, gateAnswerStream, trustedChatInput } from './answer-release.js';
-import './load-env.js';
+import { configureAnswerRelease, installMemoryReleaseGate } from './answer-release.js';
 import { Sentry } from './sentry.js';
 import { log, errorFields } from './logger.js';
 import { Mastra } from '@mastra/core';
-import { Agent, type AgentExecutionOptions, type OnIterationCompleteHandler } from '@mastra/core/agent';
+import { Agent, type OnIterationCompleteHandler } from '@mastra/core/agent';
 import { PromptInjectionDetector, TokenLimiterProcessor } from '@mastra/core/processors';
 import { MastraCompositeStore } from '@mastra/core/storage';
 import { createModel, AGENT_MODEL } from './model.js';
 import { deepResearchWorkflow } from './deep-research/workflow.js';
-import { handleChatStream } from '@mastra/ai-sdk';
-import { createUIMessageStreamResponse } from 'ai';
-import { registerApiRoute } from '@mastra/core/server';
-import { Memory } from '@mastra/memory';
 import { LibSQLStore } from '@mastra/libsql';
 import { Observability, DefaultExporter, SensitiveDataFilter } from '@mastra/observability';
 import { searchSections } from './tools/search.js';
@@ -37,7 +35,7 @@ import { ScopeGateProcessor } from './processors/scope-gate.js';
 import { RateLimitRepository } from './rate-limit/repository.js';
 import { createBodySizeGuard, createRateLimitMiddleware } from './rate-limit/middleware.js';
 import { MastraAuthWorkos } from '@mastra/auth-workos';
-import { createResourceBindingMiddleware, getBoundUserId } from './auth-middleware.js';
+import { createResourceBindingMiddleware } from './auth-middleware.js';
 import { UsageRepository } from './usage/repository.js';
 import { PinoLogger } from '@mastra/loggers';
 import { FeedbackRepository } from './feedback/repository.js';
@@ -52,7 +50,6 @@ import { healthApiRoutes } from './readiness.js';
 import { ResearchRepository } from './deep-research/repository.js';
 import { ResearchService } from './deep-research/service.js';
 import { researchApiRoutes } from './deep-research/routes.js';
-import { extractText, findSensitiveIdentifiers } from './sensitive-data.js';
 
 // ── Startup validation ────────────────────────────────────────────────────────
 
@@ -132,24 +129,9 @@ const storage =
 // Thread history/persistence is unaffected.
 const MEMORY_FEATURES_ENABLED = boolEnv('OBSERVATIONAL_MEMORY_ENABLED', true);
 
-const memory = IS_CLI_RUN
-  ? undefined
-  : new Memory({
-      storage: libsql,
-      options: {
-        ...(MEMORY_FEATURES_ENABLED
-          ? {
-              observationalMemory: {
-                model: 'openai/gpt-5.4-mini',
-              },
-            }
-          : {}),
-        // The model-written profile tool bypasses answer verification. Keep
-        // recall on guarded messages/observations until profile writes have
-        // their own verified provenance.
-        workingMemory: { enabled: false },
-      },
-    });
+const memory = IS_CLI_RUN ? undefined : await createChatMemory(libsql, {
+  observationalMemoryEnabled: MEMORY_FEATURES_ENABLED,
+});
 
 const SYSTEM_PROMPT = buildSystemPrompt();
 
@@ -216,11 +198,6 @@ const AGENT_RUN_LIMITS = {
   maxSteps: MAX_STEPS,
   onIterationComplete,
 } as const;
-
-// The finish event carries totalUsage + model + runId. Derived from the
-// agent execution options ('@mastra/core/stream' doesn't re-export
-// MastraOnFinishCallbackArgs publicly).
-type ChatFinishEvent = Parameters<NonNullable<AgentExecutionOptions['onFinish']>>[0];
 
 export const ncMedicaidAgent = new Agent({
   id: 'nc-medicaid-navigator',
@@ -305,92 +282,7 @@ export const mastra = new Mastra({
       return c.json({ error: 'Internal server error' }, 500);
     },
     apiRoutes: [
-      // Hand-rolled equivalent of @mastra/ai-sdk's chatRoute({path: '/chat',
-      // agent, version: 'v6'}): chatRoute's options are static, but usage
-      // attribution needs the authenticated user + a per-request onFinish —
-      // so this registers the same handleChatStream flow with a per-request
-      // closure. Param plumbing mirrors chatRoute's handler (body → params,
-      // requestContext priority, abort signal, createUIMessageStreamResponse).
-      registerApiRoute('/chat', {
-        method: 'POST',
-        handler: async (c) => {
-          const body = await c.req.json();
-          const userId = getBoundUserId(c);
-          // The execution gateway already enforces this, but keep the
-          // attribution invariant local to the charged handler too: no model
-          // run may start unless its usage has a concrete owner.
-          if (!userId) {
-            return c.json({
-              error: { code: 'unauthorized', message: 'Authentication required' },
-            }, 401);
-          }
-          if (findSensitiveIdentifiers(extractText(body)).length) {
-            return c.json({
-              error: {
-                code: 'client_identifier_detected',
-                message: 'Remove client-identifying information before sending this question.',
-              },
-            }, 422);
-          }
-          const threadId = (body?.memory as { thread?: string } | undefined)?.thread;
-
-          const onFinish = (event: ChatFinishEvent) => {
-            const usage = event.totalUsage;
-            // Fire-and-forget by design: usage accounting must never fail or
-            // delay a chat that already succeeded (record() also try/catches).
-            void usageRepo.record({
-              userId,
-              route: 'chat',
-              runId: event.runId,
-              threadId,
-              modelId: event.model?.modelId ?? AGENT_MODEL,
-              provider: event.model?.provider,
-              inputTokens: usage?.inputTokens,
-              outputTokens: usage?.outputTokens,
-              totalTokens: usage?.totalTokens,
-              reasoningTokens: usage?.reasoningTokens,
-              cachedInputTokens: usage?.cachedInputTokens,
-            });
-            log.info('chat.usage', {
-              userId,
-              modelId: event.model?.modelId ?? AGENT_MODEL,
-              inputTokens: usage?.inputTokens,
-              outputTokens: usage?.outputTokens,
-              cachedInputTokens: usage?.cachedInputTokens,
-            });
-          };
-
-          const stream = await handleChatStream({
-            mastra: c.get('mastra'),
-            agentId: 'ncMedicaidAgent',
-            version: 'v6',
-            params: {
-              // Only accept the newest user input; history comes from guarded memory.
-              ...trustedChatInput(body, userId),
-              // Middleware > body, mirroring chatRoute's priority order.
-              requestContext: c.get('requestContext'),
-              abortSignal: c.req.raw.signal,
-              onFinish,
-            },
-            defaultOptions: {
-              ...AGENT_RUN_LIMITS,
-              savePerStep: true,
-              onStepFinish: async (step) => {
-                log.debug('chat.step_finished', {
-                  stepType: step.stepType,
-                  textChars: step.text?.length ?? 0,
-                  toolCalls: step.toolCalls?.length ?? 0,
-                });
-              },
-              onError: (err) => {
-                log.error('chat.stream_error', errorFields(err));
-                Sentry.captureException(err, { tags: { route: 'chat' } });
-              },
-            },
-          });
-          return createUIMessageStreamResponse({ stream: gateAnswerStream(stream) });
-        },
-      }),
+      createChatRoute(usageRepo, AGENT_RUN_LIMITS),
       ...feedbackApiRoutes(feedbackRepo),
       ...researchApiRoutes(researchService),
       corpusStatusRoute(),

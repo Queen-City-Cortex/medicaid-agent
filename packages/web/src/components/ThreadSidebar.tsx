@@ -413,7 +413,7 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => signOut()}
+            onClick={() => signOut({ returnTo: new URL('/', window.location.origin).href })}
             className="h-7 px-2 font-mono text-[11px] uppercase tracking-wider text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent shrink-0"
           >
             Sign out
