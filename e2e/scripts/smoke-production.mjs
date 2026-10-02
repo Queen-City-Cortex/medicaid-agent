@@ -67,7 +67,8 @@ try {
   });
   page = await context.newPage();
   if (readiness) page.on('request', request => recordSyntheticThread(request, readiness,
-    new URL(process.env.AGENT_PUBLIC_URL ?? 'https://medicaid-agent-backend.up.railway.app').origin));
+    new URL(process.env.AGENT_PUBLIC_URL ?? 'https://medicaid-agent-backend.up.railway.app').origin,
+    new URL(baseUrl).origin));
 
   const browserMessages = [];
   page.on('console', (message) => {
@@ -97,7 +98,11 @@ try {
     readiness.persistence = 'passed';
     readiness.feedback = await verifyFeedbackRoundTrip(page);
     await verifyExpectedRelease();
-    readiness.logout = await verifyLogout(page, baseUrl);
+    try { readiness.logout = await verifyLogout(page, baseUrl); }
+    catch (error) {
+      readiness.logout = { failed: true, error: error.message };
+      throw error;
+    }
   }
   if (process.env.SMOKE_EXPECTED_RELEASE_ID && !readiness) {
     const status = await verifyExpectedRelease();

@@ -47,9 +47,12 @@ export async function verifyLogout(page, baseUrl) {
 }
 
 /** Capture creation requests as well as generation: a chat request may never follow. */
-export function recordSyntheticThread(request, receipt, expectedOrigin) {
+export function recordSyntheticThread(request, receipt, expectedOrigin, applicationOrigin) {
   const url = new URL(request.url());
   if (request.method() !== 'POST') return;
+  // AuthKit uses Next server actions on the application's current /chat URL.
+  // These are not agent generation requests and contain no memory thread.
+  if (url.origin === applicationOrigin && request.headers?.()['next-action']) return;
   const creation = url.pathname.endsWith('/memory/threads');
   if (!creation && url.pathname !== '/chat') return;
   if (url.origin !== expectedOrigin) receipt.testTrafficCaptureFailed = true;

@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "objectKey": "readiness-evidence/2026-10-02/readiness-remediation-evidence-v2.tar.gz",
+  "sha256": "db2e5e72a45879acdf6b8626f675ab9148e3ac05090c0186865f277885656043",
+  "bytes": 455502,
+  "downloadVerified": true,
+  "memberCount": 47,
+  "includes": [
+    "source-captures",
+    "source-selection.json",
+    "source-discovery.json",
+    "government-discovery",
+    "auth-reference/workos-sessions.md",
+    "registry-integrity.json",
+    "agent-backup-receipt.json",
+    "signing-key-continuity.json",
+    "report"
+  ],
+  "excludes": [
+    "credentials",
+    "provider logs",
+    "browser screenshots",
+    "private draft and verification captures",
+    "agent database",
+    "encrypted agent backup (published separately)",
+    "current publication receipt (stored separately in Git)"
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "checkedAt": "2026-10-02T19:21:11.260Z",
+  "ownedThreadCount": 5,
+  "allObservedThreadsAbsent": true,
+  "deleteStatuses": [
+    404,
+    404,
+    404,
+    404,
+    404
+  ],
+  "absenceProbeStatuses": [
+    404,
+    404,
+    404,
+    404,
+    404
+  ],
+  "accountScopedMemoryAndUsageCleanupEstablished": false,
+  "note": "Only this run's observed threads were removed via authenticated ownership-scoped endpoints. Existing account history was not wiped. Synthetic traffic is excluded from readiness usage assessment."
+}

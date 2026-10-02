@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "login": "passed",
+  "sentReturnTo": "https://medicaid-agent.up.railway.app/",
+  "sentReturnToConfirmedInLogoutUrl": true,
+  "localhostNavigationObserved": true,
+  "navigation": [
+    {
+      "origin": "https://medicaid-agent.up.railway.app",
+      "path": "/chat"
+    },
+    {
+      "origin": "https://api.workos.com",
+      "path": "/user_management/authorize"
+    },
+    {
+      "origin": "https://pretty-cabin-65-staging.authkit.app",
+      "path": "/bootstrap"
+    },
+    {
+      "origin": "https://pretty-cabin-65-staging.authkit.app",
+      "path": "/"
+    },
+    {
+      "origin": "https://medicaid-agent.up.railway.app",
+      "path": "/auth/callback"
+    },
+    {
+      "origin": "https://medicaid-agent.up.railway.app",
+      "path": "/chat"
+    },
+    {
+      "origin": "https://api.workos.com",
+      "path": "/user_management/sessions/logout"
+    },
+    {
+      "origin": "https://pretty-cabin-65-staging.authkit.app",
+      "path": "/api/logout"
+    },
+    {
+      "origin": "http://localhost:3000",
+      "path": "/"
+    },
+    {
+      "origin": "https://medicaid-agent.up.railway.app",
+      "path": "/chat"
+    },
+    {
+      "origin": "https://api.workos.com",
+      "path": "/user_management/authorize"
+    },
+    {
+      "origin": "https://pretty-cabin-65-staging.authkit.app",
+      "path": "/bootstrap"
+    },
+    {
+      "origin": "https://pretty-cabin-65-staging.authkit.app",
+      "path": "/"
+    }
+  ],
+  "signOutUriDashboardSettingInspected": false,
+  "protectedChatRequiresLogin": "NOT_ASSESSED",
+  "providerSessionTerminationEstablished": false,
+  "configurationRequirement": "Register the exact production URI in the matching application's WorkOS Sign-out URIs and verify live navigation plus protected chat afterward.",
+  "configurationReference": "https://workos.com/docs/authkit/sessions#configuring-sessions",
+  "toolAccessBlockers": [
+    "Browser runtime references a missing cached browser-service.mjs",
+    "Local GUI control denied: Accessibility permission missing"
+  ],
+  "developerConfigurationRequested": true
+}

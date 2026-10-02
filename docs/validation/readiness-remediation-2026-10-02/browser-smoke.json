@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "mode": "readiness_diagnostic",
+  "startedAt": "2026-10-02T19:09:55.326Z",
+  "releaseId": "legacy-20260725-ae8595c",
+  "login": "passed",
+  "testRunId": "runtime-repair-20261002-browser",
+  "answer": {
+    "outcome": "corrected",
+    "characters": 4474
+  },
+  "persistence": "not_run",
+  "feedback": "not_run",
+  "logout": {
+    "failed": true,
+    "error": "Sign-out navigation failed at https://medicaid-agent.up.railway.app"
+  },
+  "testTrafficCaptureFailed": true,
+  "error": "Could not identify synthetic chat traffic for cleanup.",
+  "completedAt": "2026-10-02T19:11:06.092Z",
+  "syntheticThreadCount": 1,
+  "cleanupReceipt": "synthetic-cleanup.json"
+}
