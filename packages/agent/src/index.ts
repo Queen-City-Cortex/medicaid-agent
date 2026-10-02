@@ -1,9 +1,9 @@
+import './load-env.js';
 import { createChatRoute } from './chat-route.js';
 import { createChatMemory } from './chat-memory.js';
 import { createPrivateVerificationCapture } from './processors/verifier/diagnostics.js';
 import { verifyCliAnswer } from './cli-verification.js';
 import { configureAnswerRelease, installMemoryReleaseGate } from './answer-release.js';
-import './load-env.js';
 import { Sentry } from './sentry.js';
 import { log, errorFields } from './logger.js';
 import { Mastra } from '@mastra/core';
