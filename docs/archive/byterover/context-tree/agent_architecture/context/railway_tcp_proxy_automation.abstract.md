@@ -1,0 +1,1 @@
+This document explains Railway TCP proxy automation for production Neo4j, including GraphQL v2 create/list/delete operations, token resolution, trailing-dot cleanup, and defensive teardown verification.

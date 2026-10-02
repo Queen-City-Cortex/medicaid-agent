@@ -1,0 +1,1 @@
+This document describes the WS7 weekly customer-readiness refresh orchestrator, which runs crawl, pipeline, eval and change gates, deploy, verification, and backup, while safely managing Railway proxy cleanup and launchd scheduling.

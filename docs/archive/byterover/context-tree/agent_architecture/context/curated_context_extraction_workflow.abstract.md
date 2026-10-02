@@ -1,0 +1,1 @@
+This document defines the RLM curation workflow for small contexts: use precomputed recon, single-pass extraction, and verify results by applied file paths without readFile, with special timeout and taskId rules for chunked cases.

@@ -1,0 +1,9 @@
+- Covers Railway PR6 corpus operations for a production corpus pipeline, focusing on release behavior, parsing resilience, and deployment topology.
+- Describes a Railway Pro setup with separate neo4j-blue and neo4j-green services, a dedicated corpus-job service, and object-storage-backed backup/release infrastructure.
+- Explains the corpus workflow: bootstrap, parse documents, persist artifacts, skip unchanged work, release the inactive graph, run smoke tests, then promote.
+- Emphasizes resumable parsing: parse artifacts and sidecars are stored on persistent volume so later runs can continue from prior work instead of restarting.
+- Notes release gates required before customer-facing traffic moves off the legacy Neo4j service: build, load, embedding, audit, evaluation, and authenticated smoke checks.
+- Documents bounded parsing behavior with PIPELINE_PARSE_TIMEOUT_SECONDS defaulting to 600, isolating pathological PDFs so they cannot stall the pipeline indefinitely.
+- Captures concurrency decisions: Railway cron prevents overlap for a single cron service, but a persistent lease/idempotency guard is needed if a second runner or manual execution path is added.
+- Highlights a specific runtime fix in PR #109: adding libgl1 and an in-image cv2 import smoke test resolved an OpenCV blocker.
+- Section-wise, the document includes Reason, Raw Concept, Narrative, Facts, and rules/examples for corpus job modes such as discover, release, audit, evaluate, and backup.

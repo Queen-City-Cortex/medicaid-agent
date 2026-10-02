@@ -1,0 +1,9 @@
+- WS1 customer-readiness introduces a public-facing web surface with a landing page at `/`, legal pages at `/terms` and `/privacy`, and explicit unauthenticated route allowlisting in `proxy.ts`.
+- The legal experience is centralized through shared legal constants/components, including `LEGAL_REVIEW_PENDING` draft status, `LEGAL_LAST_UPDATED`, and `LEGAL_CONTACT_EMAIL`.
+- Chat UX adds a persistent, dismissible disclaimer notice above the composer, with acknowledgment saved per browser in `localStorage` under `disclaimer-acknowledged-v1`.
+- Deep research/report rendering is hardened: verification UI avoids overstating safety when `checkedCitations` is zero, and only real `http(s)` links are rendered as anchors.
+- MessageList behavior changes so the sources panel opens by default whenever `sources.length > 0`, improving discoverability of evidence.
+- Debug logging remains behind `NEXT_PUBLIC_DEBUG_CHAT=1`, keeping chat diagnostics opt-in.
+- The document emphasizes customer-readiness safety patterns: public access is limited to specific routes, legal status is explicit, and model-generated content is constrained to reduce misleading UI behavior.
+- Structure summary: it contains a reason statement, raw concept/task/changes/flow, narrative sections for structure/dependencies/highlights/rules/examples, and a fact list of implementation decisions and constants.
+- Notable entities/patterns include AuthKit path allowlisting, Next.js 16 `proxy.ts` middleware entrypoint, browser-only `localStorage` persistence, and a conservative link-validation policy for markdown rendering.

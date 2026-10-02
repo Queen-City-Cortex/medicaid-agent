@@ -6,6 +6,7 @@ on:
     # Artifact-only PRs (memory/knowledge-graph refreshes) don't need review.
     paths-ignore:
       - '.brv/**'
+      - 'docs/archive/**'
       - 'graphify-out/**'
     # Optional: Only run on specific file changes
     # paths:

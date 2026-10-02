@@ -2,14 +2,17 @@
 
 AI-powered assistant for navigating North Carolina Medicaid policy. Uses a Neo4j knowledge graph of policy documents with semantic search to answer questions from legal aid attorneys, case managers, and beneficiaries.
 
+Start with the [documentation index](docs/README.md) for architecture, development, operations, and project lessons.
+
 ## Architecture
 
 ```
 packages/
   crawler/        # Discovers and downloads policy PDFs from NC government sites
   pipeline/       # Parses PDFs via Docling, builds Neo4j knowledge graph (Python)
-  policy-corpus/  # Shared TS library: hybrid search + reranking over the policy graph
-  agent/          # Mastra agent with 9 tools for policy search and navigation
+  policy-corpus/  # Shared TS library: hybrid search, legal primitives, and answer frames
+  contracts/      # Shared API schemas and types
+  agent/          # Mastra orchestration, verification, and research execution
   web/            # Next.js chat interface
 e2e/              # Playwright end-to-end tests (standalone, not an npm workspace)
 ```
@@ -19,26 +22,27 @@ e2e/              # Playwright end-to-end tests (standalone, not an npm workspac
 ```bash
 # Install dependencies
 npm install
-cd packages/pipeline && pip install -e ".[dev]"
+npm run setup -w @nc-medicaid/pipeline
 
 # Start Neo4j (must be running for agent)
 # Default: bolt://localhost:7687, user: neo4j, password: medicaid-dev
 
 # Run the agent dev server (port 4111)
-cd packages/agent && npm run dev
+npm run dev -w @nc-medicaid/agent
 
 # Run the web app (port 3000)
-cd packages/web && npm run dev
+npm run dev -w @nc-medicaid/web
 ```
 
 ## Environment Variables
 
+Consult [RUNBOOK.md](RUNBOOK.md) and [runtime configuration](packages/agent/src/runtime-config.ts) for current model defaults and validated settings.
+
 ```
-OPENAI_API_KEY        # Required — agent default model (gpt-5.4) plus verifier,
-                      #   injection detector, and observational memory
+OPENAI_API_KEY        # Required — agent and verifier provider
 VOYAGE_API_KEY        # Required — Voyage AI embeddings
 ANTHROPIC_API_KEY     # Optional — only when AGENT_MODEL is set to a claude-* model
-AGENT_MODEL           # Default: gpt-5.4
+AGENT_MODEL           # Optional model override; see runtime configuration
 NEO4J_URI             # Default: bolt://localhost:7687
 NEO4J_USER            # Default: neo4j
 NEO4J_PASSWORD        # Default: medicaid-dev
@@ -70,6 +74,7 @@ npm run test:e2e:ui       # Playwright UI debugger
 | [crawler](packages/crawler) | TypeScript, Cheerio, SQLite | Vitest |
 | [pipeline](packages/pipeline) | Python, Docling, Neo4j | pytest |
 | [policy-corpus](packages/policy-corpus) | TypeScript | Vitest |
+| [contracts](packages/contracts) | TypeScript, Zod | Vitest |
 | [agent](packages/agent) | TypeScript, Mastra, OpenAI/Anthropic | Vitest (+ opt-in Neo4j integration suite) |
 | [web](packages/web) | Next.js 16, React 19, shadcn | Vitest |
 | [e2e](e2e) | Playwright | mocked + smoke projects |

@@ -1,0 +1,1 @@
+WS4 customer-readiness PR #78 fixed citation eval dataset drift, added regression gating to eval-compare, and improved graph stats to report freshness and chunk-aware embedding coverage.

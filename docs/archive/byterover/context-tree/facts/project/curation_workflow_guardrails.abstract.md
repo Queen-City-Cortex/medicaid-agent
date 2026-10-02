@@ -1,0 +1,1 @@
+This document defines RLM curation guardrails: avoid rerunning precomputed recon, prefer single-pass extraction, use mapExtract only when chunking is needed, and verify success via applied file paths.

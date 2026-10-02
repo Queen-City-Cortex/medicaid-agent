@@ -1,0 +1,1 @@
+WS2 customer-readiness hardening adds cached provider health checks, bounded and retried Voyage embeddings, Neo4j server-side transaction timeouts, and stricter Sentry environment gating.

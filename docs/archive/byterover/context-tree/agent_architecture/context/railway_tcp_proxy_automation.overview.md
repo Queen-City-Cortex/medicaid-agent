@@ -1,0 +1,7 @@
+- This document covers a shell CLI for Railway GraphQL v2 TCP proxy lifecycle management with create, delete, and list subcommands.
+- The proxy automation is designed for the production Neo4j deploy path, creating a temporary bolt proxy, using it briefly, then deleting it and verifying no proxies remain.
+- Auth token resolution prefers RAILWAY_ACCESS_TOKEN from ops.env and falls back to ~/.railway/config.json via .user.accessToken; .user.token is noted as unauthorized.
+- The Railway GraphQL endpoint is https://backboard.railway.com/graphql/v2, and the implementation uses tcpProxyCreate and tcpProxyDelete mutations.
+- A notable cleanup rule is defensive deletion: delete removes all proxies on the service, logs each deletion, and exits nonzero if any proxy still remains afterward.
+- The create command prints host:port, and the returned domain needs cleanup because Railway appends a trailing dot.
+- The proxy is explicitly treated as ephemeral exposure for bolt, not as a persistent service.

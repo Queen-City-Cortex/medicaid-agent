@@ -1,0 +1,10 @@
+- WS4 customer-readiness PR #78 documents fixes and behavior changes across citation evaluation, eval CLI regression gating, and graph stats reporting.
+- The main root cause was a citation eval dataset mismatch: cached answer runs used a held-out paraphrase dataset with h-* IDs, while citation grading defaulted to a golden dataset with q-* IDs, causing all 50 lookup failures.
+- The runner now inherits the cached run’s dataset for citation eval when --dataset is omitted, and relative dataset paths are resolved against PROJECT_ROOT.
+- eval-compare gained --fail-on-regression and now exits 1 on regressions or missing result files, making it suitable as a gating check.
+- stats CLI now reports freshness first via max(d.last_indexed) and uses chunk-aware embedding coverage, warning when coverage drops below 99%.
+- The document emphasizes that bare embedding IS NULL counts are misleading because chunked content can still be fully covered; true coverage is 100% with HAS_CHUNK-aware stats.
+- After the fix, citation metrics reached Precision 0.81, Recall 0.90, F1 0.84, and primary-hit 0.90.
+- A fresh audit on 2026-07-10 reported 4,467 docs loaded, waivers 12/12 loaded, and bulletins 203/219 loaded; remaining real gaps included SPA missing_graph_load:107 and fee_schedule being mostly unparsed by design.
+- Structure-wise, the note is organized into Reason, Raw Concept, Narrative, Facts, and examples/rules for operational guidance.
+- Notable entities and files include packages/pipeline/src/pipeline/eval/runner.py, packages/pipeline/src/pipeline/cli/eval.py, and packages/pipeline/src/pipeline/cli/graph.py, along with eval/levels/citation.py and the stats query pattern.

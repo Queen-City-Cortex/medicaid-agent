@@ -1,0 +1,1 @@
+This document describes the ops backup workflow for corpus and Mastra data, using Railway storage, rclone, SQLite snapshots, retention pruning, and healthchecks for resilient backups.

@@ -1,0 +1,174 @@
+{
+  "active_context": [
+    {
+      "order": 2,
+      "path": "amendment_detection/_index.md",
+      "tokens": 527,
+      "type": "summary"
+    },
+    {
+      "order": 2,
+      "path": "auth_integration/_index.md",
+      "tokens": 1199,
+      "type": "summary"
+    },
+    {
+      "order": 1,
+      "path": "agent_architecture/amendment_pipeline_and_prompt/_index.md",
+      "tokens": 131,
+      "type": "summary"
+    },
+    {
+      "order": 1,
+      "path": "agent_architecture/mastra_server_configuration/_index.md",
+      "tokens": 126,
+      "type": "summary"
+    },
+    {
+      "importance": 50,
+      "path": "agent_architecture/amendment_pipeline_and_prompt/amendment_pipeline_and_prompt_guardrails.md",
+      "tokens": 181,
+      "type": "context"
+    },
+    {
+      "importance": 50,
+      "path": "agent_architecture/context/backup_mastra_shell_script_learnings.md",
+      "tokens": 890,
+      "type": "context"
+    },
+    {
+      "importance": 50,
+      "path": "agent_architecture/context/context.md",
+      "tokens": 122,
+      "type": "context"
+    },
+    {
+      "abstractPath": "agent_architecture/context/curated_context.abstract.md",
+      "abstractTokens": 32,
+      "importance": 50,
+      "path": "agent_architecture/context/curated_context.md",
+      "tokens": 32,
+      "type": "context"
+    },
+    {
+      "abstractPath": "agent_architecture/context/curated_operational_knowledge.abstract.md",
+      "abstractTokens": 52,
+      "importance": 50,
+      "path": "agent_architecture/context/curated_operational_knowledge.md",
+      "tokens": 52,
+      "type": "context"
+    },
+    {
+      "abstractPath": "agent_architecture/context/epsdt_exception_completeness_workstream_e.abstract.md",
+      "abstractTokens": 33,
+      "importance": 50,
+      "path": "agent_architecture/context/epsdt_exception_completeness_workstream_e.md",
+      "tokens": 33,
+      "type": "context"
+    },
+    {
+      "importance": 50,
+      "path": "agent_architecture/context/mastra_upgrade_type_and_runtime_boundaries.md",
+      "tokens": 708,
+      "type": "context"
+    },
+    {
+      "importance": 50,
+      "path": "agent_architecture/context/policy_corpus_embedding_client_and_verifier_flow.md",
+      "tokens": 521,
+      "type": "context"
+    },
+    {
+      "importance": 50,
+      "path": "agent_architecture/context/provider_health_checks_and_production_smoke_verification.md",
+      "tokens": 1014,
+      "type": "context"
+    },
+    {
+      "abstractPath": "agent_architecture/context/railway_pr6_corpus_operations.abstract.md",
+      "abstractTokens": 41,
+      "importance": 50,
+      "path": "agent_architecture/context/railway_pr6_corpus_operations.md",
+      "tokens": 41,
+      "type": "context"
+    },
+    {
+      "abstractPath": "agent_architecture/context/railway_tcp_proxy_automation.abstract.md",
+      "abstractTokens": 51,
+      "importance": 50,
+      "path": "agent_architecture/context/railway_tcp_proxy_automation.md",
+      "tokens": 51,
+      "type": "context"
+    },
+    {
+      "abstractPath": "agent_architecture/context/weekly_eval_and_launchd_ops_guardrails.abstract.md",
+      "abstractTokens": 61,
+      "importance": 50,
+      "path": "agent_architecture/context/weekly_eval_and_launchd_ops_guardrails.md",
+      "tokens": 61,
+      "type": "context"
+    },
+    {
+      "abstractPath": "agent_architecture/context/ws1_customer_readiness_legal_surface_and_chat_guardrails.abstract.md",
+      "abstractTokens": 45,
+      "importance": 50,
+      "path": "agent_architecture/context/ws1_customer_readiness_legal_surface_and_chat_guardrails.md",
+      "tokens": 45,
+      "type": "context"
+    },
+    {
+      "abstractPath": "agent_architecture/context/ws2_customer_readiness_reliability_fixes.abstract.md",
+      "abstractTokens": 47,
+      "importance": 50,
+      "path": "agent_architecture/context/ws2_customer_readiness_reliability_fixes.md",
+      "tokens": 47,
+      "type": "context"
+    },
+    {
+      "abstractPath": "agent_architecture/context/ws5_customer_readiness.abstract.md",
+      "abstractTokens": 51,
+      "importance": 50,
+      "path": "agent_architecture/context/ws5_customer_readiness.md",
+      "tokens": 51,
+      "type": "context"
+    },
+    {
+      "abstractPath": "agent_architecture/context/ws7_customer_readiness_weekly_refresh.abstract.md",
+      "abstractTokens": 58,
+      "importance": 50,
+      "path": "agent_architecture/context/ws7_customer_readiness_weekly_refresh.md",
+      "tokens": 58,
+      "type": "context"
+    },
+    {
+      "abstractPath": "agent_architecture/deep_research_workflow/deep_research_workflow.abstract.md",
+      "abstractTokens": 56,
+      "importance": 50,
+      "path": "agent_architecture/deep_research_workflow/deep_research_workflow.md",
+      "tokens": 56,
+      "type": "context"
+    },
+    {
+      "abstractPath": "database_operations/neo4j_auth/production_neo4j_federal_data_refresh.abstract.md",
+      "abstractTokens": 36,
+      "importance": 50,
+      "path": "database_operations/neo4j_auth/production_neo4j_federal_data_refresh.md",
+      "tokens": 36,
+      "type": "context"
+    },
+    {
+      "path": "_archived/README.stub.md",
+      "tokens": 104,
+      "type": "stub"
+    }
+  ],
+  "generated_at": "2026-07-26T18:06:38.479Z",
+  "lane_tokens": {
+    "contexts": 3999,
+    "stubs": 104,
+    "summaries": 1983
+  },
+  "source_fingerprint": "2152ac0fa9731ec535cc3209ab8f4656ae98a6d73fc683cc946042da0e59db56",
+  "total_tokens": 6086,
+  "version": 1
+}

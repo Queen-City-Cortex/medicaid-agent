@@ -1,0 +1,1 @@
+WS1 customer-readiness adds public landing and legal pages, persists disclaimer acknowledgment, and tightens chat/report guardrails to avoid misleading verification or unsafe links.

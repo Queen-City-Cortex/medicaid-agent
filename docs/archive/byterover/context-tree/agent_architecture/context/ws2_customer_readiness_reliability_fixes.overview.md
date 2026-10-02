@@ -1,0 +1,11 @@
+- Documents WS2 customer-readiness hardening focused on health checks, embedding requests, Neo4j query control, and Sentry startup gating.
+- `/healthz` now probes Voyage and OpenAI reachability, but these checks are informational and do not control deploy promotion; only Neo4j and LibSQL health do.
+- Provider health checks use 5s `AbortSignal` timeouts, a 60s cache, and in-flight promise deduplication to avoid stampedes.
+- `embedQueries` adds Voyage-specific resilience with a 15s timeout and one retry after 1s backoff for 429, 5xx, network, or abort failures.
+- Neo4j sessions now inject a 30s server-side transaction timeout via `withSession` rebinding, alongside driver-level connection and retry limits.
+- Sentry is gated so it only initializes when `SENTRY_DSN` and `SENTRY_ENVIRONMENT` are both present, preventing accidental local/project noise.
+- Notes an operational Mastra workaround: local dev may crash if `mastra.duckdb` migration is missing; run `npx mastra migrate` or use `MASTRA_OBSERVABILITY_PATH=:memory:`.
+
+- Structure centers on a short reason statement, a raw concept block describing the intended hardening flow, a narrative section summarizing dependencies and intent, and a facts list of concrete changes.
+- The flow described is: `/healthz` probe → provider reachability checks with caching → Voyage embed request with timeout/retry → Neo4j session with injected transaction timeout → Sentry startup gated by environment variables.
+- Notable entities/patterns include `AbortSignal.timeout`, `TransactionConfig` from `neo4j-driver-core`, `session.run` rebinding, and explicit environment-based observability gating.

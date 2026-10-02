@@ -1,0 +1,8 @@
+- Documents the RLM-based context curation workflow for durable knowledge capture, emphasizing extraction, deduplication, curation, and verification.
+- Core flow: recon output informs processing mode, then facts/context are extracted, deduplicated/grouped by subject, persisted with UPSERT, and verified via applied file paths.
+- Strong guidance to preserve raw context semantics in structured knowledge entries while avoiding raw context printing.
+- Notes that small context inputs can be handled in a single pass after recon, with extraction followed by one UPSERT operation.
+- Specifies operational rules: do not call `tools.curation.recon` when recon is already precomputed, and pass `taskId` as a bare variable for `mapExtract`.
+- Verification should rely on `result.applied[].filePath` rather than rereading files.
+- Includes explicit project conventions: the context tree lives under `.brv/context-tree`, has a max depth of 2 levels, and uses domain/topic organization with markdown files or `context.md` subfolder patterns.
+- Notable entities/decisions include the preferred `^UPSERT$` curate operation, references to related files in `packages/agent/src/...`, and preservation of EPSDT exception completeness workstream context.

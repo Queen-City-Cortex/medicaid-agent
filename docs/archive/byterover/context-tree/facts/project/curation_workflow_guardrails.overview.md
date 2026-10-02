@@ -1,0 +1,7 @@
+- Captures guardrails for RLM-based context curation: recon is already computed and should not be repeated, single-pass extraction is preferred for small contexts, and mapExtract is only for chunked extraction.
+- Defines the curation flow as recon -> extract facts -> dedupe/group -> curate -> verify applied file paths.
+- Emphasizes verification by checking result.applied[].filePath rather than rereading files, and explicitly forbids calling readFile for verification.
+- Notes operational constraints: do not print raw context, use the provided taskId as a bare variable (not a string), and curate using UPSERT.
+- Identifies dependencies on tools.curation.recon, tools.curation.mapExtract, tools.curation.dedup, tools.curation.groupBySubject, and tools.curate.
+- The document is organized into Reason, Raw Concept, Narrative, Structure, Dependencies, Highlights, and Rules sections.
+- Notable entities/patterns include “ByteRover context engineering workflow,” the RLM approach, and the applied-file-path verification pattern.

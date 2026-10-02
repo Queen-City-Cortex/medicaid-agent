@@ -1,0 +1,221 @@
+{
+  "completedAt": 1785036754586,
+  "id": "drm-1785036452631",
+  "operations": [
+    {
+      "action": "CROSS_REFERENCE",
+      "inputFiles": [
+        "agent_architecture/context/backup_mastra_shell_script_learnings.md",
+        "agent_architecture/context/provider_health_checks_and_production_smoke_verification.md"
+      ],
+      "needsReview": false,
+      "previousTexts": {
+        "agent_architecture/context/backup_mastra_shell_script_learnings.md": "---\ntitle: Backup Mastra Shell Script Learnings\ntags: []\nrelated: [agent_architecture/context/curated_operational_knowledge.md, agent_architecture/context/provider_health_checks_and_production_smoke_verification.md]\nkeywords: []\nimportance: 50\nrecency: 1\nmaturity: draft\ncreatedAt: '2026-07-10T23:23:21.911Z'\nupdatedAt: '2026-07-10T23:23:21.911Z'\n---\n## Raw Concept\n**Task:**\nDocument the live-run operational learnings and backup procedure for the production LibSQL store used by the agent\n\n**Changes:**\n- Added a consistent point-in-time snapshot flow using sqlite3 VACUUM INTO inside the Railway container\n- Added sentinel-based remote success verification because railway ssh exit status is unreliable\n- Added cleanup and retry-idempotence safeguards including rm -f before VACUUM INTO and local overwrite support\n\n**Files:**\n- scripts/ops/backup-mastra.sh\n\n**Flow:**\nrailway ssh into container -> rm old snapshot -> VACUUM INTO remote snapshot -> echo SNAPSHOT_OK -> download snapshot -> sqlite3 integrity_check -> rclone copyto -> cleanup -> prune aged backups\n\n**Timestamp:** 2026-07-10T23:22:49.680Z\n\n**Author:** PR #85\n\n**Patterns:**\n- `SNAPSHOT_OK` - Sentinel string confirming the remote snapshot command succeeded\n- `SNAPSHOT_FAILED` - Sentinel string indicating the remote snapshot command failed\n\n## Narrative\n### Structure\nThe script backs up the production LibSQL store by first creating a consistent snapshot inside the Railway container, then downloading it locally, verifying SQLite integrity, pushing it to the bucket, and cleaning up both remote and local temp files. Dated backups are pruned after 30 days.\n\n### Dependencies\nDepends on railway CLI, sqlite3, rclone, and the bucket_path helper from lib.sh. It also relies on Railway SSH key registration and ssh-keyscan host trust being configured once.\n\n### Highlights\nThe first live run exposed three important operational hazards: remote command argument handling, unreliable railway ssh exit codes, and VACUUM INTO overwrite refusal. The verified E2E run produced a 42MB snapshot and a successful restore drill.\n\n### Rules\n1. Pass ONE argument to railway ssh for the remote command.\n2. Never trust railway ssh exit code alone; confirm success via an output sentinel such as SNAPSHOT_OK.\n3. Remove the target file before VACUUM INTO because it refuses to overwrite.\n4. Use --overwrite when downloading the snapshot.\n5. Put -s on the parent railway service files command, not on download.\n6. Keep native Railway volume backups enabled as an independent fast-restore path.\n\n### Examples\nExample remote success pattern: command executes and prints SNAPSHOT_OK; if not present, treat the run as failed even if the SSH command exits 0.\n\n## Facts\n- **railway_ssh_argument_handling**: railway ssh joins command args with spaces and the remote shell re-parses them, so multi-line remote commands break. [project]\n- **railway_ssh_exit_behavior**: railway ssh exits 0 even when the remote command fails, so success must be confirmed via an output sentinel. [project]\n- **vacuum_into_overwrite_behavior**: VACUUM INTO refuses to overwrite the target, so the target must be removed first for same-day retry idempotence. [project]\n- **railway_service_files_cli**: railway service files -s belongs on the parent service files command, not the download subcommand. [project]\n- **backup_verification_result**: The backup drill verified a 42MB snapshot, integrity was ok, and restore showed 49 threads plus 2 usage rows. [project]\n",
+        "agent_architecture/context/provider_health_checks_and_production_smoke_verification.md": "---\ntitle: Provider Health Checks and Production Smoke Verification\ntags: []\nrelated: [agent_architecture/context/health.md, agent_architecture/context/weekly_eval_and_launchd_ops_guardrails.md]\nkeywords: []\nimportance: 55\nrecency: 1\nmaturity: draft\nupdateCount: 1\ncreatedAt: '2026-07-10T21:20:36.640Z'\nupdatedAt: '2026-07-10T21:22:05.499Z'\n---\n## Raw Concept\n**Task:**\nDocument post-quota-topup verification for provider health checks and production smoke testing\n\n**Changes:**\n- Adjusted OpenAI health probe classification to treat only 401, 403, 429, and 5xx as outages\n- Confirmed gpt-5-mini can fail with invalid_request 400 when max_completion_tokens is exhausted by reasoning\n- Updated smoke script behavior to expand the research trail before counting tool steps\n- Verified live production usage tracking and production modelId reporting\n\n**Files:**\n- packages/agent/src/health.ts\n- e2e/scripts/smoke-production.mjs\n\n**Flow:**\nhealth check -> provider request -> status classification -> smoke script -> expand research trail -> count tool steps -> verify answer and sources\n\n**Timestamp:** 2026-07-10\n\n**Author:** ByteRover context engineer\n\n## Narrative\n### Structure\nThe health module caches provider checks for one minute and shares a single in-flight request across concurrent callers. The production smoke script loads env files in precedence order, authenticates into the chat UI, starts a fresh thread, submits a question, waits for the assistant answer, then verifies sources and tool steps.\n\n### Dependencies\nHealth checks depend on VOYAGE_API_KEY, VOYAGE_API_URL, VOYAGE_MODEL, and OPENAI_API_KEY. The smoke script depends on TEST_USER_EMAIL, TEST_USER_PASSWORD, Playwright, and data-testid hooks in the chat UI.\n\n### Highlights\nProvider health is based on real provider calls rather than endpoint reachability alone. The OpenAI probe intentionally uses a minimal chat completion so a quota or billing problem is surfaced before production chat fails. The smoke test now accounts for collapsed research-trail UI state after P2.\n\n### Rules\nClassify OpenAI health by status code: 401, 403, 429, and any 5xx are outages; other 4xx prove key and billing work. Do not rely on response.ok for OpenAI probe decisions. Do not use GET /v1/models as a substitute for a quota-sensitive health check. In the smoke script, click research-trail-trigger before counting tool-step because the Collapsible unmounts step cards.\n\n### Examples\nThe health probe may receive invalid_request 400 \"output limit reached\" from gpt-5-mini when max_completion_tokens is set to 1. A successful smoke run reported 5 tool steps and 6 cited sources.\n\n## Facts\n- **gpt_5_mini_health_probe_behavior**: gpt-5-mini with max_completion_tokens:1 can return invalid_request 400 \"output limit reached\" because reasoning consumes the budget. [project]\n- **health_probe_status_classification**: Health probes must classify OpenAI outages by status codes 401, 403, 429, and 5xx, not by response.ok. [convention]\n- **openai_health_probe_non_outage_4xx**: Other 4xx responses prove the key and billing work for OpenAI health checks. [project]\n- **smoke_script_research_trail_requirement**: The production smoke script must click research-trail-trigger before counting tool-step because the Collapsible unmounts step cards. [project]\n- **usage_tracking_schema**: Live production usage tracking logs chat.usage with userId, modelId, input tokens, output tokens, and cached tokens. [project]\n- **production_model_id**: The production reports modelId gpt-5.4, and the Railway AGENT_MODEL env override predates the gpt-5.6-terra default. [project]\n- **post_topup_recovery_status**: After the $10 OpenAI credit top-up, production was fully recovered with smoke:prod green, 5 tool steps, 6 cited sources, and verifier high. [project]\n"
+      },
+      "reason": "Both files are recent operational learnings within the same agent_architecture/context cluster, but they cover different operational surfaces: LibSQL backup mechanics versus provider health and production smoke verification. They should reference each other as related deployment/ops knowledge rather than be merged.",
+      "type": "CONSOLIDATE"
+    },
+    {
+      "action": "CROSS_REFERENCE",
+      "inputFiles": [
+        "agent_architecture/context/backup_mastra_shell_script_learnings.md",
+        "agent_architecture/context/weekly_eval_and_launchd_ops_guardrails.md"
+      ],
+      "needsReview": false,
+      "previousTexts": {
+        "agent_architecture/context/backup_mastra_shell_script_learnings.md": "---\ntitle: Backup Mastra Shell Script Learnings\ntags: []\nrelated: [agent_architecture/context/curated_operational_knowledge.md, agent_architecture/context/provider_health_checks_and_production_smoke_verification.md]\nkeywords: []\nimportance: 50\nrecency: 1\nmaturity: draft\ncreatedAt: '2026-07-10T23:23:21.911Z'\nupdatedAt: '2026-07-10T23:23:21.911Z'\n---\n## Raw Concept\n**Task:**\nDocument the live-run operational learnings and backup procedure for the production LibSQL store used by the agent\n\n**Changes:**\n- Added a consistent point-in-time snapshot flow using sqlite3 VACUUM INTO inside the Railway container\n- Added sentinel-based remote success verification because railway ssh exit status is unreliable\n- Added cleanup and retry-idempotence safeguards including rm -f before VACUUM INTO and local overwrite support\n\n**Files:**\n- scripts/ops/backup-mastra.sh\n\n**Flow:**\nrailway ssh into container -> rm old snapshot -> VACUUM INTO remote snapshot -> echo SNAPSHOT_OK -> download snapshot -> sqlite3 integrity_check -> rclone copyto -> cleanup -> prune aged backups\n\n**Timestamp:** 2026-07-10T23:22:49.680Z\n\n**Author:** PR #85\n\n**Patterns:**\n- `SNAPSHOT_OK` - Sentinel string confirming the remote snapshot command succeeded\n- `SNAPSHOT_FAILED` - Sentinel string indicating the remote snapshot command failed\n\n## Narrative\n### Structure\nThe script backs up the production LibSQL store by first creating a consistent snapshot inside the Railway container, then downloading it locally, verifying SQLite integrity, pushing it to the bucket, and cleaning up both remote and local temp files. Dated backups are pruned after 30 days.\n\n### Dependencies\nDepends on railway CLI, sqlite3, rclone, and the bucket_path helper from lib.sh. It also relies on Railway SSH key registration and ssh-keyscan host trust being configured once.\n\n### Highlights\nThe first live run exposed three important operational hazards: remote command argument handling, unreliable railway ssh exit codes, and VACUUM INTO overwrite refusal. The verified E2E run produced a 42MB snapshot and a successful restore drill.\n\n### Rules\n1. Pass ONE argument to railway ssh for the remote command.\n2. Never trust railway ssh exit code alone; confirm success via an output sentinel such as SNAPSHOT_OK.\n3. Remove the target file before VACUUM INTO because it refuses to overwrite.\n4. Use --overwrite when downloading the snapshot.\n5. Put -s on the parent railway service files command, not on download.\n6. Keep native Railway volume backups enabled as an independent fast-restore path.\n\n### Examples\nExample remote success pattern: command executes and prints SNAPSHOT_OK; if not present, treat the run as failed even if the SSH command exits 0.\n\n## Facts\n- **railway_ssh_argument_handling**: railway ssh joins command args with spaces and the remote shell re-parses them, so multi-line remote commands break. [project]\n- **railway_ssh_exit_behavior**: railway ssh exits 0 even when the remote command fails, so success must be confirmed via an output sentinel. [project]\n- **vacuum_into_overwrite_behavior**: VACUUM INTO refuses to overwrite the target, so the target must be removed first for same-day retry idempotence. [project]\n- **railway_service_files_cli**: railway service files -s belongs on the parent service files command, not the download subcommand. [project]\n- **backup_verification_result**: The backup drill verified a 42MB snapshot, integrity was ok, and restore showed 49 threads plus 2 usage rows. [project]\n",
+        "agent_architecture/context/weekly_eval_and_launchd_ops_guardrails.md": "---\ntitle: Weekly Eval and Launchd Ops Guardrails\nsummary: Eval gating prevents production regressions, and launchd installation manages daily and weekly ops agents with environment substitution and local logging.\ntags: []\nrelated: [agent_architecture/context/ws7_customer_readiness_weekly_refresh.md, agent_architecture/context/ws2_customer_readiness_reliability_fixes.md, agent_architecture/context/ws5_customer_readiness.md, agent_architecture/context/railway_tcp_proxy_automation.md]\nkeywords: []\ncreatedAt: '2026-07-10T19:05:11.486Z'\nupdatedAt: '2026-07-10T19:05:11.486Z'\n---\n## Reason\nDocument the retrieval eval baseline, deployment gating logic, and launchd installation requirements for scheduled ops jobs.\n\n## Raw Concept\n**Task:**\nDocument eval-gate and install-launchd ops guardrails\n\n**Changes:**\n- Added retrieval eval gating with baseline advancement\n- Added launchd agent installation and optional uninstall flow\n- Added operational guidance for Healthchecks and first-run verification\n\n**Files:**\n- scripts/ops/eval-gate.sh\n- scripts/ops/install-launchd.sh\n\n**Flow:**\nvalidate references -> run retrieval eval -> locate newest result -> compare against baseline -> advance baseline on pass -> bootstrap launchd agents -> supervise first run\n\n**Timestamp:** 2026-07-10T19:03:07.746Z\n\n**Author:** ByteRover context engineer\n\n## Narrative\n### Structure\nThe eval gate is a two-step quality filter: first validate the graph references, then run retrieval eval and compare the newest run with the last-known-good baseline. The launchd installer is a lightweight bootstrapper that copies templated plists into the user LaunchAgents directory, restarts existing agents, and prints next-step instructions.\n\n### Dependencies\nDepends on the pipeline Python CLI, local eval result files, macOS launchd, and Healthchecks for external pings. The installer also expects the repo checkout path and home directory to be substituted into plist templates.\n\n### Highlights\nThe eval gate is intentionally narrow: it gates on retrieval quality only because answer-level judge scores are considered noisy. The launchd instructions call out the required /opt/homebrew/bin PATH addition because launchd does not inherit fish shell configuration.\n\n### Rules\nUsage: scripts/ops/eval-gate.sh    (exit 0 = safe to deploy). First run (no baseline) records one and passes. The install script supports --uninstall. Next steps: 1. Create three checks at https://healthchecks.io (daily-check: period 1d grace 12h; weekly-refresh: period 7d grace 24h; backup-mastra: period 1d grace 12h) and put their ping URLs in ~/.config/nc-medicaid/ops.env as HC_URL_DAILY / HC_URL_WEEKLY / HC_URL_MASTRA_BACKUP (+ HC_URL_BACKUP for the corpus backup). 2. Kick a supervised first run: launchctl kickstart -k gui/$(id -u)/com.ncmedicaid.weekly-refresh and watch ~/Library/Logs/nc-medicaid/.\n\n### Examples\nThe eval gate records the new retrieval run ID in ~/.cache/nc-medicaid/last-good-eval after a passing compare. The install script emits \"installed <label>\" or \"uninstalled <label>\" per agent.\n\n## Facts\n- **eval_gate_precheck**: The eval gate validates dataset references against the graph before running retrieval eval. [project]\n- **retrieval_eval_storage**: Retrieval eval results are stored in data/eval-results/*_retrieval.json. [project]\n- **newest_retrieval_eval_selection**: The newest retrieval eval file is identified by sorting files by modification time. [project]\n- **retrieval_baseline_file**: The baseline file for passing retrieval evals is ~/.cache/nc-medicaid/last-good-eval. [project]\n- **launchd_labels**: install-launchd.sh installs or reinstalls com.ncmedicaid.daily-check, com.ncmedicaid.weekly-refresh, and com.ncmedicaid.backup-mastra. [project]\n- **launchd_agent_dir**: The launchd agent directory is ~/Library/LaunchAgents. [environment]\n- **launchd_domain**: The launchd domain is gui/$(id -u). [environment]\n- **launchd_log_dir**: The install script creates ~/Library/Logs/nc-medicaid. [environment]\n- **healthchecks_schedule**: The install script suggests Healthchecks periods and grace windows for daily-check, weekly-refresh, backup-mastra, and HC_URL_BACKUP. [project]\n- **weekly_refresh_first_run**: The supervised first run uses launchctl kickstart -k gui/$(id -u)/com.ncmedicaid.weekly-refresh. [project]\n- **launchd_plist_bootstrap**: launchd agents are bootstrapped after plist substitution using __REPO_ROOT__ and __HOME__. [project]\n"
+      },
+      "reason": "The backup learning file explicitly depends on the scheduled ops/launchd workflow and backup-mastra checks documented in the launchd guardrails file, so a bidirectional cross-reference is appropriate.",
+      "type": "CONSOLIDATE"
+    },
+    {
+      "action": "CROSS_REFERENCE",
+      "inputFiles": [
+        "agent_architecture/context/provider_health_checks_and_production_smoke_verification.md",
+        "agent_architecture/context/ws5_customer_readiness.md"
+      ],
+      "needsReview": false,
+      "previousTexts": {
+        "agent_architecture/context/provider_health_checks_and_production_smoke_verification.md": "---\ntitle: Provider Health Checks and Production Smoke Verification\ntags: []\nrelated: [agent_architecture/context/health.md, agent_architecture/context/weekly_eval_and_launchd_ops_guardrails.md]\nkeywords: []\nimportance: 55\nrecency: 1\nmaturity: draft\nupdateCount: 1\ncreatedAt: '2026-07-10T21:20:36.640Z'\nupdatedAt: '2026-07-10T21:22:05.499Z'\n---\n## Raw Concept\n**Task:**\nDocument post-quota-topup verification for provider health checks and production smoke testing\n\n**Changes:**\n- Adjusted OpenAI health probe classification to treat only 401, 403, 429, and 5xx as outages\n- Confirmed gpt-5-mini can fail with invalid_request 400 when max_completion_tokens is exhausted by reasoning\n- Updated smoke script behavior to expand the research trail before counting tool steps\n- Verified live production usage tracking and production modelId reporting\n\n**Files:**\n- packages/agent/src/health.ts\n- e2e/scripts/smoke-production.mjs\n\n**Flow:**\nhealth check -> provider request -> status classification -> smoke script -> expand research trail -> count tool steps -> verify answer and sources\n\n**Timestamp:** 2026-07-10\n\n**Author:** ByteRover context engineer\n\n## Narrative\n### Structure\nThe health module caches provider checks for one minute and shares a single in-flight request across concurrent callers. The production smoke script loads env files in precedence order, authenticates into the chat UI, starts a fresh thread, submits a question, waits for the assistant answer, then verifies sources and tool steps.\n\n### Dependencies\nHealth checks depend on VOYAGE_API_KEY, VOYAGE_API_URL, VOYAGE_MODEL, and OPENAI_API_KEY. The smoke script depends on TEST_USER_EMAIL, TEST_USER_PASSWORD, Playwright, and data-testid hooks in the chat UI.\n\n### Highlights\nProvider health is based on real provider calls rather than endpoint reachability alone. The OpenAI probe intentionally uses a minimal chat completion so a quota or billing problem is surfaced before production chat fails. The smoke test now accounts for collapsed research-trail UI state after P2.\n\n### Rules\nClassify OpenAI health by status code: 401, 403, 429, and any 5xx are outages; other 4xx prove key and billing work. Do not rely on response.ok for OpenAI probe decisions. Do not use GET /v1/models as a substitute for a quota-sensitive health check. In the smoke script, click research-trail-trigger before counting tool-step because the Collapsible unmounts step cards.\n\n### Examples\nThe health probe may receive invalid_request 400 \"output limit reached\" from gpt-5-mini when max_completion_tokens is set to 1. A successful smoke run reported 5 tool steps and 6 cited sources.\n\n## Facts\n- **gpt_5_mini_health_probe_behavior**: gpt-5-mini with max_completion_tokens:1 can return invalid_request 400 \"output limit reached\" because reasoning consumes the budget. [project]\n- **health_probe_status_classification**: Health probes must classify OpenAI outages by status codes 401, 403, 429, and 5xx, not by response.ok. [convention]\n- **openai_health_probe_non_outage_4xx**: Other 4xx responses prove the key and billing work for OpenAI health checks. [project]\n- **smoke_script_research_trail_requirement**: The production smoke script must click research-trail-trigger before counting tool-step because the Collapsible unmounts step cards. [project]\n- **usage_tracking_schema**: Live production usage tracking logs chat.usage with userId, modelId, input tokens, output tokens, and cached tokens. [project]\n- **production_model_id**: The production reports modelId gpt-5.4, and the Railway AGENT_MODEL env override predates the gpt-5.6-terra default. [project]\n- **post_topup_recovery_status**: After the $10 OpenAI credit top-up, production was fully recovered with smoke:prod green, 5 tool steps, 6 cited sources, and verifier high. [project]\n",
+        "agent_architecture/context/ws5_customer_readiness.md": "---\ntitle: WS5 Customer-Readiness\nsummary: Chat streaming, usage attribution, usage reporting, health checks, and CLI/runtime behavior for the WS5 customer-readiness workstream.\ntags: []\nrelated: [agent_architecture/context/ws2_customer_readiness_reliability_fixes.md, agent_architecture/context/ws1_customer_readiness_legal_surface_and_chat_guardrails.md, agent_architecture/context/policy_corpus_embedding_client_and_verifier_flow.md, agent_architecture/context/mastra_upgrade_type_and_runtime_boundaries.md, agent_architecture/context/ws7_customer_readiness_weekly_refresh.md, agent_architecture/context/weekly_eval_and_launchd_ops_guardrails.md, agent_architecture/context/railway_tcp_proxy_automation.md]\nkeywords: []\ncreatedAt: '2026-07-10T19:34:30.600Z'\nupdatedAt: '2026-07-10T19:34:30.600Z'\n---\n## Reason\nCurate the WS5 customer-readiness PR context into durable knowledge\n\n## Raw Concept\n**Task:**\nDocument WS5 customer-readiness findings for the agent runtime and usage pipeline\n\n**Changes:**\n- Switched /chat to registerApiRoute + handleChatStream for per-request onFinish attribution\n- Added LibSQL-backed usage_event recording and usage reporting support\n- Changed /healthz OpenAI probing to a real chat completion because /v1/models is insufficient\n- Recorded the 2026-07-10 quota outage and the git rebase --onto gotcha\n\n**Files:**\n- packages/agent/src/index.ts\n- packages/agent/src/usage/repository.ts\n- packages/agent/src/usage/pricing.ts\n- packages/agent/src/health.ts\n\n**Flow:**\nchat request -> handleChatStream -> onFinish -> UsageRepository.record -> usage_events row -> reporting; healthz -> provider probes -> cache -> response\n\n**Timestamp:** 2026-07-10\n\n**Author:** WS5 customer-readiness session\n\n## Narrative\n### Structure\nThe knowledge spans chat streaming, usage accounting, pricing lookup, health checks, and CLI/runtime behavior. The main operational boundary is that successful chat delivery must not depend on usage recording, while health checks must probe providers in a way that matches real failure modes.\n\n### Dependencies\nDepends on LibSQL for usage persistence, getBoundUserId for attribution, and provider-specific probes for health status. The OpenAI health probe must use a chat completion because GET /v1/models can report healthy during quota exhaustion.\n\n### Highlights\nUsage is best-effort and pruned opportunistically. Pricing is model-prefix based. The 2026-07-10 outage established that quota exhaustion can break production chat even when /v1/models still returns 200.\n\n### Examples\nThe /chat handler attaches an onFinish callback that records usage rows, and /healthz checks Neo4j, storage, Voyage, and OpenAI before returning ok or degraded.\n\n## Facts\n- **chat_streaming_route**: /chat now uses registerApiRoute + handleChatStream from @mastra/ai-sdk instead of chatRoute [project]\n- **usage_attribution**: Per-request onFinish is needed so usage can be attributed to the authenticated user [project]\n- **user_id_source**: getBoundUserId from auth-middleware provides the user id [project]\n- **on_finish_fields**: The onFinish event provides totalUsage, model, and runId [project]\n- **finish_event_type**: The finish-event type is derived as Parameters<NonNullable<AgentExecutionOptions['onFinish']>>[0] [project]\n- **mastra_stream_export_gap**: @mastra/core/stream does not re-export MastraOnFinishCallbackArgs [project]\n- **usage_storage**: usage_events are stored in LibSQL [project]\n- **usage_recording_policy**: UsageRepository records usage in a best-effort way and failures must not break a successful chat [project]\n- **usage_retention**: Usage retention is pruned opportunistically using USAGE_RETENTION_DAYS with default 400 days [project]\n- **pricing_lookup**: pricing.ts uses longest-prefix match for model pricing [project]\n- **usage_report_flags**: scripts/usage-report.ts supports --month and --by [project]\n- **openai_models_probe_limit**: GET /v1/models returns 200 even when OpenAI quota is exhausted [project]\n- **openai_health_probe**: The /healthz OpenAI probe must be a 1-token chat completion [project]\n- **outage_date**: The 2026-07-10 quota outage took production chat down [project]\n- **quota_exhaustion**: Both OPENAI_API_KEY and EVAL_OPENAI_API_KEY were exhausted during the outage [project]\n- **on_finish_error_behavior**: onFinish does not fire on upstream quota errors, so failed runs do not create usage rows [project]\n- **git_rebase_behavior**: git rebase --onto X Y branchname checks out branchname [convention]\n"
+      },
+      "reason": "The provider health verification file extends the same health-check and production smoke concerns already captured in WS5 customer-readiness, so the topics are complementary and should be linked.",
+      "type": "CONSOLIDATE"
+    },
+    {
+      "action": "CROSS_REFERENCE",
+      "inputFiles": [
+        "agent_architecture/context/provider_health_checks_and_production_smoke_verification.md",
+        "agent_architecture/context/ws2_customer_readiness_reliability_fixes.md"
+      ],
+      "needsReview": false,
+      "previousTexts": {
+        "agent_architecture/context/provider_health_checks_and_production_smoke_verification.md": "---\ntitle: Provider Health Checks and Production Smoke Verification\ntags: []\nrelated: [agent_architecture/context/health.md, agent_architecture/context/weekly_eval_and_launchd_ops_guardrails.md]\nkeywords: []\nimportance: 55\nrecency: 1\nmaturity: draft\nupdateCount: 1\ncreatedAt: '2026-07-10T21:20:36.640Z'\nupdatedAt: '2026-07-10T21:22:05.499Z'\n---\n## Raw Concept\n**Task:**\nDocument post-quota-topup verification for provider health checks and production smoke testing\n\n**Changes:**\n- Adjusted OpenAI health probe classification to treat only 401, 403, 429, and 5xx as outages\n- Confirmed gpt-5-mini can fail with invalid_request 400 when max_completion_tokens is exhausted by reasoning\n- Updated smoke script behavior to expand the research trail before counting tool steps\n- Verified live production usage tracking and production modelId reporting\n\n**Files:**\n- packages/agent/src/health.ts\n- e2e/scripts/smoke-production.mjs\n\n**Flow:**\nhealth check -> provider request -> status classification -> smoke script -> expand research trail -> count tool steps -> verify answer and sources\n\n**Timestamp:** 2026-07-10\n\n**Author:** ByteRover context engineer\n\n## Narrative\n### Structure\nThe health module caches provider checks for one minute and shares a single in-flight request across concurrent callers. The production smoke script loads env files in precedence order, authenticates into the chat UI, starts a fresh thread, submits a question, waits for the assistant answer, then verifies sources and tool steps.\n\n### Dependencies\nHealth checks depend on VOYAGE_API_KEY, VOYAGE_API_URL, VOYAGE_MODEL, and OPENAI_API_KEY. The smoke script depends on TEST_USER_EMAIL, TEST_USER_PASSWORD, Playwright, and data-testid hooks in the chat UI.\n\n### Highlights\nProvider health is based on real provider calls rather than endpoint reachability alone. The OpenAI probe intentionally uses a minimal chat completion so a quota or billing problem is surfaced before production chat fails. The smoke test now accounts for collapsed research-trail UI state after P2.\n\n### Rules\nClassify OpenAI health by status code: 401, 403, 429, and any 5xx are outages; other 4xx prove key and billing work. Do not rely on response.ok for OpenAI probe decisions. Do not use GET /v1/models as a substitute for a quota-sensitive health check. In the smoke script, click research-trail-trigger before counting tool-step because the Collapsible unmounts step cards.\n\n### Examples\nThe health probe may receive invalid_request 400 \"output limit reached\" from gpt-5-mini when max_completion_tokens is set to 1. A successful smoke run reported 5 tool steps and 6 cited sources.\n\n## Facts\n- **gpt_5_mini_health_probe_behavior**: gpt-5-mini with max_completion_tokens:1 can return invalid_request 400 \"output limit reached\" because reasoning consumes the budget. [project]\n- **health_probe_status_classification**: Health probes must classify OpenAI outages by status codes 401, 403, 429, and 5xx, not by response.ok. [convention]\n- **openai_health_probe_non_outage_4xx**: Other 4xx responses prove the key and billing work for OpenAI health checks. [project]\n- **smoke_script_research_trail_requirement**: The production smoke script must click research-trail-trigger before counting tool-step because the Collapsible unmounts step cards. [project]\n- **usage_tracking_schema**: Live production usage tracking logs chat.usage with userId, modelId, input tokens, output tokens, and cached tokens. [project]\n- **production_model_id**: The production reports modelId gpt-5.4, and the Railway AGENT_MODEL env override predates the gpt-5.6-terra default. [project]\n- **post_topup_recovery_status**: After the $10 OpenAI credit top-up, production was fully recovered with smoke:prod green, 5 tool steps, 6 cited sources, and verifier high. [project]\n",
+        "agent_architecture/context/ws2_customer_readiness_reliability_fixes.md": "---\ntitle: WS2 Customer Readiness Reliability Fixes\nsummary: 'WS2 customer-readiness fixes: /healthz now probes Voyage and OpenAI with caching, embedQueries retries Voyage failures with timeout, Neo4j enforces server-side transaction timeouts, and Sentry requires an explicit environment.'\ntags: []\nrelated: [agent_architecture/context/ws5_customer_readiness.md, agent_architecture/context/ws1_customer_readiness_legal_surface_and_chat_guardrails.md, agent_architecture/context/policy_corpus_embedding_client_and_verifier_flow.md, agent_architecture/context/mastra_upgrade_type_and_runtime_boundaries.md, agent_architecture/context/ws7_customer_readiness_weekly_refresh.md, agent_architecture/context/weekly_eval_and_launchd_ops_guardrails.md, agent_architecture/context/railway_tcp_proxy_automation.md]\nkeywords: []\ncreatedAt: '2026-07-10T18:28:16.347Z'\nupdatedAt: '2026-07-10T18:28:16.347Z'\n---\n## Reason\nDocument the customer-readiness hardening across health checks, embeddings, Neo4j timeouts, and Sentry gating\n\n## Raw Concept\n**Task:**\nDocument WS2 customer-readiness reliability hardening across health checks, embeddings, database timeouts, and error tracking\n\n**Changes:**\n- Extended /healthz with Voyage and OpenAI reachability checks in src/health.ts\n- Added Voyage timeout and one-retry behavior in policy-corpus.ts\n- Injected Neo4j server-side transaction timeout via withSession and added driver connection limits\n- Warned when SENTRY_DSN is present without SENTRY_ENVIRONMENT\n- Recorded local mastra dev crash workaround and migration requirement\n\n**Files:**\n- packages/agent/src/health.ts\n- packages/agent/src/policy-corpus.ts\n- packages/agent/src/neo4j.ts\n- packages/agent/src/sentry.ts\n\n**Flow:**\n/healthz probe -> provider reachability checks -> cached status; search request -> Voyage embed with timeout and retry; Neo4j session -> injected transaction timeout; startup -> Sentry gated by DSN plus explicit environment\n\n**Timestamp:** 2026-07-10T18:27:38.701Z\n\n## Narrative\n### Structure\nThe context describes four coordinated hardening changes across health probing, embedding retrieval, Neo4j query execution, and Sentry initialization, plus an operational workaround for local Mastra development.\n\n### Dependencies\nHealth checks depend on fetch and AbortSignal.timeout, embedding depends on Voyage API access, Neo4j timeout enforcement depends on session.run rebinding and TransactionConfig from neo4j-driver-core, and Sentry initialization depends on both SENTRY_DSN and SENTRY_ENVIRONMENT.\n\n### Highlights\nThe design prevents provider outages from surfacing only on first chat, bounds expensive upstream calls, limits runaway Neo4j queries, and avoids leaking local HMR errors into shared Sentry projects. The local Mastra workaround is to use MASTRA_OBSERVABILITY_PATH=:memory: when mastra.duckdb migration is missing.\n\n## Facts\n- **healthz_providers**: /healthz now checks Voyage and OpenAI reachability [project]\n- **provider_health_timeout_and_cache**: Provider health checks use 5s AbortSignal timeouts and a 60s cache [project]\n- **provider_health_inflight_deduplication**: Provider checks share a single in-flight promise to avoid stampedes [project]\n- **deploy_gate_health_sources**: Only Neo4j and LibSQL health determine deploy promotion; provider checks are informational [project]\n- **voyage_timeout**: embedQueries uses VOYAGE_TIMEOUT_MS set to 15s [project]\n- **voyage_retry_policy**: embedQueries retries once after 1s backoff for 429, 5xx, network, or abort failures [project]\n- **neo4j_transaction_timeout**: Neo4j sessions inject a 30s server-side transaction timeout by rebinding session.run [project]\n- **neo4j_driver_timeouts**: Neo4j driver is configured with connectionTimeout, connectionAcquisitionTimeout, and maxTransactionRetryTime [project]\n- **sentry_environment_gate**: Sentry is disabled when SENTRY_DSN is set but SENTRY_ENVIRONMENT is missing [project]\n- **mastra_duckdb_migration_requirement**: Local mastra dev can crash on mastra.duckdb unless npx mastra migrate is run [project]\n- **mastra_observability_workaround**: MASTRA_OBSERVABILITY_PATH=:memory: is a workaround for local mastra dev crashes [project]\n"
+      },
+      "reason": "The health-probe classification details and provider reachability checks directly complement WS2 reliability hardening, making cross-reference more appropriate than merge.",
+      "type": "CONSOLIDATE"
+    },
+    {
+      "action": "CREATE",
+      "confidence": 0.98,
+      "needsReview": false,
+      "outputFile": "auth_integration/runtime-boundary-correctness-is-the-shared-fix-for-auth-chat-state-and-database-.md",
+      "sources": [
+        "auth_integration/_index.md",
+        "frontend_ui/_index.md",
+        "database_operations/_index.md"
+      ],
+      "type": "SYNTHESIZE"
+    },
+    {
+      "action": "CREATE",
+      "confidence": 0.93,
+      "needsReview": false,
+      "outputFile": "database_operations/schema-aware-validation-is-the-shared-safety-net-across-graph-writes-retrieval-a.md",
+      "sources": [
+        "database_operations/_index.md",
+        "qa/_index.md",
+        "evaluation/_index.md",
+        "architecture/_index.md"
+      ],
+      "type": "SYNTHESIZE"
+    },
+    {
+      "action": "CREATE",
+      "confidence": 0.88,
+      "needsReview": false,
+      "outputFile": "packages/production-readiness-depends-on-realistic-probes-not-synthetic-health-signals.md",
+      "sources": [
+        "packages/_index.md",
+        "packages/_index.md",
+        "frontend_ui/_index.md",
+        "agent_architecture/_index.md"
+      ],
+      "type": "SYNTHESIZE"
+    },
+    {
+      "action": "CREATE",
+      "confidence": 0.91,
+      "needsReview": false,
+      "outputFile": "frontend_ui/identity-sensitive-caching-and-persistence-must-track-auth-transitions.md",
+      "sources": [
+        "frontend_ui/_index.md",
+        "frontend_ui/_index.md",
+        "auth_integration/_index.md"
+      ],
+      "type": "SYNTHESIZE"
+    },
+    {
+      "action": "KEEP",
+      "file": "agent_architecture/nc_medicaid_agent/libsql_storage_fix_for_railway.md",
+      "needsReview": false,
+      "reason": "Contains concrete deployment-fix knowledge: replacing DuckDB/MastraCompositeStore with LibSQLStore to avoid Alpine/musl crashes on Railway, with specific files and flow.",
+      "type": "PRUNE"
+    },
+    {
+      "action": "KEEP",
+      "file": "database_operations/neo4j_auth/railway_neo4j_auth_handling.md",
+      "needsReview": false,
+      "reason": "Contains actionable remediation details for Railway Neo4j auth failures, including password rotation, bolt proxy update, and the NEO4J_AUTH first-initialization behavior.",
+      "type": "PRUNE"
+    },
+    {
+      "action": "KEEP",
+      "file": "evaluation/cross_reference_resolution/cross_reference_resolution_evaluation.md",
+      "needsReview": false,
+      "reason": "Contains substantive evaluation-pipeline knowledge and is explicitly marked as consolidated from a duplicate context file, so it remains the canonical detailed entry.",
+      "type": "PRUNE"
+    },
+    {
+      "action": "KEEP",
+      "file": "frontend_ui/chat_page_review_fixes/chat_page_review_fixes.md",
+      "needsReview": false,
+      "reason": "Contains real frontend review-fix knowledge with specific UI/accessibility/layout changes; it is not a placeholder or obsolete note.",
+      "type": "PRUNE"
+    },
+    {
+      "action": "KEEP",
+      "file": "frontend_ui/message_persistence_parsing/message_persistence_parsing.md",
+      "needsReview": false,
+      "reason": "Contains useful implementation details about parsing MastraMessageContentV2, converting tool-invocation parts, and preserving legacy formatting.",
+      "type": "PRUNE"
+    },
+    {
+      "action": "KEEP",
+      "file": "frontend_ui/proxy_handling/next_js_16_proxy_authkit_migration.md",
+      "needsReview": false,
+      "reason": "Contains concrete migration steps for Next.js 16 proxy/authkit integration and matcher behavior, which are actionable and specific.",
+      "type": "PRUNE"
+    },
+    {
+      "action": "KEEP",
+      "file": "frontend_ui/scroll_area_sidebar_stability/chat_sidebar_scroll_fix.md",
+      "needsReview": false,
+      "reason": "Contains specific scroll-behavior fix details for the chat sidebar, including exact DOM targeting and layout changes.",
+      "type": "PRUNE"
+    },
+    {
+      "action": "KEEP",
+      "file": "qa/hallucination_verifier/hallucination_verifier_processor.md",
+      "needsReview": false,
+      "reason": "Describes a real two-step hallucination-verification processor and its relevance/factuality checks; this is useful operational knowledge.",
+      "type": "PRUNE"
+    },
+    {
+      "action": "KEEP",
+      "file": "qa/launch_blockers/launch_blocker_fixes.md",
+      "needsReview": false,
+      "reason": "Contains substantive launch-blocker remediation knowledge across proxy, concept handling, hallucination verification, and search testing.",
+      "type": "PRUNE"
+    },
+    {
+      "action": "KEEP",
+      "file": "qa/playwright_e2e/medicaid_agent_playwright_e2e_infrastructure.md",
+      "needsReview": false,
+      "reason": "Documents the Playwright e2e infrastructure and suite structure for the Medicaid agent, which is actionable test knowledge.",
+      "type": "PRUNE"
+    },
+    {
+      "action": "KEEP",
+      "file": "qa/playwright_e2e/message_persistence_smoke_test/message_persistence_smoke_test.md",
+      "needsReview": false,
+      "reason": "Contains a specific smoke-test flow for validating persisted chat messages in LibSQL; this is concrete test coverage knowledge.",
+      "type": "PRUNE"
+    },
+    {
+      "action": "KEEP",
+      "file": "database_operations/neo4j_hybrid_search/neo4j_hybrid_search_indexing.md",
+      "needsReview": false,
+      "reason": "Contains useful information about required indexes and relevance-signal merging in the Neo4j hybrid search pipeline.",
+      "type": "PRUNE"
+    },
+    {
+      "action": "KEEP",
+      "file": "evaluation/pipeline_overview/evaluation_pipeline_overview.md",
+      "needsReview": false,
+      "reason": "Contains substantive evaluation pipeline details and is explicitly noted as consolidated from a duplicate context summary, so it remains canonical.",
+      "type": "PRUNE"
+    },
+    {
+      "action": "KEEP",
+      "file": "frontend_ui/chat_page_transport/authenticated_chat_transport_reinitialization.md",
+      "needsReview": false,
+      "reason": "Contains actionable knowledge about reinitializing chat transport when auth state changes by including resourceId in the useChat identifier.",
+      "type": "PRUNE"
+    }
+  ],
+  "startedAt": 1785036452631,
+  "status": "completed",
+  "summary": {
+    "consolidated": 4,
+    "errors": 0,
+    "flaggedForReview": 0,
+    "pruned": 14,
+    "synthesized": 4
+  },
+  "taskId": "6901e4d5-6832-4d34-bfba-6bf8852a37dd",
+  "trigger": "agent-idle"
+}

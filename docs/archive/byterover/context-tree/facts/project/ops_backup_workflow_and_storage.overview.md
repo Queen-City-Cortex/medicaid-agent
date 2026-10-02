@@ -1,0 +1,10 @@
+- Describes the operational backup workflow for corpus data and the Mastra production database, centered on Railway bucket storage, rclone, sqlite3 VACUUM INTO snapshots, and healthchecks notifications.
+- Shared ops helpers in `scripts/ops/lib.sh` centralize logging, locking, healthchecks, Railway CLI wrapping, and bucket path construction.
+- `backup-corpus.sh` runs weekly and backs up crawler registry, downloaded documents, parsed artifacts, and selected durable pipeline data.
+- `backup-mastra.sh` runs daily and snapshots the production LibSQL/SQLite store from the agent Railway volume, then downloads and verifies it before upload.
+- The backup flow is consistent across scripts: load `ops.env`, start healthcheck, snapshot data, copy to Railway bucket, prune retention, then send healthcheck ok/fail.
+- Corpus backups use `rclone sync` plus `--backup-dir` to retain deleted or overwritten files, preserving rollback history for crawler or sync mistakes.
+- Mastra backups include integrity verification with `sqlite3 PRAGMA integrity_check`, and the document notes that Railway native volume backups should also be enabled for fastest restores.
+- Notable constraints and entities include the Railway bucket named `backups` in region `iad`, bucket endpoint `https://t3.storageapi.dev`, bucket-scoped credential path requirements, and the need for `railway ssh` setup plus `known_hosts` preparation.
+- Retention policies differ by dataset: corpus deleted history is pruned after 120 days, while Mastra bucket copies are pruned after 30 days.
+- Healthchecks.io is used as a dead-man switch via `hc_start`, `hc_ok`, and `hc_fail`, and outages in healthchecks must not cause the backup itself to fail.

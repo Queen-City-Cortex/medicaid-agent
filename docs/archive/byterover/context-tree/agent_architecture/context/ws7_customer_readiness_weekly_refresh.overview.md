@@ -1,0 +1,7 @@
+- Weekly refresh is the top-level orchestration for customer readiness, running crawl, pipeline, audit, eval gate, change gate, optional deploy, verification, and backup in a single flow.
+- The documented flow is: launchd or manual trigger -> acquire lock -> healthcheck trap/start -> crawl -> pipeline run-all -> corpus audit -> eval gate -> change gate -> optional deploy-data -> verify -> backup -> healthcheck ok.
+- A major design choice is separating retrieval-quality gating from corpus-change gating: eval regressions block production pushes, while unchanged corpora skip destructive deploys unless FORCE_DEPLOY=1 is set.
+- Railway TCP proxy handling is transient and defensive: the deploy path opens a temporary Neo4j bolt proxy, uses it during deploy, and deletes it in an EXIT trap to avoid leaving bolt publicly exposed.
+- launchd scheduling and install details are included, with weekly refresh scheduled on Saturdays and safe to run manually; first-run verification uses launchctl kickstart and logs under ~/Library/Logs/nc-medicaid/.
+- The script depends on shared shell helpers plus Docker, jq, rclone, pipeline Python virtualenv tooling, crawler code, Railway GraphQL v2, and launchd.
+- Notable state/cache artifacts include ~/.cache/nc-medicaid/last-good-eval for eval baseline and ~/.cache/nc-medicaid/last-deploy.manifest for deploy change detection.

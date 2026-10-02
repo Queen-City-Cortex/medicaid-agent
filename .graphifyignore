@@ -39,3 +39,8 @@ e2e/design-shots/
 # Next.js generated boilerplate assets / types (no architectural value)
 packages/web/public/*.svg
 **/next-env.d.ts
+
+# Immutable historical knowledge; search explicitly when needed.
+docs/archive/
+.local-recovery/
+.worktrees/

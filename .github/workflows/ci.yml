@@ -10,6 +10,7 @@ on:
     # main's CI runs (see the concurrency note below).
     paths-ignore:
       - '.brv/**'
+      - 'docs/archive/**'
       - 'graphify-out/**'
 
 concurrency:

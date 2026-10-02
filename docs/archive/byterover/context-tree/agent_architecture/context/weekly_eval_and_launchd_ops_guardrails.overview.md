@@ -1,0 +1,7 @@
+- The eval gate is a narrow quality filter focused on retrieval quality: it validates graph references, runs retrieval eval, compares against the newest result, and advances the baseline on pass.
+- Deployment is blocked on retrieval regressions, while first runs with no baseline are allowed and record a baseline before passing.
+- Retrieval eval results live under data/eval-results/*_retrieval.json, and the baseline is stored in ~/.cache/nc-medicaid/last-good-eval.
+- The launchd installer bootstraps or reinstalls three user agents: com.ncmedicaid.daily-check, com.ncmedicaid.weekly-refresh, and com.ncmedicaid.backup-mastra.
+- launchd setup requires plist template substitution for __REPO_ROOT__ and __HOME__, installs into ~/Library/LaunchAgents, and creates ~/Library/Logs/nc-medicaid for logs.
+- Operational guidance includes adding /opt/homebrew/bin to PATH because launchd does not inherit fish shell config, plus Healthchecks setup for daily, weekly, and backup pings.
+- The first-run verification step is a supervised launchctl kickstart of com.ncmedicaid.weekly-refresh and watching the log directory for startup behavior.

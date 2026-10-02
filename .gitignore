@@ -12,7 +12,6 @@ __pycache__/
 .mcp.json
 .playwright-mcp/
 .superpowers/
-AGENTS.md
 packages/agent/src/public/
 *.duckdb
 *.duckdb.wal
@@ -26,3 +25,8 @@ packages/**/.brv/
 # graphify knowledge-graph output (ignore the heavy artifacts, keep the report)
 graphify-out/*
 !graphify-out/GRAPH_REPORT.md
+
+# Historical project knowledge is versioned under docs/archive.
+/.brv/
+/.worktrees/
+/.local-recovery/

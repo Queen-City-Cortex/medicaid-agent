@@ -1,0 +1,1 @@
+WS5 customer-readiness hardened chat streaming, best-effort usage attribution/reporting, and health checks by switching to per-request onFinish recording, LibSQL usage events, and a real OpenAI chat probe.

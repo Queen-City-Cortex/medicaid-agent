@@ -1,0 +1,8 @@
+- Defines a curated context extraction workflow for RLM curation focused on small contexts.
+- Core flow is: precomputed recon → single-pass extraction → curate → verify applied file paths.
+- Emphasizes that no new recon call is needed, chunking should be skipped for this case, and raw context should not be printed.
+- Verification must use result.applied[].filePath and must not use readFile.
+- Mentions durable knowledge handling via direct UPSERT-based curation.
+- Records a chunked-case requirement: tools.curation.mapExtract() must pass taskId as a bare variable and use a code_exec timeout of 300000.
+- Structure includes sections for Reason, Raw Concept, Narrative, and Facts, with the Facts section capturing key conventions and requirements.
+- Notable entities/patterns: RLM approach, precomputed recon, single-pass processing, applied file path verification, readFile prohibition, and mapExtract timeout/taskId handling.

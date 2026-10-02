@@ -1,0 +1,13 @@
+- WS5 customer-readiness covers chat streaming, usage attribution/reporting, health checks, and runtime/CLI behavior for the agent system.
+- The /chat route was changed to use registerApiRoute with handleChatStream so usage can be attributed per request via an onFinish callback.
+- Usage events are persisted in LibSQL through a UsageRepository, but recording is best-effort and must not break successful chat delivery.
+- The usage pipeline depends on authenticated user attribution from getBoundUserId and captures fields like totalUsage, model, and runId from the finish event.
+- Pricing lookup uses a longest-prefix match strategy in pricing.ts, and usage retention is pruned opportunistically with a default of 400 days.
+- Health checks probe real provider behavior: the OpenAI /healthz check uses a chat completion instead of /v1/models, because /v1/models can return 200 even during quota exhaustion.
+- A 2026-07-10 quota outage established that both OPENAI_API_KEY and EVAL_OPENAI_API_KEY exhaustion can take production chat down, and that failed upstream quota runs may not trigger onFinish or create usage rows.
+
+- Structure: an initial reason statement, a raw concept block listing task/changes/files/flow/timestamp/author, then a narrative section with structure, dependencies, highlights, and examples, followed by a dense Facts list.
+- Key flow described: chat request -> handleChatStream -> onFinish -> UsageRepository.record -> usage_events row -> reporting; healthz -> provider probes -> cache -> response.
+- Notable files: packages/agent/src/index.ts, usage/repository.ts, usage/pricing.ts, and health.ts.
+- Notable patterns/decisions include best-effort telemetry, provider-specific health probing, and operational knowledge captured from a production outage.
+- A noted convention is the git rebase --onto behavior that checks out the branchname target.

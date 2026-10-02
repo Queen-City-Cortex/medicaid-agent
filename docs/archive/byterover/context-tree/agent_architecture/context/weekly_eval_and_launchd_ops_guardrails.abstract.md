@@ -1,0 +1,1 @@
+This document covers retrieval-eval gating and launchd bootstrapping, showing how deployment is blocked on regression while scheduled ops agents are installed, supervised, and configured with Healthchecks and required environment substitution.
