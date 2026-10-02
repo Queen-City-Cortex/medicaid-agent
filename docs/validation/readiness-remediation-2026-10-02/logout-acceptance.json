@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "checkedAt": "2026-10-02T19:49:55.742453+00:00",
+  "runId": "runtime-repair-20261002-auth-2",
+  "method": "Fresh authenticated browser context; verifyLogout checks final production navigation and protected chat, then an additional protected-chat probe in a new tab of the same context",
+  "configurationSavedBy": "developer",
+  "login": "passed",
+  "logout": {
+    "signedOut": true,
+    "protectedChatRequiresLogin": true
+  },
+  "additionalSameContextProtectedChatRequiresLogin": true,
+  "productionHomepageNavigationObserved": true,
+  "localhostNavigationObserved": false,
+  "navigation": [
+    {
+      "origin": "https://medicaid-agent.up.railway.app",
+      "path": "/chat"
+    },
+    {
+      "origin": "https://api.workos.com",
+      "path": "/user_management/authorize"
+    },
+    {
+      "origin": "https://pretty-cabin-65-staging.authkit.app",
+      "path": "/bootstrap"
+    },
+    {
+      "origin": "https://pretty-cabin-65-staging.authkit.app",
+      "path": "/"
+    },
+    {
+      "origin": "https://medicaid-agent.up.railway.app",
+      "path": "/auth/callback"
+    },
+    {
+      "origin": "https://medicaid-agent.up.railway.app",
+      "path": "/chat"
+    },
+    {
+      "origin": "https://api.workos.com",
+      "path": "/user_management/sessions/logout"
+    },
+    {
+      "origin": "https://pretty-cabin-65-staging.authkit.app",
+      "path": "/api/logout"
+    },
+    {
+      "origin": "https://medicaid-agent.up.railway.app",
+      "path": "/"
+    },
+    {
+      "origin": "https://medicaid-agent.up.railway.app",
+      "path": "/chat"
+    },
+    {
+      "origin": "https://api.workos.com",
+      "path": "/user_management/authorize"
+    },
+    {
+      "origin": "https://pretty-cabin-65-staging.authkit.app",
+      "path": "/bootstrap"
+    },
+    {
+      "origin": "https://pretty-cabin-65-staging.authkit.app",
+      "path": "/"
+    }
+  ],
+  "questionSubmitted": false,
+  "chatGenerationPerformed": false,
+  "replacesPriorFailedReceipts": false
+}
