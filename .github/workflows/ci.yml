@@ -140,7 +140,7 @@ jobs:
         run: npx playwright install --with-deps chromium
         working-directory: e2e
 
-      - name: Test production smoke thread selection
+      - name: Test production smoke helpers
         run: node --test scripts/tests/*.test.mjs
         working-directory: e2e
 

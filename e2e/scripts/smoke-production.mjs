@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { activeThreadForRestore, threadByExactTitle } from './smoke-thread.mjs';
+import { verifyFeedbackRoundTrip, verifyLogout } from './smoke-readiness.mjs';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -38,6 +39,25 @@ const ignoredConsolePatterns = [
 
 let browser;
 let page;
+const readiness = process.env.SMOKE_READINESS_RECEIPT_PATH ? {
+  schemaVersion: 1, mode: 'readiness_diagnostic', startedAt: new Date().toISOString(),
+  releaseId: process.env.SMOKE_EXPECTED_RELEASE_ID, login: 'not_run',
+  testRunId: process.env.SMOKE_TEST_RUN_ID ?? 'readiness', testThreads: [],
+  answer: 'not_run', persistence: 'not_run', feedback: 'not_run', logout: 'not_run',
+} : null;
+if (readiness && (!readiness.releaseId || fs.existsSync(process.env.SMOKE_READINESS_RECEIPT_PATH))) {
+  throw new Error('Readiness smoke requires an expected release and a new receipt path.');
+}
+if (readiness && (process.env.SMOKE_ACTIVATION_NONCE || process.env.SMOKE_RECEIPT_PATH)) {
+  throw new Error('Readiness diagnostics cannot issue activation receipts.');
+}
+if (readiness && process.env.SMOKE_RESTORE_THREAD_TITLE) {
+  throw new Error('Readiness smoke requires a fresh synthetic thread.');
+}
+if (readiness && (!path.isAbsolute(process.env.SMOKE_READINESS_RECEIPT_PATH)
+  || (fs.statSync(path.dirname(process.env.SMOKE_READINESS_RECEIPT_PATH)).mode & 0o077))) {
+  throw new Error('Readiness receipt requires an absolute path in an existing private directory.');
+}
 
 try {
   browser = await chromium.launch({ headless });
@@ -45,6 +65,16 @@ try {
     viewport: { width: 1440, height: 1100 },
   });
   page = await context.newPage();
+  if (readiness) page.on('request', request => {
+    const url = new URL(request.url());
+    if (request.method() !== 'POST' || url.pathname !== '/chat'
+      || url.origin !== new URL(process.env.AGENT_PUBLIC_URL ?? 'https://medicaid-agent-backend.up.railway.app').origin) return;
+    try {
+      const thread = request.postDataJSON()?.memory?.thread;
+      if (typeof thread !== 'string') throw new Error('Missing synthetic thread');
+      if (!readiness.testThreads.includes(thread)) readiness.testThreads.push(thread);
+    } catch { readiness.testTrafficCaptureFailed = true; }
+  });
 
   const browserMessages = [];
   page.on('console', (message) => {
@@ -58,6 +88,7 @@ try {
   });
 
   await openAuthenticatedChat(page);
+  if (readiness) readiness.login = 'passed';
   await verifyExpectedRelease();
   const existingTitle = process.env.SMOKE_RESTORE_THREAD_TITLE;
   if (existingTitle) {
@@ -66,8 +97,16 @@ try {
     await startFreshThread(page);
   }
   const result = await askQuestion(page, Boolean(existingTitle));
+  if (readiness) readiness.answer = { outcome: result.outcome, characters: result.answerLength };
   await verifyRestoredAnswer(page, result);
-  if (process.env.SMOKE_EXPECTED_RELEASE_ID) {
+  if (readiness) {
+    if (readiness.testTrafficCaptureFailed) throw new Error('Could not identify synthetic chat traffic for cleanup.');
+    readiness.persistence = 'passed';
+    readiness.feedback = await verifyFeedbackRoundTrip(page);
+    await verifyExpectedRelease();
+    readiness.logout = await verifyLogout(page, baseUrl);
+  }
+  if (process.env.SMOKE_EXPECTED_RELEASE_ID && !readiness) {
     const status = await verifyExpectedRelease();
     if (!process.env.SMOKE_ACTIVATION_NONCE || !process.env.SMOKE_RECEIPT_PATH) throw new Error('Activation receipt nonce and path required');
     const receipt = { releaseId: status.releaseId, activationNonce: process.env.SMOKE_ACTIVATION_NONCE,
@@ -91,6 +130,13 @@ try {
   console.log(`Sources: ${result.sourcesLabel}`);
   console.log(`Screenshot: ${screenshotPath}`);
 } catch (error) {
+  if (readiness) {
+    readiness.error = error.message;
+    if (readiness.login === 'passed' && readiness.logout === 'not_run') {
+      try { readiness.logout = await verifyLogout(page, baseUrl); }
+      catch (logoutError) { readiness.logout = { failed: true, error: logoutError.message }; }
+    }
+  }
   if (page) {
     const failedPath = screenshotPath.replace(/(\.[^.]+)?$/, '.failed$1');
     await saveScreenshot(page, failedPath).catch(() => undefined);
@@ -98,7 +144,12 @@ try {
   }
   throw error;
 } finally {
-  await browser?.close();
+  try {
+    if (readiness) {
+      readiness.completedAt = new Date().toISOString();
+      fs.writeFileSync(process.env.SMOKE_READINESS_RECEIPT_PATH, JSON.stringify(readiness, null, 2), { mode: 0o600, flag: 'wx' });
+    }
+  } finally { await browser?.close(); }
 }
 
 async function verifyExpectedRelease() {
