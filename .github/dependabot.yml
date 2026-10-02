@@ -62,6 +62,10 @@ updates:
     # Parser/OCR/model updates require the separate qualification gates in #161.
     ignore:
       - dependency-name: docling*
+      - dependency-name: python-docx
+      - dependency-name: openpyxl
+      - dependency-name: xlrd
+      - dependency-name: python-pptx
       - dependency-name: pypdf*
       - dependency-name: rapidocr*
       - dependency-name: torch*

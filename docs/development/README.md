@@ -6,11 +6,13 @@ Use this guide to choose setup and verification commands. Commands run from the 
 
 ```bash
 npm ci
-python3 -m pip install uv==0.8.22
+python3 -m venv .local-recovery/uv-tools
+.local-recovery/uv-tools/bin/python -m pip install uv==0.8.22
+export PATH="$PWD/.local-recovery/uv-tools/bin:$PATH"
 npm run setup -w @nc-medicaid/pipeline
 ```
 
-The pipeline setup creates its `.venv` from the committed `uv.lock` with `uv sync --frozen --extra dev`. CI and the corpus-job image use uv 0.8.22 and the same frozen dependency set; intentional upgrades must update the lockfile before setup. Run `uv` commands from `packages/pipeline`, where its `pyproject.toml` lives. Environment variables and service setup are documented in [RUNBOOK.md](../../RUNBOOK.md). Real retrieval also needs working Voyage credentials and Neo4j.
+The pipeline setup creates its `.venv` from the committed `uv.lock` with `uv sync --frozen --extra dev`. CI separately runs `uv lock --check` to reject stale locks and caches uv downloads by the lockfile hash. CI and the corpus-job image use uv 0.8.22 and the same frozen dependency set; intentional upgrades must update the lockfile before setup. Run `uv` commands from `packages/pipeline`, where its `pyproject.toml` lives. Environment variables and service setup are documented in [RUNBOOK.md](../../RUNBOOK.md). Real retrieval also needs working Voyage credentials and Neo4j.
 
 ## Verification by change
 
