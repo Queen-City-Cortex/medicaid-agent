@@ -44,3 +44,13 @@ See [project gotchas](gotchas.md) for source identity, path normalization, polic
 ## Starting fresh
 
 Start new work from updated `main`. The [repository audit](repository-audit-2026-10-02.md) records retired branches, preserved drafts, remaining PRs, and recovery instructions.
+
+## Dependency maintenance
+
+Dependabot watches the root npm workspaces, the separate E2E npm package, the pipeline uv project, Actions and all three Node images. Review compatible updates in small groups; the dedicated SDK and test-runner groups do not imply that their releases are mutually compatible. Document-format/OCR/model dependencies require the parser qualification gates and are excluded from routine Python updates.
+
+Keep Node 22 types aligned with the application runtime. Update coupled React/React DOM/types or Vitest/coverage packages together in their own migration. The root owns tsx because repository crawl/recovery/eval scripts invoke that runner directly.
+
+Before merging dependency changes, require the production audit and exact-head CI builds, test typechecks, unit/integration tests, mocked browser checks and Docker builds. Run coverage for test-library changes. Pipeline CI enables its existing Neo4j integration tests against the disposable service; local runs need `RUN_NEO4J_INTEGRATION=1` and a dedicated test graph for those fixtures.
+
+Coordinated migrations remain tracked separately: [TypeScript/ESLint](https://github.com/Queen-City-Cortex/medicaid-agent/issues/144), [Mastra/AI SDK/libSQL](https://github.com/Queen-City-Cortex/medicaid-agent/issues/145), [Zod](https://github.com/Queen-City-Cortex/medicaid-agent/issues/147), [SQLite](https://github.com/Queen-City-Cortex/medicaid-agent/issues/148), [Vitest/jsdom](https://github.com/Queen-City-Cortex/medicaid-agent/issues/162), and [parser qualification](https://github.com/Queen-City-Cortex/medicaid-agent/issues/161). Remaining compatible updates belong in [maintenance](https://github.com/Queen-City-Cortex/medicaid-agent/issues/149). Tool/image majors and React 19.3 are outside the selected maintenance cycle.
