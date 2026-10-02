@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "objectKey": "readiness-evidence/2026-10-02/readiness-remediation-evidence.tar.gz",
-  "sha256": "1edb6760c23d267ef1945a5d2b73522554ddd4dbfc6ab9346c64d2f6d6cd8c96",
-  "bytes": 454914,
+  "objectKey": "readiness-evidence/2026-10-02/readiness-remediation-evidence-v2.tar.gz",
+  "sha256": "db2e5e72a45879acdf6b8626f675ab9148e3ac05090c0186865f277885656043",
+  "bytes": 455502,
   "downloadVerified": true,
-  "memberCount": 46,
+  "memberCount": 47,
   "includes": [
     "source-captures",
     "source-selection.json",
@@ -22,6 +22,7 @@
     "browser screenshots",
     "private draft and verification captures",
     "agent database",
-    "encrypted agent backup (published separately)"
+    "encrypted agent backup (published separately)",
+    "current publication receipt (stored separately in Git)"
   ]
 }

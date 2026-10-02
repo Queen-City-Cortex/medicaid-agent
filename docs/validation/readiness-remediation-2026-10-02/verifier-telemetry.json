@@ -1,24 +1,31 @@
 {
   "schemaVersion": 1,
-  "method": "Verification release log latencies correlated in time with each fixed-batch attempt; full smoke durations are separate",
+  "method": "Temporal association using the logger server event timestamp and sequence; Railway ingestion timestamps may lag. No request/run/thread IDs are available, so per-attempt assignment remains inferred.",
   "attempts": [
     {
       "attempt": 1,
-      "timestamp": "2026-10-02T19:07:55.560364203Z",
-      "latencyMs": 27932
+      "latencyMs": 27932,
+      "serverEventTimestamp": "2026-10-02T19:07:53.889Z",
+      "railwayIngestedAt": "2026-10-02T19:07:55.560401474Z",
+      "attemptAssociation": "inferred from server event time and sequence"
     },
     {
       "attempt": 2,
-      "timestamp": "2026-10-02T19:08:45.297330679Z",
-      "latencyMs": 7880
+      "latencyMs": 7880,
+      "serverEventTimestamp": "2026-10-02T19:08:44.347Z",
+      "railwayIngestedAt": "2026-10-02T19:08:45.297305348Z",
+      "attemptAssociation": "inferred from server event time and sequence"
     },
     {
       "attempt": 3,
-      "timestamp": "2026-10-02T19:09:35.305075399Z",
-      "latencyMs": 9229
+      "latencyMs": 9229,
+      "serverEventTimestamp": "2026-10-02T19:09:30.134Z",
+      "railwayIngestedAt": "2026-10-02T19:09:35.305063882Z",
+      "attemptAssociation": "inferred from server event time and sequence"
     }
   ],
   "timeoutObserved": false,
   "historicalTimeoutResolved": false,
-  "representativeWithholdingRateAssessed": false
+  "representativeWithholdingRateAssessed": false,
+  "requestLevelCorrelationAvailable": false
 }
