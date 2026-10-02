@@ -9,14 +9,12 @@ const update = vi.fn();
 const deleteThread = vi.fn();
 const clone = vi.fn();
 const getThread = vi.fn();
+const signOut = vi.fn();
 
 vi.mock('@workos-inc/authkit-nextjs/components', () => ({
-  useAuth: () => ({ user: { email: 'testing@queencitycortex.com' } }),
+  useAuth: () => ({ user: { email: 'testing@queencitycortex.com' }, signOut }),
 }));
 
-vi.mock('@workos-inc/authkit-nextjs', () => ({
-  signOut: vi.fn(),
-}));
 
 // A stable client object — returning a fresh object from the hook on every
 // render would recreate fetchThreads each render and refetch (clearing error
@@ -56,6 +54,7 @@ describe('ThreadSidebar', () => {
     deleteThread.mockReset();
     clone.mockReset();
     getThread.mockReset();
+    signOut.mockReset();
 
     listMemoryThreads.mockResolvedValue({
       threads: [
@@ -67,6 +66,20 @@ describe('ThreadSidebar', () => {
       ],
     });
     listMessages.mockResolvedValue({ messages: [] });
+  });
+
+  it('signs out through the authenticated client provider', async () => {
+    render(
+      <ThreadSidebar
+        currentThreadId="thread-1"
+        resourceId="user-1"
+        onSelectThread={() => {}}
+        onNewThread={() => {}}
+      />,
+    );
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Sign out' }));
+    expect(signOut).toHaveBeenCalledOnce();
   });
 
   it('uses a dedicated selection button for the thread row', async () => {
