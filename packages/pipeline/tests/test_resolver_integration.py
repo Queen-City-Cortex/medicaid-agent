@@ -5,6 +5,7 @@ import os
 import pytest
 
 from pipeline.graph.connection import close_driver, get_session
+from pipeline.references.citations import federal_regulation_doc_id, federal_statute_doc_id
 from pipeline.references.extractor import ReferenceMatch
 from pipeline.references.resolver import resolve_reference
 
@@ -19,9 +20,9 @@ SOURCE_SECTION_ID = "test:pipeline-resolver:sec:dhhs:source"
 CLINICAL_DOC_ID = "test:pipeline-resolver:doc:clinical:3K-2"
 CLINICAL_SECTION_ID = "test:pipeline-resolver:sec:clinical:3K-2:5.1"
 SPA_DOC_ID = "test:pipeline-resolver:doc:spa:24-0001"
-FEDERAL_REG_DOC_ID = "doc:federal_regulation:42-CFR-431"
+FEDERAL_REG_DOC_ID = federal_regulation_doc_id(42, 431)
 FEDERAL_REG_SECTION_ID = "test:pipeline-resolver:sec:42-cfr-431:431.301"
-SSA_DOC_ID = "doc:federal_statute:ssa-title-19"
+SSA_DOC_ID = federal_statute_doc_id(19)
 SSA_SECTION_ID = "test:pipeline-resolver:sec:ssa-title-19:1902"
 
 RESERVED_IDS = [FEDERAL_REG_DOC_ID, SSA_DOC_ID]
