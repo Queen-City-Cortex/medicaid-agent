@@ -18,8 +18,8 @@
     "better-sqlite3": "^12.11.1",
     "cheerio": "^1.0.0",
     "commander": "^15.0.0",
-    "file-type": "^22.0.1",
-    "p-queue": "^9.3.0",
+    "file-type": "^22.1.1",
+    "p-queue": "^9.3.3",
     "robots-parser": "^3.0.0",
     "undici": "^8.11.2"
   },
