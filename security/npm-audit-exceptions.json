@@ -1,13 +1,1 @@
-{
-  "@hono/node-server": { "owner": "platform", "expires": "2026-08-18", "reason": "Mastra transitive; owned route allowlist prevents static middleware exposure while upstream updates." },
-  "body-parser": { "owner": "platform", "expires": "2026-08-18", "reason": "Transitive dev/deployer path; production API accepts bounded JSON through Hono." },
-  "brace-expansion": { "owner": "platform", "expires": "2026-08-18", "reason": "Build tooling only; no user-controlled glob ranges are evaluated in production." },
-  "express": { "owner": "platform", "expires": "2026-08-18", "reason": "Transitive deployer path; production execution uses the owned Hono route gateway." },
-  "express-rate-limit": { "owner": "platform", "expires": "2026-08-18", "reason": "Transitive dependency; application quotas use the LibSQL repository instead." },
-  "ip-address": { "owner": "platform", "expires": "2026-08-18", "reason": "Vulnerable HTML emitters are not called; awaiting transitive update." },
-  "js-yaml": { "owner": "platform", "expires": "2026-08-18", "reason": "No untrusted YAML is parsed by production routes; awaiting upstream updates." },
-  "next": { "owner": "web", "expires": "2026-08-18", "reason": "Advisory is inherited from bundled PostCSS; user-supplied CSS is never stringified." },
-  "postcss": { "owner": "web", "expires": "2026-08-18", "reason": "Build-time bundled dependency; production does not process user-supplied CSS." },
-  "qs": { "owner": "platform", "expires": "2026-08-18", "reason": "Express transitive; owned API accepts bounded JSON and does not use the affected stringify mode." },
-  "uuid": { "owner": "platform", "expires": "2026-08-18", "reason": "Application uses crypto.randomUUID and never passes caller-owned output buffers." }
-}
+{}

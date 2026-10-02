@@ -60,6 +60,9 @@ jobs:
 
       - run: npm ci
 
+      - name: Audit production dependencies
+        run: npm run audit:production
+
       - name: Provision pipeline venv
         run: npm run setup -w @nc-medicaid/pipeline
 
