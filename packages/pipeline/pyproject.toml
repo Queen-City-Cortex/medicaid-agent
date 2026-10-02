@@ -6,12 +6,12 @@ requires-python = ">=3.11"
 dependencies = [
     "docling>=2.105",
     "docling-core>=2.83",
-    "neo4j>=6.2",
+    "neo4j>=6.3.1",
     "httpx>=0.28",
-    "click>=8.4",
+    "click>=8.5.0",
     "rich>=15.0",
     "jsonschema>=4.26",
-    "python-dotenv>=1.2",
+    "python-dotenv>=1.2.4",
     "python-docx>=1.2",
     "openpyxl>=3.1.5",
     "xlrd>=2.0.2,<3",
@@ -22,7 +22,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest>=9.1",
-    "ruff>=0.15",
+    "ruff>=0.16.10",
     "vulture>=2.16",
 ]
 
