@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "phase": "observational-memory input processor",
+  "observedError": "Encountered error during memory observation: this.storage.patchThread is not a function",
+  "deployedPackages": {
+    "@mastra/core": "1.45.0",
+    "@mastra/memory": "1.26.1",
+    "@mastra/libsql": "1.14.0"
+  },
+  "localProbeLibSQLVersion": "1.14.0",
+  "localMemoryStoreMethods": {
+    "patchThread": "undefined",
+    "updateThread": "function",
+    "saveThread": "function"
+  },
+  "correlationMethod": "processor error timestamp falls within each fixed attempt; observability trace store remains off",
+  "attempts": [
+    {
+      "attempt": 1,
+      "startedAt": "2026-10-02T05:45:00.932000+00:00",
+      "completedAt": "2026-10-02T05:45:21.803000+00:00",
+      "matchingObservationalMemoryErrors": [
+        "2026-10-02T05:45:21.701000+00:00"
+      ]
+    },
+    {
+      "attempt": 2,
+      "startedAt": "2026-10-02T05:45:21.803000+00:00",
+      "completedAt": "2026-10-02T05:45:35.245000+00:00",
+      "matchingObservationalMemoryErrors": [
+        "2026-10-02T05:45:35.190000+00:00"
+      ]
+    },
+    {
+      "attempt": 3,
+      "startedAt": "2026-10-02T05:45:35.245000+00:00",
+      "completedAt": "2026-10-02T05:45:48.327000+00:00",
+      "matchingObservationalMemoryErrors": [
+        "2026-10-02T05:45:48.273000+00:00"
+      ]
+    }
+  ],
+  "limitations": [
+    "Does not reproduce the full HTTP pipeline locally",
+    "Does not establish incident onset or universal user impact",
+    "No verification-stage timing was observed"
+  ]
+}
