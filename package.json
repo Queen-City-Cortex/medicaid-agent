@@ -51,7 +51,7 @@
     "dev:agent": "npm run dev -w @nc-medicaid/agent"
   },
   "devDependencies": {
-    "@vitest/coverage-v8": "^4.1.9",
+    "@vitest/coverage-v8": "4.1.10",
     "turbo": "^2.9.18",
     "typescript": "^6.0.3"
   }
