@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { activeThreadForRestore, threadByExactTitle } from './smoke-thread.mjs';
-import { verifyFeedbackRoundTrip, verifyLogout } from './smoke-readiness.mjs';
+import { verifyFeedbackRoundTrip, verifyLogout, recordSyntheticThread, writeDiagnosticReceipt } from './smoke-readiness.mjs';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -39,6 +39,7 @@ const ignoredConsolePatterns = [
 
 let browser;
 let page;
+let smokeError;
 const readiness = process.env.SMOKE_READINESS_RECEIPT_PATH ? {
   schemaVersion: 1, mode: 'readiness_diagnostic', startedAt: new Date().toISOString(),
   releaseId: process.env.SMOKE_EXPECTED_RELEASE_ID, login: 'not_run',
@@ -65,16 +66,8 @@ try {
     viewport: { width: 1440, height: 1100 },
   });
   page = await context.newPage();
-  if (readiness) page.on('request', request => {
-    const url = new URL(request.url());
-    if (request.method() !== 'POST' || url.pathname !== '/chat'
-      || url.origin !== new URL(process.env.AGENT_PUBLIC_URL ?? 'https://medicaid-agent-backend.up.railway.app').origin) return;
-    try {
-      const thread = request.postDataJSON()?.memory?.thread;
-      if (typeof thread !== 'string') throw new Error('Missing synthetic thread');
-      if (!readiness.testThreads.includes(thread)) readiness.testThreads.push(thread);
-    } catch { readiness.testTrafficCaptureFailed = true; }
-  });
+  if (readiness) page.on('request', request => recordSyntheticThread(request, readiness,
+    new URL(process.env.AGENT_PUBLIC_URL ?? 'https://medicaid-agent-backend.up.railway.app').origin));
 
   const browserMessages = [];
   page.on('console', (message) => {
@@ -130,6 +123,12 @@ try {
   console.log(`Sources: ${result.sourcesLabel}`);
   console.log(`Screenshot: ${screenshotPath}`);
 } catch (error) {
+  smokeError = error;
+  if (page) {
+    const failedPath = screenshotPath.replace(/(\.[^.]+)?$/, '.failed$1');
+    await saveScreenshot(page, failedPath).catch(() => undefined);
+    console.error(`Failure screenshot: ${failedPath}`);
+  }
   if (readiness) {
     readiness.error = error.message;
     if (readiness.login === 'passed' && readiness.logout === 'not_run') {
@@ -137,17 +136,12 @@ try {
       catch (logoutError) { readiness.logout = { failed: true, error: logoutError.message }; }
     }
   }
-  if (page) {
-    const failedPath = screenshotPath.replace(/(\.[^.]+)?$/, '.failed$1');
-    await saveScreenshot(page, failedPath).catch(() => undefined);
-    console.error(`Failure screenshot: ${failedPath}`);
-  }
   throw error;
 } finally {
   try {
     if (readiness) {
       readiness.completedAt = new Date().toISOString();
-      fs.writeFileSync(process.env.SMOKE_READINESS_RECEIPT_PATH, JSON.stringify(readiness, null, 2), { mode: 0o600, flag: 'wx' });
+      writeDiagnosticReceipt(process.env.SMOKE_READINESS_RECEIPT_PATH, readiness, smokeError);
     }
   } finally { await browser?.close(); }
 }

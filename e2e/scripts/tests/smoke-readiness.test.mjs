@@ -6,7 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { verifyFeedbackRoundTrip, verifyLogout } from '../smoke-readiness.mjs';
+import { verifyFeedbackRoundTrip, verifyLogout, recordSyntheticThread, writeDiagnosticReceipt } from '../smoke-readiness.mjs';
 
 async function fixture({ rejectPost = false, rejectDelete = false, brokenLogout = false } = {}) {
   const browser = await chromium.launch();
@@ -88,5 +88,29 @@ test('readiness cannot replace an activation receipt or overwrite earlier eviden
     assert.equal(repeated.status, 1);
     assert.match(repeated.stderr, /new receipt path/);
     assert.equal(fs.readFileSync(receipt, 'utf8'), 'retained');
+  } finally { fs.rmSync(root, { recursive: true, force: true }); }
+});
+
+
+test('synthetic creation is captured before chat even on a mismatched backend origin', () => {
+  const receipt = { testThreads: [] };
+  const request = (url, body) => ({ url: () => url, method: () => 'POST', postDataJSON: () => body });
+  recordSyntheticThread(request('https://other.invalid/api/memory/threads?agentId=test', { threadId: 'owned-id' }), receipt, 'https://backend.invalid');
+  assert.deepEqual(receipt.testThreads, ['owned-id']);
+  assert.equal(receipt.testTrafficCaptureFailed, true);
+  recordSyntheticThread(request('https://backend.invalid/chat', { memory: { thread: 'owned-id' } }), receipt, 'https://backend.invalid');
+  assert.deepEqual(receipt.testThreads, ['owned-id']);
+});
+
+test('receipt collision retains earlier evidence without masking the smoke failure', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'readiness-write-'));
+  const target = path.join(root, 'receipt.json');
+  try {
+    fs.writeFileSync(target, 'earlier');
+    const errors = [];
+    assert.doesNotThrow(() => writeDiagnosticReceipt(target, {}, new Error('Chat failed'), message => errors.push(message)));
+    assert.match(errors[0], /receipt write failed/);
+    assert.equal(fs.readFileSync(target, 'utf8'), 'earlier');
+    assert.throws(() => writeDiagnosticReceipt(target, {}, undefined), /EEXIST/);
   } finally { fs.rmSync(root, { recursive: true, force: true }); }
 });

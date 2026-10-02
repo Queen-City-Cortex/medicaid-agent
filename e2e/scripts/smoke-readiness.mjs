@@ -1,4 +1,5 @@
 /** Additional live readiness checks; the caller owns the synthetic thread. */
+import fs from 'node:fs';
 import { activeThreadForRestore, threadByExactTitle } from './smoke-thread.mjs';
 
 export async function verifyFeedbackRoundTrip(page) {
@@ -43,4 +44,28 @@ export async function verifyLogout(page, baseUrl) {
     .first().waitFor({ state: 'visible', timeout: 30_000 });
   if (await page.getByTestId('chat-input').isVisible()) throw new Error('Chat remained accessible after logout');
   return { signedOut: true, protectedChatRequiresLogin: true };
+}
+
+/** Capture creation requests as well as generation: a chat request may never follow. */
+export function recordSyntheticThread(request, receipt, expectedOrigin) {
+  const url = new URL(request.url());
+  if (request.method() !== 'POST') return;
+  const creation = url.pathname.endsWith('/memory/threads');
+  if (!creation && url.pathname !== '/chat') return;
+  if (url.origin !== expectedOrigin) receipt.testTrafficCaptureFailed = true;
+  try {
+    const body = request.postDataJSON();
+    const thread = creation ? body?.threadId : body?.memory?.thread;
+    if (typeof thread !== 'string' || !thread) throw new Error('Missing synthetic thread');
+    if (!receipt.testThreads.includes(thread)) receipt.testThreads.push(thread);
+  } catch { receipt.testTrafficCaptureFailed = true; }
+}
+
+export function writeDiagnosticReceipt(target, receipt, originalError, reportError = console.error) {
+  try {
+    fs.writeFileSync(target, JSON.stringify(receipt, null, 2), { mode: 0o600, flag: 'wx' });
+  } catch (error) {
+    if (!originalError) throw error;
+    reportError(`Readiness receipt write failed: ${error.message}`);
+  }
 }
