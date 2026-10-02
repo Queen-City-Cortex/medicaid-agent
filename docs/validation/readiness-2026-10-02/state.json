@@ -1,0 +1,158 @@
+{
+  "schemaVersion": 1,
+  "decision": "NO_GO_FOR_FULL_QUALIFICATION",
+  "operatorRevision": "bc35e5858d0e5eddb6eb3ec82f1d14997e5ebd39",
+  "releaseId": "legacy-20260725-ae8595c",
+  "deployments": [
+    {
+      "name": "corpus-job",
+      "deploymentId": "2abc3fdf-af9d-4eb6-ae0d-0f055b60720b",
+      "revision": null,
+      "imageDigest": "sha256:1b8b5907f0c9552a166e0cde02f36c1f16032ca3d1af3348f99a113bb07c2ee9",
+      "observedStatus": "SUCCESS",
+      "startCommand": "sleep infinity",
+      "cron": null,
+      "sleepApplication": false,
+      "restartPolicy": "NEVER"
+    },
+    {
+      "name": "@nc-medicaid/web",
+      "deploymentId": "24c1f10c-d0d4-49d7-9927-abe1e7d6fb4a",
+      "revision": "bc35e5858d0e5eddb6eb3ec82f1d14997e5ebd39",
+      "imageDigest": "sha256:cae99f3bb60684dd2d48bee42046170fba0510decc6eb20abec62d4b4158fa2d",
+      "observedStatus": "SLEEPING",
+      "startCommand": null,
+      "cron": null,
+      "sleepApplication": true,
+      "restartPolicy": "ON_FAILURE"
+    },
+    {
+      "name": "neo4j-green",
+      "deploymentId": null,
+      "revision": null,
+      "imageDigest": null,
+      "observedStatus": null,
+      "startCommand": null,
+      "cron": null,
+      "sleepApplication": null,
+      "restartPolicy": null
+    },
+    {
+      "name": "neo4j-blue",
+      "deploymentId": "d66b243b-f5dc-437b-ad3a-7ad7af03efa3",
+      "revision": null,
+      "imageDigest": "sha256:6c162e2432f861f2c4e3da77a6ba478e7f10e2160b870541f85294532bc6ff5f",
+      "observedStatus": "SUCCESS",
+      "startCommand": null,
+      "cron": null,
+      "sleepApplication": false,
+      "restartPolicy": "ON_FAILURE"
+    },
+    {
+      "name": "neo4j",
+      "deploymentId": "1c1d47d4-919c-4c47-bf7e-52c3cb6b02b9",
+      "revision": null,
+      "imageDigest": "sha256:ab3aafb0020e6fed65bb2b59f7db1fabd7ee0568c4da46f3cc3b8fad77801d61",
+      "observedStatus": "SUCCESS",
+      "startCommand": null,
+      "cron": null,
+      "sleepApplication": false,
+      "restartPolicy": "ON_FAILURE"
+    },
+    {
+      "name": "@nc-medicaid/agent",
+      "deploymentId": "78274367-bd58-452b-be73-caf0265fe784",
+      "revision": "bc35e5858d0e5eddb6eb3ec82f1d14997e5ebd39",
+      "imageDigest": "sha256:1fc1e1214cc444b735dab7f5db4e59c0e00f7d7cc745eceb144119505006e442",
+      "observedStatus": "SUCCESS",
+      "startCommand": null,
+      "cron": null,
+      "sleepApplication": true,
+      "restartPolicy": "ON_FAILURE"
+    }
+  ],
+  "deploymentsUnchangedDuringChecks": true,
+  "agentModel": "gpt-5.4",
+  "verifierModel": "gpt-5.6-terra (default, verification not reached)",
+  "modelSnapshotIds": "NOT_OBSERVED",
+  "observationalMemoryEnabled": true,
+  "traceStore": "off",
+  "inventory": {
+    "active_source_count": 4403,
+    "unresolved_required_count": 7,
+    "unresolved_optional_count": 313,
+    "complete_snapshot": {
+      "snapshot_hash": "9fd132e8ae0a9f203ca93a61b384f0443b26bcc83ce017b1e68030e0d3d61768",
+      "answer_ready_documents": 4212
+    }
+  },
+  "undocumentedRemovals": 0,
+  "retirements": 152,
+  "classifications": 1,
+  "snapshot": {
+    "copyHashesMatch": true,
+    "createdAt": "2026-10-02T06:02:37Z",
+    "inputBytes": 13293135717,
+    "inputCount": 18064,
+    "lockSeconds": 385.05,
+    "productionUnchanged": true,
+    "registryCopyMatches": true,
+    "registryLogicalHash": "a53d725bcce005d0d382cb474562720eec659ab6bb57de12a981470db27333e5",
+    "schemaVersion": 1,
+    "sqliteIntegrity": "ok"
+  },
+  "snapshotManifestSha256": "3f8b4799c73f7de3078ffd4de73147dc36bb836a3b9298d66bfde8d7f6f8572a",
+  "integrity": {
+    "artifactHashesUnchanged": true,
+    "artifactMembershipUnchanged": true,
+    "checkedArtifactCount": 18064,
+    "checkedAt": "2026-10-02T06:18:03Z",
+    "registryLogicalHash": "a53d725bcce005d0d382cb474562720eec659ab6bb57de12a981470db27333e5",
+    "registryUnchanged": true,
+    "schemaVersion": 1
+  },
+  "identity": {
+    "ambiguityCount": 0,
+    "catalogHash": "acfeb98a087ba3875e338f27b194216596e2566237517bed5a3df65e4f3f536e",
+    "expectedDistinctIdentities": 99,
+    "fullBenchmark": "NOT_RUN",
+    "graphDocumentCount": 6725,
+    "mappedIdentities": 90,
+    "mappingHash": "ae0070f890dfeb0b652af3aab1431a548ad71a40b4c7b8d3bd8bb779d952c6ff",
+    "missingCanonicalIds": [
+      "sec:doc:beneficiary_guidance:1c5dc4106026216e:_s0",
+      "sec:doc:beneficiary_guidance:1c5dc4106026216e:_s1",
+      "sec:doc:beneficiary_guidance:1c5dc4106026216e:_s14",
+      "sec:doc:beneficiary_guidance:1c5dc4106026216e:_s15",
+      "sec:doc:beneficiary_guidance:1c5dc4106026216e:_s4",
+      "sec:doc:beneficiary_guidance:1c5dc4106026216e:_s6",
+      "sec:doc:beneficiary_guidance:1c5dc4106026216e:_s7",
+      "sec:doc:beneficiary_guidance:c9205b2a192a4a15:_s11",
+      "sec:doc:beneficiary_guidance:c9205b2a192a4a15:_s15"
+    ],
+    "questions": 55,
+    "releaseId": "legacy-20260725-ae8595c",
+    "schemaVersion": 1,
+    "snapshotManifestSha256": "3f8b4799c73f7de3078ffd4de73147dc36bb836a3b9298d66bfde8d7f6f8572a"
+  },
+  "liveBrowser": {
+    "login": "PASSED",
+    "answer": "FAILED_BEFORE_VERIFICATION",
+    "persistence": "BLOCKED_BY_CHAT_FAILURE",
+    "feedback": "BLOCKED_BY_CHAT_FAILURE",
+    "logoutNavigation": "FAILED",
+    "logoutDestination": "http://localhost:3000",
+    "protectedChatRequiresLoginAfterLogout": true
+  },
+  "fullBenchmark": "NOT_RUN",
+  "answerQuality": "NOT_ASSESSED",
+  "pilotReadiness": "NOT_ASSESSED",
+  "testTrafficExcludedFromUsageAssessment": true,
+  "testThreadsAbsentAfterCleanup": true,
+  "scope": {
+    "sourceDispositionsApplied": false,
+    "graphLoads": false,
+    "deploymentTriggered": false,
+    "schedulingEnabled": false
+  }
+}

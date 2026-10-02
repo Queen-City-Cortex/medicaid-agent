@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "objectKey": "readiness-evidence/2026-10-02/readiness-2026-10-02-evidence.tar.gz",
+  "sha256": "0cbfb10235f23b251507e498ceeaec446b2c35fd45c3048e45fcbcb0e2338ff7",
+  "bytes": 4910073,
+  "downloadVerified": true,
+  "includes": [
+    "snapshot-manifest.json",
+    "source-inventory.json",
+    "evidence-identities.json",
+    "identity-preflight.json",
+    "copy-path-rebasing.json",
+    "final-integrity.json",
+    "source-selection.json",
+    "source-captures",
+    "report/state.json",
+    "report/epsdt-smoke-batch.json",
+    "report/runtime-diagnosis.json",
+    "report/source-checks.json"
+  ],
+  "excludes": [
+    "credentials",
+    "provider logs",
+    "screenshots",
+    "draft answers",
+    "agent database"
+  ]
+}
