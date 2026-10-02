@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "mode": "readiness_diagnostic",
+  "startedAt": "2026-10-02T19:17:14.148Z",
+  "releaseId": "legacy-20260725-ae8595c",
+  "login": "passed",
+  "testRunId": "runtime-repair-20261002-browser-2",
+  "answer": {
+    "outcome": "passed",
+    "characters": 3088
+  },
+  "persistence": "passed",
+  "feedback": {
+    "created": true,
+    "persisted": true,
+    "removed": true
+  },
+  "logout": {
+    "failed": true,
+    "error": "locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for getByRole('button', { name: 'Sign out', exact: true })\n"
+  },
+  "error": "Sign-out navigation failed at https://medicaid-agent.up.railway.app",
+  "completedAt": "2026-10-02T19:18:35.380Z",
+  "syntheticThreadCount": 1,
+  "cleanupReceipt": "synthetic-cleanup.json"
+}

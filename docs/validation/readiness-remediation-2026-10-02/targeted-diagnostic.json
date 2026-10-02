@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "diagnosticCount": 1,
+  "question": "What does EPSDT require?",
+  "method": "Deployed mastra.mjs CLI with actual production graph/models, separate temporary SQLite database, TRACE_STORE=off and private 0700 capture directory; no HTTP or browser acceptance credit",
+  "outcome": {
+    "status": "corrected",
+    "passCount": 2
+  },
+  "verifierLatencyMs": 32365,
+  "passCount": 2,
+  "sourceEntryCount": 24,
+  "verifierUnavailable": false,
+  "deadlineChanged": false,
+  "modelsChanged": false,
+  "fixedBatchReplaced": false,
+  "originalFailedDraftCaptured": false,
+  "conclusion": "Targeted run corrected an unsupported citation-label revision date, then passed exact-text recheck. It does not establish the cause or repair of the earlier HTTP withholding."
+}

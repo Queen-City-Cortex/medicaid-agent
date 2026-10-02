@@ -102,6 +102,21 @@ test('synthetic creation is captured before chat even on a mismatched backend or
   assert.deepEqual(receipt.testThreads, ['owned-id']);
 });
 
+test('application server actions are not mistaken for synthetic chat traffic', () => {
+  const receipt = { testThreads: [] };
+  const request = (origin, headers, body) => ({ url: () => origin + '/chat',
+    method: () => 'POST', headers: () => headers, postDataJSON: () => body });
+  recordSyntheticThread(request('https://web.invalid', { 'next-action': 'auth-action' }, []),
+    receipt, 'https://backend.invalid', 'https://web.invalid');
+  assert.deepEqual(receipt, { testThreads: [] });
+  recordSyntheticThread(request('https://backend.invalid', {}, { memory: { thread: 'owned' } }),
+    receipt, 'https://backend.invalid', 'https://web.invalid');
+  assert.deepEqual(receipt.testThreads, ['owned']);
+  recordSyntheticThread(request('https://other.invalid', { 'next-action': 'unexpected' }, {}),
+    receipt, 'https://backend.invalid', 'https://web.invalid');
+  assert.equal(receipt.testTrafficCaptureFailed, true);
+});
+
 test('receipt collision retains earlier evidence without masking the smoke failure', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'readiness-write-'));
   const target = path.join(root, 'receipt.json');

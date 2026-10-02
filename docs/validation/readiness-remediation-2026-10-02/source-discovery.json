@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "method": "Bounded Firecrawl search and scrape of official NC DHHS/DPH pages; discovery only, not direct collector availability or retirement authority",
+  "discoveredAt": "2026-10-02",
+  "perSource": [
+    {
+      "registryId": 875,
+      "officialPage": "https://www.dph.ncdhhs.gov/about-us/nc-state-health-director-standing-orders",
+      "finding": "Current standing-order index did not expose the exact OTC COVID-19 test order or a source-specific withdrawal. Index absence does not establish withdrawal.",
+      "exactPayloadRecovered": false,
+      "sourceSpecificWithdrawalOrSupersessionFound": false,
+      "action": "unresolved"
+    },
+    {
+      "registryId": 1905,
+      "officialPage": "https://policies.ncdhhs.gov/document-tag/form/page/12/",
+      "finding": "Forms listing retains the exact Gujarati wrapper, but no usable exact attachment was recovered.",
+      "exactPayloadRecovered": false,
+      "sourceSpecificWithdrawalOrSupersessionFound": false,
+      "action": "unresolved"
+    },
+    {
+      "registryId": 11805,
+      "officialPage": "https://policies.ncdhhs.gov/document/2025-magi-medicaid-income-limits-2/",
+      "finding": "Wrapper describes an archived 89 KB PDF but supplies no usable attachment. Archived does not establish supersession.",
+      "exactPayloadRecovered": false,
+      "sourceSpecificWithdrawalOrSupersessionFound": false,
+      "action": "unresolved"
+    },
+    {
+      "registryId": 11806,
+      "officialPage": "https://policies.ncdhhs.gov/document/2025-magi-medicaid-income-limits/",
+      "finding": "Wrapper describes an archived 89 KB PDF but supplies no usable attachment. Archived does not establish supersession.",
+      "exactPayloadRecovered": false,
+      "sourceSpecificWithdrawalOrSupersessionFound": false,
+      "action": "unresolved"
+    },
+    {
+      "registryId": 12820,
+      "officialPage": "https://policies.ncdhhs.gov/dlp_document-doc_special_terms/ccu/",
+      "finding": "CCU index still links the exact inactive-host attachment without an Obsolete label. Nearby different obsolete attachments are not authority for this source.",
+      "exactPayloadRecovered": false,
+      "sourceSpecificWithdrawalOrSupersessionFound": false,
+      "action": "unresolved"
+    },
+    {
+      "registryId": 12821,
+      "officialPage": "https://policies.ncdhhs.gov/dlp_document-doc_special_terms/ccu/",
+      "finding": "CCU index still links the exact inactive-host attachment without an Obsolete label. Nearby different obsolete attachments are not authority for this source.",
+      "exactPayloadRecovered": false,
+      "sourceSpecificWithdrawalOrSupersessionFound": false,
+      "action": "unresolved"
+    },
+    {
+      "registryId": 12822,
+      "officialPage": "https://policies.ncdhhs.gov/dlp_document-doc_special_terms/ccu/",
+      "finding": "CCU index still links the exact inactive-host attachment without an Obsolete label. Nearby different obsolete attachments are not authority for this source.",
+      "exactPayloadRecovered": false,
+      "sourceSpecificWithdrawalOrSupersessionFound": false,
+      "action": "unresolved"
+    }
+  ],
+  "additionalChecks": [
+    "Exact Gujarati PDF search returned no results.",
+    "Policy REST API document lookup failed in the scrape provider; no attachment was recovered.",
+    "Standing-order and MAGI supersession searches returned no source-specific evidence."
+  ],
+  "agencyContacted": false,
+  "registryActionsApplied": false
+}

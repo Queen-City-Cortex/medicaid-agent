@@ -1,0 +1,10 @@
+{
+  "objectKey": "readiness-evidence/2026-10-02/agent-pre-runtime-repair.db.age",
+  "sha256": "047f530074b3b60a950b0d440bb36f22151774ba2b074a9e4b8acea8b07afe55",
+  "bytes": 169132552,
+  "downloadVerified": true,
+  "sqliteIntegrity": "ok",
+  "signingKeyRowPreserved": true,
+  "decryptionVerified": true,
+  "restoredBytesMatch": true
+}

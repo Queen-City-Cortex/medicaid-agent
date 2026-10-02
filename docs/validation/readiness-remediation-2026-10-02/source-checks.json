@@ -1,0 +1,150 @@
+{
+  "schemaVersion": 1,
+  "collectionCompleted": true,
+  "captureCount": 14,
+  "perSource": [
+    {
+      "registryId": 875,
+      "sourceUrl": "https://covid19.ncdhhs.gov/swso-pharmacists-dispense-otc-covid-19-tests/download?attachment=",
+      "registryHash": "0cd9be38bfffe7be2398294bd9040812a154147546bbc7d5e569fda2be9f72fd",
+      "recommendedDisposition": "unresolved",
+      "owner": "project developer",
+      "officialWithdrawalAuthority": "NC DHHS / NC DPH source-specific evidence",
+      "availabilityApplied": false,
+      "checkedAt": "2026-10-02T18:44:40.362Z",
+      "status": 200,
+      "finalUrl": "https://www.dph.ncdhhs.gov/programs/epidemiology/communicable-disease/respiratory-diseases/coronaviruses/covid-19?attachment=",
+      "redirects": [
+        {
+          "url": "https://covid19.ncdhhs.gov/swso-pharmacists-dispense-otc-covid-19-tests/download?attachment=",
+          "statusCode": 301,
+          "location": "https://www.dph.ncdhhs.gov/programs/epidemiology/communicable-disease/respiratory-diseases/coronaviruses/covid-19?attachment="
+        }
+      ],
+      "responseSha256": "1bfb728b9969f9fb2647b40327cee30a52c8e79b68fbea6408895b3c0c186554",
+      "capturePath": "captures/1bfb728b9969f9fb2647b40327cee30a52c8e79b68fbea6408895b3c0c186554.bin",
+      "error": null,
+      "blockedBy": null,
+      "linksToAttachments": [
+        {
+          "url": "https://www.dph.ncdhhs.gov/programs/epidemiology/communicable-disease/respiratory-diseases/coronaviruses/covid-19?attachment=",
+          "text": "Skip to main content"
+        },
+        {
+          "url": "https://www.dph.ncdhhs.gov/programs/epidemiology/communicable-disease/respiratory-diseases/coronaviruses/covid-19?attachment=",
+          "text": ""
+        }
+      ]
+    },
+    {
+      "registryId": 1905,
+      "sourceUrl": "https://policies.ncdhhs.gov/document/dhb-5097-gu-%e0%aa%ae%e0%aa%be%e0%aa%b9%e0%aa%bf%e0%aa%a4%e0%ab%80-%e0%aa%ae%e0%aa%be%e0%aa%9f%e0%ab%87%e0%aa%b5%e0%aa%bf%e0%aa%a8-%e0%aa%82%e0%aa%a4%e0%ab%80/",
+      "registryHash": "603a0c63258d6d3d055ec5fea0c1d5c3a84842906b33dd71d1eee6a2563fb81c",
+      "recommendedDisposition": "unresolved",
+      "owner": "project developer",
+      "officialWithdrawalAuthority": "NC DHHS / NC DPH source-specific evidence",
+      "availabilityApplied": false,
+      "checkedAt": "2026-10-02T18:44:55.358Z",
+      "status": 200,
+      "finalUrl": "https://policies.ncdhhs.gov/document/dhb-5097-gu-%e0%aa%ae%e0%aa%be%e0%aa%b9%e0%aa%bf%e0%aa%a4%e0%ab%80-%e0%aa%ae%e0%aa%be%e0%aa%9f%e0%ab%87%e0%aa%b5%e0%aa%bf%e0%aa%a8-%e0%aa%82%e0%aa%a4%e0%ab%80/",
+      "redirects": [],
+      "responseSha256": "433429e824f9623e02631e36951da23a40c1cc1bbb715143526bd28570b997a3",
+      "capturePath": "captures/433429e824f9623e02631e36951da23a40c1cc1bbb715143526bd28570b997a3.bin",
+      "error": null,
+      "blockedBy": null,
+      "linksToAttachments": []
+    },
+    {
+      "registryId": 11805,
+      "sourceUrl": "https://policies.ncdhhs.gov/document/2025-magi-medicaid-income-limits-2/",
+      "registryHash": "478381b7c65c787ad4fd22414c698d53e220e42ab001a31ba44b253c999e44b7",
+      "recommendedDisposition": "unresolved",
+      "owner": "project developer",
+      "officialWithdrawalAuthority": "NC DHHS / NC DPH source-specific evidence",
+      "availabilityApplied": false,
+      "checkedAt": "2026-10-02T18:45:02.757Z",
+      "status": 200,
+      "finalUrl": "https://policies.ncdhhs.gov/document/2025-magi-medicaid-income-limits-2/",
+      "redirects": [],
+      "responseSha256": "10a8ac39c8244fef187c24273cfdfbb3264e850c285a6a4b23beb7abe49f9736",
+      "capturePath": "captures/10a8ac39c8244fef187c24273cfdfbb3264e850c285a6a4b23beb7abe49f9736.bin",
+      "error": null,
+      "blockedBy": null,
+      "linksToAttachments": []
+    },
+    {
+      "registryId": 11806,
+      "sourceUrl": "https://policies.ncdhhs.gov/document/2025-magi-medicaid-income-limits/",
+      "registryHash": "7d1620c46154eb7d54a45ab754abae8f8562abe900386c41a9bb83014a1e2ddf",
+      "recommendedDisposition": "unresolved",
+      "owner": "project developer",
+      "officialWithdrawalAuthority": "NC DHHS / NC DPH source-specific evidence",
+      "availabilityApplied": false,
+      "checkedAt": "2026-10-02T18:45:03.144Z",
+      "status": 200,
+      "finalUrl": "https://policies.ncdhhs.gov/document/2025-magi-medicaid-income-limits/",
+      "redirects": [],
+      "responseSha256": "702f526f6530ab246d2d33e10f77d2ff3a03f92a410ee506833974e428832fc0",
+      "capturePath": "captures/702f526f6530ab246d2d33e10f77d2ff3a03f92a410ee506833974e428832fc0.bin",
+      "error": null,
+      "blockedBy": null,
+      "linksToAttachments": []
+    },
+    {
+      "registryId": 12820,
+      "sourceUrl": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/attachment__b-__zixmail_instructions_with_e-mail_examples_for_submitting_state_appeal_requests__-004.pdf",
+      "registryHash": "6a33d35eb2e779bf9f32c62094c88681e76901d0129d82d29a3408c7168c5c82",
+      "recommendedDisposition": "unresolved",
+      "owner": "project developer",
+      "officialWithdrawalAuthority": "NC DHHS / NC DPH source-specific evidence",
+      "availabilityApplied": false,
+      "checkedAt": "2026-10-02T18:45:05.060Z",
+      "status": null,
+      "finalUrl": null,
+      "redirects": [],
+      "responseSha256": null,
+      "capturePath": null,
+      "error": "getaddrinfo ENOTFOUND policies-inactive.ncdhhs.gov",
+      "blockedBy": null,
+      "linksToAttachments": []
+    },
+    {
+      "registryId": 12821,
+      "sourceUrl": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/attachment_dhb_self_attestation_8-2020_final.pdf",
+      "registryHash": "f15b4090f2be11650bc8ac5a3ee9565e2229f0658ef59cc2ce1b4591eafedc9f",
+      "recommendedDisposition": "unresolved",
+      "owner": "project developer",
+      "officialWithdrawalAuthority": "NC DHHS / NC DPH source-specific evidence",
+      "availabilityApplied": false,
+      "checkedAt": "2026-10-02T19:16:07.778Z",
+      "status": null,
+      "finalUrl": null,
+      "redirects": [],
+      "responseSha256": null,
+      "capturePath": null,
+      "error": "Not requested: host DNS lookup exhausted retries; see https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/attachment__b-__zixmail_instructions_with_e-mail_examples_for_submitting_state_appeal_requests__-004.pdf",
+      "blockedBy": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/attachment__b-__zixmail_instructions_with_e-mail_examples_for_submitting_state_appeal_requests__-004.pdf",
+      "linksToAttachments": []
+    },
+    {
+      "registryId": 12822,
+      "sourceUrl": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_-al08-20-magi-deduction-procedures-docx.pdf",
+      "registryHash": "c8785d3060d139c88a3ceee0976c97d30cc23d15f7347a5ed01e06500388d506",
+      "recommendedDisposition": "unresolved",
+      "owner": "project developer",
+      "officialWithdrawalAuthority": "NC DHHS / NC DPH source-specific evidence",
+      "availabilityApplied": false,
+      "checkedAt": "2026-10-02T19:16:07.782Z",
+      "status": null,
+      "finalUrl": null,
+      "redirects": [],
+      "responseSha256": null,
+      "capturePath": null,
+      "error": "Not requested: host DNS lookup exhausted retries; see https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/attachment__b-__zixmail_instructions_with_e-mail_examples_for_submitting_state_appeal_requests__-004.pdf",
+      "blockedBy": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/attachment__b-__zixmail_instructions_with_e-mail_examples_for_submitting_state_appeal_requests__-004.pdf",
+      "linksToAttachments": []
+    }
+  ],
+  "auditManifestSha256": "0d7e6185af876ed9ca626856d3e7860829378006617710fd6959fe7b8b73946b",
+  "note": "Normal robots/rate/retry limits retained. One archive payload exhausted DNS retries; two URLs remain explicitly unvisited after that host failure. No retirement, recovery or availability accounting applied."
+}

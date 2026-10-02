@@ -9,7 +9,7 @@ Check live service state and dated release evidence before applying a procedure.
 | Candidate graphs, evidence gates, promotion and rollback | [Blue-green corpus releases](blue-green-corpus-releases.md) |
 | Failed downloads, parser remediation and source retirement | [Corpus parser recovery](corpus-parser-recovery.md) |
 | Dated verification results | [Verified release report](../validation/verified-release-2026-09-22.md) and [corpus recovery evidence](../validation/corpus-recovery-2026-09-23/README.md) |
-| Current readiness and blockers | [October 2 readiness](../validation/readiness-2026-10-02/README.md) and [later source closure](../validation/source-closure-2026-09-23/README.md) |
+| Current readiness and blockers | [October 2 runtime remediation](../validation/readiness-remediation-2026-10-02/README.md), [initial October 2 readiness](../validation/readiness-2026-10-02/README.md), and [later source closure](../validation/source-closure-2026-09-23/README.md) |
 | Operational checks and backups | [Operations scripts](../../scripts/ops/) and [launchd installer](../../scripts/ops/install-launchd.sh) |
 | Corpus deployment | [Deploy-data script](../../scripts/deploy-data.sh) and [corpus release script](../../scripts/ops/corpus-release.sh) |
 | Production smoke | [Root scripts](../../package.json) and [browser smoke](../../e2e/scripts/smoke-production.mjs) |
