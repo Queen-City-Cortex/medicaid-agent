@@ -28,7 +28,7 @@ class FakeDoc:
     def __init__(self, items):
         self._items = items
 
-    def iterate_items(self):
+    def iterate_items(self, *, traverse_pictures=True):
         for label, text, level in self._items:
             yield FakeItem(label, text), level
 
