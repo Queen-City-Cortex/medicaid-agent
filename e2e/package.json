@@ -3,9 +3,9 @@
   "private": true,
   "type": "module",
   "devDependencies": {
-    "@playwright/test": "^1.61.0",
+    "@playwright/test": "^1.63.0",
     "dotenv": "^17.4.2",
     "iron-session": "^8.0.4",
-    "jose": "^6.2.3"
+    "jose": "^6.2.12"
   }
 }
