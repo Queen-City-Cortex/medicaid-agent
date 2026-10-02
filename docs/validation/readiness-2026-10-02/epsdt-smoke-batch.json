@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "releaseId": "legacy-20260725-ae8595c",
+  "deploymentId": "78274367-bd58-452b-be73-caf0265fe784",
+  "question": "What does EPSDT require?",
+  "startedAt": "2026-10-02T05:45:00.932Z",
+  "attempts": [
+    {
+      "attempt": 1,
+      "passed": false,
+      "error": "Chat failed",
+      "elapsedMs": 20871
+    },
+    {
+      "attempt": 2,
+      "passed": false,
+      "error": "Chat failed",
+      "elapsedMs": 13442
+    },
+    {
+      "attempt": 3,
+      "passed": false,
+      "error": "Chat failed",
+      "elapsedMs": 13082
+    }
+  ],
+  "passed": false,
+  "completedAt": "2026-10-02T05:45:48.331Z"
+}

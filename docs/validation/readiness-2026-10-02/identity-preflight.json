@@ -1,0 +1,24 @@
+{
+  "ambiguityCount": 0,
+  "catalogHash": "acfeb98a087ba3875e338f27b194216596e2566237517bed5a3df65e4f3f536e",
+  "expectedDistinctIdentities": 99,
+  "fullBenchmark": "NOT_RUN",
+  "graphDocumentCount": 6725,
+  "mappedIdentities": 90,
+  "mappingHash": "ae0070f890dfeb0b652af3aab1431a548ad71a40b4c7b8d3bd8bb779d952c6ff",
+  "missingCanonicalIds": [
+    "sec:doc:beneficiary_guidance:1c5dc4106026216e:_s0",
+    "sec:doc:beneficiary_guidance:1c5dc4106026216e:_s1",
+    "sec:doc:beneficiary_guidance:1c5dc4106026216e:_s14",
+    "sec:doc:beneficiary_guidance:1c5dc4106026216e:_s15",
+    "sec:doc:beneficiary_guidance:1c5dc4106026216e:_s4",
+    "sec:doc:beneficiary_guidance:1c5dc4106026216e:_s6",
+    "sec:doc:beneficiary_guidance:1c5dc4106026216e:_s7",
+    "sec:doc:beneficiary_guidance:c9205b2a192a4a15:_s11",
+    "sec:doc:beneficiary_guidance:c9205b2a192a4a15:_s15"
+  ],
+  "questions": 55,
+  "releaseId": "legacy-20260725-ae8595c",
+  "schemaVersion": 1,
+  "snapshotManifestSha256": "3f8b4799c73f7de3078ffd4de73147dc36bb836a3b9298d66bfde8d7f6f8572a"
+}
