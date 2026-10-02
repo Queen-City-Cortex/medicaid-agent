@@ -20,6 +20,12 @@ updates:
     # These migrations require coordinated application/toolchain changes.
     # Keep patch/minor and security maintenance flowing independently.
     ignore:
+      - dependency-name: '@types/node'
+        update-types: [version-update:semver-major]
+      - dependency-name: eslint
+        update-types: [version-update:semver-major]
+      - dependency-name: '@eslint/js'
+        update-types: [version-update:semver-major]
       - dependency-name: vitest
         update-types: [version-update:semver-major]
       - dependency-name: '@vitest/*'
