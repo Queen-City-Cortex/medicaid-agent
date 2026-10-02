@@ -98,6 +98,8 @@ jobs:
       # Explicit pytest step so pipeline failures are visible as a distinct
       # CI gate rather than hidden inside turbo's aggregate output.
       - name: Test Python pipeline
+        env:
+          RUN_NEO4J_INTEGRATION: '1'
         run: .venv/bin/python -m pytest tests/ -v
         working-directory: packages/pipeline
 
