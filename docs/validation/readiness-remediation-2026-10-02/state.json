@@ -24,12 +24,13 @@
   "runtimeMemoryContractRepair": "deployed",
   "freshEpsdtBatch": "2/3 passed; acceptance failed",
   "browserAnswerPersistenceFeedback": "passed on helper-corrected rerun",
-  "logout": "blocked: correct return_to still redirected by WorkOS to localhost; application Sign-out URI setting and fresh acceptance required",
+  "logout": "passed after developer saved WorkOS Sign-out URI configuration; fresh login/logout and protected chat in the same context verified",
   "fullBenchmark": "NOT_RUN",
   "candidateBuild": "NOT_RUN",
   "qualification": "NOT_ASSESSED",
   "activation": "NOT_PERFORMED",
   "schedulingChanged": false,
   "agencyContacted": false,
-  "historicalFailedEvidencePreserved": true
+  "historicalFailedEvidencePreserved": true,
+  "logoutAcceptanceReceipt": "logout-acceptance.json"
 }
