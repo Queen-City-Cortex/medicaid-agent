@@ -24,3 +24,5 @@ rg -n -i 'waiver|fee.schedule' docs/archive/byterover/context-tree
 ```
 
 [Design specs and plans](superpowers/) and [review findings](reviews/) are historical records. Verify their conclusions against current code before treating them as implemented behavior. The [roadmap](roadmap.md) records planned work.
+
+The [2026-10-02 cleanup execution](reviews/cleanup-completion-2026-10-02.md) records merged replacements, preserved work and explicit follow-up gates.

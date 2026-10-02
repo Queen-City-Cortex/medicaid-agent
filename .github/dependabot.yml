@@ -4,6 +4,13 @@ updates:
     directory: /
     schedule: { interval: weekly }
     groups:
+      # Runtime libraries and their CLI/client packages must move together.
+      agent-sdk-compatible:
+        patterns: ['@mastra/*', 'mastra', 'ai', '@ai-sdk/*']
+        update-types: [minor, patch]
+      test-runner-compatible:
+        patterns: ['vitest', '@vitest/*']
+        update-types: [minor, patch]
       production-compatible:
         dependency-type: production
         update-types: [minor, patch]
@@ -13,6 +20,14 @@ updates:
     # These migrations require coordinated application/toolchain changes.
     # Keep patch/minor and security maintenance flowing independently.
     ignore:
+      - dependency-name: vitest
+        update-types: [version-update:semver-major]
+      - dependency-name: '@vitest/*'
+        update-types: [version-update:semver-major]
+      - dependency-name: jsdom
+        update-types: [version-update:semver-major]
+      - dependency-name: '@testing-library/jest-dom'
+        update-types: [version-update:semver-major]
       - dependency-name: typescript
         update-types: [version-update:semver-major]
       - dependency-name: ai

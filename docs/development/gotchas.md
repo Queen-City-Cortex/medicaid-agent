@@ -132,5 +132,8 @@ Squash-merged branches can appear ahead of main even when all their work is merg
 
 - `npm run test:ops` includes Linux process/lock checks requiring `flock`. On stock macOS, the Node tests can pass while the shell suite fails because `flock` is unavailable. Run the full suite in the provisioned Linux CI/image; do not treat a missing utility as evidence that the production lock algorithm failed.
 
-- The CI PR base-branch filter currently allows only `main`. Stacked PRs targeting another feature branch can show green review checks without running tests or Docker builds. Check the actual check list before describing such a PR as CI-green; broaden coverage or retarget before relying on it.
+- CI previously filtered PR bases to `main`, leaving stacked PRs with review checks but no technical CI. The maintenance cleanup removed that filter while preserving main push checks. Always inspect the actual check list on the exact current head before declaring a stacked PR green.
 - PR qualification receipts stored only under `/tmp` may no longer exist when an old branch is resumed. Preserve source-attested evidence durably or rerun qualification; an old successful comment is not a recoverable receipt.
+
+- Mastra minor releases can require a newer coordinated core/CLI/client/storage release set. Security maintenance pinned memory to 1.26.1 because a caret selected a newer release whose storage exports were incompatible with core 1.45.0. Group Mastra/AI updates separately and validate startup, storage, verification, recovery, builds and browser integration before adopting the group.
+- Chart recovery OCR execution requires Linux `/proc/self/fd` and descriptor safeguards. macOS lint can pass while its execution tests fail on missing Linux facilities. Use Linux CI / the pinned Docker runtime for the full suite; preserve secure descriptor-bound inputs.
