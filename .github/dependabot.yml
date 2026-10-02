@@ -4,14 +4,46 @@ updates:
     directory: /
     schedule: { interval: weekly }
     groups:
-      production-dependencies:
+      production-compatible:
         dependency-type: production
+        update-types: [minor, patch]
+      development-compatible:
+        dependency-type: development
+        update-types: [minor, patch]
+    # These migrations require coordinated application/toolchain changes.
+    # Keep patch/minor and security maintenance flowing independently.
+    ignore:
+      - dependency-name: typescript
+        update-types: [version-update:semver-major]
+      - dependency-name: ai
+        update-types: [version-update:semver-major]
+      - dependency-name: '@ai-sdk/*'
+        update-types: [version-update:semver-major]
+      - dependency-name: zod
+        update-types: [version-update:semver-major]
+      - dependency-name: better-sqlite3
+        update-types: [version-update:semver-major]
   - package-ecosystem: github-actions
     directory: /
     schedule: { interval: weekly }
+    groups:
+      github-actions:
+        patterns: ['*']
   - package-ecosystem: docker
     directory: /packages/agent
     schedule: { interval: weekly }
+    ignore:
+      - dependency-name: node
+        update-types: [version-update:semver-major]
   - package-ecosystem: docker
     directory: /packages/web
     schedule: { interval: weekly }
+    ignore:
+      - dependency-name: node
+        update-types: [version-update:semver-major]
+  - package-ecosystem: docker
+    directory: /packages/pipeline
+    schedule: { interval: weekly }
+    ignore:
+      - dependency-name: node
+        update-types: [version-update:semver-major]
