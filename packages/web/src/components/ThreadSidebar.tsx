@@ -3,7 +3,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { Copy, Download, Ellipsis, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useAuth } from '@workos-inc/authkit-nextjs/components';
-import { signOut } from '@workos-inc/authkit-nextjs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -48,7 +47,7 @@ interface ThreadSidebarProps {
 }
 
 export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelectThread, onNewThread }: ThreadSidebarProps) {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   // `run` builds a client with a freshly-fetched token per call and retries
   // once on a 401, so thread ops survive the access token expiring mid-session
   // (a render-time client snapshot would 401 with no recovery).
