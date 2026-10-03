@@ -34,6 +34,7 @@ describe('bounded answer scope', () => {
     ['Quote the ગુજરાતી 5097 form', 'gujarati-dhb-5097'],
     ['Provide an interpretation of the exact wording of the official Gujarati DHB-5097.', 'gujarati-dhb-5097'],
     ['Under my language-access rights, please provide the official Gujarati DHB-5097 form.', 'gujarati-dhb-5097'],
+    ['Could you provide the official Gujarati DHB-5097 form and translation services?', 'gujarati-dhb-5097'],
     ['What language-access rights apply, and interpret the exact wording of my Gujarati DHB-5097 notice?', 'gujarati-dhb-5097'],
     ['What authority does the pharmacist standing order for OTC COVID-19 tests grant?', 'covid-standing-order'],
     ['Was the pharmacist COVID standing order withdrawn?', 'covid-standing-order'],
