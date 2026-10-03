@@ -1,5 +1,7 @@
 # Project gotchas
 
+- A full graph build can fail even with valid parses: the crawler's SQLite `datetime('now')` values contain a space, while Neo4j `datetime()` needs ISO notation. Normalize checked/changed timestamps as UTC at the write boundary, preserving plain-string retrieval times. Synthetic amendment documents must supply every parameter used by `MERGE_DOCUMENT`; use a query-contract test plus a disposable full-corpus build. The [preparation report](../validation/qualification-preparation-2026-10-03/README.md) records the discovered failures and their verification.
+
 Current guidance carried forward from main at `dc81a97`. When behavior changes, correct the affected lesson alongside the implementation.
 
 - `uscode.house.gov` can return an HTTP 200 maintenance page for full SSA subchapter requests. Successful transport does not establish statutory content. Validate substantive required section anchors before replacing or consuming a cache; keep the previous bytes and modification time on response rejection. Invalid caches trigger a fresh fetch, and failed CFR/SSA ingestion exits nonzero so dependent operator commands stop. The coverage rehearsal also received eCFR full-text HTTP 406 responses from both local and Railway hosts; a working title-index endpoint does not prove full-text access. Neither response establishes withdrawal or fresh federal evidence.

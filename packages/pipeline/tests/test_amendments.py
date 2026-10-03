@@ -1,6 +1,9 @@
 """Test amendment detection: two-tier extraction and change_description."""
 
 from pipeline.references import amendments
+from pipeline.graph.corpus_types import DocumentNode
+from pipeline.graph import queries
+import re
 from tests.fakes import RecordingSession, session_factory
 
 
@@ -13,6 +16,29 @@ class FakeGraphWriter:
         self.edges = list(edges)
         self.amendment_doc_ids = list(amendment_doc_ids)
         return len(edges)
+
+
+def test_synthetic_document_supplies_every_merge_parameter():
+    doc = DocumentNode(
+        id="revision:test", title="Revision", document_type="clinical_policy", policy_number="8c",
+        category="clinical", status="current", source_url="https://example.org/policy", local_path="",
+        pdf_path="", page_count=0, section_count=0, effective_date="2026-01-01",
+        source_modified_date="2026-02-01", retrieved_at="2026-02-02 03:04:05",
+        source_checked_at="2026-02-02 03:04:05", source_changed_at="2026-02-01 01:02:03",
+    )
+    captured = []
+
+    class Session:
+        def run(self, query, parameters):
+            assert query == queries.MERGE_DOCUMENT
+            assert set(re.findall(r"\$(\w+)", query)) <= parameters.keys()
+            captured.append(parameters)
+
+    amendments._upsert_synthetic_documents(Session(), [doc])
+    assert captured[0]["source_modified_date"] == doc.source_modified_date
+    assert captured[0]["retrieved_at"] == doc.retrieved_at
+    assert captured[0]["source_checked_at"] == "2026-02-02T03:04:05+00:00"
+    assert captured[0]["source_changed_at"] == "2026-02-01T01:02:03+00:00"
 
 
 def _detect(monkeypatch, docs, sections) -> FakeGraphWriter:
