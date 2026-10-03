@@ -1,0 +1,22 @@
+{
+  "probeImageSize": "7.4.0",
+  "retainsOriginalQuestion": true,
+  "retainsToolEvidence": true,
+  "diagnosticsEnabled": false,
+  "agentModel": "gpt-5.4",
+  "productionSigningKeyMatchesBackup": true,
+  "schemaVersion": 1,
+  "checkedAt": "2026-10-03T01:46:20.236062+00:00",
+  "revision": "f937f249868ea8d6d9f36cef49b58e287e251f6f",
+  "agentDeploymentId": "74246774-a64f-400a-b357-4d5e6b7ce34f",
+  "webDeploymentId": "6c4d2514-ec38-499f-aeb7-421b4fb096c4",
+  "deploymentMetadataHasCommitHash": false,
+  "provenance": "Clean detached merged checkout, selected CLI upload logs and deployed runtime inspection",
+  "cancelledQueuedGithubDeployments": [
+    "5584a26e-93e8-47b0-8f92-cac159d4e892",
+    "54558a80-1ba4-42c9-9ff4-788e452b27b8"
+  ],
+  "mergedCiRun": 37086621007,
+  "mergedCi": "PASSED",
+  "inspectionScope": "Runtime patch, retained repair, diagnostics and signing-key continuity; no additional model generations or live acceptance batch"
+}

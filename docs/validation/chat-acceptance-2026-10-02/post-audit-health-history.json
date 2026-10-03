@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "responses": [
+    {
+      "schemaVersion": 1,
+      "checkedAt": "2026-10-03T01:45:51.810Z",
+      "status": [
+        {
+          "route": "/readyz",
+          "status": 200,
+          "health": "ok",
+          "releaseId": "legacy-20260725-ae8595c"
+        },
+        {
+          "route": "/corpus-status",
+          "status": 200,
+          "releaseId": "legacy-20260725-ae8595c",
+          "documentCount": 6725
+        },
+        {
+          "route": "/dependencyz",
+          "status": 503,
+          "health": "degraded"
+        }
+      ],
+      "webRootStatus": 200,
+      "unauthenticatedChatStatus": 401,
+      "fullLiveAcceptanceRerun": false,
+      "chatGenerations": 0,
+      "providerHealthProbeMayUseMinimalGeneration": true
+    },
+    {
+      "schemaVersion": 1,
+      "checkedAt": "2026-10-03T01:46:44.509Z",
+      "status": [
+        {
+          "route": "/readyz",
+          "status": 200,
+          "health": "ok",
+          "releaseId": "legacy-20260725-ae8595c"
+        },
+        {
+          "route": "/corpus-status",
+          "status": 200,
+          "releaseId": "legacy-20260725-ae8595c",
+          "documentCount": 6725
+        },
+        {
+          "route": "/dependencyz",
+          "status": 503,
+          "health": "degraded"
+        }
+      ],
+      "webRootStatus": 200,
+      "unauthenticatedChatStatus": 401,
+      "chatGenerations": 0,
+      "providerHealthProbeMayUseMinimalGeneration": true,
+      "fullLiveAcceptanceRerun": false
+    },
+    {
+      "schemaVersion": 1,
+      "checkedAt": "2026-10-03T01:47:14.735Z",
+      "status": [
+        {
+          "route": "/readyz",
+          "status": 200,
+          "health": "ok",
+          "releaseId": "legacy-20260725-ae8595c"
+        },
+        {
+          "route": "/corpus-status",
+          "status": 200,
+          "releaseId": "legacy-20260725-ae8595c",
+          "documentCount": 6725
+        },
+        {
+          "route": "/dependencyz",
+          "status": 200,
+          "health": "ok",
+          "voyage": "ok",
+          "openai": "ok"
+        }
+      ],
+      "webRootStatus": 200,
+      "unauthenticatedChatStatus": 401,
+      "chatGenerations": 0,
+      "providerHealthProbeMayUseMinimalGeneration": true,
+      "fullLiveAcceptanceRerun": false
+    }
+  ],
+  "initialOpenaiHealthFailureLogged": true,
+  "initialFailureCauseEstablished": false,
+  "firstReceiptLabelCorrection": "The original local helper labeled modelGenerations as zero; these were zero chat generations. Provider health uses a minimal completion and embedding."
+}

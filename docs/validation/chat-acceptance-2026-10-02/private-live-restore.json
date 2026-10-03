@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "objectKey": "readiness-evidence/2026-10-02/chat-acceptance-private-live.tar.gz.age",
+  "sha256": "76e6706bf2580dfc1fb3f96d69f8bf10a1163e9a3f13f0797868039fcd174546",
+  "bytes": 109404,
+  "memberCount": 10,
+  "checkedAt": "2026-10-03T01:49:18.567680+00:00",
+  "downloadVerified": true,
+  "decryptionVerified": true,
+  "restoredBytesMatch": true,
+  "archiveMembersValidated": true,
+  "supersedesInitialNotRunStatus": true
+}

@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "checkedAt": "2026-10-03T01:47:14.735Z",
+  "status": [
+    {
+      "route": "/readyz",
+      "status": 200,
+      "health": "ok",
+      "releaseId": "legacy-20260725-ae8595c"
+    },
+    {
+      "route": "/corpus-status",
+      "status": 200,
+      "releaseId": "legacy-20260725-ae8595c",
+      "documentCount": 6725
+    },
+    {
+      "route": "/dependencyz",
+      "status": 200,
+      "health": "ok",
+      "voyage": "ok",
+      "openai": "ok"
+    }
+  ],
+  "webRootStatus": 200,
+  "unauthenticatedChatStatus": 401,
+  "chatGenerations": 0,
+  "providerHealthProbeMayUseMinimalGeneration": true,
+  "fullLiveAcceptanceRerun": false
+}

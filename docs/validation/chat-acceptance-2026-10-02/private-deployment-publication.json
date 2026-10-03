@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "objectKey": "readiness-evidence/2026-10-02/chat-acceptance-private-deployment.tar.gz.age",
+  "sha256": "1e5d93dd921da7b5b9c57dee6cbd51950d25f4180453284d13abda30af0d2bc0",
+  "bytes": 4108,
+  "downloadVerified": true,
+  "encrypted": true,
+  "decryptionVerified": false,
+  "decryptionStatus": "NOT_RUN: existing private identity requires interactive Keychain access; original database backup and diagnostic archive were restore-verified separately",
+  "memberCount": 2,
+  "includes": [
+    "clean merged agent upload log",
+    "clean merged web upload log"
+  ],
+  "excludes": [
+    "credentials",
+    "plaintext databases",
+    "private signing keys"
+  ]
+}
