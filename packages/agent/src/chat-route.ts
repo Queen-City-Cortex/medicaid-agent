@@ -1,4 +1,5 @@
 import type { AgentExecutionOptions } from '@mastra/core/agent';
+import { randomUUID } from 'node:crypto';
 import { registerApiRoute } from '@mastra/core/server';
 import { handleChatStream } from '@mastra/ai-sdk';
 import { createUIMessageStreamResponse } from 'ai';
@@ -9,6 +10,8 @@ import type { UsageRepository } from './usage/repository.js';
 import { AGENT_MODEL } from './model.js';
 import { log, errorFields } from './logger.js';
 import { Sentry } from './sentry.js';
+import { CHAT_DIAGNOSTIC_CONTEXT, CHAT_VERIFICATION_QUESTION } from './processors/verifier/context.js';
+import { finishChatDiagnostic, type ChatDiagnostic } from './processors/verifier/diagnostics.js';
 
 type ChatFinishEvent = Parameters<NonNullable<AgentExecutionOptions['onFinish']>>[0];
 
@@ -36,8 +39,30 @@ export function createChatRoute(usageRepo: Pick<UsageRepository, 'record'>, runL
         }, 422);
       }
       const threadId = (body?.memory as { thread?: string } | undefined)?.thread;
+      const requestContext = c.get('requestContext');
+      const input = trustedChatInput(body, userId);
+      // Observation can replace messages with a summary and system reminder.
+      // Verification must address the actual newest user text, not that reminder.
+      requestContext.set(CHAT_VERIFICATION_QUESTION,
+        input.messages[0].parts.map(part => part.text.trim()).filter(Boolean).join('\n').trim());
+      const signal = c.req.raw.signal;
+      let diagnostic: ChatDiagnostic | undefined;
+      const onAbort = () => finishChatDiagnostic(diagnostic, { status: 'cancelled' });
+      const finishDiagnostic = () => {
+        finishChatDiagnostic(diagnostic, { status: signal.aborted ? 'cancelled' : 'failed' });
+        signal.removeEventListener('abort', onAbort);
+      };
+      if (process.env.VERIFIER_PRIVATE_DIAGNOSTICS_DIR) {
+        diagnostic = { id: randomUUID(), startedAtMs: Date.now(), finished: false };
+        requestContext.set(CHAT_DIAGNOSTIC_CONTEXT, diagnostic);
+        // Correlation only: question, ownership and tool payloads stay private.
+        log.info('chat.diagnostic_started', { diagnosticId: diagnostic.id });
+        signal.addEventListener('abort', onAbort, { once: true });
+        if (signal.aborted) onAbort();
+      }
   
       const onFinish = (event: ChatFinishEvent) => {
+        finishDiagnostic();
         const usage = event.totalUsage;
         // Fire-and-forget by design: usage accounting must never fail or
         // delay a chat that already succeeded (record() also try/catches).
@@ -63,35 +88,41 @@ export function createChatRoute(usageRepo: Pick<UsageRepository, 'record'>, runL
         });
       };
   
-      const stream = await handleChatStream({
-        mastra: c.get('mastra'),
-        agentId: 'ncMedicaidAgent',
-        version: 'v6',
-        params: {
-          // Only accept the newest user input; history comes from guarded memory.
-          ...trustedChatInput(body, userId),
-          // Middleware > body, mirroring chatRoute's priority order.
-          requestContext: c.get('requestContext'),
-          abortSignal: c.req.raw.signal,
-          onFinish,
-        },
-        defaultOptions: {
-          ...runLimits,
-          savePerStep: true,
-          onStepFinish: async (step) => {
-            log.debug('chat.step_finished', {
-              stepType: step.stepType,
-              textChars: step.text?.length ?? 0,
-              toolCalls: step.toolCalls?.length ?? 0,
-            });
+      try {
+        const stream = await handleChatStream({
+          mastra: c.get('mastra'),
+          agentId: 'ncMedicaidAgent',
+          version: 'v6',
+          params: {
+            // Only accept the newest user input; history comes from guarded memory.
+            ...input,
+            // Middleware > body, mirroring chatRoute's priority order.
+            requestContext,
+            abortSignal: c.req.raw.signal,
+            onFinish,
           },
-          onError: (err) => {
-            log.error('chat.stream_error', errorFields(err));
-            Sentry.captureException(err, { tags: { route: 'chat' } });
+          defaultOptions: {
+            ...runLimits,
+            savePerStep: true,
+            onStepFinish: async (step) => {
+              log.debug('chat.step_finished', {
+                stepType: step.stepType,
+                textChars: step.text?.length ?? 0,
+                toolCalls: step.toolCalls?.length ?? 0,
+              });
+            },
+            onError: (err) => {
+              finishDiagnostic();
+              log.error('chat.stream_error', errorFields(err));
+              Sentry.captureException(err, { tags: { route: 'chat' } });
+            },
           },
-        },
-      });
-      return createUIMessageStreamResponse({ stream: gateAnswerStream(stream) });
+        });
+        return createUIMessageStreamResponse({ stream: gateAnswerStream(stream) });
+      } catch (error) {
+        finishDiagnostic();
+        throw error;
+      }
     },
   });
 }

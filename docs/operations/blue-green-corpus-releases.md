@@ -405,10 +405,27 @@ Set `VERIFIER_PRIVATE_DIAGNOSTICS_DIR` only for an explicit diagnostic run. It m
 be an absolute private directory (0700); captures are exclusive 0600 JSON files.
 They contain retrieved evidence, candidate answers, deterministic URL/quotation
 findings, corrections, exact rechecks and outcomes. CLI runs also retain private
-generation/tool results. Never include these files in ordinary logs, SSE, history,
+generation/tool results. HTTP captures retain generation messages, original
+request-local tool results, and verification stages under one server-generated
+diagnostic ID. `chat.diagnostic_started` and `chat.diagnostic_finished` log only
+that correlation ID and terminal timing/outcome; capture bodies remain private.
+Failure or cancellation before verification also completes the diagnostic once.
+`elapsedMs` measures the request; `verifierLatencyMs` measures verification only.
+Never include these files in ordinary logs, SSE, history,
 public release evidence or unencrypted artifact uploads. Use isolated observability
 storage and the production agent's actual graph and model configuration; corpus-job
 credentials may point at a different graph account.
+
+For an isolated HTTP diagnostic, use a consistent database snapshot on a separate
+non-public port in the production image, fresh authentication, and the actual
+graph/model configuration with observational memory enabled. Keep memory and its
+signing key together. Remove copied research/checkpoint/budget rows only in the
+disposable copy before startup so automatic recovery cannot resume production
+research. Preserve the original snapshot. Stop the diagnostic process, encrypt
+and download-verify retained captures, then remove only its owned remote files.
+The authenticated route retains the newest user question; the verifier retains
+original corpus tool evidence per request even when observation evicts messages.
+Neither client context nor model-generated observations supply this evidence.
 
 After a demonstrated fix, run exactly three independent fresh-authenticated EPSDT
 smokes and retain every result, including failures. Require all three to release
