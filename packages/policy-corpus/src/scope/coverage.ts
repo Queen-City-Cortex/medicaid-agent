@@ -35,7 +35,8 @@ export function resolveCoverageScope(question: string, today = new Date()): Cove
   const q = question.normalize('NFKC').toLowerCase();
   const result: CoverageScope = { policyId: policy.id, limitationIds: [], notice: null, requestedDate: null, requiredSourceUrls: [], requirements: [] };
   const matched = policy.limitations.filter(item => q.includes(item.source_url.toLowerCase()));
-  const gujarati = /gujarati|ગુજરાતી/.test(q) && /5097|request.{0,20}information/.test(q);
+  const languageAccess = /language[ -]?access|language.{0,12}rights|interpreter|interpretation|translation.{0,15}rights/.test(q);
+  const gujarati = /gujarati|ગુજરાતી/.test(q) && /5097|request.{0,20}information/.test(q) && (!languageAccess || /download|quote|attachment|official.{0,20}(form|translation)/.test(q));
   const covid = /covid|sars.cov.2/.test(q) && /otc|over.the.counter|home.{0,12}test|at.home/.test(q);
   const authority = /covid|sars.cov.2/.test(q) && (covid || /standing.order/.test(q)) && /standing.order|pharmacist|dispens|prescrib|prescription|authori[sz]/.test(q);
   const archives = /2025/.test(q) && /magi/.test(q) && /archiv|wrapper|original/.test(q);
@@ -65,8 +66,8 @@ export function resolveCoverageScope(question: string, today = new Date()): Cove
   }
   if (covid && /cover|pay|reimburs|billing|benefit|free|cost/.test(q)) {
     result.requestedDate = requestedDate(q, today);
-    if (!result.requestedDate || result.requestedDate < '2024-10-01') {
-      result.notice = 'This scoped coverage check supports OTC home-test Medicaid payment questions from October 1, 2024 onward. An earlier or ambiguous period needs separate dated evidence.';
+    if (!result.requestedDate || result.requestedDate !== '2024-10-01') {
+      result.notice = 'The September 2024 bulletin establishes the payment change effective October 1, 2024. It does not alone establish payment coverage on another date; that period needs additional dated evidence.';
     } else {
       result.requiredSourceUrls = [policy.required_bulletin.source_url];
       result.requirements = ['Use the full September 25, 2024 coverage-end bulletin. Older ongoing-coverage guidance cannot establish current payment coverage. Check later amendments before asserting current applicability. Payment coverage ending does not establish withdrawal of pharmacist dispensing authority.'];

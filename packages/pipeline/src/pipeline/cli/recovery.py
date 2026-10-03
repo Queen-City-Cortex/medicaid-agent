@@ -87,7 +87,15 @@ def recovery_inventory(output: Path) -> None:
     required=True,
 )
 @click.option("--apply", is_flag=True)
-def source_scope(evidence: Path, apply: bool) -> None:
+@click.option(
+    "--baseline-archive",
+    type=click.Path(path_type=Path, exists=True, dir_okay=False),
+    required=True,
+)
+@click.option("--backup-image", required=True)
+def source_scope(
+    evidence: Path, apply: bool, baseline_archive: Path, backup_image: str
+) -> None:
     """Validate a qualified product-scope bundle; preserve unresolved source state."""
     from pipeline.answer_scope import apply_answer_scope
 
@@ -96,7 +104,11 @@ def source_scope(evidence: Path, apply: bool) -> None:
     click.echo(
         json.dumps(
             apply_answer_scope(
-                CORPUS_DATA_ROOT, json.loads(evidence.read_text()), apply=apply
+                CORPUS_DATA_ROOT,
+                json.loads(evidence.read_text()),
+                apply=apply,
+                baseline_archive=baseline_archive,
+                backup_image=backup_image,
             )
         )
     )

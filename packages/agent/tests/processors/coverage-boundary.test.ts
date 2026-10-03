@@ -1,13 +1,25 @@
 import { describe, expect, it, vi } from 'vitest';
 import { CoverageBoundaryProcessor, coverageConversationQuery } from '../../src/processors/coverage-boundary.js';
 import { runVerificationForAnswer } from '../../src/processors/verifier/run.js';
-import { ANSWER_SCOPE_POLICY } from '@nc-medicaid/policy-corpus';
+import { ANSWER_SCOPE_POLICY, resolveCoverageScope } from '@nc-medicaid/policy-corpus';
 
 describe('server coverage boundaries', () => {
   it('preserves a short follow-up about an unavailable original', () => {
     const query = coverageConversationQuery([{ role: 'user', content: 'What is DHB-5097?' }, { role: 'user', content: 'Translate it into Gujarati and call it official.' }]);
     expect(query).toContain('5097');
     expect(query).toContain('Gujarati');
+  });
+
+  it.each(['How about June 2025?', 'June 2025?', 'And for June 2025?'])('retains the dated table obligation for %s', latest => {
+    const query = coverageConversationQuery([{ role: 'user', content: 'What MAGI income table applies in October 2026?' }, { role: 'user', content: latest }]);
+    expect(resolveCoverageScope(query)?.requestedDate).toBe('2025-06-01');
+    expect(resolveCoverageScope(query)?.requiredSourceUrls).toEqual([ANSWER_SCOPE_POLICY.magi_tables[0].source_url]);
+  });
+
+  it('retains scope through repeated short date follow-ups but clears it for a new subject', () => {
+    const messages = [{ role: 'user', content: 'What MAGI income table applies in October 2026?' }, { role: 'user', content: 'June 2025?' }, { role: 'user', content: 'February 2025?' }];
+    expect(resolveCoverageScope(coverageConversationQuery(messages))?.notice).toBeTruthy();
+    expect(coverageConversationQuery([...messages, { role: 'user', content: 'What did Congress do in June 2025?' }])).toBe('What did Congress do in June 2025?');
   });
 
   it('does not carry the limitation into an explicitly different policy', () => {

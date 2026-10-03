@@ -6,6 +6,9 @@ import hashlib
 import json
 import re
 import sqlite3
+import subprocess
+import sys
+import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -62,11 +65,13 @@ def implementation_hash() -> str:
         "packages/pipeline/src/pipeline/answer_scope.py",
         "packages/pipeline/src/pipeline/eval/answer_scope.py",
         "packages/pipeline/src/pipeline/cli/release.py",
+        "packages/pipeline/src/pipeline/cli/recovery.py",
         "packages/pipeline/src/pipeline/release.py",
         "packages/pipeline/src/pipeline/recovery_inventory.py",
         "packages/pipeline/src/pipeline/parse/converter.py",
         "packages/pipeline/src/pipeline/audit.py",
         "packages/pipeline/src/pipeline/source_lifecycle.py",
+        "packages/pipeline/src/pipeline/freshness.py",
         "scripts/ops/verify-corpus-backup.py",
     ]
     return stable_hash(
@@ -250,6 +255,21 @@ def approved_scope_map(db_path: Path) -> dict[str, str]:
     with sqlite3.connect(f"file:{db_path}?mode=ro", uri=True) as db:
         db.row_factory = sqlite3.Row
         registry = [dict(row) for row in db.execute("SELECT * FROM documents")]
+    from pipeline.freshness import build_answer_ready_snapshot
+
+    snapshot = build_answer_ready_snapshot(
+        db_path.parent.parent / "pipeline/parsed",
+        include_answer_scopes=False,
+        db_path=db_path,
+    )["snapshot_hash"]
+    if any(
+        json.loads(record["evidence_json"])["qualification"]["source_snapshot_hash"]
+        != snapshot
+        for record in records
+    ):
+        raise ValueError(
+            "Complete corpus changed after scope approval; fresh qualification is required"
+        )
     return validate_scope_records(
         records,
         registry,
@@ -281,7 +301,44 @@ def scoped_failure_count(failures: list[dict], db_path: Path) -> int:
     )
 
 
-def apply_answer_scope(root: Path, bundle: dict, *, apply: bool = False) -> dict:
+def verify_baseline_archive(archive: Path, image: str) -> dict:
+    """Use the native Keychain/decryption/restore verifier, never bundle claims."""
+    if not archive.is_file() or not image:
+        raise ValueError(
+            "A retained encrypted baseline archive and verifier image are required"
+        )
+    script = POLICY_PATH.parents[4] / "scripts/ops/verify-corpus-backup.py"
+    with tempfile.TemporaryDirectory(prefix="scope-backup-check-") as directory:
+        receipt = Path(directory) / "receipt.json"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(script),
+                "--archive",
+                str(archive.resolve()),
+                "--receipt",
+                str(receipt),
+                "--image",
+                image,
+            ],
+            capture_output=True,
+            timeout=7200,
+        )
+        if result.returncode or not receipt.is_file():
+            raise ValueError(
+                "Native baseline archive decryption/restore verification failed"
+            )
+        return json.loads(receipt.read_text())
+
+
+def apply_answer_scope(
+    root: Path,
+    bundle: dict,
+    *,
+    apply: bool = False,
+    baseline_archive: Path | None = None,
+    backup_image: str | None = None,
+) -> dict:
     """Validate everything before changing only the dedicated scope records."""
     from pipeline.retirement import corpus_writer_lock
 
@@ -380,6 +437,7 @@ def apply_answer_scope(root: Path, bundle: dict, *, apply: bool = False) -> dict
                 raise ValueError(
                     "Existing scope evidence differs; do not overwrite its history"
                 )
+            approved_scope_map(db_path)
             return {"status": "already_applied", "limitations": len(records)}
         if (
             build_answer_ready_snapshot(root / "pipeline/parsed")["snapshot_hash"]
@@ -387,6 +445,16 @@ def apply_answer_scope(root: Path, bundle: dict, *, apply: bool = False) -> dict
         ):
             raise ValueError(
                 "Scope qualification does not match the current source snapshot"
+            )
+        if baseline_archive is None or backup_image is None:
+            raise ValueError("A native baseline archive recheck is required")
+        verified = verify_baseline_archive(baseline_archive, backup_image)
+        declared = qualification["baseline_backup_receipt"]
+        if {key: value for key, value in verified.items() if key != "checkedAt"} != {
+            key: value for key, value in declared.items() if key != "checkedAt"
+        }:
+            raise ValueError(
+                "Supplied baseline receipt does not match native archive verification"
             )
         if apply:
             db.executescript(SCOPE_SCHEMA)

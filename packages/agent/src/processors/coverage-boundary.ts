@@ -7,15 +7,16 @@ export const COVERAGE_VERIFICATION_QUERY = 'coverage-verification-query';
 
 export function coverageConversationQuery(messages: Array<{ role?: string; content?: unknown }>): string {
   const users = messages.filter(message => message.role === 'user').map(message => contentText(message.content).trim()).filter(Boolean);
-  const latest = users.at(-1) ?? '';
-  if (resolveCoverageScope(latest) || !/\b(it|that|those|same|instead)\b|^what about\b/i.test(latest)) return latest;
-  const previous = users.at(-2);
-  // Explicitly named new policies change subject rather than inherit a scoped topic.
-  if (!previous || !resolveCoverageScope(previous) || /\b(?:policy\s+\d[\w.-]*|ma[\s-]*\d{4}|hcwd|cap\/da|epsdt)\b/i.test(latest)) return latest;
-  let subject = previous;
-  if (/\b20\d{2}\b/.test(latest)) subject = subject.replace(/\b20\d{2}(?:-\d{2}-\d{2})?\b/g, '').replace(/\b(january|february|march|april|may|june|july|august|september|october|november|december)\b/gi, '');
-  if (/\b(english|spanish)\b/i.test(latest)) subject = subject.replace(/gujarati|ગુજરાતી/gi, '');
-  return `${subject}\nFollow-up: ${latest}`;
+  return users.reduce((previous, latest) => {
+    const dateOnly = /^(?:(?:what|how) about|and(?: for)?|in|on|for)?\s*(?:(?:january|february|march|april|may|june|july|august|september|october|november|december)\s+(?:\d{1,2}[,]?\s+)?)?20\d{2}(?:-\d{2}-\d{2})?\s*[?.!]*$/i.test(latest);
+    if (resolveCoverageScope(latest) || (!dateOnly && !/\b(it|that|those|same|instead)\b|^(what|how) about\b/i.test(latest))) return latest;
+    // Explicitly named new policies change subject rather than inherit a scoped topic.
+    if (!previous || !resolveCoverageScope(previous) || /\b(?:policy\s+\d[\w.-]*|ma[\s-]*\d{4}|hcwd|cap\/da|epsdt)\b/i.test(latest)) return latest;
+    let subject = previous;
+    if (/\b20\d{2}\b/.test(latest)) subject = subject.replace(/\b20\d{2}(?:-\d{2}-\d{2})?\b/g, '').replace(/\b(january|february|march|april|may|june|july|august|september|october|november|december)\b/gi, '');
+    if (/\b(english|spanish)\b/i.test(latest)) subject = subject.replace(/gujarati|ગુજરાતી/gi, '');
+    return `${subject}\nFollow-up: ${latest}`;
+  }, '');
 }
 
 export class CoverageBoundaryProcessor implements Processor {

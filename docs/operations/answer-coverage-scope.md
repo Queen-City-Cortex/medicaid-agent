@@ -13,10 +13,10 @@ The [October 3 review](../validation/product-scope-review-2026-10-03/README.md) 
 | Original 2025 MAGI wrappers | State that their contents/revision identities are unavailable. Available identical PDFs do not prove what those wrappers contained. |
 | General DHB-5097 explanation | Retrieve the available English form; consult the applicable manual for procedure. A blank form cannot establish an individual's response deadline. |
 | Official Gujarati DHB-5097 | State that the official attachment is unavailable. Language-access questions remain available; do not invent an official translation. |
-| OTC COVID home-test payment after October 1, 2024 | Retrieve the full September 25, 2024 bulletin and its September 30 end date. Check subsequent changes before asserting current applicability. |
+| OTC COVID home-test payment change effective October 1, 2024 | Retrieve the full September 25, 2024 bulletin and its September 30 end date. Current or other-period payment questions remain unsupported until additional dated evidence is qualified. |
 | Exact pharmacist standing-order authority or withdrawal | State that the original order is unavailable. Ending payment coverage does not establish withdrawal of dispensing authority. |
 
-Chat and research input processing provide a fixed limitation notice for unsupported original-evidence requests. Short follow-ups retain the immediately preceding scoped subject; an explicitly named new policy changes subject. The shared final-answer verifier independently enforces the boundary, including CLI evaluation and research reports. Required source bodies must come from actual corpus sections with the exact canonical URL; routing hints, metadata, search excerpts and web results cannot satisfy that obligation. Missing/wrong-period evidence withholds the answer before invoking the factual verifier. Passing evidence still needs normal verification of the exact final text, including any correction.
+Chat and research input processing provide a fixed limitation notice for unsupported original-evidence requests. Short follow-ups retain the preceding scoped subject across repeated date-only turns; an explicitly named new policy changes subject. The shared final-answer verifier independently enforces the boundary, including CLI evaluation and research reports. Required source bodies must come from actual corpus sections with the exact canonical URL; routing hints, metadata, search excerpts and web results cannot satisfy that obligation. Missing/wrong-period evidence withholds the answer before invoking the factual verifier. Passing evidence still needs normal verification of the exact final text, including any correction.
 
 ## Prepare and review an isolated corpus
 
@@ -55,14 +55,14 @@ Keep the active graph serving. Follow the [release runbook](blue-green-corpus-re
 From `packages/pipeline`, with `CORPUS_DATA_ROOT` pointing to the isolated corpus:
 
 ```bash
-uv run python -m pipeline.cli source-scope --evidence /private/scope-review.json
-uv run python -m pipeline.cli source-scope --evidence /private/scope-review.json --apply
+uv run python -m pipeline.cli source-scope --evidence /private/scope-review.json --baseline-archive /private/corpus-baseline.tar.gz.age --backup-image corpus-job:TESTED_REVISION
+uv run python -m pipeline.cli source-scope --evidence /private/scope-review.json --baseline-archive /private/corpus-baseline.tar.gz.age --backup-image corpus-job:TESTED_REVISION --apply
 uv run python -m pipeline.cli recovery-inventory --output /private/scoped-inventory.json
 ```
 
-The validation command writes no scope records. Application takes the corpus writer lock and writes only `source_answer_scopes`; it does not change source status, family requiredness, download attempts, payloads, retirement or availability history. Each record embeds the policy, qualification, baseline receipt and exact coverage-artifact hashes. Repeating the identical action is idempotent. A differing existing approval is rejected rather than overwritten.
+Run these commands on the local isolated complete corpus using the reviewed corpus-job image and the existing macOS Keychain backup identity. Both initial validation and application rerun the native encrypted-archive decryption/restore verifier and compare its independently produced receipt with the declared evidence; supplied receipt fields alone cannot authorize an approval. The validation command writes no scope records. Application takes the corpus writer lock and writes only `source_answer_scopes`; it does not change source status, family requiredness, download attempts, payloads, retirement or availability history. Each record embeds the policy, qualification, baseline receipt and exact coverage-artifact hashes. Repeating the identical action is idempotent. A differing existing approval is rejected rather than overwritten.
 
-Inventory continues to report every unresolved required failure. It separately reports approved scoped failures and remaining blocking required failures. Any new required failure or undocumented removal still blocks release. New content/status/identity, policy, implementation or coverage-artifact changes invalidate approvals; harmless failed-download retry timestamps/counters do not. Snapshots and encrypted backups include the scope records and verify their retained dependencies. Snapshots with no scopes keep their previous identity.
+Inventory continues to report every unresolved required failure. It separately reports approved scoped failures and remaining blocking required failures. Any new required failure or undocumented removal still blocks release. New content/status/identity, policy, implementation or any change to the complete pre-scope corpus snapshot invalidate approvals; harmless failed-download retry timestamps/counters do not. Snapshots and encrypted backups include the scope records and verify their retained dependencies. Snapshots with no scopes keep their previous identity.
 
 ## Qualify before activation
 

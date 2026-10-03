@@ -291,6 +291,10 @@ def inspect_archive(stream, *, include_history=False):
                     ).removeprefix("sha256:"),
                 }
             )
+        unscoped_lifecycle = {key: value for key, value in lifecycle.items() if key != "answer_scopes"}
+        unscoped_hash = hashlib.sha256(json.dumps({"documents": documents, "lifecycle": unscoped_lifecycle}, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+        if any(json.loads(record["evidence_json"])["qualification"]["source_snapshot_hash"] != unscoped_hash for record in lifecycle.get("answer_scopes", [])):
+            raise ValueError("Complete archive corpus changed after scope approval")
         snapshot = (
             "sha256:"
             + hashlib.sha256(

@@ -13,6 +13,16 @@ from pipeline import answer_scope as scope, config, freshness
 from pipeline.source_lifecycle import stable_hash
 
 
+def apply_scope(root, bundle, *, apply=False):
+    return scope.apply_answer_scope(
+        root,
+        bundle,
+        apply=apply,
+        baseline_archive=root / "baseline.tar.gz.age",
+        backup_image="test-verifier-image",
+    )
+
+
 @pytest.fixture
 def corpus(tmp_path, monkeypatch):
     root = tmp_path
@@ -116,6 +126,11 @@ def corpus(tmp_path, monkeypatch):
         "archiveObject": "backups/corpus/test-baseline.tar.gz.age",
         "sourceSnapshotHash": "sha256:" + snapshot["snapshot_hash"],
     }
+    (root / "baseline.tar.gz.age").write_bytes(b"unit fixture ciphertext")
+    verified = copy.deepcopy(bundle["qualification"]["baseline_backup_receipt"])
+    monkeypatch.setattr(
+        scope, "verify_baseline_archive", lambda archive, image: copy.deepcopy(verified)
+    )
     return root, db_path, policy, bundle, original_url, missing_url
 
 
@@ -123,16 +138,13 @@ def test_validate_apply_replay_preserves_sources_and_freezes_scope(corpus):
     root, db_path, policy, bundle, original_url, missing_url = corpus
     with sqlite3.connect(db_path) as db:
         original_rows = db.execute("SELECT * FROM documents").fetchall()
-    assert scope.apply_answer_scope(root, bundle)["status"] == "validated"
+    assert apply_scope(root, bundle)["status"] == "validated"
     assert scope.scope_records(db_path) == []
     before = freshness.build_answer_ready_snapshot(root / "pipeline/parsed")[
         "snapshot_hash"
     ]
-    assert scope.apply_answer_scope(root, bundle, apply=True)["status"] == "applied"
-    assert (
-        scope.apply_answer_scope(root, bundle, apply=True)["status"]
-        == "already_applied"
-    )
+    assert apply_scope(root, bundle, apply=True)["status"] == "applied"
+    assert apply_scope(root, bundle, apply=True)["status"] == "already_applied"
     assert set(scope.approved_scope_map(db_path)) == {original_url, missing_url}
     assert (
         before
@@ -166,7 +178,7 @@ def test_validate_apply_replay_preserves_sources_and_freezes_scope(corpus):
 )
 def test_changes_invalidate_scope_approval(corpus, mutation, monkeypatch):
     root, db_path, policy, bundle, original_url, _ = corpus
-    scope.apply_answer_scope(root, bundle, apply=True)
+    apply_scope(root, bundle, apply=True)
     if mutation == "source":
         with sqlite3.connect(db_path) as db:
             db.execute(
@@ -189,7 +201,7 @@ def test_changes_invalidate_scope_approval(corpus, mutation, monkeypatch):
 
 def test_observation_retries_do_not_change_content_identity(corpus):
     root, db_path, _, bundle, _, _ = corpus
-    scope.apply_answer_scope(root, bundle, apply=True)
+    apply_scope(root, bundle, apply=True)
     with sqlite3.connect(db_path) as db:
         db.execute(
             "UPDATE documents SET last_checked_at='later',download_attempts=download_attempts+1 WHERE status='error'"
@@ -206,6 +218,7 @@ def test_observation_retries_do_not_change_content_identity(corpus):
         "missing_body",
         "missing_backup",
         "untested_backup",
+        "forged_backup",
     ],
 )
 def test_application_fails_before_writing_scope_records(corpus, failure):
@@ -218,6 +231,8 @@ def test_application_fails_before_writing_scope_records(corpus, failure):
         (root / "pipeline/parsed/bulletins/coverage-1.json").unlink()
     elif failure == "missing_backup":
         del bundle["qualification"]["baseline_backup_receipt"]
+    elif failure == "forged_backup":
+        bundle["qualification"]["baseline_backup_receipt"]["archiveSha256"] = "f" * 64
     elif failure == "untested_backup":
         bundle["qualification"]["baseline_backup_receipt"]["decryptionVerified"] = False
     else:
@@ -225,7 +240,7 @@ def test_application_fails_before_writing_scope_records(corpus, failure):
             "Digest title only"
         )
     with pytest.raises((ValueError, FileNotFoundError)):
-        scope.apply_answer_scope(root, bundle, apply=True)
+        apply_scope(root, bundle, apply=True)
     assert scope.scope_records(db_path) == []
 
 
@@ -237,7 +252,7 @@ def test_backup_restoration_verifies_durable_scope_and_dependencies(corpus):
     backup = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(backup)
     root, db_path, _, bundle, _, _ = corpus
-    scope.apply_answer_scope(root, bundle, apply=True)
+    apply_scope(root, bundle, apply=True)
     data = io.BytesIO()
     with tarfile.open(fileobj=data, mode="w:gz") as tar:
         for path in root.rglob("*"):
@@ -253,3 +268,50 @@ def test_backup_restoration_verifies_durable_scope_and_dependencies(corpus):
             "snapshot_hash"
         ]
     )
+
+
+def test_unrelated_answer_ready_change_invalidates_complete_approval(corpus):
+    root, db_path, _, bundle, _, _ = corpus
+    apply_scope(root, bundle, apply=True)
+    stem = root / "pipeline/parsed/bulletins/another"
+    stem.with_suffix(".json").write_text('{"body":"Another policy"}')
+    stem.with_suffix(".meta.json").write_text(
+        json.dumps(
+            {
+                "parse_status": "parsed",
+                "answer_ready": True,
+                "source_file_hash": "sha256:" + "e" * 64,
+            }
+        )
+    )
+    with pytest.raises(ValueError, match="Complete corpus changed"):
+        scope.approved_scope_map(db_path)
+    with pytest.raises(ValueError, match="Complete corpus changed"):
+        apply_scope(root, bundle, apply=True)
+
+
+def test_native_backup_recheck_requires_actual_archive(tmp_path):
+    with pytest.raises(ValueError, match="retained encrypted"):
+        scope.verify_baseline_archive(tmp_path / "nonexistent.age", "verifier-image")
+
+
+def test_native_backup_checker_invokes_independent_restore_tool(tmp_path, monkeypatch):
+    archive = tmp_path / "retained.age"
+    archive.write_bytes(b"encrypted archive")
+    calls = []
+
+    def checked(command, **kwargs):
+        calls.append(command)
+        receipt = Path(command[command.index("--receipt") + 1])
+        receipt.write_text(
+            json.dumps({"decryptionVerified": True, "independent": True})
+        )
+        return type("Result", (), {"returncode": 0})()
+
+    monkeypatch.setattr(scope.subprocess, "run", checked)
+    assert (
+        scope.verify_baseline_archive(archive, "reviewed-image")["independent"] is True
+    )
+    assert calls[0][1].endswith("scripts/ops/verify-corpus-backup.py")
+    assert calls[0][calls[0].index("--archive") + 1] == str(archive.resolve())
+    assert calls[0][-1] == "reviewed-image"

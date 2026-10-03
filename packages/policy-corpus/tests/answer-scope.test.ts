@@ -50,6 +50,7 @@ describe('bounded answer scope', () => {
     expect(scope('What is DHB-5097 Request for Information?')?.notice).toBeNull();
     expect(scope('Does HCWD impose an earned income cap?')).toBeNull();
     expect(scope('What language access rights apply to Gujarati speakers?')).toBeNull();
+    expect(scope('What language-access rights apply when a Gujarati speaker receives DHB-5097?')?.notice).toBeNull();
     expect(scope('What language access rights apply to Gujarati speakers filling CAP/DA forms?')).toBeNull();
     expect(scope('What is the revision date of the 2025 MAGI income table?')?.notice).toBeNull();
     expect(scope('What does the NON-MAGI income table say?')).toBeNull();
@@ -73,6 +74,11 @@ describe('bounded answer scope', () => {
     expect(selected.requiredSourceUrls).toEqual([ANSWER_SCOPE_POLICY.required_bulletin.source_url]);
     expect(coverageEvidenceIssue(selected, [{ toolName: 'getSection', link: selected.requiredSourceUrls[0], text: 'Bulletin summary only' }])).toBeTruthy();
     expect(coverageEvidenceIssue(selected, [{ toolName: 'getSection', link: selected.requiredSourceUrls[0], text: 'Coverage ends Sept. 30, 2024.' }])).toBeNull();
+  });
+
+  it.each(['What is OTC COVID home-test payment coverage in 2030?', 'Does Medicaid cover OTC COVID home tests today?', 'What was OTC COVID home-test payment coverage in June 2025?'])('requires additional dated evidence for another payment period: %s', question => {
+    expect(scope(question)?.notice).toContain('additional dated evidence');
+    expect(scope(question)?.requiredSourceUrls).toEqual([]);
   });
 
   it('fails closed when the scoped source is absent from the actual graph', async () => {
