@@ -9,6 +9,7 @@ The [October 3 product scope and coverage review](../validation/product-scope-re
 | General configuration and commands | [RUNBOOK.md](../../RUNBOOK.md) |
 | Verified chat release and bounded research recovery | [Answer release and recovery](answer-release-and-recovery.md) |
 | Candidate graphs, evidence gates, promotion and rollback | [Blue-green corpus releases](blue-green-corpus-releases.md) |
+| Preparation without embeddings or paid evaluations | [Offline qualification preparation](qualification-preparation.md) |
 | Failed downloads, parser remediation and source retirement | [Corpus parser recovery](corpus-parser-recovery.md) |
 | Bounded coverage, unavailable originals and mandatory targeted acceptance | [Answer coverage scope](answer-coverage-scope.md) |
 | Dated verification results | [Verified release report](../validation/verified-release-2026-09-22.md) and [corpus recovery evidence](../validation/corpus-recovery-2026-09-23/README.md) |

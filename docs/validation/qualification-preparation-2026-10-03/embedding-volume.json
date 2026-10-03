@@ -1,0 +1,24 @@
+{
+  "catalogSectionsHash": "acfeb98a087ba3875e338f27b194216596e2566237517bed5a3df65e4f3f536e",
+  "embeddingInputs": 68524,
+  "embeddingsGenerated": false,
+  "estimatedTokensAtThreeCharactersPerToken": 984257469.0,
+  "inputCharacters": 2952772407,
+  "inputUtf8Bytes": 2953159842,
+  "maximumInputCharacters": 38489172,
+  "oversizedInputsByRepositoryTokenHeuristic": 864,
+  "preparationContext": {
+    "buildRunId": "9157932e-5655-41f2-aa35-3f399c8bc279",
+    "harnessSha256": "089be30b289f5aa2d4706aedb784171fd9503a841157f2740db63a17f6d8c779",
+    "implementationRevision": "873a9555d271d91f8b6a2ed47572293b092c8748",
+    "inputsSha256": "eb264827c18c63bf98febe15d2f2e4d21aec297c565b7e9a540766a8aaebc938",
+    "inspectorSha256": "fc98432a1cf78b62afd610b55779c25053b7ac78d78a391949d2b632cc607ae2",
+    "mode": "read-only-inspection",
+    "runId": "cc0dba9b-0a5d-4b69-973f-0033a2e94469",
+    "startedAt": "2026-10-03T22:50:50.699096+00:00"
+  },
+  "scope": "same contextual text and paragraph chunking as embed_all; current preparation graph",
+  "sections": 59415,
+  "sourceSnapshotHash": "sha256:fec98be8ff62e91817645f908bc52accb4655d8235288761ccd16a575d42fc26",
+  "tokenizerCalled": false
+}

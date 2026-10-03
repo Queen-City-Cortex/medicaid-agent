@@ -1,0 +1,455 @@
+{
+  "blockedRequests": {
+    "http": 0,
+    "sockets": 0
+  },
+  "corpusChanged": false,
+  "federalInputsFresh": false,
+  "graphBuiltWithPreparationAdapter": true,
+  "harnessRanToEnd": true,
+  "paidQualificationCalls": "prevented by network and credential guards",
+  "preparationContext": {
+    "harnessSha256": "089be30b289f5aa2d4706aedb784171fd9503a841157f2740db63a17f6d8c779",
+    "implementationRevision": "873a9555d271d91f8b6a2ed47572293b092c8748",
+    "inputsSha256": "eb264827c18c63bf98febe15d2f2e4d21aec297c565b7e9a540766a8aaebc938",
+    "mode": "build",
+    "runId": "9157932e-5655-41f2-aa35-3f399c8bc279",
+    "startedAt": "2026-10-03T22:18:46.016968+00:00"
+  },
+  "promotable": false,
+  "qualification": "NOT_ASSESSED",
+  "readiness": "NO_GO",
+  "sourceSnapshotHash": "sha256:fec98be8ff62e91817645f908bc52accb4655d8235288761ccd16a575d42fc26",
+  "structuralCompleteness": "PASS",
+  "usableAsQualificationEvidence": false,
+  "graphMetrics": {
+    "documentCount": 8401,
+    "duplicateIdentities": 0,
+    "embeddedSections": 0,
+    "embeddingCoverage": 0.0,
+    "embeddingSections": 59415,
+    "invalidEmbeddingDimensions": 0,
+    "missingRequiredSourceFamilies": [],
+    "requiredSourceFamiliesPresent": 1
+  },
+  "releaseGates": {
+    "answerScopeAcceptancePassed": 0,
+    "duplicateIdentities": 0,
+    "embeddedSections": 0,
+    "embeddingCoverage": 0.0,
+    "embeddingSections": 59415,
+    "freshnessSlaMet": 0,
+    "graphDocumentCount": 8401,
+    "invalidEmbeddingDimensions": 0,
+    "missingAnswerReadyLoads": 0,
+    "missingRequiredSourceFamilies": [],
+    "requiredCurrentParseExceptions": 0,
+    "requiredSourceFamiliesPresent": 1,
+    "staleSourceFamilies": [
+      "bulletin",
+      "clinical_policy",
+      "dhhs_policy",
+      "state_plan_amendment",
+      "waiver"
+    ]
+  },
+  "sectionCount": 71146,
+  "buildStages": {
+    "allRetainedFamilies": {
+      "elapsedSeconds": 202.715,
+      "result": {
+        "errors": 0,
+        "loaded": 4062,
+        "sections_total": 67367,
+        "skipped": 191
+      },
+      "status": "PASS"
+    },
+    "amendments": {
+      "elapsedSeconds": 4.101,
+      "result": {
+        "change_notices": 210,
+        "clinical_policies_scanned": 177,
+        "clinical_revision_edges": 4292,
+        "clinical_revisions_parsed": 125,
+        "edges_created": 5301,
+        "revised_spas": 16
+      },
+      "status": "PASS"
+    },
+    "cfr": {
+      "elapsedSeconds": 1.358,
+      "result": {
+        "errors": 0,
+        "parts_loaded": 43,
+        "sections_total": 3452,
+        "supersession_edges": 2,
+        "supersession_stubs": 2
+      },
+      "status": "PASS"
+    },
+    "concepts": {
+      "elapsedSeconds": 1403.636,
+      "result": {
+        "edges_created": 28929,
+        "seeded": 33
+      },
+      "status": "PASS"
+    },
+    "references": {
+      "elapsedSeconds": 185.797,
+      "result": {
+        "extracted": 32446,
+        "resolved": 24810,
+        "unresolved": 4173
+      },
+      "status": "PASS"
+    },
+    "schemaVersion": {
+      "elapsedSeconds": 0.017,
+      "result": {
+        "loaded_at": "2026-10-03T22:49:06.113263+00:00",
+        "manifest_hash": "ca51613be18a589f9f74735c62c551712c9e79383c78f18513e1fd5189a0cc33",
+        "pipeline_version": "1.0.0"
+      },
+      "status": "PASS"
+    },
+    "ssa": {
+      "elapsedSeconds": 0.619,
+      "result": {
+        "errors": 0,
+        "sections_total": 327,
+        "titles_loaded": 2
+      },
+      "status": "PASS"
+    },
+    "vectorIndexSchemaOnly": {
+      "elapsedSeconds": 0.065,
+      "result": {
+        "created": true
+      },
+      "status": "PASS"
+    }
+  },
+  "familyReconciliation": [
+    {
+      "sourceType": "clinical_policy",
+      "required": true,
+      "counts": {
+        "discovered": 178,
+        "downloaded": 178,
+        "parsed": 178,
+        "loaded": 177,
+        "answer_ready": 177,
+        "retrieval_ready": 178
+      },
+      "freshness": "stale",
+      "failures": {
+        "crawler_error": 1
+      }
+    },
+    {
+      "sourceType": "bulletin",
+      "required": true,
+      "counts": {
+        "discovered": 220,
+        "downloaded": 209,
+        "parsed": 209,
+        "loaded": 181,
+        "answer_ready": 181,
+        "retrieval_ready": 220
+      },
+      "freshness": "stale",
+      "failures": {
+        "crawler_error": 24,
+        "parse_exception": 1,
+        "removed": 11,
+        "zero_section_parse": 1
+      }
+    },
+    {
+      "sourceType": "state_plan_amendment",
+      "required": true,
+      "counts": {
+        "discovered": 449,
+        "downloaded": 449,
+        "parsed": 449,
+        "loaded": 440,
+        "answer_ready": 440,
+        "retrieval_ready": 449
+      },
+      "freshness": "stale",
+      "failures": {
+        "removed": 9
+      }
+    },
+    {
+      "sourceType": "waiver",
+      "required": true,
+      "counts": {
+        "discovered": 12,
+        "downloaded": 12,
+        "parsed": 12,
+        "loaded": 11,
+        "answer_ready": 11,
+        "retrieval_ready": 12
+      },
+      "freshness": "stale",
+      "failures": {
+        "removed": 1
+      }
+    },
+    {
+      "sourceType": "provider_manual",
+      "required": false,
+      "counts": {
+        "discovered": 34,
+        "downloaded": 34,
+        "parsed": 34,
+        "loaded": 33,
+        "answer_ready": 33,
+        "retrieval_ready": 34
+      },
+      "freshness": "never",
+      "failures": {
+        "crawler_error": 1
+      }
+    },
+    {
+      "sourceType": "dhhs_policy",
+      "required": true,
+      "counts": {
+        "discovered": 1328,
+        "downloaded": 1313,
+        "parsed": 1308,
+        "loaded": 1195,
+        "answer_ready": 1195,
+        "retrieval_ready": 1328
+      },
+      "freshness": "stale",
+      "failures": {
+        "crawler_error": 3,
+        "parse_exception": 5,
+        "removed": 129,
+        "zero_section_parse": 5
+      }
+    },
+    {
+      "sourceType": "fee_schedule",
+      "required": false,
+      "counts": {
+        "discovered": 1998,
+        "downloaded": 1970,
+        "parsed": 1701,
+        "loaded": 1701,
+        "answer_ready": 1701,
+        "retrieval_ready": 336
+      },
+      "freshness": "never",
+      "failures": {
+        "crawler_error": 28,
+        "parse_exception": 269,
+        "zero_section_parse": 269
+      }
+    },
+    {
+      "sourceType": "billing_guidance",
+      "required": false,
+      "counts": {
+        "discovered": 17,
+        "downloaded": 17,
+        "parsed": 16,
+        "loaded": 16,
+        "answer_ready": 16,
+        "retrieval_ready": 17
+      },
+      "freshness": "never",
+      "failures": {
+        "crawler_error": 1,
+        "parse_exception": 1,
+        "zero_section_parse": 1
+      }
+    },
+    {
+      "sourceType": "managed_care_guidance",
+      "required": false,
+      "counts": {
+        "discovered": 223,
+        "downloaded": 220,
+        "parsed": 214,
+        "loaded": 212,
+        "answer_ready": 212,
+        "retrieval_ready": 223
+      },
+      "freshness": "never",
+      "failures": {
+        "crawler_error": 4,
+        "parse_exception": 6,
+        "removed": 1,
+        "zero_section_parse": 6
+      }
+    },
+    {
+      "sourceType": "managed_care_contract",
+      "required": false,
+      "counts": {
+        "discovered": 101,
+        "downloaded": 100,
+        "parsed": 94,
+        "loaded": 94,
+        "answer_ready": 94,
+        "retrieval_ready": 101
+      },
+      "freshness": "never",
+      "failures": {
+        "parse_exception": 6,
+        "removed": 1,
+        "zero_section_parse": 6
+      }
+    },
+    {
+      "sourceType": "beneficiary_guidance",
+      "required": false,
+      "counts": {
+        "discovered": 2,
+        "downloaded": 2,
+        "parsed": 2,
+        "loaded": 2,
+        "answer_ready": 2,
+        "retrieval_ready": 2
+      },
+      "freshness": "stale",
+      "failures": {}
+    }
+  ],
+  "canonicalMapping": {
+    "catalogHash": "acfeb98a087ba3875e338f27b194216596e2566237517bed5a3df65e4f3f536e",
+    "evaluationsRun": false,
+    "expectedIdentities": 99,
+    "mappedIdentities": 99,
+    "mappingHash": "9aaac1e207549ed61093e3cd904603f0040fee3bfe7d9cfd0c1d55bd6719d2e1",
+    "missingIdentities": [],
+    "sourceIdentitiesRead": 33,
+    "usableAsQualificationEvidence": false
+  },
+  "parseSidecarAccounting": {
+    "total": 4505,
+    "loaded": 4062,
+    "skipped": 191,
+    "failedWithoutPayload": 252,
+    "failedWithoutPayloadAnswerReady": 0,
+    "skips": {
+      "inactive_registry_status:error": 26,
+      "inactive_registry_status:removed": 124,
+      "missing_registry_record": 5,
+      "parse_status:parse_exception": 36
+    },
+    "sidecarsWithoutExactRegistryJoin": 5,
+    "outsideOriginalSourceRoot": 1
+  },
+  "verification": {
+    "pipelineLinux": {
+      "command": "python -m pytest /app/packages/pipeline/tests/ -q",
+      "network": "none",
+      "passed": 588,
+      "skipped": 3,
+      "exitCode": 0,
+      "elapsedSeconds": 29.46,
+      "revision": "873a9555d271d91f8b6a2ed47572293b092c8748"
+    },
+    "pipelineMacOS": {
+      "command": "CORPUS_DATA_ROOT=<isolated-empty> uv run --frozen python -m pytest tests/ -q",
+      "passed": 585,
+      "skipped": 4,
+      "exitCode": 0,
+      "elapsedSeconds": 49.43,
+      "revision": "10dfec364d7409126bdcc53b0ccbc0f0c2c9c98c"
+    },
+    "ruff": {
+      "command": "uv run --frozen ruff check src/",
+      "exitCode": 0,
+      "revision": "873a9555d271d91f8b6a2ed47572293b092c8748"
+    },
+    "vulture": {
+      "command": "uv run --frozen vulture src vulture_whitelist.py",
+      "exitCode": 0,
+      "revision": "873a9555d271d91f8b6a2ed47572293b092c8748"
+    },
+    "harnessGuards": {
+      "passed": 7,
+      "exitCode": 0
+    },
+    "agentChecks": "Reused: agent sources, contracts, dependencies and lockfile are byte-identical to reviewed 46a91da; no agent schema/API change",
+    "finalRevision": "873a9555d271d91f8b6a2ed47572293b092c8748"
+  },
+  "originalJevPreserved": true,
+  "agencyInquiries": "UNSENT_DRAFTS",
+  "approvedQualificationBudgetUsd": 0,
+  "privateReceiptSha256": {
+    "attempt-06/completion.json": "bcc749acaecc8e971b859e0a6bea720dd78f3383e2b10621db03056e0abb58a5",
+    "attempt-06/graph-audit.json": "bbc17f085fc49125a2847bba299a2e5a6071d8a619434e7904311c3feeda0603",
+    "attempt-06/corpus-audit.json": "9ed3cfee026f3d4b2d327401846b60fb5031d360eae20e191f473de6f82a16b1",
+    "attempt-06/build-stages.json": "602fcf7b66f8ebb8c46947f0d1955fbefa90f60fe158be8f2368c4739838efae",
+    "inspection/candidate-identity-mapping.json": "b547bc14d1455b2b919525a68f58931e318f2b00277447ea4b48da639102c293",
+    "inspection/embedding-volume.json": "648c5643127da31553c550f89d0b4f94b6763baac9144c5852a7b35b9ffaa42e",
+    "receipts/fixed-image.json": "aa8fc94c920bc3f935e708bfe4e9143fc1ead2d0d92bdb3d313c35e29fc55adf",
+    "receipts/jev-preservation-after.json": "c4b35385eea9425fa2bd8272b07446336ec093c2dd2c80a8df8460d36448a4de",
+    "inspection-outliers/candidate-identity-mapping.json": "6eb2fa918adc5d54592d68a83c7aad13e271e3277c3f025c39b6089b758299c7",
+    "inspection-outliers/embedding-volume.json": "de23cfe5aa2a5e214d6744009de1a4c86e8df706bcd2d60ab250b4580cac1053",
+    "inspection-outliers/oversized-embedding-inputs.json": "fe4ec1bd764ae2fef700dca0e695937202e1f67a1bb89dbf3b3a839c0d4b0840",
+    "receipts/graph-dump.json": "085f11001f5ec3a72dc12b4a006206496a07ef2e99ff265f93e7a502b64ab9ab",
+    "receipts/cleanup.json": "e6d8c933ab65a7c1be721615db41eb9614b86ffd23a902bb4abf85804cae4c47",
+    "opus-final-review.md": "822330efe2b8a75e9d6dffeac121b593a5a767e4a9ed639a71984dd053df2a60"
+  },
+  "inspectionContext": {
+    "buildRunId": "9157932e-5655-41f2-aa35-3f399c8bc279",
+    "harnessSha256": "089be30b289f5aa2d4706aedb784171fd9503a841157f2740db63a17f6d8c779",
+    "implementationRevision": "873a9555d271d91f8b6a2ed47572293b092c8748",
+    "inputsSha256": "eb264827c18c63bf98febe15d2f2e4d21aec297c565b7e9a540766a8aaebc938",
+    "inspectorSha256": "fc98432a1cf78b62afd610b55779c25053b7ac78d78a391949d2b632cc607ae2",
+    "mode": "read-only-inspection",
+    "runId": "cc0dba9b-0a5d-4b69-973f-0033a2e94469",
+    "startedAt": "2026-10-03T22:50:50.699096+00:00"
+  },
+  "oversizedEmbeddingInputFamilies": {
+    "bulletin": 3,
+    "state_plan_amendment": 3,
+    "provider_manual": 1,
+    "dhhs_policy": 1,
+    "fee_schedule": 852,
+    "managed_care_contract": 4
+  },
+  "preparedGraphRetention": {
+    "sha256": "c4ea91bef3324a4598fdf6ac6fd058f5c6f3e5a71a1efc244a4138e9392c5879",
+    "bytes": 338320867,
+    "database": "neo4j",
+    "network": "none",
+    "dumpExitCode": 0,
+    "graphStoppedCleanly": true,
+    "graphVolume": "qualification-preparation-graph-final06-20261003",
+    "promotable": false,
+    "usableAsQualificationEvidence": false,
+    "graphVolumeRetained": false,
+    "privateDumpRetained": true
+  },
+  "summaryProvenance": "Coordinator-assembled from harness/inspector receipts and independent log/corpus scans; the accounting scans are not harness receipts",
+  "ownedDockerResources": "Removed after clean shutdown and successful private graph dump; unrelated resources untouched",
+  "referenceAccounting": {
+    "extracted": 32446,
+    "resolved": 24810,
+    "unresolved": 4173,
+    "selfReferenceExclusionsInferred": 3463,
+    "provenance": "Inferred from resolver._resolve_reference_edge: only self-document/section references return without incrementing resolved or unresolved; not separately instrumented"
+  },
+  "independentReview": {
+    "reviewer": "Orca Claude Opus",
+    "runId": "run_de1ae628efc6",
+    "initialTask": "task_f7142525f560",
+    "finalTask": "task_5fa09390c63e",
+    "outcome": "BOUNDED_PREPARATION_ACCEPTED",
+    "initialFindings": "Blocker and high/medium findings resolved; performance and thin-test notes retained",
+    "qualification": "NOT_ASSESSED",
+    "reportSha256": "822330efe2b8a75e9d6dffeac121b593a5a767e4a9ed639a71984dd053df2a60",
+    "workerCleanup": "Final dispatch settled and released; Orca retains the external terminal without process action"
+  }
+}
