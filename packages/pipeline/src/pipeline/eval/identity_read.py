@@ -7,7 +7,13 @@ from pipeline.source_lifecycle import stable_hash
 PAGE_SIZE = 50
 IDS_QUERY = """
 MATCH (:Document)-[:HAS_SECTION]->(s:Section)
-RETURN DISTINCT elementId(s) AS identity ORDER BY identity
+WITH DISTINCT s
+RETURN elementId(s) AS identity, s.id AS section_id,
+  COUNT { (:Document)-[:HAS_SECTION]->(s) } AS documents,
+  COUNT { (s)<-[:PARENT_OF]-(:Section) } AS parents,
+  COUNT { (:Section)-[:NEXT_SIBLING]->(s) } AS previous,
+  COUNT { (s)-[:NEXT_SIBLING]->(:Section) } AS next
+ORDER BY identity
 """
 ROWS_QUERY = """
 UNWIND $identities AS identity
@@ -45,6 +51,23 @@ def _neighbor_hashes(row):
     return row
 
 
+def _identities(session):
+    identities, seen = [], set()
+    digest = hashlib.sha256()
+    for record in session.run(IDS_QUERY):
+        row = dict(record)
+        if row["section_id"] in seen or row["documents"] != 1 or any(
+            row[key] > 1 for key in ["parents", "previous", "next"]
+        ):
+            raise ValueError(
+                "Ambiguous graph evidence: duplicate raw section IDs or multiple parents/siblings/documents"
+            )
+        seen.add(row["section_id"])
+        identities.append(row["identity"])
+        digest.update(stable_hash(row).encode())
+    return identities, digest.digest()
+
+
 def graph_rows(session, page_size=PAGE_SIZE):
     """Yield full matching evidence, then reject any changed or partial scan.
 
@@ -55,7 +78,7 @@ def graph_rows(session, page_size=PAGE_SIZE):
     """
     if not 1 <= page_size <= PAGE_SIZE:
         raise ValueError("Identity pages must contain 1–50 section IDs")
-    identities = [row["identity"] for row in session.run(IDS_QUERY)]
+    identities, metadata_hash = _identities(session)
     first = hashlib.sha256()
     for row in _rows(session, identities, page_size):
         first.update(stable_hash(row).encode())
@@ -63,6 +86,10 @@ def graph_rows(session, page_size=PAGE_SIZE):
     second = hashlib.sha256()
     for row in _rows(session, identities, page_size):
         second.update(stable_hash(row).encode())
-    final_ids = [row["identity"] for row in session.run(IDS_QUERY)]
-    if first.digest() != second.digest() or identities != final_ids:
+    final_ids, final_metadata_hash = _identities(session)
+    if (
+        first.digest() != second.digest()
+        or identities != final_ids
+        or metadata_hash != final_metadata_hash
+    ):
         raise ValueError("Graph changed during evidence identity normalization")

@@ -27,7 +27,7 @@ class Session:
         self.calls.append((query, params))
         if query == IDS_QUERY:
             self.scans += 1
-            return [{"identity": str(i)} for i in range(len(self.rows))]
+            return [{"identity": str(i), "section_id": row["section_id"], "documents": 1, "parents": 0, "previous": 0, "next": 0} for i, row in enumerate(self.rows)]
         assert query == ROWS_QUERY
         ids = params["identities"]
         assert len(ids) <= 50
