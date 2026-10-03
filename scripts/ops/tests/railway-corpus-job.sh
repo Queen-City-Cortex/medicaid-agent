@@ -130,7 +130,7 @@ pass "TERM records interruption before Healthchecks failure and exits 143"
   worker_pid_file="$TEMP_ROOT/signal-worker.pid"
   health_log="$TEMP_ROOT/signal-health.log"
   job_log="$TEMP_ROOT/signal-job.log"
-  mkdir -p "$data/crawler" "$fake_bin"
+  mkdir -p "$data/crawler/recovery-journal" "$fake_bin"
   printf 'sqlite-registry' > "$data/crawler/crawler.db"
 
   cat > "$fake_bin/python" <<'EOF'
@@ -227,5 +227,23 @@ pass "run summary classifies structured bounded stops as incomplete"
   [[ "$status" -eq 66 ]] || fail "empty registry returned $status, expected 66"
 ) || exit $?
 pass "recovery fails closed when the restored crawler registry is empty"
+
+# An existing registry cannot initialize missing history as empty and sync it.
+(
+  data="$TEMP_ROOT/missing-history-data"
+  mkdir -p "$data/crawler"
+  printf 'sqlite-registry' > "$data/crawler/crawler.db"
+  export CORPUS_DATA_ROOT="$data" CORPUS_JOB_MODE=recover-parse CORPUS_JOB_TEST_SOURCE_ONLY=1
+  source "$ENTRYPOINT"
+  ensure_data_layout
+  [[ ! -d "$data/crawler/recovery-journal" ]] || fail "startup recreated lost journals"
+  run_job_mode() { fail "job ran without recovery history"; }
+  set +e
+  run_supervised_job
+  status=$?
+  set -e
+  [[ "$status" -eq 66 ]] || fail "missing recovery history returned $status, expected 66"
+) || exit $?
+pass "existing corpus refuses startup without its recovery journals"
 
 printf '1..%s\n' "$TESTS"

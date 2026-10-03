@@ -9,6 +9,7 @@ configure_release_remote
 
 mkdir -p \
   "$CORPUS_DATA_ROOT/crawler/documents" \
+  "$CORPUS_DATA_ROOT/crawler/recovery-journal" \
   "$CORPUS_DATA_ROOT/pipeline/parsed" \
   "$CORPUS_DATA_ROOT/pipeline/audits" \
   "$CORPUS_DATA_ROOT/pipeline/eval-results" \

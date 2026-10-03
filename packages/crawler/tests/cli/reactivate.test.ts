@@ -10,8 +10,12 @@ import { initializeSchema } from '../../src/db/schema.js';
 import { createRegistry } from '../../src/db/registry.js';
 import { registerReactivateCommand } from '../../src/cli/reactivate.js';
 import { downloadDocument } from '../../src/crawl/downloader.js';
+import { digest, stableJson } from '../../src/cli/source-audit.js';
+import * as sourceAudit from '../../src/cli/source-audit.js';
+import { readRelocationEvidence, relocationFetcher } from '../../src/cli/relocation-evidence.js';
+import { reconcileDocuments } from '../../src/cli/reconcile.js';
 
-vi.mock('../../src/cli/shared.js', () => ({ buildFetcher: () => ({}) }));
+vi.mock('../../src/cli/shared.js', async original => ({ ...await original<typeof import('../../src/cli/shared.js')>(), buildFetcher: () => ({}) }));
 vi.mock('../../src/crawl/downloader.js', async (original) => ({
   ...await original<typeof import('../../src/crawl/downloader.js')>(), downloadDocument: vi.fn(),
 }));
@@ -46,10 +50,10 @@ afterEach(() => {
   vi.unstubAllEnvs();
   fs.rmSync(root, { recursive: true, force: true });
 });
-async function run(apply = false) {
+async function run(apply = false, args: string[] = []) {
   const program = new Command();
   registerReactivateCommand(program);
-  await program.parseAsync(['node', 'crawler', 'reactivate-source', '--url', url, ...(apply ? ['--apply'] : [])]);
+  await program.parseAsync(['node', 'crawler', 'reactivate-source', '--url', url, ...args, ...(apply ? ['--apply'] : [])]);
 }
 describe('documented source reactivation', () => {
   it('validates without reactivating, then archives and reactivates a valid recovery', async () => {
@@ -114,4 +118,128 @@ it('rejects another source artifact at the recovered path', async () => {
   db.exec("UPDATE documents SET local_path=NULL; INSERT INTO documents(source_url,source_type,discovered_from,local_path) VALUES('https://policies.ncdhhs.gov/document/sibling/', 'dhhs_policy','https://policies.ncdhhs.gov/','dhhs-policies/form.pdf')"); db.close();
   await expect(run(true)).rejects.toThrow('another artifact');
   expect(fs.readFileSync(path.join(config.documentsDir, 'dhhs-policies/form.pdf'), 'utf8')).toBe('original invalid payload');
+});
+
+const payloadUrl = 'https://policies.ncdhhs.gov/wp-content/uploads/form.pdf';
+function relocationArgs() {
+  const db = new Database(config.dbPath);
+  const row = db.prepare('SELECT * FROM documents WHERE source_url=?').get(url);
+  db.close();
+  const bytes = Buffer.from(`<a href="${url}">Original</a><a href="${payloadUrl}">Exact relocated form</a>`);
+  const directory = path.join(root, 'proof');
+  fs.mkdirSync(directory, { recursive: true });
+  fs.writeFileSync(path.join(directory, 'official.html'), bytes);
+  const manifest = path.join(directory, 'identity-evidence.json');
+  fs.writeFileSync(manifest, JSON.stringify({ schema_version: 1, source_url: url, payload_url: payloadUrl,
+    expected_payload_sha256: digest(Buffer.from('%PDF-valid recovery')), reviewed_identity_finding: 'Exact form identity reviewed against official original and migrated attachment links.',
+    captures: [{ url: 'https://policies.ncdhhs.gov/index/', final_url: 'https://policies.ncdhhs.gov/index/', status_code: 200, capture_path: 'official.html', sha256: digest(bytes) }] }));
+  return ['--payload-url', payloadUrl, '--identity-evidence', manifest, '--expected-registry-hash', digest(stableJson(row)), '--recovery-id', 'reviewed-relocation-1'];
+}
+function changeProof(args: string[], update: (proof: Record<string, unknown>) => void) {
+  const file = args[args.indexOf('--identity-evidence') + 1]!;
+  const proof = JSON.parse(fs.readFileSync(file, 'utf8')) as Record<string, unknown>;
+  update(proof); fs.writeFileSync(file, JSON.stringify(proof));
+}
+it('recovers a reviewed relocation while preserving original URL, version and durable proof', async () => {
+  const args = relocationArgs();
+  await run(true, args);
+  await run(true, args);
+  const db = new Database(config.dbPath);
+  expect(db.prepare('SELECT source_url,status,download_attempts FROM documents').get()).toEqual({ source_url: url, status: 'downloaded', download_attempts: 1 });
+  db.close();
+  const retained = path.join(config.documentsDir, '.recovery-evidence');
+  const proof = path.join(retained, fs.readdirSync(retained)[0]!, 'identity-evidence.json');
+  const original = new Database(config.dbPath);
+  const doc = createRegistry(original).getByUrl(url)!; original.close();
+  expect(readRelocationEvidence(proof, doc, payloadUrl).evidence.source_url).toBe(url);
+  expect(fs.readFileSync(path.join(config.documentsDir, 'dhhs-policies/.versions', fs.readdirSync(path.join(config.documentsDir, 'dhhs-policies/.versions'))[0]!), 'utf8')).toBe('original invalid payload');
+});
+it('rejects changed reviewed proof even after a successful recovery', async () => {
+  const args = relocationArgs(); await run(true, args);
+  changeProof(args, proof => { proof.reviewed_identity_finding = 'A changed review'; });
+  await expect(run(true, args)).rejects.toThrow('identity evidence changed');
+});
+it('rejects changed durable proof on a completed replay', async () => {
+  const args = relocationArgs(); await run(true, args);
+  const directory = path.join(config.documentsDir, '.recovery-evidence');
+  const retained = path.join(directory, fs.readdirSync(directory)[0]!, 'official.html');
+  fs.appendFileSync(retained, 'corrupted');
+  await expect(run(true, args)).rejects.toThrow('capture hash changed');
+});
+it('requires the original reviewed registry hash on a completed relocation replay', async () => {
+  const args = relocationArgs(); await run(true, args); args[5] = 'changed';
+  await expect(run(true, args)).rejects.toThrow('registry hash changed');
+});
+it('preserves relocation proof through reconciliation and replay', async () => {
+  const args = relocationArgs(); await run(true, args);
+  expect(await reconcileDocuments(true)).toMatchObject({ orphaned: 0, missing: 0, hashMismatch: 0 });
+  await run(true, args);
+});
+it('preserves a retired original during reconciliation without reactivating its identity', async () => {
+  expect(await reconcileDocuments(true)).toMatchObject({ orphaned: 0, missing: 0 });
+  expect(fs.readFileSync(path.join(config.documentsDir, 'dhhs-policies/form.pdf'), 'utf8')).toBe('original invalid payload');
+  const db = new Database(config.dbPath);
+  expect(db.prepare('SELECT status FROM documents').get()).toEqual({ status: 'removed' }); db.close();
+});
+it.each(['identity-evidence.json.pending', './identity-evidence.json.pending', './identity-evidence.json'])('reserves manifest paths: %s', async name => {
+  const args = relocationArgs();
+  changeProof(args, proof => { (proof.captures as Array<Record<string, unknown>>)[0]!.capture_path = name; });
+  await expect(run(true, args)).rejects.toThrow('Invalid official identity capture');
+});
+it('resumes relocated recovery after rename without another download', async () => {
+  const args = relocationArgs();
+  let db = new Database(config.dbPath); db.exec("CREATE TRIGGER interrupt_recovery BEFORE UPDATE OF status ON documents WHEN NEW.status='downloaded' BEGIN SELECT RAISE(ABORT, 'interrupted'); END"); db.close();
+  vi.mocked(downloadDocument).mockClear();
+  await expect(run(true, args)).rejects.toThrow('interrupted');
+  db = new Database(config.dbPath); db.exec('DROP TRIGGER interrupt_recovery'); db.close();
+  await run(true, args); expect(downloadDocument).toHaveBeenCalledTimes(1);
+});
+it('repairs a completion-marker crash after the registry commit without another attempt', async () => {
+  const args = relocationArgs();
+  const original = sourceAudit.atomicJson;
+  let calls = 0;
+  const write = vi.spyOn(sourceAudit, 'atomicJson').mockImplementation((file, value) => {
+    if (file.includes('recovery-journal') && ++calls === 2) throw new Error('completion marker interrupted');
+    original(file, value);
+  });
+  try {
+    await expect(run(true, args)).rejects.toThrow('completion marker interrupted');
+  } finally { write.mockRestore(); }
+  vi.mocked(downloadDocument).mockClear();
+  await run(true, args);
+  expect(downloadDocument).not.toHaveBeenCalled();
+  const file = path.join(root, 'recovery-journal', fs.readdirSync(path.join(root, 'recovery-journal'))[0]!);
+  expect(JSON.parse(fs.readFileSync(file, 'utf8')).completed).toBe(true);
+  const db = new Database(config.dbPath); expect(db.prepare('SELECT download_attempts FROM documents').get()).toEqual({ download_attempts: 1 }); db.close();
+});
+it.each(['pair', 'registry', 'id', 'payloadHash', 'captureHash', 'external', 'path', 'links', 'format', 'collision'])('rejects unsafe relocation: %s', async kind => {
+  const args = relocationArgs();
+  if (kind === 'pair') args.splice(2, 2);
+  if (kind === 'registry') args[5] = 'stale';
+  if (kind === 'id') args[7] = 'default';
+  if (kind === 'payloadHash') changeProof(args, proof => { proof.expected_payload_sha256 = 'a'.repeat(64); });
+  if (kind === 'captureHash') fs.appendFileSync(path.join(root, 'proof/official.html'), 'changed');
+  if (kind === 'external') { args[1] = 'https://example.com/form.pdf'; changeProof(args, proof => { proof.payload_url = args[1]; }); }
+  if (kind === 'path') changeProof(args, proof => { (proof.captures as Array<Record<string, unknown>>)[0]!.capture_path = '../outside'; });
+  if (kind === 'links') {
+    fs.writeFileSync(path.join(root, 'proof/official.html'), '<p>No attachment</p>');
+    changeProof(args, proof => { (proof.captures as Array<Record<string, unknown>>)[0]!.sha256 = digest('<p>No attachment</p>'); });
+  }
+  if (kind === 'format') vi.mocked(downloadDocument).mockImplementation(async (_doc, _fetcher, _names, staging) => {
+    const bytes = Buffer.from('%PDF-valid recovery'); fs.mkdirSync(path.join(staging!, 'dhhs-policies'), { recursive: true }); fs.writeFileSync(path.join(staging!, 'dhhs-policies/form.html'), bytes);
+    return { action: 'downloaded', info: { local_path: 'dhhs-policies/form.html', file_hash: digest(bytes), file_size: bytes.length, mime_type: 'text/html', detected_content_type: 'text/html', content_disposition_filename: null, etag: null, last_modified: null } };
+  });
+  if (kind === 'collision') { const db = new Database(config.dbPath); db.exec("INSERT INTO documents(source_url,source_type,discovered_from,local_path) VALUES('https://policies.ncdhhs.gov/document/other/','dhhs_policy','https://policies.ncdhhs.gov/','dhhs-policies/form.pdf')"); db.close(); }
+  await expect(run(true, args)).rejects.toThrow();
+  const db = new Database(config.dbPath); expect(db.prepare('SELECT status FROM documents WHERE source_url=?').get(url)).toEqual({ status: 'removed' }); db.close();
+  expect(fs.readFileSync(path.join(config.documentsDir, 'dhhs-policies/form.pdf'), 'utf8')).toBe('original invalid payload');
+});
+it('blocks unreviewed redirects even inside the same approved source family', async () => {
+  const fetchFile = vi.fn(async (_url, _destination, options) => {
+    expect(options.isAllowedUrl(payloadUrl)).toBe(true);
+    expect(options.isAllowedUrl('https://policies.ncdhhs.gov/other.pdf')).toBe(false);
+    return { statusCode: 200, headers: {}, filePath: 'file', downloaded: true, finalUrl: 'https://policies.ncdhhs.gov/other.pdf' };
+  });
+  const fetcher = relocationFetcher({ fetchHtml: vi.fn(), fetchFile }, payloadUrl);
+  await expect(fetcher.fetchFile(payloadUrl, 'file', { isAllowedUrl: () => true })).rejects.toThrow('redirect');
 });

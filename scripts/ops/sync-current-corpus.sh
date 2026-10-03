@@ -18,7 +18,7 @@ configure_release_remote
   echo "Crawler registry does not exist: $CRAWLER_DATA/crawler.db" >&2
   exit 66
 }
-for required in "$CRAWLER_DATA/documents" "$PIPELINE_DATA/parsed"; do
+for required in "$CRAWLER_DATA/documents" "$CRAWLER_DATA/recovery-journal" "$PIPELINE_DATA/parsed"; do
   [[ -d "$required" ]] || {
     echo "Required corpus artifact directory does not exist: $required" >&2
     exit 66
@@ -33,6 +33,9 @@ rclone copyto "$TEMP_DIR/crawler.db" \
   --checksum
 rclone sync "$CRAWLER_DATA/documents" \
   "$(release_object_path 'corpus/current/crawler/documents')" \
+  --checksum --transfers "${RCLONE_TRANSFERS:-8}"
+rclone sync "$CRAWLER_DATA/recovery-journal" \
+  "$(release_object_path 'corpus/current/crawler/recovery-journal')" \
   --checksum --transfers "${RCLONE_TRANSFERS:-8}"
 rclone sync "$PIPELINE_DATA/parsed" \
   "$(release_object_path 'corpus/current/pipeline/parsed')" \

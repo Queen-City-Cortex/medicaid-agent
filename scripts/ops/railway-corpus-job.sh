@@ -21,6 +21,11 @@ JOB_FINAL_STATUS=starting
 ACTIVE_JOB_PID=""
 
 ensure_data_layout() {
+  # Only a new volume may initialize empty history. Existing registries must
+  # restore missing journals explicitly rather than erase the remote copy.
+  if [[ ! -f "$CORPUS_DATA_ROOT/crawler/crawler.db" ]]; then
+    mkdir -p "$CORPUS_DATA_ROOT/crawler/recovery-journal"
+  fi
   mkdir -p \
     "$CORPUS_DATA_ROOT/crawler/documents" \
     "$CORPUS_DATA_ROOT/pipeline/parsed" \
@@ -197,6 +202,10 @@ run_supervised_job() {
     log "recovery requires a non-empty restored crawler registry"
     return 66
   fi
+  [[ -d "$CORPUS_DATA_ROOT/crawler/recovery-journal" ]] || {
+    log "existing corpus is missing recovery journals; restore history before running"
+    return 66
+  }
   run_job_mode
 }
 

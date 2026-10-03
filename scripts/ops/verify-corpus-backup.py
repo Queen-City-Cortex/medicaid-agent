@@ -4,18 +4,21 @@ import argparse
 import ctypes
 import hashlib
 import json
+import re
 import sqlite3
 import subprocess
 import tarfile
 import tempfile
 import uuid
 import sys
+from urllib.parse import urlparse
 from datetime import UTC, datetime
 from pathlib import Path
 
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "packages/pipeline/src"))
 from pipeline.source_lifecycle import lifecycle_snapshot, validate_never_downloaded  # noqa: E402
+from pipeline.corpus_manifest import get_source_family  # noqa: E402
 
 
 def keychain_identity():
@@ -53,8 +56,82 @@ def keychain_identity():
         security.SecKeychainItemFreeContent(None, pointer)
 
 
+def check_relocations(hashes, proofs, journals, registry):
+    """Check retained proof and resumable journal dependencies after restore."""
+    def hex_hash(value):
+        return isinstance(value, str) and re.fullmatch(r"[a-f0-9]{64}", value) is not None
+
+    prefix = "crawler/documents/.recovery-evidence/"
+    by_hash = {}
+    by_url = {row["source_url"]: row for row in registry}
+    for name, proof in proofs.items():
+        fingerprint = hashlib.sha256(json.dumps(proof, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()).hexdigest()
+        if name != prefix + fingerprint + "/identity-evidence.json" or proof.get("schema_version") != 1:
+            raise ValueError("Relocation identity manifest changed in backup")
+        source = by_url.get(proof.get("source_url"))
+        if not source or not proof.get("reviewed_identity_finding") or not proof.get("captures"):
+            raise ValueError("Relocation source identity missing in backup")
+        family = get_source_family(source["source_type"])
+        def official(url):
+            parsed = urlparse(url)
+            return parsed.scheme == "https" and any(parsed.hostname == domain or (domain != "policies-inactive.ncdhhs.gov" and (parsed.hostname or "").endswith("." + domain)) for domain in family.allowed_domains)
+        if not official(proof["source_url"]) or not official(proof["payload_url"]):
+            raise ValueError("Relocation URL outside source family in backup")
+        for capture in proof["captures"]:
+            relative = Path(capture["capture_path"])
+            if not relative.parts or relative.is_absolute() or ".." in relative.parts or "\\" in capture["capture_path"]:
+                raise ValueError("Invalid relocation capture path in backup")
+            capture_name = prefix + fingerprint + "/" + relative.as_posix()
+            if capture["status_code"] != 200 or capture["url"] != capture["final_url"] or not official(capture["url"]) or hashes.get(capture_name) != "sha256:" + capture["sha256"]:
+                raise ValueError("Relocation capture missing or changed in backup")
+        by_hash[fingerprint] = proof
+    checked = 0
+    referenced = set()
+    for journal in journals:
+        fingerprint = journal.get("identityEvidenceHash")
+        if fingerprint is None:
+            continue
+        proof = by_hash.get(fingerprint)
+        info = journal.get("info")
+        required_info = {"local_path", "file_hash", "file_size", "mime_type", "detected_content_type", "content_disposition_filename", "etag", "last_modified"}
+        if not hex_hash(journal.get("registryHash")) or "originalHash" not in journal or (journal["originalHash"] is not None and not hex_hash(journal["originalHash"])) or not isinstance(info, dict) or not required_info <= info.keys():
+            raise ValueError("Relocation recovery journal is incomplete in backup")
+        if not isinstance(info["local_path"], str) or not hex_hash(info["file_hash"]) or type(info["file_size"]) is not int or info["file_size"] <= 0 or any(info[field] is not None and not isinstance(info[field], str) for field in required_info - {"local_path", "file_hash", "file_size"}):
+            raise ValueError("Invalid relocation recovery journal fields in backup")
+        if not proof or info["file_hash"] != proof["expected_payload_sha256"]:
+            raise ValueError("Relocation journal proof missing or changed in backup")
+        relative = Path(info["local_path"])
+        family = get_source_family(by_url[proof["source_url"]]["source_type"])
+        if relative.is_absolute() or len(relative.parts) != 2 or ".." in relative.parts or "\\" in info["local_path"] or relative.parts[0] != family.directory_name or relative.suffix not in family.allowed_file_formats:
+            raise ValueError("Invalid relocation recovery journal path in backup")
+        source = by_url[proof["source_url"]]
+        if "completed" in journal and type(journal["completed"]) is not bool:
+            raise ValueError("Invalid relocation journal completion state in backup")
+        committed = journal.get("completed") is True or (source["status"] in {"downloaded", "updated", "unchanged"} and source.get("file_hash") == info["file_hash"] and source.get("local_path") == info["local_path"])
+        if not committed:
+            state_hash = hashlib.sha256(json.dumps(source, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()).hexdigest()
+            if state_hash != journal["registryHash"]:
+                raise ValueError("Interrupted relocation registry guard changed in backup")
+            if source.get("local_path") and source["local_path"] != info["local_path"]:
+                raise ValueError("Interrupted relocation installed artifact path changed in backup")
+        installed = hashes.get("crawler/documents/" + info["local_path"]) == "sha256:" + info["file_hash"]
+        later_revision = committed and source.get("file_hash") is not None and source["file_hash"] != info["file_hash"]
+        if later_revision and (not isinstance(source.get("local_path"), str) or not hex_hash(source["file_hash"]) or hashes.get("crawler/documents/" + source["local_path"]) != "sha256:" + source["file_hash"]):
+            raise ValueError("Relocation current registry artifact missing or changed in backup")
+        versions = "crawler/documents/" + relative.parts[0] + "/.versions/" + relative.stem + "."
+        retained_version = any(name.startswith(versions) and value == "sha256:" + info["file_hash"] for name, value in hashes.items())
+        if not installed and not (later_revision and retained_version):
+            raise ValueError("Relocation installed artifact missing or changed in backup")
+        checked += 1
+        referenced.add(fingerprint)
+    if set(by_hash) - referenced:
+        raise ValueError("Relocation proof missing recovery journal in backup")
+    return checked
+
+
 def inspect_archive(stream, *, include_history=False):
     hashes, metas = {}, {}
+    proofs, journals = {}, []
     counts = {"sourceFiles": 0, "parsedFiles": 0}
     byte_count = 0
     with tempfile.TemporaryDirectory(prefix="corpus-restore-db-") as temporary:
@@ -80,6 +157,9 @@ def inspect_archive(stream, *, include_history=False):
                     "crawler/crawler.db-wal",
                     "crawler/crawler.db-shm",
                 ]
+                is_proof = member.name.startswith("crawler/documents/.recovery-evidence/") and member.name.endswith("/identity-evidence.json")
+                is_journal = member.name.startswith("crawler/recovery-journal/") and member.name.endswith(".json")
+                keep = keep or is_proof or is_journal
                 digest = hashlib.sha256()
                 source = tar.extractfile(member)
                 while chunk := source.read(1024 * 1024):
@@ -98,6 +178,10 @@ def inspect_archive(stream, *, include_history=False):
                     data = b"".join(content)
                     if is_meta:
                         metas[member.name] = json.loads(data)
+                    elif is_proof:
+                        proofs[member.name] = json.loads(data)
+                    elif is_journal:
+                        journals.append(json.loads(data))
                     elif is_evidence:
                         target = Path(temporary) / member.name
                         target.parent.mkdir(parents=True, exist_ok=True)
@@ -127,6 +211,7 @@ def inspect_archive(stream, *, include_history=False):
                 else []
             )
         lifecycle = lifecycle_snapshot(db_path, hashes)
+        relocations_checked = check_relocations(hashes, proofs, journals, registry)
         checked = 0
         for name, meta in metas.items():
             for kind, suffix in [("json", ".json"), ("markdown", ".md")]:
@@ -230,6 +315,7 @@ def inspect_archive(stream, *, include_history=False):
             "retirementRecordsChecked": len(retirements),
             "classificationRecordsChecked": len(lifecycle["classifications"]),
             "availabilityObservationsChecked": availability_checked,
+            "relocationRecordsChecked": relocations_checked,
             "snapshotSchemaVersion": 2,
             "uncompressedBytes": byte_count,
             "counts": counts,

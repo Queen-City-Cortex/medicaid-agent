@@ -20,7 +20,7 @@ function walkDocumentFiles(root: string): string[] {
   for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
     if (
       entry.isDirectory() &&
-      (entry.name === '.versions' || entry.name === '.recovery')
+      (entry.name === '.versions' || entry.name === '.recovery' || entry.name === '.recovery-evidence')
     ) {
       continue;
     }
@@ -73,11 +73,11 @@ export async function reconcileDocuments(
     const referenced = new Set<string>();
 
     for (const row of rows) {
-      if (!row.local_path || row.status === 'removed') continue;
+      if (!row.local_path) continue;
       const filePath = resolveRegistryPath(row.local_path);
       if (!filePath) {
         stats.invalidRegistryPaths++;
-        if (repair) {
+        if (repair && row.status !== 'removed') {
           registry.markError(
             row.id,
             'reconciliation: registry path escapes document storage',
@@ -87,6 +87,9 @@ export async function reconcileDocuments(
       }
 
       referenced.add(path.normalize(filePath));
+      // A removed identity can still own original bytes required by its
+      // retirement evidence or a later audit. Do not quarantine that history.
+      if (row.status === 'removed') continue;
       if (!fs.existsSync(filePath)) {
         stats.missing++;
         if (repair) {

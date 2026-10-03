@@ -393,6 +393,37 @@ is unresolved. Use the existing writer lock for all mutations and inventories.
    are versioned before replacement. Parse recovered bytes normally and use the
    existing guarded `parse-import` for isolated parser output.
 
+   For an exact document relocated to another official URL, pair
+   `--payload-url <exact-url>` with `--identity-evidence <manifest.json>`.
+   A reviewed registry hash and a distinct recovery ID are required. The
+   manifest has `schema_version: 1`, the original `source_url`, `payload_url`,
+   `expected_payload_sha256` (bare SHA-256), a substantive
+   `reviewed_identity_finding`, and `captures`. Each capture records `url`,
+   matching `final_url`, `status_code: 200`, relative `capture_path`, and bare
+   `sha256`. Capture files must remain within the manifest directory and match
+   their hashes. Official captures must link both the original source identity
+   and the new attachment. The operator reviews document number, revision,
+   language, and the agency's migration relationship; similar titles alone do
+   not establish identity. Obtain captures with normal source-audit collection.
+   The new payload must pass normal family, format and download checks and
+   match the reviewed hash. Redirects away from that exact URL require another
+   review and are rejected. The registry keeps the original URL. Applied
+   recoveries retain proof under `crawler/documents/.recovery-evidence/` and
+   journal its fingerprint. Replays check both supplied and durable proof,
+   including after a completed recovery. Preserve that namespace in corpus
+   snapshots and backups along with `crawler/recovery-journal/`.
+   Reconciliation preserves retained proof. Backup verification rejects changed
+   manifests, missing or changed captures, and missing journal dependencies;
+   incomplete proof written before a crash must be recovered before the archive
+   can pass restore verification.
+   Recovery journals record registry commit completion separately from source
+   availability, so a later download error does not invalidate historical proof.
+   A crash between commit and completion marking resumes without another
+   download. Current-corpus sync requires a local journal directory: absence is
+   an incomplete input and fails before mirror writes; an explicitly empty
+   directory mirrors removal. The job and restore layout initialize that
+   directory alongside the registry and document storage.
+
 `recovery-inventory` reports every required/optional failure, missing payload,
 undocumented tombstone, classification and retirement. Snapshot schema 2 includes
 all source identities and artifact hashes, including originals and retained

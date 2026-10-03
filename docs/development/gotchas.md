@@ -2,6 +2,9 @@
 
 Current guidance carried forward from main at `dc81a97`. When behavior changes, correct the affected lesson alongside the implementation.
 
+- `source-audit-collect` caches captures by URL across its selected rows. Additional investigation URLs shared across different source families can be rejected by the first row's domain policy and then remain cached as errors for later rows. Collect supplementary official identity evidence in a separate audit containing only the matching family, and validate the selected rows against a fresh locked registry snapshot. A rejected request is not evidence that the official page or payload is unavailable.
+- Removed source rows still own their retained original payloads. Reconciliation must preserve those files along with `.versions` and `.recovery-evidence`; treating removed originals as unowned breaks retirement evidence and later recovery. Check removed identities without reactivating or quarantining their originals.
+
 
 - Parse inventory alone cannot find downloads that never created a `local_path`. Reconcile every non-removed registry row as well: September 2026 had 33 such failures (30 optional fee-schedule/guidance attachments and three required DHHS wrappers). `recovery-inventory` includes these and release preparation rejects missing required payloads before parsing or graph reset. The final complete inventory also exposed 283 existing optional parse exceptions, for 313 optional failures including downloads; report them separately without silently weakening source-family requirements.
 
