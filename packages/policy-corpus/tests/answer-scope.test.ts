@@ -50,6 +50,8 @@ describe('bounded answer scope', () => {
     expect(scope('What is DHB-5097 Request for Information?')?.notice).toBeNull();
     expect(scope('Does HCWD impose an earned income cap?')).toBeNull();
     expect(scope('What language access rights apply to Gujarati speakers?')).toBeNull();
+    expect(scope('What language access rights apply to Gujarati speakers filling CAP/DA forms?')).toBeNull();
+    expect(scope('What is the revision date of the 2025 MAGI income table?')?.notice).toBeNull();
     expect(scope('What does the NON-MAGI income table say?')).toBeNull();
   });
 

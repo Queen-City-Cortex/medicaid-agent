@@ -35,10 +35,10 @@ export function resolveCoverageScope(question: string, today = new Date()): Cove
   const q = question.normalize('NFKC').toLowerCase();
   const result: CoverageScope = { policyId: policy.id, limitationIds: [], notice: null, requestedDate: null, requiredSourceUrls: [], requirements: [] };
   const matched = policy.limitations.filter(item => q.includes(item.source_url.toLowerCase()));
-  const gujarati = /gujarati|ગુજરાતી/.test(q) && /5097|request.{0,20}information|form|notice/.test(q);
+  const gujarati = /gujarati|ગુજરાતી/.test(q) && /5097|request.{0,20}information/.test(q);
   const covid = /covid|sars.cov.2/.test(q) && /otc|over.the.counter|home.{0,12}test|at.home/.test(q);
   const authority = /covid|sars.cov.2/.test(q) && (covid || /standing.order/.test(q)) && /standing.order|pharmacist|dispens|prescrib|prescription|authori[sz]/.test(q);
-  const archives = /2025/.test(q) && /magi/.test(q) && /archiv|wrapper|original|duplicate|supersed|withdraw|version|revision|difference/.test(q);
+  const archives = /2025/.test(q) && /magi/.test(q) && /archiv|wrapper|original/.test(q);
   if (matched.length || gujarati || authority || archives) {
     result.limitationIds = matched.length ? matched.map(item => item.id) : gujarati ? ['gujarati-dhb-5097'] : authority ? ['covid-standing-order'] : ['magi-2025-archive', 'magi-2025-archive-2'];
     result.notice = gujarati ? 'The official Gujarati DHB-5097 attachment is unavailable in this corpus. I cannot supply or quote it, or infer what a completed Gujarati notice says. General request-for-information procedure can be researched separately using the available manuals and forms.'
