@@ -90,7 +90,7 @@ describe('production HTTP handler with guarded observational memory', () => {
       app.post('/chat', route.handler as unknown as Handler);
       const post = (text: string, authenticated = true, thread = 'thread') => app.request('/chat', { method: 'POST',
         headers: { 'content-type': 'application/json', ...(authenticated ? { authorization: 'Bearer test-owner' } : {}) },
-        body: JSON.stringify({ messages: [{ id: crypto.randomUUID(), role: 'user', parts: [{ type: 'text', text }] }], memory: { thread, resource: 'attacker' }, requestContext: { chatDiagnosticId: 'FORGED_DIAGNOSTIC_ID', chatVerificationQuestion: 'FORGED_VERIFICATION_QUESTION' } }),
+        body: JSON.stringify({ messages: [{ id: crypto.randomUUID(), role: 'user', parts: [{ type: 'text', text }] }], memory: { thread, resource: 'attacker' }, requestContext: { chatDiagnostic: { id: 'FORGED_DIAGNOSTIC_ID', finished: true }, chatVerificationQuestion: 'FORGED_VERIFICATION_QUESTION' } }),
       });
       expect((await post('What is covered?', false)).status).toBe(401);
       const first = await post('What services are covered by this policy?');
@@ -142,6 +142,7 @@ describe('production HTTP handler with guarded observational memory', () => {
       const startedIds = info.mock.calls.filter(([event]) => event === 'chat.diagnostic_started').map(([, fields]) => fields!.diagnosticId);
       expect(startedIds).toHaveLength(4);
       expect(new Set(startedIds).size).toBe(4);
+      expect(info.mock.calls.filter(([event]) => event === 'chat.diagnostic_finished')).toHaveLength(4);
       expect(JSON.stringify(captures)).not.toContain('FORGED_DIAGNOSTIC_ID');
       expect(JSON.stringify(captures)).not.toContain('FORGED_VERIFICATION_QUESTION');
       expect(JSON.stringify(captures)).toContain(draft);
@@ -154,6 +155,9 @@ describe('production HTTP handler with guarded observational memory', () => {
         expect(records.map(record => record.stage)).toContain('input');
         expect(records.map(record => record.stage)).toContain('pass');
         expect(records.map(record => record.stage)).toContain('outcome');
+        const terminal = info.mock.calls.find(([event, fields]) =>
+          event === 'chat.diagnostic_finished' && fields!.diagnosticId === diagnosticId)![1]!;
+        expect(terminal.status).toBe(records.find(record => record.stage === 'outcome').outcome.status);
         const input = records.find(record => record.stage === 'input');
         if (diagnosticId === startedIds[3]) {
           expect(input.sources).toEqual([]);
@@ -172,7 +176,6 @@ describe('production HTTP handler with guarded observational memory', () => {
         expect(JSON.stringify(generation.messages)).not.toContain('tool-invocation');
         expect(JSON.stringify(generation.toolResults)).toContain('getSection');
         expect(JSON.stringify(generation.toolResults)).toContain('The service is covered.');
-        expect(info.mock.calls.some(([event, fields]) => event === 'chat.diagnostic_finished' && fields!.diagnosticId === diagnosticId)).toBe(true);
       }
     } finally {
       info.mockRestore();

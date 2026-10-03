@@ -409,6 +409,8 @@ generation/tool results. HTTP captures retain generation messages, original
 request-local tool results, and verification stages under one server-generated
 diagnostic ID. `chat.diagnostic_started` and `chat.diagnostic_finished` log only
 that correlation ID and terminal timing/outcome; capture bodies remain private.
+Failure or cancellation before verification also completes the diagnostic once.
+`elapsedMs` measures the request; `verifierLatencyMs` measures verification only.
 Never include these files in ordinary logs, SSE, history,
 public release evidence or unencrypted artifact uploads. Use isolated observability
 storage and the production agent's actual graph and model configuration; corpus-job

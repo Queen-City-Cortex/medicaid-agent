@@ -4,9 +4,8 @@ import { VERIFICATION_PART } from '@nc-medicaid/contracts';
 import { releaseMessage } from '../../answer-release.js';
 import { extractSources, extractSourcesFromToolResults, type SourceEntry, type ToolResultRecord } from './evidence.js';
 import { emitVerifierTelemetry, runVerificationForAnswer } from './run.js';
-import { createPrivateVerificationCapture } from './diagnostics.js';
-import { CHAT_DIAGNOSTIC_ID, CHAT_VERIFICATION_QUESTION } from './context.js';
-import { log } from '../../logger.js';
+import { createPrivateVerificationCapture, finishChatDiagnostic, type ChatDiagnostic } from './diagnostics.js';
+import { CHAT_DIAGNOSTIC_CONTEXT, CHAT_VERIFICATION_QUESTION } from './context.js';
 
 // ── Processor Class ─────────────────────────────────────────────────────────
 
@@ -69,8 +68,8 @@ export class HallucinationVerifier implements Processor {
         ? { ...m, content: { ...m.content, parts: m.content.parts.filter(p => p.type !== 'text' && p.type !== 'reasoning') } }
         : m);
     }
-    const diagnosticId = requestContext?.get(CHAT_DIAGNOSTIC_ID) as string | undefined;
-    const capture = createPrivateVerificationCapture(diagnosticId);
+    const diagnostic = requestContext?.get(CHAT_DIAGNOSTIC_CONTEXT) as ChatDiagnostic | undefined;
+    const capture = createPrivateVerificationCapture(diagnostic?.id);
     capture?.({ stage: 'generation', messages, steps, toolResults: state.verificationToolResults });
     await writer?.custom({ type: VERIFICATION_PART, data: { status: 'verifying' } } as any);
     const sources = mergeSources([
@@ -81,7 +80,7 @@ export class HallucinationVerifier implements Processor {
     const question = typeof originalQuestion === 'string' ? originalQuestion : extractLatestUserQuestion(messages);
     const result = await runVerificationForAnswer({ question, answerText: text, sources, signal: abortSignal, capture });
     const { finalAnswer, outcome, confidence, telemetry } = result;
-    if (diagnosticId) log.info('chat.diagnostic_finished', { diagnosticId, ...outcome, latencyMs: telemetry.latency_ms });
+    finishChatDiagnostic(diagnostic, outcome, telemetry.latency_ms);
     const last = messages.reduce((last, m, i) => m.role === 'assistant' ? i : last, -1);
     const released = messages.map((m, i) => i === last ? releaseMessage(m, finalAnswer, outcome) : m);
     await writer?.custom({ type: VERIFICATION_PART, data: { ...outcome, answer: finalAnswer,
