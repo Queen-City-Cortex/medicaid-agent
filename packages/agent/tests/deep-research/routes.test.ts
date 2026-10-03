@@ -73,6 +73,24 @@ describe('owned research routes', () => {
     expect(await repository.listQueued()).toEqual([]);
   });
 
+  it('returns a coverage notice before storing an unsupported research request or consuming quota', async () => {
+    const app = buildApp(service);
+    const response = await app.request('/research/runs', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ question: 'Quote the official Gujarati DHB-5097 form.' }),
+    });
+    expect(response.status).toBe(422);
+    expect(await response.json()).toMatchObject({ error: { code: 'coverage-limitation', message: expect.stringContaining('unavailable') } });
+    expect(service.plan).not.toHaveBeenCalled();
+    expect(await repository.listQueued()).toEqual([]);
+    const supported = await app.request('/research/runs', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ question: 'What language-access rights apply when a Gujarati speaker receives DHB-5097?' }),
+    });
+    expect(supported.status).toBe(202);
+    expect(service.plan).toHaveBeenCalledTimes(1);
+  });
+
   it('returns conflicts and daily quota responses without starting providers', async () => {
     const app = buildApp(service);
     const start = () => app.request('/research/runs', {

@@ -4,6 +4,7 @@ import {
   ResearchDecisionInputSchema,
   ResearchStartInputSchema,
 } from '@nc-medicaid/contracts';
+import { resolveCoverageScope } from '@nc-medicaid/policy-corpus';
 import { getBoundUserId } from '../auth-middleware.js';
 import { findSensitiveIdentifiers } from '../sensitive-data.js';
 import {
@@ -44,6 +45,9 @@ export function createResearchHandlers(service: ResearchService) {
         'Remove client-identifying information before starting research.',
       );
     }
+
+    const scope = resolveCoverageScope(parsed.data.question);
+    if (scope?.notice) return apiError(c, 422, 'coverage-limitation', scope.notice);
 
     try {
       const run = await service.repository.create(
