@@ -9,6 +9,8 @@ import { closeDriver } from '../../src/neo4j.js';
 import { searchSections } from '../../src/tools/search.js';
 import { followReferences, getAmendments } from '../../src/tools/navigate.js';
 import { lookupPolicy } from '../../src/tools/lookup.js';
+import { resolveAnswerFrame } from '../../src/tools/answer-frame.js';
+import { ANSWER_SCOPE_POLICY, coverageEvidenceIssue } from '@nc-medicaid/policy-corpus';
 import { getSection, getSectionContext } from '../../src/tools/read.js';
 import { runTool } from '../helpers/run-tool.js';
 import { ensureIntegrationIndexes } from '../helpers/integration-indexes.js';
@@ -57,6 +59,22 @@ integration('agent tools against a real Neo4j graph', () => {
     await cleanupFixtures();
     await closeDriver();
     await driver.close();
+  });
+
+  it('hydrates the exact dated coverage source and full sections through the agent tool', async () => {
+    const url = ANSWER_SCOPE_POLICY.magi_tables[1].source_url;
+    const existing = await run('MATCH (d:Document {source_url: $url}) RETURN count(d) AS count', { url });
+    if (existing.records[0].get('count').toNumber() !== 0) throw new Error('Coverage fixture requires a dedicated empty test graph');
+    const docId = `${FIXTURE_PREFIX}doc:magi-2026`;
+    const sectionId = `${FIXTURE_PREFIX}sec:magi-2026:table`;
+    await run(`CREATE (d:Document {id: $docId, title: '2026 MAGI table', document_type: 'dhhs_policy', source_url: $url, answer_ready: true, status: 'current'})
+      CREATE (s:Section {id: $sectionId, document_id: $docId, title: 'Income table', content_text: $content, answer_ready: true})
+      CREATE (d)-[:HAS_SECTION]->(s)`, { docId, sectionId, url, content: 'Effective: APRIL 1, 2026\n133% monthly amount 1769' });
+    const { frame } = await runTool(resolveAnswerFrame, { query: 'What MAGI income table applies in October 2026?' });
+    expect(frame.coverageScope.notice).toBeNull();
+    expect(frame.authoritativeDocuments.map((document: { id: string }) => document.id)).toEqual([docId]);
+    expect(frame.primarySections[0].id).toBe(sectionId);
+    expect(coverageEvidenceIssue(frame.coverageScope, frame.primarySections.map((section: { content: string; url: string }) => ({ toolName: 'resolveAnswerFrame:section', text: section.content, link: section.url })))).toBeNull();
   });
 
   it('returns search snippets from Section.content_text', async () => {
