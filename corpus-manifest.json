@@ -26,14 +26,14 @@
       "discovery_interval_hours": 24,
       "freshness_sla_days": 1,
       "allowed_domains": ["medicaid.ncdhhs.gov", "covid19.ncdhhs.gov", "www.dph.ncdhhs.gov"],
-      "allowed_file_formats": [".pdf", ".docx"],
+      "allowed_file_formats": [".pdf", ".docx", ".html"],
       "landing_pages": [
         "https://medicaid.ncdhhs.gov/providers/medicaid-bulletin",
         "https://medicaid.ncdhhs.gov/blog-category/bulletins",
         "https://medicaid.ncdhhs.gov/providers/medicaid-bulletin/medicaid-bulletin-digests",
         "https://medicaid.ncdhhs.gov/providers/medicaid-bulletin/medicaid-bulletin-archive"
       ],
-      "seed_urls": []
+      "seed_urls": ["https://medicaid.ncdhhs.gov/blog/2024/09/25/reminder-key-covid-19-changes-effective-oct-1-2024"]
     },
     {
       "source_type": "state_plan_amendment",

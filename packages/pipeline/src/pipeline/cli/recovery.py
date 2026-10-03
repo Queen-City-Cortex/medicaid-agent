@@ -40,8 +40,21 @@ def recovery_inventory(output: Path) -> None:
         report["undocumented_removals"] = undocumented_removals(CRAWLER_DB_PATH)
         from pipeline.freshness import build_answer_ready_snapshot
         from pipeline.source_lifecycle import read_table
-        report["source_classifications"] = read_table(CRAWLER_DB_PATH, "source_classifications")
+
+        report["source_classifications"] = read_table(
+            CRAWLER_DB_PATH, "source_classifications"
+        )
         report["source_retirements"] = read_table(CRAWLER_DB_PATH, "source_retirements")
+        from pipeline.answer_scope import scoped_failure_count, scope_records
+
+        report["answer_scope_records"] = scope_records(CRAWLER_DB_PATH)
+        report["scoped_required_failure_count"] = scoped_failure_count(
+            [*report["unresolved"], *report["unresolved_downloads"]], CRAWLER_DB_PATH
+        )
+        report["blocking_required_failure_count"] = (
+            report["unresolved_required_count"]
+            - report["scoped_required_failure_count"]
+        )
         report["complete_snapshot"] = build_answer_ready_snapshot()
         atomic_write_json(output, report)
     click.echo(
@@ -49,6 +62,12 @@ def recovery_inventory(output: Path) -> None:
             {
                 "active_source_count": report["active_source_count"],
                 "unresolved_required_count": report["unresolved_required_count"],
+                "scoped_required_failure_count": report[
+                    "scoped_required_failure_count"
+                ],
+                "blocking_required_failure_count": report[
+                    "blocking_required_failure_count"
+                ],
                 "unresolved_required_download_count": report[
                     "unresolved_required_download_count"
                 ],
@@ -57,8 +76,42 @@ def recovery_inventory(output: Path) -> None:
             }
         )
     )
-    if report["unresolved_required_count"] or report["undocumented_removals"]:
+    if report["blocking_required_failure_count"] or report["undocumented_removals"]:
         raise click.ClickException("Source inventory still blocks release")
+
+
+@cli.command("source-scope")
+@click.option(
+    "--evidence",
+    type=click.Path(path_type=Path, exists=True, dir_okay=False),
+    required=True,
+)
+@click.option("--apply", is_flag=True)
+@click.option(
+    "--baseline-archive",
+    type=click.Path(path_type=Path, exists=True, dir_okay=False),
+    required=True,
+)
+@click.option("--backup-image", required=True)
+def source_scope(
+    evidence: Path, apply: bool, baseline_archive: Path, backup_image: str
+) -> None:
+    """Validate a qualified product-scope bundle; preserve unresolved source state."""
+    from pipeline.answer_scope import apply_answer_scope
+
+    if CORPUS_DATA_ROOT is None:
+        raise click.ClickException("CORPUS_DATA_ROOT is required")
+    click.echo(
+        json.dumps(
+            apply_answer_scope(
+                CORPUS_DATA_ROOT,
+                json.loads(evidence.read_text()),
+                apply=apply,
+                baseline_archive=baseline_archive,
+                backup_image=backup_image,
+            )
+        )
+    )
 
 
 @cli.command("parse-import")

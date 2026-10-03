@@ -32,6 +32,7 @@ import { AnswerFramePlanningProcessor } from './processors/answer-frame-planning
 import { OpenAIResponsesDedupProcessor } from './processors/openai-responses-dedup.js';
 import { MessageLengthGuard } from './processors/message-length-guard.js';
 import { ScopeGateProcessor } from './processors/scope-gate.js';
+import { CoverageBoundaryProcessor } from './processors/coverage-boundary.js';
 import { RateLimitRepository } from './rate-limit/repository.js';
 import { createBodySizeGuard, createRateLimitMiddleware } from './rate-limit/middleware.js';
 import { MastraAuthWorkos } from '@mastra/auth-workos';
@@ -154,6 +155,7 @@ const inputProcessors = IS_CLI_RUN
       // detector because off-topic volume is the common abuse case — most
       // blocked messages cost exactly one mini call and zero main-model tokens.
       new MessageLengthGuard(),
+      new CoverageBoundaryProcessor(),
       new ScopeGateProcessor(),
       new PromptInjectionDetector({
         model: 'openai/gpt-5-mini',

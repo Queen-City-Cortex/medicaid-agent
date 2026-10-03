@@ -14,6 +14,8 @@ def ingest_cfr(part: int | None, refresh: bool):
 
     stats = load_all_cfr(part_filter=part, refresh=refresh)
     console.print(f"\n[bold]eCFR ingest complete:[/bold] {stats['parts_loaded']} parts, {stats['sections_total']} sections, {stats['errors']} errors")
+    if stats["errors"]:
+        raise click.ClickException("Federal regulation ingestion failed")
 
 
 @cli.command("ingest-ssa")
@@ -23,3 +25,5 @@ def ingest_ssa(refresh: bool):
     from pipeline.federal.loader import load_ssa
     stats = load_ssa(refresh=refresh)
     console.print(f"\n[bold]SSA ingest complete:[/bold] {stats['titles_loaded']} titles, {stats['sections_total']} sections, {stats['errors']} errors")
+    if stats["errors"]:
+        raise click.ClickException("Federal statute ingestion failed")

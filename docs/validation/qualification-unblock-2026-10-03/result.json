@@ -1,0 +1,51 @@
+{
+  "status": "NO_GO",
+  "implementationRevision": "aa697ed7d8b7806e7c72aa1db5b37e6ecc3156e3",
+  "runtimeAcceptance": "REUSED_MATCHING_DEPLOYMENT_AND_CONFIGURATION",
+  "legacyIdentity": "TWO_COMPLETE_IDENTICAL_DIAGNOSTIC_MAPPINGS",
+  "freshCFRParts": 43,
+  "freshSSASubchapters": 0,
+  "productionReleaseId": "legacy-20260725-ae8595c",
+  "blockingPrerequisite": "USC full-subchapter responses are maintenance pages, confirmed independently by the developer",
+  "completeCorpusRestore": "NOT_RUN_AFTER_FEDERAL_PREREQUISITE_FAILURE",
+  "requiredFamilyRefresh": "NOT_RUN",
+  "scopeApprovalAndNewCorpusBackups": "NOT_RUN",
+  "candidateGraphBuild": "NOT_RUN",
+  "pairedBenchmarkRuns": 0,
+  "scopeAcceptanceResults": 0,
+  "activation": "NOT_RUN",
+  "scheduling": "UNCHANGED_DISABLED",
+  "agencyOutreach": "NOT_SENT",
+  "firecrawlResearch": {
+    "ordinarySearches": 3,
+    "ordinaryScrapes": 4,
+    "grossCreditsAtDocumentedRates": 10,
+    "agentJobs": 0
+  },
+  "verification": {
+    "macPipelinePassed": 605,
+    "macPipelineSkipped": 5,
+    "linuxPipelinePassed": 610,
+    "linuxPipelineSkipped": 0,
+    "realNeo4jIdentityTestsPassed": 12,
+    "ruff": "PASS",
+    "vulture": "PASS",
+    "productionDockerBuild": "PASS",
+    "imageSourceFiles": 664,
+    "imageSourceMismatches": 0
+  },
+  "retainedFailures": [
+    {
+      "stage": "Initial CFR fallback probe",
+      "result": "35/43 passed; eight reserved-section ranges required stripping both section markers; original log and reconstructed receipt retained"
+    },
+    {
+      "stage": "Initial full pipeline tests",
+      "result": "601 passed, five skipped, four failed because loader selected the new top-level JSON oracle; fixture relocated and subsequent complete runs passed"
+    },
+    {
+      "stage": "Initial disposable Neo4j tests",
+      "result": "11 passed, one failed before Bolt startup; container password initialization failed; private failure log retained and recreated owned fixture passed"
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 """Tests for the graph write boundary."""
 
 import logging
+from dataclasses import replace
 from contextlib import contextmanager
 
 import pytest
@@ -162,6 +163,32 @@ def test_upsert_document_bundle_writes_document_and_section_structure():
     assert session.calls[3][1] == {"doc_id": "doc:test"}
     assert session.calls[4][1]["sections"][0]["id"] == "sec:1"
     assert session.calls[5][1] == {"doc_id": "doc:test", "section_ids": ["sec:1", "sec:2"]}
+
+
+@pytest.mark.parametrize("value, expected", [
+    ("2026-09-22 20:43:27", "2026-09-22T20:43:27+00:00"),
+    ("2026-09-22T20:43:27Z", "2026-09-22T20:43:27Z"),
+    (None, None),
+])
+def test_registry_timestamps_use_neo4j_utc_format_without_changing_retrieval(value, expected):
+    bundle = _make_bundle()
+    document = replace(bundle.document, source_checked_at=value, source_changed_at=value, retrieved_at=value)
+    session = FakeSession()
+    _writer_for(session).upsert_document_bundle(replace(bundle, document=document))
+    parameters = session.calls[0][1]
+    assert parameters["source_checked_at"] == expected
+    assert parameters["source_changed_at"] == expected
+    assert parameters["retrieved_at"] == value
+
+
+def test_invalid_sqlite_calendar_date_fails_before_commit():
+    bundle = _make_bundle()
+    session = FakeSession()
+    with pytest.raises(ValueError):
+        _writer_for(session).upsert_document_bundle(replace(
+            bundle, document=replace(bundle.document, source_checked_at="2026-02-30 12:00:00"),
+        ))
+    assert session.commits == 0
 
 
 def test_delete_document_removes_the_document_through_one_transaction():

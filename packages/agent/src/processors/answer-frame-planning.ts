@@ -773,7 +773,7 @@ function buildChecklist(question: string, frame: ResolveAnswerFrameResult['frame
     }
   })();
 
-  return unique([...routeChecklist, ...familyChecklist]).slice(0, CHECKLIST_LIMIT);
+  return unique([...(frame.coverageScope?.notice ? [frame.coverageScope.notice] : []), ...(frame.coverageScope?.requirements ?? []), ...routeChecklist, ...familyChecklist]).slice(0, CHECKLIST_LIMIT);
 }
 
 function buildPlanMessage(question: string, frame: ResolveAnswerFrameResult['frame']): string | null {

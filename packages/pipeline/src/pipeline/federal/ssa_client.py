@@ -123,6 +123,27 @@ def _cache_path(title_num: int) -> Path:
     return ECFR_CACHE_DIR / f"usc-title42-subchapter{title_num}.html"
 
 
+def validate_usc_subchapter(html: str, title_num: int) -> None:
+    """Require statutory text before accepting either a response or a cache."""
+    from pipeline.federal.ssa_parser import parse_usc_subchapter
+
+    required = {
+        19: {"1902", "1905", "1915"},
+        21: {"2101", "2103", "2110"},
+    }[title_num]
+    sections = parse_usc_subchapter(html, title_num)
+    substantive = {
+        section["section_number"]
+        for section in sections
+        if len(section["content_text"].strip()) >= 100
+    }
+    if not required <= substantive:
+        raise ValueError(
+            f"USC subchapter {title_num} response lacks required statutory text: "
+            + ", ".join(sorted(required - substantive))
+        )
+
+
 def fetch_usc_subchapter(title_num: int, refresh: bool = False) -> str:
     """Fetch the full USC subchapter HTML from uscode.house.gov."""
     cache = _cache_path(title_num)
@@ -136,7 +157,13 @@ def fetch_usc_subchapter(title_num: int, refresh: bool = False) -> str:
         and cache_age_days is not None
         and cache_age_days < SSA_CACHE_MAX_AGE_DAYS
     ):
-        return cache.read_text(encoding="utf-8")
+        html = cache.read_text(encoding="utf-8")
+        try:
+            validate_usc_subchapter(html, title_num)
+        except ValueError:
+            console.print("  [yellow]Invalid USC cache; fetching statutory text again[/yellow]")
+        else:
+            return html
 
     url = USC_URLS[title_num]
     console.print(f"  Fetching USC Subchapter {title_num}: {url}")
@@ -146,6 +173,7 @@ def fetch_usc_subchapter(title_num: int, refresh: bool = False) -> str:
     with urllib.request.urlopen(req, timeout=120) as response:
         html = response.read().decode("utf-8")
 
+    validate_usc_subchapter(html, title_num)
     cache.write_text(html, encoding="utf-8")
     time.sleep(2)  # Be polite to government servers
     return html

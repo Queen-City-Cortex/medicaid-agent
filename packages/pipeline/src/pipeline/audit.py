@@ -607,6 +607,11 @@ def run_corpus_audit(
 
     report["source_retirements"] = read_retirements(CRAWLER_DB_PATH)
     report["undocumented_removals"] = undocumented_removals(CRAWLER_DB_PATH)
+    from pipeline.answer_scope import approved_scope_map
+    approved_scopes = approved_scope_map(CRAWLER_DB_PATH)
+    report["answer_scope_limitations"] = len(approved_scopes)
+    for document in report["documents"]:
+        document["scope_limitation_id"] = approved_scopes.get(document.get("source_url"))
     from pipeline.recovery_inventory import missing_source_payloads
     report["unresolved_downloads"] = missing_source_payloads(CRAWLER_DB_PATH)
     markdown = render_audit_markdown(report)
