@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "objectKey": "readiness-evidence/2026-10-02/chat-acceptance-private-diagnostics.tar.gz.age",
+  "sha256": "95045e41e13b428ba248e176c4d3eb792b5544a1a0499d79b18a4560ea59119d",
+  "bytes": 525493,
+  "encrypted": true,
+  "downloadVerified": true,
+  "decryptionVerified": true,
+  "restoredBytesMatch": true,
+  "memberCount": 31,
+  "includesPreviousCliTemporaryDatabase": true,
+  "supersededByCaptureOnlyV2": true
+}

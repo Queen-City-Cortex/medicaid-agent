@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "objectKey": "readiness-evidence/2026-10-02/chat-acceptance-private-diagnostics-v2.tar.gz.age",
+  "sha256": "224bb8c8c1589352bbe8263aee3ed5731bd72ab9bf1251bbc95d3ef5615fc557",
+  "bytes": 509818,
+  "memberCount": 30,
+  "encrypted": true,
+  "downloadVerified": true,
+  "decryptionVerified": true,
+  "restoredBytesMatch": true,
+  "knownCredentialMatches": 0,
+  "includes": [
+    "two bounded HTTP captures and original tool results",
+    "previous CLI capture",
+    "private provider logs and synthetic ownership receipts",
+    "regression evidence"
+  ],
+  "excludes": [
+    "credentials",
+    "all plaintext databases",
+    "signing key (retained only in separately encrypted database backup)"
+  ]
+}

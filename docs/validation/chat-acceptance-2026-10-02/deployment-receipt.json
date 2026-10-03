@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "deploymentId": "b07cfc7c-76da-4b51-a886-5e2f7ba6b4b5",
+  "uploadedSourceRevision": "368744e02e00043c740687dd14294d62caad18c4",
+  "reviewedPrHead": "4a50d4aa6ade60649260143a90322e2123009cce",
+  "cleanDetachedWorktreeVerified": true,
+  "mergedCi": "passed",
+  "deploymentMetadataHasGitCommitHash": false,
+  "provenance": "clean selected merged worktree, upload log and deployed runtime inspection",
+  "supersededGithubDeploymentId": "b131e377-f3fa-42b8-8bee-451e71f5aed8",
+  "githubDeploymentBeganBuildingDuringFallback": true,
+  "activationPerformed": false,
+  "runtimeInspectionVerified": true
+}

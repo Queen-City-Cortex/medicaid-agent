@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "checkedAt": "2026-10-03T01:16:43.517462+00:00",
+  "services": [
+    {
+      "service": "corpus-job",
+      "deploymentId": "2abc3fdf-af9d-4eb6-ae0d-0f055b60720b",
+      "status": "SUCCESS",
+      "cronSchedule": null,
+      "startCommand": "sleep infinity",
+      "restartPolicyType": "NEVER"
+    },
+    {
+      "service": "@nc-medicaid/web",
+      "deploymentId": "cc21685b-d50b-4bce-b7b1-f85f64da2b91",
+      "status": "SUCCESS",
+      "cronSchedule": null,
+      "startCommand": null,
+      "restartPolicyType": "ON_FAILURE"
+    },
+    {
+      "service": "neo4j-green",
+      "deploymentId": null,
+      "status": null,
+      "cronSchedule": null,
+      "startCommand": null,
+      "restartPolicyType": null
+    },
+    {
+      "service": "neo4j-blue",
+      "deploymentId": "d66b243b-f5dc-437b-ad3a-7ad7af03efa3",
+      "status": "SUCCESS",
+      "cronSchedule": null,
+      "startCommand": null,
+      "restartPolicyType": "ON_FAILURE"
+    },
+    {
+      "service": "neo4j",
+      "deploymentId": "1c1d47d4-919c-4c47-bf7e-52c3cb6b02b9",
+      "status": "SUCCESS",
+      "cronSchedule": null,
+      "startCommand": null,
+      "restartPolicyType": "ON_FAILURE"
+    },
+    {
+      "service": "@nc-medicaid/agent",
+      "deploymentId": "b07cfc7c-76da-4b51-a886-5e2f7ba6b4b5",
+      "status": "SUCCESS",
+      "cronSchedule": null,
+      "startCommand": null,
+      "restartPolicyType": "ON_FAILURE"
+    }
+  ]
+}

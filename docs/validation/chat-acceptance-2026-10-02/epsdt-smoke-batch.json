@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "releaseId": "legacy-20260725-ae8595c",
+  "deploymentId": "b07cfc7c-76da-4b51-a886-5e2f7ba6b4b5",
+  "question": "What does EPSDT require?",
+  "startedAt": "2026-10-03T01:09:58.045Z",
+  "attempts": [
+    {
+      "attempt": 1,
+      "releaseId": "legacy-20260725-ae8595c",
+      "outcome": "passed",
+      "passCount": 1,
+      "answerCharacters": 5174,
+      "passed": true,
+      "elapsedMs": 49915
+    },
+    {
+      "attempt": 2,
+      "releaseId": "legacy-20260725-ae8595c",
+      "outcome": "corrected",
+      "passCount": 2,
+      "answerCharacters": 3679,
+      "passed": true,
+      "elapsedMs": 47255
+    },
+    {
+      "attempt": 3,
+      "releaseId": "legacy-20260725-ae8595c",
+      "outcome": "corrected",
+      "passCount": 2,
+      "answerCharacters": 3096,
+      "passed": true,
+      "elapsedMs": 42141
+    }
+  ],
+  "passed": true,
+  "completedAt": "2026-10-03T01:12:17.361Z"
+}

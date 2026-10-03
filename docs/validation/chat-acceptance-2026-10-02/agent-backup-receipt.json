@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "objectKey": "readiness-evidence/2026-10-02/agent-chat-acceptance-baseline.db.age",
+  "sha256": "71c7d87e13ff7fc978c83569625fd8475b346bcb89317467651527d0b62edf17",
+  "bytes": 169157128,
+  "downloadVerified": true,
+  "decryptionVerified": true,
+  "restoredBytesMatch": true,
+  "sqliteIntegrity": "ok",
+  "signingKeyRowPreserved": true
+}

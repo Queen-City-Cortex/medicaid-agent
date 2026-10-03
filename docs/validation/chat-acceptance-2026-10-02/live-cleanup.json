@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "checkedAt": "2026-10-03T01:16:20.471Z",
+  "ownedThreads": 4,
+  "deleteStatuses": [
+    200,
+    200,
+    200,
+    200
+  ],
+  "probeStatuses": [
+    404,
+    404,
+    404,
+    404
+  ],
+  "absent": true,
+  "status": [
+    {
+      "route": "/readyz",
+      "status": 200,
+      "health": "ok",
+      "releaseId": "legacy-20260725-ae8595c"
+    },
+    {
+      "route": "/corpus-status",
+      "status": 200,
+      "releaseId": "legacy-20260725-ae8595c",
+      "documentCount": 6725
+    },
+    {
+      "route": "/dependencyz",
+      "status": 200,
+      "health": "ok"
+    }
+  ],
+  "scope": "Only recorded threads created by this acceptance run; pre-existing account memory and usage were not reset"
+}
