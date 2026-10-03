@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "checkedAt": "2026-10-03T04:54:00Z",
+  "retirementRecordsUnchanged": 152,
+  "classificationRecordsUnchanged": 1,
+  "availabilityActions": 12,
+  "availabilityObservations": 36,
+  "registryDocuments": 4556,
+  "unresolvedRegistryRowsUnchanged": [
+    875,
+    1905,
+    11805,
+    11806
+  ],
+  "recoveredOriginalUrlsPreserved": [
+    12820,
+    12821,
+    12822
+  ],
+  "downloadAttemptsAfterReplay": 1,
+  "requiredFailures": 4,
+  "optionalFailures": 313,
+  "undocumentedRemovals": 0,
+  "answerReadyDocuments": 4215,
+  "sourceSnapshotHash": "sha256:0e062b4bfed56f6241841b0fc4135b18105cab118493063069a8db1156e2add5"
+}

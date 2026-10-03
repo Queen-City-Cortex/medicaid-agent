@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "sourceGate": "NO_GO",
+  "qualification": "NOT_ASSESSED",
+  "sourceSnapshotHash": "sha256:0e062b4bfed56f6241841b0fc4135b18105cab118493063069a8db1156e2add5",
+  "sources": [
+    {
+      "registryId": 875,
+      "title": "Pharmacist OTC COVID-19 test standing order",
+      "originalSourceUrl": "https://covid19.ncdhhs.gov/swso-pharmacists-dispense-otc-covid-19-tests/download?attachment=",
+      "originalLocalPath": "bulletins/state-standing-order.pdf",
+      "originalArtifactHash": "9614129d403f5226f8c9222a4aaa8a7389b87fa998f2702108063f7c89f04f6f",
+      "disposition": "unresolved",
+      "retired": false
+    },
+    {
+      "registryId": 1905,
+      "title": "Gujarati DHB-5097",
+      "originalSourceUrl": "https://policies.ncdhhs.gov/document/dhb-5097-gu-%e0%aa%ae%e0%aa%be%e0%aa%b9%e0%aa%bf%e0%aa%a4%e0%ab%80-%e0%aa%ae%e0%aa%be%e0%aa%9f%e0%ab%87%e0%aa%b5%e0%aa%bf%e0%aa%a8-%e0%aa%82%e0%aa%a4%e0%ab%80/",
+      "originalLocalPath": "dhhs-policies/dhb-5097-gu.pdf",
+      "originalArtifactHash": "7682aa584aac795e6647a092f50987b6c1fa9efd7929b1f62fd4800378713bb6",
+      "disposition": "unresolved",
+      "retired": false
+    },
+    {
+      "registryId": 11805,
+      "title": "2025 MAGI income limits archived wrapper -2",
+      "originalSourceUrl": "https://policies.ncdhhs.gov/document/2025-magi-medicaid-income-limits-2/",
+      "originalLocalPath": null,
+      "originalArtifactHash": null,
+      "disposition": "unresolved",
+      "retired": false
+    },
+    {
+      "registryId": 11806,
+      "title": "2025 MAGI income limits archived wrapper",
+      "originalSourceUrl": "https://policies.ncdhhs.gov/document/2025-magi-medicaid-income-limits/",
+      "originalLocalPath": null,
+      "originalArtifactHash": null,
+      "disposition": "unresolved",
+      "retired": false
+    },
+    {
+      "registryId": 12820,
+      "title": "ZixMail state-appeal instructions attachment B",
+      "originalSourceUrl": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/attachment__b-__zixmail_instructions_with_e-mail_examples_for_submitting_state_appeal_requests__-004.pdf",
+      "originalLocalPath": null,
+      "originalArtifactHash": null,
+      "disposition": "recovered",
+      "retired": false,
+      "payloadUrl": "https://policies.ncdhhs.gov/wp-content/uploads/attachment__b-__zixmail_instructions_with_e-mail_examples_for_submitting_state_appeal_requests__-004-1.pdf",
+      "reviewedRegistryHash": "6a33d35eb2e779bf9f32c62094c88681e76901d0129d82d29a3408c7168c5c82",
+      "recoveryId": "source-closure-2026-10-02-12820-1",
+      "reviewedPayloadSha256": "d355ee12240ae8b0ee1a2cc9ef969a68ae443681a36786f88dc0183c7d67dc62",
+      "identityManifest": "identity-captures/identity-12820.json",
+      "downloadAttemptsAfterReplay": 1,
+      "parseAttemptsAfterReplay": 1
+    },
+    {
+      "registryId": 12821,
+      "title": "DHB self-attestation revised August 2020",
+      "originalSourceUrl": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/attachment_dhb_self_attestation_8-2020_final.pdf",
+      "originalLocalPath": null,
+      "originalArtifactHash": null,
+      "disposition": "recovered",
+      "retired": false,
+      "payloadUrl": "https://policies.ncdhhs.gov/wp-content/uploads/attachment_dhb_self_attestation_8-2020_final-1.pdf",
+      "reviewedRegistryHash": "f15b4090f2be11650bc8ac5a3ee9565e2229f0658ef59cc2ce1b4591eafedc9f",
+      "recoveryId": "source-closure-2026-10-02-12821-1",
+      "reviewedPayloadSha256": "fabeed23c576c5b2ec27257cd517fe693cf289c5619397667d9945190cb8d409",
+      "identityManifest": "identity-captures/identity-12821.json",
+      "downloadAttemptsAfterReplay": 1,
+      "parseAttemptsAfterReplay": 1
+    },
+    {
+      "registryId": 12822,
+      "title": "DHB AL 08-20 MAGI deductions July 9, 2020",
+      "originalSourceUrl": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_-al08-20-magi-deduction-procedures-docx.pdf",
+      "originalLocalPath": null,
+      "originalArtifactHash": null,
+      "disposition": "recovered",
+      "retired": false,
+      "payloadUrl": "https://policies.ncdhhs.gov/wp-content/uploads/ma_-al08-20-magi-deduction-procedures-docx-1.pdf",
+      "reviewedRegistryHash": "c8785d3060d139c88a3ceee0976c97d30cc23d15f7347a5ed01e06500388d506",
+      "recoveryId": "source-closure-2026-10-02-12822-1",
+      "reviewedPayloadSha256": "c3e704336ea4d784c697a1e8b8c093ae17ce94e004c42e891592ca3851ea09f3",
+      "identityManifest": "identity-captures/identity-12822.json",
+      "downloadAttemptsAfterReplay": 1,
+      "parseAttemptsAfterReplay": 1
+    }
+  ]
+}

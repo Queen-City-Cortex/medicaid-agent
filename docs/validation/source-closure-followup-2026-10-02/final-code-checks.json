@@ -1,0 +1,43 @@
+{
+  "checks": [
+    {
+      "conclusion": "SUCCESS",
+      "name": "test",
+      "status": "COMPLETED",
+      "url": "https://github.com/Queen-City-Cortex/medicaid-agent/actions/runs/37096743046/job/111128172817"
+    },
+    {
+      "conclusion": "SUCCESS",
+      "name": "claude-review",
+      "status": "COMPLETED",
+      "url": "https://github.com/Queen-City-Cortex/medicaid-agent/actions/runs/37096743066/job/111128110132"
+    },
+    {
+      "conclusion": "SUCCESS",
+      "name": "Mocked e2e (hermetic auth)",
+      "status": "COMPLETED",
+      "url": "https://github.com/Queen-City-Cortex/medicaid-agent/actions/runs/37096743046/job/111128172695"
+    },
+    {
+      "conclusion": "SUCCESS",
+      "name": "Production Docker builds",
+      "status": "COMPLETED",
+      "url": "https://github.com/Queen-City-Cortex/medicaid-agent/actions/runs/37096743046/job/111128172786"
+    },
+    {
+      "conclusion": "SUCCESS",
+      "name": "Greptile Review",
+      "status": "COMPLETED",
+      "url": null
+    }
+  ],
+  "head": "50cd6f6af37415d0bd9a7149c4644169dfcbf7cd",
+  "greptileConfidenceScore": "5/5",
+  "greptileFindingsRemaining": 0,
+  "mergedCommit": "38335f18890f17c878383a29eec674ef066d90e7",
+  "mergedMainCI": {
+    "runId": 37096956960,
+    "conclusion": "SUCCESS",
+    "url": "https://github.com/Queen-City-Cortex/medicaid-agent/actions/runs/37096956960"
+  }
+}

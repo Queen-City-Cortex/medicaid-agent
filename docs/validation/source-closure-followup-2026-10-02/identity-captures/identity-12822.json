@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "source_url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/ma_-al08-20-magi-deduction-procedures-docx.pdf",
+  "payload_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma_-al08-20-magi-deduction-procedures-docx-1.pdf",
+  "expected_payload_sha256": "c3e704336ea4d784c697a1e8b8c093ae17ce94e004c42e891592ca3851ea09f3",
+  "reviewed_identity_finding": "The retained official CCU index links the exact original archive URL. The current official document record links the migrated attachment. The original basename is retained with only the WordPress -1 migration suffix. Reviewed captured PDF content identifies DHB Administrative Letter 08-20, Procedures for MAGI Deductions, dated July 9, 2020. This is recovery of the historical attachment, not a finding that its guidance is currently effective. No byte-for-byte comparison to an unavailable historical original is claimed.",
+  "captures": [
+    {
+      "url": "https://policies.ncdhhs.gov/dlp_document-doc_special_terms/ccu/",
+      "final_url": "https://policies.ncdhhs.gov/dlp_document-doc_special_terms/ccu/",
+      "status_code": 200,
+      "capture_path": "captures/aece604e05bf7beba0fc01d405d80db864f517b2079ec4f817f8f48e4e39798f.bin",
+      "sha256": "aece604e05bf7beba0fc01d405d80db864f517b2079ec4f817f8f48e4e39798f"
+    },
+    {
+      "url": "https://policies.ncdhhs.gov/document/dhb-administrative-letter-no-08-20-procedures-for-magi-deductions-2/",
+      "final_url": "https://policies.ncdhhs.gov/document/dhb-administrative-letter-no-08-20-procedures-for-magi-deductions-2/",
+      "status_code": 200,
+      "capture_path": "captures/44e2205e66d7b5f0178e84938ca2dee370026c23016b14923193549f2d7a56b9.bin",
+      "sha256": "44e2205e66d7b5f0178e84938ca2dee370026c23016b14923193549f2d7a56b9"
+    }
+  ]
+}

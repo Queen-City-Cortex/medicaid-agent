@@ -421,8 +421,12 @@ is unresolved. Use the existing writer lock for all mutations and inventories.
    A crash between commit and completion marking resumes without another
    download. Current-corpus sync requires a local journal directory: absence is
    an incomplete input and fails before mirror writes; an explicitly empty
-   directory mirrors removal. The job and restore layout initialize that
-   directory alongside the registry and document storage.
+   directory mirrors removal. New volumes and explicit restores initialize the
+   namespace. An existing registry without local recovery journals fails job
+   startup; restore the history rather than recreating an empty directory.
+   Restore verification checks the installed payload at its recorded path.
+   After a later revision it requires both the retained reviewed version and
+   the current artifact matching the registry hash.
 
 `recovery-inventory` reports every required/optional failure, missing payload,
 undocumented tombstone, classification and retirement. Snapshot schema 2 includes
@@ -474,8 +478,12 @@ visible titles fail rather than selecting an arbitrary thread.
 The [2026-09-23 source audit](../validation/source-audit-2026-09-23/README.md)
 records the initial inventory, identity preflight, failed fixed smoke batch and
 verified browser persistence. The [closure follow-up](../validation/source-closure-2026-09-23/README.md)
-records the current seven required failures, zero undocumented removals, 313 optional
-failures and matching restored backup. Production remains legacy and scheduling stays disabled.
+records the September baseline of seven required failures, zero undocumented
+removals, 313 optional failures and its matching restored backup. The
+[October 2–3 source closure follow-up](../validation/source-closure-followup-2026-10-02/README.md)
+records three recovered attachments, four remaining required failures, preserved
+history and a new matching restored backup. Production remains legacy and
+scheduling stays disabled.
 
 For large encrypted backups transferred through Railway SSH, retain the completed
 byte prefix if the transfer ends early. Resume with bounded object-store byte ranges,

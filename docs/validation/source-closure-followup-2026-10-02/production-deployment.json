@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "deploymentId": "9bb022f4-2ce1-4162-adb3-274f07099bd2",
+  "instanceId": "a1ea1cf8-5633-48a9-8ca1-41a303cbb570",
+  "deploymentStatus": "SUCCESS",
+  "instanceStatus": "RUNNING",
+  "uploadedCommit": "38335f18890f17c878383a29eec674ef066d90e7",
+  "reviewedHead": "50cd6f6af37415d0bd9a7149c4644169dfcbf7cd",
+  "cleanCheckout": true,
+  "operatorHashesMatchReviewedHead": true,
+  "parserFingerprintsMatchBundle": true,
+  "configFile": "/deploy/railway/corpus-maintenance.json",
+  "startCommand": "sleep infinity",
+  "actualPid1": "sleep infinity",
+  "restartPolicyType": "NEVER",
+  "cronSchedule": null,
+  "backupRecipientMatches": true,
+  "imageDigest": "sha256:488168ea654d8095ebfe0dba7627e0fc9c9a7db63cad024fabf3069c63b2019d"
+}

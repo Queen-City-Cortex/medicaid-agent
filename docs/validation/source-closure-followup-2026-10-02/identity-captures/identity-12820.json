@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "source_url": "https://policies-inactive.ncdhhs.gov/divisional/health-benefits-nc-medicaid/adult-medicaid/administrative-letters/2020/attachment__b-__zixmail_instructions_with_e-mail_examples_for_submitting_state_appeal_requests__-004.pdf",
+  "payload_url": "https://policies.ncdhhs.gov/wp-content/uploads/attachment__b-__zixmail_instructions_with_e-mail_examples_for_submitting_state_appeal_requests__-004-1.pdf",
+  "expected_payload_sha256": "d355ee12240ae8b0ee1a2cc9ef969a68ae443681a36786f88dc0183c7d67dc62",
+  "reviewed_identity_finding": "The retained official CCU index links the exact original archive URL. The current official document record links the migrated attachment. The original basename is retained with only the WordPress -1 migration suffix. Reviewed captured PDF content identifies Attachment B ZixMail Instructions with E-mail Examples for Submitting State Appeal Requests, including its DocuSign identifier and examples. This is recovery of the historical attachment, not a finding that its guidance is currently effective. No byte-for-byte comparison to an unavailable historical original is claimed.",
+  "captures": [
+    {
+      "url": "https://policies.ncdhhs.gov/dlp_document-doc_special_terms/ccu/",
+      "final_url": "https://policies.ncdhhs.gov/dlp_document-doc_special_terms/ccu/",
+      "status_code": 200,
+      "capture_path": "captures/aece604e05bf7beba0fc01d405d80db864f517b2079ec4f817f8f48e4e39798f.bin",
+      "sha256": "aece604e05bf7beba0fc01d405d80db864f517b2079ec4f817f8f48e4e39798f"
+    },
+    {
+      "url": "https://policies.ncdhhs.gov/document/dhb-administrative-letter-no-07-20-attachment-zixmail-instructions-for-state-appeals-2/",
+      "final_url": "https://policies.ncdhhs.gov/document/dhb-administrative-letter-no-07-20-attachment-zixmail-instructions-for-state-appeals-2/",
+      "status_code": 200,
+      "capture_path": "captures/c999f6b3e0c6c6018079b43bcb9e941fb1301892f64501210f334610d8226d0b.bin",
+      "sha256": "c999f6b3e0c6c6018079b43bcb9e941fb1301892f64501210f334610d8226d0b"
+    }
+  ]
+}

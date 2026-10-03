@@ -1,0 +1,9 @@
+{
+  "startedAt": "2026-10-03T02:18:49Z",
+  "startedEpoch": 1790993929.15615,
+  "limitSeconds": 3600,
+  "finishedAt": "2026-10-03T03:02:03Z",
+  "elapsedSeconds": 2593.84,
+  "limitMet": true,
+  "completionBasis": "Last retained audit.json modification time; collections have exited."
+}

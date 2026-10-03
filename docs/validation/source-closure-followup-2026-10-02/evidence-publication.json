@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "objectKey": "readiness-evidence/2026-10-03/source-closure-followup-evidence.tar.gz",
+  "sha256": "5b2dbb517bc7325089be20abbafea3c0b37371ad30a8ed3edd041e7aad186b31",
+  "bytes": 3555163,
+  "downloadVerified": true,
+  "memberCount": 106,
+  "includes": [
+    "official government captures and reviewed identity manifests",
+    "source ledger and rehearsal receipts",
+    "production action and preservation receipts",
+    "encrypted baseline/final backup restore receipts",
+    "report and unsent inquiries"
+  ],
+  "excludes": [
+    "credentials",
+    "provider logs",
+    "databases",
+    "encrypted corpus archives (stored under their own backup keys)",
+    "publication receipt (stored in Git)"
+  ]
+}
