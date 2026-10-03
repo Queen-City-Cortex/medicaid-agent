@@ -293,7 +293,7 @@ describe('downloadDocument', () => {
     const doc = makeDoc({ source_type: 'bulletin', policy_number: null,
       source_url: 'https://medicaid.ncdhhs.gov/blog/2024/09/25/reminder-key-covid-19-changes-effective-oct-1-2024',
       title: 'Reminder: Key COVID-19 Changes Effective Oct. 1, 2024' });
-    const html = '<!DOCTYPE html><html><body><article><h1>Reminder: Key COVID-19 Changes Effective Oct. 1, 2024</h1><p>Coverage for pharmacy point-of-sale billing for OTC COVID-19 home tests ends Sept. 30, 2024.</p></article></body></html>';
+    const html = '<!DOCTYPE html><html><body><article><h1>Reminder: Key COVID-19 Changes Effective Oct. 1, 2024</h1><h2>Over-the-Counter Tests for Home Use Coverage for COVID-19</h2><p>Coverage for pharmacy point-of-sale billing for OTC COVID-19 home tests ends Sept. 30, 2024.</p></article></body></html>';
     const result = await downloadDocument(doc, fetcherWriting(html, { 'content-type': 'text/html' }), new Set());
     expect(result.action).toBe('downloaded');
     expect(result.info?.local_path).toMatch(/bulletins\/.*\.html$/);
@@ -303,10 +303,25 @@ describe('downloadDocument', () => {
     const doc = makeDoc({ source_type: 'bulletin', policy_number: null,
       source_url: 'https://medicaid.ncdhhs.gov/blog/2024/09/25/reminder-key-covid-19-changes-effective-oct-1-2024',
       title: 'Reminder: Key COVID-19 Changes Effective Oct. 1, 2024' });
-    const html = '<!DOCTYPE html><html><body><main aria-labelledby="page-title"><section><header><h1 id="page-title">Reminder: Key COVID-19 Changes Effective Oct. 1, 2024</h1></header><article><h2>OTC COVID-19 tests</h2><p>The dated payment bulletin explains that pharmacy POS coverage ends Sept. 30, 2024, with changes effective Oct. 1, 2024.</p></article></section></main></body></html>';
+    const html = '<!DOCTYPE html><html><body><main aria-labelledby="page-title"><section><header><h1 id="page-title">Reminder: Key COVID-19 Changes Effective Oct. 1, 2024</h1></header><article><h2>Over-the-Counter Tests for Home Use Coverage for COVID-19</h2><p>The dated payment bulletin explains that pharmacy POS coverage ends Sept. 30, 2024, with changes effective Oct. 1, 2024.</p></article></section></main></body></html>';
     const result = await downloadDocument(doc, fetcherWriting(html, { 'content-type': 'text/html' }), new Set());
     expect(result.action).toBe('downloaded');
     expect(result.info?.local_path).toMatch(/bulletins\/.*\.html$/);
+  });
+
+  it.each(['article', 'landmark'])('rejects a branded error with a matching %s title but no dated bulletin content', async (location) => {
+    const title = 'Reminder: Key COVID-19 Changes Effective Oct. 1, 2024';
+    const doc = makeDoc({ source_type: 'bulletin', policy_number: null,
+      source_url: 'https://medicaid.ncdhhs.gov/blog/2024/09/25/reminder-key-covid-19-changes-effective-oct-1-2024', title });
+    const heading = `<h1 id="page-title">${title}</h1>`;
+    const article = '<article>' + (location === 'article' ? heading : '')
+      + '<p>This page is temporarily unavailable because the service could not retrieve the requested bulletin. Please try again later.</p></article>';
+    const html = '<!DOCTYPE html><html><body><main aria-labelledby="page-title">'
+      + (location === 'landmark' ? heading : '') + article + '</main></body></html>';
+    const result = await downloadDocument(doc, fetcherWriting(html, { 'content-type': 'text/html' }), new Set());
+    expect(result.action).toBe('error');
+    expect(result.error).toMatch(/required dated bulletin content/i);
+    expect(fs.existsSync(path.join(config.documentsDir, 'bulletins', `.download-${doc.id}.tmp`))).toBe(false);
   });
 
   it.each([

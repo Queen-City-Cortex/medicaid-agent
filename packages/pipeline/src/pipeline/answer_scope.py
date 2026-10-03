@@ -53,6 +53,9 @@ def scope_registry_hash(row: dict) -> str:
 def implementation_hash() -> str:
     root = POLICY_PATH.parents[4]
     paths = [
+        "corpus-manifest.json",
+        "packages/crawler/src/crawl/downloader.ts",
+        "packages/crawler/src/sources/bulletins.ts",
         "packages/policy-corpus/src/scope/coverage.ts",
         "packages/policy-corpus/src/frame/service.ts",
         "packages/agent/src/processors/coverage-boundary.ts",
