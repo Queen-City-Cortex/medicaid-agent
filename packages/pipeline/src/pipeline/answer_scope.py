@@ -13,6 +13,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from pipeline.source_lifecycle import private_path, stable_hash
+from pipeline.parse.artifact_paths import artifact_stem_for_source_path
 
 POLICY_PATH = (
     Path(__file__).resolve().parents[4] / "packages/policy-corpus/src/scope/policy.json"
@@ -73,6 +74,7 @@ def implementation_hash() -> str:
         "packages/pipeline/src/pipeline/release.py",
         "packages/pipeline/src/pipeline/recovery_inventory.py",
         "packages/pipeline/src/pipeline/parse/converter.py",
+        "packages/pipeline/src/pipeline/parse/artifact_paths.py",
         "packages/pipeline/src/pipeline/audit.py",
         "packages/pipeline/src/pipeline/source_lifecycle.py",
         "packages/pipeline/src/pipeline/freshness.py",
@@ -207,7 +209,8 @@ def validate_scope_records(
                 and source.get("file_hash") != obligation["payload_sha256"]
             ):
                 raise ValueError("Reviewed answer scope source hash changed")
-            stem = Path(source["local_path"]).with_suffix("").as_posix()
+            source_path = Path(source["local_path"])
+            stem = source_path.with_name(artifact_stem_for_source_path(source_path)).as_posix()
             required_artifacts.update(
                 "pipeline/parsed/" + stem + suffix
                 for suffix in [".json", ".md", ".meta.json"]
@@ -374,7 +377,8 @@ def apply_answer_scope(
             ):
                 raise ValueError("Required coverage source identity changed")
             coverage_artifacts[name] = "sha256:" + actual
-            stem = Path(row["local_path"]).with_suffix("").as_posix()
+            source_path = Path(row["local_path"])
+            stem = source_path.with_name(artifact_stem_for_source_path(source_path)).as_posix()
             meta_name = "pipeline/parsed/" + stem + ".meta.json"
             meta = json.loads(private_path(root, meta_name).read_text())
             if (

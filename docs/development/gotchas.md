@@ -2,6 +2,8 @@
 
 Current guidance carried forward from main at `dc81a97`. When behavior changes, correct the affected lesson alongside the implementation.
 
+- Non-PDF parse artifacts use format-qualified stems (`notice__html.json`, not `notice.json`). Scope approval and encrypted-backup dependency checks must use the shared lightweight artifact naming helper, rather than strip the source extension. The coverage rehearsal exposed a mismatch hidden by hand-written unit fixtures; acceptance now exercises actual HTML parser output.
+
 - Drupal bulletin pages can place the document `h1` before the semantic `article`, with the enclosing `main` linked to it through `aria-labelledby`. Requiring an article-local title rejected the full September 25, 2024 COVID bulletin during the coverage rehearsal. Accept the explicitly associated heading only for a single article with one matching heading; keep unrelated page headings, conflicting article titles and ambiguous articles rejected. The declared COVID bulletin must also contain its reviewed OTC-testing heading and coverage-end statement inside the article; a branded error with the expected page title is insufficient. Article body extraction remains confined to the semantic article, and scope fingerprints include the downloader, discovery code and manifest.
 
 - Classify research coverage at the user-question API boundary, not on internal reflection prompts containing findings and quotations. Reject unsupported requests before creating a run/consuming quota, and independently enforce the original question during final-report verification.

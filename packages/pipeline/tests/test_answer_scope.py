@@ -69,7 +69,7 @@ def corpus(tmp_path, monkeypatch):
             "INSERT INTO documents VALUES(?,?, 'bulletin','Coverage',?,?,'downloaded','old',1)",
             (index + 3, url, path, digest),
         )
-        stem = root / "pipeline/parsed/bulletins" / f"coverage-{index}"
+        stem = root / "pipeline/parsed/bulletins" / f"coverage-{index}__html"
         stem.parent.mkdir(parents=True, exist_ok=True)
         stem.with_suffix(".json").write_text(json.dumps({"body": text}))
         stem.with_suffix(".md").write_text(text)
@@ -173,6 +173,51 @@ def test_validate_apply_replay_preserves_sources_and_freezes_scope(corpus):
     )
 
 
+def test_scope_accepts_full_bulletin_from_actual_html_parser(corpus, monkeypatch):
+    from pipeline.parse import converter
+
+    root, db_path, policy, bundle, _, _ = corpus
+    source = root / "crawler/documents/bulletins/coverage-1.html"
+    source.write_text(
+        "<article><h1>Coverage update</h1>"
+        "<h2>Over-the-Counter Tests for Home Use Coverage for COVID-19</h2>"
+        "<p>Pharmacy point-of-sale coverage for OTC home tests ends Sept. 30, 2024. "
+        "The payment change takes effect Oct. 1, 2024.</p></article>"
+    )
+    digest = hashlib.sha256(source.read_bytes()).hexdigest()
+    with sqlite3.connect(db_path) as db:
+        db.execute(
+            "UPDATE documents SET file_hash=? WHERE source_url=?",
+            (digest, policy["required_bulletin"]["source_url"]),
+        )
+    monkeypatch.setattr(converter, "PARSED_DATA_DIR", root / "pipeline/parsed")
+    converter.parse_and_save_supported_file(source, "bulletin", None)
+    assert (root / "pipeline/parsed/bulletins/coverage-1__html.meta.json").is_file()
+    snapshot = freshness.build_answer_ready_snapshot(root / "pipeline/parsed")
+    qualification = bundle["qualification"]
+    qualification["source_snapshot_hash"] = snapshot["snapshot_hash"]
+    qualification["baseline_backup_receipt"]["sourceSnapshotHash"] = (
+        "sha256:" + snapshot["snapshot_hash"]
+    )
+    monkeypatch.setattr(
+        scope,
+        "verify_baseline_archive",
+        lambda archive, image: copy.deepcopy(qualification["baseline_backup_receipt"]),
+    )
+    assert apply_scope(root, bundle, apply=True)["status"] == "applied"
+    assert len(scope.approved_scope_map(db_path)) == 2
+
+
+def test_bare_html_artifact_names_cannot_authorize_scope(corpus):
+    root, db_path, _, bundle, _, _ = corpus
+    for suffix in [".json", ".md", ".meta.json"]:
+        path = root / ("pipeline/parsed/bulletins/coverage-1__html" + suffix)
+        path.rename(root / ("pipeline/parsed/bulletins/coverage-1" + suffix))
+    with pytest.raises(FileNotFoundError):
+        apply_scope(root, bundle, apply=True)
+    assert scope.scope_records(db_path) == []
+
+
 @pytest.mark.parametrize(
     "mutation", ["source", "original", "coverage", "policy", "implementation"]
 )
@@ -188,7 +233,7 @@ def test_changes_invalidate_scope_approval(corpus, mutation, monkeypatch):
     elif mutation == "original":
         (root / "crawler/documents/bulletins/original.pdf").unlink()
     elif mutation == "coverage":
-        (root / "pipeline/parsed/bulletins/coverage-1.md").write_text(
+        (root / "pipeline/parsed/bulletins/coverage-1__html.md").write_text(
             "Changed coverage"
         )
     elif mutation == "policy":
@@ -228,7 +273,7 @@ def test_application_fails_before_writing_scope_records(corpus, failure):
     elif failure == "stale_snapshot":
         bundle["qualification"]["source_snapshot_hash"] = "b" * 64
     elif failure == "lost_coverage":
-        (root / "pipeline/parsed/bulletins/coverage-1.json").unlink()
+        (root / "pipeline/parsed/bulletins/coverage-1__html.json").unlink()
     elif failure == "missing_backup":
         del bundle["qualification"]["baseline_backup_receipt"]
     elif failure == "forged_backup":
@@ -236,7 +281,7 @@ def test_application_fails_before_writing_scope_records(corpus, failure):
     elif failure == "untested_backup":
         bundle["qualification"]["baseline_backup_receipt"]["decryptionVerified"] = False
     else:
-        (root / "pipeline/parsed/bulletins/coverage-1.md").write_text(
+        (root / "pipeline/parsed/bulletins/coverage-1__html.md").write_text(
             "Digest title only"
         )
     with pytest.raises((ValueError, FileNotFoundError)):
