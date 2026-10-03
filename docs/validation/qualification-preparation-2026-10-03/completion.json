@@ -451,5 +451,31 @@
     "qualification": "NOT_ASSESSED",
     "reportSha256": "822330efe2b8a75e9d6dffeac121b593a5a767e4a9ed639a71984dd053df2a60",
     "workerCleanup": "Final dispatch settled and released; Orca retains the external terminal without process action"
+  },
+  "laterBaseIntegration": {
+    "baseRevision": "05efb06a948269c49c151245c1dea76329ca6f37",
+    "mergeRevision": "f724d81d6a8f3935cbefbf871faed1b51317be87",
+    "usedForPreparationGraph": false,
+    "legacyIdentityDiagnostic": "Two complete equal whole-graph scans; 90/99 diagnostic identities; nine retained misses",
+    "currentCfrFallback": "43/43 fresh parts demonstrated in separate partial cache",
+    "statuteSubchaptersStillUnavailable": 2,
+    "sourceReport": "../qualification-unblock-2026-10-03/README.md"
+  },
+  "postIntegrationChecks": {
+    "revision": "f724d81d6a8f3935cbefbf871faed1b51317be87",
+    "pipelineMacOS": {
+      "passed": 612,
+      "skipped": 5,
+      "elapsedSeconds": 12.99,
+      "command": "CORPUS_DATA_ROOT=<isolated-empty> uv run --frozen python -m pytest tests/ -q",
+      "exitCode": 0
+    },
+    "ruff": "PASS",
+    "vulture": "PASS",
+    "isolationGuards": {
+      "passed": 7,
+      "exitCode": 0
+    },
+    "preparationGraphRebuilt": false
   }
 }

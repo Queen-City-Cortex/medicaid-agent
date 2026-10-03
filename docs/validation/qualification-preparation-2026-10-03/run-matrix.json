@@ -69,7 +69,7 @@
     "topK": 10,
     "verificationRequired": true
   },
-  "paidExecutionPrerequisite": "Fresh source/candidate rebuild, unambiguous per-graph identity mapping, approved budget and enforceable usage guard; re-freeze exact identities and configuration before calls",
+  "paidExecutionPrerequisite": "Fresh complete source/candidate rebuild, final-catalog per-graph identity verification retaining genuine misses, repaired bounded chunking, approved budget and enforceable usage guard; re-freeze exact implementation, identities and configuration before calls",
   "candidateFirstRun": "Included in normal supervised bootstrap validation; do not execute an additional release-validate after bootstrap",
   "preparationSteps": [
     {

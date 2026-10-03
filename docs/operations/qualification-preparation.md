@@ -50,7 +50,7 @@ Stop owned containers after completion. Retain the graph volume or make and hash
 
 ## Later paid qualification — not authorized by preparation
 
-Resolve stale required source families and federal refresh failures, recheck source identities/scope approvals, and produce a new matching encrypted backup/restore proof. Fix the legacy graph's incomplete identity mapping without increasing production memory as a workaround. Rebuild a normal candidate with fresh federal evidence and complete embeddings; the preparation graph is not eligible for promotion.
+Resolve stale required source families and federal refresh failures, recheck source identities/scope approvals, and produce a new matching encrypted backup/restore proof. Use the bounded whole-graph identity reader demonstrated by the [qualification-unblocking report](../validation/qualification-unblock-2026-10-03/README.md), and retain genuine missing identities. Revalidate against the final frozen catalog; diagnostic mappings are not benchmark scores. Rebuild a normal candidate with fresh federal evidence and complete embeddings; the preparation graph is not eligible for promotion.
 
 Refresh official prices and approve a separate campaign budget with a working spending guard before calls. The cost scenario does not impose a hard cap, and the agent's 99 steps and retry behavior can exceed its assumptions. Preserve existing retry/verifier limits and all failed attempts.
 
