@@ -1,0 +1,26 @@
+{
+  "attempt": 1,
+  "elapsedSeconds": 78.30769009701908,
+  "readOnly": true,
+  "implementationRevision": "aa697ed7d8b7806e7c72aa1db5b37e6ecc3156e3",
+  "catalogProvenance": "Retained diagnostic catalog uses old federal inputs; not release qualification",
+  "catalogIdentities": 99,
+  "mappedIdentities": 90,
+  "missingCanonicalIds": [
+    "sec:doc:beneficiary_guidance:1c5dc4106026216e:_s0",
+    "sec:doc:beneficiary_guidance:1c5dc4106026216e:_s1",
+    "sec:doc:beneficiary_guidance:1c5dc4106026216e:_s14",
+    "sec:doc:beneficiary_guidance:1c5dc4106026216e:_s15",
+    "sec:doc:beneficiary_guidance:1c5dc4106026216e:_s4",
+    "sec:doc:beneficiary_guidance:1c5dc4106026216e:_s6",
+    "sec:doc:beneficiary_guidance:1c5dc4106026216e:_s7",
+    "sec:doc:beneficiary_guidance:c9205b2a192a4a15:_s11",
+    "sec:doc:beneficiary_guidance:c9205b2a192a4a15:_s15"
+  ],
+  "ambiguousIdentities": 0,
+  "graphMappings": 67457,
+  "mappingHash": "ae0070f890dfeb0b652af3aab1431a548ad71a40b4c7b8d3bd8bb779d952c6ff",
+  "catalogHash": "acfeb98a087ba3875e338f27b194216596e2566237517bed5a3df65e4f3f536e",
+  "benchmarkQuestions": 55,
+  "fullBenchmarkRun": false
+}

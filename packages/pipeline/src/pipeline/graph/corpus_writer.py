@@ -18,6 +18,8 @@ transaction via ``session.execute_write``. Two properties matter here:
 """
 
 import logging
+import re
+from datetime import datetime, timezone
 from contextlib import AbstractContextManager
 from typing import Callable, Protocol
 
@@ -36,6 +38,15 @@ from pipeline.graph.corpus_types import (
 from pipeline.utils.batching import chunked
 
 logger = logging.getLogger(__name__)
+
+
+def normalize_source_timestamp(value: str | None) -> str | None:
+    """SQLite datetime('now') is UTC; Neo4j datetime requires ISO notation."""
+    if value and re.fullmatch(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}", value):
+        return datetime.strptime(value, "%Y-%m-%d %H:%M:%S").replace(
+            tzinfo=timezone.utc,
+        ).isoformat()
+    return value
 
 
 class SessionFactory(Protocol):
@@ -87,8 +98,8 @@ class CorpusGraphWriter:
                 "variant_group": document.variant_group,
                 "variant_date": document.variant_date,
                 "retrieval_ready": document.retrieval_ready,
-                "source_checked_at": document.source_checked_at,
-                "source_changed_at": document.source_changed_at,
+                "source_checked_at": normalize_source_timestamp(document.source_checked_at),
+                "source_changed_at": normalize_source_timestamp(document.source_changed_at),
             })
             self._write_sections(tx, bundle.sections, document.id)
 

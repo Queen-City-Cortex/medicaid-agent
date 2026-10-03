@@ -462,6 +462,7 @@ def build_release_audit_results(
         1
         for document in audit_report.get("documents", [])
         if document.get("required_for_answering")
+        and not document.get("scope_limitation_id")
         and document.get("registry_status") in _ACTIVE_REGISTRY_STATUSES
         and document.get("parse_status") == "parse_exception"
     )
@@ -472,6 +473,7 @@ def build_release_audit_results(
         and family.get("freshness_status") != "fresh"
     )
     return {
+        "answerScopeAcceptancePassed": 0 if audit_report.get("answer_scope_limitations") else 1,
         "duplicateIdentities": max(
             int(summary.get("duplicate_document_ids", 0)),
             int(graph_metrics.get("duplicateIdentities", 0)),
@@ -620,6 +622,23 @@ def evaluate_release_manifest(
             overridable=False,
         ),
     ]
+    if manifest.get("answerScopePolicyHash") or audit.get("answerScopeAcceptancePassed") == 0:
+        stage = manifest.get("stageResults", {}).get("answerScopeAcceptance", {})
+        receipt = stage.get("result") or {}
+        from pipeline.answer_scope import scope_policy
+        expected_cases = {(case, repeat) for case in scope_policy()["qualification_cases"] for repeat in [1, 2]}
+        runs = receipt.get("runs", [])
+        qualified = (
+            stage.get("status") == "passed" and receipt.get("all_passed") is True
+            and receipt.get("policy_hash") == manifest.get("answerScopePolicyHash")
+            and receipt.get("implementation_hash") == manifest.get("answerScopeImplementationHash")
+            and receipt.get("source_snapshot_hash") == manifest.get("sourceSnapshotHash")
+            and receipt.get("evaluation_fingerprint") == manifest.get("evaluationFingerprint")
+            and len(runs) == len(expected_cases)
+            and {(run.get("case_id"), run.get("repeat")) for run in runs} == expected_cases
+            and all(run.get("passed") is True for run in runs)
+        )
+        gates.append(_gate("answerScopeAcceptancePassed", int(qualified), 1, minimum=True, overridable=False))
     # Sparse golden relevance labels cannot support an absolute precision@10
     # threshold. Precision remains reported and compared against the baseline.
     for name in (

@@ -7,7 +7,7 @@ from rich.console import Console
 from pipeline.graph.connection import get_session
 from pipeline.graph import queries
 from pipeline.graph.corpus_types import AmendmentEdge, DocumentNode
-from pipeline.graph.corpus_writer import graph_writer
+from pipeline.graph.corpus_writer import graph_writer, normalize_source_timestamp
 
 console = Console()
 
@@ -304,6 +304,8 @@ def _upsert_synthetic_documents(session, docs: list[DocumentNode]) -> None:
             "page_count": doc.page_count,
             "section_count": doc.section_count,
             "effective_date": doc.effective_date,
+            "source_modified_date": doc.source_modified_date,
+            "retrieved_at": doc.retrieved_at,
             "authority_tier": doc.authority_tier,
             "answer_role": doc.answer_role,
             "source_format": doc.source_format,
@@ -312,6 +314,8 @@ def _upsert_synthetic_documents(session, docs: list[DocumentNode]) -> None:
             "variant_group": doc.variant_group,
             "variant_date": doc.variant_date,
             "retrieval_ready": doc.retrieval_ready,
+            "source_checked_at": normalize_source_timestamp(doc.source_checked_at),
+            "source_changed_at": normalize_source_timestamp(doc.source_changed_at),
         })
 
 

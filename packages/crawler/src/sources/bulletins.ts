@@ -1,5 +1,6 @@
 import * as cheerio from 'cheerio';
 import { config } from '../config.js';
+import { getSourceFamily } from '../corpus-manifest.js';
 import { logger } from '../utils/logger.js';
 import type { DiscoveredDocument, Fetcher } from './types.js';
 
@@ -165,7 +166,12 @@ export const bulletinsSource = {
     fetcher: Fetcher,
     sinceYear: number,
   ): Promise<DiscoveredDocument[]> {
-    const allDocs: DiscoveredDocument[] = [];
+    // Explicit full-text coverage obligations supplement attachment discovery.
+    const allDocs: DiscoveredDocument[] = getSourceFamily('bulletin').seed_urls.map(source_url => ({
+      source_url, discovered_from: source_url, source_type: 'bulletin',
+      title: 'Reminder: Key COVID-19 Changes Effective Oct. 1, 2024',
+      policy_number: null, category: 'Coverage changes',
+    }));
 
     // ── Step 1: Digests ────────────────────────────────────────────────────
     const digestsUrl = config.sources.bulletin.digestsUrl;

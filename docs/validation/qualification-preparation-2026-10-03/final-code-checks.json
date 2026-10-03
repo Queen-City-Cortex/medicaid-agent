@@ -1,0 +1,34 @@
+{
+  "codeRevision": "6e51ba89688c1ec00d5dc8ccbfd6da52168a6273",
+  "pr": "https://github.com/Queen-City-Cortex/medicaid-agent/pull/203",
+  "isDraft": true,
+  "checks": [
+    {
+      "link": "https://github.com/Queen-City-Cortex/medicaid-agent/actions/runs/37160568136/job/111312965995",
+      "name": "Mocked e2e (hermetic auth)",
+      "state": "SUCCESS",
+      "workflow": "CI"
+    },
+    {
+      "link": "https://github.com/Queen-City-Cortex/medicaid-agent/actions/runs/37160568136/job/111312965945",
+      "name": "Production Docker builds",
+      "state": "SUCCESS",
+      "workflow": "CI"
+    },
+    {
+      "link": "https://github.com/Queen-City-Cortex/medicaid-agent/actions/runs/37160568136/job/111312965768",
+      "name": "test",
+      "state": "SUCCESS",
+      "workflow": "CI"
+    },
+    {
+      "link": "https://github.com/Queen-City-Cortex/medicaid-agent/actions/runs/37160568138/job/111312965567",
+      "name": "claude-review",
+      "state": "SUCCESS",
+      "workflow": "Claude Code Review"
+    }
+  ],
+  "reviewCommentsAtVerification": 0,
+  "mergedOrDeployed": false,
+  "qualification": "NOT_ASSESSED"
+}

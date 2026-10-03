@@ -45,6 +45,7 @@ from pipeline.config import (
 )
 from pipeline.crawler_registry import normalize_local_path, read_registry_rows
 from pipeline.parse.post_process import extract_section_number
+from pipeline.parse.artifact_paths import artifact_stem_for_source_path
 from pipeline.parse.worker import parse_supported_file_worker
 from pipeline.corpus_manifest import SOURCE_FAMILY_MAP
 
@@ -82,14 +83,6 @@ def file_sha256(path: Path) -> str:
         for chunk in iter(lambda: f.read(8192), b""):
             h.update(chunk)
     return h.hexdigest()
-
-
-def artifact_stem_for_source_path(source_path: Path) -> str:
-    """Build a parsed artifact stem that is stable across supported formats."""
-    suffix = source_path.suffix.lower()
-    if suffix == ".pdf":
-        return source_path.stem
-    return f"{source_path.stem}__{suffix.lstrip('.')}"
 
 
 def parsed_output_paths(source_path: Path, source_type: str) -> tuple[Path, Path, Path]:
@@ -1797,6 +1790,9 @@ def parse_all(
             failure for failure in failures if not failure["required_for_answering"]
         ]
         stats["remaining_required_failures"] = len(required_failures)
+        from pipeline.answer_scope import scoped_failure_count
+        stats["remaining_scoped_required_failures"] = scoped_failure_count(required_failures, CRAWLER_DB_PATH)
+        stats["remaining_blocking_required_failures"] = len(required_failures) - stats["remaining_scoped_required_failures"]
         stats["remaining_optional_failures"] = len(optional_failures)
         stats["inventory_evidence"] = build_parse_inventory_evidence(
             all_source_files,
