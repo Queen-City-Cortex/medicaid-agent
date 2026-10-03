@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "archiveObject": "backups/corpus/corpus-rehearsal-pre-scope-2026-10-03T2104Z.tar.gz.age",
+  "archiveSha256": "e3443083490f9d4e20ae9c34cd7284baf8d65c7b6fdbfeeb8bd68b8828d9dd19",
+  "decryptionVerified": true,
+  "sourceSnapshotHash": "sha256:308f0ed764623681515bb5a1d2a64f117a3ccd58dd9d5bf992ec313c6d99912b",
+  "sqliteIntegrity": "ok",
+  "artifactHashesChecked": 8432,
+  "answerScopesChecked": 0,
+  "retirementRecordsChecked": 152,
+  "classificationRecordsChecked": 1,
+  "availabilityObservationsChecked": 36,
+  "relocationRecordsChecked": 3,
+  "snapshotSchemaVersion": 2,
+  "uncompressedBytes": 13756222054,
+  "counts": {
+    "sourceFiles": 4539,
+    "parsedFiles": 13011,
+    "registryDocuments": 4557
+  },
+  "checkedAt": "2026-10-03T21:07:20.265063+00:00"
+}

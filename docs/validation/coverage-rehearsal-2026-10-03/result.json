@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "implementationRevision": "46a91dae97964e2d1c075d178f78f41b347a64b8",
+  "currentMainRevision": "d9354a604002f0f1d06503ff54b504fb791500f7",
+  "outcome": "NO_GO",
+  "isolatedScopeRehearsal": "PASSED",
+  "candidateQualified": false,
+  "productionCorpusScopeApplied": false,
+  "candidateGraphBuild": "NOT_RUN",
+  "releasePreparation": "NOT_RUN",
+  "fullCorpusParserPreparation": "INTERRUPTED",
+  "pairedFullBaselineCandidateRuns": {
+    "planned": 3,
+    "completed": 0,
+    "status": "NOT_RUN"
+  },
+  "liveAnswerScopeAcceptance": {
+    "planned": 48,
+    "completed": 0,
+    "status": "NOT_RUN"
+  },
+  "fullBenchmarkAnswerEvaluations": {
+    "planned": 330,
+    "completed": 0,
+    "status": "NOT_RUN"
+  },
+  "candidateHttpMemoryAuthAcceptance": "NOT_RUN",
+  "candidateFreshAuthenticatedEpsdtBatch": {
+    "planned": 3,
+    "completed": 0,
+    "status": "NOT_RUN"
+  },
+  "activation": "NOT_RUN",
+  "scheduling": "DISABLED",
+  "agencyMessagesSent": 0,
+  "failureReasons": [
+    "CFR full-text refresh: 43 HTTP 406 failures locally and 43 from isolated Railway staging",
+    "USC full-subchapter fetches returned HTTP 200 maintenance pages; statutory content absent",
+    "Five required source families have stale successful-discovery evidence",
+    "Read-only full legacy evidence-identity query exhausted Neo4j direct memory"
+  ],
+  "frozenBenchmarkQuestions": 55,
+  "frozenCatalogIdentities": 99,
+  "scoreClaims": null,
+  "finalScopedBackupRestore": "PASSED",
+  "encryptedArchivesPublishedAndDownloadedContentVerified": "PASSED"
+}

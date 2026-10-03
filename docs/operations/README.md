@@ -2,6 +2,8 @@
 
 Check live service state and dated release evidence before applying a procedure. A runbook or service definition alone does not establish that a deployment is healthy or a release gate has passed.
 
+The [October 3 bounded coverage rehearsal](../validation/coverage-rehearsal-2026-10-03/README.md) passed isolated scope approval and backup checks but returned **NO_GO** for qualification: federal content refresh, required-family discovery freshness and the legacy identity query remain blocked. Its unrun candidate gates and independent main deployment are recorded explicitly.
+
 | Subject | Documentation or entrypoint |
 | --- | --- |
 | General configuration and commands | [RUNBOOK.md](../../RUNBOOK.md) |

@@ -1,0 +1,23 @@
+{
+  "implementationRevision": "46a91dae97964e2d1c075d178f78f41b347a64b8",
+  "fingerprint": {
+    "benchmarkHash": "97242b70394a511ba54760468536428944c31f87d9c5c039e24c54b10677f0ff",
+    "implementationHash": "ded2e412f0d0039ebef5341ab4e881307e2bfb090d549e1ac43f0b5d1afdda0c",
+    "embeddingModel": "voyage-4",
+    "embeddingDimensions": 1024,
+    "topK": 10,
+    "judgeModel": "claude-sonnet-4-6",
+    "modelEnvironment": {
+      "AGENT_MODEL": "gpt-5.4",
+      "VERIFIER_ENABLED": "true"
+    },
+    "verificationRequired": true,
+    "evidenceNormalization": {
+      "version": 1,
+      "catalogHash": "acfeb98a087ba3875e338f27b194216596e2566237517bed5a3df65e4f3f536e"
+    }
+  },
+  "benchmarkQuestions": 55,
+  "graphBuildQualified": false,
+  "federalCacheRefreshed": false
+}

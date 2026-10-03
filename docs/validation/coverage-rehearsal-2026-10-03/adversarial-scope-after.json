@@ -1,0 +1,13 @@
+{
+  "copiedApprovedScopeRecords": 4,
+  "cases": [
+    {
+      "case": "unrelated parsed artifact changed after approval",
+      "rejected": true,
+      "reason": "Complete corpus changed after scope approval; fresh qualification is required",
+      "scopeRecordsRetained": 4
+    }
+  ],
+  "allRejected": true,
+  "originalCorpusMutated": false
+}

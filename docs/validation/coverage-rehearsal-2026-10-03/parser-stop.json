@@ -1,0 +1,22 @@
+{
+  "stoppedAt": "2026-10-03T21:03:25.566807+00:00",
+  "reason": "Federal full-text refresh failed before freeze; no build can be qualified",
+  "operatorStoppedOwnedContainer": true,
+  "runStateReportedStatus": "running",
+  "runStateReportedStats": {
+    "parsed": 1,
+    "skipped": 2213,
+    "errors": 7,
+    "timed_out": 1,
+    "quarantined": 0,
+    "remaining_failures": 0,
+    "remaining_required_failures": 0,
+    "remaining_optional_failures": 0,
+    "terminal_state": "running"
+  },
+  "claimedCompleted": false,
+  "interruptionSignal": "SIGINT did not terminate; docker stop timeout10 ended owned container",
+  "countsFromIncompleteRunMustNotBeUsedAsFinalInventory": true,
+  "finalUnresolvedRequiredCount": 4,
+  "finalUnresolvedOptionalCount": 312
+}

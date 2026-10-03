@@ -1,0 +1,28 @@
+{
+  "productionBaselineSnapshot": "sha256:0e062b4bfed56f6241841b0fc4135b18105cab118493063069a8db1156e2add5",
+  "before": {
+    "active_source_count": 4404,
+    "unresolved_required_count": 4,
+    "scoped_required_failure_count": 0,
+    "blocking_required_failure_count": 4,
+    "unresolved_optional_count": 312
+  },
+  "after": {
+    "active_source_count": 4404,
+    "unresolved_required_count": 4,
+    "scoped_required_failure_count": 4,
+    "blocking_required_failure_count": 0,
+    "unresolved_optional_count": 312
+  },
+  "preScopeSnapshot": "sha256:308f0ed764623681515bb5a1d2a64f117a3ccd58dd9d5bf992ec313c6d99912b",
+  "scopedSnapshot": "sha256:fec98be8ff62e91817645f908bc52accb4655d8235288761ccd16a575d42fc26",
+  "answerReadyDocuments": 4217,
+  "undocumentedRemovals": 0,
+  "unresolvedRequiredRegistryIds": [
+    11805,
+    11806
+  ],
+  "scopeChangesOnly": true,
+  "approvalCasesAttestImplementationReviewOnly": true,
+  "liveAcceptanceCompleted": false
+}
