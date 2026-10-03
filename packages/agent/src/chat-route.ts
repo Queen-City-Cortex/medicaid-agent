@@ -41,10 +41,23 @@ export function createChatRoute(usageRepo: Pick<UsageRepository, 'record'>, runL
       const threadId = (body?.memory as { thread?: string } | undefined)?.thread;
       const requestContext = c.get('requestContext');
       const input = trustedChatInput(body, userId);
+      // Mastra merges client context before this route. Only the server may
+      // supply diagnostic state, including when diagnostics are disabled.
+      requestContext.set(CHAT_DIAGNOSTIC_CONTEXT, undefined);
       // Observation can replace messages with a summary and system reminder.
       // Verification must address the actual newest user text, not that reminder.
       requestContext.set(CHAT_VERIFICATION_QUESTION,
         input.messages[0].parts.map(part => part.text.trim()).filter(Boolean).join('\n').trim());
+      // The AI-SDK chat adapter does not enforce the memory API's thread
+      // ownership check before observation. Reject foreign history first.
+      const memoryStore = await c.get('mastra').getStorage()?.getStore('memory');
+      if (!memoryStore) {
+        return c.json({ error: { code: 'memory_unavailable', message: 'Conversation storage is unavailable' } }, 503);
+      }
+      const thread = await memoryStore.getThreadById({ threadId: input.memory.thread });
+      if (thread && thread.resourceId !== userId) {
+        return c.json({ error: { code: 'not_found', message: 'Conversation not found' } }, 404);
+      }
       const signal = c.req.raw.signal;
       let diagnostic: ChatDiagnostic | undefined;
       const onAbort = () => finishChatDiagnostic(diagnostic, { status: 'cancelled' });
