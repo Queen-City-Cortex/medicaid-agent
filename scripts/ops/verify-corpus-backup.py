@@ -211,6 +211,8 @@ def inspect_archive(stream, *, include_history=False):
                 else []
             )
         lifecycle = lifecycle_snapshot(db_path, hashes)
+        from pipeline.answer_scope import validate_scope_records
+        validate_scope_records(lifecycle.get("answer_scopes", []), registry, hashes)
         relocations_checked = check_relocations(hashes, proofs, journals, registry)
         checked = 0
         for name, meta in metas.items():
@@ -312,6 +314,7 @@ def inspect_archive(stream, *, include_history=False):
             "sourceSnapshotHash": snapshot,
             "sqliteIntegrity": integrity,
             "artifactHashesChecked": checked,
+            "answerScopesChecked": len(lifecycle.get("answer_scopes", [])),
             "retirementRecordsChecked": len(retirements),
             "classificationRecordsChecked": len(lifecycle["classifications"]),
             "availabilityObservationsChecked": availability_checked,

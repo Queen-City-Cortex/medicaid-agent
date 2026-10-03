@@ -289,6 +289,24 @@ describe('downloadDocument', () => {
     expect(fs.readdirSync(sourceDir)).toEqual([]);
   });
 
+  it('downloads the declared full-text coverage-end bulletin as a semantic article', async () => {
+    const doc = makeDoc({ source_type: 'bulletin', policy_number: null,
+      source_url: 'https://medicaid.ncdhhs.gov/blog/2024/09/25/reminder-key-covid-19-changes-effective-oct-1-2024',
+      title: 'Reminder: Key COVID-19 Changes Effective Oct. 1, 2024' });
+    const html = '<!DOCTYPE html><html><body><article><h1>Reminder: Key COVID-19 Changes Effective Oct. 1, 2024</h1><p>Coverage for pharmacy point-of-sale billing for OTC COVID-19 home tests ends Sept. 30, 2024.</p></article></body></html>';
+    const result = await downloadDocument(doc, fetcherWriting(html, { 'content-type': 'text/html' }), new Set());
+    expect(result.action).toBe('downloaded');
+    expect(result.info?.local_path).toMatch(/bulletins\/.*\.html$/);
+  });
+
+  it('does not let HTML allowance turn an unreviewed failed PDF into an HTML document', async () => {
+    const doc = makeDoc({ source_type: 'bulletin', title: 'Missing attachment', source_url: 'https://medicaid.ncdhhs.gov/missing-attachment.pdf' });
+    const html = '<!DOCTYPE html><html><body><article><h1>Missing attachment</h1><p>This is a substantive looking wrapper but it does not contain the requested original attachment.</p></article></body></html>';
+    const result = await downloadDocument(doc, fetcherWriting(html, { 'content-type': 'text/html' }), new Set());
+    expect(result.action).toBe('error');
+    expect(fs.existsSync(path.join(config.documentsDir, 'bulletins', `.download-${doc.id}.tmp`))).toBe(false);
+  });
+
   it('rejects a plain-text error body served as a 200 for a PDF-only source', async () => {
     const doc = makeDoc();
     const result = await downloadDocument(

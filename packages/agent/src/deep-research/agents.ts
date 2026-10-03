@@ -12,6 +12,7 @@ import { resolveAnswerFrame } from '../tools/answer-frame.js';
 import { webSearch } from '../tools/web-search.js';
 import { MessageLengthGuard } from '../processors/message-length-guard.js';
 import { ScopeGateProcessor } from '../processors/scope-gate.js';
+import { CoverageBoundaryProcessor } from '../processors/coverage-boundary.js';
 
 const CORPUS_TOOLS = {
   resolveAnswerFrame,
@@ -54,6 +55,7 @@ Prefer fewer, high-leverage sub-questions over many overlapping ones. You may ru
   tools: { resolveAnswerFrame, searchSections, lookupPolicy },
   inputProcessors: [
     new MessageLengthGuard(),
+    new CoverageBoundaryProcessor(),
     new ScopeGateProcessor(),
     new PromptInjectionDetector({
       model: 'openai/gpt-5-mini',

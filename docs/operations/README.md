@@ -10,6 +10,7 @@ The [October 3 product scope and coverage review](../validation/product-scope-re
 | Verified chat release and bounded research recovery | [Answer release and recovery](answer-release-and-recovery.md) |
 | Candidate graphs, evidence gates, promotion and rollback | [Blue-green corpus releases](blue-green-corpus-releases.md) |
 | Failed downloads, parser remediation and source retirement | [Corpus parser recovery](corpus-parser-recovery.md) |
+| Bounded coverage, unavailable originals and mandatory targeted acceptance | [Answer coverage scope](answer-coverage-scope.md) |
 | Dated verification results | [Verified release report](../validation/verified-release-2026-09-22.md) and [corpus recovery evidence](../validation/corpus-recovery-2026-09-23/README.md) |
 | Current readiness and blockers | [October 2–3 source closure follow-up](../validation/source-closure-followup-2026-10-02/README.md), [October 2 chat acceptance](../validation/chat-acceptance-2026-10-02/README.md), [October 2 runtime remediation](../validation/readiness-remediation-2026-10-02/README.md), [initial October 2 readiness](../validation/readiness-2026-10-02/README.md), and [later source closure](../validation/source-closure-2026-09-23/README.md) |
 | Operational checks and backups | [Operations scripts](../../scripts/ops/) and [launchd installer](../../scripts/ops/install-launchd.sh) |

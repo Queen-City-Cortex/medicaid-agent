@@ -301,7 +301,7 @@ export async function downloadDocument(
   const sourceFamily = getSourceFamily(sourceType);
   const semanticHtmlRequired = requiresSemanticArticleHtml(
     sourceFamily.allowed_file_formats,
-  );
+  ) || (sourceFamily.allowed_file_formats.includes('.html') && sourceFamily.seed_urls.includes(doc.source_url));
   const isAllowedUrl = (value: string): boolean =>
     isAllowedSourceUrl(sourceType, value);
   const dhhsDocumentPage = isDhhsDocumentPage(sourceType, doc.source_url);
@@ -427,6 +427,10 @@ export async function downloadDocument(
       };
     }
 
+    if (detectedContentType === 'text/html' && sourceType === 'bulletin' && !sourceFamily.seed_urls.includes(doc.source_url)) {
+      fs.unlinkSync(tmpPath);
+      return { action: 'error', error: 'Full-text bulletin HTML is allowed only for explicitly declared seed URLs' };
+    }
     if (semanticHtmlRequired || detectedContentType === 'text/html') {
       const validationError = validateSemanticArticleHtml(tmpPath, doc.title);
       if (validationError) {

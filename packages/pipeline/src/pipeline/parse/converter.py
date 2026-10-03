@@ -1797,6 +1797,9 @@ def parse_all(
             failure for failure in failures if not failure["required_for_answering"]
         ]
         stats["remaining_required_failures"] = len(required_failures)
+        from pipeline.answer_scope import scoped_failure_count
+        stats["remaining_scoped_required_failures"] = scoped_failure_count(required_failures, CRAWLER_DB_PATH)
+        stats["remaining_blocking_required_failures"] = len(required_failures) - stats["remaining_scoped_required_failures"]
         stats["remaining_optional_failures"] = len(optional_failures)
         stats["inventory_evidence"] = build_parse_inventory_evidence(
             all_source_files,
