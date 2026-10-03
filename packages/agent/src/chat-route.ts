@@ -1,4 +1,5 @@
 import type { AgentExecutionOptions } from '@mastra/core/agent';
+import { randomUUID } from 'node:crypto';
 import { registerApiRoute } from '@mastra/core/server';
 import { handleChatStream } from '@mastra/ai-sdk';
 import { createUIMessageStreamResponse } from 'ai';
@@ -9,6 +10,7 @@ import type { UsageRepository } from './usage/repository.js';
 import { AGENT_MODEL } from './model.js';
 import { log, errorFields } from './logger.js';
 import { Sentry } from './sentry.js';
+import { CHAT_DIAGNOSTIC_ID, CHAT_VERIFICATION_QUESTION } from './processors/verifier/context.js';
 
 type ChatFinishEvent = Parameters<NonNullable<AgentExecutionOptions['onFinish']>>[0];
 
@@ -36,6 +38,18 @@ export function createChatRoute(usageRepo: Pick<UsageRepository, 'record'>, runL
         }, 422);
       }
       const threadId = (body?.memory as { thread?: string } | undefined)?.thread;
+      const requestContext = c.get('requestContext');
+      const input = trustedChatInput(body, userId);
+      // Observation can replace messages with a summary and system reminder.
+      // Verification must address the actual newest user text, not that reminder.
+      requestContext.set(CHAT_VERIFICATION_QUESTION,
+        input.messages[0].parts.map(part => part.text.trim()).filter(Boolean).join('\n').trim());
+      if (process.env.VERIFIER_PRIVATE_DIAGNOSTICS_DIR) {
+        const diagnosticId = randomUUID();
+        requestContext.set(CHAT_DIAGNOSTIC_ID, diagnosticId);
+        // Correlation only: question, ownership and tool payloads stay private.
+        log.info('chat.diagnostic_started', { diagnosticId });
+      }
   
       const onFinish = (event: ChatFinishEvent) => {
         const usage = event.totalUsage;
@@ -69,9 +83,9 @@ export function createChatRoute(usageRepo: Pick<UsageRepository, 'record'>, runL
         version: 'v6',
         params: {
           // Only accept the newest user input; history comes from guarded memory.
-          ...trustedChatInput(body, userId),
+          ...input,
           // Middleware > body, mirroring chatRoute's priority order.
-          requestContext: c.get('requestContext'),
+          requestContext,
           abortSignal: c.req.raw.signal,
           onFinish,
         },

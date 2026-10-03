@@ -5,7 +5,7 @@ import { randomUUID } from 'node:crypto';
 
 export type PrivateVerificationCapture = (record: Record<string, unknown>) => void;
 
-export function createPrivateVerificationCapture(): PrivateVerificationCapture | undefined {
+export function createPrivateVerificationCapture(diagnosticId?: string): PrivateVerificationCapture | undefined {
   const directory = process.env.VERIFIER_PRIVATE_DIAGNOSTICS_DIR;
   if (!directory) return undefined;
   if (!isAbsolute(directory)) throw new Error('Private verification diagnostics require an absolute directory');
@@ -15,6 +15,7 @@ export function createPrivateVerificationCapture(): PrivateVerificationCapture |
   const id = randomUUID();
   let sequence = 0;
   return record => {
-    writeFileSync(join(directory, `${id}-${++sequence}.json`), JSON.stringify({ schemaVersion: 1, id, capturedAt: new Date().toISOString(), ...record }, null, 2), { mode: 0o600, flag: 'wx' });
+    writeFileSync(join(directory, `${id}-${++sequence}.json`), JSON.stringify({ ...record, schemaVersion: 1, id,
+      ...(diagnosticId ? { diagnosticId } : {}), capturedAt: new Date().toISOString() }, null, 2), { mode: 0o600, flag: 'wx' });
   };
 }

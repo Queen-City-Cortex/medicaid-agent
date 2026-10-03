@@ -1,9 +1,12 @@
-import type { Processor, ProcessOutputStepArgs } from '@mastra/core/processors';
+import type { Processor, ProcessOutputStepArgs, ProcessToolResultArgs } from '@mastra/core/processors';
 import type { MastraDBMessage } from '@mastra/core/memory';
 import { VERIFICATION_PART } from '@nc-medicaid/contracts';
 import { releaseMessage } from '../../answer-release.js';
-import { extractSources } from './evidence.js';
+import { extractSources, extractSourcesFromToolResults, type SourceEntry, type ToolResultRecord } from './evidence.js';
 import { emitVerifierTelemetry, runVerificationForAnswer } from './run.js';
+import { createPrivateVerificationCapture } from './diagnostics.js';
+import { CHAT_DIAGNOSTIC_ID, CHAT_VERIFICATION_QUESTION } from './context.js';
+import { log } from '../../logger.js';
 
 // ── Processor Class ─────────────────────────────────────────────────────────
 
@@ -33,11 +36,32 @@ function extractLatestUserQuestion(messages: MastraDBMessage[]): string {
   return '';
 }
 
+/** Preserve distinct retrieved bodies while avoiding repeated message/hook copies. */
+function mergeSources(sources: SourceEntry[]): SourceEntry[] {
+  return [...new Map(sources.map(source => [JSON.stringify(source), source])).values()];
+}
+
 export class HallucinationVerifier implements Processor {
   readonly id = 'hallucination-verifier';
   readonly name = 'Hallucination Verifier';
 
-  async processOutputStep({ text, finishReason, toolCalls, messages, writer, abortSignal }: ProcessOutputStepArgs): Promise<MastraDBMessage[]> {
+  processToolResult({ toolName, toolCallId, result, args, providerExecuted, state }: ProcessToolResultArgs): void {
+    // Observation may compact tool messages before final synthesis. Preserve
+    // actual corpus results in request-local processor state, never a summary.
+    if (providerExecuted) return;
+    const toolResult = { toolName, toolCallId, result, args };
+    state.verificationSources = mergeSources([
+      ...((state.verificationSources as SourceEntry[] | undefined) ?? []),
+      ...extractSourcesFromToolResults([toolResult]),
+    ]);
+    if (process.env.VERIFIER_PRIVATE_DIAGNOSTICS_DIR) {
+      const toolResults = (state.verificationToolResults as ToolResultRecord[] | undefined) ?? [];
+      toolResults.push(toolResult);
+      state.verificationToolResults = toolResults;
+    }
+  }
+
+  async processOutputStep({ text, finishReason, toolCalls, messages, steps, writer, abortSignal, requestContext, state = {} }: ProcessOutputStepArgs): Promise<MastraDBMessage[]> {
     if (finishReason !== 'stop' || toolCalls?.length || !text) {
       // Interim narration must not enter memory or future model context.
       const lastUser = messages.reduce((last, m, i) => m.role === 'user' ? i : last, -1);
@@ -45,9 +69,19 @@ export class HallucinationVerifier implements Processor {
         ? { ...m, content: { ...m.content, parts: m.content.parts.filter(p => p.type !== 'text' && p.type !== 'reasoning') } }
         : m);
     }
+    const diagnosticId = requestContext?.get(CHAT_DIAGNOSTIC_ID) as string | undefined;
+    const capture = createPrivateVerificationCapture(diagnosticId);
+    capture?.({ stage: 'generation', messages, steps, toolResults: state.verificationToolResults });
     await writer?.custom({ type: VERIFICATION_PART, data: { status: 'verifying' } } as any);
-    const result = await runVerificationForAnswer({ question: extractLatestUserQuestion(messages), answerText: text, sources: extractSources(messages as any), signal: abortSignal });
+    const sources = mergeSources([
+      ...((state.verificationSources as SourceEntry[] | undefined) ?? []),
+      ...extractSources(messages as any),
+    ]);
+    const originalQuestion = requestContext?.get(CHAT_VERIFICATION_QUESTION);
+    const question = typeof originalQuestion === 'string' ? originalQuestion : extractLatestUserQuestion(messages);
+    const result = await runVerificationForAnswer({ question, answerText: text, sources, signal: abortSignal, capture });
     const { finalAnswer, outcome, confidence, telemetry } = result;
+    if (diagnosticId) log.info('chat.diagnostic_finished', { diagnosticId, ...outcome, latencyMs: telemetry.latency_ms });
     const last = messages.reduce((last, m, i) => m.role === 'assistant' ? i : last, -1);
     const released = messages.map((m, i) => i === last ? releaseMessage(m, finalAnswer, outcome) : m);
     await writer?.custom({ type: VERIFICATION_PART, data: { ...outcome, answer: finalAnswer,
