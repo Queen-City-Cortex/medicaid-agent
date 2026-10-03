@@ -1,0 +1,399 @@
+{
+  "derivedFromRetainedLog": true,
+  "allPassed": false,
+  "results": [
+    {
+      "source": "CFR",
+      "title": 2,
+      "part": 200,
+      "passed": true,
+      "bytes": 681279,
+      "sha256": "66c346e0273f8f30e0cf7908d3b16f3b7ac82d1e5eba7cb5da896d0ce069d7dd",
+      "sections": 180
+    },
+    {
+      "source": "CFR",
+      "title": 42,
+      "part": 405,
+      "passed": false,
+      "errorType": "ValueError",
+      "error": "Missing, duplicate or wrong-title/part federal sections"
+    },
+    {
+      "source": "CFR",
+      "title": 42,
+      "part": 409,
+      "passed": true,
+      "bytes": 132211,
+      "sha256": "90cd08fb39355b7ce2e48a1e092c9b3102833155332bc1b345dde29b8465129b",
+      "sections": 55
+    },
+    {
+      "source": "CFR",
+      "title": 42,
+      "part": 410,
+      "passed": true,
+      "bytes": 434101,
+      "sha256": "45162ae3d4cc76771e181968da8b07ae490692a396265ea2069bbab0394ab19b",
+      "sections": 96
+    },
+    {
+      "source": "CFR",
+      "title": 42,
+      "part": 411,
+      "passed": true,
+      "bytes": 449918,
+      "sha256": "09dcbf016691423c3f9d5cd2df155eebfdf4de12bafb57040ef6ff6591783257",
+      "sections": 94
+    },
+    {
+      "source": "CFR",
+      "title": 42,
+      "part": 412,
+      "passed": false,
+      "errorType": "ValueError",
+      "error": "Missing, duplicate or wrong-title/part federal sections"
+    },
+    {
+      "source": "CFR",
+      "title": 42,
+      "part": 413,
+      "passed": true,
+      "bytes": 953902,
+      "sha256": "50805b59a39cb040679981ee0f127283a8eec64bd7a3e1b89a843b6c13fbd80a",
+      "sections": 124
+    },
+    {
+      "source": "CFR",
+      "title": 42,
+      "part": 418,
+      "passed": true,
+      "bytes": 213138,
+      "sha256": "4a97a25219993dc1db7a08f20843c90117d89d45c434c5b0154b08b42381e7ad",
+      "sections": 51
+    },
+    {
+      "source": "CFR",
+      "title": 42,
+      "part": 430,
+      "passed": true,
+      "bytes": 99407,
+      "sha256": "04954857387c8d74ab23035bc256dcf4ba315cd8ad321d4249a5e9ecca446679",
+      "sections": 43
+    },
+    {
+      "source": "CFR",
+      "title": 42,
+      "part": 431,
+      "passed": true,
+      "bytes": 263103,
+      "sha256": "661911898ba7b33f5ffecab887f9ffad30a0df58f3273968e0d76d9ff67a808b",
+      "sections": 120
+    },
+    {
+      "source": "CFR",
+      "title": 42,
+      "part": 432,
+      "passed": true,
+      "bytes": 19044,
+      "sha256": "7439afae2c4f0f9a78659c12eb12d3b8e5b3246cbacddd12d9f2760482666681",
+      "sections": 9
+    },
+    {
+      "source": "CFR",
+      "title": 42,
+      "part": 433,
+      "passed": false,
+      "errorType": "ValueError",
+      "error": "Missing, duplicate or wrong-title/part federal sections"
+    },
+    {
+      "source": "CFR",
+      "title": 42,
+      "part": 434,
+      "passed": true,
+      "bytes": 12102,
+      "sha256": "20b4b90bd4e3e5a1f3c3c52250e2e4637467954ad62dc3589c84c8660dccbd34",
+      "sections": 11
+    },
+    {
+      "source": "CFR",
+      "title": 42,
+      "part": 435,
+      "passed": false,
+      "errorType": "ValueError",
+      "error": "Missing, duplicate or wrong-title/part federal sections"
+    },
+    {
+      "source": "CFR",
+      "title": 42,
+      "part": 436,
+      "passed": false,
+      "errorType": "ValueError",
+      "error": "Missing, duplicate or wrong-title/part federal sections"
+    },
+    {
+      "source": "CFR",
+      "title": 42,
+      "part": 438,
+      "passed": true,
+      "bytes": 466138,
+      "sha256": "da9019c12ea9c8d5ea028a20e575cd9e73ba1d51c0ae9b2b61790a53a3f8333f",
+      "sections": 106
+    },
+    {
+      "source": "CFR",
+      "title": 42,
+      "part": 440,
+      "passed": true,
+      "bytes": 147355,
+      "sha256": "b5c351c07d8faceb446d14185925dc9ec3b594a2135b0a6cafa0fd9185990676",
+      "sections": 62
+    },
+    {
+      "source": "CFR",
+      "title": 42,
+      "part": 441,
+      "passed": false,
+      "errorType": "ValueError",
+      "error": "Missing, duplicate or wrong-title/part federal sections"
+    },
+    {
+      "source": "CFR",
+      "title": 42,
+      "part": 442,
+      "passed": true,
+      "bytes": 33439,
+      "sha256": "6cab8f2563a5eb2e5a83fb42ae54716ebc893dbefca7336ddf71cb2679f07280",
+      "sections": 20
+    },
+    {
+      "source": "CFR",
+      "title": 42,
+      "part": 447,
+      "passed": true,
+      "bytes": 274038,
+      "sha256": "7db0e9a61281e8d273690791b64b6df0c708750e88cc2680386334e9d476655f",
+      "sections": 72
+    },
+    {
+      "source": "CFR",
+      "title": 42,
+      "part": 455,
+      "passed": true,
+      "bytes": 100691,
+      "sha256": "e8bdf9a3d490234d648dd4503529bddcf5f896d3581fcd198ba78eb381257036",
+      "sections": 60
+    },
+    {
+      "source": "CFR",
+      "title": 42,
+      "part": 456,
+      "passed": true,
+      "bytes": 157139,
+      "sha256": "1ac03cd0a89e16180e6a0717c4ae87f366564d56e6bdb691a2e3b4a87c1f8228",
+      "sections": 142
+    },
+    {
+      "source": "CFR",
+      "title": 42,
+      "part": 457,
+      "passed": true,
+      "bytes": 363269,
+      "sha256": "151cbc5a05e995ea70ec89b180e19367e1163dd381faaf44c1719431ef0e10bd",
+      "sections": 162
+    },
+    {
+      "source": "CFR",
+      "title": 42,
+      "part": 460,
+      "passed": true,
+      "bytes": 210642,
+      "sha256": "6de63c3f690274f4104bb5c7b0255b93f754a378d48f82f07b2f190e73250825",
+      "sections": 91
+    },
+    {
+      "source": "CFR",
+      "title": 42,
+      "part": 482,
+      "passed": true,
+      "bytes": 211698,
+      "sha256": "960f10a0e2f60fdde7163791548b5239c7bd7fd473ecaa624b47575ffbab2fd4",
+      "sections": 46
+    },
+    {
+      "source": "CFR",
+      "title": 42,
+      "part": 483,
+      "passed": true,
+      "bytes": 434635,
+      "sha256": "ec85c725f155430ae3b26958f45bed49f5d2f260a70ee3834c19690ca2ee3052",
+      "sections": 82
+    },
+    {
+      "source": "CFR",
+      "title": 42,
+      "part": 484,
+      "passed": true,
+      "bytes": 175329,
+      "sha256": "06ec002f3ea547590e48fe8d2f7698878b53397f48a86a337b9c775af183a665",
+      "sections": 47
+    },
+    {
+      "source": "CFR",
+      "title": 42,
+      "part": 485,
+      "passed": true,
+      "bytes": 356929,
+      "sha256": "77290deda523c63d4c28f8adf6ace3527f1c1be804aaed9db0415e7bbe190c93",
+      "sections": 85
+    },
+    {
+      "source": "CFR",
+      "title": 42,
+      "part": 488,
+      "passed": true,
+      "bytes": 450892,
+      "sha256": "2cbf48dd7184b6a8c056311c0f9799e1afed0bd87d97d8725933a6212b95ad0c",
+      "sections": 148
+    },
+    {
+      "source": "CFR",
+      "title": 42,
+      "part": 489,
+      "passed": true,
+      "bytes": 147196,
+      "sha256": "0a6bd72d92dba85edf6bc704401fede5ce35ca1cc7418261107cc65695134394",
+      "sections": 49
+    },
+    {
+      "source": "CFR",
+      "title": 45,
+      "part": 16,
+      "passed": true,
+      "bytes": 37311,
+      "sha256": "183ca504be621f38660f92a8cc50dc76b02f644e5a8f1e7666e788426716641f",
+      "sections": 23
+    },
+    {
+      "source": "CFR",
+      "title": 45,
+      "part": 92,
+      "passed": true,
+      "bytes": 76563,
+      "sha256": "39c092537daba42afc1a0fbe2902591c48f0424a9790347bbd908a4538707a6b",
+      "sections": 27
+    },
+    {
+      "source": "CFR",
+      "title": 45,
+      "part": 95,
+      "passed": true,
+      "bytes": 94678,
+      "sha256": "4951f3c531526ee040c13836fd5f3160c50185abe5ef11655c14d4b955169eb5",
+      "sections": 44
+    },
+    {
+      "source": "CFR",
+      "title": 45,
+      "part": 144,
+      "passed": true,
+      "bytes": 39709,
+      "sha256": "df8f82d46f243a76f94c086b56975c6c9afd6ee7eed5c1d7239adc41723809ce",
+      "sections": 11
+    },
+    {
+      "source": "CFR",
+      "title": 45,
+      "part": 146,
+      "passed": true,
+      "bytes": 549057,
+      "sha256": "2a7c11517706458de5f1824328c16dd4564468180b5a79c976f71605265e9bf7",
+      "sections": 20
+    },
+    {
+      "source": "CFR",
+      "title": 45,
+      "part": 147,
+      "passed": true,
+      "bytes": 348068,
+      "sha256": "cb1ee72391eff28cc121d0630208790f24ab5aff19be8a686029fe5520d5b738",
+      "sections": 25
+    },
+    {
+      "source": "CFR",
+      "title": 45,
+      "part": 155,
+      "passed": true,
+      "bytes": 680132,
+      "sha256": "21507451bd9ffc24d799516beffc8436677f370fd5659926d3064a106a161549",
+      "sections": 126
+    },
+    {
+      "source": "CFR",
+      "title": 45,
+      "part": 156,
+      "passed": true,
+      "bytes": 376824,
+      "sha256": "717ac153be29470b9c61ed74a8b8bdf9a9db217e03b007d79a57a7e0457d39db",
+      "sections": 115
+    },
+    {
+      "source": "CFR",
+      "title": 45,
+      "part": 158,
+      "passed": true,
+      "bytes": 131212,
+      "sha256": "e1d31e536e8bb0ae59af2d69416330d4aeef3f30c004ac9b751421916baafa0f",
+      "sections": 66
+    },
+    {
+      "source": "CFR",
+      "title": 45,
+      "part": 164,
+      "passed": true,
+      "bytes": 278235,
+      "sha256": "2524dfd72e0e06783621283baa74142c4261d07b457c71357c3ad4863f598d17",
+      "sections": 41
+    },
+    {
+      "source": "CFR",
+      "title": 45,
+      "part": 170,
+      "passed": false,
+      "errorType": "ValueError",
+      "error": "Missing, duplicate or wrong-title/part federal sections"
+    },
+    {
+      "source": "CFR",
+      "title": 45,
+      "part": 171,
+      "passed": true,
+      "bytes": 67495,
+      "sha256": "d79515ab993da15913f8ba94940d40e376e3a0733ed91928e9534e25e0bb1130",
+      "sections": 24
+    },
+    {
+      "source": "CFR",
+      "title": 45,
+      "part": 233,
+      "passed": false,
+      "errorType": "ValueError",
+      "error": "Missing, duplicate or wrong-title/part federal sections"
+    },
+    {
+      "source": "SSA",
+      "subchapter": 19,
+      "passed": false,
+      "errorType": "ValueError",
+      "error": "USC subchapter 19 response lacks required statutory text: 1902, 1905, 1915"
+    },
+    {
+      "source": "SSA",
+      "subchapter": 21,
+      "passed": false,
+      "errorType": "ValueError",
+      "error": "USC subchapter 21 response lacks required statutory text: 2101, 2103, 2110"
+    }
+  ]
+}

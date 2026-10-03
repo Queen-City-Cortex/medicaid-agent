@@ -1,0 +1,26 @@
+[
+  {
+    "title": 2,
+    "url": "https://www.govinfo.gov/bulkdata/ECFR/title-2/ECFR-title2.xml",
+    "bytes": 2880742,
+    "sha256": "118da26a4b4b55a0c8f85a611aa976d62e5dc155dc27cd679043e8b140df174d",
+    "lastModified": "Wed, 19 Aug 2026 20:28:22 GMT",
+    "matchesEveryExtractedPart": true
+  },
+  {
+    "title": 42,
+    "url": "https://www.govinfo.gov/bulkdata/ECFR/title-42/ECFR-title42.xml",
+    "bytes": 23040499,
+    "sha256": "474c11c330d567983d9842233ea06934fce8f2acdc7de2ad8aa3cb9b649e461e",
+    "lastModified": "Fri, 02 Oct 2026 22:24:08 GMT",
+    "matchesEveryExtractedPart": true
+  },
+  {
+    "title": 45,
+    "url": "https://www.govinfo.gov/bulkdata/ECFR/title-45/ECFR-title45.xml",
+    "bytes": 13788852,
+    "sha256": "c593f843987876de4d273417ca4be378cf4ad2da2e77867588528affecccb3d3",
+    "lastModified": "Fri, 02 Oct 2026 22:22:02 GMT",
+    "matchesEveryExtractedPart": true
+  }
+]

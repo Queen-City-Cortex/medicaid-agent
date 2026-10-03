@@ -5,6 +5,8 @@ Check live service state and dated release evidence before applying a procedure.
 The [October 3 product scope and coverage review](../validation/product-scope-review-2026-10-03/README.md) proposes a bounded release without agency outreach. It confirms available MAGI/form coverage and records targeted checks and unavailable-original limitations; it does not change the current source gate or qualify a release.
 The [October 3 bounded coverage rehearsal](../validation/coverage-rehearsal-2026-10-03/README.md) passed isolated scope approval and backup checks but returned **NO_GO** for qualification: federal content refresh, required-family discovery freshness and the legacy identity query remain blocked. Its unrun candidate gates and independent main deployment are recorded explicitly.
 
+The [October 3 qualification repair](../validation/qualification-unblock-2026-10-03/README.md) demonstrates bounded identity reads and all 43 current CFR parts. Qualification remains **NO_GO** because statute endpoints return maintenance pages; subsequent candidate gates were not run.
+
 | Subject | Documentation or entrypoint |
 | --- | --- |
 | General configuration and commands | [RUNBOOK.md](../../RUNBOOK.md) |
