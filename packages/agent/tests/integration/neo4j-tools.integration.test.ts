@@ -71,10 +71,10 @@ integration('agent tools against a real Neo4j graph', () => {
       CREATE (s:Section {id: $sectionId, document_id: $docId, title: 'Income table', content_text: $content, answer_ready: true})
       CREATE (d)-[:HAS_SECTION]->(s)`, { docId, sectionId, url, content: 'Effective: APRIL 1, 2026\n133% monthly amount 1769' });
     const { frame } = await runTool(resolveAnswerFrame, { query: 'What MAGI income table applies in October 2026?' });
-    expect(frame.coverageScope.notice).toBeNull();
+    expect(frame.coverageScope?.notice).toBeNull();
     expect(frame.authoritativeDocuments.map((document: { id: string }) => document.id)).toEqual([docId]);
     expect(frame.primarySections[0].id).toBe(sectionId);
-    expect(coverageEvidenceIssue(frame.coverageScope, frame.primarySections.map((section: { content: string; url: string }) => ({ toolName: 'resolveAnswerFrame:section', text: section.content, link: section.url })))).toBeNull();
+    expect(coverageEvidenceIssue(frame.coverageScope ?? null, frame.primarySections.map(section => ({ toolName: 'resolveAnswerFrame:section', text: section.content ?? '', link: section.url })))).toBeNull();
   });
 
   it('returns search snippets from Section.content_text', async () => {
