@@ -68,7 +68,7 @@ integration('agent tools against a real Neo4j graph', () => {
     const docId = `${FIXTURE_PREFIX}doc:magi-2026`;
     const sectionId = `${FIXTURE_PREFIX}sec:magi-2026:table`;
     await run(`CREATE (d:Document {id: $docId, title: '2026 MAGI table', document_type: 'dhhs_policy', source_url: $url, answer_ready: true, status: 'current'})
-      CREATE (s:Section {id: $sectionId, document_id: $docId, title: 'Income table', content_text: $content, answer_ready: true})
+      CREATE (s:Section {id: $sectionId, document_id: $docId, title: 'Income table', content_text: $content, content_length: size($content), answer_ready: true})
       CREATE (d)-[:HAS_SECTION]->(s)`, { docId, sectionId, url, content: 'Effective: APRIL 1, 2026\n133% monthly amount 1769' });
     const { frame } = await runTool(resolveAnswerFrame, { query: 'What MAGI income table applies in October 2026?' });
     expect(frame.coverageScope?.notice).toBeNull();
