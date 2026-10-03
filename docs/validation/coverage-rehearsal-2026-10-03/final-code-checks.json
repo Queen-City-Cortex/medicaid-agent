@@ -1,0 +1,43 @@
+{
+  "implementationRevision": "46a91dae97964e2d1c075d178f78f41b347a64b8",
+  "checks": [
+    {
+      "name": "Greptile Review",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://greptile.com/"
+    },
+    {
+      "name": "Production Docker builds",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Queen-City-Cortex/medicaid-agent/actions/runs/37154299283/job/111294378043"
+    },
+    {
+      "name": "test",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Queen-City-Cortex/medicaid-agent/actions/runs/37154299283/job/111294378035"
+    },
+    {
+      "name": "claude-review",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Queen-City-Cortex/medicaid-agent/actions/runs/37154299390/job/111294377884"
+    },
+    {
+      "name": "Mocked e2e (hermetic auth)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Queen-City-Cortex/medicaid-agent/actions/runs/37154299283/job/111294377862"
+    }
+  ],
+  "allPassed": true,
+  "localAgentTestsPassed": 431,
+  "localAgentTestsSkipped": 10,
+  "localAgentBuildPassed": true,
+  "localPipelineTestsPassed": 580,
+  "localPipelineTestsSkipped": 4,
+  "pipelineRuffPassed": true,
+  "pipelineVulturePassed": true
+}

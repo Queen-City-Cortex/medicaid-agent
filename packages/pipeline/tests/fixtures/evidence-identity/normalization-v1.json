@@ -1,0 +1,187 @@
+{
+  "oracleRevision": "46a91dae97964e2d1c075d178f78f41b347a64b8",
+  "reference": [
+    {
+      "source_family": "clinical_policy",
+      "source_url": "https://example.test/a.pdf",
+      "section_number": "1.0",
+      "content_text": "Content",
+      "section_title": "Scope",
+      "level": 1,
+      "parent_number": null,
+      "parent_content_hash": null,
+      "section_id": "canonical-1"
+    },
+    {
+      "source_family": "clinical_policy",
+      "source_url": "https://example.test/a.pdf",
+      "section_number": "2.0",
+      "content_text": "Content",
+      "section_title": "Scope",
+      "level": 1,
+      "parent_number": "1.0",
+      "parent_content_hash": "parent",
+      "section_id": "canonical-2"
+    },
+    {
+      "source_family": "clinical_policy",
+      "source_url": "https://example.test/a.pdf",
+      "section_number": null,
+      "content_text": "",
+      "section_title": "Revision",
+      "level": 1,
+      "parent_number": null,
+      "parent_content_hash": null,
+      "section_id": "canonical-empty",
+      "previous_title": "Manual",
+      "previous_level": 1,
+      "next_title": "Scope",
+      "next_level": 1
+    },
+    {
+      "source_family": "clinical_policy",
+      "source_url": "https://example.test/a.pdf",
+      "section_number": null,
+      "content_text": "Current table",
+      "section_title": "Revision table",
+      "level": 1,
+      "parent_number": "8.0",
+      "parent_content_hash": "exact-parent",
+      "section_id": "canonical-unnumbered"
+    }
+  ],
+  "graph": [
+    {
+      "source_family": "clinical_policy",
+      "source_url": "https://example.test/a.pdf",
+      "section_number": "1.0",
+      "content_text": "Content",
+      "section_title": "Scope",
+      "level": 1,
+      "parent_number": null,
+      "parent_content_hash": null,
+      "section_id": "legacy-1"
+    },
+    {
+      "source_family": "clinical_policy",
+      "source_url": "https://example.test/a.pdf",
+      "section_number": "2.0",
+      "content_text": "Content",
+      "section_title": "Scope",
+      "level": 1,
+      "parent_number": "1.0",
+      "parent_content_hash": "parent",
+      "section_id": "legacy-2"
+    },
+    {
+      "source_family": "clinical_policy",
+      "source_url": "https://example.test/a.pdf",
+      "section_number": "2.0",
+      "content_text": "Wrong content",
+      "section_title": "Scope",
+      "level": 1,
+      "parent_number": "1.0",
+      "parent_content_hash": "other-parent",
+      "section_id": "wrong-2"
+    },
+    {
+      "source_family": "clinical_policy",
+      "source_url": "https://example.test/a.pdf",
+      "section_number": null,
+      "content_text": "",
+      "section_title": "Revision",
+      "level": 1,
+      "parent_number": null,
+      "parent_content_hash": null,
+      "section_id": "legacy-empty",
+      "previous_title": "Manual",
+      "previous_level": 1,
+      "next_title": "Scope",
+      "next_level": 1
+    },
+    {
+      "source_family": "clinical_policy",
+      "source_url": "https://example.test/a.pdf",
+      "section_number": null,
+      "content_text": "Older table",
+      "section_title": "Revision table",
+      "level": 1,
+      "parent_number": "8.0",
+      "parent_content_hash": "exact-parent",
+      "section_id": "legacy-table"
+    },
+    {
+      "source_family": "clinical_policy",
+      "source_url": "https://example.test/unrelated.pdf",
+      "section_number": "1.0",
+      "content_text": "Content",
+      "section_title": "Scope",
+      "level": 1,
+      "parent_number": null,
+      "parent_content_hash": null,
+      "section_id": "unrelated"
+    }
+  ],
+  "evidence": {
+    "version": 1,
+    "catalogHash": "a55bc94a0739241f8f965d3f3e7bcce2602b6014a352734627bcd0b5255e2985",
+    "mappingHash": "fdc124174f6d152d6710fe4528e1bbdefb907431f444ece3cfdb4137705135f2",
+    "mappings": [
+      {
+        "raw_id": "legacy-1",
+        "canonical_id": "canonical-1",
+        "source_family": "clinical_policy",
+        "source_url": "https://example.test/a.pdf",
+        "section_number": "1.0",
+        "content_signature": "2131e057c5cba1efb2b3b3c15acb8975829aae191d766b2779ba8ef6ea150167",
+        "method": "unique_source_and_number"
+      },
+      {
+        "raw_id": "legacy-2",
+        "canonical_id": "canonical-2",
+        "source_family": "clinical_policy",
+        "source_url": "https://example.test/a.pdf",
+        "section_number": "2.0",
+        "content_signature": "ca6ee6a4a551225babc65bd29de9ee54caca97aa5ed2d5502442e8a1aa1c1d6c",
+        "method": "exact_content_and_structure"
+      },
+      {
+        "raw_id": "legacy-empty",
+        "canonical_id": "canonical-empty",
+        "source_family": "clinical_policy",
+        "source_url": "https://example.test/a.pdf",
+        "section_number": null,
+        "content_signature": "",
+        "method": "exact_empty_heading_sequence"
+      },
+      {
+        "raw_id": "legacy-table",
+        "canonical_id": "canonical-unnumbered",
+        "source_family": "clinical_policy",
+        "source_url": "https://example.test/a.pdf",
+        "section_number": null,
+        "content_signature": "6a61c95c688530cf181b2672acde4cda1c9912d5951426f51cb70727af642f63",
+        "method": "exact_numbered_parent_and_heading"
+      },
+      {
+        "raw_id": "unrelated",
+        "canonical_id": null,
+        "source_family": "clinical_policy",
+        "source_url": "https://example.test/unrelated.pdf",
+        "section_number": "1.0",
+        "content_signature": "2131e057c5cba1efb2b3b3c15acb8975829aae191d766b2779ba8ef6ea150167",
+        "method": "unmatched"
+      },
+      {
+        "raw_id": "wrong-2",
+        "canonical_id": null,
+        "source_family": "clinical_policy",
+        "source_url": "https://example.test/a.pdf",
+        "section_number": "2.0",
+        "content_signature": "7facbc878b5a114288e7d9debffd22d9228ff0b1b5b2689e1d375fb8cafc918d",
+        "method": "unmatched"
+      }
+    ],
+    "missingCanonicalIds": []
+  }
+}

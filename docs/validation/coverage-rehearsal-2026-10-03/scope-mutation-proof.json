@@ -1,0 +1,48 @@
+{
+  "artifactFilesCompared": 19328,
+  "alteredArtifactFiles": [],
+  "alteredTables": [
+    "source_answer_scopes"
+  ],
+  "scopeRecords": 4,
+  "scopeOnlyMutation": true,
+  "allPriorTablesUnchanged": true,
+  "tableHashesAfter": {
+    "crawl_runs": {
+      "rows": 26,
+      "sha256": "458be86a72384e1b675a85837daaac9c46960b630233cf8288b8967551301a6a"
+    },
+    "documents": {
+      "rows": 4557,
+      "sha256": "ccb2da9ce7f7ea5d920fe70b1d6b96a9e45ef1623e933935a1e4a70ca11082e7"
+    },
+    "rejected_urls": {
+      "rows": 24,
+      "sha256": "7ce4d7548daef1195488db968dc393aaa4d04a977db7f12bd7584cfec1bea2b3"
+    },
+    "source_answer_scopes": {
+      "rows": 4,
+      "sha256": "df715ab14b1543854537c6d3e7e4d61584908f9018ba2b4bb9432cadb9f88185"
+    },
+    "source_audit_actions": {
+      "rows": 161,
+      "sha256": "c2937a405d8ee367df794abe681bd67456402b396f665c7da07b650b79d15d9d"
+    },
+    "source_classifications": {
+      "rows": 1,
+      "sha256": "726d64de9f32dfe126fa4251b910bf05b236b2452c4161af197aa1f72a9c2062"
+    },
+    "source_freshness": {
+      "rows": 6,
+      "sha256": "d4ef6fd07f7d02a55e05d49a61309d23a9ac9aaa24545b49bcc02faeaffc4540"
+    },
+    "source_retirements": {
+      "rows": 152,
+      "sha256": "afcf441f5c117c23a8859b29ee89eb9883c9b441dc71927ac4b5f65d4ec80e0c"
+    },
+    "sqlite_sequence": {
+      "rows": 3,
+      "sha256": "62e093e850df50b3199d4840b64ef1b136540e54b7ecd46711335468234e47f1"
+    }
+  }
+}

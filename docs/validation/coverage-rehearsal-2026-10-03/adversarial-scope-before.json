@@ -1,0 +1,19 @@
+{
+  "cases": [
+    {
+      "case": "forged native backup receipt",
+      "rejected": true,
+      "errorType": "ValueError",
+      "reason": "Supplied baseline receipt does not match native archive verification",
+      "scopeRecordsAfter": 0
+    },
+    {
+      "case": "lost retained original",
+      "rejected": true,
+      "errorType": "ValueError",
+      "reason": "Answer scope original artifact changed or was lost",
+      "scopeRecordsAfter": 0
+    }
+  ],
+  "allRejected": true
+}

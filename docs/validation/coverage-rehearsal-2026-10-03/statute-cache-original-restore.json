@@ -1,0 +1,19 @@
+{
+  "nativeArchiveDecryptionPassed": true,
+  "originalHashesVerified": true,
+  "cacheRecords": [
+    {
+      "path": "pipeline/ecfr-cache/usc-title42-subchapter19.html",
+      "sha256": "8c823986ce079bbde796554ef13e10f9f6bacbf7fe07f7adff7c05d7fe21312d",
+      "bytes": 4825128,
+      "originalMtime": 1781320049
+    },
+    {
+      "path": "pipeline/ecfr-cache/usc-title42-subchapter21.html",
+      "sha256": "5d650183bab656b7db7b75413f9c23135f7dc5bde827d3518ce0b7311203f29b",
+      "bytes": 789337,
+      "originalMtime": 1781320071
+    }
+  ],
+  "freshFetchClaimed": false
+}
