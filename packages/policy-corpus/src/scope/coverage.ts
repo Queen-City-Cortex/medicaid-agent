@@ -37,7 +37,7 @@ export function resolveCoverageScope(question: string, today = new Date()): Cove
   const matched = policy.limitations.filter(item => q.includes(item.source_url.toLowerCase()));
   const languageAccess = /language[ -]?access|language.{0,12}rights|(?:interpreter|interpretation|translation).{0,30}(right|service|access)|(?:right|access|provide|request|obtain|arrange|need).{0,30}interpreter/.test(q);
   const originalRequest = /download|quote|\battach\b|exact.{0,20}(wording|text|content)|interpret.{0,40}(wording|text|notice)/.test(q)
-    || /(?:^|[.,;]\s*|please\s+|(?:can|could|will|would)\s+you\s+)(?:provide|supply|show|give|generate|reproduce|translate)\s+(?:(?:me|us|the|an?|official|original|gujarati|dhb[ -]*5097|a copy of|copy of)\s+)*(?:form|notice|attachment|pdf|translation|it|(?:dhb[ -]*)?5097)\b/.test(q);
+    || /(?:^|[.,;]\s*|please\s+|(?:can|could|will|would)\s+you\s+)(?:provide|supply|show|give|generate|reproduce|translate)\s+(?:(?:me|us|the|an?|official|original|gujarati|dhb[ -]*5097|a copy of|copy of)\s+)*(?:form|notice|attachment|pdf|translation|it|(?:dhb[ -]*)?5097)\b(?!\s+(?:(?:and|or)\s+(?:interpretation|translation)\s+)?services?\b)/.test(q);
   const gujarati = /gujarati|ગુજરાતી/.test(q) && /5097|request.{0,20}information/.test(q) && (!languageAccess || originalRequest);
   const covid = /covid|sars.cov.2/.test(q) && /otc|over.the.counter|home.{0,12}test|at.home/.test(q);
   const authority = /covid|sars.cov.2/.test(q) && (covid || /standing.order/.test(q)) && /standing.order|pharmacist|dispens|prescrib|prescription|authori[sz]/.test(q);

@@ -56,6 +56,8 @@ describe('bounded answer scope', () => {
     expect(scope('What language-access rights apply when a Gujarati speaker receives DHB-5097?')?.notice).toBeNull();
     expect(scope('Must the agency provide interpreter services when a Gujarati speaker receives DHB-5097?')?.notice).toBeNull();
     expect(scope('What interpretation services are available for a Gujarati speaker receiving DHB-5097?')?.notice).toBeNull();
+    expect(scope('Could you provide translation services for my Gujarati DHB-5097?')?.notice).toBeNull();
+    expect(scope('Could you provide translation and interpretation services for my Gujarati DHB-5097?')?.notice).toBeNull();
     expect(scope('Under my language-access rights, could you provide interpretation services for a Gujarati speaker receiving DHB-5097?')?.notice).toBeNull();
     expect(scope('What language-access rights apply to obtaining the official Gujarati DHB-5097 form?')?.notice).toBeNull();
     expect(scope('What language access rights apply to Gujarati speakers filling CAP/DA forms?')).toBeNull();
