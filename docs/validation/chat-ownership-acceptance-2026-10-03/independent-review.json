@@ -1,0 +1,8 @@
+{
+  "reviewer": "Opus via Orca orchestration",
+  "outcome": "approved; no outstanding blocker",
+  "runId": "run_3fffd380ff2c",
+  "dispatchId": "ctx_c73f7869046c",
+  "scope": "Live route ownership plus bounded release/browser smoke; representative qualification not claimed",
+  "reportSha256": "dcc0ba9f1ed70faf56d909b7cf32b2d79634007a3a4ea7744920ce93a0a8d12f"
+}

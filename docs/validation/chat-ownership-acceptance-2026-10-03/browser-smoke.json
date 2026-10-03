@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "releaseId": "legacy-20260725-ae8595c",
+  "startedAt": "2026-10-03T21:22:20.995Z",
+  "completedAt": "2026-10-03T21:23:05.310Z",
+  "login": "passed",
+  "answer": {
+    "outcome": "passed",
+    "characters": 3055
+  },
+  "persistence": "passed",
+  "feedback": {
+    "created": true,
+    "persisted": true,
+    "removed": true
+  },
+  "logout": {
+    "signedOut": true,
+    "protectedChatRequiresLogin": true
+  },
+  "uniqueTitleFixture": true
+}

@@ -1,0 +1,44 @@
+[
+  {
+    "preflight": "failed-authentication-preflight",
+    "passed": false,
+    "failures": [
+      "Fresh smoke authentication failed (HTTP 400)"
+    ],
+    "cleanup": [
+      {
+        "status": "deleted_and_confirmed_absent"
+      }
+    ],
+    "modelCalls": 0
+  },
+  {
+    "preflight": "failed-sso-preflight",
+    "passed": false,
+    "failures": [
+      "Secondary authentication HTTP 400: sso_required"
+    ],
+    "cleanup": [
+      {
+        "status": "deleted_and_confirmed_absent"
+      }
+    ],
+    "modelCalls": 0
+  },
+  {
+    "preflight": "failed-thread-comparison-preflight",
+    "passed": false,
+    "failures": [
+      "Foreign thread unchanged after forged requests"
+    ],
+    "cleanup": [
+      {
+        "status": "deleted_and_confirmed_absent"
+      },
+      {
+        "status": "deleted_and_confirmed_absent"
+      }
+    ],
+    "modelCalls": 0
+  }
+]

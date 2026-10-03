@@ -1,0 +1,10 @@
+{
+  "id": "a23945b1-0d54-475a-b236-3520a3a95d8d",
+  "status": "SUCCESS",
+  "createdAt": "2026-10-03T21:08:11.948Z",
+  "revision": "d9354a604002f0f1d06503ff54b504fb791500f7",
+  "imageDigest": "sha256:1f03053f4ee5e2a204eb518d14ab5168abd0e485ee04d56e575b8994d7e0f4d1",
+  "volumeMounts": [
+    "/data"
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "checkedAt": "2026-10-03T21:25:28.507075+00:00",
+  "routes": [
+    {
+      "route": "/readyz",
+      "httpStatus": 200,
+      "body": {
+        "status": "ok",
+        "config": "valid",
+        "neo4j": "connected",
+        "storage": "writable",
+        "releaseId": "legacy-20260725-ae8595c"
+      }
+    },
+    {
+      "route": "/healthz",
+      "httpStatus": 200,
+      "body": {
+        "status": "ok",
+        "config": "valid",
+        "neo4j": "connected",
+        "storage": "writable",
+        "releaseId": "legacy-20260725-ae8595c"
+      }
+    }
+  ]
+}

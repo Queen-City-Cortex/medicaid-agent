@@ -15,6 +15,7 @@ The [October 3 bounded coverage rehearsal](../validation/coverage-rehearsal-2026
 | Operational checks and backups | [Operations scripts](../../scripts/ops/) and [launchd installer](../../scripts/ops/install-launchd.sh) |
 | Corpus deployment | [Deploy-data script](../../scripts/deploy-data.sh) and [corpus release script](../../scripts/ops/corpus-release.sh) |
 | Production smoke | [Root scripts](../../package.json) and [browser smoke](../../e2e/scripts/smoke-production.mjs) |
+| Chat ownership deployment acceptance | [October 3 ownership and browser checks](../validation/chat-ownership-acceptance-2026-10-03/README.md) |
 
 The [project gotchas](../development/gotchas.md) cover build context, watch paths, service configuration, identity validation, source availability, and deployment failures. Validate external settings directly and preserve private credentials outside committed evidence.
 

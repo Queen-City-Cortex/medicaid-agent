@@ -1,0 +1,33 @@
+{
+  "passed": true,
+  "checks": [
+    "Expected healthy corpus before acceptance",
+    "Two distinct authenticated accounts",
+    "Synthetic foreign thread created through authenticated API",
+    "Foreign thread belongs to secondary account",
+    "Secondary account can read its thread before probes",
+    "Secondary account can read its thread messages",
+    "Forged GET json cannot list foreign thread",
+    "Forged GET json rejects missing credentials",
+    "Forged GET json rejects invalid credentials",
+    "Forged GET base64 cannot list foreign thread",
+    "Forged GET base64 rejects missing credentials",
+    "Forged GET base64 rejects invalid credentials",
+    "Foreign chat rejects missing credentials",
+    "Foreign chat rejects invalid credentials",
+    "Foreign chat rejects verified foreign owner",
+    "Primary account cannot read secondary thread",
+    "Foreign thread unchanged after forged requests",
+    "Foreign message history unchanged",
+    "Attempt 1 memory remains bound to verified account",
+    "Attempt 2 memory remains bound to verified account",
+    "Attempt 3 memory remains bound to verified account",
+    "Three verified EPSDT answers including existing owned thread and forged context"
+  ],
+  "failures": [],
+  "completedAt": "2026-10-03T21:20:40.058Z",
+  "scope": "Production route ownership and single-question release smoke; private observer inputs tested locally",
+  "modelBackedChatRequests": 5,
+  "temporaryAccountsCreatedAndRemoved": 4,
+  "testThreadsCreatedAndRemoved": 6
+}
