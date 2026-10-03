@@ -32,6 +32,8 @@ describe('bounded answer scope', () => {
   it.each([
     ['Download the official Gujarati DHB-5097 form', 'gujarati-dhb-5097'],
     ['Quote the ગુજરાતી 5097 form', 'gujarati-dhb-5097'],
+    ['Provide an interpretation of the exact wording of the official Gujarati DHB-5097.', 'gujarati-dhb-5097'],
+    ['What language-access rights apply, and interpret the exact wording of my Gujarati DHB-5097 notice?', 'gujarati-dhb-5097'],
     ['What authority does the pharmacist standing order for OTC COVID-19 tests grant?', 'covid-standing-order'],
     ['Was the pharmacist COVID standing order withdrawn?', 'covid-standing-order'],
     ['Were the two archived 2025 MAGI income-limit wrappers duplicates?', 'magi-2025-archive'],
@@ -51,6 +53,8 @@ describe('bounded answer scope', () => {
     expect(scope('Does HCWD impose an earned income cap?')).toBeNull();
     expect(scope('What language access rights apply to Gujarati speakers?')).toBeNull();
     expect(scope('What language-access rights apply when a Gujarati speaker receives DHB-5097?')?.notice).toBeNull();
+    expect(scope('Must the agency provide interpreter services when a Gujarati speaker receives DHB-5097?')?.notice).toBeNull();
+    expect(scope('What language-access rights apply to obtaining the official Gujarati DHB-5097 form?')?.notice).toBeNull();
     expect(scope('What language access rights apply to Gujarati speakers filling CAP/DA forms?')).toBeNull();
     expect(scope('What is the revision date of the 2025 MAGI income table?')?.notice).toBeNull();
     expect(scope('What does the NON-MAGI income table say?')).toBeNull();

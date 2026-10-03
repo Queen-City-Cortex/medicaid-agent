@@ -20,6 +20,7 @@ describe('server coverage boundaries', () => {
     const messages = [{ role: 'user', content: 'What MAGI income table applies in October 2026?' }, { role: 'user', content: 'June 2025?' }, { role: 'user', content: 'February 2025?' }];
     expect(resolveCoverageScope(coverageConversationQuery(messages))?.notice).toBeTruthy();
     expect(coverageConversationQuery([...messages, { role: 'user', content: 'What did Congress do in June 2025?' }])).toBe('What did Congress do in June 2025?');
+    expect(coverageConversationQuery([...messages, { role: 'user', content: 'What about diabetes test coverage?' }])).toBe('What about diabetes test coverage?');
   });
 
   it('does not carry the limitation into an explicitly different policy', () => {

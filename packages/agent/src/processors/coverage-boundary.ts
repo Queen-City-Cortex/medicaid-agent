@@ -9,7 +9,8 @@ export function coverageConversationQuery(messages: Array<{ role?: string; conte
   const users = messages.filter(message => message.role === 'user').map(message => contentText(message.content).trim()).filter(Boolean);
   return users.reduce((previous, latest) => {
     const dateOnly = /^(?:(?:what|how) about|and(?: for)?|in|on|for)?\s*(?:(?:january|february|march|april|may|june|july|august|september|october|november|december)\s+(?:\d{1,2}[,]?\s+)?)?20\d{2}(?:-\d{2}-\d{2})?\s*[?.!]*$/i.test(latest);
-    if (resolveCoverageScope(latest) || (!dateOnly && !/\b(it|that|those|same|instead)\b|^(what|how) about\b/i.test(latest))) return latest;
+    const languageOnly = /^(?:(?:what|how) about|and(?: in)?|in)?\s*(english|spanish|gujarati|ગુજરાતી)\s*[?.!]*$/i.test(latest);
+    if (resolveCoverageScope(latest) || (!dateOnly && !languageOnly && !/\b(it|that|those|same|instead)\b/i.test(latest))) return latest;
     // Explicitly named new policies change subject rather than inherit a scoped topic.
     if (!previous || !resolveCoverageScope(previous) || /\b(?:policy\s+\d[\w.-]*|ma[\s-]*\d{4}|hcwd|cap\/da|epsdt)\b/i.test(latest)) return latest;
     let subject = previous;
