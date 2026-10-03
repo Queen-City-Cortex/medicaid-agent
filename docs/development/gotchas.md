@@ -2,7 +2,7 @@
 
 Current guidance carried forward from main at `dc81a97`. When behavior changes, correct the affected lesson alongside the implementation.
 
-- `uscode.house.gov` can return an HTTP 200 maintenance page for full SSA subchapter requests. Successful transport does not establish statutory content. Validate substantive required section anchors before replacing or consuming a cache; keep the previous valid bytes and modification time on rejection. The coverage rehearsal also received eCFR full-text HTTP 406 responses from both local and Railway hosts; a working title-index endpoint does not prove full-text access. Neither response establishes withdrawal or fresh federal evidence.
+- `uscode.house.gov` can return an HTTP 200 maintenance page for full SSA subchapter requests. Successful transport does not establish statutory content. Validate substantive required section anchors before replacing or consuming a cache; keep the previous bytes and modification time on response rejection. Invalid caches trigger a fresh fetch, and failed CFR/SSA ingestion exits nonzero so dependent operator commands stop. The coverage rehearsal also received eCFR full-text HTTP 406 responses from both local and Railway hosts; a working title-index endpoint does not prove full-text access. Neither response establishes withdrawal or fresh federal evidence.
 
 - Non-PDF parse artifacts use format-qualified stems (`notice__html.json`, not `notice.json`). Scope approval and encrypted-backup dependency checks must use the shared lightweight artifact naming helper, rather than strip the source extension. The coverage rehearsal exposed a mismatch hidden by hand-written unit fixtures; acceptance now exercises actual HTML parser output.
 

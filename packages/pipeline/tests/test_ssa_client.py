@@ -44,10 +44,20 @@ def test_valid_statutory_response_can_replace_cache(cache, monkeypatch, title_nu
     assert (cache / f"usc-title42-subchapter{title_num}.html").read_text() == html
 
 
-def test_poisoned_fresh_cache_cannot_be_ingested(cache):
+def test_poisoned_fresh_cache_cannot_be_ingested(cache, monkeypatch):
     (cache / "usc-title42-subchapter19.html").write_text("<title>Under Maintenance</title>")
+    monkeypatch.setattr(ssa_client.urllib.request, "urlopen", lambda *a, **k: BytesIO(b"<title>Under Maintenance</title>"))
     with pytest.raises(ValueError, match="lacks required statutory text"):
         ssa_client.fetch_usc_subchapter(19)
+
+
+def test_poisoned_fresh_cache_recovers_when_official_text_returns(cache, monkeypatch):
+    path = cache / "usc-title42-subchapter19.html"
+    path.write_text("<title>Under Maintenance</title>")
+    html = statutory_html(19)
+    monkeypatch.setattr(ssa_client.urllib.request, "urlopen", lambda *a, **k: BytesIO(html.encode()))
+    assert ssa_client.fetch_usc_subchapter(19) == html
+    assert path.read_text() == html
 
 
 def test_wrong_subchapter_and_empty_headings_are_rejected():

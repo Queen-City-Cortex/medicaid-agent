@@ -158,8 +158,12 @@ def fetch_usc_subchapter(title_num: int, refresh: bool = False) -> str:
         and cache_age_days < SSA_CACHE_MAX_AGE_DAYS
     ):
         html = cache.read_text(encoding="utf-8")
-        validate_usc_subchapter(html, title_num)
-        return html
+        try:
+            validate_usc_subchapter(html, title_num)
+        except ValueError:
+            console.print("  [yellow]Invalid USC cache; fetching statutory text again[/yellow]")
+        else:
+            return html
 
     url = USC_URLS[title_num]
     console.print(f"  Fetching USC Subchapter {title_num}: {url}")
