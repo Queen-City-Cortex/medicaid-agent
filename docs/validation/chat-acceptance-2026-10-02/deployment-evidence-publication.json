@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "objectKey": "readiness-evidence/2026-10-02/chat-acceptance-deployment-evidence.tar.gz",
+  "sha256": "a576d51481fa54acb493e99b1c29632f91882b913ace947bf76a222b9b1e644c",
+  "bytes": 6196,
+  "downloadVerified": true,
+  "memberCount": 7,
+  "members": [
+    "README.md",
+    "post-audit-runtime.json",
+    "post-audit-health.json",
+    "post-audit-health-history.json",
+    "private-deployment-publication.json",
+    "private-live-restore.json",
+    "private-deployment-restore.json"
+  ],
+  "excludes": [
+    "credentials",
+    "provider logs",
+    "browser screenshots",
+    "private draft and verification captures",
+    "ownership identifiers",
+    "plaintext databases",
+    "signing keys",
+    "this self-referential publication receipt"
+  ]
+}
