@@ -1,0 +1,296 @@
+{
+  "checkedAt": "2026-10-03T21:17:15.946925+00:00",
+  "qualification": "NO_GO",
+  "freshFederalRefreshPassed": false,
+  "localCfrFailures": 43,
+  "railwayCfrFailures": 43,
+  "railwayTitleIndexSucceeded": true,
+  "ssaHttp200BodiesAcceptedInitiallyByOldClient": true,
+  "ssaInitialSuccessClaimsInvalidated": true,
+  "ssaReturnedTitle": "Under Maintenance",
+  "ssaRequiredSectionAnchorsFound": 0,
+  "validOriginalStatutesRestored": true,
+  "statuteCachesRestoredFromVerifiedArchive": {
+    "nativeArchiveDecryptionPassed": true,
+    "originalHashesVerified": true,
+    "cacheRecords": [
+      {
+        "path": "pipeline/ecfr-cache/usc-title42-subchapter19.html",
+        "sha256": "8c823986ce079bbde796554ef13e10f9f6bacbf7fe07f7adff7c05d7fe21312d",
+        "bytes": 4825128,
+        "originalMtime": 1781320049
+      },
+      {
+        "path": "pipeline/ecfr-cache/usc-title42-subchapter21.html",
+        "sha256": "5d650183bab656b7db7b75413f9c23135f7dc5bde827d3518ce0b7311203f29b",
+        "bytes": 789337,
+        "originalMtime": 1781320071
+      }
+    ],
+    "freshFetchClaimed": false
+  },
+  "existingCacheFiles": {
+    "title-42-part-488.xml": {
+      "sha256": "266df50447a46327d1a5b5748f5c15317645ee5313328496a82557afef124dcf",
+      "mtime": "2026-04-17T20:33:58+00:00",
+      "provenance": "original verified production archive"
+    },
+    "title-42-part-431.xml": {
+      "sha256": "9b6f4f984bf0f8e72b0ccc07f639d8923b3b9888e80f17024e7cc773d1dbb39c",
+      "mtime": "2026-04-17T20:32:46+00:00",
+      "provenance": "original verified production archive"
+    },
+    "title-2-part-200.xml": {
+      "sha256": "c3d76cbacba21f3ffc1e25e8a8c37a18deb9060cb88e1bc0f6ee00cc37b8decb",
+      "mtime": "2026-04-17T20:32:19+00:00",
+      "provenance": "original verified production archive"
+    },
+    "title-42-part-436.xml": {
+      "sha256": "32eb0f0ff3e322a0116f005e6a0dc76ed8d749748c18c503fbfd9efaa8211fca",
+      "mtime": "2026-04-17T20:33:07+00:00",
+      "provenance": "original verified production archive"
+    },
+    "usc-title42-subchapter19.html": {
+      "sha256": "8c823986ce079bbde796554ef13e10f9f6bacbf7fe07f7adff7c05d7fe21312d",
+      "mtime": "2026-06-13T03:07:29+00:00",
+      "provenance": "original verified production archive"
+    },
+    "title-45-part-170.xml": {
+      "sha256": "9ab46b138a3b4692e357f302c05db5cd6c25820116390e601f89b5bab14d4db8",
+      "mtime": "2026-04-17T20:34:50+00:00",
+      "provenance": "original verified production archive"
+    },
+    "title-45-part-156.xml": {
+      "sha256": "e3760576a3945f83e79035537d16040b3bacdc362db74fd392ca69d0a96b2e78",
+      "mtime": "2026-04-17T20:34:41+00:00",
+      "provenance": "original verified production archive"
+    },
+    "title-42-part-456.xml": {
+      "sha256": "31aad312b930905b481bd5effaa0b72f7b42c80d58c9aac12239c527b875c4df",
+      "mtime": "2026-04-17T20:33:32+00:00",
+      "provenance": "original verified production archive"
+    },
+    "title-45-part-144.xml": {
+      "sha256": "c8cde8fda9109e46955290dd51828199de2e3aaec8b8402136e0100a3ac17168",
+      "mtime": "2026-04-17T20:34:22+00:00",
+      "provenance": "original verified production archive"
+    },
+    "title-42-part-457.xml": {
+      "sha256": "77c13f87c3bd4884474c496afbc088903268a8bb0a31977a2a8b5b242eca16ab",
+      "mtime": "2026-04-17T20:33:37+00:00",
+      "provenance": "original verified production archive"
+    },
+    "title-45-part-16.xml": {
+      "sha256": "f41d0d317a32f8c664aaf86eff47dd36de3e630a07df073c24ba33b372463a65",
+      "mtime": "2026-07-26T03:42:18+00:00",
+      "provenance": "original verified production archive"
+    },
+    "title-42-part-485.xml": {
+      "sha256": "e82903907ed4980035049c4011ed543e4c292d56b673578ec86794a534fb44dd",
+      "mtime": "2026-04-17T20:33:52+00:00",
+      "provenance": "original verified production archive"
+    },
+    "title-42-part-409.xml": {
+      "sha256": "8caf8d25eef59ac83faa529140b915a3b08f5b2fedc354282d9d51f2b8918e47",
+      "mtime": "2026-04-17T20:32:23+00:00",
+      "provenance": "original verified production archive"
+    },
+    "title-42-part-432.xml": {
+      "sha256": "8c33e8febbe0c06831e50a92e0e2f6d3f2fefc4d4c23f35215ef08cb6f338ae2",
+      "mtime": "2026-04-17T20:32:50+00:00",
+      "provenance": "original verified production archive"
+    },
+    "title-42-part-434.xml": {
+      "sha256": "4390723c974ad5274b3fcbdb62786e0bbc7b64e93d62fc07cda01959c9c7f20d",
+      "mtime": "2026-04-17T20:32:57+00:00",
+      "provenance": "original verified production archive"
+    },
+    "title-45-part-155.xml": {
+      "sha256": "dbcedd1a9c08b07dcabe938795ca5597708a92f6bf1d14cf424d0c619ed1a858",
+      "mtime": "2026-04-17T20:34:36+00:00",
+      "provenance": "original verified production archive"
+    },
+    "title-45-part-233.xml": {
+      "sha256": "b3bf38792fd322663fb57d50c476205573db063915f4f93b5f26a1cb0e17776e",
+      "mtime": "2026-07-26T03:42:56+00:00",
+      "provenance": "original verified production archive"
+    },
+    "title-42-part-483.xml": {
+      "sha256": "e974d0a83a52f113d136cda8f6b19ceaabadb4dbf19db716631c4d6fb2a79a66",
+      "mtime": "2026-04-17T20:33:46+00:00",
+      "provenance": "original verified production archive"
+    },
+    "title-45-part-171.xml": {
+      "sha256": "f65b42a3732f1641e3e2b165790bd76ae2166724093675e078a307f18f2a8876",
+      "mtime": "2026-04-17T20:34:53+00:00",
+      "provenance": "original verified production archive"
+    },
+    "title-42-part-460.xml": {
+      "sha256": "8773e21ff0ea758e4573a77a439bdee5cb8602d46b0331c57af4e88fe66ad5d7",
+      "mtime": "2026-04-17T20:33:40+00:00",
+      "provenance": "original verified production archive"
+    },
+    "title-45-part-147.xml": {
+      "sha256": "c084f720ac0f6fc58ef6779d046c81f0ca8536c0fcfac55ee8671e31d47710ad",
+      "mtime": "2026-07-26T03:42:31+00:00",
+      "provenance": "original verified production archive"
+    },
+    "title-42-part-412.xml": {
+      "sha256": "83a33c7c731fe0ace9fb9b7a3e722f6a4431c2a048453606491ea546fb82ff09",
+      "mtime": "2026-04-17T20:32:35+00:00",
+      "provenance": "original verified production archive"
+    },
+    "title-45-part-164.xml": {
+      "sha256": "766b21b16b36a7bca081a63c74a566a11309e863e7d75a23be08c52272b0944f",
+      "mtime": "2026-04-17T20:34:47+00:00",
+      "provenance": "original verified production archive"
+    },
+    "title-45-part-146.xml": {
+      "sha256": "1f0a2a06aed9ca60b3e5f86ae8a5c4fd5f6797729dd3a80d8497415035775a18",
+      "mtime": "2026-04-17T20:34:27+00:00",
+      "provenance": "original verified production archive"
+    },
+    "title-42-part-438.xml": {
+      "sha256": "ce17021d6f66a7f1e61e887a2437b31cdf2803d0a0b24ccdb2d63a65d306c40d",
+      "mtime": "2026-04-17T20:33:09+00:00",
+      "provenance": "original verified production archive"
+    },
+    "title-42-part-411.xml": {
+      "sha256": "d35878e87543a8c4b6211841972140fc319e2833b11c046b19ac6fee86e2fd4b",
+      "mtime": "2026-04-17T20:32:31+00:00",
+      "provenance": "original verified production archive"
+    },
+    "title-42-part-410.xml": {
+      "sha256": "297de3ea28ca6a7a02f15943eb36010fe4c6ff13bb1c426a1fabca3eb630c89c",
+      "mtime": "2026-04-17T20:32:29+00:00",
+      "provenance": "original verified production archive"
+    },
+    "title-42-part-482.xml": {
+      "sha256": "72a355ea97e079da2f1d6af930ba2810b0a850e64006f5f0b9adf597c5396e00",
+      "mtime": "2026-04-17T20:33:44+00:00",
+      "provenance": "original verified production archive"
+    },
+    "title-42-part-405.xml": {
+      "sha256": "b25ab9bdb69f53a155bab2c44510362cc2b9b848d7de1aee9475c6fa5ffecb8e",
+      "mtime": "2026-04-17T20:32:22+00:00",
+      "provenance": "original verified production archive"
+    },
+    "title-42-part-430.xml": {
+      "sha256": "70b89d163f4e8c729cab921d388e34dc8f1b6224bfe6ccdbe0c2ec181e04fed1",
+      "mtime": "2026-04-17T20:32:44+00:00",
+      "provenance": "original verified production archive"
+    },
+    "title-45-part-92.xml": {
+      "sha256": "f3256c402062a34f7ac37e4cbbc4bba29948346cbed3a629c6b343911d8265aa",
+      "mtime": "2026-04-17T20:34:13+00:00",
+      "provenance": "original verified production archive"
+    },
+    "title-42-part-433.xml": {
+      "sha256": "d6f5b08d00da23a4226817ed6ee2204d02d56a814cdeacea945ca8974e219a45",
+      "mtime": "2026-04-17T20:32:52+00:00",
+      "provenance": "original verified production archive"
+    },
+    "title-42-part-413.xml": {
+      "sha256": "f2119a082fe65ae14362098ddc47f71d716d04d2815137103704b04512ca2e7b",
+      "mtime": "2026-04-17T20:32:37+00:00",
+      "provenance": "original verified production archive"
+    },
+    "title-42-part-442.xml": {
+      "sha256": "4614813cb444f0e58ce12d3187a2364b6350b59544a1b4a0b2f692cb87c35f50",
+      "mtime": "2026-04-17T20:33:22+00:00",
+      "provenance": "original verified production archive"
+    },
+    "title-42-part-447.xml": {
+      "sha256": "cc5feb1e816cd0225d52357e868cb63e5379f9236c0e6fa0a494d0369df49ac9",
+      "mtime": "2026-04-17T20:33:23+00:00",
+      "provenance": "original verified production archive"
+    },
+    "title-42-part-489.xml": {
+      "sha256": "08d273e9ced80cffd21274523d33b5cacc1b0019c36ecf769ecd4208be011853",
+      "mtime": "2026-04-17T20:34:02+00:00",
+      "provenance": "original verified production archive"
+    },
+    "title-42-part-441.xml": {
+      "sha256": "e8d7b51c5102bf83df992f9fde623f519ad3106c5ce1fca689c47a0fdcb1ace8",
+      "mtime": "2026-04-17T20:33:18+00:00",
+      "provenance": "original verified production archive"
+    },
+    "title-42-part-455.xml": {
+      "sha256": "b932f96a46e4f3129c82451d241d7638c591fbad226bcd785fd7180778542b38",
+      "mtime": "2026-04-17T20:33:27+00:00",
+      "provenance": "original verified production archive"
+    },
+    "usc-title42-subchapter21.html": {
+      "sha256": "5d650183bab656b7db7b75413f9c23135f7dc5bde827d3518ce0b7311203f29b",
+      "mtime": "2026-06-13T03:07:51+00:00",
+      "provenance": "original verified production archive"
+    },
+    "title-42-part-440.xml": {
+      "sha256": "dea82ba9ea79ac9aaf0e2219b71320ceee4e46e8218e44e5178ccd739c41deac",
+      "mtime": "2026-04-17T20:33:12+00:00",
+      "provenance": "original verified production archive"
+    },
+    "title-42-part-435.xml": {
+      "sha256": "5e728e5cd0a63c7ad71140fe147acf7682d83f560e78bc37ea7fd5374f53ae12",
+      "mtime": "2026-04-17T20:33:03+00:00",
+      "provenance": "original verified production archive"
+    },
+    "title-45-part-95.xml": {
+      "sha256": "5ae4dc32820fd4bb3eea2c6609eee8640a60b0151bf66d6ba206c63eb3c43c86",
+      "mtime": "2026-04-17T20:34:18+00:00",
+      "provenance": "original verified production archive"
+    },
+    "title-42-part-418.xml": {
+      "sha256": "a3fc62e78ed8f8f9a644b89802e7c0c33afadb7462f63cea14133d175002bcbc",
+      "mtime": "2026-04-17T20:32:39+00:00",
+      "provenance": "original verified production archive"
+    },
+    "title-45-part-158.xml": {
+      "sha256": "4a92e45425827015c564169b280666275bf8faecfedb4b9de88ba4b08cbbcefc",
+      "mtime": "2026-04-17T20:34:43+00:00",
+      "provenance": "original verified production archive"
+    },
+    "title-42-part-484.xml": {
+      "sha256": "a1a867f9e21f7dc6f1ad876eb650ffcf82cd1ec409cae0bd638e5b8256db8983",
+      "mtime": "2026-04-17T20:33:51+00:00",
+      "provenance": "original verified production archive"
+    }
+  },
+  "frozenCatalogHash": "acfeb98a087ba3875e338f27b194216596e2566237517bed5a3df65e4f3f536e",
+  "catalogExpectedIdentities": 99,
+  "legacyMappingStatus": "FAILED_INFRASTRUCTURE",
+  "legacyMappingError": "Neo.TransientError.General.OutOfMemoryError: direct memory used 532676608, maximum 536870912, requested 25165824",
+  "legacyMappingAttemptRevision": "46a91dae97964e2d1c075d178f78f41b347a64b8",
+  "legacyMemorySettingsChanged": false,
+  "benchmarksRun": false,
+  "candidateGraphBuilt": false,
+  "cacheMetadataReconciledFromOriginalArchive": true,
+  "preScopeArchiveFederalMtimesAreMaterializationTimes": true,
+  "cacheMetadataReceipt": "federal-cache-original-metadata.json",
+  "staleRequiredSourceFamilies": [
+    "clinical_policy",
+    "bulletin",
+    "state_plan_amendment",
+    "waiver",
+    "dhhs_policy"
+  ],
+  "legacyIdentityAttempts": [
+    {
+      "implementationRevision": "6099636f2915891ee45e6223e2512651c357c732",
+      "status": "FAILED_INFRASTRUCTURE",
+      "errorType": "Neo.TransientError.General.OutOfMemoryError",
+      "directMemoryUsed": 532676608,
+      "directMemoryLimit": 536870912,
+      "allocationRequested": 25165824,
+      "fullMappingCompleted": false
+    },
+    {
+      "implementationRevision": "46a91dae97964e2d1c075d178f78f41b347a64b8",
+      "status": "FAILED_INFRASTRUCTURE",
+      "errorType": "neo4j.exceptions.ServiceUnavailable",
+      "reason": "Failed to read from defunct connection to neo4j.railway.internal:7687",
+      "fullMappingCompleted": false
+    }
+  ],
+  "legacyLatestError": "ServiceUnavailable: failed to read from defunct connection"
+}

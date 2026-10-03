@@ -3,6 +3,7 @@
 Check live service state and dated release evidence before applying a procedure. A runbook or service definition alone does not establish that a deployment is healthy or a release gate has passed.
 
 The [October 3 product scope and coverage review](../validation/product-scope-review-2026-10-03/README.md) proposes a bounded release without agency outreach. It confirms available MAGI/form coverage and records targeted checks and unavailable-original limitations; it does not change the current source gate or qualify a release.
+The [October 3 bounded coverage rehearsal](../validation/coverage-rehearsal-2026-10-03/README.md) passed isolated scope approval and backup checks but returned **NO_GO** for qualification: federal content refresh, required-family discovery freshness and the legacy identity query remain blocked. Its unrun candidate gates and independent main deployment are recorded explicitly.
 
 | Subject | Documentation or entrypoint |
 | --- | --- |

@@ -1,0 +1,93 @@
+{
+  "readOnly": true,
+  "families": [
+    {
+      "sourceType": "clinical_policy",
+      "required": true,
+      "lastSuccessfulDiscovery": "2026-09-22 19:41:56",
+      "slaDays": 7,
+      "ageDays": 11.068929935497685,
+      "status": "stale"
+    },
+    {
+      "sourceType": "bulletin",
+      "required": true,
+      "lastSuccessfulDiscovery": "2026-09-22 20:49:45",
+      "slaDays": 1,
+      "ageDays": 11.021835028275463,
+      "status": "stale"
+    },
+    {
+      "sourceType": "state_plan_amendment",
+      "required": true,
+      "lastSuccessfulDiscovery": "2026-09-22 19:59:34",
+      "slaDays": 7,
+      "ageDays": 11.056684565335647,
+      "status": "stale"
+    },
+    {
+      "sourceType": "waiver",
+      "required": true,
+      "lastSuccessfulDiscovery": "2026-09-22 19:42:42",
+      "slaDays": 7,
+      "ageDays": 11.068397528310186,
+      "status": "stale"
+    },
+    {
+      "sourceType": "provider_manual",
+      "required": false,
+      "lastSuccessfulDiscovery": null,
+      "slaDays": 7,
+      "ageDays": null,
+      "status": "never"
+    },
+    {
+      "sourceType": "dhhs_policy",
+      "required": true,
+      "lastSuccessfulDiscovery": "2026-09-22 20:43:27",
+      "slaDays": 7,
+      "ageDays": 11.026210028344908,
+      "status": "stale"
+    },
+    {
+      "sourceType": "fee_schedule",
+      "required": false,
+      "lastSuccessfulDiscovery": null,
+      "slaDays": 7,
+      "ageDays": null,
+      "status": "never"
+    },
+    {
+      "sourceType": "billing_guidance",
+      "required": false,
+      "lastSuccessfulDiscovery": null,
+      "slaDays": 7,
+      "ageDays": null,
+      "status": "never"
+    },
+    {
+      "sourceType": "managed_care_guidance",
+      "required": false,
+      "lastSuccessfulDiscovery": null,
+      "slaDays": 7,
+      "ageDays": null,
+      "status": "never"
+    },
+    {
+      "sourceType": "managed_care_contract",
+      "required": false,
+      "lastSuccessfulDiscovery": null,
+      "slaDays": 7,
+      "ageDays": null,
+      "status": "never"
+    },
+    {
+      "sourceType": "beneficiary_guidance",
+      "required": false,
+      "lastSuccessfulDiscovery": "2026-09-22 21:03:55",
+      "slaDays": 1,
+      "ageDays": 11.011997065439816,
+      "status": "stale"
+    }
+  ]
+}

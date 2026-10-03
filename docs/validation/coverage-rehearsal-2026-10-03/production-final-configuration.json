@@ -1,0 +1,31 @@
+{
+  "checkedAt": "2026-10-03T21:24:12.126Z",
+  "agentLatestDeployment": "a23945b1-0d54-475a-b236-3520a3a95d8d",
+  "agentLatestCommit": "d9354a604002f0f1d06503ff54b504fb791500f7",
+  "agentDeploymentAdvancedByIndependentMainMerge": true,
+  "corpusMaintenanceDeployment": "9bb022f4-2ce1-4162-adb3-274f07099bd2",
+  "corpusMaintenanceStartCommand": "sleep infinity",
+  "corpusRestartPolicy": "NEVER",
+  "corpusCron": null,
+  "corpusStagedChanges": null,
+  "agentNeo4jHostname": "neo4j.railway.internal",
+  "rehearsalIssuedDeployment": false,
+  "rehearsalActivatedGraph": false,
+  "agentConfigurationCompared": [
+    "NEO4J_URI",
+    "NEO4J_USER",
+    "NEO4J_PASSWORD",
+    "CORPUS_RELEASE_ID",
+    "AGENT_MODEL",
+    "VERIFIER_MODEL",
+    "VERIFIER_ENABLED",
+    "VERIFIER_MAX_SOURCE_TOKENS",
+    "OPENAI_API_KEY",
+    "ANTHROPIC_API_KEY",
+    "VOYAGE_API_KEY"
+  ],
+  "agentConfigurationChangedKeys": [],
+  "agentGraphReleaseId": "legacy-20260725-ae8595c",
+  "agentModel": "gpt-5.4",
+  "agentVerifierSetting": "default true"
+}

@@ -1,0 +1,9 @@
+{
+  "objectKey": "readiness-evidence/2026-10-03/coverage-rehearsal-evidence-2026-10-03T2133Z.tar.gz",
+  "bytes": 110151,
+  "sha256": "0d230c56f19b76df8ad41527396fdb40ac5e4d02c6dbbd813be6b43a5a520ce6",
+  "uploaded": true,
+  "downloadedContentHashVerified": true,
+  "existingObjectsPruned": false,
+  "productionCorpusMirrorChanged": false
+}

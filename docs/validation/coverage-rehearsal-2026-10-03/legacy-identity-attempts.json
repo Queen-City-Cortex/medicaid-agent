@@ -1,0 +1,24 @@
+{
+  "attempts": [
+    {
+      "implementationRevision": "6099636f2915891ee45e6223e2512651c357c732",
+      "status": "FAILED_INFRASTRUCTURE",
+      "errorType": "Neo.TransientError.General.OutOfMemoryError",
+      "directMemoryUsed": 532676608,
+      "directMemoryLimit": 536870912,
+      "allocationRequested": 25165824,
+      "fullMappingCompleted": false
+    },
+    {
+      "implementationRevision": "46a91dae97964e2d1c075d178f78f41b347a64b8",
+      "status": "FAILED_INFRASTRUCTURE",
+      "errorType": "neo4j.exceptions.ServiceUnavailable",
+      "reason": "Failed to read from defunct connection to neo4j.railway.internal:7687",
+      "fullMappingCompleted": false
+    }
+  ],
+  "configurationChangesMade": false,
+  "benchmarkRunsCompleted": 0,
+  "missingIdentitiesAssessed": false,
+  "ambiguousIdentitiesAssessed": false
+}

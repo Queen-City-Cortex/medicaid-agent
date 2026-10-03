@@ -1,0 +1,23 @@
+{
+  "archives": [
+    {
+      "objectKey": "backups/corpus/corpus-rehearsal-pre-scope-2026-10-03T2104Z.tar.gz.age",
+      "bytes": 2688175048,
+      "sha256": "e3443083490f9d4e20ae9c34cd7284baf8d65c7b6fdbfeeb8bd68b8828d9dd19",
+      "uploaded": true,
+      "downloadedContentHashVerified": true,
+      "existingObjectsPruned": false,
+      "productionCorpusMirrorChanged": false
+    },
+    {
+      "objectKey": "backups/corpus/corpus-rehearsal-scoped-2026-10-03T2122Z.tar.gz.age",
+      "bytes": 2688175048,
+      "sha256": "3fc96134b07f720e83d12fdc06c188fee3f5c633a35f1c66bcce2f03a454bbac",
+      "uploaded": true,
+      "downloadedContentHashVerified": true,
+      "existingObjectsPruned": false,
+      "productionCorpusMirrorChanged": false
+    }
+  ],
+  "allUploadedAndDownloadedContentVerified": true
+}
