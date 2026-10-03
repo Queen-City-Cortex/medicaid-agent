@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "firstEvidencePrCiRun": 37085888344,
+  "originalEvidenceHead": "182dab01b3312fa6428b0331acca7c9514045e32",
+  "productionAuditFailure": true,
+  "separateDockerFailure": "GHCR 429 pulling pinned uv image",
+  "probeImageSizeBefore": "7.2.3",
+  "probeImageSizeAfter": "7.4.0",
+  "overrideScope": "@mastra/memory",
+  "shadcnClassification": "development/build dependency; version unchanged",
+  "otherDependencyVersionsChanged": false,
+  "productionAuditPassed": true,
+  "agentTestsPassed": 398,
+  "agentBuildPassed": true,
+  "agentTestTypecheckPassed": true,
+  "webTestsPassed": true,
+  "webBuildPassed": true,
+  "pngDimensionsPreserved": true,
+  "malformedSvgUnderOneSecond": true,
+  "liveAcceptanceRevision": "368744e02e00043c740687dd14294d62caad18c4",
+  "liveAcceptanceAppliesToLaterDeployment": false
+}

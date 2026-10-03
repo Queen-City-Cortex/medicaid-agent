@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "objectKey": "readiness-evidence/2026-10-02/chat-acceptance-evidence.tar.gz",
-  "sha256": "ffc62a6dd5e9e3a27fa63663391a4fc00765ff8338dc9806092c6969c5fe25d4",
-  "bytes": 7990,
+  "objectKey": "readiness-evidence/2026-10-02/chat-acceptance-evidence-v2.tar.gz",
+  "sha256": "5de1d08ac30e9ad6a5b63d5a652ac931b5b972d6ec267f0359be54baaac6d282",
+  "bytes": 8841,
   "downloadVerified": true,
-  "memberCount": 18,
+  "memberCount": 19,
   "members": [
     "README.md",
     "state.json",
@@ -23,7 +23,8 @@
     "browser-smoke.json",
     "live-cleanup.json",
     "service-state.json",
-    "private-live-publication.json"
+    "private-live-publication.json",
+    "audit-follow-up.json"
   ],
   "excludes": [
     "credentials",
