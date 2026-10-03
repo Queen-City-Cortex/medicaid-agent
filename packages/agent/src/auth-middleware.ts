@@ -16,8 +16,8 @@ export interface TokenVerifier {
  * Resolves the authenticated user id at middleware time.
  *
  * Mastra authenticates per-route (`checkRouteAuth` inside route handling),
- * which runs AFTER `server.middleware` — so `requestContext.get('user')` is
- * empty when middleware executes and anything gating on it silently no-ops.
+ * which runs AFTER `server.middleware`. Its legacy `user` context key can
+ * already contain client input, so it cannot establish authenticated identity.
  * The middleware therefore verifies the Bearer token itself. The verifier is
  * a `MastraAuthWorkos` constructed with `trustJwtClaims: true`: a local
  * JWKS signature check (no per-request WorkOS API call) whose JWT-derived
@@ -29,11 +29,6 @@ async function resolveAuthenticatedUserId(
   c: ContextWithMastra,
   verifier: TokenVerifier,
 ): Promise<string | null> {
-  const rc = c.get('requestContext');
-  const ctxUser = rc?.get?.('user') as { userId?: string; id?: string } | undefined;
-  const fromContext = ctxUser?.userId ?? ctxUser?.id;
-  if (fromContext) return String(fromContext);
-
   const authHeader = c.req.header('authorization');
   const token = authHeader?.startsWith('Bearer ') ? authHeader.slice('Bearer '.length) : null;
   if (!token) return null;
@@ -63,10 +58,13 @@ async function resolveAuthenticatedUserId(
  */
 export function createResourceBindingMiddleware(verifier: TokenVerifier) {
   return async function bindResourceToAuthenticatedUser(c: ContextWithMastra, next: Next): Promise<void> {
-    const userId = await resolveAuthenticatedUserId(c, verifier);
     const rc = c.get('requestContext');
-    if (userId && rc?.set) {
-      rc.set(MASTRA_RESOURCE_ID_KEY, userId);
+    // The framework's legacy user key is not reserved from client merges.
+    // Per-route authentication will populate it with a verified user later.
+    rc?.set?.('user', undefined);
+    const userId = await resolveAuthenticatedUserId(c, verifier);
+    if (rc?.set) {
+      rc.set(MASTRA_RESOURCE_ID_KEY, userId ?? undefined);
     }
     await next();
   };

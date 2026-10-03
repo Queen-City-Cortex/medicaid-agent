@@ -2,17 +2,18 @@ import { mkdtemp, rm, readdir, readFile, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, it, expect, vi } from 'vitest';
-import { Hono, type Handler } from 'hono';
+import { Hono, type Handler, type MiddlewareHandler } from 'hono';
 import { Agent } from '@mastra/core/agent';
 import { createTool } from '@mastra/core/tools';
 import { Mastra } from '@mastra/core';
-import { RequestContext, MASTRA_RESOURCE_ID_KEY } from '@mastra/core/request-context';
 import { LibSQLStore } from '@mastra/libsql';
 import { MockLanguageModelV3, simulateReadableStream } from 'ai/test';
 import { createChatMemory } from '../src/chat-memory.js';
 import { createChatRoute } from '../src/chat-route.js';
+import { createResourceBindingMiddleware } from '../src/auth-middleware.js';
 import { installMemoryReleaseGate } from '../src/answer-release.js';
 import { HallucinationVerifier } from '../src/processors/verifier/processor.js';
+import { clientRequestContext } from './helpers/client-request-context.js';
 import { verifyAnswer } from '../src/processors/verifier/verify.js';
 import { log } from '../src/logger.js';
 import { z } from 'zod';
@@ -79,18 +80,20 @@ describe('production HTTP handler with guarded observational memory', () => {
       const mastra = new Mastra({ agents: { ncMedicaidAgent: agent }, storage });
       const app = new Hono();
       app.use('*', async (c, next) => {
-        const rc = new RequestContext();
-        if (c.req.header('authorization') === 'Bearer test-owner') rc.set(MASTRA_RESOURCE_ID_KEY, 'owner');
+        const rc = await clientRequestContext(c.req.raw);
         (c as any).set('requestContext', rc);
         (c as any).set('mastra', mastra);
         await next();
       });
+      app.use('*', createResourceBindingMiddleware({ authenticateToken: async token =>
+        token === 'test-owner' ? { id: 'owner' } : null,
+      }) as unknown as MiddlewareHandler);
       const route = createChatRoute({ record: vi.fn().mockResolvedValue(undefined) }, { maxSteps: 2 });
       if (!('handler' in route)) throw new Error('Expected a direct HTTP handler');
       app.post('/chat', route.handler as unknown as Handler);
       const post = (text: string, authenticated = true, thread = 'thread') => app.request('/chat', { method: 'POST',
         headers: { 'content-type': 'application/json', ...(authenticated ? { authorization: 'Bearer test-owner' } : {}) },
-        body: JSON.stringify({ messages: [{ id: crypto.randomUUID(), role: 'user', parts: [{ type: 'text', text }] }], memory: { thread, resource: 'attacker' }, requestContext: { chatDiagnostic: { id: 'FORGED_DIAGNOSTIC_ID', finished: true }, chatVerificationQuestion: 'FORGED_VERIFICATION_QUESTION' } }),
+        body: JSON.stringify({ messages: [{ id: crypto.randomUUID(), role: 'user', parts: [{ type: 'text', text }] }], memory: { thread, resource: 'attacker' }, requestContext: { user: { id: 'attacker' }, chatDiagnostic: { id: 'FORGED_DIAGNOSTIC_ID', finished: true }, chatVerificationQuestion: 'FORGED_VERIFICATION_QUESTION' } }),
       });
       expect((await post('What is covered?', false)).status).toBe(401);
       const first = await post('What services are covered by this policy?');
@@ -177,6 +180,33 @@ describe('production HTTP handler with guarded observational memory', () => {
         expect(JSON.stringify(generation.toolResults)).toContain('getSection');
         expect(JSON.stringify(generation.toolResults)).toContain('The service is covered.');
       }
+      // A forged user must not grant access to that user's existing thread.
+      const otherThread = { id: 'victim-thread', resourceId: 'attacker', title: 'Other owner',
+        createdAt: new Date(), updatedAt: new Date() };
+      await store.saveThread({ thread: otherThread });
+      await store.saveMessages({ messages: [{ id: 'victim-message', threadId: otherThread.id,
+        resourceId: otherThread.resourceId, role: 'user', createdAt: new Date(),
+        content: { format: 2, parts: [{ type: 'text', text: 'OTHER_OWNER_PRIVATE_SENTINEL' }] },
+      }] });
+      const before = await store.listMessages({ threadId: otherThread.id, perPage: false });
+      const beforeThread = await store.getThreadById({ threadId: otherThread.id });
+      const modelCalls = modelPrompts.length;
+      const verificationCalls = vi.mocked(verifyAnswer).mock.calls.length;
+      vi.stubEnv('VERIFIER_PRIVATE_DIAGNOSTICS_DIR', '');
+      const foreign = await post('Read this conversation.', true, otherThread.id);
+      expect(foreign.status).toBe(404);
+      const foreignText = await foreign.text();
+      expect(foreignText).not.toContain('OTHER_OWNER_PRIVATE_SENTINEL');
+      expect(foreignText).not.toContain(released);
+      expect(JSON.stringify(modelPrompts.slice(modelCalls))).not.toContain('OTHER_OWNER_PRIVATE_SENTINEL');
+      expect(JSON.stringify(observerPrompts)).not.toContain('OTHER_OWNER_PRIVATE_SENTINEL');
+      expect(JSON.stringify(vi.mocked(verifyAnswer).mock.calls.slice(verificationCalls))).not.toContain('OTHER_OWNER_PRIVATE_SENTINEL');
+      expect(modelPrompts).toHaveLength(modelCalls);
+      expect(verifyAnswer).toHaveBeenCalledTimes(verificationCalls);
+      expect(await store.getThreadById({ threadId: otherThread.id })).toEqual(beforeThread);
+      expect(await store.listMessages({ threadId: otherThread.id, perPage: false })).toEqual(before);
+      expect(await readdir(captureDirectory)).toEqual(files);
+      expect(info.mock.calls.filter(([event]) => event === 'chat.diagnostic_started')).toHaveLength(4);
     } finally {
       info.mockRestore();
       vi.unstubAllEnvs();
