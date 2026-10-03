@@ -25,6 +25,22 @@ from tests.fakes import RecordingGraphWriter
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
 
+@pytest.mark.parametrize("source_type", ["dhhs_policy", "waiver"])
+def test_null_registry_title_uses_source_filename_without_changing_identity(monkeypatch, tmp_path, source_type):
+    path = tmp_path / "original-policy.json"
+    path.write_text(json.dumps({"synthetic_sections": [{"title": "Procedure", "content_text": "Retained procedure text."}]}))
+    writer = RecordingGraphWriter()
+    monkeypatch.setattr("pipeline.graph.loader.graph_writer", writer)
+    context = {"meta": {}, "source_file_path": Path("original-policy.pdf"),
+               "crawler_meta": {"title": None, "source_url": "https://example.org/original-policy.pdf", "status": "downloaded"},
+               "document_id": "doc:original-source", "exclusion_reason": None}
+    result = load_document(path, source_type, load_context=context)
+    bundle, = writer.received("upsert_document_bundle")
+    assert result["document_id"] == "doc:original-source"
+    assert bundle.document.title == "original-policy"
+    assert bundle.document.source_url == context["crawler_meta"]["source_url"]
+
+
 def test_beneficiary_guidance_does_not_invent_document_effective_date():
     sections = [
         {
