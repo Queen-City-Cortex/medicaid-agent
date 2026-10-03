@@ -149,7 +149,20 @@ export function validateSemanticArticleHtml(
   const semanticArticle = article.clone();
   semanticArticle.find('script, style, nav, aside, form').remove();
 
-  const heading = normalizeHtmlText(semanticArticle.find('h1').first().text());
+  let heading = normalizeHtmlText(semanticArticle.find('h1').first().text());
+  if (!heading) {
+    // Drupal blog pages put the page heading before the article and explicitly
+    // associate it with the enclosing main landmark. Do not borrow an arbitrary
+    // page heading for an unrelated or ambiguous article.
+    const main = article.closest('main[aria-labelledby]');
+    const labelIds = (main.attr('aria-labelledby') ?? '').split(/\s+/).filter(Boolean);
+    const labels = main.find('h1').filter((_i, element) =>
+      labelIds.includes($(element).attr('id') ?? ''),
+    );
+    if (main.find('article').length === 1 && labels.length === 1) {
+      heading = normalizeHtmlText(labels.text());
+    }
+  }
   const normalizedExpectedTitle = normalizeHtmlText(expectedTitle ?? '');
   if (
     normalizedExpectedTitle

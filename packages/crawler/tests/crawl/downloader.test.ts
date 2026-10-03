@@ -299,6 +299,33 @@ describe('downloadDocument', () => {
     expect(result.info?.local_path).toMatch(/bulletins\/.*\.html$/);
   });
 
+  it('accepts the declared bulletin with its Drupal page heading outside the article', async () => {
+    const doc = makeDoc({ source_type: 'bulletin', policy_number: null,
+      source_url: 'https://medicaid.ncdhhs.gov/blog/2024/09/25/reminder-key-covid-19-changes-effective-oct-1-2024',
+      title: 'Reminder: Key COVID-19 Changes Effective Oct. 1, 2024' });
+    const html = '<!DOCTYPE html><html><body><main aria-labelledby="page-title"><section><header><h1 id="page-title">Reminder: Key COVID-19 Changes Effective Oct. 1, 2024</h1></header><article><h2>OTC COVID-19 tests</h2><p>The dated payment bulletin explains that pharmacy POS coverage ends Sept. 30, 2024, with changes effective Oct. 1, 2024.</p></article></section></main></body></html>';
+    const result = await downloadDocument(doc, fetcherWriting(html, { 'content-type': 'text/html' }), new Set());
+    expect(result.action).toBe('downloaded');
+    expect(result.info?.local_path).toMatch(/bulletins\/.*\.html$/);
+  });
+
+  it.each([
+    ['unassociated heading', '<main><h1 id="page-title">Reminder: Key COVID-19 Changes Effective Oct. 1, 2024</h1><article>BODY</article></main>'],
+    ['wrong landmark label', '<main aria-labelledby="other-title"><h1 id="page-title">Reminder: Key COVID-19 Changes Effective Oct. 1, 2024</h1><h1 id="other-title">Service unavailable</h1><article>BODY</article></main>'],
+    ['multiple articles', '<main aria-labelledby="page-title"><h1 id="page-title">Reminder: Key COVID-19 Changes Effective Oct. 1, 2024</h1><article>BODY</article><article>BODY</article></main>'],
+    ['contradictory article title', '<main aria-labelledby="page-title"><h1 id="page-title">Reminder: Key COVID-19 Changes Effective Oct. 1, 2024</h1><article><h1>Service unavailable</h1>BODY</article></main>'],
+  ])('rejects a bulletin with an %s', async (_name, structure) => {
+    const doc = makeDoc({ source_type: 'bulletin', policy_number: null,
+      source_url: 'https://medicaid.ncdhhs.gov/blog/2024/09/25/reminder-key-covid-19-changes-effective-oct-1-2024',
+      title: 'Reminder: Key COVID-19 Changes Effective Oct. 1, 2024' });
+    const body = '<p>This substantive-looking article body must not authorize an unrelated page heading or an ambiguous document identity.</p>';
+    const html = '<!DOCTYPE html><html><body>' + structure.replaceAll('BODY', body) + '</body></html>';
+    const result = await downloadDocument(doc, fetcherWriting(html, { 'content-type': 'text/html' }), new Set());
+    expect(result.action).toBe('error');
+    expect(result.error).toMatch(/expected document title/i);
+    expect(fs.existsSync(path.join(config.documentsDir, 'bulletins', `.download-${doc.id}.tmp`))).toBe(false);
+  });
+
   it('does not let HTML allowance turn an unreviewed failed PDF into an HTML document', async () => {
     const doc = makeDoc({ source_type: 'bulletin', title: 'Missing attachment', source_url: 'https://medicaid.ncdhhs.gov/missing-attachment.pdf' });
     const html = '<!DOCTYPE html><html><body><article><h1>Missing attachment</h1><p>This is a substantive looking wrapper but it does not contain the requested original attachment.</p></article></body></html>';
