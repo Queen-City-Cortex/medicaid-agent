@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "objectKey": "readiness-evidence/2026-10-02/chat-acceptance-evidence-v2.tar.gz",
+  "sha256": "5de1d08ac30e9ad6a5b63d5a652ac931b5b972d6ec267f0359be54baaac6d282",
+  "bytes": 8841,
+  "downloadVerified": true,
+  "memberCount": 19,
+  "members": [
+    "README.md",
+    "state.json",
+    "http-diagnostic-summary.json",
+    "regression-receipts.json",
+    "agent-backup-receipt.json",
+    "private-evidence-publication.json",
+    "private-evidence-publication-initial.json",
+    "diagnostic-cleanup.json",
+    "deployment-receipt.json",
+    "runtime-inspection.json",
+    "health-checks.json",
+    "merged-ci.json",
+    "epsdt-smoke-batch.json",
+    "answer-review.json",
+    "browser-smoke.json",
+    "live-cleanup.json",
+    "service-state.json",
+    "private-live-publication.json",
+    "audit-follow-up.json"
+  ],
+  "excludes": [
+    "credentials",
+    "provider logs",
+    "browser screenshots",
+    "private draft and verification captures",
+    "ownership identifiers",
+    "plaintext databases",
+    "signing keys",
+    "this self-referential publication receipt"
+  ]
+}

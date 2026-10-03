@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "status": "CHAT_ACCEPTANCE_PASSED",
+  "repairPr": 194,
+  "originalHttpFailureCauseEstablished": false,
+  "independentCompactionDefectsReproduced": [
+    "retrieved tool results evicted before verification",
+    "latest user question replaced with a memory reminder"
+  ],
+  "targetedAttemptBudget": 3,
+  "previousCliAttempts": 1,
+  "newHttpAttempts": 2,
+  "budgetExhausted": true,
+  "diagnosticBundleSha256": "f8d9d8afe5560d8d01e6e46483b1a2cb6376668d0e9238f66d1e84f10f607a58",
+  "diagnosticBundleDescription": "Main plus initial capture instrumentation, built before compaction repair; application dependencies from the deployed production image",
+  "localChecks": {
+    "agentTestsPassed": 398,
+    "agentNeo4jTestsSkippedLocally": 9,
+    "agentBuild": true,
+    "testTypecheck": true,
+    "agentLint": true,
+    "productionAudit": true
+  },
+  "fixedAcceptanceBatch": "PASSED_3_OF_3",
+  "browserAcceptance": "PASSED",
+  "activeGraph": "legacy-20260725-ae8595c",
+  "requiredSourceFailures": 7,
+  "candidateQualification": "NOT_ASSESSED",
+  "candidateActivation": "NOT_RUN",
+  "scheduling": "UNCHANGED_OFF",
+  "overallReadiness": "NO_GO_REQUIRED_SOURCES",
+  "repairMergeRevision": "368744e02e00043c740687dd14294d62caad18c4",
+  "reviewedRepairHead": "4a50d4aa6ade60649260143a90322e2123009cce",
+  "repairFinalHeadCi": "PASSED",
+  "mergedCi": "PASSED",
+  "repairReview": "PASSED",
+  "deploymentId": "b07cfc7c-76da-4b51-a886-5e2f7ba6b4b5",
+  "ownedSyntheticThreadsRemoved": 4,
+  "productionSigningKeyContinuity": true,
+  "productionDiagnosticsEnabled": false
+}

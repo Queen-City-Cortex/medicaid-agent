@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "checks": [
+    {
+      "route": "/readyz",
+      "status": 200,
+      "body": {
+        "status": "ok",
+        "config": "valid",
+        "neo4j": "connected",
+        "storage": "writable",
+        "releaseId": "legacy-20260725-ae8595c"
+      }
+    },
+    {
+      "route": "/corpus-status",
+      "status": 200,
+      "body": {
+        "lastUpdated": "2026-06-17T03:43:06.778Z",
+        "documentCount": 6725,
+        "releaseId": "legacy-20260725-ae8595c",
+        "retrievalMode": "hybrid"
+      }
+    },
+    {
+      "route": "/dependencyz",
+      "status": 200,
+      "body": {
+        "status": "ok",
+        "voyage": "ok",
+        "openai": "ok"
+      }
+    }
+  ]
+}

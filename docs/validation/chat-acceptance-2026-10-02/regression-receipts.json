@@ -1,0 +1,26 @@
+[
+  {
+    "case": "pre-fix-evidence-loss",
+    "exitCode": 1,
+    "reproduced": true,
+    "realHttpHandler": true,
+    "realStorage": true,
+    "forcedObservation": true,
+    "evidenceExtractionMocked": false,
+    "modelResponsesMocked": true,
+    "variant": "Original route and processor; extended HTTP fixture with real extraction",
+    "beforeRepairBehavior": "Withheld as invalid_citation after observational memory evicted retrieved evidence"
+  },
+  {
+    "case": "pre-fix-question-loss",
+    "exitCode": 1,
+    "reproduced": true,
+    "realHttpHandler": true,
+    "realStorage": true,
+    "forcedObservation": true,
+    "evidenceExtractionMocked": false,
+    "modelResponsesMocked": true,
+    "variant": "Evidence retention repair present; original question binding omitted to isolate question loss",
+    "beforeRepairBehavior": "Verifier question became an internal memory reminder"
+  }
+]

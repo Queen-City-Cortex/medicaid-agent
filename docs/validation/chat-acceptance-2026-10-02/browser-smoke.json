@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "mode": "readiness_diagnostic",
+  "startedAt": "2026-10-03T01:15:05.858Z",
+  "releaseId": "legacy-20260725-ae8595c",
+  "login": "passed",
+  "answer": {
+    "outcome": "passed",
+    "characters": 3875
+  },
+  "persistence": "passed",
+  "feedback": {
+    "created": true,
+    "persisted": true,
+    "removed": true
+  },
+  "logout": {
+    "signedOut": true,
+    "protectedChatRequiresLogin": true
+  },
+  "completedAt": "2026-10-03T01:15:54.533Z",
+  "ownedThreadsCreated": 1
+}

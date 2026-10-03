@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "reviewScope": "Meaningful cited response to the fixed EPSDT smoke question; not representative quality qualification",
+  "attempts": [
+    {
+      "attempt": 1,
+      "releasedTextReviewed": true,
+      "addressesScreeningDiagnosisAndTreatment": true,
+      "containsLinkedCitations": true,
+      "notDisclaimerOnly": true
+    },
+    {
+      "attempt": 2,
+      "releasedTextReviewed": true,
+      "addressesScreeningDiagnosisAndTreatment": true,
+      "containsLinkedCitations": true,
+      "notDisclaimerOnly": true
+    },
+    {
+      "attempt": 3,
+      "releasedTextReviewed": true,
+      "addressesScreeningDiagnosisAndTreatment": true,
+      "containsLinkedCitations": true,
+      "notDisclaimerOnly": true
+    }
+  ]
+}

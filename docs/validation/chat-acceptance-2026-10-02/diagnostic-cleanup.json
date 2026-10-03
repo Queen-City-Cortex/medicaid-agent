@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "diagnosticProcessesStopped": true,
+  "ownedRemoteDirectoryRemoved": true,
+  "productionSigningKeyUnchanged": true,
+  "productionDiagnosticsFlagSet": false,
+  "productionStorageUsedByDiagnostics": false
+}
