@@ -39,3 +39,9 @@ The guard rejects unknown environment keys, wrong variants, modified files, inco
 Both graphs carry `FeeCompactionDiagnostic` with `promotable=false` and `qualification=NOT_ASSESSED`. They cannot serve as release qualification. Reparsing changes the corpus snapshot and invalidates the old four scope approvals; registry copies preserve those rows without rebinding them. The 99-identity mixed-corpus catalog has no fee-schedule entries, so these graphs cannot establish 99/99 qualification. Projected full-corpus costs may add unchanged non-fee totals from the prerequisite's frozen inspection, and must be labelled projections rather than measured full-corpus runs.
 
 No activation, merge, deployment, scope renewal, agency contact, provider spend, PDF padding changes, XLS conversion fixes or embedding-plan reconciliation is authorized by this lane.
+
+## Follow-up: exact fee lookup
+
+Typed relational rows and an exact lookup tool are the preferred next candidate for numeric fee questions. Start with offline layout profiling, then map the common layouts to procedure code, modifier, rate/unit, effective period and applicable provider/program fields. Store the original workbook hash, sheet and row/column coordinates alongside every mapped value; quarantine ambiguous layouts rather than guessing column meanings or dates.
+
+An agent lookup tool needs policy-family routing and verifier support for cited rows, plus a fee-specific question set. Retain embeddings for schedule descriptions, notes and billing-rule prose. Remove mapped row bodies from embedding only after exact lookup demonstrates reliable coverage; unmapped sheets continue to require explicit handling. This is future work, not part of this diagnostic implementation or an approved rollout.

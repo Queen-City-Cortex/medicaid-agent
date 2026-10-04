@@ -66,6 +66,18 @@ def validate_tree(root, variant, inventory, summary, inventory_path, summary_pat
                 raise ValueError("Candidate XLSX lacks current representation")
 
 
+def graph_identity(session):
+    """Compare canonical graph identities, hierarchy and real eligibility properties."""
+    identity = {}
+    for label in ("Document", "Section"):
+        fields = "n.id AS id,n.title AS title,n.document_type AS source_type,n.source_url AS source_url,n.answer_ready AS answer_ready,n.retrieval_ready AS retrieval_ready,n.authority_tier AS authority_tier,n.answer_role AS answer_role,n.source_format AS source_format,n.effective_date AS effective_date,n.corpus_bucket AS corpus_bucket,n.variant_group AS variant_group,n.variant_date AS variant_date" if label == "Document" else "n.id AS id,n.title AS title,n.section_number AS section_number,n.level AS level,n.has_tables AS has_tables"
+        identity[label] = [dict(row) for row in session.run(f"MATCH (n:{label}) RETURN {fields} ORDER BY n.id")]
+    identity["relationships"] = [dict(row) for row in session.run("MATCH (a)-[r]->(b) WHERE a:Document OR a:Section RETURN a.id AS source,type(r) AS kind,b.id AS target ORDER BY source,kind,target")]
+    if any(row["source_type"] != "fee_schedule" or not row["answer_ready"] for row in identity["Document"]):
+        raise ValueError("Diagnostic contains an ineligible or non-fee document")
+    return identity
+
+
 def main(variant):
     target = guard(os.environ, [line.split() for line in Path("/proc/mounts").read_text().splitlines()], variant)
     original_connect, original_ex = socket.socket.connect, socket.socket.connect_ex
@@ -108,12 +120,8 @@ def main(variant):
     stats = loader.load_all("fee_schedule", reset=False)
     if stats["errors"] or stats["skipped"] or stats["loaded"] != summary["eligible_documents"]:
         raise ValueError(f"Incomplete fee-only graph: {stats}")
-    identity = {}
     with connection.get_session() as session:
-        for label in ("Document", "Section"):
-            fields = "n.id AS id,n.title AS title,n.source_type AS source_type,n.source_url AS source_url" if label == "Document" else "n.id AS id,n.title AS title,n.section_number AS section_number,n.level AS level,n.has_tables AS has_tables"
-            identity[label] = [dict(row) for row in session.run(f"MATCH (n:{label}) RETURN {fields} ORDER BY n.id")]
-        identity["relationships"] = [dict(row) for row in session.run("MATCH (a)-[r]->(b) WHERE a:Document OR a:Section RETURN a.id AS source,type(r) AS kind,b.id AS target ORDER BY source,kind,target")]
+        identity = graph_identity(session)
         if session.run("MATCH (n) WHERE n.embedding IS NOT NULL OR n:Chunk RETURN count(n) AS count").single()["count"]:
             raise ValueError("Diagnostic graph must have no vectors or chunks")
         session.run("CREATE (:FeeCompactionDiagnostic {variant:$variant,promotable:false,qualification:'NOT_ASSESSED'})", variant=variant).consume()
