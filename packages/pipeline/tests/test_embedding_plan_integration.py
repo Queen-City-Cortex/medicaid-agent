@@ -111,3 +111,182 @@ def test_stale_and_extra_paths_fail_coverage(monkeypatch):
             id=row["section_id"],
         ).consume()
     assert plan_graph.embedding_coverage("mock", 2)["covered"] == 0
+
+
+def test_partial_provider_failure_resumes_only_remaining_inputs(monkeypatch):
+    monkeypatch.setattr(generator, "VOYAGE_API_KEY", "mock-only")
+    monkeypatch.setattr(generator, "EMBEDDING_DIMENSIONS", 2)
+    monkeypatch.setattr(
+        generator,
+        "validate_embedding_coverage",
+        lambda model: plan_graph.embedding_coverage(model, 2),
+    )
+    with get_session() as session:
+        session.run(
+            "MATCH (s:Section {id:$id}) SET s.content_text=$body",
+            id=PREFIX + "s",
+            body="A" * 130000,
+        ).consume()
+    attempts = []
+
+    def fail_second(texts, **kwargs):
+        attempts.append(len(texts))
+        if len(attempts) == 2:
+            raise RuntimeError("simulated second-batch failure")
+        return [[0.0, 1.0] for _ in texts]
+
+    monkeypatch.setattr(generator, "voyage_embed", fail_second)
+    with pytest.raises(RuntimeError, match="second-batch"):
+        generator.embed_all("mock")
+    with get_session() as session:
+        completed = session.run(
+            "MATCH (ch:Chunk) WHERE ch.embedding IS NOT NULL RETURN count(ch) AS n"
+        ).single()["n"]
+        total = session.run("MATCH (ch:Chunk) RETURN count(ch) AS n").single()["n"]
+    assert completed == 6 and total == 15
+    resumed = []
+
+    def complete(texts, **kwargs):
+        resumed.extend(texts)
+        return [[0.0, 1.0] for _ in texts]
+
+    monkeypatch.setattr(generator, "voyage_embed", complete)
+    assert generator.embed_all("mock")["embedded"] == 9
+    assert len(resumed) == 9
+    assert plan_graph.embedding_coverage("mock", 2)["covered"] == 1
+
+
+@pytest.mark.parametrize(
+    "fault", ["cycle", "no_document", "two_documents", "missing_id"]
+)
+def test_bad_context_topology_is_rejected(fault):
+    with get_session() as session:
+        if fault == "cycle":
+            session.run(
+                "MATCH (a:Section {id:$a}), (b:Section {id:$b}) CREATE (b)-[:PARENT_OF]->(a)",
+                a=PREFIX + "a",
+                b=PREFIX + "b",
+            ).consume()
+        elif fault == "no_document":
+            session.run(
+                "MATCH (:Document)-[r:HAS_SECTION]->(s:Section {id:$id}) DELETE r",
+                id=PREFIX + "s",
+            ).consume()
+        elif fault == "two_documents":
+            session.run(
+                "MATCH (s:Section {id:$id}) CREATE (d:Document {id:$d})-[:HAS_SECTION]->(s)",
+                id=PREFIX + "s",
+                d=PREFIX + "extra",
+            ).consume()
+        else:
+            session.run(
+                'MATCH (s:Section {id:$id}) SET s.id=""', id=PREFIX + "s"
+            ).consume()
+    try:
+        with pytest.raises(ValueError):
+            list(plan_graph.iter_sections())
+    finally:
+        if fault == "missing_id":
+            with get_session() as session:
+                session.run(
+                    'MATCH (s:Section {id:""}) SET s.id=$id', id=PREFIX + "s"
+                ).consume()
+
+
+@pytest.mark.parametrize("fault", ["orphan", "shared"])
+def test_invalid_chunk_ownership_cannot_pass_or_embed(monkeypatch, fault):
+    row = next(r for r in plan_graph.iter_sections() if r["body"])
+    parts = list(plan_inputs(row["body"], row["context"]))
+    generator._persist_plan(row["section_id"], parts, "mock", 2)
+    with get_session() as session:
+        session.run("MATCH (ch:Chunk) SET ch.embedding=[0.0,1.0]").consume()
+        if fault == "orphan":
+            session.run("CREATE (:Chunk {id:$id})", id=PREFIX + "orphan").consume()
+        else:
+            session.run(
+                "MATCH (s:Section {id:$s}), (ch:Chunk {id:$ch}) CREATE (s)-[:HAS_CHUNK]->(ch)",
+                s=PREFIX + "a",
+                ch=PREFIX + "s:chunk:0",
+            ).consume()
+    coverage = plan_graph.embedding_coverage("mock", 2)
+    assert coverage["covered"] < coverage["total"]
+    monkeypatch.setattr(generator, "VOYAGE_API_KEY", "mock-only")
+    monkeypatch.setattr(
+        generator, "voyage_embed", lambda *a, **k: pytest.fail("provider called")
+    )
+    with pytest.raises(RuntimeError, match="ownership"):
+        generator.embed_all("mock")
+
+
+def test_legacy_vector_refused_by_real_query(monkeypatch):
+    with get_session() as session:
+        session.run(
+            "MATCH (s:Section {id:$id}) SET s.embedding=[0.0,1.0]", id=PREFIX + "s"
+        ).consume()
+    monkeypatch.setattr(generator, "VOYAGE_API_KEY", "mock-only")
+    monkeypatch.setattr(
+        generator, "voyage_embed", lambda *a, **k: pytest.fail("provider called")
+    )
+    with pytest.raises(RuntimeError, match="Unversioned"):
+        generator.embed_all("mock")
+    with get_session() as session:
+        assert session.run(
+            "MATCH (s:Section {id:$id}) RETURN s.embedding AS v", id=PREFIX + "s"
+        ).single()["v"] == [0.0, 1.0]
+
+
+def test_empty_section_stale_plan_is_cleared(monkeypatch):
+    with get_session() as session:
+        session.run(
+            'MATCH (s:Section {id:$id}) SET s.embedding=[0.0,1.0], s.embedding_fingerprint="stale"',
+            id=PREFIX + "a",
+        ).consume()
+    coverage = plan_graph.embedding_coverage("mock", 2)
+    assert coverage["covered"] < coverage["total"]
+    monkeypatch.setattr(generator, "VOYAGE_API_KEY", "mock-only")
+    monkeypatch.setattr(generator, "EMBEDDING_DIMENSIONS", 2)
+    monkeypatch.setattr(
+        generator, "voyage_embed", lambda texts, **k: [[0.0, 1.0] for _ in texts]
+    )
+    monkeypatch.setattr(
+        generator,
+        "validate_embedding_coverage",
+        lambda model: plan_graph.embedding_coverage(model, 2),
+    )
+    generator.embed_all("mock")
+    with get_session() as session:
+        row = session.run(
+            "MATCH (s:Section {id:$id}) RETURN s.embedding AS v,s.embedding_fingerprint AS fp",
+            id=PREFIX + "a",
+        ).single()
+        assert row["v"] is None and row["fp"] is None
+    assert plan_graph.embedding_coverage("mock", 2)["total"] == 1
+
+
+def test_guard_mismatch_rolls_back_other_vector_writes(monkeypatch):
+    row = next(r for r in plan_graph.iter_sections() if r["body"])
+    parts = list(plan_inputs(row["body"], row["context"]))
+    generator._persist_plan(row["section_id"], parts, "mock", 2)
+    items = [
+        {
+            "id": plan_graph.input_id(row["section_id"], p),
+            "kind": "chunk",
+            "text": p.text,
+            "fingerprint": p.fingerprint("mock", 2),
+        }
+        for p in parts[:2]
+    ]
+    items[1]["fingerprint"] = "mismatch"
+    monkeypatch.setattr(generator, "EMBEDDING_DIMENSIONS", 2)
+    monkeypatch.setattr(
+        generator, "voyage_embed", lambda texts, **kw: [[0.0, 1.0] for _ in texts]
+    )
+    with pytest.raises(RuntimeError, match="guarded"):
+        generator._flush_batch("mock", items, {"embedded": 0})
+    with get_session() as session:
+        assert (
+            session.run(
+                "MATCH (ch:Chunk) WHERE ch.embedding IS NOT NULL RETURN count(ch) AS n"
+            ).single()["n"]
+            == 0
+        )

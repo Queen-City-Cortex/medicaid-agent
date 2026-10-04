@@ -32,6 +32,12 @@ def _artifacts_valid(path, meta):
 def reconcile_parse_orphans(corpus: Path) -> dict:
     """Exclude duplicate retained parses only after comparing actual source bytes."""
     db = corpus / "crawler/crawler.db"
+    for suffix in ("-wal", "-journal"):
+        pending = Path(str(db) + suffix)
+        if pending.exists() and pending.stat().st_size:
+            raise ValueError("Checkpoint the registry before read-only reconciliation")
+    original_registry_hash = _digest(db)
+    skipped = {"unknown_family": 0, "uninterpretable_source_path": 0}
     with sqlite3.connect(f"file:{db}?mode=ro&immutable=1", uri=True) as conn:
         conn.row_factory = sqlite3.Row
         rows = [dict(r) for r in conn.execute("SELECT * FROM documents")]
@@ -44,7 +50,11 @@ def reconcile_parse_orphans(corpus: Path) -> dict:
         meta = json.loads(path.read_text())
         family = families.get(path.parent.name)
         value = str(meta.get("source_file") or meta.get("source_pdf") or "")
-        if "/documents/" not in value or family is None:
+        if family is None:
+            skipped["unknown_family"] += 1
+            continue
+        if "/documents/" not in value:
+            skipped["uninterpretable_source_path"] += 1
             continue
         relative = Path(value.rsplit("/documents/", 1)[1])
         if relative.is_absolute() or ".." in relative.parts:
@@ -123,7 +133,11 @@ def reconcile_parse_orphans(corpus: Path) -> dict:
                         markdownSha256=md,
                     )
         results.append(result)
+    if _digest(db) != original_registry_hash:
+        raise ValueError("Registry changed during provenance reconciliation")
     return {
+        "registryUnchangedVerified": True,
+        "skippedMetadataReasons": skipped,
         "mode": "read-only-provenance-reconciliation",
         "registrySha256": _digest(db),
         "registryModified": False,

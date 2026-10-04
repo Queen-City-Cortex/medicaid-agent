@@ -53,7 +53,7 @@ def test_legacy_vectors_refused_before_provider_or_mutation(monkeypatch):
     assert len(session.calls) == 1
 
 
-@pytest.mark.parametrize("vectors", [[[0.1]], [[0.1, float("nan")]], [[True, 0.1]], []])
+@pytest.mark.parametrize("vectors", [[[0.1]], [[0.1, float("nan")]], [[True, 0.1]], [[0.0, 0.0]], []])
 def test_invalid_vectors_never_written(monkeypatch, vectors):
     monkeypatch.setattr(generator, "EMBEDDING_DIMENSIONS", 2)
     monkeypatch.setattr(generator, "voyage_embed", lambda *a, **k: vectors)

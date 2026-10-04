@@ -28,6 +28,11 @@ RETURN s.id AS section_id, s.content_text AS body, s.title AS section_title,
 
 def validate_plan_topology() -> None:
     with get_session() as session:
+        missing = session.run(
+            "MATCH (s:Section) WHERE s.id IS NULL OR s.id='' RETURN count(s) AS total"
+        ).single()
+        if missing and missing["total"]:
+            raise ValueError("Embedding sections require nonempty identities")
         row = session.run("""
         MATCH (s:Section) OPTIONAL MATCH (p:Section)-[:PARENT_OF]->(s)
         WITH s, count(p) AS parents WHERE parents > 1
@@ -98,6 +103,7 @@ def valid_vector(vector: list | None, dimensions: int) -> bool:
             isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v)
             for v in vector
         )
+        and any(v != 0 for v in vector)
     )
 
 

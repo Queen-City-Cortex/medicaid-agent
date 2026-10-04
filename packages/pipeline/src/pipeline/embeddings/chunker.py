@@ -9,6 +9,7 @@ from collections.abc import Iterator
 EMBEDDING_INPUT_POLICY = "contextual-bytes-v1"
 MAX_INPUT_BYTES = 9000
 MAX_OVERLAP_BYTES = 500
+MAX_CONTEXT_BYTES = MAX_INPUT_BYTES // 2
 MAX_BATCH_BYTES = 60_000
 _WHITESPACE = re.compile(rb"[ \t\r\f\v]")
 
@@ -58,8 +59,10 @@ def plan_inputs(
     if max_bytes < 4 or overlap_bytes < 0:
         raise ValueError("Invalid embedding byte limits")
     data = body.encode()
-    if not data:
+    if not body.strip():
         return
+    if len(context.encode()) > min(MAX_CONTEXT_BYTES, max_bytes // 2):
+        raise ValueError("Embedding context exceeds half of the input byte budget")
     budget = max_bytes - len(context.encode())
     if budget < len(body[0].encode()):
         raise ValueError("Embedding context leaves no room for body text")
@@ -82,13 +85,13 @@ def plan_inputs(
             window = data[previous_end:end]
             for separator, kind in ((b"\n\n", "paragraph"), (b"\n", "newline")):
                 found = window.rfind(separator)
-                if found >= 0:
+                if found >= 0 and window[: found + len(separator)].strip():
                     end = previous_end + found + len(separator)
                     split_kind = kind
                     break
             else:
                 matches = list(_WHITESPACE.finditer(window))
-                if matches:
+                if matches and window[: matches[-1].end()].strip():
                     end = previous_end + matches[-1].end()
                     split_kind = "whitespace"
         yield PlannedInput(

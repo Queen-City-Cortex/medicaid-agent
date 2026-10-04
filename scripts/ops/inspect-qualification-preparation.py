@@ -29,6 +29,13 @@ def main():
         "inputsSha256": preparation.digest(Path("/inputs.json")),
         "inspectorSha256": preparation.digest(Path(__file__)),
     })
+    import importlib
+    module_names = ["chunker", "plan_graph", "inspection", "generator", "voyage_client"]
+    modules = [importlib.import_module("pipeline.embeddings." + name) for name in module_names]
+    modules.append(importlib.import_module("pipeline.parse_provenance"))
+    preparation.CONTEXT["plannerModuleHashes"] = {
+        module.__name__: preparation.digest(Path(module.__file__)) for module in modules
+    }
     with connection.get_session() as session:
         marker = session.run("MATCH (p:QualificationPreparation) RETURN properties(p) AS marker").single()
         if not marker or marker["marker"]["sourceSnapshotHash"] != inputs["sourceSnapshotHash"]:

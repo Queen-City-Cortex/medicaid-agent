@@ -7,6 +7,7 @@ import re
 from pipeline.embeddings.chunker import (
     EMBEDDING_INPUT_POLICY,
     MAX_INPUT_BYTES,
+    MAX_CONTEXT_BYTES,
     plan_inputs,
 )
 
@@ -18,7 +19,10 @@ def measure_embedding_plan(sections):
     fingerprint = hashlib.sha256()
     for row in sections:
         body = row["body"].encode()
-        if not body:
+        if not row["body"].strip():
+            if body:
+                totals["whitespaceOnlySections"] += 1
+                totals["whitespaceOnlyUtf8Bytes"] += len(body)
             totals["emptySections"] += 1
             continue
         family = families.setdefault(row["source_family"], Counter())
@@ -72,6 +76,7 @@ def measure_embedding_plan(sections):
         "oversizedPlannedInputs": 0,
         "policy": EMBEDDING_INPUT_POLICY,
         "maximumAllowedInputUtf8Bytes": MAX_INPUT_BYTES,
+        "maximumAllowedContextUtf8Bytes": MAX_CONTEXT_BYTES,
         "planTextFingerprint": fingerprint.hexdigest(),
         "families": families,
         "splitKinds": splits,

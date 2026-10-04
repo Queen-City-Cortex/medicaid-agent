@@ -89,3 +89,21 @@ def test_ambiguous_or_invalid_provenance_stays_unresolved(corpus, case):
         conn.close()
     report = reconcile_parse_orphans(corpus)
     assert report["verifiedDuplicates"] == 0 and report["unresolved"] >= 1
+
+
+def test_uncheckpointed_registry_is_rejected(corpus):
+    (corpus / "crawler/crawler.db-wal").write_bytes(b"uncheckpointed")
+    with pytest.raises(ValueError, match="Checkpoint"):
+        reconcile_parse_orphans(corpus)
+
+
+def test_unknown_or_uninterpretable_metadata_is_counted(corpus):
+    path = corpus / "pipeline/parsed/unknown/example.meta.json"
+    path.parent.mkdir()
+    path.write_text("{}")
+    (corpus / "pipeline/parsed/bulletins/no-path.meta.json").write_text("{}")
+    result = reconcile_parse_orphans(corpus)
+    assert result["skippedMetadataReasons"] == {
+        "unknown_family": 1,
+        "uninterpretable_source_path": 1,
+    }

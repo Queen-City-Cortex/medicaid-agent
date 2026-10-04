@@ -24,3 +24,5 @@ The [October 3 qualification repair](../validation/qualification-unblock-2026-10
 The [project gotchas](../development/gotchas.md) cover build context, watch paths, service configuration, identity validation, source availability, and deployment failures. Validate external settings directly and preserve private credentials outside committed evidence.
 
 Readiness diagnostics use `SMOKE_READINESS_RECEIPT_PATH` with `SMOKE_EXPECTED_RELEASE_ID`, fresh test-account credentials, and a new absolute receipt path in a private directory (0700). The receipt is 0600 and records created thread IDs for owned cleanup; exclude that synthetic account/run from usage assessments. This mode cannot be combined with activation receipt variables or an existing-thread restore. Failed generation leaves persistence/feedback unassessed while logout is attempted independently. Use normal nonce-bound browser acceptance for activation; a diagnostic receipt never substitutes for it.
+
+- [Embedding input plans](embedding-input-plans.md): byte limits, exact retry/release coverage, and read-only corpus measurements.
