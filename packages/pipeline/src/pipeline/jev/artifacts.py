@@ -45,3 +45,41 @@ def validate_label_manifest(value: dict, root: Path) -> None:
             cached = validate_cache(json.loads((root / "cache" / f"{key}.json").read_text()))
             if cached["inputHash"] != row["inputHash"] or cached["key"] != key or digest(cached) != row.get("cacheHash"):
                 raise ValueError("Manifest/cache identity mismatch")
+
+
+def validate_release_label_references(releases: list[dict], root: Path) -> set[str]:
+    """Retained release stamps independently require their manifest and caches."""
+    required = set()
+    for release in releases:
+        if not isinstance(release, dict):
+            raise ValueError("Invalid retained release manifest")
+        stages = release.get("stageResults", {})
+        if stages is None:
+            stages = {}
+        if not isinstance(stages, dict):
+            raise ValueError("Invalid retained release stages")
+        stage = stages.get("jevSections", {})
+        if stage is None:
+            stage = {}
+        if not isinstance(stage, dict):
+            raise ValueError("Invalid retained Jev stage")
+        result = stage.get("result", {})
+        if result is None:
+            result = {}
+        if not isinstance(result, dict):
+            raise ValueError("Invalid retained Jev result")
+        annotation_digest = result.get("digest")
+        if annotation_digest is None:
+            continue
+        if not isinstance(annotation_digest, str) or len(annotation_digest) != 64 or any(c not in "0123456789abcdef" for c in annotation_digest):
+            raise ValueError("Invalid retained annotation identity")
+        required.add(annotation_digest)
+    for annotation_digest in required:
+        path = root / "manifests" / f"{annotation_digest}.json"
+        if not path.is_file():
+            raise ValueError("Retained release annotation manifest missing from backup")
+        value = json.loads(path.read_text())
+        if not isinstance(value, dict) or value.get("digest") != annotation_digest:
+            raise ValueError("Retained release annotation manifest identity mismatch")
+        validate_label_manifest(value, root)
+    return required

@@ -108,3 +108,6 @@ jev_snapshot
 jev_ai_draft
 jev_ai_audit
 jev_import_ai_audit
+
+# Called by system-Python backup snapshot and restoration scripts outside src/.
+validate_release_label_references  # noqa: F821

@@ -28,7 +28,7 @@ done
 python3 "$REPO_ROOT/scripts/ops/snapshot-corpus-databases.py" \
   "$CORPUS_DATA_ROOT" "$TEMP_DIR/_sqlite_snapshots"
 # Archive captured SQLite and label bytes under their original names; omit live files.
-tar --exclude='*/section-labels/*.json' --exclude='section-labels-backup.json' --exclude='*.db' --exclude='*.db-wal' --exclude='*.db-shm' \
+tar --anchored --exclude='pipeline/releases/*.json' --exclude='pipeline/section-labels/*.json' --exclude='pipeline/section-labels-backup.json' --no-anchored --exclude='*.db' --exclude='*.db-wal' --exclude='*.db-shm' \
   --transform='s,^_sqlite_snapshots/,,' --transform='s,\.sqlite-snapshot$,,' \
   -C "$CORPUS_DATA_ROOT" -czf - crawler pipeline \
   -C "$TEMP_DIR" _sqlite_snapshots \

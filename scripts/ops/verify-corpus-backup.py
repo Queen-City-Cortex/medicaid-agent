@@ -133,6 +133,7 @@ def inspect_archive(stream, *, include_history=False):
     hashes, metas = {}, {}
     proofs, journals = {}, []
     label_members = 0
+    releases = []
     label_inventory = None
     has_label_inventory = False
     counts = {"sourceFiles": 0, "parsedFiles": 0}
@@ -155,8 +156,9 @@ def inspect_archive(stream, *, include_history=False):
                     and not Path(member.name).name.startswith("._")
                 )
                 is_evidence = member.name.startswith(("pipeline/source-audit-evidence/", "pipeline/source-retirement-evidence/"))
+                is_release = member.name.startswith("pipeline/releases/") and member.name.endswith(".json")
                 is_label = member.name.startswith("pipeline/section-labels/") and member.name.endswith(".json")
-                keep = member.name == "pipeline/section-labels-backup.json" or is_label or is_meta or is_evidence or member.name in [
+                keep = member.name == "pipeline/section-labels-backup.json" or is_release or is_label or is_meta or is_evidence or member.name in [
                     "crawler/crawler.db",
                     "crawler/crawler.db-wal",
                     "crawler/crawler.db-shm",
@@ -183,6 +185,8 @@ def inspect_archive(stream, *, include_history=False):
                     if member.name == "pipeline/section-labels-backup.json":
                         has_label_inventory = True
                         label_inventory = json.loads(data)
+                    elif is_release:
+                        releases.append(json.loads(data))
                     elif is_meta:
                         metas[member.name] = json.loads(data)
                     elif is_proof:
@@ -200,6 +204,10 @@ def inspect_archive(stream, *, include_history=False):
                         target.write_bytes(data)
                     else:
                         (Path(temporary) / Path(member.name).name).write_bytes(data)
+        from pipeline.jev.artifacts import validate_release_label_references
+        required_labels = validate_release_label_references(releases, Path(temporary) / "pipeline/section-labels")
+        if (label_members or required_labels) and not has_label_inventory:
+            raise ValueError("Backup label inventory required for Jev artifacts or annotated releases")
         if has_label_inventory:
             if not isinstance(label_inventory, dict) or label_inventory.get("version") != 1 or not isinstance(label_inventory.get("files"), dict):
                 raise ValueError("Invalid backup label inventory")

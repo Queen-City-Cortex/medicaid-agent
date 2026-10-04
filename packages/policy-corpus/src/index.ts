@@ -34,6 +34,6 @@ export {
   type LatestRevisionView,
 } from './types.js';
 export { classifyJev, validateJevResponse, JevError, JEV_MODEL, type JevQuestion, type JevResponse } from './jev/client.js';
-export { jevCorpusIdentity, sectionRoleAllowlist, type SectionRoles } from './jev/section-roles.js';
+export { isValidatedJevRelease, jevCorpusIdentity, sectionRoleAllowlist, type SectionRoles } from './jev/section-roles.js';
 export { analyzeQuery } from './query/analysis.js';
 export { sectionRoleHeuristics } from './jev/heuristics.js';

@@ -1,11 +1,16 @@
-import { jevCorpusIdentity } from '@nc-medicaid/policy-corpus';
+import { isValidatedJevRelease, jevCorpusIdentity } from '@nc-medicaid/policy-corpus';
 import { withResearchCheckpoints, DEFAULT_RESEARCH_LIMITS } from './checkpoints.js';
 import { withSession } from '../neo4j.js';
 
 async function currentCorpusRelease(): Promise<string | null> {
   return withSession(async session => {
-    const result = await session.run("OPTIONAL MATCH (r:CorpusRelease {id: 'current'}) RETURN r.release_id AS releaseId, r.jev_annotation_digest AS annotationDigest");
-    return jevCorpusIdentity(result.records[0]?.get('releaseId') ?? null, result.records[0]?.get('annotationDigest') ?? null);
+    const result = await session.run("OPTIONAL MATCH (r:CorpusRelease {id: 'current'}) OPTIONAL MATCH (m:JevAnnotation {id: 'current'}) RETURN r.release_id AS releaseId, r.jev_annotation_digest AS annotationDigest, m.digest AS liveAnnotationDigest");
+    const record = result.records[0];
+    const releaseId = record?.get('releaseId') ?? null;
+    const annotationDigest = record?.get('annotationDigest') ?? null;
+    if (process.env.JEV_SECTION_ROLES_ENABLED === 'true'
+      && !isValidatedJevRelease(releaseId, annotationDigest, record?.get('liveAnnotationDigest'))) return null;
+    return jevCorpusIdentity(releaseId, annotationDigest);
   });
 }
 import {

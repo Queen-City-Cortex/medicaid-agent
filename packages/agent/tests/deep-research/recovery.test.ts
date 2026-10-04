@@ -12,6 +12,11 @@ import { deepResearchPlannerAgent, deepResearchWorkerAgent, deepResearchReportAg
 import { verifyAnswer } from '../../src/processors/verifier/verify.js';
 import { questionKey } from '../../src/deep-research/checkpoints.js';
 
+const graph = vi.hoisted(() => ({ run: vi.fn() }));
+vi.mock('../../src/neo4j.js', () => ({
+  withSession: async (work: (session: unknown) => Promise<unknown>) => work({ run: graph.run }),
+}));
+
 vi.mock('../../src/deep-research/agents.js', () => ({
   deepResearchPlannerAgent: { generate: vi.fn() }, deepResearchWorkerAgent: { generate: vi.fn() },
   deepResearchReportAgent: { generate: vi.fn() },
@@ -68,6 +73,7 @@ describe('checkpoint recovery through real Mastra workflow and SQLite', () => {
     await storage.close();
     await rm(directory, { recursive: true, force: true });
     vi.useRealTimers();
+    vi.unstubAllEnvs();
   });
   async function finishPlanning() {
     await service.plan('run', mastra);
@@ -157,6 +163,41 @@ describe('checkpoint recovery through real Mastra workflow and SQLite', () => {
     expect((await repository.get('run', 'owner'))?.plan?.subQuestions[0].question).toBe('Edited scope?');
     expect(deepResearchWorkerAgent.generate).toHaveBeenCalledTimes(1);
   });
+  it.each(['matching', 'missing', 'mismatched'])(
+    'recovers checkpointed planning only with a matching live Jev marker: %s', async marker => {
+      vi.stubEnv('JEV_SECTION_ROLES_ENABLED', 'true');
+      vi.stubEnv('JEV_SECTION_ROLE_ALLOWLIST', '');
+      const digest = 'a'.repeat(64);
+      let liveDigest: string | null = digest;
+      graph.run.mockImplementation(async () => ({ records: [{ get: (key: string) => ({
+        releaseId: 'release-1', annotationDigest: digest, liveAnnotationDigest: liveDigest,
+      })[key] }] }));
+      service.dispose();
+      service = new ResearchService(repository);
+      const save = repository.saveCheckpoint.bind(repository);
+      let interrupted = false;
+      vi.spyOn(repository, 'saveCheckpoint').mockImplementation(async (...args) => {
+        await save(...args);
+        if (args[2] === 'plan' && !interrupted) {
+          interrupted = true;
+          throw new Error('ECONNRESET after saving plan');
+        }
+      });
+      await service.plan('run', mastra);
+      expect((await repository.getInternal('run'))?.state).toBe('recovering');
+      expect(await repository.checkpoint('run', 'plan')).toMatchObject(PLAN);
+      liveDigest = marker === 'missing' ? null : marker === 'mismatched' ? 'b'.repeat(64) : digest;
+      await recover();
+      const result = (await repository.get('run', 'owner'))!;
+      expect(result.state).toBe(marker === 'matching' ? 'awaiting_approval' : 'failed');
+      if (marker !== 'matching') expect(result.error).toContain('Corpus release changed');
+      expect(deepResearchPlannerAgent.generate).toHaveBeenCalledTimes(1);
+      expect(deepResearchWorkerAgent.generate).not.toHaveBeenCalled();
+      expect(deepResearchReportAgent.generate).not.toHaveBeenCalled();
+      expect(result.report).toBeNull();
+      expect(graph.run).toHaveBeenCalledWith(expect.stringContaining('m.digest AS liveAnnotationDigest'));
+    },
+  );
   it('will not recover against a different corpus release', async () => {
     await finishPlanning();
     release = 'release-2';

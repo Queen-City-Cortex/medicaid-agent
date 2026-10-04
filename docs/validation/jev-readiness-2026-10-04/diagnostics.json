@@ -1,0 +1,51 @@
+{
+  "sourceComparisonSha256": "9eb7bd6432ca7b38d73fe0da54b9123f4d0083bc3bfe83a52727ce34e2b6a065",
+  "comparisonDigest": "eb6b67e9b23ca3f82879ccbd59440e5821b31143a3559a06c358d1481cde2ea3",
+  "recomputedMatch": true,
+  "qualification": "observational_ai_reference",
+  "qualifiedRoles": [],
+  "routing": {
+    "consensusFields": 4486,
+    "disagreementFields": 164,
+    "referenceAbstentionFields": 0,
+    "jevAgreementFields": 2782,
+    "heuristicAgreementFields": 4179,
+    "jevAbstentionFields": 1683
+  },
+  "sectionsHeldout": {
+    "covered_services": {
+      "consensusPositive": 13,
+      "consensusNegative": 82,
+      "referenceDisagreement": 14,
+      "referenceAbstention": 11,
+      "predictionAbstention": 6,
+      "positivePredictions": 7,
+      "truePositiveAgainstConsensus": 5,
+      "falsePositiveAgainstConsensus": 0,
+      "heuristicTruePositiveAgainstConsensus": 6,
+      "unresolvedPositivePredictions": 2,
+      "precisionAgainstAiConsensus": 1.0,
+      "recallAgainstAiConsensus": 0.38461538461538464,
+      "heuristicRecallAgainstAiConsensus": 0.46153846153846156,
+      "precisionLowerBound": 0.7142857142857143,
+      "status": "observational_ai_reference"
+    },
+    "exclusions": {
+      "consensusPositive": 6,
+      "consensusNegative": 92,
+      "referenceDisagreement": 11,
+      "referenceAbstention": 11,
+      "predictionAbstention": 6,
+      "positivePredictions": 3,
+      "truePositiveAgainstConsensus": 3,
+      "falsePositiveAgainstConsensus": 0,
+      "heuristicTruePositiveAgainstConsensus": 5,
+      "unresolvedPositivePredictions": 0,
+      "precisionAgainstAiConsensus": 1.0,
+      "recallAgainstAiConsensus": 0.5,
+      "heuristicRecallAgainstAiConsensus": 0.8333333333333334,
+      "precisionLowerBound": 1.0,
+      "status": "observational_ai_reference"
+    }
+  }
+}

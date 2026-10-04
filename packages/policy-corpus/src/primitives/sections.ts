@@ -19,7 +19,12 @@ export function createSectionPrimitiveService({ withSession }: { withSession: Se
       const result = await session.run(
         `MATCH (s:Section {id: $id})
          OPTIONAL MATCH (d:Document)-[:HAS_SECTION]->(s)
+         OPTIONAL MATCH (release:CorpusRelease {id: 'current'})
+         OPTIONAL MATCH (annotation:JevAnnotation {id: 'current'})
          RETURN
+           release.release_id AS releaseId,
+           release.jev_annotation_digest AS annotationDigest,
+           annotation.digest AS liveAnnotationDigest,
            s.id AS id,
            s.title AS title,
            s.section_number AS sectionNumber,
@@ -108,7 +113,7 @@ export function createSectionPrimitiveService({ withSession }: { withSession: Se
             return buildSectionView(
               {
                 get(key: string) {
-                  if (key === 'sectionRoles' || key === 'content') return undefined;
+                  if (['sectionRoles', 'content', 'releaseId', 'annotationDigest', 'liveAnnotationDigest'].includes(key)) return undefined;
                   return key === 'id'
                     ? record.get('id')
                     : key === 'title'

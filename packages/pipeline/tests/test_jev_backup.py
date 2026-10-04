@@ -3,6 +3,7 @@ import hashlib
 import io
 import json
 import tarfile
+from pathlib import Path
 
 import pytest
 
@@ -11,7 +12,7 @@ from pipeline.jev.client import canonical, MODEL
 from pipeline.jev.sections import label_sections
 
 
-def labeled_archive(tmp_path, monkeypatch, *, omit_cache=False, tamper=False, omit_labels=False):
+def labeled_archive(tmp_path, monkeypatch, *, omit_cache=False, tamper=False, omit_labels=False, omit_inventory=False, omit_manifest=False):
     from pipeline.jev import sections
     def inference(state, spec, ledger):
         return {"response": {"model": MODEL, "answers": {k: {"type": "noul", "noul": .95} for k in spec},
@@ -28,7 +29,14 @@ def labeled_archive(tmp_path, monkeypatch, *, omit_cache=False, tamper=False, om
         "pipeline/section-labels/" + str(path.relative_to(root)): "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
         for path in root.rglob("*.json")
     }}).encode()
+    annotation_digest = next((root / 'manifests').glob('*.json')).stem
+    files['pipeline/releases/annotated.json'] = json.dumps({'releaseId': 'annotated',
+        'stageResults': {'jevSections': {'result': {'digest': annotation_digest}}}}).encode()
+    if omit_inventory:
+        del files['pipeline/section-labels-backup.json']
     for path in root.rglob("*.json"):
+        if omit_manifest and path.parent.name == 'manifests':
+            continue
         if omit_labels:
             continue
         if omit_cache and path.parent.name == "cache":
@@ -55,7 +63,7 @@ def test_restored_labels_validate_cache_manifest_and_probabilities(tmp_path, mon
     assert result["counts"]["sectionLabelArtifacts"] == 2
 
 
-@pytest.mark.parametrize("mutation", ["omit_cache", "tamper", "omit_labels"])
+@pytest.mark.parametrize("mutation", ["omit_cache", "tamper", "omit_labels", "omit_inventory", "omit_manifest"])
 def test_missing_or_changed_label_payload_fails_restore(tmp_path, monkeypatch, mutation):
     with pytest.raises((ValueError, FileNotFoundError)):
         backup.inspect_archive(labeled_archive(tmp_path, monkeypatch, **{mutation: True}))
@@ -79,7 +87,7 @@ def test_real_linux_backup_pipeline_restores_registry_labels_and_live_ledger(tmp
             target = corpus / member.name
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes(tar.extractfile(member).read())
-    (corpus / 'pipeline/releases').mkdir(parents=True)
+    (corpus / 'pipeline/releases').mkdir(parents=True, exist_ok=True)
     ledger_path = corpus / 'pipeline/jev/campaign.db'
     ledger_path.parent.mkdir(parents=True)
     ledger = Ledger(ledger_path)
@@ -88,11 +96,14 @@ def test_real_linux_backup_pipeline_restores_registry_labels_and_live_ledger(tmp
     tools.mkdir()
     (tools / 'age').write_text('#!/bin/sh\nwhile [ "$1" != "-o" ]; do shift; done\ncat > "$2"\n')
     (tools / 'rclone').write_text('#!/bin/sh\nif [ "$1" = "copyto" ]; then cp "$2" "$BACKUP_TEST_OUTPUT"; fi\n')
+    release_file = corpus / 'pipeline/releases/annotated.json'
+    expected_release_bytes = release_file.read_bytes()
     if mutate_live:
         import shlex
         live_cache = next((corpus / 'pipeline/section-labels/cache').glob('*.json'))
         # Snapshotting has finished when tar begins; mutate only the live copy.
         (tools / 'tar').write_text("#!/bin/sh\nprintf '{\"changed\":true}' > " + shlex.quote(str(live_cache)) +
+                                   "\nprintf '{\"stageResults\":{}}' > " + shlex.quote(str(release_file)) +
                                    '\nexec ' + shlex.quote(shutil.which('tar')) + ' "$@"\n')
     for path in tools.iterdir():
         path.chmod(0o755)
@@ -113,6 +124,8 @@ def test_real_linux_backup_pipeline_restores_registry_labels_and_live_ledger(tmp
         assert result['counts']['sectionLabelArtifacts'] == 2
         with tarfile.open(output, mode='r:gz') as tar:
             assert 'crawler/crawler.db' in tar.getnames()
+            assert tar.getnames().count('pipeline/releases/annotated.json') == 1
+            assert tar.extractfile('pipeline/releases/annotated.json').read() == expected_release_bytes
             assert not any(name.endswith(('.db-wal', '.db-shm', '.sqlite-snapshot')) for name in tar.getnames())
             restored = tmp_path / 'restored-ledger.db'
             restored.write_bytes(tar.extractfile('pipeline/jev/campaign.db').read())
@@ -122,3 +135,52 @@ def test_real_linux_backup_pipeline_restores_registry_labels_and_live_ledger(tmp
         assert ledger_path.exists()
     finally:
         ledger.close()
+
+
+@pytest.mark.parametrize('missing', ['directory', 'cache', 'manifest'])
+def test_snapshot_rejects_labels_lost_before_backup(tmp_path, monkeypatch, missing):
+    import importlib.util
+    import shutil
+    from pipeline.jev.benchmarks import REPO_ROOT
+    corpus = tmp_path / 'corpus'
+    corpus.mkdir()
+    with tarfile.open(fileobj=labeled_archive(tmp_path, monkeypatch), mode='r:gz') as tar:
+        for member in tar:
+            target = corpus / member.name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(tar.extractfile(member).read())
+    labels = corpus / 'pipeline/section-labels'
+    if missing == 'directory':
+        shutil.rmtree(labels)
+    else:
+        next((labels / ('cache' if missing == 'cache' else 'manifests')).glob('*.json')).unlink()
+    spec = importlib.util.spec_from_file_location('snapshot_labels', REPO_ROOT / 'scripts/ops/snapshot-corpus-databases.py')
+    snapshot = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(snapshot)
+    with pytest.raises((ValueError, FileNotFoundError)):
+        snapshot.snapshot_databases(corpus, tmp_path / 'captured')
+
+
+def test_snapshot_preserves_release_bytes_and_accepts_failed_stage(tmp_path, monkeypatch):
+    import importlib.util
+    from pipeline.jev.benchmarks import REPO_ROOT
+    corpus = tmp_path / 'corpus'
+    corpus.mkdir()
+    with tarfile.open(fileobj=labeled_archive(tmp_path, monkeypatch), mode='r:gz') as tar:
+        for member in tar:
+            target = corpus / member.name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(tar.extractfile(member).read())
+    (corpus / 'pipeline/releases/failed.json').write_text(json.dumps({'stageResults': {'jevSections': {'result': None}}}))
+    spec = importlib.util.spec_from_file_location('snapshot_labels', REPO_ROOT / 'scripts/ops/snapshot-corpus-databases.py')
+    snapshot = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(snapshot)
+    target = tmp_path / 'captured'
+    snapshot.snapshot_databases(corpus, target)
+    for path in (corpus / 'pipeline/releases').glob('*.json'):
+        assert (target / path.relative_to(corpus)).with_name(path.name + '.sqlite-snapshot').read_bytes() == path.read_bytes()
+    inventory = json.loads((target / 'pipeline/section-labels-backup.json.sqlite-snapshot').read_text())
+    assert len(inventory['files']) == 2
+    for name, expected in inventory['files'].items():
+        captured = (target / name).with_name(Path(name).name + '.sqlite-snapshot')
+        assert 'sha256:' + hashlib.sha256(captured.read_bytes()).hexdigest() == expected

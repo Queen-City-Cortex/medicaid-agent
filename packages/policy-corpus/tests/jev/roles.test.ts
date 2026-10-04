@@ -36,14 +36,16 @@ describe('section role boundaries', () => {
     expect(sectionRoleBonus(section, ['scope'])).toBe(1);
   });
   it('changes recovery identity on enable and disable; default remains bare release', () => {
-    expect(jevCorpusIdentity('release', 'digest')).toBe('release');
+    expect(jevCorpusIdentity('release', 'a'.repeat(64))).toBe('release');
     vi.stubEnv('JEV_SECTION_ROLES_ENABLED', 'true');
-    const enabled = jevCorpusIdentity('release', 'digest');
+    const enabled = jevCorpusIdentity('release', 'a'.repeat(64));
     expect(enabled).not.toBe('release');
-    expect(jevCorpusIdentity('release', 'changed')).not.toBe(enabled);
+    expect(jevCorpusIdentity('release', 'b'.repeat(64))).not.toBe(enabled);
     expect(jevCorpusIdentity(null, 'digest')).toBeNull();
+    expect(jevCorpusIdentity('release', null)).toBeNull();
+    expect(jevCorpusIdentity('release', 'malformed')).toBeNull();
     vi.stubEnv('JEV_SECTION_ROLES_ENABLED', 'false');
-    expect(jevCorpusIdentity('release', 'digest')).toBe('release');
+    expect(jevCorpusIdentity('release', 'a'.repeat(64))).toBe('release');
   });
   it('lets PA labels change selection order within a document without crossing quantity/process/document lanes', () => {
     const first = makeSection({ id: 'a', documentId: 'doc', content: 'Coverage criteria.' });
@@ -68,5 +70,29 @@ describe('section role boundaries', () => {
     const section = await service.getSection('container');
     expect(section?.content).toContain('Body');
     expect(section?.sectionRoles).toBeUndefined();
+  });
+});
+
+
+describe('retrieval requires stamped annotation identity', () => {
+  it.each([
+    [null, null, null, false],
+    ['release', null, 'a'.repeat(64), false],
+    ['release', 'malformed', 'malformed', false],
+    ['release', 'a'.repeat(64), null, false],
+    ['release', 'a'.repeat(64), 'b'.repeat(64), false],
+    ['release', 'a'.repeat(64), 'a'.repeat(64), true],
+  ])('gates labels with release %s, stamp %s, live marker %s', async (releaseId, annotationDigest, liveAnnotationDigest, allowed) => {
+    vi.stubEnv('JEV_SECTION_ROLES_ENABLED', 'true');
+    const input = {title: 'Heading', sectionNumber: '1', documentTitle: 'Policy', documentType: 'clinical_policy', policyNumber: '10A', content: 'Full body'};
+    const values: Record<string, unknown> = {...input, id: 'section', releaseId, annotationDigest, liveAnnotationDigest,
+      sectionRoles: {...labels({scope: .95}), inputHash: jevHash(input)}};
+    const run = vi.fn().mockResolvedValue({records: [{get: (key: string) => values[key]}]});
+    const service = createSectionPrimitiveService({withSession: callback => callback({run})});
+    const section = await service.getSection('section');
+    expect(Boolean(section?.sectionRoles)).toBe(allowed);
+    expect(sectionRoleBonus(section!, ['scope'])).toBe(allowed ? 1 : 0);
+    expect(run.mock.calls[0][0]).toContain('release.jev_annotation_digest AS annotationDigest');
+    expect(section?.content).toBe('Full body');
   });
 });

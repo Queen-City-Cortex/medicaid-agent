@@ -1,3 +1,4 @@
+import { isValidatedJevRelease } from '@nc-medicaid/policy-corpus';
 import { registerApiRoute } from '@mastra/core/server';
 import type { DependencyHealth, Readiness } from '@nc-medicaid/contracts';
 import { checkProviders, type ProviderStatuses } from './health.js';
@@ -12,6 +13,8 @@ type JsonContext = {
 export interface Neo4jProbeResult {
   connected: boolean;
   releaseId: string | null;
+  annotationDigest?: string | null;
+  liveAnnotationDigest?: string | null;
 }
 
 async function defaultNeo4jProbe(): Promise<Neo4jProbeResult> {
@@ -19,13 +22,18 @@ async function defaultNeo4jProbe(): Promise<Neo4jProbeResult> {
   const result = await withSession((session) =>
     session.run(
       `OPTIONAL MATCH (release:CorpusRelease {id: 'current'})
-       RETURN release.release_id AS releaseId`,
+       OPTIONAL MATCH (annotation:JevAnnotation {id: 'current'})
+       RETURN release.release_id AS releaseId,
+              release.jev_annotation_digest AS annotationDigest,
+              annotation.digest AS liveAnnotationDigest`,
     ),
   );
   const releaseId = result.records[0]?.get('releaseId');
   return {
     connected: true,
     releaseId: typeof releaseId === 'string' ? releaseId : null,
+    annotationDigest: result.records[0]?.get('annotationDigest') ?? null,
+    liveAnnotationDigest: result.records[0]?.get('liveAnnotationDigest') ?? null,
   };
 }
 
@@ -59,12 +67,15 @@ export async function handleReadiness(
             || graphReleaseId === configuredReleaseId
           )
     );
-    if (connected && releaseMatches) {
+    const annotationsValid = process.env.JEV_SECTION_ROLES_ENABLED !== 'true'
+      || (typeof probe !== 'boolean' && isValidatedJevRelease(graphReleaseId, probe.annotationDigest, probe.liveAnnotationDigest));
+    if (connected && releaseMatches && annotationsValid) {
       neo4j = 'connected';
     } else if (connected) {
       log.error('readyz.release_identity_failed', {
         configuredReleaseId,
         graphReleaseId,
+        annotationsValid,
       });
     }
   } catch (err) {

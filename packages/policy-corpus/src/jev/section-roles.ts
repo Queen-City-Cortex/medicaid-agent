@@ -38,9 +38,16 @@ export function sectionRoleBonus(section: { sectionRoles?: SectionRoles }, roles
   const allowed = sectionRoleAllowlist();
   return roles.some(role => allowed.includes(role) && (section.sectionRoles?.probabilities[role] ?? 0) >= 0.9) ? 1 : 0;
 }
+/** Stamping validates the manifest; the live marker must still identify it. */
+export function isValidatedJevRelease(releaseId: unknown, stampedDigest: unknown, liveDigest: unknown): boolean {
+  return typeof releaseId === 'string' && releaseId.trim().length > 0
+    && typeof stampedDigest === 'string' && /^[0-9a-f]{64}$/.test(stampedDigest)
+    && stampedDigest === liveDigest;
+}
 /** Always include config: enabling AND disabling invalidates research recovery. */
 export function jevCorpusIdentity(releaseId: string | null, digest: string | null): string | null {
   if (!releaseId) return null;
   if (process.env.JEV_SECTION_ROLES_ENABLED !== 'true') return releaseId;
+  if (!isValidatedJevRelease(releaseId, digest, digest)) return null;
   return canonicalJson({ releaseId, sectionRolesEnabled: process.env.JEV_SECTION_ROLES_ENABLED === 'true', annotationDigest: digest, allowedRoles: sectionRoleAllowlist(), model: JEV_MODEL, specHash: ROLE_SPEC_HASH });
 }

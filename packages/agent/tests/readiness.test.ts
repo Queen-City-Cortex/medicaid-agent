@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   handleDependencies,
   handleLiveness,
@@ -137,5 +137,31 @@ describe('readiness', () => {
       voyage: 'ok',
       openai: 'error',
     });
+  });
+});
+
+
+describe('Jev release readiness', () => {
+  afterEach(() => vi.unstubAllEnvs());
+  it.each([
+    [null, null, 503],
+    ['malformed', 'malformed', 503],
+    ['a'.repeat(64), null, 503],
+    ['a'.repeat(64), 'b'.repeat(64), 503],
+    ['a'.repeat(64), 'a'.repeat(64), 200],
+  ])('requires matching validated stamp and live digest', async (annotationDigest, liveAnnotationDigest, expected) => {
+    vi.stubEnv('JEV_SECTION_ROLES_ENABLED', 'true');
+    vi.stubEnv('CORPUS_RELEASE_ID', 'release');
+    const response = await handleReadiness(context(), {probeWritable: async () => true},
+      async () => ({connected: true, releaseId: 'release', annotationDigest, liveAnnotationDigest}));
+    expect(response.status).toBe(expected);
+    expect(await response.json()).not.toHaveProperty('annotationDigest');
+  });
+  it('keeps disabled readiness independent of diagnostics', async () => {
+    vi.stubEnv('JEV_SECTION_ROLES_ENABLED', 'false');
+    vi.stubEnv('CORPUS_RELEASE_ID', 'release');
+    const response = await handleReadiness(context(), {probeWritable: async () => true},
+      async () => ({connected: true, releaseId: 'release', annotationDigest: null, liveAnnotationDigest: 'diagnostic'}));
+    expect(response.status).toBe(200);
   });
 });
