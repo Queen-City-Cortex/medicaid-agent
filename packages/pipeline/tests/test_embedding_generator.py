@@ -128,9 +128,10 @@ def stored_plan(parts):
 def test_coverage_requires_every_index_even_for_identical_chunks():
     parts = list(plan_inputs("A" * 20000))
     stored = stored_plan(parts)
-    check = lambda rows: plan_graph.plan_matches(
-        "s", parts, rows, "model", 2, require_vectors=True
-    )
+    def check(rows):
+        return plan_graph.plan_matches(
+            "s", parts, rows, "model", 2, require_vectors=True
+        )
     assert check(stored)
     assert not check(stored[:-1])
     assert not check(stored + [stored[0]])

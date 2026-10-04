@@ -29,3 +29,5 @@ Keep every failed and successful attempt in separate private output directories.
 ## Verification
 
 Run the pipeline test suite and both Ruff and Vulture. The embedding integration suite requires its own **empty disposable graph** and `RUN_EMBEDDING_INTEGRATION=1`; it mocks Voyage and rejects a nonempty graph before fixtures are created. CI provisions a separate Neo4j service for it. The general pipeline integration suite uses `RUN_NEO4J_INTEGRATION=1` on a different service. Never aim either at a corpus or production graph.
+
+A paid campaign must bind its approved `planTextFingerprint` and enforce its separately approved spending cap. Offline receipts always report whitespace-only body and novel-body input counts; any nonzero count requires a representation review before a paid run. These diagnostics preserve every source byte. Imported module hashes must match the sealed inspection inputs.

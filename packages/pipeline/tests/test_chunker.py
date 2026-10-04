@@ -86,3 +86,9 @@ def test_separator_only_first_chunk_is_avoided():
 def test_context_amplification_is_rejected():
     with pytest.raises(ValueError, match="half"):
         list(plan_inputs("A" * 10000, "X" * 8990))
+
+
+def test_unicode_leading_separator_does_not_force_blank_split():
+    parts = list(plan_inputs("\u00a0\n" + "x" * 100, max_bytes=40, overlap_bytes=0))
+    assert parts[0].text.strip()
+    assert "".join(p.text for p in parts) == "\u00a0\n" + "x" * 100

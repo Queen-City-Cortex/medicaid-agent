@@ -85,13 +85,13 @@ def plan_inputs(
             window = data[previous_end:end]
             for separator, kind in ((b"\n\n", "paragraph"), (b"\n", "newline")):
                 found = window.rfind(separator)
-                if found >= 0 and window[: found + len(separator)].strip():
+                if found >= 0 and window[: found + len(separator)].decode().strip():
                     end = previous_end + found + len(separator)
                     split_kind = kind
                     break
             else:
                 matches = list(_WHITESPACE.finditer(window))
-                if matches and window[: matches[-1].end()].strip():
+                if matches and window[: matches[-1].end()].decode().strip():
                     end = previous_end + matches[-1].end()
                     split_kind = "whitespace"
         yield PlannedInput(

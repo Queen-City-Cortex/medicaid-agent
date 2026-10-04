@@ -133,13 +133,17 @@ def reconcile_parse_orphans(corpus: Path) -> dict:
                         markdownSha256=md,
                     )
         results.append(result)
+    for suffix in ("-wal", "-journal"):
+        pending = Path(str(db) + suffix)
+        if pending.exists() and pending.stat().st_size:
+            raise ValueError("Registry journal changed during provenance reconciliation")
     if _digest(db) != original_registry_hash:
         raise ValueError("Registry changed during provenance reconciliation")
     return {
         "registryUnchangedVerified": True,
         "skippedMetadataReasons": skipped,
         "mode": "read-only-provenance-reconciliation",
-        "registrySha256": _digest(db),
+        "registrySha256": original_registry_hash,
         "registryModified": False,
         "artifactsModified": False,
         "graphDocumentsAdded": 0,

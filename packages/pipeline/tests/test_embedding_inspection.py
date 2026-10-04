@@ -43,3 +43,19 @@ def test_invalid_context_is_a_failure_not_a_skipped_section():
                 }
             ]
         )
+
+
+def test_blank_input_diagnostics_preserve_lossless_body():
+    report = measure_embedding_plan(
+        [
+            {
+                "section_id": "s",
+                "source_family": "x",
+                "body": "x" * 9000 + "\n",
+                "context": "",
+            }
+        ]
+    )
+    assert report["whitespaceOnlyNovelBodyInputs"] == 1
+    assert report["emptySections"] == report["whitespaceOnlySections"] == 0
+    assert report["losslessPlanSections"] == 1

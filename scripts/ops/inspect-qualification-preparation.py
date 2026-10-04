@@ -32,10 +32,12 @@ def main():
     import importlib
     module_names = ["chunker", "plan_graph", "inspection", "generator", "voyage_client"]
     modules = [importlib.import_module("pipeline.embeddings." + name) for name in module_names]
-    modules.append(importlib.import_module("pipeline.parse_provenance"))
+    modules.extend(importlib.import_module(name) for name in ("pipeline.parse_provenance", "pipeline.config", "pipeline.graph.connection", "pipeline.freshness"))
     preparation.CONTEXT["plannerModuleHashes"] = {
         module.__name__: preparation.digest(Path(module.__file__)) for module in modules
     }
+    if preparation.CONTEXT["plannerModuleHashes"] != inputs["plannerModuleHashes"]:
+        raise ValueError("Imported planner modules differ from pinned implementation")
     with connection.get_session() as session:
         marker = session.run("MATCH (p:QualificationPreparation) RETURN properties(p) AS marker").single()
         if not marker or marker["marker"]["sourceSnapshotHash"] != inputs["sourceSnapshotHash"]:
@@ -121,6 +123,8 @@ def main():
         "completeCorpusSnapshotVerified": True, "sourceSnapshotHash": inputs["sourceSnapshotHash"],
         "bytePolicyPassed": volume["oversizedPlannedInputs"] == 0,
         "losslessPlanSections": volume["losslessPlanSections"],
+        "whitespaceOnlyNovelBodyInputs": volume["whitespaceOnlyNovelBodyInputs"],
+        "blankInputRepresentationReviewRequired": volume["whitespaceOnlyNovelBodyInputs"] > 0,
         "catalogIdentitiesMapped": len(normalizer.canonical_to_raw),
         "catalogIdentitiesExpected": len(normalizer.reference),
         "provenanceDispositions": {"verifiedDuplicates": provenance["verifiedDuplicates"], "unresolved": provenance["unresolved"]},

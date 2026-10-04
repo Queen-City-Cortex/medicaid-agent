@@ -1,7 +1,6 @@
 import hashlib
 import json
 import sqlite3
-from pathlib import Path
 import pytest
 from pipeline.parse_provenance import reconcile_parse_orphans
 

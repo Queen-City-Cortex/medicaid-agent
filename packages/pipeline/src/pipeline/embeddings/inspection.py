@@ -13,7 +13,18 @@ from pipeline.embeddings.chunker import (
 
 
 def measure_embedding_plan(sections):
-    totals = Counter()
+    totals = Counter(
+        {
+            key: 0
+            for key in (
+                "emptySections",
+                "whitespaceOnlySections",
+                "whitespaceOnlyUtf8Bytes",
+                "whitespaceOnlyBodyInputs",
+                "whitespaceOnlyNovelBodyInputs",
+            )
+        }
+    )
     families = {}
     splits = Counter()
     fingerprint = hashlib.sha256()
@@ -49,7 +60,10 @@ def measure_embedding_plan(sections):
                 raise ValueError(
                     f"Invalid lossless embedding plan: {row['section_id']}"
                 )
-            rebuilt.update(source[previous - part.body_start :])
+            novel = source[previous - part.body_start :]
+            totals["whitespaceOnlyBodyInputs"] += not source.decode().strip()
+            totals["whitespaceOnlyNovelBodyInputs"] += not novel.decode().strip()
+            rebuilt.update(novel)
             previous = part.body_end
             for bucket in (totals, family):
                 bucket["embeddingInputs"] += 1
