@@ -1,0 +1,827 @@
+{
+  "capUsd": 5,
+  "maxRequests": 64,
+  "committedUsd": 0.51834588,
+  "knownUsageCostUsd": 0.51834588,
+  "calls": [
+    {
+      "id": 1,
+      "debitUsd": 0.0066175,
+      "reservedUsd": 0.24431250000000002,
+      "status": "completed",
+      "model": "gpt-5.4",
+      "questionId": "q-001",
+      "inputTokenUpperBound": 29028,
+      "payloadSha256": "f422d7ca2b3200d2b4cb264c1065a4dd640cef42cdf0211781112841ea78103e",
+      "startedAt": 1791082308.0880435,
+      "usage": {
+        "input_tokens": 2419,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 0
+        },
+        "output_tokens": 38,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 2457
+      },
+      "usageCostUsd": 0.0066175
+    },
+    {
+      "id": 2,
+      "debitUsd": 8.4e-07,
+      "reservedUsd": 2.52e-05,
+      "status": "completed",
+      "model": "voyage-4",
+      "questionId": "q-001",
+      "inputTokenUpperBound": 336,
+      "payloadSha256": "327c78d9637acb970e6e2b692facbf166d57a9b8fc992acd711dac2dae2b02f4",
+      "startedAt": 1791082310.2560368,
+      "usage": {
+        "total_tokens": 14
+      },
+      "usageCostUsd": 8.4e-07
+    },
+    {
+      "id": 3,
+      "debitUsd": 7.8e-07,
+      "reservedUsd": 2.61e-05,
+      "status": "completed",
+      "model": "voyage-4",
+      "questionId": "q-001",
+      "inputTokenUpperBound": 348,
+      "payloadSha256": "46b0a44febc256af8b1658df7663a8de30ddb2702525fd2f26766d39662c0acc",
+      "startedAt": 1791082317.8351295,
+      "usage": {
+        "total_tokens": 13
+      },
+      "usageCostUsd": 7.8e-07
+    },
+    {
+      "id": 4,
+      "debitUsd": 0.0214525,
+      "reservedUsd": 0.334921875,
+      "status": "completed",
+      "model": "gpt-5.4",
+      "questionId": "q-001",
+      "inputTokenUpperBound": 58023,
+      "payloadSha256": "4c16ac9b97b1f77ade71eeea1fb2db7fab5e478f0738471158f331f8ba2c1702",
+      "startedAt": 1791082321.0570965,
+      "usage": {
+        "input_tokens": 8407,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 0
+        },
+        "output_tokens": 29,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 8436
+      },
+      "usageCostUsd": 0.0214525
+    },
+    {
+      "id": 5,
+      "debitUsd": 0.0494225,
+      "reservedUsd": 0.48106875,
+      "status": "completed",
+      "model": "gpt-5.4",
+      "questionId": "q-001",
+      "inputTokenUpperBound": 104790,
+      "payloadSha256": "896c5b80aa7b5302077879fe39de287ac96d37aac0780e427cc6fbbf548d457b",
+      "startedAt": 1791082322.4258094,
+      "usage": {
+        "input_tokens": 20951,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 7680
+        },
+        "output_tokens": 955,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 21906
+      },
+      "usageCostUsd": 0.0494225
+    },
+    {
+      "id": 6,
+      "debitUsd": 0.0287385,
+      "reservedUsd": 0.2655075,
+      "status": "completed",
+      "model": "gpt-5.6-terra",
+      "questionId": "q-001",
+      "inputTokenUpperBound": 57051,
+      "payloadSha256": "0261d496d3cbddba746d4fe7c5433ebea87c351a68e97f3e56809cd02899bd1f",
+      "startedAt": 1791082331.1711078,
+      "usage": {
+        "input_tokens": 10233,
+        "input_tokens_details": {
+          "cache_write_tokens": 10230,
+          "cached_tokens": 0
+        },
+        "output_tokens": 263,
+        "output_tokens_details": {
+          "reasoning_tokens": 218
+        },
+        "total_tokens": 10496
+      },
+      "usageCostUsd": 0.0287385
+    },
+    {
+      "id": 7,
+      "debitUsd": 0.0036695,
+      "reservedUsd": 0.24482500000000001,
+      "status": "completed",
+      "model": "gpt-5.4",
+      "questionId": "q-004",
+      "inputTokenUpperBound": 29192,
+      "payloadSha256": "0af60ddb3be1a443e3c85fb36e6fd0eff0aa647b7bef649eb9180f23e858f307",
+      "startedAt": 1791082337.9028757,
+      "usage": {
+        "input_tokens": 2441,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 1408
+        },
+        "output_tokens": 49,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 2490
+      },
+      "usageCostUsd": 0.0036695
+    },
+    {
+      "id": 8,
+      "debitUsd": 1.56e-06,
+      "reservedUsd": 3.1349999999999996e-05,
+      "status": "completed",
+      "model": "voyage-4",
+      "questionId": "q-004",
+      "inputTokenUpperBound": 418,
+      "payloadSha256": "ffa3eeda37d3e5208b7eb62b57c118d354fd664d9d9b26bf0dede44b161cdcf4",
+      "startedAt": 1791082338.926038,
+      "usage": {
+        "total_tokens": 26
+      },
+      "usageCostUsd": 1.56e-06
+    },
+    {
+      "id": 9,
+      "debitUsd": 7.8e-07,
+      "reservedUsd": 2.7524999999999998e-05,
+      "status": "completed",
+      "model": "voyage-4",
+      "questionId": "q-004",
+      "inputTokenUpperBound": 367,
+      "payloadSha256": "149c6400f30362a84b10edd9febec68613fc5d6edbcce23d43087f32421ec21f",
+      "startedAt": 1791082342.710854,
+      "usage": {
+        "total_tokens": 13
+      },
+      "usageCostUsd": 7.8e-07
+    },
+    {
+      "id": 10,
+      "debitUsd": 0.0147325,
+      "reservedUsd": 0.338175,
+      "status": "completed",
+      "model": "gpt-5.4",
+      "questionId": "q-004",
+      "inputTokenUpperBound": 59064,
+      "payloadSha256": "fc2fb52011f87bc75bdcfff6d42bdca0704a5c1905f2e4a89d05bf05444b6705",
+      "startedAt": 1791082346.693695,
+      "usage": {
+        "input_tokens": 8035,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 2560
+        },
+        "output_tokens": 27,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 8062
+      },
+      "usageCostUsd": 0.0147325
+    },
+    {
+      "id": 11,
+      "debitUsd": 0.01961,
+      "reservedUsd": 0.341128125,
+      "status": "completed",
+      "model": "gpt-5.4",
+      "questionId": "q-004",
+      "inputTokenUpperBound": 60009,
+      "payloadSha256": "a20e55bfd8fefedf079c4f33beb66077c3fadcd9746e99efa5e218af86571715",
+      "startedAt": 1791082348.0397263,
+      "usage": {
+        "input_tokens": 8240,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 7680
+        },
+        "output_tokens": 1086,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 9326
+      },
+      "usageCostUsd": 0.01961
+    },
+    {
+      "id": 12,
+      "debitUsd": 0.0159292,
+      "reservedUsd": 0.250685,
+      "status": "completed",
+      "model": "gpt-5.6-terra",
+      "questionId": "q-004",
+      "inputTokenUpperBound": 51122,
+      "payloadSha256": "8dc7b7d912f51204729a2c2175611f797799f33a4535b72c4ff3ea08e066fe2d",
+      "startedAt": 1791082359.3824875,
+      "usage": {
+        "input_tokens": 6905,
+        "input_tokens_details": {
+          "cache_write_tokens": 5331,
+          "cached_tokens": 1571
+        },
+        "output_tokens": 190,
+        "output_tokens_details": {
+          "reasoning_tokens": 145
+        },
+        "total_tokens": 7095
+      },
+      "usageCostUsd": 0.0159292
+    },
+    {
+      "id": 13,
+      "debitUsd": 0.0034295,
+      "reservedUsd": 0.24430625,
+      "status": "completed",
+      "model": "gpt-5.4",
+      "questionId": "q-006",
+      "inputTokenUpperBound": 29026,
+      "payloadSha256": "1dd7e1b23c054fb7d1411ad1efa9b857060c646d58b8a60f2fb8905a04e52d44",
+      "startedAt": 1791082365.2083771,
+      "usage": {
+        "input_tokens": 2417,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 1408
+        },
+        "output_tokens": 37,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 2454
+      },
+      "usageCostUsd": 0.0034295
+    },
+    {
+      "id": 14,
+      "debitUsd": 8.4e-07,
+      "reservedUsd": 2.5124999999999997e-05,
+      "status": "completed",
+      "model": "voyage-4",
+      "questionId": "q-006",
+      "inputTokenUpperBound": 335,
+      "payloadSha256": "3817bf3b62831763cd3de348f80606680d28e8e7d4a70c46654b8bc4cd7e99ab",
+      "startedAt": 1791082366.185614,
+      "usage": {
+        "total_tokens": 14
+      },
+      "usageCostUsd": 8.4e-07
+    },
+    {
+      "id": 15,
+      "debitUsd": 6e-07,
+      "reservedUsd": 2.3174999999999997e-05,
+      "status": "completed",
+      "model": "voyage-4",
+      "questionId": "q-006",
+      "inputTokenUpperBound": 309,
+      "payloadSha256": "517eb8302102d12e3f2c57fc34c3d3900d67d0ab61fc066d8168a73f9b281900",
+      "startedAt": 1791082368.0347311,
+      "usage": {
+        "total_tokens": 10
+      },
+      "usageCostUsd": 6e-07
+    },
+    {
+      "id": 16,
+      "debitUsd": 0.01061,
+      "reservedUsd": 0.305503125,
+      "status": "completed",
+      "model": "gpt-5.4",
+      "questionId": "q-006",
+      "inputTokenUpperBound": 48609,
+      "payloadSha256": "d17bbc97e5698a60197d0294d30cc039e3db55d887d2c842cdf0914303a499ac",
+      "startedAt": 1791082370.071721,
+      "usage": {
+        "input_tokens": 6386,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 2560
+        },
+        "output_tokens": 27,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 6413
+      },
+      "usageCostUsd": 0.01061
+    },
+    {
+      "id": 17,
+      "debitUsd": 0.007543,
+      "reservedUsd": 0.308309375,
+      "status": "completed",
+      "model": "gpt-5.4",
+      "questionId": "q-006",
+      "inputTokenUpperBound": 49507,
+      "payloadSha256": "0cd4491a9601dbf44ce42a5e6719b05f4a6f0cd1734f3f909e6c4be04e4c1a8e",
+      "startedAt": 1791082371.2049177,
+      "usage": {
+        "input_tokens": 6580,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 5632
+        },
+        "output_tokens": 251,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 6831
+      },
+      "usageCostUsd": 0.007543
+    },
+    {
+      "id": 18,
+      "debitUsd": 0.0079807,
+      "reservedUsd": 0.21019,
+      "status": "completed",
+      "model": "gpt-5.6-terra",
+      "questionId": "q-006",
+      "inputTokenUpperBound": 34924,
+      "payloadSha256": "38de416e9024125ab871a72b2ac6102bfcd1239c857df0d47ae2fcd7177e7409",
+      "startedAt": 1791082375.6087515,
+      "usage": {
+        "input_tokens": 4028,
+        "input_tokens_details": {
+          "cache_write_tokens": 2454,
+          "cached_tokens": 1571
+        },
+        "output_tokens": 127,
+        "output_tokens_details": {
+          "reasoning_tokens": 82
+        },
+        "total_tokens": 4155
+      },
+      "usageCostUsd": 0.0079807
+    },
+    {
+      "id": 19,
+      "debitUsd": 0.0036295,
+      "reservedUsd": 0.2445875,
+      "status": "completed",
+      "model": "gpt-5.4",
+      "questionId": "q-012",
+      "inputTokenUpperBound": 29116,
+      "payloadSha256": "b7ee5c939fbd27a1cc55a099d9a284664c70b9d5adac09d7f7f71e7660d2525e",
+      "startedAt": 1791082380.6003225,
+      "usage": {
+        "input_tokens": 2437,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 1408
+        },
+        "output_tokens": 47,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 2484
+      },
+      "usageCostUsd": 0.0036295
+    },
+    {
+      "id": 20,
+      "debitUsd": 1.38e-06,
+      "reservedUsd": 2.85e-05,
+      "status": "completed",
+      "model": "voyage-4",
+      "questionId": "q-012",
+      "inputTokenUpperBound": 380,
+      "payloadSha256": "e7e9a07f24195308b099282e2537b169846b1566485f3a9d0351d4cf0347fc1b",
+      "startedAt": 1791082381.7019026,
+      "usage": {
+        "total_tokens": 23
+      },
+      "usageCostUsd": 1.38e-06
+    },
+    {
+      "id": 21,
+      "debitUsd": 6.599999999999999e-07,
+      "reservedUsd": 2.565e-05,
+      "status": "completed",
+      "model": "voyage-4",
+      "questionId": "q-012",
+      "inputTokenUpperBound": 342,
+      "payloadSha256": "aa1297d58f097ef019ff86b22584f8fd1813ade84b94a78ed28db48d148f9fce",
+      "startedAt": 1791082385.3450603,
+      "usage": {
+        "total_tokens": 11
+      },
+      "usageCostUsd": 6.599999999999999e-07
+    },
+    {
+      "id": 22,
+      "debitUsd": 0.0095125,
+      "reservedUsd": 0.302696875,
+      "status": "completed",
+      "model": "gpt-5.4",
+      "questionId": "q-012",
+      "inputTokenUpperBound": 47711,
+      "payloadSha256": "021313be0fe41614d0d58d35ef42b881d199359bfd6fcf099857ecf0413c0ccb",
+      "startedAt": 1791082388.7937467,
+      "usage": {
+        "input_tokens": 5935,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 2560
+        },
+        "output_tokens": 29,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 5964
+      },
+      "usageCostUsd": 0.0095125
+    },
+    {
+      "id": 23,
+      "debitUsd": 0.0334405,
+      "reservedUsd": 0.37980624999999996,
+      "status": "completed",
+      "model": "gpt-5.4",
+      "questionId": "q-012",
+      "inputTokenUpperBound": 72386,
+      "payloadSha256": "5362542b0834f457525385b60983865026b178a7579b470a82e6f2e4d5d3de7f",
+      "startedAt": 1791082390.4684484,
+      "usage": {
+        "input_tokens": 12805,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 5632
+        },
+        "output_tokens": 940,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 13745
+      },
+      "usageCostUsd": 0.0334405
+    },
+    {
+      "id": 24,
+      "debitUsd": 0.0276712,
+      "reservedUsd": 0.237215,
+      "status": "completed",
+      "model": "gpt-5.6-terra",
+      "questionId": "q-012",
+      "inputTokenUpperBound": 45734,
+      "payloadSha256": "c1b71b2c2e387dd4c11b58841b47c7e25f1b1f8819e9510c3b2ed115157ffe15",
+      "startedAt": 1791082399.3153033,
+      "usage": {
+        "input_tokens": 6989,
+        "input_tokens_details": {
+          "cache_write_tokens": 5415,
+          "cached_tokens": 1571
+        },
+        "output_tokens": 1151,
+        "output_tokens_details": {
+          "reasoning_tokens": 402
+        },
+        "total_tokens": 8140
+      },
+      "usageCostUsd": 0.0276712
+    },
+    {
+      "id": 25,
+      "debitUsd": 0.0144677,
+      "reservedUsd": 0.23487000000000002,
+      "status": "completed",
+      "model": "gpt-5.6-terra",
+      "questionId": "q-012",
+      "inputTokenUpperBound": 44796,
+      "payloadSha256": "b4d6787abbd3b1b9ad2d5e105b7159012ee9aa200d3fd0540e2717ae9f26c796",
+      "startedAt": 1791082408.1301937,
+      "usage": {
+        "input_tokens": 6690,
+        "input_tokens_details": {
+          "cache_write_tokens": 5116,
+          "cached_tokens": 1571
+        },
+        "output_tokens": 113,
+        "output_tokens_details": {
+          "reasoning_tokens": 68
+        },
+        "total_tokens": 6803
+      },
+      "usageCostUsd": 0.0144677
+    },
+    {
+      "id": 26,
+      "debitUsd": 0.0034495,
+      "reservedUsd": 0.2444375,
+      "status": "completed",
+      "model": "gpt-5.4",
+      "questionId": "q-030",
+      "inputTokenUpperBound": 29068,
+      "payloadSha256": "59aecc83189a3266dc1c5e23dfc9a2796d5a9e2b8fc6071dd0eeb57bfd5f1bd2",
+      "startedAt": 1791082412.6119714,
+      "usage": {
+        "input_tokens": 2419,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 1408
+        },
+        "output_tokens": 38,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 2457
+      },
+      "usageCostUsd": 0.0034495
+    },
+    {
+      "id": 27,
+      "debitUsd": 8.4e-07,
+      "reservedUsd": 2.67e-05,
+      "status": "completed",
+      "model": "voyage-4",
+      "questionId": "q-030",
+      "inputTokenUpperBound": 356,
+      "payloadSha256": "8ecf85f2e53ad2eb28af6b874575bae602502e2bf291a88ec30f4fbb6d82d829",
+      "startedAt": 1791082413.7034106,
+      "usage": {
+        "total_tokens": 14
+      },
+      "usageCostUsd": 8.4e-07
+    },
+    {
+      "id": 28,
+      "debitUsd": 1.3199999999999999e-06,
+      "reservedUsd": 3.39e-05,
+      "status": "completed",
+      "model": "voyage-4",
+      "questionId": "q-030",
+      "inputTokenUpperBound": 452,
+      "payloadSha256": "da9a7144569a956cbc4298d8c7d001ad143b7b51714f7a4b5a5c019bb7f0502d",
+      "startedAt": 1791082417.387707,
+      "usage": {
+        "total_tokens": 22
+      },
+      "usageCostUsd": 1.3199999999999999e-06
+    },
+    {
+      "id": 29,
+      "debitUsd": 0.012885,
+      "reservedUsd": 0.31665625000000003,
+      "status": "completed",
+      "model": "gpt-5.4",
+      "questionId": "q-030",
+      "inputTokenUpperBound": 52178,
+      "payloadSha256": "919c230f9f5162b6fdc2fd02394e05bf51d3ef0fec7eae0d3dc2d1a7d42e2f9e",
+      "startedAt": 1791082420.86229,
+      "usage": {
+        "input_tokens": 7302,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 2560
+        },
+        "output_tokens": 26,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 7328
+      },
+      "usageCostUsd": 0.012885
+    },
+    {
+      "id": 30,
+      "debitUsd": 0.0380665,
+      "reservedUsd": 0.459,
+      "status": "completed",
+      "model": "gpt-5.4",
+      "questionId": "q-030",
+      "inputTokenUpperBound": 97728,
+      "payloadSha256": "81574bc4e55bd0aacad779706b21e441a3f5741c700169d9d25782eb4c0d1ba7",
+      "startedAt": 1791082421.7467313,
+      "usage": {
+        "input_tokens": 18931,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 6656
+        },
+        "output_tokens": 381,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 19312
+      },
+      "usageCostUsd": 0.0380665
+    },
+    {
+      "id": 31,
+      "debitUsd": 0.0244587,
+      "reservedUsd": 0.25744,
+      "status": "completed",
+      "model": "gpt-5.6-terra",
+      "questionId": "q-030",
+      "inputTokenUpperBound": 53824,
+      "payloadSha256": "76dffc0dff07867211f4978f0e7417863716a2c229057b9643625f81b708260e",
+      "startedAt": 1791082426.0221899,
+      "usage": {
+        "input_tokens": 9472,
+        "input_tokens_details": {
+          "cache_write_tokens": 7898,
+          "cached_tokens": 1571
+        },
+        "output_tokens": 366,
+        "output_tokens_details": {
+          "reasoning_tokens": 321
+        },
+        "total_tokens": 9838
+      },
+      "usageCostUsd": 0.0244587
+    },
+    {
+      "id": 32,
+      "debitUsd": 0.0035745,
+      "reservedUsd": 0.2444625,
+      "status": "completed",
+      "model": "gpt-5.4",
+      "questionId": "q-048",
+      "inputTokenUpperBound": 29076,
+      "payloadSha256": "c88852abb9c8b441166a843b431d3f9e5977216af5f7d552b825a8aff067c1fe",
+      "startedAt": 1791082433.5000143,
+      "usage": {
+        "input_tokens": 2427,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 1408
+        },
+        "output_tokens": 45,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 2472
+      },
+      "usageCostUsd": 0.0035745
+    },
+    {
+      "id": 33,
+      "debitUsd": 1.1399999999999999e-06,
+      "reservedUsd": 2.6999999999999996e-05,
+      "status": "completed",
+      "model": "voyage-4",
+      "questionId": "q-048",
+      "inputTokenUpperBound": 360,
+      "payloadSha256": "2a7f2a664658b3442362d318307f5bd14d990ae1313ff0833a7e62b44bc361b4",
+      "startedAt": 1791082435.073125,
+      "usage": {
+        "total_tokens": 19
+      },
+      "usageCostUsd": 1.1399999999999999e-06
+    },
+    {
+      "id": 34,
+      "debitUsd": 6e-07,
+      "reservedUsd": 2.5124999999999997e-05,
+      "status": "completed",
+      "model": "voyage-4",
+      "questionId": "q-048",
+      "inputTokenUpperBound": 335,
+      "payloadSha256": "84485b676dd317461d5d9c5a3c0bb023d60f9b1a5998121f39e0b3cd46042b15",
+      "startedAt": 1791082436.7277257,
+      "usage": {
+        "total_tokens": 10
+      },
+      "usageCostUsd": 6e-07
+    },
+    {
+      "id": 35,
+      "debitUsd": 1.1399999999999999e-06,
+      "reservedUsd": 2.6999999999999996e-05,
+      "status": "completed",
+      "model": "voyage-4",
+      "questionId": "q-048",
+      "inputTokenUpperBound": 360,
+      "payloadSha256": "2a7f2a664658b3442362d318307f5bd14d990ae1313ff0833a7e62b44bc361b4",
+      "startedAt": 1791082438.3442545,
+      "usage": {
+        "total_tokens": 19
+      },
+      "usageCostUsd": 1.1399999999999999e-06
+    },
+    {
+      "id": 36,
+      "debitUsd": 0.02987,
+      "reservedUsd": 0.4130875,
+      "status": "completed",
+      "model": "gpt-5.4",
+      "questionId": "q-048",
+      "inputTokenUpperBound": 83036,
+      "payloadSha256": "11aa1e204bf34d8b636204130534d4c5d663086a8b637ceaf1c3a7e69075113b",
+      "startedAt": 1791082440.787642,
+      "usage": {
+        "input_tokens": 13862,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 2560
+        },
+        "output_tokens": 65,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 13927
+      },
+      "usageCostUsd": 0.02987
+    },
+    {
+      "id": 37,
+      "debitUsd": 0.0530225,
+      "reservedUsd": 0.46271249999999997,
+      "status": "completed",
+      "model": "gpt-5.4",
+      "questionId": "q-048",
+      "inputTokenUpperBound": 98916,
+      "payloadSha256": "5ea225664c325a05e417a69159c14cc61d47bad4e6e326c136b0e562bb6907a2",
+      "startedAt": 1791082442.2374008,
+      "usage": {
+        "input_tokens": 17993,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 0
+        },
+        "output_tokens": 536,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 18529
+      },
+      "usageCostUsd": 0.0530225
+    },
+    {
+      "id": 38,
+      "debitUsd": 0.0406987,
+      "reservedUsd": 0.32491,
+      "status": "completed",
+      "model": "gpt-5.6-terra",
+      "questionId": "q-048",
+      "inputTokenUpperBound": 80812,
+      "payloadSha256": "adf9e6c50a8e57bdb594b2ab4cfaea6fb961a46e46f7fae00e403f0c39db1d15",
+      "startedAt": 1791082448.0125353,
+      "usage": {
+        "input_tokens": 14936,
+        "input_tokens_details": {
+          "cache_write_tokens": 13362,
+          "cached_tokens": 1571
+        },
+        "output_tokens": 581,
+        "output_tokens_details": {
+          "reasoning_tokens": 305
+        },
+        "total_tokens": 15517
+      },
+      "usageCostUsd": 0.0406987
+    },
+    {
+      "id": 39,
+      "debitUsd": 0.0338512,
+      "reservedUsd": 0.320615,
+      "status": "completed",
+      "model": "gpt-5.6-terra",
+      "questionId": "q-048",
+      "inputTokenUpperBound": 79094,
+      "payloadSha256": "4c3383e10bff33f07af6e9f66f282d178e5fd87861466a5663f85dfffc5c3ecf",
+      "startedAt": 1791082453.8073068,
+      "usage": {
+        "input_tokens": 14525,
+        "input_tokens_details": {
+          "cache_write_tokens": 12951,
+          "cached_tokens": 1571
+        },
+        "output_tokens": 96,
+        "output_tokens_details": {
+          "reasoning_tokens": 51
+        },
+        "total_tokens": 14621
+      },
+      "usageCostUsd": 0.0338512
+    }
+  ]
+}

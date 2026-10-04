@@ -1,0 +1,33 @@
+{
+  "status": "SIX_QUESTION_USAGE_EXTRAPOLATION_NOT_CAP_OR_QUALIFICATION",
+  "sampleQuestionCount": 6,
+  "meanCachedObservedCostUsd": 0.08639098,
+  "meanColdNormalizedCostUsd": 0.11052649666666668,
+  "generationMeanInputTokensPerQuestion": 24997.833333333332,
+  "generationMeanOutputTokensPerQuestion": 767.6666666666666,
+  "verifierMeanInputTokensPerQuestion": 12296.333333333334,
+  "verifierMeanOutputTokensPerQuestion": 481.1666666666667,
+  "verifierMeanPasses": 1.3333333333333333,
+  "assumedCampaignRequests": 378,
+  "benchmarkJudgeAssumptionUsd": 24.75,
+  "standaloneRetrievalAssumptionUsd": 0.00396,
+  "observedUsageCampaignScenarioUsd": 57.40975044,
+  "coldNormalizedCampaignScenarioUsd": 66.53297574000001,
+  "oldCorpusEmbeddingUsdUnchanged": 115.16816322,
+  "includingUnchangedOldCorpusScenarioUsd": {
+    "observed": 172.57791366,
+    "coldNormalized": 181.70113896
+  },
+  "postCompactionCorpusEmbeddingEstimateUsd": null,
+  "limitations": [
+    "Six deliberately selected questions are not a statistically representative campaign",
+    "CLI skips chat scope/injection classifiers and observational memory; web overhead is unmeasured",
+    "Private sample disables server response storage and caps output at 8192; production behavior may differ",
+    "Scope cases are conservatively treated as ordinary question costs here; their actual distribution is unmeasured",
+    "Terra noncached inputs are conservatively priced at the 25% cache-write ceiling",
+    "Cold normalization removes observed cached-input discounts; request/token volumes remain those of this sample",
+    "Judge costs retain prior assumptions; no paid judge was invoked and configured Anthropic access remains unresolved",
+    "Retries, timeouts, extra queries, model calibration, research, browser/memory acceptance and hosting are excluded",
+    "Trimming was diagnostic only. Full corpus cost after a parser repair requires reparse, identity/catalog reconciliation and exact shared-plan measurement"
+  ]
+}

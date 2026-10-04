@@ -1,5 +1,8 @@
 # Project gotchas
 
+- Excel formatting can extend declared dimensions to thousands of blank columns. Rendering every value from `iter_rows()` inflated ready spreadsheet text to 2.64 GB; a diagnostic preserving occupied serialized cell positions removed 90.2% of characters. Fix serialization from original cell values, preserve internal empty positions/zeros/dates, and verify regenerated artifacts before re-embedding. [Cost audit](../validation/cost-audit-sample-2026-10-03/README.md).
+- The tsx CLI wrapper may spawn a fresh Node process without a parent-only fetch preloader. For a finite paid diagnostic, use native `node --import tsx --import <preloader>` and test that the executing process forwards the guard. A copied checkout also needs nested workspace dependencies and inert WorkOS redirect settings even when running CLI-only.
+
 Current guidance carried forward from main at `dc81a97`. When behavior changes, correct the affected lesson alongside the implementation.
 
 - Production browser smoke identifies restored conversations by exact titles. Duplicate generated titles make that check ambiguous even after verification passes. Run account-based smoke serially and give only the captured, ownership-checked synthetic thread a unique title before switch/reload checks; retain failed receipts separately.

@@ -109,6 +109,9 @@ jobs:
       # Hermetic against the Neo4j service: the suite creates its own vector
       # indexes and `test:`-prefixed fixtures and mocks the embedding API, so
       # no pipeline data load is required.
+      - name: Test cost audit and finite sample budget
+        run: packages/pipeline/.venv/bin/python -m pytest scripts/ops/tests/test_audit_corpus_cost.py scripts/ops/tests/test_sample_budget_gateway.py -q
+
       - name: Agent integration tests (real Neo4j)
         run: npm run test:integration -w @nc-medicaid/agent
 

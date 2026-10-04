@@ -1,0 +1,104 @@
+[
+  {
+    "artifact": "grouper-39-drg-weight-table-excel-oct-1-2021__xlsx.json",
+    "sheets": [
+      {
+        "sheet": "xl/worksheets/sheet1.xml",
+        "declaredDimension": "A1:XFC808",
+        "storedValueCells": 4678,
+        "lastStoredValueColumn": 7
+      },
+      {
+        "sheet": "xl/worksheets/sheet2.xml",
+        "declaredDimension": "A1:W514",
+        "storedValueCells": 11418,
+        "lastStoredValueColumn": 23
+      }
+    ]
+  },
+  {
+    "artifact": "physician-service-fee-schedule-july-22-2021-excel__xlsx.json",
+    "sheets": [
+      {
+        "sheet": "xl/worksheets/sheet1.xml",
+        "declaredDimension": "A1:ZZ9961",
+        "storedValueCells": 61577,
+        "lastStoredValueColumn": 7
+      },
+      {
+        "sheet": "xl/worksheets/sheet2.xml",
+        "declaredDimension": "A1:G175",
+        "storedValueCells": 1077,
+        "lastStoredValueColumn": 7
+      }
+    ]
+  },
+  {
+    "artifact": "physician-service-fee-schedule-july-15-2021-excel__xlsx.json",
+    "sheets": [
+      {
+        "sheet": "xl/worksheets/sheet1.xml",
+        "declaredDimension": "A1:ZZ9956",
+        "storedValueCells": 61569,
+        "lastStoredValueColumn": 7
+      },
+      {
+        "sheet": "xl/worksheets/sheet2.xml",
+        "declaredDimension": "A1:G175",
+        "storedValueCells": 1077,
+        "lastStoredValueColumn": 7
+      }
+    ]
+  },
+  {
+    "artifact": "physician-service-fee-schedule-nov-16-2021-excel__xlsx.json",
+    "sheets": [
+      {
+        "sheet": "xl/worksheets/sheet1.xml",
+        "declaredDimension": "A1:ZZ9957",
+        "storedValueCells": 61559,
+        "lastStoredValueColumn": 7
+      },
+      {
+        "sheet": "xl/worksheets/sheet2.xml",
+        "declaredDimension": "A1:G174",
+        "storedValueCells": 1070,
+        "lastStoredValueColumn": 7
+      }
+    ]
+  },
+  {
+    "artifact": "physician-service-fee-schedule-nov-19-2021-excel__xlsx.json",
+    "sheets": [
+      {
+        "sheet": "xl/worksheets/sheet1.xml",
+        "declaredDimension": "A1:ZZ9957",
+        "storedValueCells": 61559,
+        "lastStoredValueColumn": 7
+      },
+      {
+        "sheet": "xl/worksheets/sheet2.xml",
+        "declaredDimension": "A1:G174",
+        "storedValueCells": 1070,
+        "lastStoredValueColumn": 7
+      }
+    ]
+  },
+  {
+    "artifact": "physician-service-fee-schedule-june-28-2021-excel__xlsx.json",
+    "sheets": [
+      {
+        "sheet": "xl/worksheets/sheet1.xml",
+        "declaredDimension": "A1:ZZ9949",
+        "storedValueCells": 61526,
+        "lastStoredValueColumn": 7
+      },
+      {
+        "sheet": "xl/worksheets/sheet2.xml",
+        "declaredDimension": "A1:G175",
+        "storedValueCells": 1077,
+        "lastStoredValueColumn": 7
+      }
+    ]
+  }
+]

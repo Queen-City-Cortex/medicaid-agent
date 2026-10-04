@@ -1,0 +1,30 @@
+{
+  "before": {
+    "releaseMarker": {
+      "release_id": "legacy-20260725-ae8595c",
+      "commit_sha": "ae8595c",
+      "target_color": "legacy",
+      "marked_at": "2026-07-26T00:31:59.246000000+00:00",
+      "id": "current",
+      "promotion_state": "bootstrap"
+    },
+    "sections": 67457,
+    "sectionVectors": 54567
+  },
+  "after": {
+    "releaseMarker": {
+      "release_id": "legacy-20260725-ae8595c",
+      "commit_sha": "ae8595c",
+      "target_color": "legacy",
+      "marked_at": "2026-07-26T00:31:59.246000000+00:00",
+      "id": "current",
+      "promotion_state": "bootstrap"
+    },
+    "sections": 67457,
+    "sectionVectors": 54567
+  },
+  "unchanged": true,
+  "allSampleGraphQueriesReadOnly": true,
+  "initialComparisonMixedNativeNeo4jDateTimeWithJsonStrings": true,
+  "comparisonUsesSameSerializedRepresentation": true
+}
