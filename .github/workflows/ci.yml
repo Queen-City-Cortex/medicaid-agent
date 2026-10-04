@@ -109,6 +109,9 @@ jobs:
       - name: Test offline qualification isolation guards
         run: python3 -m unittest discover -s scripts/ops/tests -p test_prepare_qualification.py
 
+      - name: Test fee-compaction isolation guards
+        run: python3 -m unittest discover -s scripts/ops/tests -p test_fee_compaction.py
+
       # Hermetic against the Neo4j service: the suite creates its own vector
       # indexes and `test:`-prefixed fixtures and mocks the embedding API, so
       # no pipeline data load is required.

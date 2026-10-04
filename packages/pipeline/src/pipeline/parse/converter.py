@@ -46,6 +46,7 @@ from pipeline.config import (
 from pipeline.crawler_registry import normalize_local_path, read_registry_rows
 from pipeline.parse.post_process import extract_section_number
 from pipeline.parse.artifact_paths import artifact_stem_for_source_path
+from pipeline.parse.fee_xlsx import native_layout, render_sheet, representation_for
 from pipeline.parse.worker import parse_supported_file_worker
 from pipeline.corpus_manifest import SOURCE_FAMILY_MAP
 
@@ -108,8 +109,9 @@ def get_parse_timeout_seconds() -> int:
         return DEFAULT_PARSE_TIMEOUT_SECONDS
 
 
-def should_parse(source_path: Path, meta_path: Path) -> bool:
+def should_parse(source_path: Path, meta_path: Path, source_type: str | None = None) -> bool:
     """Check if a source file needs (re-)parsing by comparing file hashes."""
+    source_type = source_type or source_type_for_file(source_path)
     if not meta_path.exists():
         return True
     try:
@@ -121,8 +123,11 @@ def should_parse(source_path: Path, meta_path: Path) -> bool:
         if stored_hash != current_hash:
             return True
         json_path, md_path, _ = parsed_output_paths(
-            source_path, source_type_for_file(source_path)
+            source_path, source_type
         )
+        representation = representation_for(source_path, source_type)
+        if meta.get("representation") != representation:
+            return True
         if meta.get("parse_cache_version") != PARSE_CACHE_VERSION:
             return not _migrate_legacy_parsed_sidecar(
                 meta_path=meta_path,
@@ -143,7 +148,7 @@ def should_parse(source_path: Path, meta_path: Path) -> bool:
             payload = json.loads(json_path.read_text())
         except (OSError, UnicodeDecodeError, json.JSONDecodeError):
             return True
-        return not isinstance(payload, dict)
+        return not isinstance(payload, dict) or payload.get("representation") != representation
     except (OSError, json.JSONDecodeError, KeyError, TypeError):
         return True
 
@@ -549,26 +554,30 @@ def parse_docx(docx_path: Path) -> dict:
     }
 
 
-def parse_xlsx(xlsx_path: Path) -> dict:
+def parse_xlsx(xlsx_path: Path, source_type: str = "unknown") -> dict:
     """Extract spreadsheet sheets into synthetic sections with preserved table text."""
     start = time.time()
     workbook = load_workbook(filename=str(xlsx_path), read_only=True, data_only=True)
     sections: list[dict] = []
+    representation = representation_for(xlsx_path, source_type)
+    layouts = native_layout(xlsx_path) if representation else {}
+    proofs = []
 
     try:
         for sheet in workbook.worksheets:
-            rows: list[list[str]] = []
-            for row in sheet.iter_rows(values_only=True):
-                values = [
-                    str(value).strip() if value is not None else "" for value in row
-                ]
-                if any(values):
-                    rows.append(values)
-
-            if not rows:
+            if representation:
+                table_text, proof = render_sheet(sheet, layouts[sheet.title])
+                proofs.append({"sheet": sheet.title, **proof})
+            else:
+                rows = []
+                for row in sheet.iter_rows(values_only=True):
+                    values = [str(value).strip() if value is not None else "" for value in row]
+                    if any(values):
+                        rows.append(" | ".join(values))
+                table_text = "\n".join(rows)
+            if not table_text:
                 continue
 
-            table_text = "\n".join(" | ".join(values) for values in rows)
             section = _new_synthetic_section(sheet.title, 1)
             section["content_text"] = table_text
             section["has_tables"] = True
@@ -587,6 +596,7 @@ def parse_xlsx(xlsx_path: Path) -> dict:
         "payload": {
             "synthetic_sections": sections,
             "source_format": "xlsx",
+            **({"representation": representation, "cell_preservation": proofs} if representation else {}),
         },
         "markdown": _render_synthetic_markdown(sections),
         "section_count": len(sections),
@@ -865,7 +875,7 @@ def parse_html(html_path: Path) -> dict:
     }
 
 
-def _attempt_counts(meta_path: Path, source_hash: str) -> tuple[int, int]:
+def _attempt_counts(meta_path: Path, source_hash: str, representation: str | None = None) -> tuple[int, int]:
     try:
         current = json.loads(meta_path.read_text()) if meta_path.exists() else {}
         total = (
@@ -880,6 +890,7 @@ def _attempt_counts(meta_path: Path, source_hash: str) -> tuple[int, int]:
         same_generation = (
             current.get("source_file_hash") == source_hash
             and current.get("parse_cache_version") == PARSE_CACHE_VERSION
+            and current.get("representation") == representation
         )
         previous_generation = current.get(
             "attempt_count_generation", current.get("attempt_count", 0)
@@ -924,7 +935,7 @@ def _migrate_legacy_parsed_sidecar(
         payload = json.loads(json_path.read_text())
     except (OSError, UnicodeDecodeError, json.JSONDecodeError):
         return False
-    if not isinstance(payload, dict):
+    if not isinstance(payload, dict) or payload.get("representation") != meta.get("representation"):
         return False
 
     # v5 introduced artifact integrity hashes. Migration must not bless a
@@ -962,10 +973,12 @@ def save_parsed(
     source_type: str,
 ) -> Path:
     """Save parsed JSON, markdown, and metadata sidecar."""
+    if parsed["payload"].get("representation") != representation_for(source_path, source_type):
+        raise ValueError("Parsed payload representation does not match source family")
     json_path, md_path, meta_path = parsed_output_paths(source_path, source_type)
 
     source_hash = f"sha256:{file_sha256(source_path)}"
-    attempt_generation, attempt_total = _attempt_counts(meta_path, source_hash)
+    attempt_generation, attempt_total = _attempt_counts(meta_path, source_hash, representation_for(source_path, source_type))
     _atomic_write_text(json_path, json.dumps(parsed["payload"], indent=2, default=str))
     _atomic_write_text(md_path, parsed["markdown"])
 
@@ -977,6 +990,7 @@ def save_parsed(
         "parsed_at": datetime.now(timezone.utc).isoformat(),
         "docling_version": getattr(docling, "__version__", "unknown"),
         "parse_cache_version": PARSE_CACHE_VERSION,
+        **({"representation": representation_for(source_path, source_type)} if representation_for(source_path, source_type) else {}),
         "attempt_count": attempt_generation,
         "attempt_count_generation": attempt_generation,
         "attempt_count_total": attempt_total,
@@ -1012,7 +1026,7 @@ def save_parse_error(source_path: Path, source_type: str, error: Exception) -> N
     """Persist parse failure metadata so audit-corpus can classify exceptions explicitly."""
     _, _, meta_path = parsed_output_paths(source_path, source_type)
     source_hash = f"sha256:{file_sha256(source_path)}"
-    attempt_generation, attempt_total = _attempt_counts(meta_path, source_hash)
+    attempt_generation, attempt_total = _attempt_counts(meta_path, source_hash, representation_for(source_path, source_type))
     meta = {
         "source_file": str(source_path),
         "source_file_hash": source_hash,
@@ -1021,6 +1035,7 @@ def save_parse_error(source_path: Path, source_type: str, error: Exception) -> N
         "parsed_at": datetime.now(timezone.utc).isoformat(),
         "docling_version": getattr(docling, "__version__", "unknown"),
         "parse_cache_version": PARSE_CACHE_VERSION,
+        **({"representation": representation_for(source_path, source_type)} if representation_for(source_path, source_type) else {}),
         "failure_kind": "timeout" if isinstance(error, TimeoutError) else "exception",
         "attempt_count": attempt_generation,
         "attempt_count_generation": attempt_generation,
@@ -1056,13 +1071,14 @@ def save_unsupported_format(
     """Persist an explicit quarantine sidecar for an unsupported artifact."""
     _, _, meta_path = parsed_output_paths(source_path, source_type)
     source_hash = f"sha256:{file_sha256(source_path)}"
-    attempt_generation, attempt_total = _attempt_counts(meta_path, source_hash)
+    attempt_generation, attempt_total = _attempt_counts(meta_path, source_hash, representation_for(source_path, source_type))
     suffix = source_path.suffix.lower() or "(none)"
     meta = {
         "source_file": str(source_path),
         "source_file_hash": source_hash,
         "parsed_at": datetime.now(timezone.utc).isoformat(),
         "parse_cache_version": PARSE_CACHE_VERSION,
+        **({"representation": representation_for(source_path, source_type)} if representation_for(source_path, source_type) else {}),
         "failure_kind": "unsupported_format",
         "attempt_count": attempt_generation,
         "attempt_count_generation": attempt_generation,
@@ -1146,6 +1162,7 @@ def source_type_for_file(source_path: Path) -> str:
 def parse_supported_file(
     source_path: Path,
     converter: DocumentConverter | None,
+    source_type: str = "unknown",
 ) -> dict:
     suffix = source_path.suffix.lower()
     if suffix == ".pdf":
@@ -1157,7 +1174,7 @@ def parse_supported_file(
     if suffix == ".doc":
         return parse_doc(source_path)
     if suffix == ".xlsx":
-        return parse_xlsx(source_path)
+        return parse_xlsx(source_path, source_type)
     if suffix == ".xls":
         return parse_xls(source_path)
     if suffix == ".pptx":
@@ -1180,7 +1197,7 @@ def parse_and_save_supported_file(
     source_type: str,
     converter: DocumentConverter | None,
 ) -> dict:
-    parsed = parse_supported_file(source_path, converter)
+    parsed = parse_supported_file(source_path, converter, source_type)
     save_parsed(source_path, parsed, source_type)
     return summarize_parsed_output(parsed)
 
@@ -1193,7 +1210,7 @@ def _parse_supported_file_worker(
     source_path = Path(source_path_str)
     try:
         converter = create_converter() if source_path.suffix.lower() == ".pdf" else None
-        parsed = parse_supported_file(source_path, converter)
+        parsed = parse_supported_file(source_path, converter, source_type)
         save_parsed(source_path, parsed, source_type)
         result_connection.send({"ok": True, "summary": summarize_parsed_output(parsed)})
     except Exception as error:  # pragma: no cover - exercised via parent wrapper
@@ -1395,6 +1412,9 @@ def _inspect_parse_artifacts(source_path: Path) -> dict[str, Any] | None:
     except (TypeError, ValueError):
         attempts = 0
     status = meta.get("parse_status")
+    expected_representation = representation_for(source_path, source_type)
+    if expected_representation and meta.get("representation") != expected_representation:
+        return {**base, "parse_status": "stale_sidecar", "attempt_count_generation": 0}
     if status != "parsed":
         return {
             **base,
@@ -1411,6 +1431,7 @@ def _inspect_parse_artifacts(source_path: Path) -> dict[str, Any] | None:
     if (
         meta.get("source_file_hash", meta.get("source_pdf_hash")) != current_hash
         or meta.get("parse_cache_version") != PARSE_CACHE_VERSION
+        or meta.get("representation") != representation_for(source_path, source_type)
     ):
         return {**base, "parse_status": "stale_sidecar", "attempt_count_generation": 0}
     artifacts = meta.get("artifacts")
@@ -1435,8 +1456,9 @@ def _inspect_parse_artifacts(source_path: Path) -> dict[str, Any] | None:
                 "attempt_count_generation": attempts,
             }
     try:
-        if not isinstance(json.loads(json_path.read_text()), dict):
-            raise ValueError("parsed JSON is not an object")
+        payload = json.loads(json_path.read_text())
+        if not isinstance(payload, dict) or payload.get("representation") != representation_for(source_path, source_type):
+            raise ValueError("parsed JSON representation is invalid")
     except (OSError, UnicodeDecodeError, json.JSONDecodeError, ValueError):
         return {
             **base,

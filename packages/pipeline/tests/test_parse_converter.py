@@ -186,14 +186,16 @@ def test_atomic_artifact_hashes_force_retry_after_truncation_or_deletion(
         "pipeline.parse.converter.source_type_for_file", lambda _path: "fee_schedule"
     )
 
-    save_parsed(source, _parsed_fixture(), "fee_schedule")
+    parsed = _parsed_fixture()
+    parsed["payload"]["representation"] = "fee-schedule-trailing-empty-v1"
+    save_parsed(source, parsed, "fee_schedule")
     meta = json.loads(paths[2].read_text())
     assert meta["artifacts"]["json"]["sha256"].startswith("sha256:")
     assert should_parse(source, paths[2]) is False
 
     paths[0].write_text("{")
     assert should_parse(source, paths[2]) is True
-    save_parsed(source, _parsed_fixture(), "fee_schedule")
+    save_parsed(source, parsed, "fee_schedule")
     paths[1].unlink()
     assert should_parse(source, paths[2]) is True
 
