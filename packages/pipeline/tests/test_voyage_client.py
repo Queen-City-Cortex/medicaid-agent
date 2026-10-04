@@ -19,7 +19,7 @@ def _response(status_code: int, headers: dict | None = None, json_body: dict | N
 
 def _success_response(vectors: list[list[float]] | None = None) -> httpx.Response:
     vectors = vectors if vectors is not None else [[0.1, 0.2]]
-    return _response(200, json_body={"data": [{"embedding": v} for v in vectors]})
+    return _response(200, json_body={"data": [{"embedding": v, "index":i} for i,v in enumerate(vectors)]})
 
 
 class FakePost:
@@ -197,6 +197,7 @@ def test_retry_delay_is_capped(monkeypatch):
 def test_payload_disables_silent_truncation(monkeypatch):
     def post(url, **kwargs):
         assert kwargs["json"]["truncation"] is False
+        assert kwargs["json"]["output_dimension"] == voyage_client.EMBEDDING_DIMENSIONS
         return _success_response()
     monkeypatch.setattr(voyage_client.httpx, "post", post)
     voyage_client.embed(["a"], model="voyage-4")
@@ -208,3 +209,18 @@ def test_oversized_request_never_reaches_provider(monkeypatch, counts):
     monkeypatch.setattr(voyage_client.httpx, "post", lambda *_args, **_kwargs: pytest.fail("Provider called"))
     with pytest.raises(ValueError, match="limits"):
         voyage_client.embed([str(count) for count in counts], model="voyage-4")
+
+
+def test_response_order_uses_provider_index(monkeypatch):
+    monkeypatch.setattr(voyage_client.httpx, "post", lambda *_args, **_kw: _response(200, json_body={"data": [
+        {"index":1,"embedding":[2.0]}, {"index":0,"embedding":[1.0]}]}))
+    assert voyage_client.embed(["a","b"], "voyage-4") == [[1.0],[2.0]]
+
+
+@pytest.mark.parametrize("indexes", [[0,0],[0],[1,2],[True,0],[None,1]])
+def test_invalid_response_indexes_fail_without_retry(monkeypatch,indexes):
+    post = FakePost([_response(200,json_body={"data":[{"index":i,"embedding":[1.0]} for i in indexes]})])
+    monkeypatch.setattr(voyage_client.httpx,"post",post)
+    with pytest.raises(ValueError,match="indexes"):
+        voyage_client.embed(["a","b"],"voyage-4")
+    assert post.calls == 1

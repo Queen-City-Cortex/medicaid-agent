@@ -298,7 +298,9 @@ def inspect_release_graph(expected_dimensions: int) -> dict[str, Any]:
     """Collect identity, source-family, and embedding gate metrics."""
     from pipeline.corpus_manifest import CORPUS_MANIFEST
     from pipeline.graph.connection import get_session
+    from pipeline.embeddings.plan_graph import embedding_coverage
 
+    coverage_row = embedding_coverage(dimensions=expected_dimensions)
     required_types = sorted(
         {
             family.source_type
@@ -322,45 +324,6 @@ def inspect_release_graph(expected_dimensions: int) -> dict[str, Any]:
                  collect(DISTINCT document.document_type) AS source_types
             RETURN total, with_id, distinct_ids, source_types
             """
-        ).single()
-        coverage_row = session.run(
-            """
-            MATCH (section:Section)
-            WHERE section.content_length > 0
-            OPTIONAL MATCH (section)-[:HAS_CHUNK]->(chunk:Chunk)
-            WITH section, collect(chunk) AS chunks
-            WITH count(section) AS total,
-                 sum(
-                   CASE
-                     WHEN section.embedding_plan_hash IS NOT NULL
-                       AND section.embedding_source_epoch IS NOT NULL
-                       AND section.embedding_plan_source_epoch = section.embedding_source_epoch
-                       AND section.embedding_input_count = 1 AND size(chunks) = 0
-                       AND section.embedding IS NOT NULL
-                       AND size(section.embedding) = $dimensions
-                     THEN 1
-                     WHEN section.embedding_plan_hash IS NOT NULL
-                       AND section.embedding_source_epoch IS NOT NULL
-                       AND section.embedding_plan_source_epoch = section.embedding_source_epoch
-                       AND section.embedding IS NULL
-                       AND section.embedding_input_count = size(chunks)
-                       AND size(chunks) > 0
-                       AND all(
-                         chunk IN chunks
-                         WHERE chunk.embedding IS NOT NULL
-                           AND size(chunk.embedding) = $dimensions
-                           AND chunk.embedding_plan_hash = section.embedding_plan_hash
-                           AND chunk.embedding_plan_source_epoch = section.embedding_source_epoch
-                       )
-                     THEN 1
-                     ELSE 0
-                   END
-                 ) AS covered
-            RETURN total, covered
-            """,
-            {
-                "dimensions": expected_dimensions,
-            },
         ).single()
         invalid_dimensions_row = session.run(
             """

@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 """Read-only identity and embedding-volume inspection; makes no provider calls."""
-import hashlib
 import importlib.util
 import json
 import os
@@ -19,8 +18,22 @@ def main():
     preparation.deny_network()
     import dotenv
     dotenv.load_dotenv = lambda *_args, **_kwargs: False
+    import sqlite3
+
     from neo4j import GraphDatabase
     from pipeline import config
+    if config.CRAWLER_DB_PATH != Path("/data/crawler/crawler.db"):
+        raise ValueError("Unexpected registry path")
+    registry_uri = preparation.immutable_registry_uri(config.CRAWLER_DB_PATH)
+    registry_hash_before = preparation.digest(config.CRAWLER_DB_PATH)
+    original_connect = sqlite3.connect
+    def readonly_connect(database, *args, **kwargs):
+        database_path = str(database).removeprefix("file:").split("?", 1)[0]
+        if database_path == str(config.CRAWLER_DB_PATH):
+            database = registry_uri
+            kwargs["uri"] = True
+        return original_connect(database, *args, **kwargs)
+    sqlite3.connect = readonly_connect
     from pipeline.graph import connection
     connection._driver = GraphDatabase.driver(config.NEO4J_URI, auth=(config.NEO4J_USER, config.NEO4J_PASSWORD), fetch_size=8)
     inputs = json.loads(Path("/inputs.json").read_text())
@@ -29,11 +42,30 @@ def main():
         "inputsSha256": preparation.digest(Path("/inputs.json")),
         "inspectorSha256": preparation.digest(Path(__file__)),
     })
+    import importlib
+    module_names = ["chunker", "planner", "tokenizer", "source_epoch", "plan_graph", "inspection", "generator", "voyage_client"]
+    modules = [importlib.import_module("pipeline.embeddings." + name) for name in module_names]
+    modules.extend(importlib.import_module(name) for name in ("pipeline.parse_provenance", "pipeline.config", "pipeline.graph.connection", "pipeline.freshness", "pipeline.corpus_manifest", "pipeline.source_lifecycle", "pipeline.answer_scope", "pipeline.eval.identity", "pipeline.identity", "pipeline.parse.artifact_paths"))
+    preparation.CONTEXT["plannerModuleHashes"] = {
+        module.__name__: preparation.digest(Path(module.__file__)) for module in modules
+    }
+    if preparation.CONTEXT["plannerModuleHashes"] != inputs["plannerModuleHashes"]:
+        raise ValueError("Imported planner modules differ from pinned implementation")
     with connection.get_session() as session:
         marker = session.run("MATCH (p:QualificationPreparation) RETURN properties(p) AS marker").single()
         if not marker or marker["marker"]["sourceSnapshotHash"] != inputs["sourceSnapshotHash"]:
             raise ValueError("Only the completed matching preparation graph may be inspected")
         preparation.CONTEXT["buildRunId"] = marker["marker"]["runId"]
+    if marker["marker"].get("harnessSha256") != inputs["graphBuildHarnessSha256"]:
+        raise ValueError("Graph differs from the attested retained build")
+    from pipeline.freshness import build_answer_ready_snapshot
+    def check_snapshot():
+        snapshot = build_answer_ready_snapshot(Path("/data/pipeline/parsed"),
+            include_answer_scopes=True, db_path=Path("/data/crawler/crawler.db"))
+        if "sha256:" + snapshot["snapshot_hash"] != inputs["sourceSnapshotHash"]:
+            raise ValueError("Complete corpus snapshot differs from retained build")
+        return snapshot
+    before = check_snapshot()
     catalog = json.loads(Path("/catalog.json").read_text())
     if catalog["catalogHash"] != inputs["catalogHash"]:
         raise ValueError("Catalog differs from pinned preparation inputs")
@@ -51,30 +83,53 @@ def main():
         "usableAsQualificationEvidence": False, "evaluationsRun": False,
     })
 
-    from pipeline.embeddings.generator import iter_section_contexts
-    from pipeline.embeddings.planner import plan_inputs, plan_hash, PLAN_VERSION
-    from pipeline.embeddings.tokenizer import TOKENIZER_SHA256
-    totals = {"sections": 0, "embeddingInputs": 0, "inputCharacters": 0,
-              "inputUtf8Bytes": 0, "localTokens": 0, "maximumInputCharacters": 0,
-              "maximumInputTokens": 0}
-    plans = hashlib.sha256()
-    for sid, heading, body, _epoch in iter_section_contexts():
-        planned = list(plan_inputs(heading, body, "voyage-4"))
-        plans.update((sid + ":" + plan_hash(planned, "voyage-4", 1024)).encode())
-        totals["sections"] += 1
-        for part in planned:
-            totals["embeddingInputs"] += 1
-            totals["inputCharacters"] += len(part.text)
-            totals["inputUtf8Bytes"] += len(part.text.encode())
-            totals["localTokens"] += part.tokens
-            totals["maximumInputCharacters"] = max(totals["maximumInputCharacters"], len(part.text))
-            totals["maximumInputTokens"] = max(totals["maximumInputTokens"], part.tokens)
+    from pipeline.embeddings.inspection import measure_embedding_plan
+    from pipeline.embeddings.plan_graph import iter_sections
+    volume = measure_embedding_plan(iter_sections())
     preparation.write_receipt("embedding-volume.json", {
-        **totals, "tokenizerCalled": True, "tokenizerSha256": TOKENIZER_SHA256,
-        "planVersion": PLAN_VERSION, "wholeGraphPlanHash": plans.hexdigest(),
-        "embeddingsGenerated": False, "billingUsageMeasured": False,
-        "scope": "shared contextual reader and planner; entire restored preparation graph",
-        "sourceSnapshotHash": inputs["sourceSnapshotHash"], "catalogSectionsHash": stable_hash(catalog["sections"]),
+        **volume, "sourceSnapshotHash": inputs["sourceSnapshotHash"],
+        "catalogSectionsHash": stable_hash(catalog["sections"]),
+        "graphBuildImplementationRevision": inputs["graphBuildImplementationRevision"],
+        "graphDumpSha256": inputs["graphDumpSha256"],
+    })
+    preparation.write_receipt("oversized-embedding-inputs.json", {
+        "inputs": [], "count": 0, "tokenizerCalled": True,
+        "embeddingLimitValidated": True, "tokenizerSha256": volume["tokenizerSha256"],
+        "embeddingsGenerated": False,
+    })
+    from pipeline.parse_provenance import reconcile_parse_orphans
+    provenance = reconcile_parse_orphans(Path("/data"))
+    with connection.get_session() as session:
+        for item in provenance["orphans"]:
+            if item["disposition"] == "verified_duplicate_excluded":
+                row = session.run("""
+                MATCH (d:Document {document_type:$family, source_url:$url})
+                RETURN count(d) AS documents
+                """, family=item["sourceFamily"], url=item["sourceUrl"]).single()
+                item["canonicalGraphDocuments"] = row["documents"]
+                if row["documents"] != 1:
+                    raise ValueError("Duplicate disposition lacks exactly one canonical graph document")
+    preparation.write_receipt("parse-provenance-reconciliation.json", provenance)
+    if check_snapshot() != before:
+        raise ValueError("Corpus changed during inspection")
+    preparation.immutable_registry_uri(config.CRAWLER_DB_PATH)
+    registry_hash_after = preparation.digest(config.CRAWLER_DB_PATH)
+    if registry_hash_after != registry_hash_before:
+        raise ValueError("Registry bytes changed during inspection")
+    preparation.write_receipt("inspection-completion.json", {
+        "registrySha256Before": registry_hash_before, "registrySha256After": registry_hash_after,
+        "registryUnchangedVerified": True, "registrySidecarsCheckedBeforeAndAfter": True,
+        "completeCorpusSnapshotVerified": True, "sourceSnapshotHash": inputs["sourceSnapshotHash"],
+        "tokenPlanPassed": volume["oversizedPlannedInputs"] == 0,
+        "losslessPlanSections": volume["losslessPlanSections"],
+        "whitespaceOnlyNovelBodyInputs": volume["whitespaceOnlyNovelBodyInputs"],
+        "blankInputRepresentationReviewRequired": volume["whitespaceOnlyNovelBodyInputs"] > 0,
+        "catalogIdentitiesMapped": len(normalizer.canonical_to_raw),
+        "catalogIdentitiesExpected": len(normalizer.reference),
+        "provenanceDispositions": {"verifiedDuplicates": provenance["verifiedDuplicates"], "unresolved": provenance["unresolved"]},
+        "blockedNetworkRequests": preparation.BLOCKED_REQUESTS,
+        "embeddingsGenerated": False, "paidEvaluations": "NOT_RUN", "qualification": "NOT_ASSESSED",
+        "promotable": False,
     })
     connection.close_driver()
 

@@ -44,18 +44,20 @@ def test_build_embedding_texts_batches_section_reads(monkeypatch):
     session = FakeSession(
         [[
             {
-                "sid": "sec:1",
-                "doc_title": "Manual",
-                "sec_title": "Eligibility",
-                "content": "Must qualify.",
-                "ancestor_titles": ["Coverage"],
+                "section_id": "sec:1",
+                "documents": [{"id":"doc", "title":"Manual", "family":"dhhs_policy"}],
+                "source_epoch": "rev",
+                "section_title": "Eligibility",
+                "body": "Must qualify.",
+                "ancestors": [{"id":"parent", "title":"Coverage"}],
             },
             {
-                "sid": "sec:2",
-                "doc_title": "Manual",
-                "sec_title": "Limits",
-                "content": "Two per year.",
-                "ancestor_titles": [],
+                "section_id": "sec:2",
+                "documents": [{"id":"doc", "title":"Manual", "family":"dhhs_policy"}],
+                "source_epoch": "rev",
+                "section_title": "Limits",
+                "body": "Two per year.",
+                "ancestors": [],
             },
         ]]
     )
@@ -78,6 +80,8 @@ def test_build_embedding_texts_batches_section_reads(monkeypatch):
         [[0.1, 0.2]],
         [[0.1], [0.2]],
         [[0.1, float("nan")], [0.2, 0.3]],
+        [[True,False],[0.1,0.2]],
+        [[0,0],[0.1,0.2]],
     ],
 )
 def test_flush_batch_rejects_invalid_provider_output(monkeypatch, embeddings):
@@ -128,8 +132,7 @@ def test_flush_batch_writes_valid_embeddings_in_one_batch(monkeypatch):
 
 
 def test_validate_embedding_coverage_is_fatal(monkeypatch):
-    session = FakeSession([[{"total": 12, "covered": 11}]])
-    monkeypatch.setattr(generator, "get_session", session_factory(session))
+    monkeypatch.setattr(generator, "embedding_coverage", lambda *_: {"total":12,"covered":11})
 
     with pytest.raises(
         RuntimeError, match="Embedding coverage incomplete: 11/12"
@@ -158,6 +161,7 @@ def test_flush_batch_rejects_changed_plan_or_missing_target(monkeypatch):
 
 def test_full_preflight_rejects_later_invalid_heading_before_writes_or_provider(monkeypatch):
     monkeypatch.setattr(generator, "VOYAGE_API_KEY", "fake")
+    monkeypatch.setattr(generator, "validate_plan_topology", lambda: None)
     monkeypatch.setattr(generator, "iter_section_contexts", lambda: iter([("ok","h","body","revision-1"),("bad","x"*9000,"body","revision-1")]))
     original = generator.plan_inputs
     monkeypatch.setattr(generator, "plan_inputs", lambda heading,body,model: original(heading,body,model,counter=lambda *_: 1))

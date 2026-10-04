@@ -4,7 +4,7 @@ from pipeline.embeddings.chunker import chunk_spans
 from pipeline.embeddings.planner import plan_inputs, plan_hash
 
 
-@pytest.mark.parametrize("body", ["a" * 100003, "  αβ\n\n" * 3000, "😀" * 24000, "x\n y\t" * 5000])
+@pytest.mark.parametrize("body", ["a" * 100003, "  αβ\n\n" * 3000, "😀" * 24000, "x\n y\t" * 5000], ids=["unbroken", "unicode-spaces", "emoji", "mixed-separators"])
 def test_original_body_reconstructs_without_gaps(body):
     spans = list(chunk_spans(body))
     cursor = 0
@@ -52,3 +52,12 @@ def test_empty_and_invalid_limits():
     assert list(chunk_spans("")) == []
     with pytest.raises(ValueError):
         list(chunk_spans("x", max_chars=0))
+
+
+def test_whitespace_only_body_has_no_plan():
+    assert list(plan_inputs("h", " \n\t", "voyage-4", counter=lambda *_: 1)) == []
+
+
+def test_context_amplification_is_rejected():
+    with pytest.raises(ValueError, match="heading"):
+        list(plan_inputs("h" * 4500, "body", "voyage-4", counter=lambda *_:1))

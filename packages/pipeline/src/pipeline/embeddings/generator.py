@@ -3,7 +3,6 @@
 Contextual plans determine direct or chunk vectors, with lossless source windows.
 """
 
-import math
 
 from rich.console import Console
 
@@ -18,37 +17,17 @@ from pipeline.embeddings.voyage_client import embed as voyage_embed
 from pipeline.graph.connection import get_session
 from pipeline.embeddings.planner import plan_inputs, plan_hash
 from pipeline.embeddings.tokenizer import BATCH_TOKENS
+from pipeline.embeddings.plan_graph import (
+    iter_sections, validate_plan_topology, valid_vector, stored_plan, plan_matches, embedding_coverage,
+)
 from pipeline.utils.batching import chunked
 
 console = Console()
 
 def iter_section_contexts(section_ids=None):
-    """Read at most ten bodies per query and stream one Bolt record at a time, with deterministic ancestor order."""
-    if section_ids is None:
-        with get_session() as session:
-            section_ids = [r["id"] for r in session.run(
-                "MATCH (s:Section) WHERE s.content_length > 0 RETURN s.id AS id ORDER BY s.id"
-            )]
-    for ids in chunked(section_ids, 10):
-        with get_session(default_access_mode="READ", fetch_size=1) as session:
-            records = session.run("""
-                UNWIND $section_ids AS sid
-                MATCH (s:Section {id: sid})
-                OPTIONAL MATCH path=(ancestor:Section)-[:PARENT_OF*]->(s)
-                WITH sid,s,ancestor,length(path) AS depth
-                ORDER BY depth DESC, ancestor.id
-                WITH sid,s,collect(DISTINCT ancestor.title) AS ancestor_titles
-                MATCH (d:Document)-[:HAS_SECTION]->(s)
-                RETURN sid,d.title AS doc_title,s.title AS sec_title,
-                       s.content_text AS content,ancestor_titles,s.embedding_source_epoch AS source_epoch
-                ORDER BY sid
-            """, {"section_ids": ids})
-            for row in records:
-                chain = [row["doc_title"]] if row["doc_title"] else []
-                chain.extend(t for t in row["ancestor_titles"] or [] if t)
-                if row["sec_title"]:
-                    chain.append(row["sec_title"])
-                yield row["sid"], " > ".join(chain), row["content"] or "", row.get("source_epoch")
+    """Use the authoritative context reader; retain the diagnostic tuple API."""
+    for row in iter_sections(section_ids, session_factory=get_session):
+        yield row["section_id"], row["heading"], row["body"], row["source_epoch"]
 
 
 def _flush_batch(
@@ -69,15 +48,7 @@ def _flush_batch(
                 "Voyage returned "
                 f"{len(embeddings)} embeddings for {len(batch_texts)} inputs"
             )
-        if any(
-            len(embedding) != EMBEDDING_DIMENSIONS
-            or any(
-                not isinstance(value, (int, float))
-                or not math.isfinite(value)
-                for value in embedding
-            )
-            for embedding in embeddings
-        ):
+        if not all(valid_vector(embedding, EMBEDDING_DIMENSIONS) for embedding in embeddings):
             raise RuntimeError(
                 "Voyage returned an invalid embedding; expected "
                 f"{EMBEDDING_DIMENSIONS} finite dimensions"
@@ -116,32 +87,11 @@ def _flush_batch(
         raise
 
 
-def validate_embedding_coverage() -> tuple[int, int]:
-    """Require every nonempty section to have its complete planned vector path."""
-    with get_session() as session:
-        coverage = session.run("""
-            MATCH (s:Section) WHERE s.content_length > 0
-            OPTIONAL MATCH (s)-[:HAS_CHUNK]->(ch:Chunk)
-            WITH s,collect(ch) AS chunks
-            WITH count(s) AS total,
-                 sum(CASE WHEN s.embedding_plan_hash IS NOT NULL
-                    AND s.embedding_source_epoch IS NOT NULL
-                    AND s.embedding_plan_source_epoch=s.embedding_source_epoch AND
-                    ((s.embedding IS NOT NULL AND size(s.embedding)=$dimensions
-                      AND s.embedding_input_count = 1 AND size(chunks)=0)
-                     OR (s.embedding IS NULL AND s.embedding_input_count = size(chunks)
-                         AND size(chunks)>0 AND all(ch IN chunks WHERE ch.embedding IS NOT NULL
-                             AND size(ch.embedding)=$dimensions
-                             AND ch.embedding_plan_hash=s.embedding_plan_hash
-                             AND ch.embedding_plan_source_epoch=s.embedding_source_epoch)))
-                    THEN 1 ELSE 0 END) AS covered
-            RETURN total,covered
-        """, {"dimensions": EMBEDDING_DIMENSIONS}).single()
-    total = int(coverage["total"]) if coverage else 0
-    covered = int(coverage["covered"]) if coverage else 0
-    if covered != total:
-        raise RuntimeError(f"Embedding coverage incomplete: {covered}/{total} sections")
-    return total, covered
+def validate_embedding_coverage(model=EMBEDDING_MODEL) -> tuple[int, int]:
+    result = embedding_coverage(model, EMBEDDING_DIMENSIONS)
+    if result["covered"] != result["total"]:
+        raise RuntimeError(f"Embedding coverage incomplete: {result['covered']}/{result['total']} sections")
+    return result["total"], result["covered"]
 
 
 def persist_plan(section_id, inputs, digest, source_epoch):
@@ -156,35 +106,26 @@ def persist_plan(section_id, inputs, digest, source_epoch):
                              sid=section_id).single()
             if not current:
                 raise ValueError("Embedding section disappeared: " + section_id)
-            if not source_epoch or current["source_epoch"] != source_epoch:
+            if (inputs and not source_epoch) or current["source_epoch"] != source_epoch:
                 raise ValueError("Embedding source changed after preflight: " + section_id)
-            changed = current["hash"] != digest
-            if not changed and len(inputs)>1:
-                existing = list(tx.run("""MATCH (:Section {id:$sid})-[:HAS_CHUNK]->(ch:Chunk)
-                    RETURN ch.id AS id,ch.input_hash AS input_hash,
-                           ch.embedding_plan_hash AS plan,ch.embedding_plan_source_epoch AS epoch ORDER BY ch.chunk_index""", sid=section_id))
-                changed = len(existing) != len(rows) or any(
-                    actual["id"] != expected["id"] or actual["input_hash"] != expected["input_hash"]
-                    or actual["plan"] != digest or actual["epoch"] != source_epoch for actual,expected in zip(existing, rows)
-                )
+            stored = stored_plan(tx, section_id)
+            changed = not plan_matches(section_id, inputs, digest, source_epoch, stored)
             if changed:
                 tx.run("""MATCH (s:Section {id:$sid})
                     OPTIONAL MATCH (s)-[:HAS_CHUNK]->(ch:Chunk)
                     DETACH DELETE ch
                     SET s.embedding=NULL,s.embedding_plan_hash=$hash,s.embedding_input_count=$count,
                         s.embedding_plan_source_epoch=$epoch
-                """,sid=section_id,hash=digest,count=len(inputs),epoch=source_epoch).consume()
+                """,sid=section_id,hash=digest if inputs else None,count=len(inputs) if inputs else None,epoch=source_epoch if inputs else None).consume()
                 if len(inputs)>1:
                     tx.run("""MATCH (s:Section {id:$sid}) UNWIND $rows AS row
                         CREATE (ch:Chunk) SET ch=row,ch.section_id=$sid,ch.embedding_plan_hash=$hash,ch.embedding_plan_source_epoch=$epoch
                         CREATE (s)-[:HAS_CHUNK]->(ch)
                     """,sid=section_id,rows=rows,hash=digest,epoch=source_epoch).consume()
-            if len(inputs)==1:
-                result=tx.run("MATCH (s:Section {id:$sid}) WHERE s.embedding IS NULL RETURN s.id AS id",sid=section_id)
-            else:
-                result=tx.run("""MATCH (:Section {id:$sid})-[:HAS_CHUNK]->(ch:Chunk)
-                    WHERE ch.embedding IS NULL RETURN ch.id AS id ORDER BY ch.chunk_index""",sid=section_id)
-            pending = {row["id"] for row in result}
+            actual = stored_plan(tx, section_id)
+            pending = {row["id"] for row in actual
+                       if (len(inputs) == 1 or row["kind"] == "chunk")
+                       and not valid_vector(row["vector"], EMBEDDING_DIMENSIONS)}
             tx.run("MATCH (s:Section {id:$sid}) REMOVE s.embedding_write_lock", sid=section_id).consume()
             return pending, len(rows) if changed and len(inputs)>1 else 0
         return session.execute_write(reconcile)
@@ -197,13 +138,17 @@ def embed_all(model: str | None = None) -> dict:
         raise RuntimeError("VOYAGE_API_KEY not set")
     stats = {"embedded":0,"errors":0,"chunks_created":0}
     # Complete pure validation precedes all mutations and provider calls.
+    validate_plan_topology()
     expected = {}
     for sid, heading, body, epoch in iter_section_contexts():
-        if not epoch:
+        if body.strip() and not epoch:
             raise ValueError("Reload unversioned embedding source before generation: " + sid)
         inputs = list(plan_inputs(heading, body, model))
-        if not inputs:
-            raise ValueError("Nonempty section has no embedding inputs: " + sid)
+        previous = 0
+        for item in inputs:
+            if not body[previous:item.body_end].strip():
+                raise ValueError("Whitespace-only novel embedding input requires representation review: " + sid)
+            previous = item.body_end
         expected[sid] = (plan_hash(inputs, model, EMBEDDING_DIMENSIONS), epoch)
     ids, texts, kinds, plans = [], [], [], []
     token_total = 0
@@ -222,8 +167,6 @@ def embed_all(model: str | None = None) -> dict:
             inputs=list(plan_inputs(heading,body,model))
         except ValueError as error:
             raise ValueError(f"Invalid embedding plan for {sid}: {error}") from error
-        if not inputs:
-            raise ValueError("Nonempty section has no embedding inputs: " + sid)
         digest=plan_hash(inputs,model,EMBEDDING_DIMENSIONS)
         if expected.pop(sid, None) != (digest,epoch):
             raise ValueError("Embedding source changed after preflight: " + sid)
@@ -244,5 +187,5 @@ def embed_all(model: str | None = None) -> dict:
         raise ValueError("Embedding sections disappeared after preflight")
     if texts:
         flush()
-    validate_embedding_coverage()
+    validate_embedding_coverage(model)
     return stats

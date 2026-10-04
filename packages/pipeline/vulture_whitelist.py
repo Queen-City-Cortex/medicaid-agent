@@ -86,3 +86,9 @@ release_baseline
 release_activate_bootstrap
 recovery_inventory
 source_scope  # Click registers this guarded operator command dynamically.
+
+# Called by the offline operational inspector outside src/.
+measure_embedding_plan
+
+# Operational inspector proves retained parse provenance without mutating corpus.
+reconcile_parse_orphans

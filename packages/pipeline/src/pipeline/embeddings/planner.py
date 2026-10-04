@@ -6,7 +6,7 @@ from pipeline.embeddings.tokenizer import count_tokens, count_token_batch, CONTE
 
 from pipeline.utils.batching import chunked
 
-PLAN_VERSION = 2
+PLAN_VERSION = 3
 
 
 @dataclass(frozen=True)
@@ -22,9 +22,11 @@ class EmbeddingInput:
 
 
 def plan_inputs(heading, body, model, counter=count_tokens):
+    if not body.strip():
+        return
     prefix = heading + "\n"
     capacity = MAX_CHUNK_CHARS - len(prefix)
-    if capacity < 1 or counter(prefix, model) >= CONTEXT_TOKENS:
+    if len(prefix) > MAX_CHUNK_CHARS // 2 or counter(prefix, model) >= CONTEXT_TOKENS // 2:
         raise ValueError("Context heading exceeds embedding input capacity")
     if not body:
         return
