@@ -2,6 +2,8 @@
 
 Read the [documentation index](docs/README.md), then the guide and source relevant to the task. Project knowledge is maintained in Git; BRV is no longer required. The [ByteRover archive](docs/archive/byterover/README.md) contains historical observations with no authority over current work.
 
+Use the [TypeSafe skill](.agents/skills/typesafe-ai/SKILL.md) when working on this project. Follow its live documentation guidance for relevant AI design and integration work.
+
 ## Greenfield project
 
 This project has no users or real customer data yet. Remove unnecessary complexity and tech debt rather than maintaining compatibility for hypothetical users.
