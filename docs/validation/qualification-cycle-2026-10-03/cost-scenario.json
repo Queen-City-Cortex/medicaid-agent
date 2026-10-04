@@ -1,0 +1,58 @@
+{
+  "status": "INCOMPLETE_ESTIMATE_NOT_AUTHORIZATION",
+  "approvedSpendUsd": 0,
+  "hardCapGuaranteed": false,
+  "budgetGatewayImplemented": false,
+  "completeEmbeddingTokens": null,
+  "embeddingEstimateStatus": "PENDING_DOCKER_RECOVERY_AND_COMPLETE_SHARED_PLAN_SCAN",
+  "requests": {
+    "benchmarkAnswers": 330,
+    "scopeScenarios": 48,
+    "standaloneRetrievalQueries": 330
+  },
+  "tokenAssumptions": {
+    "agentPerRequest": {
+      "input": 100000,
+      "output": 6000
+    },
+    "verifierPerPass": {
+      "input": 40000,
+      "output": 2000
+    },
+    "verifierPasses": 2,
+    "judgePerBenchmarkAnswer": {
+      "input": 20000,
+      "output": 1000
+    },
+    "retrievalPerQuery": 200
+  },
+  "currentConfigurationScenarioUsd": {
+    "agentGpt54": 128.52,
+    "verifierTerra": 78.624,
+    "judgeSonnet46": 24.75,
+    "standaloneRetrievalVoyage4": 0.00396,
+    "subtotalExcludingCorpusEmbeddings": 231.89796
+  },
+  "candidateScenarioUsd": {
+    "agentSol": 98.28,
+    "verifierSol": 75.6,
+    "judgeSonnet55": 16.5,
+    "standaloneRetrievalVoyage4": 0.00396,
+    "subtotalExcludingCorpusEmbeddings": 190.38396
+  },
+  "limitations": [
+    "Scenario token amounts are not runtime limits",
+    "No retry, free credit, caching or batch discount assumed",
+    "Extra retrieval tool queries, provider retries, failed/timed-out calls, model-calibration work and re-embedding increase cost",
+    "No research evaluation or live browser/memory qualification priced here",
+    "Candidate configuration is unqualified and unselected; judge changes require separate calibration",
+    "No campaign total or cap until measured corpus tokens and enforceable pre-call reservations are complete"
+  ],
+  "pricingSources": [
+    "https://developers.openai.com/api/docs/models/gpt-5.4",
+    "https://developers.openai.com/api/docs/models/gpt-5.6-terra",
+    "https://developers.openai.com/api/docs/models/gpt-6.1-sol",
+    "https://platform.claude.com/docs/en/about-claude/pricing",
+    "https://docs.voyageai.com/docs/pricing"
+  ]
+}

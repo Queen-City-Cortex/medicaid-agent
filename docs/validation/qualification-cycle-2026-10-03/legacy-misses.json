@@ -1,0 +1,107 @@
+{
+  "mappingSha256": "cca8a456cfee2ad10a9b5258a57449b0c2cf5c5b2d517a87b876ec32747cff05",
+  "mappingHash": "ae0070f890dfeb0b652af3aab1431a548ad71a40b4c7b8d3bd8bb779d952c6ff",
+  "readerCodeUnchanged": true,
+  "freshLiveScan": false,
+  "missing": [
+    {
+      "canonicalId": "sec:doc:beneficiary_guidance:1c5dc4106026216e:_s0",
+      "sourceFamily": "beneficiary_guidance",
+      "sourceUrl": "https://medicaid.ncdhhs.gov/beneficiaries/impact-hr-1-and-federal-changes-medicaid/nc-medicaid-work-and-community-engagement-requirements",
+      "sectionNumber": null,
+      "legacyRowsAtSource": 0,
+      "legacyRowsAtSectionKey": 0,
+      "matchingContentSignatures": 0,
+      "reason": "Source identity absent from retained legacy scan",
+      "legacyEvidenceReused": true
+    },
+    {
+      "canonicalId": "sec:doc:beneficiary_guidance:1c5dc4106026216e:_s1",
+      "sourceFamily": "beneficiary_guidance",
+      "sourceUrl": "https://medicaid.ncdhhs.gov/beneficiaries/impact-hr-1-and-federal-changes-medicaid/nc-medicaid-work-and-community-engagement-requirements",
+      "sectionNumber": null,
+      "legacyRowsAtSource": 0,
+      "legacyRowsAtSectionKey": 0,
+      "matchingContentSignatures": 0,
+      "reason": "Source identity absent from retained legacy scan",
+      "legacyEvidenceReused": true
+    },
+    {
+      "canonicalId": "sec:doc:beneficiary_guidance:1c5dc4106026216e:_s14",
+      "sourceFamily": "beneficiary_guidance",
+      "sourceUrl": "https://medicaid.ncdhhs.gov/beneficiaries/impact-hr-1-and-federal-changes-medicaid/nc-medicaid-work-and-community-engagement-requirements",
+      "sectionNumber": null,
+      "legacyRowsAtSource": 0,
+      "legacyRowsAtSectionKey": 0,
+      "matchingContentSignatures": 0,
+      "reason": "Source identity absent from retained legacy scan",
+      "legacyEvidenceReused": true
+    },
+    {
+      "canonicalId": "sec:doc:beneficiary_guidance:1c5dc4106026216e:_s15",
+      "sourceFamily": "beneficiary_guidance",
+      "sourceUrl": "https://medicaid.ncdhhs.gov/beneficiaries/impact-hr-1-and-federal-changes-medicaid/nc-medicaid-work-and-community-engagement-requirements",
+      "sectionNumber": null,
+      "legacyRowsAtSource": 0,
+      "legacyRowsAtSectionKey": 0,
+      "matchingContentSignatures": 0,
+      "reason": "Source identity absent from retained legacy scan",
+      "legacyEvidenceReused": true
+    },
+    {
+      "canonicalId": "sec:doc:beneficiary_guidance:1c5dc4106026216e:_s4",
+      "sourceFamily": "beneficiary_guidance",
+      "sourceUrl": "https://medicaid.ncdhhs.gov/beneficiaries/impact-hr-1-and-federal-changes-medicaid/nc-medicaid-work-and-community-engagement-requirements",
+      "sectionNumber": null,
+      "legacyRowsAtSource": 0,
+      "legacyRowsAtSectionKey": 0,
+      "matchingContentSignatures": 0,
+      "reason": "Source identity absent from retained legacy scan",
+      "legacyEvidenceReused": true
+    },
+    {
+      "canonicalId": "sec:doc:beneficiary_guidance:1c5dc4106026216e:_s6",
+      "sourceFamily": "beneficiary_guidance",
+      "sourceUrl": "https://medicaid.ncdhhs.gov/beneficiaries/impact-hr-1-and-federal-changes-medicaid/nc-medicaid-work-and-community-engagement-requirements",
+      "sectionNumber": null,
+      "legacyRowsAtSource": 0,
+      "legacyRowsAtSectionKey": 0,
+      "matchingContentSignatures": 0,
+      "reason": "Source identity absent from retained legacy scan",
+      "legacyEvidenceReused": true
+    },
+    {
+      "canonicalId": "sec:doc:beneficiary_guidance:1c5dc4106026216e:_s7",
+      "sourceFamily": "beneficiary_guidance",
+      "sourceUrl": "https://medicaid.ncdhhs.gov/beneficiaries/impact-hr-1-and-federal-changes-medicaid/nc-medicaid-work-and-community-engagement-requirements",
+      "sectionNumber": null,
+      "legacyRowsAtSource": 0,
+      "legacyRowsAtSectionKey": 0,
+      "matchingContentSignatures": 0,
+      "reason": "Source identity absent from retained legacy scan",
+      "legacyEvidenceReused": true
+    },
+    {
+      "canonicalId": "sec:doc:beneficiary_guidance:c9205b2a192a4a15:_s11",
+      "sourceFamily": "beneficiary_guidance",
+      "sourceUrl": "https://medicaid.ncdhhs.gov/beneficiaries/medicaid-is-changing",
+      "sectionNumber": null,
+      "legacyRowsAtSource": 0,
+      "legacyRowsAtSectionKey": 0,
+      "matchingContentSignatures": 0,
+      "reason": "Source identity absent from retained legacy scan",
+      "legacyEvidenceReused": true
+    },
+    {
+      "canonicalId": "sec:doc:beneficiary_guidance:c9205b2a192a4a15:_s15",
+      "sourceFamily": "beneficiary_guidance",
+      "sourceUrl": "https://medicaid.ncdhhs.gov/beneficiaries/medicaid-is-changing",
+      "sectionNumber": null,
+      "legacyRowsAtSource": 0,
+      "legacyRowsAtSectionKey": 0,
+      "matchingContentSignatures": 0,
+      "reason": "Source identity absent from retained legacy scan",
+      "legacyEvidenceReused": true
+    }
+  ]
+}

@@ -1,0 +1,82 @@
+[
+  {
+    "path": "packages/agent/src/model.ts",
+    "deployedSourceRevision": "d9354a604002f0f1d06503ff54b504fb791500f7",
+    "available": true,
+    "deployedSha256": "a2716eaa91a5491a44abd3f499e177e0714897b50d870a533a63f6ea26415934",
+    "checkoutSha256": "a2716eaa91a5491a44abd3f499e177e0714897b50d870a533a63f6ea26415934",
+    "matchesCheckout": true
+  },
+  {
+    "path": "packages/agent/src/chat-memory.ts",
+    "deployedSourceRevision": "d9354a604002f0f1d06503ff54b504fb791500f7",
+    "available": true,
+    "deployedSha256": "bb83db72f2f98cd46c6b8c2b26fa320e271e878a9de18c5ed9243d9a483e5497",
+    "checkoutSha256": "bb83db72f2f98cd46c6b8c2b26fa320e271e878a9de18c5ed9243d9a483e5497",
+    "matchesCheckout": true
+  },
+  {
+    "path": "packages/agent/src/index.ts",
+    "deployedSourceRevision": "d9354a604002f0f1d06503ff54b504fb791500f7",
+    "available": true,
+    "deployedSha256": "805a39b84cf70be933ffbfb731c88237174bfe87e6cc9a2d332d9c27cc0d80a1",
+    "checkoutSha256": "0e88adec7b0feb6c6771b289add6512c362888c2efa5f4586d009317a29b63c6",
+    "matchesCheckout": false
+  },
+  {
+    "path": "packages/agent/src/config.ts",
+    "deployedSourceRevision": "d9354a604002f0f1d06503ff54b504fb791500f7",
+    "available": true,
+    "deployedSha256": "be6f47867d853b4d04ee9838aed5650a986b014388de2e9fa6221c8bab28f313",
+    "checkoutSha256": "be6f47867d853b4d04ee9838aed5650a986b014388de2e9fa6221c8bab28f313",
+    "matchesCheckout": true
+  },
+  {
+    "path": "packages/agent/src/health.ts",
+    "deployedSourceRevision": "d9354a604002f0f1d06503ff54b504fb791500f7",
+    "available": true,
+    "deployedSha256": "ac4ee17d7b344e531b660b9ca1efa210caabd43b4108a8a2a5970b643e35c9a8",
+    "checkoutSha256": "ac4ee17d7b344e531b660b9ca1efa210caabd43b4108a8a2a5970b643e35c9a8",
+    "matchesCheckout": true
+  },
+  {
+    "path": "packages/agent/src/deep-research/config.ts",
+    "deployedSourceRevision": "d9354a604002f0f1d06503ff54b504fb791500f7",
+    "available": true,
+    "deployedSha256": "ba0362016c5cb8499f52da47f830832803ae955604d5ea787125dcc6c9e825b6",
+    "checkoutSha256": "ba0362016c5cb8499f52da47f830832803ae955604d5ea787125dcc6c9e825b6",
+    "matchesCheckout": true
+  },
+  {
+    "path": "packages/agent/src/deep-research/agents.ts",
+    "deployedSourceRevision": "d9354a604002f0f1d06503ff54b504fb791500f7",
+    "available": true,
+    "deployedSha256": "1823c583b966f0ac2beaa07d9e8189da6110086412c18d068c17c7f30afa23f9",
+    "checkoutSha256": "1823c583b966f0ac2beaa07d9e8189da6110086412c18d068c17c7f30afa23f9",
+    "matchesCheckout": true
+  },
+  {
+    "path": "packages/agent/src/processors/verifier/config.ts",
+    "deployedSourceRevision": "d9354a604002f0f1d06503ff54b504fb791500f7",
+    "available": true,
+    "deployedSha256": "797c5470ffd2471e4d70148209b219319d764efcc06ed6a6805b0f21e347f26b",
+    "checkoutSha256": "797c5470ffd2471e4d70148209b219319d764efcc06ed6a6805b0f21e347f26b",
+    "matchesCheckout": true
+  },
+  {
+    "path": "packages/agent/src/processors/scope-gate.ts",
+    "deployedSourceRevision": "d9354a604002f0f1d06503ff54b504fb791500f7",
+    "available": true,
+    "deployedSha256": "00aa082647a7b1eed860644d66baa5bf65adcf7c9f24e142b0dc19f60f7c57cd",
+    "checkoutSha256": "00aa082647a7b1eed860644d66baa5bf65adcf7c9f24e142b0dc19f60f7c57cd",
+    "matchesCheckout": true
+  },
+  {
+    "path": "packages/agent/src/usage/pricing.ts",
+    "deployedSourceRevision": "d9354a604002f0f1d06503ff54b504fb791500f7",
+    "available": true,
+    "deployedSha256": "ab07d3125159cd4d559b465964501e4a332a77a551f46beb84f15069dfd7eb89",
+    "checkoutSha256": "ab07d3125159cd4d559b465964501e4a332a77a551f46beb84f15069dfd7eb89",
+    "matchesCheckout": true
+  }
+]

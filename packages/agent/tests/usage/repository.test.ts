@@ -81,7 +81,7 @@ describe('pricing', () => {
     // 'gpt-5.4-mini' must win over 'gpt-5.4' for gpt-5.4-mini-2026-01.
     const { pricing, known } = pricingFor('gpt-5.4-mini-2026-01');
     expect(known).toBe(true);
-    expect(pricing.outputPerMTok).toBe(2);
+    expect(pricing.outputPerMTok).toBe(4.5);
   });
 
   it('estimates cost with cached input discounted', () => {
@@ -93,7 +93,16 @@ describe('pricing', () => {
     });
     expect(known).toBe(true);
     // Fully cached input → cached rate only.
-    expect(costUsd).toBeCloseTo(0.125, 5);
+    expect(costUsd).toBeCloseTo(0.2, 5);
+  });
+
+  it('prices deployed GPT-5.4 separately from the smaller model', () => {
+    const { costUsd, known } = estimateCostUsd({
+      modelId: 'gpt-5.4', inputTokens: 1_000_000, outputTokens: 1_000_000,
+      cachedInputTokens: 500_000,
+    });
+    expect(known).toBe(true);
+    expect(costUsd).toBeCloseTo(16.375, 5);
   });
 
   it('flags unknown models instead of crashing', () => {

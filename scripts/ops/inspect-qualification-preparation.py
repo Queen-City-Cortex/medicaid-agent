@@ -37,83 +37,42 @@ def main():
     catalog = json.loads(Path("/catalog.json").read_text())
     if catalog["catalogHash"] != inputs["catalogHash"]:
         raise ValueError("Catalog differs from pinned preparation inputs")
-    from pipeline.eval.identity import EvidenceNormalizer
+    from pipeline.eval.identity import load_normalizer
     from pipeline.source_lifecycle import stable_hash
-    graph = []
-    sources = sorted({(row["source_family"], row["source_url"]) for row in catalog["sections"]})
-    for family, url in sources:
-        with connection.get_session() as session:
-            rows = session.run("""
-            MATCH (d:Document {document_type:$family, source_url:$url})-[:HAS_SECTION]->(s:Section)
-            OPTIONAL MATCH (s)<-[:PARENT_OF]-(p:Section)
-            OPTIONAL MATCH (previous:Section)-[:NEXT_SIBLING]->(s)
-            OPTIONAL MATCH (s)-[:NEXT_SIBLING]->(next:Section)
-            RETURN s.id AS section_id, d.source_url AS source_url, d.document_type AS source_family,
-              s.section_number AS section_number, s.content_text AS content_text,
-              s.title AS section_title, s.level AS level,
-              previous.content_text AS previous_content, next.content_text AS next_content,
-              previous.title AS previous_title, previous.level AS previous_level,
-              next.title AS next_title, next.level AS next_level,
-              p.section_number AS parent_number, p.content_text AS parent_content
-            """, family=family, url=url)
-            for record in rows:
-                row = dict(record)
-                for side in ["previous", "next", "parent"]:
-                    text = " ".join((row.pop(side + "_content") or "").split())
-                    row[side + "_content_hash"] = hashlib.sha256(text.encode()).hexdigest() if text else None
-                graph.append(row)
-    normalizer = EvidenceNormalizer(catalog["sections"], graph)
+    os.environ["EVAL_IDENTITY_CATALOG"] = "/catalog.json"
+    normalizer = load_normalizer()
     missing = sorted(set(normalizer.reference) - normalizer.canonical_to_raw.keys())
     preparation.write_receipt("candidate-identity-mapping.json", {
         "catalogHash": catalog["catalogHash"], "mappingHash": normalizer.mapping_hash,
         "expectedIdentities": len(normalizer.reference), "mappedIdentities": len(normalizer.canonical_to_raw),
-        "missingIdentities": missing, "sourceIdentitiesRead": len(sources), "mapping": normalizer.mappings,
+        "missingIdentities": missing, "readerScope": "whole-graph", "mapping": normalizer.mappings,
         "usableAsQualificationEvidence": False, "evaluationsRun": False,
     })
 
-    from pipeline.embeddings.chunker import chunk_text, MAX_CHUNK_CHARS
-    totals = {"sections": 0, "embeddingInputs": 0, "inputCharacters": 0, "inputUtf8Bytes": 0,
-              "oversizedInputsByRepositoryTokenHeuristic": 0, "maximumInputCharacters": 0}
-    oversized = []
-    with connection.get_session() as session:
-        rows = session.run("""
-        MATCH (d:Document)-[:HAS_SECTION]->(s:Section) WHERE s.content_length > 0
-        CALL (s) {
-          OPTIONAL MATCH (ancestor:Section)-[:PARENT_OF*]->(s)
-          RETURN collect(DISTINCT ancestor.title) AS ancestors
-        }
-        RETURN d.id AS document_id, d.document_type AS source_family, s.id AS section_id,
-               d.title AS document_title, s.title AS section_title,
-               s.content_length AS content_length, s.content_text AS content, ancestors
-        """)
-        for row in rows:
-            heading = [row["document_title"]] if row["document_title"] else []
-            heading.extend(title for title in row["ancestors"] if title)
-            if row["section_title"]:
-                heading.append(row["section_title"])
-            text = " > ".join(heading) + "\n" + (row["content"] or "")
-            texts = chunk_text(text) if row["content_length"] >= MAX_CHUNK_CHARS else [text]
-            totals["sections"] += 1
-            for index, part in enumerate(texts):
-                totals["embeddingInputs"] += 1
-                totals["inputCharacters"] += len(part)
-                totals["inputUtf8Bytes"] += len(part.encode())
-                totals["maximumInputCharacters"] = max(totals["maximumInputCharacters"], len(part))
-                totals["oversizedInputsByRepositoryTokenHeuristic"] += len(part) // 3 > 32000
-                if len(part) // 3 > 32000:
-                    oversized.append({"sectionId": row["section_id"], "documentId": row["document_id"],
-                                      "sourceFamily": row["source_family"], "inputIndex": index,
-                                      "characters": len(part), "utf8Bytes": len(part.encode())})
+    from pipeline.embeddings.generator import iter_section_contexts
+    from pipeline.embeddings.planner import plan_inputs, plan_hash, PLAN_VERSION
+    from pipeline.embeddings.tokenizer import TOKENIZER_SHA256
+    totals = {"sections": 0, "embeddingInputs": 0, "inputCharacters": 0,
+              "inputUtf8Bytes": 0, "localTokens": 0, "maximumInputCharacters": 0,
+              "maximumInputTokens": 0}
+    plans = hashlib.sha256()
+    for sid, heading, body in iter_section_contexts():
+        planned = list(plan_inputs(heading, body, "voyage-4"))
+        plans.update((sid + ":" + plan_hash(planned, "voyage-4", 1024)).encode())
+        totals["sections"] += 1
+        for part in planned:
+            totals["embeddingInputs"] += 1
+            totals["inputCharacters"] += len(part.text)
+            totals["inputUtf8Bytes"] += len(part.text.encode())
+            totals["localTokens"] += part.tokens
+            totals["maximumInputCharacters"] = max(totals["maximumInputCharacters"], len(part.text))
+            totals["maximumInputTokens"] = max(totals["maximumInputTokens"], part.tokens)
     preparation.write_receipt("embedding-volume.json", {
-        **totals, "estimatedTokensAtThreeCharactersPerToken": totals["inputCharacters"] / 3,
-        "tokenizerCalled": False, "embeddingsGenerated": False,
-        "scope": "same contextual text and paragraph chunking as embed_all; current preparation graph",
+        **totals, "tokenizerCalled": True, "tokenizerSha256": TOKENIZER_SHA256,
+        "planVersion": PLAN_VERSION, "wholeGraphPlanHash": plans.hexdigest(),
+        "embeddingsGenerated": False, "billingUsageMeasured": False,
+        "scope": "shared contextual reader and planner; entire restored preparation graph",
         "sourceSnapshotHash": inputs["sourceSnapshotHash"], "catalogSectionsHash": stable_hash(catalog["sections"]),
-    })
-    preparation.write_receipt("oversized-embedding-inputs.json", {
-        "inputs": oversized, "count": len(oversized), "tokenizerCalled": False,
-        "embeddingLimitValidated": False, "heuristic": "characters // 3 > 32000",
-        "embeddingsGenerated": False,
     })
     connection.close_driver()
 

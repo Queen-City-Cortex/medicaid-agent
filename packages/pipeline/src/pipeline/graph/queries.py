@@ -141,22 +141,6 @@ RETURN c
 
 # Note: Concept-section edges use dynamic Cypher in linker.py (relationship type varies)
 
-MERGE_CHUNKS_BATCH = """
-UNWIND $chunks AS chunk
-MERGE (ch:Chunk {id: chunk.id})
-SET ch.section_id = chunk.section_id,
-    ch.chunk_index = chunk.chunk_index,
-    ch.content_text = chunk.content_text,
-    ch.content_length = chunk.content_length
-"""
-
-MERGE_HAS_CHUNK_BATCH = """
-MATCH (s:Section {id: $section_id})
-UNWIND $chunk_ids AS chunk_id
-MATCH (ch:Chunk {id: chunk_id})
-MERGE (s)-[:HAS_CHUNK]->(ch)
-"""
-
 # Stats queries
 COUNT_NODES = """
 MATCH (n)
@@ -191,16 +175,4 @@ SET_DOCUMENT_STATUS_BATCH = """
 UNWIND $doc_ids AS doc_id
 MATCH (d:Document {id: doc_id})
 SET d.status = $status
-"""
-
-SET_SECTION_EMBEDDINGS_BATCH = """
-UNWIND $rows AS row
-MATCH (s:Section {id: row.id})
-SET s.embedding = row.embedding
-"""
-
-SET_CHUNK_EMBEDDINGS_BATCH = """
-UNWIND $rows AS row
-MATCH (ch:Chunk {id: row.id})
-SET ch.embedding = row.embedding
 """

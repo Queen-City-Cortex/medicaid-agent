@@ -3,7 +3,8 @@ FROM node:22.23.3-bookworm-slim@sha256:43ac6c60b8f89723f746e8a92ce91abd5017e627c
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     UV_PROJECT_ENVIRONMENT=/app/packages/pipeline/.venv \
-    CORPUS_DATA_ROOT=/data
+    CORPUS_DATA_ROOT=/data \
+    EMBEDDING_TOKENIZER_DIR=/opt/nc-medicaid-tokenizers
 
 ARG TARGETARCH
 ARG RAILWAY_CLI_VERSION=5.17.0
@@ -42,6 +43,8 @@ COPY corpus-manifest.json corpus-release-policy.json ./
 COPY scripts ./scripts
 RUN cd packages/pipeline \
     && uv sync --frozen --extra dev \
+    && .venv/bin/python -m pipeline.embeddings.tokenizer --model voyage-4 \
+    && .venv/bin/python -m pipeline.embeddings.tokenizer --model voyage-4-large \
     && .venv/bin/python -c "import cv2" \
     && .venv/bin/python -c "from pipeline.eval.dataset import validate_dataset; errors = validate_dataset(); assert not errors, errors" \
     && .venv/bin/python -c "from pipeline.references.supersessions import load_cfr_supersessions; assert load_cfr_supersessions(), 'Missing CFR supersession rules'" \

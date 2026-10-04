@@ -48,6 +48,7 @@ class FakeSleeper:
 @pytest.fixture(autouse=True)
 def _api_key(monkeypatch):
     monkeypatch.setattr(voyage_client, "VOYAGE_API_KEY", "test-key")
+    monkeypatch.setattr(voyage_client, "count_tokens", lambda text, *_: len(text))
 
 
 def test_embed_returns_vectors_on_first_success(monkeypatch):
@@ -55,7 +56,7 @@ def test_embed_returns_vectors_on_first_success(monkeypatch):
     sleeper = FakeSleeper()
     monkeypatch.setattr(voyage_client.httpx, "post", post)
 
-    result = voyage_client.embed(["a", "b"], model="voyage-law-2", sleep=sleeper)
+    result = voyage_client.embed(["a", "b"], model="voyage-4", sleep=sleeper)
 
     assert result == [[1.0], [2.0]]
     assert post.calls == 1
@@ -70,7 +71,7 @@ def test_embed_retries_429_and_honors_retry_after(monkeypatch):
     sleeper = FakeSleeper()
     monkeypatch.setattr(voyage_client.httpx, "post", post)
 
-    result = voyage_client.embed(["a"], model="voyage-law-2", sleep=sleeper)
+    result = voyage_client.embed(["a"], model="voyage-4", sleep=sleeper)
 
     assert result == [[0.1, 0.2]]
     assert post.calls == 2
@@ -88,7 +89,7 @@ def test_embed_retries_5xx_with_exponential_backoff(monkeypatch):
     # Pin jitter to the top of the range so delays equal the raw backoff
     monkeypatch.setattr(voyage_client.random, "random", lambda: 1.0)
 
-    result = voyage_client.embed(["a"], model="voyage-law-2", sleep=sleeper)
+    result = voyage_client.embed(["a"], model="voyage-4", sleep=sleeper)
 
     assert result == [[0.1, 0.2]]
     assert sleeper.delays == [
@@ -106,7 +107,7 @@ def test_embed_retries_timeouts(monkeypatch):
     sleeper = FakeSleeper()
     monkeypatch.setattr(voyage_client.httpx, "post", post)
 
-    result = voyage_client.embed(["a"], model="voyage-law-2", sleep=sleeper)
+    result = voyage_client.embed(["a"], model="voyage-4", sleep=sleeper)
 
     assert result == [[0.1, 0.2]]
     assert post.calls == 3
@@ -119,7 +120,7 @@ def test_embed_raises_after_exhausting_attempts(monkeypatch):
     monkeypatch.setattr(voyage_client.httpx, "post", post)
 
     with pytest.raises(httpx.HTTPStatusError):
-        voyage_client.embed(["a"], model="voyage-law-2", max_attempts=5, sleep=sleeper)
+        voyage_client.embed(["a"], model="voyage-4", max_attempts=5, sleep=sleeper)
 
     assert post.calls == 5
     assert len(sleeper.delays) == 4  # no sleep after the final attempt
@@ -130,7 +131,7 @@ def test_embed_logs_retry_warning(monkeypatch, caplog):
     monkeypatch.setattr(voyage_client.httpx, "post", post)
 
     with caplog.at_level(logging.WARNING, logger="pipeline.embeddings.voyage_client"):
-        voyage_client.embed(["a"], model="voyage-law-2", sleep=FakeSleeper())
+        voyage_client.embed(["a"], model="voyage-4", sleep=FakeSleeper())
 
     messages = [r.getMessage() for r in caplog.records]
     assert any("voyage embed retry" in m and "attempt 1/5" in m for m in messages)
@@ -142,7 +143,7 @@ def test_embed_logs_error_on_exhaustion(monkeypatch, caplog):
 
     with caplog.at_level(logging.ERROR, logger="pipeline.embeddings.voyage_client"):
         with pytest.raises(httpx.HTTPStatusError):
-            voyage_client.embed(["a"], model="voyage-law-2", max_attempts=3, sleep=FakeSleeper())
+            voyage_client.embed(["a"], model="voyage-4", max_attempts=3, sleep=FakeSleeper())
 
     messages = [r.getMessage() for r in caplog.records]
     assert any("failed after 3 attempts" in m for m in messages)
@@ -154,7 +155,7 @@ def test_embed_logs_non_retryable_status(monkeypatch, caplog):
 
     with caplog.at_level(logging.ERROR, logger="pipeline.embeddings.voyage_client"):
         with pytest.raises(httpx.HTTPStatusError):
-            voyage_client.embed(["a"], model="voyage-law-2", sleep=FakeSleeper())
+            voyage_client.embed(["a"], model="voyage-4", sleep=FakeSleeper())
 
     messages = [r.getMessage() for r in caplog.records]
     assert any("non-retryable HTTP 400" in m for m in messages)
@@ -166,7 +167,7 @@ def test_embed_does_not_retry_client_errors(monkeypatch):
     monkeypatch.setattr(voyage_client.httpx, "post", post)
 
     with pytest.raises(httpx.HTTPStatusError):
-        voyage_client.embed(["a"], model="voyage-law-2", sleep=sleeper)
+        voyage_client.embed(["a"], model="voyage-4", sleep=sleeper)
 
     assert post.calls == 1
     assert sleeper.delays == []
@@ -176,7 +177,7 @@ def test_embed_requires_api_key(monkeypatch):
     monkeypatch.setattr(voyage_client, "VOYAGE_API_KEY", "")
 
     with pytest.raises(RuntimeError, match="VOYAGE_API_KEY"):
-        voyage_client.embed(["a"], model="voyage-law-2")
+        voyage_client.embed(["a"], model="voyage-4")
 
 
 def test_retry_delay_falls_back_to_backoff_for_http_date_retry_after(monkeypatch):
@@ -191,3 +192,19 @@ def test_retry_delay_is_capped(monkeypatch):
     monkeypatch.setattr(voyage_client.random, "random", lambda: 1.0)
 
     assert voyage_client._retry_delay(20, None) == voyage_client.BACKOFF_MAX_SECONDS
+
+
+def test_payload_disables_silent_truncation(monkeypatch):
+    def post(url, **kwargs):
+        assert kwargs["json"]["truncation"] is False
+        return _success_response()
+    monkeypatch.setattr(voyage_client.httpx, "post", post)
+    voyage_client.embed(["a"], model="voyage-4")
+
+
+@pytest.mark.parametrize("counts", [[32001], [31000,31000]])
+def test_oversized_request_never_reaches_provider(monkeypatch, counts):
+    monkeypatch.setattr(voyage_client, "count_tokens", lambda text, *_: int(text))
+    monkeypatch.setattr(voyage_client.httpx, "post", lambda *_args, **_kwargs: pytest.fail("Provider called"))
+    with pytest.raises(ValueError, match="limits"):
+        voyage_client.embed([str(count) for count in counts], model="voyage-4")

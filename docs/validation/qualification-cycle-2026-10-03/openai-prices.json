@@ -1,0 +1,83 @@
+{
+  "checkedAt": "2026-10-04T00:15:52.237089+00:00",
+  "models": {
+    "gpt-5.4": {
+      "url": "https://developers.openai.com/api/docs/models/gpt-5.4",
+      "sha256": "c30e86b38bc6ceacb3d6db269aa6ba4a09c3c5e1322bfaf90f924fddce4013a5",
+      "rateLines": [
+        "| Input | $2.5 | 1M tokens |",
+        "| Cached input | $0.25 | 1M tokens |",
+        "| Output | $15 | 1M tokens |",
+        "| GPT-5.4 | $2.5 | $0.25 | $15 |",
+        "| GPT-5.2 | $1.75 | $0.175 | $14 |",
+        "| GPT-5.4 Mini | $0.75 | $0.075 | $4.5 |"
+      ]
+    },
+    "gpt-5.6-terra": {
+      "url": "https://developers.openai.com/api/docs/models/gpt-5.6-terra",
+      "sha256": "359b9ad58c0c7f2339273fff8627ff3225acb9bca0f1d9c5edcee41701808209",
+      "rateLines": [
+        "| Input | $2 | 1M tokens |",
+        "| Cached input | $0.2 | 1M tokens |",
+        "| Output | $12 | 1M tokens |",
+        "| GPT-5.6 Terra | $2 | $0.2 | $12 |",
+        "| GPT-5.6 Sol | $4 | $0.4 | $20 |",
+        "| GPT-5.4 Mini | $0.75 | $0.075 | $4.5 |"
+      ]
+    },
+    "gpt-5-mini": {
+      "url": "https://developers.openai.com/api/docs/models/gpt-5-mini",
+      "sha256": "3f3228b22ff8f4d6235158bb70ce1206a521724beb2b0dd814f0f38d0d897800",
+      "rateLines": [
+        "| Input | $0.25 | 1M tokens |",
+        "| Cached input | $0.025 | 1M tokens |",
+        "| Output | $2 | 1M tokens |",
+        "| GPT-5 Mini | $0.25 | $0.025 | $2 |",
+        "| GPT-5.4 Mini | $0.75 | $0.075 | $4.5 |",
+        "| GPT-5.4 nano | $0.2 | $0.02 | $1.25 |"
+      ]
+    },
+    "gpt-5.4-mini": {
+      "url": "https://developers.openai.com/api/docs/models/gpt-5.4-mini",
+      "sha256": "97dbda29af4009ed275112e92037a5b46f313caf0d1232ff9b54b899b4fb65a7",
+      "rateLines": [
+        "| Input | $0.75 | 1M tokens |",
+        "| Cached input | $0.075 | 1M tokens |",
+        "| Output | $4.5 | 1M tokens |",
+        "| GPT-5.4 Mini | $0.75 | $0.075 | $4.5 |",
+        "| GPT-5.4 | $2.5 | $0.25 | $15 |",
+        "| GPT-5.4 nano | $0.2 | $0.02 | $1.25 |"
+      ]
+    },
+    "gpt-6.1-sol": {
+      "url": "https://developers.openai.com/api/docs/models/gpt-6.1-sol",
+      "sha256": "972f4265295eea723d5332016dc22cde03f46173fafcbcba5c23b24c8cee90c6",
+      "rateLines": [
+        "| Input | $2 | 1M tokens |",
+        "| Cached input | $0.1 | 1M tokens |",
+        "| Cache writes | $2.5 | 1M tokens |",
+        "| Output | $10 | 1M tokens |"
+      ]
+    },
+    "gpt-6-luna": {
+      "url": "https://developers.openai.com/api/docs/models/gpt-6-luna",
+      "sha256": "9bde4b64e369ace4696d98a7dd6ec8b8e0c6a8de090a116970d55dcd4cadfc7b",
+      "rateLines": [
+        "| Input | $0.1 | 1M tokens |",
+        "| Cached input | $0.01 | 1M tokens |",
+        "| Cache writes | $0.125 | 1M tokens |",
+        "| Output | $0.5 | 1M tokens |"
+      ]
+    },
+    "gpt-6-astra": {
+      "url": "https://developers.openai.com/api/docs/models/gpt-6-astra",
+      "sha256": "290905c5491e594376583ae22c7d21b3b6f5469074c9a7de0189bd3ae54b290a",
+      "rateLines": [
+        "| Input | $10 | 1M tokens |",
+        "| Cached input | $1 | 1M tokens |",
+        "| Cache writes | $12.5 | 1M tokens |",
+        "| Output | $50 | 1M tokens |"
+      ]
+    }
+  }
+}

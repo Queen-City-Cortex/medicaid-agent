@@ -22,9 +22,10 @@ from urllib.parse import urlsplit
 import urllib.request
 
 TARGET = "qualification-preparation-neo4j"
+TARGETS = {TARGET, "qualification-cycle-neo4j"}
 ALLOWED_ENV = {
     "NEO4J_URI", "NEO4J_USER", "NEO4J_PASSWORD", "NEO4J_DATABASE", "CORPUS_DATA_ROOT",
-    "MASTRA_OBSERVABILITY_PATH", "AGENT_MODEL", "VERIFIER_MODEL", "VERIFIER_ENABLED",
+    "EMBEDDING_TOKENIZER_DIR", "MASTRA_OBSERVABILITY_PATH", "AGENT_MODEL", "VERIFIER_MODEL", "VERIFIER_ENABLED",
     "PATH", "NODE_VERSION", "YARN_VERSION", "PYTHONDONTWRITEBYTECODE",
     "PYTHONUNBUFFERED", "UV_PROJECT_ENVIRONMENT", "HOSTNAME", "HOME", "LANG", "LC_CTYPE", "PWD",
 }
@@ -52,7 +53,7 @@ def immutable_registry_uri(path):
 
 def validate_environment(env, mounts):
     target = urlsplit(env.get("NEO4J_URI", ""))
-    if (target.scheme, target.hostname, target.port) != ("bolt", TARGET, 7687):
+    if target.scheme != "bolt" or target.hostname not in TARGETS or target.port != 7687:
         raise ValueError("Only the named disposable preparation graph is allowed")
     if env.get("CORPUS_DATA_ROOT") != "/data":
         raise ValueError("CORPUS_DATA_ROOT must be /data")
@@ -64,7 +65,10 @@ def validate_environment(env, mounts):
         raise ValueError("Only the neo4j candidate database is allowed")
 
 
-def deny_network(target=TARGET):
+def deny_network(target=None):
+    target = target or urlsplit(os.environ.get("NEO4J_URI", "bolt://" + TARGET + ":7687")).hostname
+    if target not in TARGETS:
+        raise ValueError("Unknown disposable target")
     allowed_ips = {row[4][0] for row in socket.getaddrinfo(target, 7687)}
     original = socket.socket.connect
     original_ex = socket.socket.connect_ex

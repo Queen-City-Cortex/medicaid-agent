@@ -297,7 +297,6 @@ def mark_graph_release(
 def inspect_release_graph(expected_dimensions: int) -> dict[str, Any]:
     """Collect identity, source-family, and embedding gate metrics."""
     from pipeline.corpus_manifest import CORPUS_MANIFEST
-    from pipeline.embeddings.chunker import MAX_CHUNK_CHARS
     from pipeline.graph.connection import get_session
 
     required_types = sorted(
@@ -333,16 +332,20 @@ def inspect_release_graph(expected_dimensions: int) -> dict[str, Any]:
             WITH count(section) AS total,
                  sum(
                    CASE
-                     WHEN section.content_length < $max_chars
+                     WHEN section.embedding_plan_hash IS NOT NULL
+                       AND section.embedding_input_count = 1 AND size(chunks) = 0
                        AND section.embedding IS NOT NULL
                        AND size(section.embedding) = $dimensions
                      THEN 1
-                     WHEN section.content_length >= $max_chars
+                     WHEN section.embedding_plan_hash IS NOT NULL
+                       AND section.embedding IS NULL
+                       AND section.embedding_input_count = size(chunks)
                        AND size(chunks) > 0
                        AND all(
                          chunk IN chunks
                          WHERE chunk.embedding IS NOT NULL
                            AND size(chunk.embedding) = $dimensions
+                           AND chunk.embedding_plan_hash = section.embedding_plan_hash
                        )
                      THEN 1
                      ELSE 0
@@ -351,7 +354,6 @@ def inspect_release_graph(expected_dimensions: int) -> dict[str, Any]:
             RETURN total, covered
             """,
             {
-                "max_chars": MAX_CHUNK_CHARS,
                 "dimensions": expected_dimensions,
             },
         ).single()

@@ -1,0 +1,12 @@
+{
+  "url": "https://medicaid-agent-backend.up.railway.app/readyz",
+  "paidCalls": 0,
+  "status": 200,
+  "data": {
+    "status": "ok",
+    "config": "valid",
+    "neo4j": "connected",
+    "storage": "writable",
+    "releaseId": "legacy-20260725-ae8595c"
+  }
+}
