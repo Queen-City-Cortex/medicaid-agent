@@ -1,0 +1,32 @@
+[
+  {
+    "id": "c4210137-51dc-490f-ab6e-4d14a35e19a9",
+    "status": "SKIPPED",
+    "createdAt": "2026-10-03T23:49:47.260Z",
+    "commit": "eb50176fbf48f4bdfe56caf6fc9e1bf768cd2aa6"
+  },
+  {
+    "id": "f4eac37f-30e7-4757-ab46-f7a76a1505b8",
+    "status": "SKIPPED",
+    "createdAt": "2026-10-03T23:45:08.494Z",
+    "commit": "06de91f67cbd5d7174c7439a78b5f8164010b585"
+  },
+  {
+    "id": "185ae558-6815-48f2-8b5c-43440edd5f8a",
+    "status": "SKIPPED",
+    "createdAt": "2026-10-03T22:04:39.191Z",
+    "commit": "0facaf0d9c5d8ece9c34f43f54b2bcb1c42a720f"
+  },
+  {
+    "id": "a23945b1-0d54-475a-b236-3520a3a95d8d",
+    "status": "SUCCESS",
+    "createdAt": "2026-10-03T21:08:11.948Z",
+    "commit": "d9354a604002f0f1d06503ff54b504fb791500f7"
+  },
+  {
+    "id": "3ce36ee4-ffba-44e6-964f-45f4a320f27d",
+    "status": "SKIPPED",
+    "createdAt": "2026-10-03T05:22:05.038Z",
+    "commit": "1a09279af491a9fd10c9958ec3c917b506530a13"
+  }
+]

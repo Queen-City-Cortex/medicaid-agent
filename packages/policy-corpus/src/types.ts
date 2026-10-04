@@ -166,6 +166,7 @@ export interface AnswerFrameRoute {
 }
 
 export interface AnswerFrame {
+  coverageScope?: import('./scope/coverage.js').CoverageScope;
   questionType: AnswerQuestionType;
   route: AnswerFrameRoute;
   authoritativeDocuments: AnswerFrameDocument[];

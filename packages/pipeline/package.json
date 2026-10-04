@@ -6,6 +6,6 @@
   "scripts": {
     "test": ".venv/bin/python -m pytest tests/ -v",
     "lint": ".venv/bin/ruff check src/ && .venv/bin/vulture src vulture_whitelist.py",
-    "setup": "uv sync --frozen --extra dev"
+    "setup": "uv sync --frozen --extra dev && .venv/bin/python -m pipeline.embeddings.tokenizer --model voyage-4 && .venv/bin/python -m pipeline.embeddings.tokenizer --model voyage-4-large"
   }
 }

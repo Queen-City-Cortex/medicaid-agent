@@ -1,0 +1,16 @@
+{
+  "audit.log": "08f4a6cc62888a7f0dbf53507c760626adb1bcb0573062ebc76fe7ba2e3e804e",
+  "build.log": "918f1e34badd228bffee1576f8d773cb3978b3517dd4fc9c8488768482f9aee6",
+  "cleanup.json": "ddb961fc4c790c15d8af62d0801659853d5616d85a36785127b1fdcd64d5d5de",
+  "embedding-final-tests.log": "79591d7d0e6ed4f93e5cc6e9b40fa84f79d725e46db6ec7862b12b75a20b0823",
+  "js-tests.log": "0834b59d238c1b9fb812d0a8d41738fefaa7430002b8e44960e9f8a26f96daa9",
+  "lint.log": "f1648418e00f21a96a0eaed47d61a39dfa95a33a1d8ac49ec35dc67ecfcb5244",
+  "ops-python-tests.log": "9741b3d656a5f4c26c9fc721c4f9172b660fe99a8600475e80f7e7794ba06517",
+  "ops-tests.log": "f9d0250ad6487cdcac2754e47180d2eb6c65a0196c5a7cd39d7014bfff806dab",
+  "opus-approach.md": "ab96ee420f9689c49feb806c68dddbab221bdfdce80ae99cde8b86bc316053d6",
+  "opus-code-review.md": "ec8fbdd0fcc46bf77524cd6a99419cdaa9aa13c6337a4e817ebc944e535b953a",
+  "preservation.json": "4c279aa3aa6c8c658aa8eee358cf570488f84afab433eb71df212162d11dfcad",
+  "source-attestation.json": "8bdea2a480c2ef308eac823298fb5e1ebc90b9a91e68a86b3099fdd7f1e4e57a",
+  "typecheck.log": "8978da330793f91e27011b6ed7cf0cf9c24d3f5e8ebad4d74393a76cb12cf3f6",
+  "verified-general-tests.log": "7330e639bf19b03a0cd8ec6c4ca11253a868e79dc86f341c6f3609b985f9101f"
+}

@@ -144,7 +144,13 @@ under the existing source-family policy.
 The legacy-to-blue transition is supervised; keep the legacy graph serving until
 all source and evaluation gates pass.
 
-1. Complete `recovery-inventory` with zero required failures and zero undocumented
+For a reviewed bounded product scope, first complete the isolated preparation in
+[answer coverage scope](answer-coverage-scope.md). Unresolved required sources
+remain visible; only exact approved limitations are excluded from blocking
+counts. Scoped candidates additionally require the repeated live acceptance
+gate. Scope records are not retirement evidence or permission to override gates.
+
+1. Complete `recovery-inventory` with zero blocking required failures and zero undocumented
    removals. Freeze the code revision, source snapshot, retirement evidence and
    the complete 55-question benchmark. Keep maintenance mode and the writer lock.
 2. Run a fresh baseline against the **legacy** graph using that exact code and

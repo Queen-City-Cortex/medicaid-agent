@@ -209,7 +209,7 @@ def parse(
         or terminal_incomplete
     )
     required_failed = strict_required and (
-        stats.get("remaining_required_failures", 0) or terminal_incomplete
+        stats.get("remaining_blocking_required_failures", stats.get("remaining_required_failures", 0)) or terminal_incomplete
     )
     if strict_failed or required_failed:
         raise click.ClickException("Strict parse failed")

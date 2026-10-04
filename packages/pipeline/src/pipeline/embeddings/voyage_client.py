@@ -11,7 +11,8 @@ from typing import Callable
 
 import httpx
 
-from pipeline.config import VOYAGE_API_KEY
+from pipeline.config import VOYAGE_API_KEY, EMBEDDING_DIMENSIONS
+from pipeline.embeddings.tokenizer import count_tokens, CONTEXT_TOKENS, BATCH_TOKENS
 
 logger = logging.getLogger(__name__)
 
@@ -61,13 +62,17 @@ def embed(
     if max_attempts < 1:
         raise ValueError("max_attempts must be >= 1")
 
+    counts = [count_tokens(text, model, input_type) for text in texts]
+    if not texts or len(texts) > 1000 or max(counts) > CONTEXT_TOKENS or sum(counts) > BATCH_TOKENS:
+        raise ValueError("Embedding request exceeds validated input or batch limits")
+
     last_error: Exception = RuntimeError("unreachable")
     for attempt in range(max_attempts):
         retry_after: str | None = None
         try:
             resp = httpx.post(
                 API_URL,
-                json={"input": texts, "model": model, "input_type": input_type},
+                json={"input": texts, "model": model, "input_type": input_type, "truncation": False, "output_dimension": EMBEDDING_DIMENSIONS},
                 headers={
                     "Authorization": f"Bearer {VOYAGE_API_KEY}",
                     "Content-Type": "application/json",
@@ -75,7 +80,12 @@ def embed(
                 timeout=120,
             )
             resp.raise_for_status()
-            return [d["embedding"] for d in resp.json()["data"]]
+            data = resp.json()["data"]
+            indexes = [item.get("index") for item in data]
+            if (len(data) != len(texts) or any(type(index) is not int for index in indexes)
+                    or sorted(indexes) != list(range(len(texts)))):
+                raise ValueError("Invalid embedding response indexes")
+            return [item["embedding"] for item in sorted(data, key=lambda item: item["index"])]
         except httpx.TimeoutException as exc:
             last_error = exc
         except httpx.HTTPStatusError as exc:

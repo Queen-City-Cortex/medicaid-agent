@@ -1,0 +1,77 @@
+{
+  "implementationRevision": "700ba6a020b71e4f3ca567d057b6afabec92ae46",
+  "baseImageId": "sha256:60ef50c775526b8adc5055456c87f718d7aedf9896dd203af9af8ca4fd59856a",
+  "loadedSourceSha256": {
+    "packages/pipeline/src/pipeline/embeddings/planner.py": "13a69b356effd1a9e07e3fd5f992748cb115a56670e2414c2b65d223f730dc5d",
+    "packages/pipeline/src/pipeline/embeddings/voyage_client.py": "7bb58390db7cb98d82353e04f76e718b754a8f9a1f7dd394eeb1b36536c57d80",
+    "packages/pipeline/src/pipeline/embeddings/source_epoch.py": "9e84bcf9cec1dc5f35b501dce16980c6bf00e4694fe1cb001de501ff5a643211",
+    "packages/pipeline/src/pipeline/embeddings/chunker.py": "eb89358f61e1222144bc74c30493f42215d99a638eb37f943df5dda0fc64d5b2",
+    "packages/pipeline/src/pipeline/embeddings/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "packages/pipeline/src/pipeline/embeddings/tokenizer.py": "e9428153154f47a943a12f308efe47c659ff1e3650eb2bf7396c0db570f1a53f",
+    "packages/pipeline/src/pipeline/embeddings/generator.py": "70e7f502045632fa9493d389fa19a1c2390e127e5d64c324898374522d04d347",
+    "packages/pipeline/src/pipeline/embeddings/indexer.py": "b1e9d49362ae98388d4010bb55ad6957fc98992aac8c52e25ab3a9835f630ef5",
+    "packages/pipeline/src/pipeline/graph/connection.py": "91c9560e99821985ffa4399fffe12742ae0f5de90e07a01dbfe851361e3b15a2",
+    "packages/pipeline/src/pipeline/eval/identity_read.py": "e787dd014a5e94a909c42f365af4afb13b0079c231f25575ce049a9dd19557c2",
+    "packages/pipeline/src/pipeline/eval/identity.py": "d33c0447b0b9e767c5ecd825fdc825759c497259c54c63bdfb1008f7a1f23362",
+    "scripts/ops/prepare-qualification.py": "d7380104b698424a7959c5d411cdcbbe49e389f3d18cbbe32a9d9450819ca602",
+    "scripts/ops/inspect-qualification-preparation.py": "ff3b3231eb8a4923162194198c4b038d8aed3cd10d2dcefe2009b8f48497e9c7"
+  },
+  "inputManifestSha256": "3247b7f48e8c7dcfec1b8dd6e9f4b5ef2ed3d078142331795c9f4728431d27c0",
+  "tokenizerAssets": {},
+  "startedAt": "2026-10-04T01:09:52.980706+00:00",
+  "archivedSourceDiagnosticOnly": true,
+  "completedAt": "2026-10-04T01:18:16.755809+00:00",
+  "exitCode": 0,
+  "sourceUnchanged": true,
+  "tokenizerAssetVerification": {
+    "checkedAt": "2026-10-04T01:14:26.215649+00:00",
+    "readOnlyMountedDuringInspection": true,
+    "assets": {
+      "voyage-4-44f3b2ae4ddf33403ed4dd66bec3fa48ff7dbbf9.json": {
+        "bytes": 7031645,
+        "sha256": "c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539"
+      },
+      "voyage-4-large-bb931c2635a93efe400c24741363d8ff61d7bb32.json": {
+        "bytes": 7031645,
+        "sha256": "c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539"
+      }
+    },
+    "runtimeChecksAssetSha256BeforeLoading": true,
+    "initialAttestationAssetGlobWasEmpty": true
+  },
+  "importedModuleVerification": {
+    "modules": {
+      "pipeline.embeddings.generator": {
+        "file": "/app/packages/pipeline/src/pipeline/embeddings/generator.py",
+        "sha256": "70e7f502045632fa9493d389fa19a1c2390e127e5d64c324898374522d04d347"
+      },
+      "pipeline.embeddings.planner": {
+        "file": "/app/packages/pipeline/src/pipeline/embeddings/planner.py",
+        "sha256": "13a69b356effd1a9e07e3fd5f992748cb115a56670e2414c2b65d223f730dc5d"
+      },
+      "pipeline.embeddings.chunker": {
+        "file": "/app/packages/pipeline/src/pipeline/embeddings/chunker.py",
+        "sha256": "eb89358f61e1222144bc74c30493f42215d99a638eb37f943df5dda0fc64d5b2"
+      },
+      "pipeline.embeddings.tokenizer": {
+        "file": "/app/packages/pipeline/src/pipeline/embeddings/tokenizer.py",
+        "sha256": "e9428153154f47a943a12f308efe47c659ff1e3650eb2bf7396c0db570f1a53f"
+      },
+      "pipeline.eval.identity": {
+        "file": "/app/packages/pipeline/src/pipeline/eval/identity.py",
+        "sha256": "d33c0447b0b9e767c5ecd825fdc825759c497259c54c63bdfb1008f7a1f23362"
+      },
+      "pipeline.eval.identity_read": {
+        "file": "/app/packages/pipeline/src/pipeline/eval/identity_read.py",
+        "sha256": "e787dd014a5e94a909c42f365af4afb13b0079c231f25575ce049a9dd19557c2"
+      },
+      "pipeline.graph.connection": {
+        "file": "/app/packages/pipeline/src/pipeline/graph/connection.py",
+        "sha256": "91c9560e99821985ffa4399fffe12742ae0f5de90e07a01dbfe851361e3b15a2"
+      }
+    },
+    "tokenizersVersion": "0.22.2",
+    "checkedAt": "2026-10-04T01:16:34.969273+00:00",
+    "hostSourcesMatch": true
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "candidate_utf8_bytes": 210810743,
+  "eligible_documents": 1701,
+  "inventory_sha256": "6d52dc6cecd3d1d44ecdfeaee218c0b85d2f6de4dac2a062a2d794a4be755757",
+  "old_scope_approvals": "STALE: candidate artifacts change corpus snapshot; approvals preserved, never rebound",
+  "original_inputs_preserved": true,
+  "original_utf8_bytes": 2593381319,
+  "promotable": false,
+  "proofs_sha256": "b958cd331d092fb68e8757ebf0b5db1b78e6b5dff9c90065f6a5c861d2d949ba",
+  "providers_called": false,
+  "qualification": "NOT_ASSESSED",
+  "transformed_xlsx": 696
+}

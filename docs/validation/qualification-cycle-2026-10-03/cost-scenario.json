@@ -1,0 +1,66 @@
+{
+  "status": "MEASURED_ARCHIVED_CORPUS_PLUS_ASSUMED_QUALIFICATION_NOT_AUTHORIZATION",
+  "approvedSpendUsd": 0,
+  "hardCapGuaranteed": false,
+  "budgetGatewayImplemented": false,
+  "completeEmbeddingTokens": 1919469387,
+  "embeddingEstimateStatus": "COMPLETE_PINNED_LOCAL_SHARED_PLAN_SCAN_ARCHIVED_SOURCE",
+  "requests": {
+    "benchmarkAnswers": 330,
+    "scopeScenarios": 48,
+    "standaloneRetrievalQueries": 330
+  },
+  "tokenAssumptions": {
+    "agentPerRequest": {
+      "input": 100000,
+      "output": 6000
+    },
+    "verifierPerPass": {
+      "input": 40000,
+      "output": 2000
+    },
+    "verifierPasses": 2,
+    "judgePerBenchmarkAnswer": {
+      "input": 20000,
+      "output": 1000
+    },
+    "retrievalPerQuery": 200
+  },
+  "currentConfigurationScenarioUsd": {
+    "agentGpt54": 128.52,
+    "verifierTerra": 78.624,
+    "judgeSonnet46": 24.75,
+    "standaloneRetrievalVoyage4": 0.00396,
+    "subtotalExcludingCorpusEmbeddings": 231.89796,
+    "totalIncludingArchivedCorpusEmbeddings": 347.06612322
+  },
+  "candidateScenarioUsd": {
+    "agentSol": 98.28,
+    "verifierSol": 75.6,
+    "judgeSonnet55": 16.5,
+    "standaloneRetrievalVoyage4": 0.00396,
+    "subtotalExcludingCorpusEmbeddings": 190.38396,
+    "totalIncludingArchivedCorpusEmbeddings": 305.55212322
+  },
+  "limitations": [
+    "Scenario token amounts are not runtime limits",
+    "No retry, free credit, caching or batch discount assumed",
+    "Extra retrieval tool queries, provider retries, failed/timed-out calls, model-calibration work and re-embedding increase cost",
+    "No research evaluation or live browser/memory qualification priced here",
+    "Candidate configuration is unqualified and unselected; judge changes require separate calibration",
+    "The scenario is not a cap; fresh-source rebuilding may change volume, and enforced pre-call reservations remain required",
+    "Qualify the corpus with fixed models/judge before a separate paired model migration experiment; changing both confounds attribution"
+  ],
+  "pricingSources": [
+    "https://developers.openai.com/api/docs/models/gpt-5.4",
+    "https://developers.openai.com/api/docs/models/gpt-5.6-terra",
+    "https://developers.openai.com/api/docs/models/gpt-6.1-sol",
+    "https://platform.claude.com/docs/en/about-claude/pricing",
+    "https://docs.voyageai.com/docs/pricing"
+  ],
+  "embeddingInputs": 390241,
+  "embeddingVoyage4Usd": 115.16816322,
+  "embeddingVoyage4LargeSameTokenizerVolumeUsd": 230.33632644,
+  "sourceSnapshotHash": "sha256:fec98be8ff62e91817645f908bc52accb4655d8235288761ccd16a575d42fc26",
+  "inspectionRevision": "700ba6a020b71e4f3ca567d057b6afabec92ae46"
+}

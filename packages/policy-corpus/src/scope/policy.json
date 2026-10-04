@@ -1,0 +1,94 @@
+{
+  "schema_version": 1,
+  "id": "bounded-policy-research-v1",
+  "review": "docs/validation/product-scope-review-2026-10-03/README.md",
+  "limitations": [
+    {
+      "id": "covid-standing-order",
+      "source_url": "https://covid19.ncdhhs.gov/swso-pharmacists-dispense-otc-covid-19-tests/download?attachment=",
+      "source_type": "bulletin",
+      "registry_sha256": "0019e4ca9533a8040518c7878b68290db3c546ca0722abd73e26c1eb47af33f5",
+      "retained_payload_sha256": "9614129d403f5226f8c9222a4aaa8a7389b87fa998f2702108063f7c89f04f6f",
+      "finding": "Original unavailable; outside the supported exact-original answer scope. Preserve unresolved state; this is not withdrawal or supersession."
+    },
+    {
+      "id": "gujarati-dhb-5097",
+      "source_url": "https://policies.ncdhhs.gov/document/dhb-5097-gu-%e0%aa%ae%e0%aa%be%e0%aa%b9%e0%aa%bf%e0%aa%a4%e0%ab%80-%e0%aa%ae%e0%aa%be%e0%aa%9f%e0%ab%87%e0%aa%b5%e0%aa%bf%e0%aa%a8-%e0%aa%82%e0%aa%a4%e0%ab%80/",
+      "source_type": "dhhs_policy",
+      "registry_sha256": "22603f0983bd709935584b8bd232aba8efe363ea8db216157c28c6f245843b44",
+      "retained_payload_sha256": "7682aa584aac795e6647a092f50987b6c1fa9efd7929b1f62fd4800378713bb6",
+      "finding": "Original unavailable; outside the supported exact-original answer scope. Preserve unresolved state; this is not withdrawal or supersession."
+    },
+    {
+      "id": "magi-2025-archive-2",
+      "source_url": "https://policies.ncdhhs.gov/document/2025-magi-medicaid-income-limits-2/",
+      "source_type": "dhhs_policy",
+      "registry_sha256": "0c3818e969a3abb2c72eaf822a9293443275dff0c0ed3efb7049e5a4dfa74098",
+      "retained_payload_sha256": null,
+      "finding": "Original unavailable; outside the supported exact-original answer scope. Preserve unresolved state; this is not withdrawal or supersession."
+    },
+    {
+      "id": "magi-2025-archive",
+      "source_url": "https://policies.ncdhhs.gov/document/2025-magi-medicaid-income-limits/",
+      "source_type": "dhhs_policy",
+      "registry_sha256": "0729a3231709b08651b3e5ca5e27f666a5ecb5cbaa74c76542deb92956950624",
+      "retained_payload_sha256": null,
+      "finding": "Original unavailable; outside the supported exact-original answer scope. Preserve unresolved state; this is not withdrawal or supersession."
+    }
+  ],
+  "required_coverage": [
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/MA-3321-1.pdf",
+      "payload_sha256": "5fa58cc30f9a283ce4c16e46fbc7f33d9027351b0084a04d90afb60856930365"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/MA-2300.pdf",
+      "payload_sha256": "531b769ca8370cb12a6601e7727a574d90a0a402f5b863c1b51870f531bccbb6"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma-3200-1.pdf",
+      "payload_sha256": "a5f1e4aea72249f08b810ec68c0f3ad902fd85248ff896cf8aca62945cce9917"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/DHB-5097-_4.1.26-6.pdf",
+      "payload_sha256": "4b4e1c0fb974ee638a9483757892994aee640546fcc568f19ed99ed70387f5b6"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/DHB-5097-_1.5.26_SP.pdf",
+      "payload_sha256": "b98b0e491bce927e1e5686d5b6f8bb4ad2a0fb8ce49e4c6f0af03d5ef85cc3b9"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/MA-3321-MAGI-Income-2.pdf",
+      "payload_sha256": "f160d14ce07a9a8d8db956caa3a13f8f696c39aed892d57b4136edb20b62d10b"
+    }
+  ],
+  "required_bulletin": {
+    "source_url": "https://medicaid.ncdhhs.gov/blog/2024/09/25/reminder-key-covid-19-changes-effective-oct-1-2024",
+    "required_text": [
+      "Over-the-Counter Tests for Home Use Coverage for COVID-19",
+      "ends Sept. 30, 2024"
+    ]
+  },
+  "magi_tables": [
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/MA-3321-1.pdf",
+      "effective_from": "2025-04-01",
+      "supported_until": "2026-03-31"
+    },
+    {
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/MA-3321-MAGI-Income-2.pdf",
+      "effective_from": "2026-04-01",
+      "supported_until": "2026-12-31"
+    }
+  ],
+  "qualification_cases": [
+    "magi-2026",
+    "magi-2025",
+    "magi-before-april-2025",
+    "magi-missing-archives",
+    "dhb-5097-procedure",
+    "gujarati-official-form",
+    "covid-payment-after-2024",
+    "covid-standing-order-authority"
+  ]
+}

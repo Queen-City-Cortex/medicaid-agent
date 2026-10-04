@@ -1,0 +1,64 @@
+{
+  "status": "ESTIMATE_NOT_AUTHORIZATION",
+  "approvedSpendUsd": 0,
+  "confirmedPricingFile": "pricing.json",
+  "corpusEmbeddingEstimate": {
+    "measuredOffline": true,
+    "inputCharacters": 2952772407,
+    "embeddingInputs": 68524,
+    "estimatedTokens": 984257469.0,
+    "charactersPerTokenAssumption": 3,
+    "nominalUsd": 59.0554,
+    "sensitivityAtFiveCharactersPerTokenUsd": 35.4333,
+    "tokenizerCalled": false,
+    "oversizedHeuristicInputs": 864,
+    "maximumInputCharacters": 38489172,
+    "embeddingInputValidityEstablished": false,
+    "estimateMustBeRecomputedAfterChunkingRepair": true,
+    "basis": "Illustration under current defective paragraph chunking and unbounded overlap; operational cost unknown until repair and remeasurement",
+    "operationalBudgetEstablished": false
+  },
+  "nominalLlmComponentsUsd": {
+    "agent": 64.192,
+    "verifier": 49.088,
+    "judge": 16.5,
+    "retrievalQueryEmbeddingsMinimum": 0.00132
+  },
+  "nominalLlmTotalUsd": 129.7813,
+  "tokenAssumptions": {
+    "agentPerQuestionAcrossAllSteps": {
+      "input": 100000,
+      "output": 6000
+    },
+    "verifierPerPass": {
+      "input": 40000,
+      "output": 2000
+    },
+    "verifierPassesPerQuestion": 2,
+    "judgePerBenchmarkAnswer": {
+      "input": 20000,
+      "output": 1000
+    },
+    "retrievalQuery": {
+      "tokens": 200
+    }
+  },
+  "billingAssumptions": [
+    "All 236 benchmark/scope requests budgeted as model-backed, including negative cases",
+    "No caching, free-token allowance, or batch discount assumed",
+    "Additional agent retrieval-tool embedding queries scale with actual tool calls; the 110 retrieval queries are only the standalone comparison floor",
+    "Observer and injection classifiers disabled by existing eval CLI, not assumed free in production"
+  ],
+  "retries": {
+    "answerApplicationMaxRetries": 2,
+    "answerAttemptsPerQuestionMaximum": 3,
+    "openaiSdkDefaultRetries": 2,
+    "verifierSdkRetries": 0,
+    "voyageMaximumAttempts": 5,
+    "judgeClientRetries": 0,
+    "retryAccounting": "Nominal amounts exclude retries; application failures can multiply agent/verifier/judge spending up to 3 in this scenario; OpenAI SDK retries may multiply main-agent request spending again, and Voyage retry attempts up to 5. Failed timed-out calls may still be billed."
+  },
+  "hardCapGuaranteed": false,
+  "limits": "These are total-token scenario assumptions, not runtime caps. Agent maxSteps=99 and variable tool context/output can exceed them. Current phase has no provider access. A later paid campaign needs approved budget and enforceable usage limits before execution.",
+  "nominalTotalWithCorpusEmbeddingsUsd": 188.8367
+}

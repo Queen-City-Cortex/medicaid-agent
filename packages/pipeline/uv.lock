@@ -981,6 +981,7 @@ dependencies = [
     { name = "python-dotenv" },
     { name = "python-pptx" },
     { name = "rich" },
+    { name = "tokenizers" },
     { name = "xlrd" },
 ]
 
@@ -1006,6 +1007,7 @@ requires-dist = [
     { name = "python-dotenv", specifier = ">=1.2.4" },
     { name = "python-pptx", specifier = ">=1.0.2,<2" },
     { name = "rich", specifier = ">=15.0" },
+    { name = "tokenizers", specifier = "==0.22.2" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.16.10" },
     { name = "vulture", marker = "extra == 'dev'", specifier = ">=2.16" },
     { name = "xlrd", specifier = ">=2.0.2,<3" },

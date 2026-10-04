@@ -1,0 +1,16 @@
+{
+  "status": "NOT_RUN",
+  "pairs": 3,
+  "questionsPerArm": 55,
+  "benchmarkAnswers": 330,
+  "retrievalQuestions": 330,
+  "scopeScenarios": 48,
+  "answerVerificationRequired": true,
+  "isolatedObservabilityRequired": true,
+  "commonSourceAndConfigurationFingerprintRequired": true,
+  "graphSpecificMappingHashesRequired": true,
+  "paidCallsAuthorized": false,
+  "budgetGatewayImplemented": false,
+  "budgetApprovedUsd": null,
+  "activationAuthorized": false
+}

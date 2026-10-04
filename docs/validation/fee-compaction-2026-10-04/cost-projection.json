@@ -1,0 +1,35 @@
+{
+  "actualQualificationProviderSpendUsd": 0,
+  "approvedQualificationSpendUsd": 0,
+  "baselineFeeEstimateUsd": 113.85955523999999,
+  "billingUsageMeasured": false,
+  "candidateFeeEstimateUsd": 12.347826360000001,
+  "fullCorpusBaseline": {
+    "embeddingInputs": 390241,
+    "inputCharacters": 3051192188,
+    "inputUtf8Bytes": 3051581382,
+    "localTokens": 1919469387,
+    "sections": 59415
+  },
+  "pricingDate": "2026-10-03",
+  "projectedFullCorpus": {
+    "embeddingInputs": 106876,
+    "inputCharacters": 500779392,
+    "inputUtf8Bytes": 501153967,
+    "localTokens": 227607239,
+    "sections": 59415
+  },
+  "projectedFullCorpusEmbeddingUsd": 13.656434339999999,
+  "promotable": false,
+  "qualification": "NOT_ASSESSED",
+  "rateSource": "../qualification-cycle-2026-10-03/cost-scenario.json",
+  "status": "PROJECTED_FULL_CORPUS; measured_fee_only_graph_delta_plus_unchanged_non_fee_from_pinned_prerequisite",
+  "unchangedNonFee": {
+    "embeddingInputs": 60353,
+    "inputCharacters": 107086487,
+    "inputUtf8Bytes": 107455307,
+    "localTokens": 21810133,
+    "sections": 55168
+  },
+  "usdPerMillionTokens": 0.06
+}

@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "status": "PREPARED_NOT_EXECUTED",
+  "approvedQualificationBudgetUsd": 0,
+  "agentModel": "gpt-5.6-terra",
+  "verifierModel": "gpt-5.6-terra",
+  "judgeModel": "claude-sonnet-4-6",
+  "embeddingModel": "voyage-4",
+  "embeddingDimensions": 1024,
+  "observability": ":memory:",
+  "verificationRequired": true,
+  "applicationMaxRetries": 2,
+  "verifierMaxPasses": 2,
+  "agentMaxSteps": 99,
+  "runs": [
+    {
+      "id": "legacy-1",
+      "command": "uv run python -m pipeline.cli release-baseline --release-id legacy-20260725-ae8595c --output \"$RUN_DIR/legacy-1.json\"",
+      "benchmarkQuestions": 55,
+      "retrievalQuestions": 55
+    },
+    {
+      "id": "legacy-2",
+      "command": "uv run python -m pipeline.cli eval --level answer",
+      "benchmarkQuestions": 55
+    },
+    {
+      "id": "candidate-1",
+      "command": "uv run python -m pipeline.cli release-validate --manifest \"$CANDIDATE_MANIFEST\" --baseline-evidence \"$RUN_DIR/legacy-1.json\"",
+      "benchmarkQuestions": 55,
+      "retrievalQuestions": 55,
+      "scopeScenarios": 16,
+      "executionOwner": "Invoked by supervised bootstrap; listed command is the underlying validation step, not an extra post-bootstrap run"
+    },
+    {
+      "id": "candidate-2",
+      "command": "uv run python -m pipeline.cli eval --level answer",
+      "benchmarkQuestions": 55
+    }
+  ],
+  "totals": {
+    "benchmarkAnswers": 220,
+    "scopeScenarios": 16,
+    "retrievalQuestions": 110
+  },
+  "allRuns": "NOT_RUN",
+  "activationIncluded": false,
+  "benchmarkHash": "97242b70394a511ba54760468536428944c31f87d9c5c039e24c54b10677f0ff",
+  "scopePolicyHash": "eef299ff289cca177ce9047387eb81f15e8a7639692b939ca54943df6ae396e3",
+  "sourceSnapshotHash": "sha256:fec98be8ff62e91817645f908bc52accb4655d8235288761ccd16a575d42fc26",
+  "catalogHash": "acfeb98a087ba3875e338f27b194216596e2566237517bed5a3df65e4f3f536e",
+  "preparationSourceRevision": "873a9555d271d91f8b6a2ed47572293b092c8748",
+  "preparationImageDigest": "sha256:60ef50c775526b8adc5055456c87f718d7aedf9896dd203af9af8ca4fd59856a",
+  "commonEvaluationFingerprint": {
+    "benchmarkHash": "97242b70394a511ba54760468536428944c31f87d9c5c039e24c54b10677f0ff",
+    "embeddingDimensions": 1024,
+    "embeddingModel": "voyage-4",
+    "evidenceNormalization": {
+      "catalogHash": "acfeb98a087ba3875e338f27b194216596e2566237517bed5a3df65e4f3f536e",
+      "version": 1
+    },
+    "implementationHash": "750eb8dce73d577ab79cf71653e3b5d9b8c9285141d42ed6a0c42aba5f583865",
+    "judgeModel": "claude-sonnet-4-6",
+    "modelEnvironment": {
+      "AGENT_MODEL": "gpt-5.6-terra",
+      "VERIFIER_ENABLED": "true",
+      "VERIFIER_MODEL": "gpt-5.6-terra"
+    },
+    "topK": 10,
+    "verificationRequired": true
+  },
+  "paidExecutionPrerequisite": "Fresh complete source/candidate rebuild, final-catalog per-graph identity verification retaining genuine misses, repaired bounded chunking, approved budget and enforceable usage guard; re-freeze exact implementation, identities and configuration before calls",
+  "candidateFirstRun": "Included in normal supervised bootstrap validation; do not execute an additional release-validate after bootstrap",
+  "preparationSteps": [
+    {
+      "id": "candidate-build",
+      "execution": "Later supervised normal bootstrap with fresh source evidence; includes complete embedding generation before candidate-1",
+      "status": "NOT_RUN"
+    }
+  ]
+}

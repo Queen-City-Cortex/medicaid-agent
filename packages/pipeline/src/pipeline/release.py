@@ -294,12 +294,13 @@ def mark_graph_release(
     return {"releaseId": manifest["releaseId"], "markedAt": marked_at}
 
 
-def inspect_release_graph(expected_dimensions: int) -> dict[str, Any]:
+def inspect_release_graph(expected_dimensions: int, expected_model: str = EMBEDDING_MODEL) -> dict[str, Any]:
     """Collect identity, source-family, and embedding gate metrics."""
     from pipeline.corpus_manifest import CORPUS_MANIFEST
-    from pipeline.embeddings.chunker import MAX_CHUNK_CHARS
     from pipeline.graph.connection import get_session
+    from pipeline.embeddings.plan_graph import embedding_coverage
 
+    coverage_row = embedding_coverage(model=expected_model, dimensions=expected_dimensions)
     required_types = sorted(
         {
             family.source_type
@@ -323,37 +324,6 @@ def inspect_release_graph(expected_dimensions: int) -> dict[str, Any]:
                  collect(DISTINCT document.document_type) AS source_types
             RETURN total, with_id, distinct_ids, source_types
             """
-        ).single()
-        coverage_row = session.run(
-            """
-            MATCH (section:Section)
-            WHERE section.content_length > 0
-            OPTIONAL MATCH (section)-[:HAS_CHUNK]->(chunk:Chunk)
-            WITH section, collect(chunk) AS chunks
-            WITH count(section) AS total,
-                 sum(
-                   CASE
-                     WHEN section.content_length < $max_chars
-                       AND section.embedding IS NOT NULL
-                       AND size(section.embedding) = $dimensions
-                     THEN 1
-                     WHEN section.content_length >= $max_chars
-                       AND size(chunks) > 0
-                       AND all(
-                         chunk IN chunks
-                         WHERE chunk.embedding IS NOT NULL
-                           AND size(chunk.embedding) = $dimensions
-                       )
-                     THEN 1
-                     ELSE 0
-                   END
-                 ) AS covered
-            RETURN total, covered
-            """,
-            {
-                "max_chars": MAX_CHUNK_CHARS,
-                "dimensions": expected_dimensions,
-            },
         ).single()
         invalid_dimensions_row = session.run(
             """
@@ -462,6 +432,7 @@ def build_release_audit_results(
         1
         for document in audit_report.get("documents", [])
         if document.get("required_for_answering")
+        and not document.get("scope_limitation_id")
         and document.get("registry_status") in _ACTIVE_REGISTRY_STATUSES
         and document.get("parse_status") == "parse_exception"
     )
@@ -472,6 +443,7 @@ def build_release_audit_results(
         and family.get("freshness_status") != "fresh"
     )
     return {
+        "answerScopeAcceptancePassed": 0 if audit_report.get("answer_scope_limitations") else 1,
         "duplicateIdentities": max(
             int(summary.get("duplicate_document_ids", 0)),
             int(graph_metrics.get("duplicateIdentities", 0)),
@@ -620,6 +592,23 @@ def evaluate_release_manifest(
             overridable=False,
         ),
     ]
+    if manifest.get("answerScopePolicyHash") or audit.get("answerScopeAcceptancePassed") == 0:
+        stage = manifest.get("stageResults", {}).get("answerScopeAcceptance", {})
+        receipt = stage.get("result") or {}
+        from pipeline.answer_scope import scope_policy
+        expected_cases = {(case, repeat) for case in scope_policy()["qualification_cases"] for repeat in [1, 2]}
+        runs = receipt.get("runs", [])
+        qualified = (
+            stage.get("status") == "passed" and receipt.get("all_passed") is True
+            and receipt.get("policy_hash") == manifest.get("answerScopePolicyHash")
+            and receipt.get("implementation_hash") == manifest.get("answerScopeImplementationHash")
+            and receipt.get("source_snapshot_hash") == manifest.get("sourceSnapshotHash")
+            and receipt.get("evaluation_fingerprint") == manifest.get("evaluationFingerprint")
+            and len(runs) == len(expected_cases)
+            and {(run.get("case_id"), run.get("repeat")) for run in runs} == expected_cases
+            and all(run.get("passed") is True for run in runs)
+        )
+        gates.append(_gate("answerScopeAcceptancePassed", int(qualified), 1, minimum=True, overridable=False))
     # Sparse golden relevance labels cannot support an absolute precision@10
     # threshold. Precision remains reported and compared against the baseline.
     for name in (

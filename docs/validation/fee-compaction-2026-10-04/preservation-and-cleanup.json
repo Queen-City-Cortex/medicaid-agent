@@ -1,0 +1,35 @@
+{
+  "cleanup": {
+    "completedUtc": "2026-10-04T04:43:24.005930+00:00",
+    "containersRemoved": [
+      "fee-compaction-baseline",
+      "fee-compaction-candidate",
+      "fee-compaction-tests"
+    ],
+    "developerGraphPreserved": true,
+    "networkRemoved": "fee-compaction-offline",
+    "volumesRemoved": [
+      "d52bb414435540e07e4a3cc15691169ca09e48a1b74ec0b4fe7a6acaed0c9ead",
+      "0484d93ca20ac95ee8e6d489e7f92b12666f62e19f3255f76a5e9e756bf8a3a0",
+      "ece005f7e941d2cc9aa6d47d864f4efd0e199babe079e0771d554e249d5f96eb",
+      "bee84e627466eccace5c052933264ac901c5b69d6426af060a9ad00ae202cf26",
+      "fb31e0d99e211c6972ea657495f3ce906aa416c07d419f0e6573a419ed51f2e0",
+      "2db10e2aa8dd743f35ef4a2b37822ac4c29af5513deae04bf39027ec0435b1de"
+    ]
+  },
+  "preservation": {
+    "nativeWorkbooksVerified": 696,
+    "originalCheckoutUnchanged": true,
+    "originalGraphDumpUnchanged": true,
+    "pendingFilesVerified": 72,
+    "pr204Unchanged": true,
+    "registryUnchanged": true,
+    "retainedParseStatuses": {
+      "parse_exception": 269,
+      "parsed": 1701
+    },
+    "retainedSidecarsVerified": 1970,
+    "sidecarInventorySha256": "ec33749df43b03cda4361fc09d346ec205b280de2c83c951effc43329dbef459",
+    "sidecarsWithoutPayload": 244
+  }
+}

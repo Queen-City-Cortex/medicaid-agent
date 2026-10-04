@@ -1,0 +1,12 @@
+{
+  "originalCheckoutUnchanged": true,
+  "pendingFileHashesVerified": 72,
+  "originalRegistryUnchanged": true,
+  "originalPrHeadsPreserved": {
+    "199": "779f05260658a060bcbbb0d8ca15c121b4c4086d",
+    "204": "b1e43014a2fbd47a5767da69bfbc56da5e708443",
+    "207": "891ac8f1870f264e084f795c78ec968830d41a1a"
+  },
+  "allPrHeadsAreAncestors": true,
+  "branchBundleSha256": "a2d20b970f9ac8625607e0d3511834f52a726e27709c0f39b98db94c9b1589e9"
+}

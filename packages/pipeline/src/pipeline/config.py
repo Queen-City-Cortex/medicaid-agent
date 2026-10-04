@@ -60,7 +60,6 @@ LLM_MODEL = "claude-haiku-4-5-20251001"
 EMBED_BATCH_SIZE = 128
 LLM_REF_BATCH_SIZE = 30
 GRAPH_BATCH_SIZE = 500
-EMBED_WRITE_BATCH_SIZE = 100
 
 # Source type directory mapping (must match crawler's SOURCE_TYPE_DIRS)
 SOURCE_TYPE_DIRS = {
@@ -113,3 +112,5 @@ CFR_PARTS = [
         233,
     ]],
 ]
+
+EMBED_WRITE_BATCH_SIZE = 100

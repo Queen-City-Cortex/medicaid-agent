@@ -1,0 +1,54 @@
+{
+  "checkedAt": "2026-10-04T00:07:54.026249+00:00",
+  "paidGenerationCalls": 0,
+  "services": {
+    "agent": {
+      "explicitModelSettings": {
+        "AGENT_MODEL": "gpt-5.4"
+      },
+      "availability": {
+        "openai": {
+          "credentialPresent": true,
+          "status": 200,
+          "modelIds": [
+            "gpt-5-mini",
+            "gpt-5.4",
+            "gpt-5.4-mini",
+            "gpt-5.6-terra",
+            "gpt-6-astra",
+            "gpt-6-luna",
+            "gpt-6.1-sol"
+          ]
+        },
+        "anthropic": {
+          "credentialPresent": true,
+          "status": 401
+        }
+      }
+    },
+    "corpus": {
+      "explicitModelSettings": {
+        "AGENT_MODEL": "gpt-5.4"
+      },
+      "availability": {
+        "openai": {
+          "credentialPresent": true,
+          "status": 200,
+          "modelIds": [
+            "gpt-5-mini",
+            "gpt-5.4",
+            "gpt-5.4-mini",
+            "gpt-5.6-terra",
+            "gpt-6-astra",
+            "gpt-6-luna",
+            "gpt-6.1-sol"
+          ]
+        },
+        "anthropic": {
+          "credentialPresent": true,
+          "status": 401
+        }
+      }
+    }
+  }
+}

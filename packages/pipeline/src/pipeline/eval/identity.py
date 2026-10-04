@@ -6,6 +6,7 @@ import copy
 import hashlib
 import json
 import os
+from collections.abc import Iterable
 from collections import defaultdict
 from pathlib import Path
 
@@ -95,24 +96,33 @@ def empty_structure_signature(row: dict) -> str:
 
 
 class EvidenceNormalizer:
-    def __init__(self, reference: list[dict], graph: list[dict]):
+    def __init__(self, reference: list[dict], graph: Iterable[dict]):
         self.reference = {r["section_id"]: r for r in reference}
         if len(self.reference) != len(reference):
             raise ValueError("Duplicate canonical evidence IDs")
-        if len({r["section_id"] for r in graph}) != len(graph):
-            raise ValueError(
-                "Ambiguous graph evidence: duplicate raw section IDs or multiple parents"
-            )
         expected, observed = defaultdict(list), defaultdict(list)
+        seen = set()
         for row in reference:
             expected[section_key(row)].append(row)
         for row in graph:
-            observed[section_key(row)].append(row)
+            if row["section_id"] in seen:
+                raise ValueError(
+                    "Ambiguous graph evidence: duplicate raw section IDs or multiple parents"
+                )
+            seen.add(row["section_id"])
+            # Retain the exact matching evidence, not every document's full body.
+            compact = {k: v for k, v in row.items() if k != "content_text"}
+            compact["_signature"] = content_signature(row)
+            compact["_identity"] = stable_hash(row.get("content_text"))
+            compact["_parent_structure"] = parent_structure_signature(row)
+            compact["_empty_structure"] = empty_structure_signature(row)
+            compact["_has_body"] = bool((row.get("content_text") or "").strip())
+            observed[section_key(row)].append(compact)
         self.raw_to_canonical, self.canonical_to_raw, self.mappings = {}, {}, []
         for key, rows in observed.items():
             candidates = expected.get(key, [])
             for row in rows:
-                signature = content_signature(row)
+                signature = row["_signature"]
                 matches = (
                     candidates
                     if len(rows) == len(candidates) == 1 and key[2] is not None
@@ -128,15 +138,14 @@ class EvidenceNormalizer:
                         r
                         for r in candidates
                         if r["section_id"] == row["section_id"]
-                        and all(
-                            r.get(k) == row.get(k)
-                            for k in ["section_title", "level", "content_text"]
-                        )
+                        and r.get("section_title") == row.get("section_title")
+                        and r.get("level") == row.get("level")
+                        and row["_identity"] == stable_hash(r.get("content_text"))
                     ]
                     if matches:
                         method = "canonical_identity"
                 if not matches:
-                    structural = parent_structure_signature(row)
+                    structural = row["_parent_structure"]
                     matches = [
                         r
                         for r in candidates
@@ -144,8 +153,8 @@ class EvidenceNormalizer:
                     ]
                     if matches:
                         method = "exact_numbered_parent_and_heading"
-                if not matches and not (row.get("content_text") or "").strip():
-                    structural = empty_structure_signature(row)
+                if not matches and not row["_has_body"]:
+                    structural = row["_empty_structure"]
                     matches = [
                         r
                         for r in candidates
@@ -219,39 +228,18 @@ def load_normalizer() -> EvidenceNormalizer | None:
     catalog_path = os.environ.get("EVAL_IDENTITY_CATALOG")
     if not catalog_path:
         return None
-    from pipeline.graph.connection import get_session
+    from pipeline.graph.connection import get_driver
+    from pipeline.eval.identity_read import graph_rows
 
     catalog = json.loads(Path(catalog_path).read_text())
     if catalog.get("schema_version") != NORMALIZATION_VERSION:
         raise ValueError("Incompatible evaluation identity catalog")
-    with get_session() as session:
-        graph = [
-            dict(row)
-            for row in session.run("""
-            MATCH (d:Document)-[:HAS_SECTION]->(s:Section)
-            OPTIONAL MATCH (s)<-[:PARENT_OF]-(p:Section)
-            OPTIONAL MATCH (previous:Section)-[:NEXT_SIBLING]->(s)
-            OPTIONAL MATCH (s)-[:NEXT_SIBLING]->(next:Section)
-            RETURN s.id AS section_id, d.source_url AS source_url,
-              d.document_type AS source_family, s.section_number AS section_number,
-              s.content_text AS content_text, s.title AS section_title, s.level AS level,
-              previous.content_text AS previous_content, next.content_text AS next_content,
-              previous.title AS previous_title, previous.level AS previous_level,
-              next.title AS next_title, next.level AS next_level,
-              p.section_number AS parent_number, p.content_text AS parent_content
-        """)
-        ]
-    for row in graph:
-        for side in ["previous", "next"]:
-            content = " ".join((row.pop(side + "_content") or "").split())
-            row[side + "_content_hash"] = (
-                hashlib.sha256(content.encode()).hexdigest() if content else None
-            )
-        parent = " ".join((row.pop("parent_content") or "").split())
-        row["parent_content_hash"] = (
-            hashlib.sha256(parent.encode()).hexdigest() if parent else None
-        )
-    return EvidenceNormalizer(catalog["sections"], graph)
+    from pipeline.config import NEO4J_DATABASE
+
+    with get_driver().session(
+        database=NEO4J_DATABASE, default_access_mode="READ", fetch_size=10
+    ) as session:
+        return EvidenceNormalizer(catalog["sections"], graph_rows(session))
 
 
 def build_catalog(entries: list[dict]) -> dict:
