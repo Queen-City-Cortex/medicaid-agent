@@ -21,6 +21,16 @@ def main():
     dotenv.load_dotenv = lambda *_args, **_kwargs: False
     from neo4j import GraphDatabase
     from pipeline import config
+    import sqlite3
+    registry_uri = preparation.immutable_registry_uri(config.CRAWLER_DB_PATH)
+    original_connect = sqlite3.connect
+    def readonly_connect(database, *args, **kwargs):
+        database_path = str(database).removeprefix("file:").split("?", 1)[0]
+        if database_path == str(config.CRAWLER_DB_PATH):
+            database = registry_uri
+            kwargs["uri"] = True
+        return original_connect(database, *args, **kwargs)
+    sqlite3.connect = readonly_connect
     from pipeline.graph import connection
     connection._driver = GraphDatabase.driver(config.NEO4J_URI, auth=(config.NEO4J_USER, config.NEO4J_PASSWORD), fetch_size=8)
     inputs = json.loads(Path("/inputs.json").read_text())
