@@ -1,0 +1,35 @@
+{
+  "token": {
+    "plannerRevision": "779f05260658a060bcbbb0d8ca15c121b4c4086d",
+    "moduleTreeSha256": "6c1bc9b757cbf99d04f9540bf94322073561f5e794ed7b7023af2a9b3330d7af",
+    "inspectorSha256": "afd561e8829c2c73ca3ea3a72eaf114faac22811eaa2295815daf75f6df3b139",
+    "tokenizerModuleSha256": "e9428153154f47a943a12f308efe47c659ff1e3650eb2bf7396c0db570f1a53f",
+    "snapshotHash": "b0b9db75aad679b8f18f80608cc86b3958cedd64a18cb939643b582bada7b6c7",
+    "moduleHashes": {
+      "packages/pipeline/src/pipeline/embeddings/planner.py": "13a69b356effd1a9e07e3fd5f992748cb115a56670e2414c2b65d223f730dc5d",
+      "packages/pipeline/src/pipeline/embeddings/voyage_client.py": "7bb58390db7cb98d82353e04f76e718b754a8f9a1f7dd394eeb1b36536c57d80",
+      "packages/pipeline/src/pipeline/embeddings/source_epoch.py": "9e84bcf9cec1dc5f35b501dce16980c6bf00e4694fe1cb001de501ff5a643211",
+      "packages/pipeline/src/pipeline/embeddings/chunker.py": "eb89358f61e1222144bc74c30493f42215d99a638eb37f943df5dda0fc64d5b2",
+      "packages/pipeline/src/pipeline/embeddings/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "packages/pipeline/src/pipeline/embeddings/tokenizer.py": "e9428153154f47a943a12f308efe47c659ff1e3650eb2bf7396c0db570f1a53f",
+      "packages/pipeline/src/pipeline/embeddings/generator.py": "70e7f502045632fa9493d389fa19a1c2390e127e5d64c324898374522d04d347",
+      "packages/pipeline/src/pipeline/embeddings/indexer.py": "b1e9d49362ae98388d4010bb55ad6957fc98992aac8c52e25ab3a9835f630ef5"
+    }
+  },
+  "byte": {
+    "plannerRevision": "b1e43014a2fbd47a5767da69bfbc56da5e708443",
+    "moduleTreeSha256": "213060a3d49b4d214f61462db7d24ab54a3149109d9b043cf5bd15136e45b45a",
+    "inspectorSha256": "afd561e8829c2c73ca3ea3a72eaf114faac22811eaa2295815daf75f6df3b139",
+    "tokenizerModuleSha256": "e9428153154f47a943a12f308efe47c659ff1e3650eb2bf7396c0db570f1a53f",
+    "snapshotHash": "b0b9db75aad679b8f18f80608cc86b3958cedd64a18cb939643b582bada7b6c7",
+    "moduleHashes": {
+      "packages/pipeline/src/pipeline/embeddings/voyage_client.py": "8a9632ba980a14a7281228254ea5bb1e1cada08334a9ac4678b8cca7d1f53beb",
+      "packages/pipeline/src/pipeline/embeddings/chunker.py": "f6cb82eb9a8a76d24c4f248bb60dc826e2a6b20ddd3b774d865164839c19bb9a",
+      "packages/pipeline/src/pipeline/embeddings/plan_graph.py": "aba2b5814cc7371e6deac992d826a85390986036e2b4cf335459a25c7bc0933b",
+      "packages/pipeline/src/pipeline/embeddings/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "packages/pipeline/src/pipeline/embeddings/inspection.py": "3d7372f0f46635691f14401bc6b02134fa500b10bc9bc3141dd3d989f52bee56",
+      "packages/pipeline/src/pipeline/embeddings/generator.py": "a7672eb71331fff4a8742d57948ae035c5357389aa89f5d4973419e39a1554aa",
+      "packages/pipeline/src/pipeline/embeddings/indexer.py": "b1e9d49362ae98388d4010bb55ad6957fc98992aac8c52e25ab3a9835f630ef5"
+    }
+  }
+}

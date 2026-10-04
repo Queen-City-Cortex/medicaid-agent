@@ -1,0 +1,39 @@
+{
+  "status": "OFFLINE_REPAIR_AND_MEASUREMENT_COMPLETE_NOT_RELEASE_QUALIFIED",
+  "resolved": [
+    "Trailing spreadsheet padding regenerated with complete cell-preservation verification",
+    "Complete graph/catalog identity and section-body preparation checks",
+    "Two identical full local-token measurements per frozen planner",
+    "Durable encrypted artifact delta, graph dump and private evidence; owned graph resources removed"
+  ],
+  "remaining": [
+    {
+      "gate": "Planner reconciliation",
+      "state": "Pending #199/#204 implementations remain separate; measurement does not select a production generation implementation"
+    },
+    {
+      "gate": "Fresh authoritative federal content",
+      "state": "Archived federal bytes verified; no fresh source checks or fetched timestamps claimed"
+    },
+    {
+      "gate": "Complete scope qualification",
+      "state": "Four retained approvals are stale after repair; no override or automatic reapproval"
+    },
+    {
+      "gate": "Source availability and provenance",
+      "state": "One missing-original-payload parse remains unresolved and excluded; existing registry/parse exclusions preserved, without new retirement approval"
+    },
+    {
+      "gate": "Evaluation access and quality",
+      "state": "No new paid retrieval/answer/judge/model evaluation; earlier provider-access blocker not retested"
+    },
+    {
+      "gate": "Paid campaign",
+      "state": "Refresh prices and authorize/enforce a campaign cap before generation/qualification"
+    }
+  ],
+  "providerCalls": 0,
+  "providerSpendUsd": 0,
+  "productionChanged": false,
+  "agencyOutreachPerformed": false
+}

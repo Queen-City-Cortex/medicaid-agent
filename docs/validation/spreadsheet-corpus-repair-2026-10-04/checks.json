@@ -1,0 +1,23 @@
+{
+  "pipelineSuite": {
+    "passed": 557,
+    "environment": "Linux, matching source/tests/ops, isolated Neo4j integration",
+    "sourceRevision": "990b59e6d1aade13e2920662566c80db66124efa",
+    "pipelineSourceUnchangedSinceSuite": true
+  },
+  "operationalRegressionSuite": {
+    "passed": 31,
+    "sourceRevision": "d2bd15080dec5c8037e124e9615fa132be398843"
+  },
+  "ruff": "passed",
+  "implementationCi": {
+    "runId": 37178156139,
+    "sourceRevision": "d2bd15080dec5c8037e124e9615fa132be398843",
+    "conclusion": "success"
+  },
+  "automatedReview": {
+    "runId": 37178156132,
+    "sourceRevision": "d2bd15080dec5c8037e124e9615fa132be398843",
+    "conclusion": "success"
+  }
+}

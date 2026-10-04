@@ -1,0 +1,11 @@
+{
+  "artifactCount": 2997,
+  "fullReconstructedFileCount": 19330,
+  "fullReconstructedSnapshotHash": "7295a7c14f9f8c28683764d68508195d4e75626913bc43fa8619318165cfedb3",
+  "matchesCompleteRepairedCorpus": true,
+  "originalSourcePayloadsAndRegistryUnchanged": true,
+  "plaintextTarReconstructionVerified": true,
+  "newAgeDecryptionTested": false,
+  "baselineArchiveObject": "backups/corpus/corpus-rehearsal-scoped-2026-10-03T2122Z.tar.gz.age",
+  "baselineEncryptedSha256": "3fc96134b07f720e83d12fdc06c188fee3f5c633a35f1c66bcce2f03a454bbac"
+}

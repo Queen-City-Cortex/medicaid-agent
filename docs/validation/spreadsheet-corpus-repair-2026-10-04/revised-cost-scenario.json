@@ -1,0 +1,37 @@
+{
+  "status": "OFFLINE_MEASUREMENT_NOT_CAMPAIGN_CAP_OR_QUALIFICATION",
+  "recordedEmbeddingRateUsdPerMillionTokens": 0.06,
+  "pricingRecordedDate": "2026-10-03",
+  "pricingNeedsRefreshBeforePaidWork": true,
+  "oldArchivedTokenCount": 1919469387,
+  "oldArchivedEmbeddingUsd": 115.16816322,
+  "tokenPlannerEmbeddingUsd": 13.6434327,
+  "bytePlannerEmbeddingUsd": 13.5034395,
+  "tokenPlannerTokenReductionPercent": 88.15346852937333,
+  "retainedObservedEvaluationScenarioUsd": 57.40975044,
+  "retainedColdNormalizedEvaluationScenarioUsd": 66.53297574000001,
+  "includingTokenPlannerScenarioUsd": {
+    "observed": 71.05318314,
+    "coldNormalized": 80.17640844000002
+  },
+  "includingBytePlannerScenarioUsd": {
+    "observed": 70.91318994000001,
+    "coldNormalized": 80.03641524000001
+  },
+  "providerCalls": 0,
+  "providerSpendUsd": 0,
+  "newAnswersOrJudgesRun": false,
+  "limitations": [
+    "Six deliberately selected questions are not a statistically representative campaign",
+    "CLI skips chat scope/injection classifiers and observational memory; web overhead is unmeasured",
+    "Private sample disables server response storage and caps output at 8192; production behavior may differ",
+    "Scope cases are conservatively treated as ordinary question costs here; their actual distribution is unmeasured",
+    "Terra noncached inputs are conservatively priced at the 25% cache-write ceiling",
+    "Cold normalization removes observed cached-input discounts; request/token volumes remain those of this sample",
+    "Judge costs retain prior assumptions; no paid judge was invoked and configured Anthropic access remains unresolved",
+    "Retries, timeouts, extra queries, model calibration, research, browser/memory acceptance and hosting are excluded",
+    "The two pending embedding implementations still need reconciliation before generation",
+    "Repaired corpus preparation uses archived federal bytes and invalidates prior scope approvals",
+    "Actual embedding usage, retries, access, hosting, judge and full release quality remain unmeasured; these estimates are not an invoice or authorized cap"
+  ]
+}

@@ -1,0 +1,88 @@
+{
+  "sections": 59415,
+  "emptySections": 0,
+  "embeddingInputs": 106831,
+  "inputCharacters": 500336519,
+  "inputUtf8Bytes": 500711093,
+  "localTokens": 227390545,
+  "maximumInputTokens": 8847,
+  "maximumInputUtf8Bytes": 12253,
+  "blankBodyInputs": 0,
+  "families": {
+    "beneficiary_guidance": {
+      "sections": 25,
+      "embeddingInputs": 25,
+      "localTokens": 3623
+    },
+    "billing_guidance": {
+      "sections": 1602,
+      "embeddingInputs": 1734,
+      "localTokens": 620428
+    },
+    "bulletin": {
+      "sections": 4583,
+      "embeddingInputs": 4907,
+      "localTokens": 1543210
+    },
+    "clinical_policy": {
+      "sections": 11278,
+      "embeddingInputs": 11844,
+      "localTokens": 2447150
+    },
+    "dhhs_policy": {
+      "sections": 12926,
+      "embeddingInputs": 13091,
+      "localTokens": 3075785
+    },
+    "federal_regulation": {
+      "sections": 3404,
+      "embeddingInputs": 3920,
+      "localTokens": 2687562
+    },
+    "federal_statute": {
+      "sections": 327,
+      "embeddingInputs": 871,
+      "localTokens": 1586783
+    },
+    "fee_schedule": {
+      "sections": 4247,
+      "embeddingInputs": 46483,
+      "localTokens": 205608000
+    },
+    "managed_care_contract": {
+      "sections": 2728,
+      "embeddingInputs": 4486,
+      "localTokens": 3158978
+    },
+    "managed_care_guidance": {
+      "sections": 6605,
+      "embeddingInputs": 6866,
+      "localTokens": 1626697
+    },
+    "provider_manual": {
+      "sections": 599,
+      "embeddingInputs": 1056,
+      "localTokens": 1178595
+    },
+    "state_plan_amendment": {
+      "sections": 7673,
+      "embeddingInputs": 8026,
+      "localTokens": 2916755
+    },
+    "waiver": {
+      "sections": 3418,
+      "embeddingInputs": 3522,
+      "localTokens": 936979
+    }
+  },
+  "planner": "token",
+  "planTextFingerprint": "68931186154a94d56e669bc6d6f5aa2028f4c5831355cf5f5d9cbcc8afce8665",
+  "tokenizerSha256": "c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539",
+  "model": "voyage-4",
+  "dimensions": 1024,
+  "snapshotHash": "b0b9db75aad679b8f18f80608cc86b3958cedd64a18cb939643b582bada7b6c7",
+  "providerCalls": 0,
+  "promotable": false,
+  "estimatedEmbeddingUsdAtRecordedRate": 13.6434327,
+  "pricingNeedsRefreshBeforePaidWork": true
+}

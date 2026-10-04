@@ -1,0 +1,13 @@
+{
+  "documents": 8401,
+  "sections": 71146,
+  "chunks": 0,
+  "vectors": 0,
+  "markers": [
+    {
+      "promotable": false,
+      "embeddingsGenerated": false,
+      "snapshotHash": "b0b9db75aad679b8f18f80608cc86b3958cedd64a18cb939643b582bada7b6c7"
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "format": "native-neo4j-dump",
+  "neo4jImageId": "sha256:d42aba649c92f8839991a9ba0e1fb0e76892ccd80832257ff36267c7c5052db8",
+  "database": "neo4j",
+  "plaintextBytes": 265932574,
+  "plaintextSha256": "f5b7b03306ef7a3f39af7c1681e84a11a15a694520a10c5dcf6c4b1d22a89d5b",
+  "nativeDumpMetadataChecked": true,
+  "nativeDumpFullyRestored": false,
+  "newAgeDecryptionTested": false,
+  "promotable": false,
+  "providerCalls": 0
+}

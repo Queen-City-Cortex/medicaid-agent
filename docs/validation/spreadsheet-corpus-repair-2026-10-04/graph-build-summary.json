@@ -1,0 +1,76 @@
+{
+  "promotable": false,
+  "providerCalls": 0,
+  "sections": 71146,
+  "stateDocuments": 4062,
+  "derivedRevisionDocuments": 4292,
+  "stateDocumentAndDerivedIdentityCoverageVerified": true,
+  "catalogHash": "acfeb98a087ba3875e338f27b194216596e2566237517bed5a3df65e4f3f536e",
+  "expectedReferenceIdentities": 99,
+  "mappedReferenceIdentities": 99,
+  "mappingHash": "b95ad6fa80dc51c7cfdd4d35ed56385d11014be1dc95d7041680ca218d7b3e26",
+  "duplicateSections": 0,
+  "sectionVectors": 0,
+  "missingIdentities": [],
+  "stages": {
+    "allFamilies": {
+      "result": {
+        "loaded": 4062,
+        "sections_total": 67367,
+        "skipped": 191,
+        "errors": 0
+      },
+      "elapsedSeconds": 663.4721077189988
+    },
+    "cfr": {
+      "result": {
+        "parts_loaded": 43,
+        "sections_total": 3452,
+        "errors": 0,
+        "supersession_stubs": 2,
+        "supersession_edges": 2
+      },
+      "elapsedSeconds": 5.185863460999826
+    },
+    "ssa": {
+      "result": {
+        "titles_loaded": 2,
+        "sections_total": 327,
+        "errors": 0
+      },
+      "elapsedSeconds": 1.4698070419999567
+    },
+    "references": {
+      "result": {
+        "extracted": 32446,
+        "resolved": 24810,
+        "unresolved": 4173
+      },
+      "elapsedSeconds": 226.7864703539999
+    },
+    "amendments": {
+      "result": {
+        "change_notices": 210,
+        "revised_spas": 16,
+        "edges_created": 5301,
+        "clinical_policies_scanned": 177,
+        "clinical_revisions_parsed": 125,
+        "clinical_revision_edges": 4292
+      },
+      "elapsedSeconds": 6.802846045000479
+    },
+    "concepts": {
+      "result": {
+        "seeded": 33,
+        "edges_created": 28929
+      },
+      "elapsedSeconds": 332.0808308180003
+    }
+  },
+  "exclusionCounts": {
+    "inactive_registry_status:error": 26,
+    "inactive_registry_status:removed": 124,
+    "missing_registry_record": 5,
+    "parse_status:parse_exception": 36
+  }
+}

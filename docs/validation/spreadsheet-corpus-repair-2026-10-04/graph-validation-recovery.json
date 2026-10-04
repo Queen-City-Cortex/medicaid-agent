@@ -1,0 +1,12 @@
+{
+  "originalFailedBuildInputSha256": "891c92fe8891ed2ad8bf289a53dc25caeabff90381134449d20d255b7bdbc7e4",
+  "originalFailedBuildHarnessSha256": "ab4b56f809b7e12f07ae62bfad08d0d31adbc95a2d308962eae8de63c6bd0282",
+  "correctedValidationHarnessSha256": "afd561e8829c2c73ca3ea3a72eaf114faac22811eaa2295815daf75f6df3b139",
+  "allImportStagesPreviouslyCompleted": true,
+  "importRepeated": false,
+  "canonicalSectionsFullyCompared": true,
+  "exactDerivedRevisionNoticesRecomputed": true,
+  "failureRetained": true,
+  "providerCalls": 0,
+  "promotable": false
+}

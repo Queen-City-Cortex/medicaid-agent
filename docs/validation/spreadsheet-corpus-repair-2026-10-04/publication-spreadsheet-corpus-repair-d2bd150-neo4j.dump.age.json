@@ -1,0 +1,9 @@
+{
+  "objectKey": "readiness-evidence/2026-10-04/spreadsheet-corpus-repair-d2bd150-neo4j.dump.age",
+  "bytes": 265997686,
+  "sha256": "b56dad7780efcb67f7c17d2dc06925a29f9b898030fb31e4402ff870abbab632",
+  "uploaded": true,
+  "downloadedContentHashVerified": true,
+  "existingObjectsPruned": false,
+  "productionCorpusMirrorChanged": false
+}

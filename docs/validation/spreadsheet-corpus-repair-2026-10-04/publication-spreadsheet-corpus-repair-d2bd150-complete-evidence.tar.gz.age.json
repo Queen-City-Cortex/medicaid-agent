@@ -1,0 +1,9 @@
+{
+  "objectKey": "readiness-evidence/2026-10-04/spreadsheet-corpus-repair-d2bd150-complete-evidence.tar.gz.age",
+  "bytes": 64448139,
+  "sha256": "2b3b4e36be32f59d2f429c203904b2b95009cf90086bce40258c961f61833e3e",
+  "uploaded": true,
+  "downloadedContentHashVerified": true,
+  "existingObjectsPruned": false,
+  "productionCorpusMirrorChanged": false
+}

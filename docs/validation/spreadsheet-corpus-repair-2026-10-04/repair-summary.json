@@ -1,0 +1,57 @@
+{
+  "status": "completed",
+  "workbooks": 999,
+  "families": {
+    "dhhs_policy": {
+      "workbooks": 9,
+      "beforeCharacters": 25009,
+      "afterCharacters": 24283,
+      "occupiedCells": 1033
+    },
+    "fee_schedule": {
+      "workbooks": 984,
+      "beforeCharacters": 2640526669,
+      "afterCharacters": 257579785,
+      "occupiedCells": 14446788
+    },
+    "managed_care_contract": {
+      "workbooks": 1,
+      "beforeCharacters": 623518,
+      "afterCharacters": 623518,
+      "occupiedCells": 47028
+    },
+    "managed_care_guidance": {
+      "workbooks": 1,
+      "beforeCharacters": 25353,
+      "afterCharacters": 25086,
+      "occupiedCells": 223
+    },
+    "provider_manual": {
+      "workbooks": 4,
+      "beforeCharacters": 3637434,
+      "afterCharacters": 3597303,
+      "occupiedCells": 84495
+    }
+  },
+  "beforeCharacters": 2644837983,
+  "afterCharacters": 261849975,
+  "originalSnapshotUnchanged": true,
+  "unselectedFilesUnchanged": true,
+  "excluded": [
+    {
+      "metadata": "pipeline/parsed/fee-schedules/physician-fee-schedule-jan-1-2016-excel__xls.meta.json",
+      "reason": "existing_parse_failure"
+    },
+    {
+      "metadata": "pipeline/parsed/fee-schedules/physicianassistantfee201606xls__xls.meta.json",
+      "reason": "existing_parse_failure"
+    }
+  ],
+  "manifestHash": "ad916260a008a4c5697e384ce546aeb2c7a973c7ff906d545dbe97032480d5cd",
+  "repairedFileSnapshotHash": "7295a7c14f9f8c28683764d68508195d4e75626913bc43fa8619318165cfedb3",
+  "providerCalls": 0,
+  "promotable": false,
+  "serialVerifiedRecords": 732,
+  "shardVerifiedRecords": 267,
+  "cellValidation": "Original workbook coordinates and exact legacy/repaired renderings; never split serialized strings"
+}

@@ -1,0 +1,13 @@
+{
+  "ownedContainerRemoved": "spreadsheet-repair-neo4j",
+  "ownedNamedVolumeRemoved": "spreadsheet-repair-graph-20261003",
+  "ownedInternalNetworkRemoved": "spreadsheet-repair-internal-20261003",
+  "ownedAnonymousLogsVolumeRemoved": true,
+  "sharedResourcesChanged": false,
+  "otherWorktreesChanged": false,
+  "originalCorpusRetained": true,
+  "finalRepairedCorpusRetainedPrivately": true,
+  "durableEncryptedArtifactDeltaVerified": true,
+  "durableEncryptedGraphDumpVerified": true,
+  "providerCalls": 0
+}

@@ -1,0 +1,12 @@
+{
+  "plaintextSha256": "b4cbe8b3e57e0b11e36988ba9e658103cd93f733692ec00a982333004e5c3cb8",
+  "plaintextBytes": 64432211,
+  "members": 124,
+  "rawEvidencePrivate": true,
+  "failedAttemptsRetained": true,
+  "frozenImplementationArchivesRetained": true,
+  "providerCredentialsIncluded": false,
+  "disposableEnvironmentFilesIncluded": false,
+  "plaintextTarReadVerified": true,
+  "newAgeDecryptionTested": false
+}

@@ -34,3 +34,6 @@ graphify-out/*
 # Jev experiment outputs are private/durable corpus artifacts, not fixture inputs.
 packages/pipeline/data/jev/campaigns/
 packages/pipeline/data/section-labels/
+
+# macOS
+.DS_Store

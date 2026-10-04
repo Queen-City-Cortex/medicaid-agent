@@ -1,0 +1,10 @@
+{
+  "graph": "spreadsheet-repair-neo4j",
+  "index": "repair_section_document_id",
+  "label": "Section",
+  "property": "document_id",
+  "purpose": "Accelerate isolated offline reference resolution by document identity",
+  "sourceCodeChanged": false,
+  "corpusContentChanged": false,
+  "sharedGraphChanged": false
+}

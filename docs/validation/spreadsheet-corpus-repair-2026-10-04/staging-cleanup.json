@@ -1,0 +1,16 @@
+{
+  "ownedDuplicateStagingCorpusCopiesRemoved": [
+    "repair/corpus",
+    "repair-02/corpus",
+    "shard-1-retry-02/corpus",
+    "shard-2-retry-02/corpus",
+    "shard-3-retry-02/corpus",
+    "shard-4-retry-02/corpus",
+    "delta-reconstruction/corpus"
+  ],
+  "failedAndCompletedAttemptReceiptsRetained": true,
+  "originalCorpusRetained": true,
+  "finalRepairedCorpusRetained": true,
+  "durableArtifactDeltaAndEvidenceVerifiedBeforeRemoval": true,
+  "sharedFilesOrWorktreesRemoved": false
+}

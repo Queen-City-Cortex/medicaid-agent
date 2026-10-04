@@ -1,0 +1,9 @@
+{
+  "objectKey": "readiness-evidence/2026-10-04/spreadsheet-corpus-repair-990b59e-artifact-delta.tar.gz.age",
+  "bytes": 102436365,
+  "sha256": "650f4860f1c0d264bc5291a1fc5b6202dd4927c9115982cdfbdaa9d56033dcf9",
+  "uploaded": true,
+  "downloadedContentHashVerified": true,
+  "existingObjectsPruned": false,
+  "productionCorpusMirrorChanged": false
+}

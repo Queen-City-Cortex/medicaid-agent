@@ -1,0 +1,16 @@
+{
+  "token": {
+    "identicalFullRuns": 2,
+    "measurementSha256": "ffc9aa329dc3ac64435fddbf2d089aca1d14ac57696f42a9ce8b51c77fe005ab",
+    "planTextFingerprint": "68931186154a94d56e669bc6d6f5aa2028f4c5831355cf5f5d9cbcc8afce8665",
+    "sectionCount": 59415,
+    "providerCalls": 0
+  },
+  "byte": {
+    "identicalFullRuns": 2,
+    "measurementSha256": "b6cce86addd6d8c4233ec9c230d3c779126a27319d5a119dc9d1bf2429c80cb0",
+    "planTextFingerprint": "7874f5937159428a9d3f9588255323a9da975821a5cdf9efc1fd5fd517aeef05",
+    "sectionCount": 59415,
+    "providerCalls": 0
+  }
+}
