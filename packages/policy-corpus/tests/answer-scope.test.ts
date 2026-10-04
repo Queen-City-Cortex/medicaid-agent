@@ -70,6 +70,8 @@ describe('bounded answer scope', () => {
   it('keeps procedure research and unrelated policy families available', () => {
     expect(scope('What is DHB-5097 Request for Information?')?.notice).toBeNull();
     expect(scope('I received a DHB-5097 in Gujarati; what should I do?')?.notice).toBeNull();
+    expect(scope('I received a DHB-5097 in Gujarati and cannot read it; what should I do?')?.notice).toBeNull();
+    expect(scope('What documents do I need to show when I respond to my Gujarati DHB-5097?')?.notice).toBeNull();
     expect(scope('How should I respond to my Gujarati DHB-5097?')?.notice).toBeNull();
     expect(scope('Does HCWD impose an earned income cap?')).toBeNull();
     expect(scope('What language access rights apply to Gujarati speakers?')).toBeNull();
@@ -90,6 +92,10 @@ describe('bounded answer scope', () => {
     expect(selected.notice).toBeNull();
     expect(selected.requestedDate).toBe('2024-10-01');
     expect(selected.requiredSourceUrls).toEqual([ANSWER_SCOPE_POLICY.required_bulletin.source_url]);
+    for (const question of ['Under what conditions did Medicaid cover OTC COVID home tests on October 1, 2024?', 'Does Medicaid allow coverage of OTC COVID home tests on October 1, 2024?']) {
+      expect(scope(question)?.notice).toBeNull();
+      expect(scope(question)?.requiredSourceUrls).toEqual([ANSWER_SCOPE_POLICY.required_bulletin.source_url]);
+    }
     expect(scope('Did Medicaid pay pharmacists for OTC COVID home tests in June 2025?')?.notice).toContain('additional dated evidence');
   });
 
