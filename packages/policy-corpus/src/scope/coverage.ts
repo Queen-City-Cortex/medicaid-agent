@@ -40,7 +40,7 @@ export function resolveCoverageScope(question: string, today = new Date()): Cove
     || /(?:^|[.,;]\s*|please\s+|(?:can|could|will|would)\s+you\s+)(?:provide|supply|show|give|generate|reproduce|translate)\s+(?:(?:me|us|the|an?|official|original|gujarati|dhb[ -]*5097|a copy of|copy of)\s+)*(?:form|notice|attachment|pdf|it|(?:dhb[ -]*)?5097|translation\b(?!\s+(?:(?:and|or)\s+(?:interpretation|translation)\s+)?services?\b))\b/.test(q);
   const procedureQuestion = /what (?:should|must|can|do) (?:i|we) do|(?:how|when).{0,40}(?:respond|reply|submit|complete|appeal)|\b(?:procedure|process|next steps)\b/.test(q);
   const contentIntent = /\b(?:says?|said|wording|translat\w*|contain\w*|differ\w*|read (?:me|us|out)|(?:send|show|give|get|email) (?:me|us)|need the|(?:copy|version) of)\b/.test(q);
-  const noticeDeadline = /(?:what|which|when)(?:'s| is| was| are)?\s+(?:(?:the|my|its|that)\s+)?(?:deadline|due date)|(?:tell|give) (?:me|us).{0,20}(?:deadline|due date)|(?:deadline|due date).{0,40}\b(?:it|notice|5097|form)\s+(?:lists?|gives?|states?|says?|shows?|sets?)|(?:notice|5097).{0,40}(?:give|state|specif|set|list).{0,20}(?:deadline|due date)|(?:deadline|due date).{0,40}when is it/.test(q);
+  const noticeDeadline = /(?:(?:what|which)(?:'s| is| was| are)?|when(?:'s| is| was))\s+(?:(?:the|my|its|that)\s+)?(?:deadline|due date)|(?:tell|give) (?:me|us).{0,20}(?:deadline|due date)|(?:deadline|due date).{0,40}\b(?:it|notice|5097|form)\s+(?:lists?|gives?|states?|says?|shows?|sets?)|(?:notice|5097).{0,40}(?:give|state|specif|set|list).{0,20}(?:deadline|due date)|(?:deadline|due date).{0,40}when is it/.test(q);
   const gujarati = /gujarati|ગુજરાતી/.test(q) && /5097|request.{0,20}information/.test(q) && ((!languageAccess && !(procedureQuestion && !contentIntent && !noticeDeadline)) || originalRequest);
   const covid = /covid|sars.cov.2/.test(q) && /otc|over.the.counter|home.{0,12}test|at.home/.test(q);
   const paymentQuestion = /cover|pay|reimburs|billing|benefit|free|cost/.test(q);
@@ -52,7 +52,7 @@ export function resolveCoverageScope(question: string, today = new Date()): Cove
     || /originals\b/.test(q)
     || (/original/.test(q) && /supersed|withdr[ae]w|duplicat|compar|differ|repost|replac/.test(q));
   const availableMagiTable = policy.magi_tables.some(item => q.includes(item.source_url.split('/').at(-1)!.toLowerCase()));
-  const missingOriginalIntent = /supersed|withdr[ae]w|duplicat|compar|differ|repost|replac|\bversus\b|\bvs\b|originals\b|original\w*.{0,60}(?:attachments?|uploads?|sources?|documents?|pdfs\b)/.test(q);
+  const missingOriginalIntent = /supersed|withdr[ae]w|duplicat|compar|differ|repost|replac|\bversus\b|\bvs\b|\bsame\b|identical|\bmatch|originals\b|original\w*.{0,60}(?:attachments?|uploads?|sources?|documents?|pdfs\b)/.test(q);
   const archives = /2025/.test(q) && /magi/.test(q) && (/archiv|wrapper/.test(q) || (originalArtifact && !(availableMagiTable && !missingOriginalIntent)));
   if (matched.length || gujarati || authority || archives) {
     result.limitationIds = matched.length ? matched.map(item => item.id) : gujarati ? ['gujarati-dhb-5097'] : authority ? ['covid-standing-order'] : ['magi-2025-archive', 'magi-2025-archive-2'];
