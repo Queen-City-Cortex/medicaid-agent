@@ -1,0 +1,66 @@
+{
+  "baseline": {
+    "billingUsageMeasured": false,
+    "bodyCharacters": 2750836802,
+    "bodyUtf8Bytes": 2750838732,
+    "dimensions": 1024,
+    "embeddingInputs": 329888,
+    "embeddingsGenerated": false,
+    "inputCharacters": 2944105701,
+    "inputUtf8Bytes": 2944126075,
+    "inspectorSha256": "a9934ad83f931b96d126d667565e81c5e221ba78106ed76edad41be21badfee1",
+    "inventorySha256": "6d52dc6cecd3d1d44ecdfeaee218c0b85d2f6de4dac2a062a2d794a4be755757",
+    "loadStats": {
+      "errors": 0,
+      "loaded": 1701,
+      "sections_total": 5387,
+      "skipped": 0
+    },
+    "localTokens": 1897659254,
+    "model": "voyage-4",
+    "planVersion": 2,
+    "plansSha256": "5c84c516e5689c8718b83a71dc72bfa6ad4c8095e7c180dcf51e05222cad989c",
+    "promotable": false,
+    "providersCalled": false,
+    "qualification": "NOT_ASSESSED",
+    "sections": 4247,
+    "tokenizerSha256": "c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539"
+  },
+  "candidate": {
+    "billingUsageMeasured": false,
+    "bodyCharacters": 368266849,
+    "bodyUtf8Bytes": 368268779,
+    "dimensions": 1024,
+    "embeddingInputs": 46523,
+    "embeddingsGenerated": false,
+    "inputCharacters": 393692905,
+    "inputUtf8Bytes": 393698660,
+    "inspectorSha256": "a9934ad83f931b96d126d667565e81c5e221ba78106ed76edad41be21badfee1",
+    "inventorySha256": "6d52dc6cecd3d1d44ecdfeaee218c0b85d2f6de4dac2a062a2d794a4be755757",
+    "loadStats": {
+      "errors": 0,
+      "loaded": 1701,
+      "sections_total": 5387,
+      "skipped": 0
+    },
+    "localTokens": 205797106,
+    "model": "voyage-4",
+    "planVersion": 2,
+    "plansSha256": "2b6d04f3b873d8a927c7da9de73bde3ed09e2f8f0e5499939506cb892d5d6edb",
+    "promotable": false,
+    "providersCalled": false,
+    "qualification": "NOT_ASSESSED",
+    "sections": 4247,
+    "tokenizerSha256": "c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539"
+  },
+  "identitySetsEqual": true,
+  "identitySha256": "f41eadbbca86cb262a84ce6f8c981465dc51fea2f91751d9f4d9cf0bb97212c7",
+  "promotable": false,
+  "qualification": "NOT_ASSESSED",
+  "reductionPercent": {
+    "bodyUtf8Bytes": 86.6125,
+    "embeddingInputs": 85.8973,
+    "localTokens": 89.1552
+  },
+  "scope": "Two measured fee-only diagnostic graphs; no embeddings or provider calls"
+}

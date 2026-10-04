@@ -45,3 +45,5 @@ No activation, merge, deployment, scope renewal, agency contact, provider spend,
 Typed relational rows and an exact lookup tool are the preferred next candidate for numeric fee questions. Start with offline layout profiling, then map the common layouts to procedure code, modifier, rate/unit, effective period and applicable provider/program fields. Store the original workbook hash, sheet and row/column coordinates alongside every mapped value; quarantine ambiguous layouts rather than guessing column meanings or dates.
 
 An agent lookup tool needs policy-family routing and verifier support for cited rows, plus a fee-specific question set. Retain embeddings for schedule descriptions, notes and billing-rule prose. Remove mapped row bodies from embedding only after exact lookup demonstrates reliable coverage; unmapped sheets continue to require explicit handling. This is future work, not part of this diagnostic implementation or an approved rollout.
+
+The completed [2026-10-04 diagnostic](../validation/fee-compaction-2026-10-04/README.md) records measured deltas, native preservation, dated cost projections and cleanup evidence.

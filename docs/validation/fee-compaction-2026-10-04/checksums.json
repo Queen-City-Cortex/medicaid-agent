@@ -1,0 +1,19 @@
+{
+  "cleanup.json": "503162821d55e678360687f195fa8999c3933e472786f52f7127e9cf4142facd",
+  "identity-image-source.json": "d3f5fd7c83b5f7c1d28de2764c8ab6e7943f440e3fa287adb256359275c5f385",
+  "inspection-runtime.json": "029b78b5bffce7235fd2c0ce87e90026303ea0181bde212fdf467c7b906585dc",
+  "linux-tests-final.log": "253b1d5f076b2375fd204e8e36a4ab710312644a4544fc7b98efbcced6365add",
+  "ops-tests.log": "025e0b1b071774da2fe8d49d1133c00d590265b23d9969117a8e834f34089ae9",
+  "preservation.json": "dea021c1868bda874318e59cc59460ab175392134d1d465ac9ea58ea7948c3f7",
+  "receipts/baseline-metrics.json": "b1db79f7c49146ee5e7cbb9d6ab22a6fff270af12112a863d86f1fab4f1317f1",
+  "receipts/baseline-typed-identity.json": "f41eadbbca86cb262a84ce6f8c981465dc51fea2f91751d9f4d9cf0bb97212c7",
+  "receipts/candidate-metrics.json": "a365f7fe015dad9cba6e3d03a664ad5c8d8ca717e0ce325d136ce38976b2a1bc",
+  "receipts/candidate-typed-identity.json": "f41eadbbca86cb262a84ce6f8c981465dc51fea2f91751d9f4d9cf0bb97212c7",
+  "retained-sidecar-inventory.json": "ec33749df43b03cda4361fc09d346ec205b280de2c83c951effc43329dbef459",
+  "staging-sealed/accounting.json": "c0a1a690230b924398c5d1ecfda67766c783c1e79feff476178cbaf4c6fc0eb4",
+  "staging-sealed/baseline/variant-manifest.json": "95e26ae2e39861aa867887d3304f8d75f6468eba28554ee180a8e35d9c7705af",
+  "staging-sealed/candidate/variant-manifest.json": "5e974bd677ba70fe201dd82b2bdb198c334c186ffd7ab7c02fcd96464045b8e6",
+  "staging-sealed/failures.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+  "staging-sealed/inventory.json": "6d52dc6cecd3d1d44ecdfeaee218c0b85d2f6de4dac2a062a2d794a4be755757",
+  "staging-sealed/native-proofs.json": "b958cd331d092fb68e8757ebf0b5db1b78e6b5dff9c90065f6a5c861d2d949ba"
+}
