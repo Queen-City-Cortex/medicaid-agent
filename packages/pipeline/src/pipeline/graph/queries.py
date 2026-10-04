@@ -63,7 +63,8 @@ SET s.embedding = CASE WHEN same_epoch THEN s.embedding ELSE NULL END,
     s.has_tables = section.has_tables,
     s.has_definitions = section.has_definitions,
     s.federal_register_cite = section.federal_register_cite,
-    s.last_revised = section.last_revised
+    s.last_revised = section.last_revised,
+    s.jev_section_roles = null
 WITH s,same_epoch
 OPTIONAL MATCH (s)-[:HAS_CHUNK]->(ch:Chunk)
 WITH s,same_epoch,collect(ch) AS chunks

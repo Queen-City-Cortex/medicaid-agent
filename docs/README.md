@@ -7,6 +7,7 @@ This is the entry point for repository knowledge. Read the guide for your task, 
 | Contributor and agent workflow | [AGENTS.md](../AGENTS.md) | Context gathering, maintenance, and essential verification rules |
 | Architecture | [Architecture guide](architecture/README.md) | Package boundaries, answer verification, and research recovery |
 | Development | [Development guide](development/README.md) | Setup, package checks, and evaluation |
+| Jev experiments | [Jev guide](development/jev.md) | Opt-in classifiers, human review, annotation identity and bounded validation |
 | Known failures | [Project gotchas](development/gotchas.md) | Recorded parser, retrieval, runtime, and deployment lessons |
 | Knowledge maintenance | [Knowledge workflow](development/knowledge-workflow.md) | Local search, evidence, and updates in Git |
 | Operations | [Operations index](operations/README.md) | Runbooks, release gates, and operational scripts |

@@ -1,3 +1,4 @@
+import { jevHash, parseSectionRoles, sectionRoleInput } from '../jev/section-roles.js';
 // Mapping between Neo4j session records and the typed view objects the rest
 // of the package works with: retrieval hits, search hits, section/document
 // views, and section-context entries. Also holds the shared Cypher RETURN
@@ -102,11 +103,17 @@ export function buildSectionView(record: SessionRecordLike, content: string | nu
   const url = (record.get('url') as string | null | undefined) ?? null;
   const sourceModifiedDate = (record.get('sourceModifiedDate') as string | null | undefined) ?? null;
   const retrievedAt = (record.get('retrievedAt') as string | null | undefined) ?? null;
+  const rawRoles = process.env.JEV_SECTION_ROLES_ENABLED === 'true' ? record.get('sectionRoles') : undefined;
+  const sectionRoles = rawRoles ? parseSectionRoles(rawRoles, jevHash(sectionRoleInput({
+    title: (record.get('title') as string) ?? null, sectionNumber: (record.get('sectionNumber') as string) ?? null,
+    documentTitle, documentType: (record.get('documentType') as string) ?? null, policyNumber: (record.get('policyNumber') as string) ?? null,
+  }, (record.get('content') as string) ?? null))) : undefined;
   return {
     id: record.get('id') as string,
     title: (record.get('title') as string | null | undefined) ?? null,
     sectionNumber: (record.get('sectionNumber') as string | null | undefined) ?? null,
     content,
+    ...(sectionRoles ? { sectionRoles } : {}),
     effectiveDate: (record.get('effectiveDate') as string | null | undefined) ?? null,
     ...(sourceModifiedDate !== null ? { sourceModifiedDate } : {}),
     ...(retrievedAt !== null ? { retrievedAt } : {}),

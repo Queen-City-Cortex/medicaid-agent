@@ -1,3 +1,4 @@
+import { classifyScopeWithJev } from '../jev/scope.js';
 import type { Processor, ProcessInputArgs, ProcessInputResult } from '@mastra/core/processors';
 import { generateObject } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
@@ -19,7 +20,7 @@ const ScopeVerdictSchema = z.object({
   reason: z.string().describe('One sentence explaining the verdict'),
 });
 
-const CLASSIFIER_INSTRUCTIONS = `You are a scope classifier for an NC Medicaid policy assistant used by legal aid attorneys, case managers, and beneficiaries. Classify the LATEST USER MESSAGE (with the preceding conversation as context) as:
+export const CLASSIFIER_INSTRUCTIONS = `You are a scope classifier for an NC Medicaid policy assistant used by legal aid attorneys, case managers, and beneficiaries. Classify the LATEST USER MESSAGE (with the preceding conversation as context) as:
 
 - on_topic: about ${SCOPE_DESCRIPTION}
 - ambiguous: could plausibly relate to Medicaid, public benefits, or a real-world benefits problem — including messy, emotional, or underspecified questions (denial letters, appeals, "can they do this to me?", family circumstances, immigration worries, other programs like Medicare/SSI/SNAP interacting with benefits), and short follow-ups that only make sense with the conversation context.
@@ -33,7 +34,7 @@ Bias toward on_topic/ambiguous: this service's users ask messy real-world questi
 const CONTEXT_MESSAGES = 4;
 const CONTEXT_CHARS_PER_MESSAGE = 300;
 
-function conversationWindow(messages: Array<{ role?: string; content?: unknown }>): string {
+export function conversationWindow(messages: Array<{ role?: string; content?: unknown }>): string {
   return messages
     .filter((message) => message.role === 'user' || message.role === 'assistant')
     .slice(-CONTEXT_MESSAGES)
@@ -42,6 +43,18 @@ function conversationWindow(messages: Array<{ role?: string; content?: unknown }
       return `${message.role}: ${text}`;
     })
     .join('\n');
+}
+
+/** Shared production call, including SDK defaults, for scope validation. */
+export async function classifyScopeWithOpenAI(window: string) {
+  const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  const result = await generateObject({
+    model: openai(strEnv('SCOPE_GATE_MODEL', 'gpt-5-mini')),
+    schema: ScopeVerdictSchema,
+    system: CLASSIFIER_INSTRUCTIONS,
+    messages: [{ role: 'user', content: `## CONVERSATION (latest last)\n\n${window}` }],
+  });
+  return result;
 }
 
 /**
@@ -65,14 +78,11 @@ export class ScopeGateProcessor implements Processor {
 
     let verdict: z.infer<typeof ScopeVerdictSchema>;
     try {
-      const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY });
-      const result = await generateObject({
-        model: openai(strEnv('SCOPE_GATE_MODEL', 'gpt-5-mini')),
-        schema: ScopeVerdictSchema,
-        system: CLASSIFIER_INSTRUCTIONS,
-        messages: [{ role: 'user', content: `## CONVERSATION (latest last)\n\n${window}` }],
-      });
-      verdict = result.object;
+      if (process.env.SCOPE_GATE_PROVIDER?.trim() === 'jev') {
+        verdict = await classifyScopeWithJev(window, CLASSIFIER_INSTRUCTIONS);
+      } else {
+        verdict = (await classifyScopeWithOpenAI(window)).object;
+      }
     } catch (err) {
       log.error('scope_gate.failed_open', errorFields(err));
       Sentry.captureException(err, { tags: { component: 'scope-gate' } });

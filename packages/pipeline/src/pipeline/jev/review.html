@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Jev reference review</title>
+<style>
+:root{font-family:system-ui,sans-serif;color:#152b34;background:#f2f5f4}body{max-width:1000px;margin:32px auto;padding:0 20px}h1{font-size:28px}header,.card{background:white;border:1px solid #d3ded9;border-radius:12px;padding:24px;margin-bottom:18px}button,select,input{font:inherit;padding:9px;border:1px solid #afc0b7;border-radius:6px}button{background:#175a49;color:white;cursor:pointer}button:disabled{opacity:.45;cursor:default}.toolbar{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:18px}label{display:block;margin:14px 0 5px;font-weight:600}pre{white-space:pre-wrap;overflow-wrap:anywhere;font-family:inherit;line-height:1.6}small,.hint{color:#485d65;font-size:14px;line-height:1.5}.field{padding:12px 0;border-bottom:1px solid #e3ebe7}.field select{min-width:170px;margin-top:8px}.description{margin:5px 0;line-height:1.5}#notice{min-height:24px}#progress{font-weight:600}details{margin:16px 0}a{color:#175a49}
+</style></head><body>
+<nav id="reviewSets" class="toolbar" aria-label="Review sets" hidden></nav>
+<noscript>This review needs JavaScript. Open this file in Chrome or Safari instead of a static preview.</noscript>
+<header><h1 id="title">Reference review</h1><p>Read the question or section, then choose your own labels. You can leave unsure items blank while drafting. Every required label must be resolved before qualification; choose ambiguous for scope when context is insufficient. Your judgments will be compared with classifier results after review.</p>
+<p class="hint">Progress is saved in this browser when available. Download JSON regularly to keep a durable backup or continue in another browser. Browser storage alone is not a backup. This page works offline and sends no data anywhere.</p>
+<label for="reviewer">Your name</label><input id="reviewer" autocomplete="name" placeholder="Reviewer name">
+<div class="toolbar"><button id="download">Download review JSON</button><label for="import" style="margin:0">Import saved review</label><input id="import" type="file" accept="application/json,.json"></div>
+<p id="progress" aria-live="polite"></p><p id="notice" role="status"></p></header>
+<div class="toolbar"><button id="previous">Previous</button><span id="position"></span><button id="next">Next</button><button id="unanswered">Next unfinished item</button></div>
+<article class="card"><h2 id="itemTitle"></h2><pre id="content"></pre><div id="fields"></div></article>
+<script id="review-data" type="application/json">__REVIEW_DATA__</script>
+<script>
+'use strict';
+const payload=JSON.parse(document.getElementById('review-data').textContent);
+const reviewSets=payload.reviews??[payload], drafts=new Map();
+let original, fields, kind, key, review, index=0;
+const el=id=>document.getElementById(id);
+const notice=text=>{el('notice').textContent=text;};
+function checkLabel(label){
+ if(label===null||label===undefined)return;
+ if(kind==='scope'){if(!Object.hasOwn(fields.verdict.criteria,label))throw Error('Invalid scope label');return;}
+ if(typeof label!=='object'||Array.isArray(label))throw Error('Invalid labels');
+ const flags=kind==='routing'?label.flags:label;
+ if(kind==='routing'){
+  if(Object.keys(label).some(k=>!['questionType','flags'].includes(k)))throw Error('Unknown label field');
+  if(label.questionType!==undefined&&!Object.hasOwn(fields.questionType.criteria,label.questionType))throw Error('Invalid question type');
+ }
+ if(flags!==undefined){
+  if(!flags||typeof flags!=='object'||Array.isArray(flags))throw Error('Invalid role or flag labels');
+  for(const [name,value]of Object.entries(flags))if(!Object.hasOwn(fields,name)||name==='questionType'||typeof value!=='boolean')throw Error('Invalid role or flag labels');
+ }
+}
+function importReview(value){
+ if(value?.evidenceSource&&!['human'].includes(value.evidenceSource))throw Error('AI diagnostic labels cannot replace human review');
+ if(!value||value.inputDigest!==original.inputDigest||value.kind!==kind||!Array.isArray(value.rows)||value.rows.length!==original.rows.length)throw Error('This file belongs to a different review');
+ if(value.reviewer!==null&&typeof value.reviewer!=='string')throw Error('Invalid reviewer name');
+ const labels=new Map();
+ for(const row of value.rows){if(labels.has(row.id))throw Error('Duplicate review item');checkLabel(row.label);labels.set(row.id,row.label??null);}
+ if(original.rows.some(row=>!labels.has(row.id)))throw Error('Review items do not match');
+ // Import labels only. Never let imported text replace the frozen source.
+ review={...structuredClone(original),reviewer:value.reviewer,rows:original.rows.map(row=>({...structuredClone(row),label:labels.get(row.id)}))};
+}
+function complete(row){
+ if(kind==='scope')return Object.hasOwn(fields.verdict.criteria,row.label);
+ const label=row.label;if(!label)return false;
+ if(kind==='routing'&&!Object.hasOwn(fields.questionType.criteria,label.questionType))return false;
+ const flags=kind==='routing'?label.flags:label;
+ return !!flags&&Object.keys(fields).filter(k=>k!=='questionType').every(k=>typeof flags[k]==='boolean');
+}
+function progress(){el('progress').textContent=`${review.rows.filter(complete).length} of ${review.rows.length} items labeled${review.reviewer?.trim()?'':' · Add your name before final submission'}`;}
+function save(){review.reviewer=el('reviewer').value.trim()||null;drafts.set(kind,structuredClone(review));try{localStorage.setItem(key,JSON.stringify(review));}catch{notice('Browser saving is unavailable. Download JSON to preserve your progress.');}progress();}
+function valueFor(row,name){if(kind==='scope')return row.label;if(kind==='routing')return name==='questionType'?row.label?.questionType:row.label?.flags?.[name];return row.label?.[name];}
+function setValue(row,name,value){
+ if(kind==='scope'){row.label=value||null;return;}
+ row.label??={};const target=kind==='routing'&&name!=='questionType'?(row.label.flags??={}):row.label;
+ if(value==='')delete target[name];else target[name]=name==='questionType'?value:value==='yes';
+}
+function render(){
+ const row=review.rows[index];el('position').textContent=`Item ${index+1} of ${review.rows.length}`;el('previous').disabled=index===0;el('next').disabled=index===review.rows.length-1;
+ el('itemTitle').textContent=kind==='sections'?(row.input.documentTitle||row.input.title||'Policy section'):`${kind==='scope'?'Conversation':'Question'} ${index+1}`;
+ el('content').textContent=kind==='routing'?row.question:kind==='scope'?row.messages.map(m=>`${m.role}: ${m.content}`).join('\n\n'):[row.input.title,row.input.sectionNumber,row.input.content].filter(Boolean).join('\n\n');
+ el('fields').replaceChildren();
+ for(const [name,spec]of Object.entries(fields)){
+  const box=document.createElement('div');box.className='field';const label=document.createElement('label');label.htmlFor=`label-${name}`;label.textContent=name.replaceAll('_',' ');
+  const description=document.createElement('p');description.className='description';description.textContent=spec.instructions||'Choose the type of information the question asks for.';
+  const select=document.createElement('select');select.id=label.htmlFor;select.append(new Option('Unanswered',''));
+  const options=spec.type==='choice'?spec.criteria:{yes:'Yes',no:'No'};
+  for(const [value,text]of Object.entries(options))select.append(new Option(spec.type==='choice'?`${value.replaceAll('_',' ')} — ${text}`:text,value));
+  const current=valueFor(row,name);select.value=current===true?'yes':current===false?'no':current??'';
+  select.addEventListener('change',()=>{setValue(row,name,select.value);save();});box.append(label,description,select);el('fields').append(box);
+ }progress();
+}
+function chooseReview(selected){
+ if(review)save();
+ original=selected.review;fields=selected.fields;kind=original.kind;key=`jev-review:${kind}:${original.inputDigest}`;
+ review=structuredClone(original);index=0;notice('');
+ el('title').textContent=`${kind==='sections'?'Policy section':kind==='scope'?'Conversation scope':'Question routing'} review`;
+ try{const saved=drafts.get(kind)??JSON.parse(localStorage.getItem(key)||'null');if(saved)importReview(saved);}catch{notice('Saved progress could not be loaded. Import a downloaded JSON copy if available.');}
+ el('reviewer').value=review.reviewer??'';
+ for(const button of el('reviewSets').querySelectorAll('button'))button.setAttribute('aria-pressed',String(button.dataset.kind===kind));
+ render();
+}
+if(reviewSets.length>1){
+ el('reviewSets').hidden=false;
+ for(const selected of reviewSets){
+  const button=document.createElement('button');button.type='button';button.dataset.kind=selected.review.kind;
+  button.textContent=`${selected.review.kind==='scope'?'Conversation scope':selected.review.kind==='sections'?'Policy section roles':'Question routing'} (${selected.review.rows.length})`;
+  button.onclick=()=>chooseReview(selected);el('reviewSets').append(button);
+ }
+}
+el('reviewer').addEventListener('input',save);
+el('previous').onclick=()=>{index--;render();};el('next').onclick=()=>{index++;render();};
+el('unanswered').onclick=()=>{const found=review.rows.findIndex((row,i)=>i>index&&!complete(row));const first=review.rows.findIndex(row=>!complete(row));if(first<0){notice('All items are labeled. Download your review JSON.');return;}index=found<0?first:found;render();};
+el('download').onclick=()=>{save();const url=URL.createObjectURL(new Blob([JSON.stringify(review,null,2)+'\n'],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download=`${kind}-review.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);notice('Downloaded. Place the JSON in the campaign folder to replace its review form, then run the report command.');};
+el('import').onchange=async event=>{const file=event.target.files?.[0];if(!file)return;try{importReview(JSON.parse(await file.text()));el('reviewer').value=review.reviewer??'';save();render();notice('Imported saved labels.');}catch(error){notice(`Import rejected: ${error.message}`);}event.target.value='';};
+chooseReview(reviewSets[0]);
+</script></body></html>

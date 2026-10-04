@@ -132,6 +132,7 @@ def check_relocations(hashes, proofs, journals, registry):
 def inspect_archive(stream, *, include_history=False):
     hashes, metas = {}, {}
     proofs, journals = {}, []
+    label_members = 0
     counts = {"sourceFiles": 0, "parsedFiles": 0}
     byte_count = 0
     with tempfile.TemporaryDirectory(prefix="corpus-restore-db-") as temporary:
@@ -152,7 +153,8 @@ def inspect_archive(stream, *, include_history=False):
                     and not Path(member.name).name.startswith("._")
                 )
                 is_evidence = member.name.startswith(("pipeline/source-audit-evidence/", "pipeline/source-retirement-evidence/"))
-                keep = is_meta or is_evidence or member.name in [
+                is_label = member.name.startswith("pipeline/section-labels/") and member.name.endswith(".json")
+                keep = is_label or is_meta or is_evidence or member.name in [
                     "crawler/crawler.db",
                     "crawler/crawler.db-wal",
                     "crawler/crawler.db-shm",
@@ -182,12 +184,30 @@ def inspect_archive(stream, *, include_history=False):
                         proofs[member.name] = json.loads(data)
                     elif is_journal:
                         journals.append(json.loads(data))
+                    elif is_label:
+                        target = Path(temporary) / member.name
+                        target.parent.mkdir(parents=True, exist_ok=True)
+                        target.write_bytes(data)
+                        label_members += 1
                     elif is_evidence:
                         target = Path(temporary) / member.name
                         target.parent.mkdir(parents=True, exist_ok=True)
                         target.write_bytes(data)
                     else:
                         (Path(temporary) / Path(member.name).name).write_bytes(data)
+        if label_members:
+            from pipeline.jev.artifacts import validate_cache, validate_label_manifest
+            label_root = Path(temporary) / "pipeline/section-labels"
+            for path in (label_root / "cache").glob("*.json"):
+                cached = validate_cache(json.loads(path.read_text()))
+                if path.stem != cached["key"]:
+                    raise ValueError("Backup section cache filename mismatch")
+            for path in (label_root / "manifests").glob("*.json"):
+                value = json.loads(path.read_text())
+                validate_label_manifest(value, label_root)
+                if path.stem != value["digest"]:
+                    raise ValueError("Backup section manifest filename mismatch")
+            counts["sectionLabelArtifacts"] = label_members
         db_path = Path(temporary) / "crawler.db"
         if not db_path.is_file():
             raise ValueError("Archive is missing the crawler registry")

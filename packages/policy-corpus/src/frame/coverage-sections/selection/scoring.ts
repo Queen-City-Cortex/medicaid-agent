@@ -1,3 +1,4 @@
+import { sectionRoleBonus } from '../../../jev/section-roles.js';
 import type { AnswerFrameSection } from '../../../types.js';
 import {
   CERTIFICATION_SECTION_TERMS,
@@ -108,6 +109,7 @@ function scoreCoverageSection(
     text,
     limitation: isCoverageLimitationText(text),
     primaryScore:
+      sectionRoleBonus(section, flags.notCoveredQuery ? ['exclusions'] : ['scope', 'covered_services']) +
       focusScore * 1.2 +
       clusterScore * 0.8 +
       requirementScore * 0.6 +
@@ -129,6 +131,7 @@ function scoreCoverageSection(
       hcwdHistoricalPrimaryPenalty -
       hcwdTangentialPenalty,
     supportScore:
+      sectionRoleBonus(section, flags.notCoveredQuery ? ['exclusions'] : ['covered_services', 'exclusions']) +
       limitationBonus +
       notCoveredBonus +
       focusScore * 0.6 +

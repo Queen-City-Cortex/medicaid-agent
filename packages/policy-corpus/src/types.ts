@@ -1,3 +1,4 @@
+import type { SectionRoles } from './jev/section-roles.js';
 export interface SessionRecordLike {
   get(key: string): unknown;
 }
@@ -58,6 +59,7 @@ export interface DocumentSupersessionView {
 }
 
 export interface SectionView {
+  sectionRoles?: SectionRoles;
   id: string;
   title: string | null;
   sectionNumber: string | null;

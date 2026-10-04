@@ -25,7 +25,13 @@ for required in \
   }
 done
 
-tar -C "$CORPUS_DATA_ROOT" -czf - crawler pipeline \
+python3 "$REPO_ROOT/scripts/ops/snapshot-corpus-databases.py" \
+  "$CORPUS_DATA_ROOT" "$TEMP_DIR/_sqlite_snapshots"
+# Archive consistent snapshots under the original names; omit live WAL files.
+tar --exclude='*.db' --exclude='*.db-wal' --exclude='*.db-shm' \
+  --transform='s,^_sqlite_snapshots/,,' --transform='s,\.sqlite-snapshot$,,' \
+  -C "$CORPUS_DATA_ROOT" -czf - crawler pipeline \
+  -C "$TEMP_DIR" _sqlite_snapshots \
   | age -r "$BACKUP_AGE_RECIPIENT" -o "$ARCHIVE"
 
 rclone copyto "$ARCHIVE" \

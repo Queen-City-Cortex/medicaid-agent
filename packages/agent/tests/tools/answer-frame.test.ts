@@ -118,3 +118,15 @@ describe('resolveAnswerFrame', () => {
     });
   });
 });
+
+it('keeps section classifier diagnostics out of tool text including latest revision', async () => {
+  const section = { id: 's', content: 'Policy evidence', sectionRoles: { probabilities: { scope: .95 } } };
+  vi.mocked(policyCorpus.resolveAnswerFrame).mockResolvedValueOnce({
+    questionType: 'coverage', route: makeRoute(), authoritativeDocuments: [],
+    primarySections: [section], supportingSections: [section], avoidSections: [section],
+    latestRevision: { marker: 'revised', document: null, section }, variantReasoning: null,
+  } as any);
+  const result = await runTool(resolveAnswerFrame, { query: 'Coverage?' });
+  expect(JSON.stringify(result)).not.toContain('sectionRoles');
+  expect(result.frame.primarySections[0].content).toBe('Policy evidence');
+});

@@ -1,3 +1,4 @@
+import { sectionRoleAllowlist } from '@nc-medicaid/policy-corpus';
 import { z } from 'zod';
 
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '::1']);
@@ -101,7 +102,12 @@ export function loadRuntimeConfig(
     throw new Error(`TRACE_STORE has unsupported value: ${traceStore}`);
   }
 
+  const scopeProvider = nonEmpty(env, 'SCOPE_GATE_PROVIDER') ?? 'openai';
+  if (!['openai', 'jev'].includes(scopeProvider)) throw new Error('SCOPE_GATE_PROVIDER must be openai or jev');
+  if (env.JEV_SECTION_ROLES_ENABLED !== undefined && !['true', 'false'].includes(env.JEV_SECTION_ROLES_ENABLED)) throw new Error('JEV_SECTION_ROLES_ENABLED must be true or false');
+  sectionRoleAllowlist(env.JEV_SECTION_ROLE_ALLOWLIST ?? '');
   const missing: string[] = [];
+  if (scopeProvider === 'jev' && env.SCOPE_GATE_ENABLED !== 'false' && !nonEmpty(env, 'TYPESAFE_API_KEY')) missing.push('TYPESAFE_API_KEY (required for Jev scope gate)');
   if (!nonEmpty(env, 'OPENAI_API_KEY')) missing.push('OPENAI_API_KEY');
   if (!nonEmpty(env, 'VOYAGE_API_KEY')) missing.push('VOYAGE_API_KEY');
   if (agentModel.startsWith('claude-') && !nonEmpty(env, 'ANTHROPIC_API_KEY')) {

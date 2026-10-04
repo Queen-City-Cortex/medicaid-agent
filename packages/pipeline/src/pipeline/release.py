@@ -259,6 +259,9 @@ def build_release_graph(manifest_path: Path, *, refresh_federal: bool = True) ->
         return {"seeded": seeded, **linked}
 
     record_release_stage(manifest_path, "concepts", concepts)
+    if os.environ.get("JEV_SECTION_ROLES_ENABLED") == "true":
+        from pipeline.jev.sections import enrich_graph
+        record_release_stage(manifest_path, "jevSections", lambda: enrich_graph(cache_only=True))
     record_release_stage(manifest_path, "schemaVersion", write_schema_version)
 
 
@@ -270,6 +273,15 @@ def mark_graph_release(
     """Stamp the target graph so readiness verifies the graph, not only env."""
     from pipeline.graph.connection import get_session
 
+    annotation_digest = manifest.get("stageResults", {}).get("jevSections", {}).get("result", {}).get("digest")
+    with get_session() as session:
+        marker = session.run("MATCH (m:JevAnnotation {id: 'current'}) RETURN m.digest AS digest").single()
+    live_digest = marker["digest"] if marker else None
+    if live_digest != annotation_digest:
+        raise ValueError("Release stage and live Jev annotation identity mismatch; record enrichment before stamping")
+    if annotation_digest:
+        from pipeline.jev.sections import validate_graph_labels
+        validate_graph_labels(annotation_digest)
     marked_at = format_timestamp(utc_now())
     with get_session() as session:
         session.run(
@@ -280,7 +292,8 @@ def mark_graph_release(
                 release.target_color = $target_color,
                 release.source_snapshot_hash = $source_snapshot_hash,
                 release.promotion_state = $promotion_state,
-                release.marked_at = $marked_at
+                release.marked_at = $marked_at,
+                release.jev_annotation_digest = $jev_annotation_digest
             """,
             {
                 "release_id": manifest["releaseId"],
@@ -289,6 +302,7 @@ def mark_graph_release(
                 "source_snapshot_hash": manifest["sourceSnapshotHash"],
                 "promotion_state": promotion_state,
                 "marked_at": marked_at,
+                "jev_annotation_digest": annotation_digest,
             },
         )
     return {"releaseId": manifest["releaseId"], "markedAt": marked_at}

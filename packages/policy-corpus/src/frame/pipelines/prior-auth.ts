@@ -1,3 +1,5 @@
+import { rankPriorAuthRoles } from '../../jev/prior-auth.js';
+import { asksForPriorAuthSubmissionProcess } from '../../internal/query-intent.js';
 import type { QueryAnalysis } from '../../contracts.js';
 import type { AnswerFrame } from '../../types.js';
 import type { FrameContext } from '../context.js';
@@ -99,11 +101,17 @@ export async function resolvePriorAuthFrame(
     score: 1.0,
   }));
 
+  const rankCandidates = async (candidates: Parameters<typeof context.hydrateSectionCandidates>[0]) => {
+    if (process.env.JEV_SECTION_ROLES_ENABLED !== 'true') return candidates;
+    const hydrated = await context.hydrateSectionCandidates(candidates, candidates.length);
+    return context.toSectionCandidates(rankPriorAuthRoles(hydrated.map(c => c.section), asksForPriorAuthSubmissionProcess(queryLower)).map(section => ({ section })));
+  };
+
   const frame = await context.finalizeFrame({
     questionType: 'prior_authorization',
     route,
     authoritativeCandidates,
-    primaryCandidates: uniqueBy(
+    primaryCandidates: await rankCandidates(uniqueBy(
       [
         ...quantityDocumentPrimaryCandidates,
         ...criteriaDocumentPrimaryCandidates,
@@ -111,11 +119,11 @@ export async function resolvePriorAuthFrame(
         ...primaryCandidates,
       ],
       (candidate) => candidate.sectionId,
-    ),
-    supportingCandidates: uniqueBy(
+    )),
+    supportingCandidates: await rankCandidates(uniqueBy(
       [...documentSupportingCandidates, ...supportingCandidates],
       (candidate) => candidate.sectionId,
-    ),
+    )),
     avoidCandidates,
   });
 

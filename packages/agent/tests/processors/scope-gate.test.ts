@@ -112,3 +112,49 @@ describe('isScopeGateEnabled', () => {
     expect(isScopeGateEnabled()).toBe(false);
   });
 });
+
+describe('Jev scope provider', () => {
+  beforeEach(() => {
+    mockGenerateObject.mockReset();
+    vi.stubEnv('SCOPE_GATE_PROVIDER', 'jev');
+    vi.stubEnv('TYPESAFE_API_KEY', 'test');
+  });
+  afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.useRealTimers(); });
+  function response(off: number) {
+    return new Response(JSON.stringify({ model: 'jev-1.13.0', answers: { scope: {
+      type: 'choice', choice: off > .5 ? 'off_topic' : 'on_topic',
+      probabilities: { off_topic: off, on_topic: 1 - off, ambiguous: 0 }, confidence: .8,
+    } }, usage: { input_tokens: 100, output_tokens: 20 } }));
+  }
+  it('blocks only selected off_topic at probability >= .95, independent of confidence', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response(.96)));
+    expect((await run([makeUserMessage('Write a pirate poem')])).tripped).toBe(true);
+    expect(mockGenerateObject).not.toHaveBeenCalled();
+  });
+  it('allows uncertain off_topic', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response(.94)));
+    expect((await run([makeUserMessage('Can they do this to me?')])).tripped).toBe(false);
+  });
+  it.each([401, 422, 429, 529])('fails open without retry on HTTP %s', async status => {
+    const f = vi.fn().mockResolvedValue(new Response('private body', { status }));
+    vi.stubGlobal('fetch', f);
+    expect((await run([makeUserMessage('¿Puedo apelar?')])).tripped).toBe(false);
+    expect(f).toHaveBeenCalledTimes(1);
+  });
+  it('fails open on malformed response', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('{}')));
+    expect((await run([makeUserMessage('Tell me about benefits')])).tripped).toBe(false);
+  });
+  it('fails open by 500 ms when transport never resolves', async () => {
+    vi.useFakeTimers(); vi.stubGlobal('fetch', vi.fn(() => new Promise(() => {})));
+    const pending = run([makeUserMessage('What about my daughter?')]);
+    await vi.advanceTimersByTimeAsync(500);
+    expect((await pending).tripped).toBe(false);
+  });
+  it('honors the same kill switch without calling either provider', async () => {
+    vi.stubEnv('SCOPE_GATE_ENABLED', 'false');
+    const f = vi.fn(); vi.stubGlobal('fetch', f);
+    expect((await run([makeUserMessage('Anything')])).tripped).toBe(false);
+    expect(f).not.toHaveBeenCalled(); expect(mockGenerateObject).not.toHaveBeenCalled();
+  });
+});

@@ -1,3 +1,4 @@
+import { visibleSection } from './section-metadata.js';
 import { createTool } from '@mastra/core/tools';
 import {
   ANSWER_QUESTION_TYPES,
@@ -117,6 +118,12 @@ export const resolveAnswerFrame = createTool({
       );
     }
 
-    return { frame };
+    return { frame: {
+      ...frame,
+      primarySections: frame.primarySections.map(visibleSection),
+      supportingSections: frame.supportingSections.map(visibleSection),
+      avoidSections: frame.avoidSections.map(visibleSection),
+      latestRevision: frame.latestRevision ? { ...frame.latestRevision, section: frame.latestRevision.section ? visibleSection(frame.latestRevision.section) : null } : null,
+    } };
   },
 });

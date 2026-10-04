@@ -141,3 +141,27 @@ def test_unnumbered_revision_section_uses_exact_parent_evidence_when_body_change
     assert normalizer.normalized("legacy") == "canonical"
     legacy["parent_content_hash"] = "another-parent"
     assert EvidenceNormalizer([row], [legacy]).normalized("legacy") == "unmapped:legacy"
+
+
+def test_normalizer_preserves_bounded_read_only_loader(tmp_path, monkeypatch):
+    import json
+    from contextlib import contextmanager
+    import pipeline.graph.connection as connection
+    import pipeline.eval.identity_read as reader
+    from pipeline.eval.identity import load_normalizer
+    path = tmp_path / "catalog.json"
+    path.write_text(json.dumps({"schema_version": 1, "sections": [section("canonical")]}))
+    monkeypatch.setenv("EVAL_IDENTITY_CATALOG", str(path))
+    session = object()
+    class Driver:
+        @contextmanager
+        def session(self, **options):
+            assert options["default_access_mode"] == "READ"
+            assert options["fetch_size"] == 10
+            yield session
+    monkeypatch.setattr(connection, "get_driver", lambda: Driver())
+    def rows(actual):
+        assert actual is session
+        return [section("legacy")]
+    monkeypatch.setattr(reader, "graph_rows", rows)
+    assert load_normalizer().normalized("legacy") == "canonical"
