@@ -40,19 +40,20 @@ export function resolveCoverageScope(question: string, today = new Date()): Cove
     || /(?:^|[.,;]\s*|please\s+|(?:can|could|will|would)\s+you\s+)(?:provide|supply|show|give|generate|reproduce|translate)\s+(?:(?:me|us|the|an?|official|original|gujarati|dhb[ -]*5097|a copy of|copy of)\s+)*(?:form|notice|attachment|pdf|it|(?:dhb[ -]*)?5097|translation\b(?!\s+(?:(?:and|or)\s+(?:interpretation|translation)\s+)?services?\b))\b/.test(q);
   const procedureQuestion = /what (?:should|must|can|do) (?:i|we) do|(?:how|when).{0,40}(?:respond|reply|submit|complete|appeal)|\b(?:procedure|process|next steps)\b/.test(q);
   const contentIntent = /\b(?:says?|said|wording|translat\w*|contain\w*|differ\w*|read (?:me|us|out)|(?:send|show|give|get|email) (?:me|us)|need the|(?:copy|version) of)\b/.test(q);
-  const noticeDeadline = /(?:what|which).{0,30}(?:deadline|due date).{0,60}(?:notice|5097)|(?:notice|5097).{0,40}(?:give|state|specif|set).{0,20}(?:deadline|due date)/.test(q);
+  const noticeDeadline = /(?:what|which|when)(?:'s| is| was| are)?\s+(?:(?:the|my|its|that)\s+)?(?:deadline|due date)|(?:tell|give) (?:me|us).{0,20}(?:deadline|due date)|(?:deadline|due date).{0,40}\b(?:it|notice|5097|form)\s+(?:lists?|gives?|states?|says?|shows?|sets?)|(?:notice|5097).{0,40}(?:give|state|specif|set|list).{0,20}(?:deadline|due date)|(?:deadline|due date).{0,40}when is it/.test(q);
   const gujarati = /gujarati|ગુજરાતી/.test(q) && /5097|request.{0,20}information/.test(q) && ((!languageAccess && !(procedureQuestion && !contentIntent && !noticeDeadline)) || originalRequest);
   const covid = /covid|sars.cov.2/.test(q) && /otc|over.the.counter|home.{0,12}test|at.home/.test(q);
   const paymentQuestion = /cover|pay|reimburs|billing|benefit|free|cost/.test(q);
   const pharmacist = /pharmacist/.test(q);
-  const authorityTerms = /original.{0,30}order|standing.order|statewide.order|dispens|prescrib|prescription|authori|without a (?:doctor|prescription)/.test(q)
+  const authorityTerms = /\boriginal\s+(?:(?:standing|statewide|pharmacist|covid(?:-19)?)\s+)*orders?\b|standing.order|statewide.order|dispens|prescrib|prescription|authori|without a (?:doctor|prescription)/.test(q)
     || (pharmacist && /\ballow|\bpermit|\border(?:s|ed|ing)?\b|conditions?|withdr[ae]w|rescind/.test(q));
   const authority = /covid|sars.cov.2/.test(q) && (covid || /standing.order/.test(q)) && (authorityTerms || (pharmacist && !paymentQuestion));
   const originalArtifact = /original\w*.{0,60}(?:attachment|file|document|source|pdf|upload|version|copy|copies|post(?:ed|ing))|(?:attachment|file|document|pdf)s?.{0,30}original/.test(q)
     || /originals\b/.test(q)
     || (/original/.test(q) && /supersed|withdr[ae]w|duplicat|compar|differ|repost|replac/.test(q));
   const availableMagiTable = policy.magi_tables.some(item => q.includes(item.source_url.split('/').at(-1)!.toLowerCase()));
-  const archives = /2025/.test(q) && /magi/.test(q) && (/archiv|wrapper/.test(q) || (originalArtifact && !availableMagiTable));
+  const missingOriginalIntent = /supersed|withdr[ae]w|duplicat|compar|differ|repost|replac|\bversus\b|\bvs\b|originals\b|original\w*.{0,60}(?:attachments?|uploads?|sources?|documents?|pdfs\b)/.test(q);
+  const archives = /2025/.test(q) && /magi/.test(q) && (/archiv|wrapper/.test(q) || (originalArtifact && !(availableMagiTable && !missingOriginalIntent)));
   if (matched.length || gujarati || authority || archives) {
     result.limitationIds = matched.length ? matched.map(item => item.id) : gujarati ? ['gujarati-dhb-5097'] : authority ? ['covid-standing-order'] : ['magi-2025-archive', 'magi-2025-archive-2'];
     result.notice = gujarati ? 'The official Gujarati DHB-5097 attachment is unavailable in this corpus. I cannot supply or quote it, or infer what a completed Gujarati notice says. General request-for-information procedure can be researched separately using the available manuals and forms.'

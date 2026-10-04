@@ -45,6 +45,12 @@ describe('bounded answer scope', () => {
     ['Were the original 2025 MAGI income limits later superseded or withdrawn?', 'magi-2025-archive'],
     ['Compare the original 2025 MAGI income limits with the reposted version.', 'magi-2025-archive'],
     ['What were the 2025 MAGI limits in the document originally attached to the manual?', 'magi-2025-archive'],
+    ['Compare the original 2025 MAGI income limits attachment with MA-3321-1.pdf.', 'magi-2025-archive'],
+    ['Was MA-3321-1.pdf a duplicate of the original 2025 MAGI attachment?', 'magi-2025-archive'],
+    ['What did the original 2025 MAGI attachments say, and what limits are in MA-3321-1.pdf?', 'magi-2025-archive'],
+    ['How do I respond to my Gujarati DHB-5097, and what is its due date?', 'gujarati-dhb-5097'],
+    ['Tell me the deadline in my Gujarati DHB-5097 and the process to appeal.', 'gujarati-dhb-5097'],
+    ['My Gujarati DHB-5097 has a deadline; when is it and how do I reply?', 'gujarati-dhb-5097'],
     ['Download the official Gujarati DHB-5097 form', 'gujarati-dhb-5097'],
     ['Quote the ગુજરાતી 5097 form', 'gujarati-dhb-5097'],
     ['Provide an interpretation of the exact wording of the official Gujarati DHB-5097.', 'gujarati-dhb-5097'],
@@ -74,7 +80,11 @@ describe('bounded answer scope', () => {
     expect(scope('I received a DHB-5097 in Gujarati; what should I do?')?.notice).toBeNull();
     expect(scope('I received a DHB-5097 in Gujarati and cannot read it; what should I do?')?.notice).toBeNull();
     expect(scope('What documents do I need to show when I respond to my Gujarati DHB-5097?')?.notice).toBeNull();
+    expect(scope('What should I do before the deadline on my Gujarati DHB-5097?')?.notice).toBeNull();
+    expect(scope('What happens if I miss the deadline to respond to my Gujarati DHB-5097, and how do I appeal?')?.notice).toBeNull();
     expect(scope('How should I respond to my Gujarati DHB-5097 before the deadline?')?.notice).toBeNull();
+    expect(scope('What should I do before the deadline on my Gujarati DHB-5097?')?.notice).toBeNull();
+    expect(scope('What happens if I miss the deadline to respond to my Gujarati DHB-5097, and how do I appeal?')?.notice).toBeNull();
     expect(scope('How should I respond to my Gujarati DHB-5097?')?.notice).toBeNull();
     expect(scope('Does HCWD impose an earned income cap?')).toBeNull();
     expect(scope('What language access rights apply to Gujarati speakers?')).toBeNull();
