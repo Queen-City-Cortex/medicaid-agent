@@ -1,43 +1,75 @@
-"""Tests for text chunking logic."""
+"""Exact reconstruction and size invariants, including real outlier scale."""
 
-from pipeline.embeddings.chunker import chunk_text
+import random
+
+import pytest
+
+from pipeline.embeddings.chunker import MAX_INPUT_BYTES, plan_inputs
 
 
-class TestChunkText:
-    def test_short_text_single_chunk(self):
-        text = "Short paragraph."
-        chunks = chunk_text(text, max_chars=12000)
-        assert len(chunks) == 1
-        assert chunks[0] == "Short paragraph."
+def assert_plan(body, context="", **kwargs):
+    parts = list(plan_inputs(body, context, **kwargs))
+    data = body.encode()
+    previous = 0
+    rebuilt = bytearray()
+    for index, part in enumerate(parts):
+        assert part.index == index
+        assert len(part.text.encode()) <= kwargs.get("max_bytes", MAX_INPUT_BYTES)
+        assert part.body_start <= previous < part.body_end
+        assert part.overlap_bytes == previous - part.body_start
+        assert part.overlap_bytes <= kwargs.get("overlap_bytes", 500)
+        assert part.text == context + data[part.body_start : part.body_end].decode()
+        rebuilt.extend(data[previous : part.body_end])
+        previous = part.body_end
+    assert bytes(rebuilt) == data
+    assert previous == len(data)
+    return parts
 
-    def test_long_text_splits_at_paragraphs(self):
-        paragraphs = [f"Paragraph {i}. " * 50 for i in range(20)]
-        text = "\n\n".join(paragraphs)
-        chunks = chunk_text(text, max_chars=2000)
-        assert len(chunks) > 1
-        # All content should be present across chunks
-        for p in paragraphs:
-            assert any(p.strip() in c for c in chunks)
 
-    def test_overlap_between_chunks(self):
-        paragraphs = [f"Paragraph {i}. " * 50 for i in range(10)]
-        text = "\n\n".join(paragraphs)
-        chunks = chunk_text(text, max_chars=2000)
-        if len(chunks) >= 2:
-            # Last paragraph of chunk 0 should appear in chunk 1
-            last_para_chunk0 = chunks[0].split("\n\n")[-1]
-            assert last_para_chunk0 in chunks[1]
+def test_direct_includes_heading_in_budget():
+    assert assert_plan("a" * 8990, "Header\n")[0].kind == "section"
+    assert assert_plan("a" * 8999, "Header\n")[0].kind == "chunk"
+    assert list(plan_inputs("")) == []
 
-    def test_each_chunk_within_limit(self):
-        paragraphs = [f"Paragraph {i}. " * 100 for i in range(30)]
-        text = "\n\n".join(paragraphs)
-        chunks = chunk_text(text, max_chars=5000)
-        for chunk in chunks:
-            assert len(chunk) <= 6000  # Allow some slack for overlap
 
-    def test_single_huge_paragraph_not_lost(self):
-        # A single paragraph larger than max_chars must still be included
-        huge = "A" * 20000
-        chunks = chunk_text(huge, max_chars=12000)
-        total_text = "".join(chunks)
-        assert "A" * 20000 in total_text or len(total_text) >= 20000
+@pytest.mark.parametrize(
+    "body",
+    [
+        "A" * 38_489_172,
+        "x " * 24677,
+        ("First\n\n" + "é😀中 " * 400) * 20,
+        " \n\t" * 9000,
+    ],
+)
+def test_outliers_are_lossless_and_bounded(body):
+    assert_plan(body, "Manual > Section\n")
+
+
+def test_random_unicode_boundaries():
+    rng = random.Random(407)
+    for limit in range(10, 60):
+        body = "".join(rng.choice("abé😀中\n\t ") for _ in range(400))
+        parts = assert_plan(body, "C\n", max_bytes=limit, overlap_bytes=5)
+        assert parts == list(plan_inputs(body, "C\n", max_bytes=limit, overlap_bytes=5))
+
+
+def test_heading_cannot_consume_body_budget():
+    with pytest.raises(ValueError, match="context"):
+        list(plan_inputs("😀", "x" * 8999))
+    # Small remaining budgets drop overlap and still progress.
+    assert_plan("é😀abc" * 20, "x" * 8994)
+
+
+def test_bounded_overlap_is_not_a_whole_large_paragraph():
+    parts = assert_plan(("Some sentence. " * 1500 + "\n\n") * 2)
+    assert len(parts) > 2
+    assert any(0 < p.overlap_bytes <= 500 for p in parts)
+
+
+def test_fingerprint_changes_with_input_or_model():
+    p = next(plan_inputs("body", "title\n"))
+    assert p.fingerprint("model", 1024) == p.fingerprint("model", 1024)
+    assert p.fingerprint("other", 1024) != p.fingerprint("model", 1024)
+    assert next(plan_inputs("body", "new title\n")).fingerprint(
+        "model", 1024
+    ) != p.fingerprint("model", 1024)

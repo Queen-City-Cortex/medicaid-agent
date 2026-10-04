@@ -19,7 +19,7 @@ def _response(status_code: int, headers: dict | None = None, json_body: dict | N
 
 def _success_response(vectors: list[list[float]] | None = None) -> httpx.Response:
     vectors = vectors if vectors is not None else [[0.1, 0.2]]
-    return _response(200, json_body={"data": [{"embedding": v} for v in vectors]})
+    return _response(200, json_body={"data": [{"index": i, "embedding": v} for i, v in enumerate(vectors)]})
 
 
 class FakePost:
@@ -191,3 +191,29 @@ def test_retry_delay_is_capped(monkeypatch):
     monkeypatch.setattr(voyage_client.random, "random", lambda: 1.0)
 
     assert voyage_client._retry_delay(20, None) == voyage_client.BACKOFF_MAX_SECONDS
+
+
+def test_client_byte_bound_precedes_http(monkeypatch):
+    monkeypatch.setattr(voyage_client.httpx, "post", lambda *a, **k: pytest.fail("HTTP called"))
+    for texts in [["é" * 4501], ["x" * 9000] * 7]:
+        with pytest.raises(ValueError, match="byte policy"):
+            voyage_client.embed(texts, "voyage-4")
+
+
+def test_response_order_and_truncation_flag(monkeypatch):
+    def post(url, **kwargs):
+        assert kwargs["json"]["truncation"] is False
+        return _response(200, json_body={"data": [
+            {"index": 1, "embedding": [2.]}, {"index": 0, "embedding": [1.]}]})
+    monkeypatch.setattr(voyage_client.httpx, "post", post)
+    assert voyage_client.embed(["a", "b"], "voyage-4") == [[1.], [2.]]
+
+
+@pytest.mark.parametrize("indexes", [[0, 0], [0], [1, 2], [True, 0], [None, 1]])
+def test_invalid_response_indexes_fail_without_retry(monkeypatch, indexes):
+    post = FakePost([_response(200, json_body={"data": [
+        {"index": i, "embedding": [1.]} for i in indexes]})])
+    monkeypatch.setattr(voyage_client.httpx, "post", post)
+    with pytest.raises(RuntimeError, match="indexes"):
+        voyage_client.embed(["a", "b"], "voyage-4")
+    assert post.calls == 1

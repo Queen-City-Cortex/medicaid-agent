@@ -1,48 +1,121 @@
-"""Split large text into chunks at paragraph boundaries with overlap."""
+"""Lossless byte-bounded embedding input planning, shared with offline checks."""
 
-MAX_CHUNK_CHARS = 9000  # ~3K tokens, well within voyage-law-2's 16K context
+from dataclasses import dataclass
+import hashlib
+import json
+import re
+from collections.abc import Iterator
+
+EMBEDDING_INPUT_POLICY = "contextual-bytes-v1"
+MAX_INPUT_BYTES = 9000
+MAX_OVERLAP_BYTES = 500
+MAX_BATCH_BYTES = 60_000
+_WHITESPACE = re.compile(rb"[ \t\r\f\v]")
 
 
-def chunk_text(text: str, max_chars: int = MAX_CHUNK_CHARS) -> list[str]:
-    """Split text into chunks at paragraph boundaries with overlap.
+@dataclass(frozen=True)
+class PlannedInput:
+    index: int
+    kind: str
+    text: str
+    body_start: int  # UTF-8 byte offsets, including overlap
+    body_end: int
+    overlap_bytes: int
+    split_kind: str
 
-    - Splits on double newlines (paragraph boundaries)
-    - Accumulates paragraphs until adding the next would exceed max_chars
-    - Overlaps by carrying the last paragraph of the previous chunk into the next
-    - If a single paragraph exceeds max_chars, it is included as its own chunk
+    def fingerprint(self, model: str, dimensions: int) -> str:
+        config = json.dumps(
+            {
+                "policy": EMBEDDING_INPUT_POLICY,
+                "model": model,
+                "dimensions": dimensions,
+                "input_type": "document",
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        return hashlib.sha256(config.encode() + b"\0" + self.text.encode()).hexdigest()
+
+
+def _codepoint_boundary(data: bytes, offset: int) -> int:
+    while 0 < offset < len(data) and data[offset] & 0xC0 == 0x80:
+        offset -= 1
+    return offset
+
+
+def plan_inputs(
+    body: str,
+    context: str = "",
+    *,
+    max_bytes: int = MAX_INPUT_BYTES,
+    overlap_bytes: int = MAX_OVERLAP_BYTES,
+) -> Iterator[PlannedInput]:
+    """Yield exact body slices; context, separators and overlap count toward the cap.
+
+    Reconstruct body bytes by taking each input's slice after the previous end.
+    Work and allocation are linear in body size; no repeated encoding of its tail.
     """
-    paragraphs = text.split("\n\n")
-
-    # Strip empty paragraphs but keep track of content
-    paragraphs = [p for p in paragraphs if p.strip()]
-
-    if not paragraphs:
-        return [text] if text.strip() else []
-
-    chunks: list[str] = []
-    current: list[str] = []
-    current_len: int = 0
-
-    for para in paragraphs:
-        para_len = len(para)
-        # Separator cost: "\n\n" between existing content and new paragraph
-        sep_cost = 2 if current else 0
-        would_be = current_len + sep_cost + para_len
-
-        if current and would_be > max_chars:
-            # Flush current chunk
-            chunks.append("\n\n".join(current))
-            # Overlap: start next chunk with the last paragraph of previous
-            overlap = [current[-1]]
-            current = overlap
-            current_len = len(overlap[0])
-
-        # If even a single paragraph exceeds max_chars, it must still be added
-        sep_cost = 2 if current else 0
-        current.append(para)
-        current_len = current_len + sep_cost + para_len
-
-    if current:
-        chunks.append("\n\n".join(current))
-
-    return chunks
+    if max_bytes < 4 or overlap_bytes < 0:
+        raise ValueError("Invalid embedding byte limits")
+    data = body.encode()
+    if not data:
+        return
+    budget = max_bytes - len(context.encode())
+    if budget < len(body[0].encode()):
+        raise ValueError("Embedding context leaves no room for body text")
+    if len(data) <= budget:
+        yield PlannedInput(0, "section", context + body, 0, len(data), 0, "direct")
+        return
+    overlap_limit = min(overlap_bytes, budget // 2)
+    start = previous_end = index = 0
+    while previous_end < len(data):
+        end = _codepoint_boundary(data, min(len(data), start + budget))
+        if end <= previous_end:
+            start = previous_end  # drop overlap to fit the next codepoint
+            end = _codepoint_boundary(data, min(len(data), start + budget))
+        if end <= previous_end:
+            raise ValueError("Embedding context leaves no room for the next codepoint")
+        split_kind = "codepoint"
+        if end == len(data):
+            split_kind = "end"
+        else:
+            window = data[previous_end:end]
+            for separator, kind in ((b"\n\n", "paragraph"), (b"\n", "newline")):
+                found = window.rfind(separator)
+                if found >= 0:
+                    end = previous_end + found + len(separator)
+                    split_kind = kind
+                    break
+            else:
+                matches = list(_WHITESPACE.finditer(window))
+                if matches:
+                    end = previous_end + matches[-1].end()
+                    split_kind = "whitespace"
+        yield PlannedInput(
+            index,
+            "chunk",
+            context + data[start:end].decode(),
+            start,
+            end,
+            previous_end - start,
+            split_kind,
+        )
+        previous_end = end
+        index += 1
+        start = _codepoint_boundary(data, max(0, end - overlap_limit))
+        # Snap forward, never backward past the overlap bound.
+        while start < end and end - start > overlap_limit:
+            start += 1
+            while start < end and data[start] & 0xC0 == 0x80:
+                start += 1
+        window = data[start:end]
+        found = None
+        for separator in (b"\n\n", b"\n"):
+            pos = window.find(separator)
+            if pos >= 0:
+                found = start + pos + len(separator)
+                break
+        if found is None:
+            match = _WHITESPACE.search(window)
+            found = start + match.end() if match else end
+        start = found

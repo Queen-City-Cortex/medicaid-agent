@@ -26,10 +26,10 @@ def close_driver():
 
 
 @contextmanager
-def get_session():
+def get_session(*, fetch_size: int = 1000):
     """Get a Neo4j session as a context manager."""
     driver = get_driver()
-    session = driver.session(database=NEO4J_DATABASE)
+    session = driver.session(database=NEO4J_DATABASE, fetch_size=fetch_size)
     try:
         yield session
     finally:

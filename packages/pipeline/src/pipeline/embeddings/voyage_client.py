@@ -11,7 +11,8 @@ from typing import Callable
 
 import httpx
 
-from pipeline.config import VOYAGE_API_KEY
+from pipeline.config import VOYAGE_API_KEY, EMBEDDING_DIMENSIONS
+from pipeline.embeddings.chunker import MAX_INPUT_BYTES, MAX_BATCH_BYTES
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +39,7 @@ def _retry_delay(attempt: int, retry_after: str | None) -> float:
         except ValueError:
             pass  # HTTP-date Retry-After — fall back to backoff
 
-    capped = min(BACKOFF_MAX_SECONDS, BACKOFF_BASE_SECONDS * (2 ** attempt))
+    capped = min(BACKOFF_MAX_SECONDS, BACKOFF_BASE_SECONDS * (2**attempt))
     return capped * (0.5 + random.random() / 2)
 
 
@@ -61,13 +62,27 @@ def embed(
     if max_attempts < 1:
         raise ValueError("max_attempts must be >= 1")
 
+    sizes = [len(text.encode()) for text in texts]
+    if (
+        not texts
+        or any(size > MAX_INPUT_BYTES for size in sizes)
+        or sum(sizes) > MAX_BATCH_BYTES
+    ):
+        raise ValueError("Embedding input or batch exceeds byte policy")
+
     last_error: Exception = RuntimeError("unreachable")
     for attempt in range(max_attempts):
         retry_after: str | None = None
         try:
             resp = httpx.post(
                 API_URL,
-                json={"input": texts, "model": model, "input_type": input_type},
+                json={
+                    "input": texts,
+                    "model": model,
+                    "input_type": input_type,
+                    "truncation": False,
+                    "output_dimension": EMBEDDING_DIMENSIONS,
+                },
                 headers={
                     "Authorization": f"Bearer {VOYAGE_API_KEY}",
                     "Content-Type": "application/json",
@@ -75,14 +90,24 @@ def embed(
                 timeout=120,
             )
             resp.raise_for_status()
-            return [d["embedding"] for d in resp.json()["data"]]
+            data = resp.json()["data"]
+            indexes = [d.get("index") for d in data]
+            if (
+                len(data) != len(texts)
+                or any(type(i) is not int for i in indexes)
+                or sorted(indexes) != list(range(len(texts)))
+            ):
+                raise RuntimeError("Voyage returned invalid embedding response indexes")
+            return [d["embedding"] for d in sorted(data, key=lambda d: d["index"])]
         except httpx.TimeoutException as exc:
             last_error = exc
         except httpx.HTTPStatusError as exc:
             if not _is_retryable_status(exc.response.status_code):
                 # 4xx (other than 429) won't get better on retry — surface the
                 # status so a bad key / model name is debuggable, then re-raise.
-                logger.error("voyage embed: non-retryable HTTP %d", exc.response.status_code)
+                logger.error(
+                    "voyage embed: non-retryable HTTP %d", exc.response.status_code
+                )
                 raise
             last_error = exc
             retry_after = exc.response.headers.get("Retry-After")

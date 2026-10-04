@@ -34,6 +34,16 @@ def main():
         if not marker or marker["marker"]["sourceSnapshotHash"] != inputs["sourceSnapshotHash"]:
             raise ValueError("Only the completed matching preparation graph may be inspected")
         preparation.CONTEXT["buildRunId"] = marker["marker"]["runId"]
+    if marker["marker"].get("harnessSha256") != inputs["graphBuildHarnessSha256"]:
+        raise ValueError("Graph differs from the attested retained build")
+    from pipeline.freshness import build_answer_ready_snapshot
+    def check_snapshot():
+        snapshot = build_answer_ready_snapshot(Path("/data/pipeline/parsed"),
+            include_answer_scopes=False, db_path=Path("/data/crawler/crawler.db"))
+        if "sha256:" + snapshot["snapshot_hash"] != inputs["sourceSnapshotHash"]:
+            raise ValueError("Complete corpus snapshot differs from retained build")
+        return snapshot
+    before = check_snapshot()
     catalog = json.loads(Path("/catalog.json").read_text())
     if catalog["catalogHash"] != inputs["catalogHash"]:
         raise ValueError("Catalog differs from pinned preparation inputs")
@@ -71,49 +81,45 @@ def main():
         "usableAsQualificationEvidence": False, "evaluationsRun": False,
     })
 
-    from pipeline.embeddings.chunker import chunk_text, MAX_CHUNK_CHARS
-    totals = {"sections": 0, "embeddingInputs": 0, "inputCharacters": 0, "inputUtf8Bytes": 0,
-              "oversizedInputsByRepositoryTokenHeuristic": 0, "maximumInputCharacters": 0}
-    oversized = []
-    with connection.get_session() as session:
-        rows = session.run("""
-        MATCH (d:Document)-[:HAS_SECTION]->(s:Section) WHERE s.content_length > 0
-        CALL (s) {
-          OPTIONAL MATCH (ancestor:Section)-[:PARENT_OF*]->(s)
-          RETURN collect(DISTINCT ancestor.title) AS ancestors
-        }
-        RETURN d.id AS document_id, d.document_type AS source_family, s.id AS section_id,
-               d.title AS document_title, s.title AS section_title,
-               s.content_length AS content_length, s.content_text AS content, ancestors
-        """)
-        for row in rows:
-            heading = [row["document_title"]] if row["document_title"] else []
-            heading.extend(title for title in row["ancestors"] if title)
-            if row["section_title"]:
-                heading.append(row["section_title"])
-            text = " > ".join(heading) + "\n" + (row["content"] or "")
-            texts = chunk_text(text) if row["content_length"] >= MAX_CHUNK_CHARS else [text]
-            totals["sections"] += 1
-            for index, part in enumerate(texts):
-                totals["embeddingInputs"] += 1
-                totals["inputCharacters"] += len(part)
-                totals["inputUtf8Bytes"] += len(part.encode())
-                totals["maximumInputCharacters"] = max(totals["maximumInputCharacters"], len(part))
-                totals["oversizedInputsByRepositoryTokenHeuristic"] += len(part) // 3 > 32000
-                if len(part) // 3 > 32000:
-                    oversized.append({"sectionId": row["section_id"], "documentId": row["document_id"],
-                                      "sourceFamily": row["source_family"], "inputIndex": index,
-                                      "characters": len(part), "utf8Bytes": len(part.encode())})
+    from pipeline.embeddings.plan_graph import iter_sections
+    from pipeline.embeddings.inspection import measure_embedding_plan
+    volume = measure_embedding_plan(iter_sections())
     preparation.write_receipt("embedding-volume.json", {
-        **totals, "estimatedTokensAtThreeCharactersPerToken": totals["inputCharacters"] / 3,
-        "tokenizerCalled": False, "embeddingsGenerated": False,
-        "scope": "same contextual text and paragraph chunking as embed_all; current preparation graph",
-        "sourceSnapshotHash": inputs["sourceSnapshotHash"], "catalogSectionsHash": stable_hash(catalog["sections"]),
+        **volume, "sourceSnapshotHash": inputs["sourceSnapshotHash"],
+        "catalogSectionsHash": stable_hash(catalog["sections"]),
+        "graphBuildImplementationRevision": inputs["graphBuildImplementationRevision"],
+        "graphDumpSha256": inputs["graphDumpSha256"],
     })
     preparation.write_receipt("oversized-embedding-inputs.json", {
-        "inputs": oversized, "count": len(oversized), "tokenizerCalled": False,
-        "embeddingLimitValidated": False, "heuristic": "characters // 3 > 32000",
+        "inputs": [], "count": 0, "tokenizerCalled": False,
+        "embeddingLimitValidated": False, "bytePolicyValidated": True,
         "embeddingsGenerated": False,
+    })
+    from pipeline.parse_provenance import reconcile_parse_orphans
+    provenance = reconcile_parse_orphans(Path("/data"))
+    with connection.get_session() as session:
+        for item in provenance["orphans"]:
+            if item["disposition"] == "verified_duplicate_excluded":
+                row = session.run("""
+                MATCH (d:Document {document_type:$family, source_url:$url})
+                RETURN count(d) AS documents
+                """, family=item["sourceFamily"], url=item["sourceUrl"]).single()
+                item["canonicalGraphDocuments"] = row["documents"]
+                if row["documents"] != 1:
+                    raise ValueError("Duplicate disposition lacks exactly one canonical graph document")
+    preparation.write_receipt("parse-provenance-reconciliation.json", provenance)
+    if check_snapshot() != before:
+        raise ValueError("Corpus changed during inspection")
+    preparation.write_receipt("inspection-completion.json", {
+        "completeCorpusSnapshotVerified": True, "sourceSnapshotHash": inputs["sourceSnapshotHash"],
+        "bytePolicyPassed": volume["oversizedPlannedInputs"] == 0,
+        "losslessPlanSections": volume["losslessPlanSections"],
+        "catalogIdentitiesMapped": len(normalizer.canonical_to_raw),
+        "catalogIdentitiesExpected": len(normalizer.reference),
+        "provenanceDispositions": {"verifiedDuplicates": provenance["verifiedDuplicates"], "unresolved": provenance["unresolved"]},
+        "blockedNetworkRequests": preparation.BLOCKED_REQUESTS,
+        "embeddingsGenerated": False, "paidEvaluations": "NOT_RUN", "qualification": "NOT_ASSESSED",
+        "promotable": False,
     })
     connection.close_driver()
 

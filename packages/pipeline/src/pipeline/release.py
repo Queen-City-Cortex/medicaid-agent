@@ -297,7 +297,7 @@ def mark_graph_release(
 def inspect_release_graph(expected_dimensions: int) -> dict[str, Any]:
     """Collect identity, source-family, and embedding gate metrics."""
     from pipeline.corpus_manifest import CORPUS_MANIFEST
-    from pipeline.embeddings.chunker import MAX_CHUNK_CHARS
+    from pipeline.embeddings.plan_graph import embedding_coverage
     from pipeline.graph.connection import get_session
 
     required_types = sorted(
@@ -324,37 +324,6 @@ def inspect_release_graph(expected_dimensions: int) -> dict[str, Any]:
             RETURN total, with_id, distinct_ids, source_types
             """
         ).single()
-        coverage_row = session.run(
-            """
-            MATCH (section:Section)
-            WHERE section.content_length > 0
-            OPTIONAL MATCH (section)-[:HAS_CHUNK]->(chunk:Chunk)
-            WITH section, collect(chunk) AS chunks
-            WITH count(section) AS total,
-                 sum(
-                   CASE
-                     WHEN section.content_length < $max_chars
-                       AND section.embedding IS NOT NULL
-                       AND size(section.embedding) = $dimensions
-                     THEN 1
-                     WHEN section.content_length >= $max_chars
-                       AND size(chunks) > 0
-                       AND all(
-                         chunk IN chunks
-                         WHERE chunk.embedding IS NOT NULL
-                           AND size(chunk.embedding) = $dimensions
-                       )
-                     THEN 1
-                     ELSE 0
-                   END
-                 ) AS covered
-            RETURN total, covered
-            """,
-            {
-                "max_chars": MAX_CHUNK_CHARS,
-                "dimensions": expected_dimensions,
-            },
-        ).single()
         invalid_dimensions_row = session.run(
             """
             MATCH (node)
@@ -370,8 +339,9 @@ def inspect_release_graph(expected_dimensions: int) -> dict[str, Any]:
     with_id = int(document_row["with_id"]) if document_row else 0
     distinct_ids = int(document_row["distinct_ids"]) if document_row else 0
     source_types = set(document_row["source_types"] or []) if document_row else set()
-    total_sections = int(coverage_row["total"]) if coverage_row else 0
-    covered_sections = int(coverage_row["covered"]) if coverage_row else 0
+    coverage = embedding_coverage(dimensions=expected_dimensions)
+    total_sections = coverage["total"]
+    covered_sections = coverage["covered"]
     missing_required = sorted(set(required_types) - source_types)
 
     return {
