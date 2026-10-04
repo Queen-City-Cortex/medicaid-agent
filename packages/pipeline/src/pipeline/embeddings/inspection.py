@@ -4,13 +4,13 @@ from collections import Counter
 import hashlib
 import re
 
-from pipeline.config import EMBEDDING_MODEL
+from pipeline.config import EMBEDDING_MODEL, EMBEDDING_DIMENSIONS
 from pipeline.embeddings.planner import plan_inputs, PLAN_VERSION
 from pipeline.embeddings.chunker import MAX_CHUNK_CHARS
 from pipeline.embeddings.tokenizer import count_tokens, CONTEXT_TOKENS, TOKENIZER_SHA256
 
 
-def measure_embedding_plan(sections, model=EMBEDDING_MODEL, *, counter=count_tokens):
+def measure_embedding_plan(sections, model=EMBEDDING_MODEL, *, dimensions=EMBEDDING_DIMENSIONS, counter=count_tokens):
     totals = Counter(
         {
             key: 0
@@ -24,7 +24,7 @@ def measure_embedding_plan(sections, model=EMBEDDING_MODEL, *, counter=count_tok
         }
     )
     families = {}
-    fingerprint = hashlib.sha256()
+    fingerprint = hashlib.sha256(f"{PLAN_VERSION}:{model}:{dimensions}:{TOKENIZER_SHA256}".encode())
     for row in sections:
         body_text = row["body"]
         body = body_text.encode()
@@ -79,7 +79,7 @@ def measure_embedding_plan(sections, model=EMBEDDING_MODEL, *, counter=count_tok
             totals["maximumInputTokens"] = max(totals["maximumInputTokens"], part.tokens)
             previous = part.body_end
             fingerprint.update(
-                f"{row['section_id']}:{index}:".encode()
+                f"{row['section_id']}:{index}:{part.body_start}:{part.body_end}:".encode()
                 + hashlib.sha256(encoded).digest()
             )
         if previous != len(body_text) or rebuilt.digest() != hashlib.sha256(body).digest():
@@ -89,6 +89,8 @@ def measure_embedding_plan(sections, model=EMBEDDING_MODEL, *, counter=count_tok
         **totals,
         "oversizedPlannedInputs": 0,
         "planVersion": PLAN_VERSION,
+        "model": model,
+        "dimensions": dimensions,
         "maximumAllowedInputCharacters": MAX_CHUNK_CHARS,
         "maximumAllowedInputTokens": CONTEXT_TOKENS,
         "planTextFingerprint": fingerprint.hexdigest(),

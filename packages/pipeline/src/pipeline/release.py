@@ -294,13 +294,13 @@ def mark_graph_release(
     return {"releaseId": manifest["releaseId"], "markedAt": marked_at}
 
 
-def inspect_release_graph(expected_dimensions: int) -> dict[str, Any]:
+def inspect_release_graph(expected_dimensions: int, expected_model: str = EMBEDDING_MODEL) -> dict[str, Any]:
     """Collect identity, source-family, and embedding gate metrics."""
     from pipeline.corpus_manifest import CORPUS_MANIFEST
     from pipeline.graph.connection import get_session
     from pipeline.embeddings.plan_graph import embedding_coverage
 
-    coverage_row = embedding_coverage(dimensions=expected_dimensions)
+    coverage_row = embedding_coverage(model=expected_model, dimensions=expected_dimensions)
     required_types = sorted(
         {
             family.source_type

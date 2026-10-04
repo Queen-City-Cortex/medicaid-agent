@@ -254,7 +254,7 @@ def release_validate(
     graph_metrics = record_release_stage(
         manifest,
         "graphValidation",
-        lambda: inspect_release_graph(int(release["embeddingDimensions"])),
+        lambda: inspect_release_graph(int(release["embeddingDimensions"]), release["embeddingModel"]),
     )
 
     retrieval_result: dict = {}

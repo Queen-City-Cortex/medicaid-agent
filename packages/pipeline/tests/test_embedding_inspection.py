@@ -59,3 +59,12 @@ def test_blank_input_diagnostics_preserve_lossless_body():
     assert report["whitespaceOnlyNovelBodyInputs"] == 1
     assert report["emptySections"] == report["whitespaceOnlySections"] == 0
     assert report["losslessPlanSections"] == 1
+
+
+def test_receipt_fingerprint_binds_model_and_dimensions():
+    rows=[{"section_id":"s","source_family":"x","body":"body","heading":"h"}]
+    first=measure_embedding_plan(rows,"voyage-4",dimensions=1024,counter=lambda *_:1)
+    model=measure_embedding_plan(rows,"voyage-4-large",dimensions=1024,counter=lambda *_:1)
+    dims=measure_embedding_plan(rows,"voyage-4",dimensions=512,counter=lambda *_:1)
+    assert first['model']=='voyage-4' and first['dimensions']==1024
+    assert len({r['planTextFingerprint'] for r in [first,model,dims]})==3
