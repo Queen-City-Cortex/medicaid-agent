@@ -30,3 +30,5 @@ The [2026-10-02 cleanup execution](reviews/cleanup-completion-2026-10-02.md) rec
 
 The [October 3 corpus cost audit and usage sample](validation/cost-audit-sample-2026-10-03/README.md) identifies spreadsheet padding and replaces conservative context assumptions with measured diagnostic usage.
 The [October 3 qualification cycle](validation/qualification-cycle-2026-10-03/README.md) records ready PR merges, bounded embedding preparation, the deployed model audit and remaining qualification gates.
+
+The [October 4 Jev integration](validation/jev-integration-2026-10-04/README.md) records source-attested checks and preserved diagnostic evidence with runtime adoption disabled.

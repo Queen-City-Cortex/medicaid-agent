@@ -1,0 +1,22 @@
+{
+  "@nc-medicaid/agent": {
+    "inspected": true,
+    "flags": {
+      "SCOPE_GATE_PROVIDER": null,
+      "JEV_SECTION_ROLES_ENABLED": null,
+      "JEV_SECTION_ROLE_ALLOWLIST": null,
+      "JEV_VALIDATION_LEDGER": null,
+      "JEV_VALIDATION_PRICING": null
+    }
+  },
+  "corpus-job": {
+    "inspected": true,
+    "flags": {
+      "SCOPE_GATE_PROVIDER": null,
+      "JEV_SECTION_ROLES_ENABLED": null,
+      "JEV_SECTION_ROLE_ALLOWLIST": null,
+      "JEV_VALIDATION_LEDGER": null,
+      "JEV_VALIDATION_PRICING": null
+    }
+  }
+}

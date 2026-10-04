@@ -1,0 +1,19 @@
+{
+  "removedContainers": [
+    {
+      "name": "jev-integration-graph",
+      "id": "4032dcef8842833e6438e10d9802c03cec4cf03211d414c2bf6983d211e28ac8"
+    },
+    {
+      "name": "jev-annotation-graph",
+      "id": "4a542f211da5526d2c4d93bea9b3fbe06c895a1a8345d329b3bce9bd6f2bf87a"
+    }
+  ],
+  "removedVolumes": [
+    "5e526ec387ec8342499cd0396d28161d33a0f83ecb0cce7adcb74debfdaa50c6",
+    "025521294dcf144e92d09de1d1736291e7365751a5b01f9471f1849fb1e13455",
+    "4698dd3f980c69a27c121efd098d75bee293c56fdc5c0b740435198f987051ef",
+    "e2b71590a113db89c8056008bdaefa48d792bb843973af3713ffffe4e04ce58f"
+  ],
+  "network": "jev-integration-offline"
+}
