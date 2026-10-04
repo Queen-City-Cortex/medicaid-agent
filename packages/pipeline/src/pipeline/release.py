@@ -284,6 +284,9 @@ def mark_graph_release(
 
     def stamp(tx):
         tx.run(queries.LOCK_CORPUS_MUTATION).consume()
+        existing = tx.run("MATCH (r:CorpusRelease {id: 'current'}) RETURN r.jev_annotation_digest AS digest").single()
+        if existing and existing["digest"] and existing["digest"] != annotation_digest:
+            raise ValueError("Cannot clear or change an annotated release identity")
         if enabled:
             marker = tx.run("MATCH (m:JevAnnotation {id: 'current'}) RETURN m.digest AS digest").single()
             if not marker or marker["digest"] != annotation_digest:

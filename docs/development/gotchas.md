@@ -238,3 +238,5 @@ A scope benchmark can appear fast and harmless when every classifier call fails 
 - Jev-enriched release graphs are immutable: source rewrites invalidate candidate annotation identity and reject stamped annotated releases. Source writes, enrichment and stamping share a transaction lock. Disabled stamping ignores diagnostic annotations; backups carry a label inventory outside the label directory so losing the whole archived directory still fails restoration. This inventory does not detect a directory lost before backup snapshotting.
 
 - Run Linux process-supervision tests in Docker with `--init`. Without an init process, orphaned fixture children can remain zombies and make process-group drain checks time out even after TERM succeeds. CI runs on a normal host with process reaping.
+
+- Backup inventories must describe captured bytes, not live files read again by tar. Snapshot label JSON with its inventory before archiving, and exclude live copies; an enrichment between snapshotting and tar then cannot invalidate the archive. Stamped annotation identity also survives disabled restamp attempts, which are rejected transactionally.

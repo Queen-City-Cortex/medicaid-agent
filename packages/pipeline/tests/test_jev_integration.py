@@ -124,6 +124,14 @@ def test_disabled_release_ignores_diagnostic_annotations(monkeypatch):
         with get_session() as session:
             row = session.run("MATCH (r:CorpusRelease) RETURN r.release_id AS id, r.jev_annotation_digest AS digest").single()
             assert row['id'] == 'disabled' and row['digest'] is None
+            session.run("MATCH (r:CorpusRelease) SET r.jev_annotation_digest='frozen'").consume()
+        with pytest.raises(ValueError, match="annotated release identity"):
+            mark_graph_release({"releaseId": "disabled", "commitSha": "abcdef0", "targetColor": "blue",
+                                "sourceSnapshotHash": "fixture"})
+        with get_session() as session:
+            assert session.run("MATCH (r:CorpusRelease) RETURN r.jev_annotation_digest AS digest").single()['digest'] == 'frozen'
+        with pytest.raises(ValueError, match="annotated release graph"):
+            CorpusGraphWriter().delete_document('missing')
     finally:
         with get_session() as session:
             session.run("MATCH (n) DETACH DELETE n").consume()

@@ -61,7 +61,8 @@ def test_missing_or_changed_label_payload_fails_restore(tmp_path, monkeypatch, m
         backup.inspect_archive(labeled_archive(tmp_path, monkeypatch, **{mutation: True}))
 
 
-def test_real_linux_backup_pipeline_restores_registry_labels_and_live_ledger(tmp_path, monkeypatch):
+@pytest.mark.parametrize("mutate_live", [False, True])
+def test_real_linux_backup_pipeline_restores_registry_labels_and_live_ledger(tmp_path, monkeypatch, mutate_live):
     import os
     import shutil
     import sqlite3
@@ -87,6 +88,12 @@ def test_real_linux_backup_pipeline_restores_registry_labels_and_live_ledger(tmp
     tools.mkdir()
     (tools / 'age').write_text('#!/bin/sh\nwhile [ "$1" != "-o" ]; do shift; done\ncat > "$2"\n')
     (tools / 'rclone').write_text('#!/bin/sh\nif [ "$1" = "copyto" ]; then cp "$2" "$BACKUP_TEST_OUTPUT"; fi\n')
+    if mutate_live:
+        import shlex
+        live_cache = next((corpus / 'pipeline/section-labels/cache').glob('*.json'))
+        # Snapshotting has finished when tar begins; mutate only the live copy.
+        (tools / 'tar').write_text("#!/bin/sh\nprintf '{\"changed\":true}' > " + shlex.quote(str(live_cache)) +
+                                   '\nexec ' + shlex.quote(shutil.which('tar')) + ' "$@"\n')
     for path in tools.iterdir():
         path.chmod(0o755)
     output = tmp_path / 'backup.tar.gz'
@@ -100,6 +107,8 @@ def test_real_linux_backup_pipeline_restores_registry_labels_and_live_ledger(tmp
                        env=env, check=True, capture_output=True, timeout=30)
         with output.open('rb') as stream:
             result = backup.inspect_archive(stream)
+        if mutate_live:
+            assert live_cache.read_text() == '{"changed":true}'
         assert result['sqliteIntegrity'] == 'ok'
         assert result['counts']['sectionLabelArtifacts'] == 2
         with tarfile.open(output, mode='r:gz') as tar:

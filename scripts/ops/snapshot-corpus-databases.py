@@ -18,10 +18,17 @@ def snapshot_databases(root: Path, destination: Path) -> int:
                     source.backup(output)
             count += 1
     labels = root / "pipeline/section-labels"
-    inventory = {"version": 1, "files": {
-        str(path.relative_to(root)): "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
-        for path in sorted(labels.rglob("*.json"))
-    }}
+    # Archive these exact captured bytes, never a later read of the live directory.
+    files = {}
+    for path in sorted(labels.rglob("*.json")):
+        relative = path.relative_to(root)
+        payload = path.read_bytes()
+        target = destination / relative
+        target = target.with_name(target.name + ".sqlite-snapshot")
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(payload)
+        files[str(relative)] = "sha256:" + hashlib.sha256(payload).hexdigest()
+    inventory = {"version": 1, "files": files}
     target = destination / "pipeline/section-labels-backup.json.sqlite-snapshot"
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(json.dumps(inventory, sort_keys=True))
