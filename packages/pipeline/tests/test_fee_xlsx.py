@@ -46,7 +46,8 @@ def test_native_prefix_proof_preserves_alignment_and_values(tmp_path):
     assert proof["baseline_body_sha256"] == hashlib.sha256(original.encode()).hexdigest()
     assert proof["native_populated_cells_sha256"] == proof["emitted_populated_cells_sha256"]
     assert proof["rows"][:3] == [[1, 16383, 6], [2, 16383, 0], [3, 16383, 4]]
-    assert proof["rows"][4:] == [[5, 16383, 8], [6, 16383, 0]]
+    assert proof["rows"][4:] == [[5, 16383, 8]]
+    assert proof["omitted_empty_tail_rows"] == [6, 6, 16383]
     assert proof["formulas"] == [{"cell": "H5", "missing_cache": True}, {"cell": "H6", "missing_cache": True}]
     assert body.startswith(" | Merged |  |  |  | \n | 0 |  | False\n")
     assert "λ | value\tand\nnewline" in body
@@ -170,7 +171,8 @@ def test_vertical_merges_offset_cells_and_nonfee_unchanged(tmp_path):
     compact = converter.parse_supported_file(source, None, "fee_schedule")
     assert untouched["payload"] == baseline["payload"]
     proof = compact["payload"]["cell_preservation"][0]
-    assert proof["rows"] == [[1, 11, 0], [2, 11, 0], [3, 11, 7], [4, 11, 7], [5, 11, 0], [6, 11, 0]]
+    assert proof["rows"] == [[1, 11, 0], [2, 11, 0], [3, 11, 7], [4, 11, 7]]
+    assert proof["omitted_empty_tail_rows"] == [5, 6, 11]
     assert compact["payload"]["synthetic_sections"][0]["content_text"].startswith(" |  | Offset header")
 
 
@@ -204,3 +206,48 @@ def test_merged_span_outside_original_dimensions_fails_explicitly(tmp_path):
             archive.writestr(name, data)
     with pytest.raises(ValueError, match="Protected cell lies outside"):
         converter.parse_xlsx(source, "fee_schedule")
+
+
+def test_million_styled_empty_rows_proven_as_range(tmp_path):
+    source = tmp_path / "empty-tail.xlsx"
+    book = Workbook()
+    sheet = book.active
+    sheet["A1"] = "Rate"
+    sheet["B2"] = 0
+    sheet["G1048337"].number_format = "0.00"
+    book.save(source)
+    book.close()
+    parsed = converter.parse_xlsx(source, "fee_schedule")
+    proof = parsed["payload"]["cell_preservation"][0]
+    assert proof["rows"] == [[1, 7, 1], [2, 7, 2]]
+    assert proof["omitted_empty_tail_rows"] == [3, 1048337, 7]
+    baseline = "Rate" + " | " * 6 + "\n | 0" + " | " * 5
+    assert proof["baseline_body_sha256"] == hashlib.sha256(baseline.encode()).hexdigest()
+    assert len(json.dumps(proof)) < 1500
+
+
+def test_enclosing_row_controls_cached_cell_and_formula_positions(tmp_path):
+    source = tmp_path / "row-mismatch.xlsx"
+    book = Workbook()
+    sheet = book.active
+    sheet["A1"] = "Header"
+    sheet["A3"] = "Retain row-three value"
+    sheet["C3"] = "=1+2"
+    sheet["C5"].number_format = "0.00"
+    book.save(source)
+    with ZipFile(source) as archive:
+        entries = {name: archive.read(name) for name in archive.namelist()}
+    data = entries["xl/worksheets/sheet1.xml"]
+    data = data.replace(b'<c r="A3"', b'<c r="A2"').replace(b'<c r="C3"', b'<c r="C2"')
+    entries["xl/worksheets/sheet1.xml"] = data
+    with ZipFile(source, "w") as archive:
+        for name, data in entries.items():
+            archive.writestr(name, data)
+    baseline = converter.parse_xlsx(source)
+    candidate = converter.parse_xlsx(source, "fee_schedule")
+    proof = candidate["payload"]["cell_preservation"][0]
+    assert proof["last_cached_value_row"] == 3
+    assert proof["formulas"] == [{"cell": "C3", "missing_cache": True, "xml_cell": "C2"}]
+    assert proof["rows"] == [[1, 3, 1], [2, 3, 0], [3, 3, 3]]
+    assert proof["baseline_body_sha256"] == hashlib.sha256(baseline["payload"]["synthetic_sections"][0]["content_text"].encode()).hexdigest()
+    assert "Retain row-three value" in candidate["payload"]["synthetic_sections"][0]["content_text"]

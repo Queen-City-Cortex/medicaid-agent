@@ -175,6 +175,8 @@ def seal_staging(output):
         pending = archive / ("crawler/crawler.db" + suffix)
         if pending.exists() and pending.stat().st_size:
             raise ValueError("Registry has pending journal")
+    from pipeline.parse.fee_xlsx import native_layout
+    from pipeline.parse.converter import _render_synthetic_markdown, PARSE_CACHE_VERSION
     native_proofs = {item["source"]: item for item in json.loads((output / "native-proofs.json").read_text())}
     originals = {item["artifact"]: item for item in inventory["artifacts"]}
     for variant in ("baseline", "candidate"):
@@ -194,6 +196,20 @@ def seal_staging(output):
                 proof = native_proofs[item["source"]]
                 if proof["source_sha256"] != item["source_sha256"] or payload.get("representation") != inventory["representation"] or payload.get("cell_preservation") != proof["sheets"]:
                     raise ValueError("Candidate differs from completed native proof")
+                current_layout = native_layout(source)
+                for sheet in proof["sheets"]:
+                    if any(sheet.get(key) != value for key, value in current_layout[sheet["sheet"]].items()):
+                        raise ValueError("Native layout differs from current representation proof")
+                baseline_payload = json.loads((archive / "pipeline/parsed/fee-schedules" / item["artifact"]).read_text())
+                if [{k:v for k,v in section.items() if k != "content_text"} for section in baseline_payload["synthetic_sections"]] != [{k:v for k,v in section.items() if k != "content_text"} for section in payload["synthetic_sections"]]:
+                    raise ValueError("Candidate sheet metadata differs from baseline")
+                if path.with_suffix(".md").read_text() != _render_synthetic_markdown(payload["synthetic_sections"]):
+                    raise ValueError("Candidate Markdown differs from proven payload")
+                meta = json.loads(path.with_suffix(".meta.json").read_text())
+                if meta.get("representation") != inventory["representation"] or meta.get("parse_cache_version") != PARSE_CACHE_VERSION or meta.get("source_file_hash") != "sha256:" + item["source_sha256"] or not meta.get("answer_ready") or meta.get("parse_status") != "parsed":
+                    raise ValueError("Candidate sidecar does not match proven representation")
+                if any(meta.get("artifacts", {}).get(name, {}).get("sha256") != "sha256:" + digest(path.with_suffix(suffix)) for name,suffix in (("json", ".json"), ("markdown", ".md"))):
+                    raise ValueError("Candidate sidecar artifact hashes are invalid")
                 emitted = [sheet for sheet in proof["sheets"] if sheet["candidate_utf8_bytes"]]
                 if len(emitted) != len(payload["synthetic_sections"]):
                     raise ValueError("Candidate sheet set changed")

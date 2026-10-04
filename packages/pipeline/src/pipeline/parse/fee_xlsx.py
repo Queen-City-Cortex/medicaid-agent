@@ -30,6 +30,7 @@ def native_layout(source: Path) -> dict:
             target = targets[sheet.attrib[f"{REL}id"]]
             path = target.lstrip("/") if target.startswith("/") else posixpath.normpath(posixpath.join("xl", target))
             formulas, merges = [], []
+            last_cached_value_row = 0
             row_index, column_index = 0, 0
             with archive.open(path) as stream:
                 for event, element in ET.iterparse(stream, events=("start", "end")):
@@ -41,17 +42,22 @@ def native_layout(source: Path) -> dict:
                     if element.tag == f"{MAIN}c":
                         cell = element.attrib.get("r")
                         column_index = coordinate_to_tuple(cell)[1] if cell else column_index + 1
-                        cell = cell or f"{get_column_letter(column_index)}{row_index}"
+                        raw_cell = cell
+                        cell = f"{get_column_letter(column_index)}{row_index}"
+                        cached_value = element.find(f"{MAIN}v")
+                        inline_value = element.find(f"{MAIN}is")
+                        if (cached_value is not None and cached_value.text is not None) or inline_value is not None:
+                            last_cached_value_row = max(last_cached_value_row, row_index)
                         if element.find(f"{MAIN}f") is not None:
                             cached = element.find(f"{MAIN}v")
-                            formulas.append({"cell": cell, "missing_cache": cached is None or cached.text is None})
+                            formulas.append({"cell": cell, "missing_cache": cached is None or cached.text is None, **({"xml_cell": raw_cell} if raw_cell and raw_cell != cell else {})})
                         element.clear()
                     elif element.tag == f"{MAIN}mergeCell":
                         merges.append(element.attrib["ref"])
                         element.clear()
                     elif element.tag == f"{MAIN}row":
                         element.clear()
-            layouts[sheet.attrib["name"]] = {"formulas": formulas, "merged_ranges": merges}
+            layouts[sheet.attrib["name"]] = {"formulas": formulas, "merged_ranges": merges, "last_cached_value_row": last_cached_value_row}
     return layouts
 
 
@@ -65,7 +71,11 @@ def render_sheet(sheet, layout: dict) -> tuple[str, dict]:
     original_hash, original_cells, emitted_cells = (hashlib.sha256() for _ in range(3))
     rows, widths = [], []
     original_bytes = 0
-    for row_index, row in enumerate(sheet.iter_rows(values_only=True), 1):
+    native_last_row = layout["last_cached_value_row"]
+    original_max_row, original_max_column = sheet.max_row, sheet.max_column
+    rendered_last_row = min(original_max_row or native_last_row, native_last_row)
+    rows_to_read = sheet.iter_rows(values_only=True, max_row=rendered_last_row) if rendered_last_row else []
+    for row_index, row in enumerate(rows_to_read, 1):
         values = [str(value).strip() if value is not None else "" for value in row]
         if not any(values):
             widths.append([row_index, len(values), 0])
@@ -100,7 +110,8 @@ def render_sheet(sheet, layout: dict) -> tuple[str, dict]:
     # Cached values retain the existing openpyxl conversion, including dates/booleans.
     native_cells = hashlib.sha256()
     sheet.reset_dimensions()
-    for row_index, row in enumerate(sheet.iter_rows(values_only=True), 1):
+    native_rows = sheet.iter_rows(values_only=True, max_row=native_last_row) if native_last_row else []
+    for row_index, row in enumerate(native_rows, 1):
         for column, value in enumerate(row, 1):
             normalized = str(value).strip() if value is not None else ""
             if normalized:
@@ -111,7 +122,8 @@ def render_sheet(sheet, layout: dict) -> tuple[str, dict]:
         raise ValueError("Populated native cell records changed")
     body = "\n".join(rows)
     return body, {
-        **layout, "rows": widths, "baseline_body_sha256": original_hash.hexdigest(),
+        **layout, "rows": widths,
+        "omitted_empty_tail_rows": [rendered_last_row + 1, original_max_row, original_max_column] if original_max_row and original_max_row > rendered_last_row else None, "baseline_body_sha256": original_hash.hexdigest(),
         "baseline_utf8_bytes": original_bytes, "candidate_utf8_bytes": len(body.encode()),
         "candidate_body_sha256": hashlib.sha256(body.encode()).hexdigest(),
         "native_populated_cells_sha256": native_cells.hexdigest(),
