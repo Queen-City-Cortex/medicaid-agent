@@ -234,3 +234,5 @@ A scope benchmark can appear fast and harmless when every classifier call fails 
 - Git worktrees do not inherit ignored `.env` files. Inspect the original checkout before reporting missing credentials; never print their values.
 
 - Jev integration preserves main’s bounded whole-graph identity reader; older source-filtered readers and tests must not replace it. SQLite backup helpers use escaped file URIs so `#`, `?` and spaces in campaign paths do not change which database is read.
+
+- Jev-enriched release graphs are immutable: source rewrites invalidate candidate annotation identity and reject stamped annotated releases. Source writes, enrichment and stamping share a transaction lock. Disabled stamping ignores diagnostic annotations; backups carry a label inventory outside the label directory so losing the whole archived directory still fails restoration. This inventory does not detect a directory lost before backup snapshotting.

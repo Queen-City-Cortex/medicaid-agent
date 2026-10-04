@@ -273,19 +273,24 @@ def mark_graph_release(
     """Stamp the target graph so readiness verifies the graph, not only env."""
     from pipeline.graph.connection import get_session
 
+    from pipeline.graph import queries
+
+    enabled = os.environ.get("JEV_SECTION_ROLES_ENABLED") == "true"
     stage = (manifest.get("stageResults") or {}).get("jevSections") or {}
-    annotation_digest = (stage.get("result") or {}).get("digest")
-    with get_session() as session:
-        marker = session.run("MATCH (m:JevAnnotation {id: 'current'}) RETURN m.digest AS digest").single()
-    live_digest = marker["digest"] if marker else None
-    if live_digest != annotation_digest:
-        raise ValueError("Release stage and live Jev annotation identity mismatch; record enrichment before stamping")
-    if annotation_digest:
-        from pipeline.jev.sections import validate_graph_labels
-        validate_graph_labels(annotation_digest)
+    annotation_digest = (stage.get("result") or {}).get("digest") if enabled else None
+    if enabled and not annotation_digest:
+        raise ValueError("Release stage and live Jev annotation identity mismatch; enrichment required")
     marked_at = format_timestamp(utc_now())
-    with get_session() as session:
-        session.run(
+
+    def stamp(tx):
+        tx.run(queries.LOCK_CORPUS_MUTATION).consume()
+        if enabled:
+            marker = tx.run("MATCH (m:JevAnnotation {id: 'current'}) RETURN m.digest AS digest").single()
+            if not marker or marker["digest"] != annotation_digest:
+                raise ValueError("Release stage and live Jev annotation identity mismatch; record enrichment before stamping")
+            from pipeline.jev.sections import validate_graph_labels
+            validate_graph_labels(annotation_digest)
+        tx.run(
             """
             MERGE (release:CorpusRelease {id: 'current'})
             SET release.release_id = $release_id,
@@ -306,6 +311,9 @@ def mark_graph_release(
                 "jev_annotation_digest": annotation_digest,
             },
         )
+    with get_session() as session:
+        session.execute_write(stamp)
+
     return {"releaseId": manifest["releaseId"], "markedAt": marked_at}
 
 

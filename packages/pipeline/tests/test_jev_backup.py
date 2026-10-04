@@ -1,4 +1,5 @@
 """Restoration validates complete Jev manifests, caches, and SQLite snapshots."""
+import hashlib
 import io
 import json
 import tarfile
@@ -10,7 +11,7 @@ from pipeline.jev.client import canonical, MODEL
 from pipeline.jev.sections import label_sections
 
 
-def labeled_archive(tmp_path, monkeypatch, *, omit_cache=False, tamper=False):
+def labeled_archive(tmp_path, monkeypatch, *, omit_cache=False, tamper=False, omit_labels=False):
     from pipeline.jev import sections
     def inference(state, spec, ledger):
         return {"response": {"model": MODEL, "answers": {k: {"type": "noul", "noul": .95} for k in spec},
@@ -23,7 +24,13 @@ def labeled_archive(tmp_path, monkeypatch, *, omit_cache=False, tamper=False):
     with tarfile.open(fileobj=source, mode="r:gz") as tar:
         for member in tar:
             files[member.name] = tar.extractfile(member).read()
+    files["pipeline/section-labels-backup.json"] = json.dumps({"version": 1, "files": {
+        "pipeline/section-labels/" + str(path.relative_to(root)): "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+        for path in root.rglob("*.json")
+    }}).encode()
     for path in root.rglob("*.json"):
+        if omit_labels:
+            continue
         if omit_cache and path.parent.name == "cache":
             continue
         data = path.read_bytes()
@@ -48,7 +55,7 @@ def test_restored_labels_validate_cache_manifest_and_probabilities(tmp_path, mon
     assert result["counts"]["sectionLabelArtifacts"] == 2
 
 
-@pytest.mark.parametrize("mutation", ["omit_cache", "tamper"])
+@pytest.mark.parametrize("mutation", ["omit_cache", "tamper", "omit_labels"])
 def test_missing_or_changed_label_payload_fails_restore(tmp_path, monkeypatch, mutation):
     with pytest.raises((ValueError, FileNotFoundError)):
         backup.inspect_archive(labeled_archive(tmp_path, monkeypatch, **{mutation: True}))

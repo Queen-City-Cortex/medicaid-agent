@@ -139,6 +139,7 @@ def test_annotation_write_transaction_refuses_frozen_or_changed_input():
     class Result:
         def __init__(self, count): self.count = count
         def single(self): return {"count": self.count}
+        def consume(self): return None
     class Session:
         def __init__(self, frozen, matched): self.frozen, self.matched, self.committed, self.rolled_back = frozen, matched, False, False
         def run(self, query, params=None): return Result(self.frozen if "CorpusRelease" in query else self.matched)

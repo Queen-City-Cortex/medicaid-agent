@@ -188,3 +188,8 @@ UNWIND $doc_ids AS doc_id
 MATCH (d:Document {id: doc_id})
 SET d.status = $status
 """
+
+# Serialize source rewrites, enrichment and release stamping on one graph.
+LOCK_CORPUS_MUTATION = "MERGE (lock:CorpusMutationLock {id: 'current'}) SET lock.sequence = coalesce(lock.sequence, 0) + 1"
+CHECK_ANNOTATED_RELEASE = "MATCH (r:CorpusRelease {id: 'current'}) WHERE r.jev_annotation_digest IS NOT NULL RETURN r.release_id AS release_id"
+INVALIDATE_JEV_ANNOTATION = "MATCH (m:JevAnnotation {id: 'current'}) REMOVE m.digest"

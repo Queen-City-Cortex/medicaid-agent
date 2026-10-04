@@ -76,6 +76,7 @@ class CorpusGraphWriter:
         document = bundle.document
 
         def _work(tx: ManagedTransaction) -> None:
+            self._prepare_source_mutation(tx)
             tx.run(queries.MERGE_DOCUMENT, {
                 "id": document.id,
                 "title": document.title,
@@ -110,6 +111,7 @@ class CorpusGraphWriter:
     def write_section_roles(self, annotations: list[dict], manifest_digest: str) -> None:
         """Atomically annotate exact current inputs, only on an unfrozen candidate."""
         def _work(tx: ManagedTransaction) -> None:
+            tx.run(queries.LOCK_CORPUS_MUTATION).consume()
             frozen = tx.run("MATCH (r:CorpusRelease {id: 'current'}) RETURN count(r) AS count").single()
             if frozen["count"]:
                 raise ValueError("Cannot annotate a stamped release graph")
@@ -137,10 +139,18 @@ class CorpusGraphWriter:
         """Remove a source document and all retrievable descendants."""
 
         def _work(tx: ManagedTransaction) -> None:
+            self._prepare_source_mutation(tx)
             tx.run(queries.DELETE_DOCUMENT, {"doc_id": document_id})
 
         with self._session_factory() as session:
             self._execute_write(session, _work, "delete_document")
+
+    @staticmethod
+    def _prepare_source_mutation(tx: ManagedTransaction) -> None:
+        tx.run(queries.LOCK_CORPUS_MUTATION)
+        if any(tx.run(queries.CHECK_ANNOTATED_RELEASE)):
+            raise ValueError("Cannot mutate an annotated release graph")
+        tx.run(queries.INVALIDATE_JEV_ANNOTATION)
 
     def merge_reference_edges(self, edges: list[ReferenceEdge]) -> int:
         if not edges:

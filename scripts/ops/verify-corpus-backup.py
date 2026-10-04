@@ -133,6 +133,8 @@ def inspect_archive(stream, *, include_history=False):
     hashes, metas = {}, {}
     proofs, journals = {}, []
     label_members = 0
+    label_inventory = None
+    has_label_inventory = False
     counts = {"sourceFiles": 0, "parsedFiles": 0}
     byte_count = 0
     with tempfile.TemporaryDirectory(prefix="corpus-restore-db-") as temporary:
@@ -154,7 +156,7 @@ def inspect_archive(stream, *, include_history=False):
                 )
                 is_evidence = member.name.startswith(("pipeline/source-audit-evidence/", "pipeline/source-retirement-evidence/"))
                 is_label = member.name.startswith("pipeline/section-labels/") and member.name.endswith(".json")
-                keep = is_label or is_meta or is_evidence or member.name in [
+                keep = member.name == "pipeline/section-labels-backup.json" or is_label or is_meta or is_evidence or member.name in [
                     "crawler/crawler.db",
                     "crawler/crawler.db-wal",
                     "crawler/crawler.db-shm",
@@ -178,7 +180,10 @@ def inspect_archive(stream, *, include_history=False):
                         counts[key] += 1
                 if keep:
                     data = b"".join(content)
-                    if is_meta:
+                    if member.name == "pipeline/section-labels-backup.json":
+                        has_label_inventory = True
+                        label_inventory = json.loads(data)
+                    elif is_meta:
                         metas[member.name] = json.loads(data)
                     elif is_proof:
                         proofs[member.name] = json.loads(data)
@@ -195,6 +200,14 @@ def inspect_archive(stream, *, include_history=False):
                         target.write_bytes(data)
                     else:
                         (Path(temporary) / Path(member.name).name).write_bytes(data)
+        if has_label_inventory:
+            if not isinstance(label_inventory, dict) or label_inventory.get("version") != 1 or not isinstance(label_inventory.get("files"), dict):
+                raise ValueError("Invalid backup label inventory")
+            expected = label_inventory["files"]
+            actual = {name: value for name, value in hashes.items()
+                      if name.startswith("pipeline/section-labels/") and name.endswith(".json")}
+            if expected != actual:
+                raise ValueError("Backup label inventory mismatch: missing or changed artifacts")
         if label_members:
             from pipeline.jev.artifacts import validate_cache, validate_label_manifest
             label_root = Path(temporary) / "pipeline/section-labels"
