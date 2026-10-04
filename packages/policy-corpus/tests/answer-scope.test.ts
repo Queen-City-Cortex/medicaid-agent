@@ -10,6 +10,7 @@ const scope = (question: string) => resolveCoverageScope(question, today);
 describe('bounded answer scope', () => {
   it.each([
     ['What were the original 2025 MAGI income limits?', '2025-04-01', 'MA-3321-1.pdf'],
+    ['What were the original 2025 MAGI income limits in the PDF MA-3321-1.pdf?', '2025-04-01', 'MA-3321-1.pdf'],
     ['What MAGI income table applies in October 2026?', '2026-10-01', 'MA-3321-MAGI-Income-2.pdf'],
     ['What were the original 2025 MAGI income limits in June 2025?', '2025-06-01', 'MA-3321-1.pdf'],
     ['What MAGI income table applies in June 2025?', '2025-06-01', 'MA-3321-1.pdf'],
@@ -51,6 +52,7 @@ describe('bounded answer scope', () => {
     ['Could you provide the official Gujarati DHB-5097 form and translation services?', 'gujarati-dhb-5097'],
     ['What language-access rights apply, and interpret the exact wording of my Gujarati DHB-5097 notice?', 'gujarati-dhb-5097'],
     ['What authority does the pharmacist standing order for OTC COVID-19 tests grant?', 'covid-standing-order'],
+    ['Was the original order allowing distribution of OTC COVID home tests rescinded?', 'covid-standing-order'],
     ['Was the pharmacist COVID standing order withdrawn?', 'covid-standing-order'],
     ['Quote the Gujarati DHB-5097 and explain what I should do next.', 'gujarati-dhb-5097'],
     ['Did Medicaid pay pharmacists for OTC COVID tests and authorize dispensing them?', 'covid-standing-order'],
@@ -72,6 +74,7 @@ describe('bounded answer scope', () => {
     expect(scope('I received a DHB-5097 in Gujarati; what should I do?')?.notice).toBeNull();
     expect(scope('I received a DHB-5097 in Gujarati and cannot read it; what should I do?')?.notice).toBeNull();
     expect(scope('What documents do I need to show when I respond to my Gujarati DHB-5097?')?.notice).toBeNull();
+    expect(scope('How should I respond to my Gujarati DHB-5097 before the deadline?')?.notice).toBeNull();
     expect(scope('How should I respond to my Gujarati DHB-5097?')?.notice).toBeNull();
     expect(scope('Does HCWD impose an earned income cap?')).toBeNull();
     expect(scope('What language access rights apply to Gujarati speakers?')).toBeNull();
