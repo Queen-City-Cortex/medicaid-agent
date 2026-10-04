@@ -25,13 +25,14 @@ TARGET = "qualification-preparation-neo4j"
 TARGETS = {TARGET, "qualification-cycle-neo4j"}
 ALLOWED_ENV = {
     "NEO4J_URI", "NEO4J_USER", "NEO4J_PASSWORD", "NEO4J_DATABASE", "CORPUS_DATA_ROOT",
-    "EMBEDDING_TOKENIZER_DIR", "MASTRA_OBSERVABILITY_PATH", "AGENT_MODEL", "VERIFIER_MODEL", "VERIFIER_ENABLED",
+    "RAYON_NUM_THREADS", "EMBEDDING_TOKENIZER_DIR", "MASTRA_OBSERVABILITY_PATH", "AGENT_MODEL", "VERIFIER_MODEL", "VERIFIER_ENABLED",
     "PATH", "NODE_VERSION", "YARN_VERSION", "PYTHONDONTWRITEBYTECODE",
     "PYTHONUNBUFFERED", "UV_PROJECT_ENVIRONMENT", "HOSTNAME", "HOME", "LANG", "LC_CTYPE", "PWD",
 }
 CONTEXT = {"runId": str(uuid.uuid4()), "startedAt": datetime.now(timezone.utc).isoformat(),
            "harnessSha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
            "implementationRevision": None}
+OUTPUT_ROOT = Path("/output")
 BLOCKED_REQUESTS = {"sockets": 0, "http": 0}
 
 
@@ -100,8 +101,20 @@ def digest(path):
         return hashlib.file_digest(stream, "sha256").hexdigest()
 
 
+def output_directory(base, audit_only):
+    if not audit_only:
+        return base
+    directory = base / ("audit-" + CONTEXT["runId"])
+    directory.mkdir(mode=0o700, exist_ok=False)
+    return directory
+
+
 def write_receipt(name, value):
-    path = Path("/output") / name
+    path = OUTPUT_ROOT / name
+    if path.exists():
+        previous = json.loads(path.read_text())
+        if previous.get("preparationContext", {}).get("runId") != CONTEXT["runId"]:
+            raise FileExistsError("Refusing to replace another preparation run's receipt")
     temporary = path.with_suffix(".tmp")
     temporary.write_text(json.dumps({**value, "preparationContext": CONTEXT}, indent=2, sort_keys=True) + "\n")
     temporary.chmod(0o600)
@@ -109,6 +122,8 @@ def write_receipt(name, value):
 
 
 def run(audit_only=False):
+    global OUTPUT_ROOT
+    OUTPUT_ROOT = output_directory(Path("/output"), audit_only)
     mounts = [line.split() for line in Path("/proc/mounts").read_text().splitlines()]
     validate_environment(os.environ, mounts)
     CONTEXT["mode"] = "audit-only" if audit_only else "build"
@@ -117,7 +132,7 @@ def run(audit_only=False):
     expected = json.loads(Path("/inputs.json").read_text())
     CONTEXT["implementationRevision"] = expected["implementationRevision"]
     CONTEXT["inputsSha256"] = digest(Path("/inputs.json"))
-    if not audit_only and any((Path("/output") / name).exists() for name in
+    if not audit_only and any((OUTPUT_ROOT / name).exists() for name in
                               ("completion.json", "failure.json", "graph-audit.json", "build-stages.json")):
         raise ValueError("A build requires a fresh receipt directory")
     documents_root = Path(expected["originalDocumentsRoot"])
@@ -229,7 +244,7 @@ def run(audit_only=False):
     if catalog["catalogHash"] != expected["catalogHash"]:
         raise ValueError("Canonical evidence catalog changed")
     write_receipt("evidence-identity-catalog.json", catalog)
-    os.environ["EVAL_IDENTITY_CATALOG"] = "/output/evidence-identity-catalog.json"
+    os.environ["EVAL_IDENTITY_CATALOG"] = str(OUTPUT_ROOT / "evidence-identity-catalog.json")
     from pipeline.evaluation_evidence import evaluation_fingerprint
     write_receipt("evaluation-fingerprint.json", {"fingerprint": evaluation_fingerprint(), "evaluationsRun": False})
 
@@ -254,7 +269,7 @@ def run(audit_only=False):
         from pipeline.embeddings.indexer import ensure_vector_index
         from pipeline.graph.schema_version import write_schema_version
         from pipeline.references import resolver
-        resolver.PARSED_DATA_DIR = Path("/output/parsed")
+        resolver.PARSED_DATA_DIR = (OUTPUT_ROOT / "parsed")
         from pipeline.references.amendments import detect_amendments
         from pipeline.concepts.seed import seed_concepts
         from pipeline.concepts.linker import link_concepts
@@ -275,17 +290,17 @@ def run(audit_only=False):
                                                     "qualificationRequiresFreshFederalInputsAndRebuild": True})
 
     from pipeline import audit
-    audit.AUDIT_DATA_DIR = Path("/output")
+    audit.AUDIT_DATA_DIR = OUTPUT_ROOT
     report = audit.run_corpus_audit(
-        json_output_path=Path("/output/corpus-audit.json"),
-        markdown_output_path=Path("/output/corpus-audit.md"),
+        json_output_path=OUTPUT_ROOT / "corpus-audit.json",
+        markdown_output_path=OUTPUT_ROOT / "corpus-audit.md",
     )["report"]
     from pipeline.release import inspect_release_graph, build_release_audit_results
     metrics = inspect_release_graph(config.EMBEDDING_DIMENSIONS)
     gates = build_release_audit_results(report, metrics)
     structural_passed = not (report.get("graph_error") or gates["duplicateIdentities"]
                              or gates["missingAnswerReadyLoads"] or gates["missingRequiredSourceFamilies"])
-    write_receipt("graph-audit.json", {
+    write_receipt("audit-graph.json" if audit_only else "graph-audit.json", {
         "metrics": metrics, "gates": gates, "structuralCompleteness": "PASS" if structural_passed else "FAIL",
         "federalInputsFresh": False, "staleFederalSources": expected["federalCacheOriginalTimes"],
         "graphBuiltWithPreparationAdapter": True, "usableAsQualificationEvidence": False,
@@ -295,8 +310,9 @@ def run(audit_only=False):
     after = build_answer_ready_snapshot()
     if "sha256:" + after["snapshot_hash"] != "sha256:" + snapshot["snapshot_hash"]:
         raise ValueError("Read-only corpus changed during preparation")
-    write_receipt("completion.json", {
-        "harnessRanToEnd": True, "structuralCompleteness": "PASS" if structural_passed else "FAIL",
+    write_receipt("audit-completion.json" if audit_only else "completion.json", {
+        "harnessRanToEnd": True, "buildExecuted": not audit_only,
+        "auditedBuildRunId": marker["marker"].get("runId") if audit_only else None, "structuralCompleteness": "PASS" if structural_passed else "FAIL",
         "sourceSnapshotHash": "sha256:" + after["snapshot_hash"],
         "corpusChanged": False, "paidQualificationCalls": "prevented by network and credential guards", "promotable": False,
         "federalInputsFresh": False, "blockedRequests": BLOCKED_REQUESTS,

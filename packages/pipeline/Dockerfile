@@ -4,7 +4,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     UV_PROJECT_ENVIRONMENT=/app/packages/pipeline/.venv \
     CORPUS_DATA_ROOT=/data \
-    EMBEDDING_TOKENIZER_DIR=/opt/nc-medicaid-tokenizers
+    EMBEDDING_TOKENIZER_DIR=/opt/nc-medicaid-tokenizers \
+    RAYON_NUM_THREADS=4
 
 ARG TARGETARCH
 ARG RAILWAY_CLI_VERSION=5.17.0

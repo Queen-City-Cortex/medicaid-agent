@@ -58,7 +58,7 @@ def main():
               "inputUtf8Bytes": 0, "localTokens": 0, "maximumInputCharacters": 0,
               "maximumInputTokens": 0}
     plans = hashlib.sha256()
-    for sid, heading, body in iter_section_contexts():
+    for sid, heading, body, _epoch in iter_section_contexts():
         planned = list(plan_inputs(heading, body, "voyage-4"))
         plans.update((sid + ":" + plan_hash(planned, "voyage-4", 1024)).encode())
         totals["sections"] += 1

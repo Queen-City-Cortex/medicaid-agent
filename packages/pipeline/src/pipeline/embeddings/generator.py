@@ -40,7 +40,7 @@ def iter_section_contexts(section_ids=None):
                 WITH sid,s,collect(DISTINCT ancestor.title) AS ancestor_titles
                 MATCH (d:Document)-[:HAS_SECTION]->(s)
                 RETURN sid,d.title AS doc_title,s.title AS sec_title,
-                       s.content_text AS content,ancestor_titles
+                       s.content_text AS content,ancestor_titles,s.embedding_source_epoch AS source_epoch
                 ORDER BY sid
             """, {"section_ids": ids})
             for row in records:
@@ -48,7 +48,7 @@ def iter_section_contexts(section_ids=None):
                 chain.extend(t for t in row["ancestor_titles"] or [] if t)
                 if row["sec_title"]:
                     chain.append(row["sec_title"])
-                yield row["sid"], " > ".join(chain), row["content"] or ""
+                yield row["sid"], " > ".join(chain), row["content"] or "", row.get("source_epoch")
 
 
 def _flush_batch(
@@ -92,12 +92,18 @@ def _flush_batch(
                         ) if node_kind == kind
                     ]
                     for batch in chunked(rows, EMBED_WRITE_BATCH_SIZE):
+                        owner_match = "WITH n AS owner,n,row" if kind == "section" else "MATCH (owner:Section)-[:HAS_CHUNK]->(n) WITH owner,n,row"
                         result = tx.run(f"""
                             UNWIND $rows AS row MATCH (n:{label} {{id:row.id}})
-                            SET n.embedding_write_lock = true
-                            WITH n,row WHERE n.embedding_plan_hash=row.plan
+                            {owner_match}
+                            SET owner.embedding_write_lock = true
+                            WITH owner,n,row WHERE n.embedding_plan_hash=row.plan
+                              AND owner.embedding_plan_hash=row.plan
+                              AND owner.embedding_source_epoch IS NOT NULL
+                              AND owner.embedding_plan_source_epoch=owner.embedding_source_epoch
+                              AND n.embedding_plan_source_epoch=owner.embedding_source_epoch
                             SET n.embedding=row.embedding
-                            REMOVE n.embedding_write_lock
+                            REMOVE owner.embedding_write_lock
                             RETURN count(n) AS written
                         """, rows=batch).single()
                         if not result or result["written"] != len(batch):
@@ -118,13 +124,16 @@ def validate_embedding_coverage() -> tuple[int, int]:
             OPTIONAL MATCH (s)-[:HAS_CHUNK]->(ch:Chunk)
             WITH s,collect(ch) AS chunks
             WITH count(s) AS total,
-                 sum(CASE WHEN s.embedding_plan_hash IS NOT NULL AND
+                 sum(CASE WHEN s.embedding_plan_hash IS NOT NULL
+                    AND s.embedding_source_epoch IS NOT NULL
+                    AND s.embedding_plan_source_epoch=s.embedding_source_epoch AND
                     ((s.embedding IS NOT NULL AND size(s.embedding)=$dimensions
                       AND s.embedding_input_count = 1 AND size(chunks)=0)
                      OR (s.embedding IS NULL AND s.embedding_input_count = size(chunks)
                          AND size(chunks)>0 AND all(ch IN chunks WHERE ch.embedding IS NOT NULL
                              AND size(ch.embedding)=$dimensions
-                             AND ch.embedding_plan_hash=s.embedding_plan_hash)))
+                             AND ch.embedding_plan_hash=s.embedding_plan_hash
+                             AND ch.embedding_plan_source_epoch=s.embedding_source_epoch)))
                     THEN 1 ELSE 0 END) AS covered
             RETURN total,covered
         """, {"dimensions": EMBEDDING_DIMENSIONS}).single()
@@ -135,7 +144,7 @@ def validate_embedding_coverage() -> tuple[int, int]:
     return total, covered
 
 
-def persist_plan(section_id, inputs, digest):
+def persist_plan(section_id, inputs, digest, source_epoch):
     """Invalidate changed inputs atomically; unchanged pending plans can resume."""
     rows = [{"id":f"{section_id}:chunk:{i}","chunk_index":i,
              "content_text":item.text,"content_length":len(item.text),
@@ -143,30 +152,33 @@ def persist_plan(section_id, inputs, digest):
              "input_hash":item.input_hash} for i,item in enumerate(inputs)]
     with get_session() as session:
         def reconcile(tx):
-            current = tx.run("MATCH (s:Section {id:$sid}) SET s.embedding_write_lock=true RETURN s.embedding_plan_hash AS hash",
+            current = tx.run("MATCH (s:Section {id:$sid}) SET s.embedding_write_lock=true RETURN s.embedding_plan_hash AS hash,s.embedding_source_epoch AS source_epoch",
                              sid=section_id).single()
             if not current:
                 raise ValueError("Embedding section disappeared: " + section_id)
+            if not source_epoch or current["source_epoch"] != source_epoch:
+                raise ValueError("Embedding source changed after preflight: " + section_id)
             changed = current["hash"] != digest
             if not changed and len(inputs)>1:
                 existing = list(tx.run("""MATCH (:Section {id:$sid})-[:HAS_CHUNK]->(ch:Chunk)
                     RETURN ch.id AS id,ch.input_hash AS input_hash,
-                           ch.embedding_plan_hash AS plan ORDER BY ch.chunk_index""", sid=section_id))
+                           ch.embedding_plan_hash AS plan,ch.embedding_plan_source_epoch AS epoch ORDER BY ch.chunk_index""", sid=section_id))
                 changed = len(existing) != len(rows) or any(
                     actual["id"] != expected["id"] or actual["input_hash"] != expected["input_hash"]
-                    or actual["plan"] != digest for actual,expected in zip(existing, rows)
+                    or actual["plan"] != digest or actual["epoch"] != source_epoch for actual,expected in zip(existing, rows)
                 )
             if changed:
                 tx.run("""MATCH (s:Section {id:$sid})
                     OPTIONAL MATCH (s)-[:HAS_CHUNK]->(ch:Chunk)
                     DETACH DELETE ch
-                    SET s.embedding=NULL,s.embedding_plan_hash=$hash,s.embedding_input_count=$count
-                """,sid=section_id,hash=digest,count=len(inputs)).consume()
+                    SET s.embedding=NULL,s.embedding_plan_hash=$hash,s.embedding_input_count=$count,
+                        s.embedding_plan_source_epoch=$epoch
+                """,sid=section_id,hash=digest,count=len(inputs),epoch=source_epoch).consume()
                 if len(inputs)>1:
                     tx.run("""MATCH (s:Section {id:$sid}) UNWIND $rows AS row
-                        CREATE (ch:Chunk) SET ch=row,ch.section_id=$sid,ch.embedding_plan_hash=$hash
+                        CREATE (ch:Chunk) SET ch=row,ch.section_id=$sid,ch.embedding_plan_hash=$hash,ch.embedding_plan_source_epoch=$epoch
                         CREATE (s)-[:HAS_CHUNK]->(ch)
-                    """,sid=section_id,rows=rows,hash=digest).consume()
+                    """,sid=section_id,rows=rows,hash=digest,epoch=source_epoch).consume()
             if len(inputs)==1:
                 result=tx.run("MATCH (s:Section {id:$sid}) WHERE s.embedding IS NULL RETURN s.id AS id",sid=section_id)
             else:
@@ -186,11 +198,13 @@ def embed_all(model: str | None = None) -> dict:
     stats = {"embedded":0,"errors":0,"chunks_created":0}
     # Complete pure validation precedes all mutations and provider calls.
     expected = {}
-    for sid, heading, body in iter_section_contexts():
+    for sid, heading, body, epoch in iter_section_contexts():
+        if not epoch:
+            raise ValueError("Reload unversioned embedding source before generation: " + sid)
         inputs = list(plan_inputs(heading, body, model))
         if not inputs:
             raise ValueError("Nonempty section has no embedding inputs: " + sid)
-        expected[sid] = plan_hash(inputs, model, EMBEDDING_DIMENSIONS)
+        expected[sid] = (plan_hash(inputs, model, EMBEDDING_DIMENSIONS), epoch)
     ids, texts, kinds, plans = [], [], [], []
     token_total = 0
 
@@ -203,7 +217,7 @@ def embed_all(model: str | None = None) -> dict:
         plans.clear()
         token_total=0
 
-    for sid,heading,body in iter_section_contexts():
+    for sid,heading,body,epoch in iter_section_contexts():
         try:
             inputs=list(plan_inputs(heading,body,model))
         except ValueError as error:
@@ -211,9 +225,9 @@ def embed_all(model: str | None = None) -> dict:
         if not inputs:
             raise ValueError("Nonempty section has no embedding inputs: " + sid)
         digest=plan_hash(inputs,model,EMBEDDING_DIMENSIONS)
-        if expected.pop(sid, None) != digest:
+        if expected.pop(sid, None) != (digest,epoch):
             raise ValueError("Embedding source changed after preflight: " + sid)
-        pending, created = persist_plan(sid,inputs,digest)
+        pending, created = persist_plan(sid,inputs,digest,epoch)
         stats["chunks_created"] += created
         for i,item in enumerate(inputs):
             item_id=sid if len(inputs)==1 else f"{sid}:chunk:{i}"

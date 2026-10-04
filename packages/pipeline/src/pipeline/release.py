@@ -333,11 +333,15 @@ def inspect_release_graph(expected_dimensions: int) -> dict[str, Any]:
                  sum(
                    CASE
                      WHEN section.embedding_plan_hash IS NOT NULL
+                       AND section.embedding_source_epoch IS NOT NULL
+                       AND section.embedding_plan_source_epoch = section.embedding_source_epoch
                        AND section.embedding_input_count = 1 AND size(chunks) = 0
                        AND section.embedding IS NOT NULL
                        AND size(section.embedding) = $dimensions
                      THEN 1
                      WHEN section.embedding_plan_hash IS NOT NULL
+                       AND section.embedding_source_epoch IS NOT NULL
+                       AND section.embedding_plan_source_epoch = section.embedding_source_epoch
                        AND section.embedding IS NULL
                        AND section.embedding_input_count = size(chunks)
                        AND size(chunks) > 0
@@ -346,6 +350,7 @@ def inspect_release_graph(expected_dimensions: int) -> dict[str, Any]:
                          WHERE chunk.embedding IS NOT NULL
                            AND size(chunk.embedding) = $dimensions
                            AND chunk.embedding_plan_hash = section.embedding_plan_hash
+                           AND chunk.embedding_plan_source_epoch = section.embedding_source_epoch
                        )
                      THEN 1
                      ELSE 0

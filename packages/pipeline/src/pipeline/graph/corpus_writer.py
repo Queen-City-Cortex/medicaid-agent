@@ -36,6 +36,7 @@ from pipeline.graph.corpus_types import (
     SupersessionEdge,
 )
 from pipeline.utils.batching import chunked
+from pipeline.embeddings.source_epoch import document_source_epoch
 
 logger = logging.getLogger(__name__)
 
@@ -101,7 +102,7 @@ class CorpusGraphWriter:
                 "source_checked_at": normalize_source_timestamp(document.source_checked_at),
                 "source_changed_at": normalize_source_timestamp(document.source_changed_at),
             })
-            self._write_sections(tx, bundle.sections, document.id)
+            self._write_sections(tx, bundle.sections, document.id, document_source_epoch(bundle))
 
         with self._session_factory() as session:
             self._execute_write(session, _work, "upsert_document_bundle")
@@ -222,7 +223,7 @@ class CorpusGraphWriter:
 
         return len(links)
 
-    def _write_sections(self, tx: ManagedTransaction, sections: list, doc_id: str) -> None:
+    def _write_sections(self, tx: ManagedTransaction, sections: list, doc_id: str, source_epoch: str) -> None:
         section_rows = [
             {
                 "id": section.id,
@@ -262,7 +263,7 @@ class CorpusGraphWriter:
         self._cleanup_document_sections(tx, doc_id, section_ids, changed_section_ids)
 
         for batch in chunked(section_rows, GRAPH_BATCH_SIZE):
-            tx.run(queries.MERGE_SECTIONS_BATCH, {"sections": batch})
+            tx.run(queries.MERGE_SECTIONS_BATCH, {"sections": batch, "source_epoch": source_epoch})
 
         for batch in chunked(section_ids, GRAPH_BATCH_SIZE):
             tx.run(queries.MERGE_HAS_SECTION_BATCH, {"doc_id": doc_id, "section_ids": batch})
@@ -297,9 +298,9 @@ class CorpusGraphWriter:
         )
         tx.run(queries.CLEAR_DOCUMENT_SECTION_STRUCTURE, {"doc_id": doc_id})
 
-        # Only sections whose content actually changed lose their embedding and
-        # chunks — unchanged sections keep them, so re-running the loader never
-        # forces a full corpus re-embed.
+        # Remove obsolete chunks on body changes. MERGE_SECTIONS_BATCH also
+        # invalidates every plan in a changed document revision, including
+        # descendant headings; identical document revisions retain vectors.
         for batch in chunked(changed_section_ids, GRAPH_BATCH_SIZE):
             tx.run(
                 queries.CLEAR_SECTION_CHUNKS_AND_EMBEDDINGS_BATCH,

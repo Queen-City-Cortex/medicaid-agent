@@ -201,8 +201,8 @@ def test_delete_document_removes_the_document_through_one_transaction():
     assert session.commits == 1
 
 
-def test_upsert_document_bundle_keeps_embeddings_for_unchanged_sections():
-    # Both sections already exist with identical content — nothing gets cleared.
+def test_upsert_document_bundle_does_not_delete_chunks_for_unchanged_bodies():
+    # Identical bodies need no chunk deletion; source-version preservation is tested with real Neo4j.
     session = FakeSession(existing_sections={
         "sec:1": "Intro text",
         "sec:2": "Child text",
@@ -216,8 +216,8 @@ def test_upsert_document_bundle_keeps_embeddings_for_unchanged_sections():
     assert queries.MERGE_SECTIONS_BATCH in queries_run
 
 
-def test_upsert_document_bundle_clears_embeddings_only_for_changed_sections():
-    # sec:1 content changed, sec:2 is identical — only sec:1 gets cleared.
+def test_upsert_document_bundle_deletes_obsolete_chunks_for_changed_bodies():
+    # Body change removes obsolete chunks; document-wide context versions also invalidate plans.
     session = FakeSession(existing_sections={
         "sec:1": "Old intro text",
         "sec:2": "Child text",

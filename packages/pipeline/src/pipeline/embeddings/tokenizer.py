@@ -58,11 +58,22 @@ def local_tokenizer(model):
     return tokenizer
 
 
-def count_tokens(text, model, input_type="document"):
+def _prompt(input_type):
     if input_type not in {"document", "query", None}:
         raise ValueError("Unsupported embedding input type")
-    prompt = DOCUMENT_PROMPT if input_type == "document" else QUERY_PROMPT if input_type == "query" else ""
-    return len(local_tokenizer(model).encode(prompt + text, add_special_tokens=True).ids)
+    return DOCUMENT_PROMPT if input_type == "document" else QUERY_PROMPT if input_type == "query" else ""
+
+
+def count_tokens(text, model, input_type="document"):
+    return len(local_tokenizer(model).encode(_prompt(input_type) + text, add_special_tokens=True).ids)
+
+
+def count_token_batch(texts, model, input_type="document"):
+    """Bounded callers can tokenize inputs concurrently without provider access."""
+    prefix = _prompt(input_type)
+    return [len(item.ids) for item in local_tokenizer(model).encode_batch(
+        [prefix + text for text in texts], add_special_tokens=True,
+    )]
 
 
 if __name__ == "__main__":

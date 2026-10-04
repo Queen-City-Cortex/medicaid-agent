@@ -6,6 +6,7 @@ import tempfile
 from unittest.mock import patch
 import socket
 import urllib.request
+import json
 
 spec = importlib.util.spec_from_file_location("preparation", Path(__file__).parents[1] / "prepare-qualification.py")
 preparation = importlib.util.module_from_spec(spec)
@@ -62,6 +63,22 @@ class PreparationGuardTests(unittest.TestCase):
                 allowed_connect.assert_called_once()
             with self.assertRaises(RuntimeError):
                 urllib.request.urlopen("https://api.openai.com/v1/responses")
+
+    def test_audit_receipts_preserve_original_build_files(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            original=json.dumps({"preparationContext":{"runId":"original"},"buildExecuted":True})
+            (root/"completion.json").write_text(original)
+            (root/"corpus-audit.md").write_text("Original build audit")
+            output=preparation.output_directory(root, True)
+            with patch.object(preparation,"OUTPUT_ROOT",output):
+                preparation.write_receipt("audit-completion.json",{"buildExecuted":False})
+            self.assertEqual((root/"completion.json").read_text(),original)
+            self.assertEqual((root/"corpus-audit.md").read_text(),"Original build audit")
+            self.assertFalse(json.loads((output/"audit-completion.json").read_text())["buildExecuted"])
+            with patch.object(preparation,"OUTPUT_ROOT",root), self.assertRaises(FileExistsError):
+                preparation.write_receipt("completion.json",{"buildExecuted":False})
+            self.assertEqual((root/"completion.json").read_text(),original)
 
     def test_hot_registry_is_rejected(self):
         with tempfile.TemporaryDirectory() as directory:

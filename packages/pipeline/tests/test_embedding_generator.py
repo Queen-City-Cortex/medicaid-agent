@@ -61,7 +61,7 @@ def test_build_embedding_texts_batches_section_reads(monkeypatch):
     )
     monkeypatch.setattr(generator, "get_session", session_factory(session))
 
-    texts = {sid: heading + "\n" + body for sid,heading,body in generator.iter_section_contexts(["sec:1", "sec:2"])}
+    texts = {sid: heading + "\n" + body for sid,heading,body,_epoch in generator.iter_section_contexts(["sec:1", "sec:2"])}
 
     assert texts == {
         "sec:1": "Manual > Coverage > Eligibility\nMust qualify.",
@@ -158,7 +158,7 @@ def test_flush_batch_rejects_changed_plan_or_missing_target(monkeypatch):
 
 def test_full_preflight_rejects_later_invalid_heading_before_writes_or_provider(monkeypatch):
     monkeypatch.setattr(generator, "VOYAGE_API_KEY", "fake")
-    monkeypatch.setattr(generator, "iter_section_contexts", lambda: iter([("ok","h","body"),("bad","x"*9000,"body")]))
+    monkeypatch.setattr(generator, "iter_section_contexts", lambda: iter([("ok","h","body","revision-1"),("bad","x"*9000,"body","revision-1")]))
     original = generator.plan_inputs
     monkeypatch.setattr(generator, "plan_inputs", lambda heading,body,model: original(heading,body,model,counter=lambda *_: 1))
     monkeypatch.setattr(generator, "persist_plan", lambda *_: pytest.fail("Graph mutated"))
