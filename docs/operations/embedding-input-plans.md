@@ -25,3 +25,5 @@ The earlier [byte-planner repair receipts](../validation/embedding-repair-2026-1
 ## Verification
 
 Run Ruff, Vulture, pipeline tests and isolation guards. Embedding persistence/topology tests require an **empty disposable graph**, `RUN_EMBEDDING_INTEGRATION=1`, and mocked Voyage. CI provisions a separate service for these tests; general integration tests use `RUN_NEO4J_INTEGRATION=1` on another service. Never aim tests at corpus or production graphs.
+
+The [October 4 integration report](../validation/fee-integration-2026-10-04/README.md) records the reconciled branch ancestry, source-attested Linux tests, preservation and cleanup.

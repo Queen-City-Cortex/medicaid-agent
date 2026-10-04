@@ -1,0 +1,12 @@
+{
+  "containersRemoved": [
+    "fee-integration-tests"
+  ],
+  "volumesRemoved": [
+    "a645d531b032fd9033261f6e7af771176df6c4e1db9cadb0fb5a0ceea8cd4c9a",
+    "2c80dd2d48131ab92cb2147cd2021e5ddbd9da2eae2a6e75bc4b7f211a13d4c5"
+  ],
+  "networkRemoved": "fee-integration-offline",
+  "developerGraphPreserved": true,
+  "completedUtc": "2026-10-04T05:13:57.962008+00:00"
+}
