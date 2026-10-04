@@ -16,5 +16,12 @@
   "late-annotation-tests.log": "3aabbf2312d20e65edf1ee23d3e9d03022e6835432cf58fdefaacdee8bfa6999",
   "late-final-ops-init-tests.log": "ed3f759f200f9f26720e6efc88b2200c9369a6a2244b3c065d73f90c684ecef5",
   "late-final-ops-tests.log": "f55244b9267f193ce23da4a8ae190d772f16decead86667c33c8ff86c2ba73aa",
-  "opus-late-review.md": "db6b2b7fa830f7d1ca7ac5cdfaade1ef7a2a1131373cae606054848867853b00"
+  "opus-late-review.md": "db6b2b7fa830f7d1ca7ac5cdfaade1ef7a2a1131373cae606054848867853b00",
+  "final-fix-build.log": "8b38dd59cf1bad789ad6f920a3e62f47f912058e1dd113554e9b519cdffa3481",
+  "final-fix-backup-tests.log": "09dc22fa55124a3a4b5909b3301f6281d5583cdad71bef557c8b6b07d9cdd9e3",
+  "final-fix-annotation-tests.log": "4efdeedf2fac08b303b469a764b9a742cec7b8c5d792574be0cb24d8cd4b3ab7",
+  "final-fix-full-linux-tests.log": "4017ee5ae418fd69d4c0113a3b8daef370400a5f82b4370d5a309e26dd5653f1",
+  "opus-final-review.md": "34e396f9f00b739fa3416bec8fca541555178d2fedaadd7be8c00a6e7fd8e5bf",
+  "final-ci-docker-build.log": "cf2b918896a1073886c9028e8af7d6ff4c7a4129ec6ddb9a4ead998b36a57b28",
+  "premerge-runtime-flags.json": "d1b4086e82c6566cf0fa24b69d3cecf22d34f54f12587030a14ae2071daeaa91"
 }

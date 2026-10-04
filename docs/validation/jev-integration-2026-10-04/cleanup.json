@@ -19,6 +19,10 @@
     {
       "name": "jev-embedding-graph",
       "id": "2af95c2ef903c10a6c283c18201be89659c65072f1c888fa851191f5279f5d18"
+    },
+    {
+      "name": "jev-annotation-final-graph",
+      "id": "d34d533b376a584f12b11d7f3130ab1f059bc99367723c396cb89557b9fdb7b4"
     }
   ],
   "removedVolumes": [
@@ -31,7 +35,9 @@
     "080c6d03eff11849896936c3dbeadcef83d8c8f349328940fa30ecbd64bd681d",
     "14aa03ebda4aa77b54e8e0310b573e979c1db337b53ce602360078c4d7513171",
     "08bb8f39d973f6e2a44b1b7741b978db9d85017d32f107f9be980582297e90ce",
-    "05e461cf6ffa3adac673c1ad2cd821bdcd239cb1da0a5817e7cbb80eafb65054"
+    "05e461cf6ffa3adac673c1ad2cd821bdcd239cb1da0a5817e7cbb80eafb65054",
+    "1e04536271bb3075e714626ba492585ff0ef72a9227ca30772e06f8dbec844c5",
+    "fceb3175885bf85ed3c1ffbd253055e4fa94fe08064104e3bfa311e519a6a5a5"
   ],
   "network": "jev-integration-offline"
 }
