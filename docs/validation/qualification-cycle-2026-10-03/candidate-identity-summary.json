@@ -10,5 +10,7 @@
   "restoredGraph": true,
   "oldFederalInputs": true,
   "freshCandidateBuilt": false,
-  "readerCodeUnchanged": true
+  "readerCodeUnchanged": true,
+  "measurementRevision": "700ba6a020b71e4f3ca567d057b6afabec92ae46",
+  "repeatedCompleteMappingHashStable": true
 }

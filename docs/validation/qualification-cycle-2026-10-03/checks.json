@@ -1,0 +1,39 @@
+{
+  "implementationRevision": "700ba6a020b71e4f3ca567d057b6afabec92ae46",
+  "localPipeline": {
+    "passed": 623,
+    "skipped": 8,
+    "ruff": "PASS",
+    "vulture": "PASS"
+  },
+  "linuxDisposableNeo4j": {
+    "passed": 631,
+    "skipped": 0,
+    "providerCalls": "mocked"
+  },
+  "isolationGuards": {
+    "passed": 10,
+    "subtestsPassed": 17
+  },
+  "earlierCi": {
+    "head": "a5bf22c67483702bf6909930e87a3506f08bff77",
+    "runId": 37165429871,
+    "result": "PASS_ALL_TECHNICAL_JOBS"
+  },
+  "currentCi": {
+    "head": "700ba6a020b71e4f3ca567d057b6afabec92ae46",
+    "runId": 37167144790,
+    "url": "https://github.com/Queen-City-Cortex/medicaid-agent/actions/runs/37167144790",
+    "result": "PASS_ALL_TECHNICAL_JOBS",
+    "claudeReview": "PASS",
+    "greptileReview": "PASS"
+  },
+  "failedAttemptsRetained": [
+    "Local npm install: ENOSPC; only its newly-created partial node_modules removed",
+    "Docker interrupted token measurement and Linux suite: EOF; engine recovered after clients ended",
+    "Frozen identity oracle run on the large restored corpus: heap exhaustion; corrected to disposable fixture",
+    "Initial isolation fixture inherited CI localhost: rejected by target guard; explicit target fixed",
+    "Initial new regression collection syntax error: corrected before successful final runs"
+  ],
+  "paidGenerationCalls": 0
+}

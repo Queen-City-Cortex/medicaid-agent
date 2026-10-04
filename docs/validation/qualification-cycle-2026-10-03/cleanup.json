@@ -1,0 +1,17 @@
+{
+  "checkedAt": "2026-10-04T01:20:07.442267+00:00",
+  "removedOwnedContainerIds": [
+    "28ad72efbb19cb12fc4345a2a40191b6503c54d40db3f98290fd071b5e9553cb",
+    "7c033a6a9acfe90125691cecf0c0d4de715fe676f00bd7c876e43e6ec209d62f"
+  ],
+  "removedOwnedVolumes": [
+    "qualification-cycle-restored-20261003",
+    "qualification-cycle-test-20261003"
+  ],
+  "removedOwnedNetwork": "qualification-cycle-internal-20261003",
+  "otherDockerResourcesTouchedByCleanup": false,
+  "originalDevelopmentContainerRunning": true,
+  "originalDumpPreserved": true,
+  "rootPendingPreserved": true,
+  "otherWorktreePreserved": true
+}

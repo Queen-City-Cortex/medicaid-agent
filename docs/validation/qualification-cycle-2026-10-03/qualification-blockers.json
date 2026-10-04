@@ -1,11 +1,11 @@
 {
   "decision": "NO_GO",
-  "checkedAt": "2026-10-04T00:24:24.002536+00:00",
+  "checkedAt": "2026-10-04T01:19:40.088495+00:00",
   "paidGenerationCalls": 0,
   "sourceRefresh": "FAILED_CONTENT_VALIDATION_BOTH_STATUTES",
   "anthropicCatalogAccess": "HTTP_401_BOTH_SERVICES",
-  "embeddingVolume": "INCOMPLETE_DOCKER_ENGINE_UNRESPONSIVE",
-  "linuxFinalSuite": "NOT_COMPLETED_LOCAL_ENGINE_UNRESPONSIVE",
+  "embeddingVolume": "COMPLETE_ARCHIVED_SNAPSHOT_DIAGNOSTIC",
+  "linuxFinalSuite": "PASS_631_EMPTY_DISPOSABLE_NEO4J",
   "freshSourcePreparation": "NOT_RUN_SOURCE_GATE_FAILED",
   "newScopeApprovalAndRestore": "NOT_RUN",
   "paidQualification": "NOT_RUN",
@@ -14,5 +14,8 @@
   "agencyOutreach": "NOT_RUN",
   "legacyReleaseRetained": true,
   "rootPendingPreserved": true,
-  "otherEmbeddingWorktreePreserved": true
+  "otherEmbeddingWorktreePreserved": true,
+  "exactImplementationCi": "PASS_ALL_JOBS_700ba6a",
+  "overlappingDraft": "204_RECONCILIATION_REQUIRED",
+  "approvedSpendUsd": 0
 }

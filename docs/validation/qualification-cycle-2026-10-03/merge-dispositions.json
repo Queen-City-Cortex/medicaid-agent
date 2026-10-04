@@ -38,6 +38,7 @@
     "181": "Failed technical CI",
     "184": "Failed technical CI",
     "113": "Parser qualification gates pending",
-    "114": "Chart qualification gates pending"
+    "114": "Chart qualification gates pending",
+    "204": "New independent draft; overlapping embedding implementation and additional parse provenance work require reconciliation with #199 before merge"
   }
 }

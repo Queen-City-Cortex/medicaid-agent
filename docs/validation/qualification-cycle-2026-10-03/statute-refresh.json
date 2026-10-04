@@ -1,13 +1,13 @@
 {
-  "checkedAt": "2026-10-04T00:09:12.421780+00:00",
+  "checkedAt": "2026-10-04T01:10:42.955541+00:00",
   "priorCachesModified": false,
   "sources": [
     {
       "title": 19,
       "url": "https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title42-chapter7-subchapter19&edition=prelim",
       "status": 200,
-      "bytes": 14617,
-      "sha256": "72f420d8974b4f5e758e7d8159ffa6ebba66ae0163b2e7cd7500447a18f98bf7",
+      "bytes": 14616,
+      "sha256": "683443b8f9360080c503efa5ce5ff7741e698693f9178afa1f735f893ff53b92",
       "substantiveContentValid": false,
       "errorType": "ValueError",
       "error": "USC subchapter 19 response lacks required statutory text: 1902, 1905, 1915"
@@ -17,7 +17,7 @@
       "url": "https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title42-chapter7-subchapter21&edition=prelim",
       "status": 200,
       "bytes": 14615,
-      "sha256": "271f1c20a14b77f5becd893b04046b67204e3f52154864fcd32eb2250c9c1888",
+      "sha256": "e860d2df8d8700f0c849ac251213e7e55345b75611624297a4f94dd4134a0f68",
       "substantiveContentValid": false,
       "errorType": "ValueError",
       "error": "USC subchapter 21 response lacks required statutory text: 2101, 2103, 2110"

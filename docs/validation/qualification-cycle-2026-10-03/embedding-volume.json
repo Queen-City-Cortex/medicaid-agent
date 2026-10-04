@@ -1,0 +1,28 @@
+{
+  "billingUsageMeasured": false,
+  "catalogSectionsHash": "acfeb98a087ba3875e338f27b194216596e2566237517bed5a3df65e4f3f536e",
+  "embeddingInputs": 390241,
+  "embeddingsGenerated": false,
+  "inputCharacters": 3051192188,
+  "inputUtf8Bytes": 3051581382,
+  "localTokens": 1919469387,
+  "maximumInputCharacters": 9000,
+  "maximumInputTokens": 8847,
+  "planVersion": 2,
+  "preparationContext": {
+    "buildRunId": "9157932e-5655-41f2-aa35-3f399c8bc279",
+    "harnessSha256": "d7380104b698424a7959c5d411cdcbbe49e389f3d18cbbe32a9d9450819ca602",
+    "implementationRevision": "700ba6a020b71e4f3ca567d057b6afabec92ae46",
+    "inputsSha256": "3247b7f48e8c7dcfec1b8dd6e9f4b5ef2ed3d078142331795c9f4728431d27c0",
+    "inspectorSha256": "ff3b3231eb8a4923162194198c4b038d8aed3cd10d2dcefe2009b8f48497e9c7",
+    "mode": "read-only-inspection",
+    "runId": "d94dc760-95ed-41f0-819a-ea49cc5b402f",
+    "startedAt": "2026-10-04T01:09:53.112799+00:00"
+  },
+  "scope": "shared contextual reader and planner; entire restored preparation graph",
+  "sections": 59415,
+  "sourceSnapshotHash": "sha256:fec98be8ff62e91817645f908bc52accb4655d8235288761ccd16a575d42fc26",
+  "tokenizerCalled": true,
+  "tokenizerSha256": "c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539",
+  "wholeGraphPlanHash": "c07ca74f6b07bc2ce84b2a7b3a67c0c5a958e02c0230914875b2ad63ac51f0b5"
+}
