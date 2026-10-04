@@ -41,6 +41,8 @@ def main():
     from pipeline.source_lifecycle import stable_hash
     os.environ["EVAL_IDENTITY_CATALOG"] = "/catalog.json"
     normalizer = load_normalizer()
+    if normalizer.catalog_hash != inputs["catalogHash"]:
+        raise ValueError("Catalog section content differs from sealed identity hash")
     missing = sorted(set(normalizer.reference) - normalizer.canonical_to_raw.keys())
     preparation.write_receipt("candidate-identity-mapping.json", {
         "catalogHash": catalog["catalogHash"], "mappingHash": normalizer.mapping_hash,
