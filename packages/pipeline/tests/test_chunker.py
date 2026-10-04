@@ -43,6 +43,12 @@ def test_direct_includes_heading_in_budget():
         ("First\n\n" + "é😀中 " * 400) * 20,
         " \n\t" * 9000,
     ],
+    ids=[
+        "giant-unbroken-paragraph",
+        "many-words",
+        "unicode-paragraphs",
+        "whitespace-only",
+    ],
 )
 def test_outliers_are_lossless_and_bounded(body):
     assert_plan(body, "Manual > Section\n")

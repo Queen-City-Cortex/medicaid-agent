@@ -23,3 +23,5 @@ Paid qualification still needs current valid statute/federal/source inputs, reco
 ## Verification
 
 [Checks](checks.json): Linux pipeline 645 passed, 17 skipped; dedicated empty Neo4j graph 13 passed with mocked provider calls; Ruff and Vulture passed; isolation guards 7 tests and 17 subtests passed; operations tests 16 Node tests and eight shell scenarios passed. Three Orca/Opus reviews found no P1; the final review's blank-work, module coverage and registry-bracketing findings were addressed. Paid-plan approval remains a later campaign prerequisite. Original Jev HEAD, status and all 72 pending-file hashes are unchanged. Private receipts and logs are retained with restricted permissions; earlier receipts remain untouched.
+
+The subsequent complete Linux suite with general Neo4j enabled passes 649 tests (13 dedicated embedding tests skipped and run separately). Verbose output originally printed the 38 MB parameter as a test ID; a follow-up changes only display IDs to keep CI logs bounded. The frozen source and inspection receipts remain at their recorded implementation revision.

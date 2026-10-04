@@ -48,5 +48,15 @@
   "pairedInspectionRevisions": [
     "67d43f794e320ffce259e78c02adff670ff66a06",
     "8c20cc1"
-  ]
+  ],
+  "fullLinuxPipelineWithGeneralNeo4j": {
+    "passed": 649,
+    "skipped": 13,
+    "seconds": 31.19
+  },
+  "generalNeo4jTestFiles": {
+    "passed": 15,
+    "seconds": 4.27
+  },
+  "fixtureDisplayIdFollowup": "Short explicit IDs prevent the 38 MB parameter being printed by verbose CI; 12 chunker tests still pass with unchanged assertions."
 }
