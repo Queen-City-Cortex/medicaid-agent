@@ -164,3 +164,30 @@ describe('scoreCoverageSections — behavior', () => {
     expect(target.supportScore - other.supportScore).toBeCloseTo(0, 10);
   });
 });
+
+// Jev only adds a bounded signal to final frame scores, never to hybrid hits.
+it('caps independent matching roles at +1 and leaves disabled scores identical', async () => {
+  const { SECTION_ROLES, ROLE_SPEC_HASH } = await import('../../../src/jev/section-roles.js');
+  const plain = makeSection({ id: 'plain', content: 'medical necessity coverage' });
+  const labeled = { ...plain, sectionRoles: {
+    model: 'jev-1.13.0' as const, specHash: ROLE_SPEC_HASH, inputHash: 'input',
+    probabilities: Object.fromEntries(SECTION_ROLES.map(r => [r, 1])) as Record<typeof SECTION_ROLES[number], number>,
+  } };
+  const original = process.env.JEV_SECTION_ROLES_ENABLED;
+  const originalRoles = process.env.JEV_SECTION_ROLE_ALLOWLIST;
+  process.env.JEV_SECTION_ROLE_ALLOWLIST = SECTION_ROLES.join(',');
+  try {
+    process.env.JEV_SECTION_ROLES_ENABLED = 'false';
+    const base = scoreOne(plain);
+    expect(scoreOne(labeled).primaryScore).toBe(base.primaryScore);
+    expect(scoreOne(labeled).supportScore).toBe(base.supportScore);
+    process.env.JEV_SECTION_ROLES_ENABLED = 'true';
+    expect(scoreOne(labeled).primaryScore).toBe(base.primaryScore + 1);
+    expect(scoreOne(labeled).supportScore).toBe(base.supportScore + 1);
+  } finally {
+    if (originalRoles === undefined) delete process.env.JEV_SECTION_ROLE_ALLOWLIST;
+    else process.env.JEV_SECTION_ROLE_ALLOWLIST = originalRoles;
+    if (original === undefined) delete process.env.JEV_SECTION_ROLES_ENABLED;
+    else process.env.JEV_SECTION_ROLES_ENABLED = original;
+  }
+});

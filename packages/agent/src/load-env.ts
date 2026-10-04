@@ -1,3 +1,4 @@
+import { installValidationBudget } from './jev/validation-budget.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -101,3 +102,5 @@ export function loadAgentEnv(env: NodeJS.ProcessEnv = process.env): string[] {
 }
 
 loadAgentEnv();
+
+installValidationBudget();

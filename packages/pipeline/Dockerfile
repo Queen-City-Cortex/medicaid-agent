@@ -46,6 +46,7 @@ RUN cd packages/pipeline \
     && uv sync --frozen --extra dev \
     && .venv/bin/python -m pipeline.embeddings.tokenizer --model voyage-4 \
     && .venv/bin/python -m pipeline.embeddings.tokenizer --model voyage-4-large \
+    && .venv/bin/python -c "from pipeline.jev.client import question_spec; assert question_spec()['model'] == 'jev-1.13.0'" \
     && .venv/bin/python -c "import cv2" \
     && .venv/bin/python -c "from pipeline.eval.dataset import validate_dataset; errors = validate_dataset(); assert not errors, errors" \
     && .venv/bin/python -c "from pipeline.references.supersessions import load_cfr_supersessions; assert load_cfr_supersessions(), 'Missing CFR supersession rules'" \

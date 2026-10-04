@@ -1,3 +1,4 @@
+import { visibleSection } from './section-metadata.js';
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { policyCorpus } from '../policy-corpus.js';
@@ -43,7 +44,10 @@ export const getSection = createTool({
       })
       .nullable(),
   }),
-  execute: async (inputData) => ({ section: await policyCorpus.getSection(inputData.sectionId) }),
+  execute: async (inputData) => {
+    const section = await policyCorpus.getSection(inputData.sectionId);
+    return { section: section ? visibleSection(section) : null };
+  },
 });
 
 // ─── getDocument ────────────────────────────────────────────────────────────────

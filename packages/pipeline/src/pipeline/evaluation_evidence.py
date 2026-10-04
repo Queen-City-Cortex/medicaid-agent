@@ -49,6 +49,7 @@ def evaluation_fingerprint() -> dict:
         "embeddingDimensions": EMBEDDING_DIMENSIONS,
         "topK": EVAL_DEFAULT_TOP_K,
         "judgeModel": EVAL_JUDGE_MODEL,
+        **jev_evaluation_identity(),
         "modelEnvironment": {
             key: value
             for key, value in sorted(os.environ.items())
@@ -59,6 +60,9 @@ def evaluation_fingerprint() -> dict:
             )
             and not any(secret in key for secret in ["KEY", "TOKEN", "SECRET"])
         },
+        **({"validationPricingHash": stable_hash(json.loads(Path(os.environ["JEV_VALIDATION_PRICING"]).read_text())),
+            "validationCorpusHash": validation_corpus_hash()}
+           if os.environ.get("JEV_VALIDATION_LEDGER") else {}),
         "verificationRequired": True,
         "evidenceNormalization": {
             "version": 1,
@@ -173,3 +177,30 @@ def baseline_metrics(evidence: dict) -> dict:
     return build_release_evaluation_results(
         evidence["retrieval"], evidence["answer"], None
     )
+
+
+def jev_evaluation_identity() -> dict:
+    roles = os.environ.get("JEV_SECTION_ROLES_ENABLED") == "true"
+    scope = os.environ.get("SCOPE_GATE_PROVIDER", "").strip() or "openai"
+    if not roles and scope == "openai":
+        return {}
+    annotation_digest = None
+    if roles:
+        from pipeline.graph.connection import get_session
+        with get_session() as session:
+            record = session.run("MATCH (m:JevAnnotation {id: 'current'}) RETURN m.digest AS digest").single()
+            annotation_digest = record["digest"] if record else None
+        if not annotation_digest:
+            raise ValueError("Jev section evaluation requires a frozen graph annotation digest")
+        from pipeline.jev.sections import validate_graph_labels
+        validate_graph_labels(annotation_digest)
+    return {"jev": {"sectionRolesEnabled": roles, "scopeProvider": scope,
+                    "annotationDigest": annotation_digest, "model": "jev-1.13.0",
+                    "allowedRoles": sorted(set(filter(None, (r.strip() for r in os.environ.get("JEV_SECTION_ROLE_ALLOWLIST", "").split(",")))))}}
+
+
+def validation_corpus_hash() -> str:
+    from pipeline.jev.sections import iter_graph_sections, section_input
+    from pipeline.jev.client import digest
+    return digest([{ "id": r["id"], "documentId": r["documentId"], "inputHash": digest(section_input(r))}
+                   for r in iter_graph_sections()])

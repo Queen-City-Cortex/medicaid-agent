@@ -1,0 +1,168 @@
+{
+  "version": 1,
+  "model": "jev-1.13.0",
+  "roles": {
+    "scope": {
+      "type": "noul",
+      "instructions": "Does this policy section satisfy this description? States the population, eligibility, setting, or jurisdiction to which this policy applies. Assess the complete supplied section, not the question identifier. Multiple descriptions may be true."
+    },
+    "covered_services": {
+      "type": "noul",
+      "instructions": "Does this policy section satisfy this description? Describes covered services or substantive criteria for coverage. Assess the complete supplied section, not the question identifier. Multiple descriptions may be true."
+    },
+    "exclusions": {
+      "type": "noul",
+      "instructions": "Does this policy section satisfy this description? Describes services or circumstances not covered, including coverage limitations. Assess the complete supplied section, not the question identifier. Multiple descriptions may be true."
+    },
+    "pa_criteria": {
+      "type": "noul",
+      "instructions": "Does this policy section satisfy this description? States substantive conditions requiring or qualifying for prior authorization or approval. Assess the complete supplied section, not the question identifier. Multiple descriptions may be true."
+    },
+    "pa_procedure": {
+      "type": "noul",
+      "instructions": "Does this policy section satisfy this description? Describes how to submit, obtain, renew, or appeal prior authorization. Assess the complete supplied section, not the question identifier. Multiple descriptions may be true."
+    },
+    "billing_workflow": {
+      "type": "noul",
+      "instructions": "Does this policy section satisfy this description? Describes billing, claims submission, coding, payment operations, or reimbursement workflow. Assess the complete supplied section, not the question identifier. Multiple descriptions may be true."
+    },
+    "boilerplate": {
+      "type": "noul",
+      "instructions": "Does this policy section satisfy this description? Contains generic administrative, legal, or repetitive policy template language rather than substantive service criteria. Assess the complete supplied section, not the question identifier. Multiple descriptions may be true."
+    },
+    "forms": {
+      "type": "noul",
+      "instructions": "Does this policy section satisfy this description? Contains a form, form instructions, or administrative documentation checklist. Assess the complete supplied section, not the question identifier. Multiple descriptions may be true."
+    }
+  },
+  "routing": {
+    "questionType": {
+      "type": "choice",
+      "instructions": "Classify the main intent of this NC Medicaid policy question. Prefer amendment for explicit change-notice history, federal_authority for explicit federal authority, prior_authorization for prior approval, policy_variant for version comparisons, coverage for coverage or eligibility, otherwise general.",
+      "criteria": {
+        "coverage": "Service coverage, eligibility or substantive coverage criteria.",
+        "prior_authorization": "Prior approval criteria or submission process.",
+        "amendment": "Changes, notices or amendment history.",
+        "federal_authority": "Federal statutes or regulations and their state implementation.",
+        "policy_variant": "Compare policy versions, effective periods or source variants.",
+        "general": "Other Medicaid policy questions."
+      }
+    },
+    "asksForCertificationDetails": {
+      "type": "noul",
+      "instructions": "Does the user question ask about certification documentation details? Interpret semantic intent, including paraphrases; do not extract identifiers or perform arithmetic."
+    },
+    "asksForGeneralCriteria": {
+      "type": "noul",
+      "instructions": "Does the user question ask about general criteria rather than service-specific criteria? Interpret semantic intent, including paraphrases; do not extract identifiers or perform arithmetic."
+    },
+    "asksForHistory": {
+      "type": "noul",
+      "instructions": "Does the user question ask about history or earlier policy versions? Interpret semantic intent, including paraphrases; do not extract identifiers or perform arithmetic."
+    },
+    "asksForImplementation": {
+      "type": "noul",
+      "instructions": "Does the user question ask about state implementation of federal requirements? Interpret semantic intent, including paraphrases; do not extract identifiers or perform arithmetic."
+    },
+    "asksForNotCoveredDetails": {
+      "type": "noul",
+      "instructions": "Does the user question ask about noncovered services or exclusions? Interpret semantic intent, including paraphrases; do not extract identifiers or perform arithmetic."
+    },
+    "asksForPriorAuthSubmissionProcess": {
+      "type": "noul",
+      "instructions": "Does the user question ask about how to submit prior authorization? Interpret semantic intent, including paraphrases; do not extract identifiers or perform arithmetic."
+    },
+    "asksForPublicNoticeDetails": {
+      "type": "noul",
+      "instructions": "Does the user question ask about public notice requirements? Interpret semantic intent, including paraphrases; do not extract identifiers or perform arithmetic."
+    },
+    "asksForTelehealthServiceList": {
+      "type": "noul",
+      "instructions": "Does the user question ask about a list of services allowed by telehealth? Interpret semantic intent, including paraphrases; do not extract identifiers or perform arithmetic."
+    },
+    "isBillingWorkflowQuery": {
+      "type": "noul",
+      "instructions": "Does the user question ask about billing or claims workflow? Interpret semantic intent, including paraphrases; do not extract identifiers or perform arithmetic."
+    },
+    "isChangeNoticeQuery": {
+      "type": "noul",
+      "instructions": "Does the user question ask about a change notice or amendment? Interpret semantic intent, including paraphrases; do not extract identifiers or perform arithmetic."
+    },
+    "isClinicalCriteriaLifecycleQuery": {
+      "type": "noul",
+      "instructions": "Does the user question ask about adoption or revision of clinical criteria? Interpret semantic intent, including paraphrases; do not extract identifiers or perform arithmetic."
+    },
+    "isCongregatePcsQuery": {
+      "type": "noul",
+      "instructions": "Does the user question ask about personal care services in a congregate setting? Interpret semantic intent, including paraphrases; do not extract identifiers or perform arithmetic."
+    },
+    "isCoverageQuestion": {
+      "type": "noul",
+      "instructions": "Does the user question ask about service coverage? Interpret semantic intent, including paraphrases; do not extract identifiers or perform arithmetic."
+    },
+    "isEligibilityCriteriaQuery": {
+      "type": "noul",
+      "instructions": "Does the user question ask about eligibility criteria? Interpret semantic intent, including paraphrases; do not extract identifiers or perform arithmetic."
+    },
+    "isFederalAuthorityQuery": {
+      "type": "noul",
+      "instructions": "Does the user question ask about federal statutory or regulatory authority? Interpret semantic intent, including paraphrases; do not extract identifiers or perform arithmetic."
+    },
+    "isHcwdIncomePremiumQuery": {
+      "type": "noul",
+      "instructions": "Does the user question ask about Health Coverage for Workers with Disabilities income or premiums? Interpret semantic intent, including paraphrases; do not extract identifiers or perform arithmetic."
+    },
+    "isHistoricalReimbursementQuery": {
+      "type": "noul",
+      "instructions": "Does the user question ask about reimbursement for an explicitly historical period? Interpret semantic intent, including paraphrases; do not extract identifiers or perform arithmetic."
+    },
+    "isLatestChangeNoticeQuery": {
+      "type": "noul",
+      "instructions": "Does the user question ask about the latest change notice? Interpret semantic intent, including paraphrases; do not extract identifiers or perform arithmetic."
+    },
+    "isManagedCareContractQuery": {
+      "type": "noul",
+      "instructions": "Does the user question ask about managed care contract requirements? Interpret semantic intent, including paraphrases; do not extract identifiers or perform arithmetic."
+    },
+    "isManagedCareOperationsQuery": {
+      "type": "noul",
+      "instructions": "Does the user question ask about managed care operations? Interpret semantic intent, including paraphrases; do not extract identifiers or perform arithmetic."
+    },
+    "isMlrQuery": {
+      "type": "noul",
+      "instructions": "Does the user question ask about medical loss ratio requirements? Interpret semantic intent, including paraphrases; do not extract identifiers or perform arithmetic."
+    },
+    "isOperationalRoutingQuery": {
+      "type": "noul",
+      "instructions": "Does the user question ask about which entity or workflow handles a request? Interpret semantic intent, including paraphrases; do not extract identifiers or perform arithmetic."
+    },
+    "isPediatricQuery": {
+      "type": "noul",
+      "instructions": "Does the user question ask about children, pediatric services or EPSDT? Interpret semantic intent, including paraphrases; do not extract identifiers or perform arithmetic."
+    },
+    "isPolicyVariantQuery": {
+      "type": "noul",
+      "instructions": "Does the user question ask about comparison of policy versions, variants or dates? Interpret semantic intent, including paraphrases; do not extract identifiers or perform arithmetic."
+    },
+    "isPriorAuthorizationQuery": {
+      "type": "noul",
+      "instructions": "Does the user question ask about prior authorization or approval? Interpret semantic intent, including paraphrases; do not extract identifiers or perform arithmetic."
+    },
+    "isReimbursementQuery": {
+      "type": "noul",
+      "instructions": "Does the user question ask about reimbursement or payment amounts? Interpret semantic intent, including paraphrases; do not extract identifiers or perform arithmetic."
+    },
+    "isTelehealthQuery": {
+      "type": "noul",
+      "instructions": "Does the user question ask about telehealth? Interpret semantic intent, including paraphrases; do not extract identifiers or perform arithmetic."
+    },
+    "isWaiverApplicationQuery": {
+      "type": "noul",
+      "instructions": "Does the user question ask about a waiver application or renewal? Interpret semantic intent, including paraphrases; do not extract identifiers or perform arithmetic."
+    },
+    "isYesNoCoverageQuery": {
+      "type": "noul",
+      "instructions": "Does the user question ask about whether a specific service is covered? Interpret semantic intent, including paraphrases; do not extract identifiers or perform arithmetic."
+    }
+  }
+}

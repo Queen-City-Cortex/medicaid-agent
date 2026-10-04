@@ -216,3 +216,27 @@ Give pytest parameters explicit short IDs when a fixture contains large text. Wi
 - Overlapping embedding branches can auto-merge into incompatible APIs even after conflict markers are resolved. Keep one planner and recompute release coverage against its model, dimensions, tokenizer pin and exact chunk text/offsets; nonnull stored hashes and matching vector counts alone can accept another model or corrupted chunks. See [embedding input plans](../operations/embedding-input-plans.md).
 
 - Mixed HTML/PDF bulletin families need markup sniffing even when the response omits or mislabels Content-Type; otherwise maintenance HTML can be accepted with a PDF extension. Missing-source boundaries must distinguish an original attachment request from supported procedural, dated-limit or pharmacist-payment questions. Keep mixed original/procedure and payment/authority requests covered by regressions.
+
+### Jev validation and restoration
+
+A scope benchmark can appear fast and harmless when every classifier call fails open. Qualification now requires zero failures in both arms, and the OpenAI benchmark reuses the production call and SDK retry defaults. Section-role adoption also requires an explicit reviewed allowlist; high probabilities alone do not qualify a role. Backup verification runs with system Python, so annotation artifact validation must remain standard-library-only and must not import the inference stack.
+
+- Local corpus sections can exceed 38 MB. Full-graph identity reads with the default 1,000-record fetch can exhaust Neo4j direct memory, and sorting returned full bodies can exhaust its heap. Keep the current bounded, read-only identity normalizer and preserve unmatched evidence as misses. Jev sampling selects section IDs from metadata before reading full bodies; corpus fingerprinting streams input hashes. Oversized classifier inputs abstain rather than stopping later sections or truncating text.
+- The July usage table is not sufficient confirmation for paid validation: the current official GPT-5.6 Terra page lists different rates. Freeze a separate confirmed campaign pricing file and preserve source URLs and the confirmation date before inference.
+
+- Local Jev campaign directories are ignored and sit outside the default corpus backup. Browser progress is also not durable. Download reviewed JSON and run the explicit campaign snapshot command, which preserves caches and uses SQLite backup for a live ledger. Partial labels remain pending; full answers require the same reviewed corpus inputs and a passed frame gate.
+
+- Editor HTML previews may disable sibling-file links or scripts even when a local dashboard renders. The Jev dashboard embeds all three forms in one file; open it in a real browser for labeling and JSON download, and check set switching as well as individual forms.
+- AI review artifacts can share row IDs and label shapes with human reviews. Filtering imported text alone does not preserve label provenance: the browser or HTML exporter can silently drop an AI source marker. Reject AI-provenance files before importing/exporting human reviews, use separate audit storage, and test that rejected imports leave human drafts intact. Model agreement and a targeted disagreement sample remain diagnostic evidence.
+- Canonical JSON sorts object keys, but derived report arrays retain iteration order. Building audit comparison rows from an unsorted decisions dictionary makes the first download import differ from re-importing its canonical saved copy. Sort fields before hashing derived report artifacts; exercise multi-field reviews with reversed key order in replay tests.
+
+- Jev Choice confidence and the selected choice probability are independent; threshold the selected probability. See [Jev contracts](jev.md).
+- Git worktrees do not inherit ignored `.env` files. Inspect the original checkout before reporting missing credentials; never print their values.
+
+- Jev integration preserves main’s bounded whole-graph identity reader; older source-filtered readers and tests must not replace it. SQLite backup helpers use escaped file URIs so `#`, `?` and spaces in campaign paths do not change which database is read.
+
+- Jev-enriched release graphs are immutable: source rewrites invalidate candidate annotation identity and reject stamped annotated releases. Source writes, enrichment and stamping share a transaction lock. Disabled stamping ignores diagnostic annotations; backups carry a label inventory outside the label directory so losing the whole archived directory still fails restoration. This inventory does not detect a directory lost before backup snapshotting.
+
+- Run Linux process-supervision tests in Docker with `--init`. Without an init process, orphaned fixture children can remain zombies and make process-group drain checks time out even after TERM succeeds. CI runs on a normal host with process reaping.
+
+- Backup inventories must describe captured bytes, not live files read again by tar. Snapshot label JSON with its inventory before archiving, and exclude live copies; an enrichment between snapshotting and tar then cannot invalidate the archive. Stamped annotation identity also survives disabled restamp attempts, which are rejected transactionally.

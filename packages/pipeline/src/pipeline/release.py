@@ -259,6 +259,9 @@ def build_release_graph(manifest_path: Path, *, refresh_federal: bool = True) ->
         return {"seeded": seeded, **linked}
 
     record_release_stage(manifest_path, "concepts", concepts)
+    if os.environ.get("JEV_SECTION_ROLES_ENABLED") == "true":
+        from pipeline.jev.sections import enrich_graph
+        record_release_stage(manifest_path, "jevSections", lambda: enrich_graph(cache_only=True))
     record_release_stage(manifest_path, "schemaVersion", write_schema_version)
 
 
@@ -270,9 +273,27 @@ def mark_graph_release(
     """Stamp the target graph so readiness verifies the graph, not only env."""
     from pipeline.graph.connection import get_session
 
+    from pipeline.graph import queries
+
+    enabled = os.environ.get("JEV_SECTION_ROLES_ENABLED") == "true"
+    stage = (manifest.get("stageResults") or {}).get("jevSections") or {}
+    annotation_digest = (stage.get("result") or {}).get("digest") if enabled else None
+    if enabled and not annotation_digest:
+        raise ValueError("Release stage and live Jev annotation identity mismatch; enrichment required")
     marked_at = format_timestamp(utc_now())
-    with get_session() as session:
-        session.run(
+
+    def stamp(tx):
+        tx.run(queries.LOCK_CORPUS_MUTATION).consume()
+        existing = tx.run("MATCH (r:CorpusRelease {id: 'current'}) RETURN r.jev_annotation_digest AS digest").single()
+        if existing and existing["digest"] and existing["digest"] != annotation_digest:
+            raise ValueError("Cannot clear or change an annotated release identity")
+        if enabled:
+            marker = tx.run("MATCH (m:JevAnnotation {id: 'current'}) RETURN m.digest AS digest").single()
+            if not marker or marker["digest"] != annotation_digest:
+                raise ValueError("Release stage and live Jev annotation identity mismatch; record enrichment before stamping")
+            from pipeline.jev.sections import validate_graph_labels
+            validate_graph_labels(annotation_digest)
+        tx.run(
             """
             MERGE (release:CorpusRelease {id: 'current'})
             SET release.release_id = $release_id,
@@ -280,7 +301,8 @@ def mark_graph_release(
                 release.target_color = $target_color,
                 release.source_snapshot_hash = $source_snapshot_hash,
                 release.promotion_state = $promotion_state,
-                release.marked_at = $marked_at
+                release.marked_at = $marked_at,
+                release.jev_annotation_digest = $jev_annotation_digest
             """,
             {
                 "release_id": manifest["releaseId"],
@@ -289,8 +311,12 @@ def mark_graph_release(
                 "source_snapshot_hash": manifest["sourceSnapshotHash"],
                 "promotion_state": promotion_state,
                 "marked_at": marked_at,
+                "jev_annotation_digest": annotation_digest,
             },
         )
+    with get_session() as session:
+        session.execute_write(stamp)
+
     return {"releaseId": manifest["releaseId"], "markedAt": marked_at}
 
 

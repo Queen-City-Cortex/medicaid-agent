@@ -147,6 +147,8 @@ def test_upsert_document_bundle_writes_document_and_section_structure():
 
     writer.upsert_document_bundle(_make_bundle())
 
+    assert [query for query, _ in session.calls[:3]] == [queries.LOCK_CORPUS_MUTATION, queries.CHECK_ANNOTATED_RELEASE, queries.INVALIDATE_JEV_ANNOTATION]
+    session.calls = session.calls[3:]
     assert [query for query, _ in session.calls] == [
         queries.MERGE_DOCUMENT,
         queries.GET_SECTION_CONTENT_BATCH,
@@ -175,7 +177,7 @@ def test_registry_timestamps_use_neo4j_utc_format_without_changing_retrieval(val
     document = replace(bundle.document, source_checked_at=value, source_changed_at=value, retrieved_at=value)
     session = FakeSession()
     _writer_for(session).upsert_document_bundle(replace(bundle, document=document))
-    parameters = session.calls[0][1]
+    parameters = next(parameters for query, parameters in session.calls if query == queries.MERGE_DOCUMENT)
     assert parameters["source_checked_at"] == expected
     assert parameters["source_changed_at"] == expected
     assert parameters["retrieved_at"] == value
@@ -197,7 +199,8 @@ def test_delete_document_removes_the_document_through_one_transaction():
 
     writer.delete_document("doc:test")
 
-    assert session.calls == [(queries.DELETE_DOCUMENT, {"doc_id": "doc:test"})]
+    assert [query for query, _ in session.calls[:3]] == [queries.LOCK_CORPUS_MUTATION, queries.CHECK_ANNOTATED_RELEASE, queries.INVALIDATE_JEV_ANNOTATION]
+    assert session.calls[3:] == [(queries.DELETE_DOCUMENT, {"doc_id": "doc:test"})]
     assert session.commits == 1
 
 
@@ -272,6 +275,8 @@ def test_upsert_document_bundle_deletes_all_existing_sections_when_parse_has_no_
 
     writer.upsert_document_bundle(bundle)
 
+    assert [query for query, _ in session.calls[:3]] == [queries.LOCK_CORPUS_MUTATION, queries.CHECK_ANNOTATED_RELEASE, queries.INVALIDATE_JEV_ANNOTATION]
+    session.calls = session.calls[3:]
     assert [query for query, _ in session.calls] == [
         queries.MERGE_DOCUMENT,
         queries.DELETE_STALE_DOCUMENT_SECTIONS,
@@ -352,6 +357,8 @@ def test_upsert_document_bundle_retries_unit_of_work_then_commits():
     assert session.attempts == 2
     assert session.rollbacks == 1
     assert session.commits == 1
+    assert [query for query, _ in session.calls[:3]] == [queries.LOCK_CORPUS_MUTATION, queries.CHECK_ANNOTATED_RELEASE, queries.INVALIDATE_JEV_ANNOTATION]
+    session.calls = session.calls[3:]
     assert [query for query, _ in session.calls] == [
         queries.MERGE_DOCUMENT,
         queries.GET_SECTION_CONTENT_BATCH,

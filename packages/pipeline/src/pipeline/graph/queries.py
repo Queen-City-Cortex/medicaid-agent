@@ -63,7 +63,8 @@ SET s.embedding = CASE WHEN same_epoch THEN s.embedding ELSE NULL END,
     s.has_tables = section.has_tables,
     s.has_definitions = section.has_definitions,
     s.federal_register_cite = section.federal_register_cite,
-    s.last_revised = section.last_revised
+    s.last_revised = section.last_revised,
+    s.jev_section_roles = null
 WITH s,same_epoch
 OPTIONAL MATCH (s)-[:HAS_CHUNK]->(ch:Chunk)
 WITH s,same_epoch,collect(ch) AS chunks
@@ -187,3 +188,8 @@ UNWIND $doc_ids AS doc_id
 MATCH (d:Document {id: doc_id})
 SET d.status = $status
 """
+
+# Serialize source rewrites, enrichment and release stamping on one graph.
+LOCK_CORPUS_MUTATION = "MERGE (lock:CorpusMutationLock {id: 'current'}) SET lock.sequence = coalesce(lock.sequence, 0) + 1"
+CHECK_ANNOTATED_RELEASE = "MATCH (r:CorpusRelease {id: 'current'}) WHERE r.jev_annotation_digest IS NOT NULL RETURN r.release_id AS release_id"
+INVALIDATE_JEV_ANNOTATION = "MATCH (m:JevAnnotation {id: 'current'}) REMOVE m.digest"

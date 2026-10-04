@@ -92,3 +92,19 @@ measure_embedding_plan
 
 # Operational inspector proves retained parse provenance without mutating corpus.
 reconcile_parse_orphans
+
+# Jev Click commands registered via decorators.
+jev_commands
+jev_prepare
+jev_run
+jev_review
+jev_report
+jev_enrich
+jev_compare_answers
+jev_validate_answers
+jev_frames
+jev_review_dashboard
+jev_snapshot
+jev_ai_draft
+jev_ai_audit
+jev_import_ai_audit

@@ -27,6 +27,8 @@ The pipeline setup creates its `.venv` from the committed `uv.lock` with `uv syn
 
 The [CI workflow](../../.github/workflows/ci.yml) adds test typechecks, corpus operational-script tests, real-Neo4j integration, mocked E2E, and production Docker builds. Provision Python dependencies before invoking root lint/test. Passing Vitest alone does not establish that schema types compile or that production bundling succeeds.
 
+See the [Jev experiment guide](jev.md) for opt-in classifier integration, blinded reference review, cache identity and the shared $25 validation ledger.
+
 ## Evaluation and ingestion
 
 The [answer-eval runner](../../packages/pipeline/src/pipeline/eval/levels/answer.py) defaults its subprocess observability path to `:memory:` and kills the process group on timeout. Prefer `EVAL_OPENAI_API_KEY` to isolate evaluation quota. Verification is enabled by default; use `VERIFIER_ENABLED=false` only for an intentional raw-answer debugging run.

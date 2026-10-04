@@ -124,7 +124,11 @@ def test_heading_only_reload_removes_chunk_vectors(monkeypatch):
 def require_owned_empty_graph():
     with get_session() as session:
         assert session.run('MATCH (n) RETURN count(n) AS n').single()['n'] == 0, 'Dedicated empty embedding graph required'
-    yield
+    try:
+        yield
+    finally:
+        with get_session() as session:
+            session.run("MATCH (lock:CorpusMutationLock {id:'current'}) DELETE lock").consume()
 
 
 @pytest.fixture

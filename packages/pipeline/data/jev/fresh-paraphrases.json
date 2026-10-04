@@ -1,0 +1,302 @@
+[
+  {
+    "id": "j-001",
+    "paraphrase_of": "q-001",
+    "question": "Who qualifies to receive CAP/DA, and what basic conditions apply?",
+    "reviewed": false
+  },
+  {
+    "id": "j-002",
+    "paraphrase_of": "q-002",
+    "question": "For orthotic or prosthetic DME, explain Medicaid's general coverage rules as well as items it excludes.",
+    "reviewed": false
+  },
+  {
+    "id": "j-003",
+    "paraphrase_of": "q-003",
+    "question": "Explain when outpatient behavioral health treatment can begin, continue, and end under NC Medicaid.",
+    "reviewed": false
+  },
+  {
+    "id": "j-004",
+    "paraphrase_of": "q-004",
+    "question": "For a child receiving outpatient therapies, what does EPSDT change and who may order treatment?",
+    "reviewed": false
+  },
+  {
+    "id": "j-005",
+    "paraphrase_of": "q-005",
+    "question": "Can a resident of an assisted living home receive Medicaid-funded personal care?",
+    "reviewed": false
+  },
+  {
+    "id": "j-006",
+    "paraphrase_of": "q-006",
+    "question": "Would policy 5B pay for a visit to a chiropractor?",
+    "reviewed": false
+  },
+  {
+    "id": "j-007",
+    "paraphrase_of": "q-007",
+    "question": "Under 10A, what must the outpatient therapy care plan include?",
+    "reviewed": false
+  },
+  {
+    "id": "j-008",
+    "paraphrase_of": "q-008",
+    "question": "When an eligible CAP/DA member changes providers, what transfer rules apply?",
+    "reviewed": false
+  },
+  {
+    "id": "j-009",
+    "paraphrase_of": "q-009",
+    "question": "For HCWD workers, is earned income capped and how are premiums determined?",
+    "reviewed": false
+  },
+  {
+    "id": "j-010",
+    "paraphrase_of": "q-010",
+    "question": "Which federal statute permits CAP/DA, and what must NC show when applying for that waiver?",
+    "reviewed": false
+  },
+  {
+    "id": "j-011",
+    "paraphrase_of": "q-011",
+    "question": "Under CAP/DA, what home adaptations qualify and what evidence must the multidisciplinary team supply?",
+    "reviewed": false
+  },
+  {
+    "id": "j-012",
+    "paraphrase_of": "q-012",
+    "question": "What is the annual therapeutic-leave allowance for nursing-home residents, and when may it be used?",
+    "reviewed": false
+  },
+  {
+    "id": "j-013",
+    "paraphrase_of": "q-013",
+    "question": "When a private-duty nursing agency stops care, whom must it notify and how?",
+    "reviewed": false
+  },
+  {
+    "id": "j-014",
+    "paraphrase_of": "q-014",
+    "question": "My initial PCS award was below 80 monthly hours. When may I ask for reconsideration to increase it?",
+    "reviewed": false
+  },
+  {
+    "id": "j-015",
+    "paraphrase_of": "q-015",
+    "question": "In federal Medicaid law, what counts as home health and where can those services take place?",
+    "reviewed": false
+  },
+  {
+    "id": "j-016",
+    "paraphrase_of": "q-016",
+    "question": "What does terminal illness mean for NC hospice coverage, and who must certify it?",
+    "reviewed": false
+  },
+  {
+    "id": "j-017",
+    "paraphrase_of": "q-017",
+    "question": "Which ambulance trips or services does NC Medicaid exclude?",
+    "reviewed": false
+  },
+  {
+    "id": "j-018",
+    "paraphrase_of": "q-018",
+    "question": "Explain prescription quantity caps and the circumstances requiring pharmacy prior approval.",
+    "reviewed": false
+  },
+  {
+    "id": "j-019",
+    "paraphrase_of": "q-019",
+    "question": "What conditions must be satisfied to deliver speech therapy remotely using Medicaid?",
+    "reviewed": false
+  },
+  {
+    "id": "j-020",
+    "paraphrase_of": "q-020",
+    "question": "Identify the newest NEMT change notice and explain the changes it made.",
+    "reviewed": false
+  },
+  {
+    "id": "j-021",
+    "paraphrase_of": "q-021",
+    "question": "What federal MLR standard applies to Medicaid health plans, and how does North Carolina carry it out?",
+    "reviewed": false
+  },
+  {
+    "id": "j-022",
+    "paraphrase_of": "q-022",
+    "question": "What eligibility and treatment conditions govern payment for CAR-T therapy?",
+    "reviewed": false
+  },
+  {
+    "id": "j-023",
+    "paraphrase_of": "q-023",
+    "question": "At what age does Medicaid fluoride varnish stop, and what mouth screening is needed?",
+    "reviewed": false
+  },
+  {
+    "id": "j-024",
+    "paraphrase_of": "q-024",
+    "question": "If an Innovations participant needs more than the base allocation, how can they seek extra services?",
+    "reviewed": false
+  },
+  {
+    "id": "j-025",
+    "paraphrase_of": "q-025",
+    "question": "How are HIV case-management providers certified, and when may certification be withdrawn?",
+    "reviewed": false
+  },
+  {
+    "id": "j-026",
+    "paraphrase_of": "q-026",
+    "question": "Does the orthotics and prosthetics policy 5B include chiropractic treatment?",
+    "reviewed": false
+  },
+  {
+    "id": "j-027",
+    "paraphrase_of": "q-027",
+    "question": "Will policy 1A-15 fund bariatric or body-contouring surgery just for cosmetic weight loss?",
+    "reviewed": false
+  },
+  {
+    "id": "j-028",
+    "paraphrase_of": "q-028",
+    "question": "Under outpatient behavioral health policy 8C, can Medicaid pay for acupuncture?",
+    "reviewed": false
+  },
+  {
+    "id": "j-029",
+    "paraphrase_of": "q-029",
+    "question": "Is an adult older than 21 entitled to routine massage under outpatient therapy policy 10A?",
+    "reviewed": false
+  },
+  {
+    "id": "j-030",
+    "paraphrase_of": "q-030",
+    "question": "Can experimental medicines be paid for by NC Medicaid's outpatient pharmacy program?",
+    "reviewed": false
+  },
+  {
+    "id": "j-031",
+    "paraphrase_of": "q-031",
+    "question": "Does preventive assessment policy 1A-2 pay health-club dues or gym fees?",
+    "reviewed": false
+  },
+  {
+    "id": "j-032",
+    "paraphrase_of": "q-032",
+    "question": "Would policy 9 pay for nonprescription OTC fertility or hormonal supplements?",
+    "reviewed": false
+  },
+  {
+    "id": "j-033",
+    "paraphrase_of": "q-033",
+    "question": "Can someone challenge a Medicaid prior-approval denial by going straight to CMS?",
+    "reviewed": false
+  },
+  {
+    "id": "j-034",
+    "paraphrase_of": "q-034",
+    "question": "Are cosmetic adult tooth-whitening procedures included in Medicaid dental coverage?",
+    "reviewed": false
+  },
+  {
+    "id": "j-035",
+    "paraphrase_of": "q-035",
+    "question": "Under respiratory equipment policy 5A-2, may an adult replace a CPAP device annually?",
+    "reviewed": false
+  },
+  {
+    "id": "j-036",
+    "paraphrase_of": "q-036",
+    "question": "Does telehealth policy 1-H pay for general wellness appointments without a medical reason?",
+    "reviewed": false
+  },
+  {
+    "id": "j-037",
+    "paraphrase_of": "q-037",
+    "question": "Can NEMT take a member to buy groceries or run other nonmedical errands?",
+    "reviewed": false
+  },
+  {
+    "id": "j-038",
+    "paraphrase_of": "q-038",
+    "question": "Does CAP/DA pay room-and-board expenses for someone living in their own house?",
+    "reviewed": false
+  },
+  {
+    "id": "j-039",
+    "paraphrase_of": "q-039",
+    "question": "Would policy 3G-1 cover adult private-duty nursing without qualifying medical complexity?",
+    "reviewed": false
+  },
+  {
+    "id": "j-040",
+    "paraphrase_of": "q-040",
+    "question": "Can Medicaid pay for an OTC medicine when nobody prescribed it?",
+    "reviewed": false
+  },
+  {
+    "id": "j-041",
+    "paraphrase_of": "q-041",
+    "question": "Which grants-administration rule is governing Medicaid now: part 74 or part 75 of 45 CFR?",
+    "reviewed": false
+  },
+  {
+    "id": "j-042",
+    "paraphrase_of": "q-042",
+    "question": "Which revision of MA-3550 is in force today?",
+    "reviewed": false
+  },
+  {
+    "id": "j-043",
+    "paraphrase_of": "q-043",
+    "question": "On what date was the newest change notice for outpatient behavioral health policy 8C released?",
+    "reviewed": false
+  },
+  {
+    "id": "j-044",
+    "paraphrase_of": "q-044",
+    "question": "Have there been changes to the CAP/DA waiver policy after 2024?",
+    "reviewed": false
+  },
+  {
+    "id": "j-045",
+    "paraphrase_of": "q-045",
+    "question": "What is the latest update to 42 CFR 441 relevant to HCBS waiver submissions?",
+    "reviewed": false
+  },
+  {
+    "id": "j-046",
+    "paraphrase_of": "q-046",
+    "question": "Which federal regulation provides authority for CAP/DA and other 1915(c) home and community waivers?",
+    "reviewed": false
+  },
+  {
+    "id": "j-047",
+    "paraphrase_of": "q-047",
+    "question": "Where are the federal deadlines for state Medicaid plan amendments set out?",
+    "reviewed": false
+  },
+  {
+    "id": "j-048",
+    "paraphrase_of": "q-048",
+    "question": "Which federal regulation establishes managed-care Medicaid medical-loss-ratio duties?",
+    "reviewed": false
+  },
+  {
+    "id": "j-049",
+    "paraphrase_of": "q-049",
+    "question": "What federal legal authority establishes the EPSDT benefit?",
+    "reviewed": false
+  },
+  {
+    "id": "j-050",
+    "paraphrase_of": "q-050",
+    "question": "Which federal provision sets Medicaid provider-enrollment screening standards?",
+    "reviewed": false
+  }
+]

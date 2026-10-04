@@ -24,6 +24,7 @@ export function createSectionPrimitiveService({ withSession }: { withSession: Se
            s.title AS title,
            s.section_number AS sectionNumber,
            s.content_text AS content,
+           s.jev_section_roles AS sectionRoles,
            s.content_length AS contentLength,
            s.last_revised AS lastRevised,
            s.federal_register_cite AS federalRegisterCite,
@@ -107,6 +108,7 @@ export function createSectionPrimitiveService({ withSession }: { withSession: Se
             return buildSectionView(
               {
                 get(key: string) {
+                  if (key === 'sectionRoles' || key === 'content') return undefined;
                   return key === 'id'
                     ? record.get('id')
                     : key === 'title'
