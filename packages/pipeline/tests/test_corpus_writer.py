@@ -1,6 +1,7 @@
 """Tests for the graph write boundary."""
 
 import logging
+from dataclasses import replace
 from contextlib import contextmanager
 
 import pytest
@@ -164,6 +165,32 @@ def test_upsert_document_bundle_writes_document_and_section_structure():
     assert session.calls[5][1] == {"doc_id": "doc:test", "section_ids": ["sec:1", "sec:2"]}
 
 
+@pytest.mark.parametrize("value, expected", [
+    ("2026-09-22 20:43:27", "2026-09-22T20:43:27+00:00"),
+    ("2026-09-22T20:43:27Z", "2026-09-22T20:43:27Z"),
+    (None, None),
+])
+def test_registry_timestamps_use_neo4j_utc_format_without_changing_retrieval(value, expected):
+    bundle = _make_bundle()
+    document = replace(bundle.document, source_checked_at=value, source_changed_at=value, retrieved_at=value)
+    session = FakeSession()
+    _writer_for(session).upsert_document_bundle(replace(bundle, document=document))
+    parameters = session.calls[0][1]
+    assert parameters["source_checked_at"] == expected
+    assert parameters["source_changed_at"] == expected
+    assert parameters["retrieved_at"] == value
+
+
+def test_invalid_sqlite_calendar_date_fails_before_commit():
+    bundle = _make_bundle()
+    session = FakeSession()
+    with pytest.raises(ValueError):
+        _writer_for(session).upsert_document_bundle(replace(
+            bundle, document=replace(bundle.document, source_checked_at="2026-02-30 12:00:00"),
+        ))
+    assert session.commits == 0
+
+
 def test_delete_document_removes_the_document_through_one_transaction():
     session = FakeSession()
     writer = _writer_for(session)
@@ -174,8 +201,8 @@ def test_delete_document_removes_the_document_through_one_transaction():
     assert session.commits == 1
 
 
-def test_upsert_document_bundle_keeps_embeddings_for_unchanged_sections():
-    # Both sections already exist with identical content — nothing gets cleared.
+def test_upsert_document_bundle_does_not_delete_chunks_for_unchanged_bodies():
+    # Identical bodies need no chunk deletion; source-version preservation is tested with real Neo4j.
     session = FakeSession(existing_sections={
         "sec:1": "Intro text",
         "sec:2": "Child text",
@@ -189,8 +216,8 @@ def test_upsert_document_bundle_keeps_embeddings_for_unchanged_sections():
     assert queries.MERGE_SECTIONS_BATCH in queries_run
 
 
-def test_upsert_document_bundle_clears_embeddings_only_for_changed_sections():
-    # sec:1 content changed, sec:2 is identical — only sec:1 gets cleared.
+def test_upsert_document_bundle_deletes_obsolete_chunks_for_changed_bodies():
+    # Body change removes obsolete chunks; document-wide context versions also invalidate plans.
     session = FakeSession(existing_sections={
         "sec:1": "Old intro text",
         "sec:2": "Child text",

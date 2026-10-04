@@ -1,0 +1,44 @@
+{
+  "merged": [
+    {
+      "baseRefName": "main",
+      "headRefOid": "ddc683ac1f8d274a5bbe23160e34a7f726ce337a",
+      "mergeCommit": {
+        "oid": "06de91f67cbd5d7174c7439a78b5f8164010b585"
+      },
+      "mergedAt": "2026-10-03T23:45:05Z",
+      "number": 176,
+      "state": "MERGED"
+    },
+    {
+      "baseRefName": "main",
+      "headRefOid": "00231146823029d8373fc205d244914c0df79d70",
+      "mergeCommit": {
+        "oid": "eb50176fbf48f4bdfe56caf6fc9e1bf768cd2aa6"
+      },
+      "mergedAt": "2026-10-03T23:49:44Z",
+      "number": 201,
+      "state": "MERGED"
+    },
+    {
+      "baseRefName": "review/product-scope-2026-10-03",
+      "headRefOid": "c8e0613398f9efbd2dead4aeb9c546b4163065fa",
+      "mergeCommit": {
+        "oid": "6cd741bfb86c55dc84a682cc250012cd33853346"
+      },
+      "mergedAt": "2026-10-03T23:43:44Z",
+      "number": 203,
+      "state": "MERGED"
+    }
+  ],
+  "held": {
+    "199": "Unqualified candidate; review/source/budget gates pending",
+    "190": "Coordinated runtime compatibility not established on current main",
+    "164": "Failed technical CI",
+    "181": "Failed technical CI",
+    "184": "Failed technical CI",
+    "113": "Parser qualification gates pending",
+    "114": "Chart qualification gates pending",
+    "204": "New independent draft; overlapping embedding implementation and additional parse provenance work require reconciliation with #199 before merge"
+  }
+}

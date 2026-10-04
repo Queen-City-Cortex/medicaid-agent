@@ -1,0 +1,94 @@
+[
+  {
+    "query_group": "covid",
+    "search_id": "01a10050-dfbf-756b-ac76-0f23ae4bc1cf",
+    "retained_capture_sha256": "4cf47dd008258dc335b2270c6818fe006a8c50b70c82d8e539801bcf53a7b6c4",
+    "sources": [
+      {
+        "url": "https://medicaid.ncdhhs.gov/blog/2023/05/31/otc-covid-19-test-home-use-pharmacy-pos-coverage",
+        "title": "OTC COVID-19 Test for Home Use Pharmacy POS Coverage"
+      },
+      {
+        "url": "https://medicaid.ncdhhs.gov/blog-entry-list?field_blog_terms_target_id=360&page=1",
+        "title": "Blog Entry List | NC Medicaid"
+      },
+      {
+        "url": "https://medicaid.ncdhhs.gov/blog/2023/07/14/special-bulletin-covid-19-268-covid-19-testing-vaccination-and-counseling-coverage-after-federal",
+        "title": "SPECIAL BULLETIN COVID-19 #268: COVID-19 Testing, Vaccination and ..."
+      },
+      {
+        "url": "https://medicaid.ncdhhs.gov/blog-terms/covid-19?page=2",
+        "title": "COVID-19 | NC Medicaid"
+      }
+    ]
+  },
+  {
+    "query_group": "form",
+    "search_id": "01a10050-dfc2-731e-b0ed-3f4466a917c0",
+    "retained_capture_sha256": "b7044bc2b2bc468a6da5d981a6ab75db67fa081f99d175f7a58d6adee1ba136b",
+    "sources": [
+      {
+        "url": "https://policies.ncdhhs.gov/document/dhb-5097-gu-%E0%AA%AE%E0%AA%BE%E0%AA%B9%E0%AA%BF%E0%AA%A4%E0%AB%80-%E0%AA%AE%E0%AA%BE%E0%AA%9F%E0%AB%87%E0%AA%B5%E0%AA%BF%E0%AA%A8-%E0%AA%82%E0%AA%A4%E0%AB%80/",
+        "title": "DHB-5097 GU \u0aae\u0abe\u0ab9\u0abf\u0aa4\u0ac0 \u0aae\u0abe\u0a9f\u0ac7\u0ab5\u0abf\u0aa8 \u0a82\u0aa4\u0ac0 - NCDHHS Policies and Manuals"
+      },
+      {
+        "url": "https://policies.ncdhhs.gov/full-document-library/",
+        "title": "Full Document Library - NCDHHS Policies and Manuals"
+      },
+      {
+        "url": "https://policies.ncdhhs.gov/document-category/health-benefits-nc-medicaid/page/7/",
+        "title": "Health Benefits/NC Medicaid \u2013 Page 7 - NCDHHS Policies and Manuals"
+      },
+      {
+        "url": "https://policies.ncdhhs.gov/dlp_document-doc_special_terms/health-benefits-nc-medicaid/page/5/",
+        "title": "Health Benefits/NC Medicaid \u2013 Page 5 - NCDHHS Policies and Manuals"
+      }
+    ]
+  },
+  {
+    "query_group": "magi",
+    "search_id": "01a10050-dfb7-742b-8d9b-e6ed2e133914",
+    "retained_capture_sha256": "583b17756f085f4b07b361eedc7e7f5f66521004bb5966643bc012eeaf80759b",
+    "sources": [
+      {
+        "url": "https://policies.ncdhhs.gov/document/ma-3321-magi-medicaid-income-limits/",
+        "title": "MA-3321 MAGI MEDICAID INCOME LIMITS"
+      },
+      {
+        "url": "https://policies.ncdhhs.gov/document/2026-magi-medicaid-medicaid-expansion-income-limits/",
+        "title": "2026 MAGI MEDICAID & MEDICAID EXPANSION INCOME LIMITS"
+      },
+      {
+        "url": "https://policies.ncdhhs.gov/document-category/health-benefits-nc-medicaid/page/17/",
+        "title": "Health Benefits/NC Medicaid \u2013 Page 17 - NCDHHS Policies and Manuals"
+      },
+      {
+        "url": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/family-and-childrens-medicaid/",
+        "title": "Family and Children's Medicaid - NCDHHS Policies and Manuals"
+      },
+      {
+        "url": "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/family-and-childrens-medicaid/fcm-policies-manuals/",
+        "title": "FCM Policies/Manuals"
+      }
+    ]
+  },
+  {
+    "query_group": "covid-current",
+    "search_id": "01a10052-5085-72cc-9838-afc16b30b13c",
+    "retained_capture_sha256": "e9467fc3bcf323685961c30fe9fe7a379d2873df34124c5c7bb01c4a6d94e321",
+    "sources": [
+      {
+        "url": "https://medicaid.ncdhhs.gov/blog/2024/09/25/reminder-key-covid-19-changes-effective-oct-1-2024",
+        "title": "Reminder: Key COVID-19 Changes Effective Oct. 1, 2024 | NC Medicaid"
+      },
+      {
+        "url": "https://medicaid.ncdhhs.gov/blog-terms/covid-19",
+        "title": "COVID-19 | NC Medicaid"
+      },
+      {
+        "url": "https://medicaid.ncdhhs.gov/blog/2023/07/14/special-bulletin-covid-19-268-covid-19-testing-vaccination-and-counseling-coverage-after-federal",
+        "title": "SPECIAL BULLETIN COVID-19 #268: COVID-19 Testing, Vaccination and ..."
+      }
+    ]
+  }
+]

@@ -18,8 +18,8 @@ def missing_source_payloads(db_path: Path) -> list[dict]:
 
 
 def require_downloaded_sources(db_path: Path) -> None:
-    count = sum(
-        row["required_for_answering"] for row in missing_source_payloads(db_path)
-    )
+    from pipeline.answer_scope import scoped_failure_count
+    failures = missing_source_payloads(db_path)
+    count = sum(row["required_for_answering"] for row in failures) - scoped_failure_count(failures, db_path)
     if count:
         raise RuntimeError(f"{count} required sources have no downloaded payload")

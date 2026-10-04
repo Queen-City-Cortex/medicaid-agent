@@ -15,6 +15,7 @@ import {
 
 import { WITHHELD_ANSWER, type VerificationOutcome } from '@nc-medicaid/contracts';
 import { log } from '../../logger.js';
+import { resolveCoverageScope, coverageEvidenceIssue } from '@nc-medicaid/policy-corpus';
 
 // ── Shared verification flow ────────────────────────────────────────────────
 
@@ -26,6 +27,8 @@ import { log } from '../../logger.js';
  * these fields by name. Do not rename them.
  */
 export interface VerifierTelemetry {
+  coverage_policy_id?: string | null;
+  coverage_issue?: string | null;
   latency_ms: number;
   pass_count: number;
   withholding_reason: string | null;
@@ -73,8 +76,9 @@ export function emitVerifierTelemetry(telemetry: object): void {
 }
 
 /** Verify the exact outgoing text. A failed candidate is never a fallback. */
-export async function runVerificationForAnswer({ question, answerText, sources, onUsage, signal, verify = verifyAnswer, capture = createPrivateVerificationCapture() }: {
+export async function runVerificationForAnswer({ question, coverageQuery, answerText, sources, onUsage, signal, verify = verifyAnswer, capture = createPrivateVerificationCapture() }: {
   question: string;
+  coverageQuery?: string;
   answerText: string;
   sources: SourceEntry[];
   onUsage?: (usage: unknown) => void;
@@ -92,11 +96,19 @@ export async function runVerificationForAnswer({ question, answerText, sources, 
   const substanceLoss = false;
   let substanceRatio: number | null = null;
   let unavailable = false;
+  const scope = resolveCoverageScope(coverageQuery ?? question);
+  const scopeIssue = coverageEvidenceIssue(scope, sources);
   for (let pass = 1; pass <= 2; pass++) {
+    if (scopeIssue) {
+      verification = { supported: false, relevant: true, citationsComplete: false, unsupportedClaims: [{ claim: 'Full answer', reason: scopeIssue }], missingCitationClaims: [], relevanceIssues: [], correctedAnswer: '' };
+      outcome.reason = 'unsupported';
+      break;
+    }
     const urls = validateAnswerUrls(candidate, sources);
     const quotes = validateAnswerQuotes(candidate, sources);
     verification = await verify(question, candidate, buildSourceText(sources, candidate), onUsage, signal,
       { unknownUrls: urls.unknownUrls, unknownQuotes: quotes.unknownQuotes,
+        coverageRequirements: scope?.requirements,
         ...(sources.some(source => source.evidenceRole === 'supplementary') ? { hasSupplementaryEvidence: true } : {}),
       });
     capture?.({ stage: 'pass', pass, candidate, evidenceText: buildSourceText(sources, candidate), deterministic: { urls, quotes }, verification });
@@ -135,6 +147,7 @@ export async function runVerificationForAnswer({ question, answerText, sources, 
   if (withheld) { confidence.confidence = 0; confidence.severity = 'low'; }
   const rewrote = outcome.status !== 'passed';
   const telemetry: VerifierTelemetry = {
+    coverage_policy_id: scope?.policyId ?? null, coverage_issue: scopeIssue,
     latency_ms: Date.now() - started, pass_count: outcome.passCount, withholding_reason: outcome.reason ?? null,
     outcome, rewrote, supported: !withheld && verification.supported,
     relevant: verification.relevant, citations_complete: verification.citationsComplete,

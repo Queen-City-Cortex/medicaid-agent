@@ -1,0 +1,7 @@
+{
+  "ownedDockerFixtureRemoved": true,
+  "ownedDockerNetworkRemoved": true,
+  "remoteStagedCredentialsRemoved": true,
+  "productionGraphMutated": false,
+  "otherWorktreesPreserved": true
+}

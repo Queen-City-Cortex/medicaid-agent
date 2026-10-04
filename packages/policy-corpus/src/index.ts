@@ -1,4 +1,5 @@
 export { createNeo4jPolicyCorpus, SEARCH_SNIPPET_CHARS } from './policy-corpus.js';
+export { resolveCoverageScope, coverageEvidenceIssue, ANSWER_SCOPE_POLICY, type CoverageScope } from './scope/coverage.js';
 export {
   ANSWER_QUESTION_TYPES,
   ANSWER_ROUTE_LANES,

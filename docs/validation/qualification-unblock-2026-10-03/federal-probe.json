@@ -1,0 +1,753 @@
+{
+  "schemaVersion": 1,
+  "allPassed": false,
+  "results": [
+    {
+      "source": "CFR",
+      "title": 2,
+      "part": 200,
+      "passed": true,
+      "bytes": 681279,
+      "sha256": "9292888428889b982e28d5ae2a1895ef62e4042d52a41d529148a9cb1e461f7a",
+      "sections": 180,
+      "provenance": {
+        "title": "2",
+        "part": "200",
+        "retrieval_url": "https://www.govinfo.gov/bulkdata/ECFR/title-2/ECFR-title2.xml",
+        "fetched_at": "2026-10-03T22:14:45.110727+00:00",
+        "source_sha256": "118da26a4b4b55a0c8f85a611aa976d62e5dc155dc27cd679043e8b140df174d",
+        "source_last_modified": "Wed, 19 Aug 2026 20:28:22 GMT"
+      }
+    },
+    {
+      "source": "CFR",
+      "title": 42,
+      "part": 405,
+      "passed": true,
+      "bytes": 936556,
+      "sha256": "39deacac2629ef2f5e1110d77059661b31c534cc2f726bc6ba4ae443bb381717",
+      "sections": 272,
+      "provenance": {
+        "title": "42",
+        "part": "405",
+        "retrieval_url": "https://www.govinfo.gov/bulkdata/ECFR/title-42/ECFR-title42.xml",
+        "fetched_at": "2026-10-03T22:14:48.508996+00:00",
+        "source_sha256": "474c11c330d567983d9842233ea06934fce8f2acdc7de2ad8aa3cb9b649e461e",
+        "source_last_modified": "Fri, 02 Oct 2026 22:24:08 GMT"
+      }
+    },
+    {
+      "source": "CFR",
+      "title": 42,
+      "part": 409,
+      "passed": true,
+      "bytes": 132211,
+      "sha256": "5458dc796b7575da0575aab12902e7cf1738828187b2998014196c66fdaff482",
+      "sections": 55,
+      "provenance": {
+        "title": "42",
+        "part": "409",
+        "retrieval_url": "https://www.govinfo.gov/bulkdata/ECFR/title-42/ECFR-title42.xml",
+        "fetched_at": "2026-10-03T22:14:48.508996+00:00",
+        "source_sha256": "474c11c330d567983d9842233ea06934fce8f2acdc7de2ad8aa3cb9b649e461e",
+        "source_last_modified": "Fri, 02 Oct 2026 22:24:08 GMT"
+      }
+    },
+    {
+      "source": "CFR",
+      "title": 42,
+      "part": 410,
+      "passed": true,
+      "bytes": 434101,
+      "sha256": "547bf9a5d432acf56b3a7bc0d7c5421c38e4a385441fc2082df0766af3e03b6c",
+      "sections": 96,
+      "provenance": {
+        "title": "42",
+        "part": "410",
+        "retrieval_url": "https://www.govinfo.gov/bulkdata/ECFR/title-42/ECFR-title42.xml",
+        "fetched_at": "2026-10-03T22:14:48.508996+00:00",
+        "source_sha256": "474c11c330d567983d9842233ea06934fce8f2acdc7de2ad8aa3cb9b649e461e",
+        "source_last_modified": "Fri, 02 Oct 2026 22:24:08 GMT"
+      }
+    },
+    {
+      "source": "CFR",
+      "title": 42,
+      "part": 411,
+      "passed": true,
+      "bytes": 449918,
+      "sha256": "f2bec073fa2218271a8e56be5a56e501d6b56c2d417bbb63918cee703dc61241",
+      "sections": 94,
+      "provenance": {
+        "title": "42",
+        "part": "411",
+        "retrieval_url": "https://www.govinfo.gov/bulkdata/ECFR/title-42/ECFR-title42.xml",
+        "fetched_at": "2026-10-03T22:14:48.508996+00:00",
+        "source_sha256": "474c11c330d567983d9842233ea06934fce8f2acdc7de2ad8aa3cb9b649e461e",
+        "source_last_modified": "Fri, 02 Oct 2026 22:24:08 GMT"
+      }
+    },
+    {
+      "source": "CFR",
+      "title": 42,
+      "part": 412,
+      "passed": true,
+      "bytes": 1023574,
+      "sha256": "8c8b722240fee556f58ac0ba395cb0e67d0e5e1b2fb636ed41104bf54e842dae",
+      "sections": 186,
+      "provenance": {
+        "title": "42",
+        "part": "412",
+        "retrieval_url": "https://www.govinfo.gov/bulkdata/ECFR/title-42/ECFR-title42.xml",
+        "fetched_at": "2026-10-03T22:14:48.508996+00:00",
+        "source_sha256": "474c11c330d567983d9842233ea06934fce8f2acdc7de2ad8aa3cb9b649e461e",
+        "source_last_modified": "Fri, 02 Oct 2026 22:24:08 GMT"
+      }
+    },
+    {
+      "source": "CFR",
+      "title": 42,
+      "part": 413,
+      "passed": true,
+      "bytes": 953902,
+      "sha256": "fe374b59a5c949585bbccb31ad1baf79a1900f83625e5ade8d9bd30efe95e57b",
+      "sections": 124,
+      "provenance": {
+        "title": "42",
+        "part": "413",
+        "retrieval_url": "https://www.govinfo.gov/bulkdata/ECFR/title-42/ECFR-title42.xml",
+        "fetched_at": "2026-10-03T22:14:48.508996+00:00",
+        "source_sha256": "474c11c330d567983d9842233ea06934fce8f2acdc7de2ad8aa3cb9b649e461e",
+        "source_last_modified": "Fri, 02 Oct 2026 22:24:08 GMT"
+      }
+    },
+    {
+      "source": "CFR",
+      "title": 42,
+      "part": 418,
+      "passed": true,
+      "bytes": 213138,
+      "sha256": "b453a1f0c899f109b552a602ab090701a28e0b07c89dd9ffd9db6ed5c342dc5c",
+      "sections": 51,
+      "provenance": {
+        "title": "42",
+        "part": "418",
+        "retrieval_url": "https://www.govinfo.gov/bulkdata/ECFR/title-42/ECFR-title42.xml",
+        "fetched_at": "2026-10-03T22:14:48.508996+00:00",
+        "source_sha256": "474c11c330d567983d9842233ea06934fce8f2acdc7de2ad8aa3cb9b649e461e",
+        "source_last_modified": "Fri, 02 Oct 2026 22:24:08 GMT"
+      }
+    },
+    {
+      "source": "CFR",
+      "title": 42,
+      "part": 430,
+      "passed": true,
+      "bytes": 99407,
+      "sha256": "4a8497f7ddf791ab74482977d03b9771facbbd24bf33dae4b526ee57b6cc6af5",
+      "sections": 43,
+      "provenance": {
+        "title": "42",
+        "part": "430",
+        "retrieval_url": "https://www.govinfo.gov/bulkdata/ECFR/title-42/ECFR-title42.xml",
+        "fetched_at": "2026-10-03T22:14:48.508996+00:00",
+        "source_sha256": "474c11c330d567983d9842233ea06934fce8f2acdc7de2ad8aa3cb9b649e461e",
+        "source_last_modified": "Fri, 02 Oct 2026 22:24:08 GMT"
+      }
+    },
+    {
+      "source": "CFR",
+      "title": 42,
+      "part": 431,
+      "passed": true,
+      "bytes": 263103,
+      "sha256": "14c0c8d5c8d269d1b57d238389271caee83a496d996cf58e3338a021834af8a2",
+      "sections": 120,
+      "provenance": {
+        "title": "42",
+        "part": "431",
+        "retrieval_url": "https://www.govinfo.gov/bulkdata/ECFR/title-42/ECFR-title42.xml",
+        "fetched_at": "2026-10-03T22:14:48.508996+00:00",
+        "source_sha256": "474c11c330d567983d9842233ea06934fce8f2acdc7de2ad8aa3cb9b649e461e",
+        "source_last_modified": "Fri, 02 Oct 2026 22:24:08 GMT"
+      }
+    },
+    {
+      "source": "CFR",
+      "title": 42,
+      "part": 432,
+      "passed": true,
+      "bytes": 19044,
+      "sha256": "f7140172328f99a5e985399e627a6a3650b530d1524da7e78440be6d56e33bb7",
+      "sections": 9,
+      "provenance": {
+        "title": "42",
+        "part": "432",
+        "retrieval_url": "https://www.govinfo.gov/bulkdata/ECFR/title-42/ECFR-title42.xml",
+        "fetched_at": "2026-10-03T22:14:48.508996+00:00",
+        "source_sha256": "474c11c330d567983d9842233ea06934fce8f2acdc7de2ad8aa3cb9b649e461e",
+        "source_last_modified": "Fri, 02 Oct 2026 22:24:08 GMT"
+      }
+    },
+    {
+      "source": "CFR",
+      "title": 42,
+      "part": 433,
+      "passed": true,
+      "bytes": 208637,
+      "sha256": "553239f6bde9be3bd22556dc8406f6e001b05261474472ae7c148fb31d72d8a0",
+      "sections": 67,
+      "provenance": {
+        "title": "42",
+        "part": "433",
+        "retrieval_url": "https://www.govinfo.gov/bulkdata/ECFR/title-42/ECFR-title42.xml",
+        "fetched_at": "2026-10-03T22:14:48.508996+00:00",
+        "source_sha256": "474c11c330d567983d9842233ea06934fce8f2acdc7de2ad8aa3cb9b649e461e",
+        "source_last_modified": "Fri, 02 Oct 2026 22:24:08 GMT"
+      }
+    },
+    {
+      "source": "CFR",
+      "title": 42,
+      "part": 434,
+      "passed": true,
+      "bytes": 12102,
+      "sha256": "77701b91384f1e9e1c7ea6301260922da84fc753f0f25474a541c4b692563191",
+      "sections": 11,
+      "provenance": {
+        "title": "42",
+        "part": "434",
+        "retrieval_url": "https://www.govinfo.gov/bulkdata/ECFR/title-42/ECFR-title42.xml",
+        "fetched_at": "2026-10-03T22:14:48.508996+00:00",
+        "source_sha256": "474c11c330d567983d9842233ea06934fce8f2acdc7de2ad8aa3cb9b649e461e",
+        "source_last_modified": "Fri, 02 Oct 2026 22:24:08 GMT"
+      }
+    },
+    {
+      "source": "CFR",
+      "title": 42,
+      "part": 435,
+      "passed": true,
+      "bytes": 475692,
+      "sha256": "880bfc1d2ae9f7e960dbae5f1d85922fd9fdb196c1e0a1ed422cbf7aaa2ea736",
+      "sections": 173,
+      "provenance": {
+        "title": "42",
+        "part": "435",
+        "retrieval_url": "https://www.govinfo.gov/bulkdata/ECFR/title-42/ECFR-title42.xml",
+        "fetched_at": "2026-10-03T22:14:48.508996+00:00",
+        "source_sha256": "474c11c330d567983d9842233ea06934fce8f2acdc7de2ad8aa3cb9b649e461e",
+        "source_last_modified": "Fri, 02 Oct 2026 22:24:08 GMT"
+      }
+    },
+    {
+      "source": "CFR",
+      "title": 42,
+      "part": 436,
+      "passed": true,
+      "bytes": 141429,
+      "sha256": "fb24dbb5a5941d1492880963dd05bd4762f21ac17efe39e80bc7951dc80fded8",
+      "sections": 78,
+      "provenance": {
+        "title": "42",
+        "part": "436",
+        "retrieval_url": "https://www.govinfo.gov/bulkdata/ECFR/title-42/ECFR-title42.xml",
+        "fetched_at": "2026-10-03T22:14:48.508996+00:00",
+        "source_sha256": "474c11c330d567983d9842233ea06934fce8f2acdc7de2ad8aa3cb9b649e461e",
+        "source_last_modified": "Fri, 02 Oct 2026 22:24:08 GMT"
+      }
+    },
+    {
+      "source": "CFR",
+      "title": 42,
+      "part": 438,
+      "passed": true,
+      "bytes": 466138,
+      "sha256": "5b279eb90925cca1fb2c33b57706aa579c546bcab7e1de9dff9c3929332047fb",
+      "sections": 106,
+      "provenance": {
+        "title": "42",
+        "part": "438",
+        "retrieval_url": "https://www.govinfo.gov/bulkdata/ECFR/title-42/ECFR-title42.xml",
+        "fetched_at": "2026-10-03T22:14:48.508996+00:00",
+        "source_sha256": "474c11c330d567983d9842233ea06934fce8f2acdc7de2ad8aa3cb9b649e461e",
+        "source_last_modified": "Fri, 02 Oct 2026 22:24:08 GMT"
+      }
+    },
+    {
+      "source": "CFR",
+      "title": 42,
+      "part": 440,
+      "passed": true,
+      "bytes": 147355,
+      "sha256": "0690324ae815eeb050a0d441bd2774bdd47a0c307b4611fb299f087518a6beb1",
+      "sections": 62,
+      "provenance": {
+        "title": "42",
+        "part": "440",
+        "retrieval_url": "https://www.govinfo.gov/bulkdata/ECFR/title-42/ECFR-title42.xml",
+        "fetched_at": "2026-10-03T22:14:48.508996+00:00",
+        "source_sha256": "474c11c330d567983d9842233ea06934fce8f2acdc7de2ad8aa3cb9b649e461e",
+        "source_last_modified": "Fri, 02 Oct 2026 22:24:08 GMT"
+      }
+    },
+    {
+      "source": "CFR",
+      "title": 42,
+      "part": 441,
+      "passed": true,
+      "bytes": 362653,
+      "sha256": "31ef5b6f320cafe13eb43e5eca8656fd232880ba452db11289891562f6e67585",
+      "sections": 140,
+      "provenance": {
+        "title": "42",
+        "part": "441",
+        "retrieval_url": "https://www.govinfo.gov/bulkdata/ECFR/title-42/ECFR-title42.xml",
+        "fetched_at": "2026-10-03T22:14:48.508996+00:00",
+        "source_sha256": "474c11c330d567983d9842233ea06934fce8f2acdc7de2ad8aa3cb9b649e461e",
+        "source_last_modified": "Fri, 02 Oct 2026 22:24:08 GMT"
+      }
+    },
+    {
+      "source": "CFR",
+      "title": 42,
+      "part": 442,
+      "passed": true,
+      "bytes": 33439,
+      "sha256": "9900c58388313b9b8fbbf227b23dac3be2024e103701e792011e45bd16c0d1bd",
+      "sections": 20,
+      "provenance": {
+        "title": "42",
+        "part": "442",
+        "retrieval_url": "https://www.govinfo.gov/bulkdata/ECFR/title-42/ECFR-title42.xml",
+        "fetched_at": "2026-10-03T22:14:48.508996+00:00",
+        "source_sha256": "474c11c330d567983d9842233ea06934fce8f2acdc7de2ad8aa3cb9b649e461e",
+        "source_last_modified": "Fri, 02 Oct 2026 22:24:08 GMT"
+      }
+    },
+    {
+      "source": "CFR",
+      "title": 42,
+      "part": 447,
+      "passed": true,
+      "bytes": 274038,
+      "sha256": "23cbbb8a73663b83b83a73e21c6004bf60a868900cc861bfb69ead4bb94c8fc3",
+      "sections": 72,
+      "provenance": {
+        "title": "42",
+        "part": "447",
+        "retrieval_url": "https://www.govinfo.gov/bulkdata/ECFR/title-42/ECFR-title42.xml",
+        "fetched_at": "2026-10-03T22:14:48.508996+00:00",
+        "source_sha256": "474c11c330d567983d9842233ea06934fce8f2acdc7de2ad8aa3cb9b649e461e",
+        "source_last_modified": "Fri, 02 Oct 2026 22:24:08 GMT"
+      }
+    },
+    {
+      "source": "CFR",
+      "title": 42,
+      "part": 455,
+      "passed": true,
+      "bytes": 100691,
+      "sha256": "49a36ea349a1cbb05ce79b5de302b480d06566a77303a1cd437d3ff15416e2ef",
+      "sections": 60,
+      "provenance": {
+        "title": "42",
+        "part": "455",
+        "retrieval_url": "https://www.govinfo.gov/bulkdata/ECFR/title-42/ECFR-title42.xml",
+        "fetched_at": "2026-10-03T22:14:48.508996+00:00",
+        "source_sha256": "474c11c330d567983d9842233ea06934fce8f2acdc7de2ad8aa3cb9b649e461e",
+        "source_last_modified": "Fri, 02 Oct 2026 22:24:08 GMT"
+      }
+    },
+    {
+      "source": "CFR",
+      "title": 42,
+      "part": 456,
+      "passed": true,
+      "bytes": 157139,
+      "sha256": "0166086ca8d344fc4cacc9ce858519174e741798e80534e2ab8e38df58031b91",
+      "sections": 142,
+      "provenance": {
+        "title": "42",
+        "part": "456",
+        "retrieval_url": "https://www.govinfo.gov/bulkdata/ECFR/title-42/ECFR-title42.xml",
+        "fetched_at": "2026-10-03T22:14:48.508996+00:00",
+        "source_sha256": "474c11c330d567983d9842233ea06934fce8f2acdc7de2ad8aa3cb9b649e461e",
+        "source_last_modified": "Fri, 02 Oct 2026 22:24:08 GMT"
+      }
+    },
+    {
+      "source": "CFR",
+      "title": 42,
+      "part": 457,
+      "passed": true,
+      "bytes": 363269,
+      "sha256": "172747cbd335bca18d83b4d9e3af76f81d5b87d63b50d2cf57fd055f14b07eef",
+      "sections": 162,
+      "provenance": {
+        "title": "42",
+        "part": "457",
+        "retrieval_url": "https://www.govinfo.gov/bulkdata/ECFR/title-42/ECFR-title42.xml",
+        "fetched_at": "2026-10-03T22:14:48.508996+00:00",
+        "source_sha256": "474c11c330d567983d9842233ea06934fce8f2acdc7de2ad8aa3cb9b649e461e",
+        "source_last_modified": "Fri, 02 Oct 2026 22:24:08 GMT"
+      }
+    },
+    {
+      "source": "CFR",
+      "title": 42,
+      "part": 460,
+      "passed": true,
+      "bytes": 210642,
+      "sha256": "dcc4f6da81e16b37b21ccd69fed6c2d325b92e5043a1e0272e32a4ca35ed2607",
+      "sections": 91,
+      "provenance": {
+        "title": "42",
+        "part": "460",
+        "retrieval_url": "https://www.govinfo.gov/bulkdata/ECFR/title-42/ECFR-title42.xml",
+        "fetched_at": "2026-10-03T22:14:48.508996+00:00",
+        "source_sha256": "474c11c330d567983d9842233ea06934fce8f2acdc7de2ad8aa3cb9b649e461e",
+        "source_last_modified": "Fri, 02 Oct 2026 22:24:08 GMT"
+      }
+    },
+    {
+      "source": "CFR",
+      "title": 42,
+      "part": 482,
+      "passed": true,
+      "bytes": 211698,
+      "sha256": "987f0fee2007b00d852d7e51da589a2e3681f08cb52435af8ba3379b2f3a56dd",
+      "sections": 46,
+      "provenance": {
+        "title": "42",
+        "part": "482",
+        "retrieval_url": "https://www.govinfo.gov/bulkdata/ECFR/title-42/ECFR-title42.xml",
+        "fetched_at": "2026-10-03T22:14:48.508996+00:00",
+        "source_sha256": "474c11c330d567983d9842233ea06934fce8f2acdc7de2ad8aa3cb9b649e461e",
+        "source_last_modified": "Fri, 02 Oct 2026 22:24:08 GMT"
+      }
+    },
+    {
+      "source": "CFR",
+      "title": 42,
+      "part": 483,
+      "passed": true,
+      "bytes": 434635,
+      "sha256": "485af2e65aaba04b4c68cf60942ecc5bc1f7dddf76f3fa7e642c7dfcb8106b8d",
+      "sections": 82,
+      "provenance": {
+        "title": "42",
+        "part": "483",
+        "retrieval_url": "https://www.govinfo.gov/bulkdata/ECFR/title-42/ECFR-title42.xml",
+        "fetched_at": "2026-10-03T22:14:48.508996+00:00",
+        "source_sha256": "474c11c330d567983d9842233ea06934fce8f2acdc7de2ad8aa3cb9b649e461e",
+        "source_last_modified": "Fri, 02 Oct 2026 22:24:08 GMT"
+      }
+    },
+    {
+      "source": "CFR",
+      "title": 42,
+      "part": 484,
+      "passed": true,
+      "bytes": 175329,
+      "sha256": "38dd9e2d7a644bd8a0f45f176d5d8f3d2feaafb1447882b1ac057063b905bef2",
+      "sections": 47,
+      "provenance": {
+        "title": "42",
+        "part": "484",
+        "retrieval_url": "https://www.govinfo.gov/bulkdata/ECFR/title-42/ECFR-title42.xml",
+        "fetched_at": "2026-10-03T22:14:48.508996+00:00",
+        "source_sha256": "474c11c330d567983d9842233ea06934fce8f2acdc7de2ad8aa3cb9b649e461e",
+        "source_last_modified": "Fri, 02 Oct 2026 22:24:08 GMT"
+      }
+    },
+    {
+      "source": "CFR",
+      "title": 42,
+      "part": 485,
+      "passed": true,
+      "bytes": 356929,
+      "sha256": "2706cbc8c00de686f28b49549edeebd1974dbfee1c0e5be58818ff4fe34f5b19",
+      "sections": 85,
+      "provenance": {
+        "title": "42",
+        "part": "485",
+        "retrieval_url": "https://www.govinfo.gov/bulkdata/ECFR/title-42/ECFR-title42.xml",
+        "fetched_at": "2026-10-03T22:14:48.508996+00:00",
+        "source_sha256": "474c11c330d567983d9842233ea06934fce8f2acdc7de2ad8aa3cb9b649e461e",
+        "source_last_modified": "Fri, 02 Oct 2026 22:24:08 GMT"
+      }
+    },
+    {
+      "source": "CFR",
+      "title": 42,
+      "part": 488,
+      "passed": true,
+      "bytes": 450892,
+      "sha256": "2f6ecd491ad828cbe3871c281228170cdabe70a709e82e8b7db28e31b3227f29",
+      "sections": 148,
+      "provenance": {
+        "title": "42",
+        "part": "488",
+        "retrieval_url": "https://www.govinfo.gov/bulkdata/ECFR/title-42/ECFR-title42.xml",
+        "fetched_at": "2026-10-03T22:14:48.508996+00:00",
+        "source_sha256": "474c11c330d567983d9842233ea06934fce8f2acdc7de2ad8aa3cb9b649e461e",
+        "source_last_modified": "Fri, 02 Oct 2026 22:24:08 GMT"
+      }
+    },
+    {
+      "source": "CFR",
+      "title": 42,
+      "part": 489,
+      "passed": true,
+      "bytes": 147196,
+      "sha256": "3a4e5c80e26f8af4bb491190712f1d0f66c2bfc6ec72281863458a14cba6d834",
+      "sections": 49,
+      "provenance": {
+        "title": "42",
+        "part": "489",
+        "retrieval_url": "https://www.govinfo.gov/bulkdata/ECFR/title-42/ECFR-title42.xml",
+        "fetched_at": "2026-10-03T22:14:48.508996+00:00",
+        "source_sha256": "474c11c330d567983d9842233ea06934fce8f2acdc7de2ad8aa3cb9b649e461e",
+        "source_last_modified": "Fri, 02 Oct 2026 22:24:08 GMT"
+      }
+    },
+    {
+      "source": "CFR",
+      "title": 45,
+      "part": 16,
+      "passed": true,
+      "bytes": 37311,
+      "sha256": "55c8542fde175dbe9aa08ec78e51969aa40afe087053f0063ca66b9ce10da3d5",
+      "sections": 23,
+      "provenance": {
+        "title": "45",
+        "part": "16",
+        "retrieval_url": "https://www.govinfo.gov/bulkdata/ECFR/title-45/ECFR-title45.xml",
+        "fetched_at": "2026-10-03T22:15:20.777221+00:00",
+        "source_sha256": "c593f843987876de4d273417ca4be378cf4ad2da2e77867588528affecccb3d3",
+        "source_last_modified": "Fri, 02 Oct 2026 22:22:02 GMT"
+      }
+    },
+    {
+      "source": "CFR",
+      "title": 45,
+      "part": 92,
+      "passed": true,
+      "bytes": 76563,
+      "sha256": "5091910fadedf8de3395ecf1f326bd1d7055a8883f7c5717303541abde22563d",
+      "sections": 27,
+      "provenance": {
+        "title": "45",
+        "part": "92",
+        "retrieval_url": "https://www.govinfo.gov/bulkdata/ECFR/title-45/ECFR-title45.xml",
+        "fetched_at": "2026-10-03T22:15:20.777221+00:00",
+        "source_sha256": "c593f843987876de4d273417ca4be378cf4ad2da2e77867588528affecccb3d3",
+        "source_last_modified": "Fri, 02 Oct 2026 22:22:02 GMT"
+      }
+    },
+    {
+      "source": "CFR",
+      "title": 45,
+      "part": 95,
+      "passed": true,
+      "bytes": 94678,
+      "sha256": "23f00733b4147a9ea7862359ce2e2145156bba72769caa0fb7465e22b04e21dd",
+      "sections": 44,
+      "provenance": {
+        "title": "45",
+        "part": "95",
+        "retrieval_url": "https://www.govinfo.gov/bulkdata/ECFR/title-45/ECFR-title45.xml",
+        "fetched_at": "2026-10-03T22:15:20.777221+00:00",
+        "source_sha256": "c593f843987876de4d273417ca4be378cf4ad2da2e77867588528affecccb3d3",
+        "source_last_modified": "Fri, 02 Oct 2026 22:22:02 GMT"
+      }
+    },
+    {
+      "source": "CFR",
+      "title": 45,
+      "part": 144,
+      "passed": true,
+      "bytes": 39709,
+      "sha256": "cdf67175b2471eb679fe6b53f50940e674bc9dd3508e55dbcd72708cc34cb570",
+      "sections": 11,
+      "provenance": {
+        "title": "45",
+        "part": "144",
+        "retrieval_url": "https://www.govinfo.gov/bulkdata/ECFR/title-45/ECFR-title45.xml",
+        "fetched_at": "2026-10-03T22:15:20.777221+00:00",
+        "source_sha256": "c593f843987876de4d273417ca4be378cf4ad2da2e77867588528affecccb3d3",
+        "source_last_modified": "Fri, 02 Oct 2026 22:22:02 GMT"
+      }
+    },
+    {
+      "source": "CFR",
+      "title": 45,
+      "part": 146,
+      "passed": true,
+      "bytes": 549057,
+      "sha256": "a57c27dd5942e050b0ae913b57739243889de00d3806035add8152b40d2f285e",
+      "sections": 20,
+      "provenance": {
+        "title": "45",
+        "part": "146",
+        "retrieval_url": "https://www.govinfo.gov/bulkdata/ECFR/title-45/ECFR-title45.xml",
+        "fetched_at": "2026-10-03T22:15:20.777221+00:00",
+        "source_sha256": "c593f843987876de4d273417ca4be378cf4ad2da2e77867588528affecccb3d3",
+        "source_last_modified": "Fri, 02 Oct 2026 22:22:02 GMT"
+      }
+    },
+    {
+      "source": "CFR",
+      "title": 45,
+      "part": 147,
+      "passed": true,
+      "bytes": 348068,
+      "sha256": "f68005fbfaa8ca2eb60c07f4d7815c53a7d0134d197bdd7eb60bee83de8a3604",
+      "sections": 25,
+      "provenance": {
+        "title": "45",
+        "part": "147",
+        "retrieval_url": "https://www.govinfo.gov/bulkdata/ECFR/title-45/ECFR-title45.xml",
+        "fetched_at": "2026-10-03T22:15:20.777221+00:00",
+        "source_sha256": "c593f843987876de4d273417ca4be378cf4ad2da2e77867588528affecccb3d3",
+        "source_last_modified": "Fri, 02 Oct 2026 22:22:02 GMT"
+      }
+    },
+    {
+      "source": "CFR",
+      "title": 45,
+      "part": 155,
+      "passed": true,
+      "bytes": 680132,
+      "sha256": "d155c880ed8ba3975ab846586892608d8d348b178a8efc42725ddc46e42c94f0",
+      "sections": 126,
+      "provenance": {
+        "title": "45",
+        "part": "155",
+        "retrieval_url": "https://www.govinfo.gov/bulkdata/ECFR/title-45/ECFR-title45.xml",
+        "fetched_at": "2026-10-03T22:15:20.777221+00:00",
+        "source_sha256": "c593f843987876de4d273417ca4be378cf4ad2da2e77867588528affecccb3d3",
+        "source_last_modified": "Fri, 02 Oct 2026 22:22:02 GMT"
+      }
+    },
+    {
+      "source": "CFR",
+      "title": 45,
+      "part": 156,
+      "passed": true,
+      "bytes": 376824,
+      "sha256": "9276170b1bb2ea7c741d331f28418bc8180a32d394c6154780f47415e8c8e09c",
+      "sections": 115,
+      "provenance": {
+        "title": "45",
+        "part": "156",
+        "retrieval_url": "https://www.govinfo.gov/bulkdata/ECFR/title-45/ECFR-title45.xml",
+        "fetched_at": "2026-10-03T22:15:20.777221+00:00",
+        "source_sha256": "c593f843987876de4d273417ca4be378cf4ad2da2e77867588528affecccb3d3",
+        "source_last_modified": "Fri, 02 Oct 2026 22:22:02 GMT"
+      }
+    },
+    {
+      "source": "CFR",
+      "title": 45,
+      "part": 158,
+      "passed": true,
+      "bytes": 131212,
+      "sha256": "f41303f85dd91c8255b70da1b34ce143551476442a06d2b0484ab9aa99bdec7b",
+      "sections": 66,
+      "provenance": {
+        "title": "45",
+        "part": "158",
+        "retrieval_url": "https://www.govinfo.gov/bulkdata/ECFR/title-45/ECFR-title45.xml",
+        "fetched_at": "2026-10-03T22:15:20.777221+00:00",
+        "source_sha256": "c593f843987876de4d273417ca4be378cf4ad2da2e77867588528affecccb3d3",
+        "source_last_modified": "Fri, 02 Oct 2026 22:22:02 GMT"
+      }
+    },
+    {
+      "source": "CFR",
+      "title": 45,
+      "part": 164,
+      "passed": true,
+      "bytes": 278235,
+      "sha256": "21e13c6dc04da6ade49e7b7f6ce3e3d8b8de6294a657b2a1b503fd401bdae592",
+      "sections": 41,
+      "provenance": {
+        "title": "45",
+        "part": "164",
+        "retrieval_url": "https://www.govinfo.gov/bulkdata/ECFR/title-45/ECFR-title45.xml",
+        "fetched_at": "2026-10-03T22:15:20.777221+00:00",
+        "source_sha256": "c593f843987876de4d273417ca4be378cf4ad2da2e77867588528affecccb3d3",
+        "source_last_modified": "Fri, 02 Oct 2026 22:22:02 GMT"
+      }
+    },
+    {
+      "source": "CFR",
+      "title": 45,
+      "part": 170,
+      "passed": true,
+      "bytes": 302320,
+      "sha256": "0c5c16a11e5c1c314354bf0cf58e711bba319291a9c2672b6afbfd97a0380585",
+      "sections": 51,
+      "provenance": {
+        "title": "45",
+        "part": "170",
+        "retrieval_url": "https://www.govinfo.gov/bulkdata/ECFR/title-45/ECFR-title45.xml",
+        "fetched_at": "2026-10-03T22:15:20.777221+00:00",
+        "source_sha256": "c593f843987876de4d273417ca4be378cf4ad2da2e77867588528affecccb3d3",
+        "source_last_modified": "Fri, 02 Oct 2026 22:22:02 GMT"
+      }
+    },
+    {
+      "source": "CFR",
+      "title": 45,
+      "part": 171,
+      "passed": true,
+      "bytes": 67495,
+      "sha256": "e45f32b20879c4512ab26d58f8ce51c3590fb6b619e0af3edd969dde40a3927e",
+      "sections": 24,
+      "provenance": {
+        "title": "45",
+        "part": "171",
+        "retrieval_url": "https://www.govinfo.gov/bulkdata/ECFR/title-45/ECFR-title45.xml",
+        "fetched_at": "2026-10-03T22:15:20.777221+00:00",
+        "source_sha256": "c593f843987876de4d273417ca4be378cf4ad2da2e77867588528affecccb3d3",
+        "source_last_modified": "Fri, 02 Oct 2026 22:22:02 GMT"
+      }
+    },
+    {
+      "source": "CFR",
+      "title": 45,
+      "part": 233,
+      "passed": true,
+      "bytes": 102155,
+      "sha256": "c43a8f8d0ddce8ac83c43a5090343c6e0ebbc67ddf059640ba6efc47755c9e46",
+      "sections": 13,
+      "provenance": {
+        "title": "45",
+        "part": "233",
+        "retrieval_url": "https://www.govinfo.gov/bulkdata/ECFR/title-45/ECFR-title45.xml",
+        "fetched_at": "2026-10-03T22:15:20.777221+00:00",
+        "source_sha256": "c593f843987876de4d273417ca4be378cf4ad2da2e77867588528affecccb3d3",
+        "source_last_modified": "Fri, 02 Oct 2026 22:22:02 GMT"
+      }
+    },
+    {
+      "source": "SSA",
+      "subchapter": 19,
+      "passed": false,
+      "errorType": "ValueError",
+      "error": "USC subchapter 19 response lacks required statutory text: 1902, 1905, 1915"
+    },
+    {
+      "source": "SSA",
+      "subchapter": 21,
+      "passed": false,
+      "errorType": "ValueError",
+      "error": "USC subchapter 21 response lacks required statutory text: 2101, 2103, 2110"
+    }
+  ],
+  "isolated": true,
+  "qualification": false
+}

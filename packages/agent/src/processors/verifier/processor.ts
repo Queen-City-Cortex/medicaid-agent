@@ -6,6 +6,7 @@ import { extractSources, extractSourcesFromToolResults, type SourceEntry, type T
 import { emitVerifierTelemetry, runVerificationForAnswer } from './run.js';
 import { createPrivateVerificationCapture, finishChatDiagnostic, type ChatDiagnostic } from './diagnostics.js';
 import { CHAT_DIAGNOSTIC_CONTEXT, CHAT_VERIFICATION_QUESTION } from './context.js';
+import { COVERAGE_VERIFICATION_QUERY } from '../coverage-boundary.js';
 
 // ── Processor Class ─────────────────────────────────────────────────────────
 
@@ -78,7 +79,8 @@ export class HallucinationVerifier implements Processor {
     ]);
     const originalQuestion = requestContext?.get(CHAT_VERIFICATION_QUESTION);
     const question = typeof originalQuestion === 'string' ? originalQuestion : extractLatestUserQuestion(messages);
-    const result = await runVerificationForAnswer({ question, answerText: text, sources, signal: abortSignal, capture });
+    const coverageQuery = requestContext?.get(COVERAGE_VERIFICATION_QUERY);
+    const result = await runVerificationForAnswer({ question, coverageQuery: typeof coverageQuery === 'string' ? coverageQuery : question, answerText: text, sources, signal: abortSignal, capture });
     const { finalAnswer, outcome, confidence, telemetry } = result;
     finishChatDiagnostic(diagnostic, outcome, telemetry.latency_ms);
     const last = messages.reduce((last, m, i) => m.role === 'assistant' ? i : last, -1);

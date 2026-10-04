@@ -1,0 +1,21 @@
+{
+  "decision": "NO_GO",
+  "checkedAt": "2026-10-04T01:19:40.088495+00:00",
+  "paidGenerationCalls": 0,
+  "sourceRefresh": "FAILED_CONTENT_VALIDATION_BOTH_STATUTES",
+  "anthropicCatalogAccess": "HTTP_401_BOTH_SERVICES",
+  "embeddingVolume": "COMPLETE_ARCHIVED_SNAPSHOT_DIAGNOSTIC",
+  "linuxFinalSuite": "PASS_631_EMPTY_DISPOSABLE_NEO4J",
+  "freshSourcePreparation": "NOT_RUN_SOURCE_GATE_FAILED",
+  "newScopeApprovalAndRestore": "NOT_RUN",
+  "paidQualification": "NOT_RUN",
+  "budgetGateway": "NOT_IMPLEMENTED_NO_APPROVED_CAP",
+  "activation": "NOT_RUN",
+  "agencyOutreach": "NOT_RUN",
+  "legacyReleaseRetained": true,
+  "rootPendingPreserved": true,
+  "otherEmbeddingWorktreePreserved": true,
+  "exactImplementationCi": "PASS_ALL_JOBS_700ba6a",
+  "overlappingDraft": "204_RECONCILIATION_REQUIRED",
+  "approvedSpendUsd": 0
+}

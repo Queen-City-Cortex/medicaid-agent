@@ -90,6 +90,10 @@ export const resolveAnswerFrame = createTool({
       avoidSections: z.array(AnswerFrameSectionSchema),
       latestRevision: LatestRevisionSchema.nullable(),
       variantReasoning: z.string().nullable(),
+      coverageScope: z.object({
+        policyId: z.string(), limitationIds: z.array(z.string()), notice: z.string().nullable(),
+        requestedDate: z.string().nullable(), requiredSourceUrls: z.array(z.string()), requirements: z.array(z.string()),
+      }).optional(),
     }),
   }),
   execute: async (inputData) => {

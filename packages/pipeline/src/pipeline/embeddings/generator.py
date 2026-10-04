@@ -1,13 +1,11 @@
 """Generate vector embeddings for Section nodes using Voyage AI.
 
-Large sections (>= MAX_CHUNK_CHARS) are split into Chunk nodes and embedded
-per-chunk. Small sections are embedded directly on the Section node.
+Contextual plans determine direct or chunk vectors, with lossless source windows.
 """
 
 import math
 
 from rich.console import Console
-from rich.progress import track
 
 from pipeline.config import (
     VOYAGE_API_KEY,
@@ -17,61 +15,40 @@ from pipeline.config import (
     EMBEDDING_DIMENSIONS,
 )
 from pipeline.embeddings.voyage_client import embed as voyage_embed
-from pipeline.graph.bulk import write_chunks
 from pipeline.graph.connection import get_session
-from pipeline.graph import queries
-from pipeline.embeddings.chunker import chunk_text, MAX_CHUNK_CHARS
+from pipeline.embeddings.planner import plan_inputs, plan_hash
+from pipeline.embeddings.tokenizer import BATCH_TOKENS
 from pipeline.utils.batching import chunked
 
 console = Console()
 
-# Rough chars-per-token estimate; used to stay under Voyage's 120K token limit.
-# Using 3 chars/token (conservative for legal text) and a 60K limit gives ample
-# headroom below Voyage's 120K maximum.
-_CHARS_PER_TOKEN = 3
-_MAX_BATCH_TOKENS = 60_000  # conservative flush threshold (Voyage limit: 120K)
-
-
-def build_embedding_texts(section_ids: list[str]) -> dict[str, str]:
-    """Read contextualized embedding text for many sections in one query."""
-    if not section_ids:
-        return {}
-
-    with get_session() as session:
-        result = session.run(
-            """
-            UNWIND $section_ids AS sid
-            MATCH (s:Section {id: sid})
-            OPTIONAL MATCH (ancestor:Section)-[:PARENT_OF*]->(s)
-            WITH sid, s, collect(DISTINCT ancestor.title) AS ancestor_titles
-            MATCH (d:Document)-[:HAS_SECTION]->(s)
-            RETURN sid, d.title AS doc_title, s.title AS sec_title,
-                   s.content_text AS content, ancestor_titles
-            """,
-            {"section_ids": section_ids},
-        )
-        texts: dict[str, str] = {}
-        for record in result:
-            chain = [record["doc_title"]] if record["doc_title"] else []
-            chain.extend(
-                title
-                for title in (record["ancestor_titles"] or [])
-                if title
-            )
-            if record["sec_title"]:
-                chain.append(record["sec_title"])
-            texts[record["sid"]] = (
-                f"{' > '.join(chain)}\n{record['content'] or ''}"
-            )
-        return texts
-
-
-def _create_chunks_in_neo4j(
-    section_id: str, heading_prefix: str, chunks: list[str]
-) -> list[str]:
-    """Persist Chunk nodes linked to their Section. Returns list of chunk IDs."""
-    with get_session() as session:
-        return write_chunks(session, section_id, chunks)
+def iter_section_contexts(section_ids=None):
+    """Read at most ten bodies per query and stream one Bolt record at a time, with deterministic ancestor order."""
+    if section_ids is None:
+        with get_session() as session:
+            section_ids = [r["id"] for r in session.run(
+                "MATCH (s:Section) WHERE s.content_length > 0 RETURN s.id AS id ORDER BY s.id"
+            )]
+    for ids in chunked(section_ids, 10):
+        with get_session(default_access_mode="READ", fetch_size=1) as session:
+            records = session.run("""
+                UNWIND $section_ids AS sid
+                MATCH (s:Section {id: sid})
+                OPTIONAL MATCH path=(ancestor:Section)-[:PARENT_OF*]->(s)
+                WITH sid,s,ancestor,length(path) AS depth
+                ORDER BY depth DESC, ancestor.id
+                WITH sid,s,collect(DISTINCT ancestor.title) AS ancestor_titles
+                MATCH (d:Document)-[:HAS_SECTION]->(s)
+                RETURN sid,d.title AS doc_title,s.title AS sec_title,
+                       s.content_text AS content,ancestor_titles,s.embedding_source_epoch AS source_epoch
+                ORDER BY sid
+            """, {"section_ids": ids})
+            for row in records:
+                chain = [row["doc_title"]] if row["doc_title"] else []
+                chain.extend(t for t in row["ancestor_titles"] or [] if t)
+                if row["sec_title"]:
+                    chain.append(row["sec_title"])
+                yield row["sid"], " > ".join(chain), row["content"] or "", row.get("source_epoch")
 
 
 def _flush_batch(
@@ -80,6 +57,7 @@ def _flush_batch(
     batch_texts: list[str],
     batch_kinds: list[str],  # "section" or "chunk"
     stats: dict,
+    batch_plans: list[str],
 ):
     """Embed a batch and store results in Neo4j."""
     if not batch_texts:
@@ -105,20 +83,32 @@ def _flush_batch(
                 f"{EMBEDDING_DIMENSIONS} finite dimensions"
             )
         with get_session() as session:
-            section_rows = [
-                {"id": node_id, "embedding": emb}
-                for node_id, emb, kind in zip(batch_ids, embeddings, batch_kinds)
-                if kind == "section"
-            ]
-            chunk_rows = [
-                {"id": node_id, "embedding": emb}
-                for node_id, emb, kind in zip(batch_ids, embeddings, batch_kinds)
-                if kind == "chunk"
-            ]
-            for batch in chunked(section_rows, EMBED_WRITE_BATCH_SIZE):
-                session.run(queries.SET_SECTION_EMBEDDINGS_BATCH, {"rows": batch})
-            for batch in chunked(chunk_rows, EMBED_WRITE_BATCH_SIZE):
-                session.run(queries.SET_CHUNK_EMBEDDINGS_BATCH, {"rows": batch})
+            def store(tx):
+                for kind, label in (("section", "Section"), ("chunk", "Chunk")):
+                    rows = [
+                        {"id": node_id, "embedding": emb, "plan": digest}
+                        for node_id, emb, node_kind, digest in zip(
+                            batch_ids, embeddings, batch_kinds, batch_plans, strict=True
+                        ) if node_kind == kind
+                    ]
+                    for batch in chunked(rows, EMBED_WRITE_BATCH_SIZE):
+                        owner_match = "WITH n AS owner,n,row" if kind == "section" else "MATCH (owner:Section)-[:HAS_CHUNK]->(n) WITH owner,n,row"
+                        result = tx.run(f"""
+                            UNWIND $rows AS row MATCH (n:{label} {{id:row.id}})
+                            {owner_match}
+                            SET owner.embedding_write_lock = true
+                            WITH owner,n,row WHERE n.embedding_plan_hash=row.plan
+                              AND owner.embedding_plan_hash=row.plan
+                              AND owner.embedding_source_epoch IS NOT NULL
+                              AND owner.embedding_plan_source_epoch=owner.embedding_source_epoch
+                              AND n.embedding_plan_source_epoch=owner.embedding_source_epoch
+                            SET n.embedding=row.embedding
+                            REMOVE owner.embedding_write_lock
+                            RETURN count(n) AS written
+                        """, rows=batch).single()
+                        if not result or result["written"] != len(batch):
+                            raise RuntimeError("Embedding plan changed or target disappeared during provider call")
+            session.execute_write(store)
         stats["embedded"] += len(batch_ids)
     except Exception as e:
         console.print(f"[red]Batch error: {e}[/red]")
@@ -127,164 +117,132 @@ def _flush_batch(
 
 
 def validate_embedding_coverage() -> tuple[int, int]:
-    """Require every non-empty section to have a complete embedding path."""
+    """Require every nonempty section to have its complete planned vector path."""
     with get_session() as session:
-        coverage = session.run(
-            """
-            MATCH (s:Section)
-            WHERE s.content_length > 0
+        coverage = session.run("""
+            MATCH (s:Section) WHERE s.content_length > 0
             OPTIONAL MATCH (s)-[:HAS_CHUNK]->(ch:Chunk)
-            WITH s, collect(ch) AS chunks
+            WITH s,collect(ch) AS chunks
             WITH count(s) AS total,
-                 sum(
-                   CASE
-                     WHEN s.content_length < $max_chars
-                       AND s.embedding IS NOT NULL
-                     THEN 1
-                     WHEN s.content_length >= $max_chars
-                       AND size(chunks) > 0
-                       AND all(ch IN chunks WHERE ch.embedding IS NOT NULL)
-                     THEN 1
-                     ELSE 0
-                   END
-                 ) AS covered
-            RETURN total, covered
-            """,
-            {"max_chars": MAX_CHUNK_CHARS},
-        ).single()
-
+                 sum(CASE WHEN s.embedding_plan_hash IS NOT NULL
+                    AND s.embedding_source_epoch IS NOT NULL
+                    AND s.embedding_plan_source_epoch=s.embedding_source_epoch AND
+                    ((s.embedding IS NOT NULL AND size(s.embedding)=$dimensions
+                      AND s.embedding_input_count = 1 AND size(chunks)=0)
+                     OR (s.embedding IS NULL AND s.embedding_input_count = size(chunks)
+                         AND size(chunks)>0 AND all(ch IN chunks WHERE ch.embedding IS NOT NULL
+                             AND size(ch.embedding)=$dimensions
+                             AND ch.embedding_plan_hash=s.embedding_plan_hash
+                             AND ch.embedding_plan_source_epoch=s.embedding_source_epoch)))
+                    THEN 1 ELSE 0 END) AS covered
+            RETURN total,covered
+        """, {"dimensions": EMBEDDING_DIMENSIONS}).single()
     total = int(coverage["total"]) if coverage else 0
     covered = int(coverage["covered"]) if coverage else 0
     if covered != total:
-        raise RuntimeError(
-            f"Embedding coverage incomplete: {covered}/{total} sections"
-        )
+        raise RuntimeError(f"Embedding coverage incomplete: {covered}/{total} sections")
     return total, covered
 
 
-def embed_all(model: str | None = None) -> dict:
-    """Generate embeddings for all sections without embeddings.
+def persist_plan(section_id, inputs, digest, source_epoch):
+    """Invalidate changed inputs atomically; unchanged pending plans can resume."""
+    rows = [{"id":f"{section_id}:chunk:{i}","chunk_index":i,
+             "content_text":item.text,"content_length":len(item.text),
+             "body_start":item.body_start,"body_end":item.body_end,
+             "input_hash":item.input_hash} for i,item in enumerate(inputs)]
+    with get_session() as session:
+        def reconcile(tx):
+            current = tx.run("MATCH (s:Section {id:$sid}) SET s.embedding_write_lock=true RETURN s.embedding_plan_hash AS hash,s.embedding_source_epoch AS source_epoch",
+                             sid=section_id).single()
+            if not current:
+                raise ValueError("Embedding section disappeared: " + section_id)
+            if not source_epoch or current["source_epoch"] != source_epoch:
+                raise ValueError("Embedding source changed after preflight: " + section_id)
+            changed = current["hash"] != digest
+            if not changed and len(inputs)>1:
+                existing = list(tx.run("""MATCH (:Section {id:$sid})-[:HAS_CHUNK]->(ch:Chunk)
+                    RETURN ch.id AS id,ch.input_hash AS input_hash,
+                           ch.embedding_plan_hash AS plan,ch.embedding_plan_source_epoch AS epoch ORDER BY ch.chunk_index""", sid=section_id))
+                changed = len(existing) != len(rows) or any(
+                    actual["id"] != expected["id"] or actual["input_hash"] != expected["input_hash"]
+                    or actual["plan"] != digest or actual["epoch"] != source_epoch for actual,expected in zip(existing, rows)
+                )
+            if changed:
+                tx.run("""MATCH (s:Section {id:$sid})
+                    OPTIONAL MATCH (s)-[:HAS_CHUNK]->(ch:Chunk)
+                    DETACH DELETE ch
+                    SET s.embedding=NULL,s.embedding_plan_hash=$hash,s.embedding_input_count=$count,
+                        s.embedding_plan_source_epoch=$epoch
+                """,sid=section_id,hash=digest,count=len(inputs),epoch=source_epoch).consume()
+                if len(inputs)>1:
+                    tx.run("""MATCH (s:Section {id:$sid}) UNWIND $rows AS row
+                        CREATE (ch:Chunk) SET ch=row,ch.section_id=$sid,ch.embedding_plan_hash=$hash,ch.embedding_plan_source_epoch=$epoch
+                        CREATE (s)-[:HAS_CHUNK]->(ch)
+                    """,sid=section_id,rows=rows,hash=digest,epoch=source_epoch).consume()
+            if len(inputs)==1:
+                result=tx.run("MATCH (s:Section {id:$sid}) WHERE s.embedding IS NULL RETURN s.id AS id",sid=section_id)
+            else:
+                result=tx.run("""MATCH (:Section {id:$sid})-[:HAS_CHUNK]->(ch:Chunk)
+                    WHERE ch.embedding IS NULL RETURN ch.id AS id ORDER BY ch.chunk_index""",sid=section_id)
+            pending = {row["id"] for row in result}
+            tx.run("MATCH (s:Section {id:$sid}) REMOVE s.embedding_write_lock", sid=section_id).consume()
+            return pending, len(rows) if changed and len(inputs)>1 else 0
+        return session.execute_write(reconcile)
 
-    Sections whose text fits within MAX_CHUNK_CHARS are embedded directly.
-    Larger sections are split into Chunk nodes and each chunk is embedded.
-    Previously truncated embeddings (content_length > MAX_CHUNK_CHARS but
-    embedding is set) are cleared first so they get re-embedded as chunks.
-    """
+
+def embed_all(model: str | None = None) -> dict:
+    """Plan contextual inputs, replace stale vectors, and resume matching work."""
     model = model or EMBEDDING_MODEL
     if not VOYAGE_API_KEY:
         raise RuntimeError("VOYAGE_API_KEY not set")
+    stats = {"embedded":0,"errors":0,"chunks_created":0}
+    # Complete pure validation precedes all mutations and provider calls.
+    expected = {}
+    for sid, heading, body, epoch in iter_section_contexts():
+        if not epoch:
+            raise ValueError("Reload unversioned embedding source before generation: " + sid)
+        inputs = list(plan_inputs(heading, body, model))
+        if not inputs:
+            raise ValueError("Nonempty section has no embedding inputs: " + sid)
+        expected[sid] = (plan_hash(inputs, model, EMBEDDING_DIMENSIONS), epoch)
+    ids, texts, kinds, plans = [], [], [], []
+    token_total = 0
 
-    # Clear stale truncated embeddings (sections that are too large but were
-    # previously embedded via truncation)
-    with get_session() as session:
-        clear_result = session.run("""
-            MATCH (s:Section)
-            WHERE s.embedding IS NOT NULL AND s.content_length > $max_chars
-            SET s.embedding = NULL
-            RETURN count(s) AS cleared
-        """, {"max_chars": MAX_CHUNK_CHARS})
-        cleared = clear_result.single()["cleared"]
-    if cleared:
-        console.print(f"Cleared {cleared} stale truncated embeddings for re-processing.")
+    def flush():
+        nonlocal token_total
+        _flush_batch(model,ids,texts,kinds,stats,plans)
+        ids.clear()
+        texts.clear()
+        kinds.clear()
+        plans.clear()
+        token_total=0
 
-    # Find sections without embeddings (small sections only — large ones use chunks)
-    with get_session() as session:
-        result = session.run(
-            "MATCH (s:Section) WHERE s.embedding IS NULL AND s.content_length > 0 AND s.content_length < $max_chars RETURN s.id",
-            {"max_chars": MAX_CHUNK_CHARS},
-        )
-        section_ids = [r["s.id"] for r in result]
-
-    # Also find large sections that haven't been chunked yet (no HAS_CHUNK rel)
-    with get_session() as session:
-        result = session.run(
-            """
-            MATCH (s:Section) WHERE s.embedding IS NULL AND s.content_length > 0 AND s.content_length >= $max_chars
-            AND NOT (s)-[:HAS_CHUNK]->()
-            RETURN s.id
-            """,
-            {"max_chars": MAX_CHUNK_CHARS},
-        )
-        large_section_ids = [r["s.id"] for r in result]
-
-    # Find existing chunks without embeddings (e.g., from a failed previous run)
-    with get_session() as session:
-        result = session.run(
-            "MATCH (ch:Chunk) WHERE ch.embedding IS NULL RETURN ch.id, ch.content_text"
-        )
-        pending_chunks = [(r["ch.id"], r["ch.content_text"]) for r in result]
-
-    total_work = len(section_ids) + len(large_section_ids) + len(pending_chunks)
-    if total_work == 0:
-        validate_embedding_coverage()
-        console.print("All sections and chunks already have embeddings.")
-        return {"embedded": 0, "errors": 0, "chunks_created": 0}
-
-    console.print(
-        f"Work: {len(section_ids)} small sections, {len(large_section_ids)} large sections to chunk, "
-        f"{len(pending_chunks)} existing chunks needing embeddings (using {model})..."
-    )
-
-    stats: dict = {"embedded": 0, "errors": 0, "chunks_created": 0}
-
-    batch_ids: list[str] = []
-    batch_texts: list[str] = []
-    batch_kinds: list[str] = []
-    batch_token_estimate: int = 0
-
-    def _maybe_flush():
-        nonlocal batch_ids, batch_texts, batch_kinds, batch_token_estimate
-        if len(batch_texts) >= EMBED_BATCH_SIZE:
-            _flush_batch(model, batch_ids, batch_texts, batch_kinds, stats)
-            batch_ids, batch_texts, batch_kinds = [], [], []
-            batch_token_estimate = 0
-
-    def _add_item(item_id: str, text: str, kind: str):
-        nonlocal batch_ids, batch_texts, batch_kinds, batch_token_estimate
-        token_est = len(text) // _CHARS_PER_TOKEN
-        if batch_texts and batch_token_estimate + token_est > _MAX_BATCH_TOKENS:
-            _flush_batch(model, batch_ids, batch_texts, batch_kinds, stats)
-            batch_ids, batch_texts, batch_kinds = [], [], []
-            batch_token_estimate = 0
-        batch_ids.append(item_id)
-        batch_texts.append(text)
-        batch_kinds.append(kind)
-        batch_token_estimate += token_est
-
-    # 1. Embed small sections directly
-    section_texts = build_embedding_texts(section_ids)
-    for sid in track(section_ids, description="Small sections..."):
-        text = section_texts.get(sid, "")
-        if not text.strip():
-            continue
-        _add_item(sid, text, "section")
-        _maybe_flush()
-
-    # 2. Chunk large sections and queue their chunks
-    large_section_texts = build_embedding_texts(large_section_ids)
-    for sid in track(large_section_ids, description="Chunking large sections..."):
-        text = large_section_texts.get(sid, "")
-        if not text.strip():
-            continue
-        heading_prefix = text.split("\n")[0]
-        chunks = chunk_text(text, max_chars=MAX_CHUNK_CHARS)
-        chunk_ids = _create_chunks_in_neo4j(sid, heading_prefix, chunks)
-        stats["chunks_created"] += len(chunk_ids)
-        for chunk_id, chunk_content in zip(chunk_ids, chunks):
-            _add_item(chunk_id, chunk_content, "chunk")
-            _maybe_flush()
-
-    # 3. Embed existing chunks that are missing embeddings (retry after failures)
-    for chunk_id, chunk_content in track(pending_chunks, description="Retrying chunks..."):
-        if not chunk_content or not chunk_content.strip():
-            continue
-        _add_item(chunk_id, chunk_content, "chunk")
-        _maybe_flush()
-
-    # Flush remaining
-    if batch_texts:
-        _flush_batch(model, batch_ids, batch_texts, batch_kinds, stats)
-
+    for sid,heading,body,epoch in iter_section_contexts():
+        try:
+            inputs=list(plan_inputs(heading,body,model))
+        except ValueError as error:
+            raise ValueError(f"Invalid embedding plan for {sid}: {error}") from error
+        if not inputs:
+            raise ValueError("Nonempty section has no embedding inputs: " + sid)
+        digest=plan_hash(inputs,model,EMBEDDING_DIMENSIONS)
+        if expected.pop(sid, None) != (digest,epoch):
+            raise ValueError("Embedding source changed after preflight: " + sid)
+        pending, created = persist_plan(sid,inputs,digest,epoch)
+        stats["chunks_created"] += created
+        for i,item in enumerate(inputs):
+            item_id=sid if len(inputs)==1 else f"{sid}:chunk:{i}"
+            if item_id not in pending:
+                continue
+            if texts and (len(texts)>=EMBED_BATCH_SIZE or token_total+item.tokens>BATCH_TOKENS):
+                flush()
+            ids.append(item_id)
+            texts.append(item.text)
+            kinds.append("section" if len(inputs)==1 else "chunk")
+            plans.append(digest)
+            token_total+=item.tokens
+    if expected:
+        raise ValueError("Embedding sections disappeared after preflight")
+    if texts:
+        flush()
     validate_embedding_coverage()
-
     return stats

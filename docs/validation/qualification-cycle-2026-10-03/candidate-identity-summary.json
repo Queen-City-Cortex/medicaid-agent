@@ -1,0 +1,16 @@
+{
+  "catalogHash": "acfeb98a087ba3875e338f27b194216596e2566237517bed5a3df65e4f3f536e",
+  "mappingHash": "d8947d9d7cee73272c706ecc67d97858350629328ce6c39babd9e120ad285775",
+  "expectedIdentities": 99,
+  "mappedIdentities": 99,
+  "missingIdentities": [],
+  "readerScope": "whole-graph",
+  "usableAsQualificationEvidence": false,
+  "evaluationsRun": false,
+  "restoredGraph": true,
+  "oldFederalInputs": true,
+  "freshCandidateBuilt": false,
+  "readerCodeUnchanged": true,
+  "measurementRevision": "700ba6a020b71e4f3ca567d057b6afabec92ae46",
+  "repeatedCompleteMappingHashStable": true
+}

@@ -44,7 +44,12 @@ def _parse_strict() -> dict:
     result = parse_all()
     errors = int(result.get("errors", 0))
     timed_out = int(result.get("timed_out", 0))
-    remaining_failures = int(result.get("remaining_required_failures", 0))
+    remaining_failures = int(
+        result.get(
+            "remaining_blocking_required_failures",
+            result.get("remaining_required_failures", 0),
+        )
+    )
     terminal_state = result.get("terminal_state")
     if remaining_failures or terminal_state != "completed":
         raise RuntimeError(
@@ -79,6 +84,7 @@ def _require_parse_inventory_unchanged(release: dict) -> dict:
         )
     from pipeline.freshness import build_answer_ready_snapshot
     from pipeline.release import source_snapshot_hash
+
     snapshot = source_snapshot_hash(build_answer_ready_snapshot())
     if snapshot != release.get("sourceSnapshotHash"):
         raise RuntimeError("Complete source snapshot changed after release preparation")
@@ -125,6 +131,13 @@ def release_prepare(
 
     final_snapshot = build_answer_ready_snapshot(PARSED_DATA_DIR)
     manifest = load_json_object(output)
+    from pipeline.answer_scope import scope_records, scope_policy, implementation_hash
+    from pipeline.source_lifecycle import stable_hash
+    from pipeline.config import CRAWLER_DB_PATH
+
+    if scope_records(CRAWLER_DB_PATH):
+        manifest["answerScopePolicyHash"] = stable_hash(scope_policy())
+        manifest["answerScopeImplementationHash"] = implementation_hash()
     manifest["sourceSnapshotHash"] = source_snapshot_hash(final_snapshot)
     manifest["answerReadySnapshot"] = {
         "answerReadyDocuments": final_snapshot["answer_ready_documents"],
@@ -226,6 +239,18 @@ def release_validate(
         }
 
     record_release_stage(manifest, "audit", audit_operation)
+    if release.get("answerScopePolicyHash"):
+        from pipeline.eval.answer_scope import run_scope_acceptance
+
+        def scope_operation() -> dict:
+            result = run_scope_acceptance(release["sourceSnapshotHash"])
+            evidence_path = release_dir / "answer-scope-acceptance.json"
+            atomic_write_json(evidence_path, result)
+            if not result["all_passed"]:
+                raise RuntimeError("Repeated answer scope acceptance failed")
+            return result
+
+        record_release_stage(manifest, "answerScopeAcceptance", scope_operation)
     graph_metrics = record_release_stage(
         manifest,
         "graphValidation",

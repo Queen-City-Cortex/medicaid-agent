@@ -1,0 +1,22 @@
+{
+  "fixed": [
+    {
+      "thread": "PRRT_kwDOR2TqqM6otHfl",
+      "finding": "Audit mode could overwrite build receipts",
+      "resolution": "Fresh audit subdirectory, explicit buildExecuted=false and receipt ownership guard; regression passed"
+    },
+    {
+      "thread": "PRRT_kwDOR2TqqM6otYd0",
+      "finding": "Loader change could leave an in-flight embedding plan valid",
+      "resolution": "Semantic source epochs checked under section locks; content/heading updates invalidate direct/chunk vectors and plans; real Neo4j regressions passed"
+    }
+  ],
+  "retained": [
+    {
+      "thread": "PRRT_kwDOR2TqqM6osdwE",
+      "finding": "Whole-title fallback response size limit",
+      "disposition": "Intentional 64 MiB bounded read with fail-closed rejection. Prior complete 43-part probe used title responses below 23 MiB. No unbounded download introduced; new larger required titles would need an explicit reviewed limit change. Review thread remains visible."
+    }
+  ],
+  "newDraft204": "Preserved; independent UTF-8 byte-based embedding implementation overlaps this character/token-based planner. Its parse-provenance reconciliation must be reviewed independently, rather than silently discarded or merged with conflicting embedding code."
+}

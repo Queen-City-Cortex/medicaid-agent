@@ -582,7 +582,7 @@ def load_document(
     # Build identity exclusively from the immutable source key. Policy number,
     # title, language, revision, and filename remain mutable metadata.
     policy_number = crawler_meta.get("policy_number")
-    title = crawler_meta.get("title", source_file_path.stem if source_file_path else json_path.stem)
+    title = crawler_meta.get("title") or (source_file_path.stem if source_file_path else json_path.stem)
 
     # Extract policy number from DHHS document titles if not set by crawler
     if (
@@ -596,9 +596,7 @@ def load_document(
     # Don't use it for the document ID since multiple docs share the same waiver type.
     waiver_id = None
     if source_type == "waiver":
-        waiver_id = _extract_waiver_identifier(
-            crawler_meta.get("title", source_file_path.stem if source_file_path else json_path.stem)
-        )
+        waiver_id = _extract_waiver_identifier(title)
 
     exclusion_reason = context["exclusion_reason"]
     if exclusion_reason:

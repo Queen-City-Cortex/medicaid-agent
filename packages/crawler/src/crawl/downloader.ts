@@ -136,6 +136,7 @@ function normalizeHtmlText(value: string): string {
 export function validateSemanticArticleHtml(
   filePath: string,
   expectedTitle: string | null,
+  requiredText: readonly string[] = [],
 ): string | null {
   const html = fs.readFileSync(filePath, 'utf8');
   const $ = cheerio.load(html);
@@ -149,7 +150,20 @@ export function validateSemanticArticleHtml(
   const semanticArticle = article.clone();
   semanticArticle.find('script, style, nav, aside, form').remove();
 
-  const heading = normalizeHtmlText(semanticArticle.find('h1').first().text());
+  let heading = normalizeHtmlText(semanticArticle.find('h1').first().text());
+  if (!heading) {
+    // Drupal blog pages put the page heading before the article and explicitly
+    // associate it with the enclosing main landmark. Do not borrow an arbitrary
+    // page heading for an unrelated or ambiguous article.
+    const main = article.closest('main[aria-labelledby]');
+    const labelIds = (main.attr('aria-labelledby') ?? '').split(/\s+/).filter(Boolean);
+    const labels = main.find('h1').filter((_i, element) =>
+      labelIds.includes($(element).attr('id') ?? ''),
+    );
+    if (main.find('article').length === 1 && labels.length === 1) {
+      heading = normalizeHtmlText(labels.text());
+    }
+  }
   const normalizedExpectedTitle = normalizeHtmlText(expectedTitle ?? '');
   if (
     normalizedExpectedTitle
@@ -161,6 +175,10 @@ export function validateSemanticArticleHtml(
   const body = normalizeHtmlText(semanticArticle.find('p, li').text());
   if (body.length < 50) {
     return 'HTML semantic article lacks substantive body content';
+  }
+  const articleText = normalizeHtmlText(semanticArticle.text());
+  if (requiredText.some((text) => !articleText.includes(normalizeHtmlText(text)))) {
+    return 'HTML semantic article lacks the required dated bulletin content';
   }
 
   return null;
@@ -301,7 +319,11 @@ export async function downloadDocument(
   const sourceFamily = getSourceFamily(sourceType);
   const semanticHtmlRequired = requiresSemanticArticleHtml(
     sourceFamily.allowed_file_formats,
-  );
+  ) || (sourceFamily.allowed_file_formats.includes('.html') && sourceFamily.seed_urls.includes(doc.source_url));
+  const requiredHtmlText = doc.source_type === 'bulletin'
+    && doc.source_url === 'https://medicaid.ncdhhs.gov/blog/2024/09/25/reminder-key-covid-19-changes-effective-oct-1-2024'
+    ? ['Over-the-Counter Tests for Home Use Coverage for COVID-19', 'ends Sept. 30, 2024']
+    : [];
   const isAllowedUrl = (value: string): boolean =>
     isAllowedSourceUrl(sourceType, value);
   const dhhsDocumentPage = isDhhsDocumentPage(sourceType, doc.source_url);
@@ -362,7 +384,7 @@ export async function downloadDocument(
             error: 'Cannot validate a 304 HTML response without a stored document',
           };
         }
-        const validationError = validateSemanticArticleHtml(existingPath, doc.title);
+        const validationError = validateSemanticArticleHtml(existingPath, doc.title, requiredHtmlText);
         if (validationError) {
           return { action: 'error', error: validationError };
         }
@@ -427,8 +449,12 @@ export async function downloadDocument(
       };
     }
 
+    if (detectedContentType === 'text/html' && sourceType === 'bulletin' && !sourceFamily.seed_urls.includes(doc.source_url)) {
+      fs.unlinkSync(tmpPath);
+      return { action: 'error', error: 'Full-text bulletin HTML is allowed only for explicitly declared seed URLs' };
+    }
     if (semanticHtmlRequired || detectedContentType === 'text/html') {
-      const validationError = validateSemanticArticleHtml(tmpPath, doc.title);
+      const validationError = validateSemanticArticleHtml(tmpPath, doc.title, requiredHtmlText);
       if (validationError) {
         fs.unlinkSync(tmpPath);
         logger.warn(`${doc.source_url} ${validationError.toLowerCase()} — rejected`);

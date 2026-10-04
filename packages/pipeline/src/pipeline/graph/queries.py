@@ -48,7 +48,13 @@ DETACH DELETE d
 MERGE_SECTIONS_BATCH = """
 UNWIND $sections AS section
 MERGE (s:Section {id: section.id})
-SET s.document_id = section.document_id,
+WITH s,section,s.embedding_source_epoch = $source_epoch AS same_epoch
+SET s.embedding = CASE WHEN same_epoch THEN s.embedding ELSE NULL END,
+    s.embedding_plan_hash = CASE WHEN same_epoch THEN s.embedding_plan_hash ELSE NULL END,
+    s.embedding_input_count = CASE WHEN same_epoch THEN s.embedding_input_count ELSE NULL END,
+    s.embedding_plan_source_epoch = CASE WHEN same_epoch THEN s.embedding_plan_source_epoch ELSE NULL END,
+    s.embedding_source_epoch = $source_epoch,
+    s.document_id = section.document_id,
     s.section_number = section.section_number,
     s.title = section.title,
     s.level = section.level,
@@ -58,6 +64,10 @@ SET s.document_id = section.document_id,
     s.has_definitions = section.has_definitions,
     s.federal_register_cite = section.federal_register_cite,
     s.last_revised = section.last_revised
+WITH s,same_epoch
+OPTIONAL MATCH (s)-[:HAS_CHUNK]->(ch:Chunk)
+WITH s,same_epoch,collect(ch) AS chunks
+FOREACH (stale IN CASE WHEN same_epoch THEN [] ELSE chunks END | DETACH DELETE stale)
 """
 
 MERGE_HAS_SECTION_BATCH = """
@@ -91,7 +101,8 @@ RETURN s.id AS id, s.content_text AS content_text
 CLEAR_SECTION_CHUNKS_AND_EMBEDDINGS_BATCH = """
 UNWIND $section_ids AS section_id
 MATCH (s:Section {id: section_id})
-SET s.embedding = NULL
+SET s.embedding = NULL,s.embedding_plan_hash=NULL,
+    s.embedding_input_count=NULL,s.embedding_plan_source_epoch=NULL
 WITH s
 OPTIONAL MATCH (s)-[:HAS_CHUNK]->(chunk:Chunk)
 WITH collect(chunk) AS chunks
@@ -141,22 +152,6 @@ RETURN c
 
 # Note: Concept-section edges use dynamic Cypher in linker.py (relationship type varies)
 
-MERGE_CHUNKS_BATCH = """
-UNWIND $chunks AS chunk
-MERGE (ch:Chunk {id: chunk.id})
-SET ch.section_id = chunk.section_id,
-    ch.chunk_index = chunk.chunk_index,
-    ch.content_text = chunk.content_text,
-    ch.content_length = chunk.content_length
-"""
-
-MERGE_HAS_CHUNK_BATCH = """
-MATCH (s:Section {id: $section_id})
-UNWIND $chunk_ids AS chunk_id
-MATCH (ch:Chunk {id: chunk_id})
-MERGE (s)-[:HAS_CHUNK]->(ch)
-"""
-
 # Stats queries
 COUNT_NODES = """
 MATCH (n)
@@ -191,16 +186,4 @@ SET_DOCUMENT_STATUS_BATCH = """
 UNWIND $doc_ids AS doc_id
 MATCH (d:Document {id: doc_id})
 SET d.status = $status
-"""
-
-SET_SECTION_EMBEDDINGS_BATCH = """
-UNWIND $rows AS row
-MATCH (s:Section {id: row.id})
-SET s.embedding = row.embedding
-"""
-
-SET_CHUNK_EMBEDDINGS_BATCH = """
-UNWIND $rows AS row
-MATCH (ch:Chunk {id: row.id})
-SET ch.embedding = row.embedding
 """

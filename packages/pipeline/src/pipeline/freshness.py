@@ -14,6 +14,9 @@ from pipeline.source_lifecycle import lifecycle_snapshot
 
 def build_answer_ready_snapshot(
     parsed_dir: Path = PARSED_DATA_DIR,
+    *,
+    include_answer_scopes: bool = True,
+    db_path: Path | None = None,
 ) -> dict[str, object]:
     """Hash all successfully parsed, answer-ready source artifacts."""
     documents: list[dict[str, str]] = []
@@ -43,25 +46,29 @@ def build_answer_ready_snapshot(
             {
                 "artifact": str(meta_path.relative_to(parsed_dir)),
                 "source_hash": str(
-                    meta.get("source_file_hash")
-                    or meta.get("source_pdf_hash")
-                    or ""
+                    meta.get("source_file_hash") or meta.get("source_pdf_hash") or ""
                 ),
                 "parsed_payload_hash": payload_hash,
             }
         )
 
+    db_path = db_path or CRAWLER_DB_PATH
     hashes = {}
-    sources = CRAWLER_DB_PATH.parent / "documents"
+    sources = db_path.parent / "documents"
     for source in sorted(sources.rglob("*")):
         if source.is_file():
             digest = hashlib.sha256()
             with source.open("rb") as stream:
                 for chunk in iter(lambda: stream.read(1024 * 1024), b""):
                     digest.update(chunk)
-            hashes["crawler/documents/" + source.relative_to(sources).as_posix()] = "sha256:" + digest.hexdigest()
+            hashes["crawler/documents/" + source.relative_to(sources).as_posix()] = (
+                "sha256:" + digest.hexdigest()
+            )
+    lifecycle = lifecycle_snapshot(db_path, hashes)
+    if not include_answer_scopes:
+        lifecycle.pop("answer_scopes", None)
     encoded = json.dumps(
-        {"documents": documents, "lifecycle": lifecycle_snapshot(CRAWLER_DB_PATH, hashes)},
+        {"documents": documents, "lifecycle": lifecycle},
         sort_keys=True,
         separators=(",", ":"),
     ).encode()

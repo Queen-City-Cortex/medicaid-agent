@@ -1,0 +1,414 @@
+{
+  "checked_at": "2026-10-03T05:53:37.822817+00:00",
+  "code_revision": "1a09279af491a9fd10c9958ec3c917b506530a13",
+  "read_only_shared_corpus_lock": true,
+  "production_registry_count": 4556,
+  "source_snapshot_from_prior_verified_backup": "sha256:0e062b4bfed56f6241841b0fc4135b18105cab118493063069a8db1156e2add5",
+  "snapshot_recomputed_this_review": false,
+  "graph_membership_and_live_answers": "NOT_ASSESSED",
+  "bulletin_markdown_files_scanned": 198,
+  "documents": [
+    {
+      "id": 875,
+      "title": "State Standing Order",
+      "source_url": "https://covid19.ncdhhs.gov/swso-pharmacists-dispense-otc-covid-19-tests/download?attachment=",
+      "local_path": "bulletins/state-standing-order.pdf",
+      "file_hash": "9614129d403f5226f8c9222a4aaa8a7389b87fa998f2702108063f7c89f04f6f",
+      "status": "error",
+      "payload_exists": true,
+      "actual_payload_sha256": "9614129d403f5226f8c9222a4aaa8a7389b87fa998f2702108063f7c89f04f6f",
+      "actual_markdown_sha256": null,
+      "actual_parsed_json_sha256": null,
+      "parse": {
+        "answer_ready": false,
+        "parse_status": "parse_exception",
+        "quality_flags": [
+          "parse_exception"
+        ],
+        "page_count": 0,
+        "table_count": 0,
+        "parsed_at": "2026-07-31T02:27:52.729462+00:00"
+      },
+      "verification": {}
+    },
+    {
+      "id": 1428,
+      "title": "2025 MAGI MEDICAID AND MEDICAID EXPANSION INCOME LIMITS",
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/MA-3321-1.pdf",
+      "local_path": "dhhs-policies/2025-magi-medicaid-medicaid-expansion-income-limits.pdf",
+      "file_hash": "5fa58cc30f9a283ce4c16e46fbc7f33d9027351b0084a04d90afb60856930365",
+      "status": "unchanged",
+      "payload_exists": true,
+      "actual_payload_sha256": "5fa58cc30f9a283ce4c16e46fbc7f33d9027351b0084a04d90afb60856930365",
+      "actual_markdown_sha256": "042fd0d4438e595ae3a3b5d3341b2759c3dc852ccee04ea2bf72b96450eab784",
+      "actual_parsed_json_sha256": "b2fbd0e3c0ef8c07e091904b3074e7b1d67461100ad948306d0eaff9ba635c6d",
+      "parse": {
+        "answer_ready": true,
+        "parse_status": "parsed",
+        "quality_flags": [],
+        "page_count": 1,
+        "table_count": 1,
+        "parsed_at": "2026-07-26T16:23:34.297150+00:00"
+      },
+      "verification": {
+        "source_hash_matches_registry": true,
+        "source_hash_matches_parser": true,
+        "markdown_hash_matches_parser": true,
+        "json_hash_matches_parser": true
+      },
+      "effective_date_text": "Effective: APRIL 1, 2025"
+    },
+    {
+      "id": 1901,
+      "title": "DHB-5097\tRequest for Information",
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/dhb-5097-9-2023.pdf",
+      "local_path": "dhhs-policies/dhb-5097-request-for-information.pdf",
+      "file_hash": "735ce22a47ce17bc02cacaa12ec02c728d572d62737d39984c3449ca38a5e3bf",
+      "status": "removed",
+      "payload_exists": true,
+      "actual_payload_sha256": "735ce22a47ce17bc02cacaa12ec02c728d572d62737d39984c3449ca38a5e3bf",
+      "actual_markdown_sha256": "1d4597a74ca9923e3c3f2b29f1159215d97ab9bf21068d65e2eb4c5f3553aaf8",
+      "actual_parsed_json_sha256": "0901522257607da8eefdab6ba8b1ab5edf611a0d1e8a90e3af9657a605a2444d",
+      "parse": {
+        "answer_ready": true,
+        "parse_status": "parsed",
+        "quality_flags": [],
+        "page_count": 2,
+        "table_count": 0,
+        "parsed_at": "2026-07-26T18:01:00.764598+00:00"
+      },
+      "verification": {
+        "source_hash_matches_registry": true,
+        "source_hash_matches_parser": true,
+        "markdown_hash_matches_parser": true,
+        "json_hash_matches_parser": true
+      }
+    },
+    {
+      "id": 1905,
+      "title": "DHB-5097 GU \u0aae\u0abe\u0ab9\u0abf\u0aa4\u0ac0 \u0aae\u0abe\u0a9f\u0ac7\u0ab5\u0abf\u0aa8 \u0a82\u0aa4\u0ac0",
+      "source_url": "https://policies.ncdhhs.gov/document/dhb-5097-gu-%e0%aa%ae%e0%aa%be%e0%aa%b9%e0%aa%bf%e0%aa%a4%e0%ab%80-%e0%aa%ae%e0%aa%be%e0%aa%9f%e0%ab%87%e0%aa%b5%e0%aa%bf%e0%aa%a8-%e0%aa%82%e0%aa%a4%e0%ab%80/",
+      "local_path": "dhhs-policies/dhb-5097-gu.pdf",
+      "file_hash": "7682aa584aac795e6647a092f50987b6c1fa9efd7929b1f62fd4800378713bb6",
+      "status": "error",
+      "payload_exists": true,
+      "actual_payload_sha256": "7682aa584aac795e6647a092f50987b6c1fa9efd7929b1f62fd4800378713bb6",
+      "actual_markdown_sha256": null,
+      "actual_parsed_json_sha256": null,
+      "parse": {
+        "answer_ready": false,
+        "parse_status": "parse_exception",
+        "quality_flags": [
+          "parse_exception"
+        ],
+        "page_count": 0,
+        "table_count": 0,
+        "parsed_at": "2026-07-31T02:28:36.113785+00:00"
+      },
+      "verification": {}
+    },
+    {
+      "id": 1913,
+      "title": "DHB-5097sp-ia\tSolicitud de informaci\u00f3n",
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/dhb-5097sp-9-2023.pdf",
+      "local_path": "dhhs-policies/dhb-5097sp-ia-solicitud-de-informacin.pdf",
+      "file_hash": "2715723c7b61f569f78d8c13f56d3988179600b3a82e74bdc765997566d68008",
+      "status": "removed",
+      "payload_exists": true,
+      "actual_payload_sha256": "2715723c7b61f569f78d8c13f56d3988179600b3a82e74bdc765997566d68008",
+      "actual_markdown_sha256": "4c0b3800410bff826d39e3326c2a4de7594b5ae2ff2e79071412fdb848c306a4",
+      "actual_parsed_json_sha256": "01b82538fd247c7673d246bcce7ca24c621844b5aa22a792750e5698e58b3676",
+      "parse": {
+        "answer_ready": true,
+        "parse_status": "parsed",
+        "quality_flags": [],
+        "page_count": 2,
+        "table_count": 0,
+        "parsed_at": "2026-07-26T18:02:08.619090+00:00"
+      },
+      "verification": {
+        "source_hash_matches_registry": true,
+        "source_hash_matches_parser": true,
+        "markdown_hash_matches_parser": true,
+        "json_hash_matches_parser": true
+      }
+    },
+    {
+      "id": 2529,
+      "title": "MA-2300 APPLICATION",
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/MA-2300.pdf",
+      "local_path": "dhhs-policies/ma-2300-application.pdf",
+      "file_hash": "531b769ca8370cb12a6601e7727a574d90a0a402f5b863c1b51870f531bccbb6",
+      "status": "unchanged",
+      "payload_exists": true,
+      "actual_payload_sha256": "531b769ca8370cb12a6601e7727a574d90a0a402f5b863c1b51870f531bccbb6",
+      "actual_markdown_sha256": "5fdce3689c21b66d0937cb11b208af074984cb247459c3a8f6d152c84da4be21",
+      "actual_parsed_json_sha256": "e759750692f5804bae9f236263bb66f821e662b8bd1f3cfa043ce846e49e4227",
+      "parse": {
+        "answer_ready": true,
+        "parse_status": "parsed",
+        "quality_flags": [],
+        "page_count": 33,
+        "table_count": 6,
+        "parsed_at": "2026-07-26T23:26:10.121335+00:00"
+      },
+      "verification": {
+        "source_hash_matches_registry": true,
+        "source_hash_matches_parser": true,
+        "markdown_hash_matches_parser": true,
+        "json_hash_matches_parser": true
+      }
+    },
+    {
+      "id": 2577,
+      "title": "MA-3200 APPLICATION",
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/ma-3200-1.pdf",
+      "local_path": "dhhs-policies/ma-3200-application.pdf",
+      "file_hash": "a5f1e4aea72249f08b810ec68c0f3ad902fd85248ff896cf8aca62945cce9917",
+      "status": "unchanged",
+      "payload_exists": true,
+      "actual_payload_sha256": "a5f1e4aea72249f08b810ec68c0f3ad902fd85248ff896cf8aca62945cce9917",
+      "actual_markdown_sha256": "eb8cf6bc03ef5fbe4fd640d6d270ab08088aef9b060021c236af0f73ec6879e6",
+      "actual_parsed_json_sha256": "dd3dc0fbbe7d56141afffc7bd04c2ed93f04088348d8b8faf7ff647b558e711f",
+      "parse": {
+        "answer_ready": true,
+        "parse_status": "parsed",
+        "quality_flags": [],
+        "page_count": 32,
+        "table_count": 7,
+        "parsed_at": "2026-07-26T23:54:06.972014+00:00"
+      },
+      "verification": {
+        "source_hash_matches_registry": true,
+        "source_hash_matches_parser": true,
+        "markdown_hash_matches_parser": true,
+        "json_hash_matches_parser": true
+      }
+    },
+    {
+      "id": 2617,
+      "title": "MA-3321 MAGI MEDICAID INCOME LIMITS",
+      "source_url": "https://policies.ncdhhs.gov/document/ma-3321-magi-medicaid-income-limits/",
+      "local_path": "dhhs-policies/ma-3321-magi-medicaid-income-limits.pdf",
+      "file_hash": "f160d14ce07a9a8d8db956caa3a13f8f696c39aed892d57b4136edb20b62d10b",
+      "status": "updated",
+      "payload_exists": true,
+      "actual_payload_sha256": "f160d14ce07a9a8d8db956caa3a13f8f696c39aed892d57b4136edb20b62d10b",
+      "actual_markdown_sha256": "65a26260a6fa9ecb9e15d0c9aaa2b54899bede336f714ce49134f4ebcc7daa1d",
+      "actual_parsed_json_sha256": "19d9ad7c8ad1ad9cb8f814a1553f5c7a3833d6b08b8aca833247831cd0f243c8",
+      "parse": {
+        "answer_ready": true,
+        "parse_status": "parsed",
+        "quality_flags": [],
+        "page_count": 1,
+        "table_count": 1,
+        "parsed_at": "2026-09-22T21:59:08.646322+00:00"
+      },
+      "verification": {
+        "source_hash_matches_registry": true,
+        "source_hash_matches_parser": true,
+        "markdown_hash_matches_parser": true,
+        "json_hash_matches_parser": true
+      },
+      "effective_date_text": "Effective: APRIL 1, 2026"
+    },
+    {
+      "id": 8302,
+      "title": "DHB-5097\tRequest for Information",
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/DHB-5097-_4.1.26-6.pdf",
+      "local_path": "dhhs-policies/dhb-5097-request-for-information_2.pdf",
+      "file_hash": "4b4e1c0fb974ee638a9483757892994aee640546fcc568f19ed99ed70387f5b6",
+      "status": "unchanged",
+      "payload_exists": true,
+      "actual_payload_sha256": "4b4e1c0fb974ee638a9483757892994aee640546fcc568f19ed99ed70387f5b6",
+      "actual_markdown_sha256": "07b383c0bd77b61fafc7a57593b733d75ad2dac77961750669353acd31825244",
+      "actual_parsed_json_sha256": "683880d8e07c863a0d945c4f268f42b00d1f00142865cd7c6a2b06d288b9851c",
+      "parse": {
+        "answer_ready": true,
+        "parse_status": "parsed",
+        "quality_flags": [],
+        "page_count": 4,
+        "table_count": 0,
+        "parsed_at": "2026-07-26T18:01:19.181503+00:00"
+      },
+      "verification": {
+        "source_hash_matches_registry": true,
+        "source_hash_matches_parser": true,
+        "markdown_hash_matches_parser": true,
+        "json_hash_matches_parser": true
+      }
+    },
+    {
+      "id": 8314,
+      "title": "DHB-5097sp-ia\tSolicitud de informaci\u00f3n",
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/DHB-5097-_1.5.26_SP.pdf",
+      "local_path": "dhhs-policies/dhb-5097sp-ia-solicitud-de-informacin_2.pdf",
+      "file_hash": "b98b0e491bce927e1e5686d5b6f8bb4ad2a0fb8ce49e4c6f0af03d5ef85cc3b9",
+      "status": "unchanged",
+      "payload_exists": true,
+      "actual_payload_sha256": "b98b0e491bce927e1e5686d5b6f8bb4ad2a0fb8ce49e4c6f0af03d5ef85cc3b9",
+      "actual_markdown_sha256": "1a095763c29c5b579b070146825294661bd000e53473e6054d3869728c694f2b",
+      "actual_parsed_json_sha256": "dde766517bc5dfaca8e9e47c487c72d2ea5bcc5352c49efe7639878992185137",
+      "parse": {
+        "answer_ready": true,
+        "parse_status": "parsed",
+        "quality_flags": [],
+        "page_count": 5,
+        "table_count": 0,
+        "parsed_at": "2026-07-26T18:02:28.329113+00:00"
+      },
+      "verification": {
+        "source_hash_matches_registry": true,
+        "source_hash_matches_parser": true,
+        "markdown_hash_matches_parser": true,
+        "json_hash_matches_parser": true
+      }
+    },
+    {
+      "id": 11805,
+      "title": "2025 MAGI MEDICAID INCOME LIMITS",
+      "source_url": "https://policies.ncdhhs.gov/document/2025-magi-medicaid-income-limits-2/",
+      "local_path": null,
+      "file_hash": null,
+      "status": "error",
+      "payload_exists": false,
+      "actual_payload_sha256": null,
+      "actual_markdown_sha256": null,
+      "actual_parsed_json_sha256": null,
+      "parse": {
+        "answer_ready": null,
+        "parse_status": null,
+        "quality_flags": null,
+        "page_count": null,
+        "table_count": null,
+        "parsed_at": null
+      },
+      "verification": {}
+    },
+    {
+      "id": 11806,
+      "title": "2025 MAGI MEDICAID INCOME LIMITS",
+      "source_url": "https://policies.ncdhhs.gov/document/2025-magi-medicaid-income-limits/",
+      "local_path": null,
+      "file_hash": null,
+      "status": "error",
+      "payload_exists": false,
+      "actual_payload_sha256": null,
+      "actual_markdown_sha256": null,
+      "actual_parsed_json_sha256": null,
+      "parse": {
+        "answer_ready": null,
+        "parse_status": null,
+        "quality_flags": null,
+        "page_count": null,
+        "table_count": null,
+        "parsed_at": null
+      },
+      "verification": {}
+    },
+    {
+      "id": 11807,
+      "title": "2025 MAGI MEDICAID INCOME LIMITS",
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/MA-3321.pdf",
+      "local_path": "dhhs-policies/2025-magi-medicaid-income-limits.pdf",
+      "file_hash": "5fa58cc30f9a283ce4c16e46fbc7f33d9027351b0084a04d90afb60856930365",
+      "status": "downloaded",
+      "payload_exists": true,
+      "actual_payload_sha256": "5fa58cc30f9a283ce4c16e46fbc7f33d9027351b0084a04d90afb60856930365",
+      "actual_markdown_sha256": "042fd0d4438e595ae3a3b5d3341b2759c3dc852ccee04ea2bf72b96450eab784",
+      "actual_parsed_json_sha256": "6ea799a818dfbe265990d6ec26c6a0713351f82e8eded26c0629c503efef5fa4",
+      "parse": {
+        "answer_ready": true,
+        "parse_status": "parsed",
+        "quality_flags": [],
+        "page_count": 1,
+        "table_count": 1,
+        "parsed_at": "2026-09-22T21:18:20.354096+00:00"
+      },
+      "verification": {
+        "source_hash_matches_registry": true,
+        "source_hash_matches_parser": true,
+        "markdown_hash_matches_parser": true,
+        "json_hash_matches_parser": true
+      },
+      "effective_date_text": "Effective: APRIL 1, 2025"
+    },
+    {
+      "id": 11810,
+      "title": "2026 MAGI MEDICAID & MEDICAID EXPANSION INCOME LIMITS",
+      "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/MA-3321-MAGI-Income-2.pdf",
+      "local_path": "dhhs-policies/2026-magi-medicaid-medicaid-expansion-income-limits.pdf",
+      "file_hash": "f160d14ce07a9a8d8db956caa3a13f8f696c39aed892d57b4136edb20b62d10b",
+      "status": "downloaded",
+      "payload_exists": true,
+      "actual_payload_sha256": "f160d14ce07a9a8d8db956caa3a13f8f696c39aed892d57b4136edb20b62d10b",
+      "actual_markdown_sha256": "65a26260a6fa9ecb9e15d0c9aaa2b54899bede336f714ce49134f4ebcc7daa1d",
+      "actual_parsed_json_sha256": "1979c417f07c7ed253f88a4a63bad3be015bee5b37077356e11c869095549c47",
+      "parse": {
+        "answer_ready": true,
+        "parse_status": "parsed",
+        "quality_flags": [],
+        "page_count": 1,
+        "table_count": 1,
+        "parsed_at": "2026-09-22T21:18:46.141981+00:00"
+      },
+      "verification": {
+        "source_hash_matches_registry": true,
+        "source_hash_matches_parser": true,
+        "markdown_hash_matches_parser": true,
+        "json_hash_matches_parser": true
+      },
+      "effective_date_text": "Effective: APRIL 1, 2026"
+    },
+    {
+      "id": 781,
+      "title": "Guidance for NC Medicaid coverage",
+      "source_url": "https://medicaid.ncdhhs.gov/otc-covid-coverage-guidance/download?attachment=",
+      "local_path": "bulletins/guidance-for-nc-medicaid-coverage.pdf",
+      "file_hash": "9c3d381ee1b51a7e6af2a6df25dc9b8ba7e05abd0e14f66a6c10e216e9cc6391",
+      "status": null,
+      "payload_exists": true,
+      "actual_payload_sha256": "9c3d381ee1b51a7e6af2a6df25dc9b8ba7e05abd0e14f66a6c10e216e9cc6391",
+      "actual_markdown_sha256": "ba7740e4d3a40a1afff2720cffa26e417d2ee86610a873021abaa94f0681a5ad",
+      "actual_parsed_json_sha256": null,
+      "parse": {
+        "answer_ready": true,
+        "parse_status": "parsed",
+        "quality_flags": [],
+        "page_count": 1,
+        "table_count": 0,
+        "parsed_at": "2026-07-26T10:06:11.640614+00:00"
+      },
+      "verification": {
+        "source_hash_matches_registry": true,
+        "source_hash_matches_parser": true,
+        "markdown_hash_matches_parser": true
+      }
+    },
+    {
+      "id": 782,
+      "title": "complete list of covered products",
+      "source_url": "https://medicaid.ncdhhs.gov/covered-otc-covid-19-test-home-use/download?attachment=",
+      "local_path": "bulletins/complete-list-of-covered-products.pdf",
+      "file_hash": "59c3b23f1a53b40e254832f81c47bae1533892e471d266fd56a5fb25038c145f",
+      "status": null,
+      "payload_exists": true,
+      "actual_payload_sha256": "59c3b23f1a53b40e254832f81c47bae1533892e471d266fd56a5fb25038c145f",
+      "actual_markdown_sha256": "eb1fd164bb520341c021bad750a8ea961a3ebc65c2e98afdbe573b566da474fc",
+      "actual_parsed_json_sha256": null,
+      "parse": {
+        "answer_ready": true,
+        "parse_status": "parsed",
+        "quality_flags": [],
+        "page_count": 2,
+        "table_count": 2,
+        "parsed_at": "2026-07-26T09:32:45.691558+00:00"
+      },
+      "verification": {
+        "source_hash_matches_registry": true,
+        "source_hash_matches_parser": true,
+        "markdown_hash_matches_parser": true
+      }
+    }
+  ]
+}

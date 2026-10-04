@@ -1,0 +1,14 @@
+{
+  "url": "https://medicaid-agent-backend.up.railway.app/readyz",
+  "status": 200,
+  "data": {
+    "status": "ok",
+    "config": "valid",
+    "neo4j": "connected",
+    "storage": "writable",
+    "releaseId": "legacy-20260725-ae8595c"
+  },
+  "deployedRevision": "d9354a604002f0f1d06503ff54b504fb791500f7",
+  "acceptanceReusedFrom": "chat-ownership-acceptance-2026-10-03",
+  "configurationUnchanged": true
+}

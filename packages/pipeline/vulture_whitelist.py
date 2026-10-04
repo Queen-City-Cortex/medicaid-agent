@@ -78,10 +78,11 @@ refresh_interval_hours
 federal_sources
 
 # Click-registered corpus recovery and initial activation commands.
-from pipeline.cli.recovery import parse_import, retire, recovery_inventory
+from pipeline.cli.recovery import parse_import, retire, recovery_inventory, source_scope
 from pipeline.cli.release import release_baseline, release_activate_bootstrap
 parse_import
 retire
 release_baseline
 release_activate_bootstrap
 recovery_inventory
+source_scope  # Click registers this guarded operator command dynamically.
