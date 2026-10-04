@@ -33,3 +33,5 @@ Run the pipeline test suite and both Ruff and Vulture. The embedding integration
 A paid campaign must bind its approved `planTextFingerprint` and enforce its separately approved spending cap. Offline receipts always report whitespace-only body and novel-body input counts; any nonzero count requires a representation review before a paid run. These diagnostics preserve every source byte. Imported module hashes must match the sealed inspection inputs.
 
 Generation rejects any whitespace-only novel-body input during its full preflight, before graph writes or provider calls. Qualification funding and approved-plan binding remain responsibilities of the separately authorized campaign runner; the generator does not itself authorize spending. Inspection brackets all registry reads with matching raw registry digests and nonempty-sidecar refusal, and hashes the source modules used for snapshot, identity, and provenance receipts.
+
+The [October 3 offline repair receipt](../validation/embedding-repair-2026-10-03/README.md) records the measured corpus, provenance accounting and cost sensitivity. Earlier preparation receipts remain historical evidence.

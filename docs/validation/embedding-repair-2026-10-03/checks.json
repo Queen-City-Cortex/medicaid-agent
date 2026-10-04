@@ -1,0 +1,52 @@
+{
+  "implementationRevision": "8c20cc1286120e5d202c383a883f1c5371ca03b0",
+  "linuxPipeline": {
+    "passed": 645,
+    "skipped": 17,
+    "seconds": 30.9
+  },
+  "dedicatedEmptyNeo4jMockedEmbeddings": {
+    "passed": 13,
+    "seconds": 1.41
+  },
+  "ruff": "PASS",
+  "vulture": "PASS",
+  "isolationGuards": {
+    "passed": 7,
+    "subtestsPassed": 17
+  },
+  "operationsNodeTests": {
+    "passed": 16
+  },
+  "operationsShellScenarios": {
+    "passed": 8,
+    "containerInit": true
+  },
+  "qualificationApiSpendUsd": 0,
+  "originalWorktreePreserved": {
+    "pendingFiles": 72,
+    "statusAndHeadAndHashesEqual": true
+  },
+  "providerCalls": "Mocked in tests; none in corpus inspection",
+  "opusReviews": {
+    "runs": [
+      "run_b4d7425c8e2e",
+      "run_347000884dfe",
+      "run_aff9090ea286"
+    ],
+    "allReleased": true,
+    "noP1Findings": true,
+    "finalP2Findings": "Blank-work preflight, broader receipt module hashes, full inspection registry bracketing fixed after review; campaign spending/plan approval remains a later runner prerequisite"
+  },
+  "privateLogsSha256": {
+    "verification-final-4.log": "ffb967747744163ac26dcae68ab52630cf2c52c55a55b683c7225e762cc00f71",
+    "integration-final-4.log": "181e0db3798fcc821199b1e34377281d2000f5bc06d95c90d15997672127b43b",
+    "ops-tests-final-init.log": "530ba7184f9c25da89fdf03080f70a08baacfb138b8d8b83178d4be40bab1132",
+    "inspection-final-4.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "twoFullOfflinePlanMeasurementsIdentical": true,
+  "pairedInspectionRevisions": [
+    "67d43f794e320ffce259e78c02adff670ff66a06",
+    "8c20cc1"
+  ]
+}

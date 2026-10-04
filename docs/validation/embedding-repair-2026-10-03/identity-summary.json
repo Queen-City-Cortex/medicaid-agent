@@ -1,0 +1,37 @@
+{
+  "catalogHash": "acfeb98a087ba3875e338f27b194216596e2566237517bed5a3df65e4f3f536e",
+  "evaluationsRun": false,
+  "expectedIdentities": 99,
+  "mappedIdentities": 99,
+  "mappingHash": "9aaac1e207549ed61093e3cd904603f0040fee3bfe7d9cfd0c1d55bd6719d2e1",
+  "missingIdentities": [],
+  "preparationContext": {
+    "buildRunId": "9157932e-5655-41f2-aa35-3f399c8bc279",
+    "harnessSha256": "089be30b289f5aa2d4706aedb784171fd9503a841157f2740db63a17f6d8c779",
+    "implementationRevision": "8c20cc1286120e5d202c383a883f1c5371ca03b0",
+    "inputsSha256": "db100780511b9176529d91a3c801bc8ae5a148da4067dd3fe85cab2b8f0c8e39",
+    "inspectorSha256": "e3650ec07a650388df1634b03f8e63cc150b6d1e639477fdcf3ef95308b7a9ec",
+    "mode": "read-only-inspection",
+    "plannerModuleHashes": {
+      "pipeline.answer_scope": "2dd07657bac688bcdb4befa1871c98593f0364ebf8c629e9d493f88227543b6d",
+      "pipeline.config": "c7d2ed463b73f8bef33efcceadefdfd7b59fbfc71eae93d9ba83ad5d99a40391",
+      "pipeline.corpus_manifest": "69f37e70b6dc26f48e221b6b8c419f02f720d906a666cb6513551b7214bd0389",
+      "pipeline.embeddings.chunker": "f6cb82eb9a8a76d24c4f248bb60dc826e2a6b20ddd3b774d865164839c19bb9a",
+      "pipeline.embeddings.generator": "a7672eb71331fff4a8742d57948ae035c5357389aa89f5d4973419e39a1554aa",
+      "pipeline.embeddings.inspection": "3d7372f0f46635691f14401bc6b02134fa500b10bc9bc3141dd3d989f52bee56",
+      "pipeline.embeddings.plan_graph": "aba2b5814cc7371e6deac992d826a85390986036e2b4cf335459a25c7bc0933b",
+      "pipeline.embeddings.voyage_client": "8a9632ba980a14a7281228254ea5bb1e1cada08334a9ac4678b8cca7d1f53beb",
+      "pipeline.eval.identity": "d33c0447b0b9e767c5ecd825fdc825759c497259c54c63bdfb1008f7a1f23362",
+      "pipeline.freshness": "a6ab79d8a1d23a8ca5e61cd01d9615021553324ab075b9f7ae3cf0f6d661c933",
+      "pipeline.graph.connection": "1c8aa676e2d7e93d5ad0e372a6360ee7364c21b5d6561f68152c93f3db541d04",
+      "pipeline.identity": "fec7cb7cd8bad30aefeb76ce549b771c9df89c71e331793ca4835b6dc8b8306d",
+      "pipeline.parse.artifact_paths": "e9bf8bc6faf83c9679eee052b0cbe58771c6bef93ce0b651a65d776d93a8a836",
+      "pipeline.parse_provenance": "29d2bce59c5e759e649c2860533d2da3462bc83c278dad6b79310e5cf23f5f6a",
+      "pipeline.source_lifecycle": "600bd6dc117c63d7ac9a6736a7a9fe8a7885ee6601306edee03ad7ad262e05b1"
+    },
+    "runId": "56b305b1-82c9-49be-8363-e55b763ee0f0",
+    "startedAt": "2026-10-04T00:41:03.238927+00:00"
+  },
+  "sourceIdentitiesRead": 33,
+  "usableAsQualificationEvidence": false
+}
