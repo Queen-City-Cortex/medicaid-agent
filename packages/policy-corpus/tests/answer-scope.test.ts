@@ -9,6 +9,7 @@ const scope = (question: string) => resolveCoverageScope(question, today);
 
 describe('bounded answer scope', () => {
   it.each([
+    ['What were the original 2025 MAGI income limits?', '2025-04-01', 'MA-3321-1.pdf'],
     ['What MAGI income table applies in October 2026?', '2026-10-01', 'MA-3321-MAGI-Income-2.pdf'],
     ['What were the original 2025 MAGI income limits in June 2025?', '2025-06-01', 'MA-3321-1.pdf'],
     ['What MAGI income table applies in June 2025?', '2025-06-01', 'MA-3321-1.pdf'],
@@ -31,6 +32,18 @@ describe('bounded answer scope', () => {
   });
 
   it.each([
+    ['What does my Gujarati DHB-5097 say and what should I do?', 'gujarati-dhb-5097'],
+    ['Translate my Gujarati DHB-5097 and tell me the next steps.', 'gujarati-dhb-5097'],
+    ['What deadline does my Gujarati DHB-5097 give, and how do I reply?', 'gujarati-dhb-5097'],
+    ['How do I complete the Gujarati DHB-5097? Show me the form.', 'gujarati-dhb-5097'],
+    ['Is pharmacist authority for OTC COVID home tests still in effect and is it a covered benefit?', 'covid-standing-order'],
+    ['Were pharmacists allowed to give out free OTC COVID home tests without a doctor?', 'covid-standing-order'],
+    ['Who allowed pharmacists to hand out OTC COVID home tests on October 1, 2024, and did Medicaid cover them?', 'covid-standing-order'],
+    ['Does Medicaid cover OTC COVID tests ordered by a pharmacist on October 1, 2024?', 'covid-standing-order'],
+    ['What did the original 2025 MAGI income limit PDFs say?', 'magi-2025-archive'],
+    ['Were the original 2025 MAGI income limits later superseded or withdrawn?', 'magi-2025-archive'],
+    ['Compare the original 2025 MAGI income limits with the reposted version.', 'magi-2025-archive'],
+    ['What were the 2025 MAGI limits in the document originally attached to the manual?', 'magi-2025-archive'],
     ['Download the official Gujarati DHB-5097 form', 'gujarati-dhb-5097'],
     ['Quote the ગુજરાતી 5097 form', 'gujarati-dhb-5097'],
     ['Provide an interpretation of the exact wording of the official Gujarati DHB-5097.', 'gujarati-dhb-5097'],

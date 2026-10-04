@@ -39,11 +39,16 @@ export function resolveCoverageScope(question: string, today = new Date()): Cove
   const originalRequest = /download|quote|\battach\b|exact.{0,20}(wording|text|content)|interpret.{0,40}(wording|text|notice)/.test(q)
     || /(?:^|[.,;]\s*|please\s+|(?:can|could|will|would)\s+you\s+)(?:provide|supply|show|give|generate|reproduce|translate)\s+(?:(?:me|us|the|an?|official|original|gujarati|dhb[ -]*5097|a copy of|copy of)\s+)*(?:form|notice|attachment|pdf|it|(?:dhb[ -]*)?5097|translation\b(?!\s+(?:(?:and|or)\s+(?:interpretation|translation)\s+)?services?\b))\b/.test(q);
   const procedureQuestion = /what (?:should|must|can|do) (?:i|we) do|(?:how|when).{0,40}(?:respond|reply|submit|complete|appeal)|\b(?:procedure|process|next steps)\b/.test(q);
-  const gujarati = /gujarati|ગુજરાતી/.test(q) && /5097|request.{0,20}information/.test(q) && ((!languageAccess && !procedureQuestion) || originalRequest);
+  const contentIntent = /\b(?:says?|said|wording|reads?|translat\w*|contain\w*|deadline|due date|differ\w*|version|copy|send|show|need the|get the)\b/.test(q);
+  const gujarati = /gujarati|ગુજરાતી/.test(q) && /5097|request.{0,20}information/.test(q) && ((!languageAccess && !(procedureQuestion && !contentIntent)) || originalRequest);
   const covid = /covid|sars.cov.2/.test(q) && /otc|over.the.counter|home.{0,12}test|at.home/.test(q);
   const paymentQuestion = /cover|pay|reimburs|billing|benefit|free|cost/.test(q);
-  const authority = /covid|sars.cov.2/.test(q) && (covid || /standing.order/.test(q)) && (/standing.order|dispens|prescrib|prescription|authori[sz]/.test(q) || (/pharmacist/.test(q) && !paymentQuestion));
-  const archives = /2025/.test(q) && /magi/.test(q) && (/archiv|wrapper/.test(q) || /original.{0,40}(?:attachment|file|document|source)/.test(q));
+  const authorityTerms = /standing.order|statewide.order|dispens|prescrib|prescription|authori|\ballow|\bpermit|\border(?:s|ed|ing)?\b|conditions?|without a (?:doctor|prescription)|withdraw|rescind/.test(q);
+  const authority = /covid|sars.cov.2/.test(q) && (covid || /standing.order/.test(q)) && (authorityTerms || (/pharmacist/.test(q) && !paymentQuestion));
+  const originalArtifact = /original\w*.{0,60}(?:attachment|file|document|source|pdf|upload|version|copy|copies|post(?:ed|ing))|(?:attachment|file|document|pdf)s?.{0,30}original/.test(q)
+    || /originals\b/.test(q)
+    || (/original/.test(q) && /supersed|withdr[ae]w|duplicat|compar|differ|repost|replac/.test(q));
+  const archives = /2025/.test(q) && /magi/.test(q) && (/archiv|wrapper/.test(q) || originalArtifact);
   if (matched.length || gujarati || authority || archives) {
     result.limitationIds = matched.length ? matched.map(item => item.id) : gujarati ? ['gujarati-dhb-5097'] : authority ? ['covid-standing-order'] : ['magi-2025-archive', 'magi-2025-archive-2'];
     result.notice = gujarati ? 'The official Gujarati DHB-5097 attachment is unavailable in this corpus. I cannot supply or quote it, or infer what a completed Gujarati notice says. General request-for-information procedure can be researched separately using the available manuals and forms.'
