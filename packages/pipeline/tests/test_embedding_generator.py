@@ -53,7 +53,9 @@ def test_legacy_vectors_refused_before_provider_or_mutation(monkeypatch):
     assert len(session.calls) == 1
 
 
-@pytest.mark.parametrize("vectors", [[[0.1]], [[0.1, float("nan")]], [[True, 0.1]], [[0.0, 0.0]], []])
+@pytest.mark.parametrize(
+    "vectors", [[[0.1]], [[0.1, float("nan")]], [[True, 0.1]], [[0.0, 0.0]], []]
+)
 def test_invalid_vectors_never_written(monkeypatch, vectors):
     monkeypatch.setattr(generator, "EMBEDDING_DIMENSIONS", 2)
     monkeypatch.setattr(generator, "voyage_embed", lambda *a, **k: vectors)
@@ -128,10 +130,12 @@ def stored_plan(parts):
 def test_coverage_requires_every_index_even_for_identical_chunks():
     parts = list(plan_inputs("A" * 20000))
     stored = stored_plan(parts)
+
     def check(rows):
         return plan_graph.plan_matches(
             "s", parts, rows, "model", 2, require_vectors=True
         )
+
     assert check(stored)
     assert not check(stored[:-1])
     assert not check(stored + [stored[0]])
@@ -180,3 +184,23 @@ def test_release_gate_uses_shared_coverage(monkeypatch):
     result = release.inspect_release_graph(2)
     assert result["embeddedSections"] == 11 and result["embeddingCoverage"] == 11 / 12
     assert calls == [{"dimensions": 2}]
+
+
+def test_blank_novel_input_refused_before_paid_call_or_write(monkeypatch):
+    monkeypatch.setattr(generator, "VOYAGE_API_KEY", "mock-only")
+    session = FakeSession([{"total": 0}, {"invalid": 0}])
+    monkeypatch.setattr(generator, "get_session", session_factory(session))
+    monkeypatch.setattr(
+        generator,
+        "iter_sections",
+        lambda: iter([{"section_id": "s", "body": "x" * 9000 + "\n", "context": ""}]),
+    )
+    monkeypatch.setattr(
+        generator, "voyage_embed", lambda *a, **k: pytest.fail("provider")
+    )
+    monkeypatch.setattr(
+        generator, "_persist_plan", lambda *a, **k: pytest.fail("write")
+    )
+    with pytest.raises(ValueError, match="Whitespace-only.*s"):
+        generator.embed_all()
+    assert len(session.calls) == 2

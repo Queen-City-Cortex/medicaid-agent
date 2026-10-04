@@ -141,8 +141,15 @@ def embed_all(model: str | None = None) -> dict:
                 "Invalid chunk ownership: rebuild a fresh inactive candidate"
             )
     for section in iter_sections():
-        for _part in plan_inputs(section["body"], section["context"]):
-            pass
+        previous_end = 0
+        body_bytes = section["body"].encode()
+        for part in plan_inputs(section["body"], section["context"]):
+            novel = body_bytes[previous_end : part.body_end]
+            if not novel.decode().strip():
+                raise ValueError(
+                    f"Whitespace-only embedding input requires representation review: {section['section_id']}"
+                )
+            previous_end = part.body_end
 
     stats = {"embedded": 0, "errors": 0, "chunks_created": 0}
     batch = []

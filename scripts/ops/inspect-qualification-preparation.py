@@ -22,7 +22,10 @@ def main():
     from neo4j import GraphDatabase
     from pipeline import config
     import sqlite3
+    if config.CRAWLER_DB_PATH != Path("/data/crawler/crawler.db"):
+        raise ValueError("Unexpected registry path")
     registry_uri = preparation.immutable_registry_uri(config.CRAWLER_DB_PATH)
+    registry_hash_before = preparation.digest(config.CRAWLER_DB_PATH)
     original_connect = sqlite3.connect
     def readonly_connect(database, *args, **kwargs):
         database_path = str(database).removeprefix("file:").split("?", 1)[0]
@@ -42,7 +45,7 @@ def main():
     import importlib
     module_names = ["chunker", "plan_graph", "inspection", "generator", "voyage_client"]
     modules = [importlib.import_module("pipeline.embeddings." + name) for name in module_names]
-    modules.extend(importlib.import_module(name) for name in ("pipeline.parse_provenance", "pipeline.config", "pipeline.graph.connection", "pipeline.freshness"))
+    modules.extend(importlib.import_module(name) for name in ("pipeline.parse_provenance", "pipeline.config", "pipeline.graph.connection", "pipeline.freshness", "pipeline.corpus_manifest", "pipeline.source_lifecycle", "pipeline.answer_scope", "pipeline.eval.identity", "pipeline.identity", "pipeline.parse.artifact_paths"))
     preparation.CONTEXT["plannerModuleHashes"] = {
         module.__name__: preparation.digest(Path(module.__file__)) for module in modules
     }
@@ -129,7 +132,13 @@ def main():
     preparation.write_receipt("parse-provenance-reconciliation.json", provenance)
     if check_snapshot() != before:
         raise ValueError("Corpus changed during inspection")
+    preparation.immutable_registry_uri(config.CRAWLER_DB_PATH)
+    registry_hash_after = preparation.digest(config.CRAWLER_DB_PATH)
+    if registry_hash_after != registry_hash_before:
+        raise ValueError("Registry bytes changed during inspection")
     preparation.write_receipt("inspection-completion.json", {
+        "registrySha256Before": registry_hash_before, "registrySha256After": registry_hash_after,
+        "registryUnchangedVerified": True, "registrySidecarsCheckedBeforeAndAfter": True,
         "completeCorpusSnapshotVerified": True, "sourceSnapshotHash": inputs["sourceSnapshotHash"],
         "bytePolicyPassed": volume["oversizedPlannedInputs"] == 0,
         "losslessPlanSections": volume["losslessPlanSections"],
