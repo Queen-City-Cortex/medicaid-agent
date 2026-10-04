@@ -1,3 +1,4 @@
+- Offline harness socket tests must select their disposable target explicitly. CI supplies its integration `NEO4J_URI` globally; inheriting localhost in a network-isolation fixture correctly triggers the production-target rejection before its intended socket assertions. Keep those fixtures independent of ambient database settings.
 - Live model selection may differ from code defaults: the October 3 audit found deployed GPT-5.4 overrides and stale usage-report prices. Audit every model role, SDK endpoint and provider credential independently before a migration; catalog access does not establish generation compatibility or quality. [Audit](../validation/qualification-cycle-2026-10-03/model-audit.md).
 # Project gotchas
 

@@ -20,6 +20,13 @@ class PreparationGuardTests(unittest.TestCase):
     def test_valid_isolated_target(self):
         preparation.validate_environment(self.env, self.mounts)
 
+    def test_cycle_target_is_isolated(self):
+        preparation.validate_environment({**self.env, "NEO4J_URI": "bolt://qualification-cycle-neo4j:7687"}, self.mounts)
+
+    def test_unknown_socket_target_is_rejected(self):
+        with self.assertRaises(ValueError):
+            preparation.deny_network("neo4j.railway.internal")
+
     def test_other_graph_is_rejected_before_loading(self):
         for uri in ["bolt://localhost:7687", "bolt://neo4j.railway.internal:7687", "neo4j://qualification-preparation-neo4j:7687", "bolt://qualification-preparation-neo4j:7688"]:
             with self.subTest(uri=uri), self.assertRaises(ValueError):
@@ -45,7 +52,7 @@ class PreparationGuardTests(unittest.TestCase):
         with patch.object(socket, "getaddrinfo", return_value=[(2, 1, 6, "", ("127.0.0.1", 7687))]), \
              patch.object(socket.socket, "connect") as allowed_connect, \
              patch.object(socket.socket, "connect_ex"), patch.object(urllib.request, "urlopen"):
-            preparation.deny_network()
+            preparation.deny_network(preparation.TARGET)
             with socket.socket() as sock:
                 with self.assertRaises(RuntimeError):
                     sock.connect(("203.0.113.1", 443))
