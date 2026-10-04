@@ -21,7 +21,22 @@ services:
     volumes:
       - neo4j-ab-data:/data
     healthcheck:
-      test: ["CMD", "cypher-shell", "-u", "neo4j", "-p", "medicaid-dev", "RETURN 1"]
+      # Run the authenticated `RETURN 1` through the HTTP Query API instead of
+      # cypher-shell: every cypher-shell call boots two JVMs (~1.3s at 200%+
+      # CPU), which at a 5s interval spikes host CPU for as long as the
+      # container is up. wget checks the same credentials and Cypher path for
+      # almost nothing.
+      test:
+        - CMD
+        - wget
+        - -q
+        - -O
+        - /dev/null
+        - --user=neo4j
+        - --password=medicaid-dev
+        - "--header=Content-Type: application/json"
+        - '--post-data={"statement":"RETURN 1"}'
+        - http://localhost:7474/db/neo4j/query/v2
       interval: 5s
       timeout: 5s
       retries: 10
