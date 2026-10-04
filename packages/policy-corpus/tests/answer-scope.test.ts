@@ -10,6 +10,7 @@ const scope = (question: string) => resolveCoverageScope(question, today);
 describe('bounded answer scope', () => {
   it.each([
     ['What MAGI income table applies in October 2026?', '2026-10-01', 'MA-3321-MAGI-Income-2.pdf'],
+    ['What were the original 2025 MAGI income limits in June 2025?', '2025-06-01', 'MA-3321-1.pdf'],
     ['What MAGI income table applies in June 2025?', '2025-06-01', 'MA-3321-1.pdf'],
     ['What MAGI income table applies on 2026-03-31?', '2026-03-31', 'MA-3321-1.pdf'],
     ['What MAGI income table applies on April 1, 2026?', '2026-04-01', 'MA-3321-MAGI-Income-2.pdf'],
@@ -38,6 +39,9 @@ describe('bounded answer scope', () => {
     ['What language-access rights apply, and interpret the exact wording of my Gujarati DHB-5097 notice?', 'gujarati-dhb-5097'],
     ['What authority does the pharmacist standing order for OTC COVID-19 tests grant?', 'covid-standing-order'],
     ['Was the pharmacist COVID standing order withdrawn?', 'covid-standing-order'],
+    ['Quote the Gujarati DHB-5097 and explain what I should do next.', 'gujarati-dhb-5097'],
+    ['Did Medicaid pay pharmacists for OTC COVID tests and authorize dispensing them?', 'covid-standing-order'],
+    ['What did the original 2025 MAGI attachments say?', 'magi-2025-archive'],
     ['Were the two archived 2025 MAGI income-limit wrappers duplicates?', 'magi-2025-archive'],
   ])('declines unavailable original evidence: %s', (question, id) => {
     expect(scope(question)?.limitationIds).toContain(id);
@@ -52,6 +56,8 @@ describe('bounded answer scope', () => {
 
   it('keeps procedure research and unrelated policy families available', () => {
     expect(scope('What is DHB-5097 Request for Information?')?.notice).toBeNull();
+    expect(scope('I received a DHB-5097 in Gujarati; what should I do?')?.notice).toBeNull();
+    expect(scope('How should I respond to my Gujarati DHB-5097?')?.notice).toBeNull();
     expect(scope('Does HCWD impose an earned income cap?')).toBeNull();
     expect(scope('What language access rights apply to Gujarati speakers?')).toBeNull();
     expect(scope('What language-access rights apply when a Gujarati speaker receives DHB-5097?')?.notice).toBeNull();
@@ -64,6 +70,14 @@ describe('bounded answer scope', () => {
     expect(scope('What language access rights apply to Gujarati speakers filling CAP/DA forms?')).toBeNull();
     expect(scope('What is the revision date of the 2025 MAGI income table?')?.notice).toBeNull();
     expect(scope('What does the NON-MAGI income table say?')).toBeNull();
+  });
+
+  it('keeps pharmacist payment questions under dated payment evidence', () => {
+    const selected = scope('Did Medicaid pay pharmacists for OTC COVID home tests on October 1, 2024?')!;
+    expect(selected.notice).toBeNull();
+    expect(selected.requestedDate).toBe('2024-10-01');
+    expect(selected.requiredSourceUrls).toEqual([ANSWER_SCOPE_POLICY.required_bulletin.source_url]);
+    expect(scope('Did Medicaid pay pharmacists for OTC COVID home tests in June 2025?')?.notice).toContain('additional dated evidence');
   });
 
   it('requires complete authoritative dated evidence, not a hint, lookalike URL, or web excerpt', () => {

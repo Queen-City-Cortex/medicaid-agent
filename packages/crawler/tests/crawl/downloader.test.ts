@@ -279,7 +279,7 @@ describe('downloadDocument', () => {
     );
 
     expect(result.action).toBe('error');
-    expect(result.error).toMatch(/HTML\/text/);
+    expect(result.error).toMatch(/Content-type text\/html/);
 
     // Nothing — not even the tmp file — may be left behind in the corpus
     const sourceDir = path.join(
@@ -297,6 +297,28 @@ describe('downloadDocument', () => {
     const result = await downloadDocument(doc, fetcherWriting(html, { 'content-type': 'text/html' }), new Set());
     expect(result.action).toBe('downloaded');
     expect(result.info?.local_path).toMatch(/bulletins\/.*\.html$/);
+  });
+
+  it.each([
+    ['missing', {}],
+    ['generic', { 'content-type': 'application/octet-stream' }],
+    ['incorrect binary', { 'content-type': 'application/pdf' }],
+  ])('rejects non-seed bulletin HTML with %s MIME', async (_label, headers) => {
+    const doc = makeDoc({ source_type: 'bulletin', title: 'Missing attachment', source_url: 'https://medicaid.ncdhhs.gov/missing-attachment.pdf' });
+    const html = '<!DOCTYPE html><html><body><h1>Maintenance</h1><p>Please try again later.</p></body></html>';
+    const result = await downloadDocument(doc, fetcherWriting(html, headers), new Set());
+    expect(result.action).toBe('error');
+    expect(result.error).toMatch(/explicitly declared seed/);
+    expect(fs.existsSync(path.join(config.documentsDir, 'bulletins', `.download-${doc.id}.tmp`))).toBe(false);
+    expect(result.info).toBeUndefined();
+  });
+
+  it('rejects an unlabelled plain-text error in a mixed HTML/PDF bulletin family', async () => {
+    const doc = makeDoc({ source_type: 'bulletin', source_url: 'https://medicaid.ncdhhs.gov/missing-attachment.pdf' });
+    const result = await downloadDocument(doc, fetcherWriting('Service temporarily unavailable.', {}), new Set());
+    expect(result.action).toBe('error');
+    expect(result.error).toMatch(/explicitly declared seed/);
+    expect(fs.existsSync(path.join(config.documentsDir, 'bulletins', `.download-${doc.id}.tmp`))).toBe(false);
   });
 
   it('accepts the declared bulletin with its Drupal page heading outside the article', async () => {
@@ -434,7 +456,7 @@ describe('downloadDocument', () => {
       source_type: 'dhhs_policy', source_url: wrapperUrl,
     }), fetcher, new Set());
     expect(result.action).toBe('error');
-    expect(result.error).toMatch(/HTML\/text/);
+    expect(result.error).toMatch(/Content-type text\/html/);
     expect(fetcher.fetchFile).toHaveBeenCalledTimes(2);
   });
 

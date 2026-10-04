@@ -423,11 +423,12 @@ export async function downloadDocument(
       ?.toLowerCase() ?? null;
     const header = readFileHeader(tmpPath);
     const textLikePayload = looksLikeTextPayload(header);
+    const htmlMarkup = textLikePayload && /<!doctype\s+html|<(?:html|head|body|article|main|h[1-6]|p)(?:\s|>)/i.test(header.toString('utf8'));
     const magicContentType = await detectContentType(tmpPath);
     const detectedContentType =
       magicContentType
       ?? (
-        textLikePayload && semanticHtmlRequired
+        (htmlMarkup || (textLikePayload && (semanticHtmlRequired || sourceType === 'bulletin')))
           ? 'text/html'
           : textLikePayload && allowsTextFormats(sourceFamily.allowed_file_formats)
             ? responseContentType

@@ -38,10 +38,12 @@ export function resolveCoverageScope(question: string, today = new Date()): Cove
   const languageAccess = /language[ -]?access|language.{0,12}rights|(?:interpreter|interpretation|translation).{0,30}(right|service|access)|(?:right|access|provide|request|obtain|arrange|need).{0,30}interpreter/.test(q);
   const originalRequest = /download|quote|\battach\b|exact.{0,20}(wording|text|content)|interpret.{0,40}(wording|text|notice)/.test(q)
     || /(?:^|[.,;]\s*|please\s+|(?:can|could|will|would)\s+you\s+)(?:provide|supply|show|give|generate|reproduce|translate)\s+(?:(?:me|us|the|an?|official|original|gujarati|dhb[ -]*5097|a copy of|copy of)\s+)*(?:form|notice|attachment|pdf|it|(?:dhb[ -]*)?5097|translation\b(?!\s+(?:(?:and|or)\s+(?:interpretation|translation)\s+)?services?\b))\b/.test(q);
-  const gujarati = /gujarati|ગુજરાતી/.test(q) && /5097|request.{0,20}information/.test(q) && (!languageAccess || originalRequest);
+  const procedureQuestion = /what (?:should|must|can|do) (?:i|we) do|(?:how|when).{0,40}(?:respond|reply|submit|complete|appeal)|\b(?:procedure|process|next steps)\b/.test(q);
+  const gujarati = /gujarati|ગુજરાતી/.test(q) && /5097|request.{0,20}information/.test(q) && ((!languageAccess && !procedureQuestion) || originalRequest);
   const covid = /covid|sars.cov.2/.test(q) && /otc|over.the.counter|home.{0,12}test|at.home/.test(q);
-  const authority = /covid|sars.cov.2/.test(q) && (covid || /standing.order/.test(q)) && /standing.order|pharmacist|dispens|prescrib|prescription|authori[sz]/.test(q);
-  const archives = /2025/.test(q) && /magi/.test(q) && /archiv|wrapper|original/.test(q);
+  const paymentQuestion = /cover|pay|reimburs|billing|benefit|free|cost/.test(q);
+  const authority = /covid|sars.cov.2/.test(q) && (covid || /standing.order/.test(q)) && (/standing.order|dispens|prescrib|prescription|authori[sz]/.test(q) || (/pharmacist/.test(q) && !paymentQuestion));
+  const archives = /2025/.test(q) && /magi/.test(q) && (/archiv|wrapper/.test(q) || /original.{0,40}(?:attachment|file|document|source)/.test(q));
   if (matched.length || gujarati || authority || archives) {
     result.limitationIds = matched.length ? matched.map(item => item.id) : gujarati ? ['gujarati-dhb-5097'] : authority ? ['covid-standing-order'] : ['magi-2025-archive', 'magi-2025-archive-2'];
     result.notice = gujarati ? 'The official Gujarati DHB-5097 attachment is unavailable in this corpus. I cannot supply or quote it, or infer what a completed Gujarati notice says. General request-for-information procedure can be researched separately using the available manuals and forms.'
@@ -66,7 +68,7 @@ export function resolveCoverageScope(question: string, today = new Date()): Cove
     result.requirements = ['Explain the form using the available English DHB-5097. Do not infer filled-in deadlines or facts from a blank template; use the applicable manual for procedure. Do not present another language variant or a generated translation as the missing official Gujarati form.'];
     return result;
   }
-  if (covid && /cover|pay|reimburs|billing|benefit|free|cost/.test(q)) {
+  if (covid && paymentQuestion) {
     result.requestedDate = requestedDate(q, today);
     if (!result.requestedDate || result.requestedDate !== '2024-10-01') {
       result.notice = 'The September 2024 bulletin establishes the payment change effective October 1, 2024. It does not alone establish payment coverage on another date; that period needs additional dated evidence.';

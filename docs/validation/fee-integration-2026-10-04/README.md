@@ -14,7 +14,7 @@ The XLSX compactor and its native proof logic remain unchanged. The existing [ve
 - Workspace lint, builds, test typechecks and JavaScript suites passed. Production dependency audit passed.
 - Actual Opus approach and implementation reviews approved the reconciliation. The final model-binding changes have focused regression tests and full Linux verification; automated review and exact-head CI are recorded on [PR #208](https://github.com/Queen-City-Cortex/medicaid-agent/pull/208).
 
-The [source attestation](source-attestation.json) verifies 111 source/configuration file hashes in the actual Linux test image against code revision `69254e4`. Subsequent report changes contain documentation and receipts only. [Private receipt checksums](private-receipt-checksums.json) retain test/review evidence without publishing credentials or corpus contents.
+The [source attestation](source-attestation.json) verifies 111 source/configuration file hashes in the actual Linux test image against code revision `69254e4`. The report commit following that attestation contained only documentation and receipts. Later crawler and coverage-boundary fixes are checked separately by workspace regressions and exact-head CI; this retained image attestation does not claim those TypeScript sources. [Private receipt checksums](private-receipt-checksums.json) retain test/review evidence without publishing credentials or corpus contents.
 
 ## Preservation and scope
 
@@ -23,3 +23,8 @@ The [source attestation](source-attestation.json) verifies 111 source/configurat
 **NOT_ASSESSED / non-promotable; $0 qualification provider spend.** Tests generate only mocked vectors in their disposable graph. No production embeddings, paid answer evaluations, source reparse, agency contact, corpus activation or deployment occurred. A main merge is separate from corpus qualification: future corpus work still requires current source/plan binding, renewed scope approvals, verified backups, and a separately approved budget with an enforced spending guard.
 
 See [current input plans](../../operations/embedding-input-plans.md) and [fee-compaction runbook](../../operations/fee-schedule-compaction.md). Exact relational fee lookup remains proposed follow-up, not part of this integration.
+
+
+## Late merge-gate review
+
+After the PR became ready for review, Greptile identified an unlabelled-HTML bulletin bypass and three supported-question false positives. Markup and unknown text bulletin payloads now pass the explicit-seed gate before file persistence, including absent/generic/incorrect MIME headers. Gujarati response procedure remains available unless an original attachment is also requested; pharmacist payment uses dated bulletin evidence unless authority is requested; “original” dated MAGI limits select the applicable table unless unavailable attachments are actually requested. Focused regressions preserve missing-original and mixed-intent limitations. These changes do not renew scope approvals or corpus qualification.
