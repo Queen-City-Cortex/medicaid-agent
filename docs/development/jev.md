@@ -70,13 +70,15 @@ uv run python -m pipeline.cli jev validate-answers --output data/jev/campaigns/p
 uv run python -m pipeline.cli jev report scope --output data/jev/campaigns/pilot
 uv run python -m pipeline.cli jev report sections --output data/jev/campaigns/pilot
 uv run python -m pipeline.cli jev report routing --output data/jev/campaigns/pilot
+# Diagnostic comparison only; AI references cannot qualify runtime use.
+uv run python -m pipeline.cli jev report ai-diagnostic --output data/jev/campaigns/pilot
 ```
 
 Scope qualifies only with complete human-reviewed evidence, zero classifier failures and zero false blocks on on-topic/ambiguous conversations, off-topic detection at least baseline, and lower median latency; p95 and failures remain reported. Section roles need ≥10 held-out positive and negative examples, at least ten positive predictions, precision ≥0.90 and recall at least the heuristic baseline. Unsupported roles remain observational. Frames and repeated answers derive the candidate role allowlist from reviewed evidence. Their durable artifacts bind the qualification hash, exact annotation digest, corpus and common configuration; reports recompute answer gates from the full runs. Final primary evidence selection must improve. Require at least three distinct, complete baseline and candidate answer runs on matching corpus/configuration, existing release thresholds, no mean grounding decline and no aggregate withholding increase. A partial run or insufficient budget is pending, never qualification. The implementation does not automatically enable features or deploy a release.
 
 ## Verification
 
-Run corpus and agent tests, both builds and test typechecks, pipeline pytest/Ruff/Vulture, and operational backup tests. The dedicated Neo4j annotation test requires `RUN_NEO4J_INTEGRATION=1` and `JEV_DISPOSABLE_NEO4J=true`; it owns the whole graph and must target an isolated test server. Wire tests include the documented independent-confidence example, deadlines through body reading, rate-limit no-retry behavior and Unicode/control-character hash equivalence across languages.
+Run corpus and agent tests, both builds and test typechecks, pipeline pytest/Ruff/Vulture, and operational backup tests. The dedicated Neo4j annotation test requires `RUN_NEO4J_INTEGRATION=1` and `JEV_DISPOSABLE_NEO4J=true` and `JEV_DISPOSABLE_NEO4J_URI` exactly matching the test URI; it refuses a nonempty graph and must target an isolated test server. Wire tests include the documented independent-confidence example, deadlines through body reading, rate-limit no-retry behavior and Unicode/control-character hash equivalence across languages.
 
 ## Preserve a local campaign
 
@@ -101,3 +103,5 @@ Import a downloaded checklist with `jev import-ai-audit --output <campaign> --re
 Report field ordering is canonical before hashing: a JSON download's key order may differ from its archived canonical copy, and that must not change an immutable report on re-import.
 
 If the reviewer reports uncertain or coin-flip choices without identifying fields, record a frozen `ai-audit-confidence-note.json` bound to the submitted review hash with `disposition: all_audit_decisions_provisional`. The report becomes provisional. Working-reference fields keep the original choices as `tentativeValue`, with unresolved `value: null` and source `provisional_human_audit`. Preserve the original submission and earlier report versions; do not turn uncertain judgments into resolved reference labels or use the match counts to rank model accuracy.
+
+Before changing the pinned model or question specification, plan artifact migration and backup validation together. Current cache/manifest validation binds the current pin; historical artifacts must remain archived rather than silently relabeled under a new specification. Whole-corpus annotation memory use and paid-provider transport compatibility remain adoption checks, not established by this disabled integration.

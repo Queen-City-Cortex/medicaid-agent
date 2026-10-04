@@ -12,11 +12,23 @@ from pipeline.jev.sections import graph_sections, section_input
 pytestmark = pytest.mark.skipif(os.environ.get("RUN_NEO4J_INTEGRATION") != "1", reason="Requires disposable Neo4j")
 
 
+@pytest.fixture(autouse=True)
+def disposable_graph_guard():
+    if os.environ.get("JEV_DISPOSABLE_NEO4J") != "true":
+        pytest.skip("Requires an explicitly disposable graph")
+    from pipeline.config import NEO4J_URI
+    approved_uri = os.environ.get("JEV_DISPOSABLE_NEO4J_URI")
+    if not approved_uri or approved_uri != NEO4J_URI:
+        pytest.fail("JEV_DISPOSABLE_NEO4J_URI must explicitly match the test target")
+    with get_session() as session:
+        if session.run("MATCH (n) RETURN count(n) AS count").single()['count']:
+            pytest.fail("Jev annotation suite requires an empty disposable graph")
+
+
 def test_enrichment_rollback_input_identity_freeze_and_preservation():
     if os.environ.get("JEV_DISPOSABLE_NEO4J") != "true":
         pytest.skip("Requires an explicitly disposable graph")
     with get_session() as session:
-        session.run("MATCH (n) DETACH DELETE n")
         session.run("""CREATE (d:Document {id:'d', title:'Policy', document_type:'clinical_policy', policy_number:'10A'})
             CREATE (s:Section {id:'s', title:'Criteria', section_number:'3', content_text:'Covered services.', embedding:[1.0,2.0]})
             CREATE (ch:Chunk {id:'ch', content_text:'Covered services.'})

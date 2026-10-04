@@ -233,14 +233,15 @@ def test_cache_probability_tamper_invalidates_manifest(tmp_path, monkeypatch):
         validate_label_manifest(result["manifest"], tmp_path)
 
 
-def test_sqlite_backup_snapshot_reads_committed_wal(tmp_path):
+@pytest.mark.parametrize("root_name", ["corpus", "corpus # ? space"])
+def test_sqlite_backup_snapshot_reads_committed_wal(tmp_path, root_name):
     import importlib.util
     import sqlite3
     from pipeline.jev.benchmarks import REPO_ROOT
     spec = importlib.util.spec_from_file_location("snapshots", REPO_ROOT / "scripts/ops/snapshot-corpus-databases.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    root = tmp_path / "corpus"
+    root = tmp_path / root_name
     path = root / "pipeline/jev/campaign.db"
     path.parent.mkdir(parents=True)
     ledger = Ledger(path)
@@ -387,3 +388,10 @@ def test_oversized_section_abstains_without_stopping_later_inputs(tmp_path, monk
     result = label_sections([{**section("Oversized"), "id": "large"}, section()], root=tmp_path,
                             ledger=object(), cache_only=False)
     assert [r["status"] for r in result["manifest"]["sections"]] == ["input", "labeled"]
+
+
+def test_empty_scope_provider_preserves_disabled_fingerprint(monkeypatch):
+    from pipeline.evaluation_evidence import jev_evaluation_identity
+    monkeypatch.setenv('SCOPE_GATE_PROVIDER', '  ')
+    monkeypatch.setenv('JEV_SECTION_ROLES_ENABLED', 'false')
+    assert jev_evaluation_identity() == {}

@@ -33,6 +33,7 @@ packages/pipeline/data/*
 !packages/pipeline/data/golden/**
 !packages/pipeline/data/jev
 !packages/pipeline/data/jev/*.json
+packages/pipeline/data/jev/campaigns/
 !packages/pipeline/data/references
 !packages/pipeline/data/references/**
 *.db

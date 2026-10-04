@@ -129,12 +129,13 @@ def test_qualification_refuses_same_ids_with_changed_content(tmp_path, monkeypat
         require_qualification_corpus(tmp_path)
 
 
-def test_snapshot_preserves_live_wal_reviews_and_cache_without_environment(tmp_path):
+@pytest.mark.parametrize("campaign_name", ["campaign", "campaign # ? space"])
+def test_snapshot_preserves_live_wal_reviews_and_cache_without_environment(tmp_path, campaign_name):
     import hashlib
     import sqlite3
     from pipeline.jev.budget import Ledger
     from pipeline.jev.snapshot import snapshot_campaign
-    campaign, labels, backup = (tmp_path / name for name in ("campaign", "labels", "backup"))
+    campaign, labels, backup = (tmp_path / name for name in (campaign_name, "labels", "backup"))
     campaign.mkdir()
     labels.mkdir()
     (campaign / "scope-review.json").write_text('{"reviewer":"Human"}')

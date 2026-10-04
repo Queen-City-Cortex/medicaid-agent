@@ -273,7 +273,8 @@ def mark_graph_release(
     """Stamp the target graph so readiness verifies the graph, not only env."""
     from pipeline.graph.connection import get_session
 
-    annotation_digest = manifest.get("stageResults", {}).get("jevSections", {}).get("result", {}).get("digest")
+    stage = (manifest.get("stageResults") or {}).get("jevSections") or {}
+    annotation_digest = (stage.get("result") or {}).get("digest")
     with get_session() as session:
         marker = session.run("MATCH (m:JevAnnotation {id: 'current'}) RETURN m.digest AS digest").single()
     live_digest = marker["digest"] if marker else None

@@ -146,6 +146,7 @@ jobs:
         env:
           RUN_NEO4J_INTEGRATION: '1'
           JEV_DISPOSABLE_NEO4J: 'true'
+          JEV_DISPOSABLE_NEO4J_URI: bolt://localhost:7689
           NEO4J_URI: bolt://localhost:7689
         run: .venv/bin/python -m pytest tests/test_jev_integration.py -v
         working-directory: packages/pipeline

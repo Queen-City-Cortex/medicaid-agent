@@ -181,7 +181,7 @@ def baseline_metrics(evidence: dict) -> dict:
 
 def jev_evaluation_identity() -> dict:
     roles = os.environ.get("JEV_SECTION_ROLES_ENABLED") == "true"
-    scope = os.environ.get("SCOPE_GATE_PROVIDER", "openai")
+    scope = os.environ.get("SCOPE_GATE_PROVIDER", "").strip() or "openai"
     if not roles and scope == "openai":
         return {}
     annotation_digest = None

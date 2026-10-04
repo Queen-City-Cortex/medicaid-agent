@@ -11,7 +11,7 @@ def snapshot_databases(root: Path, destination: Path) -> int:
             target = destination / path.relative_to(root)
             target = target.with_name(target.name + ".sqlite-snapshot")
             target.parent.mkdir(parents=True, exist_ok=True)
-            with sqlite3.connect(f"file:{path}?mode=ro", uri=True) as source:
+            with sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True) as source:
                 with sqlite3.connect(target) as output:
                     source.backup(output)
             count += 1

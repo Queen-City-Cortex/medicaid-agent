@@ -45,5 +45,3 @@ def validate_label_manifest(value: dict, root: Path) -> None:
             cached = validate_cache(json.loads((root / "cache" / f"{key}.json").read_text()))
             if cached["inputHash"] != row["inputHash"] or cached["key"] != key or digest(cached) != row.get("cacheHash"):
                 raise ValueError("Manifest/cache identity mismatch")
-
-

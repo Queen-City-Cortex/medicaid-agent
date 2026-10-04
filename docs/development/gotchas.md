@@ -232,3 +232,5 @@ A scope benchmark can appear fast and harmless when every classifier call fails 
 
 - Jev Choice confidence and the selected choice probability are independent; threshold the selected probability. See [Jev contracts](jev.md).
 - Git worktrees do not inherit ignored `.env` files. Inspect the original checkout before reporting missing credentials; never print their values.
+
+- Jev integration preserves main’s bounded whole-graph identity reader; older source-filtered readers and tests must not replace it. SQLite backup helpers use escaped file URIs so `#`, `?` and spaces in campaign paths do not change which database is read.

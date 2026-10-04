@@ -18,7 +18,7 @@ def snapshot_campaign(campaign: Path, ledger: Path, labels: Path, destination: P
     for name, source in zip(("campaign", "section-labels"), sources, strict=True):
         if source.exists():
             shutil.copytree(source, target / name, ignore=shutil.ignore_patterns("*.db", "*.db-wal", "*.db-shm", "*.env", "*.tmp"))
-    with sqlite3.connect(f"file:{ledger.resolve()}?mode=ro", uri=True) as source:
+    with sqlite3.connect(ledger.resolve().as_uri() + "?mode=ro", uri=True) as source:
         with sqlite3.connect(target / "campaign.db") as backup:
             source.backup(backup)
     hashes = {str(path.relative_to(target)): hashlib.sha256(path.read_bytes()).hexdigest()
