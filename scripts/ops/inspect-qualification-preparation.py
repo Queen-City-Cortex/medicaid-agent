@@ -58,7 +58,7 @@ def main():
     from pipeline.freshness import build_answer_ready_snapshot
     def check_snapshot():
         snapshot = build_answer_ready_snapshot(Path("/data/pipeline/parsed"),
-            include_answer_scopes=False, db_path=Path("/data/crawler/crawler.db"))
+            include_answer_scopes=True, db_path=Path("/data/crawler/crawler.db"))
         if "sha256:" + snapshot["snapshot_hash"] != inputs["sourceSnapshotHash"]:
             raise ValueError("Complete corpus snapshot differs from retained build")
         return snapshot
