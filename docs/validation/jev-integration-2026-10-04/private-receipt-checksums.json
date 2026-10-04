@@ -9,5 +9,12 @@
   "audit.log": "08f4a6cc62888a7f0dbf53507c760626adb1bcb0573062ebc76fe7ba2e3e804e",
   "opus-review.md": "f9508709e0db73885234d1bd2430994c31988e8fbe986b088d0a0a001c10232a",
   "opus-followup.md": "7e66cd5e3d37ea3514134b0a9e3d28dcac1e26bbd974e86b2d0d568ede59f6c1",
-  "linux-verified-tests.log": "46f280ae47a2b6ac29aef81874db6dbe9ad03146a32693700e9d8781459bc988"
+  "linux-verified-tests.log": "46f280ae47a2b6ac29aef81874db6dbe9ad03146a32693700e9d8781459bc988",
+  "late-build.log": "1e58b96585dd394c1ab06477fab00715aae1669b51abe3c9a75ef304b84ff485",
+  "late-final-linux-tests.log": "8dc69535e34f4b299e19b01051f796a33a7399e677a33ca1edb57341d96861ce",
+  "late-final-embedding-tests.log": "41cc4343a6f47e6287581f2479094951ebd0677ab53c8eaad07145de3769938f",
+  "late-annotation-tests.log": "3aabbf2312d20e65edf1ee23d3e9d03022e6835432cf58fdefaacdee8bfa6999",
+  "late-final-ops-init-tests.log": "ed3f759f200f9f26720e6efc88b2200c9369a6a2244b3c065d73f90c684ecef5",
+  "late-final-ops-tests.log": "f55244b9267f193ce23da4a8ae190d772f16decead86667c33c8ff86c2ba73aa",
+  "opus-late-review.md": "db6b2b7fa830f7d1ca7ac5cdfaade1ef7a2a1131373cae606054848867853b00"
 }
