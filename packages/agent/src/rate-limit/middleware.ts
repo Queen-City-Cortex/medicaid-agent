@@ -42,15 +42,17 @@ export function createBodySizeGuard(): GuardMiddleware {
       // body through.
       if (rawLength === undefined) {
         return c.json(
-          { error: 'payload_too_large', message: 'Requests must include a Content-Length header.' },
+          { error: { code: 'payload_too_large', message: 'Requests must include a Content-Length header.' } },
           413,
         );
       }
       if (!/^\d+$/.test(rawLength)) {
         return c.json(
           {
-            error: 'invalid_content_length',
-            message: 'Content-Length must be a non-negative decimal integer.',
+            error: {
+              code: 'invalid_content_length',
+              message: 'Content-Length must be a non-negative decimal integer.',
+            },
           },
           400,
         );
@@ -59,8 +61,10 @@ export function createBodySizeGuard(): GuardMiddleware {
       if (!Number.isSafeInteger(contentLength) || contentLength > maxBytes) {
         return c.json(
           {
-            error: 'payload_too_large',
-            message: 'That request is too large. Start a new conversation or shorten your message.',
+            error: {
+              code: 'payload_too_large',
+              message: 'That request is too large. Start a new conversation or shorten your message.',
+            },
           },
           413,
         );
@@ -102,11 +106,12 @@ export function createRateLimitMiddleware(repo: RateLimitRepository): GuardMiddl
         c.header('Retry-After', String(decision.retryAfterSeconds));
         return c.json(
           {
-            error: 'rate_limited',
-            message: `You've reached the limit of ${decision.limit} messages per ${decision.window}. Please try again in ${retryText}.`,
-            retryAfterSeconds: decision.retryAfterSeconds,
-            limit: decision.limit,
-            window: decision.window,
+            error: {
+              code: 'rate_limited',
+              message: `You've reached the limit of ${decision.limit} messages per ${decision.window}. Please try again in ${retryText}.`,
+              retryAfterSeconds: decision.retryAfterSeconds,
+              details: { limit: decision.limit, window: decision.window },
+            },
           },
           429,
         );
@@ -117,8 +122,10 @@ export function createRateLimitMiddleware(repo: RateLimitRepository): GuardMiddl
       Sentry.captureException(err, { tags: { component: 'rate-limit' } });
       if (failClosed) {
         return c.json({
-          error: 'temporarily_unavailable',
-          message: 'Usage limits are temporarily unavailable. Please try again shortly.',
+          error: {
+            code: 'temporarily_unavailable',
+            message: 'Usage limits are temporarily unavailable. Please try again shortly.',
+          },
         }, 503);
       }
     }

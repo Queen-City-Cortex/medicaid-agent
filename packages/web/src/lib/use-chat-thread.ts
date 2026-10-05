@@ -87,9 +87,11 @@ export function useChatThread({
       return token ? { Authorization: `Bearer ${token}` } as Record<string, string> : {} as Record<string, string>;
     },
     prepareSendMessagesRequest({ messages }) {
+      // The agent keeps only the newest user message and reads history from
+      // its own guarded store, so replaying the thread only grows the body.
       return {
         body: {
-          messages,
+          messages: messages.filter(m => m.role === 'user').slice(-1),
           memory: { thread: threadId, resource: resourceId },
         },
       };

@@ -55,7 +55,7 @@ export async function handleCorpusStatusRequest(c: {
   } catch (err) {
     log.error('corpus_status.query_failed', errorFields(err));
     Sentry.captureException(err, { tags: { route: 'corpus-status' } });
-    return c.json({ error: 'Corpus status unavailable' }, 503);
+    return c.json({ error: { code: 'corpus_status_unavailable', message: 'Corpus status unavailable' } }, 503);
   }
 }
 

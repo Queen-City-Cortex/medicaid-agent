@@ -281,7 +281,7 @@ export const mastra = new Mastra({
       Sentry.captureException(err, {
         tags: { method: c.req.method, path: c.req.path },
       });
-      return c.json({ error: 'Internal server error' }, 500);
+      return c.json({ error: { code: 'internal_error', message: 'Internal server error' } }, 500);
     },
     apiRoutes: [
       createChatRoute(usageRepo, AGENT_RUN_LIMITS),

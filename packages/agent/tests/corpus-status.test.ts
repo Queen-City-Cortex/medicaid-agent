@@ -28,7 +28,7 @@ describe('corpus-status route failure logging', () => {
       'corpus_status.query_failed',
       expect.objectContaining({ err: 'neo4j down' }),
     );
-    expect(json).toHaveBeenCalledWith({ error: 'Corpus status unavailable' }, 503);
+    expect(json).toHaveBeenCalledWith({ error: { code: 'corpus_status_unavailable', message: 'Corpus status unavailable' } }, 503);
     expect(res.status).toBe(503);
   });
 

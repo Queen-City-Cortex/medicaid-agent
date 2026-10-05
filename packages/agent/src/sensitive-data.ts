@@ -6,28 +6,20 @@ export type SensitiveIdentifierKind =
   | 'member_id';
 
 const RULES: ReadonlyArray<readonly [SensitiveIdentifierKind, RegExp]> = [
-  ['ssn', /\b(?:ssn|social\s+security(?:\s+number)?)?\s*[:#-]?\s*\d{3}[- ]?\d{2}[- ]?\d{4}\b/i],
+  // A labelled number may be written without separators. An unlabelled one is
+  // matched when hyphenated, or when spaced 3-2-4 and standing apart from other
+  // digit groups, so a ZIP+4 (5-4) and longer runs of codes do not match.
+  ['ssn', /\b(?:ssn|social\s+security(?:\s+number)?)\s*(?:is\s+)?[:#-]?\s*\d{3}[- ]?\d{2}[- ]?\d{4}\b|(?<!\d)\d{3}-\d{2}-\d{4}(?!\d)|(?<!\d ?)\d{3} \d{2} \d{4}(?! ?\d)/i],
   ['date_of_birth', /\b(?:dob|date\s+of\s+birth|birth\s*date)\s*[:#-]?\s*(?:\d{1,2}[/-]){2}\d{2,4}\b/i],
   ['email', /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i],
   ['phone', /(?<!\d)(?:\+?1[ .-]?)?(?:\(\d{3}\)|\d{3})[ .-]\d{3}[ .-]\d{4}(?!\d)/],
-  ['member_id', /\b(?:medicaid|member|beneficiary|recipient)\s*(?:id|number|no\.?|#)\s*[:#-]?\s*[A-Z0-9-]{5,32}\b/i],
+  // The label must end at a word boundary and the value must contain a digit,
+  // so "Medicaid non-emergency" and "beneficiary no longer" are not identifiers.
+  ['member_id', /\b(?:medicaid|member|beneficiary|recipient)\s*(?:id|number|no\.?|#)(?![A-Za-z])\s*(?:number\s+)?(?:is\s+)?[:#-]?\s*(?=[A-Z0-9-]*\d)[A-Z0-9-]{5,32}\b/i],
 ];
 
 export function findSensitiveIdentifiers(text: string): SensitiveIdentifierKind[] {
   return RULES
     .filter(([, pattern]) => pattern.test(text))
     .map(([kind]) => kind);
-}
-
-export function extractText(value: unknown, depth = 0): string {
-  if (depth > 6 || value == null) return '';
-  if (typeof value === 'string') return value;
-  if (Array.isArray(value)) {
-    return value.map((item) => extractText(item, depth + 1)).join('\n');
-  }
-  if (typeof value !== 'object') return '';
-  return Object.entries(value as Record<string, unknown>)
-    .filter(([key]) => !/token|authorization|password|secret/i.test(key))
-    .map(([, child]) => extractText(child, depth + 1))
-    .join('\n');
 }

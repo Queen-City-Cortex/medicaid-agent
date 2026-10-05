@@ -5,7 +5,7 @@ import { handleChatStream } from '@mastra/ai-sdk';
 import { createUIMessageStreamResponse } from 'ai';
 import { gateAnswerStream, trustedChatInput } from './answer-release.js';
 import { getBoundUserId } from './auth-middleware.js';
-import { extractText, findSensitiveIdentifiers } from './sensitive-data.js';
+import { findSensitiveIdentifiers } from './sensitive-data.js';
 import type { UsageRepository } from './usage/repository.js';
 import { AGENT_MODEL } from './model.js';
 import { log, errorFields } from './logger.js';
@@ -30,7 +30,11 @@ export function createChatRoute(usageRepo: Pick<UsageRepository, 'record'>, runL
           error: { code: 'unauthorized', message: 'Authentication required' },
         }, 401);
       }
-      if (findSensitiveIdentifiers(extractText(body)).length) {
+      // Screen only the text the server keeps. Clients may replay the whole
+      // thread, and earlier answers legitimately carry agency phone numbers.
+      const input = trustedChatInput(body, userId);
+      const question = input.messages[0].parts.map(part => part.text.trim()).filter(Boolean).join('\n').trim();
+      if (findSensitiveIdentifiers(question).length) {
         return c.json({
           error: {
             code: 'client_identifier_detected',
@@ -40,14 +44,12 @@ export function createChatRoute(usageRepo: Pick<UsageRepository, 'record'>, runL
       }
       const threadId = (body?.memory as { thread?: string } | undefined)?.thread;
       const requestContext = c.get('requestContext');
-      const input = trustedChatInput(body, userId);
       // Mastra merges client context before this route. Only the server may
       // supply diagnostic state, including when diagnostics are disabled.
       requestContext.set(CHAT_DIAGNOSTIC_CONTEXT, undefined);
       // Observation can replace messages with a summary and system reminder.
       // Verification must address the actual newest user text, not that reminder.
-      requestContext.set(CHAT_VERIFICATION_QUESTION,
-        input.messages[0].parts.map(part => part.text.trim()).filter(Boolean).join('\n').trim());
+      requestContext.set(CHAT_VERIFICATION_QUESTION, question);
       // The AI-SDK chat adapter does not enforce the memory API's thread
       // ownership check before observation. Reject foreign history first.
       const memoryStore = await c.get('mastra').getStorage()?.getStore('memory');

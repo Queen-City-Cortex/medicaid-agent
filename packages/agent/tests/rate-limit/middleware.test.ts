@@ -49,8 +49,8 @@ describe('createRateLimitMiddleware', () => {
     expect(denied.status).toBe(429);
     expect(denied.headers.get('Retry-After')).toMatch(/^\d+$/);
     const body = await denied.json();
-    expect(body).toMatchObject({ error: 'rate_limited', limit: 2, window: 'hour' });
-    expect(body.message).toContain('limit of 2 messages per hour');
+    expect(body).toMatchObject({ error: { code: 'rate_limited', details: { limit: 2, window: 'hour' } } });
+    expect(body.error.message).toContain('limit of 2 messages per hour');
   });
 
   it('counts deep-research workflow starts against the same quota', async () => {
@@ -105,7 +105,7 @@ describe('createBodySizeGuard', () => {
       headers: { 'content-length': '101' },
     });
     expect(res.status).toBe(413);
-    expect((await res.json()).error).toBe('payload_too_large');
+    expect((await res.json()).error.code).toBe('payload_too_large');
   });
 
   it('passes a counted route under the cap', async () => {
@@ -130,7 +130,7 @@ describe('createBodySizeGuard', () => {
       headers: { 'content-length': 'not-a-number' },
     });
     expect(res.status).toBe(400);
-    expect(await res.json()).toMatchObject({ error: 'invalid_content_length' });
+    expect(await res.json()).toMatchObject({ error: { code: 'invalid_content_length' } });
   });
 
   it('enforces the global limit on every JSON write route', async () => {

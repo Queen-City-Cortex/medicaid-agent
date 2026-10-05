@@ -21,16 +21,16 @@ export function createFeedbackRoutes(repo: FeedbackRepository): {
       body = await c.req.json();
     } catch {
       log.warn('feedback.invalid_json', { resourceId: getResourceId(c) });
-      return c.json({ error: 'Invalid JSON' }, 400);
+      return c.json({ error: { code: 'invalid_json', message: 'Invalid JSON' } }, 400);
     }
 
     const parsed = FeedbackInputSchema.safeParse(body);
     if (!parsed.success) {
-      return c.json({ error: 'Validation failed', details: parsed.error.flatten() }, 400);
+      return c.json({ error: { code: 'validation_failed', message: 'Validation failed', details: parsed.error.flatten() } }, 400);
     }
 
     const resourceId = getResourceId(c);
-    if (!resourceId) return c.json({ error: 'Not authenticated' }, 401);
+    if (!resourceId) return c.json({ error: { code: 'unauthorized', message: 'Not authenticated' } }, 401);
     const id = crypto.randomUUID();
 
     const result = await repo.upsert({
@@ -48,24 +48,24 @@ export function createFeedbackRoutes(repo: FeedbackRepository): {
   const get = async (c: ContextWithMastra): Promise<Response> => {
     const threadId = c.req.query('threadId');
     if (!threadId) {
-      return c.json({ error: 'threadId query parameter is required' }, 400);
+      return c.json({ error: { code: 'thread_id_required', message: 'threadId query parameter is required' } }, 400);
     }
 
     const resourceId = getResourceId(c);
-    if (!resourceId) return c.json({ error: 'Not authenticated' }, 401);
+    if (!resourceId) return c.json({ error: { code: 'unauthorized', message: 'Not authenticated' } }, 401);
     const feedback = await repo.getByThread(threadId, resourceId);
     return c.json({ feedback }, 200);
   };
 
   const del = async (c: ContextWithMastra): Promise<Response> => {
     const id = c.req.param('id');
-    if (!id) return c.json({ error: 'Feedback id is required' }, 400);
+    if (!id) return c.json({ error: { code: 'feedback_id_required', message: 'Feedback id is required' } }, 400);
     const resourceId = getResourceId(c);
-    if (!resourceId) return c.json({ error: 'Not authenticated' }, 401);
+    if (!resourceId) return c.json({ error: { code: 'unauthorized', message: 'Not authenticated' } }, 401);
     const deleted = await repo.delete(id, resourceId);
 
     if (!deleted) {
-      return c.json({ error: 'Feedback not found' }, 404);
+      return c.json({ error: { code: 'not_found', message: 'Feedback not found' } }, 404);
     }
     // 204 must not have a body — c.json(null, 204) throws in Hono.
     return c.body(null, 204);

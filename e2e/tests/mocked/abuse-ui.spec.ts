@@ -17,11 +17,12 @@ test.describe('Abuse-guard UI', () => {
         contentType: 'application/json',
         headers: { 'retry-after': '720' },
         body: JSON.stringify({
-          error: 'rate_limited',
-          message: "You've reached the limit of 30 messages per hour. Please try again in 12 minute(s).",
-          retryAfterSeconds: 720,
-          limit: 30,
-          window: 'hour',
+          error: {
+            code: 'rate_limited',
+            message: "You've reached the limit of 30 messages per hour. Please try again in 12 minute(s).",
+            retryAfterSeconds: 720,
+            details: { limit: 30, window: 'hour' },
+          },
         }),
       });
     });
@@ -51,8 +52,10 @@ test.describe('Abuse-guard UI', () => {
         status: 413,
         contentType: 'application/json',
         body: JSON.stringify({
-          error: 'payload_too_large',
-          message: 'That request is too large. Start a new conversation or shorten your message.',
+          error: {
+            code: 'payload_too_large',
+            message: 'That request is too large. Start a new conversation or shorten your message.',
+          },
         }),
       });
     });
