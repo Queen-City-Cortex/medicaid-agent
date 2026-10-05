@@ -16,7 +16,6 @@
     "cheerio": {
       "undici": "7.30.0"
     },
-    "@mastra/core": "1.58.0",
     "postcss": "8.5.28",
     "express": {
       "qs": "6.16.0"
@@ -39,6 +38,8 @@
     "lint": "turbo run lint",
     "typecheck:tests": "turbo run typecheck:tests",
     "audit:production": "node scripts/check-production-audit.mjs",
+    "check:mastra-lockfile": "node scripts/check-mastra-lockfile.mjs",
+    "test:scripts": "node --test scripts/tests/*.test.mjs",
     "test:e2e": "cd e2e && HERMETIC_AUTH=1 npx playwright test --project=mocked",
     "test:e2e:smoke": "cd e2e && npx playwright test --project=smoke",
     "smoke:prod": "cd e2e && node scripts/smoke-production.mjs",

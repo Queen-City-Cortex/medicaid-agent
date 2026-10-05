@@ -95,6 +95,12 @@ jobs:
       - name: Audit production dependencies
         run: npm run audit:production
 
+      - name: Check the Mastra family resolves as one release set
+        run: npm run check:mastra-lockfile
+
+      - name: Test repository check scripts
+        run: npm run test:scripts
+
       - name: Install pinned uv
         run: python -m pip install uv==0.8.22
 
