@@ -5,7 +5,8 @@ import { describe, expect, it, vi } from 'vitest';
 import { LibSQLStore } from '@mastra/libsql';
 import type { MastraDBMessage } from '@mastra/core/memory';
 import type { UIMessageChunk } from 'ai';
-import { guardMessage, releaseMessage, installMemoryReleaseGate, gateAnswerStream, trustedChatInput } from '../src/answer-release.js';
+import { guardMessage, releaseMessage, installMemoryReleaseGate, gateAnswerStream, trustedChatInput,
+  GUARDED_MEMORY_METHODS, PASS_THROUGH_MEMORY_METHODS } from '../src/answer-release.js';
 import { runVerificationForAnswer } from '../src/processors/verifier/run.js';
 import { WITHHELD_ANSWER, UNVERIFIED_HISTORY } from '@nc-medicaid/contracts';
 import type { VerificationResult } from '../src/processors/verifier/verify.js';
@@ -112,5 +113,31 @@ describe('answer release', () => {
     expect(JSON.stringify(await memory.listMessages({ threadId: 'thread', perPage: false }))).not.toContain(PRIVATE);
     await storage.close();
     await rm(directory, { recursive: true, force: true });
+  });
+  it('classifies every store method and refuses to install over an unknown one', async () => {
+    const storage = new LibSQLStore({ id: crypto.randomUUID(), url: ':memory:' });
+    await storage.init();
+    const memory = (await storage.getStore('memory'))!;
+    const names = new Set<string>();
+    for (let level = Object.getPrototypeOf(memory); level !== Object.prototype; level = Object.getPrototypeOf(level)) {
+      for (const name of Object.getOwnPropertyNames(level)) if (typeof level[name] === 'function') names.add(name);
+    }
+    const classified = [...GUARDED_MEMORY_METHODS, ...Object.keys(PASS_THROUGH_MEMORY_METHODS)];
+    expect(new Set(classified).size).toBe(classified.length);
+    // No stale entries either: the table describes exactly the installed store.
+    expect([...names].sort()).toEqual([...classified].sort());
+    for (const reason of Object.values(PASS_THROUGH_MEMORY_METHODS)) expect(reason.length).toBeGreaterThan(20);
+
+    // A method a later adapter release adds, on the class or on the instance.
+    const upgraded = Object.create(Object.getPrototypeOf(memory), { copyThread: { value: async () => undefined } });
+    for (const store of [Object.create(upgraded), Object.assign(Object.create(Object.getPrototypeOf(memory)), { updateThreadResourceId: async () => undefined })]) {
+      expect(() => installMemoryReleaseGate(store)).toThrow(/unclassified methods: (copyThread|updateThreadResourceId)/);
+      expect(Object.hasOwn(store, 'saveMessages')).toBe(false);
+    }
+
+    installMemoryReleaseGate(memory);
+    for (const name of GUARDED_MEMORY_METHODS) expect(Object.hasOwn(memory, name)).toBe(true);
+    for (const name of Object.keys(PASS_THROUGH_MEMORY_METHODS)) expect(Object.hasOwn(memory, name)).toBe(false);
+    await storage.close();
   });
 });

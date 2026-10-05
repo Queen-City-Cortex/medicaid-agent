@@ -104,6 +104,18 @@ describe('execution gateway', () => {
     })).status).toBe(200);
   });
 
+  it('refuses the message include parameter, which the framework does not scope by owner', async () => {
+    for (const query of ['include=%5B%5D', 'include', 'agentId=a&include=x', '%69nclude=x']) {
+      const response = await app('user-1').request(`/api/memory/threads/t-1/messages?${query}`);
+      expect(response.status).toBe(400);
+      expect(await response.json()).toEqual({
+        error: { code: 'bad_request', message: 'Query parameter "include" is not supported' },
+      });
+    }
+    expect((await app('user-1').request('/api/memory/threads/t-1/messages?page=0&perPage=40')).status).toBe(200);
+    expect((await app().request('/api/memory/threads/t-1/messages?include=x')).status).toBe(401);
+  });
+
   it.each([
     ['POST', '/api/agents/ncMedicaidAgent/stream'],
     ['POST', '/api/agents/ncMedicaidAgent/tools/searchSections/execute'],

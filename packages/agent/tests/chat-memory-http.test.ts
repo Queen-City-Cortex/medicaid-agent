@@ -7,10 +7,12 @@ import { Agent } from '@mastra/core/agent';
 import { createTool } from '@mastra/core/tools';
 import { Mastra } from '@mastra/core';
 import { LibSQLStore } from '@mastra/libsql';
+import { createHonoServer } from '@mastra/deployer/server';
 import { MockLanguageModelV3, simulateReadableStream } from 'ai/test';
 import { createChatMemory } from '../src/chat-memory.js';
 import { createChatRoute } from '../src/chat-route.js';
 import { createResourceBindingMiddleware } from '../src/auth-middleware.js';
+import { createExecutionGateway } from '../src/execution-gateway.js';
 import { installMemoryReleaseGate } from '../src/answer-release.js';
 import { HallucinationVerifier } from '../src/processors/verifier/processor.js';
 import { clientRequestContext } from './helpers/client-request-context.js';
@@ -210,6 +212,66 @@ describe('production HTTP handler with guarded observational memory', () => {
     } finally {
       info.mockRestore();
       vi.unstubAllEnvs();
+      await storage.close();
+      await rm(directory, { recursive: true, force: true });
+    }
+  }, 30_000);
+
+  it('keeps a thread with its owner and refuses cross-thread message reads on the built-in memory routes', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'http-memory-owner-'));
+    const storage = new LibSQLStore({ id: 'http-owner-test', url: `file:${directory}/test.db` });
+    try {
+      await storage.init();
+      const store = (await storage.getStore('memory'))!;
+      installMemoryReleaseGate(store);
+      const memory = await createChatMemory(storage, { generateTitle: false });
+      const agent = new Agent({ id: 'test-agent', name: 'Test', instructions: 'Answer from policy.', memory,
+        model: new MockLanguageModelV3({ doStream: async () => { throw new Error('No model call is expected'); } }) });
+      // The framework's own memory handlers behind the production middleware.
+      const mastra = new Mastra({ agents: { ncMedicaidAgent: agent }, storage, logger: false, server: { middleware: [
+        createResourceBindingMiddleware({ authenticateToken: async token => token.startsWith('user-') ? { id: token } : null }),
+        createExecutionGateway(),
+      ] } });
+      const app = await createHonoServer(mastra, { tools: {} });
+      const call = (user: string, method: string, path: string, body?: unknown) => app.request(path, { method,
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${user}` },
+        body: body === undefined ? undefined : JSON.stringify(body) });
+      const threads = '/api/memory/threads?agentId=ncMedicaidAgent';
+      expect((await call('user-a', 'POST', threads, { threadId: 'thread-a', title: 'A title', resourceId: 'user-a' })).status).toBe(200);
+      expect((await call('user-b', 'POST', threads, { threadId: 'thread-b', title: 'B title', resourceId: 'user-b' })).status).toBe(200);
+      await store.saveMessages({ messages: [{ id: 'message-a', threadId: 'thread-a', resourceId: 'user-a', role: 'user',
+        createdAt: new Date(), content: { format: 2, parts: [{ type: 'text', text: 'USER_A_PRIVATE_SENTINEL' }] } }] });
+      const owned = (await store.getThreadById({ threadId: 'thread-a' }))!;
+
+      // Creating over an existing id must not move it to the caller.
+      const takeover = await call('user-b', 'POST', threads, { threadId: 'thread-a', title: 'Taken', resourceId: 'user-b' });
+      expect(takeover.status).toBe(404);
+      expect(await store.getThreadById({ threadId: 'thread-a' })).toEqual(owned);
+      expect((await call('user-b', 'PATCH', '/api/memory/threads/thread-a?agentId=ncMedicaidAgent', { title: 'Taken', resourceId: 'user-b' })).status).toBe(403);
+      expect((await call('user-b', 'POST', '/api/memory/threads/thread-a/clone?agentId=ncMedicaidAgent', {})).status).toBe(403);
+      // A clone may not land on another owner's id either.
+      expect((await call('user-b', 'POST', '/api/memory/threads/thread-b/clone?agentId=ncMedicaidAgent', { newThreadId: 'thread-a' })).status).not.toBe(200);
+      expect(await store.getThreadById({ threadId: 'thread-a' })).toEqual(owned);
+      expect((await call('user-a', 'GET', '/api/memory/threads/thread-a?agentId=ncMedicaidAgent')).status).toBe(200);
+      const history = await call('user-a', 'GET', '/api/memory/threads/thread-a/messages?agentId=ncMedicaidAgent');
+      expect(await history.text()).toContain('USER_A_PRIVATE_SENTINEL');
+
+      // The owner's own re-save and rename still succeed.
+      expect((await call('user-a', 'POST', threads, { threadId: 'thread-a', title: 'A title', resourceId: 'user-a' })).status).toBe(200);
+      expect((await call('user-a', 'PATCH', '/api/memory/threads/thread-a?agentId=ncMedicaidAgent', { title: 'Renamed', resourceId: 'user-b' })).status).toBe(200);
+      expect(await store.getThreadById({ threadId: 'thread-a' })).toMatchObject({ resourceId: 'user-a', title: 'Renamed' });
+
+      // `include` resolves message ids without an owner filter in the store.
+      const include = encodeURIComponent(JSON.stringify([{ id: 'message-a', withPreviousMessages: 5, withNextMessages: 5 }]));
+      for (const query of [`include=${include}`, `agentId=ncMedicaidAgent&include=${include}`, `agentId=unknown&%69nclude=${include}`]) {
+        const read = await call('user-b', 'GET', `/api/memory/threads/thread-b/messages?${query}`);
+        expect(read.status).toBe(400);
+        expect(await read.text()).not.toContain('USER_A_PRIVATE_SENTINEL');
+      }
+      const own = await call('user-b', 'GET', '/api/memory/threads/thread-b/messages?agentId=ncMedicaidAgent');
+      expect(own.status).toBe(200);
+      expect(await own.text()).not.toContain('USER_A_PRIVATE_SENTINEL');
+    } finally {
       await storage.close();
       await rm(directory, { recursive: true, force: true });
     }

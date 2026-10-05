@@ -7,13 +7,19 @@ interface RouteRule {
   methods: ReadonlySet<string>;
   pattern: RegExp;
   public: boolean;
+  rejectedQuery: readonly string[];
 }
 
-function rule(methods: string[], pattern: RegExp, options: { public?: boolean } = {}): RouteRule {
+function rule(
+  methods: string[],
+  pattern: RegExp,
+  options: { public?: boolean; rejectedQuery?: string[] } = {},
+): RouteRule {
   return {
     methods: new Set(methods),
     pattern,
     public: options.public ?? false,
+    rejectedQuery: options.rejectedQuery ?? [],
   };
 }
 
@@ -30,7 +36,9 @@ const OWNED_ROUTES: readonly RouteRule[] = [
   rule(['GET'], /^\/(?:livez|readyz|dependencyz|healthz)$/, { public: true }),
   rule(['GET', 'POST'], /^\/api\/memory\/threads$/),
   rule(['GET', 'PATCH', 'DELETE'], /^\/api\/memory\/threads\/[^/]+$/),
-  rule(['GET'], /^\/api\/memory\/threads\/[^/]+\/messages$/),
+  // The framework resolves `include` message ids without an owner filter, so
+  // it would return another user's messages. The application never sends it.
+  rule(['GET'], /^\/api\/memory\/threads\/[^/]+\/messages$/, { rejectedQuery: ['include'] }),
   rule(['POST'], /^\/api\/memory\/threads\/[^/]+\/clone$/),
 ];
 
@@ -58,6 +66,14 @@ export function createExecutionGateway(options: ExecutionGatewayOptions = {}): G
         return c.json({
           error: { code: 'unauthorized', message: 'Authentication required' },
         }, 401);
+      }
+      // URLSearchParams decodes keys, so an encoded name cannot slip through.
+      const query = new URL(c.req.url).searchParams;
+      const rejected = route.rejectedQuery.find((name) => query.has(name));
+      if (rejected) {
+        return c.json({
+          error: { code: 'bad_request', message: `Query parameter "${rejected}" is not supported` },
+        }, 400);
       }
       await next();
       return;

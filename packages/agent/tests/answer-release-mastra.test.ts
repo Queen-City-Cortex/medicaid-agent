@@ -9,6 +9,7 @@ import { LibSQLStore } from '@mastra/libsql';
 import { handleChatStream } from '@mastra/ai-sdk';
 import { MockLanguageModelV3, simulateReadableStream } from 'ai/test';
 import { HallucinationVerifier } from '../src/processors/verifier/processor.js';
+import { UNVERIFIED_HISTORY } from '@nc-medicaid/contracts';
 import { gateAnswerStream, installMemoryReleaseGate } from '../src/answer-release.js';
 import { verifyAnswer } from '../src/processors/verifier/verify.js';
 
@@ -37,8 +38,8 @@ describe('real Mastra chat release boundary', () => {
       { type: 'text-delta', id: 'draft', delta: PRIVATE }, { type: 'text-end', id: 'draft' },
       { type: 'finish', finishReason: { unified: 'stop', raw: 'stop' }, usage: { inputTokens: { total: 1, noCache: 1, cacheRead: 0, cacheWrite: 0 }, outputTokens: { total: 1, text: 1, reasoning: 0 } } },
     ] }) } });
-    const agent = new Agent({ id: 'test-agent', name: 'Test', instructions: 'Answer the question.', model,
-      memory: new Memory({ storage, options: { generateTitle: false, workingMemory: { enabled: false } } }),
+    const memory = new Memory({ storage, options: { generateTitle: false, workingMemory: { enabled: false } } });
+    const agent = new Agent({ id: 'test-agent', name: 'Test', instructions: 'Answer the question.', model, memory,
       outputProcessors: [new HallucinationVerifier()],
     });
     const mastra = new Mastra({ agents: { agent }, storage });
@@ -54,9 +55,58 @@ describe('real Mastra chat release boundary', () => {
       expect(JSON.stringify(messages)).not.toContain(PRIVATE);
       expect(JSON.stringify(messages)).toContain(released);
     });
-    const clone = await memoryStore.cloneThread({ sourceThreadId: 'thread' });
+    // Clone the way the memory route does, then read the copy back.
+    const clone = await memory.cloneThread({ sourceThreadId: 'thread' });
     expect(JSON.stringify(clone)).not.toContain(PRIVATE);
     expect(JSON.stringify(clone)).toContain(released);
+    const copied = await memoryStore.listMessages({ threadId: clone.thread.id, perPage: false });
+    expect(copied.messages.length).toBeGreaterThan(0);
+    expect(JSON.stringify(copied)).not.toContain(PRIVATE);
+    expect(JSON.stringify(copied)).toContain(released);
+    await storage.close();
+    await rm(directory, { recursive: true, force: true });
+  });
+
+  it('reads a cloned unsigned assistant row back as unverified history', async () => {
+    const PRIVATE = 'UNSIGNED_ROW_SENTINEL';
+    const directory = await mkdtemp(join(tmpdir(), 'answer-release-clone-'));
+    const storage = new LibSQLStore({ id: 'clone-test', url: `file:${directory}/test.db` });
+    await storage.init();
+    const memoryStore = (await storage.getStore('memory'))!;
+    await memoryStore.saveThread({ thread: { id: 'thread', title: 'Test', resourceId: 'owner', createdAt: new Date(), updatedAt: new Date() } });
+    // Written before the gate is installed, as a pre-gate or tampered row would be.
+    await memoryStore.saveMessages({ messages: [{ id: 'unsigned', threadId: 'thread', resourceId: 'owner', role: 'assistant',
+      createdAt: new Date(), content: { format: 2, parts: [{ type: 'text', text: PRIVATE }] } }] });
+    installMemoryReleaseGate(memoryStore);
+    const memory = new Memory({ storage, options: { generateTitle: false, workingMemory: { enabled: false } } });
+    const clone = await memory.cloneThread({ sourceThreadId: 'thread' });
+    expect(JSON.stringify(clone)).not.toContain(PRIVATE);
+    const copied = await memoryStore.listMessages({ threadId: clone.thread.id, perPage: false });
+    const recalled = await memory.recall({ threadId: clone.thread.id, resourceId: 'owner' });
+    for (const read of [copied.messages, recalled.messages]) {
+      expect(read).toHaveLength(1);
+      expect(JSON.stringify(read)).toContain(UNVERIFIED_HISTORY);
+      expect(JSON.stringify(read)).not.toContain(PRIVATE);
+    }
+    await storage.close();
+    await rm(directory, { recursive: true, force: true });
+  });
+  it('lets only one of two users racing to create the same thread id own it', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'answer-release-race-'));
+    const storage = new LibSQLStore({ id: 'race', url: `file:${directory}/test.db` });
+    await storage.init();
+    const memoryStore = (await storage.getStore('memory'))!;
+    installMemoryReleaseGate(memoryStore);
+    const create = (resourceId: string) => memoryStore.saveThread({
+      thread: { id: 'contested', title: resourceId, resourceId, createdAt: new Date(), updatedAt: new Date() },
+    });
+
+    const results = await Promise.allSettled([create('user-a'), create('user-b')]);
+
+    expect(results.map(result => result.status)).toEqual(['fulfilled', 'rejected']);
+    expect(await memoryStore.getThreadById({ threadId: 'contested' })).toMatchObject({ resourceId: 'user-a', title: 'user-a' });
+    // A refused save must not block the owner's later saves of the same id.
+    await expect(create('user-a')).resolves.toBeDefined();
     await storage.close();
     await rm(directory, { recursive: true, force: true });
   });

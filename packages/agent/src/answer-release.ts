@@ -52,8 +52,89 @@ export function trustedChatInput(body: { messages?: UIMessage[]; memory?: { thre
     memory: { thread: typeof body.memory?.thread === 'string' ? body.memory.thread : crypto.randomUUID(), resource: userId } };
 }
 
-/** Enforce the same boundary for memory recall, history, clones and writes. */
+/** Store methods `installMemoryReleaseGate` replaces on the instance. */
+export const GUARDED_MEMORY_METHODS = [
+  'saveThread', 'getObservationalMemory', 'getObservationalMemoryHistory', 'initializeObservationalMemory',
+  'saveMessages', 'listMessages', 'listMessagesById', 'listMessagesByResourceId', 'cloneThread', 'updateMessages',
+] as const;
+
+const PLUMBING = 'Class or framework plumbing; touches no stored row.';
+const MAINTENANCE = 'Creates the schema or deletes rows; returns none.';
+const HELPER = 'Internal helper; the rows it shapes leave the store only through the guarded readers.';
+const THREAD_READ = 'Returns thread rows (owner, title, metadata), never message text.';
+const THREAD_UPDATE = 'Writes title and metadata only; cannot change the owner.';
+const WORKING_MEMORY = 'Resource working memory, which chat-memory.ts disables; review again before enabling it.';
+const OBSERVATION_STATE = 'Writes observation state derived from guarded messages; returns no record and leaves the release marker alone.';
+const OBSERVATION_RECORD = 'Returns a new record that copies the config, and so the release marker, of one read through the guarded reader.';
+const OBSERVATION_CONFIG = 'Can write the release marker, but only framework code reaches it and it starts from a record read through the guarded reader; no gateway route exposes it.';
+
+/** Store methods reviewed and left unwrapped, each with the reason. A name in
+ * neither list stops start-up: decide whether it can return or persist
+ * assistant prose, or change a thread's owner, then classify it here. */
+export const PASS_THROUGH_MEMORY_METHODS: Readonly<Record<string, string>> = {
+  constructor: PLUMBING, toRawConfig: PLUMBING, __setRawConfig: PLUMBING, __setLogger: PLUMBING,
+  init: MAINTENANCE, prune: MAINTENANCE, dangerouslyClearAll: MAINTENANCE, deleteMessages: MAINTENANCE,
+  deleteThread: MAINTENANCE, clearObservationalMemory: MAINTENANCE,
+  parseRow: HELPER, _sortMessages: HELPER, _getIncludedMessages: HELPER, getOMKey: HELPER, parseOMRow: HELPER,
+  parseOrderBy: HELPER, deepMergeConfig: HELPER, validateMetadataKeys: HELPER, validatePagination: HELPER,
+  validatePaginationInput: HELPER,
+  getThreadById: THREAD_READ, listThreads: THREAD_READ,
+  updateThread: THREAD_UPDATE, patchThread: THREAD_UPDATE,
+  getResourceById: WORKING_MEMORY, saveResource: WORKING_MEMORY, updateResource: WORKING_MEMORY,
+  updateActiveObservations: OBSERVATION_STATE, updateBufferedObservations: OBSERVATION_STATE,
+  updateBufferedReflection: OBSERVATION_STATE, setReflectingFlag: OBSERVATION_STATE,
+  setObservingFlag: OBSERVATION_STATE, setBufferingObservationFlag: OBSERVATION_STATE,
+  setBufferingReflectionFlag: OBSERVATION_STATE, setPendingMessageTokens: OBSERVATION_STATE,
+  swapBufferedToActive: 'Moves buffered observations into the active record; returns counts and ids only.',
+  createReflectionGeneration: OBSERVATION_RECORD, swapBufferedReflectionToActive: OBSERVATION_RECORD,
+  insertObservationalMemoryRecord: OBSERVATION_CONFIG, updateObservationalMemoryConfig: OBSERVATION_CONFIG,
+};
+
+/** Every function on the store and its whole prototype chain. */
+function storeMethodNames(memory: object): Set<string> {
+  const names = new Set<string>();
+  for (let level: object | null = memory; level && level !== Object.prototype; level = Object.getPrototypeOf(level)) {
+    for (const [name, property] of Object.entries(Object.getOwnPropertyDescriptors(level))) {
+      if (typeof property.value === 'function') names.add(name);
+    }
+  }
+  return names;
+}
+
+/** Enforce the same boundary for memory recall, history, clones and writes.
+ * Default-deny: an adapter method this file has not classified fails start-up
+ * rather than running unguarded. */
 export function installMemoryReleaseGate(memory: MemoryStorage): void {
+  const guarded: readonly string[] = GUARDED_MEMORY_METHODS;
+  const unclassified = [...storeMethodNames(memory)]
+    .filter(name => !guarded.includes(name) && !Object.hasOwn(PASS_THROUGH_MEMORY_METHODS, name));
+  if (unclassified.length > 0) {
+    throw new Error(`Memory store has unclassified methods: ${unclassified.join(', ')}. `
+      + 'Classify each in answer-release.ts as guarded or reviewed pass-through before starting the server.');
+  }
+  // The adapter writes threads with INSERT OR REPLACE and the framework's
+  // create route never looks up an existing id, so ownership is fixed here.
+  // Saves of one id run one at a time, so two users creating the same new id
+  // cannot both pass the lookup: the store is one process on one SQLite file.
+  const saveThread = memory.saveThread.bind(memory);
+  const savesInFlight = new Map<string, Promise<unknown>>();
+  memory.saveThread = async args => {
+    const id = args.thread.id;
+    const previous = savesInFlight.get(id) ?? Promise.resolve();
+    const save = previous.catch(() => {}).then(async () => {
+      const existing = await memory.getThreadById({ threadId: id });
+      if (existing && existing.resourceId !== args.thread.resourceId) {
+        throw Object.assign(new Error('Conversation not found'), { status: 404 });
+      }
+      return saveThread(args);
+    });
+    savesInFlight.set(id, save);
+    try {
+      return await save;
+    } finally {
+      if (savesInFlight.get(id) === save) savesInFlight.delete(id);
+    }
+  };
   // Older observations summarize pre-gate prose and cannot be trusted. New
   // observations are derived from guarded messages after the output processor.
   const observe = memory.getObservationalMemory.bind(memory);
@@ -93,6 +174,8 @@ export function installMemoryReleaseGate(memory: MemoryStorage): void {
     });
     return update({ messages });
   };
+  const unwrapped = guarded.filter(name => !Object.hasOwn(memory, name));
+  if (unwrapped.length > 0) throw new Error(`Memory release gate did not wrap: ${unwrapped.join(', ')}`);
 }
 
 /** Drop all model prose. Only the processor's terminal release supplies text. */
