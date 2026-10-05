@@ -136,6 +136,24 @@ def _is_retryable_agent_error(error_message: str | None) -> bool:
     return any(pattern in normalized for pattern in RETRYABLE_AGENT_ERROR_PATTERNS)
 
 
+def _verifier_outcome(verifier_info: object) -> tuple[str | None, str | None]:
+    """Return ``(status, reason)`` from the CLI's ``---VERIFIER---`` telemetry."""
+    if not isinstance(verifier_info, dict):
+        return None, None
+    outcome = verifier_info.get("outcome")
+    if not isinstance(outcome, dict):
+        outcome = {}
+    reason = outcome.get("reason") or verifier_info.get("withholding_reason")
+    if verifier_info.get("verifier_unavailable"):
+        reason = "unavailable"
+    return outcome.get("status"), reason
+
+
+def _is_verifier_unavailable(verifier_info: object) -> bool:
+    """True when the verifier could not run, as opposed to rejecting the answer."""
+    return _verifier_outcome(verifier_info)[1] == "unavailable"
+
+
 def _tail_text(value: str | None, max_chars: int = AGENT_EVAL_ERROR_TAIL_CHARS) -> str:
     text = (value or "").strip()
     if len(text) <= max_chars:
@@ -353,13 +371,17 @@ def evaluate_answers(entries: list[dict], *, use_unified_evidence: bool = True) 
     Run end-to-end answer quality evaluation for each golden dataset entry.
 
     For each entry:
-    1. Invokes the agent subprocess to get an answer.
+    1. Invokes the agent subprocess to get an answer. A run whose verifier was
+       unavailable is re-run like other transient failures and, if the outage
+       persists, recorded as an infrastructure error.
     2. Fetches the golden-dataset evidence sections from Neo4j.
     3. Builds the judge evidence bundle. When ``use_unified_evidence`` is True
        (default), the bundle combines golden sections with the agent's
        tool-sourced evidence — the same bundle the hallucination verifier
        sees. When False, legacy behavior: golden sections only.
-    4. Calls ``judge_answer()`` to score the response.
+    4. Calls ``judge_answer()`` to score the response, unless the verifier
+       withheld the answer: that row scores overall 0 with no hallucination
+       score and is not sent to the judge.
     5. Returns per-question results with scores.
     """
     results: list[dict] = []
@@ -424,11 +446,25 @@ def evaluate_answers(entries: list[dict], *, use_unified_evidence: bool = True) 
                 and _is_retryable_agent_answer(candidate_answer)
             )
             retryable_error = _is_retryable_agent_error(candidate_error)
-            should_retry = (retryable_answer or retryable_error) and attempt < AGENT_EVAL_MAX_RETRIES
+            # A verifier outage says nothing about the answer. Re-run the whole
+            # question here; the verifier itself gets no extra attempts. If the
+            # outage persists the row is an infrastructure error, not a score.
+            verifier_unavailable = (
+                candidate_error is None
+                and _is_verifier_unavailable(candidate_verifier_info)
+            )
+            if verifier_unavailable:
+                candidate_error = "Verifier unavailable: the answer could not be checked"
+            should_retry = (
+                (retryable_answer or retryable_error or verifier_unavailable)
+                and attempt < AGENT_EVAL_MAX_RETRIES
+            )
             if should_retry:
                 reason = (
                     "transient tool failure in agent answer"
                     if retryable_answer
+                    else "verifier outage"
+                    if verifier_unavailable
                     else "transient upstream API error"
                 )
                 print(
@@ -509,6 +545,7 @@ def evaluate_answers(entries: list[dict], *, use_unified_evidence: bool = True) 
         citation_support = score_citation_support(agent_answer or "", golden_only_texts)
 
         # --- Score with judge ---
+        verifier_status, verifier_reason = _verifier_outcome(verifier_info)
         if agent_error:
             # Infra failure, not answer quality: scoring these 0 conflated
             # timeouts with "major hallucination" and dragged every mean down.
@@ -522,6 +559,22 @@ def evaluate_answers(entries: list[dict], *, use_unified_evidence: bool = True) 
                 "overall": None,
                 "explanation": agent_error,
                 "error_type": "agent",
+            }
+        elif verifier_status == "withheld":
+            # The agent released only the fixed withholding notice. Judging
+            # that text scored every withhold a perfect 3 on hallucination, so
+            # answering less looked safer. Nothing was asserted: no
+            # hallucination score, and zero for the answer the user did not
+            # get. Not an error_type: a withhold is a valid product outcome.
+            print(f"[answer eval] {question_id} withheld by verifier; judge skipped", flush=True)
+            scores = {
+                "factual_accuracy": 0,
+                "completeness": 0,
+                "hallucination": None,
+                "citation_quality": 0,
+                "overall": 0,
+                "explanation": f"Answer withheld by the verifier ({verifier_reason or 'no reason given'}); not judged",
+                "outcome": "withheld",
             }
         else:
             print(f"[answer eval] {question_id} judge start", flush=True)
@@ -577,7 +630,7 @@ def evaluate_answers(entries: list[dict], *, use_unified_evidence: bool = True) 
                 "golden_blocks_used": evidence_bundle.golden_blocks_used,
                 "bytes_in_prompt": evidence_bundle.bytes_in_prompt,
                 "budget_trimmed": evidence_bundle.budget_trimmed,
-                "evidence_mode": "unified" if use_unified_evidence else "legacy",
+                "evidence_mode": "unified-v2" if use_unified_evidence else "legacy",
             },
             "agent_elapsed_seconds": agent_elapsed_seconds,
             # Alias fields for results.py aggregate compatibility

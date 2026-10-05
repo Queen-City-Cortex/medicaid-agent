@@ -42,7 +42,8 @@ def compare_runs(
 ) -> list[dict]:
     """Compare two eval runs and flag regressions.
 
-    Raises ValueError when the runs are different eval levels: their aggregate
+    Raises ValueError when the runs were judged under different evidence modes,
+    or are different eval levels: their aggregate
     shapes don't overlap, so the union comparison would report every
     baseline-only metric as a drop to 0.0 — noise, not signal, and fatal to a
     --fail-on-regression gate.
@@ -52,6 +53,14 @@ def compare_runs(
     if level_a and level_b and level_a != level_b:
         raise ValueError(
             f"cannot compare runs of different levels ({level_a} vs {level_b})"
+        )
+    # Answer runs judged under different evidence modes differ in judge prompt,
+    # evidence budget and withheld-row scoring, so their deltas mean nothing.
+    mode_a = (run_a.get("config") or {}).get("evidence_mode")
+    mode_b = (run_b.get("config") or {}).get("evidence_mode")
+    if mode_a and mode_b and mode_a != mode_b:
+        raise ValueError(
+            f"cannot compare runs judged under different evidence modes ({mode_a} vs {mode_b})"
         )
 
     diffs: list[dict] = []
@@ -63,9 +72,9 @@ def compare_runs(
         val_a = agg_a.get(metric, 0.0)
         val_b = agg_b.get(metric, 0.0)
         delta = val_b - val_a
-        if metric.endswith("_errors"):
-            # Error counters are higher-is-worse: any increase is a
-            # regression, and a decrease is an improvement — the score-metric
+        if metric.endswith("_errors") or metric == "withheld_count":
+            # Error and withheld counters are higher-is-worse: any increase is
+            # a regression, and a decrease is an improvement — the score-metric
             # rule would get both exactly backwards.
             regression = delta > 0
         elif metric == "scorable_count":

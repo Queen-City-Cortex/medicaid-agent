@@ -67,6 +67,22 @@ def _compute_answer_rollup(rows: list[dict]) -> dict:
         if values:
             rollup[dim] = sum(values) / len(values)
 
+    # Withheld rows score overall 0 and carry no hallucination score, so the
+    # means above already charge withholding to the answer dimensions and keep
+    # `hallucination` to released answers. Report the released-only means and
+    # the withheld count beside them so neither is recomputed by hand.
+    if rollup:
+        released = [q for q in rows if (q.get("scores") or {}).get("outcome") != "withheld"]
+        for dim in ANSWER_SCORE_DIMENSIONS:
+            values = [
+                q["scores"].get(dim)
+                for q in released
+                if q.get("scores") and q["scores"].get(dim) is not None
+            ]
+            if values and dim != "hallucination":
+                rollup[f"{dim}_released"] = sum(values) / len(values)
+        rollup["withheld_count"] = len(rows) - len(released)
+
     return rollup
 
 
@@ -86,7 +102,7 @@ def _error_counts(rows: list[dict]) -> dict:
     return counts
 
 
-_NON_METRIC_KEYS = {"judge_errors", "agent_errors", "scorable_count"}
+_NON_METRIC_KEYS = {"judge_errors", "agent_errors", "scorable_count", "withheld_count"}
 
 
 def _compute_rollup(rows: list[dict]) -> dict:

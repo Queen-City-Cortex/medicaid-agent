@@ -26,7 +26,10 @@ def test_only_golden_preserves_order():
         [_golden("sec:a", "Alpha content"), _golden("sec:b", "Beta content")],
         [],
     )
-    assert bundle.blocks == ["Alpha content", "Beta content"]
+    assert bundle.blocks == [
+        "--- Golden section: sec:a ---\nAlpha content",
+        "--- Golden section: sec:b ---\nBeta content",
+    ]
     assert bundle.golden_blocks_used == 2
     assert bundle.sources_used == 0
 
@@ -51,7 +54,7 @@ def test_golden_comes_before_agent_sources():
         [_golden("sec:a", "Golden A")],
         [_source("getSection", "sec:x", "Agent X")],
     )
-    assert bundle.blocks[0] == "Golden A"
+    assert bundle.blocks[0] == "--- Golden section: sec:a ---\nGolden A"
     assert "Agent X" in bundle.blocks[1]
     assert bundle.blocks[1].startswith("--- Evidence: getSection → sec:x ---")
 
@@ -128,9 +131,60 @@ def test_budget_never_trims_golden():
     golden = [_golden("sec:a", "G" * 20_000)]
     bundle = build_judge_evidence(golden, [], budget_bytes=5_000)
     assert bundle.golden_blocks_used == 1
-    assert bundle.blocks[0].startswith("G")
+    assert bundle.blocks[0].startswith("--- Golden section: sec:a ---\nG")
     # No agent sources to trim → budget_trimmed stays False.
     assert bundle.budget_trimmed is False
+
+
+def test_golden_text_is_not_charged_against_the_agent_budget():
+    # q-010 / q-015 / q-043: golden alone exceeded the 80 KB budget, so every
+    # agent source was dropped and the judge called supported facts fabricated.
+    golden = [_golden("sec:a", "G" * 100_000)]
+    sources = [_source("getAmendments", "cn:keep", "small amendment block")]
+    bundle = build_judge_evidence(golden, sources)
+    assert bundle.golden_blocks_used == 1
+    assert bundle.sources_used == 1
+    assert bundle.budget_trimmed is False
+    assert "small amendment block" in bundle.blocks[-1]
+
+
+def test_frame_section_bodies_outrank_the_routing_hint():
+    big = "X" * 5_000
+    sources = [
+        _source("resolveAnswerFrame", "raf-hint", big),
+        _source("mysteryTool", "m-1", "mystery text"),
+        _source("searchSections", "search-1", big),
+        _source("resolveAnswerFrame:section", "sec:frame", big),
+    ]
+    ordered = build_judge_evidence([], sources)
+    assert [b.splitlines()[0] for b in ordered.blocks] == [
+        "--- Evidence: resolveAnswerFrame:section → sec:frame ---",
+        "--- Evidence: searchSections → search-1 ---",
+        "--- Evidence: resolveAnswerFrame → raf-hint ---",
+        "--- Evidence: mysteryTool → m-1 ---",
+    ]
+    # With room for one large block, the section body claims it.
+    trimmed = build_judge_evidence([], sources, budget_bytes=6_000)
+    joined = "\n".join(trimmed.blocks)
+    assert "sec:frame" in joined
+    assert "raf-hint" not in joined
+    assert trimmed.budget_trimmed is True
+
+
+def test_section_entries_already_covered_are_skipped():
+    bundle = build_judge_evidence(
+        [_golden("sec:shared", "Golden shared text")],
+        [
+            _source("resolveAnswerFrame:section", "sec:shared", "Frame copy of golden"),
+            _source("resolveAnswerFrame:section", "sec:both", "Frame read"),
+            _source("getSection", "sec:both", "Second read of the same section"),
+        ],
+    )
+    joined = "\n".join(bundle.blocks)
+    assert "Frame copy of golden" not in joined
+    assert "Frame read" in joined
+    assert "Second read of the same section" not in joined
+    assert bundle.sources_used == 1
 
 
 def test_budget_trimmed_true_when_agent_source_overflows():

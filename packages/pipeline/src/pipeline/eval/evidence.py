@@ -14,19 +14,25 @@ from dataclasses import dataclass
 from typing import Iterable
 
 
-# Lower = higher priority (kept first when trimming to budget). Mirrors the
-# EVIDENCE_TOOLS set in hallucination-verifier.ts plus two ranked-but-never-
-# emitted tools so the priority map stays exhaustive if we ever extend it.
+# Lower = higher priority (claims the agent budget first). Keyed by the
+# ``toolName`` values the agent CLI emits (see processors/verifier/evidence.ts);
+# names missing here rank after every listed one. Corpus section bodies come
+# first, and the ``resolveAnswerFrame`` routing hint, which is advice rather
+# than corpus text, comes last.
 AGENT_TOOL_PRIORITY: dict[str, int] = {
+    "resolveAnswerFrame:section": 0,
     "getSection": 0,
     "getAmendments": 1,
     "getDocument": 2,
     "lookupPolicy": 3,
-    "resolveAnswerFrame": 4,
-    "followReferences": 5,
-    "findConceptSections": 6,
-    "searchSections": 7,
+    "followReferences": 4,
+    "findConceptSections": 5,
+    "searchSections": 6,
+    "resolveAnswerFrame": 7,
 }
+
+# Tools whose entries are a corpus section body keyed by section id.
+SECTION_TOOLS = frozenset({"getSection", "resolveAnswerFrame:section"})
 
 
 def _agent_priority(source: dict) -> int:
@@ -51,6 +57,16 @@ def _golden_section_ids(golden_sections: Iterable[dict]) -> set[str]:
         if sid:
             ids.add(sid)
     return ids
+
+
+def _render_golden_block(section: dict) -> str:
+    """Label a golden section with its id so the judge can tell which policy
+    document a block belongs to."""
+    text = (section.get("text") or "").strip()
+    section_id = section.get("section_id")
+    if not text or not section_id:
+        return text
+    return f"--- Golden section: {section_id} ---\n{text}"
 
 
 def _render_agent_block(source: dict) -> str:
@@ -78,41 +94,44 @@ def build_judge_evidence(
     ``hallucination-verifier.ts``.
 
     Rules:
-    - Golden sections come first, verbatim, in their input order. Golden is the
-      anchor; it is never trimmed for budget.
+    - Golden sections come first, in their input order, each under a
+      ``--- Golden section: <section id> ---`` header. Golden is the
+      anchor; it is never trimmed and is not charged against the budget.
     - Agent sources are appended afterward, ordered by tool priority
-      (getSection > getAmendments > getDocument > …). Entries whose key matches
-      a golden section id are skipped (golden already covers them).
-    - If the combined size exceeds ``budget_bytes``, agent sources are dropped
-      from the back (lowest priority first) until we fit. Golden always fits.
+      (section bodies > getAmendments > getDocument > …). Section entries whose
+      key matches a golden section id, or a section already taken from another
+      tool, are skipped.
+    - ``budget_bytes`` caps the agent blocks only. A block that does not fit in
+      what remains is skipped, so priority decides who claims the budget first.
     """
     golden_ids = _golden_section_ids(golden_sections)
 
-    golden_blocks: list[str] = []
-    for sec in golden_sections:
-        text = (sec.get("text") or "").strip()
-        if text:
-            golden_blocks.append(text)
+    golden_blocks = [
+        block for sec in golden_sections if (block := _render_golden_block(sec))
+    ]
 
     # Agent sources, deduped against golden and ordered by priority.
     agent_ordered: list[dict] = []
+    seen_section_keys = set(golden_ids)
     for src in agent_sources:
         if not isinstance(src, dict):
-            continue
-        # Dedup getSection entries that point at a section already in golden.
-        if src.get("toolName") == "getSection" and src.get("key") in golden_ids:
             continue
         # Skip empty-text entries (nothing to add).
         if not (src.get("text") or "").strip():
             continue
+        # Dedup section bodies already in golden or read through another tool.
+        if src.get("toolName") in SECTION_TOOLS and src.get("key"):
+            if src["key"] in seen_section_keys:
+                continue
+            seen_section_keys.add(src["key"])
         agent_ordered.append(src)
     agent_ordered.sort(key=_agent_priority)
 
     agent_blocks = [_render_agent_block(src) for src in agent_ordered]
 
-    # Budget: golden is mandatory; agent blocks are appended until we cross
-    # the budget. We account for block bytes (utf-8) plus the `\n\n` separator
-    # the judge renderer joins with.
+    # Budget: golden is mandatory and uncharged; agent blocks are accepted
+    # while they fit the budget. We account for block bytes (utf-8) plus the
+    # `\n\n` separator the judge renderer joins with.
     separator_len = len("\n\n")
 
     def size_of(blocks: list[str]) -> int:
@@ -122,14 +141,13 @@ def build_judge_evidence(
         total += separator_len * (len(blocks) - 1)
         return total
 
-    golden_bytes = size_of(golden_blocks)
     accepted: list[str] = []
-    remaining = max(0, budget_bytes - golden_bytes)
+    remaining = budget_bytes
     budget_trimmed = False
 
     for block in agent_blocks:
         block_bytes = len(block.encode("utf-8"))
-        overhead = separator_len if accepted or golden_blocks else 0
+        overhead = separator_len if accepted else 0
         if block_bytes + overhead <= remaining:
             accepted.append(block)
             remaining -= block_bytes + overhead

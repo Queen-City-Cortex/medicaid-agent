@@ -160,6 +160,111 @@ def test_evaluate_answers_retries_transient_tool_failure_answer(monkeypatch):
     assert results[0]["scores"]["overall"] == 3
 
 
+ENTRY = {
+    "id": "q-verifier",
+    "difficulty": "simple",
+    "reasoning_type": "single_lookup",
+    "question": "Question?",
+    "answer": {"text": "gold"},
+    "evidence": {"primary_sections": [], "supporting_sections": []},
+}
+WITHHELD_NOTICE = "I could not verify this answer against the retrieved sources."
+PASSED = {"outcome": {"status": "passed", "passCount": 1}, "pass_count": 1, "verifier_unavailable": False}
+WITHHELD = {
+    "outcome": {"status": "withheld", "reason": "unsupported", "passCount": 2},
+    "pass_count": 2,
+    "withholding_reason": "unsupported",
+    "verifier_unavailable": False,
+}
+# What cli-verification.ts emits when verification could not run at all.
+UNAVAILABLE = {
+    "outcome": {"status": "withheld", "reason": "unavailable", "passCount": 0},
+    "pass_count": 0,
+    "withholding_reason": "unavailable",
+    "verifier_unavailable": True,
+}
+
+
+def run_with_verifier(monkeypatch, runs, *, max_retries=1):
+    """Evaluate one question against scripted agent runs; return the row, the
+    number of agent runs and the number of judge calls."""
+    remaining = list(runs)
+    counts = {"agent": 0, "judge": 0}
+
+    def fake_agent(question, *, progress_label=None):
+        counts["agent"] += 1
+        text, verifier = remaining.pop(0)
+        return text, None, verifier, None
+
+    def fake_judge(**kwargs):
+        counts["judge"] += 1
+        return {
+            "factual_accuracy": 3,
+            "completeness": 3,
+            "hallucination": 3,
+            "citation_quality": 3,
+            "overall": 3,
+            "explanation": "ok",
+        }
+
+    monkeypatch.setattr(answer, "AGENT_EVAL_MAX_RETRIES", max_retries)
+    monkeypatch.setattr(answer.time, "sleep", lambda secs: None)
+    monkeypatch.setattr(answer, "_invoke_agent", fake_agent)
+    monkeypatch.setattr(answer, "_fetch_evidence_sections", lambda sections: [])
+    monkeypatch.setattr(answer, "judge_answer", fake_judge)
+
+    return answer.evaluate_answers([ENTRY])[0], counts["agent"], counts["judge"]
+
+
+def test_withheld_answer_is_not_judged_and_has_no_hallucination_score(monkeypatch):
+    # Judging the fixed notice scored every withhold hallucination 3, so the
+    # safety metric rose when the product answered fewer questions.
+    row, agent_runs, judge_calls = run_with_verifier(monkeypatch, [(WITHHELD_NOTICE, WITHHELD)])
+
+    assert agent_runs == 1  # a genuine withhold is an outcome, not a retry
+    assert judge_calls == 0
+    assert row["scores"]["overall"] == 0
+    assert row["scores"]["hallucination"] is None
+    assert row["scores"]["outcome"] == "withheld"
+    assert "unsupported" in row["scores"]["explanation"]
+    # require_complete_results rejects any error_type; a withhold must not
+    # invalidate release evidence.
+    assert "error_type" not in row["scores"]
+    assert row["agent_error"] is None
+    assert row["judge_error"] is False
+    assert row["verifier"] == WITHHELD
+
+
+def test_verifier_outage_is_rerun_then_counted_as_an_infrastructure_error(monkeypatch):
+    row, agent_runs, judge_calls = run_with_verifier(
+        monkeypatch,
+        [(WITHHELD_NOTICE, UNAVAILABLE), (WITHHELD_NOTICE, UNAVAILABLE)],
+    )
+
+    assert agent_runs == 2  # re-run by the harness, up to its retry limit
+    assert judge_calls == 0
+    assert row["scores"]["error_type"] == "agent"
+    assert all(
+        row["scores"][dim] is None
+        for dim in ("factual_accuracy", "completeness", "hallucination", "citation_quality", "overall")
+    )
+    assert "Verifier unavailable" in row["agent_error"]
+
+
+def test_verifier_outage_that_clears_on_rerun_is_judged_normally(monkeypatch):
+    row, agent_runs, judge_calls = run_with_verifier(
+        monkeypatch,
+        [(WITHHELD_NOTICE, UNAVAILABLE), ("final policy answer", PASSED)],
+    )
+
+    assert agent_runs == 2
+    assert judge_calls == 1
+    assert row["agent_answer"] == "final policy answer"
+    assert row["agent_error"] is None
+    assert row["scores"]["hallucination"] == 3
+    assert "outcome" not in row["scores"]
+
+
 # ── Marker extraction ──────────────────────────────────────────────────────
 
 

@@ -222,3 +222,56 @@ def test_agent_error_rows_are_counted_not_scored(tmp_path, monkeypatch):
     # Answer-level runs have no retrieval rows; the retrieval counter must not
     # stamp scorable_count=0 onto the aggregate anymore.
     assert "scorable_count" not in agg
+
+
+def test_withheld_rows_count_against_overall_but_not_hallucination(tmp_path, monkeypatch):
+    """A withheld row scores overall 0 with no hallucination score: the
+    hallucination mean covers released answers only, and the released-only
+    means and withheld count are reported beside the all-row means."""
+    monkeypatch.setattr(results, "EVAL_RESULTS_DIR", tmp_path)
+    monkeypatch.setattr(results.subprocess, "check_output", lambda *args, **kwargs: "abc123\n")
+
+    def released(question_id, hallucination):
+        return {
+            "id": question_id,
+            "difficulty": "simple",
+            "reasoning_type": "single_lookup",
+            "scores": {
+                "factual_accuracy": 3,
+                "completeness": 3,
+                "hallucination": hallucination,
+                "citation_quality": 3,
+                "overall": 3,
+            },
+        }
+
+    path = results.save_result(
+        "answer",
+        [
+            released("q-a", 3),
+            released("q-b", 2),
+            {
+                "id": "q-withheld",
+                "difficulty": "simple",
+                "reasoning_type": "single_lookup",
+                "scores": {
+                    "factual_accuracy": 0,
+                    "completeness": 0,
+                    "hallucination": None,
+                    "citation_quality": 0,
+                    "overall": 0,
+                    "explanation": "Answer withheld by the verifier (unsupported); not judged",
+                    "outcome": "withheld",
+                },
+            },
+        ],
+    )
+
+    agg = json.loads(path.read_text())["aggregate"]
+
+    assert agg["overall"] == 2.0            # all rows: withholding costs the answer score
+    assert agg["overall_released"] == 3.0
+    assert agg["hallucination"] == 2.5      # released rows only; a withhold is not a 3
+    assert "hallucination_released" not in agg
+    assert agg["withheld_count"] == 1
+    assert "agent_errors" not in agg

@@ -98,7 +98,7 @@ def run_eval(
     if level == "answer":
         from pipeline.config import EVAL_JUDGE_MODEL
         config_overrides["judge_model"] = EVAL_JUDGE_MODEL
-        config_overrides["evidence_mode"] = "legacy" if legacy_evidence else "unified"
+        config_overrides["evidence_mode"] = "legacy" if legacy_evidence else "unified-v2"
     if level == "citation" and from_result:
         config_overrides["from_result"] = str(from_result)
 

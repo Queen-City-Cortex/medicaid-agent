@@ -87,11 +87,23 @@ class TestCompareRuns:
         assert diff["judge_errors"]["regression"] is True
         assert diff["agent_errors"]["regression"] is False
 
+    def test_withheld_count_is_higher_is_worse(self):
+        run_a = {"aggregate": {"withheld_count": 2}}
+        run_b = {"aggregate": {"withheld_count": 5}}
+        assert compare_runs(run_a, run_b)[0]["regression"] is True
+        assert compare_runs(run_b, run_a)[0]["regression"] is False
+
     def test_scorable_count_is_informational(self):
         run_a = {"aggregate": {"scorable_count": 50}}
         run_b = {"aggregate": {"scorable_count": 40}}
         diff = compare_runs(run_a, run_b, threshold=0.05)
         assert not any(d["regression"] for d in diff)
+
+    def test_rejects_cross_evidence_mode_comparison(self):
+        run_a = {"level": "answer", "config": {"evidence_mode": "unified"}, "aggregate": {"overall": 2.8}}
+        run_b = {"level": "answer", "config": {"evidence_mode": "unified-v2"}, "aggregate": {"overall": 2.6}}
+        with pytest.raises(ValueError, match="evidence modes"):
+            compare_runs(run_a, run_b)
 
     def test_rejects_cross_level_comparison(self):
         run_a = {"level": "answer", "aggregate": {"overall": 2.8}}

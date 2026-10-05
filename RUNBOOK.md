@@ -256,9 +256,12 @@ Per-question JSON now carries:
   (`{source_count, total_bytes, sources: [{toolName, key, text}, …]}`).
 - `judge_evidence_stats`: what landed in the judge prompt
   (`{sources_used, golden_blocks_used, bytes_in_prompt, budget_trimmed,
-  evidence_mode}`). If `budget_trimmed=true`, some lower-priority tool blocks
-  were dropped to fit the 80 KB cap; check this first when a hallucination
-  score drops unexpectedly.
+  evidence_mode}`). The 80 KB cap applies to tool blocks only; golden text is
+  never charged against it. If `budget_trimmed=true`, some lower-priority tool
+  blocks did not fit; check this first when a hallucination score drops
+  unexpectedly. Runs under this rule record `evidence_mode: unified-v2` and
+  are not comparable with earlier `unified` runs, where golden text consumed
+  the budget first.
 
 ## Separating Eval Signal From Judge Noise
 
