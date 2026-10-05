@@ -45,6 +45,24 @@ describe('extractSourcesFromToolResults', () => {
     expect(entry.text).toContain('Retrieved: 2026-07-28T04:18:40Z');
   });
 
+  it('labels a paged section listing as partial', () => {
+    const sections = [{ id: 'sec-1', number: '1.0', title: 'Description', chars: 10 }];
+    const meta = { ...sectionResult.section, id: 'doc:clinical_policy:8C', title: 'Policy 8C' };
+    const [partial] = extractSourcesFromToolResults([
+      { toolName: 'getDocument', result: { document: { ...meta, sections, sectionCount: 2164, sectionsTruncated: true } } },
+    ]);
+    const [whole] = extractSourcesFromToolResults([
+      { toolName: 'lookupPolicy', result: { documents: [{ ...meta, sections, sectionCount: 1, sectionsTruncated: false }] } },
+    ]);
+    // The last page of a paged listing: nothing follows it, yet it is not the whole document.
+    const [lastPage] = extractSourcesFromToolResults([
+      { toolName: 'getDocument', result: { document: { ...meta, sections, sectionCount: 101, sectionsTruncated: false } } },
+    ]);
+    expect(partial.text).toContain('Sections (showing 1 of 2164):');
+    expect(lastPage.text).toContain('Sections (showing 1 of 101):');
+    expect(whole.text).toContain('Sections (1):');
+  });
+
   it('ignores tools that are not evidence sources', () => {
     const records: ToolResultRecord[] = [
       { toolName: 'searchSections', result: { results: [{ id: 'x' }] } },

@@ -57,6 +57,8 @@ interface GetDocumentResult {
       title: string | null;
       chars: number | null;
     }>;
+    sectionCount?: number;
+    sectionsTruncated?: boolean;
   }) | null;
 }
 
@@ -69,6 +71,8 @@ interface GetAmendmentsResult {
 interface LookupPolicyResult {
   documents: Array<DocumentMetadata & {
     sections: Array<{ id: string; number: string | null; title: string | null }>;
+    sectionCount?: number;
+    sectionsTruncated?: boolean;
   }>;
 }
 
@@ -147,6 +151,16 @@ function extractGetSection(result: GetSectionResult): SourceEntry | null {
   };
 }
 
+/**
+ * The tools page long section lists, so a listing may be partial: say so.
+ * Keyed on the count, not `sectionsTruncated`, which is false on a last page.
+ */
+function sectionTally(doc: { sectionCount?: number; sectionsTruncated?: boolean }, shown: number): string {
+  return doc.sectionCount !== undefined && doc.sectionCount > shown
+    ? `showing ${shown} of ${doc.sectionCount}`
+    : String(shown);
+}
+
 function extractGetDocument(result: GetDocumentResult): SourceEntry | null {
   const doc = result?.document;
   if (!doc) return null;
@@ -154,7 +168,7 @@ function extractGetDocument(result: GetDocumentResult): SourceEntry | null {
   const sections = doc.sections ?? [];
   const lines: string[] = [`[getDocument]`, formatDocMeta(doc)];
   if (sections.length > 0) {
-    lines.push(`\nSections (${sections.length}):`);
+    lines.push(`\nSections (${sectionTally(doc, sections.length)}):`);
     for (const s of sections) {
       const num = s.number ? `${s.number} ` : '';
       const chars = s.chars != null ? ` (${s.chars} chars)` : '';
@@ -208,7 +222,7 @@ function extractLookupPolicy(result: LookupPolicyResult, toolCallId: string): So
     lines.push(formatDocMeta(doc));
     const sections = doc.sections ?? [];
     if (sections.length > 0) {
-      lines.push(`Sections (${sections.length}):`);
+      lines.push(`Sections (${sectionTally(doc, sections.length)}):`);
       for (const s of sections) {
         const num = s.number ? `${s.number} ` : '';
         lines.push(`  ${num}${s.title || '(untitled)'} [${s.id}]`);

@@ -111,6 +111,63 @@ describe('ToolStep', () => {
     );
   });
 
+  it('shows returned and total counts when a section listing is partial', async () => {
+    const user = userEvent.setup();
+    const sections = Array.from({ length: 100 }, (_, index) => ({ id: `sec-${index}` }));
+
+    const { unmount } = render(
+      <ToolStep
+        part={{
+          type: 'dynamic-tool',
+          toolName: 'getDocument',
+          toolCallId: 'tc-doc',
+          state: 'output-available',
+          input: { documentId: 'doc:spa' },
+          output: { document: { title: 'State Plan Amendment', sections, sectionCount: 2164, sectionsTruncated: true } },
+        }}
+      />,
+    );
+    await user.click(screen.getByTestId('tool-step-trigger'));
+    expect(screen.getByTestId('tool-step-output-summary')).toHaveTextContent(
+      'State Plan Amendment | 100 of 2,164 sections',
+    );
+    unmount();
+
+    render(
+      <ToolStep
+        part={{
+          type: 'dynamic-tool',
+          toolName: 'findConceptSections',
+          toolCallId: 'tc-concept',
+          state: 'output-available',
+          input: { conceptName: 'Prior Authorization' },
+          output: { sections: sections.slice(0, 40), total: 2573, truncated: true },
+        }}
+      />,
+    );
+    await user.click(screen.getByTestId('tool-step-trigger'));
+    expect(screen.getByTestId('tool-step-output-summary')).toHaveTextContent('40 of 2,573 linked sections');
+  });
+
+  it('shows a single count when a section listing is complete', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ToolStep
+        part={{
+          type: 'dynamic-tool',
+          toolName: 'getDocument',
+          toolCallId: 'tc-doc-2',
+          state: 'output-available',
+          input: { documentId: 'doc:8C' },
+          output: { document: { title: 'Policy 8C', sections: [{ id: 'sec-1' }], sectionCount: 1, sectionsTruncated: false } },
+        }}
+      />,
+    );
+    await user.click(screen.getByTestId('tool-step-trigger'));
+    expect(screen.getByTestId('tool-step-output-summary')).toHaveTextContent('Policy 8C | 1 section');
+  });
+
   it('keeps large results hidden until expanded', async () => {
     const user = userEvent.setup();
     const largeOutput = { payload: 'A'.repeat(800) };

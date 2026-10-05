@@ -69,6 +69,15 @@ export function mapSectionContextEntry(record: SessionRecordLike): SectionContex
   };
 }
 
+/** Reads a Cypher count, which the driver returns as a number or an Integer. */
+export function toCount(value: unknown): number {
+  if (typeof value === 'number') return value;
+  if (value != null && typeof value === 'object' && 'toNumber' in value) {
+    return (value as { toNumber(): number }).toNumber();
+  }
+  return 0;
+}
+
 export function mapDocumentSections(rawSections: Array<{
   id: string | null;
   number: string | null;

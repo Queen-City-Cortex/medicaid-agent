@@ -199,10 +199,16 @@ export interface SectionContextEntry {
   sectionNumber: string | null;
 }
 
+// `siblings` and `children` are bounded windows; the counts are the family
+// totals, so a caller can tell a short list from a truncated one.
 export interface SectionContextView {
   ancestors: SectionContextEntry[];
   siblings: SectionContextEntry[];
+  siblingCount: number;
+  siblingsTruncated: boolean;
   children: SectionContextEntry[];
+  childCount: number;
+  childrenTruncated: boolean;
 }
 
 export interface ReferenceView {
@@ -238,13 +244,16 @@ export interface ConceptSectionView {
   relationshipType: string;
 }
 
-export const ALLOWED_CONCEPT_RELATIONSHIPS = [
-  'COVERS',
-  'DEFINES',
-  'RESTRICTS',
-  'GOVERNS',
-  'REFERENCES_CONCEPT',
-] as const;
+export interface ConceptSectionsView {
+  sections: ConceptSectionView[];
+  total: number;
+  truncated: boolean;
+}
+
+// The relationship types the pipeline writes (ConceptRelationshipType in
+// corpus_types.py). Advertising any other type returns an empty list that
+// reads as a real negative.
+export const ALLOWED_CONCEPT_RELATIONSHIPS = ['COVERS', 'DEFINES', 'RESTRICTS'] as const;
 
 export type ConceptRelationshipType = (typeof ALLOWED_CONCEPT_RELATIONSHIPS)[number];
 
@@ -263,7 +272,7 @@ export interface PolicyCorpus {
   followReferences(sectionId: string): Promise<ReferenceView[]>;
   getAmendments(documentId: string): Promise<AmendmentsView>;
   lookupPolicy(input: LookupPolicyInput): Promise<DocumentWithSectionsView[]>;
-  findConceptSections(input: FindConceptSectionsInput): Promise<ConceptSectionView[]>;
+  findConceptSections(input: FindConceptSectionsInput): Promise<ConceptSectionsView>;
 }
 
 export interface PolicyCorpusDependencies {

@@ -1,21 +1,26 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
+import { ALLOWED_CONCEPT_RELATIONSHIPS } from '@nc-medicaid/policy-corpus';
 import { policyCorpus } from '../policy-corpus.js';
 
 export const findConceptSections = createTool({
   id: 'find-concept-sections',
   description:
-    'Find all policy sections that are associated with a named policy concept (e.g. "EPSDT", ' +
+    'Find policy sections that are associated with a named policy concept (e.g. "EPSDT", ' +
     '"Prior Authorization", "Medically Necessary"). Optionally filter by relationship type. ' +
-    'Use this to quickly locate all sections that govern a specific program concept.',
+    'Returns the best-matching sections first, capped; `total` is the full count and `truncated` ' +
+    'says whether the list was cut. When it is, narrow with relationshipType or use searchSections.',
   inputSchema: z.object({
     conceptName: z.string().describe('The policy concept name to search for'),
+    // Models write 'defines' as readily as 'DEFINES'; the primitive accepts
+    // either, so the schema must not reject what it would have answered.
     relationshipType: z
-      .string()
+      .preprocess(
+        (value) => (typeof value === 'string' ? value.trim().toUpperCase() : value),
+        z.enum(ALLOWED_CONCEPT_RELATIONSHIPS),
+      )
       .optional()
-      .describe(
-        'Optional: filter by relationship type (e.g. "DEFINES", "GOVERNS", "REFERENCES_CONCEPT")',
-      ),
+      .describe('Optional: keep only sections that cover, define or restrict the concept'),
   }),
   outputSchema: z.object({
     sections: z.array(
@@ -29,8 +34,8 @@ export const findConceptSections = createTool({
         relationshipType: z.string(),
       }),
     ),
+    total: z.number().describe('How many sections are linked to the concept in all'),
+    truncated: z.boolean().describe('True when `sections` is only the first part of `total`'),
   }),
-  execute: async (inputData) => {
-    return { sections: await policyCorpus.findConceptSections(inputData) };
-  },
+  execute: async (inputData) => policyCorpus.findConceptSections(inputData),
 });

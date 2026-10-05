@@ -10,7 +10,7 @@ vi.mock('../../src/neo4j.js', () => ({
   withSession: vi.fn(),
 }));
 
-import { lookupPolicy } from '../../src/tools/lookup.js';
+import { lookupPolicy, LOOKUP_SECTION_LIMIT } from '../../src/tools/lookup.js';
 import { runTool } from '../helpers/run-tool.js';
 import { mockRecord, setupSession } from '../helpers/neo4j-session.js';
 
@@ -80,6 +80,36 @@ describe('lookupPolicy', () => {
 
     expect(result.documents[0].sections).toHaveLength(1);
     expect(result.documents[0].sections[0].id).toBe('sec-valid');
+  });
+
+  it('caps each document section list and reports the full count', async () => {
+    const document = (id: string, sectionTotal: number) =>
+      mockRecord({
+        id,
+        title: id,
+        documentType: 'waiver',
+        policyNumber: '1915(c)',
+        effectiveDate: null,
+        url: null,
+        status: 'current',
+        sections: Array.from({ length: sectionTotal }, (_, index) => ({
+          id: `${id}:sec-${index}`,
+          number: `${index}`,
+          title: `Section ${index}`,
+        })),
+      });
+    setupSession([{ records: [document('doc-wide', 768), document('doc-small', 3)] }]);
+
+    const result = await runTool(lookupPolicy, { policyNumber: '1915(c)' });
+
+    const [wide, small] = result.documents;
+    expect(wide.sections).toHaveLength(LOOKUP_SECTION_LIMIT);
+    expect(wide.sections[0].id).toBe('doc-wide:sec-0');
+    expect(wide.sectionCount).toBe(768);
+    expect(wide.sectionsTruncated).toBe(true);
+    expect(small.sections).toHaveLength(3);
+    expect(small.sectionCount).toBe(3);
+    expect(small.sectionsTruncated).toBe(false);
   });
 
   it('returns empty array when no match', async () => {

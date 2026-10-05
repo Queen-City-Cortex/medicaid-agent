@@ -1,8 +1,10 @@
 import type {
   DocumentWithSectionsView,
+  SectionContextEntry,
   SectionContextView,
   SectionView,
   SessionExecutor,
+  SessionRecordLike,
 } from '../types.js';
 import { documentMetadataReturn, mapDocumentMetadataRecord } from '../document-metadata.js';
 import {
@@ -10,8 +12,32 @@ import {
   buildSectionView,
   mapDocumentSections,
   mapSectionContextEntry,
+  toCount,
   truncateContent,
 } from '../internal/shared.js';
+
+// getSectionContext returns a window, not the family: a flat federal part or
+// a wide container has hundreds to thousands of siblings and children.
+export const CONTEXT_SIBLING_WINDOW = 10;
+// How far the sibling walk may travel to find that window. Federal loaders
+// chain a whole document in reading order, so a statute section's subsections
+// sit between it and the next section and must not use up the window.
+export const CONTEXT_SIBLING_WALK_HOPS = 500;
+export const CONTEXT_CHILD_LIMIT = 50;
+
+/** Maps a `{entries, total}` window row; no row means the section is unknown. */
+function mapContextWindow(record: SessionRecordLike | undefined): { entries: SectionContextEntry[]; total: number } {
+  if (!record) return { entries: [], total: 0 };
+  const rows = (record.get('entries') as Array<{
+    id: string;
+    title: string | null;
+    sectionNumber: string | null;
+  }> | null) ?? [];
+  return {
+    entries: rows.map((row) => ({ id: row.id, title: row.title ?? null, sectionNumber: row.sectionNumber ?? null })),
+    total: Math.max(0, toCount(record.get('total'))),
+  };
+}
 
 export function createSectionPrimitiveService({ withSession }: { withSession: SessionExecutor }) {
   const getSection = async (sectionId: string): Promise<SectionView | null> => {
@@ -175,54 +201,79 @@ export function createSectionPrimitiveService({ withSession }: { withSession: Se
       );
 
       const childResult = await session.run(
-        `MATCH (s:Section {id: $id})-[:PARENT_OF]->(child:Section)
-         RETURN child.id AS id, child.title AS title, child.section_number AS sectionNumber
-         ORDER BY child.section_number`,
+        `MATCH (s:Section {id: $id})
+         OPTIONAL MATCH (s)-[:PARENT_OF]->(child:Section)
+         WITH child
+         ORDER BY child.section_number
+         WITH [node IN collect(child) | {id: node.id, title: node.title, sectionNumber: node.section_number}] AS rows
+         RETURN size(rows) AS total, rows[0..${CONTEXT_CHILD_LIMIT}] AS entries`,
         { id: sectionId },
       );
 
+      // NEXT_SIBLING is a strict chain, so the nearest siblings are a bounded
+      // walk from the section in each direction, linear in the hops taken.
+      // Expanding the whole family from its head was quadratic (4.5 s under a
+      // 2,364-child parent). The chain can leave the family (see
+      // CONTEXT_SIBLING_WALK_HOPS), so each endpoint is checked against the
+      // section's own family (the same parent, or for a root section the
+      // parent-less sections of the same document) and the window is the
+      // nearest family members, not the nearest hops.
       const siblingResult = await session.run(
         `MATCH (s:Section {id: $id})
          OPTIONAL MATCH (parent:Section)-[:PARENT_OF]->(s)
          OPTIONAL MATCH (d:Document)-[:HAS_SECTION]->(s)
+         WITH s, parent, d
+         LIMIT 1
          CALL {
            WITH s, parent, d
-           OPTIONAL MATCH (parent)-[:PARENT_OF]->(parentSibling:Section)
-           WITH s, parent, d, [node IN collect(parentSibling) WHERE node IS NOT NULL] AS parentFamily
-           OPTIONAL MATCH (d)-[:HAS_SECTION]->(docSibling:Section)
-           WHERE parent IS NULL
-             AND NOT EXISTS { MATCH (:Section)-[:PARENT_OF]->(docSibling) }
-           WITH s, parent, parentFamily, [node IN collect(docSibling) WHERE node IS NOT NULL] AS docFamily
-           WITH s, CASE WHEN parent IS NOT NULL THEN parentFamily ELSE docFamily END AS family
-           UNWIND family AS sibling
-           WITH s, sibling, family
-           OPTIONAL MATCH path = (head:Section)-[:NEXT_SIBLING*0..]->(sibling)
-           WHERE head IN family
-             AND NOT EXISTS {
-               MATCH (prev:Section)-[:NEXT_SIBLING]->(head)
-               WHERE prev IN family
-             }
-           WITH s, sibling, min(length(path)) AS nextSiblingOrder
-           WHERE sibling.id <> s.id
-           RETURN
-             sibling.id AS id,
-             sibling.title AS title,
-             sibling.section_number AS sectionNumber,
-             nextSiblingOrder
-           ORDER BY
-             CASE WHEN nextSiblingOrder IS NULL THEN 1 ELSE 0 END,
-             nextSiblingOrder,
-             sibling.section_number,
-             sibling.id
+           OPTIONAL MATCH path = (before:Section)-[:NEXT_SIBLING*1..${CONTEXT_SIBLING_WALK_HOPS}]->(s)
+           WHERE (parent IS NOT NULL AND EXISTS { MATCH (parent)-[:PARENT_OF]->(before) })
+              OR (parent IS NULL
+                  AND EXISTS { MATCH (d)-[:HAS_SECTION]->(before) }
+                  AND NOT EXISTS { MATCH (:Section)-[:PARENT_OF]->(before) })
+           WITH before, length(path) AS hops
+           ORDER BY hops
+           LIMIT ${CONTEXT_SIBLING_WINDOW}
+           RETURN before AS sibling, -hops AS offset
+           UNION
+           WITH s, parent, d
+           OPTIONAL MATCH path = (s)-[:NEXT_SIBLING*1..${CONTEXT_SIBLING_WALK_HOPS}]->(after:Section)
+           WHERE (parent IS NOT NULL AND EXISTS { MATCH (parent)-[:PARENT_OF]->(after) })
+              OR (parent IS NULL
+                  AND EXISTS { MATCH (d)-[:HAS_SECTION]->(after) }
+                  AND NOT EXISTS { MATCH (:Section)-[:PARENT_OF]->(after) })
+           WITH after, length(path) AS hops
+           ORDER BY hops
+           LIMIT ${CONTEXT_SIBLING_WINDOW}
+           RETURN after AS sibling, hops AS offset
          }
-         RETURN id, title, sectionNumber`,
+         WITH parent, d, sibling, offset
+         ORDER BY offset
+         WITH parent, d,
+              [node IN collect(sibling) | {id: node.id, title: node.title, sectionNumber: node.section_number}] AS entries
+         RETURN
+           entries,
+           CASE
+             WHEN parent IS NOT NULL THEN COUNT { MATCH (parent)-[:PARENT_OF]->(:Section) }
+             ELSE COUNT {
+               MATCH (d)-[:HAS_SECTION]->(root:Section)
+               WHERE NOT EXISTS { MATCH (:Section)-[:PARENT_OF]->(root) }
+             }
+           END - 1 AS total`,
         { id: sectionId },
       );
 
+      const children = mapContextWindow(childResult.records[0]);
+      const siblings = mapContextWindow(siblingResult.records[0]);
+
       return {
         ancestors: ancestorResult.records.map(mapSectionContextEntry),
-        children: childResult.records.map(mapSectionContextEntry),
-        siblings: siblingResult.records.map(mapSectionContextEntry),
+        siblings: siblings.entries,
+        siblingCount: siblings.total,
+        siblingsTruncated: siblings.total > siblings.entries.length,
+        children: children.entries,
+        childCount: children.total,
+        childrenTruncated: children.total > children.entries.length,
       } satisfies SectionContextView;
     });
   };

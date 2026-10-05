@@ -8,7 +8,7 @@ import type {
   SearchSectionsInput,
   SessionLike,
   AmendmentsView,
-  ConceptSectionView,
+  ConceptSectionsView,
   DocumentWithSectionsView,
   LookupPolicyInput,
   ReferenceView,
@@ -112,7 +112,7 @@ export interface LegalPrimitiveService {
   followReferences(sectionId: string): Promise<ReferenceView[]>;
   getAmendments(documentId: string): Promise<AmendmentsView>;
   lookupPolicy(input: LookupPolicyInput): Promise<DocumentWithSectionsView[]>;
-  findConceptSections(input: { conceptName: string; relationshipType?: string }): Promise<ConceptSectionView[]>;
+  findConceptSections(input: { conceptName: string; relationshipType?: string }): Promise<ConceptSectionsView>;
 }
 
 export interface SearchService {

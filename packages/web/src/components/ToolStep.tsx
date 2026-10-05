@@ -47,6 +47,12 @@ function countLabel(count: number, singular: string, plural = `${singular}s`): s
   return `${count} ${count === 1 ? singular : plural}`;
 }
 
+/** A capped or paged listing: "100 of 2,164 sections" when only part was returned. */
+function partialCountLabel(shown: number, total: number | undefined, singular: string): string {
+  if (total === undefined || total === shown) return countLabel(shown, singular);
+  return `${shown.toLocaleString('en-US')} of ${total.toLocaleString('en-US')} ${singular}s`;
+}
+
 /** Exported for the live progress narration in MessageList. */
 export function summarizeToolInput(toolName: string, input: unknown): string | null {
   if (!input || typeof input !== 'object') return null;
@@ -152,10 +158,10 @@ function summarizeToolOutput(toolName: string, output: unknown): string | null {
       return 'Loaded section details.';
     }
     case 'getDocument': {
-      const { document } = output as { document?: { title?: string | null; policyNumber?: string | null; sections?: unknown[] } | null };
+      const { document } = output as { document?: { title?: string | null; policyNumber?: string | null; sections?: unknown[]; sectionCount?: number } | null };
       if (!document) return 'No document found.';
       const title = document.title ?? document.policyNumber ?? 'Loaded document';
-      const sectionCount = Array.isArray(document.sections) ? ` | ${countLabel(document.sections.length, 'section')}` : '';
+      const sectionCount = Array.isArray(document.sections) ? ` | ${partialCountLabel(document.sections.length, document.sectionCount, 'section')}` : '';
       return `${title}${sectionCount}`;
     }
     case 'getSectionContext': {
@@ -186,8 +192,8 @@ function summarizeToolOutput(toolName: string, output: unknown): string | null {
       return parts.join(' | ') || null;
     }
     case 'findConceptSections': {
-      const { sections } = output as { sections?: unknown[] };
-      return Array.isArray(sections) ? countLabel(sections.length, 'linked section') : null;
+      const { sections, total } = output as { sections?: unknown[]; total?: number };
+      return Array.isArray(sections) ? partialCountLabel(sections.length, total, 'linked section') : null;
     }
     case 'lookupPolicy': {
       const { documents } = output as { documents?: Array<{ title?: string | null; policyNumber?: string | null }> };

@@ -10,7 +10,7 @@ vi.mock('../../src/neo4j.js', () => ({
   withSession: vi.fn(),
 }));
 
-import { getSection, getDocument, getSectionContext } from '../../src/tools/read.js';
+import { getSection, getDocument, getSectionContext, DOCUMENT_SECTION_LIMIT } from '../../src/tools/read.js';
 import { runTool } from '../helpers/run-tool.js';
 import { mockRecord, setupSession } from '../helpers/neo4j-session.js';
 
@@ -217,6 +217,82 @@ describe('getDocument', () => {
     expect(result.document!.sections[1].id).toBe('sec-2');
     expect(result.document!.id).toBe('doc-1');
     expect(result.document!.title).toBe('Policy 8C');
+    expect(result.document!.sectionCount).toBe(2);
+    expect(result.document!.sectionsTruncated).toBe(false);
+  });
+
+  it('caps the section list, reports the total, and pages by offset', async () => {
+    const sections = Array.from({ length: DOCUMENT_SECTION_LIMIT + 30 }, (_, index) => ({
+      id: `sec-${index}`,
+      number: `${index}`,
+      title: `Section ${index}`,
+      chars: 10,
+    }));
+    const run = {
+      records: [
+        mockRecord({
+          id: 'doc-waiver',
+          title: 'Waiver',
+          documentType: 'waiver',
+          policyNumber: null,
+          effectiveDate: null,
+          url: null,
+          status: 'current',
+          sections,
+        }),
+      ],
+    };
+    setupSession([run, run]);
+
+    const first = await runTool(getDocument, { documentId: 'doc-waiver' });
+
+    expect(first.document!.sections).toHaveLength(DOCUMENT_SECTION_LIMIT);
+    expect(first.document!.sections[0].id).toBe('sec-0');
+    expect(first.document!.sectionCount).toBe(DOCUMENT_SECTION_LIMIT + 30);
+    expect(first.document!.sectionsTruncated).toBe(true);
+
+    const second = await runTool(getDocument, { documentId: 'doc-waiver', sectionOffset: DOCUMENT_SECTION_LIMIT });
+
+    expect(second.document!.sections).toHaveLength(30);
+    expect(second.document!.sections[0].id).toBe(`sec-${DOCUMENT_SECTION_LIMIT}`);
+    expect(second.document!.sectionCount).toBe(DOCUMENT_SECTION_LIMIT + 30);
+    expect(second.document!.sectionsTruncated).toBe(false);
+  });
+
+  it('pages the same order however the graph returns the sections', async () => {
+    const total = DOCUMENT_SECTION_LIMIT + 30;
+    const sections = Array.from({ length: total }, (_, index) => ({
+      id: `sec-${index}`,
+      // Numbered and unnumbered sections, neither in lexical order.
+      number: index % 2 === 0 ? `${index}.1` : null,
+      title: `Section ${index}`,
+      chars: 10,
+    }));
+    const record = (list: typeof sections) => ({
+      records: [
+        mockRecord({
+          id: 'doc-waiver',
+          title: 'Waiver',
+          documentType: 'waiver',
+          policyNumber: null,
+          effectiveDate: null,
+          url: null,
+          status: 'current',
+          sections: list,
+        }),
+      ],
+    });
+    // The second call sees the collection in the opposite order.
+    setupSession([record(sections), record([...sections].reverse())]);
+
+    const first = await runTool(getDocument, { documentId: 'doc-waiver' });
+    const second = await runTool(getDocument, { documentId: 'doc-waiver', sectionOffset: DOCUMENT_SECTION_LIMIT });
+
+    const ids = [...first.document!.sections, ...second.document!.sections].map((section) => section.id);
+    expect(new Set(ids).size).toBe(total);
+    // Unnumbered sections first in parse order, then numbers in natural order.
+    expect(ids.slice(0, 3)).toEqual(['sec-1', 'sec-3', 'sec-5']);
+    expect(ids.slice(-3)).toEqual([`sec-${total - 6}`, `sec-${total - 4}`, `sec-${total - 2}`]);
   });
 
   it('returns null when document not found', async () => {
@@ -247,15 +323,25 @@ describe('getSectionContext', () => {
       {
         // Children
         records: [
-          mockRecord({ id: 'sec-child-1', title: 'Child 1', sectionNumber: '1.1.1.1' }),
-          mockRecord({ id: 'sec-child-2', title: 'Child 2', sectionNumber: '1.1.1.2' }),
+          mockRecord({
+            entries: [
+              { id: 'sec-child-1', title: 'Child 1', sectionNumber: '1.1.1.1' },
+              { id: 'sec-child-2', title: 'Child 2', sectionNumber: '1.1.1.2' },
+            ],
+            total: 2,
+          }),
         ],
       },
       {
         // Siblings
         records: [
-          mockRecord({ id: 'sec-sibling', title: 'Sibling', sectionNumber: '1.1.2' }),
-          mockRecord({ id: 'sec-sibling-2', title: 'Sibling 2', sectionNumber: '1.1.3' }),
+          mockRecord({
+            entries: [
+              { id: 'sec-sibling', title: 'Sibling', sectionNumber: '1.1.2' },
+              { id: 'sec-sibling-2', title: 'Sibling 2', sectionNumber: '1.1.3' },
+            ],
+            total: 2,
+          }),
         ],
       },
     ]);
@@ -274,5 +360,28 @@ describe('getSectionContext', () => {
       { id: 'sec-sibling', title: 'Sibling', sectionNumber: '1.1.2' },
       { id: 'sec-sibling-2', title: 'Sibling 2', sectionNumber: '1.1.3' },
     ]);
+    expect(result).toMatchObject({
+      siblingCount: 2,
+      siblingsTruncated: false,
+      childCount: 2,
+      childrenTruncated: false,
+    });
+  });
+
+  it('reports family totals when the windows are cut', async () => {
+    const entries = (count: number) =>
+      Array.from({ length: count }, (_, index) => ({ id: `sec-${index}`, title: null, sectionNumber: `${index}` }));
+    setupSession([
+      { records: [] },
+      { records: [mockRecord({ entries: entries(50), total: 2364 })] },
+      { records: [mockRecord({ entries: entries(20), total: 2363 })] },
+    ]);
+
+    const result = await runTool(getSectionContext, { sectionId: 'sec-wide' });
+
+    expect(result.children).toHaveLength(50);
+    expect(result).toMatchObject({ childCount: 2364, childrenTruncated: true });
+    expect(result.siblings).toHaveLength(20);
+    expect(result).toMatchObject({ siblingCount: 2363, siblingsTruncated: true });
   });
 });

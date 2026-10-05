@@ -16,6 +16,7 @@ export {
   type AmendmentsView,
   type ConceptRelationshipType,
   type ConceptSectionView,
+  type ConceptSectionsView,
   type CorpusRetrievalHit,
   type DocumentSectionView,
   type DocumentView,

@@ -21,45 +21,39 @@ describe('findConceptSections', () => {
     vi.restoreAllMocks();
   });
 
+  const conceptRow = (index: number, relationshipType = 'COVERS') => ({
+    sectionId: `sec-${index}`,
+    sectionTitle: `Section ${index}`,
+    sectionNumber: `3.${index}`,
+    documentId: 'doc-1',
+    documentType: 'dhhs_policy',
+    policyNumber: '8C',
+    relationshipType,
+  });
+
   it('returns sections for concept', async () => {
     setupSession([
-      {
-        records: [
-          mockRecord({
-            sectionId: 'sec-1',
-            sectionTitle: 'EPSDT Overview',
-            sectionNumber: '3.1',
-            documentId: 'doc-1',
-            documentType: 'dhhs_policy',
-            policyNumber: '8C',
-            relationshipType: 'DEFINES',
-          }),
-          mockRecord({
-            sectionId: 'sec-2',
-            sectionTitle: 'EPSDT Services',
-            sectionNumber: '3.2',
-            documentId: 'doc-1',
-            documentType: 'dhhs_policy',
-            policyNumber: '8C',
-            relationshipType: 'GOVERNS',
-          }),
-        ],
-      },
+      { records: [mockRecord({ sections: [conceptRow(1, 'DEFINES'), conceptRow(2, 'RESTRICTS')], total: 2 })] },
     ]);
 
     const result = await runTool(findConceptSections, { conceptName: 'EPSDT' });
 
-    expect(result.sections).toHaveLength(2);
-    expect(result.sections[0]).toEqual({
-      sectionId: 'sec-1',
-      sectionTitle: 'EPSDT Overview',
-      sectionNumber: '3.1',
-      documentId: 'doc-1',
-      documentType: 'dhhs_policy',
-      policyNumber: '8C',
-      relationshipType: 'DEFINES',
+    expect(result).toEqual({
+      sections: [conceptRow(1, 'DEFINES'), conceptRow(2, 'RESTRICTS')],
+      total: 2,
+      truncated: false,
     });
-    expect(result.sections[1].relationshipType).toBe('GOVERNS');
+  });
+
+  it('reports the total when the primitive caps the list', async () => {
+    const page = Array.from({ length: 40 }, (_, index) => conceptRow(index));
+    setupSession([{ records: [mockRecord({ sections: page, total: 2573 })] }]);
+
+    const result = await runTool(findConceptSections, { conceptName: 'Prior Authorization' });
+
+    expect(result.sections).toHaveLength(40);
+    expect(result.total).toBe(2573);
+    expect(result.truncated).toBe(true);
   });
 
   it('passes conceptName to query', async () => {
@@ -75,21 +69,7 @@ describe('findConceptSections', () => {
   });
 
   it('works with relationshipType filter', async () => {
-    const session = setupSession([
-      {
-        records: [
-          mockRecord({
-            sectionId: 'sec-1',
-            sectionTitle: 'Definition',
-            sectionNumber: '1.1',
-            documentId: 'doc-1',
-            documentType: 'dhhs_policy',
-            policyNumber: '8C',
-            relationshipType: 'DEFINES',
-          }),
-        ],
-      },
-    ]);
+    const session = setupSession([{ records: [mockRecord({ sections: [conceptRow(1, 'DEFINES')], total: 1 })] }]);
 
     const result = await runTool(
       findConceptSections,
@@ -100,18 +80,31 @@ describe('findConceptSections', () => {
     expect(session.run).toHaveBeenCalledTimes(1);
     // The query should contain the specific relationship type
     const queryArg = session.run.mock.calls[0][0];
-    expect(queryArg).toContain('DEFINES');
+    expect(queryArg).toContain('[r:DEFINES]');
   });
 
-  it('rejects invalid relationship types to prevent injection', async () => {
-    const session = setupSession([{ records: [] }]);
+  it('normalizes a lowercase relationship filter to the stored type', async () => {
+    const result = await findConceptSections.inputSchema!['~standard'].validate({
+      conceptName: 'EPSDT',
+      relationshipType: 'defines',
+    });
 
-    const result = await runTool(
-      findConceptSections,
-      { conceptName: 'EPSDT', relationshipType: 'DEFINES}]->(x) DETACH DELETE x //' },
-    );
+    expect(result).toEqual({ value: { conceptName: 'EPSDT', relationshipType: 'DEFINES' } });
+  });
 
-    expect(result.sections).toHaveLength(0);
-    expect(session.run).not.toHaveBeenCalled();
+  it('accepts only the relationship types the pipeline writes', async () => {
+    const accepts = async (relationshipType: string) => {
+      const result = await findConceptSections.inputSchema!['~standard'].validate({
+        conceptName: 'EPSDT',
+        relationshipType,
+      });
+      return !result.issues;
+    };
+
+    expect(await Promise.all(['COVERS', 'DEFINES', 'RESTRICTS'].map(accepts))).toEqual([true, true, true]);
+    expect(await Promise.all(['defines', 'Covers', ' restricts '].map(accepts))).toEqual([true, true, true]);
+    expect(
+      await Promise.all(['GOVERNS', 'REFERENCES_CONCEPT', 'DEFINES}]->(x) DETACH DELETE x //'].map(accepts)),
+    ).toEqual([false, false, false]);
   });
 });

@@ -15,6 +15,8 @@ import {
   sectionHit,
   sectionRecord,
 } from './helpers/graph-fixtures.js';
+import { CONCEPT_SECTION_LIMIT } from '../src/primitives/concepts.js';
+import { CONTEXT_CHILD_LIMIT, CONTEXT_SIBLING_WALK_HOPS, CONTEXT_SIBLING_WINDOW } from '../src/primitives/sections.js';
 
 describe('getSection', () => {
   it('returns citation, effective, source-modified, and retrieval metadata', async () => {
@@ -174,7 +176,9 @@ describe('getDocument', () => {
 });
 
 describe('getSectionContext', () => {
-  it('returns ancestors, children, and siblings', async () => {
+  const entry = (index: number) => ({ id: `sec-${index}`, title: `Section ${index}`, sectionNumber: `${index}` });
+
+  it('returns ancestors, children, and siblings with their totals', async () => {
     const { corpus } = createCorpusWithRuns([
       {
         records: [
@@ -182,25 +186,87 @@ describe('getSectionContext', () => {
           contextEntryRecord({ id: 'sec-parent', title: 'Parent', sectionNumber: '1.1' }),
         ],
       },
-      {
-        records: [
-          contextEntryRecord({ id: 'sec-child-1', title: 'Child 1', sectionNumber: '1.1.1.1' }),
-          contextEntryRecord({ id: 'sec-child-2', title: 'Child 2', sectionNumber: '1.1.1.2' }),
-        ],
-      },
-      {
-        records: [
-          contextEntryRecord({ id: 'sec-sibling', title: 'Sibling', sectionNumber: '1.1.2' }),
-          contextEntryRecord({ id: 'sec-sibling-2', title: 'Sibling 2', sectionNumber: '1.1.3' }),
-        ],
-      },
+      { records: [strictRecord({ entries: [entry(1), entry(2)], total: 2 })] },
+      { records: [strictRecord({ entries: [entry(3), entry(4)], total: 2 })] },
     ]);
 
     const context = await corpus.getSectionContext('sec-1.1.1');
 
     expect(context.ancestors).toHaveLength(2);
-    expect(context.children).toHaveLength(2);
-    expect(context.siblings).toHaveLength(2);
+    expect(context.children).toEqual([entry(1), entry(2)]);
+    expect(context).toMatchObject({ childCount: 2, childrenTruncated: false });
+    expect(context.siblings).toEqual([entry(3), entry(4)]);
+    expect(context).toMatchObject({ siblingCount: 2, siblingsTruncated: false });
+  });
+
+  it('caps siblings and children and reports the family totals', async () => {
+    const { corpus, session } = createCorpusWithRuns([
+      { records: [] },
+      {
+        records: [
+          strictRecord({
+            entries: Array.from({ length: CONTEXT_CHILD_LIMIT }, (_, index) => entry(index)),
+            total: 2364,
+          }),
+        ],
+      },
+      {
+        records: [
+          strictRecord({
+            entries: Array.from({ length: 2 * CONTEXT_SIBLING_WINDOW }, (_, index) => entry(index)),
+            total: 2363,
+          }),
+        ],
+      },
+    ]);
+
+    const context = await corpus.getSectionContext('sec-wide');
+
+    expect(context.children).toHaveLength(CONTEXT_CHILD_LIMIT);
+    expect(context).toMatchObject({ childCount: 2364, childrenTruncated: true });
+    expect(context.siblings).toHaveLength(2 * CONTEXT_SIBLING_WINDOW);
+    expect(context).toMatchObject({ siblingCount: 2363, siblingsTruncated: true });
+
+    // The bound lives in the queries: a window walk from the section, never
+    // an unbounded expansion of the whole family.
+    const [, childQuery, siblingQuery] = session.run.mock.calls.map(([query]) => query as string);
+    expect(childQuery).toContain(`rows[0..${CONTEXT_CHILD_LIMIT}]`);
+    expect(siblingQuery).toContain(`-[:NEXT_SIBLING*1..${CONTEXT_SIBLING_WALK_HOPS}]->(s)`);
+    expect(siblingQuery).toContain(`(s)-[:NEXT_SIBLING*1..${CONTEXT_SIBLING_WALK_HOPS}]->`);
+    expect(siblingQuery).not.toContain('NEXT_SIBLING*0..');
+  });
+
+  it('spends the sibling window on family members, not on hops through other levels', async () => {
+    // Federal statute sections are chained through their own subsections, so
+    // the family filter has to run before the window is cut.
+    const { corpus, session } = createCorpusWithRuns([{ records: [] }, { records: [] }, { records: [] }]);
+
+    await corpus.getSectionContext('sec:doc:federal_statute:SSA-Title-19:1396a');
+
+    const siblingQuery = (session.run.mock.calls[2][0] as string).replace(/\s+/g, ' ');
+    expect(CONTEXT_SIBLING_WALK_HOPS).toBeGreaterThan(CONTEXT_SIBLING_WINDOW);
+    for (const node of ['before', 'after']) {
+      const filter = siblingQuery.indexOf(`EXISTS { MATCH (parent)-[:PARENT_OF]->(${node}) }`);
+      const cut = siblingQuery.indexOf(`WITH ${node}, length(path) AS hops ORDER BY hops LIMIT ${CONTEXT_SIBLING_WINDOW}`);
+      expect(filter).toBeGreaterThan(-1);
+      expect(cut).toBeGreaterThan(filter);
+    }
+  });
+
+  it('returns empty windows for an unknown section id', async () => {
+    const { corpus } = createCorpusWithRuns([{ records: [] }, { records: [] }, { records: [] }]);
+
+    const context = await corpus.getSectionContext('sec-does-not-exist');
+
+    expect(context).toEqual({
+      ancestors: [],
+      siblings: [],
+      siblingCount: 0,
+      siblingsTruncated: false,
+      children: [],
+      childCount: 0,
+      childrenTruncated: false,
+    });
   });
 });
 
@@ -369,25 +435,85 @@ describe('lookupPolicy', () => {
 });
 
 describe('findConceptSections', () => {
+  const conceptRow = (index: number) => ({
+    sectionId: `sec-${index}`,
+    sectionTitle: `Section ${index}`,
+    sectionNumber: `${index}`,
+    documentId: 'doc-1',
+    documentType: 'clinical_policy',
+    policyNumber: '8C',
+    relationshipType: 'COVERS',
+  });
+
   it('rejects invalid relationship filters before querying', async () => {
     const { corpus, session } = createCorpusWithRuns([]);
 
-    const sections = await corpus.findConceptSections({
+    const result = await corpus.findConceptSections({
       conceptName: 'EPSDT',
       relationshipType: 'DEFINES}]->(x) DETACH DELETE x //',
     });
 
-    expect(sections).toEqual([]);
+    expect(result).toEqual({ sections: [], total: 0, truncated: false });
+    expect(session.run).not.toHaveBeenCalled();
+  });
+
+  it('rejects the relationship types the pipeline never writes', async () => {
+    const { corpus, session } = createCorpusWithRuns([]);
+
+    for (const relationshipType of ['GOVERNS', 'REFERENCES_CONCEPT']) {
+      expect(await corpus.findConceptSections({ conceptName: 'EPSDT', relationshipType })).toEqual({
+        sections: [],
+        total: 0,
+        truncated: false,
+      });
+    }
     expect(session.run).not.toHaveBeenCalled();
   });
 
   it('returns an empty list when no concept matches the name', async () => {
-    const { corpus, session } = createCorpusWithRuns([{ records: [] }]);
+    const { corpus, session } = createCorpusWithRuns([{ records: [strictRecord({ sections: [], total: 0 })] }]);
 
-    const sections = await corpus.findConceptSections({ conceptName: 'No Such Concept' });
+    const result = await corpus.findConceptSections({ conceptName: 'No Such Concept' });
 
-    expect(sections).toEqual([]);
+    expect(result).toEqual({ sections: [], total: 0, truncated: false });
     expect(session.run).toHaveBeenCalledTimes(1);
+  });
+
+  it('caps the list in the query, orders it, and reports the total', async () => {
+    const { corpus, session } = createCorpusWithRuns([
+      {
+        records: [
+          strictRecord({
+            sections: Array.from({ length: CONCEPT_SECTION_LIMIT }, (_, index) => conceptRow(index)),
+            // The driver returns counts as Integer objects.
+            total: { toNumber: () => 2573 },
+          }),
+        ],
+      },
+    ]);
+
+    const result = await corpus.findConceptSections({ conceptName: 'Prior Authorization' });
+
+    expect(result.sections).toHaveLength(CONCEPT_SECTION_LIMIT);
+    expect(result.sections[0]).toEqual(conceptRow(0));
+    expect(result.total).toBe(2573);
+    expect(result.truncated).toBe(true);
+
+    const query = session.run.mock.calls[0][0] as string;
+    expect(query).toContain('[r:COVERS|DEFINES|RESTRICTS]');
+    expect(query).toContain('ORDER BY');
+    expect(query).toContain(`rows[0..${CONCEPT_SECTION_LIMIT}]`);
+  });
+
+  it('normalizes the relationship filter and does not flag a complete list', async () => {
+    const { corpus, session } = createCorpusWithRuns([
+      { records: [strictRecord({ sections: [conceptRow(1), conceptRow(2)], total: 2 })] },
+    ]);
+
+    const result = await corpus.findConceptSections({ conceptName: 'EPSDT', relationshipType: 'defines' });
+
+    expect(result).toMatchObject({ total: 2, truncated: false });
+    expect(session.run.mock.calls[0][0]).toContain('[r:DEFINES]');
   });
 });
 
