@@ -51,6 +51,11 @@ export async function reserveResearchStep(key: string, limit: number): Promise<v
   const context = storage.getStore();
   if (context) await context.repository.reserveStep(context.runId, context.owner, key, limit);
 }
+/** Public progress only: the repository's run query reads this key so the polled run counts follow-ups in flight. */
+export async function publishResearchFollowUps(followUps: unknown[]): Promise<void> {
+  const context = storage.getStore();
+  if (context) await context.repository.saveCheckpoint(context.runId, context.owner, 'follow-ups', followUps);
+}
 export async function publishResearchVerification(outcome: VerificationOutcome, sources: unknown): Promise<void> {
   const context = storage.getStore();
   if (context) {

@@ -163,6 +163,57 @@ describe('checkpoint recovery through real Mastra workflow and SQLite', () => {
     expect((await repository.get('run', 'owner'))?.plan?.subQuestions[0].question).toBe('Edited scope?');
     expect(deepResearchWorkerAgent.generate).toHaveBeenCalledTimes(1);
   });
+  it('does not reflect back to sub-questions the user removed at approval', async () => {
+    const proposed = [question('Scope?'), question('Eligibility?'), question('Prior authorization?'), question('Appeals?')];
+    const removed = proposed.slice(2);
+    vi.mocked(deepResearchPlannerAgent.generate).mockImplementation(async (_prompt: unknown, options?: any) => {
+      await options?.prepareStep?.({});
+      return { object: String(_prompt).startsWith('Plan ')
+        ? { brief: 'Find coverage', subQuestions: proposed }
+        : { sufficient: false, gaps: 'Removed topics are uncovered', followUps: removed } } as any;
+    });
+    await finishPlanning();
+    await service.decide('run', 'owner', { approved: true, editedSubQuestions: proposed.slice(0, 2) }, mastra);
+    await vi.waitFor(async () => expect((await repository.get('run', 'owner'))?.state).toBe('completed'));
+    const result = (await repository.get('run', 'owner'))!;
+    const researched = vi.mocked(deepResearchWorkerAgent.generate).mock.calls.map(call => String(call[0]));
+    expect(researched).toHaveLength(2);
+    for (const sq of removed) expect(researched.join('\n')).not.toContain(sq.question);
+    expect(deepResearchPlannerAgent.generate).toHaveBeenCalledTimes(1);
+    expect(result.report?.subQuestions.map(sq => sq.question)).toEqual(['Scope?', 'Eligibility?']);
+    expect(result.report?.stats).toMatchObject({ subQuestionCount: 2, reflectionRounds: 0 });
+  });
+  it('researches reflection follow-ups when the full plan was approved', async () => {
+    const followUp = question('Appeals?');
+    let reflections = 0;
+    vi.mocked(deepResearchPlannerAgent.generate).mockImplementation(async (_prompt: unknown, options?: any) => {
+      await options?.prepareStep?.({});
+      if (String(_prompt).startsWith('Plan ')) return { object: PLAN } as any;
+      return { object: ++reflections === 1 ? { sufficient: false, gaps: 'Appeals', followUps: [followUp] } : { sufficient: true, gaps: '', followUps: [] } } as any;
+    });
+    // Hold the follow-up worker open so the run can be read back mid-flight.
+    let release!: () => void;
+    const held = new Promise<void>(resolve => { release = resolve; });
+    const worker = vi.mocked(deepResearchWorkerAgent.generate).getMockImplementation() as any;
+    vi.mocked(deepResearchWorkerAgent.generate).mockImplementation((async (prompt: unknown, options?: any) => {
+      if (String(prompt).includes('Appeals?')) await held;
+      return worker(prompt, options);
+    }) as any);
+    await finishPlanning();
+    expect((await repository.get('run', 'owner'))?.plan?.subQuestions).toHaveLength(2);
+    await service.decide('run', 'owner', { approved: true }, mastra);
+    await vi.waitFor(() => expect(deepResearchWorkerAgent.generate).toHaveBeenCalledTimes(3));
+    const inFlight = (await repository.get('run', 'owner'))!;
+    expect(inFlight.state).toBe('researching');
+    expect(inFlight.plan?.subQuestions.map(sq => sq.question)).toEqual(['Scope?', 'Eligibility?', 'Appeals?']);
+    expect((await repository.getInternal('run'))?.approval?.editedSubQuestions).toEqual(PLAN.subQuestions);
+    release();
+    await vi.waitFor(async () => expect((await repository.get('run', 'owner'))?.state).toBe('completed'));
+    const result = (await repository.get('run', 'owner'))!;
+    expect(deepResearchWorkerAgent.generate).toHaveBeenCalledTimes(3);
+    expect(result.report?.subQuestions.map(sq => sq.question)).toEqual(['Scope?', 'Eligibility?', 'Appeals?']);
+    expect(result.report?.stats.subQuestionCount).toBe(3);
+  });
   it.each(['matching', 'missing', 'mismatched'])(
     'recovers checkpointed planning only with a matching live Jev marker: %s', async marker => {
       vi.stubEnv('JEV_SECTION_ROLES_ENABLED', 'true');

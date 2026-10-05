@@ -10,7 +10,6 @@ import { findConceptSections } from '../tools/concepts.js';
 import { lookupPolicy } from '../tools/lookup.js';
 import { resolveAnswerFrame } from '../tools/answer-frame.js';
 import { webSearch } from '../tools/web-search.js';
-import { MessageLengthGuard } from '../processors/message-length-guard.js';
 import { ScopeGateProcessor } from '../processors/scope-gate.js';
 
 const CORPUS_TOOLS = {
@@ -34,6 +33,8 @@ const CORPUS_OVERVIEW = `You work over a knowledge graph of NC Medicaid policy: 
 // ── Planner ─────────────────────────────────────────────────────────────────
 // Decomposes a research question into a brief + independent sub-questions.
 // Also reused for the reflection pass (with a different prompt + output schema).
+// The input processors guard the user's question on the plan call; the
+// reflection call turns them off. The start route enforces the length cap.
 
 export const deepResearchPlannerAgent = new Agent({
   id: 'deep-research-planner',
@@ -53,7 +54,6 @@ Each sub-question must be self-contained (a worker researches it with no other c
 Prefer fewer, high-leverage sub-questions over many overlapping ones. You may run a couple of probe searches to ground the decomposition, but do not try to answer the question yourself.`,
   tools: { resolveAnswerFrame, searchSections, lookupPolicy },
   inputProcessors: [
-    new MessageLengthGuard(),
     new ScopeGateProcessor(),
     new PromptInjectionDetector({
       model: 'openai/gpt-5-mini',

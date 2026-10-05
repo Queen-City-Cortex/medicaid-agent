@@ -2,7 +2,7 @@ import { getConfig as getVerifierConfig } from '../processors/verifier/config.js
 import { createWorkflow, createStep } from '@mastra/core/workflows';
 import type { OnIterationCompleteHandler } from '@mastra/core/agent';
 import { z } from 'zod';
-import { checkpointed, questionKey, researchLimits, researchApproval, reserveResearchStep, publishResearchVerification } from './checkpoints.js';
+import { checkpointed, questionKey, researchLimits, researchApproval, reserveResearchStep, publishResearchFollowUps, publishResearchVerification } from './checkpoints.js';
 import { VerificationWithheldError, isRetryableResearchError } from './recovery-errors.js';
 import { verifyAnswer, VERIFICATION_UNAVAILABLE } from '../processors/verifier/verify.js';
 import { log } from '../logger.js';
@@ -62,6 +62,9 @@ const ApprovalStepOut = z.object({
   question: z.string(),
   brief: z.string(),
   subQuestions: z.array(SubQuestionSchema),
+  // Proposed questions the user did not approve. Any entry makes approval
+  // binding: the research step must not reflect its way back to them.
+  removedQuestions: z.array(z.string()),
 });
 const ResearchStepOut = ApprovalStepOut.extend({
   findings: z.array(FindingOut),
@@ -299,7 +302,9 @@ const approvalStep = createStep({
       ? resumeData.editedSubQuestions
       : inputData.subQuestions
     ).slice(0, researchLimits().maxSubQuestions);
-    return { ...base, subQuestions };
+    const approved = new Set(subQuestions.map(sq => sq.question.trim()));
+    const removedQuestions = inputData.subQuestions.map(sq => sq.question.trim()).filter(q => !approved.has(q));
+    return { ...base, subQuestions, removedQuestions };
   },
 });
 
@@ -357,9 +362,13 @@ const researchStep = createStep({
       throw initial.failures[0].error;
     }
 
-    // Bounded reflection loop with a closed-corpus novelty stop.
+    // Bounded reflection loop with a closed-corpus novelty stop. A plan the
+    // user pruned gets no follow-ups: the brief was written for the full plan,
+    // so reflection would re-propose what they removed without a second approval.
     let reflectionRounds = 0;
-    let remaining = researchLimits().maxSubQuestions - allSubQuestions.length;
+    const pruned = inputData.removedQuestions.length > 0;
+    if (pruned) log.info('deep_research.reflection_skipped', { reason: 'plan_pruned', removed: inputData.removedQuestions.length });
+    let remaining = pruned ? 0 : researchLimits().maxSubQuestions - allSubQuestions.length;
     while (reflectionRounds < researchLimits().maxReflectionRounds && remaining > 0) {
       await emit(writer, { stage: 'reflecting', detail: `Checking for gaps (round ${reflectionRounds + 1})…` });
       const reflPrompt = `Research brief:\n${brief}\n\nFindings so far:\n${findings
@@ -367,12 +376,26 @@ const researchStep = createStep({
         .join('\n\n')}\n\nIdentify remaining gaps versus the brief and propose up to ${remaining} follow-up sub-questions that would close them. If the findings already cover the brief, set sufficient=true and return no follow-ups.`;
       const reflection = await checkpointed(`reflection:${reflectionRounds}`, async () => {
         const reflRes = await deepResearchPlannerAgent.generate(reflPrompt, {
-          structuredOutput: { schema: ReflectionSchema },
+          // 'warn' returns no object on a malformed reflection instead of throwing.
+          structuredOutput: { schema: ReflectionSchema, errorStrategy: 'warn' },
           maxSteps: researchLimits().plannerMaxSteps,
           prepareStep: async () => { await reserveResearchStep(`reflection:${reflectionRounds}`, researchLimits().plannerMaxSteps); },
+          // The prompt is our own brief plus verified findings, not user input:
+          // the planner's chat-input guards must not classify or block it.
+          inputProcessors: [],
         });
         recordResearchUsage('reflection', DEEP_RESEARCH_MODEL, reflRes);
-        return ReflectionSchema.parse(reflRes.object);
+        // Reflection is an optional improvement. Losing it must not cost the
+        // user the findings already paid for, so go on to synthesis instead.
+        const parsed = ReflectionSchema.safeParse(reflRes.object);
+        if (reflRes.tripwire || !parsed.success) {
+          log.warn('deep_research.reflection_skipped', {
+            reason: reflRes.tripwire ? 'tripwire' : 'invalid_reflection', round: reflectionRounds,
+            ...(reflRes.tripwire ? { processorId: reflRes.tripwire.processorId } : {}),
+          });
+          return null;
+        }
+        return parsed.data;
       });
       if (!reflection || reflection.sufficient || !reflection.followUps?.length) break;
 
@@ -380,6 +403,7 @@ const researchStep = createStep({
       if (!followUps.length) break;
       remaining -= followUps.length;
       allSubQuestions.push(...followUps);
+      await publishResearchFollowUps(allSubQuestions.slice(inputData.subQuestions.length));
       const before = seenIds.size;
       const fuTotal = followUps.length;
       let fuDone = 0;
@@ -420,6 +444,7 @@ const researchStep = createStep({
       question,
       brief,
       subQuestions: allSubQuestions,
+      removedQuestions: inputData.removedQuestions,
       findings,
       workerFailures,
       corpusSources: [...corpusByKey.values()],

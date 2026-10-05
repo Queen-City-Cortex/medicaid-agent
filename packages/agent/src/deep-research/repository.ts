@@ -28,7 +28,8 @@ const DAY_MS = 86_400_000;
 const LEASE_MS = 15 * 60_000;
 const RUN_SELECT = `SELECT research_runs.*,
   (SELECT COUNT(*) FROM research_checkpoints WHERE run_id = research_runs.id AND key GLOB 'worker:*' AND key NOT LIKE '%:draft' AND key NOT LIKE '%:verification:%') AS completed_questions,
-  (SELECT COUNT(*) FROM research_checkpoints WHERE run_id = research_runs.id) AS checkpoint_count
+  (SELECT COUNT(*) FROM research_checkpoints WHERE run_id = research_runs.id) AS checkpoint_count,
+  (SELECT value_json FROM research_checkpoints WHERE run_id = research_runs.id AND key = 'follow-ups') AS follow_ups_json
   FROM research_runs`;
 
 export interface InternalResearchRun extends ResearchRun {
@@ -75,7 +76,11 @@ function toRun(row: Row): ResearchRun {
     runId: row.id,
     state: legacy ? 'failed' : row.state,
     question: row.question,
-    plan: plan && approval?.editedSubQuestions ? { ...plan, subQuestions: approval.editedSubQuestions } : plan,
+    // Reflection follow-ups exist only after approval; they are shown as work
+    // in progress and never stored as part of the approved decision.
+    plan: plan && approval?.editedSubQuestions
+      ? { ...plan, subQuestions: [...approval.editedSubQuestions, ...(typeof row.follow_ups_json === 'string' ? JSON.parse(row.follow_ups_json) : [])] }
+      : plan,
     report: row.state === 'completed' && report?.verification && report.verification.status !== 'withheld' ? report : null,
     error: legacy ? 'This previous report was not verified before release. Please start a new run.' : row.error,
     createdAt: row.created_at,
