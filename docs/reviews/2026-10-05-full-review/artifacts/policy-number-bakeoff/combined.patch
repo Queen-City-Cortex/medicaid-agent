@@ -1,0 +1,519 @@
+diff --git a/packages/policy-corpus/src/frame/context/routing.ts b/packages/policy-corpus/src/frame/context/routing.ts
+--- a/packages/policy-corpus/src/frame/context/routing.ts	2026-10-05 05:22:38
++++ b/packages/policy-corpus/src/frame/context/routing.ts	2026-10-05 05:24:07
+@@ -13,7 +13,7 @@
+   SECTION_KEYWORD_WEIGHT,
+   buildQueryFocusTerms,
+   collectPolicyNumbersForQuery,
+-  dedupeTerms,
++  dedupePolicyNumbers,
+   extractAliasedPolicyNumbers,
+   extractExplicitPolicyNumbers,
+   isAttachmentTitle,
+@@ -45,8 +45,12 @@
+   };
+
+   const collectImplementationLookupDocuments = async (query: string): Promise<DocumentWithSectionsView[]> => {
+-    const queryLower = normalizeSearchText(query);
+-    const policyNumbers = dedupeTerms([...extractExplicitPolicyNumbers(query), ...extractAliasedPolicyNumbers(queryLower)]);
++    // Unlike collectLookupDocuments, aliases stay on for federal-authority
++    // questions here: this path looks for the NC implementation documents.
++    const policyNumbers = dedupePolicyNumbers([
++      ...extractExplicitPolicyNumbers(query),
++      ...extractAliasedPolicyNumbers(normalizeSearchText(query)),
++    ]);
+     if (policyNumbers.length === 0) return [];
+
+     const documents = await Promise.all(policyNumbers.map((policyNumber) => lookupPolicy({ policyNumber })));
+diff --git a/packages/policy-corpus/src/frame/pipelines/amendment.ts b/packages/policy-corpus/src/frame/pipelines/amendment.ts
+--- a/packages/policy-corpus/src/frame/pipelines/amendment.ts	2026-10-05 05:22:38
++++ b/packages/policy-corpus/src/frame/pipelines/amendment.ts	2026-10-05 06:08:47
+@@ -74,7 +74,26 @@
+       score: 1.7 - index * 0.05,
+     })),
+   ];
++  const lookupDocumentIds = new Set(lookupDocuments.map((document) => document.id));
+   for (const [index, view] of amendmentViews.entries()) {
++    // lookupPolicy returns the named policy, not its revision rows. On the
++    // latest-revision-only route nothing else carries a clinical policy's
++    // newest revision-table row into the frame, so name it here, above
++    // revision-header hits from other documents. DHHS change notices stay
++    // out: their dates are approximate and the manual's own revision header
++    // is the recency signal.
++    if (
++      latestRevisionOnly &&
++      view.amendments.length > 0 &&
++      view.authoritativeDocument?.documentType === 'change_notice' &&
++      lookupDocumentIds.has(baseDocuments[index]?.id ?? '')
++    ) {
++      authoritativeCandidates.push({
++        document: view.authoritativeDocument,
++        reason: 'Most recent revision-table row of the named policy.',
++        score: 1.75 - index * 0.05,
++      });
++    }
+     if (!latestRevisionOnly && view.authoritativeDocument) {
+       authoritativeCandidates.push({
+         document: view.authoritativeDocument,
+diff --git a/packages/policy-corpus/src/internal/document-selection.ts b/packages/policy-corpus/src/internal/document-selection.ts
+--- a/packages/policy-corpus/src/internal/document-selection.ts	2026-10-05 05:22:38
++++ b/packages/policy-corpus/src/internal/document-selection.ts	2026-10-05 06:03:08
+@@ -6,6 +6,7 @@
+
+ import type { CorpusRetrievalHit, DocumentWithSectionsView } from '../types.js';
+ import { combineText, includesPhrase, normalizeSearchText, uniqueBy } from './base.js';
++import { policyNumberKey } from './policy-number.js';
+ import { dedupeTerms, extractSearchTerms, scoreTermMatches } from './search.js';
+ import {
+   DOCUMENT_COVERAGE_HIT_BOOST,
+@@ -105,7 +106,7 @@
+   let reason = 'Relevant policy variant returned by policy lookup.';
+   const titleText = combineText(document.title, document.policyNumber);
+
+-  if (document.policyNumber && policyNumbers.includes(document.policyNumber.toUpperCase())) {
++  if (document.policyNumber && policyNumbers.some((policyNumber) => policyNumberKey(policyNumber) === policyNumberKey(document.policyNumber))) {
+     score += 2.5;
+     reason = 'Exact policy-number match from the query.';
+   }
+@@ -222,17 +223,11 @@
+ export function narrowInferredCoverageDocuments(documents: DocumentWithSectionsView[]): DocumentWithSectionsView[] {
+   if (documents.length <= 1) return documents;
+
+-  const countsByFamily = new Map<string, number>();
+-  for (const document of documents) {
+-    const family = policyFamilyKey(document.policyNumber);
+-    if (!family) continue;
+-    countsByFamily.set(family, (countsByFamily.get(family) ?? 0) + 1);
+-  }
+-
+-  const preferredFamily = Array.from(countsByFamily.entries()).sort((left, right) => right[1] - left[1])[0]?.[0] ?? null;
+-  if (preferredFamily && (countsByFamily.get(preferredFamily) ?? 0) > 1) {
+-    return documents.filter((document) => policyFamilyKey(document.policyNumber) === preferredFamily);
+-  }
+-
+-  return documents.slice(0, 1);
++  // Documents arrive ranked by hit score. Keep the top document's family when
++  // the set holds one of its siblings; otherwise keep the top document alone.
++  // A family that does not include the top document must not displace it: two
++  // "MA-" manuals (or 1M-4 and 1M-5) used to replace a higher-ranked policy.
++  const topFamily = policyFamilyKey(documents[0]?.policyNumber);
++  const family = topFamily ? documents.filter((document) => policyFamilyKey(document.policyNumber) === topFamily) : [];
++  return family.length > 1 ? family : documents.slice(0, 1);
+ }
+diff --git a/packages/policy-corpus/src/internal/policy-number.ts b/packages/policy-corpus/src/internal/policy-number.ts
+--- a/packages/policy-corpus/src/internal/policy-number.ts	1969-12-31 19:00:00
++++ b/packages/policy-corpus/src/internal/policy-number.ts	2026-10-05 05:24:07
+@@ -0,0 +1,120 @@
++// Policy-number identity: one comparison key and one extraction rule, shared
++// by query analysis, lookupPolicy, policy-scoped retrieval and reranking.
++
++/**
++ * Comparison key for a policy number: upper-case with whitespace and hyphens
++ * removed, so "1-H", "1H" and "1h" name one policy and "MA 2180" equals
++ * "MA-2180". Use it only to compare; show the stored number to people.
++ */
++export function policyNumberKey(value: string | null | undefined): string {
++  return (value ?? '').toUpperCase().replace(/[\s-]/g, '');
++}
++
++/** Cypher twin of `policyNumberKey` for a string expression. */
++export function policyNumberKeyCypher(expression: string): string {
++  return `replace(replace(toUpper(${expression}), '-', ''), ' ', '')`;
++}
++
++/**
++ * "3D", "1-H", "9" and "15" are policy numbers, and also ordinary clinical and
++ * everyday tokens ("3D mammogram", "stage 3b", "age 9"). A number of this
++ * shape counts as a policy reference only where the question marks it as one.
++ */
++export function isAmbiguousPolicyToken(policyNumber: string | null | undefined): boolean {
++  return /^\d{1,2}(?:-?[A-Za-z])?$/.test((policyNumber ?? '').trim());
++}
++
++/** De-duplicates policy numbers by `policyNumberKey`, keeping the first spelling. */
++export function dedupePolicyNumbers(policyNumbers: string[]): string[] {
++  const seen = new Set<string>();
++  return policyNumbers.filter((policyNumber) => {
++    const key = policyNumberKey(policyNumber);
++    if (!key || seen.has(key)) return false;
++    seen.add(key);
++    return true;
++  });
++}
++
++const TOKEN_START = String.raw`(?<![\w-])`;
++const TOKEN_END = String.raw`(?![\w-])`;
++// 3L, 1-H, 8A-1, 1-O-1
++const CLINICAL = String.raw`\d{1,2}-?[A-Za-z](?:-\d{1,2})*`;
++// 8A-1, 1A-27, 1-O-1: a numeric suffix is distinctive enough to need no cue.
++const CLINICAL_SUFFIXED = String.raw`\d{1,2}-?[A-Za-z](?:-\d{1,2})+`;
++const CLINICAL_BARE = String.raw`\d{1,2}-?[A-Za-z]`;
++const CUE = String.raw`\b(?:polic(?:y|ies)|ccps?)(?:\s+(?:no\.?|numbers?))?\s*[(:#]?\s*`;
++// "policy 30 days", "policy 15 visit limit": a quantity, not policy 30 or 15.
++const NOT_A_QUANTITY = String.raw`(?!\s*(?:%|percent\b|(?:-\s*)?(?:day|week|month|year|hour|minute|visit|unit|time|dollar)s?\b))`;
++
++const SUFFIXED_RE = new RegExp(`${TOKEN_START}${CLINICAL_SUFFIXED}${TOKEN_END}`, 'gi');
++// Mirrors the loader, which stores PREFIX-NNNN and drops any form suffix
++// ("DHB-5125B", "MA-3233-A" and "MA-3321-1.pdf" are stored under the base).
++const MANUAL_RE = /(?<![\w-])(MA|DMA|DHB|DSS)[- ]?(\d{4})(?!\d)/gi;
++const CUED_RE = new RegExp(`${CUE}(${CLINICAL}|\\d{1,2})${TOKEN_END}${NOT_A_QUANTITY}`, 'gi');
++const UNDER_RE = new RegExp(String.raw`\bunder\s+(${CLINICAL})${TOKEN_END}`, 'gi');
++const TRAILING_CUE_RE = new RegExp(String.raw`${TOKEN_START}(${CLINICAL})\s+(?:polic(?:y|ies)|ccps?)\b`, 'gi');
++const BARE_RE = new RegExp(`${TOKEN_START}${CLINICAL_BARE}${TOKEN_END}`, 'gi');
++const JOIN_RE = /^\s*(?:,|\/|&|\band\b|\bor\b|\bvs\.?|\bversus\b)\s*$/i;
++
++interface Span {
++  start: number;
++  end: number;
++  text: string;
++}
++
++/**
++ * Policy numbers the question names.
++ *
++ * - Clinical numbers with a numeric suffix (8A-1, 1A-27, 1-O-1) and manual
++ *   numbers (MA-2180, "MA 2180", DHB-5125B) are taken wherever they appear.
++ * - A bare clinical token (3L, 1-H) or numeral (7, 9, 15) is taken only next
++ *   to a cue: "policy 3L", "CCP 9", "Clinical Coverage Policy No. 1-H",
++ *   "policy (5B)", "under 10A", "the 3L policy", or joined to a number that
++ *   already qualified ("3L or 3L-1", "policies 8C and 8A").
++ *
++ * The result is de-duplicated by `policyNumberKey`, so "1-H" and "1H" count
++ * once. Compare the result with stored numbers through `policyNumberKey`.
++ */
++export function extractExplicitPolicyNumbers(query: string): string[] {
++  const spans: Span[] = [];
++  for (const match of query.matchAll(SUFFIXED_RE)) {
++    spans.push({ start: match.index, end: match.index + match[0].length, text: match[0] });
++  }
++  for (const match of query.matchAll(MANUAL_RE)) {
++    spans.push({ start: match.index, end: match.index + match[0].length, text: `${match[1]}-${match[2]}` });
++  }
++  for (const re of [CUED_RE, UNDER_RE]) {
++    for (const match of query.matchAll(re)) {
++      const end = match.index + match[0].length;
++      spans.push({ start: end - match[1].length, end, text: match[1] });
++    }
++  }
++  for (const match of query.matchAll(TRAILING_CUE_RE)) {
++    spans.push({ start: match.index, end: match.index + match[1].length, text: match[1] });
++  }
++
++  // "3L or 3L-1", "policies 8C and 8A": a bare token joined to a qualified
++  // number qualifies too. Repeat so a list of three resolves.
++  let grew = true;
++  while (grew) {
++    grew = false;
++    for (const match of query.matchAll(BARE_RE)) {
++      const start = match.index;
++      const end = start + match[0].length;
++      if (spans.some((span) => span.start <= start && span.end >= end)) continue;
++      const joined = spans.some(
++        (span) =>
++          (span.start >= end && JOIN_RE.test(query.slice(end, span.start))) ||
++          (span.end <= start && JOIN_RE.test(query.slice(span.end, start))),
++      );
++      if (joined) {
++        spans.push({ start, end, text: match[0] });
++        grew = true;
++      }
++    }
++  }
++
++  return dedupePolicyNumbers(
++    spans.sort((left, right) => left.start - right.start).map((span) => span.text.toUpperCase()),
++  );
++}
+diff --git a/packages/policy-corpus/src/internal/query-intent.ts b/packages/policy-corpus/src/internal/query-intent.ts
+--- a/packages/policy-corpus/src/internal/query-intent.ts	2026-10-05 05:22:38
++++ b/packages/policy-corpus/src/internal/query-intent.ts	2026-10-05 05:23:46
+@@ -1,5 +1,6 @@
+ import type { AnswerQuestionType } from '../types.js';
+ import { includesPhrase, matchesToken, normalizeSearchText } from './base.js';
++import { extractExplicitPolicyNumbers } from './policy-number.js';
+ import { dedupeTerms } from './search.js';
+
+ const YEAR_QUERY_RE = /\b(19|20)\d{2}\b/g;
+@@ -438,14 +439,6 @@
+   if (isPolicyVariantQuery(queryLower)) return 'policy_variant';
+   if (isCoverageQuestion(queryLower)) return 'coverage';
+   return 'general';
+-}
+-
+-export function extractExplicitPolicyNumbers(query: string): string[] {
+-  const matches = [
+-    ...(query.match(/\b\d+[A-Za-z](?:-[A-Za-z0-9]+)?\b/g) ?? []),
+-    ...(query.match(/\b(?:MA|DMA|DHB|DSS)-\d+[A-Za-z0-9-]*\b/gi) ?? []),
+-  ];
+-  return dedupeTerms(matches.map((match) => match.toUpperCase()));
+ }
+
+ export function extractAliasedPolicyNumbers(queryLower: string): string[] {
+diff --git a/packages/policy-corpus/src/internal/rerank.ts b/packages/policy-corpus/src/internal/rerank.ts
+--- a/packages/policy-corpus/src/internal/rerank.ts	2026-10-05 05:22:38
++++ b/packages/policy-corpus/src/internal/rerank.ts	2026-10-05 05:24:49
+@@ -29,6 +29,7 @@
+   queryMentionsPolicyNumber,
+   variantDateMatchesRequestedYear,
+ } from './query-intent.js';
++import { extractExplicitPolicyNumbers, isAmbiguousPolicyToken, policyNumberKey } from './policy-number.js';
+ import { countProcedureCodeMatches, scoreTermMatches } from './search.js';
+ import {
+   ANSWER_READY_PENALTY,
+@@ -143,6 +144,10 @@
+   exactPolicyNumbers: string[];
+   documentCoverageBoosts: Map<string, number>;
+   latestChangeMarkerValue: number | null;
++  /** policyNumberKey of every number the question names or an alias supplies. */
++  exactPolicyNumberKeys: Set<string>;
++  /** policyNumberKey of the numbers the question itself names. */
++  typedPolicyNumberKeys: Set<string>;
+   flags: RerankQueryFlags;
+ }
+
+@@ -154,7 +159,7 @@
+   exactPolicyNumbers,
+   documentCoverageBoosts,
+   latestChangeMarkerValue,
+-}: Omit<RerankQueryContext, 'flags'>): RerankQueryContext {
++}: Omit<RerankQueryContext, 'flags' | 'exactPolicyNumberKeys' | 'typedPolicyNumberKeys'>): RerankQueryContext {
+   return {
+     queryLower,
+     queryTerms,
+@@ -163,6 +168,8 @@
+     exactPolicyNumbers,
+     documentCoverageBoosts,
+     latestChangeMarkerValue,
++    exactPolicyNumberKeys: new Set(exactPolicyNumbers.map(policyNumberKey)),
++    typedPolicyNumberKeys: new Set(extractExplicitPolicyNumbers(queryLower).map(policyNumberKey)),
+     flags: {
+       pediatricQuery: isPediatricQuery(queryLower),
+       historicalReimbursementQuery: isHistoricalReimbursementQuery(queryLower, requestedYears),
+@@ -249,10 +256,18 @@
+ };
+
+ const scorePolicyNumberMatches: HitScorer = (score, hit, context) => {
+-  if (queryMentionsPolicyNumber(context.queryLower, hit.policyNumber)) {
++  if (!hit.policyNumber) return score;
++  const key = policyNumberKey(hit.policyNumber);
++  // "3D", "3B", "9" and "15" appear in ordinary questions ("3D mammogram",
++  // "stage 3b", "age 9"); a number of that shape is a mention only when the
++  // extractor accepted it as a policy reference.
++  const mentioned =
++    context.typedPolicyNumberKeys.has(key) ||
++    (!isAmbiguousPolicyToken(hit.policyNumber) && queryMentionsPolicyNumber(context.queryLower, hit.policyNumber));
++  if (mentioned) {
+     score += POLICY_NUMBER_MATCH_BOOST;
+   }
+-  if (hit.policyNumber && context.exactPolicyNumbers.includes(hit.policyNumber.toUpperCase())) {
++  if (context.exactPolicyNumberKeys.has(key)) {
+     score += EXACT_POLICY_NUMBER_BOOST;
+   }
+   return score;
+@@ -504,7 +519,7 @@
+   if (matchesModificationTopic && matchesReviewSignal) {
+     return score + MODIFICATION_REVIEW_CLUSTER_BOOST;
+   }
+-  if (matchesModificationTopic && hit.policyNumber && context.exactPolicyNumbers.includes(hit.policyNumber.toUpperCase())) {
++  if (matchesModificationTopic && hit.policyNumber && context.exactPolicyNumberKeys.has(policyNumberKey(hit.policyNumber))) {
+     return score + MODIFICATION_TOPIC_BOOST;
+   }
+   return score;
+diff --git a/packages/policy-corpus/src/internal/retrieval-planning.ts b/packages/policy-corpus/src/internal/retrieval-planning.ts
+--- a/packages/policy-corpus/src/internal/retrieval-planning.ts	2026-10-05 05:22:38
++++ b/packages/policy-corpus/src/internal/retrieval-planning.ts	2026-10-05 05:24:07
+@@ -4,9 +4,9 @@
+ // the raw query. These shape the retrieval profile before any backend runs.
+
+ import { normalizeSearchText } from './base.js';
++import { dedupePolicyNumbers, extractExplicitPolicyNumbers } from './policy-number.js';
+ import {
+   extractAliasedPolicyNumbers,
+-  extractExplicitPolicyNumbers,
+   isFederalAuthorityQuery,
+   isManagedCareOperationsQuery,
+   isMlrQuery,
+@@ -77,5 +77,5 @@
+ export function collectPolicyNumbersForQuery(query: string): string[] {
+   const queryLower = normalizeSearchText(query);
+   const aliasedPolicyNumbers = isFederalAuthorityQuery(queryLower) ? [] : extractAliasedPolicyNumbers(queryLower);
+-  return dedupeTerms([...extractExplicitPolicyNumbers(query), ...aliasedPolicyNumbers]);
++  return dedupePolicyNumbers([...extractExplicitPolicyNumbers(query), ...aliasedPolicyNumbers]);
+ }
+diff --git a/packages/policy-corpus/src/internal/shared.ts b/packages/policy-corpus/src/internal/shared.ts
+--- a/packages/policy-corpus/src/internal/shared.ts	2026-10-05 05:22:38
++++ b/packages/policy-corpus/src/internal/shared.ts	2026-10-05 05:23:46
+@@ -4,6 +4,7 @@
+
+ export * from './base.js';
+ export * from './answer-routing.js';
++export * from './policy-number.js';
+ export * from './query-intent.js';
+ export * from './search.js';
+ export * from './scoring-constants.js';
+diff --git a/packages/policy-corpus/src/primitives/policy-lookup.ts b/packages/policy-corpus/src/primitives/policy-lookup.ts
+--- a/packages/policy-corpus/src/primitives/policy-lookup.ts	2026-10-05 05:22:39
++++ b/packages/policy-corpus/src/primitives/policy-lookup.ts	2026-10-05 06:11:41
+@@ -1,27 +1,41 @@
+ import type { DocumentSupersessionView, DocumentWithSectionsView, LookupPolicyInput, SessionExecutor } from '../types.js';
+ import { documentMetadataReturn, mapDocumentMetadataRecord } from '../document-metadata.js';
+-import { mapDocumentSections } from '../internal/shared.js';
++import { mapDocumentSections, policyNumberKeyCypher } from '../internal/shared.js';
+
+ const LOOKUP_DOCUMENT_LIMIT = 25;
++const SSA_TITLE_NUMERALS: Record<string, string> = { XIX: '19', XXI: '21' };
+
+ /**
+  * Expands a user/model-supplied policy number into the forms stored in the
+  * graph. Federal documents are stored hyphenated ("42-CFR-440",
+  * "SSA-Title-19"), but citations are naturally written "42 CFR 440",
+  * "42 C.F.R. § 440.230", or "SSA Title 19" — without this, federal lookups
+- * can never match.
++ * can never match. A leading "Policy", "CCP" or "Clinical Coverage Policy
++ * No." is dropped, and a manual or form number is reduced to the stored
++ * PREFIX-NNNN. Hyphen, space and case differences ("1-H", "MA 2180") need no
++ * candidate: the query compares normalised keys.
+  */
+ export function candidatePolicyNumbers(raw: string): string[] {
+   const pn = raw.trim();
+   if (!pn) return [];
+   const candidates = new Set<string>([pn]);
+
+-  const cfr = pn.match(/^(\d+)\s*C\.?\s*F\.?\s*R\.?\s*(?:§+\s*)?(?:part\s+)?(\d+)/i);
+-  if (cfr) candidates.add(`${cfr[1]}-CFR-${cfr[2]}`);
++  const uncued = pn.replace(/^(?:clinical\s+coverage\s+)?(?:policy|ccp)\b\s*(?:no\.?|number|#)?\s*[:#]?\s*/i, '').trim();
++  if (uncued) candidates.add(uncued);
+
+-  const ssa = pn.match(/^SSA[\s-]*Title[\s-]*(\d+)/i);
+-  if (ssa) candidates.add(`SSA-Title-${ssa[1]}`);
++  for (const candidate of [...candidates]) {
++    const cfr = candidate.match(/^(\d+)\s*C\.?\s*F\.?\s*R\.?\s*(?:§+\s*)?(?:part\s+)?(\d+)/i);
++    if (cfr) candidates.add(`${cfr[1]}-CFR-${cfr[2]}`);
+
++    const ssa = candidate.match(/^SSA[\s-]*Title[\s-]*(\d+|XIX|XXI)\b/i);
++    if (ssa) candidates.add(`SSA-Title-${SSA_TITLE_NUMERALS[ssa[1].toUpperCase()] ?? ssa[1]}`);
++
++    // The graph stores manual and form numbers as PREFIX-NNNN; a form suffix
++    // ("DHB-5125B", "MA-3233-A") is part of the title, not of the number.
++    const manual = candidate.match(/^(MA|DMA|DHB|DSS)[- ]?(\d{4})(?!\d)/i);
++    if (manual) candidates.add(`${manual[1].toUpperCase()}-${manual[2]}`);
++  }
++
+   return [...candidates];
+ }
+
+@@ -55,14 +69,17 @@
+     if (candidates.length === 0) return [];
+
+     return withSession(async (session) => {
++      // Exact number only. A prefix match returned sibling policies ("1A-2"
++      // also matched 1A-20 to 1A-28) and the newest sibling sorted first.
++      // Synthetic revision rows (document_type 'change_notice') share their
++      // policy's number and have no sections; getAmendments returns them.
+       // The 0..1 supersession match runs BEFORE the section collect so it
+       // can't multiply section rows.
+       const result = await session.run(
+         `MATCH (d:Document)
+-         WHERE any(pn IN $pns WHERE
+-           d.policy_number = pn
+-           OR toLower(d.policy_number) = toLower(pn)
+-           OR d.policy_number STARTS WITH pn)
++         WHERE coalesce(d.document_type, '') <> 'change_notice'
++           AND any(pn IN $pns WHERE
++             ${policyNumberKeyCypher('d.policy_number')} = ${policyNumberKeyCypher('pn')})
+          OPTIONAL MATCH (d)-[sup:SUPERSEDED_BY]->(cur:Document)
+          OPTIONAL MATCH (d)-[:HAS_SECTION]->(s:Section)
+          RETURN
+diff --git a/packages/policy-corpus/src/query/analysis.ts b/packages/policy-corpus/src/query/analysis.ts
+--- a/packages/policy-corpus/src/query/analysis.ts	2026-10-05 05:22:39
++++ b/packages/policy-corpus/src/query/analysis.ts	2026-10-05 05:24:25
+@@ -3,13 +3,13 @@
+ import {
+   buildFocusedFederalQuery,
+   buildQueryFocusTerms,
+-  dedupeTerms,
+   extractProcedureCodeTerms,
+   extractQuotedPhrases,
+   extractSearchTerms,
+   extractServiceFocusTerms,
+ } from '../internal/search.js';
+ import { normalizeSearchText } from '../internal/base.js';
++import { dedupePolicyNumbers, extractExplicitPolicyNumbers } from '../internal/policy-number.js';
+ import { selectAnswerRoute } from '../internal/answer-routing.js';
+ import {
+   asksForCertificationDetails,
+@@ -22,7 +22,6 @@
+   asksForTelehealthServiceList,
+   detectAnswerQuestionType,
+   extractAliasedPolicyNumbers,
+-  extractExplicitPolicyNumbers,
+   extractRequestedYears,
+   isBillingWorkflowQuery,
+   isChangeNoticeQuery,
+@@ -52,7 +51,7 @@
+   const requestedYears = extractRequestedYears(query);
+   const federalAuthorityQuery = isFederalAuthorityQuery(normalizedQuery);
+   const aliasedPolicyNumbers = federalAuthorityQuery ? [] : extractAliasedPolicyNumbers(normalizedQuery);
+-  const explicitPolicyNumbers = dedupeTerms([
++  const explicitPolicyNumbers = dedupePolicyNumbers([
+     ...extractExplicitPolicyNumbers(query),
+     ...aliasedPolicyNumbers,
+   ]);
+diff --git a/packages/policy-corpus/src/retrieval/backends/policy-scoped.ts b/packages/policy-corpus/src/retrieval/backends/policy-scoped.ts
+--- a/packages/policy-corpus/src/retrieval/backends/policy-scoped.ts	2026-10-05 05:22:39
++++ b/packages/policy-corpus/src/retrieval/backends/policy-scoped.ts	2026-10-05 05:24:49
+@@ -2,6 +2,8 @@
+ import {
+   POLICY_SCOPED_BASE_SCORE,
+   POLICY_SCOPED_SECTION_WEIGHT,
++  policyNumberKey,
++  policyNumberKeyCypher,
+   recordToRetrievalHit,
+   retrievalDocumentMetadataReturn,
+   timeSearchStep,
+@@ -13,6 +15,9 @@
+   async retrieve({ session, analysis, profile, embedding }) {
+     if (analysis.explicitPolicyNumbers.length === 0 || analysis.searchTerms.length === 0) return [];
+
++    // Compared as keys so a typed "1-H" scopes to the stored "1H".
++    const policyNumberKeys = analysis.explicitPolicyNumbers.map(policyNumberKey);
++    const storedKey = policyNumberKeyCypher("coalesce(d.policy_number, '')");
+     const policyScopedHits = [];
+     for (const docTypes of profile.typeGroups) {
+       try {
+@@ -26,7 +31,7 @@
+              YIELD node AS s, score
+              MATCH (d:Document)-[:HAS_SECTION]->(s)
+              WHERE d.document_type IN $docTypes
+-               AND toUpper(coalesce(d.policy_number, '')) IN $policyNumbers
++               AND ${storedKey} IN $policyNumberKeys
+              RETURN
+                s.id AS sectionId,
+                s.section_number AS sectionNumber,
+@@ -42,7 +47,7 @@
+             {
+               embedding,
+               docTypes,
+-              policyNumbers: analysis.explicitPolicyNumbers,
++              policyNumberKeys,
+               k: profile.perGroupK,
+               scanK: vectorScanK(profile.perGroupK),
+             },
+@@ -54,7 +59,7 @@
+           session.run(
+             `MATCH (d:Document)
+              WHERE d.document_type IN $docTypes
+-               AND toUpper(coalesce(d.policy_number, '')) IN $policyNumbers
++               AND ${storedKey} IN $policyNumberKeys
+              MATCH (d)-[:HAS_SECTION]->(s:Section)
+              WHERE s.content_length > 0
+              WITH d, s,
+@@ -86,7 +91,7 @@
+              LIMIT toInteger($k)`,
+             {
+               docTypes,
+-              policyNumbers: analysis.explicitPolicyNumbers,
++              policyNumberKeys,
+               terms: analysis.searchTerms,
+               k: profile.perGroupK,
+             },
