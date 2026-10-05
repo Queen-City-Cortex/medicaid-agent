@@ -17,6 +17,21 @@ describe('buildSystemPrompt', () => {
     expect(prompt).not.toContain('For pharmacy prior-authorization questions');
   });
 
+  it('states federal bounds as bounds without naming a day count', () => {
+    const rule = buildSystemPrompt().split('\n').find((line) => line.includes('only as the federal bound'));
+
+    expect(rule).toContain('state it only as the federal bound, never as the North Carolina rule or the person\'s deadline');
+    expect(rule).toContain('Give a North Carolina figure only from a North Carolina source');
+    // The notice is something to check and confirm, not an authority: a notice
+    // can be missing or wrong.
+    expect(rule).toContain('check the deadline printed on their notice');
+    expect(rule).toContain('confirm it promptly');
+    expect(rule).not.toContain('controls');
+    // The rule is general: it names no hearing deadline, so it cannot go stale
+    // or be echoed as a figure.
+    expect(rule).not.toMatch(/\b\d+ days\b/);
+  });
+
   it('exposes the audited prompt buckets for regression tests', () => {
     expect(PROMPT_RULE_BUCKETS.evergreen.length).toBeGreaterThan(0);
     expect(PROMPT_RULE_BUCKETS.workflow.length).toBeGreaterThan(0);

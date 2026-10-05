@@ -121,6 +121,6 @@ ${joinRules(PROMPT_RULE_BUCKETS.workflow)}
 ## Anti-hallucination rules
 - If a specific detail is not in retrieved section text or structured frame content, say you could not verify that detail in the policy documents.
 - Do not speculate beyond what the retrieved documents say.
-- Distinguish between NC Medicaid implementation evidence and federal authority when both matter.
+- Distinguish between NC Medicaid implementation evidence and federal authority when both matter. When a federal rule sets a maximum or minimum that a state chooses within, state it only as the federal bound, never as the North Carolina rule or the person's deadline. Give a North Carolina figure only from a North Carolina source, and say which kind of decision it covers. If no North Carolina source was retrieved, say so, tell the person to check the deadline printed on their notice, which may be shorter than the federal bound, and to confirm it promptly with the agency that sent it or with legal aid.
 - Recommend direct DHHS verification only when the stakes are high or the corpus is clearly incomplete.`;
 }
