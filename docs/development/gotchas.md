@@ -178,6 +178,10 @@ Current guidance carried forward from main at `dc81a97`. When behavior changes, 
 
 Do **not** regenerate the whitelist with a bare `vulture src --make-whitelist` and commit it wholesale — that silently buries genuine dead code (it once would have hidden ~12 dead query constants). Use `--make-whitelist` to produce *candidates*, then triage: real dead code gets deleted, only true false positives go in the whitelist. The whitelist is excluded from ruff (`extend-exclude` in `pyproject.toml`) since its bare names would trip F821.
 
+## Pull request review checks
+
+- A green `claude-review` check is not evidence that a review happened. On 5 October 2026 its runs finished in two model turns and about three seconds and posted nothing, both before and after the workflow was made read-only. Greptile is the review bot that comments; confirm from the job log that `claude-review` did work before counting it as a second reviewer.
+
 ## Branch and worktree cleanup
 
 Squash-merged branches can appear ahead of main even when all their work is merged. Match the branch tip to the merged PR head and inspect changes made afterward before deleting it. A merged branch can also contain valuable uncommitted work. Save dirty files, ignored non-regenerable artifacts, patches, and Git bundles before removing worktrees. See the [2026-10-02 repository audit](repository-audit-2026-10-02.md).
