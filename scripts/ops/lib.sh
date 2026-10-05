@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Shared helpers for the ops scripts (backups, refresh cycle). Sourced, not run.
+# Shared helpers for the ops scripts (backups, corpus jobs). Sourced, not run.
 #
 # Conventions:
 # - Secrets/config live in ~/.config/nc-medicaid/ops.env (chmod 600), NOT in
@@ -44,7 +44,7 @@ hc_fail()  {
 
 # ── Composable EXIT hooks ────────────────────────────────────────────────────
 # bash `trap ... EXIT` REPLACES any previous trap, so helpers that each need
-# exit-time work (healthcheck fail ping, lock cleanup, proxy teardown) must
+# exit-time work (healthcheck fail ping, lock cleanup) must
 # register through one dispatcher instead of setting their own traps —
 # otherwise whichever helper ran last silently disables the others.
 
@@ -52,7 +52,7 @@ _EXIT_HOOKS=()
 _EXIT_CODE=0
 _run_exit_hooks() {
   _EXIT_CODE=$?
-  # LIFO (like `defer`): later-registered cleanup (e.g. the proxy teardown)
+  # LIFO (like `defer`): later-registered cleanup (e.g. a lock release)
   # runs BEFORE the earlier-registered healthcheck fail ping, so a failing
   # cleanup can still mark the run failed and be reported.
   local i hook
@@ -99,8 +99,6 @@ acquire_lock() {
 
 rmdir_lock() { rm -f "$1/pid" 2>/dev/null; rmdir "$1" 2>/dev/null || true; }
 
-is_locked() { [[ -d "$CACHE_DIR/$1.lock" ]]; }
-
 # Acquire a non-blocking advisory lock at an explicit path. Unlike acquire_lock,
 # this is suitable for a Railway persistent volume: the kernel releases flock
 # automatically after TERM, INT, or a hard container stop, while the lock file
@@ -131,13 +129,6 @@ release_path_lock() {
 # ── Tools ────────────────────────────────────────────────────────────────────
 
 railway_cli() { env -u RAILWAY_API_TOKEN railway "$@"; }
-
-require_docker() {
-  if ! docker info >/dev/null 2>&1; then
-    log "Docker is not running — aborting"
-    return 1
-  fi
-}
 
 require_tool() {
   command -v "$1" >/dev/null 2>&1 || { log "missing required tool: $1"; return 1; }

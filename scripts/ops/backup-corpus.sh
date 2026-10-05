@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Weekly corpus backup to the Railway bucket.
+# Corpus backup to the Railway bucket. Run by hand: nothing schedules it
+# until the Railway corpus job takes over (see RUNBOOK.md, Backups & Restore).
 #
-# What gets backed up (the laptop-only assets production is derived from —
-# with these, the prod Neo4j graph is fully rebuildable via deploy-data):
+# What gets backed up (the laptop-only assets a graph rebuild starts from):
 #   crawler/crawler-YYYY-MM-DD.db      consistent snapshot of the crawl registry
 #   crawler/documents/                 downloaded PDFs (~3 GB, incremental sync)
 #   pipeline/parsed/                   Docling outputs (~3 GB, incremental sync)
@@ -12,7 +12,7 @@
 # overwritten file under deleted/<date>/ — so a crawler bug that wipes
 # documents can't silently propagate into the only copy.
 #
-# Usage: scripts/ops/backup-corpus.sh    (also called from weekly-refresh.sh)
+# Usage: scripts/ops/backup-corpus.sh
 
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 

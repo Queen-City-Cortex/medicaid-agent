@@ -339,9 +339,11 @@ without presenting partial JSON as valid evidence.
 
 ## Retiring workstation scheduling
 
-Keep launchd as a development fallback until two Railway-run promotions and
-one rollback rehearsal succeed. Then uninstall the production launchd agents
-with `scripts/ops/install-launchd.sh --uninstall`; local scripts remain for
+The Saturday launchd job that pushed the corpus into the serving graph in
+place has already been removed, with its scripts. The remaining launchd agents
+(daily document check and chat-store backup) stay until two Railway-run
+promotions and one rollback rehearsal succeed. Then uninstall them with
+`scripts/ops/install-launchd.sh --uninstall`; local scripts remain for
 development only.
 
 Railway references:

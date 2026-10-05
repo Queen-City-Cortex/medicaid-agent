@@ -124,42 +124,39 @@ npm run dev
 
 Open `http://localhost:3000` to use the chat interface.
 
-## Automated Refresh & Backups (launchd)
+## Scheduled Checks & Backups (launchd)
 
-The daily/weekly data operations below are automated on the ops laptop via
-launchd, with [healthchecks.io](https://healthchecks.io) as a dead-man's
-switch (an alert fires when a job *doesn't run* — laptop off, plist unloaded —
-not just when it fails):
+Two data operations are scheduled on the ops laptop via launchd, with
+[healthchecks.io](https://healthchecks.io) as a dead-man's switch (an alert
+fires when a job *doesn't run* — laptop off, plist unloaded — not just when it
+fails):
 
 | Job | Schedule | Script | Healthcheck env |
 |---|---|---|---|
 | Daily document check | 07:30 | `scripts/ops/daily-check.sh` | `HC_URL_DAILY` |
 | Prod chat-store backup | 06:45 | `scripts/ops/backup-mastra.sh` | `HC_URL_MASTRA_BACKUP` |
-| Weekly refresh + deploy + backup | Sat 08:00 | `scripts/ops/weekly-refresh.sh` | `HC_URL_WEEKLY` |
 
 Install/refresh the schedules: `scripts/ops/install-launchd.sh` (idempotent;
 `--uninstall` removes them). launchd coalesces runs missed while the laptop
 slept into one run at wake. Logs: `~/Library/Logs/nc-medicaid/`. Ping URLs and
 bucket config live in `~/.config/nc-medicaid/ops.env`.
 
-**The weekly refresh** runs: crawl → `pipeline run-all` → `audit-corpus` →
-**eval gate** → **change gate** → deploy-data to prod (TCP proxy opened and
-closed automatically around the push, with an EXIT trap + post-check so it is
-never left open) → prod healthz + smoke → corpus backup.
+No laptop job loads data into the production graph. (`daily-check.sh` can
+only ask for a blue-green release, and only when `CORPUS_RELEASE_TRIGGER_URL`
+is set in `ops.env`.) The Saturday job whose last step wiped and reloaded the
+serving Neo4j graph in place was removed in October 2026, together with `npm run deploy-data`, its
+evaluation gate and its TCP-proxy helper. Its intended successor is the
+[blue-green corpus release](docs/operations/blue-green-corpus-releases.md), which rebuilds an inactive graph and
+switches the agent only after the release gates pass. That path does not yet
+work end to end; review cards OPS-2, OPS-3, OPS-7 and OPS-9 in the
+[October 2026 review](docs/reviews/2026-10-05-full-review/issues/release-ops.md)
+track the fixes.
+Until they land there is no supported procedure for publishing a new corpus to
+production.
 
-- **Eval gate** (`scripts/ops/eval-gate.sh`): `eval-validate`, a retrieval
-  eval, then `eval-compare --fail-on-regression` against the last-known-good
-  run (`~/.cache/nc-medicaid/last-good-eval`). A regression aborts before
-  prod is touched — prod keeps last week's graph and the alert carries the
-  comparison report. After investigating, rerun; the baseline only advances
-  on a pass.
-- **Change gate**: the destructive deploy (full wipe + Voyage re-embed) is
-  skipped when the crawl found nothing and the parsed-artifact manifest hash
-  matches the last deploy (`~/.cache/nc-medicaid/last-deploy.manifest`).
-  `FORCE_DEPLOY=1` overrides; `SKIP_DEPLOY=1` refreshes local only.
-
-Run any piece manually by invoking its script; a supervised end-to-end run is
-`launchctl kickstart -k gui/$(id -u)/com.ncmedicaid.weekly-refresh`.
+The Saturday job was also the only scheduled caller of the corpus backup, so
+corpus backups are manual until the Railway corpus job takes over (see
+[Backups & Restore](#backups--restore)).
 
 ## Daily: Check for Document Changes
 
@@ -392,22 +389,32 @@ credentials via `railway bucket credentials --bucket backups`). Script config
 
 | Data | Where | Backup | Cadence | Retention |
 |---|---|---|---|---|
-| Crawler registry (`crawler.db`) | laptop | `VACUUM INTO` snapshot → bucket `crawler/registry/` | weekly (`backup-corpus.sh`) | 90 days of dated copies |
-| Downloaded PDFs (~3 GB) | laptop | `rclone sync` → `crawler/documents/` (+`crawler/deleted/<date>/` undo) | weekly | deleted-file undo kept 120d |
-| Parsed artifacts (~3 GB) | laptop | `rclone sync` → `pipeline/parsed/` (+undo) | weekly | deleted-file undo kept 120d |
-| Golden/audits/references/ecfr-cache/eval-results | laptop | `rclone sync` → `pipeline/<dir>/` | weekly | mirrors |
+| Crawler registry (`crawler.db`) | laptop | `VACUUM INTO` snapshot → bucket `crawler/registry/` | manual (`backup-corpus.sh`) | 90 days of dated copies |
+| Downloaded PDFs (~3 GB) | laptop | `rclone sync` → `crawler/documents/` (+`crawler/deleted/<date>/` undo) | manual | deleted-file undo kept 120d |
+| Parsed artifacts (~3 GB) | laptop | `rclone sync` → `pipeline/parsed/` (+undo) | manual | deleted-file undo kept 120d |
+| Golden/audits/references/ecfr-cache/eval-results | laptop | `rclone sync` → `pipeline/<dir>/` | manual | mirrors |
 | LibSQL `mastra.db` (chat history, feedback, rate limits) | Railway agent volume | in-container `VACUUM INTO` → download → bucket `agent/mastra/` | daily (`backup-mastra.sh`) | 30 days of dated copies |
-| Neo4j graph | Railway volume | **none — rebuilt from artifacts** (see below) | n/a | n/a |
+| Neo4j graph | Railway volume | **no off-platform copy** — Railway volume backups only (see below) | n/a | n/a |
 
 Also enable **Railway-native volume backups** (dashboard → service → volume →
 Backups → Daily + Weekly) on both the agent volume and the Neo4j volume. They
 restore fastest but live in the same project — the bucket copies above are the
 independent tier.
 
-Run manually:
+**Corpus backups are manual.** No job runs `scripts/ops/backup-corpus.sh`
+since the Saturday laptop job was removed, and it stays that way until the
+Railway corpus job takes over. Run it from the ops laptop after any crawl or
+parse whose results you want kept; the laptop rows above are only as fresh as
+the last manual run:
 
 ```bash
-scripts/ops/backup-corpus.sh    # weekly corpus/crawler backup
+scripts/ops/backup-corpus.sh    # manual corpus/crawler backup (pings HC_URL_BACKUP if set)
+```
+
+The chat-store backup is scheduled (see the launchd table) and can also be run
+by hand:
+
+```bash
 scripts/ops/backup-mastra.sh    # daily prod chat-store backup
 ```
 
@@ -421,13 +428,13 @@ inside the container over Railway SSH, then downloads via
 - **Crawler registry:** `rclone copyto ncmedicaid:<bucket>/crawler/registry/crawler-<date>.db packages/crawler/data/crawler.db`
 - **Documents / parsed artifacts:** `rclone sync ncmedicaid:<bucket>/crawler/documents packages/crawler/data/documents` (same pattern for `pipeline/parsed`). A file deleted or overwritten by a bad sync also survives under `.../deleted/<date>/`.
 - **mastra.db (prod chat store):** pick a dated copy, `sqlite3 file 'PRAGMA integrity_check;'`, then `railway service files upload -s '@nc-medicaid/agent' <file> /data/mastra.db` **while the service is stopped/redeploying**, or use a Railway volume-backup restore for same-project incidents.
-- **Neo4j (prod graph): rebuild, don't restore.** The graph is a pure derivation of the parsed artifacts + federal caches. Restore those (above) if the laptop is lost, then `npm run deploy-data`. RPO = age of the last corpus backup; RTO ≈ 30 min + Voyage re-embed. Community-edition dumps would need downtime on every backup and buy little — this is the deliberate DR story.
+- **Neo4j (prod graph):** the only copy of the graph is a Railway-native volume backup, if those are enabled as described above (dashboard → `neo4j` service → volume → Backups). There is no off-platform graph dump, and the script that used to rebuild the production graph from the laptop (`npm run deploy-data`) has been removed. The graph is still a derivation of the parsed artifacts + federal caches, so restore those (above) if the laptop is lost; publishing a rebuilt graph to production is the job of the [blue-green corpus release](docs/operations/blue-green-corpus-releases.md), which does not yet work end to end (review cards OPS-2, OPS-3, OPS-7 and OPS-9). Until it does, a lost Neo4j volume with no usable volume backup has no tested recovery procedure.
 
 **Quarterly restore drill:** pull the newest `mastra-<date>.db`, run `PRAGMA integrity_check`, and spot-restore 5 random parsed JSONs, diffing against local.
 
 ## Full Rebuild (Nuclear Option)
 
-If the graph is corrupted or you need to rebuild from scratch. **`load --reset` drops every node and relationship in the graph that `NEO4J_URI` points at** — double-check it targets the intended instance before running. (For remote/production rebuilds use `npm run deploy-data`, which prints the target graph's contents and requires explicit confirmation.)
+If the local graph is corrupted or you need to rebuild from scratch. **`load --reset` drops every node and relationship in the graph that `NEO4J_URI` points at** — confirm it targets your local instance before running, and never point it at production. There is no in-place rebuild of the production graph: that path was removed, and its successor, the [blue-green corpus release](docs/operations/blue-green-corpus-releases.md), does not yet work end to end (review cards OPS-2, OPS-3, OPS-7 and OPS-9).
 
 ```bash
 cd packages/pipeline

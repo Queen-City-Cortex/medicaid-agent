@@ -9,14 +9,6 @@ exec > >(tee -a "$LOG_FILE") 2>&1
 hc_trap
 hc_start
 
-# The weekly refresh subsumes the daily check; don't fight it for the
-# crawler DB. Ping success with a note so the dead-man's switch stays green.
-if is_locked refresh; then
-  log "weekly refresh in progress — skipping daily check"
-  hc_ok
-  exit 0
-fi
-
 acquire_lock daily-check || exit 0
 require_tool jq
 require_tool curl
