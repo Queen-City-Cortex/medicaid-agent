@@ -5,6 +5,8 @@ import * as Sentry from '@sentry/nextjs';
 // so local `next dev` doesn't report into the shared Sentry project. Only the
 // exact "development" environment is suppressed. Traces default to 0.1 (10%)
 // so production errors carry span context — override with SENTRY_TRACES_SAMPLE_RATE.
+// Request bodies, cookies and headers are kept off events: the session cookie
+// rides on every page request and the SDK would otherwise attach it.
 export async function register() {
   // Require an EXPLICITLY declared deploy environment. A local `next start`
   // has NODE_ENV=production but no SENTRY_ENVIRONMENT, so relying on the
@@ -27,6 +29,12 @@ export async function register() {
     release: process.env.SENTRY_RELEASE,
     environment,
     tracesSampleRate: Number(process.env.SENTRY_TRACES_SAMPLE_RATE ?? 0.1),
+    // Mirrors packages/agent/src/sentry.ts. The agent's httpIntegration
+    // override is deliberately absent: @sentry/nextjs installs its own with
+    // incoming-request spans disabled, and replacing it would drop that.
+    integrations: [
+      Sentry.requestDataIntegration({ include: { data: false, cookies: false, headers: false } }),
+    ],
   };
 
   if (process.env.NEXT_RUNTIME === 'nodejs' || process.env.NEXT_RUNTIME === 'edge') {

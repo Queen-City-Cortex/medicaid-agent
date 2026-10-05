@@ -34,13 +34,13 @@ Copy `.env.example` to `.env` at the repo root and fill in keys. The agent and w
 | `SENTRY_DSN` | No | — | Server-side error tracking for both agent and web. Unset = Sentry disabled (no-op). **Also skipped when the resolved environment is `development`** (see below), so a DSN in local `.env` does not report dev errors. Set per service in Railway. |
 | `NEXT_PUBLIC_SENTRY_DSN` | No | — | Browser error DSN for `packages/web`. Inlined at **build** time, so on Railway it must be a **build-time** variable on the web service. |
 | `SENTRY_ENVIRONMENT` / `NEXT_PUBLIC_SENTRY_ENVIRONMENT` | No | `NODE_ENV` | Environment label on events (`production`, `staging`, …). |
-| `SENTRY_TRACES_SAMPLE_RATE` / `NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE` | No | `0` | Performance-trace sample rate. `0` = errors only; raise (e.g. `0.1`) to enable tracing without a code change. |
+| `SENTRY_TRACES_SAMPLE_RATE` / `NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE` | No | `0.1` | Performance-trace sample rate. The default traces 10% of requests so errors carry span context; set `0` for errors only. |
 | `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` | No | — | Web **build-time** source-map upload. Absent = upload skipped, build still succeeds. |
 | `SENTRY_RELEASE` | No | `RAILWAY_GIT_COMMIT_SHA` | Release tag on events; set from the commit SHA in both Dockerfiles. |
 
 ### Sentry error tracking
 
-Sentry is wired into both services and is **fully disabled until `SENTRY_DSN` is set** — evals and CI run with no Sentry traffic. It is **also skipped whenever the resolved environment is `development`** (`SENTRY_ENVIRONMENT` / `NEXT_PUBLIC_SENTRY_ENVIRONMENT`, falling back to `NODE_ENV`), so a DSN left in a local `.env` will **not** send `next dev` / `mastra dev` errors into the shared project — only deploys (prod/staging) report. It captures errors only (`tracesSampleRate` defaults to `0`); it does **not** replace `@mastra/observability` (LLM/agent tracing).
+Sentry is wired into both services and is **fully disabled until `SENTRY_DSN` is set** — evals and CI run with no Sentry traffic. It is **also skipped whenever the resolved environment is `development`** (`SENTRY_ENVIRONMENT` / `NEXT_PUBLIC_SENTRY_ENVIRONMENT`, falling back to `NODE_ENV`), so a DSN left in a local `.env` will **not** send `next dev` / `mastra dev` errors into the shared project — only deploys (prod/staging) report. It captures every error plus a 10% sample of request traces (`tracesSampleRate` defaults to `0.1`), with request bodies, headers and cookies excluded from both; the request URL and query string are still sent. It does **not** replace `@mastra/observability` (LLM/agent tracing).
 
 To enable in production (Railway):
 
