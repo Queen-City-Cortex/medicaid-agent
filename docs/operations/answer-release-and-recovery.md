@@ -24,7 +24,7 @@ The lease remains 15 minutes with one-minute renewal/sweep. Claims are atomic an
 
 Authentication/configuration errors, incompatible checkpoints, exhausted budgets, changed corpus releases, and failed grounding are terminal. A verifier outage retries the saved draft; exhaustion leaves it withheld. A missing corpus release ID cannot be used for recovery. Cancellation clears scheduled retries and prevents late results from publishing.
 
-Retention and account deletion remove private checkpoint/budget rows and associated Mastra workflow snapshots before deleting the public run. Existing completed research reports without a verification result are withheld when read.
+Retention and account deletion remove private checkpoint/budget rows and associated Mastra workflow snapshots before deleting the public run. Conversation retention deletes an expired thread's messages, thread state and thread-scoped observational-memory record with it, and sweeps records older than the cutoff whose thread no longer exists. Existing completed research reports without a verification result are withheld when read.
 
 ## Operational checks
 

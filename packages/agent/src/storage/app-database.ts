@@ -237,10 +237,27 @@ export class AppDatabase {
           args: [conversationCutoff],
         });
       }
+      // Thread-scoped summaries go with their thread. Resource-scoped rows have a null threadId and are left alone.
+      const hasObservationalMemory = await this.hasTable('mastra_observational_memory');
+      if (hasObservationalMemory) {
+        statements.push({
+          sql: `DELETE FROM mastra_observational_memory WHERE "threadId" IN
+                (SELECT id FROM mastra_threads WHERE "updatedAt" < ?)`,
+          args: [conversationCutoff],
+        });
+      }
       statements.push({
         sql: 'DELETE FROM mastra_threads WHERE "updatedAt" < ?',
         args: [conversationCutoff],
       });
+      if (hasObservationalMemory) {
+        // Rows orphaned earlier. The age guard spares a first turn whose thread row is not saved yet.
+        statements.push({
+          sql: `DELETE FROM mastra_observational_memory WHERE "threadId" IS NOT NULL AND "updatedAt" < ?
+                AND "threadId" NOT IN (SELECT id FROM mastra_threads)`,
+          args: [conversationCutoff],
+        });
+      }
     }
 
     await this.client.batch(statements, 'write');
