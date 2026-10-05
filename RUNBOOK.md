@@ -396,7 +396,7 @@ credentials via `railway bucket credentials --bucket backups`). Script config
 | Downloaded PDFs (~3 GB) | laptop | `rclone sync` → `crawler/documents/` (+`crawler/deleted/<date>/` undo) | manual | deleted-file undo kept 120d |
 | Parsed artifacts (~3 GB) | laptop | `rclone sync` → `pipeline/parsed/` (+undo) | manual | deleted-file undo kept 120d |
 | Golden/audits/references/ecfr-cache/eval-results | laptop | `rclone sync` → `pipeline/<dir>/` | manual | mirrors |
-| LibSQL `mastra.db` (chat history, feedback, rate limits) | Railway agent volume | in-container `VACUUM INTO` → download → bucket `agent/mastra/` | daily (`backup-mastra.sh`) | 30 days of dated copies |
+| LibSQL `mastra.db` (chat history, feedback, rate limits) | Railway agent volume | wake via `/healthz` → in-container `VACUUM INTO` on the running instance → download → bucket `agent/mastra/` | daily (`backup-mastra.sh`) | 30 days of dated copies |
 | Neo4j graph | Railway volume | **no off-platform copy** — Railway volume backups only (see below) | n/a | n/a |
 
 Also enable **Railway-native volume backups** (dashboard → service → volume →
@@ -415,16 +415,49 @@ scripts/ops/backup-corpus.sh    # manual corpus/crawler backup (pings HC_URL_BAC
 ```
 
 The chat-store backup is scheduled (see the launchd table) and can also be run
-by hand:
+by hand from the repository root on the ops laptop:
 
 ```bash
 scripts/ops/backup-mastra.sh    # daily prod chat-store backup
 ```
 
+**No copy newer than 21 September 2026 exists yet.** Every scheduled run from
+22 September to 4 October 2026 (13 days) failed at the snapshot step, starting
+the day after the agent service was set to sleep when idle. The script has
+been changed as described below but has not been run against production
+since. The owner must take one manual backup with the command above, and the
+gap is not repaired until a scheduled 06:45 run also finishes with
+`mastra backup complete` and a `mastra-<date>.db` for that day is in the
+bucket (`rclone lsl ncmedicaid:<bucket>/agent/mastra/`).
+
+What the script does, in order:
+
+1. Polls `https://medicaid-agent-backend.up.railway.app/healthz` until it
+   returns 200 (up to 30 tries, 10 seconds apart). The agent sleeps when idle
+   and `railway ssh` does not wake it.
+2. Reads `railway status --json` and takes the RUNNING instance of the agent
+   service. Every `railway ssh` call names it with `--deployment-instance`;
+   left to its default after a wake, `railway ssh` can reach an obsolete
+   instance and print Railway account JSON instead of command output.
+3. In one remote command, removes every `/data/mastra-backup-*.db` left on the
+   volume by earlier runs, then writes today's snapshot with `VACUUM INTO`.
+   Success is the `SNAPSHOT_OK` line in the output, not the exit code. If it
+   is missing, steps 1 to 3 run once more; a second miss fails the run.
+4. Downloads the snapshot with `railway service files download`, runs
+   `PRAGMA integrity_check`, uploads it to `agent/mastra/` and prunes copies
+   older than 30 days.
+5. On exit, however the run ended (including a snapshot that failed on both
+   tries, which can still have written a file), removes the snapshots from
+   the volume and the local temporary directory. The remote removal must
+   print `CLEAN_OK`, which is echoed only when no `/data/mastra-backup-*.db`
+   remains. Without it the run pings the healthcheck's `/fail` URL and exits
+   non-zero even if the upload succeeded, because the leftover is a full plaintext copy of the chat store
+   that thread deletion and the retention purge do not reach. To look for
+   leftovers by hand, wake the agent and list `/data` on the running instance.
+
 One-time prereqs for `backup-mastra.sh`: `railway ssh keys add` and
-`ssh-keyscan ssh.railway.com >> ~/.ssh/known_hosts` (the script snapshots
-inside the container over Railway SSH, then downloads via
-`railway service files download`).
+`ssh-keyscan ssh.railway.com >> ~/.ssh/known_hosts`. It also needs `curl`,
+`jq`, `rclone` and `sqlite3` on the launchd `PATH`.
 
 ### Restore
 

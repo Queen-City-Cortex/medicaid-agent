@@ -63,6 +63,9 @@ _run_exit_hooks() {
       _hc_failed=1
     fi
   done
+  # A run whose cleanup failed must not report success to its caller
+  # (launchd, Railway). Every hook has run by now, including the fail ping.
+  if [[ $_EXIT_CODE -eq 0 && $_hc_failed -ne 0 ]]; then exit 1; fi
 }
 add_exit_hook() {
   _EXIT_HOOKS+=("$1")
