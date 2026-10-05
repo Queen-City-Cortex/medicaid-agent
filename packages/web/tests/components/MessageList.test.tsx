@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { UIMessage } from 'ai';
 import { MessageList } from '../../src/components/MessageList';
 import { convertThreadMessageToUIMessage } from '../../src/lib/parse-message';
+import { resolveCitedSources } from '../../src/lib/message-parts';
 
 vi.mock('@/components/MessageActions', () => ({
   MessageActions: ({ content }: { content: string }) => (
@@ -492,6 +493,46 @@ describe('MessageList', () => {
     // the visible footnote stays superscript-sized.
     expect(footnote.className).toContain('after:-inset-2');
     expect(footnote.className).toContain('relative');
+  });
+
+  it('numbers a citation whose label is formatted, by its section', () => {
+    const url = 'https://example.org/policy-8c.pdf';
+    const section = (toolCallId: string, sectionNumber: string) => ({
+      type: 'dynamic-tool' as const,
+      toolName: 'getSection',
+      toolCallId,
+      state: 'output-available' as const,
+      input: { sectionId: toolCallId },
+      output: { section: { title: `Section ${sectionNumber}`, sectionNumber, policyNumber: '8C', url } },
+    });
+    renderMessageList([
+      {
+        id: 'assistant-bold-cite',
+        role: 'assistant',
+        parts: [
+          section('tc-1', '3.2.1'),
+          section('tc-2', '5.6'),
+          { type: 'text', text: `Limits are in [**Policy 8-C § 5.6**](${url}).` },
+        ],
+      },
+    ]);
+
+    // Two rows share the URL, so only the label's section can pick one. The
+    // cited row sorts first, hence footnote 1.
+    expect(screen.getByTestId('citation-footnote').textContent).toBe('[1]');
+  });
+
+  it('counts a citation as cited when only its section number is formatted', () => {
+    const url = 'https://example.org/policy-8c.pdf';
+    const sources = ['3.2.1', '5.6'].map((sectionNumber) => ({
+      label: `Policy 8C § ${sectionNumber}`, url, sectionNumber,
+    })) as Parameters<typeof resolveCitedSources>[1];
+    const msg = { id: 'm', role: 'assistant', parts: [{ type: 'text', text: `See [Policy 8-C § **5.6**](${url}).` }] } as UIMessage;
+
+    const { ordered, citedCount } = resolveCitedSources(msg, sources);
+
+    expect(citedCount).toBe(1);
+    expect(ordered[0].sectionNumber).toBe('5.6');
   });
 
   // ── Version navigation ────────────────────────────────────────────────

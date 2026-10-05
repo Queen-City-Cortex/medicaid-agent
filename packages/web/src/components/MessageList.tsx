@@ -2,7 +2,7 @@
 
 import { WITHHELD_ANSWER, UNVERIFIED_HISTORY } from '@nc-medicaid/contracts';
 import { extractReleaseState } from '@/lib/message-verification';
-import { useState, type RefObject } from 'react';
+import { isValidElement, useState, type ReactNode, type RefObject } from 'react';
 import ReactMarkdown from 'react-markdown';
 import type { UIMessage } from 'ai';
 import { ChevronRight, RotateCcw } from 'lucide-react';
@@ -16,8 +16,6 @@ import { VersionNav } from '@/components/VersionNav';
 import { getMessageCreatedAt } from '@/lib/parse-message';
 import {
   buildAnswerClipboardText,
-  buildCitationResolver,
-  extractCitedUrls,
   extractMessageSources,
   extractVerificationState,
   getToolName,
@@ -26,7 +24,7 @@ import {
   isTextPart,
   isToolPart,
   isTripwirePart,
-  splitSourcesByCited,
+  resolveCitedSources,
   type CitationResolver,
   type MessageSource,
   type ToolMessagePart,
@@ -56,6 +54,14 @@ interface MessageListProps {
   onSelectVersion?: (userMsgId: string, version: number) => void;
 }
 
+/** Visible text of a rendered markdown node, including nested formatting. */
+function nodeText(node: ReactNode): string {
+  if (typeof node === 'string' || typeof node === 'number') return String(node);
+  if (Array.isArray(node)) return node.map(nodeText).join('');
+  if (isValidElement<{ children?: ReactNode }>(node)) return nodeText(node.props.children);
+  return '';
+}
+
 function MarkdownText({
   text,
   finalAnswer,
@@ -77,11 +83,9 @@ function MarkdownText({
             // Resolve to the Sources-panel row by the link's visible label
             // first (unique per section) — a URL-only match collapses every
             // section of one policy PDF onto a single footnote number.
-            const label = typeof children === 'string'
-              ? children
-              : Array.isArray(children)
-                ? children.filter((c) => typeof c === 'string').join('')
-                : '';
+            // Flatten formatted labels too ("**42 CFR § 441.301**" arrives
+            // as a <strong> element, not a string).
+            const label = nodeText(children);
             const sourceNumber = resolveCitation?.(label, href ?? null);
             // A link that maps to a numbered source is a citation: keep it quiet
             // (ink-colored, hairline underline) so clusters of them don't read as
@@ -171,9 +175,9 @@ function AssistantMessage({
     .filter(({ part }) => isToolPart(part) || (isTextPart(part) && part.text.trim().length > 0));
   // Sources ordered cited-first so the panel can group them and budgeted
   // footnote numbers stay aligned with row positions.
-  const { ordered: sources, citedCount } = splitSourcesByCited(
+  const { ordered: sources, citedCount, resolveCitation } = resolveCitedSources(
+    msg,
     extractMessageSources(msg),
-    extractCitedUrls(msg),
   );
   const verification = extractVerificationState(msg);
   // Generation timestamp from memory's createdAt — present only on restored
@@ -219,7 +223,6 @@ function AssistantMessage({
   const inlineParts = collapseTrail
     ? visibleParts.filter(({ index }) => index > lastToolIndex)
     : visibleParts;
-  const resolveCitation = buildCitationResolver(sources);
   // Open by default whenever the agent consulted any sources — hiding the
   // panel behind a click is the wrong default for a verification-first
   // product, and an answer with consulted-but-uncited sources is exactly the

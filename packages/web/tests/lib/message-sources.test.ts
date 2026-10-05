@@ -2,9 +2,8 @@ import { describe, expect, it } from 'vitest';
 import type { UIMessage } from 'ai';
 import {
   buildAnswerClipboardText,
-  extractCitedUrls,
   extractMessageSources,
-  splitSourcesByCited,
+  resolveCitedSources,
   type MessageSource,
 } from '../../src/lib/message-parts';
 
@@ -108,18 +107,26 @@ describe('source snippets', () => {
 });
 
 describe('cited vs consulted split', () => {
-  it('extracts normalized cited urls from answer markdown links', () => {
-    const msg = assistantMessage([
-      { type: 'text', text: 'Covered [Policy 8C § 3.2.1](https://Example.com/8c/?attachment) per policy.' },
-    ]);
-    const cited = extractCitedUrls(msg);
-    expect(cited.has('https://example.com/8c')).toBe(true);
-  });
-
   it('orders cited sources first and reports the split point', () => {
     const a = source({ key: 'a', url: 'https://example.com/uncited', label: 'Policy 1A § 1.0', sectionNumber: '1.0' });
     const b = source({ key: 'b', url: 'https://example.com/8c' });
-    const { ordered, citedCount } = splitSourcesByCited([a, b], new Set(['https://example.com/8c']));
+    // The link's URL differs in surface form from the row's and still matches.
+    const msg = assistantMessage([
+      { type: 'text', text: 'Covered [Policy 8C § 3.2.1](https://Example.com/8c/?attachment) per policy.' },
+    ]);
+    const { ordered, citedCount, resolveCitation } = resolveCitedSources(msg, [a, b]);
+    expect(ordered.map((s) => s.key)).toEqual(['b', 'a']);
+    expect(citedCount).toBe(1);
+    expect(resolveCitation('Policy 8C § 3.2.1', 'https://example.com/8c')).toBe(1);
+  });
+
+  it('marks only the cited section of a shared-URL document as cited', () => {
+    const a = source({ key: 'a', label: 'Policy 8C § 1.0', sectionNumber: '1.0' });
+    const b = source({ key: 'b' });
+    const msg = assistantMessage([
+      { type: 'text', text: 'Covered [Policy 8C § 3.2.1](https://example.com/8c) per policy.' },
+    ]);
+    const { ordered, citedCount } = resolveCitedSources(msg, [a, b]);
     expect(ordered.map((s) => s.key)).toEqual(['b', 'a']);
     expect(citedCount).toBe(1);
   });

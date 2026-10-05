@@ -35,115 +35,123 @@ export type CitationResolver = (
   href: string | null | undefined,
 ) => number | undefined;
 
-/** Parse a source/citation label like "Policy 3G-1 § 5.2.1" into its parts. */
-function parsePolicySection(label: string): { policy: string; section: string } | null {
-  const m = label.match(/^Policy\s+(\S+)\s*§\s*([\d.]+)/i);
-  if (!m) return null;
-  return { policy: m[1], section: m[2].replace(/\.+$/, '') };
-}
-
-/** True when `prefix` is a strict dotted-segment ancestor of `full` (5.2 ⊏ 5.2.1). */
-function isDottedAncestor(prefix: string, full: string): boolean {
-  const p = prefix.split('.');
-  const f = full.split('.');
-  if (p.length >= f.length) return false;
-  return p.every((seg, i) => seg === f[i]);
+/**
+ * Section token of a citation label: the text after "§" up to the first
+ * space, keeping directly attached parenthesised groups. "42 CFR § 441.302",
+ * "SSA § 1915(c)" and "Policy 1F § 5.2.1" all parse; a spaced suffix such as
+ * " (last revised 2024-05-10)" is dropped.
+ */
+function citedSectionNumber(label: string): string | null {
+  const m = label.match(/§\s*([A-Za-z0-9][A-Za-z0-9.-]*(?:\([A-Za-z0-9]+\))*)/);
+  return m ? m[1] : null;
 }
 
 /**
- * Resolve an inline markdown citation to its 1-based Sources-panel row.
- *
- * Every section of one policy PDF shares a single download URL (e.g. all of
- * Policy 1F's sections point at `…/1f-chiropractic-services/download`), so a
- * URL-only lookup collapses "§ 3.2.1", "§ 5.6", etc. onto whichever row landed
- * first — the footnote then misroutes the reader to the wrong section. We
- * resolve in three tiers:
- *   1. Exact label match — the source LABEL ("Policy 1F § 5.6") is unique per
- *      row (disambiguateLabels guarantees it) and the agent emits exactly that
- *      label as the link text.
- *   2. Deepest same-policy ancestor — the agent often cites a finer subsection
- *      ("§ 5.2.1") than the row it actually retrieved ("§ 5.2"); point at that
- *      ancestor row rather than the unrelated first row of the PDF.
- *   3. URL fallback — for doc-level links or prose phrases whose text isn't a
- *      section label.
+ * Split a section number on dots and parentheses: "441.301(c)(2)" becomes
+ * [441, 301, c, 2]. A trailing "0" segment is dropped so a "5.0" row, which
+ * carries the text of its "5.x" subsections, reads as their parent.
  */
-export function buildCitationResolver(sources: MessageSource[]): CitationResolver {
-  const byLabel = new Map<string, number>();
-  const byUrl = new Map<string, number>();
-  const sectionRows: Array<{ policy: string; section: string; index: number }> = [];
-  sources.forEach((source, i) => {
-    const n = i + 1;
-    if (!byLabel.has(source.label)) byLabel.set(source.label, n);
-    const normalized = normalizeCitationUrl(source.url);
-    if (normalized && !byUrl.has(normalized)) byUrl.set(normalized, n);
-    const ps = parsePolicySection(source.label);
-    if (ps) sectionRows.push({ ...ps, index: n });
-  });
-  return (label, href) => {
-    const trimmed = label?.trim();
-    if (trimmed) {
-      const byExact = byLabel.get(trimmed);
-      if (byExact !== undefined) return byExact;
-      const cite = parsePolicySection(trimmed);
-      if (cite) {
-        let best: number | undefined;
-        let bestDepth = -1;
-        for (const row of sectionRows) {
-          if (row.policy !== cite.policy) continue;
-          if (isDottedAncestor(row.section, cite.section)) {
-            const depth = row.section.split('.').length;
-            if (depth > bestDepth) {
-              bestDepth = depth;
-              best = row.index;
-            }
-          }
-        }
-        if (best !== undefined) return best;
+function sectionSegments(sectionNumber: string): string[] {
+  const segments = sectionNumber.toLowerCase().split(/[.()]+/).filter(Boolean);
+  if (segments.length > 1 && segments[segments.length - 1] === '0') segments.pop();
+  return segments;
+}
+
+/**
+ * Match an inline markdown citation to its Sources-panel row.
+ *
+ * Every section of one document shares a single URL (all of Policy 1F's
+ * sections point at `…/1f-chiropractic-services/download`, all of 42 CFR
+ * part 441 at one eCFR page), so the URL alone cannot pick a row. We resolve
+ * in three tiers:
+ *   1. Exact label match: the source label ("Policy 1F § 5.6") is unique per
+ *      row (disambiguateLabels guarantees it).
+ *   2. Section match among the rows sharing the link's URL: the row whose
+ *      section number equals the one cited after "§", else its deepest
+ *      retrieved ancestor ("§ 5.2.1" on the "§ 5.2" row, "§ 5.6" on "§ 5.0").
+ *      Scoping by URL instead of the label's wording covers federal labels
+ *      ("42 CFR § 441.302" on the row "Policy 42-CFR-441 § 441.302") and
+ *      spelling variants ("Policy 1-H" on "Policy 1H" rows).
+ *   3. The document-level row for that URL, or its only row.
+ * Anything else is unresolved and gets no footnote: pointing at a sibling
+ * section's excerpt is worse than pointing at nothing.
+ */
+function findCitedSource(
+  sources: MessageSource[],
+  label: string | null | undefined,
+  href: string | null | undefined,
+): MessageSource | undefined {
+  const trimmed = label?.trim();
+  if (trimmed) {
+    const exact = sources.find((source) => source.label === trimmed);
+    if (exact) return exact;
+  }
+  const normalized = normalizeCitationUrl(href);
+  if (!normalized) return undefined;
+  const sameDocument = sources.filter((source) => normalizeCitationUrl(source.url) === normalized);
+
+  const cited = trimmed ? citedSectionNumber(trimmed) : null;
+  if (cited) {
+    const citedSegments = sectionSegments(cited);
+    let best: MessageSource | undefined;
+    let bestDepth = 0;
+    for (const source of sameDocument) {
+      if (!source.sectionNumber) continue;
+      if (source.sectionNumber === cited) return source;
+      const segments = sectionSegments(source.sectionNumber);
+      if (segments.length > citedSegments.length || segments.length <= bestDepth) continue;
+      if (segments.every((segment, i) => segment === citedSegments[i])) {
+        best = source;
+        bestDepth = segments.length;
       }
     }
-    const normalized = normalizeCitationUrl(href ?? null);
-    return normalized ? byUrl.get(normalized) : undefined;
+    if (best) return best;
+  }
+
+  const documentRows = sameDocument.filter((source) => source.sectionNumber === null);
+  if (documentRows.length === 1) return documentRows[0];
+  return sameDocument.length === 1 ? sameDocument[0] : undefined;
+}
+
+/** Resolve an inline markdown citation to its 1-based Sources-panel row. */
+export function buildCitationResolver(sources: MessageSource[]): CitationResolver {
+  return (label, href) => {
+    const source = findCitedSource(sources, label, href);
+    return source ? sources.indexOf(source) + 1 : undefined;
   };
 }
 
 // ─── Cited vs consulted ──────────────────────────────────────────────────────
 
-const MARKDOWN_LINK_URL_RE = /\]\(\s*(https?:\/\/[^)\s]+)\s*\)/g;
-
-/**
- * Normalized URLs of every markdown link in the message's text parts — i.e.
- * the sources the answer actually cites inline. Everything else in the
- * Sources panel was merely consulted (mostly search hits), and presenting
- * "12 sources" when 9 are unread search results undermines verifiability.
- */
-export function extractCitedUrls(msg: UIMessage): Set<string> {
-  const cited = new Set<string>();
-  for (const part of msg.parts ?? []) {
-    if (!isTextPart(part)) continue;
-    for (const match of part.text.matchAll(MARKDOWN_LINK_URL_RE)) {
-      const normalized = normalizeCitationUrl(match[1]);
-      if (normalized) cited.add(normalized);
-    }
-  }
-  return cited;
-}
+const MARKDOWN_LINK_RE = /\[([^\]]+)\]\(\s*(https?:\/\/[^)\s]+)\s*\)/g;
 
 /**
  * Order sources cited-first (preserving natural section order within each
- * group) and return the split point. The Sources panel renders group
- * headers; footnote numbers stay continuous across the boundary.
+ * group) and number footnotes against that order. A row is cited only when
+ * an inline link in the message resolves to it; everything else in the
+ * Sources panel was merely consulted (mostly search hits), and presenting
+ * "12 cited" when the answer cites three sections undermines verifiability.
+ * The Sources panel renders group headers; footnote numbers stay continuous
+ * across the boundary.
  */
-export function splitSourcesByCited(
+export function resolveCitedSources(
+  msg: UIMessage,
   sources: MessageSource[],
-  citedUrls: Set<string>,
-): { ordered: MessageSource[]; citedCount: number } {
-  const cited: MessageSource[] = [];
-  const consulted: MessageSource[] = [];
-  for (const source of sources) {
-    const normalized = normalizeCitationUrl(source.url);
-    (normalized && citedUrls.has(normalized) ? cited : consulted).push(source);
+): { ordered: MessageSource[]; citedCount: number; resolveCitation: CitationResolver } {
+  const citedSources = new Set<MessageSource>();
+  for (const part of msg.parts ?? []) {
+    if (!isTextPart(part)) continue;
+    for (const [, label, url] of part.text.matchAll(MARKDOWN_LINK_RE)) {
+      // Drop emphasis markers so the label matches what the rendered link
+      // shows ("§ **5.6**" renders, and is footnoted, as "§ 5.6").
+      const source = findCitedSource(sources, label.replace(/[*`]/g, ''), url);
+      if (source) citedSources.add(source);
+    }
   }
-  return { ordered: [...cited, ...consulted], citedCount: cited.length };
+  const cited = sources.filter((source) => citedSources.has(source));
+  const consulted = sources.filter((source) => !citedSources.has(source));
+  const ordered = [...cited, ...consulted];
+  return { ordered, citedCount: cited.length, resolveCitation: buildCitationResolver(ordered) };
 }
 
 // ─── Clipboard text ──────────────────────────────────────────────────────────
@@ -159,7 +167,7 @@ export function buildAnswerClipboardText(answerText: string, orderedSources: Mes
   const resolve = buildCitationResolver(orderedSources);
 
   const body = answerText.replace(
-    /\[([^\]]+)\]\(\s*(https?:\/\/[^)\s]+)\s*\)/g,
+    MARKDOWN_LINK_RE,
     (_match, label: string, url: string) => {
       const sourceNumber = resolve(label, url);
       return sourceNumber !== undefined ? `${label} [${sourceNumber}]` : label;

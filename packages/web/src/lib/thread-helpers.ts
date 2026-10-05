@@ -118,10 +118,9 @@ export function buildThreadDisplayTitles(
 import { convertThreadMessageToUIMessage } from '@/lib/parse-message';
 import {
   buildAnswerClipboardText,
-  extractCitedUrls,
   extractMessageSources,
   getTrailingAssistantText,
-  splitSourcesByCited,
+  resolveCitedSources,
 } from '@/lib/message-parts';
 
 /**
@@ -166,7 +165,7 @@ export function buildThreadMarkdown({
     const answer = getTrailingAssistantText(msg).trim();
     if (!answer) continue;
 
-    const { ordered } = splitSourcesByCited(extractMessageSources(msg), extractCitedUrls(msg));
+    const { ordered } = resolveCitedSources(msg, extractMessageSources(msg));
     lines.push('## Answer', '', buildAnswerClipboardText(answer, ordered), '');
   }
 
