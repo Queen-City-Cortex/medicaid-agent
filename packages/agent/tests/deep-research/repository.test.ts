@@ -111,6 +111,42 @@ describe('ResearchRepository', () => {
     expect(after).toMatchObject({ state: 'planning', leaseOwner: 'worker-1' });
     expect(after!.leaseExpiresAt).toBeGreaterThan(before!.leaseExpiresAt!);
   });
+
+  it('cancels a plan left awaiting approval for a day and frees the owner to start again', async () => {
+    const plannedAt = Date.parse('2026-07-23T12:00:00.000Z');
+    const plan = {
+      brief: 'Brief',
+      subQuestions: [{ question: 'Question', rationale: 'Reason', channels: ['vector' as const], useWeb: false }],
+    };
+    for (const [runId, userId] of [['run-1', 'user-1'], ['run-2', 'user-2']]) {
+      await repository.create(runId, userId, 'First', plannedAt - 60_000);
+      await repository.acquire(runId, 'queued', 'planning', 'planner', 2, plannedAt - 60_000);
+    }
+    await repository.awaitingApproval('run-1', plan, 'planner', plannedAt);
+    // run-2 is older but still leased planning work: only waiting plans expire.
+
+    expect(await repository.expireAwaitingApproval(plannedAt + 86_400_000 - 1)).toEqual([]);
+    await expect(repository.create('run-3', 'user-1', 'Second', plannedAt + 86_400_000 - 1))
+      .rejects.toMatchObject({ reason: 'active_run' });
+
+    expect(await repository.expireAwaitingApproval(plannedAt + 86_400_000))
+      .toEqual([{ runId: 'run-1', workflowRunId: null }]);
+    expect(await repository.get('run-1', 'user-1')).toMatchObject({ state: 'cancelled' });
+    expect(await repository.get('run-2', 'user-2')).toMatchObject({ state: 'planning' });
+    expect(await repository.create('run-3', 'user-1', 'Second', plannedAt + 86_400_000))
+      .toMatchObject({ state: 'queued' });
+  });
+
+  it('finds only the owner\'s active run', async () => {
+    expect(await repository.getActive('user-1')).toBeNull();
+    await repository.create('run-1', 'user-1', 'First');
+
+    expect(await repository.getActive('user-1')).toMatchObject({ runId: 'run-1', state: 'queued' });
+    expect(await repository.getActive('user-2')).toBeNull();
+
+    await repository.cancel('run-1', 'user-1');
+    expect(await repository.getActive('user-1')).toBeNull();
+  });
 });
 
 describe('recovery lease and budget invariants', () => {

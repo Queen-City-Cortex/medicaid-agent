@@ -173,6 +173,7 @@ function makeController(over: Partial<DeepResearchController>): DeepResearchCont
     plan: null,
     report: null,
     error: null,
+    notice: null,
     question: '',
     elapsedMs: 0,
     isBusy: false,

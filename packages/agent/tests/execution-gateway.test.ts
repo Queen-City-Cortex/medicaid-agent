@@ -61,6 +61,7 @@ describe('execution gateway', () => {
     for (const [method, path] of [
       ['POST', '/research/runs'],
       ['GET', '/research/runs/run-1'],
+      ['GET', '/research/runs/current'],
       ['POST', '/research/runs/run-1/decision'],
       ['POST', '/research/runs/run-1/cancel'],
     ]) {

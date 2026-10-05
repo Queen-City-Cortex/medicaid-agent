@@ -125,6 +125,36 @@ describe('ResearchService', () => {
     }
   });
 
+  it('cancels an abandoned plan and its suspended workflow in the recovery sweep', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime('2026-07-24T12:00:00.000Z');
+    const service = new ResearchService(repository, 2, undefined, async () => 'release-1');
+    try {
+      await repository.create('run-1', 'user-1', 'What is covered?');
+      const cancel = vi.fn().mockResolvedValue(undefined);
+      const createRun = vi.fn().mockResolvedValue({
+        runId: 'workflow-1',
+        start: vi.fn().mockResolvedValue({ status: 'suspended', suspendPayload: { 'plan-approval': PLAN } }),
+        resume: vi.fn(),
+        cancel,
+      });
+      const mastra = { getWorkflow: vi.fn(() => ({ createRun })) } as unknown as ResearchMastra;
+      await service.plan('run-1', mastra);
+
+      await service.recover(mastra);
+      expect(await repository.get('run-1', 'user-1')).toMatchObject({ state: 'awaiting_approval' });
+      expect(cancel).not.toHaveBeenCalled();
+
+      await vi.advanceTimersByTimeAsync(86_400_000 + 60_000);
+      expect(await repository.get('run-1', 'user-1')).toMatchObject({ state: 'cancelled' });
+      expect(createRun).toHaveBeenLastCalledWith({ runId: 'workflow-1', resourceId: 'run-1' });
+      expect(cancel).toHaveBeenCalledTimes(1);
+    } finally {
+      service.dispose();
+      vi.useRealTimers();
+    }
+  });
+
   it('revisits a valid lease after restart and recovers it once it expires', async () => {
     vi.useFakeTimers();
     vi.setSystemTime('2026-07-24T12:00:00.000Z');

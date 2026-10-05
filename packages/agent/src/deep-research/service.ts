@@ -99,6 +99,20 @@ export class ResearchService {
   private async sweepRecovery(mastra: ResearchMastra): Promise<void> {
     const expired = await this.repository.recoverExpiredLeases();
     if (expired) log.warn('deep_research.expired_leases_recovering', { count: expired });
+    const abandoned = await this.repository.expireAwaitingApproval();
+    if (abandoned.length) log.info('deep_research.abandoned_plans_cancelled', { count: abandoned.length });
+    for (const { runId, workflowRunId } of abandoned) {
+      if (!workflowRunId) continue;
+      try {
+        const workflowRun = await mastra.getWorkflow('deepResearchWorkflow').createRun({
+          runId: workflowRunId,
+          resourceId: runId,
+        });
+        await workflowRun.cancel();
+      } catch (error) {
+        log.warn('deep_research.cancel_workflow_failed', { runId, ...errorFields(error) });
+      }
+    }
     for (const runId of await this.repository.listQueued()) {
       this.schedulePlanning(runId, mastra);
     }

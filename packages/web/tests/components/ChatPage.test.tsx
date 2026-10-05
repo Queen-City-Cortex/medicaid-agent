@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import ChatPage from '../../src/app/chat/page';
 
 vi.mock('@workos-inc/authkit-nextjs/components', () => ({
@@ -27,15 +27,18 @@ vi.mock('ai', () => ({
 }));
 
 vi.mock('@/components/ThreadSidebar', () => ({
-  ThreadSidebar: () => (
+  ThreadSidebar: ({ onSelectThread }: { onSelectThread: (threadId: string) => void }) => (
     <div data-testid="mock-thread-sidebar">
       <button type="button">Sidebar first action</button>
+      <button type="button" data-testid="mock-select-thread" onClick={() => onSelectThread('thread-2')}>Past thread</button>
     </div>
   ),
 }));
 
 vi.mock('@/components/ChatInput', () => ({
-  ChatInput: () => <div>Chat input</div>,
+  ChatInput: ({ deepResearch }: { deepResearch: boolean }) => (
+    <div data-testid="mock-chat-input" data-deep-research={String(deepResearch)}>Chat input</div>
+  ),
 }));
 
 vi.mock('@/components/EmptyState', () => ({
@@ -137,5 +140,90 @@ describe('ChatPage mobile sidebar', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: 'Open sidebar' })).toHaveFocus());
     expect(sidebarWrapper).toHaveAttribute('aria-hidden', 'true');
     expect(screen.queryByRole('button', { name: 'Sidebar first action' })).not.toBeInTheDocument();
+  });
+});
+
+describe('ChatPage deep research run recovery', () => {
+  const ACTIVE_RUN = {
+    runId: 'run-1',
+    state: 'awaiting_approval',
+    question: 'Does X?',
+    plan: {
+      brief: 'Compare PA rules',
+      subQuestions: [{ question: 'Which services need PA?', rationale: 'baseline', channels: ['concept'], useWeb: false }],
+    },
+    report: null,
+    error: null,
+    createdAt: new Date(0).toISOString(),
+    updatedAt: new Date(0).toISOString(),
+  };
+  const activeRun = () => new Response(JSON.stringify(ACTIVE_RUN), { status: 200, headers: { 'Content-Type': 'application/json' } });
+
+  /** Stubs the research API; `current` answers the page's active-run lookup. */
+  function stubResearch(current: () => Promise<Response>) {
+    const calls: string[] = [];
+    vi.spyOn(globalThis, 'fetch').mockImplementation((input, init) => {
+      const url = String(input);
+      if (!url.includes('/research/')) return Promise.resolve(new Response(null, { status: 404 }));
+      calls.push(`${init?.method ?? 'GET'} ${url.replace(/^.*(?=\/research\/)/, '')}`);
+      if (url.endsWith('/research/runs/current')) return current();
+      return Promise.resolve(new Response(null, { status: 204 }));
+    });
+    return calls;
+  }
+
+  afterEach(() => { vi.restoreAllMocks(); });
+
+  it('turns Deep Research on and shows the plan when the caller has an active run on load', async () => {
+    stubResearch(async () => activeRun());
+    render(<ChatPage />);
+
+    expect(await screen.findByTestId('deep-research-plan')).toHaveTextContent('Which services need PA?');
+    expect(screen.getByTestId('mock-chat-input')).toHaveAttribute('data-deep-research', 'true');
+
+    // Declining and starting over stays in Deep Research, ready for a new question.
+    fireEvent.click(screen.getByTestId('decline-plan'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Start over' }));
+    expect(await screen.findByTestId('deep-research-empty')).toBeInTheDocument();
+    expect(screen.getByTestId('mock-chat-input')).toHaveAttribute('data-deep-research', 'true');
+  });
+
+  it('sends no cancel when the thread is switched with Deep Research off', async () => {
+    const calls = stubResearch(async () => new Response(null, { status: 204 }));
+    render(<ChatPage />);
+    await waitFor(() => expect(calls).toEqual(['GET /research/runs/current']));
+
+    await act(async () => { fireEvent.click(screen.getByTestId('mock-select-thread')); });
+
+    expect(calls).toEqual(['GET /research/runs/current']);
+    expect(screen.getByTestId('mock-chat-input')).toHaveAttribute('data-deep-research', 'false');
+  });
+
+  it('still shows a run whose lookup answers after a thread switch, without cancelling it', async () => {
+    let answer!: (response: Response) => void;
+    const calls = stubResearch(() => new Promise(resolve => { answer = resolve; }));
+    render(<ChatPage />);
+    await waitFor(() => expect(calls).toEqual(['GET /research/runs/current']));
+
+    await act(async () => { fireEvent.click(screen.getByTestId('mock-select-thread')); });
+    expect(screen.queryByTestId('deep-research-plan')).not.toBeInTheDocument();
+    await act(async () => { answer(activeRun()); });
+
+    // The run is not left invisible: the plan card replaces the thread view.
+    expect(await screen.findByTestId('deep-research-plan')).toBeInTheDocument();
+    expect(screen.getByTestId('mock-chat-input')).toHaveAttribute('data-deep-research', 'true');
+    expect(calls).toEqual(['GET /research/runs/current']);
+  });
+
+  it('cancels the shown run when the user leaves Deep Research by switching thread', async () => {
+    const calls = stubResearch(async () => activeRun());
+    render(<ChatPage />);
+    await screen.findByTestId('deep-research-plan');
+
+    await act(async () => { fireEvent.click(screen.getByTestId('mock-select-thread')); });
+
+    await waitFor(() => expect(calls).toContain('POST /research/runs/run-1/cancel'));
+    expect(screen.queryByTestId('deep-research-view')).not.toBeInTheDocument();
+    expect(screen.getByTestId('mock-chat-input')).toHaveAttribute('data-deep-research', 'false');
   });
 });

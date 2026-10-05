@@ -25,23 +25,21 @@ export type DeepResearchStatus =
   | 'error';
 
 interface ErrorEnvelope {
-  error?: { message?: string } | string;
+  error?: { code?: string; message?: string } | string;
 }
 
 type GetAccessToken = () => Promise<string | null | undefined>;
-const savedRunKey = (userId: string) => `nc-medicaid-research-run:${userId}`;
+const POLL_INTERVAL_MS = 1_500;
+// Consecutive failed polls tolerated before the run is shown as an error.
+const MAX_FAILED_POLLS = 3;
 
 class ResearchRequestError extends Error {
-  constructor(message: string, readonly status: number) { super(message); }
+  constructor(message: string, readonly status: number, readonly code?: string) { super(message); }
 }
 
-function rememberRun(userId: string | null, runId: string | null): void {
-  if (!userId) return;
-  const key = savedRunKey(userId);
-  try {
-    if (runId) sessionStorage.setItem(key, runId);
-    else sessionStorage.removeItem(key);
-  } catch { /* Storage can be unavailable; the server still owns the run. */ }
+// A missing or forbidden run will not come back; anything else may be a blip.
+function isTransientPollError(cause: unknown): boolean {
+  return !(cause instanceof ResearchRequestError) || cause.status === 429 || cause.status >= 500;
 }
 
 function errorMessage(payload: ErrorEnvelope, status: number): string {
@@ -57,6 +55,7 @@ export function useDeepResearch({ getAccessToken, userId }: { getAccessToken: Ge
   const [plan, setPlan] = useState<DeepResearchPlan | null>(null);
   const [report, setReport] = useState<DeepResearchReport | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [question, setQuestion] = useState('');
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [now, setNow] = useState(0);
@@ -91,7 +90,11 @@ export function useDeepResearch({ getAccessToken, userId }: { getAccessToken: Ge
     });
     if (!response.ok) {
       const payload = await response.json().catch(() => ({})) as ErrorEnvelope;
-      throw new ResearchRequestError(errorMessage(payload, response.status), response.status);
+      throw new ResearchRequestError(
+        errorMessage(payload, response.status),
+        response.status,
+        typeof payload.error === 'object' ? payload.error.code : undefined,
+      );
     }
     return (response.status === 204 ? undefined : await response.json()) as T;
   }, [getAccessToken]);
@@ -128,17 +131,25 @@ export function useDeepResearch({ getAccessToken, userId }: { getAccessToken: Ge
   }, []);
 
   const poll = useCallback(async (runId: string, signal: AbortSignal): Promise<void> => {
+    let failedPolls = 0;
     for (;;) {
       if (signal.aborted) return;
-      const run = await request<ResearchRun>(
-        `/research/runs/${encodeURIComponent(runId)}`,
-        { method: 'GET' },
-        signal,
-      );
-      if (signal.aborted) return;
-      if (applyRun(run)) return;
+      try {
+        const run = await request<ResearchRun>(
+          `/research/runs/${encodeURIComponent(runId)}`,
+          { method: 'GET' },
+          signal,
+        );
+        if (signal.aborted) return;
+        failedPolls = 0;
+        if (applyRun(run)) return;
+      } catch (cause) {
+        if (signal.aborted) return;
+        failedPolls += 1;
+        if (!isTransientPollError(cause) || failedPolls > MAX_FAILED_POLLS) throw cause;
+      }
       await new Promise<void>((resolve, reject) => {
-        const timer = setTimeout(resolve, 1_500);
+        const timer = setTimeout(resolve, POLL_INTERVAL_MS);
         signal.addEventListener('abort', () => {
           clearTimeout(timer);
           reject(new DOMException('Aborted', 'AbortError'));
@@ -147,8 +158,20 @@ export function useDeepResearch({ getAccessToken, userId }: { getAccessToken: Ge
     }
   }, [applyRun, request]);
 
-  const restorePoll = useRef(poll);
-  restorePoll.current = poll;
+  // The server owns the run. Adopt the caller's active one, which survives a
+  // closed tab, and follow it to a state that needs the user or is terminal.
+  const adopt = useCallback(async (run: ResearchRun, signal: AbortSignal): Promise<void> => {
+    runIdRef.current = run.runId;
+    if (!applyRun(run)) await poll(run.runId, signal);
+  }, [applyRun, poll]);
+  const currentRun = useCallback((signal: AbortSignal) => request<ResearchRun | undefined>(
+    '/research/runs/current',
+    { method: 'GET' },
+    signal,
+  ), [request]);
+
+  const loadRef = useRef({ adopt, currentRun });
+  loadRef.current = { adopt, currentRun };
   useEffect(() => {
     abortRef.current?.abort();
     abortRef.current = null;
@@ -159,29 +182,30 @@ export function useDeepResearch({ getAccessToken, userId }: { getAccessToken: Ge
     setSources([]);
     setQuestion('');
     setError(null);
+    setNotice(null);
     setStartedAt(null);
     setRecoveryCount(0);
     setRecoveryProgress({ completedQuestions: 0, checkpoints: 0 });
-    let runId: string | null = null;
-    try {
-      // The old key has no owner identity and cannot be restored safely.
-      sessionStorage.removeItem('nc-medicaid-research-run');
-      if (userId) runId = sessionStorage.getItem(savedRunKey(userId));
-    } catch { return; }
-    if (!runId) return;
-    runIdRef.current = runId;
+    if (!userId) return;
     const controller = new AbortController();
     abortRef.current = controller;
-    setStatus('recovering');
-    void restorePoll.current(runId, controller.signal).catch(cause => {
-      if (controller.signal.aborted) return;
-      if (cause instanceof ResearchRequestError && [401, 403, 404].includes(cause.status)) {
-        rememberRun(userId, null);
-        runIdRef.current = null;
+    void (async () => {
+      let run: ResearchRun | undefined;
+      try {
+        run = await loadRef.current.currentRun(controller.signal);
+      } catch {
+        // Not knowing is not an error to show: starting a run asks again.
+        return;
       }
-      setError(cause instanceof Error ? cause.message : String(cause));
-      setStatus('error');
-    });
+      if (!run || controller.signal.aborted) return;
+      try {
+        await loadRef.current.adopt(run, controller.signal);
+      } catch (cause) {
+        if (controller.signal.aborted) return;
+        setError(cause instanceof Error ? cause.message : String(cause));
+        setStatus('error');
+      }
+    })();
     return () => { controller.abort(); runIdRef.current = null; };
   }, [userId]);
 
@@ -197,6 +221,7 @@ export function useDeepResearch({ getAccessToken, userId }: { getAccessToken: Ge
     setRecoveryCount(0);
     setRecoveryProgress({ completedQuestions: 0, checkpoints: 0 });
     setError(null);
+    setNotice(null);
     setStatus('planning');
     setStartedAt(Date.now());
     setNow(Date.now());
@@ -207,15 +232,34 @@ export function useDeepResearch({ getAccessToken, userId }: { getAccessToken: Ge
       }, controller.signal);
       if (controller.signal.aborted) return;
       runIdRef.current = run.runId;
-      rememberRun(userId, run.runId);
       applyRun(run);
       await poll(run.runId, controller.signal);
     } catch (cause) {
       if (controller.signal.aborted) return;
-      setError(cause instanceof Error ? cause.message : String(cause));
+      let shown = cause;
+      if (cause instanceof ResearchRequestError && cause.code === 'active_research_run') {
+        // The start was refused because a run already exists: show that run,
+        // which the user can approve or cancel, rather than a dead end.
+        let active: ResearchRun | undefined;
+        try {
+          active = await currentRun(controller.signal);
+        } catch { /* Keep the refusal as the message. */ }
+        if (controller.signal.aborted) return;
+        if (active) {
+          setNotice('You already have a research run in progress. Finish or cancel it before starting another.');
+          try {
+            await adopt(active, controller.signal);
+            return;
+          } catch (adoptCause) {
+            if (controller.signal.aborted) return;
+            shown = adoptCause;
+          }
+        }
+      }
+      setError(shown instanceof Error ? shown.message : String(shown));
       setStatus('error');
     }
-  }, [applyRun, poll, request, userId]);
+  }, [adopt, applyRun, currentRun, poll, request, userId]);
 
   const approve = useCallback(async (editedSubQuestions?: DeepResearchSubQuestion[]) => {
     const runId = runIdRef.current;
@@ -283,8 +327,9 @@ export function useDeepResearch({ getAccessToken, userId }: { getAccessToken: Ge
     abortRef.current?.abort();
     abortRef.current = null;
     runIdRef.current = null;
-    rememberRun(userId, null);
-    if (runId && ['planning', 'awaiting-approval', 'researching', 'recovering', 'verifying'].includes(statusRef.current)) {
+    // `error` is included: the run may still be active on the server, and
+    // forgetting it without cancelling would block the next start.
+    if (runId && !['idle', 'done', 'cancelled'].includes(statusRef.current)) {
       void (async () => {
         const controller = new AbortController();
         try {
@@ -294,7 +339,7 @@ export function useDeepResearch({ getAccessToken, userId }: { getAccessToken: Ge
             controller.signal,
           );
         } catch {
-          // Navigation/reset is best-effort; the durable lease still bounds work.
+          // Navigation/reset is best-effort; the server still bounds the run.
         }
       })();
     }
@@ -305,9 +350,10 @@ export function useDeepResearch({ getAccessToken, userId }: { getAccessToken: Ge
     setRecoveryCount(0);
     setRecoveryProgress({ completedQuestions: 0, checkpoints: 0 });
     setError(null);
+    setNotice(null);
     setQuestion('');
     setStartedAt(null);
-  }, [userId]);
+  }, []);
 
   const elapsedMs = startedAt ? Math.max(0, now - startedAt) : 0;
   const isBusy = ['planning', 'researching', 'recovering', 'verifying'].includes(status);
@@ -319,6 +365,7 @@ export function useDeepResearch({ getAccessToken, userId }: { getAccessToken: Ge
     plan,
     report,
     error,
+    notice,
     question,
     elapsedMs,
     isBusy,

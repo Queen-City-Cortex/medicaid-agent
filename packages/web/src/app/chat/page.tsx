@@ -74,6 +74,9 @@ export default function ChatPage() {
   // Mastra client — separate from the streaming chat agent.
   const [deepMode, setDeepMode] = useState(false);
   const deepResearch = useDeepResearch({ getAccessToken, userId: user?.id ?? null });
+  // A run the hook is holding is always shown, including one it found on the
+  // server at page load: hidden, it could be neither approved nor cancelled.
+  if (deepResearch.status !== 'idle' && !deepMode) setDeepMode(true);
   // Pull out the stable `reset` callback so onThreadSwitch can depend on it
   // rather than the whole `deepResearch` object (a new reference every render),
   // keeping onThreadSwitch — and the useChatThread callbacks that list it —
@@ -87,9 +90,11 @@ export default function ChatPage() {
   const onThreadSwitch = useCallback(() => {
     resetFeedback();
     resetVersions();
-    resetDeepResearch();
+    // Only leave Deep Research if the user is in it. With the mode off the
+    // reset would abort the page-load lookup of the active run and hide it.
+    if (deepMode) resetDeepResearch();
     setDeepMode(false);
-  }, [resetFeedback, resetVersions, resetDeepResearch]);
+  }, [resetFeedback, resetVersions, resetDeepResearch, deepMode]);
 
   const {
     threadId,

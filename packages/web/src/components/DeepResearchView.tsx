@@ -53,6 +53,12 @@ export function DeepResearchView({ controller }: { controller: DeepResearchContr
         {question && <span className="truncate">· {question}</span>}
       </div>
 
+      {controller.notice && (
+        <p data-testid="deep-research-notice" className="rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+          {controller.notice}
+        </p>
+      )}
+
       {status === 'planning' && <Phase label="Planning the research…" sub={`Elapsed ${fmtElapsed(elapsedMs)}`} />}
 
       {status === 'awaiting-approval' && plan && (

@@ -26,6 +26,9 @@ const ACTIVE_STATES: readonly ResearchRunState[] = [
 ];
 const DAY_MS = 86_400_000;
 const LEASE_MS = 15 * 60_000;
+// A plan nobody answers holds the owner's single active-run slot and has no
+// lease, so it needs its own expiry.
+const PLAN_APPROVAL_TTL_MS = DAY_MS;
 const RUN_SELECT = `SELECT research_runs.*,
   (SELECT COUNT(*) FROM research_checkpoints WHERE run_id = research_runs.id AND key GLOB 'worker:*' AND key NOT LIKE '%:draft' AND key NOT LIKE '%:verification:%') AS completed_questions,
   (SELECT COUNT(*) FROM research_checkpoints WHERE run_id = research_runs.id) AS checkpoint_count,
@@ -157,6 +160,16 @@ export class ResearchRepository {
     const result = await this.database.client.execute({
       sql: `${RUN_SELECT} WHERE id = ? AND resource_id = ?`,
       args: [runId, resourceId],
+    });
+    return result.rows[0] ? toRun(result.rows[0]) : null;
+  }
+
+  async getActive(resourceId: string): Promise<ResearchRun | null> {
+    await this.database.migrate();
+    const result = await this.database.client.execute({
+      sql: `${RUN_SELECT} WHERE resource_id = ? AND state IN (${ACTIVE_STATES.map(() => '?').join(', ')})
+            ORDER BY created_at DESC LIMIT 1`,
+      args: [resourceId, ...ACTIVE_STATES],
     });
     return result.rows[0] ? toRun(result.rows[0]) : null;
   }
@@ -364,6 +377,23 @@ export class ResearchRepository {
       args: [new Date(now).toISOString(), now],
     });
     return result.rows.length;
+  }
+
+  async expireAwaitingApproval(now = Date.now()): Promise<Array<{ runId: string; workflowRunId: string | null }>> {
+    await this.database.migrate();
+    const result = await this.database.client.execute({
+      sql: `UPDATE research_runs
+            SET state = 'cancelled',
+                updated_at = ?
+            WHERE state = 'awaiting_approval'
+              AND updated_at <= ?
+            RETURNING id, workflow_run_id`,
+      args: [new Date(now).toISOString(), new Date(now - PLAN_APPROVAL_TTL_MS).toISOString()],
+    });
+    return result.rows.map((row) => ({
+      runId: String(row.id),
+      workflowRunId: typeof row.workflow_run_id === 'string' ? row.workflow_run_id : null,
+    }));
   }
 
   async initializeCheckpointRun(runId: string, owner: string, limits: Record<string, number>, corpusRelease: string | null): Promise<void> {

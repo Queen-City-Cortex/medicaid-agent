@@ -151,4 +151,13 @@ export async function mockMastraAPI(page: Page, options: MockMastraOptions = {})
     }
     await route.fulfill({ status: 204 });
   });
+  // 8. GET /research/runs/current — the chat page asks for the caller's active
+  // deep-research run on load; 204 means there is none.
+  await page.route('**/research/runs/current', async (route) => {
+    if (route.request().method() !== 'GET') {
+      await route.fallback();
+      return;
+    }
+    await route.fulfill({ status: 204 });
+  });
 }

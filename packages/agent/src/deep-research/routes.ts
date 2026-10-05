@@ -67,6 +67,13 @@ export function createResearchHandlers(service: ResearchService) {
     }
   };
 
+  const current = async (c: ContextWithMastra): Promise<Response> => {
+    const resourceId = getBoundUserId(c);
+    if (!resourceId) return apiError(c, 401, 'not_authenticated', 'Authentication is required.');
+    const run = await service.repository.getActive(resourceId);
+    return run ? c.json(run, 200) : c.body(null, 204);
+  };
+
   const get = async (c: ContextWithMastra): Promise<Response> => {
     const resourceId = getBoundUserId(c);
     if (!resourceId) return apiError(c, 401, 'not_authenticated', 'Authentication is required.');
@@ -123,13 +130,15 @@ export function createResearchHandlers(service: ResearchService) {
       : apiError(c, 404, 'research_run_not_found', 'Research run not found or is already terminal.');
   };
 
-  return { start, get, decision, cancel };
+  return { start, current, get, decision, cancel };
 }
 
 export function researchApiRoutes(service: ResearchService) {
   const handlers = createResearchHandlers(service);
   return [
     registerApiRoute('/research/runs', { method: 'POST', handler: handlers.start }),
+    // Registered before `:runId`, which would otherwise match "current".
+    registerApiRoute('/research/runs/current', { method: 'GET', handler: handlers.current }),
     registerApiRoute('/research/runs/:runId', { method: 'GET', handler: handlers.get }),
     registerApiRoute('/research/runs/:runId/decision', { method: 'POST', handler: handlers.decision }),
     registerApiRoute('/research/runs/:runId/cancel', { method: 'POST', handler: handlers.cancel }),

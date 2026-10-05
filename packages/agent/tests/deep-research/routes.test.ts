@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Hono, type Handler } from 'hono';
 import { AppDatabase } from '../../src/storage/app-database.js';
 import { ResearchRepository } from '../../src/deep-research/repository.js';
-import { createResearchHandlers } from '../../src/deep-research/routes.js';
+import { createResearchHandlers, researchApiRoutes } from '../../src/deep-research/routes.js';
 import type { ResearchService } from '../../src/deep-research/service.js';
 
 function buildApp(service: ResearchService, userId = 'user-1') {
@@ -17,6 +17,7 @@ function buildApp(service: ResearchService, userId = 'user-1') {
     await next();
   });
   app.post('/research/runs', handlers.start as unknown as Handler);
+  app.get('/research/runs/current', handlers.current as unknown as Handler);
   app.get('/research/runs/:runId', handlers.get as unknown as Handler);
   app.post('/research/runs/:runId/decision', handlers.decision as unknown as Handler);
   app.post('/research/runs/:runId/cancel', handlers.cancel as unknown as Handler);
@@ -100,5 +101,36 @@ describe('owned research routes', () => {
     });
     expect((await start()).status).toBe(202);
     expect((await start()).status).toBe(409);
+  });
+
+  it('returns the caller\'s active run and never another user\'s', async () => {
+    const owner = buildApp(service, 'user-1');
+    const started = await (await owner.request('/research/runs', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ question: 'A policy question' }),
+    })).json();
+
+    const mine = await owner.request('/research/runs/current');
+    expect(mine.status).toBe(200);
+    expect(await mine.json()).toMatchObject({ runId: started.runId, state: 'queued' });
+
+    const theirs = await buildApp(service, 'user-2').request('/research/runs/current');
+    expect(theirs.status).toBe(204);
+    expect(await theirs.text()).toBe('');
+
+    await repository.cancel(started.runId, 'user-1');
+    expect((await owner.request('/research/runs/current')).status).toBe(204);
+  });
+
+  it('requires an authenticated caller for the active run', async () => {
+    const response = await buildApp(service, '').request('/research/runs/current');
+    expect(response.status).toBe(401);
+  });
+
+  it('registers the active-run route ahead of the run-id route', () => {
+    const paths = researchApiRoutes(service).map((route) => route.path);
+    expect(paths.indexOf('/research/runs/current')).toBeGreaterThanOrEqual(0);
+    expect(paths.indexOf('/research/runs/current')).toBeLessThan(paths.indexOf('/research/runs/:runId'));
   });
 });
