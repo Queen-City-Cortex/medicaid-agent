@@ -4,7 +4,8 @@ import { chromium } from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
-import { activeThreadForRestore, threadByExactTitle } from './smoke-thread.mjs';
+import { activeThreadForRestore, allowThreadWritesOnlyTo, deleteSmokeThread, finishSmokeThread, renameActiveThread,
+  smokeThreadTitle, threadByExactTitle } from './smoke-thread.mjs';
 import { verifyFeedbackRoundTrip, verifyLogout, recordSyntheticThread, writeDiagnosticReceipt } from './smoke-readiness.mjs';
 import { fileURLToPath } from 'node:url';
 
@@ -40,19 +41,26 @@ const ignoredConsolePatterns = [
 let browser;
 let page;
 let smokeError;
+const existingTitle = process.env.SMOKE_RESTORE_THREAD_TITLE;
+// Set once the fresh thread carries its own title.
+let smokeTitle;
 const readiness = process.env.SMOKE_READINESS_RECEIPT_PATH ? {
   schemaVersion: 1, mode: 'readiness_diagnostic', startedAt: new Date().toISOString(),
   releaseId: process.env.SMOKE_EXPECTED_RELEASE_ID, login: 'not_run',
   testRunId: process.env.SMOKE_TEST_RUN_ID ?? 'readiness', testThreads: [],
   answer: 'not_run', persistence: 'not_run', feedback: 'not_run', logout: 'not_run',
 } : null;
+// Threads this run creates. Readiness mode leaves them to the caller, who
+// cleans up from the receipt; a restored thread is the operator's own.
+const synthetic = readiness ?? { testThreads: [] };
+const cleansUpThread = !readiness && !existingTitle;
 if (readiness && (!readiness.releaseId || fs.existsSync(process.env.SMOKE_READINESS_RECEIPT_PATH))) {
   throw new Error('Readiness smoke requires an expected release and a new receipt path.');
 }
 if (readiness && (process.env.SMOKE_ACTIVATION_NONCE || process.env.SMOKE_RECEIPT_PATH)) {
   throw new Error('Readiness diagnostics cannot issue activation receipts.');
 }
-if (readiness && process.env.SMOKE_RESTORE_THREAD_TITLE) {
+if (readiness && existingTitle) {
   throw new Error('Readiness smoke requires a fresh synthetic thread.');
 }
 if (readiness && (!path.isAbsolute(process.env.SMOKE_READINESS_RECEIPT_PATH)
@@ -66,9 +74,12 @@ try {
     viewport: { width: 1440, height: 1100 },
   });
   page = await context.newPage();
-  if (readiness) page.on('request', request => recordSyntheticThread(request, readiness,
-    new URL(process.env.AGENT_PUBLIC_URL ?? 'https://medicaid-agent-backend.up.railway.app').origin,
-    new URL(baseUrl).origin));
+  if (!existingTitle) {
+    page.on('request', request => recordSyntheticThread(request, synthetic,
+      new URL(process.env.AGENT_PUBLIC_URL ?? 'https://medicaid-agent-backend.up.railway.app').origin,
+      new URL(baseUrl).origin));
+    await allowThreadWritesOnlyTo(page, () => synthetic.testThreads);
+  }
 
   const browserMessages = [];
   page.on('console', (message) => {
@@ -84,7 +95,6 @@ try {
   await openAuthenticatedChat(page);
   if (readiness) readiness.login = 'passed';
   await verifyExpectedRelease();
-  const existingTitle = process.env.SMOKE_RESTORE_THREAD_TITLE;
   if (existingTitle) {
     await threadByExactTitle(page, existingTitle).click({ timeout: 30_000 });
   } else {
@@ -92,6 +102,11 @@ try {
   }
   const result = await askQuestion(page, Boolean(existingTitle));
   if (readiness) readiness.answer = { outcome: result.outcome, characters: result.answerLength };
+  if (!existingTitle) {
+    const title = smokeThreadTitle(process.env.SMOKE_TEST_RUN_ID);
+    await renameActiveThread(page, title);
+    smokeTitle = title;
+  }
   await verifyRestoredAnswer(page, result);
   if (readiness) {
     if (readiness.testTrafficCaptureFailed) throw new Error('Could not identify synthetic chat traffic for cleanup.');
@@ -113,6 +128,10 @@ try {
     fs.renameSync(process.env.SMOKE_RECEIPT_PATH + '.tmp', process.env.SMOKE_RECEIPT_PATH);
   }
   await saveScreenshot(page, screenshotPath);
+  if (cleansUpThread) {
+    await finishSmokeThread({ succeeded: true, title: smokeTitle, threadIds: synthetic.testThreads,
+      deleteThread: (title, threadId) => deleteSmokeThread(page, title, threadId) });
+  }
 
   if (browserMessages.length > 0) {
     console.warn(`Browser reported ${browserMessages.length} warning/error event(s):`);
@@ -133,6 +152,9 @@ try {
     const failedPath = screenshotPath.replace(/(\.[^.]+)?$/, '.failed$1');
     await saveScreenshot(page, failedPath).catch(() => undefined);
     console.error(`Failure screenshot: ${failedPath}`);
+  }
+  if (cleansUpThread && synthetic.testThreads.length > 0) {
+    await finishSmokeThread({ succeeded: false, title: smokeTitle, threadIds: synthetic.testThreads, report: console.error });
   }
   if (readiness) {
     readiness.error = error.message;

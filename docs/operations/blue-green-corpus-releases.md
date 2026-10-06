@@ -225,7 +225,9 @@ gate. Scope records are not retirement evidence or permission to override gates.
    volume path within ten minutes. The browser check verifies the expected
    release before and after chat, and compares exact answer text and verification
    outcome after thread switching and reload. Only then does activation mark
-   blue promoted and upload its promotion record.
+   blue promoted and upload its promotion record. A fresh-thread run renames
+   its thread to `smoke <timestamp>` before those checks and deletes it once
+   it has passed; a failed run keeps the thread and prints its title.
 7. Deployment, smoke, browser or promotion-record failure restores the exact
    previous settings, including removal of a previously absent active color,
    and verifies legacy service recovery. If interrupted, rerun the **same**
@@ -671,7 +673,9 @@ existing sidebar title. The browser receipt records `existing_verified_thread`;
 this never substitutes for a fresh-answer release smoke or the fixed three-attempt
 EPSDT batch. The check waits for the active sidebar row, because the first row can
 still describe a previous conversation during asynchronous refresh. Duplicate
-visible titles fail rather than selecting an arbitrary thread.
+visible titles fail rather than selecting an arbitrary thread. This mode never
+renames or deletes the thread; point it at a conversation you mean to keep, since
+a passing fresh-thread run removes its own.
 
 The [2026-09-23 source audit](../validation/source-audit-2026-09-23/README.md)
 records the initial inventory, identity preflight, failed fixed smoke batch and

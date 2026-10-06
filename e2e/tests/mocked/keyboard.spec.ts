@@ -56,4 +56,28 @@ test.describe('Keyboard interactions', () => {
     await chat.waitForAssistantMessage('Done.');
     await expect(chat.input).toBeEnabled();
   });
+
+  test('Tab moves through the composer in reading order', async ({ page }) => {
+    await mockMastraAPI(page);
+    const chat = new ChatPage(page);
+    await chat.goto();
+
+    // The Ask button only joins the tab order once there is something to send.
+    await chat.input.fill('Draft question');
+    await expect(chat.input).toBeFocused();
+
+    await page.keyboard.press('Tab');
+    await expect(chat.sendButton).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(page.getByRole('contentinfo').getByRole('link', { name: 'Terms' })).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(page.getByRole('contentinfo').getByRole('link', { name: 'Privacy' })).toBeFocused();
+
+    await page.keyboard.press('Shift+Tab');
+    await page.keyboard.press('Shift+Tab');
+    await page.keyboard.press('Shift+Tab');
+    await expect(chat.input).toBeFocused();
+    await page.keyboard.press('Shift+Tab');
+    await expect(page.getByTestId('deep-research-toggle')).toBeFocused();
+  });
 });

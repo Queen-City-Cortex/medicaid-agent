@@ -15,7 +15,7 @@
 
 Current guidance carried forward from main at `dc81a97`. When behavior changes, correct the affected lesson alongside the implementation.
 
-- Production browser smoke identifies restored conversations by exact titles. Duplicate generated titles make that check ambiguous even after verification passes. Run account-based smoke serially and give only the captured, ownership-checked synthetic thread a unique title before switch/reload checks; retain failed receipts separately.
+- Production browser smoke identifies restored conversations by exact titles. Duplicate generated titles make that check ambiguous even after verification passes. Run account-based smoke serially. The script now renames the thread it recorded creating to a unique `smoke <timestamp>` title before the switch/reload checks and deletes it after a pass; a failed run keeps its thread. Retain failed receipts separately.
 - A synthetic WorkOS account on `example.com` can match an SSO domain policy and reject password authentication with `sso_required`, despite verified email. Use a reserved fixture domain that permits the tested method. Retain safe error codes and clean up accounts created by the run; do not change authentication policy to make acceptance pass.
 - Railway SSH can exit successfully while returning account/control metadata instead of executing a container command. Confirm an explicit command sentinel and the intended service/deployment before relying on output or cleanup. Public route checks exercise active storage behavior, but do not establish private observer inputs or signing-key continuity.
 

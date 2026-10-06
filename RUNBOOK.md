@@ -429,6 +429,8 @@ npm run smoke:prod
 
 `npm run smoke:prod` uses `TEST_USER_EMAIL` and `TEST_USER_PASSWORD` from the environment or local env files, asks a real production question, checks for a substantive answer with tool steps and sources, and writes a screenshot to `/tmp/nc-medicaid-prod-smoke.png` by default. Override with `SMOKE_BASE_URL`, `SMOKE_QUESTION`, `SMOKE_TIMEOUT_MS`, or `SMOKE_SCREENSHOT_PATH` when needed.
 
+A run that starts a fresh thread renames it to `smoke <timestamp>` (with `SMOKE_TEST_RUN_ID` in front when set) before the persistence check, so repeat runs never collide on the question's title. A passing run then deletes that thread; if the delete fails it prints a warning and still passes. A failing run keeps the thread and prints its title and id for diagnosis: delete it from the test account's sidebar when done. The script only renames or deletes a thread whose id it recorded being created in that run.
+
 ## Backups & Restore
 
 Production's data has three tiers, each with its own backup path. Off-platform

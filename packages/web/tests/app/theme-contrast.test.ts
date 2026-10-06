@@ -53,6 +53,8 @@ const TEXT_PAIRS: Array<[string, string]> = [
   ...SURFACES.map((s): [string, string] => ['muted-foreground', s]),
   ...SURFACES.map((s): [string, string] => ['accent', s]),
   ['accent-foreground', 'accent'],
+  // The delete-chat confirm button.
+  ['destructive-foreground', 'destructive'],
 ];
 const RING_PAIRS: Array<[string, string]> = [
   ...SURFACES.map((s): [string, string] => ['ring', s]),
