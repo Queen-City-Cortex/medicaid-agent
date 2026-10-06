@@ -85,7 +85,10 @@ async function fakeFetch(input: RequestInfo | URL, init?: RequestInit): Promise<
 
 async function send(text: string) {
   const user = userEvent.setup();
-  await user.type(screen.getByTestId('chat-input'), text);
+  // Pasted, not typed: a keystroke per character re-renders the whole page
+  // each time and takes seconds on a slow machine.
+  await user.click(screen.getByTestId('chat-input'));
+  await user.paste(text);
   await user.click(screen.getByTestId('send-button'));
 }
 

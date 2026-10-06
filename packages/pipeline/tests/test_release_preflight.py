@@ -61,6 +61,9 @@ def release(tmp_path, monkeypatch):
     monkeypatch.setattr(
         "pipeline.crawler_registry.read_source_freshness", lambda: rows
     )
+    # The command takes no clock argument; without this the fixed fixture
+    # dates age past the freshness limit on the real one.
+    monkeypatch.setattr(preflight, "utc_now", lambda: NOW)
     releases = tmp_path / "releases"
     previous = create_release_manifest(
         release_id="release-1",
