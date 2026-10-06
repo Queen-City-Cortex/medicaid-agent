@@ -48,8 +48,9 @@ describe('ToolStep', () => {
           state: 'output-available',
           input: { documentId: 'doc:5B' },
           output: {
+            document: { title: 'Clinical Coverage Policy 5B' },
             amendments: [{ id: 'chg-1' }, { id: 'chg-2' }],
-            authoritativeDocument: { title: 'Clinical Coverage Policy 5B' },
+            latestAmendment: { title: 'Policy 5B Revision 2025-09-01' },
           },
         }}
       />,
@@ -58,7 +59,11 @@ describe('ToolStep', () => {
     await user.click(screen.getByTestId('tool-step-trigger'));
 
     expect(screen.getByTestId('tool-step-input-summary')).toHaveTextContent('Document: doc:5B');
-    expect(screen.getByTestId('tool-step-output-summary')).toHaveTextContent('2 amendments');
+    // The looked-up policy is the current document; the newest revision is
+    // labelled as an amendment, never as the current document.
+    expect(screen.getByTestId('tool-step-output-summary')).toHaveTextContent(
+      '2 amendments | Current document: Clinical Coverage Policy 5B | Latest amendment: Policy 5B Revision 2025-09-01',
+    );
     expect(screen.getByText('Raw input')).toBeInTheDocument();
     expect(screen.getByText('Raw result')).toBeInTheDocument();
   });

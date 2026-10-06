@@ -188,6 +188,8 @@ export function documentRecord(fields: DocumentRecordFields): StubRecord {
 
 export interface AmendmentRecordFields extends DocumentRecordFields {
   changeDescription?: string | null;
+  changeYear?: number | null;
+  changeSequence?: number | null;
 }
 
 /** A row from the AMENDS lookup (document metadata + change description). */
@@ -204,6 +206,8 @@ export function amendmentRecord(fields: AmendmentRecordFields): StubRecord {
     status: null,
     ...TIER_DEFAULTS,
     changeDescription,
+    changeYear: null,
+    changeSequence: null,
     ...rest,
     ...(sections !== undefined ? { sections } : {}),
   });
@@ -262,7 +266,7 @@ export function referenceRecord(fields: ReferenceRecordFields): StubRecord {
 // Query matchers — every piece of raw-Cypher coupling lives here.
 // ---------------------------------------------------------------------------
 
-const normalizeQueryText = (query: string) => query.replace(/\s+/g, ' ');
+export const normalizeQueryText = (query: string) => query.replace(/\s+/g, ' ');
 
 const docTypesInclude = (params: MockQueryParams, docType: string) =>
   Array.isArray(params.docTypes) && (params.docTypes as string[]).includes(docType);

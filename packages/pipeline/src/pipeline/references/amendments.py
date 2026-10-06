@@ -304,6 +304,8 @@ def _upsert_synthetic_documents(session, docs: list[DocumentNode]) -> None:
             "page_count": doc.page_count,
             "section_count": doc.section_count,
             "effective_date": doc.effective_date,
+            "change_year": doc.change_year,
+            "change_sequence": doc.change_sequence,
             "source_modified_date": doc.source_modified_date,
             "retrieved_at": doc.retrieved_at,
             "authority_tier": doc.authority_tier,

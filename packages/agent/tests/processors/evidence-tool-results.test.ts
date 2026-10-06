@@ -94,12 +94,12 @@ describe('extractSourcesFromToolResults', () => {
     ]);
   });
 
-  it('falls back to a toolCallId-derived key when no authoritative document exists', () => {
+  it('falls back to a toolCallId-derived key when the queried document is unknown', () => {
     const [entry] = extractSourcesFromToolResults([
       {
         toolName: 'getAmendments',
         toolCallId: 'call-42',
-        result: { amendments: [{ id: 'doc:spa:24-0001', title: 'SPA 24-0001', effectiveDate: '2024-01-01', changeSummary: null }], baseDocument: null, authoritativeDocument: null },
+        result: { amendments: [{ id: 'doc:spa:24-0001', title: 'SPA 24-0001', effectiveDate: '2024-01-01', changeSummary: null }], document: null, amends: [], latestAmendment: null, truncated: false },
       },
     ]);
     expect(entry.key).toBe('amendments:call-42');

@@ -332,22 +332,26 @@ describe('extractMessageSources', () => {
         state: 'output-available',
         input: {},
         output: {
-          authoritativeDocument: {
+          document: {
             id: 'doc:a',
             policyNumber: '3K-2',
             title: 'CAP/DA',
             url: 'https://example.com/3k2',
           },
+          amends: [
+            { id: 'doc:b', policyNumber: '3K-1', title: 'CAP/C', url: 'https://example.com/3k1' },
+          ],
           amendments: [
             { id: 'doc:a:cn1', policyNumber: '3K-2 CN', title: 'Change Notice 1', url: 'https://example.com/cn1' },
           ],
+          latestAmendment: { id: 'doc:a:cn1', policyNumber: '3K-2 CN', title: 'Change Notice 1', url: 'https://example.com/cn1' },
         },
       },
     ]));
 
-    // 3K-2 doc is deduped across lookupPolicy + getAmendments; CN is separate.
-    expect(sources.map((s) => s.label)).toContain('Policy 3K-2');
-    expect(sources.map((s) => s.label)).toContain('Policy 3K-2 CN');
+    // 3K-2 doc is deduped across lookupPolicy + getAmendments; the amended
+    // document and the change notice are separate sources.
+    expect(sources.map((s) => s.label)).toEqual(['Policy 3K-2', 'Policy 3K-1', 'Policy 3K-2 CN']);
   });
 });
 

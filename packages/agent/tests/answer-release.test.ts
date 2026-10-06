@@ -113,10 +113,10 @@ describe('answer release', () => {
     expect(result.retryable).toBe(false);
   });
   it('yields no source entry for a getAmendments result that names no document', async () => {
-    const empty = { toolName: 'getAmendments', toolCallId: 'a', result: { amendments: [], baseDocument: null, authoritativeDocument: null } };
+    const empty = { toolName: 'getAmendments', toolCallId: 'a', result: { document: null, amends: [], amendments: [], latestAmendment: null, truncated: false } };
     expect(extractSourcesFromToolResults([empty])).toEqual([]);
     expect(extractSources([{ content: { parts: [{ type: 'tool-invocation', toolInvocation: { ...empty, state: 'result' } }] } }])).toEqual([]);
-    const named = extractSourcesFromToolResults([{ ...empty, result: { ...empty.result, authoritativeDocument: makeDocument({ url: HINT_URL }) } }]);
+    const named = extractSourcesFromToolResults([{ ...empty, result: { ...empty.result, document: makeDocument({ url: HINT_URL }) } }]);
     expect(named).toMatchObject([{ toolName: 'getAmendments', link: HINT_URL }]);
     expect(isCorpusEvidence(named[0])).toBe(true);
   });

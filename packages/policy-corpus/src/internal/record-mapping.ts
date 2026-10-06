@@ -27,6 +27,30 @@ export function notArchived(alias: string): string {
   return `coalesce(${alias}.archived, false) = false`;
 }
 
+/**
+ * Cypher sort keys putting the newest amending document first. A DHHS change
+ * notice has no date: it orders by the year and sequence of its number
+ * ("04-26"), which is comparable only within one manual's series. A clinical
+ * revision row has a real date and no number, so its year comes from the
+ * date. Every key is coalesced because Cypher sorts null first when
+ * descending; a document with neither a number nor a date sorts last.
+ * `compareAmendmentRecency` is the same order over mapped views.
+ */
+export function amendmentRecencyOrder(alias: string): string {
+  return `coalesce(${alias}.change_year, toInteger(substring(${alias}.effective_date, 0, 4)), 0) DESC,
+           coalesce(${alias}.change_sequence, 0) DESC,
+           coalesce(${alias}.effective_date, '') DESC`;
+}
+
+/** Reads an optional Cypher integer, which the driver returns as a number or an Integer. */
+export function toOptionalInteger(value: unknown): number | null {
+  if (typeof value === 'number') return value;
+  if (value != null && typeof value === 'object' && 'toNumber' in value) {
+    return (value as { toNumber(): number }).toNumber();
+  }
+  return null;
+}
+
 export function retrievalDocumentMetadataReturn(alias: string): string {
   return `${alias}.authority_tier AS authorityTier,
                ${alias}.answer_role AS answerRole,

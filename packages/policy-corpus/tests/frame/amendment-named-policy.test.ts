@@ -8,7 +8,8 @@ import { createFrameContext } from '../../src/frame/context.js';
 import { resolveAmendmentFrame } from '../../src/frame/pipelines/amendment.js';
 import { analyzeQuery } from '../../src/query/analysis.js';
 import type { LegalPrimitiveService } from '../../src/contracts.js';
-import type { AmendmentDocumentView, DocumentView, DocumentWithSectionsView } from '../../src/types.js';
+import type { AmendmentDocumentView, AmendmentsView, DocumentView, DocumentWithSectionsView } from '../../src/types.js';
+import { makeHit } from '../helpers/objects.js';
 
 const HISTORY_QUESTION = 'What has been amended in Clinical Coverage Policy 8C since 2024?';
 const LATEST_QUESTION = 'When was the most recent change notice for Policy 8C?';
@@ -53,6 +54,8 @@ const REVISION_ROWS: AmendmentDocumentView[] = Array.from({ length: 30 }, (_, in
       retrievalReady: false,
     }),
     changeSummary: `Revision effective ${iso}.`,
+    changeYear: null,
+    changeSequence: null,
   };
 });
 const NEWEST_ROW = REVISION_ROWS[0];
@@ -64,11 +67,13 @@ function withSections(view: DocumentView): DocumentWithSectionsView {
 function resolve(question: string, lookupRows: DocumentView[]) {
   const getAmendments = vi.fn<LegalPrimitiveService['getAmendments']>(async (documentId) =>
     documentId === POLICY.id
-      ? { amendments: REVISION_ROWS, baseDocument: null, authoritativeDocument: NEWEST_ROW }
+      ? { document: POLICY, amends: [], amendments: REVISION_ROWS, latestAmendment: NEWEST_ROW, truncated: false }
       : {
+          document: REVISION_ROWS.find((row) => row.id === documentId) ?? null,
+          amends: [POLICY],
           amendments: [],
-          baseDocument: POLICY,
-          authoritativeDocument: REVISION_ROWS.find((row) => row.id === documentId) ?? null,
+          latestAmendment: null,
+          truncated: false,
         },
   );
   const primitives = {
@@ -129,5 +134,71 @@ describe('amendment trail fan-out', () => {
 
     expect(getAmendments.mock.calls).toEqual([[NEWEST_ROW.id]]);
     expect(documents[0]?.id).toBe(NEWEST_ROW.id);
+  });
+});
+
+// No policy is named, so the trail is read from the documents the hits sit in.
+describe('amendment frame for a document found through its sections', () => {
+  const QUESTION = 'What has been amended in the non-emergency medical transportation manual?';
+  const manual = (id: string, policyNumber: string) =>
+    document({ id, documentType: 'dhhs_policy', policyNumber, title: `${policyNumber} manual` });
+  const NEMT = manual('doc:dhhs_policy:nemt', 'MA-3550');
+  const ABD_TWIN = manual('doc:dhhs_policy:abd', 'MA-2910');
+  const notice = (number: string): AmendmentDocumentView => ({
+    ...document({
+      id: `doc:dhhs_policy:cn-${number}`,
+      documentType: 'dhhs_policy',
+      policyNumber: null,
+      title: `CHANGE NOTICE FOR MANUAL NO. ${number}, NEMT`,
+      status: 'amendment',
+    }),
+    changeSummary: `Notice ${number} revises the transportation manuals.`,
+    changeYear: 2026,
+    changeSequence: Number.parseInt(number, 10),
+  });
+  const NOTICES = [notice('04-26'), notice('02-26')];
+
+  function resolveFromHit(hitDocument: DocumentView, views: Record<string, AmendmentsView>) {
+    const primitives = {
+      getSection: vi.fn(async (sectionId: string) => ({ id: sectionId, documentId: hitDocument.id })),
+      getDocument: vi.fn(async (documentId: string) =>
+        documentId === hitDocument.id ? withSections(hitDocument) : null,
+      ),
+      getAmendments: vi.fn(async (documentId: string) => views[documentId]),
+      lookupPolicy: vi.fn(async () => []),
+    } as unknown as LegalPrimitiveService;
+    const context = createFrameContext({
+      searchSectionsDetailed: async () => [
+        makeHit({ sectionId: 'sec:hit', sectionTitle: 'Content of Change', documentTitle: hitDocument.title }),
+      ],
+      primitives,
+      withSession: async () => {
+        throw new Error('no session expected');
+      },
+    });
+    return resolveAmendmentFrame(context, analyzeQuery(QUESTION, 'amendment'));
+  }
+
+  it('leads with the manual and ranks its newest notice below it', async () => {
+    const frame = await resolveFromHit(NEMT, {
+      [NEMT.id]: { document: NEMT, amends: [], amendments: NOTICES, latestAmendment: NOTICES[0], truncated: false },
+    });
+
+    expect(frame.authoritativeDocuments.map((entry) => entry.id)).toEqual([NEMT.id, NOTICES[0].id]);
+    expect(frame.authoritativeDocuments[1]?.reason).toBe('Amendment describing what changed; not the current text.');
+  });
+
+  it('leads with every manual a change notice amends, ahead of the notice', async () => {
+    const frame = await resolveFromHit(NOTICES[0], {
+      [NOTICES[0].id]: {
+        document: NOTICES[0],
+        amends: [ABD_TWIN, NEMT],
+        amendments: [],
+        latestAmendment: null,
+        truncated: false,
+      },
+    });
+
+    expect(frame.authoritativeDocuments.map((entry) => entry.id)).toEqual([ABD_TWIN.id, NEMT.id, NOTICES[0].id]);
   });
 });

@@ -162,27 +162,26 @@ describe('getAmendments', () => {
       status: 'amendment',
       changeSummary: 'MA-2180 is revised in the following way...',
     });
-    expect(result.baseDocument).toMatchObject({
-      id: 'doc-base',
-      title: 'Original Policy 8C',
-      documentType: 'dhhs_policy',
-      policyNumber: '8C',
-      effectiveDate: '2024-01-01',
-      url: 'https://example.com/8C',
-      status: 'current',
-    });
-    expect(result.authoritativeDocument).toMatchObject({
-      id: 'amend-2',
-      title: 'Change Notice 2025-03',
-      documentType: 'change_notice',
-      policyNumber: '8C-CN-03',
-      effectiveDate: '2025-08-01',
-      url: 'https://example.com/cn-03',
-      status: 'amendment',
-    });
+    expect(result.amends).toMatchObject([
+      {
+        id: 'doc-base',
+        title: 'Original Policy 8C',
+        documentType: 'dhhs_policy',
+        policyNumber: '8C',
+        effectiveDate: '2024-01-01',
+        url: 'https://example.com/8C',
+        status: 'current',
+      },
+    ]);
+    // The queried document is the current text; the newest notice is history.
+    expect(result.document).toMatchObject({ id: 'doc-1', title: 'Current Policy 8C', status: 'current' });
+    expect(result.latestAmendment).toMatchObject({ id: 'amend-2', changeYear: null, changeSequence: null });
+    expect(result.truncated).toBe(false);
+    expect(result).not.toHaveProperty('authoritativeDocument');
+    expect(result).not.toHaveProperty('baseDocument');
   });
 
-  it('returns null baseDocument when none exists', async () => {
+  it('returns the queried document and an empty amends list when it amends nothing', async () => {
     setupSession([
       {
         records: [
@@ -218,7 +217,8 @@ describe('getAmendments', () => {
 
     expect(result.amendments).toHaveLength(1);
     expect(result.amendments[0].changeSummary).toBe('A short summary.');
-    expect(result.baseDocument).toBeNull();
-    expect(result.authoritativeDocument?.id).toBe('amend-1');
+    expect(result.amends).toEqual([]);
+    expect(result.document?.id).toBe('doc-1');
+    expect(result.latestAmendment?.id).toBe('amend-1');
   });
 });

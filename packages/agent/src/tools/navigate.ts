@@ -31,23 +31,31 @@ export const followReferences = createTool({
 
 // ─── getAmendments ─────────────────────────────────────────────────────────────
 
+const AmendmentSchema = DocumentMetadataSchema.extend({
+  changeSummary: z.string().nullable(),
+  changeYear: z.number().nullable(),
+  changeSequence: z.number().nullable(),
+});
+
 export const getAmendments = createTool({
   id: 'get-amendments',
   description:
-    'Find all change notices that directly amend a given document. ' +
-    'Returns each amendment with a changeSummary describing what was changed, ' +
-    'the base document this one amends, and the authoritative document to cite now.',
+    'Find the change notices and revisions that directly amend a given document. ' +
+    'Returns document (the one you asked about, which is the current text to cite), ' +
+    'amendments (its history, newest first, each with a changeSummary; truncated is true when older ones were left out), ' +
+    'latestAmendment (the newest one: it describes what changed and is not the current text), ' +
+    'and amends (every document the queried one amends, when it is itself a change notice). ' +
+    'A DHHS change notice has no effectiveDate: changeYear and changeSequence give its number, ' +
+    'which orders it within one manual only.',
   inputSchema: z.object({
     documentId: z.string().describe('The document ID to look up amendments for'),
   }),
   outputSchema: z.object({
-    amendments: z.array(
-      DocumentMetadataSchema.extend({
-        changeSummary: z.string().nullable(),
-      }),
-    ),
-    baseDocument: DocumentMetadataSchema.nullable(),
-    authoritativeDocument: DocumentMetadataSchema.nullable(),
+    document: DocumentMetadataSchema.nullable(),
+    amends: z.array(DocumentMetadataSchema),
+    amendments: z.array(AmendmentSchema),
+    latestAmendment: AmendmentSchema.nullable(),
+    truncated: z.boolean(),
   }),
   execute: async (inputData) => policyCorpus.getAmendments(inputData.documentId),
 });

@@ -37,6 +37,8 @@ _CANONICAL_DOCUMENT_ORDER = (
     "CASE WHEN COALESCE(d.status, '') = 'amendment' THEN 1 ELSE 0 END, "
     "CASE WHEN d.effective_date IS NULL THEN 1 ELSE 0 END, "
     "d.effective_date DESC, "
+    "COALESCE(d.change_year, 0) DESC, "
+    "COALESCE(d.change_sequence, 0) DESC, "
     "size(COALESCE(d.title, '')) ASC, "
     "d.id ASC "
     "LIMIT 1"

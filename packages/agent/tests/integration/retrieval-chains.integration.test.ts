@@ -150,8 +150,9 @@ integration('retrieval chains against a real Neo4j graph', () => {
     expect(amendments.amendments[0].changeSummary).toBe(
       'Section 4.1: Added clarity on medical-necessity documentation.',
     );
-    // Authoritative document should track to the change notice (it's the most recent).
-    expect(amendments.authoritativeDocument?.id).toBe(amendId);
+    // The queried policy stays the current document; the revision is its history.
+    expect(amendments.document?.id).toBe(docId);
+    expect(amendments.latestAmendment?.id).toBe(amendId);
   });
 
   it('Chain C: followReferences returns all 5 cross-refs with mixed Section and Document targets', async () => {
@@ -284,8 +285,9 @@ integration('retrieval chains against a real Neo4j graph', () => {
 
     const result = await runTool(getAmendments, { documentId: docId });
     expect(result.amendments).toEqual([]);
-    // Authoritative document falls back to the queried doc itself when no amendments exist.
-    expect(result.authoritativeDocument?.id).toBe(docId);
+    expect(result.document?.id).toBe(docId);
+    expect(result.latestAmendment).toBeNull();
+    expect(result.amends).toEqual([]);
   });
 
   it('followReferences on a section id that does not exist returns an empty array (no crash)', async () => {

@@ -6,6 +6,7 @@ import {
   AMENDMENT_SUPPORT_TERMS,
   COVERAGE_AVOID_TERMS,
   FRAME_AVOID_LIMIT,
+  FRAME_DOCUMENT_LIMIT,
   FRAME_PRIMARY_LIMIT,
   FRAME_SUPPORT_LIMIT,
   buildSectionCandidates,
@@ -111,7 +112,7 @@ export async function resolveAmendmentFrame(
       // Nothing else carries a named clinical policy's newest revision-table
       // row into this route's frame. DHHS change notices stay out: the
       // manual's own revision header is the recency signal there.
-      const newest = view.amendments[0];
+      const newest = view.latestAmendment;
       if (newest?.documentType === 'change_notice' && lookupDocumentIds.has(trailDocuments[index].id)) {
         addIfAbsent({
           document: newest,
@@ -121,17 +122,26 @@ export async function resolveAmendmentFrame(
       }
       continue;
     }
-    if (view.authoritativeDocument) {
+    if (!view.document) continue;
+    // The current text is the consulted document itself, or the manuals it
+    // amends when it is a change notice. Amendments are history and rank
+    // below the text they describe.
+    const consultedNotice = isAmendmentDocument(view.document) && view.amends.length > 0;
+    const currentDocuments = consultedNotice ? view.amends.slice(0, FRAME_DOCUMENT_LIMIT) : [view.document];
+    for (const document of currentDocuments) {
       addIfAbsent({
-        document: view.authoritativeDocument,
-        reason: 'Authoritative document from amendment lookup.',
+        document,
+        reason: consultedNotice
+          ? 'Document amended by the consulted change notice.'
+          : 'Document whose amendment trail was consulted.',
         score: 1.3 - index * 0.05,
       });
     }
-    if (view.baseDocument) {
+    const history = consultedNotice ? view.document : view.latestAmendment;
+    if (history) {
       addIfAbsent({
-        document: view.baseDocument,
-        reason: 'Base document referenced by the amendment trail.',
+        document: history,
+        reason: 'Amendment describing what changed; not the current text.',
         score: 0.9 - index * 0.05,
       });
     }

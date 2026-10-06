@@ -4,6 +4,7 @@ import {
   AMENDMENT_CONTEXT_DOC_LIMIT,
   AMENDMENT_CONTEXT_DOC_WEIGHT,
   AMENDMENT_CONTEXT_SECTION_WEIGHT,
+  amendmentRecencyOrder,
   notArchived,
   recordToRetrievalHit,
   retrievalDocumentMetadataReturn,
@@ -39,7 +40,9 @@ export const amendmentContextBackend: RetrievalBackend = {
                     END
                   ) AS docScore
              WHERE docScore > 0
-             ORDER BY docScore DESC, coalesce(amend.effective_date, '') DESC, amend.id ASC
+             ORDER BY docScore DESC,
+                      ${amendmentRecencyOrder('amend')},
+                      amend.id ASC
              LIMIT toInteger($docLimit)
              MATCH (base)-[:HAS_SECTION]->(s:Section)
              WHERE s.content_length > 0

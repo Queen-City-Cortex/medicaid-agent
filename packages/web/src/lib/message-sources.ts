@@ -263,13 +263,15 @@ export function extractMessageSources(msg: UIMessage): MessageSource[] {
         break;
       }
       case 'getAmendments': {
-        const { amendments, authoritativeDocument, baseDocument } = output as {
+        const { amendments, document, amends } = output as {
           amendments?: DocumentLike[];
-          authoritativeDocument?: DocumentLike | null;
-          baseDocument?: DocumentLike | null;
+          document?: DocumentLike | null;
+          amends?: DocumentLike[];
         };
-        addDocumentSource(sources, authoritativeDocument, toolName);
-        addDocumentSource(sources, baseDocument, toolName);
+        addDocumentSource(sources, document, toolName);
+        if (Array.isArray(amends)) {
+          for (const doc of amends) addDocumentSource(sources, doc, toolName);
+        }
         if (Array.isArray(amendments)) {
           for (const doc of amendments) addDocumentSource(sources, doc, toolName);
         }

@@ -93,6 +93,8 @@ export function createPolicyLookupPrimitiveService({ withSession }: { withSessio
            ${documentMetadataReturn('d')},
            collect({id: s.id, number: s.section_number, title: s.title}) AS sections,
            coalesce(d.archived, false) AS archived,
+           coalesce(d.change_year, 0) AS changeYear,
+           coalesce(d.change_sequence, 0) AS changeSequence,
            sup.effective AS supersessionEffective,
            sup.reason AS supersessionReason,
            cur.policy_number AS supersededByPolicyNumber,
@@ -104,6 +106,8 @@ export function createPolicyLookupPrimitiveService({ withSession }: { withSessio
            CASE WHEN coalesce(d.status, '') = 'amendment' THEN 1 ELSE 0 END,
            CASE WHEN d.effective_date IS NULL THEN 1 ELSE 0 END,
            d.effective_date DESC,
+           changeYear DESC,
+           changeSequence DESC,
            size(coalesce(d.title, '')) ASC,
            d.id ASC
          LIMIT ${LOOKUP_DOCUMENT_LIMIT}`,

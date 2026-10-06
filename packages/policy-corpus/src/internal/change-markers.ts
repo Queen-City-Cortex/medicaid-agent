@@ -1,27 +1,35 @@
-// Change-notice marker parsing. DHHS change notices carry "Change No. NN-YY"
-// markers in section/document titles; these helpers extract a sortable numeric
-// value (year*100 + notice number) so "latest change notice" questions can
-// rank revisions, plus the revision-header title test and the latest-revision
-// description used by amendment frames.
+// Change-notice marker parsing. DHHS manuals and change notices carry a change
+// number "NN-YY" in section and document titles; these helpers extract a
+// sortable numeric value (year*100 + notice number) so "latest change notice"
+// questions can rank revisions, plus the revision-header title test and the
+// latest-revision description used by amendment frames.
 
 import type { CorpusRetrievalHit, DocumentView, SectionView } from '../types.js';
 import { normalizeSearchText } from './base.js';
 
-export function extractChangeMarkerValue(text: string | null | undefined): number | null {
-  const normalized = normalizeSearchText(text);
-  if (!normalized) return null;
+// One pattern for every header family measured on the corpus: "CHANGE NO.
+// 04-26", "CHANGE NOTICE 04-10", "CHANGE NOTICE FOR MANUAL(S)[,] NO[.:]
+// 09-21", "CHANGE NOTICE FOR MANUAL 01-14", "Current Change Notice: 06-24"
+// and "ISSUED 01/01/11-CHANGE 24-10". The number must follow the word
+// "change": a bare "NN-NN" also read age bands ("Ages 18-64"), SPA numbers
+// and the month and day of ISO dates as change numbers.
+const CHANGE_MARKER_RE = /\bchange\s+(?:no\b|notice\b(?:\s+for\s+manuals?)?)?[\s.,:]*(?:no\b[\s.:]*)?(\d{1,2})-(\d{2})(?!\d)/;
 
-  const match =
-    normalized.match(/\bchange(?:\s+notice)?(?:\s+no\.?)?\s*(\d{1,2})-(\d{2,4})\b/) ??
-    normalized.match(/\b(\d{1,2})-(\d{2,4})\b/);
+/**
+ * `maxYear` defaults to next year: a later year is a misread or a misprint,
+ * and would otherwise win every "latest" comparison.
+ */
+export function extractChangeMarkerValue(
+  text: string | null | undefined,
+  maxYear = new Date().getFullYear() + 1,
+): number | null {
+  const match = normalizeSearchText(text).match(CHANGE_MARKER_RE);
   if (!match) return null;
 
-  const noticeNumber = Number.parseInt(match[1] ?? '', 10);
-  const yearPart = Number.parseInt(match[2] ?? '', 10);
-  if (!Number.isFinite(noticeNumber) || !Number.isFinite(yearPart)) return null;
-
-  const normalizedYear = yearPart < 100 ? 2000 + yearPart : yearPart;
-  return normalizedYear * 100 + noticeNumber;
+  const noticeNumber = Number.parseInt(match[1], 10);
+  const year = 2000 + Number.parseInt(match[2], 10);
+  if (year > maxYear) return null;
+  return year * 100 + noticeNumber;
 }
 
 export function changeMarkerValueForHit(hit: CorpusRetrievalHit): number | null {

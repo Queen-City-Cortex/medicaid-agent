@@ -9,6 +9,7 @@ import pytest
 from pipeline.corpus_manifest import get_source_family
 from pipeline.graph.loader import (
     _build_document_bundle,
+    _change_notice_number,
     build_sections_from_items,
     build_sections_from_synthetic_items,
     _extract_dhhs_policy_number,
@@ -61,6 +62,81 @@ def test_beneficiary_guidance_does_not_invent_document_effective_date():
         )
         is None
     )
+
+
+def test_change_notice_gets_no_date_and_keeps_the_year_and_sequence_of_its_number(monkeypatch, tmp_path):
+    """Three notices of one year: none is dated January 1, and the sequence orders them."""
+    monkeypatch.setattr("pipeline.graph.loader._source_selection_index", lambda: {})
+    titles = [
+        "CHANGE NOTICE FOR MANUAL NO. 02-26, MA-3550, NEMT",
+        "CHANGE NOTICE FOR MANUAL NO. 04-26, MA-3550, NEMT",
+        "CHANGE NOTICE FOR MANUAL NO. 01-26, MA-3550, NEMT",
+    ]
+
+    documents = [
+        _build_document_bundle(
+            json_path=tmp_path / f"notice-{index}.json",
+            source_type="dhhs_policy",
+            title=title,
+            policy_number=None,
+            waiver_id=None,
+            crawler_meta={"source_url": f"https://example.com/CN-{index}.pdf", "status": "downloaded"},
+            meta={"source_file": f"dhhs/CN-{index}.pdf"},
+            sections=[],
+            effective_date=_extract_effective_date("dhhs_policy", title, []),
+            document_id=f"doc:dhhs_policy:cn-{index}",
+        ).document
+        for index, title in enumerate(titles)
+    ]
+
+    assert [document.effective_date for document in documents] == [None, None, None]
+    assert [(document.change_year, document.change_sequence) for document in documents] == [
+        (2026, 2),
+        (2026, 4),
+        (2026, 1),
+    ]
+    newest_first = sorted(
+        documents,
+        key=lambda document: (document.change_year, document.change_sequence),
+        reverse=True,
+    )
+    assert [document.title[29:34] for document in newest_first] == ["04-26", "02-26", "01-26"]
+
+
+@pytest.mark.parametrize(
+    ("source_type", "title", "expected"),
+    [
+        ("dhhs_policy", "CHANGE NOTICE FOR MANUAL NO. 11-25, MA-2270", (2025, 11)),
+        ("dhhs_policy", "Change Notice for Manual No. 01-99, MA-2000", (1999, 1)),
+        ("dhhs_policy", "CHANGE NOTICE FOR MANUAL, NO: 07-15", (2015, 7)),
+        ("dhhs_policy", "CHANGE NOTICE FOR MANUALS NO. 22-08", (2008, 22)),
+        ("dhhs_policy", "DMA CHANGE NOTICE FOR MANUAL 01-14", (2014, 1)),
+        # A manual, and a title that only resembles a notice elsewhere.
+        ("dhhs_policy", "MA-3550 NON-EMERGENCY MEDICAL TRANSPORTATION (NEMT)", None),
+        ("state_plan_amendment", "CHANGE NOTICE FOR MANUAL NO. 04-26", None),
+    ],
+)
+def test_change_notice_number(source_type, title, expected):
+    assert _change_notice_number(source_type, title) == expected
+
+
+def test_manual_carries_no_change_number(monkeypatch, tmp_path):
+    monkeypatch.setattr("pipeline.graph.loader._source_selection_index", lambda: {})
+
+    document = _build_document_bundle(
+        json_path=tmp_path / "manual.json",
+        source_type="dhhs_policy",
+        title="MA-3550 NON-EMERGENCY MEDICAL TRANSPORTATION (NEMT)",
+        policy_number="MA-3550",
+        waiver_id=None,
+        crawler_meta={"source_url": "https://example.com/MA-3550.pdf", "status": "downloaded"},
+        meta={"source_file": "dhhs/MA-3550.pdf"},
+        sections=[],
+        effective_date=None,
+        document_id="doc:dhhs_policy:ma-3550",
+    ).document
+
+    assert (document.effective_date, document.change_year, document.change_sequence) == (None, None, None)
 
 
 class TestWalkDoclingDocument:

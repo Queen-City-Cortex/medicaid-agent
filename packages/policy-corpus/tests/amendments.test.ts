@@ -8,71 +8,172 @@ import {
   documentGraphHandlers,
   documentRecord,
   hitFor,
+  normalizeQueryText,
   queries,
   resolveTypedFrame,
   type GraphDocument,
 } from './helpers/graph-fixtures.js';
 
+const MANUAL = documentRecord({
+  id: 'doc-ma3550',
+  title: 'MA-3550 NON-EMERGENCY MEDICAL TRANSPORTATION (NEMT)',
+  documentType: 'dhhs_policy',
+  policyNumber: 'MA-3550',
+  url: 'https://example.com/ma3550',
+  status: 'current',
+});
+
+// A DHHS change notice as the loader writes it: no date, the year and
+// sequence of its number ("04-26") stored instead.
+function notice(number: string, id = `doc-cn-${number}`) {
+  const [sequence, year] = number.split('-').map((part) => Number.parseInt(part, 10));
+  return amendmentRecord({
+    id,
+    title: `CHANGE NOTICE FOR MANUAL NO. ${number}, NEMT`,
+    documentType: 'dhhs_policy',
+    url: `https://example.com/${id}`,
+    status: 'amendment',
+    changeYear: 2000 + year,
+    changeSequence: sequence,
+    changeDescription: `Notice ${number} revises MA-3550.`,
+  });
+}
+
+// The same notice as graphs loaded before the null-date decision carry it:
+// January 1 of the year, no stored year or sequence.
+function januaryFirstNotice(number: string, id: string) {
+  return amendmentRecord({
+    id,
+    title: `CHANGE NOTICE FOR MANUAL NO. ${number}, NEMT`,
+    documentType: 'dhhs_policy',
+    effectiveDate: `20${number.split('-')[1]}-01-01`,
+    status: 'amendment',
+  });
+}
+
+function amendmentsFor(amendmentRecords: ReturnType<typeof amendmentRecord>[], amended: ReturnType<typeof documentRecord>[] = []) {
+  return createCorpusWithRuns([{ records: [MANUAL] }, { records: amendmentRecords }, { records: amended }]);
+}
+
 describe('getAmendments', () => {
-  it('returns the latest amendment as authoritative', async () => {
-    const { corpus } = createCorpusWithRuns([
-      {
-        records: [
-          documentRecord({
-            id: 'doc-1',
-            title: 'Current Policy 8C',
-            documentType: 'dhhs_policy',
-            policyNumber: '8C',
-            effectiveDate: '2025-01-01',
-            url: 'https://example.com/8C',
-            status: 'current',
-          }),
-        ],
-      },
-      {
-        records: [
-          amendmentRecord({
-            id: 'amend-2',
-            title: 'Change Notice 2025-03',
-            documentType: 'change_notice',
-            policyNumber: '8C-CN-03',
-            effectiveDate: '2025-08-01',
-            url: 'https://example.com/cn-03',
-            status: 'amendment',
-            changeDescription: 'This change notice supersedes the prior revision.',
-          }),
-          amendmentRecord({
-            id: 'amend-1',
-            title: 'Change Notice 2025-01',
-            documentType: 'change_notice',
-            policyNumber: '8C-CN-01',
-            effectiveDate: '2025-06-01',
-            url: 'https://example.com/cn-01',
-            status: 'amendment',
-            changeDescription: 'MA-2180 is revised in the following way...',
-          }),
-        ],
-      },
-      {
-        records: [
-          documentRecord({
-            id: 'doc-base',
-            title: 'Original Policy 8C',
-            documentType: 'dhhs_policy',
-            policyNumber: '8C',
-            effectiveDate: '2024-01-01',
-            url: 'https://example.com/8C',
-            status: 'current',
-          }),
-        ],
-      },
+  it('returns the queried manual as the document and its notices as history', async () => {
+    // The graph returned 02-26 ahead of 04-26 while both carried 2026-01-01.
+    const { corpus } = amendmentsFor([notice('02-26'), notice('04-26')]);
+
+    const view = await corpus.getAmendments('doc-ma3550');
+
+    expect(view.document?.id).toBe('doc-ma3550');
+    expect(view.amendments.map((amendment) => amendment.id)).toEqual(['doc-cn-04-26', 'doc-cn-02-26']);
+    expect(view.latestAmendment?.id).toBe('doc-cn-04-26');
+    expect(view.latestAmendment).toMatchObject({ effectiveDate: null, changeYear: 2026, changeSequence: 4 });
+    expect(view.amends).toEqual([]);
+    expect(view.truncated).toBe(false);
+    expect(view).not.toHaveProperty('authoritativeDocument');
+    expect(view).not.toHaveProperty('baseDocument');
+  });
+
+  it('orders same-year notices by sequence, then older years, then id', async () => {
+    const { corpus } = amendmentsFor([
+      notice('11-25'),
+      notice('01-26'),
+      // ABD and Family and Children's twins share a number; id breaks the tie.
+      notice('04-26', 'doc-cn-04-26-fc'),
+      notice('02-26'),
+      notice('04-26', 'doc-cn-04-26-abd'),
     ]);
 
-    const amendments = await corpus.getAmendments('doc-1');
+    const view = await corpus.getAmendments('doc-ma3550');
 
-    expect(amendments.amendments).toHaveLength(2);
-    expect(amendments.authoritativeDocument?.id).toBe('amend-2');
-    expect(amendments.baseDocument?.id).toBe('doc-base');
+    expect(view.amendments.map((amendment) => amendment.id)).toEqual([
+      'doc-cn-04-26-abd',
+      'doc-cn-04-26-fc',
+      'doc-cn-02-26',
+      'doc-cn-01-26',
+      'doc-cn-11-25',
+    ]);
+  });
+
+  it('orders dated revision rows by date and puts undated, unnumbered rows last', async () => {
+    const row = (id: string, effectiveDate: string | null) =>
+      amendmentRecord({ id, title: `Policy 8C Revision ${id}`, documentType: 'change_notice', effectiveDate, status: 'amendment' });
+    const { corpus } = amendmentsFor([row('undated', null), row('2024-03', '2024-03-01'), row('2025-09', '2025-09-01'), row('2024-11', '2024-11-15')]);
+
+    const view = await corpus.getAmendments('doc-ma3550');
+
+    expect(view.amendments.map((amendment) => amendment.id)).toEqual(['2025-09', '2024-11', '2024-03', 'undated']);
+  });
+
+  it('reads the number from the title on a graph loaded before the null-date decision', async () => {
+    const { corpus } = amendmentsFor([
+      januaryFirstNotice('07-25', 'doc-b'),
+      januaryFirstNotice('02-26', 'doc-c'),
+      januaryFirstNotice('04-26', 'doc-d'),
+    ]);
+
+    const view = await corpus.getAmendments('doc-ma3550');
+
+    // That graph stores no year or sequence and a fabricated January 1 date:
+    // the title supplies the number, and the fabricated date is not reported.
+    expect(view.amendments.map((amendment) => amendment.id)).toEqual(['doc-d', 'doc-c', 'doc-b']);
+    expect(view.latestAmendment).toMatchObject({ id: 'doc-d', changeYear: 2026, changeSequence: 4, effectiveDate: null });
+  });
+
+  it('lists every amended document for a notice, ordered in the query by policy number then id', async () => {
+    const manual = (id: string, policyNumber: string) =>
+      documentRecord({ id, title: `${policyNumber} manual`, documentType: 'dhhs_policy', policyNumber, status: 'current' });
+    const { corpus, session } = createCorpusWithRuns([
+      { records: [amendmentRecord({ id: 'doc-cn-02-26', title: 'CHANGE NOTICE FOR MANUAL NO. 02-26', status: 'amendment' })] },
+      { records: [] },
+      { records: [manual('doc-abd', 'MA-2270'), manual('doc-fc', 'MA-3322'), manual('doc-nemt', 'MA-3550')] },
+    ]);
+
+    const view = await corpus.getAmendments('doc-cn-02-26');
+
+    expect(view.document?.id).toBe('doc-cn-02-26');
+    expect(view.amends.map((document) => document.id)).toEqual(['doc-abd', 'doc-fc', 'doc-nemt']);
+    expect(view.latestAmendment).toBeNull();
+    const amendsQuery = normalizeQueryText(session.run.mock.calls[2][0] as string);
+    expect(amendsQuery).toContain('ORDER BY base.policy_number ASC, base.id ASC');
+    expect(amendsQuery).not.toContain('LIMIT');
+  });
+
+  it('orders the trail in the query by year, sequence, date and id, with no null sort key', async () => {
+    const { corpus, session } = amendmentsFor([]);
+
+    await corpus.getAmendments('doc-ma3550');
+
+    expect(normalizeQueryText(session.run.mock.calls[1][0] as string)).toContain(
+      'ORDER BY ' +
+        'coalesce(amend.change_year, toInteger(substring(amend.effective_date, 0, 4)), 0) DESC, ' +
+        'coalesce(amend.change_sequence, 0) DESC, ' +
+        "coalesce(amend.effective_date, '') DESC, " +
+        'amend.id ASC',
+    );
+  });
+
+  it('reports a trail longer than the cap as truncated', async () => {
+    const rows = Array.from({ length: 51 }, (_, index) =>
+      amendmentRecord({ id: `row-${String(index).padStart(2, '0')}`, effectiveDate: `20${String(60 - index).padStart(2, '0')}-01-01` }),
+    );
+    const { corpus } = amendmentsFor(rows);
+
+    const view = await corpus.getAmendments('doc-ma3550');
+
+    expect(view.amendments).toHaveLength(50);
+    expect(view.truncated).toBe(true);
+    expect(view.latestAmendment?.id).toBe('row-00');
+  });
+
+  it('returns a null document for an unknown id', async () => {
+    const { corpus } = createCorpusWithRuns([{ records: [] }, { records: [] }, { records: [] }]);
+
+    await expect(corpus.getAmendments('missing')).resolves.toEqual({
+      document: null,
+      amends: [],
+      amendments: [],
+      latestAmendment: null,
+      truncated: false,
+    });
   });
 });
 

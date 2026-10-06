@@ -298,8 +298,11 @@ def _assign_hierarchy(sections: list[dict]):
 
 # Date extraction patterns
 _DATE_MM_DD_YYYY = re.compile(r"(\d{2}/\d{2}/\d{4})")
+# "CHANGE NOTICE FOR MANUAL NO. 04-26", "CHANGE NOTICE FOR MANUAL, NO: 07-15",
+# "CHANGE NOTICE FOR MANUALS NO. 22-08" and "DMA CHANGE NOTICE FOR MANUAL 01-14".
 _CHANGE_NOTICE_YEAR_RE = re.compile(
-    r"CHANGE NOTICE FOR MANUAL NO\.\s*(\d{2})-(\d{2})", re.IGNORECASE
+    r"CHANGE NOTICE(?:\s+FOR\s+MANUALS?)?[\s.,:]*(?:NO\b[\s.:]*)?(\d{1,2})-(\d{2})(?!\d)",
+    re.IGNORECASE,
 )
 
 
@@ -329,15 +332,25 @@ def _extract_effective_date(
                     if parsed:
                         return max(parsed)  # lexicographic max = most recent
 
-    elif source_type == "dhhs_policy":
-        # Change notices: "CHANGE NOTICE FOR MANUAL NO. 01-24" → year 2024
-        m = _CHANGE_NOTICE_YEAR_RE.search(title)
-        if m:
-            yy = int(m.group(2))   # 2-digit year
-            year = 2000 + yy if yy < 50 else 1900 + yy
-            return f"{year}-01-01"  # approximate: year + sequence only
-
+    # A DHHS change notice gets no date here: its title carries a number, not
+    # a date, and January 1 of the year was a date no source states. See
+    # `_change_notice_number`.
     return None
+
+
+def _change_notice_number(source_type: str, title: str) -> tuple[int, int] | None:
+    """Year and sequence of a DHHS change notice's number.
+
+    "CHANGE NOTICE FOR MANUAL NO. 04-26" is (2026, 4): the fourth notice of
+    2026. The pair orders notices within one manual's series; it is not a date.
+    """
+    if source_type != "dhhs_policy":
+        return None
+    m = _CHANGE_NOTICE_YEAR_RE.search(title)
+    if not m:
+        return None
+    yy = int(m.group(2))
+    return (2000 + yy if yy < 50 else 1900 + yy, int(m.group(1)))
 
 
 # Matches 1915(c), 1915(i), 1916(b) etc. in waiver document titles
@@ -495,6 +508,7 @@ def _build_document_bundle(
     # A proposal is not approved State Plan text: it loads as supporting
     # material whatever tier its family carries.
     proposed = _is_state_plan_proposal(source_type, title, crawler_meta)
+    change_year, change_sequence = _change_notice_number(source_type, title) or (None, None)
 
     return DocumentBundle(
         document=DocumentNode(
@@ -514,6 +528,8 @@ def _build_document_bundle(
             page_count=meta.get("page_count", 0),
             section_count=len(section_nodes),
             effective_date=effective_date,
+            change_year=change_year,
+            change_sequence=change_sequence,
             source_modified_date=meta.get("source_modified_date"),
             retrieved_at=(
                 crawler_meta.get("last_checked_at")

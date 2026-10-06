@@ -90,6 +90,8 @@ class CorpusGraphWriter:
                 "page_count": document.page_count,
                 "section_count": document.section_count,
                 "effective_date": document.effective_date,
+                "change_year": document.change_year,
+                "change_sequence": document.change_sequence,
                 "source_modified_date": document.source_modified_date,
                 "retrieved_at": document.retrieved_at,
                 "authority_tier": document.authority_tier,

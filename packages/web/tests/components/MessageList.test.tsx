@@ -64,7 +64,7 @@ describe('MessageList', () => {
             toolCallId: 'tc-2',
             state: 'output-available',
             input: { documentId: 'doc:5B' },
-            output: { amendments: [], authoritativeDocument: { policyNumber: '5B', title: 'Clinical Coverage Policy 5B' } },
+            output: { amendments: [], document: { policyNumber: '5B', title: 'Clinical Coverage Policy 5B' } },
           },
           { type: 'text', text: '## Answer\n\nNo, chiropractic services are not covered.' },
         ],

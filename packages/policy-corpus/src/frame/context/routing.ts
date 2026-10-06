@@ -11,6 +11,7 @@ import {
   POLICY_ROUTING_DOCUMENT_TYPES,
   SECTION_KEYWORD_BASE_SCORE,
   SECTION_KEYWORD_WEIGHT,
+  amendmentRecencyOrder,
   buildQueryFocusTerms,
   collectPolicyNumbersForQuery,
   dedupeTerms,
@@ -90,7 +91,9 @@ export function createFrameRoutingHelpers({
            ${retrievalDocumentMetadataReturn('d')}
            s.content_text AS content,
            (${SECTION_KEYWORD_BASE_SCORE} + sectionScore * ${SECTION_KEYWORD_WEIGHT}) AS score
-         ORDER BY score DESC, coalesce(d.effective_date, '') DESC
+         ORDER BY score DESC,
+           ${amendmentRecencyOrder('d')},
+           s.id ASC
          LIMIT 8`,
       );
 

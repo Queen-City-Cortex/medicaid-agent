@@ -222,12 +222,25 @@ export interface ReferenceView {
 
 export interface AmendmentDocumentView extends DocumentView {
   changeSummary: string | null;
+  /** Year and sequence of a DHHS change notice's number ("04-26" is 2026, 4).
+   *  The notice carries no date, so these order it within one manual's
+   *  series. Null for every other amending document. */
+  changeYear: number | null;
+  changeSequence: number | null;
 }
 
 export interface AmendmentsView {
+  /** The document that was asked about. It is the current text; nothing in
+   *  `amendments` replaces it. Null when the id is unknown. */
+  document: DocumentView | null;
+  /** Every document the queried one amends, by policy number then id. */
+  amends: DocumentView[];
+  /** History of the queried document, newest first. */
   amendments: AmendmentDocumentView[];
-  baseDocument: DocumentView | null;
-  authoritativeDocument: DocumentView | null;
+  /** `amendments[0]`: what changed most recently, not the current text. */
+  latestAmendment: AmendmentDocumentView | null;
+  /** True when the history holds more than the returned amendments. */
+  truncated: boolean;
 }
 
 export interface LookupPolicyInput {

@@ -32,7 +32,7 @@ describe('section numbers on source entries', () => {
     { toolName: 'resolveAnswerFrame', toolCallId: 'b', result: { frame } },
     { toolName: 'getDocument', toolCallId: 'c', result: { document: { ...meta, sections: listing, sectionCount: 130 } } },
     { toolName: 'lookupPolicy', toolCallId: 'd', result: { documents: [{ ...meta, sections: listing }] } },
-    { toolName: 'getAmendments', toolCallId: 'e', result: { amendments: [], baseDocument: null, authoritativeDocument: meta } },
+    { toolName: 'getAmendments', toolCallId: 'e', result: { document: meta, amends: [], amendments: [], latestAmendment: null, truncated: false } },
     { toolName: 'followReferences', toolCallId: 'f', result: { references: [{ targetId: 'sec:doc:clinical_policy:8C:5.6',
       targetType: 'Section', targetTitle: 'Limits', targetPolicyNumber: '8C', relationshipType: 'REFERENCES', referenceText: null }] } },
   ];

@@ -1706,7 +1706,7 @@
     "topics": ["nemt", "MA-3550", "amendment_chain", "current_revision"],
     "target_users": ["legal_aid", "provider", "care_coordinator"],
     "answer": {
-      "text": "The currently effective version is the one marked 'REVISED 03/16/2026 - CHANGE NO. 04-26' in the MA-3550 manual. The agent must call getAmendments on the MA-3550 document and use authoritativeDocument; it must not cite an older standalone change-notice title as if it were the current text. Older change notices should only be mentioned to explain what changed.",
+      "text": "The currently effective version is the one marked 'REVISED 03/16/2026 - CHANGE NO. 04-26' in the MA-3550 manual. The agent must call getAmendments on the MA-3550 document and treat the manual it returns as `document` as the current text; it must not cite an older standalone change-notice title as if it were the current text. Older change notices should only be mentioned to explain what changed.",
       "confidence": "high",
       "caveats": ["Revision markers like 'REVISED MM/DD/YYYY - CHANGE NO. NN-YY' in the current manual are the recency signal per AGENTS.md:46", "Re-verify change number if the manual is re-crawled"]
     },
@@ -1724,7 +1724,7 @@
       "federal_references": []
     },
     "source": "regression",
-    "notes": "Temporal / latest_revision_only determinism hint regression. Exercises getAmendments + authoritativeDocument routing. NEEDS_VALIDATION: expected current change number should be filled in from the live manual header."
+    "notes": "Temporal / latest_revision_only determinism hint regression. Exercises getAmendments returning the queried manual as the current document. NEEDS_VALIDATION: expected current change number should be filled in from the live manual header."
   },
   {
     "id": "q-043",

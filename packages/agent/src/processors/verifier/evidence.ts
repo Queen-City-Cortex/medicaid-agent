@@ -69,10 +69,14 @@ interface GetDocumentResult {
   }) | null;
 }
 
+type AmendmentMetadata = DocumentMetadata & { changeSummary: string | null };
+
 interface GetAmendmentsResult {
-  amendments: Array<DocumentMetadata & { changeSummary: string | null }>;
-  baseDocument: DocumentMetadata | null;
-  authoritativeDocument: DocumentMetadata | null;
+  document: DocumentMetadata | null;
+  amends: DocumentMetadata[];
+  amendments: AmendmentMetadata[];
+  latestAmendment: AmendmentMetadata | null;
+  truncated: boolean;
 }
 
 interface LookupPolicyResult {
@@ -189,33 +193,46 @@ function extractGetDocument(result: GetDocumentResult): SourceEntry | null {
 }
 
 function extractGetAmendments(result: GetAmendmentsResult, toolCallId: string): SourceEntry | null {
-  // Use authoritativeDocument id as key, fall back to a generated key
-  const auth = result?.authoritativeDocument;
+  const document = result?.document;
   const amendments = result?.amendments ?? [];
-  if (!auth && !result?.baseDocument && amendments.length === 0) return null;
-  const key = auth ? auth.id : `amendments:${toolCallId}`;
+  const amends = result?.amends ?? [];
+  if (!document && amends.length === 0 && amendments.length === 0) return null;
+  // Not the bare document id: a getDocument entry for the same document
+  // carries that key, and entries are merged by key.
+  const key = `amendments:${document?.id ?? toolCallId}`;
 
   const lines: string[] = [`[getAmendments]`];
 
-  if (auth) {
-    lines.push(`Authoritative document:`);
-    lines.push(formatDocMeta(auth));
+  if (document) {
+    lines.push(`Queried document:`);
+    lines.push(formatDocMeta(document));
+  }
+
+  if (result?.latestAmendment) {
+    lines.push(`\nLatest amendment:`);
+    lines.push(formatDocMeta(result.latestAmendment));
   }
 
   if (amendments.length > 0) {
-    lines.push(`\nAmendments (${amendments.length}):`);
+    lines.push(`\nAmendments (${amendments.length}${result?.truncated ? ', older ones omitted' : ''}):`);
     for (const a of amendments) {
       lines.push(`  - ${a.id} | ${a.title || '(no title)'} | ${a.effectiveDate || 'unknown date'}`);
       if (a.changeSummary) lines.push(`    Summary: ${a.changeSummary}`);
     }
   }
 
-  if (result?.baseDocument) {
-    lines.push(`\nBase document:`);
-    lines.push(formatDocMeta(result.baseDocument));
+  // One line each: a notice can amend twenty or more manuals, and the entry
+  // shares the evidence budget with section text.
+  // No URL: this entry holds none of a manual's text, so it must not vouch
+  // for a link to one. Reading the manual does.
+  if (amends.length > 0) {
+    lines.push(`\nAmends (${amends.length}):`);
+    for (const d of amends) {
+      lines.push(`  - ${d.id} | ${d.title || '(no title)'} | ${d.policyNumber || 'no policy number'}`);
+    }
   }
 
-  return { toolName: 'getAmendments', key, text: lines.join('\n'), link: auth?.url ?? null };
+  return { toolName: 'getAmendments', key, text: lines.join('\n'), link: document?.url ?? null };
 }
 
 function extractLookupPolicy(result: LookupPolicyResult, toolCallId: string): SourceEntry | null {

@@ -6,6 +6,7 @@ import {
   CHANGE_NOTICE_HEADER_SECTION_WEIGHT,
   DOCUMENT_EXPANSION_BASE_SCORE,
   DOCUMENT_EXPANSION_SECTION_WEIGHT,
+  amendmentRecencyOrder,
   notArchived,
   recordToRetrievalHit,
   retrievalDocumentMetadataReturn,
@@ -112,7 +113,8 @@ export async function retrieveChangeNoticeHeaderHits({
            ${retrievalDocumentMetadataReturn('d')}
            coalesce(s.content_text, '') AS content,
            (${CHANGE_NOTICE_HEADER_BASE_SCORE} + sectionScore * ${CHANGE_NOTICE_HEADER_SECTION_WEIGHT}) AS score
-         ORDER BY coalesce(d.effective_date, '') DESC, score DESC, s.id ASC
+         ORDER BY ${amendmentRecencyOrder('d')},
+           score DESC, s.id ASC
          LIMIT toInteger($k)`,
         {
           titles,

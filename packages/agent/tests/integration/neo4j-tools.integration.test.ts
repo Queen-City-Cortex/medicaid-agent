@@ -273,7 +273,7 @@ integration('agent tools against a real Neo4j graph', () => {
     expect(result.section?.status).toBe('current');
   });
 
-  it('returns a full amendment chain and authoritative document', async () => {
+  it('returns the queried document, its amendment chain and what it amends', async () => {
     const baseDocId = `${FIXTURE_PREFIX}doc:base`;
     const currentDocId = `${FIXTURE_PREFIX}doc:current`;
     const amendEarlyId = `${FIXTURE_PREFIX}doc:amend-early`;
@@ -335,12 +335,90 @@ integration('agent tools against a real Neo4j graph', () => {
 
     const result = await runTool(getAmendments, { documentId: currentDocId });
 
-    expect(result.baseDocument?.id).toBe(baseDocId);
+    expect(result.document?.id).toBe(currentDocId);
+    expect(result.amends.map((doc) => doc.id)).toEqual([baseDocId]);
     expect(result.amendments.map((doc) => doc.id)).toEqual([amendLateId, amendEarlyId]);
-    expect(result.authoritativeDocument?.id).toBe(amendLateId);
-    expect(result.authoritativeDocument?.url).toBe('https://example.com/late');
+    expect(result.latestAmendment?.id).toBe(amendLateId);
+    expect(result.latestAmendment?.url).toBe('https://example.com/late');
+    expect(result.truncated).toBe(false);
     expect(result.amendments[0].changeSummary).toBe('Revised premium chart in section IV.I.');
     expect(result.amendments[1].changeSummary).toBe('Updated eligibility criteria in section IV.A.');
+  });
+
+  it('orders undated change notices by year, then sequence, then id', async () => {
+    const manualId = `${FIXTURE_PREFIX}doc:nemt`;
+    const noticeId = (name: string) => `${FIXTURE_PREFIX}doc:cn-${name}`;
+
+    // Notices as the loader writes them: no date, the year and sequence of
+    // the number stored. Twins share a number, so id breaks their tie.
+    await run(
+      `
+      CREATE (manual:Document {
+        id: $manualId,
+        title: 'MA-3550 NON-EMERGENCY MEDICAL TRANSPORTATION (NEMT)',
+        document_type: 'dhhs_policy',
+        policy_number: 'MA-3550',
+        source_url: 'https://example.com/ma3550',
+        status: 'current'
+      })
+      WITH manual
+      UNWIND $notices AS notice
+      CREATE (cn:Document {
+        id: notice.id,
+        title: 'CHANGE NOTICE FOR MANUAL NO. ' + notice.number,
+        document_type: 'dhhs_policy',
+        change_year: notice.year,
+        change_sequence: notice.sequence,
+        status: 'amendment'
+      })
+      CREATE (cn)-[:AMENDS]->(manual)
+      `,
+      {
+        manualId,
+        notices: [
+          { id: noticeId('02-26'), number: '02-26', year: neo4j.int(2026), sequence: neo4j.int(2) },
+          { id: noticeId('11-25'), number: '11-25', year: neo4j.int(2025), sequence: neo4j.int(11) },
+          { id: noticeId('04-26-fc'), number: '04-26', year: neo4j.int(2026), sequence: neo4j.int(4) },
+          { id: noticeId('01-26'), number: '01-26', year: neo4j.int(2026), sequence: neo4j.int(1) },
+          { id: noticeId('04-26-abd'), number: '04-26', year: neo4j.int(2026), sequence: neo4j.int(4) },
+        ],
+      },
+    );
+
+    const result = await runTool(getAmendments, { documentId: manualId });
+
+    expect(result.document?.id).toBe(manualId);
+    expect(result.amendments.map((doc) => doc.id)).toEqual(
+      ['04-26-abd', '04-26-fc', '02-26', '01-26', '11-25'].map(noticeId),
+    );
+    expect(result.latestAmendment).toMatchObject({ effectiveDate: null, changeYear: 2026, changeSequence: 4 });
+  });
+
+  it('orders January 1 notices from an older graph by year, then id', async () => {
+    const manualId = `${FIXTURE_PREFIX}doc:ltc`;
+    const noticeId = (name: string) => `${FIXTURE_PREFIX}doc:legacy-cn-${name}`;
+
+    await run(
+      `
+      CREATE (manual:Document {id: $manualId, title: 'MA-2270', document_type: 'dhhs_policy', policy_number: 'MA-2270', status: 'current'})
+      WITH manual
+      UNWIND $notices AS notice
+      CREATE (cn:Document {id: notice.id, title: notice.id, document_type: 'dhhs_policy', effective_date: notice.date, status: 'amendment'})
+      CREATE (cn)-[:AMENDS]->(manual)
+      `,
+      {
+        manualId,
+        notices: [
+          { id: noticeId('b'), date: '2024-01-01' },
+          { id: noticeId('c'), date: '2025-01-01' },
+          { id: noticeId('a'), date: '2025-01-01' },
+        ],
+      },
+    );
+
+    const result = await runTool(getAmendments, { documentId: manualId });
+
+    expect(result.amendments.map((doc) => doc.id)).toEqual(['a', 'c', 'b'].map(noticeId));
   });
 
   it('returns all siblings for a section, not only adjacent NEXT_SIBLING nodes', async () => {

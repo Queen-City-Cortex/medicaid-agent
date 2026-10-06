@@ -35,6 +35,9 @@ class DocumentNode:
     archived: bool = False
     source_checked_at: str | None = None
     source_changed_at: str | None = None
+    # Number of a DHHS change notice ("04-26" is 2026, 4); None otherwise.
+    change_year: int | None = None
+    change_sequence: int | None = None
 
 
 @dataclass(frozen=True)

@@ -183,6 +183,18 @@ def test_registry_timestamps_use_neo4j_utc_format_without_changing_retrieval(val
     assert parameters["retrieved_at"] == value
 
 
+def test_document_merge_writes_a_change_notice_number_without_a_date():
+    bundle = _make_bundle()
+    session = FakeSession()
+    _writer_for(session).upsert_document_bundle(
+        replace(bundle, document=replace(bundle.document, effective_date=None, change_year=2026, change_sequence=4))
+    )
+    parameters = next(parameters for query, parameters in session.calls if query == queries.MERGE_DOCUMENT)
+    assert "d.change_year = $change_year" in queries.MERGE_DOCUMENT
+    assert "d.change_sequence = $change_sequence" in queries.MERGE_DOCUMENT
+    assert (parameters["effective_date"], parameters["change_year"], parameters["change_sequence"]) == (None, 2026, 4)
+
+
 def test_document_merge_writes_the_archived_flag():
     bundle = _make_bundle()
     session = FakeSession()

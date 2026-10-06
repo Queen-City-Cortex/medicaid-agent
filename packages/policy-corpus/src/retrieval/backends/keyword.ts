@@ -6,6 +6,7 @@ import {
   DOCUMENT_KEYWORD_SECTION_WEIGHT,
   SECTION_KEYWORD_BASE_SCORE,
   SECTION_KEYWORD_WEIGHT,
+  amendmentRecencyOrder,
   notArchived,
   recordToRetrievalHit,
   retrievalDocumentMetadataReturn,
@@ -85,6 +86,8 @@ export const documentKeywordBackend: RetrievalBackend = {
     const keywordHits = [];
     for (const docTypes of profile.typeGroups) {
       try {
+        // Status sorts before date: a change notice or a proposal that ties
+        // a manual on title score must not take the manual's slot.
         const result = await timeSearchStep(`document keyword ${docTypes.join('+')}`, () =>
           session.run(
             `MATCH (d:Document)
@@ -105,7 +108,10 @@ export const documentKeywordBackend: RetrievalBackend = {
                     END
                   ) AS docScore
              WHERE docScore > 0
-             ORDER BY docScore DESC, coalesce(d.effective_date, '') DESC, d.id ASC
+             ORDER BY docScore DESC,
+                      CASE WHEN coalesce(d.status, '') IN ['amendment', 'proposed'] THEN 1 ELSE 0 END,
+                      ${amendmentRecencyOrder('d')},
+                      d.id ASC
              LIMIT toInteger($docLimit)
              MATCH (d)-[:HAS_SECTION]->(s:Section)
              WHERE s.content_length > 0

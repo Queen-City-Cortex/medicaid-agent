@@ -3,6 +3,7 @@ import { extractSources, buildSourceText, verifyAnswer, SourceEntry, VERIFICATIO
 
 vi.mock('ai', async original => ({ ...await original<typeof import('ai')>(), generateObject: vi.fn() }));
 import { generateObject } from 'ai';
+import { sourceUrlSet } from '../../src/processors/verifier/answer-validation.js';
 
 import { makeDocument, makeFrame, makeSection } from '../helpers/answer-frame-fixtures.js';
 
@@ -72,43 +73,36 @@ describe('extractSources', () => {
   });
 
   // Test 2: getAmendments
-  it('extracts getAmendments authoritative document and change summaries', () => {
+  it('extracts the queried document, its latest amendment and the change summaries from getAmendments', () => {
+    const notice = {
+      id: 'amend-2',
+      title: 'Change Notice 2025-03',
+      documentType: 'change_notice',
+      policyNumber: '8C-CN-03',
+      effectiveDate: '2025-08-01',
+      url: 'https://example.com/cn-03',
+      status: 'amendment',
+      changeSummary: 'Revises eligibility criteria for adult day care.',
+    };
     const msgs = [
       makeToolMessage([
         {
           toolCallId: 'call-amend',
           toolName: 'getAmendments',
           output: {
-            amendments: [
-              {
-                id: 'amend-2',
-                title: 'Change Notice 2025-03',
-                documentType: 'change_notice',
-                policyNumber: '8C-CN-03',
-                effectiveDate: '2025-08-01',
-                url: 'https://example.com/cn-03',
-                status: 'amendment',
-                changeSummary: 'Revises eligibility criteria for adult day care.',
-              },
-            ],
-            baseDocument: {
-              id: 'doc-base',
-              title: 'Original Policy 8C',
+            document: {
+              id: 'doc-8c',
+              title: 'Policy 8C',
               documentType: 'dhhs_policy',
               policyNumber: '8C',
-              effectiveDate: '2024-01-01',
+              effectiveDate: null,
               url: 'https://example.com/8C',
-              status: 'superseded',
+              status: 'current',
             },
-            authoritativeDocument: {
-              id: 'amend-2',
-              title: 'Change Notice 2025-03',
-              documentType: 'change_notice',
-              policyNumber: '8C-CN-03',
-              effectiveDate: '2025-08-01',
-              url: 'https://example.com/cn-03',
-              status: 'amendment',
-            },
+            amends: [],
+            amendments: [notice],
+            latestAmendment: notice,
+            truncated: false,
           },
         },
       ]),
@@ -118,13 +112,60 @@ describe('extractSources', () => {
 
     expect(sources).toHaveLength(1);
     expect(sources[0].toolName).toBe('getAmendments');
-    expect(sources[0].key).toBe('amend-2');
-    expect(sources[0].text).toContain('[getAmendments]');
-    expect(sources[0].text).toContain('Authoritative document');
-    expect(sources[0].text).toContain('amend-2');
-    expect(sources[0].text).toContain('Revises eligibility criteria for adult day care.');
-    expect(sources[0].text).toContain('doc-base');
-    expect(sources[0].text).toContain('Base document');
+    // Keyed apart from a getDocument entry for the same document.
+    expect(sources[0].key).toBe('amendments:doc-8c');
+    expect(sources[0].link).toBe('https://example.com/8C');
+    const text = sources[0].text;
+    expect(text).toContain('[getAmendments]');
+    expect(text).not.toContain('Authoritative document');
+    expect(text.indexOf('Queried document:\nID: doc-8c')).toBeGreaterThan(-1);
+    expect(text.indexOf('Latest amendment:\nID: amend-2')).toBeGreaterThan(text.indexOf('Queried document:'));
+    expect(text).toContain('Amendments (1):');
+    expect(text).toContain('Revises eligibility criteria for adult day care.');
+  });
+
+  it('lists every manual a change notice amends in getAmendments evidence', () => {
+    const manual = (id: string, policyNumber: string) => ({
+      id,
+      title: `${policyNumber} manual`,
+      documentType: 'dhhs_policy',
+      policyNumber,
+      effectiveDate: null,
+      url: `https://example.com/${policyNumber}`,
+      status: 'current',
+    });
+    const sources = extractSources([
+      makeToolMessage([
+        {
+          toolCallId: 'call-amend',
+          toolName: 'getAmendments',
+          output: {
+            document: { ...manual('doc-cn', 'CN'), title: 'CHANGE NOTICE FOR MANUAL NO. 04-26', policyNumber: null, status: 'amendment' },
+            amends: [manual('doc-abd', 'MA-2910'), manual('doc-nemt', 'MA-3550')],
+            amendments: [],
+            latestAmendment: null,
+            truncated: false,
+          },
+        },
+      ]),
+    ]);
+
+    expect(sources[0].key).toBe('amendments:doc-cn');
+    expect(sources[0].text).toContain('Queried document:\nID: doc-cn');
+    expect(sources[0].text).toContain(
+      'Amends (2):\n' +
+        '  - doc-abd | MA-2910 manual | MA-2910\n' +
+        '  - doc-nemt | MA-3550 manual | MA-3550',
+    );
+    // The entry holds none of a manual's text, so it vouches for no manual's URL.
+    expect([...sourceUrlSet(sources[0])]).not.toEqual(
+      expect.arrayContaining(['https://example.com/MA-2910']),
+    );
+    expect([...sourceUrlSet(sources[0])]).not.toEqual(
+      expect.arrayContaining(['https://example.com/MA-3550']),
+    );
+    expect(sources[0].text).not.toContain('Latest amendment');
+    expect(sources[0].text).not.toContain('Base document');
   });
 
   // Test 3: lookupPolicy

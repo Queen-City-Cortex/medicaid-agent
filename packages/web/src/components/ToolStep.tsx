@@ -181,14 +181,20 @@ function summarizeToolOutput(toolName: string, output: unknown): string | null {
       return Array.isArray(references) ? countLabel(references.length, 'cross-reference') : null;
     }
     case 'getAmendments': {
-      const { amendments, authoritativeDocument } = output as {
+      type Named = { title?: string | null; policyNumber?: string | null } | null;
+      const { amendments, document, latestAmendment } = output as {
         amendments?: unknown[];
-        authoritativeDocument?: { title?: string | null; policyNumber?: string | null } | null;
+        document?: Named;
+        latestAmendment?: Named;
       };
       const parts: string[] = [];
       if (Array.isArray(amendments)) parts.push(countLabel(amendments.length, 'amendment'));
-      const authoritativeLabel = authoritativeDocument?.title ?? authoritativeDocument?.policyNumber;
-      if (authoritativeLabel) parts.push(`Current document: ${authoritativeLabel}`);
+      // The document that was looked up is the current text; the newest
+      // amendment only describes what changed.
+      const documentLabel = document?.title ?? document?.policyNumber;
+      if (documentLabel) parts.push(`Current document: ${documentLabel}`);
+      const latestLabel = latestAmendment?.title ?? latestAmendment?.policyNumber;
+      if (latestLabel) parts.push(`Latest amendment: ${latestLabel}`);
       return parts.join(' | ') || null;
     }
     case 'findConceptSections': {
