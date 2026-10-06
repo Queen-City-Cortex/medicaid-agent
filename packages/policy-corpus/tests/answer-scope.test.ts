@@ -212,6 +212,29 @@ describe('bounded answer scope', () => {
     expect(scope(question)?.notice).toBeTruthy();
   });
 
+  // The scope code reads English only. A Spanish wording resolves nothing, so
+  // neither the input block nor the user-text obligation fires for it; the
+  // agent applies the scope of the English query the frame tool was called with.
+  it.each([
+    ['¿Qué tabla de ingresos MAGI se aplica en junio de 2025?', 'What MAGI income table applies in June 2025?', 'MA-3321-1.pdf', '2025-06-01'],
+    ['¿Cuál es el límite de ingresos de MAGI para una familia de cuatro en octubre de 2026?', 'What is the MAGI income limit for a household of four in October 2026?', 'MA-3321-MAGI-Income-2.pdf', '2026-10-01'],
+    ['¿Medicaid cubría las pruebas caseras de COVID-19 el 1 de octubre de 2024?', 'Did Medicaid cover at-home COVID-19 tests on October 1, 2024?', ANSWER_SCOPE_POLICY.required_bulletin.source_url, '2024-10-01'],
+  ])('resolves the dated source from the English restatement of %s', (spanish, english, source, date) => {
+    expect(scope(spanish)).toBeNull();
+    expect(scope(english)).toMatchObject({ notice: null, requestedDate: date });
+    expect(scope(english)?.requiredSourceUrls).toHaveLength(1);
+    expect(scope(english)?.requiredSourceUrls[0]).toContain(source);
+  });
+
+  it.each([
+    ['¿Qué límites de ingresos MAGI se aplican en febrero de 2025?', 'What MAGI income limits apply in February 2025?'],
+    ['¿Medicaid cubre las pruebas caseras de COVID-19?', 'Does Medicaid cover at-home COVID-19 tests?'],
+  ])('resolves the unsupported period from the English restatement of %s', (spanish, english) => {
+    expect(scope(spanish)).toBeNull();
+    expect(scope(english)?.notice).toBeTruthy();
+    expect(scope(english)?.requiredSourceUrls).toEqual([]);
+  });
+
   it('does not read a visit limit as an income limit', () => {
     expect(scope('What are the Medicaid expansion visit limits for physical therapy?')).toBeNull();
   });

@@ -5,7 +5,7 @@ import { releaseMessage } from '../../answer-release.js';
 import { extractSources, extractSourcesFromToolResults, type SourceEntry, type ToolResultRecord } from './evidence.js';
 import { emitVerifierTelemetry, runVerificationForAnswer } from './run.js';
 import { createPrivateVerificationCapture, finishChatDiagnostic, type ChatDiagnostic } from './diagnostics.js';
-import { CHAT_DIAGNOSTIC_CONTEXT, CHAT_VERIFICATION_QUESTION } from './context.js';
+import { CHAT_DIAGNOSTIC_CONTEXT, CHAT_VERIFICATION_QUESTION, earlierUserTurns } from './context.js';
 import { COVERAGE_VERIFICATION_QUERY } from '../coverage-boundary.js';
 import { getConfig } from './config.js';
 import { AGENT_MODEL } from '../../model.js';
@@ -44,6 +44,21 @@ function extractLatestUserQuestion(messages: MastraDBMessage[]): string {
 /** Preserve distinct retrieved bodies while avoiding repeated message/hook copies. */
 function mergeSources(sources: SourceEntry[]): SourceEntry[] {
   return [...new Map(sources.map(source => [JSON.stringify(source), source])).values()];
+}
+
+const FRAME_TOOL = 'resolveAnswerFrame';
+
+function frameQuery(args: unknown): string[] {
+  const query = (args as { query?: unknown } | null | undefined)?.query;
+  return typeof query === 'string' && query.trim() ? [query] : [];
+}
+
+/** The queries of this turn's frame calls as the message list recorded them. */
+function frameQueriesFromMessages(messages: MastraDBMessage[]): string[] {
+  const lastUser = messages.reduce((last, m, i) => m.role === 'user' ? i : last, -1);
+  return messages.slice(lastUser + 1).flatMap(message => ((message as any).content?.parts ?? []) as any[])
+    .filter(part => part?.type === 'tool-invocation' && part.toolInvocation?.toolName === FRAME_TOOL)
+    .flatMap(part => frameQuery(part.toolInvocation.args));
 }
 
 /** Drop interim narration. Reasoning stays so the provider can replay it inline
@@ -88,6 +103,11 @@ export class HallucinationVerifier implements Processor {
     // Observation may compact tool messages before final synthesis. Preserve
     // actual corpus results in request-local processor state, never a summary.
     if (providerExecuted) return;
+    // The frame call's query is the question in English: the coverage scope is
+    // resolved from it at release as well as from the user's own text.
+    if (toolName === FRAME_TOOL) {
+      state.verificationFrameQueries = [...((state.verificationFrameQueries as string[] | undefined) ?? []), ...frameQuery(args)];
+    }
     const toolResult = { toolName, toolCallId, result, args };
     state.verificationSources = mergeSources([
       ...((state.verificationSources as SourceEntry[] | undefined) ?? []),
@@ -119,6 +139,7 @@ export class HallucinationVerifier implements Processor {
     const originalQuestion = requestContext?.get(CHAT_VERIFICATION_QUESTION);
     const question = typeof originalQuestion === 'string' ? originalQuestion : extractLatestUserQuestion(messages);
     const coverageQuery = requestContext?.get(COVERAGE_VERIFICATION_QUERY);
+    const frameQueries = [...new Set([...((state.verificationFrameQueries as string[] | undefined) ?? []), ...frameQueriesFromMessages(messages)])];
     const last = messages.reduce((last, m, i) => m.role === 'assistant' ? i : last, -1);
     // The answer's stored message: its id is the one history returns and
     // feedback is filed under, and memory stamped it with the thread's owner.
@@ -132,7 +153,8 @@ export class HallucinationVerifier implements Processor {
       void this.stores.usage?.record({ userId: resourceId!, route: 'chat', phase: 'verifier', threadId,
         modelId: getConfig().model, provider: 'openai', ...counts })?.catch(() => {});
     };
-    const result = await runVerificationForAnswer({ question, coverageQuery: typeof coverageQuery === 'string' ? coverageQuery : question, answerText: text, sources, onUsage, signal: abortSignal, capture });
+    const result = await runVerificationForAnswer({ question, coverageQuery: typeof coverageQuery === 'string' ? coverageQuery : question, frameQueries,
+      earlierUserTurns: earlierUserTurns(requestContext), answerText: text, sources, onUsage, signal: abortSignal, capture });
     const { finalAnswer, outcome, telemetry } = result;
     finishChatDiagnostic(diagnostic, outcome, telemetry.latency_ms);
     const released = messages.map((m, i) => i === last ? releaseMessage(m, finalAnswer, outcome) : m);

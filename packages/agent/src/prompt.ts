@@ -115,6 +115,7 @@ ${joinRules(PROMPT_RULE_BUCKETS.workflow)}
 - Start the user-facing answer with the conclusion, not a work log.
 - Do not turn the final answer into a step-by-step work log unless missing evidence materially limits what you can conclude.
 - When ready to answer, use markdown with headings or bullets when helpful.
+- Answer in the language the user wrote in, and quote policy text in its original English.
 - Always provide a substantive final answer, even when the corpus is incomplete. Be explicit about any uncertainty or missing source text.
 
 ## Anti-hallucination rules

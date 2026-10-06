@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { analyzeQuery } from '@nc-medicaid/policy-corpus';
 import { AnswerFramePlanningProcessor } from '../../src/processors/answer-frame-planning.js';
+import { COVERAGE_VERIFICATION_QUERY } from '../../src/processors/coverage-boundary.js';
 import {
   type FrameFixture,
   makeDocument,
@@ -1080,5 +1081,118 @@ describe('AnswerFramePlanningProcessor', () => {
     const plan = result?.systemMessages?.[0]?.content ?? '';
 
     expect(plan).not.toContain('Before finalizing a no-coverage conclusion for adults');
+  });
+});
+
+describe('AnswerFramePlanningProcessor question source and empty frames', () => {
+  const OUTLINE_LINE = 'Use the structured frame as the answer outline for this turn.';
+  const YES_NO_LINE =
+    '- For this yes/no coverage question, answer yes or no first, then cite both the scope section § 2.1.1 Description of the Procedure, Product, or Service and the not-covered section § 4.1 General Criteria Not Covered.';
+  const NUMERIC_LINE = '- State only numbers, thresholds, dates, and change markers that appear directly in surfaced evidence.';
+  const sec10a = sectionMaker({ documentId: 'doc-10a', documentTitle: 'Outpatient Specialized Therapies', policyNumber: '10A' });
+
+  function therapyFrame(query: string, text = true): FrameFixture {
+    return makeFrame({
+      route: analyzeQuery(query).route,
+      authoritativeDocuments: [makeDocument({ id: 'doc-10a', title: 'Outpatient Specialized Therapies', policyNumber: '10A' })],
+      primarySections: [
+        sec10a({ id: 'sec-scope', title: 'Description of the Procedure, Product, or Service', sectionNumber: '2.1.1',
+          content: text ? 'Outpatient specialized therapies include physical, occupational, and speech therapy.' : '' }),
+        sec10a({ id: 'sec-notcovered', title: 'General Criteria Not Covered', sectionNumber: '4.1',
+          content: text ? 'Routine massage therapy is not covered for beneficiaries 21 years of age and older.' : null }),
+      ],
+    });
+  }
+
+  /** A turn whose frame tool call carried `query`, as the model wrote it. */
+  function makeQueryArgs(userText: string, query: string, frame: FrameFixture, requestContext?: { get(key: string): unknown }) {
+    const tool = makeToolMessage({ frame });
+    (tool.content.parts[0].toolInvocation as Record<string, unknown>).args = { query };
+    return makeArgs({ messages: [makeUserMessage(userText), tool], requestContext });
+  }
+
+  const plan = (args: unknown) => String(new AnswerFramePlanningProcessor().processInputStep!(args as any)?.systemMessages?.[0]?.content ?? '');
+
+  it('builds the checklist from the frame tool call query, not from the bare follow-up', () => {
+    const query = 'Does Policy 10A cover routine massage therapy for adults?';
+
+    const lines = checklistLines(plan(makeQueryArgs('What about for adults?', query, therapyFrame(query))));
+
+    // A yes/no rule the three-word follow-up cannot trigger on its own.
+    expect(lines).toContain(YES_NO_LINE);
+  });
+
+  it('keeps the pinned rules of the user text when the model query drops the words that trigger them', () => {
+    const userText = 'Does Policy 10A cover routine massage therapy for adults, and how much is the monthly premium?';
+    const query = 'Policy 10A massage therapy adults';
+    expect(analyzeQuery(userText).route.lane).toBe('deterministic_evidence');
+    expect(analyzeQuery(query).route.lane).not.toBe('deterministic_evidence');
+
+    const lines = checklistLines(plan(makeQueryArgs(userText, query, therapyFrame(query))));
+
+    // The frame was routed on the model's query; the user's own words still
+    // put the numeric-evidence rules and their yes/no rule on the list.
+    expect(lines).toContain(NUMERIC_LINE);
+    expect(lines).toContain('- Do not reconstruct charts, infer updated math, or fill in missing numeric tables from context.');
+    expect(lines).toContain(YES_NO_LINE);
+  });
+
+  it('keeps the coverage requirement of the conversation when the frame query resolved no scope', () => {
+    const query = 'Policy 10A massage therapy adults';
+    const coverageQuery = 'What MAGI income table applies in June 2025?';
+    const requestContext = { get: (key: string) => (key === COVERAGE_VERIFICATION_QUERY ? coverageQuery : undefined) };
+
+    const lines = checklistLines(plan(makeQueryArgs('and for a household of four', query, therapyFrame(query), requestContext)));
+
+    expect(lines.some((line) => line.startsWith('- Use the table effective 2025-04-01 for the requested date 2025-06-01.'))).toBe(true);
+  });
+
+  it('gives the same plan as before when the query is the user text', () => {
+    const question = 'Does Policy 10A cover routine massage therapy for adults?';
+    const frame = therapyFrame(question);
+
+    expect(plan(makeQueryArgs(question, question, frame))).toBe(plan(makeFrameArgs(question, frame)));
+    expect(plan(makeFrameArgs(question, frame))).toContain(OUTLINE_LINE);
+  });
+
+  it('drops the outline and answer-directly lines for a frame with a document and no section text', () => {
+    const question = 'Does Policy 10A cover routine massage therapy for adults?';
+    const withText = plan(makeFrameArgs(question, therapyFrame(question)));
+    expect(withText).toContain(OUTLINE_LINE);
+    expect(withText).toContain('- Answer directly from the current frame before widening further.');
+
+    for (const frame of [
+      // Sections listed with empty or missing text, and no sections at all.
+      therapyFrame(question, false),
+      { ...therapyFrame(question, false), primarySections: [] },
+    ]) {
+      const empty = plan(makeFrameArgs(question, frame));
+      expect(empty).toContain('[answer-frame-plan]');
+      expect(empty).toContain('Preferred sources: 10A (Outpatient Specialized Therapies).');
+      expect(empty).not.toContain(OUTLINE_LINE);
+      expect(empty).not.toContain('Answer directly from');
+    }
+  });
+
+  it('keeps coverage-scope items and pinned numeric rules, without the finalize line, when no section has text', () => {
+    const question = 'How much is the monthly premium under Policy 10A?';
+    const route = makeRoute({ lane: 'deterministic_evidence', widening_policy: 'none',
+      determinism_hints: { numeric_evidence_only: true, latest_revision_only: false, cite_scope_and_not_covered: false } });
+    const scope = { policyId: 'test-policy', limitationIds: [], notice: null, requestedDate: null, requiredSourceUrls: [], requirements: ['Test scope requirement.'] };
+    const frame = (text: boolean): FrameFixture => ({ ...therapyFrame(question, text), route, coverageScope: scope });
+
+    expect(plan(makeFrameArgs(question, frame(true)))).toContain('Finalize from the verified evidence you already have.');
+    const empty = plan(makeFrameArgs(question, frame(false)));
+    expect(empty).not.toContain('Finalize from the verified evidence you already have.');
+    expect(empty).not.toContain(OUTLINE_LINE);
+    expect(checklistLines(empty)).toEqual(expect.arrayContaining(['- Test scope requirement.', NUMERIC_LINE]));
+  });
+
+  it('counts supporting section text as evidence to answer from', () => {
+    const question = 'Does Policy 10A cover routine massage therapy for adults?';
+    const frame = therapyFrame(question, false);
+    frame.supportingSections = [sec10a({ id: 'sec-sup', title: 'Specific Criteria', sectionNumber: '3.2', content: 'Covered when medically necessary.' })];
+
+    expect(plan(makeFrameArgs(question, frame))).toContain(OUTLINE_LINE);
   });
 });

@@ -1,6 +1,7 @@
 import type { Processor, ProcessInputStepArgs, ProcessInputStepResult } from '@mastra/core/processors';
-import type { AnswerFrame, AnswerFrameDocument, AnswerFrameSection } from '@nc-medicaid/policy-corpus';
-import { contentText, latestToolResult, latestUserText } from './message-utils.js';
+import { analyzeQuery, resolveCoverageScope, type AnswerFrame, type AnswerFrameDocument, type AnswerFrameSection } from '@nc-medicaid/policy-corpus';
+import { COVERAGE_VERIFICATION_QUERY } from './coverage-boundary.js';
+import { contentText, latestToolResult, latestUserText, messageParts } from './message-utils.js';
 
 interface ResolveAnswerFrameResult {
   frame: AnswerFrame;
@@ -15,6 +16,11 @@ function normalize(value: string | null | undefined): string {
 
 function includesAny(text: string, phrases: string[]): boolean {
   return phrases.some((phrase) => text.includes(phrase));
+}
+
+/** A frame can name a document and sections and carry no section text. */
+function hasSectionText(frame: AnswerFrame): boolean {
+  return [...frame.primarySections, ...frame.supportingSections].some((section) => Boolean(section.content?.trim()));
 }
 
 function isYesNoCoverageQuestion(questionLower: string): boolean {
@@ -681,7 +687,7 @@ function buildVariantChecklist(frame: ResolveAnswerFrameResult['frame']): Checkl
 
 const GENERAL_RULES: ReadonlyArray<ChecklistRule<FrameContext>> = [
   {
-    when: (ctx) => ctx.frame.primarySections.length > 0,
+    when: (ctx) => ctx.frame.primarySections.length > 0 && hasSectionText(ctx.frame),
     render: (ctx) => `Answer directly from ${listSections(ctx.frame.primarySections)} before adding broader context.`,
   },
 ];
@@ -699,7 +705,7 @@ interface RouteContext {
 
 const ROUTE_RULES: ReadonlyArray<ChecklistRule<RouteContext>> = [
   {
-    when: (ctx) => ctx.frame.route.lane === 'baseline_hybrid',
+    when: (ctx) => ctx.frame.route.lane === 'baseline_hybrid' && hasSectionText(ctx.frame),
     render: () => 'Answer directly from the current frame before widening further.',
   },
   {
@@ -736,7 +742,7 @@ const ROUTE_RULES: ReadonlyArray<ChecklistRule<RouteContext>> = [
     ],
   },
   {
-    when: (ctx) => ctx.frame.route.lane === 'deterministic_evidence' && ctx.frame.route.widening_policy === 'none',
+    when: (ctx) => ctx.frame.route.lane === 'deterministic_evidence' && ctx.frame.route.widening_policy === 'none' && hasSectionText(ctx.frame),
     render: () => 'Do not widen beyond the current structured frame for extra numeric details. Finalize from the verified evidence you already have.',
   },
   {
@@ -749,7 +755,7 @@ function buildRouteChecklist(questionLower: string, frame: ResolveAnswerFrameRes
   return evaluateRules(ROUTE_RULES, { questionLower, frame });
 }
 
-function buildChecklist(question: string, frame: ResolveAnswerFrameResult['frame']): string[] {
+function buildQuestionChecklist(question: string, frame: ResolveAnswerFrameResult['frame']): ChecklistItem[] {
   const questionLower = normalize(question);
   const routeChecklist = buildRouteChecklist(questionLower, frame);
   const familyChecklist = (() => {
@@ -768,13 +774,38 @@ function buildChecklist(question: string, frame: ResolveAnswerFrameResult['frame
         return buildGeneralChecklist(frame);
     }
   })();
+  return [...routeChecklist, ...familyChecklist];
+}
+
+/** What the plan is built from. `query` is the frame tool call's argument, the
+ *  string the frame was routed on; the model wrote it. `userText` is the user's
+ *  own newest message and `coverageQuery` the coverage boundary's reading of
+ *  the conversation. Both are null when they add nothing to `query`. */
+interface PlanQuestion {
+  query: string;
+  userText: string | null;
+  coverageQuery: string | null;
+}
+
+function buildChecklist({ query, userText, coverageQuery }: PlanQuestion, frame: ResolveAnswerFrameResult['frame']): string[] {
+  // The model's wording of the query can only add to what the user's own
+  // words require: their coverage-scope items and pinned rules are kept, and
+  // their rules are listed first, so the query's unpinned rules take only the
+  // slots they leave.
+  const userScope = coverageQuery ? resolveCoverageScope(coverageQuery) : null;
+  const userChecklist = userText
+    ? [
+        ...buildRouteChecklist(normalize(userText), { ...frame, route: analyzeQuery(userText).route }).filter((item) => item.pinned),
+        ...buildQuestionChecklist(userText, frame),
+      ]
+    : [];
 
   // Coverage-scope items are pinned. Order stays scope, route, family; the cap
   // applies to unpinned items only, which fill the slots the pinned ones leave.
-  const scopeChecklist = [...(frame.coverageScope?.notice ? [frame.coverageScope.notice] : []), ...(frame.coverageScope?.requirements ?? [])].map(
-    (text): ChecklistItem => ({ text, pinned: true }),
-  );
-  const candidates = [...scopeChecklist, ...routeChecklist, ...familyChecklist];
+  const scopeChecklist = [frame.coverageScope, userScope]
+    .flatMap((scope) => [...(scope?.notice ? [scope.notice] : []), ...(scope?.requirements ?? [])])
+    .map((text): ChecklistItem => ({ text, pinned: true }));
+  const candidates = [...scopeChecklist, ...userChecklist, ...buildQuestionChecklist(query, frame)];
   const pinned = new Set(candidates.filter((item) => item.pinned).map((item) => item.text));
   let unpinnedSlots = Math.max(0, CHECKLIST_LIMIT - pinned.size);
   const checklist: string[] = [];
@@ -789,10 +820,11 @@ function buildChecklist(question: string, frame: ResolveAnswerFrameResult['frame
   return checklist;
 }
 
-function buildPlanMessage(question: string, frame: ResolveAnswerFrameResult['frame']): string | null {
+function buildPlanMessage(question: PlanQuestion, frame: ResolveAnswerFrameResult['frame']): string | null {
   const lines = [
     PLAN_MARKER,
-    'Use the structured frame as the answer outline for this turn.',
+    // An outline of headings with no text under them is not something to answer from.
+    ...(hasSectionText(frame) ? ['Use the structured frame as the answer outline for this turn.'] : []),
     'Start with the answer itself, not a search log.',
     'Do not say what tools you called, what you searched for, or what you plan to do next unless the missing evidence materially limits the conclusion.',
     `Route: ${frame.route.lane} (${frame.route.rationale}); widening policy: ${frame.route.widening_policy}.`,
@@ -822,10 +854,25 @@ function buildPlanMessage(question: string, frame: ResolveAnswerFrameResult['fra
   return lines.join('\n');
 }
 
+/** The `query` argument of the newest completed resolveAnswerFrame call: the
+ *  invocation `latestToolResult` reads its frame from. */
+function latestFrameQuery(messages: Array<{ content?: unknown }>): string | null {
+  for (let messageIndex = messages.length - 1; messageIndex >= 0; messageIndex--) {
+    const parts = messageParts(messages[messageIndex]?.content);
+    for (let partIndex = parts.length - 1; partIndex >= 0; partIndex--) {
+      const invocation = parts[partIndex]?.type === 'tool-invocation' ? parts[partIndex].toolInvocation : null;
+      if (!invocation || invocation.state !== 'result' || invocation.toolName !== 'resolveAnswerFrame') continue;
+      const query = invocation.args?.query;
+      return typeof query === 'string' && query.trim() ? query.trim() : null;
+    }
+  }
+  return null;
+}
+
 export class AnswerFramePlanningProcessor implements Processor {
   readonly id = 'answer-frame-planning';
 
-  processInputStep({ stepNumber, messages, systemMessages }: ProcessInputStepArgs): ProcessInputStepResult | void {
+  processInputStep({ stepNumber, messages, systemMessages, requestContext }: ProcessInputStepArgs): ProcessInputStepResult | void {
     if (stepNumber === 0) return;
 
     const alreadyPlanned = systemMessages.some((message) => contentText(message.content).includes(PLAN_MARKER));
@@ -838,7 +885,16 @@ export class AnswerFramePlanningProcessor implements Processor {
     const frame = frameResult?.frame;
     if (!frame) return;
 
-    const content = buildPlanMessage(question, frame);
+    // The frame was routed on the tool call's query, so the checklist reads the
+    // same string. On a follow-up that query is the model's restatement.
+    const query = latestFrameQuery(messages) ?? question;
+    const stored = requestContext?.get(COVERAGE_VERIFICATION_QUERY);
+    const coverageQuery = typeof stored === 'string' && stored ? stored : question;
+    const content = buildPlanMessage({
+      query,
+      userText: question === query ? null : question,
+      coverageQuery: coverageQuery === query ? null : coverageQuery,
+    }, frame);
     if (!content) return;
 
     return {

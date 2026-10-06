@@ -11,7 +11,7 @@ import {
 } from './answer-validation.js';
 import { WITHHELD_ANSWER, type VerificationOutcome } from '@nc-medicaid/contracts';
 import { log } from '../../logger.js';
-import { resolveCoverageScope, coverageEvidenceIssue } from '@nc-medicaid/policy-corpus';
+import { resolveCoverageScope, coverageEvidenceIssue, type CoverageScope } from '@nc-medicaid/policy-corpus';
 
 /** Withholding reason when cited section text or a research finding did not fit the evidence budget. */
 export const EVIDENCE_OVER_BUDGET = 'Cited source text or a research finding exceeded the verifier evidence budget';
@@ -115,6 +115,24 @@ export interface VerificationRunResult {
   findings: PassFindings[];
 }
 
+/**
+ * The strictest of several readings of one turn's coverage scope. A notice
+ * (the request is outside supported coverage) beats required sources, and
+ * required sources beat no scope; the earliest notice wins. Without a notice
+ * every reading's required sources and requirements apply together, so adding
+ * a reading can add an obligation and never remove one.
+ */
+export function strictestCoverageScope(scopes: Array<CoverageScope | null>): CoverageScope | null {
+  const found = scopes.filter((scope): scope is CoverageScope => scope !== null);
+  const union = (pick: (scope: CoverageScope) => string[]) => [...new Set(found.flatMap(pick))];
+  return found.find(scope => scope.notice) ?? (found.length ? {
+    ...found[0],
+    limitationIds: union(scope => scope.limitationIds),
+    requiredSourceUrls: union(scope => scope.requiredSourceUrls),
+    requirements: union(scope => scope.requirements),
+  } : null);
+}
+
 /** Print a `---VERIFIER---` telemetry block in the format the eval harness
  *  parses (marker line, then a single JSON object line). */
 export function emitVerifierTelemetry(telemetry: object): void {
@@ -123,9 +141,16 @@ export function emitVerifierTelemetry(telemetry: object): void {
 }
 
 /** Verify the exact outgoing text. A failed candidate is never a fallback. */
-export async function runVerificationForAnswer({ question, coverageQuery, answerText, sources, verifierSources = sources, onUsage, signal, verify = verifyAnswer, capture = createPrivateVerificationCapture() }: {
+export async function runVerificationForAnswer({ question, coverageQuery, frameQueries = [], earlierUserTurns, answerText, sources, verifierSources = sources, onUsage, signal, verify = verifyAnswer, capture = createPrivateVerificationCapture() }: {
   question: string;
   coverageQuery?: string;
+  /** The `query` of each resolveAnswerFrame call the server ran this turn. The
+   *  model wrote them (in English, whatever the user's language), so their
+   *  coverage scope is applied on top of the user-text scope, never instead. */
+  frameQueries?: string[];
+  /** The user's earlier messages, already bounded: context for the model's
+   *  relevance check. No deterministic check and no coverage scope reads them. */
+  earlierUserTurns?: string[];
   answerText: string;
   sources: SourceEntry[];
   /** Evidence text for the model call only. The coverage, URL, quotation and
@@ -149,7 +174,7 @@ export async function runVerificationForAnswer({ question, coverageQuery, answer
   let evidenceEntriesDropped = 0;
   let unknownSections: UnknownSection[] = [];
   const findings: PassFindings[] = [];
-  const scope = resolveCoverageScope(coverageQuery ?? question);
+  const scope = strictestCoverageScope([coverageQuery ?? question, ...frameQueries].map(query => resolveCoverageScope(query)));
   const scopeIssue = coverageEvidenceIssue(scope, sources);
   const hasEvidence = sources.some(isCorpusEvidence);
   for (let pass = 1; pass <= 2; pass++) {
@@ -202,6 +227,7 @@ export async function runVerificationForAnswer({ question, coverageQuery, answer
       { unknownUrls: urls.unknownUrls, unknownQuotes: quotes.unknownQuotes,
         coverageRequirements: scope?.requirements,
         ...(sources.some(source => source.evidenceRole === 'supplementary') ? { hasSupplementaryEvidence: true } : {}),
+        ...(earlierUserTurns?.length ? { earlierUserTurns } : {}),
       });
     capture?.({ stage: 'pass', pass, candidate, evidenceText, dropped: evidence.dropped.map(source => source.key), deterministic: { urls, quotes, sections }, verification });
     findings.push(passFindings(pass, verification, urls.unknownUrls, quotes.unknownQuotes));

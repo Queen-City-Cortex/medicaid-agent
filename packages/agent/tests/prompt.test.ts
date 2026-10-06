@@ -9,6 +9,9 @@ describe('buildSystemPrompt', () => {
     expect(prompt).toContain('## Evergreen rules');
     expect(prompt).toContain('## Workflow rules');
     expect(prompt).toContain('Start the user-facing answer with the conclusion');
+    expect(prompt.split('\n').filter(line => /language the user wrote in/.test(line))).toEqual([
+      '- Answer in the language the user wrote in, and quote policy text in its original English.',
+    ]);
     expect(prompt).not.toContain('After every batch of tool calls');
     expect(prompt).not.toContain('call resolveAnswerFrame early');
     expect(prompt).not.toContain('For telehealth questions');
