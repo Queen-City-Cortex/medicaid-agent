@@ -11,7 +11,8 @@ import { runVerificationForAnswer } from '../src/processors/verifier/run.js';
 import { extractSources, extractSourcesFromToolResults, isCorpusEvidence } from '../src/processors/verifier/evidence.js';
 import { REFERRAL_PAGE_URLS } from '../src/processors/verifier/answer-validation.js';
 import { makeDocument, makeFrame, makeSection } from './helpers/answer-frame-fixtures.js';
-import { WITHHELD_ANSWER, UNVERIFIED_HISTORY } from '@nc-medicaid/contracts';
+import { WITHHELD_ANSWER, UNVERIFIED_HISTORY, VerificationOutcomeSchema, VerificationProgressSchema } from '@nc-medicaid/contracts';
+import { z } from 'zod';
 import type { VerificationResult } from '../src/processors/verifier/verify.js';
 
 const PRIVATE = 'PRIVATE_DRAFT_SENTINEL';
@@ -251,6 +252,14 @@ describe('answer release', () => {
       { type: 'abort' },
       { type: 'finish' },
     ]);
+    // The contract the web reads, with unknown keys refused: a field added to the chunk must be added to the schema.
+    const strictProgress = z.union([z.object({ status: z.literal('verifying') }).strict(), VerificationOutcomeSchema.strict()]);
+    const streamed = output.filter(p => p.type === 'data-verification-status').map(p => (p as { data: unknown }).data);
+    expect(streamed).toHaveLength(2);
+    for (const data of streamed) {
+      expect(VerificationProgressSchema.safeParse(data).success).toBe(true);
+      expect(strictProgress.safeParse(data).success).toBe(true);
+    }
   });
   it('does not release an answer carried by a malformed verification outcome', async () => {
     const input = [

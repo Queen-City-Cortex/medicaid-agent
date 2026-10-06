@@ -36,9 +36,14 @@ test('withheld output cannot reveal draft prose and provides retry', async ({ pa
   const chat = new ChatPage(page);
   await chat.goto();
   await chat.sendMessage('What is covered?');
-  await expect(page.getByTestId('verification-retry')).toBeVisible();
+  // One alert headed "Answer withheld", holding the outage wording and the retry.
+  const notice = page.getByRole('alert').filter({ hasText: 'Answer withheld' });
+  await expect(notice).toHaveCount(1);
+  await expect(notice).toContainText("We couldn't check this answer right now. Please try again in a few minutes.");
+  await expect(notice.getByTestId('verification-retry')).toBeVisible();
+  await expect(page.getByTestId('ended-without-answer')).toHaveCount(0);
+  await expect(page.getByTestId('chat-status-announcer')).toBeEmpty();
   await expect(page.getByText(PRIVATE)).toHaveCount(0);
-  await expect(page.getByTestId('assistant-message')).toContainText('I could not verify this answer');
 });
 
 test('legacy unchecked history remains withheld after thread switching and reload', async ({ page }) => {
@@ -46,15 +51,21 @@ test('legacy unchecked history remains withheld after thread switching and reloa
     threadMessages: [{ id: 'u', role: 'user', content: 'Question' }, { id: 'a', role: 'assistant', content: PRIVATE }] });
   const chat = new ChatPage(page);
   await chat.goto();
+  // A stored row cannot be fixed by asking again, so its notice has no retry,
+  // and a notice met on opening a thread is not an alert.
+  const expectStoredNotice = async () => {
+    const notice = page.getByTestId('withheld-answer');
+    await expect(notice).toContainText("This stored answer can't be shown because its verification could not be confirmed.");
+    await expect(notice).toHaveAttribute('role', 'group');
+    await expect(page.getByTestId('verification-retry')).toHaveCount(0);
+    await expect(page.getByText(PRIVATE)).toHaveCount(0);
+  };
   await page.getByText('Legacy research', { exact: true }).click();
-  await expect(page.getByTestId('verification-retry')).toBeVisible();
-  await expect(page.getByText(PRIVATE)).toHaveCount(0);
+  await expectStoredNotice();
   await chat.newThread();
   await page.getByText('Legacy research', { exact: true }).click();
-  await expect(page.getByTestId('verification-retry')).toBeVisible();
-  await expect(page.getByText(PRIVATE)).toHaveCount(0);
+  await expectStoredNotice();
   await page.reload();
   await page.getByText('Legacy research', { exact: true }).click();
-  await expect(page.getByTestId('verification-retry')).toBeVisible();
-  await expect(page.getByText(PRIVATE)).toHaveCount(0);
+  await expectStoredNotice();
 });

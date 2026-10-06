@@ -153,6 +153,12 @@ Mental-health parity rules limit NQTLs such as PA [42 CFR § 438.910](https://ec
   stats: { reflectionRounds: 1, subQuestionCount: 3, corpusSourceCount: 3, webSourceCount: 1 },
 };
 
+// One withheld turn per notice wording: not grounded, checker outage, stored row.
+const WITHHELD: UIMessage[] = (['unsupported', 'unavailable', 'unverified_history'] as const).flatMap((reason, i) => [
+  { id: `wq${i}`, role: 'user', parts: [{ type: 'text', text: 'Can my mother keep her house if she goes into a nursing home?' }] },
+  { id: `wa${i}`, role: 'assistant', parts: [{ type: 'data-verification-status', data: { status: 'withheld', reason, passCount: 1 } }] },
+] satisfies UIMessage[]);
+
 const noop = () => {};
 const asyncNoop = async () => {};
 
@@ -295,6 +301,23 @@ export function PreviewGallery() {
           <div className="rounded-xl border border-border bg-background px-6 py-6">
             <MessageList
               messages={CONVERSATION}
+              isStreaming={false}
+              status="ready"
+              onRerun={() => {}}
+              messagesEndRef={{ current: null }}
+              feedbackMap={{}}
+              onRate={() => {}}
+              onClearRating={() => {}}
+              onComment={() => {}}
+            />
+          </div>
+        </section>
+
+        <section className="space-y-4">
+          <Eyebrow>Withheld answers</Eyebrow>
+          <div className="rounded-xl border border-border bg-background px-6 py-6">
+            <MessageList
+              messages={WITHHELD}
               isStreaming={false}
               status="ready"
               onRerun={() => {}}

@@ -147,6 +147,13 @@ for (const theme of THEMES) {
       await expect(page.getByTestId('source-item')).toHaveCount(1);
       await expect(page.getByTestId('verification-badge')).toBeVisible();
       await expect(chat.threadItems()).toHaveCount(2);
+      // The transcript is a list of turns inside the main landmark, each
+      // under a heading that names the speaker.
+      const transcript = page.getByRole('main').getByRole('list', { name: 'Conversation' });
+      await expect(transcript.getByRole('heading', { name: 'You asked' })).toHaveCount(1);
+      await expect(transcript.getByRole('heading', { name: 'Navigator answered' })).toHaveCount(1);
+      await expect(page.getByRole('banner')).toHaveCount(1);
+      await expect(page.getByRole('contentinfo')).toHaveCount(1);
       // The copy, rerun and rating icons only paint while the answer is hovered.
       await page.getByTestId('assistant-message').last().hover();
       await expectNoNewViolations(page, KNOWN);

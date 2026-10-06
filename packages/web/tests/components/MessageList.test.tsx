@@ -1,7 +1,7 @@
-import { VERIFICATION_PART, UNVERIFIED_HISTORY } from '@nc-medicaid/contracts';
-import { render, screen } from '@testing-library/react';
+import { VERIFICATION_PART, UNVERIFIED_HISTORY, WITHHELD_ANSWER } from '@nc-medicaid/contracts';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { UIMessage } from 'ai';
 import { MessageList } from '../../src/components/MessageList';
 import { convertThreadMessageToUIMessage } from '../../src/lib/parse-message';
@@ -13,32 +13,39 @@ vi.mock('@/components/MessageActions', () => ({
   ),
 }));
 
-function renderMessageList(messages: UIMessage[], options?: {
+interface RenderOptions {
   explicitRelease?: boolean;
   isStreaming?: boolean;
   status?: string;
   onRerun?: (userIndex: number) => void;
   wasStopped?: (messageId: string) => boolean;
-}) {
+}
+
+function messageList(messages: UIMessage[], options?: RenderOptions) {
   const releasedFixture = (m: UIMessage): UIMessage => m.role === 'assistant' && m.parts.some(p => p.type === 'text') && !m.parts.some(p => p.type === VERIFICATION_PART)
     ? { ...m, parts: [...m.parts, { type: VERIFICATION_PART, data: { status: 'passed', passCount: 1 } }] } : m;
   if (!options?.explicitRelease) messages = messages.map(releasedFixture);
-  const messagesEndRef = { current: null };
 
-  render(
+  return (
     <MessageList
       messages={messages}
       isStreaming={options?.isStreaming ?? false}
       status={options?.status ?? 'ready'}
       onRerun={options?.onRerun ?? vi.fn()}
       wasStopped={options?.wasStopped}
-      messagesEndRef={messagesEndRef}
+      messagesEndRef={{ current: null }}
       feedbackMap={{}}
       onRate={vi.fn()}
       onClearRating={vi.fn()}
       onComment={vi.fn()}
-    />,
+    />
   );
+}
+
+/** Renders the list; the returned function renders it again with new props. */
+function renderMessageList(messages: UIMessage[], options?: RenderOptions) {
+  const { rerender } = render(messageList(messages, options));
+  return (next: UIMessage[], nextOptions?: RenderOptions) => rerender(messageList(next, nextOptions));
 }
 
 describe('MessageList', () => {
@@ -279,9 +286,11 @@ describe('MessageList', () => {
     expect(parsed).not.toBeNull();
     renderMessageList([parsed!]);
 
-    // Completed run: the answer is visible immediately, the tool loop is
-    // collapsed into the research trail.
-    const finalAnswer = screen.getAllByText(UNVERIFIED_HISTORY)[0];
+    // A stored row with no release outcome: its text is withheld, and the
+    // tool loop is collapsed into the research trail under the notice.
+    const finalAnswer = screen.getByTestId('withheld-answer');
+    expect(finalAnswer).toHaveAttribute('data-reason', 'unverified_history');
+    expect(screen.queryByText(/final answer/)).not.toBeInTheDocument();
     const trigger = screen.getByTestId('research-trail-trigger');
     expect(
       finalAnswer.compareDocumentPosition(trigger) & Node.DOCUMENT_POSITION_FOLLOWING,
@@ -678,6 +687,97 @@ describe('MessageList', () => {
 });
 
 
+describe('citation links and footnotes', () => {
+  const url = 'https://example.org/policy-8c.pdf';
+  const cited: UIMessage[] = [{
+    id: 'assistant-cited',
+    role: 'assistant',
+    parts: [
+      { type: 'dynamic-tool', toolName: 'getSection', toolCallId: 'tc-1', state: 'output-available', input: { sectionId: 'sec-1' },
+        output: { section: { title: 'Therapeutic Leave', sectionNumber: '3.2.1', policyNumber: '8C', url } } },
+      { type: 'text', text: `Covered per [Policy 8C § 3.2.1](${url}).` },
+    ],
+  }];
+  // jsdom does not implement scrollIntoView.
+  const scrollIntoView = Element.prototype.scrollIntoView;
+  afterEach(() => { Element.prototype.scrollIntoView = scrollIntoView; });
+
+  it('keeps a focused footnote and citation link in the document across a re-render', () => {
+    const rerender = renderMessageList(cited);
+    const footnote = screen.getByTestId('citation-footnote');
+    const link = screen.getByRole('link', { name: 'Policy 8C § 3.2.1' });
+    footnote.focus();
+    expect(footnote).toHaveFocus();
+
+    // Any re-render: a stream chunk elsewhere, the corpus-status poll, the highlight timer.
+    rerender(cited);
+
+    expect(footnote.isConnected).toBe(true);
+    expect(link.isConnected).toBe(true);
+    expect(screen.getByTestId('citation-footnote')).toBe(footnote);
+    expect(footnote).toHaveFocus();
+  });
+
+  it('moves focus to the source row link when a footnote is activated', async () => {
+    Element.prototype.scrollIntoView = vi.fn();
+    renderMessageList(cited);
+    const user = userEvent.setup();
+    const footnote = screen.getByTestId('citation-footnote');
+    footnote.focus();
+
+    await user.keyboard('{Enter}');
+
+    const sourceLink = within(screen.getByTestId('source-item')).getByRole('link');
+    await waitFor(() => expect(sourceLink).toHaveFocus());
+    expect(Element.prototype.scrollIntoView).toHaveBeenCalled();
+    // The footnote that was pressed is still there to come back to.
+    expect(footnote.isConnected).toBe(true);
+  });
+
+  it('opens a collapsed Sources panel, then focuses the source row link', async () => {
+    Element.prototype.scrollIntoView = vi.fn();
+    renderMessageList(cited);
+    const user = userEvent.setup();
+    await user.click(screen.getByTestId('sources-panel-trigger'));
+    await waitFor(() => expect(screen.queryByTestId('source-item')).not.toBeInTheDocument());
+
+    await user.click(screen.getByTestId('citation-footnote'));
+
+    await waitFor(() => expect(within(screen.getByTestId('source-item')).getByRole('link')).toHaveFocus());
+  });
+});
+
+describe('transcript semantics', () => {
+  it('renders the turns as an ordered list with a hidden heading naming each speaker, and no live region', () => {
+    renderMessageList([
+      { id: 'q', role: 'user', parts: [{ type: 'text', text: 'Is dental covered?' }] },
+      { id: 'a', role: 'assistant', parts: [{ type: 'text', text: 'Yes, under Policy 4A.' }] },
+    ]);
+
+    const list = screen.getByRole('list', { name: 'Conversation' });
+    expect(list.tagName).toBe('OL');
+    const turns = within(list).getAllByRole('listitem');
+    expect(turns).toHaveLength(2);
+    expect(Array.from(list.children)).toEqual(turns);
+    const asked = within(turns[0]).getByRole('heading', { name: 'You asked' });
+    const answered = within(turns[1]).getByRole('heading', { name: 'Navigator answered' });
+    expect(asked).toHaveClass('sr-only');
+    expect(answered).toHaveClass('sr-only');
+    expect(turns[0]).toContainElement(screen.getByTestId('user-message'));
+    expect(turns[1]).toContainElement(screen.getByTestId('assistant-message'));
+
+    // Reading every streamed chunk aloud is what a log or a live region would do.
+    expect(screen.queryByRole('log')).not.toBeInTheDocument();
+    expect(list).not.toHaveAttribute('aria-live');
+    expect(list.querySelector('[aria-live], [role="log"], [role="status"], [role="alert"]')).toBeNull();
+  });
+
+  it('renders no list before the first message', () => {
+    renderMessageList([]);
+    expect(screen.queryByRole('list')).not.toBeInTheDocument();
+  });
+});
+
 describe('verification release UI', () => {
   it('shows a corrected release after history reload', () => {
     renderMessageList([{ id: 'restored-corrected', role: 'assistant', parts: [
@@ -702,9 +802,128 @@ describe('verification release UI', () => {
   it('offers retry on a withheld answer', async () => {
     const rerun = vi.fn();
     renderMessageList([{ id: 'user', role: 'user', parts: [{ type: 'text', text: 'Question' }] },
-      { id: 'answer', role: 'assistant', parts: [{ type: 'text', text: UNVERIFIED_HISTORY },
+      { id: 'answer', role: 'assistant', parts: [{ type: 'text', text: WITHHELD_ANSWER },
         { type: VERIFICATION_PART, data: { status: 'withheld', passCount: 0 } }] }], { explicitRelease: true, onRerun: rerun });
     await userEvent.setup().click(screen.getByTestId('verification-retry'));
     expect(rerun).toHaveBeenCalledWith(0);
+  });
+});
+
+describe('withheld answer notice', () => {
+  const NOT_GROUNDED = "Answer withheldWe couldn't verify an answer to this question against NC Medicaid policy, so we haven't shown one."
+    + 'Try asking about one specific service, program or policy number. For a decision about your own case, contact your county DSS, the NC Medicaid Ombudsman, or Legal Aid of NC.';
+  const UNAVAILABLE = "Answer withheldWe couldn't check this answer right now. Please try again in a few minutes.";
+  const UNVERIFIED = "Answer withheldThis stored answer can't be shown because its verification could not be confirmed."
+    + 'To get a checked answer, ask the question again as a new message.';
+  const question: UIMessage = { id: 'q', role: 'user', parts: [{ type: 'text', text: 'Is dental covered?' }] };
+  const tool = { type: 'dynamic-tool', toolName: 'searchSections', toolCallId: 'tc-1', state: 'output-available', input: { query: 'dental' },
+    output: { sections: [{ id: 'sec:1', title: 'Dental', sectionNumber: '5.1', policyNumber: '4A', url: 'https://medicaid.ncdhhs.gov/4a/download' }] } };
+  /** A withheld turn as the server sends and stores it: tool steps, its fixed sentence, the outcome. */
+  const withheldTurn = (reason: string | undefined, id = 'a', stored = false): UIMessage => ({
+    id, role: 'assistant',
+    ...(stored ? { metadata: { createdAt: '2026-06-22T15:30:00.000Z' } } : {}),
+    parts: [tool, { type: 'text', text: reason === 'unverified_history' ? UNVERIFIED_HISTORY : WITHHELD_ANSWER },
+      { type: VERIFICATION_PART, data: { status: 'withheld', ...(reason ? { reason } : {}), passCount: 1 } }],
+  } as UIMessage);
+
+  it.each([
+    ['unavailable', UNAVAILABLE, true],
+    ['unsupported', NOT_GROUNDED, true],
+    ['invalid_citation', NOT_GROUNDED, true],
+    ['unusable_correction', NOT_GROUNDED, true],
+    ['unverified_history', UNVERIFIED, false],
+    [undefined, NOT_GROUNDED, true],
+  ])('shows a %s outcome as one notice with its own wording', (reason, text, canRetry) => {
+    renderMessageList([question, withheldTurn(reason)], { explicitRelease: true });
+
+    const notice = screen.getByTestId('withheld-answer');
+    expect(notice).toHaveTextContent(new RegExp(`^${text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}${canRetry ? 'Try again' : ''}$`));
+    expect(notice).toHaveAccessibleName('Answer withheld');
+    expect(notice).toHaveAttribute('data-reason', reason ?? 'unknown');
+    expect(within(notice).queryByTestId('verification-retry') !== null).toBe(canRetry);
+    // One notice and nothing else: no second alert for a turn that ran tools,
+    // no badge, no answer prose (the server's fixed sentence is not shown).
+    expect(screen.queryByTestId('ended-without-answer')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('verification-badge')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('generated-at')).not.toBeInTheDocument();
+    expect(screen.queryByText(/could not verify this answer|was not verified before release/)).not.toBeInTheDocument();
+    expect(screen.getAllByText('Answer withheld')).toHaveLength(1);
+    // The tool steps fold into the trail under the notice.
+    expect(screen.getByTestId('research-trail')).toBeInTheDocument();
+  });
+
+  it('names the three contacts without a number or a link', () => {
+    renderMessageList([question, withheldTurn('unsupported')], { explicitRelease: true });
+    const notice = screen.getByTestId('withheld-answer');
+    expect(within(notice).queryByRole('link')).not.toBeInTheDocument();
+    expect(notice.textContent).not.toMatch(/\d/);
+  });
+
+  it('is an alert, mounted once, for the answer withheld in this session, and the announcer does not say "Answer ready"', () => {
+    const rerender = renderMessageList([], { explicitRelease: true });
+    rerender([question], { status: 'submitted', explicitRelease: true });
+    expect(screen.getByTestId('chat-status-announcer')).toHaveTextContent('Researching…');
+
+    // The outcome arrives while the stream is still open: no notice yet.
+    rerender([question, withheldTurn('unsupported')], { status: 'streaming', isStreaming: true, explicitRelease: true });
+    expect(screen.queryByTestId('withheld-answer')).not.toBeInTheDocument();
+
+    rerender([question, withheldTurn('unsupported')], { status: 'ready', explicitRelease: true });
+    const alert = screen.getByRole('alert');
+    expect(alert).toBe(screen.getByTestId('withheld-answer'));
+    expect(screen.getByTestId('chat-status-announcer')).toBeEmptyDOMElement();
+
+    // A later render (the corpus-status poll, a rating) keeps the same node, so it is not announced again.
+    rerender([question, withheldTurn('unsupported')], { status: 'ready', explicitRelease: true });
+    expect(screen.getByRole('alert')).toBe(alert);
+  });
+
+  it('is an alert when the whole turn arrives in one render after the question was sent', () => {
+    const rerender = renderMessageList([question], { status: 'submitted', explicitRelease: true });
+    rerender([question, withheldTurn('unavailable')], { status: 'ready', explicitRelease: true });
+    expect(screen.getByRole('alert')).toBe(screen.getByTestId('withheld-answer'));
+  });
+
+  it('announces nothing when a thread with two stored withheld turns is opened', () => {
+    const stored = [question, withheldTurn('unsupported', 'a1', true),
+      { ...question, id: 'q2' }, withheldTurn('unverified_history', 'a2', true)];
+    renderMessageList(stored, { explicitRelease: true });
+
+    expect(screen.getAllByTestId('withheld-answer')).toHaveLength(2);
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.getAllByRole('group', { name: 'Answer withheld' })).toHaveLength(2);
+    expect(screen.getByTestId('chat-status-announcer')).toBeEmptyDOMElement();
+  });
+
+  it('does not announce the withheld turn again after leaving the thread and coming back', () => {
+    const live = [question, withheldTurn('unsupported')];
+    const rerender = renderMessageList([question], { status: 'submitted', explicitRelease: true });
+    rerender(live, { status: 'ready', explicitRelease: true });
+    expect(screen.getByRole('alert')).toBeInTheDocument();
+
+    rerender([{ id: 'other-q', role: 'user', parts: [{ type: 'text', text: 'Another thread' }] }], { explicitRelease: true });
+    // The hook restores the thread from its in-session cache, in the live shape.
+    rerender(live, { explicitRelease: true });
+    expect(screen.getByTestId('withheld-answer')).toHaveAttribute('role', 'group');
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('keeps only the newest withheld turn as the alert when a retry is withheld too', () => {
+    const first = [question, withheldTurn('unsupported', 'a1')];
+    const rerender = renderMessageList([question], { status: 'submitted', explicitRelease: true });
+    rerender(first, { status: 'ready', explicitRelease: true });
+    const retry = { ...question, id: 'q2' };
+    rerender([...first, retry], { status: 'submitted', explicitRelease: true });
+    rerender([...first, retry, withheldTurn('unsupported', 'a2')], { status: 'ready', explicitRelease: true });
+
+    const alerts = screen.getAllByRole('alert');
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0]).toBe(screen.getAllByTestId('withheld-answer')[1]);
+  });
+
+  it('leaves the retry to the page-level error box while it is showing', () => {
+    renderMessageList([question, withheldTurn('unsupported')], { status: 'error', explicitRelease: true });
+    expect(screen.getByTestId('withheld-answer')).toBeInTheDocument();
+    expect(screen.queryByTestId('verification-retry')).not.toBeInTheDocument();
   });
 });

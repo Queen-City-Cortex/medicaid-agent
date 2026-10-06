@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Telescope, Loader2, Check, X, AlertTriangle, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DeepResearchReportView } from '@/components/DeepResearchReport';
-import type { DeepResearchController, DeepResearchPlan } from '@/lib/use-deep-research';
+import type { DeepResearchController, DeepResearchPlan, DeepResearchStatus } from '@/lib/use-deep-research';
 
 function fmtElapsed(ms: number): string {
   const s = Math.floor(ms / 1000);
@@ -113,6 +113,28 @@ function PlanApproval({ plan, onApprove, onDecline }: {
   );
 }
 
+// What a screen reader is told when the run moves to a phase, in the words of
+// the input pill ("plan ready", "report ready"). The text depends on the phase
+// alone, never on the elapsed time or the poll, so it is read when the phase
+// changes and not again. None repeats a sentence the view draws.
+const PHASE_ANNOUNCEMENTS: Record<DeepResearchStatus, string> = {
+  idle: '',
+  planning: 'Deep Research: planning.',
+  'awaiting-approval': 'Deep Research: plan ready for your approval.',
+  researching: 'Deep Research: researching.',
+  recovering: 'Deep Research: recovering completed work.',
+  verifying: 'Deep Research: verifying the report.',
+  done: 'Deep Research: report ready.',
+  cancelled: 'Deep Research: cancelled.',
+  error: 'Deep Research: the report could not be released.',
+};
+
+/** The view's one live region. It is rendered first in every phase so the
+ *  same element stays mounted while its text changes. */
+function PhaseStatus({ status }: { status: DeepResearchStatus }) {
+  return <p role="status" data-testid="deep-research-status" className="sr-only">{PHASE_ANNOUNCEMENTS[status]}</p>;
+}
+
 /** The deep-research surface: plan-approval gate, phase progress, and report. */
 export function DeepResearchView({ controller }: { controller: DeepResearchController }) {
   const { status, plan, report, error, question, elapsedMs } = controller;
@@ -120,6 +142,7 @@ export function DeepResearchView({ controller }: { controller: DeepResearchContr
   if (status === 'idle') {
     return (
       <>
+      <PhaseStatus status={status} />
       {controller.notice && (
         <p data-testid="deep-research-notice" className="rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
           {controller.notice}
@@ -141,6 +164,8 @@ export function DeepResearchView({ controller }: { controller: DeepResearchContr
   }
 
   return (
+    <>
+    <PhaseStatus status={status} />
     <div data-testid="deep-research-view" className="space-y-5">
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Telescope className="size-4 text-accent" />
@@ -213,5 +238,6 @@ export function DeepResearchView({ controller }: { controller: DeepResearchContr
 
       {status === 'done' && report && <DeepResearchReportView report={report} />}
     </div>
+    </>
   );
 }

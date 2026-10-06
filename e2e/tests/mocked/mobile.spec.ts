@@ -84,6 +84,10 @@ test.describe('Phone viewport', () => {
     await expect(sidebar).toBeInViewport();
     await expect(chat.threadItems()).toHaveCount(2);
     await expect(signOut).toBeInViewport();
+    // Open, it is a modal dialog, and focus lands on its own close button:
+    // the masthead toggle is behind it and cannot be reached.
+    await expect(page.getByRole('dialog', { name: 'Conversations' })).toHaveAttribute('id', 'thread-sidebar');
+    await expect(sidebar.getByRole('button', { name: 'Close sidebar' })).toBeFocused();
     // The chat behind the overlay cannot be reached while it is open.
     expect(await chat.input.evaluate((element) => element.closest('[inert]') !== null)).toBe(true);
     await expectNoHorizontalScroll(page);
@@ -116,5 +120,13 @@ test.describe('Phone viewport', () => {
     await expect(toggle).toHaveAttribute('aria-expanded', 'false');
     await expect(sidebar).not.toBeInViewport();
     await expect(chat.input).toBeInViewport();
+
+    // Its own close button, the only close control a touch screen reader can reach.
+    await toggle.click();
+    await sidebar.getByRole('button', { name: 'Close sidebar' }).tap();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await expect(sidebar).not.toBeInViewport();
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect(toggle).toBeFocused();
   });
 });

@@ -204,6 +204,9 @@ export default function ChatPage() {
         id="thread-sidebar"
         aria-hidden={sidebarCollapsed || undefined}
         inert={sidebarCollapsed}
+        // On a phone the open sidebar covers the chat, which is inert behind
+        // it: a modal dialog. On a wider screen it is a panel beside the chat.
+        {...(isMobile && !sidebarCollapsed ? { role: 'dialog', 'aria-modal': true, 'aria-label': 'Conversations' } : {})}
         className={[
         'flex flex-col h-full bg-sidebar border-r border-sidebar-border print:hidden',
         'fixed inset-y-0 left-0 z-40 w-[280px] transition-transform duration-200',
@@ -218,12 +221,14 @@ export default function ChatPage() {
           refreshKey={threadVersion}
           onSelectThread={handleSelectThread}
           onNewThread={handleNewThread}
+          onClose={toggleSidebar}
         />
       </div>
 
       {/* Mobile backdrop */}
       {!sidebarCollapsed && (
         <div
+          aria-hidden="true"
           className="fixed inset-0 z-30 bg-black/30 md:hidden"
           onClick={toggleSidebar}
         />
@@ -277,7 +282,10 @@ export default function ChatPage() {
           </div>
         </header>
 
-        <div className="flex-1 min-h-0 relative">
+        {/* The transcript is the page's main landmark, between the masthead
+            (banner) and the composer's footer (contentinfo). Wrapping those
+            two as well would take their landmark roles away. */}
+        <main className="flex-1 min-h-0 relative">
         <ScrollArea className="h-full bg-background">
           <div className="max-w-3xl mx-auto px-4 md:px-8 py-8 space-y-8">
             {deepMode ? (
@@ -323,6 +331,7 @@ export default function ChatPage() {
                 <div data-testid="assistant-message" className="pl-2 mt-6 animate-in fade-in slide-in-from-bottom-2 duration-200">
                   <div
                     data-testid={info.kind === 'generic' ? 'chat-error' : `chat-error-${info.kind}`}
+                    role="alert"
                     className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive"
                   >
                     <p>{message}</p>
@@ -344,7 +353,7 @@ export default function ChatPage() {
           </div>
         </ScrollArea>
         <ScrollToBottom viewport={viewport} hasMessages={messages.length > 0 || isLoading} />
-        </div>
+        </main>
 
         <DisclaimerNotice />
         <ChatInput

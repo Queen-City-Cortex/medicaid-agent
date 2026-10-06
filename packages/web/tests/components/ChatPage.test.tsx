@@ -12,11 +12,13 @@ vi.mock('@workos-inc/authkit-nextjs/components', () => ({
   }),
 }));
 
+const chat = vi.hoisted(() => ({ error: null as Error | null }));
+
 vi.mock('@ai-sdk/react', () => ({
   useChat: () => ({
     messages: [],
-    status: 'ready',
-    error: null,
+    status: chat.error ? 'error' : 'ready',
+    error: chat.error,
     sendMessage: vi.fn(),
     setMessages: vi.fn(),
   }),
@@ -27,9 +29,10 @@ vi.mock('ai', () => ({
 }));
 
 vi.mock('@/components/ThreadSidebar', () => ({
-  ThreadSidebar: ({ onSelectThread }: { onSelectThread: (threadId: string) => void }) => (
+  ThreadSidebar: ({ onSelectThread, onClose }: { onSelectThread: (threadId: string) => void; onClose?: () => void }) => (
     <div data-testid="mock-thread-sidebar">
       <button type="button">Sidebar first action</button>
+      <button type="button" onClick={onClose}>Close from sidebar</button>
       <button type="button" data-testid="mock-select-thread" onClick={() => onSelectThread('thread-2')}>Past thread</button>
     </div>
   ),
@@ -146,6 +149,44 @@ describe('ChatPage mobile sidebar', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: 'Open sidebar' })).toHaveFocus());
     expect(sidebarWrapper).toHaveAttribute('aria-hidden', 'true');
     expect(screen.queryByRole('button', { name: 'Sidebar first action' })).not.toBeInTheDocument();
+  });
+});
+
+describe('ChatPage landmarks and alerts', () => {
+  afterEach(() => { chat.error = null; });
+
+  it('makes the open mobile sidebar a labelled modal dialog over an inert main, with a hidden backdrop', async () => {
+    Object.defineProperty(window, 'innerWidth', { value: 375, configurable: true });
+    const user = userEvent.setup();
+    const { container } = render(<ChatPage />);
+    const sidebar = container.querySelector('#thread-sidebar')!;
+    const main = container.querySelector('main')!;
+
+    // Closed: no dialog, and the chat is reachable. The transcript is the main
+    // landmark; the composer's footer stays outside it.
+    expect(sidebar).not.toHaveAttribute('role');
+    expect(main.closest('[inert]')).toBeNull();
+    expect(main).toHaveTextContent('Messages');
+    expect(main).not.toContainElement(screen.getByTestId('mock-chat-input'));
+
+    await user.click(screen.getByRole('button', { name: 'Open sidebar' }));
+
+    const dialog = screen.getByRole('dialog', { name: 'Conversations' });
+    expect(dialog).toBe(sidebar);
+    expect(dialog).toHaveAttribute('aria-modal', 'true');
+    expect(main.closest('[inert]')).not.toBeNull();
+    expect(container.querySelector('.bg-black\\/30')).toHaveAttribute('aria-hidden', 'true');
+
+    await user.click(screen.getByRole('button', { name: 'Close from sidebar' }));
+    expect(sidebar).not.toHaveAttribute('role');
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Open sidebar' })).toHaveFocus());
+  });
+
+  it('shows a failed request as an alert', () => {
+    chat.error = new Error('boom');
+    render(<ChatPage />);
+    expect(screen.getByRole('alert')).toBe(screen.getByTestId('chat-error'));
+    expect(screen.getByRole('alert')).toHaveTextContent('Sorry, there was an error processing your question.');
   });
 });
 

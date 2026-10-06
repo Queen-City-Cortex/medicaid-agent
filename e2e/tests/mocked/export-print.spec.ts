@@ -75,8 +75,9 @@ test('the exported file has each answer with its links, numbered sources and ver
   // Withheld and unverified turns export as their notices, never as text.
   expect(markdown.match(/^## Answer$/gm)).toHaveLength(2);
   expect(markdown.match(/^## Answer withheld$/gm)).toHaveLength(2);
-  expect(markdown).toContain('I could not verify this answer against the retrieved sources.');
-  expect(markdown).toContain('This previous answer was not verified before release.');
+  expect(markdown).toContain("We couldn't verify an answer to this question against NC Medicaid policy, so we haven't shown one.");
+  expect(markdown).toContain("This stored answer can't be shown because its verification could not be confirmed.");
+  expect(markdown).not.toContain('review the sources below');
   expect(markdown).not.toContain('DRAFT');
 });
 

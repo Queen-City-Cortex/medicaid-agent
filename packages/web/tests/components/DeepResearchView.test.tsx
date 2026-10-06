@@ -76,3 +76,48 @@ describe('DeepResearchView daily limit', () => {
     expect(screen.queryByText('Try again')).not.toBeInTheDocument();
   });
 });
+
+describe('DeepResearchView phase announcements', () => {
+  it('has one status element whose text follows the phase and does not change with the clock', () => {
+    const { rerender } = render(<DeepResearchView controller={makeController()} />);
+    const status = screen.getByRole('status');
+    expect(status).toBeEmptyDOMElement();
+    expect(status).toHaveClass('sr-only');
+
+    const phases: Array<[Partial<DeepResearchController>, string]> = [
+      [{ status: 'planning' }, 'Deep Research: planning.'],
+      [{ status: 'awaiting-approval', plan: PLAN }, 'Deep Research: plan ready for your approval.'],
+      [{ status: 'researching', plan: PLAN }, 'Deep Research: researching.'],
+      [{ status: 'recovering', plan: PLAN, recoveryCount: 1 }, 'Deep Research: recovering completed work.'],
+      [{ status: 'verifying', plan: PLAN }, 'Deep Research: verifying the report.'],
+      [{ status: 'cancelled' }, 'Deep Research: cancelled.'],
+      [{ status: 'error', error: 'failed' }, 'Deep Research: the report could not be released.'],
+      [{ status: 'done' }, 'Deep Research: report ready.'],
+    ];
+    for (const [over, text] of phases) {
+      rerender(<DeepResearchView controller={makeController(over)} />);
+      // The same element throughout, and the only live region in the view.
+      expect(screen.getAllByRole('status')).toEqual([status]);
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+      expect(status).toHaveTextContent(new RegExp(`^${text.replace(/\./g, '\\.')}$`));
+    }
+  });
+
+  it('does not rewrite the status text while a phase lasts', async () => {
+    const { rerender } = render(<DeepResearchView controller={makeController({ status: 'researching', plan: PLAN })} />);
+    const status = screen.getByRole('status');
+    const changes: MutationRecord[] = [];
+    const observer = new MutationObserver((records) => { changes.push(...records); });
+    observer.observe(status, { childList: true, characterData: true, subtree: true });
+
+    // Each poll and each second of the clock renders the view again.
+    for (const elapsedMs of [1000, 2000, 61_000]) {
+      rerender(<DeepResearchView controller={makeController({ status: 'researching', plan: PLAN, elapsedMs })} />);
+    }
+    await Promise.resolve();
+    observer.disconnect();
+
+    expect(changes).toEqual([]);
+    expect(screen.getByText(/1m 1s/)).toBeInTheDocument();
+  });
+});

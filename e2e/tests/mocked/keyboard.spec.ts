@@ -4,6 +4,43 @@ import { mockMastraAPI } from '../../helpers/mock-routes';
 import { AISdkStreamBuilder } from '../../helpers/stream-builder';
 
 test.describe('Keyboard interactions', () => {
+  test('Enter on a footnote moves focus to its source link, opening the Sources panel if it was closed', async ({ page }) => {
+    const stream = new AISdkStreamBuilder()
+      .start()
+      .toolCall('getSection', 'tc-get-8c', {})
+      .toolResult('tc-get-8c', {
+        section: {
+          id: 'sec:doc:clinical_policy:8C:3.2.1',
+          title: 'Outpatient Behavioral Health Services',
+          sectionNumber: '3.2.1',
+          policyNumber: '8C',
+          url: 'https://medicaid.ncdhhs.gov/8c/download',
+        },
+      })
+      .textDelta('Covered under [Policy 8C § 3.2.1](https://medicaid.ncdhhs.gov/8c/download).')
+      .stepFinish()
+      .finish();
+    await mockMastraAPI(page, { streamResponse: stream });
+    const chat = new ChatPage(page);
+    await chat.goto();
+    await chat.sendMessage('What does Policy 8C cover?');
+    await chat.waitForAssistantMessage('Covered under');
+
+    const footnote = page.getByTestId('citation-footnote');
+    const sourceLink = page.getByTestId('source-item').getByRole('link');
+    await footnote.focus();
+    await page.keyboard.press('Enter');
+    await expect(sourceLink).toBeFocused();
+
+    // Close the panel; the footnote opens it again and focus still arrives.
+    await page.getByTestId('sources-panel-trigger').click();
+    await expect(sourceLink).toBeHidden();
+    await footnote.focus();
+    await expect(footnote).toBeFocused();
+    await page.keyboard.press('Enter');
+    await expect(sourceLink).toBeFocused();
+  });
+
   test('Enter key sends the message', async ({ page }) => {
     const stream = new AISdkStreamBuilder()
       .start()

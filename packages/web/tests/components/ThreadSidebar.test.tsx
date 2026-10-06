@@ -68,6 +68,29 @@ describe('ThreadSidebar', () => {
     listMessages.mockResolvedValue({ messages: [] });
   });
 
+  it('offers a labelled close button as its first focusable control when it can be closed', async () => {
+    const onClose = vi.fn();
+    const { container } = render(
+      <ThreadSidebar currentThreadId="thread-1" resourceId="user-1" onSelectThread={vi.fn()} onNewThread={vi.fn()} onClose={onClose} />,
+    );
+    await screen.findByText('My conversation');
+
+    const close = screen.getByRole('button', { name: 'Close sidebar' });
+    // The selector the sidebar hook uses to pick where focus lands on open.
+    expect(container.querySelector('button:not([disabled]), [href], input:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')).toBe(close);
+    // Phones only: wider screens close the panel from the masthead toggle.
+    expect(close).toHaveClass('md:hidden');
+
+    await userEvent.setup().click(close);
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('has no close button where nothing closes it', async () => {
+    render(<ThreadSidebar currentThreadId="thread-1" resourceId="user-1" onSelectThread={vi.fn()} onNewThread={vi.fn()} />);
+    await screen.findByText('My conversation');
+    expect(screen.queryByRole('button', { name: 'Close sidebar' })).not.toBeInTheDocument();
+  });
+
   it('signs out through the authenticated client provider', async () => {
     render(
       <ThreadSidebar

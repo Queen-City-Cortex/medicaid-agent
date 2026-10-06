@@ -171,7 +171,7 @@ test.describe('Message Feedback', () => {
     await expect(page.getByText('Searching policies')).toBeVisible();
 
     // Answer should render as markdown with heading
-    await expect(page.getByRole('heading', { name: 'Answer' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Answer', exact: true })).toBeVisible();
     await expect(page.getByText('Yes, NC Medicaid covers chiropractic services under Policy 1F.')).toBeVisible();
   });
 });

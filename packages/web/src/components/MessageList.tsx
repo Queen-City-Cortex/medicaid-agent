@@ -1,7 +1,7 @@
 'use client';
 
-import { isValidElement, useState, type ReactNode, type RefObject } from 'react';
-import ReactMarkdown from 'react-markdown';
+import { createContext, isValidElement, useContext, useId, useState, type ReactNode, type RefObject } from 'react';
+import ReactMarkdown, { type Components } from 'react-markdown';
 import type { UIMessage } from 'ai';
 import { ChevronRight, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ import { getMessageCreatedAt } from '@/lib/parse-message';
 import {
   buildAnswerClipboardText,
   extractMessageSources,
+  extractReleaseState,
   getToolName,
   getTrailingAssistantText,
   hasRenderableAssistantPart,
@@ -22,6 +23,8 @@ import {
   isTripwirePart,
   releasedAnswer,
   resolveCitedSources,
+  withheldNotice,
+  withheldNoticeText,
   type CitationResolver,
   type MessageSource,
   type ToolMessagePart,
@@ -30,7 +33,7 @@ import {
 
 // Answer prose reads like a printed document: Newsreader at a comfortable
 // 16px with generous leading, Fraunces headings. The cited links + footnote
-// markers are styled on the custom <a> renderer below.
+// markers are styled in MarkdownLink below.
 const PROSE = 'prose dark:prose-invert max-w-none text-[16px] prose-headings:font-heading prose-headings:tracking-tight prose-h2:text-xl prose-h3:text-lg prose-p:leading-[1.75] prose-li:leading-[1.7] prose-li:my-1 prose-strong:text-foreground prose-strong:font-semibold prose-blockquote:border-l-accent/50 prose-blockquote:font-normal prose-blockquote:not-italic';
 const PROSE_PROGRESS = 'prose prose-sm dark:prose-invert max-w-none text-muted-foreground prose-headings:text-foreground prose-p:my-0 prose-li:leading-relaxed';
 
@@ -57,6 +60,73 @@ function nodeText(node: ReactNode): string {
   return '';
 }
 
+/** How the links of one answer find their Sources-panel row. */
+const CitationContext = createContext<{
+  resolveCitation?: CitationResolver;
+  onCitationClick?: (sourceNumber: number) => void;
+}>({});
+
+function MarkdownLink({ children, href }: { children?: ReactNode; href?: string }) {
+  const { resolveCitation, onCitationClick } = useContext(CitationContext);
+  // Resolve to the Sources-panel row by the link's visible label
+  // first (unique per section) — a URL-only match collapses every
+  // section of one policy PDF onto a single footnote number.
+  // Flatten formatted labels too ("**42 CFR § 441.301**" arrives
+  // as a <strong> element, not a string).
+  const label = nodeText(children);
+  const sourceNumber = resolveCitation?.(label, href ?? null);
+  // A link that maps to a numbered source is a citation: keep it quiet
+  // (ink-colored, hairline underline) so clusters of them don't read as
+  // a wall of gold — the small gold [n] marker carries the citation
+  // signal, and the Sources panel carries the full title. A link with
+  // no source mapping is a genuine external reference, so it keeps the
+  // gold treatment.
+  const isCitation = sourceNumber !== undefined;
+  return (
+    <>
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={
+          isCitation
+            ? 'text-foreground underline decoration-muted-foreground/30 underline-offset-2 transition-colors hover:text-accent hover:decoration-accent/60'
+            : 'font-medium text-accent underline decoration-accent/35 underline-offset-2 transition-colors hover:decoration-accent'
+        }
+      >
+        {children}
+      </a>
+      {sourceNumber !== undefined && (
+        <sup>
+          <button
+            type="button"
+            data-testid="citation-footnote"
+            data-source-number={sourceNumber}
+            onClick={(event) => {
+              event.preventDefault();
+              onCitationClick?.(sourceNumber);
+            }}
+            // The visible footnote is tiny (0.72em inside <sup>); the
+            // ::after overlay extends the effective hit area to ≥24px
+            // in each dimension without shifting layout — tap-target
+            // minimums matter for mobile case managers.
+            className="relative ml-0.5 inline-flex cursor-pointer items-center rounded-sm px-0.5 font-mono text-[0.72em] font-medium text-accent after:absolute after:-inset-2 after:content-[''] hover:bg-accent/15 hover:text-accent"
+            aria-label={`Jump to source ${sourceNumber} in the Sources panel`}
+          >
+            [{sourceNumber}]
+          </button>
+        </sup>
+      )}
+    </>
+  );
+}
+
+// A constant, with the renderer at module scope: a renderer created during
+// render is a new component type each time, so React replaced every link and
+// footnote on each re-render and a focused one dropped focus to <body>. What
+// changes between renders reaches the links through CitationContext.
+const MARKDOWN_COMPONENTS: Components = { a: MarkdownLink };
+
 function MarkdownText({
   text,
   finalAnswer,
@@ -72,65 +142,9 @@ function MarkdownText({
 }) {
   return (
     <div className={finalAnswer ? PROSE : PROSE_PROGRESS}>
-      <ReactMarkdown
-        components={{
-          a: ({ children, href }) => {
-            // Resolve to the Sources-panel row by the link's visible label
-            // first (unique per section) — a URL-only match collapses every
-            // section of one policy PDF onto a single footnote number.
-            // Flatten formatted labels too ("**42 CFR § 441.301**" arrives
-            // as a <strong> element, not a string).
-            const label = nodeText(children);
-            const sourceNumber = resolveCitation?.(label, href ?? null);
-            // A link that maps to a numbered source is a citation: keep it quiet
-            // (ink-colored, hairline underline) so clusters of them don't read as
-            // a wall of gold — the small gold [n] marker carries the citation
-            // signal, and the Sources panel carries the full title. A link with
-            // no source mapping is a genuine external reference, so it keeps the
-            // gold treatment.
-            const isCitation = sourceNumber !== undefined;
-            return (
-              <>
-                <a
-                  href={href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={
-                    isCitation
-                      ? 'text-foreground underline decoration-muted-foreground/30 underline-offset-2 transition-colors hover:text-accent hover:decoration-accent/60'
-                      : 'font-medium text-accent underline decoration-accent/35 underline-offset-2 transition-colors hover:decoration-accent'
-                  }
-                >
-                  {children}
-                </a>
-                {sourceNumber !== undefined && (
-                  <sup>
-                    <button
-                      type="button"
-                      data-testid="citation-footnote"
-                      data-source-number={sourceNumber}
-                      onClick={(event) => {
-                        event.preventDefault();
-                        onCitationClick?.(sourceNumber);
-                      }}
-                      // The visible footnote is tiny (0.72em inside <sup>); the
-                      // ::after overlay extends the effective hit area to ≥24px
-                      // in each dimension without shifting layout — tap-target
-                      // minimums matter for mobile case managers.
-                      className="relative ml-0.5 inline-flex cursor-pointer items-center rounded-sm px-0.5 font-mono text-[0.72em] font-medium text-accent after:absolute after:-inset-2 after:content-[''] hover:bg-accent/15 hover:text-accent"
-                      aria-label={`Jump to source ${sourceNumber} in the Sources panel`}
-                    >
-                      [{sourceNumber}]
-                    </button>
-                  </sup>
-                )}
-              </>
-            );
-          },
-        }}
-      >
-        {text}
-      </ReactMarkdown>
+      <CitationContext value={{ resolveCitation, onCitationClick }}>
+        <ReactMarkdown components={MARKDOWN_COMPONENTS}>{text}</ReactMarkdown>
+      </CitationContext>
       {showCursor && (
         <span className="inline-block w-0.5 h-5 bg-accent animate-pulse ml-0.5 -mb-1" />
       )}
@@ -145,6 +159,7 @@ function AssistantMessage({
   isStreaming,
   busy,
   stopped,
+  endedHere,
   retryElsewhere,
   feedbackMap,
   onRerun,
@@ -160,6 +175,8 @@ function AssistantMessage({
   busy: boolean;
   /** The user pressed Stop on this turn. */
   stopped: boolean;
+  /** This turn's answer ended in this session, while the thread was on screen. */
+  endedHere: boolean;
   /** The page-level error box is showing and owns the retry for this turn. */
   retryElsewhere: boolean;
   feedbackMap: Record<string, { id: string; rating: 'up' | 'down'; comment: string | null }>;
@@ -168,7 +185,11 @@ function AssistantMessage({
   onClearRating: (messageId: string) => void;
   onComment: (messageId: string, comment: string) => void;
 }) {
-  const { release, parts } = releasedAnswer(msg);
+  const { release, parts: releasedParts } = releasedAnswer(msg);
+  // A withheld turn is shown as a notice, never as answer prose.
+  const withheld = release?.status === 'withheld' ? withheldNotice(release.reason) : null;
+  const parts = withheld ? releasedParts.filter((part) => !isTextPart(part)) : releasedParts;
+  const withheldHeadingId = useId();
   const canShowAnswer = release?.status === 'passed' || release?.status === 'corrected';
   const lastToolIndex = parts.reduce((latest, part, index) => (isToolPart(part) ? index : latest), -1);
   const finalAnswerText = getTrailingAssistantText({ ...msg, parts });
@@ -203,6 +224,7 @@ function AssistantMessage({
   const endedWithoutAnswer =
     !isStreaming &&
     !retryElsewhere &&
+    !withheld &&
     finalAnswerText.trim().length === 0 &&
     (lastToolIndex !== -1 || release?.status === 'verifying' || stopped);
   // An input guard (scope gate, length guard, injection detector) aborted the
@@ -213,13 +235,13 @@ function AssistantMessage({
     tripwirePart?.data?.metadata?.userMessage ??
     (tripwirePart ? "This message couldn't be processed. Please rephrase and try again." : null);
   const toolStepCount = parts.filter(isToolPart).length;
-  // Once a run completes with an answer, the tool loop collapses into a
-  // single "Research trail" below the answer — ten full-width step cards
+  // Once a run completes with an answer or a withheld notice, the tool loop collapses into a
+  // single "Research trail" below it — ten full-width step cards
   // stacked above the answer buried the thing the user asked for. Streaming
   // keeps the live expanded view; ended-without-answer keeps the steps
   // expanded because they ARE the only output worth reading.
   const collapseTrail =
-    !isStreaming && lastToolIndex !== -1 && finalAnswerText.trim().length > 0;
+    !isStreaming && lastToolIndex !== -1 && (finalAnswerText.trim().length > 0 || withheld !== null);
   const trailParts = collapseTrail
     ? visibleParts.filter(({ index }) => index <= lastToolIndex)
     : [];
@@ -241,10 +263,14 @@ function AssistantMessage({
     if (!source) return;
     setPanelOpen(true);
     setHighlightedKey(source.key);
-    // Wait a tick so the Collapsible content is in the DOM before scrolling to it.
+    // Wait a tick so the Collapsible content is in the DOM (the panel may
+    // have been closed), then scroll to the row and move focus to its link:
+    // the footnote says "Jump to source", so the keyboard goes there too.
     window.requestAnimationFrame(() => {
       const el = document.getElementById(sourceRowId(msg.id, source.key));
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (!el) return;
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.querySelector('a')?.focus({ preventScroll: true });
     });
     // Clear highlight after the transition finishes.
     window.setTimeout(() => setHighlightedKey(null), 1800);
@@ -332,7 +358,37 @@ function AssistantMessage({
       )}
 
       {isStreaming && release?.status === 'verifying' && <p role="status" data-testid="verification-progress" className="my-3 text-sm text-muted-foreground">Checking the answer against sources…</p>}
-      {release?.status === 'withheld' && !retryElsewhere && <Button variant="outline" size="sm" onClick={handleRerun} disabled={busy} data-testid="verification-retry">Try again</Button>}
+
+      {/* The whole of a withheld turn: one notice, shown once the turn is over.
+          It is an alert only for the turn that just ended here, so it is
+          announced once; a stored one, on a reopened thread, is a labelled
+          group that a screen reader meets in reading order. */}
+      {withheld && !isStreaming && (
+        <div
+          data-testid="withheld-answer"
+          data-reason={release?.status === 'withheld' ? release.reason ?? 'unknown' : undefined}
+          role={endedHere ? 'alert' : 'group'}
+          aria-labelledby={withheldHeadingId}
+          className="my-4 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-foreground"
+        >
+          <p id={withheldHeadingId} className="font-semibold">Answer withheld</p>
+          <p className="mt-1 font-medium">{withheld.lead}</p>
+          {withheld.detail && <p className="mt-1">{withheld.detail}</p>}
+          {withheld.canRetry && !retryElsewhere && (
+            <Button
+              data-testid="verification-retry"
+              variant="outline"
+              size="sm"
+              className="mt-3"
+              onClick={handleRerun}
+              disabled={busy}
+            >
+              <RotateCcw className="size-3.5" />
+              Try again
+            </Button>
+          )}
+        </div>
+      )}
 
       {narration && (
         <div
@@ -436,10 +492,12 @@ function AssistantMessage({
         </p>
       )}
 
-      {!isStreaming && (finalAnswerText || endedWithoutAnswer) && (
+      {/* A withheld turn keeps the rating so it can be flagged; its retry is
+          the button in the notice, and Copy gives the notice. */}
+      {!isStreaming && (finalAnswerText || endedWithoutAnswer || withheld) && (
         <MessageActions
-          content={buildAnswerClipboardText(finalAnswerText, sources)}
-          onRerun={busy || retryElsewhere ? undefined : handleRerun}
+          content={withheld ? withheldNoticeText(withheld) : buildAnswerClipboardText(finalAnswerText, sources)}
+          onRerun={busy || retryElsewhere || withheld ? undefined : handleRerun}
           messageId={msg.id}
           feedback={feedbackMap[msg.id] ?? null}
           onRate={(rating) => onRate(msg.id, rating)}
@@ -467,11 +525,24 @@ export function MessageList({ messages, isStreaming, status, onRerun, wasStopped
     if (status === 'submitted') {
       setAnnouncement('Researching…');
     } else if (status === 'ready' && (prevStatus === 'streaming' || prevStatus === 'submitted')) {
-      setAnnouncement(lastStopped ? 'Answer stopped' : 'Answer ready');
+      // A withheld answer is announced by its own alert, and is not "ready".
+      const withheld = lastMessage?.role === 'assistant' && extractReleaseState(lastMessage)?.status === 'withheld';
+      setAnnouncement(lastStopped ? 'Answer stopped' : withheld ? '' : 'Answer ready');
     }
   }
 
   const busy = status === 'submitted' || status === 'streaming';
+
+  // The question being answered, kept after its answer ends for as long as it
+  // stays on screen: the answer right after it is the one that ended here.
+  // Opening another thread drops it, so coming back announces nothing again.
+  const [askedHereId, setAskedHereId] = useState<string | null>(null);
+  if (busy) {
+    const asking = messages.findLast((message) => message.role === 'user')?.id ?? null;
+    if (asking !== askedHereId) setAskedHereId(asking);
+  } else if (askedHereId !== null && !messages.some((message) => message.id === askedHereId)) {
+    setAskedHereId(null);
+  }
 
   return (
     <>
@@ -479,43 +550,59 @@ export function MessageList({ messages, isStreaming, status, onRerun, wasStopped
         {announcement}
       </div>
 
-      {messages.map((msg, i) => (
-          <div key={msg.id} className="group">
-            {msg.role === 'user' && (
-              <div className="flex justify-end mb-6 animate-in fade-in slide-in-from-bottom-2 duration-200">
-                {/* The user's question reads as ink on paper — a right-aligned
-                    filled block, distinct from the full-width answer document.
-                    Browsers print no backgrounds by default, so on paper the
-                    block becomes an outline with ink-coloured text. */}
-                <div data-testid="user-message" className="bg-primary text-primary-foreground rounded-xl rounded-tr-sm px-5 py-3 max-w-[80%] shadow-[0_1px_2px_rgba(0,0,0,0.12)] print:border print:border-border print:bg-transparent print:text-foreground print:shadow-none">
-                  {/* pre-wrap keeps the user's line breaks (attorneys paste
-                      multi-line fact patterns); overflow-wrap:anywhere stops a
-                      long pasted URL or ID from blowing out the bubble. */}
-                  <p className="text-[15px] leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere]">
-                    {msg.parts.filter(p => p.type === 'text').map(p => (p as { text: string }).text).join('')}
-                  </p>
-                </div>
-              </div>
-            )}
+      {/* The transcript is a list of turns, each under a heading that says who
+          is speaking and that is read but not drawn. It has no log role and no
+          live attributes: either would read out every streamed chunk. The
+          explicit list role is for Safari, which drops list semantics from a
+          list drawn without markers. */}
+      {messages.length > 0 && (
+        <ol role="list" aria-label="Conversation" className="space-y-8">
+          {messages.map((msg, i) => (
+            <li key={msg.id} className="group">
+              {msg.role === 'user' && (
+                <>
+                  <h2 className="sr-only">You asked</h2>
+                  <div className="flex justify-end mb-6 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                    {/* The user's question reads as ink on paper — a right-aligned
+                        filled block, distinct from the full-width answer document.
+                        Browsers print no backgrounds by default, so on paper the
+                        block becomes an outline with ink-coloured text. */}
+                    <div data-testid="user-message" className="bg-primary text-primary-foreground rounded-xl rounded-tr-sm px-5 py-3 max-w-[80%] shadow-[0_1px_2px_rgba(0,0,0,0.12)] print:border print:border-border print:bg-transparent print:text-foreground print:shadow-none">
+                      {/* pre-wrap keeps the user's line breaks (attorneys paste
+                          multi-line fact patterns); overflow-wrap:anywhere stops a
+                          long pasted URL or ID from blowing out the bubble. */}
+                      <p className="text-[15px] leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere]">
+                        {msg.parts.filter(p => p.type === 'text').map(p => (p as { text: string }).text).join('')}
+                      </p>
+                    </div>
+                  </div>
+                </>
+              )}
 
-            {msg.role === 'assistant' && (
-              <AssistantMessage
-                msg={msg}
-                messageIndex={i}
-                messages={messages}
-                isStreaming={isStreaming && i === messages.length - 1}
-                busy={busy}
-                stopped={wasStopped?.(msg.id) ?? false}
-                retryElsewhere={status === 'error' && i === messages.length - 1}
-                feedbackMap={feedbackMap}
-                onRerun={onRerun}
-                onRate={onRate}
-                onClearRating={onClearRating}
-                onComment={onComment}
-              />
-            )}
-          </div>
-      ))}
+              {msg.role === 'assistant' && (
+                <>
+                  <h2 className="sr-only">Navigator answered</h2>
+                  <AssistantMessage
+                    msg={msg}
+                    messageIndex={i}
+                    messages={messages}
+                    isStreaming={isStreaming && i === messages.length - 1}
+                    busy={busy}
+                    stopped={wasStopped?.(msg.id) ?? false}
+                    endedHere={askedHereId !== null && messages[i - 1]?.id === askedHereId}
+                    retryElsewhere={status === 'error' && i === messages.length - 1}
+                    feedbackMap={feedbackMap}
+                    onRerun={onRerun}
+                    onRate={onRate}
+                    onClearRating={onClearRating}
+                    onComment={onComment}
+                  />
+                </>
+              )}
+            </li>
+          ))}
+        </ol>
+      )}
 
       {/* Stopped before any answer began: there is no assistant message to
           carry the notice, so it sits under the question. */}

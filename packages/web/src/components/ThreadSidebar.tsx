@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { Copy, Download, Ellipsis, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Copy, Download, Ellipsis, PanelLeftClose, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useAuth } from '@workos-inc/authkit-nextjs/components';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
@@ -47,9 +47,11 @@ interface ThreadSidebarProps {
   refreshKey?: number;
   onSelectThread: (threadId: string) => void;
   onNewThread: () => void;
+  /** Closes the sidebar where it covers the chat (phones). */
+  onClose?: () => void;
 }
 
-export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelectThread, onNewThread }: ThreadSidebarProps) {
+export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelectThread, onNewThread, onClose }: ThreadSidebarProps) {
   const { user, signOut } = useAuth();
   // `run` builds a client with a freshly-fetched token per call and retries
   // once on a 401, so thread ops survive the access token expiring mid-session
@@ -258,7 +260,20 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
   return (
     <div className="flex flex-col h-full bg-sidebar">
       <div className="px-4 py-4 flex items-center justify-between shrink-0">
-        <span className="font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+        {/* On a phone the masthead toggle is behind the open sidebar and inert,
+            so the sidebar carries its own close control. It comes first, which
+            is where focus lands when the sidebar opens. */}
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close sidebar"
+            className="-ml-2 mr-1 rounded-md p-2 text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground md:hidden"
+          >
+            <PanelLeftClose className="size-4" />
+          </button>
+        )}
+        <span className="mr-auto font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
           Threads
         </span>
         <Button

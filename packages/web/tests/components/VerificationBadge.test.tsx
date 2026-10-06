@@ -17,11 +17,9 @@ describe('VerificationBadge', () => {
     expect(badge).toHaveAttribute('data-outcome', 'passed');
   });
 
-  it('never labels a withheld outcome as verified', () => {
-    render(<VerificationBadge outcome={{ status: 'withheld', reason: 'unavailable', passCount: 1 }} />);
-    const badge = screen.getByTestId('verification-badge');
-    expect(badge).toHaveTextContent('Answer withheld');
-    expect(badge).not.toHaveTextContent('Verified against cited sources');
+  it('renders nothing for a withheld outcome: the notice in MessageList is the only thing shown', () => {
+    const { container } = render(<VerificationBadge outcome={{ status: 'withheld', reason: 'unavailable', passCount: 1 }} />);
+    expect(container).toBeEmptyDOMElement();
   });
 
   it('renders nothing without a release outcome', () => {

@@ -314,14 +314,18 @@ describe('buildThreadMarkdown', () => {
     expect(turn('Is prior approval needed?')).toContain('*Corrected and verified against cited sources · June 22, 2026');
   });
 
-  it('exports a withheld answer as its notice, with no answer heading, draft text or sources', () => {
+  it('exports a withheld answer as the notice the screen shows, with no answer heading, draft text or sources', () => {
     const withheld = turn('Are home visits covered?');
 
     expect(withheld).toContain('## Answer withheld');
-    expect(withheld).toContain(WITHHELD_ANSWER);
+    expect(withheld).toContain("We couldn't verify an answer to this question against NC Medicaid policy, so we haven't shown one.");
+    expect(withheld).toContain('contact your county DSS, the NC Medicaid Ombudsman, or Legal Aid of NC.');
     expect(withheld).toContain('*Withheld: not verified · June 22, 2026');
     expect(withheld).not.toMatch(/^## Answer$/m);
-    expect(withheld).not.toContain('Sources');
+    // The file lists no sources for a withheld turn, so it must not point at any;
+    // the sentence the server stores for the turn does, and is not exported.
+    expect(withheld).not.toMatch(/sources/i);
+    expect(withheld).not.toContain(WITHHELD_ANSWER);
     expect(withheld).not.toContain(POLICY_1F);
   });
 
@@ -329,7 +333,8 @@ describe('buildThreadMarkdown', () => {
     const unverified = turn('What about acupuncture?');
 
     expect(unverified).toContain('## Answer withheld');
-    expect(unverified).toContain(UNVERIFIED_HISTORY);
+    expect(unverified).toContain("This stored answer can't be shown because its verification could not be confirmed.");
+    expect(unverified).not.toContain(UNVERIFIED_HISTORY);
     expect(unverified).not.toMatch(/^## Answer$/m);
   });
 
