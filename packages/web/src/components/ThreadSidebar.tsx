@@ -29,6 +29,7 @@ import {
   deriveThreadTitleFromMessages,
   formatDate,
 } from '@/lib/thread-helpers';
+import type { UpdateMemoryThreadParams } from '@mastra/client-js';
 import type { Thread } from '@/lib/thread-helpers';
 
 const AGENT_ID = 'nc-medicaid-navigator';
@@ -174,15 +175,12 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
     }
     setError(null);
     try {
-      const existing = threads.find((t) => t.id === threadId);
-      // Pass the thread's existing metadata through — sending `{}` here wiped it.
-      await run((client) =>
-        client.getMemoryThread({ threadId, agentId: AGENT_ID }).update({
-          title: editTitle.trim(),
-          metadata: existing?.metadata ?? {},
-          resourceId: existing?.resourceId ?? resourceId,
-        }),
-      );
+      // Send the title alone. The server keeps the stored metadata only when
+      // the key is absent, and thread responses omit the framework's part of
+      // it, so echoing `metadata` back (even `{}`) would erase memory state.
+      // The client's type still lists every field; the server binds the owner.
+      const title = { title: editTitle.trim() } as UpdateMemoryThreadParams;
+      await run((client) => client.getMemoryThread({ threadId, agentId: AGENT_ID }).update(title));
       setEditingThreadId(null);
       fetchThreads();
     } catch (err) {

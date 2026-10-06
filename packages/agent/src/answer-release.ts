@@ -2,7 +2,9 @@ import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import type { MastraDBMessage } from '@mastra/core/memory';
 import type { MemoryStorage } from '@mastra/core/storage';
 import type { UIMessage, UIMessageChunk } from 'ai';
-import { VERIFICATION_PART, WITHHELD_ANSWER, UNVERIFIED_HISTORY, type VerificationOutcome } from '@nc-medicaid/contracts';
+import { VERIFICATION_PART, WITHHELD_ANSWER, UNVERIFIED_HISTORY, VerificationOutcomeSchema,
+  type VerificationOutcome, type VerificationProgress } from '@nc-medicaid/contracts';
+import { log } from './logger.js';
 
 // Initialized from persistent application storage before serving requests.
 let secret = randomBytes(32).toString('hex');
@@ -14,11 +16,36 @@ function textOf(message: MastraDBMessage): string {
   return typeof message.content === 'string' ? message.content
     : message.content.parts.filter(p => p.type === 'text').map(p => p.text).join('\n');
 }
+/** Shown in place of a failed tool call's own error, which can name internal hosts. */
+const TOOL_ERROR_TEXT = 'This step could not be completed.';
+/** Bookkeeping kept on a stored observer marker. The framework matches markers
+ * by type and `cycleId`; the observer's own text is never among these. */
+const OBSERVER_MARKER_FIELDS = ['cycleId', 'operationType', 'recordId', 'threadId', 'startedAt', 'completedAt',
+  'durationMs', 'tokensToObserve', 'tokensObserved', 'observationTokens'];
+type Part = MastraDBMessage['content']['parts'][number];
+/** A stored part without text the verifier never saw: observer notes ride in
+ * `data-om-*` markers and a failed tool call keeps its raw error. */
+function redactedPart(part: Part): Part {
+  if (part.type.startsWith('data-om-')) {
+    const data = ((part as { data?: unknown }).data ?? {}) as Record<string, unknown>;
+    // The framework reads `sealedAt` to find where a sealed message ends.
+    const { createdAt, metadata } = part as { createdAt?: unknown; metadata?: { mastra?: { sealedAt?: unknown } } };
+    const sealedAt = metadata?.mastra?.sealedAt;
+    return { type: part.type, data: Object.fromEntries(OBSERVER_MARKER_FIELDS
+      .filter(name => typeof data[name] === 'string' || typeof data[name] === 'number').map(name => [name, data[name]])),
+      ...(typeof createdAt === 'number' ? { createdAt } : {}),
+      ...(typeof sealedAt === 'number' ? { metadata: { mastra: { sealedAt } } } : {}) } as Part;
+  }
+  if (part.type === 'tool-invocation' && 'errorText' in part.toolInvocation) {
+    return { ...part, toolInvocation: { ...part.toolInvocation, errorText: TOOL_ERROR_TEXT } } as Part;
+  }
+  return part;
+}
 export function releaseMessage(message: MastraDBMessage, text: string, outcome: VerificationOutcome): MastraDBMessage {
   const content = typeof message.content === 'object' ? message.content : { format: 2 as const, parts: [] };
   return { ...message, content: { format: 2,
     parts: [
-      ...content.parts.filter(p => p.type !== 'text' && p.type !== 'reasoning' && !p.type.startsWith('data-verification-')),
+      ...content.parts.filter(p => p.type !== 'text' && p.type !== 'reasoning' && !p.type.startsWith('data-verification-')).map(redactedPart),
       { type: 'text', text },
       { type: VERIFICATION_PART, data: outcome },
     ],
@@ -38,7 +65,7 @@ export function guardMessage(message: MastraDBMessage): MastraDBMessage {
     }
   }
   if (!text.trim()) {
-    return { ...message, content: { format: 2, parts: content?.parts.filter(p => p.type === 'tool-invocation') ?? [] } };
+    return { ...message, content: { format: 2, parts: content?.parts.filter(p => p.type === 'tool-invocation').map(redactedPart) ?? [] } };
   }
   return releaseMessage(message, UNVERIFIED_HISTORY, { status: 'withheld', reason: 'unverified_history', passCount: 0 });
 }
@@ -178,7 +205,69 @@ export function installMemoryReleaseGate(memory: MemoryStorage): void {
   if (unwrapped.length > 0) throw new Error(`Memory release gate did not wrap: ${unwrapped.join(', ')}`);
 }
 
-/** Drop all model prose. Only the processor's terminal release supplies text. */
+/** The failure's own message for the server log. The framework serializes the
+ * whole error, including the tool's arguments, which can restate the user's
+ * question; those stay out of the log. */
+function toolErrorMessage(errorText: unknown): string {
+  let message = String(errorText);
+  try {
+    const error = JSON.parse(message) as { message?: unknown; cause?: { message?: unknown }; details?: { errorMessage?: unknown } };
+    message = [error.details?.errorMessage, error.cause?.message, error.message].find(value => typeof value === 'string') as string | undefined
+      ?? 'Tool failed without a message';
+  } catch { /* A plain-text error has no arguments attached. */ }
+  return message.slice(0, 500);
+}
+
+const STREAM_ERROR_TEXT = 'The answer could not be completed. Please try again.';
+const asText = (value: unknown) => typeof value === 'string' ? value : undefined;
+const defined = <T extends object>(fields: T) =>
+  Object.fromEntries(Object.entries(fields).filter(([, value]) => value !== undefined)) as T;
+
+const VERIFICATION_COUNTS = ['unsupported', 'missingCitation', 'relevanceMajor', 'relevanceMinor', 'fabricatedUrl', 'fabricatedQuote'];
+/** The verifier's progress and terminal decision, without the answer text. */
+function verificationProgress(data: unknown): VerificationProgress & { confidence?: number; severity?: string; counts?: Record<string, number> } | null {
+  const fields = (data ?? {}) as Record<string, unknown>;
+  if (fields.status === 'verifying') return { status: 'verifying' };
+  const outcome = VerificationOutcomeSchema.safeParse(fields);
+  if (!outcome.success) return null;
+  const counts = (fields.counts ?? {}) as Record<string, unknown>;
+  return defined({ ...outcome.data,
+    confidence: typeof fields.confidence === 'number' ? fields.confidence : undefined,
+    severity: ['high', 'medium', 'low'].find(level => level === fields.severity),
+    counts: fields.counts === undefined ? undefined : Object.fromEntries(VERIFICATION_COUNTS
+      .filter(name => typeof counts[name] === 'number').map(name => [name, counts[name] as number])),
+  });
+}
+
+/** Every chunk the client receives is built here from named fields. A type
+ * this function does not name is dropped, so text another model wrote
+ * (observer notes in `data-om-*`, a classifier's abort reason, a tool's raw
+ * error) and whatever a framework upgrade adds cannot ride through. Tool
+ * inputs and outputs cross whole: the tool steps and the Sources panel render them. */
+function rebuiltChunk(part: UIMessageChunk): UIMessageChunk | null {
+  switch (part.type) {
+    case 'start': return defined({ type: part.type, messageId: asText(part.messageId) });
+    case 'start-step': case 'finish-step': case 'finish': case 'abort': return { type: part.type };
+    case 'tool-input-start':
+      return defined({ type: part.type, toolCallId: part.toolCallId, toolName: part.toolName, dynamic: part.dynamic });
+    case 'tool-input-available':
+      return defined({ type: part.type, toolCallId: part.toolCallId, toolName: part.toolName, input: part.input, dynamic: part.dynamic });
+    case 'tool-output-available':
+      return defined({ type: part.type, toolCallId: part.toolCallId, output: part.output, dynamic: part.dynamic });
+    case 'tool-output-error':
+      return defined({ type: part.type, toolCallId: part.toolCallId, errorText: TOOL_ERROR_TEXT, dynamic: part.dynamic });
+    case 'error': return { type: part.type, errorText: STREAM_ERROR_TEXT };
+    case 'data-tripwire': {
+      // Application guards write `code` and `userMessage`; `reason` can quote a classifier.
+      const data = (part.data ?? {}) as { processorId?: unknown; metadata?: { code?: unknown; userMessage?: unknown } };
+      return { type: part.type, data: defined({ processorId: asText(data.processorId),
+        metadata: defined({ code: asText(data.metadata?.code), userMessage: asText(data.metadata?.userMessage) }) }) };
+    }
+    default: return null;
+  }
+}
+
+/** Allow-list the stream. Only the processor's terminal release supplies text. */
 export function gateAnswerStream(stream: ReadableStream<UIMessageChunk>): ReadableStream<UIMessageChunk> {
   let released = false;
   let blocked = false;
@@ -187,10 +276,11 @@ export function gateAnswerStream(stream: ReadableStream<UIMessageChunk>): Readab
     transform(part, controller) {
       if (part.type === 'data-tripwire') blocked = true;
       if (part.type === VERIFICATION_PART) {
-        const data = part.data as VerificationOutcome & { answer?: string };
-        const { answer, ...outcome } = data;
-        controller.enqueue({ type: VERIFICATION_PART, data: outcome });
-        if (answer !== undefined && !released) {
+        const progress = verificationProgress(part.data);
+        if (!progress) return;
+        controller.enqueue({ type: VERIFICATION_PART, data: progress });
+        const { answer } = part.data as { answer?: unknown };
+        if (progress.status !== 'verifying' && typeof answer === 'string' && !released) {
           released = true;
           controller.enqueue({ type: 'text-start', id });
           controller.enqueue({ type: 'text-delta', id, delta: answer });
@@ -198,8 +288,12 @@ export function gateAnswerStream(stream: ReadableStream<UIMessageChunk>): Readab
         }
         return;
       }
-      if (part.type.startsWith('text-') || part.type.startsWith('reasoning-') || part.type === 'message-metadata'
-          || part.type === 'data-verification-rewrite' || part.type === 'data-verification-ok') return;
+      // The framework writes a failed tool call's error nowhere else.
+      if (part.type === 'tool-output-error') {
+        log.warn('chat.tool_error', { toolCallId: part.toolCallId, error: toolErrorMessage(part.errorText) });
+      }
+      const rebuilt = rebuiltChunk(part);
+      if (!rebuilt) return;
       if (part.type === 'finish' && !released && !blocked) {
         released = true;
         controller.enqueue({ type: VERIFICATION_PART, data: { status: 'withheld', reason: 'unavailable', passCount: 0 } });
@@ -207,7 +301,7 @@ export function gateAnswerStream(stream: ReadableStream<UIMessageChunk>): Readab
         controller.enqueue({ type: 'text-delta', id, delta: WITHHELD_ANSWER });
         controller.enqueue({ type: 'text-end', id });
       }
-      controller.enqueue(part.type === 'error' ? { type: 'error', errorText: 'The answer could not be completed. Please try again.' } : part);
+      controller.enqueue(rebuilt);
     },
   }));
 }

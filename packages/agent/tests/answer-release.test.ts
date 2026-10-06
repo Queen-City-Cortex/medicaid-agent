@@ -106,6 +106,127 @@ describe('answer release', () => {
     expect(output).toContainEqual({ type: 'data-verification-status', data: { status: 'verifying' } });
     expect(output.filter(p => p.type === 'text-delta')).toHaveLength(1);
   });
+  it('emits only rebuilt chunks from the allow-list and fixed text for errors', async () => {
+    const outcome = { status: 'passed', passCount: 1, confidence: 0.9, severity: 'high',
+      counts: { unsupported: 0, missingCitation: 0, relevanceMajor: 0, relevanceMinor: 0, fabricatedUrl: 0, fabricatedQuote: 0 } };
+    // One of every chunk type the AI SDK or the framework adapter can produce,
+    // each carrying a field that must not cross.
+    const input = [
+      { type: 'start', messageId: 'm', messageMetadata: { leak: PRIVATE } },
+      { type: 'message-metadata', messageMetadata: { leak: PRIVATE } },
+      { type: 'data-om-status', data: { recordId: 'r', windows: { leak: PRIVATE } } },
+      { type: 'data-om-observation-start', data: { cycleId: 'c', config: { leak: PRIVATE } } },
+      { type: 'data-om-observation-end', data: { cycleId: 'c', observations: PRIVATE, currentTask: PRIVATE, suggestedResponse: PRIVATE } },
+      { type: 'data-om-buffering-end', data: { cycleId: 'c', observations: PRIVATE } },
+      { type: 'data-om-activation', data: { cycleId: 'c', observations: PRIVATE } },
+      { type: 'data-om-thread-update', data: { newTitle: PRIVATE } },
+      { type: 'data-om-added-by-an-upgrade', data: { leak: PRIVATE } },
+      { type: 'start-step', leak: PRIVATE },
+      { type: 'reasoning-start', id: 'r' }, { type: 'reasoning-delta', id: 'r', delta: PRIVATE }, { type: 'reasoning-end', id: 'r' },
+      { type: 'text-start', id: 't' }, { type: 'text-delta', id: 't', delta: PRIVATE }, { type: 'text-end', id: 't' },
+      { type: 'tool-input-start', toolCallId: 'ok', toolName: 'getSection', dynamic: false, providerMetadata: { leak: PRIVATE } },
+      { type: 'tool-input-delta', toolCallId: 'ok', inputTextDelta: PRIVATE },
+      { type: 'tool-input-available', toolCallId: 'ok', toolName: 'getSection', input: { sectionId: 's' },
+        providerMetadata: { leak: PRIVATE }, toolMetadata: { __mastraObservability: PRIVATE }, title: PRIVATE },
+      { type: 'tool-output-available', toolCallId: 'ok', output: { section: { id: 's' } }, providerMetadata: { leak: PRIVATE } },
+      { type: 'tool-input-available', toolCallId: 'bad', toolName: 'getSection', input: {} },
+      { type: 'tool-output-error', toolCallId: 'bad', providerMetadata: { leak: PRIVATE },
+        errorText: 'Failed to connect to bolt://neo4j-blue.railway.internal:7687 as neo4j' },
+      { type: 'tool-input-error', toolCallId: 'worse', toolName: 'getSection', input: PRIVATE, errorText: PRIVATE },
+      { type: 'tool-approval-request', approvalId: PRIVATE, toolCallId: 'ok' },
+      { type: 'tool-output-denied', toolCallId: 'ok' },
+      { type: 'tool-agent', toolCallId: 'ok', payload: PRIVATE }, { type: 'tool-workflow', toolCallId: 'ok', payload: PRIVATE },
+      { type: 'tool-network', toolCallId: 'ok', payload: PRIVATE },
+      { type: 'source-url', sourceId: 's', url: `https://example.gov/${PRIVATE}` },
+      { type: 'source-document', sourceId: 's', mediaType: 'text/plain', title: PRIVATE },
+      { type: 'file', url: `data:text/plain,${PRIVATE}`, mediaType: 'text/plain' },
+      { type: 'data-tool-call-approval', data: { args: PRIVATE } }, { type: 'data-tool-call-suspended', data: { suspendPayload: PRIVATE } },
+      { type: 'data-structured-output', data: { object: PRIVATE } }, { type: 'data-tool-agent', data: { text: PRIVATE } },
+      { type: 'data-verification-rewrite', data: { answer: PRIVATE } }, { type: 'data-verification-ok', data: { answer: PRIVATE } },
+      { type: 'data-added-by-an-upgrade', data: { leak: PRIVATE } }, { type: 'added-by-an-upgrade', text: PRIVATE },
+      { type: 'data-tripwire', data: { reason: `off-topic request blocked: ${PRIVATE}`, retry: false, processorId: 'scope-gate',
+        metadata: { code: 'off-topic', userMessage: 'Fixed notice.', leak: PRIVATE } } },
+      { type: 'finish-step', leak: PRIVATE },
+      { type: 'error', errorText: PRIVATE },
+      { type: 'data-verification-status', data: { status: 'verifying', leak: PRIVATE } },
+      { type: 'data-verification-status', data: { ...outcome, answer: 'Released answer.', leak: PRIVATE } },
+      { type: 'abort', reason: PRIVATE },
+      { type: 'finish', finishReason: 'stop', messageMetadata: { leak: PRIVATE } },
+    ] as unknown as UIMessageChunk[];
+    const stream = gateAnswerStream(new ReadableStream({ start(c) { input.forEach(p => c.enqueue(p)); c.close(); } }));
+    const output: UIMessageChunk[] = [];
+    for await (const part of stream) output.push(part);
+    expect(JSON.stringify(output)).not.toContain(PRIVATE);
+    expect(JSON.stringify(output)).not.toContain('neo4j');
+    // The whole emitted vocabulary: forwarded types plus the release text the gate writes itself.
+    expect([...new Set(output.map(p => p.type))].sort()).toEqual([
+      'abort', 'data-tripwire', 'data-verification-status', 'error', 'finish', 'finish-step', 'start', 'start-step',
+      'text-delta', 'text-end', 'text-start', 'tool-input-available', 'tool-input-start', 'tool-output-available', 'tool-output-error',
+    ]);
+    const text = output.filter(p => p.type === 'text-start')[0] as { id: string };
+    expect(output).toEqual([
+      { type: 'start', messageId: 'm' },
+      { type: 'start-step' },
+      { type: 'tool-input-start', toolCallId: 'ok', toolName: 'getSection', dynamic: false },
+      { type: 'tool-input-available', toolCallId: 'ok', toolName: 'getSection', input: { sectionId: 's' } },
+      { type: 'tool-output-available', toolCallId: 'ok', output: { section: { id: 's' } } },
+      { type: 'tool-input-available', toolCallId: 'bad', toolName: 'getSection', input: {} },
+      { type: 'tool-output-error', toolCallId: 'bad', errorText: 'This step could not be completed.' },
+      { type: 'data-tripwire', data: { processorId: 'scope-gate', metadata: { code: 'off-topic', userMessage: 'Fixed notice.' } } },
+      { type: 'finish-step' },
+      { type: 'error', errorText: 'The answer could not be completed. Please try again.' },
+      { type: 'data-verification-status', data: { status: 'verifying' } },
+      { type: 'data-verification-status', data: outcome },
+      { type: 'text-start', id: text.id }, { type: 'text-delta', id: text.id, delta: 'Released answer.' }, { type: 'text-end', id: text.id },
+      { type: 'abort' },
+      { type: 'finish' },
+    ]);
+  });
+  it('does not release an answer carried by a malformed verification outcome', async () => {
+    const input = [
+      { type: 'data-verification-status', data: { status: 'approved', passCount: 1, answer: PRIVATE } }, { type: 'finish' },
+    ] as unknown as UIMessageChunk[];
+    const stream = gateAnswerStream(new ReadableStream({ start(c) { input.forEach(p => c.enqueue(p)); c.close(); } }));
+    const output: UIMessageChunk[] = [];
+    for await (const part of stream) output.push(part);
+    expect(JSON.stringify(output)).not.toContain(PRIVATE);
+    expect(output).toContainEqual({ type: 'data-verification-status', data: { status: 'withheld', reason: 'unavailable', passCount: 0 } });
+    expect(output).toContainEqual(expect.objectContaining({ type: 'text-delta', delta: WITHHELD_ANSWER }));
+  });
+  it('redacts observer text and raw tool errors from stored parts, signed or not', () => {
+    const parts = [
+      { type: 'data-om-observation-start', data: { cycleId: 'cycle', recordId: 'record', threadId: 'thread', operationType: 'observation',
+        startedAt: '2026-10-05T00:00:00.000Z', tokensToObserve: 12, config: { leak: PRIVATE } } },
+      { type: 'data-om-observation-end', createdAt: 5, metadata: { mastra: { sealedAt: 7, leak: PRIVATE } },
+        data: { cycleId: 'cycle', durationMs: 3, observations: PRIVATE, currentTask: PRIVATE,
+          suggestedResponse: PRIVATE, extractedValues: { leak: PRIVATE } } },
+      { type: 'data-om-activation', data: { cycleId: { leak: PRIVATE }, observations: PRIVATE, previousModel: PRIVATE } },
+      { type: 'tool-invocation', toolInvocation: { state: 'output-error', toolCallId: 'bad', toolName: 'getSection', args: {},
+        errorText: 'Failed to connect to bolt://neo4j-blue.railway.internal:7687 as neo4j' } },
+      { type: 'tool-invocation', toolInvocation: { state: 'result', toolCallId: 'ok', toolName: 'getSection', args: {}, result: { section: 'kept' } } },
+      { type: 'text', text: PRIVATE },
+    ];
+    const stored = { ...message(), content: { format: 2, parts } } as unknown as MastraDBMessage;
+    const expected = [
+      { type: 'data-om-observation-start', data: { cycleId: 'cycle', recordId: 'record', threadId: 'thread', operationType: 'observation',
+        startedAt: '2026-10-05T00:00:00.000Z', tokensToObserve: 12 } },
+      // The framework's seal boundary and timestamp survive; nothing else on the part does.
+      { type: 'data-om-observation-end', data: { cycleId: 'cycle', durationMs: 3 }, createdAt: 5, metadata: { mastra: { sealedAt: 7 } } },
+      { type: 'data-om-activation', data: {} },
+      { type: 'tool-invocation', toolInvocation: { state: 'output-error', toolCallId: 'bad', toolName: 'getSection', args: {},
+        errorText: 'This step could not be completed.' } },
+      parts[4],
+    ];
+    const signed = releaseMessage(stored, 'Released', { status: 'passed', passCount: 1 });
+    // A release, a recall of that release, an unsigned row and a tool-only step.
+    for (const guarded of [signed, guardMessage(signed), guardMessage(stored)]) {
+      expect(JSON.stringify(guarded)).not.toContain(PRIVATE);
+      expect(JSON.stringify(guarded)).not.toContain('neo4j');
+      expect(guarded.content.parts.slice(0, 5)).toEqual(expected);
+    }
+    const toolOnly = guardMessage({ ...stored, content: { format: 2, parts: parts.slice(3, 5) } } as unknown as MastraDBMessage);
+    expect(toolOnly.content.parts).toEqual(expected.slice(3));
+  });
   it('requires a matching server signature and rejects forged or altered decisions', () => {
     const signed = releaseMessage(message(), 'Released', { status: 'passed', passCount: 1 });
     expect(JSON.stringify(guardMessage(signed))).toContain('Released');

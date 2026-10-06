@@ -42,9 +42,12 @@ describe('production HTTP handler with guarded observational memory', () => {
     try {
       await storage.init();
       const store = (await storage.getStore('memory'))!;
+      // The rows as stored, not as the gate redacts them on the way out.
+      const storedMessages = Object.getPrototypeOf(store).listMessages.bind(store) as typeof store.listMessages;
       installMemoryReleaseGate(store);
       const observerPrompts: string[] = [];
-      const observedText = '<observations>\nDate: Oct 2, 2026\n* 🔴 User asks about covered services.\n</observations>\n<current-task>Explain covered services.</current-task>';
+      const observerSentinel = 'OBSERVER_PRIVATE_SENTINEL';
+      const observedText = `<observations>\nDate: Oct 2, 2026\n* 🔴 User asks about covered services. ${observerSentinel}\n</observations>\n<current-task>Explain covered services. ${observerSentinel}</current-task>\n<suggested-response>Tell the user ${observerSentinel} covers unlimited visits.</suggested-response>`;
       const observer = new MockLanguageModelV3({ doStream: async options => {
         observerPrompts.push(JSON.stringify(options.prompt));
         return { stream: simulateReadableStream({ chunks: [
@@ -79,7 +82,10 @@ describe('production HTTP handler with guarded observational memory', () => {
       });
       const agent = new Agent({ id: 'test-agent', name: 'Test', instructions: 'Answer from policy.', model, memory,
         tools: { getSection }, outputProcessors: [new HallucinationVerifier()] });
-      const mastra = new Mastra({ agents: { ncMedicaidAgent: agent }, storage });
+      const authenticateToken = async (token: string) => token === 'test-owner' ? { id: 'owner' } : null;
+      const mastra = new Mastra({ agents: { ncMedicaidAgent: agent }, storage, server: { middleware: [
+        createResourceBindingMiddleware({ authenticateToken }), createExecutionGateway(),
+      ] } });
       const app = new Hono();
       app.use('*', async (c, next) => {
         const rc = await clientRequestContext(c.req.raw);
@@ -87,9 +93,7 @@ describe('production HTTP handler with guarded observational memory', () => {
         (c as any).set('mastra', mastra);
         await next();
       });
-      app.use('*', createResourceBindingMiddleware({ authenticateToken: async token =>
-        token === 'test-owner' ? { id: 'owner' } : null,
-      }) as unknown as MiddlewareHandler);
+      app.use('*', createResourceBindingMiddleware({ authenticateToken }) as unknown as MiddlewareHandler);
       const route = createChatRoute({ record: vi.fn().mockResolvedValue(undefined) }, { maxSteps: 2 });
       if (!('handler' in route)) throw new Error('Expected a direct HTTP handler');
       app.post('/chat', route.handler as unknown as Handler);
@@ -104,6 +108,9 @@ describe('production HTTP handler with guarded observational memory', () => {
       expect(firstText).toContain('corrected');
       expect(firstText).toContain(released);
       expect(firstText).not.toContain(draft);
+      expect(firstText).toContain('tool-output-available');
+      expect(firstText).not.toContain(observerSentinel);
+      expect(firstText).not.toContain('data-om-');
       const thread = (await store.getThreadById({ threadId: 'thread' }))!;
       expect(thread.resourceId).toBe('owner');
       await store.patchThread({ id: 'thread', metadata: { ...thread.metadata, retained: 'keep' } });
@@ -111,6 +118,8 @@ describe('production HTTP handler with guarded observational memory', () => {
       const secondText = await second.text();
       expect(secondText).toContain(released);
       expect(secondText).not.toContain(draft);
+      expect(secondText).not.toContain(observerSentinel);
+      expect(secondText).not.toContain('data-om-');
       expect(observerPrompts.length).toBeGreaterThan(0);
       expect(JSON.stringify(observerPrompts)).not.toContain(draft);
       expect(JSON.stringify(modelPrompts)).not.toContain(draft);
@@ -125,7 +134,30 @@ describe('production HTTP handler with guarded observational memory', () => {
         const history = await store.listMessages({ threadId: 'thread', perPage: false });
         expect(JSON.stringify(history)).toContain(released);
         expect(JSON.stringify(history)).not.toContain(draft);
+        expect(JSON.stringify(history)).not.toContain(observerSentinel);
+        expect(JSON.stringify(await storedMessages({ threadId: 'thread', perPage: false }))).not.toContain(observerSentinel);
       });
+      // The framework keeps the observer's hints in thread metadata and reads
+      // them back, so they stay in storage and are removed from responses.
+      expect(JSON.stringify((await store.getThreadById({ threadId: 'thread' }))!.metadata?.mastra)).toContain(observerSentinel);
+      const memoryRoutes = await createHonoServer(mastra, { tools: {} });
+      const memoryCall = (method: string, path: string, body?: unknown) => memoryRoutes.request(`/api/memory/threads${path}`, { method,
+        headers: { 'content-type': 'application/json', authorization: 'Bearer test-owner' },
+        body: body === undefined ? undefined : JSON.stringify(body) });
+      for (const path of ['/thread?agentId=ncMedicaidAgent', '?agentId=ncMedicaidAgent&resourceId=owner']) {
+        const response = await memoryCall('GET', path);
+        expect(response.status).toBe(200);
+        const body = await response.text();
+        expect(body).toContain('"retained":"keep"');
+        expect(body).not.toContain(observerSentinel);
+        expect(body).not.toContain('"mastra"');
+      }
+      // A rename sends the title alone, and must leave the stored metadata intact.
+      const renamed = await memoryCall('PATCH', '/thread?agentId=ncMedicaidAgent', { title: thread.title });
+      expect(renamed.status).toBe(200);
+      expect(await renamed.text()).not.toContain(observerSentinel);
+      expect((await store.getThreadById({ threadId: 'thread' }))!.metadata).toEqual(updated.metadata);
+      expect(updated.metadata?.mastra).toBeDefined();
       vi.mocked(verifyAnswer).mockResolvedValue({ ...verdict, supported: false });
       const withheld = await post('What if the answer cannot be verified?');
       const withheldText = await withheld.text();
@@ -214,6 +246,95 @@ describe('production HTTP handler with guarded observational memory', () => {
       vi.unstubAllEnvs();
       await storage.close();
       await rm(directory, { recursive: true, force: true });
+    }
+  }, 30_000);
+
+  it('keeps observer text and raw tool errors out of the stream and stored rows under production memory defaults', async () => {
+    const observerSentinel = 'OBSERVER_PRIVATE_SENTINEL';
+    const released = 'The service is covered. [Policy](https://example.gov/policy)';
+    vi.mocked(verifyAnswer).mockResolvedValue(verdict);
+    const storage = new LibSQLStore({ id: 'http-buffer-test', url: ':memory:' });
+    try {
+      await storage.init();
+      const store = (await storage.getStore('memory'))!;
+      const storedMessages = Object.getPrototypeOf(store).listMessages.bind(store) as typeof store.listMessages;
+      installMemoryReleaseGate(store);
+      const stream = (chunks: unknown[]) => ({ stream: simulateReadableStream({ chunks: [{ type: 'stream-start', warnings: [] }, ...chunks] }) }) as never;
+      const observer = new MockLanguageModelV3({ doStream: async () => stream([{ type: 'text-start', id: 'observe' },
+        { type: 'text-delta', id: 'observe', delta: `<observations>\n* 🔴 ${observerSentinel}\n</observations>` },
+        { type: 'text-end', id: 'observe' }, { type: 'finish', finishReason, usage }]) });
+      let calls = 0;
+      const model = new MockLanguageModelV3({ doStream: async () => ++calls % 2 === 1
+        ? stream([{ type: 'tool-input-start', id: `read-${calls}`, toolName: 'getSection' },
+          { type: 'tool-input-delta', id: `read-${calls}`, delta: '{}' }, { type: 'tool-input-end', id: `read-${calls}` },
+          { type: 'tool-call', toolCallId: `read-${calls}`, toolName: 'getSection', input: '{}' },
+          { type: 'finish', finishReason: { unified: 'tool-calls', raw: 'tool_calls' }, usage }])
+        : stream([{ type: 'text-start', id: 'draft' }, { type: 'text-delta', id: 'draft', delta: released },
+          { type: 'text-end', id: 'draft' }, { type: 'finish', finishReason, usage }]) });
+      let failing = false;
+      // One result large enough to start the observer's background buffering.
+      const getSection = createTool({ id: 'getSection', description: 'Read the fixture policy.', inputSchema: z.object({}),
+        execute: async () => {
+          if (failing) throw new Error('Failed to connect to bolt://neo4j-blue.railway.internal:7687 as neo4j');
+          return { section: { id: 'policy', title: 'Coverage', content: `The service is covered. ${'Policy text about coverage. '.repeat(1800)}`,
+            url: 'https://example.gov/policy', citationLink: '[Policy](https://example.gov/policy)' } };
+        } });
+      const memory = await createChatMemory(storage, { generateTitle: false, observation: { model: observer } });
+      const agent = new Agent({ id: 'test-agent', name: 'Test', instructions: 'Answer from policy.', model, memory,
+        tools: { getSection }, outputProcessors: [new HallucinationVerifier()] });
+      const mastra = new Mastra({ agents: { ncMedicaidAgent: agent }, storage, logger: false });
+      const app = new Hono();
+      app.use('*', async (c, next) => {
+        (c as any).set('requestContext', await clientRequestContext(c.req.raw));
+        (c as any).set('mastra', mastra);
+        await next();
+      });
+      app.use('*', createResourceBindingMiddleware({ authenticateToken: async () => ({ id: 'owner' }) }) as unknown as MiddlewareHandler);
+      const route = createChatRoute({ record: vi.fn().mockResolvedValue(undefined) }, { maxSteps: 2 });
+      if (!('handler' in route)) throw new Error('Expected a direct HTTP handler');
+      app.post('/chat', route.handler as unknown as Handler);
+      const post = async (text: string) => (await app.request('/chat', { method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: 'Bearer test-owner' },
+        body: JSON.stringify({ messages: [{ id: crypto.randomUUID(), role: 'user', parts: [{ type: 'text', text }] }], memory: { thread: 'thread' } }),
+      })).text();
+      const chunks = (body: string) => body.split('\n').filter(line => line.startsWith('data: {')).map(line => JSON.parse(line.slice(6)));
+
+      const first = await post('What services are covered by this policy?');
+      expect(first).toContain(released);
+      expect(first).not.toContain(observerSentinel);
+      // The Sources panel and tool steps are built from these.
+      expect([...new Set(chunks(first).map(chunk => chunk.type))].sort()).toEqual(['data-verification-status', 'finish', 'finish-step',
+        'start', 'start-step', 'text-delta', 'text-end', 'text-start', 'tool-input-available', 'tool-input-start', 'tool-output-available']);
+      expect(chunks(first).find(chunk => chunk.type === 'tool-output-available').output.section.url).toBe('https://example.gov/policy');
+      expect(chunks(first).filter(chunk => chunk.type === 'data-verification-status').at(-1)).toMatchObject({ data: { status: 'passed', severity: 'high', confidence: 1 } });
+      await vi.waitFor(async () => {
+        // The observer's marker is stored with the released answer; its text is not.
+        const rows = JSON.stringify(await storedMessages({ threadId: 'thread', perPage: false }));
+        expect(rows).toContain('data-om-buffering-end');
+        expect(rows).not.toContain(observerSentinel);
+      });
+      expect((await store.getObservationalMemory('thread', 'owner'))?.bufferedObservationChunks?.[0]?.observations).toContain(observerSentinel);
+
+      failing = true;
+      const warn = vi.spyOn(log, 'warn');
+      const failed = await post('Please read that policy again.');
+      // The real error stays on the server, where an operator can find it.
+      expect(warn).toHaveBeenCalledWith('chat.tool_error', { toolCallId: 'read-3', error: expect.stringContaining('neo4j-blue.railway.internal') });
+      // Only the failure's message is logged, not the serialized error with the tool's arguments.
+      expect(JSON.stringify(warn.mock.calls)).not.toContain('argsJson');
+      warn.mockRestore();
+      expect(failed).not.toContain('neo4j');
+      expect(failed).not.toContain(observerSentinel);
+      expect(chunks(failed).find(chunk => chunk.type === 'tool-output-error')).toEqual(
+        { type: 'tool-output-error', toolCallId: 'read-3', errorText: 'This step could not be completed.' });
+      await vi.waitFor(async () => {
+        const rows = JSON.stringify(await storedMessages({ threadId: 'thread', perPage: false }));
+        expect(rows).toContain('"state":"output-error"');
+        expect(rows).not.toContain('neo4j');
+        expect(rows).not.toContain(observerSentinel);
+      });
+    } finally {
+      await storage.close();
     }
   }, 30_000);
 

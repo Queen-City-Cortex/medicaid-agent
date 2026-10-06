@@ -174,7 +174,7 @@ describe('ThreadSidebar', () => {
     );
   });
 
-  it('preserves the thread metadata and resourceId when renaming', async () => {
+  it('sends only the title when renaming, so stored thread metadata is not overwritten', async () => {
     const user = userEvent.setup();
     listMemoryThreads.mockResolvedValue({
       threads: [
@@ -205,11 +205,8 @@ describe('ThreadSidebar', () => {
     await user.type(renameInput, 'Renamed thread{Enter}');
 
     await waitFor(() => expect(update).toHaveBeenCalled());
-    expect(update).toHaveBeenCalledWith({
-      title: 'Renamed thread',
-      metadata: { pinned: true, source: 'import' },
-      resourceId: 'user-1',
-    });
+    // Exactly the title: the server keeps stored metadata only when the key is absent.
+    expect(update.mock.calls).toEqual([[{ title: 'Renamed thread' }]]);
   });
 
   it('surfaces an inline error when rename fails', async () => {

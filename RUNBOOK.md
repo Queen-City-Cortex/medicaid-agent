@@ -106,7 +106,7 @@ WorkOS signup is open self-registration, so every authenticated-user protection 
 - **Input caps** — `MAX_MESSAGE_CHARS` (10,000; server-side mirror of the browser cap) and `MAX_BODY_BYTES` (2 MB per request; the body carries the whole thread history).
 - **Prompt injection detector** — pre-existing Mastra processor; blocks injection/jailbreak attempts.
 
-Blocked messages render as an amber notice in the chat UI; rate-limited requests return `429` with a `Retry-After` header and a user-readable message. Deferred known gap: observational/working-memory ingest is not sanitized.
+Blocked messages render as an amber notice in the chat UI; rate-limited requests return `429` with a `Retry-After` header and a user-readable message. The chat stream carries only the guard's code and fixed notice, and a failed tool step shows fixed text: look up the classifier's reason (`scope_gate.blocked`) and the tool's real error (`chat.tool_error`) in the agent logs. [Answer release](docs/operations/answer-release-and-recovery.md) lists everything the stream emits. Deferred known gap: observational/working-memory ingest is not sanitized.
 
 ## Running the Web UI
 

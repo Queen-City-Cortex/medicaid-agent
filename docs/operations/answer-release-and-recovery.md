@@ -4,7 +4,17 @@ Chat, research reports, and the default CLI/evaluation path now share a release 
 
 ## Public answers and memory
 
-`data-verification-status` carries `verifying`, `passed`, `corrected`, or `withheld`. The SSE adapter drops model text/reasoning and emits only the processor's final release. Progress and retrieval tool results continue to flow. Fixed application errors bypass the model-answer path.
+`data-verification-status` carries `verifying`, `passed`, `corrected`, or `withheld`. The SSE adapter (`gateAnswerStream`) is an allow-list: it builds every chunk it sends from named fields and drops any chunk type it does not name, so a type added by a framework upgrade stays private until it is adopted. The stream carries:
+
+- step and message boundaries (`start` with its message ID, `start-step`, `finish-step`, `finish`, `abort`), with no message metadata;
+- tool progress: `tool-input-start`, `tool-input-available` (the tool's arguments) and `tool-output-available` (the tool's result, which the tool steps and Sources panel render);
+- `tool-output-error` and `error` with fixed text. The tool's own error, which can name internal hosts, is not sent; the gate writes it to the agent log as `chat.tool_error` (the framework logs it nowhere), and that entry includes the tool's arguments;
+- `data-tripwire` with the guard's `code` and fixed `userMessage`. The abort reason, which can quote a classifier, is not sent;
+- `data-verification-status` with the outcome, confidence, severity and counts, followed by the released answer as the only text.
+
+Model text and reasoning, streamed tool-argument deltas, observational-memory chunks (`data-om-*`), provider sources and files, and message metadata are dropped. Fixed application errors bypass the model-answer path.
+
+Stored assistant messages get the same treatment whenever they are written or read: observational-memory markers keep their type and bookkeeping IDs but not the observer's text, and a failed tool call keeps a fixed error. The signature covers the released text and outcome only, so this redaction, not the signature, is what keeps other parts clean. Thread responses omit `metadata.mastra`, where the framework keeps the observer's current task and suggested response; the stored row keeps it because the framework reads it back. A thread update must therefore send the title alone: the server keeps stored metadata only when the request has no `metadata` key.
 
 The SQLite `answer_release_keys` row signs released assistant text and its outcome. Keep this key with database backups: replacing it makes old answers untrusted. The LibSQL memory boundary guards writes, updates, reads, and clones. The same boundary fixes thread ownership: a thread write that would change an existing thread's owner is refused, and the gateway rejects the message `include` parameter, which the framework does not scope by owner. The gate classifies every method of the memory store as guarded or reviewed pass-through and the server refuses to start on an unclassified one, so a framework upgrade cannot add an unguarded read or write path unnoticed. Legacy unsigned answers become an unverified-history notice. Client messages contribute only the newest user's text and thread ID; execution settings, tool evidence, assistant history, release metadata, and resource ownership are server-controlled.
 

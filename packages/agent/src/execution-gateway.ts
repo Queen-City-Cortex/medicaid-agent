@@ -8,18 +8,20 @@ interface RouteRule {
   pattern: RegExp;
   public: boolean;
   rejectedQuery: readonly string[];
+  returnsThread: boolean;
 }
 
 function rule(
   methods: string[],
   pattern: RegExp,
-  options: { public?: boolean; rejectedQuery?: string[] } = {},
+  options: { public?: boolean; rejectedQuery?: string[]; returnsThread?: boolean } = {},
 ): RouteRule {
   return {
     methods: new Set(methods),
     pattern,
     public: options.public ?? false,
     rejectedQuery: options.rejectedQuery ?? [],
+    returnsThread: options.returnsThread ?? false,
   };
 }
 
@@ -34,13 +36,29 @@ const OWNED_ROUTES: readonly RouteRule[] = [
   rule(['GET'], /^\/research\/runs\/[^/]+$/),
   rule(['POST'], /^\/research\/runs\/[^/]+\/(?:decision|cancel)$/),
   rule(['GET'], /^\/(?:livez|readyz|dependencyz|healthz)$/, { public: true }),
-  rule(['GET', 'POST'], /^\/api\/memory\/threads$/),
-  rule(['GET', 'PATCH', 'DELETE'], /^\/api\/memory\/threads\/[^/]+$/),
+  rule(['GET', 'POST'], /^\/api\/memory\/threads$/, { returnsThread: true }),
+  rule(['GET', 'PATCH', 'DELETE'], /^\/api\/memory\/threads\/[^/]+$/, { returnsThread: true }),
   // The framework resolves `include` message ids without an owner filter, so
   // it would return another user's messages. The application never sends it.
   rule(['GET'], /^\/api\/memory\/threads\/[^/]+\/messages$/, { rejectedQuery: ['include'] }),
-  rule(['POST'], /^\/api\/memory\/threads\/[^/]+\/clone$/),
+  rule(['POST'], /^\/api\/memory\/threads\/[^/]+\/clone$/, { returnsThread: true }),
 ];
+
+/** The framework keeps observational-memory state under `metadata.mastra` on
+ * the thread row, including the observer's unverified task and suggested
+ * response. It reads that back from storage, so the row keeps it and only the
+ * response loses it. A thread arrives alone, in a list, or beside its clone. */
+async function withoutFrameworkMetadata(response: Response): Promise<Response> {
+  if (!response.headers.get('content-type')?.includes('application/json')) return response;
+  const body = await response.json() as Record<string, unknown> | null;
+  const candidates = [body, body?.thread, ...(Array.isArray(body?.threads) ? body.threads : [])];
+  for (const thread of candidates as Array<{ metadata?: Record<string, unknown> } | null | undefined>) {
+    if (thread?.metadata && typeof thread.metadata === 'object') delete thread.metadata.mastra;
+  }
+  const headers = new Headers(response.headers);
+  headers.delete('content-length');
+  return new Response(JSON.stringify(body), { status: response.status, headers });
+}
 
 function matchingRule(
   method: string,
@@ -76,6 +94,12 @@ export function createExecutionGateway(options: ExecutionGatewayOptions = {}): G
         }, 400);
       }
       await next();
+      if (route.returnsThread) {
+        const response = await withoutFrameworkMetadata(c.res);
+        // Hono merges into an existing response; clear it to replace the body.
+        c.res = undefined;
+        c.res = response;
+      }
       return;
     }
 
