@@ -1228,6 +1228,20 @@ describe('AnswerFramePlanningProcessor', () => {
     },
   );
 
+  it('names a routing-dropped second service, pinned, and drops the single yes/no while keeping the EPSDT and not-covered pointers', () => {
+    const question = 'Does NC Medicaid cover hearing aids and eyeglasses for adults?';
+    const frame = { ...makeAdultExclusionFrame(true, question) } as Record<string, unknown>;
+    frame.droppedDocuments = [
+      { id: 'doc-7', title: 'Hearing Aid Services', policyNumber: '7', reason: 'dropped' },
+    ];
+    const result = new AnswerFramePlanningProcessor().processInputStep!(makeFrameArgs(question, frame as never));
+    const plan = result?.systemMessages?.[0]?.content ?? '';
+    expect(plan).toContain('Policy 7 (Hearing Aid Services), which this frame left out unread');
+    expect(plan).not.toContain('answer yes or no first');
+    expect(plan).toContain(EPSDT_LINE);
+    expect(plan).toContain('Before saying a service is covered, read the not-covered section');
+  });
+
   it('omits the EPSDT directive when no EPSDT section is surfaced', () => {
     const processor = new AnswerFramePlanningProcessor();
 

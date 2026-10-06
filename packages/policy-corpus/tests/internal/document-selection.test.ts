@@ -166,16 +166,36 @@ describe('narrowInferredCoverageDocuments', () => {
     expect(narrowInferredCoverageDocuments(docs)).toBe(docs);
   });
 
-  it('keeps the documents of the most common policy family', () => {
-    const docs = [
-      makeDoc({ id: '1', policyNumber: 'MA-2180' }),
-      makeDoc({ id: '2', policyNumber: 'MA-2185' }),
-      makeDoc({ id: '3', policyNumber: '8C' }),
-    ];
-    expect(narrowInferredCoverageDocuments(docs).map((d) => d.id)).toEqual(['1', '2']);
+  // The three ranked lists from the October 2026 review (RETR-8).
+  it('keeps the top-ranked document alone when a lower-ranked family repeats', () => {
+    // Golden q-036: 1H ranked first, and the two 1M policies used to displace it.
+    const docs = ['1H', '1T-1', '1M-5', '1M-4'].map((policyNumber) => makeDoc({ id: policyNumber, policyNumber }));
+    expect(narrowInferredCoverageDocuments(docs).map((d) => d.policyNumber)).toEqual(['1H']);
   });
 
-  it('falls back to the first document when no family repeats', () => {
+  it('does not let a lower-ranked manual pair displace a top-ranked clinical policy', () => {
+    const docs = ['1A-34', '11B-4', 'MA-3540', 'MA-2905'].map((policyNumber) => makeDoc({ id: policyNumber, policyNumber }));
+    expect(narrowInferredCoverageDocuments(docs).map((d) => d.policyNumber)).toEqual(['1A-34']);
+  });
+
+  it('keeps the family of the top-ranked document', () => {
+    // Golden q-037: the ABD and Family-and-Children NEMT twins share the unchanged 'MA' key.
+    const docs = ['MA-2910', 'MA-3550'].map((policyNumber) => makeDoc({ id: policyNumber, policyNumber }));
+    expect(narrowInferredCoverageDocuments(docs).map((d) => d.policyNumber)).toEqual(['MA-2910', 'MA-3550']);
+    expect(policyFamilyKey('MA-2910')).toBe('MA');
+  });
+
+  it('keeps the top-ranked family in rank order and drops documents ranked between its members', () => {
+    const docs = ['MA-2180', '8C', 'MA-2185'].map((policyNumber) => makeDoc({ id: policyNumber, policyNumber }));
+    expect(narrowInferredCoverageDocuments(docs).map((d) => d.policyNumber)).toEqual(['MA-2180', 'MA-2185']);
+  });
+
+  it('keeps the first document alone when it has no policy number', () => {
+    const docs = [makeDoc({ id: '1', policyNumber: null }), makeDoc({ id: '2', policyNumber: '9A' }), makeDoc({ id: '3', policyNumber: '9A-1' })];
+    expect(narrowInferredCoverageDocuments(docs).map((d) => d.id)).toEqual(['1']);
+  });
+
+  it('keeps the first document alone when no family repeats', () => {
     const docs = [makeDoc({ id: '1', policyNumber: '8C' }), makeDoc({ id: '2', policyNumber: '9A' })];
     expect(narrowInferredCoverageDocuments(docs).map((d) => d.id)).toEqual(['1']);
   });

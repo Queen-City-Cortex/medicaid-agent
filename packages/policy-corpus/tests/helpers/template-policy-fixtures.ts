@@ -1103,3 +1103,76 @@ export const TEMPLATE_POLICY_1O1: TemplatePolicy = {
     '1-o-1:4.2.2': '1-o-1:_s28',
   },
 };
+
+export const TEMPLATE_POLICY_7: TemplatePolicy = {
+  source: '7_hearing-aid-services',
+  document: {
+    id: 'doc-7',
+    title: 'Hearing Aid Services',
+    documentType: 'clinical_policy',
+    policyNumber: '7',
+    effectiveDate: '2023-04-01',
+    url: 'https://example.com/7',
+    sections: [
+      { id: '7:3.0', number: '3.0', title: '3.0 When the Procedure, Product, or Service Is Covered', content: '' },
+      { id: '7:3.2', number: '3.2', title: '3.2 Specific Criteria Covered', content: '' },
+      {
+        id: '7:3.2.1',
+        number: '3.2.1',
+        title: '3.2.1 Specific criteria covered by Medicaid',
+        content: 'Covered hearing aid products and services include:\n- a. Hearing aids\n- b. FM systems\n- c. Care kit\n- d. Batteries\n- e. Repairs',
+        chars: 260,
+      },
+      { id: '7:4.0', number: '4.0', title: '4.0 When the Procedure, Product, or Service Is Not Covered', content: '' },
+      {
+        id: '7:4.1',
+        number: '4.1',
+        title: '4.1 General Criteria Not Covered',
+        content: 'Medicaid shall not cover procedures, products, and services related to this policy when:\n- a. the beneficiary does not meet the eligibility requirements listed in Section 2.0;\n- b. the beneficiary does not meet the criteria listed in Section 3.0;',
+        chars: 470,
+      },
+    ],
+  },
+  parents: { '7:3.2': '7:3.0', '7:3.2.1': '7:3.2', '7:4.1': '7:4.0' },
+};
+
+export const TEMPLATE_POLICY_6A: TemplatePolicy = {
+  source: '6a_6a-routine-eye-examination-and-visual-aids-for-beneficiaries-under-21-years-of-age',
+  document: {
+    id: 'doc-6a',
+    title: 'Routine Eye Examination and Visual Aids for Beneficiaries Under 21 Years of Age',
+    documentType: 'clinical_policy',
+    policyNumber: '6A',
+    effectiveDate: '2024-05-01',
+    url: 'https://example.com/6a',
+    sections: [
+      { id: '6a:3.0', number: '3.0', title: '3.0 When the Procedure, Product, or Service Is Covered', content: '' },
+      { id: '6a:3.2', number: '3.2', title: '3.2 Specific Criteria Covered', content: '' },
+      {
+        id: '6a:3.2.1',
+        number: '3.2.1',
+        title: '3.2.1 Specific criteria covered by Medicaid',
+        content: 'Medicaid shall cover the following optical services when provided by ophthalmologists and optometrists:\n- a. routine eye exams, with the determination of refractive errors;\n- b. prescribing corrective lenses; and\n- c. fitting and dispensing approved visual aids.',
+        chars: 340,
+      },
+      { id: '6a:4.0', number: '4.0', title: '4.0 When the Procedure, Product, or Service Is Not Covered', content: '' },
+      { id: '6a:4.2', number: '4.2', title: '4.2 Specific Criteria Not Covered', content: '' },
+      {
+        id: '6a:4.2.1',
+        number: '4.2.1',
+        title: '4.2.1 Specific Criteria Not Covered by Medicaid',
+        content: 'Medicaid shall not cover the following services:\n- a. affixing initials or engraving initials or name (frame or lenses);\n- b. anti-reflective coatings;\n- c. tinted, cosmetic contact lenses;',
+        chars: 900,
+      },
+      {
+        // Unnumbered attachment heading; the id is local to this fixture.
+        id: '6a:_eyeglasses',
+        number: null,
+        title: 'Eyeglasses',
+        content: '- a. The dispensing fee for eyeglasses consists of the initial fitting, prior approval documentation, final inspection once eyeglasses are received by the provider from the DHHS optical laboratory contractor, and final fitting verification',
+        chars: 520,
+      },
+    ],
+  },
+  parents: { '6a:3.2': '6a:3.0', '6a:3.2.1': '6a:3.2', '6a:4.2': '6a:4.0', '6a:4.2.1': '6a:4.2' },
+};

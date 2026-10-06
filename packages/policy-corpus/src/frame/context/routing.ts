@@ -154,15 +154,16 @@ export function createFrameRoutingHelpers({
   const collectCoverageRoutingDocuments = async (
     query: string,
     hits: CorpusRetrievalHit[],
-  ): Promise<DocumentWithSectionsView[]> => {
+  ): Promise<{ documents: DocumentWithSectionsView[]; droppedDocuments: DocumentWithSectionsView[] }> => {
     // A document the agency archived never routes a coverage frame; a query
     // that names only archived documents falls through to the hits.
     const isCurrent = (document: DocumentWithSectionsView) => document.status !== 'archived';
     const lookupDocuments = (await collectLookupDocuments(query)).filter(isCurrent);
     if (lookupDocuments.length > 0) {
-      return isHcwdIncomePremiumQuery(normalizeSearchText(query))
+      const documents = isHcwdIncomePremiumQuery(normalizeSearchText(query))
         ? narrowHcwdCoverageDocuments(query, lookupDocuments)
         : lookupDocuments;
+      return { documents, droppedDocuments: [] };
     }
     const inferredDocuments = (await collectPolicyDocumentsFromHits(query, hits, FRAME_DOCUMENT_LIMIT + 1)).filter(isCurrent);
     // Setting preference must run BEFORE narrowing: narrowInferredCoverage-
@@ -173,7 +174,12 @@ export function createFrameRoutingHelpers({
       normalizeSearchText(query),
       inferredDocuments,
     );
-    return narrowInferredCoverageDocuments(settingScopedDocuments);
+    const documents = narrowInferredCoverageDocuments(settingScopedDocuments);
+    // Only what the rank-and-family narrowing removed is recorded. A document
+    // the care-setting preference set aside was excluded on the question's own
+    // words, and a named policy number never reaches this path.
+    const kept = new Set(documents.map((document) => document.id));
+    return { documents, droppedDocuments: settingScopedDocuments.filter((document) => !kept.has(document.id)) };
   };
 
   return {

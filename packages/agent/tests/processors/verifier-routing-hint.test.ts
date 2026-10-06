@@ -60,6 +60,25 @@ describe('the routing hint is not evidence', () => {
     expect(tight).toMatchObject({ citedBodyDropped: false, findingDropped: false });
   });
 
+  it('leaves a routing-dropped document out of every entry: no title, number, link or vouched URL', () => {
+    const DROPPED_URL = 'https://example.gov/dropped-eyeglasses';
+    const dropped = makeDocument({ id: 'dropped', title: 'Dropped Eyeglasses Policy', policyNumber: 'DROP-6A', url: DROPPED_URL });
+    const sources = extractSourcesFromToolResults([{ toolName: 'resolveAnswerFrame', toolCallId: 'frame', result: { frame: makeFrame({
+      authoritativeDocuments: [makeDocument({ url: DOC_URL })],
+      primarySections: [makeSection({ id: 'limits', content: BODY, url: PRIMARY_URL })],
+      droppedDocuments: [dropped as Required<typeof dropped>],
+    }) } }]);
+    expect(sources.map(source => source.toolName)).toEqual(['resolveAnswerFrame', 'resolveAnswerFrame:section']);
+    for (const source of sources) {
+      for (const marker of ['Dropped Eyeglasses Policy', 'DROP-6A', DROPPED_URL, 'dropped']) {
+        expect(source.text).not.toContain(marker);
+      }
+      expect(source.link).not.toBe(DROPPED_URL);
+      expect(sourceUrlSet(source).has(DROPPED_URL)).toBe(false);
+    }
+    expect(validateAnswerUrls(`[Eyeglasses](${DROPPED_URL})`, sources)).toMatchObject({ unknownUrls: [DROPPED_URL] });
+  });
+
   it('checks a research report against its findings: findings are evidence for the model call', async () => {
     const [hint, body] = frameSources(BODY);
     const finding: SourceEntry = { toolName: 'researchFinding', key: 'finding:1', text: `[researchFinding]\nVerified finding:\n${BODY} [Limits](${PRIMARY_URL})` };

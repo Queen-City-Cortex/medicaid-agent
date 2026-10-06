@@ -226,20 +226,16 @@ export function looksLikeSiblingPolicySet(documents: DocumentWithSectionsView[])
   return families.some((family) => documents.filter((document) => policyFamilyKey(document.policyNumber) === family).length > 1);
 }
 
+/**
+ * Keeps the top-ranked inferred document and the rest of its policy family, in
+ * rank order. A family that repeats lower in the ranking never displaces the
+ * top-ranked document.
+ */
 export function narrowInferredCoverageDocuments(documents: DocumentWithSectionsView[]): DocumentWithSectionsView[] {
   if (documents.length <= 1) return documents;
 
-  const countsByFamily = new Map<string, number>();
-  for (const document of documents) {
-    const family = policyFamilyKey(document.policyNumber);
-    if (!family) continue;
-    countsByFamily.set(family, (countsByFamily.get(family) ?? 0) + 1);
-  }
+  const topFamily = policyFamilyKey(documents[0]?.policyNumber);
+  if (!topFamily) return documents.slice(0, 1);
 
-  const preferredFamily = Array.from(countsByFamily.entries()).sort((left, right) => right[1] - left[1])[0]?.[0] ?? null;
-  if (preferredFamily && (countsByFamily.get(preferredFamily) ?? 0) > 1) {
-    return documents.filter((document) => policyFamilyKey(document.policyNumber) === preferredFamily);
-  }
-
-  return documents.slice(0, 1);
+  return documents.filter((document) => policyFamilyKey(document.policyNumber) === topFamily);
 }

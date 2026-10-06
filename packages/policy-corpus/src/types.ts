@@ -188,6 +188,13 @@ export interface AnswerFrame {
   questionType: AnswerQuestionType;
   route: AnswerFrameRoute;
   authoritativeDocuments: AnswerFrameDocument[];
+  /**
+   * Documents the hits pointed at that inferred coverage routing left out of
+   * the frame. They are a note about what was not read, not evidence: a
+   * dropped document may be a second service the question asks about or an
+   * unrelated lower-ranked hit. Absent when nothing was dropped.
+   */
+  droppedDocuments?: AnswerFrameDocument[];
   primarySections: AnswerFrameSection[];
   supportingSections: AnswerFrameSection[];
   avoidSections: AnswerFrameSection[];

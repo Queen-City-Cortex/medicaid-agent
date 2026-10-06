@@ -41,7 +41,10 @@ export interface FrameContext {
     hits: CorpusRetrievalHit[],
     limit?: number,
   ): Promise<DocumentWithSectionsView[]>;
-  collectCoverageRoutingDocuments(query: string, hits: CorpusRetrievalHit[]): Promise<DocumentWithSectionsView[]>;
+  collectCoverageRoutingDocuments(
+    query: string,
+    hits: CorpusRetrievalHit[],
+  ): Promise<{ documents: DocumentWithSectionsView[]; droppedDocuments: DocumentWithSectionsView[] }>;
   collectDocumentSectionCandidates(
     documents: DocumentWithSectionsView[],
     includeTerms: readonly string[],

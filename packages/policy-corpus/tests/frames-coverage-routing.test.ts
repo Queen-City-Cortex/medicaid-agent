@@ -13,6 +13,7 @@ import {
   sectionHit,
   type GraphDocument,
 } from './helpers/graph-fixtures.js';
+import { TEMPLATE_POLICY_6A, TEMPLATE_POLICY_7, templatePolicyHandlers } from './helpers/template-policy-fixtures.js';
 
 describe('coverage frame document routing', () => {
   it('pairs EPSDT coverage with pediatric therapy sections from the preferred document', async () => {
@@ -219,6 +220,47 @@ describe('coverage frame document routing', () => {
     expect(frame.authoritativeDocuments[0]?.policyNumber).toBe('1K-1');
     expect(frame.primarySections.map((section) => section.policyNumber)).not.toContain('3D');
     expect(frame.primarySections.map((section) => section.id)).toContain('sec-1k1-321');
+  });
+
+  it('records the second policy of a two-service question as dropped and surfaces none of its sections', async () => {
+    // RETR-8 probe question, over section lists cut from the parsed Policy 7
+    // and Policy 6A sidecars (tests/helpers/template-policy-fixtures.ts).
+    const HEARING = TEMPLATE_POLICY_7;
+    const EYEGLASSES = TEMPLATE_POLICY_6A;
+
+    const resolve = async (hearingScore: number, eyeglassesScore: number) => {
+      const { corpus } = createCorpus([
+        {
+          label: 'vector clinical',
+          match: queries.sectionVector('clinical_policy'),
+          result: { records: [hitFor(HEARING.document, '7:3.2.1', hearingScore), hitFor(EYEGLASSES.document, '6a:_eyeglasses', eyeglassesScore)] },
+        },
+        ...templatePolicyHandlers(HEARING),
+        ...templatePolicyHandlers(EYEGLASSES),
+      ]);
+      return resolveTypedFrame(corpus, 'coverage', 'Does NC Medicaid cover hearing aids and eyeglasses for adults?');
+    };
+    const routing = (frame: Awaited<ReturnType<typeof resolve>>) => ({
+      kept: frame.authoritativeDocuments.map((document) => document.policyNumber),
+      dropped: (frame.droppedDocuments ?? []).map((document) => document.policyNumber),
+    });
+
+    // Rank is the routing collector's order: the sum of each policy's
+    // rescored hit scores plus focus-term matches, not the raw vector score.
+    // The hits are 7's 3.2.1 covered list and 6A's attachment "Eyeglasses"
+    // billing section (the 6A text that names eyeglasses; 6A itself is the
+    // under-21 policy, adults are 6B). Over this real text Policy 7 ranks
+    // first at 0.97 / 0.96 and is kept; a clear vector lead for 6A flips the
+    // order, and the kept document follows the rank.
+    const close = await resolve(0.97, 0.96);
+    expect(routing(close)).toEqual({ kept: ['7'], dropped: ['6A'] });
+    expect(close.droppedDocuments?.[0]).toMatchObject({ policyNumber: '6A', title: EYEGLASSES.document.title });
+    const surfaced = [...close.primarySections, ...close.supportingSections, ...close.avoidSections];
+    expect(surfaced.map((entry) => entry.policyNumber)).not.toContain('6A');
+
+    const eyeglassesFirst = await resolve(0.8, 0.99);
+    expect(routing(eyeglassesFirst)).toEqual({ kept: ['6A'], dropped: ['7'] });
+    expect(eyeglassesFirst.droppedDocuments?.[0]).toMatchObject({ policyNumber: '7', title: 'Hearing Aid Services' });
   });
 
   it('lists the form the question names first among documents filed under one number', async () => {

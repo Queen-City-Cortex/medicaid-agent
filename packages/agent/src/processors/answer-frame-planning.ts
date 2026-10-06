@@ -258,6 +258,24 @@ function namesAskedService(questionLower: string, frame: AnswerFrame, sections: 
 const CONGREGATE_QUESTION_PHRASES = ['assisted living', 'congregate'];
 const NOT_COVERED_QUESTION_PHRASES = ['not covered', 'not cover'];
 
+// A document inferred routing dropped is a second asked service when every
+// distinctive word of its title is in the question ("Hearing Aid Services"
+// for "hearing aids and eyeglasses"). Over the 105 golden and held-out
+// questions none of the 30 recorded drops passes this test.
+const GENERIC_TITLE_WORDS = new Set(['the', 'a', 'an', 'and', 'or', 'of', 'for', 'in', 'on', 'to', 'with', 'nc', 'medicaid', 'clinical', 'policy', 'coverage', 'services', 'service', 'program', 'programs', 'supplies', 'equipment']);
+const stemWord = (word: string) => (word.length > 3 && word.endsWith('s') ? word.slice(0, -1) : word);
+const titleWords = (text: string) =>
+  (text.toLowerCase().match(/[a-z0-9]+/g) ?? []).filter((word) => !GENERIC_TITLE_WORDS.has(word) && !/^\d+[a-z]?$/.test(word)).map(stemWord);
+function secondServiceDocumentsOf(questionLower: string, frame: AnswerFrame) {
+  const questionWords = new Set(titleWords(questionLower));
+  return (frame.droppedDocuments ?? []).filter((document) => {
+    const words = titleWords(document.title ?? '');
+    return words.length > 0 && words.every((word) => questionWords.has(word));
+  });
+}
+const describeDocuments = (documents: Array<{ title: string | null; policyNumber?: string | null }>) =>
+  documents.slice(0, 3).map((document) => (document.policyNumber ? `Policy ${document.policyNumber} (${document.title ?? 'untitled'})` : (document.title ?? 'an untitled document'))).join(', ');
+
 function coverageContext(questionLower: string, frame: AnswerFrame) {
   const allSections = unique([...frame.primarySections, ...frame.supportingSections]);
   const telehealthSections = matchingSections(allSections, TELEHEALTH_SECTION_PHRASES);
@@ -278,6 +296,7 @@ function coverageContext(questionLower: string, frame: AnswerFrame) {
     adultExclusionQuestion: isAdultCoverageQuestion(questionLower),
     notCoveredSections: notCoveredSectionsOf(frame),
     serviceNamed: namesAskedService(questionLower, frame, allSections),
+    secondServiceDocuments: secondServiceDocumentsOf(questionLower, frame),
     generalSections: matchingSections(allSections, GENERAL_COVERAGE_PHRASES),
     serviceSpecificSections: matchingSections(allSections, SERVICE_SPECIFIC_PHRASES),
     documentationSections: matchingSections(allSections, DOCUMENTATION_PHRASES),
@@ -347,8 +366,23 @@ const COVERAGE_RULES: ReadonlyArray<ChecklistRule<CoverageContext>> = [
       ctx.generalSections.length > 0 &&
       ctx.limitationSections.length > 0 &&
       ctx.notCoveredSections.length === 0 &&
+      ctx.secondServiceDocuments.length === 0 &&
       !includesAny(ctx.questionLower, CONGREGATE_QUESTION_PHRASES),
     render: () => YES_NO_CITATION_LINE,
+  },
+  // Routing kept one policy family and left these documents out unread. The
+  // line names them (the plan cannot name "the service" except from the
+  // question) and is pinned only when the question names one of them.
+  {
+    when: (ctx) => (ctx.frame.droppedDocuments ?? []).length > 0 && ctx.secondServiceDocuments.length === 0,
+    render: (ctx) =>
+      `The frame left out ${describeDocuments(ctx.frame.droppedDocuments ?? [])} as lower-ranked; none of its text is in the frame. If the question also asks about that document's service, search it before answering that part.`,
+  },
+  {
+    pinned: true,
+    when: (ctx) => ctx.secondServiceDocuments.length > 0,
+    render: (ctx) =>
+      `The question also asks about a service in ${describeDocuments(ctx.secondServiceDocuments)}, which this frame left out unread. Search that policy before answering about it, answer each service separately, and do not give one yes or no for both.`,
   },
   // The not-covered sections are supporting evidence in a coverage frame, so
   // the plan names them: a "yes, when criteria are met" drafted from the
@@ -365,7 +399,9 @@ const COVERAGE_RULES: ReadonlyArray<ChecklistRule<CoverageContext>> = [
       !includesAny(ctx.questionLower, CONGREGATE_QUESTION_PHRASES),
     render: (ctx) => {
       const sections = `the not-covered section${ctx.notCoveredSections.length === 1 ? '' : 's'} ${listSections(ctx.notCoveredSections)}`;
-      return asksYesNo(ctx)
+      // With a second asked service out of the frame, one yes or no would
+      // answer for a service no section was read for; the pointer stays.
+      return asksYesNo(ctx) && ctx.secondServiceDocuments.length === 0
         ? `${YES_NO_CITATION_LINE} Before answering yes, read ${sections}. If the asked service is listed there, the answer is no: cite that section.`
         : `Before saying a service is covered, read ${sections}. If the asked service is listed there, it is not covered: cite that section.`;
     },
@@ -794,7 +830,8 @@ const ROUTE_RULES: ReadonlyArray<ChecklistRule<RouteContext>> = [
     when: (ctx) =>
       ctx.frame.route.lane === 'baseline_hybrid' &&
       ctx.frame.route.determinism_hints.cite_scope_and_not_covered &&
-      notCoveredSectionsOf(ctx.frame).length === 0,
+      notCoveredSectionsOf(ctx.frame).length === 0 &&
+      secondServiceDocumentsOf(ctx.questionLower, ctx.frame).length === 0,
     render: () => YES_NO_CITATION_LINE,
   },
   {

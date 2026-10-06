@@ -98,6 +98,7 @@ export const resolveAnswerFrame = createTool({
         policyId: z.string(), limitationIds: z.array(z.string()), notice: z.string().nullable(),
         requestedDate: z.string().nullable(), requiredSourceUrls: z.array(z.string()), requirements: z.array(z.string()),
       }).optional(),
+      droppedDocuments: z.array(AnswerFrameDocumentSchema).optional(),
     }),
   }),
   execute: async (inputData) => {

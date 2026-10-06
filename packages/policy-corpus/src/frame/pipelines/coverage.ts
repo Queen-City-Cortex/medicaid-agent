@@ -343,7 +343,7 @@ export async function resolveCoverageFrame(
     ],
     (hit) => hit.sectionId,
   );
-  const routingDocuments = await context.collectCoverageRoutingDocuments(query, hits);
+  const { documents: routingDocuments, droppedDocuments } = await context.collectCoverageRoutingDocuments(query, hits);
   const variantFrame =
     route.widening_policy !== 'none' && routingDocuments.length > 1 && looksLikeSiblingPolicySet(routingDocuments)
       ? await buildPolicyVariantFrameForDocuments(context, query, routingDocuments, selectAnswerRoute(queryLower, 'policy_variant'))
@@ -467,5 +467,17 @@ export async function resolveCoverageFrame(
   const avoidSections = (await context.hydrateSectionCandidates(avoidCandidates, FRAME_AVOID_LIMIT, surfacedIds)).map(
     (candidate) => candidate.section,
   );
-  return rebalanceCoverageFrame({ ...frame, avoidSections }, queryLower, serviceFocusTerms, serviceClusterTerms, yesNoStructure);
+  const rebalanced = rebalanceCoverageFrame({ ...frame, avoidSections }, queryLower, serviceFocusTerms, serviceClusterTerms, yesNoStructure);
+  // A document routing dropped can come back through the variant or EPSDT
+  // paths; only one the finished frame does not carry is reported as dropped.
+  const framePolicies = new Set(rebalanced.authoritativeDocuments.map((document) => document.policyNumber?.toUpperCase()));
+  const stillDropped = droppedDocuments.filter((document) => !framePolicies.has(document.policyNumber?.toUpperCase()));
+  if (stillDropped.length === 0) return rebalanced;
+  return {
+    ...rebalanced,
+    droppedDocuments: stillDropped.map((document) => ({
+      ...extractDocumentView(document),
+      reason: 'Lower-ranked document left out of the frame by inferred coverage routing; not read.',
+    })),
+  };
 }
