@@ -103,9 +103,10 @@ function hasProcedureCode(section: AnswerFrameSection): boolean {
 // Each question family evaluates an ordered rule table against a context
 // object computed once per question (question text plus phrase-bucket section
 // matches). Rule ORDER within a family is behavior: the final checklist is
-// truncated at CHECKLIST_LIMIT, so reordering rows changes which directives
-// survive. Add new rules in the position they should be considered, not at
-// the end by default.
+// capped at CHECKLIST_LIMIT, so reordering rows changes which unpinned
+// directives survive. Add new rules in the position they should be considered,
+// not at the end by default. A pinned rule is never cut by the cap; pin only
+// directives whose loss can change the answer's conclusion.
 
 interface ChecklistRule<C> {
   /** Question/evidence predicate deciding whether the rule fires. */
@@ -114,14 +115,23 @@ interface ChecklistRule<C> {
   render: (ctx: C) => string | string[];
   /** Stop evaluating later rules in the family once this rule fires (mirrors an early return). */
   terminal?: boolean;
+  /** Keep the rule's lines whatever the cap; they count against it first. */
+  pinned?: boolean;
 }
 
-function evaluateRules<C>(rules: ReadonlyArray<ChecklistRule<C>>, ctx: C): string[] {
-  const checklist: string[] = [];
+interface ChecklistItem {
+  text: string;
+  pinned: boolean;
+}
+
+function evaluateRules<C>(rules: ReadonlyArray<ChecklistRule<C>>, ctx: C): ChecklistItem[] {
+  const checklist: ChecklistItem[] = [];
   for (const rule of rules) {
     if (!rule.when(ctx)) continue;
     const rendered = rule.render(ctx);
-    checklist.push(...(Array.isArray(rendered) ? rendered : [rendered]));
+    for (const text of Array.isArray(rendered) ? rendered : [rendered]) {
+      checklist.push({ text, pinned: rule.pinned === true });
+    }
     if (rule.terminal) break;
   }
   return checklist;
@@ -288,8 +298,10 @@ const COVERAGE_RULES: ReadonlyArray<ChecklistRule<CoverageContext>> = [
   // special-provision section, instructs read-and-cite, and asserts nothing
   // about what the exception allows (de-contamination guarantee). Questions
   // that themselves ask about under-21/EPSDT use the pairing directive below
-  // instead.
+  // instead. Pinned: without it a "No" for adults can omit the under-21
+  // exception.
   {
+    pinned: true,
     when: (ctx) => ctx.epsdtExceptionSections.length > 0 && ctx.adultExclusionQuestion,
     render: (ctx) =>
       `The frame surfaced an EPSDT special-provision section (${listSections(ctx.epsdtExceptionSections, 1)}). Before finalizing a no-coverage conclusion for adults, read that section and state what it says about beneficiaries under 21, citing it. Do not assert what the exception allows beyond that section's text.`,
@@ -405,8 +417,8 @@ const COVERAGE_RULES: ReadonlyArray<ChecklistRule<CoverageContext>> = [
   },
 ];
 
-function buildCoverageChecklist(questionLower: string, frame: ResolveAnswerFrameResult['frame']): string[] {
-  return evaluateRules(COVERAGE_RULES, coverageContext(questionLower, frame)).slice(0, CHECKLIST_LIMIT);
+function buildCoverageChecklist(questionLower: string, frame: ResolveAnswerFrameResult['frame']): ChecklistItem[] {
+  return evaluateRules(COVERAGE_RULES, coverageContext(questionLower, frame));
 }
 
 // --- Prior-authorization family ----------------------------------------------
@@ -490,8 +502,8 @@ const PRIOR_AUTH_RULES: ReadonlyArray<ChecklistRule<PriorAuthContext>> = [
   },
 ];
 
-function buildPriorAuthChecklist(questionLower: string, frame: ResolveAnswerFrameResult['frame']): string[] {
-  return evaluateRules(PRIOR_AUTH_RULES, priorAuthContext(questionLower, frame)).slice(0, CHECKLIST_LIMIT);
+function buildPriorAuthChecklist(questionLower: string, frame: ResolveAnswerFrameResult['frame']): ChecklistItem[] {
+  return evaluateRules(PRIOR_AUTH_RULES, priorAuthContext(questionLower, frame));
 }
 
 // --- Federal-authority family -------------------------------------------------
@@ -521,23 +533,8 @@ const WAIVER_APPLICATION_PHRASES = [
 ];
 const PUBLIC_NOTICE_SECTION_PHRASES = ['public notice', 'comment period', 'public hearings', '431.408'];
 const PUBLIC_NOTICE_QUESTION_PHRASES = ['public notice', 'comment period', 'public hearing', 'notice and comment'];
-const ORDERING_PRACTITIONER_PHRASES = ['nurse practitioner', 'clinical nurse specialist', 'physician assistant'];
 const MLR_QUESTION_PHRASES = ['medical loss ratio', 'mlr'];
 const NC_IMPLEMENTATION_QUESTION_PHRASES = ['north carolina', ' nc ', 'implement'];
-
-function federalCoreConditions(allText: string): string[] {
-  const conditions: string[] = [];
-  if (allText.includes('order of a physician') || includesAny(allText, ORDERING_PRACTITIONER_PHRASES)) {
-    conditions.push('ordering practitioner requirements');
-  }
-  if (allText.includes('written plan of care')) {
-    conditions.push('written plan of care');
-  }
-  if (allText.includes('60 days')) {
-    conditions.push('60-day review cycle');
-  }
-  return conditions;
-}
 
 function federalContext(questionLower: string, frame: AnswerFrame) {
   const allSections = unique([...frame.primarySections, ...frame.supportingSections]);
@@ -546,7 +543,6 @@ function federalContext(questionLower: string, frame: AnswerFrame) {
     questionLower,
     frame,
     allText,
-    coreConditions: federalCoreConditions(allText),
     waiverApplicationQuestion:
       questionLower.includes('waiver') &&
       includesAny(questionLower, ['application', 'demonstrate', 'must show', 'need to demonstrate', 'need to show']),
@@ -584,10 +580,6 @@ const FEDERAL_RULES: ReadonlyArray<ChecklistRule<FederalContext>> = [
       `Keep the public-notice procedure in ${listSections(ctx.publicNoticeSections, 1)} clearly secondary unless the user explicitly asks about notice, hearings, or comment requirements.`,
   },
   {
-    when: (ctx) => ctx.coreConditions.length > 0,
-    render: (ctx) => `Include the core conditions in that same section: ${ctx.coreConditions.join(', ')}.`,
-  },
-  {
     when: (ctx) => ctx.allText.includes('calculate and report') && ctx.allText.includes('if a state elects'),
     render: () => 'Separate the unconditional reporting/calculation duties from any conditional minimum-threshold requirement in the same rule.',
   },
@@ -619,8 +611,8 @@ const FEDERAL_RULES: ReadonlyArray<ChecklistRule<FederalContext>> = [
   },
 ];
 
-function buildFederalChecklist(questionLower: string, frame: ResolveAnswerFrameResult['frame']): string[] {
-  return evaluateRules(FEDERAL_RULES, federalContext(questionLower, frame)).slice(0, CHECKLIST_LIMIT);
+function buildFederalChecklist(questionLower: string, frame: ResolveAnswerFrameResult['frame']): ChecklistItem[] {
+  return evaluateRules(FEDERAL_RULES, federalContext(questionLower, frame));
 }
 
 // --- Amendment family ----------------------------------------------------------
@@ -656,8 +648,8 @@ const AMENDMENT_RULES: ReadonlyArray<ChecklistRule<AmendmentContext>> = [
   },
 ];
 
-function buildAmendmentChecklist(questionLower: string, frame: ResolveAnswerFrameResult['frame']): string[] {
-  return evaluateRules(AMENDMENT_RULES, amendmentContext(questionLower, frame)).slice(0, CHECKLIST_LIMIT);
+function buildAmendmentChecklist(questionLower: string, frame: ResolveAnswerFrameResult['frame']): ChecklistItem[] {
+  return evaluateRules(AMENDMENT_RULES, amendmentContext(questionLower, frame));
 }
 
 // --- Policy-variant family -------------------------------------------------------
@@ -681,8 +673,8 @@ const VARIANT_RULES: ReadonlyArray<ChecklistRule<FrameContext>> = [
   },
 ];
 
-function buildVariantChecklist(frame: ResolveAnswerFrameResult['frame']): string[] {
-  return evaluateRules(VARIANT_RULES, { frame }).slice(0, CHECKLIST_LIMIT);
+function buildVariantChecklist(frame: ResolveAnswerFrameResult['frame']): ChecklistItem[] {
+  return evaluateRules(VARIANT_RULES, { frame });
 }
 
 // --- General fallback family --------------------------------------------------------
@@ -694,11 +686,11 @@ const GENERAL_RULES: ReadonlyArray<ChecklistRule<FrameContext>> = [
   },
 ];
 
-function buildGeneralChecklist(frame: ResolveAnswerFrameResult['frame']): string[] {
+function buildGeneralChecklist(frame: ResolveAnswerFrameResult['frame']): ChecklistItem[] {
   return evaluateRules(GENERAL_RULES, { frame });
 }
 
-// --- Route lane rules (not truncated per-family; merged first in buildChecklist) ---
+// --- Route lane rules (merged ahead of the family rules in buildChecklist) ---
 
 interface RouteContext {
   questionLower: string;
@@ -728,11 +720,15 @@ const ROUTE_RULES: ReadonlyArray<ChecklistRule<RouteContext>> = [
       (ctx.frame.questionType === 'federal_authority' || includesAny(ctx.questionLower, NC_IMPLEMENTATION_QUESTION_PHRASES)),
     render: () => 'Keep federal authority separate from NC implementation. Do not blend them into a single rule statement.',
   },
+  // The numeric-evidence rules are pinned: this lane exists to keep figures
+  // tied to surfaced evidence.
   {
+    pinned: true,
     when: (ctx) => ctx.frame.route.lane === 'deterministic_evidence',
     render: () => 'State only numbers, thresholds, dates, and change markers that appear directly in surfaced evidence.',
   },
   {
+    pinned: true,
     when: (ctx) => ctx.frame.route.lane === 'deterministic_evidence' && ctx.frame.route.determinism_hints.numeric_evidence_only,
     render: () => [
       'Do not reconstruct charts, infer updated math, or fill in missing numeric tables from context.',
@@ -749,7 +745,7 @@ const ROUTE_RULES: ReadonlyArray<ChecklistRule<RouteContext>> = [
   },
 ];
 
-function buildRouteChecklist(questionLower: string, frame: ResolveAnswerFrameResult['frame']): string[] {
+function buildRouteChecklist(questionLower: string, frame: ResolveAnswerFrameResult['frame']): ChecklistItem[] {
   return evaluateRules(ROUTE_RULES, { questionLower, frame });
 }
 
@@ -773,7 +769,24 @@ function buildChecklist(question: string, frame: ResolveAnswerFrameResult['frame
     }
   })();
 
-  return unique([...(frame.coverageScope?.notice ? [frame.coverageScope.notice] : []), ...(frame.coverageScope?.requirements ?? []), ...routeChecklist, ...familyChecklist]).slice(0, CHECKLIST_LIMIT);
+  // Coverage-scope items are pinned. Order stays scope, route, family; the cap
+  // applies to unpinned items only, which fill the slots the pinned ones leave.
+  const scopeChecklist = [...(frame.coverageScope?.notice ? [frame.coverageScope.notice] : []), ...(frame.coverageScope?.requirements ?? [])].map(
+    (text): ChecklistItem => ({ text, pinned: true }),
+  );
+  const candidates = [...scopeChecklist, ...routeChecklist, ...familyChecklist];
+  const pinned = new Set(candidates.filter((item) => item.pinned).map((item) => item.text));
+  let unpinnedSlots = Math.max(0, CHECKLIST_LIMIT - pinned.size);
+  const checklist: string[] = [];
+  for (const text of unique(candidates.map((item) => item.text))) {
+    if (pinned.has(text)) {
+      checklist.push(text);
+    } else if (unpinnedSlots > 0) {
+      checklist.push(text);
+      unpinnedSlots -= 1;
+    }
+  }
+  return checklist;
 }
 
 function buildPlanMessage(question: string, frame: ResolveAnswerFrameResult['frame']): string | null {

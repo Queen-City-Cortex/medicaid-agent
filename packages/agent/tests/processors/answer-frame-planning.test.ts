@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { analyzeQuery } from '@nc-medicaid/policy-corpus';
 import { AnswerFramePlanningProcessor } from '../../src/processors/answer-frame-planning.js';
 import {
   type FrameFixture,
@@ -120,6 +121,13 @@ function makeFrameArgs(question: string, frame: FrameFixture) {
   return makeArgs({ messages: [makeUserMessage(question), makeToolMessage({ frame })] });
 }
 
+/** The plan's checklist items, in order, as the model sees them. */
+function checklistLines(plan: unknown): string[] {
+  return String(plan ?? '')
+    .split('\n')
+    .filter((line) => line.startsWith('- '));
+}
+
 describe('AnswerFramePlanningProcessor', () => {
   it('injects a federal answer plan after the frame tool returns', () => {
     const processor = new AnswerFramePlanningProcessor();
@@ -130,8 +138,53 @@ describe('AnswerFramePlanningProcessor', () => {
     expect(result?.systemMessages?.[0]?.content).toContain('[answer-frame-plan]');
     expect(result?.systemMessages?.[0]?.content).toContain('Route: graph_reasoning');
     expect(result?.systemMessages?.[0]?.content).toContain('Lead with the federal rule');
-    expect(result?.systemMessages?.[0]?.content).toContain('written plan of care');
     expect(result?.systemMessages?.[0]?.content).toContain('place-of-residence rule');
+  });
+
+  it('adds no 60-day or plan-of-care directive when a federal section mentions 60 days', () => {
+    const processor = new AnswerFramePlanningProcessor();
+    const sec441 = sectionMaker({
+      documentId: 'doc-441',
+      documentTitle: '42 CFR Part 441',
+      documentType: 'federal_regulation',
+      policyNumber: '42-CFR-441',
+    });
+
+    const result = processor.processInputStep!(
+      makeFrameArgs(
+        'What does federal law define as home health services under Medicaid, and where must they be provided?',
+        makeFrame({
+          questionType: 'federal_authority',
+          route: federalGraphRoute(),
+          primarySections: [
+            makeSection({
+              id: 'sec-44070',
+              title: 'Home health services',
+              sectionNumber: '440.70',
+              content:
+                'Home health services are provided on orders written by a physician, nurse practitioner, clinical nurse specialist or physician assistant, as part of a written plan of care that the ordering practitioner reviews every 60 days.',
+              documentType: 'federal_regulation',
+              policyNumber: '42-CFR-440',
+            }),
+          ],
+          supportingSections: [
+            sec441({
+              id: 'sec-44156',
+              title: 'Required activities',
+              sectionNumber: '441.56',
+              content:
+                'The agency must provide for a combination of written and oral methods designed to inform effectively all EPSDT eligible individuals within 60 days of the determination of Medicaid eligibility.',
+            }),
+          ],
+        }),
+      ),
+    );
+
+    const checklist = checklistLines(result?.systemMessages?.[0]?.content);
+    expect(checklist).toContain('- Lead with the federal rule from § 440.70 Home health services.');
+    for (const line of checklist) {
+      expect(line).not.toMatch(/60[- ]day|plan of care|core conditions|ordering practitioner/i);
+    }
   });
 
   it('adds federal enforcement guidance when the frame separates conditional thresholds from reporting duties', () => {
@@ -887,39 +940,62 @@ describe('AnswerFramePlanningProcessor', () => {
     policyNumber: '10A',
   });
 
-  function makeAdultExclusionArgs(withEpsdtSection: boolean, questionText?: string) {
-    return makeFrameArgs(
-      questionText ?? 'Does Policy 10A cover routine massage therapy for beneficiaries over age 21?',
-      makeFrame({
-        primarySections: [
-          makeCoverageSection({
-            id: 'sec-scope',
-            title: 'Description of the Procedure, Product, or Service',
-            sectionNumber: '2.1.1',
-            content: 'Outpatient specialized therapies include physical, occupational, and speech therapy.',
-          }),
-          makeCoverageSection({
-            id: 'sec-notcovered',
-            title: 'General Criteria Not Covered',
-            sectionNumber: '4.1',
-            content: 'Routine massage therapy is not covered for beneficiaries 21 years of age and older.',
-          }),
-        ],
-        supportingSections: withEpsdtSection
-          ? [
-              makeCoverageSection({
-                id: 'sec-epsdt',
-                title:
-                  'EPSDT Special Provision: Exception to Policy Limitations for a Medicaid Beneficiary under 21 Years of Age',
-                sectionNumber: '2.2.1',
-                content:
-                  'EPSDT requires coverage of medically necessary services for beneficiaries under 21 even when this policy limits them.',
-              }),
-            ]
-          : [],
-      }),
-    );
+  const ADULT_EXCLUSION_QUESTION = 'Does Policy 10A cover routine massage therapy for beneficiaries over age 21?';
+
+  // The route is the router's own output for the question, and the frame
+  // carries one avoid section, as live coverage frames usually do.
+  function makeAdultExclusionFrame(withEpsdtSection: boolean, question: string): FrameFixture {
+    return makeFrame({
+      route: analyzeQuery(question).route,
+      avoidSections: [
+        makeCoverageSection({
+          id: 'sec-attachment-a',
+          title: 'Attachment A: Claims-Related Information',
+          sectionNumber: 'Attachment A',
+        }),
+      ],
+      primarySections: [
+        makeCoverageSection({
+          id: 'sec-scope',
+          title: 'Description of the Procedure, Product, or Service',
+          sectionNumber: '2.1.1',
+          content: 'Outpatient specialized therapies include physical, occupational, and speech therapy.',
+        }),
+        makeCoverageSection({
+          id: 'sec-notcovered',
+          title: 'General Criteria Not Covered',
+          sectionNumber: '4.1',
+          content: 'Routine massage therapy is not covered for beneficiaries 21 years of age and older.',
+        }),
+      ],
+      supportingSections: withEpsdtSection
+        ? [
+            makeCoverageSection({
+              id: 'sec-epsdt',
+              title:
+                'EPSDT Special Provision: Exception to Policy Limitations for a Medicaid Beneficiary under 21 Years of Age',
+              sectionNumber: '2.2.1',
+              content:
+                'EPSDT requires coverage of medically necessary services for beneficiaries under 21 even when this policy limits them.',
+            }),
+          ]
+        : [],
+    });
   }
+
+  function makeAdultExclusionArgs(withEpsdtSection: boolean, question = ADULT_EXCLUSION_QUESTION) {
+    return makeFrameArgs(question, makeAdultExclusionFrame(withEpsdtSection, question));
+  }
+
+  const EPSDT_SECTION_LABEL =
+    '§ 2.2.1 EPSDT Special Provision: Exception to Policy Limitations for a Medicaid Beneficiary under 21 Years of Age';
+  const START_WITH_LINE = `- Start with the governing coverage rule from § 2.1.1 Description of the Procedure, Product, or Service; § 4.1 General Criteria Not Covered; ${EPSDT_SECTION_LABEL} before lower-level details.`;
+  const EPSDT_LINE = `- The frame surfaced an EPSDT special-provision section (${EPSDT_SECTION_LABEL}). Before finalizing a no-coverage conclusion for adults, read that section and state what it says about beneficiaries under 21, citing it. Do not assert what the exception allows beyond that section's text.`;
+  const NUMERIC_EVIDENCE_LINES = [
+    '- State only numbers, thresholds, dates, and change markers that appear directly in surfaced evidence.',
+    '- Do not reconstruct charts, infer updated math, or fill in missing numeric tables from context.',
+    '- If the surfaced current sections point to a chart or table without reproducing the figures, say the current dollar amounts were not verified in the surfaced evidence.',
+  ];
 
   it('adds an evidence-gated EPSDT-exception directive when the section is surfaced for an adult exclusion question', () => {
     const processor = new AnswerFramePlanningProcessor();
@@ -927,6 +1003,19 @@ describe('AnswerFramePlanningProcessor', () => {
     const result = processor.processInputStep!(makeAdultExclusionArgs(true));
     const plan = result?.systemMessages?.[0]?.content ?? '';
 
+    // The router's real route for this question, not the fixture default.
+    expect(plan).toContain('Route: baseline_hybrid (single_document_coverage)');
+    expect(plan).toContain('Do not lead with: § Attachment A');
+    // Eight items are candidates here; the pinned EPSDT directive keeps its
+    // place and the cap removes later unpinned items instead.
+    expect(checklistLines(plan)).toEqual([
+      '- Answer directly from the current frame before widening further.',
+      '- For this yes/no coverage question, answer yes or no first and pair the governing scope section with the not-covered section.',
+      '- Keep attachments, request-process instructions, and other procedural sections secondary unless the user asked for them.',
+      START_WITH_LINE,
+      '- For this yes/no coverage question, answer yes or no first, then cite both the scope section § 2.1.1 Description of the Procedure, Product, or Service and the not-covered section § 4.1 General Criteria Not Covered.',
+      EPSDT_LINE,
+    ]);
     expect(plan).toContain('EPSDT special-provision section');
     expect(plan).toContain('2.2.1');
     // De-contamination pins: the directive directs WHERE to look and forbids
@@ -935,6 +1024,42 @@ describe('AnswerFramePlanningProcessor', () => {
     expect(plan).toContain("Do not assert what the exception allows beyond that section's text");
     expect(plan).not.toContain('may permit broader coverage');
     expect(plan).not.toContain('is covered for beneficiaries under 21');
+  });
+
+  it('keeps the numeric-evidence and EPSDT directives when more than six items are candidates', () => {
+    const processor = new AnswerFramePlanningProcessor();
+    const question = 'Does Policy 10A cover routine massage therapy for adults, and how much is the monthly premium?';
+    const route = analyzeQuery(question).route;
+    expect(route.lane).toBe('deterministic_evidence');
+    expect(route.determinism_hints.numeric_evidence_only).toBe(true);
+
+    const frame = makeAdultExclusionFrame(true, question);
+    const scopedFrame: FrameFixture = {
+      ...frame,
+      coverageScope: {
+        policyId: 'test-policy',
+        limitationIds: ['test-limitation'],
+        notice: 'Test scope notice.',
+        requestedDate: null,
+        requiredSourceUrls: [],
+        requirements: ['Test scope requirement.'],
+      },
+    };
+
+    const first = checklistLines(processor.processInputStep!(makeFrameArgs(question, scopedFrame))?.systemMessages?.[0]?.content);
+    const second = checklistLines(processor.processInputStep!(makeFrameArgs(question, scopedFrame))?.systemMessages?.[0]?.content);
+
+    // Six pinned items fill the cap, so no unpinned item is added.
+    expect(first).toEqual(['- Test scope notice.', '- Test scope requirement.', ...NUMERIC_EVIDENCE_LINES, EPSDT_LINE]);
+    expect(second).toEqual(first);
+    // Without the scope items two unpinned slots open, filled in rule order
+    // around the pinned items rather than after them.
+    expect(checklistLines(processor.processInputStep!(makeFrameArgs(question, frame))?.systemMessages?.[0]?.content)).toEqual([
+      ...NUMERIC_EVIDENCE_LINES,
+      '- Do not widen beyond the current structured frame for extra numeric details. Finalize from the verified evidence you already have.',
+      START_WITH_LINE,
+      EPSDT_LINE,
+    ]);
   });
 
   it('omits the EPSDT directive when no EPSDT section is surfaced', () => {
