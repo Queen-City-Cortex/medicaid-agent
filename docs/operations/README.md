@@ -9,6 +9,7 @@ The [October 3 qualification repair](../validation/qualification-unblock-2026-10
 
 | Subject | Documentation or entrypoint |
 | --- | --- |
+| Incidents: symptom, first check and action, with what is live | [RUNBOOK.md, Incidents](../../RUNBOOK.md#incidents) |
 | General configuration and commands | [RUNBOOK.md](../../RUNBOOK.md) |
 | Verified chat release and bounded research recovery | [Answer release and recovery](answer-release-and-recovery.md) |
 | Measuring the verifier's catch and false-withhold rates | [Verifier benchmark](verifier-benchmark.md) |
@@ -21,7 +22,7 @@ The [October 3 qualification repair](../validation/qualification-unblock-2026-10
 | Bounded embeddings and model audit | [October 3 qualification cycle](../validation/qualification-cycle-2026-10-03/README.md) |
 | Current readiness and blockers | [October 2–3 source closure follow-up](../validation/source-closure-followup-2026-10-02/README.md), [October 2 chat acceptance](../validation/chat-acceptance-2026-10-02/README.md), [October 2 runtime remediation](../validation/readiness-remediation-2026-10-02/README.md), [initial October 2 readiness](../validation/readiness-2026-10-02/README.md), and [later source closure](../validation/source-closure-2026-09-23/README.md) |
 | Operational checks and backups | [Operations scripts](../../scripts/ops/) and [launchd installer](../../scripts/ops/install-launchd.sh) |
-| Corpus deployment | [Corpus release script](../../scripts/ops/corpus-release.sh) for blue-green releases, which do not yet work end to end. The in-place `deploy-data` push was removed |
+| Corpus deployment | [Corpus release script](../../scripts/ops/corpus-release.sh) for blue-green releases, which have not yet produced a release (the first bootstrap has not been run). The in-place `deploy-data` push was removed |
 | Production smoke | [Root scripts](../../package.json) and [browser smoke](../../e2e/scripts/smoke-production.mjs) |
 | Chat ownership deployment acceptance | [October 3 ownership and browser checks](../validation/chat-ownership-acceptance-2026-10-03/README.md) |
 

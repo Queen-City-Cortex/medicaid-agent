@@ -18,6 +18,11 @@
 # Backups) should ALSO be enabled — they restore fastest but live in the same
 # project; this script is the independent copy.
 #
+# The database is the file the agent's DATABASE_URL names. This script cannot
+# read the agent's variable, so after a restore that repoints the agent (see
+# RUNBOOK.md, Backups & Restore) set the same DATABASE_URL in ops.env. Unset,
+# it is file:/data/mastra.db.
+#
 # Usage: scripts/ops/backup-mastra.sh
 
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
@@ -38,6 +43,23 @@ require_tool jq
 require_tool rclone
 require_tool sqlite3
 
+# Only a file directly under /data is accepted: production requires a file
+# database to live there (packages/agent/src/runtime-config.ts), the snapshot
+# is written beside it, and the path is placed in a remote shell command. The
+# value is never logged, because another kind of URL can carry a credential.
+DATABASE_URL="${DATABASE_URL:-file:/data/mastra.db}"
+DATABASE_URL_PATTERN='^file:/data/[A-Za-z0-9._-]+$'
+if [[ ! "$DATABASE_URL" =~ $DATABASE_URL_PATTERN ]]; then
+  log "DATABASE_URL is not a file directly under /data (file:/data/<name>, letters, digits, dot, underscore and hyphen); refusing to guess which database to back up. Correct it in $OPS_ENV, or unset it for file:/data/mastra.db."
+  exit 1
+fi
+REMOTE_DB="${DATABASE_URL#file:}"
+# The sweep below removes every file of this shape, so it cannot be the database.
+if [[ "$REMOTE_DB" == /data/mastra-backup-*.db ]]; then
+  log "DATABASE_URL names $REMOTE_DB, which the snapshot sweep (/data/mastra-backup-*.db) would delete; refusing. Give the database another name."
+  exit 1
+fi
+
 AGENT_SERVICE='@nc-medicaid/agent'
 AGENT_HEALTHZ_URL="${AGENT_HEALTHZ_URL:-https://medicaid-agent-backend.up.railway.app/healthz}"
 WAKE_ATTEMPTS="${AGENT_WAKE_ATTEMPTS:-30}"
@@ -48,7 +70,7 @@ REMOTE_SNAP="/data/mastra-backup-$STAMP.db"
 INSTANCE_ID=""
 LOCAL_DIR=""
 
-log "mastra backup starting (stamp $STAMP)"
+log "mastra backup starting (stamp $STAMP, database $REMOTE_DB)"
 
 # The agent service sleeps when idle (sleepApplication), and SSH does not wake
 # it. Poll /healthz until it answers 200; the first hits after a sleep can 502.
@@ -98,12 +120,14 @@ agent_ssh() {
 #    The sweep removes every earlier snapshot first, whatever its date: a run
 #    that died before its cleanup must not leave a plaintext copy of the store
 #    on the volume, and VACUUM INTO refuses to overwrite. The glob stays
-#    inside the quoted command so the remote shell expands it.
+#    inside the quoted command so the remote shell expands it. The database
+#    must already exist: sqlite3 creates a missing file, and an empty snapshot
+#    of a mistyped path would pass every later check.
 take_snapshot() {
   local out
   wake_agent || return 1
   resolve_instance || return 1
-  out="$(agent_ssh "command -v sqlite3 >/dev/null 2>&1 && rm -f $REMOTE_GLOB && sqlite3 /data/mastra.db \"VACUUM INTO '$REMOTE_SNAP'\" && echo SNAPSHOT_OK || echo SNAPSHOT_FAILED")" || true
+  out="$(agent_ssh "command -v sqlite3 >/dev/null 2>&1 && rm -f $REMOTE_GLOB && test -f $REMOTE_DB && sqlite3 $REMOTE_DB \"VACUUM INTO '$REMOTE_SNAP'\" && echo SNAPSHOT_OK || echo SNAPSHOT_FAILED")" || true
   if ! grep -q 'SNAPSHOT_OK' <<<"$out"; then
     log "in-container snapshot failed (instance $INSTANCE_ID): $out"
     return 1

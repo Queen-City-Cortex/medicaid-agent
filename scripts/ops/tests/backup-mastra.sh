@@ -111,6 +111,7 @@ cat > "$FAKE_BIN/sqlite3" <<'EOF'
 #!/usr/bin/env bash
 if [[ "$2" =~ ^VACUUM\ INTO\ \'(.*)\'$ ]]; then
   [[ ! -e "${BASH_REMATCH[1]}" ]] || { echo 'Error: output file already exists' >&2; exit 1; }
+  printf 'vacuum %s\n' "$1" >> "$MOCK_DIR/calls"
   printf 'snapshot of %s\n' "$1" > "${BASH_REMATCH[1]}"
 else
   echo ok
@@ -126,6 +127,7 @@ printf '#!/usr/bin/env bash\nexit 0\n' > "$FAKE_BIN/sleep"
 chmod +x "$FAKE_BIN"/*
 
 # run_backup <case> [VAR=value...]: one isolated run; sets CASE_DIR and STATUS.
+# DATABASE_URL reaches the script only when a case passes it.
 run_backup() {
   CASE_DIR="$TEMP_ROOT/$1"
   shift
@@ -135,13 +137,15 @@ run_backup() {
   # A leftover from an earlier failed run, which every snapshot must sweep.
   echo stale > "$CASE_DIR/volume/mastra-backup-2026-08-09.db"
   echo live > "$CASE_DIR/volume/mastra.db"
+  # A database restored under a new name, beside the one it replaced.
+  [[ -z "${RESTORED_DATABASE:-}" ]] || echo restored > "$CASE_DIR/volume/$RESTORED_DATABASE"
   cat > "$CASE_DIR/ops.env" <<'EOF'
 BACKUP_REMOTE=fakeremote
 BACKUP_BUCKET=fakebucket
 HC_URL_MASTRA_BACKUP=http://hc.invalid/mastra
 EOF
   STATUS=0
-  env "$@" HOME="$CASE_DIR/home" OPS_ENV="$CASE_DIR/ops.env" TMPDIR="$CASE_DIR/tmp" \
+  env -u DATABASE_URL "$@" HOME="$CASE_DIR/home" OPS_ENV="$CASE_DIR/ops.env" TMPDIR="$CASE_DIR/tmp" \
     PATH="$FAKE_BIN:$PATH" MOCK_DIR="$CASE_DIR" MOCK_VOLUME="$CASE_DIR/volume" \
     bash -c '[[ "$(command -v railway)" == "$1/railway" && "$(command -v curl)" == "$1/curl" ]] || exit 97
              exec bash "$2"' _ "$FAKE_BIN" "$SCRIPT" > "$CASE_DIR/output" 2>&1 || STATUS=$?
@@ -179,9 +183,46 @@ assert_ssh_calls healthy 2
 [[ "$(calls '^rclone copyto .* fakeremote:fakebucket/agent/mastra/mastra-')" -eq 1 ]] || fail "healthy: snapshot was not uploaded"
 [[ "$(calls '^ping http://hc.invalid/mastra$')" -eq 1 ]] || fail "healthy: no success ping"
 [[ "$(calls '/fail$')" -eq 0 ]] || fail "healthy: failure ping sent"
+[[ "$(calls "^vacuum $CASE_DIR/volume/mastra.db\$")" -eq 1 && "$(calls '^vacuum ')" -eq 1 ]] || fail "healthy: did not snapshot /data/mastra.db when DATABASE_URL is unset"
 assert_volume_clean healthy
 assert_tmp_clean healthy
 pass "waits for /healthz 200, selects the running instance on both ssh calls, sweeps and cleans up"
+
+# DATABASE_URL names a restored database: that file is the one snapshotted,
+# and the file it replaced is left alone.
+RESTORED_DATABASE=mastra-restored-2026-10-06.db run_backup repointed DATABASE_URL=file:/data/mastra-restored-2026-10-06.db
+[[ "$STATUS" -eq 0 ]] || fail "repointed run exited $STATUS"
+[[ "$(calls "^vacuum $CASE_DIR/volume/mastra-restored-2026-10-06.db\$")" -eq 1 && "$(calls '^vacuum ')" -eq 1 ]] || fail "repointed: did not snapshot the database DATABASE_URL names"
+[[ "$(calls '^rclone copyto ')" -eq 1 ]] || fail "repointed: snapshot was not uploaded"
+[[ "$(<"$CASE_DIR/volume/mastra-restored-2026-10-06.db")" == restored ]] || fail "repointed: the live database was changed"
+assert_volume_clean repointed
+pass "snapshots the file DATABASE_URL names"
+
+# DATABASE_URL names a file that is not on the volume: sqlite3 would create an
+# empty one and back that up, so the snapshot must fail instead.
+run_backup database-missing DATABASE_URL=file:/data/mastra-restored-2026-10-07.db
+[[ "$STATUS" -ne 0 ]] || fail "database-missing: run succeeded"
+[[ "$(calls '^vacuum ')" -eq 0 && "$(calls '^download ')" -eq 0 && "$(calls '^rclone ')" -eq 0 ]] || fail "database-missing: backed up a database that does not exist"
+[[ ! -e "$CASE_DIR/volume/mastra-restored-2026-10-07.db" ]] || fail "database-missing: created the missing database"
+[[ "$(calls '/fail$')" -eq 1 ]] || fail "database-missing: no failure ping"
+assert_volume_clean database-missing
+pass "fails when the file DATABASE_URL names is not on the volume"
+
+# Anything but a file directly under /data is refused before the agent is
+# woken, and the value is not printed: a remote URL can carry a credential.
+refused=0
+for url in 'libsql://store.invalid?authToken=sekrit-token' 'file:./mastra.db' 'file:mastra.db' \
+  'file:///data/mastra.db' 'file:/data/sub/mastra.db' 'file:/data/mastra.db?mode=ro' \
+  'file:/data/x.db; echo sekrit-token' 'file:/data/mastra-backup-2026-10-06.db'; do
+  refused=$((refused + 1))
+  run_backup "refused-$refused" "DATABASE_URL=$url"
+  [[ "$STATUS" -ne 0 ]] || fail "refused ($url): run succeeded"
+  [[ "$(calls '^healthz ')" -eq 0 && "$(calls '^status$')" -eq 0 && "$(calls '^ssh ')" -eq 0 ]] || fail "refused ($url): reached the agent or Railway"
+  [[ "$(calls '/fail$')" -eq 1 ]] || fail "refused ($url): expected exactly one failure ping"
+  grep -q 'DATABASE_URL' "$CASE_DIR/output" || fail "refused ($url): the message does not name DATABASE_URL"
+  ! grep -q 'sekrit-token' "$CASE_DIR/output" || fail "refused ($url): the value was printed"
+done
+pass "refuses a DATABASE_URL that is not a file directly under /data, without printing it"
 
 # The agent never wakes: nothing is asked of Railway.
 HEALTHZ_MISSES=1000 run_backup asleep AGENT_WAKE_ATTEMPTS=3

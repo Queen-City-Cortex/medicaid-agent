@@ -98,6 +98,157 @@ promoted a release and then stopped before the acknowledgement (a failed
 evidence upload, or a kill): the next attempt may first be deferred (20) while
 the rollback window is open, and the one after acknowledges without rebuilding.
 
+### Running one run in another mode
+
+The job reads its mode from the service's own variables when the container
+starts (`JOB_MODE="${CORPUS_JOB_MODE:-scheduled}"` in
+`scripts/ops/railway-corpus-job.sh`). A variable written in front of a local
+command, as in `CORPUS_JOB_MODE=rollback railway redeploy …`, is set for the
+Railway CLI on the operator's machine and never reaches the container: the job
+runs in the stored mode, normally `scheduled`, which crawls and can start a
+promotion. The modes are `scheduled`, `discover`, `recover-parse`, `bootstrap`,
+`release`, `rollback`, `recover`, `cleanup`, `audit`, `evaluate` and `backup`;
+any other value exits 64.
+
+Every mode other than `scheduled` is run the same way, with `<mode>` replaced:
+
+1. Set the mode on the service without deploying:
+
+   ```bash
+   railway variable set --skip-deploys --environment production --service corpus-job CORPUS_JOB_MODE=<mode>
+   ```
+
+2. Start a run and keep the deployment id it prints (`.id`):
+
+   ```bash
+   railway redeploy --environment production --service corpus-job --yes --json
+   ```
+
+3. Confirm the run was in that mode. Read the log of that deployment:
+
+   ```bash
+   railway deployment list --environment production --service corpus-job --limit 20 --json
+   railway logs --service corpus-job --deploy --lines 200 <deployment-id>
+   ```
+
+   The last line the job prints is
+   `CORPUS_RUN_SUMMARY {"run_id":"…","mode":"<mode>","status":"…","exit_code":…,"elapsed_seconds":…,"run_state":"…"}`.
+   Require `"mode":"<mode>"`, and `"status":"success"` with `"exit_code":0`
+   unless the mode's own section names another status. `run_id` is the
+   Railway deployment id when Railway sets `RAILWAY_DEPLOYMENT_ID`, which ties
+   the line to the deployment from step 2. A deployment listed as `SUCCESS` is
+   not this confirmation: a cron deployment can report `SUCCESS` with its
+   instance still `CREATED` and nothing run.
+4. Set the mode back as soon as the run has finished, and read it back (the
+   command prints every variable of the service, so keep the filter):
+
+   ```bash
+   railway variable set --skip-deploys --environment production --service corpus-job CORPUS_JOB_MODE=scheduled
+   railway variables --environment production --service corpus-job --kv | grep '^CORPUS_JOB_MODE='
+   ```
+
+Never leave another mode stored. Railway runs the start command at every cron
+tick in whatever mode is stored. `release`, `rollback`, `recover`, `cleanup`,
+`audit` and `evaluate` do no crawl, mirror or backup, and `backup` and
+`recover-parse` do no crawl; several of them exit zero with a green
+healthcheck. A forgotten mode therefore leaves the job looking healthy while
+the corpus goes unrefreshed and unbacked-up, and a stored `rollback` attempts
+another rollback, from the release then serving, at the next tick.
+
+Two limits on this procedure:
+
+- **It needs the regular configuration.** On the maintenance configuration
+  (`/deploy/railway/corpus-maintenance.json`: `sleep infinity`, no cron), which
+  every validation report up to 2026-10-03 records as the service's state, a
+  redeploy starts another idle container and the stored mode is ignored. There
+  a mode is run by invoking `scripts/ops/railway-corpus-job.sh` inside the idle
+  container with `CORPUS_JOB_MODE` set for that command, as step 3 of the
+  [initial bootstrap](#initial-bootstrap) does. The repository records no
+  command line for that. By analogy with how `scripts/ops/backup-mastra.sh`
+  reaches the agent it would be
+  `railway ssh -s corpus-job --deployment-instance <instance-id> -- "CORPUS_JOB_MODE=<mode> bash scripts/ops/railway-corpus-job.sh"`,
+  with the RUNNING instance taken from `railway status --json` and the result
+  judged by the `CORPUS_RUN_SUMMARY` line, because `railway ssh` exits 0 when
+  the remote command fails. That line has not been run: whether the session
+  starts in `/app` and carries the service's variables is not established.
+- **Two Railway behaviours it relies on have not been observed**; the
+  rehearsal below settles them.
+
+#### Rehearsal: what a redeploy and a stored mode do on a cron service
+
+**Not done.** This is the owner's to run; nothing here has been tried against
+Railway. It answers two questions the procedure above assumes the answer to:
+does `railway redeploy` on a cron service start the command at once, or only
+schedule it for the next tick; and does a `--skip-deploys` variable change
+reach the next cron run without a deployment. It uses a throwaway service, so
+production is not touched.
+
+1. In a Railway project or environment that is not production, create a
+   service from a small public image (`alpine`, for one) with no volume. In its
+   settings set the start command to
+   `sh -c 'echo "REHEARSAL mode=${CORPUS_JOB_MODE:-unset} at $(date -u +%FT%TZ)"'`,
+   the restart policy to Never, and a cron schedule whose next tick is at least
+   30 minutes away at a time you will be present for. Those are the three
+   `deploy` settings of `packages/pipeline/railway.json`. Write the tick time
+   down, wait for the first deployment to settle, and note whether creating
+   the service already printed the line.
+2. Store a mode without deploying, then list the deployments and check that no
+   new one appeared:
+
+   ```bash
+   railway variable set --skip-deploys --environment <environment> --service <scratch-service> CORPUS_JOB_MODE=rollback
+   railway deployment list --environment <environment> --service <scratch-service> --limit 20 --json
+   ```
+
+3. Note the time in UTC, redeploy, and keep the `.id` it prints:
+
+   ```bash
+   railway redeploy --environment <environment> --service <scratch-service> --yes --json
+   ```
+
+4. For ten minutes, repeat the `railway deployment list` command and write
+   down each status that deployment passes through, then read its log:
+
+   ```bash
+   railway logs --service <scratch-service> --deploy --lines 200 <deployment-id>
+   ```
+
+   `REHEARSAL mode=rollback` with a time within a few minutes of step 3 means
+   a redeploy runs the command at once, in the stored mode. No line means it
+   did not. Record also whether the deployment was listed as `SUCCESS` while
+   nothing had been printed.
+5. Store the scheduled mode without deploying, and do not redeploy:
+
+   ```bash
+   railway variable set --skip-deploys --environment <environment> --service <scratch-service> CORPUS_JOB_MODE=scheduled
+   ```
+
+   Wait for the cron tick from step 1. List the deployments again (note whether
+   the tick made a new deployment id) and read the log of the tick's run.
+   `mode=scheduled` means the change reached the tick without a deployment;
+   `mode=rollback` means it did not.
+6. Delete the scratch service. Nothing else was changed, so there is nothing
+   else to put back.
+7. Fill in the result below with the date and `railway --version`, and add the
+   two answers to the [project gotchas](../development/gotchas.md). If a
+   redeploy does not start a run, replace step 2 of the procedure above with
+   whatever does. If a stored mode does not reach the next tick without a
+   deployment, step 4 of the procedure needs a redeploy after it, and that
+   redeploy may itself start a `scheduled` run.
+
+| Question | Result |
+| --- | --- |
+| Does `railway redeploy` on a cron service run the start command at once? | **Not yet rehearsed** |
+| Does a `--skip-deploys` variable change reach the next cron tick without a deployment? | **Not yet rehearsed** |
+| Rehearsed on (date, Railway CLI version, by whom) | |
+
+Until the table is filled in: after step 2 of the procedure, a run has started
+only if its `CORPUS_RUN_SUMMARY` line, or the lines before it, appear in the
+deployment's log. If nothing appears within ten minutes, assume the run is
+waiting for the next 10:00 UTC tick and that the mode is still stored. The
+October 2026 review cites a dashboard control that runs a cron service at once;
+it has not been tried here.
+
 ## Supervised inspection and source preparation
 
 For an interrupted initial ingest, temporarily set the corpus-job config file to
@@ -288,11 +439,16 @@ gate. Scope records are not retirement evidence or permission to override gates.
    scheduled authentication and encrypted backup creation. Retain legacy until
    the later blue-to-green promotion and green-to-blue rollback rehearsal pass.
 
-After bootstrap, all promotions use:
-
-```bash
-CORPUS_JOB_MODE=release railway redeploy --service corpus-job --yes
-```
+After bootstrap, the scheduled job promotes whenever the answer-ready corpus
+has changed. To promote by hand, run one run in `release` mode with the steps
+in [running one run in another mode](#running-one-run-in-another-mode): set
+`CORPUS_JOB_MODE=release` on the service, redeploy, confirm, and set it back
+to `scheduled`. Do not put the variable in front of the `railway` command. The
+run promoted if its log has `Promotion verified: <release-id> on
+neo4j-<color>` and `CORPUS_RUN_SUMMARY` shows `"mode":"release"` with
+`"exit_code":0`. In this mode exit codes 20, 21 and 22 are passed through as
+the run's own status (see the table [above](#corpus-job-configuration)), so
+`"status":"failed"` with `"exit_code":20` means deferred, not broken.
 
 ## Promotion invariants
 
@@ -632,13 +788,16 @@ switch, so a rebuilt corpus volume reads the same state from the bucket.
 
 To recover without waiting for the next run, set the mode on the service (a
 variable in front of the `railway` command only reaches the local CLI), run
-it, and set it back:
+it, and set it back. These are the steps of
+[running one run in another mode](#running-one-run-in-another-mode), which
+also says how to confirm the run and what is not yet established about a
+redeploy:
 
 ```bash
-railway variable set --skip-deploys --service corpus-job CORPUS_JOB_MODE=recover
-railway redeploy --service corpus-job --yes
-# when the run has finished:
-railway variable set --skip-deploys --service corpus-job CORPUS_JOB_MODE=scheduled
+railway variable set --skip-deploys --environment production --service corpus-job CORPUS_JOB_MODE=recover
+railway redeploy --environment production --service corpus-job --yes --json
+# when CORPUS_RUN_SUMMARY shows "mode":"recover":
+railway variable set --skip-deploys --environment production --service corpus-job CORPUS_JOB_MODE=scheduled
 ```
 
 `recover` exits zero with a green healthcheck and does no crawl, mirror or
@@ -661,11 +820,53 @@ belongs to a graph the next promotion resets.
 
 ## Rollback
 
-Within the rollback window:
+Rollback applies only after a second blue-green promotion. Beside a legacy
+agent, which has no `ACTIVE_CORPUS_COLOR`, and on the first release, whose
+manifest names no `previousReleaseId`, `rollback` exits 64 and changes
+nothing. A failed first activation goes back to the legacy graph through
+`release-activate-bootstrap` (step 7 of the
+[initial bootstrap](#initial-bootstrap)), not through this mode.
 
-```bash
-CORPUS_JOB_MODE=rollback railway redeploy --service corpus-job --yes
-```
+Within the rollback window, with the service on its regular configuration:
+
+1. Set the mode on the service. A variable in front of the `railway` command
+   only reaches the local CLI, and the job would then run `scheduled`: a crawl,
+   and possibly a new promotion, while the window runs out.
+
+   ```bash
+   railway variable set --skip-deploys --environment production --service corpus-job CORPUS_JOB_MODE=rollback
+   ```
+
+2. Redeploy and keep the deployment id:
+
+   ```bash
+   railway redeploy --environment production --service corpus-job --yes --json
+   ```
+
+3. Confirm in that deployment's log
+   (`railway logs --service corpus-job --deploy --lines 200 <deployment-id>`)
+   that the run printed `Rollback verified: <previous-release-id> on
+   neo4j-<color>` and ended with `CORPUS_RUN_SUMMARY` showing
+   `"mode":"rollback"`. Any other mode in that line means the rollback did not
+   run. `"exit_code":1` after `Rollback verified` means the rollback is
+   recorded and serving but its chat smoke failed: check an answer by hand.
+   Then confirm the agent itself: `/readyz` must return 200 with the previous
+   release as `releaseId`.
+4. Set the mode back at once, and read it back:
+
+   ```bash
+   railway variable set --skip-deploys --environment production --service corpus-job CORPUS_JOB_MODE=scheduled
+   railway variables --environment production --service corpus-job --kv | grep '^CORPUS_JOB_MODE='
+   ```
+
+   A stored `rollback` runs again at the next cron tick, against the release
+   then serving.
+
+[Running one run in another mode](#running-one-run-in-another-mode) has the
+two things this relies on that are not yet established (whether a redeploy of
+a cron service starts the run at once, and whether the restored mode reaches
+the next tick without a deployment) and what to do on the maintenance
+configuration, where a redeploy runs nothing.
 
 Rollback first requires a settled cutover: after an unfinished one it restores
 the previous release as above and stops, which is the rollback. Otherwise it
@@ -724,8 +925,10 @@ the fresh credential path. It never falls back to a cached token after auth fail
 
 `restore-corpus-artifacts.sh` hydrates a fresh corpus-job volume. Rebuilding the
 inactive graph on every release is the graph restore drill. A release manifest
-is written atomically after every stage, so a restart can retry a failed stage
-without presenting partial JSON as valid evidence.
+is written atomically after every stage so that partial JSON is never read as
+evidence; it is not a checkpoint. Every restart is a full rebuild: a failed or
+interrupted build is not resumed, and the next `promote` prepares a new
+release, resets the inactive graph and loads and embeds it from empty.
 
 ## Retiring workstation scheduling
 

@@ -1,10 +1,50 @@
 # NC Medicaid Navigator — Operations Runbook
 
+## Incidents
+
+**What is live.** This is the last state recorded in the repository (the
+validation reports of 2 and 3 October 2026), not a live reading; the owner
+should confirm each point.
+
+- **Graph:** the agent serves one legacy graph, release
+  `legacy-20260725-ae8595c`, on the `neo4j` service. No blue-green release has
+  happened. The agent serves whichever graph four of its Railway variables
+  name: `NEO4J_URI`, `NEO4J_PASSWORD`, `CORPUS_RELEASE_ID` and
+  `ACTIVE_CORPUS_COLOR`. A legacy agent has no colour, so the `rollback` and
+  `recover` rows below do not apply until the first blue-green release.
+- **Scheduler:** the Railway `corpus-job` is parked (`sleep infinity`, no
+  cron). Nothing on Railway crawls, releases or backs up the corpus. The only
+  scheduled jobs are the two launchd jobs on the ops laptop: the document
+  check at 07:30, which is the fallback discovery and publishes nothing, and
+  the chat-store backup at 06:45. The removed Saturday job
+  (`com.ncmedicaid.weekly-refresh`) was still loaded on the laptop on
+  2026-10-05; the repository cannot show whether it has been unloaded since
+  (see [Scheduled Checks & Backups](#scheduled-checks--backups-launchd)).
+- **Health:** `/livez` says the process is up. `/readyz` (also served as
+  `/healthz`) checks the graph, its release id and the chat store.
+  `/dependencyz` checks the model and embedding providers. Commands and
+  fields are under [Health endpoints](#health-endpoints).
+
+| Symptom | First check | Action | Full steps |
+|---|---|---|---|
+| Chat fails for everyone | `/readyz`, then `/dependencyz` | Follow the row for whichever is not `ok`. Both `ok`: read the agent's deploy log | [Health endpoints](#health-endpoints) |
+| Every answer is withheld | Agent log: `chat.verification` reason, `verifier.failed_closed`, `verifier.deadline_aborted`; then `/dependencyz` | Fix the provider, or `VERIFIER_MODEL` and its key. Never set `VERIFIER_ENABLED=false`: production refuses to start. Withheld is the safe state | [Answer release](docs/operations/answer-release-and-recovery.md#operational-checks) |
+| `/readyz` returns 503 | Its body: `neo4j`, `storage`, `releaseId` | `neo4j: error`: the graph is down, or its release id is not `CORPUS_RELEASE_ID`. `storage: readonly`: the chat store row | [Health endpoints](#health-endpoints) |
+| `/dependencyz` returns 503 | Which of `voyage`, `openai`, `anthropic` is `error`; log `dependencyz.openai_failed` and its `status` | 429: the quota row. 401 or 403: the key. 404: the classifier model was retired | [Health endpoints](#health-endpoints) |
+| A deploy does not come up | `railway deployment list`, then the deployment's `--deploy` log | Start-up names the bad or missing variable (`VERIFIER_MODEL`, a provider key, `DATABASE_URL`). Correct it and redeploy | [A deploy that does not come up](#a-deploy-that-does-not-come-up) |
+| Corpus job fails or ends with an unusual status | Its last log line, `CORPUS_RUN_SUMMARY` (`mode`, `status`, `exit_code`) | 3: discovery failed for a required family. 20: deferred, rollback window open. 21: snapshot already rejected, skipped. 22: already released, acknowledged. 64: bad mode or a setting left behind. 75: lock held | [Corpus-job configuration](docs/operations/blue-green-corpus-releases.md#corpus-job-configuration) |
+| A release was interrupted; later runs refuse to build | Job log; `/readyz` `releaseId` against the agent's variables | Run one run with `CORPUS_JOB_MODE=recover` set on the service, then set `scheduled` back | [Interrupted cutovers](docs/operations/blue-green-corpus-releases.md#interrupted-cutovers) |
+| A promoted release is bad | Is the 24-hour rollback window still open? | Set `CORPUS_JOB_MODE=rollback` on the service, redeploy, confirm `"mode":"rollback"`, set `scheduled` back. A variable in front of `railway redeploy` does nothing | [Rollback](docs/operations/blue-green-corpus-releases.md#rollback) |
+| Chat store lost or corrupt | `/readyz` `storage`; newest copy in `agent/mastra/` | Restore to a new file name and repoint `DATABASE_URL`. Never overwrite the live file | [Restore the chat store](#restore-the-chat-store) |
+| OpenAI quota exhausted (as on 2026-07-10) | `/dependencyz` shows `openai: error`; log status 429 | Add credit or raise the limit in the OpenAI project; `/dependencyz` recovers within about a minute | [Health endpoints](#health-endpoints) |
+| Every service stopped at once | `railway usage limit status` | The workspace hard limit was reached: raise it | [Production Deployment](#production-deployment) |
+| CI fails on "at least 45 days of reviewed MAGI table support left" (from 2026-11-16) | The test's message | Do the scope review and move `supported_until`. Do not edit the test | [Answer coverage scope](docs/operations/answer-coverage-scope.md#runtime-behavior) |
+
 ## Prerequisites
 
 - Docker running (Neo4j via `docker compose up -d neo4j` or `npm run dev:infra`)
 - Node.js 22.23.3, the version in `.nvmrc` and root `engines.node` (CI installs it from `.nvmrc`; the three Dockerfiles pin the same version)
-- Python 3.11+ with venv at `packages/pipeline/.venv/`
+- Python 3.11.13, the version in `packages/pipeline/.python-version` (CI installs it from that file; `pyproject.toml` accepts 3.11 or later), with venv at `packages/pipeline/.venv/`
 - `VOYAGE_API_KEY` environment variable set (for embeddings and search)
 - `OPENAI_API_KEY` environment variable set (for the agent, verifier, scope gate and prompt-injection detector)
 - `ANTHROPIC_API_KEY` only if you override `AGENT_MODEL` to a Claude model
@@ -21,7 +61,7 @@ Copy `.env.example` to `.env` at the repo root and fill in keys. The agent and w
 | `ANTHROPIC_API_KEY` | Only for a Claude model | — | Anthropic API key; needed only when `AGENT_MODEL` or `VERIFIER_MODEL` is a `claude-*` model |
 | `AGENT_MODEL` | No | `gpt-5.6-terra` | Main agent model (`gpt-*`/`o3*`/`o4*` route to OpenAI, anything else to Anthropic) |
 | `AGENT_REASONING_EFFORT` | No | `medium` | Reasoning effort for the chat agent and the three deep-research agents on OpenAI models: `none`, `minimal`, `low`, `medium`, `high` or `xhigh`. Any other value stops startup. Set explicitly on every request so it no longer follows each model's API default. |
-| `VERIFIER_MODEL` | No | `gpt-5.6-terra` | Answer-verifier model, routed like `AGENT_MODEL`. A `claude-*` id needs `ANTHROPIC_API_KEY`. Change it only against the [verifier benchmark](docs/operations/verifier-benchmark.md) |
+| `VERIFIER_MODEL` | No | `gpt-5.6-terra` | Answer-verifier model: an OpenAI id (`gpt-*`, `o1*`, `o3*`, `o4*`) or a `claude-*` id, which needs `ANTHROPIC_API_KEY`. The agent refuses to start on any other id, or on one whose provider key is missing, because such a verifier would withhold every answer. Change it only against the [verifier benchmark](docs/operations/verifier-benchmark.md) |
 | `TRACE_STORE` | No | `off` in production and CLI runs, else `duckdb` | Where Mastra persists traces/metrics for Studio. `duckdb` writes a local DuckDB file (`MASTRA_OBSERVABILITY_PATH`, default `mastra.duckdb`); `off` skips the store and exporter entirely. Off in production because the file is ephemeral, nothing reads it without Studio, and DuckDB's buffer pool grew the agent to ~10 GB idle on Railway. |
 | `OBSERVATIONAL_MEMORY_ENABLED` | No | `false` | Observational memory: a model-written summary of a conversation's earlier turns, stored server-side. Off unless `true` or `1` (owner decision, October 2026); do not build on it. With it off the agent recalls the newest ten stored messages of the thread through the release gate, bounded by the 128,000-token input limiter. Working memory is always disabled. The coverage boundary and scope gate read prior turns from the stored thread and behave the same in either mode. |
 | `NEO4J_URI` | No | `bolt://localhost:7687` | Neo4j connection URI |
@@ -30,7 +70,7 @@ Copy `.env.example` to `.env` at the repo root and fill in keys. The agent and w
 | `NEO4J_PASSWORD` | No | `medicaid-dev` | Neo4j password |
 | `NEO4J_QUERY_TIMEOUT_MS` | No | `30000` | Server-side transaction timeout applied to every corpus query via `withSession` — bounds how long one slow query can hold a chat request |
 | `VOYAGE_TIMEOUT_MS` | No | `15000` | Per-request timeout on Voyage embedding calls (the agent retries once on 429/5xx/timeout) |
-| `DATABASE_URL` | No | `file:./mastra.db` | LibSQL storage URL for Mastra |
+| `DATABASE_URL` | No | `file:./mastra.db` | LibSQL storage URL for Mastra and the application tables. In production the agent refuses to start on the default, and a `file:` URL must begin `file:/data/` (the Railway volume) |
 | `PORT` | No | `4111` | Mastra server port |
 | `SENTRY_DSN` | No | — | Server-side error tracking for both agent and web. Unset = Sentry disabled (no-op). **Also skipped when the resolved environment is `development`** (see below), so a DSN in local `.env` does not report dev errors. Set per service in Railway. |
 | `NEXT_PUBLIC_SENTRY_DSN` | No | — | Browser error DSN for `packages/web`. Inlined at **build** time, so on Railway it must be a **build-time** variable on the web service. |
@@ -53,7 +93,7 @@ To enable in production (Railway):
 
 ### Model Selection
 
-The agent defaults to **`gpt-5.6-terra`** (OpenAI) — adopted 2026-07-09 after an A/B gate (`scripts/eval-ab.sh agent`) showed it matched or beat the prior `gpt-5.4` default on every judge dimension at the same price. Override `AGENT_MODEL` to experiment with other models — Claude models work for the main agent loop, but the verifier, injection detector, and observational memory remain OpenAI-wired, so `OPENAI_API_KEY` is required regardless:
+The agent defaults to **`gpt-5.6-terra`** (OpenAI) — adopted 2026-07-09 after an A/B gate (`scripts/eval-ab.sh agent`) showed it matched or beat the prior `gpt-5.4` default on every judge dimension at the same price. Override `AGENT_MODEL` to experiment with other models — Claude models work for the main agent loop, but the scope gate, injection detector, and observational memory remain OpenAI-wired, and the verifier runs on OpenAI unless `VERIFIER_MODEL` names a Claude model, so `OPENAI_API_KEY` is required regardless:
 
 Reasoning effort is a separate, explicit setting (`AGENT_REASONING_EFFORT`, default `medium`). The 2026-07-09 comparison ran each model at its own API default (none for `gpt-5.4`, medium for `gpt-5.6-terra`), so it varied model and effort together. Answer evaluation results record the model and effort the agent resolved, under `config.agent_config` and on each row.
 
@@ -156,6 +196,8 @@ sleeping agent purges when it next wakes.
     "sqlite3 -bail /data/mastra.db \"$(npx tsx scripts/delete-user-data.ts <user-id>)\""
   ```
 
+  `/data/mastra.db` is the file the agent's `DATABASE_URL` names; after a
+  [chat-store restore](#restore-the-chat-store) use the restored file's path.
   The deletion happened only if the output contains `USER_DATA_DELETED`;
   `railway ssh` exits 0 even when the remote command fails. The script
   prints, as one transaction, the statements `AppDatabase.deleteUserData`
@@ -224,12 +266,24 @@ snapshot, never asks for a release, and exits 3 so its healthcheck fails. The Sa
 serving Neo4j graph in place was removed in October 2026, together with `npm run deploy-data`, its
 evaluation gate and its TCP-proxy helper. Its intended successor is the
 [blue-green corpus release](docs/operations/blue-green-corpus-releases.md), which rebuilds an inactive graph and
-switches the agent only after the release gates pass. That path does not yet
-work end to end; review cards OPS-2, OPS-3, OPS-7 and OPS-9 in the
+switches the agent only after the release gates pass. That path has not yet
+produced a release. The changes for review cards OPS-2, OPS-3, OPS-7 and OPS-9
+in the
 [October 2026 review](docs/reviews/2026-10-05-full-review/issues/release-ops.md)
-track the fixes.
-Until they land there is no supported procedure for publishing a new corpus to
-production.
+have merged, but the supervised first bootstrap has not been run and the
+Railway corpus job is still parked.
+Until a first release succeeds there is no exercised procedure for publishing a
+new corpus to production.
+
+The Saturday job's launchd entry is not removed by a checkout or by
+`scripts/ops/install-launchd.sh`, which no longer knows its label. It was
+still loaded on the ops laptop on 2026-10-05, and its plist names a script
+that no longer exists. Unloading it is the owner's step, and the repository
+cannot show whether it has been done:
+
+```bash
+launchctl bootout gui/$(id -u)/com.ncmedicaid.weekly-refresh; rm ~/Library/LaunchAgents/com.ncmedicaid.weekly-refresh.plist
+```
 
 The Saturday job was also the only scheduled caller of the corpus backup, so
 corpus backups are manual until the Railway corpus job takes over (see
@@ -457,6 +511,68 @@ curl -i https://medicaid-agent-backend.up.railway.app/healthz
 npm run smoke:prod
 ```
 
+### Health endpoints
+
+None of the four needs a sign-in. The first request after the agent has slept
+wakes it and can take several seconds or return 502.
+
+```bash
+curl -i https://medicaid-agent-backend.up.railway.app/livez
+curl -i https://medicaid-agent-backend.up.railway.app/readyz
+curl -i https://medicaid-agent-backend.up.railway.app/dependencyz
+```
+
+- `/livez` returns 200 whenever the process is serving. 200 here with 503 on
+  `/readyz` means the agent started and a dependency is the problem.
+- `/readyz` and `/healthz` are one handler, and `/readyz` is the Railway
+  deploy healthcheck. The body has `status` (`ok` or `degraded`), `neo4j`
+  (`connected` or `error`), `storage` (`writable` or `readonly`) and
+  `releaseId`. `neo4j` is `error` when the graph cannot be reached and also
+  when `CORPUS_RELEASE_ID` is unset, or the graph's release marker is missing
+  or is not that id; the log line is `readyz.neo4j_failed` for the first
+  and `readyz.release_identity_failed`, with both ids, for the second. A
+  mismatch after a corpus release is an
+  [interrupted cutover](docs/operations/blue-green-corpus-releases.md#interrupted-cutovers).
+  `storage` is `readonly` when a test write to the chat store fails; no log
+  line carries the cause. If a redeploy, which resets the volume's ownership,
+  does not clear it, see [Restore the chat store](#restore-the-chat-store).
+- `/dependencyz` reports the providers only, never the graph: `voyage`,
+  `openai`, and `anthropic` when `AGENT_MODEL` is a Claude model, each `ok` or
+  `error`, with 503 if any is `error`. Each result is cached for a minute.
+  The OpenAI probe makes a one-token call to the classifier model, so it fails
+  when the account's quota is exhausted, which a key check alone would not
+  show. The log line `dependencyz.openai_failed` carries the HTTP status: 429
+  is quota or rate limit (the 2026-07-10 production outage was an exhausted
+  quota: every chat failed until credit was added), 401 or 403 is the key, 404
+  means the probed model no longer exists (`gpt-5-mini` leaves the API on
+  2026-12-11; see the [project gotchas](docs/development/gotchas.md)), and 5xx
+  is the provider. For quota, add credit or raise the limit in the OpenAI
+  project the production key belongs to, wait for the cache to expire, and
+  check `/dependencyz` again. Keep answer evaluations on `EVAL_OPENAI_API_KEY`
+  so they cannot spend the production balance.
+
+### A deploy that does not come up
+
+The agent validates its settings before it listens. It exits at start-up, and
+the deploy log names the setting, when `OPENAI_API_KEY`, `VOYAGE_API_KEY`,
+`WORKOS_CLIENT_ID` or `WORKOS_API_KEY` is missing, when `VERIFIER_MODEL` is
+not an OpenAI or `claude-*` id or its provider key is missing, when
+`VERIFIER_ENABLED=false`, or when `DATABASE_URL`, `NEO4J_URI`,
+`NEO4J_PASSWORD` or `CORS_ORIGINS` holds a development value. CI builds the
+agent image and boots it until `/livez` answers, so a bundle that cannot
+start should fail CI before it reaches Railway; CI uses placeholder settings
+and cannot catch a wrong production variable. A deployment that starts but
+never passes `/readyz` within the 300-second healthcheck has a graph or
+chat-store problem, not a settings one: see [Health endpoints](#health-endpoints).
+
+Find the deployment and read its log with the commands under "Check current
+deploy status" and "Inspect a failed deploy" above. Correct the variable in
+Railway (a variable change deploys the service unless it is made with
+`--skip-deploys`), or retry the deploy from a clean worktree as above. To go back to an earlier build, the October 2026 review
+cites the Railway dashboard (the service's Deployments list, an earlier
+successful deployment, Rollback); that has not been exercised here, and the
+CLI commands in this runbook cannot select an older deployment.
+
 `npm run smoke:prod` uses `TEST_USER_EMAIL` and `TEST_USER_PASSWORD` from the environment or local env files, asks a real production question, checks for a substantive answer with tool steps and sources, and writes a screenshot to `/tmp/nc-medicaid-prod-smoke.png` by default. Override with `SMOKE_BASE_URL`, `SMOKE_QUESTION`, `SMOKE_TIMEOUT_MS`, or `SMOKE_SCREENSHOT_PATH` when needed.
 
 A run that starts a fresh thread renames it to `smoke <timestamp>` (with `SMOKE_TEST_RUN_ID` in front when set) before the persistence check, so repeat runs never collide on the question's title. A passing run then deletes that thread; if the delete fails it prints a warning and still passes. A failing run keeps the thread and prints its title and id for diagnosis: delete it from the test account's sidebar when done. The script only renames or deletes a thread whose id it recorded being created in that run.
@@ -475,7 +591,7 @@ credentials via `railway bucket credentials --bucket backups`). Script config
 | Downloaded PDFs (~3 GB) | laptop | `rclone sync` → `crawler/documents/` (+`crawler/deleted/<date>/` undo) | manual | deleted-file undo kept 120d |
 | Parsed artifacts (~3 GB) | laptop | `rclone sync` → `pipeline/parsed/` (+undo) | manual | deleted-file undo kept 120d |
 | Golden/audits/references/ecfr-cache/eval-results | laptop | `rclone sync` → `pipeline/<dir>/` | manual | mirrors |
-| LibSQL `mastra.db` (chat history, feedback, rate limits) | Railway agent volume | wake via `/healthz` → in-container `VACUUM INTO` on the running instance → download → bucket `agent/mastra/` | daily (`backup-mastra.sh`) | 30 days of dated copies |
+| LibSQL `mastra.db`, or the file `DATABASE_URL` names after a restore (chat history, feedback, usage, rate limits, research runs, verification records, the answer-signing key) | Railway agent volume | wake via `/healthz` → in-container `VACUUM INTO` on the running instance → download → bucket `agent/mastra/` | daily (`backup-mastra.sh`) | 30 days of dated copies |
 | Neo4j graph | Railway volume | **no off-platform copy** — Railway volume backups only (see below) | n/a | n/a |
 
 Also enable **Railway-native volume backups** (dashboard → service → volume →
@@ -519,7 +635,8 @@ What the script does, in order:
    left to its default after a wake, `railway ssh` can reach an obsolete
    instance and print Railway account JSON instead of command output.
 3. In one remote command, removes every `/data/mastra-backup-*.db` left on the
-   volume by earlier runs, then writes today's snapshot with `VACUUM INTO`.
+   volume by earlier runs, checks that the database file exists, then writes
+   today's snapshot with `VACUUM INTO`.
    Success is the `SNAPSHOT_OK` line in the output, not the exit code. If it
    is missing, steps 1 to 3 run once more; a second miss fails the run.
 4. Downloads the snapshot with `railway service files download`, runs
@@ -538,18 +655,117 @@ One-time prereqs for `backup-mastra.sh`: `railway ssh keys add` and
 `ssh-keyscan ssh.railway.com >> ~/.ssh/known_hosts`. It also needs `curl`,
 `jq`, `rclone` and `sqlite3` on the launchd `PATH`.
 
+The script backs up the file its own `DATABASE_URL` names, read from
+`~/.config/nc-medicaid/ops.env` or the environment, and `/data/mastra.db` when
+that is unset. It does not read the agent's Railway variable. It accepts only
+`file:/data/<name>` and stops before waking the agent on anything else, and it
+fails the snapshot when the named file is not on the volume. After a restore
+that repoints the agent, put the same `DATABASE_URL` in `ops.env`: otherwise
+the daily backup keeps copying the old file for as long as it exists.
+
 ### Restore
 
 - **Crawler registry:** `rclone copyto ncmedicaid:<bucket>/crawler/registry/crawler-<date>.db packages/crawler/data/crawler.db`
 - **Documents / parsed artifacts:** `rclone sync ncmedicaid:<bucket>/crawler/documents packages/crawler/data/documents` (same pattern for `pipeline/parsed`). A file deleted or overwritten by a bad sync also survives under `.../deleted/<date>/`.
-- **mastra.db (prod chat store):** pick a dated copy, `sqlite3 file 'PRAGMA integrity_check;'`, then `railway service files upload -s '@nc-medicaid/agent' <file> /data/mastra.db` **while the service is stopped/redeploying**, or use a Railway volume-backup restore for same-project incidents.
-- **Neo4j (prod graph):** the only copy of the graph is a Railway-native volume backup, if those are enabled as described above (dashboard → `neo4j` service → volume → Backups). There is no off-platform graph dump, and the script that used to rebuild the production graph from the laptop (`npm run deploy-data`) has been removed. The graph is still a derivation of the parsed artifacts + federal caches, so restore those (above) if the laptop is lost; publishing a rebuilt graph to production is the job of the [blue-green corpus release](docs/operations/blue-green-corpus-releases.md), which does not yet work end to end (review cards OPS-2, OPS-3, OPS-7 and OPS-9). Until it does, a lost Neo4j volume with no usable volume backup has no tested recovery procedure.
+- **Chat store (`mastra.db`):** see [Restore the chat store](#restore-the-chat-store) below.
+- **Neo4j (prod graph):** the only copy of the graph is a Railway-native volume backup, if those are enabled as described above (dashboard → `neo4j` service → volume → Backups). There is no off-platform graph dump, and the script that used to rebuild the production graph from the laptop (`npm run deploy-data`) has been removed. The graph is still a derivation of the parsed artifacts + federal caches, so restore those (above) if the laptop is lost; publishing a rebuilt graph to production is the job of the [blue-green corpus release](docs/operations/blue-green-corpus-releases.md), which has not yet produced a release (the changes for review cards OPS-2, OPS-3, OPS-7 and OPS-9 have merged; the first bootstrap has not been run). Until it has, a lost Neo4j volume with no usable volume backup has no tested recovery procedure.
 
 **Quarterly restore drill:** pull the newest `mastra-<date>.db`, run `PRAGMA integrity_check`, and spot-restore 5 random parsed JSONs, diffing against local.
 
+### Restore the chat store
+
+Restore to a **new file name** and point the agent at it. Do not upload over
+`/data/mastra.db`. The agent leaves its write-ahead log un-checkpointed on
+every sleep, so `mastra.db-wal` and `mastra.db-shm` normally sit beside the
+live file; SQLite replays a write-ahead log left beside a replaced database,
+which silently undoes the restore or corrupts it. A new name has no such
+files beside it, and the old database stays in place if the restore has to be
+abandoned. For an incident inside the same Railway project, a Railway volume
+backup restore (dashboard, agent service, volume, Backups) is the
+alternative.
+
+The steps below are derived from `scripts/ops/backup-mastra.sh` and the
+release scripts. The procedure as a whole has not been run against
+production, and step 4 is marked where a command's form is not established.
+
+1. List the copies and fetch one:
+
+   ```bash
+   rclone lsl ncmedicaid:<bucket>/agent/mastra/
+   rclone copyto ncmedicaid:<bucket>/agent/mastra/mastra-<date>.db ./mastra-<date>.db
+   ```
+
+2. Check it locally. The output must be exactly `ok`:
+
+   ```bash
+   sqlite3 ./mastra-<date>.db 'PRAGMA integrity_check;'
+   ```
+
+3. Wake the agent and find its RUNNING instance, as steps 1 and 2 of the
+   backup do: request `/healthz` until it returns 200, then read
+   `railway status --json`.
+4. Upload under a name that is not on the volume. Use
+   `/data/mastra-restored-<date>.db`; do not use a name of the form
+   `mastra-backup-*.db`, which the daily backup deletes.
+
+   ```bash
+   railway service files -s '@nc-medicaid/agent' upload ./mastra-<date>.db /data/mastra-restored-<date>.db
+   ```
+
+   Only the `download` form of this command is used by a script; the argument
+   order of `upload` is assumed from it. Run
+   `railway service files -s '@nc-medicaid/agent' upload --help` first. Then
+   check the copy on the volume: the output must contain `ok`, because
+   `railway ssh` exits 0 even when the remote command fails.
+
+   ```bash
+   railway ssh -s '@nc-medicaid/agent' --deployment-instance <instance-id> -- \
+     "sqlite3 /data/mastra-restored-<date>.db 'PRAGMA integrity_check;'"
+   ```
+
+5. Point the agent at the new file and redeploy. The redeploy also gives the
+   uploaded file to the `node` user the agent runs as (the entrypoint resets
+   ownership of the volume on every boot).
+
+   ```bash
+   railway variable set --skip-deploys --environment production --service '@nc-medicaid/agent' DATABASE_URL=file:/data/mastra-restored-<date>.db
+   railway redeploy --environment production --service '@nc-medicaid/agent' --yes --json
+   ```
+
+6. Confirm: `/readyz` returns 200 with `"storage":"writable"`, and a signed-in
+   user sees the threads the copy held. At start-up the agent applies any
+   schema migrations the copy lacks and runs the retention purge.
+7. Put the same `DATABASE_URL` in `~/.config/nc-medicaid/ops.env` so the daily
+   backup follows the agent, and run `scripts/ops/backup-mastra.sh` once: its
+   first log line names the database it is backing up.
+8. When the restore is confirmed, remove the old `/data/mastra.db`,
+   `/data/mastra.db-wal` and `/data/mastra.db-shm` from the volume. They are a
+   full plaintext copy of the chat store that thread deletion, account
+   deletion and the retention purge no longer reach.
+
+What a restore brings back and what it loses:
+
+- The file holds everything the agent stores: threads and messages, feedback,
+  usage and rate-limit events, research runs with their checkpoints and
+  budgets, verification records (`answer_audit`) and the key that signs
+  released answers (`answer_release_keys`). They are restored together, so
+  the copy is consistent with itself: its stored answers were signed with the
+  key it carries and still read as released.
+- Everything written after the copy was taken is gone: threads, feedback,
+  and the rate-limit and usage rows of that period.
+- Never combine one database's messages with another's key. Starting the
+  agent on an empty or new file creates a new key, and answers signed with a
+  different key show as unverified history.
+- A research run that was in progress when the copy was taken comes back in
+  that state, and the recovery sweep can resume it within its two recovery
+  claims.
+- Accounts deleted after the copy was taken are back. Run the account
+  deletion command in [Data classification & retention](#data-classification--retention)
+  again for each, with the restored file's path.
+
 ## Full Rebuild (Nuclear Option)
 
-If the local graph is corrupted or you need to rebuild from scratch. **`load --reset` drops every node and relationship in the graph that `NEO4J_URI` points at** — confirm it targets your local instance before running, and never point it at production. There is no in-place rebuild of the production graph: that path was removed, and its successor, the [blue-green corpus release](docs/operations/blue-green-corpus-releases.md), does not yet work end to end (review cards OPS-2, OPS-3, OPS-7 and OPS-9).
+If the local graph is corrupted or you need to rebuild from scratch. **`load --reset` drops every node and relationship in the graph that `NEO4J_URI` points at** — confirm it targets your local instance before running, and never point it at production. There is no in-place rebuild of the production graph: that path was removed, and its successor, the [blue-green corpus release](docs/operations/blue-green-corpus-releases.md), has not yet produced a release (the changes for review cards OPS-2, OPS-3, OPS-7 and OPS-9 have merged; the first bootstrap has not been run).
 
 ```bash
 cd packages/pipeline
