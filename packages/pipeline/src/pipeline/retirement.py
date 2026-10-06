@@ -5,6 +5,7 @@ from __future__ import annotations
 import fcntl
 import hashlib
 import json
+import re
 import sqlite3
 from contextlib import contextmanager
 from datetime import UTC, datetime
@@ -14,19 +15,31 @@ from urllib.parse import urlsplit, urlunsplit
 from pipeline.corpus_manifest import load_corpus_manifest
 from pipeline.source_lifecycle import private_path, validate_never_downloaded, verify_capture
 
-RETIREMENT_SCHEMA = """
-CREATE TABLE IF NOT EXISTS source_retirements (
-  id INTEGER PRIMARY KEY,
-  source_url TEXT NOT NULL,
-  schema_version INTEGER NOT NULL DEFAULT 1,
-  evidence_json TEXT NOT NULL,
-  retired_at TEXT NOT NULL,
-  reactivated_at TEXT,
-  recovered_hash TEXT
-);
-CREATE UNIQUE INDEX IF NOT EXISTS source_retirements_active
-ON source_retirements(source_url) WHERE reactivated_at IS NULL;
-"""
+# The crawler declares every registry table once, in its schema.sql; the
+# crawler build and the corpus-job image both ship the file (`COPY packages`).
+REGISTRY_SCHEMA_PATH = (
+    Path(__file__).resolve().parents[3] / "crawler/src/db/schema.sql"
+)
+
+
+def registry_ddl(table: str) -> str:
+    """The shared statements that create ``table`` and its indexes, and nothing
+    else: a retirement must not run the other tables' statements against a
+    registry whose older tables the crawler migrates on open."""
+    statements = [
+        statement.strip()
+        for statement in REGISTRY_SCHEMA_PATH.read_text().split(";")
+        if statement.strip()
+    ]
+    wanted = [
+        statement
+        for statement in statements
+        if re.search(rf"\bTABLE IF NOT EXISTS {table}\b", statement)
+        or re.search(rf"\bON {table}\s*\(", statement)
+    ]
+    if not wanted:
+        raise ValueError(f"{REGISTRY_SCHEMA_PATH} declares no table {table}")
+    return ";\n".join(wanted) + ";\n"
 
 
 @contextmanager
@@ -222,7 +235,7 @@ def retire_source_locked(root: Path, evidence: dict, *, apply: bool = False) -> 
             raise ValueError("Replacement must be an official source")
         result = {"source_url": url, "apply": apply, "status": "validated"}
         if apply:
-            db.executescript(RETIREMENT_SCHEMA)
+            db.executescript(registry_ddl("source_retirements"))
             encoded = json.dumps({**evidence, "source_url": url}, sort_keys=True)
             current = db.execute(
                 "SELECT evidence_json FROM source_retirements WHERE source_url=? AND reactivated_at IS NULL",

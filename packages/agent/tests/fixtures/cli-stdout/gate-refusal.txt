@@ -1,0 +1,12 @@
+
+---EVIDENCE---
+
+{"sources":[],"evidence_bytes":0,"agent_config":{"agent_model":"golden-agent-model","agent_reasoning_effort":"medium","verifier_model":"golden-verifier-model","input_processors":["message-length-guard","coverage-boundary","scope-gate","openai-responses-dedup","answer-frame-prefetch","answer-frame-planning","token-limiter"],"runtime_options":{"memory":false,"prompt_injection_detector":false}}}
+
+---VERIFIER---
+
+{"gate":{"processor_id":"coverage-boundary","code":"coverage-limitation"},"coverage_policy_id":"bounded-policy-research-v1","coverage_issue":"I cannot establish the applicable MAGI income table for that period within the supported dated coverage. Please specify a supported date or research that period separately; the available April 2025 and April 2026 tables do not establish earlier or later limits.","latency_ms":1234,"pass_count":0,"withholding_reason":"coverage-limitation","outcome":{"status":"withheld","reason":"coverage-limitation","passCount":0},"rewrote":false,"supported":false,"verifier_unavailable":false}
+
+---ANSWER---
+
+I cannot establish the applicable MAGI income table for that period within the supported dated coverage. Please specify a supported date or research that period separately; the available April 2025 and April 2026 tables do not establish earlier or later limits.

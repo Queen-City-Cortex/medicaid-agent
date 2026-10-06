@@ -8,12 +8,8 @@ from pipeline.source_lifecycle import stable_hash, lifecycle_snapshot
 
 
 @pytest.fixture
-def source(tmp_path):
-    (tmp_path / "crawler").mkdir()
-    with sqlite3.connect(tmp_path / "crawler/crawler.db") as db:
-        db.execute(
-            "CREATE TABLE documents(id INTEGER PRIMARY KEY,source_url TEXT UNIQUE,source_type TEXT,discovered_from TEXT,title TEXT,status TEXT DEFAULT 'discovered',local_path TEXT)"
-        )
+def source(tmp_path, crawler_registry):
+    with sqlite3.connect(crawler_registry) as db:
         db.execute(
             "INSERT INTO documents(source_url,source_type,discovered_from,status) VALUES('https://policies.ncdhhs.gov/document/index/','dhhs_policy','https://policies.ncdhhs.gov/','error')"
         )

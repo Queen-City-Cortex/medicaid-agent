@@ -1,7 +1,6 @@
 import './load-env.js';
 import { Mastra } from '@mastra/core';
-import { resolveCoverageScope } from '@nc-medicaid/policy-corpus';
-import { cliAgentConfig, verifyCliAnswer, type CliRuntimeRecord } from './cli-verification.js';
+import { emitAnswer, emitGateRefusal, verifyCliAnswer, type CliRuntimeRecord } from './cli-verification.js';
 import { deepResearchWorkflow } from './deep-research/workflow.js';
 import { isVerifierEnabled } from './env.js';
 import { closeDriver } from './neo4j.js';
@@ -10,9 +9,7 @@ import {
   extractSourcesFromToolResults,
   type ToolResultRecord,
 } from './processors/hallucination-verifier.js';
-import type { GateTripwireMetadata } from './processors/message-length-guard.js';
 import { createPrivateVerificationCapture } from './processors/verifier/diagnostics.js';
-import { emitVerifierTelemetry } from './processors/verifier/run.js';
 import { createAgentRuntime } from './runtime.js';
 
 // One-shot command line, and the process the answer evaluation runs once per
@@ -63,31 +60,6 @@ function stepToolResults(step: unknown): ToolResultRecord[] {
       result: payload.result ?? payload.output,
     }];
   });
-}
-
-/**
- * An input gate refused the question, as it would for a web user: no model ran
- * and nothing was verified. The evaluation reads every outcome from the
- * `---VERIFIER---` block, so the refusal is reported there as a withheld
- * answer with zero passes, marked by `gate` so it cannot be mistaken for the
- * verifier's own decision. Only the gate's code and its fixed user message are
- * printed; the tripwire reason can quote a classifier.
- */
-function emitGateRefusal(question: string, tripwire: { processorId?: string; metadata?: unknown }, record: CliRuntimeRecord): string {
-  const metadata = fields(tripwire.metadata) as Partial<GateTripwireMetadata>;
-  const code = metadata.code ?? 'input-gate';
-  const userMessage = metadata.userMessage ?? 'This request was blocked before it reached the assistant.';
-  console.log('\n---EVIDENCE---\n');
-  console.log(JSON.stringify({ sources: [], evidence_bytes: 0, agent_config: cliAgentConfig(record) }));
-  emitVerifierTelemetry({
-    gate: { processor_id: tripwire.processorId ?? null, code },
-    coverage_policy_id: resolveCoverageScope(question)?.policyId ?? null,
-    coverage_issue: code === 'coverage-limitation' ? userMessage : null,
-    latency_ms: 0, pass_count: 0, withholding_reason: code,
-    outcome: { status: 'withheld', reason: code, passCount: 0 },
-    rewrote: false, supported: false, verifier_unavailable: false,
-  });
-  return userMessage;
 }
 
 if (IS_DEEP_RESEARCH) {
@@ -165,8 +137,7 @@ if (IS_DEEP_RESEARCH) {
       }
     }
 
-    console.log('\n---ANSWER---\n');
-    console.log(finalAnswer || 'I was unable to find sufficient information to answer this question. Please try rephrasing or asking about a more specific aspect of the policy.');
+    emitAnswer(finalAnswer);
   } catch (err) {
     console.error('Agent error:', err);
     process.exitCode = 1;

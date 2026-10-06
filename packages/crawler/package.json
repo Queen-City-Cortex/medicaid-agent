@@ -7,7 +7,7 @@
     "crawl": "tsx src/index.ts crawl",
     "check": "tsx src/index.ts check",
     "stats": "tsx src/index.ts stats",
-    "build": "tsc",
+    "build": "tsc && cp src/db/schema.sql dist/db/schema.sql",
     "lint": "eslint .",
     "typecheck:tests": "tsc -p tsconfig.tests.json",
     "test": "vitest run",
