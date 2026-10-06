@@ -1,1 +1,67 @@
-{}
+{
+  "@mastra/ai-sdk": {
+    "owner": "platform",
+    "expires": "2026-11-05",
+    "reason": "No fixed sprintf-js is published (the advisory covers every release up to the latest, 1.1.3). It is reached only through @mastra/core -> gray-matter -> js-yaml 3 -> argparse, which parses front matter in Mastra's own files; no production route passes user text to a sprintf format string. Revisit with the single-train Mastra upgrade (issue #145) or when a fixed sprintf-js ships."
+  },
+  "@mastra/auth": {
+    "owner": "platform",
+    "expires": "2026-11-05",
+    "reason": "No fixed sprintf-js is published (the advisory covers every release up to the latest, 1.1.3). It is reached only through @mastra/core -> gray-matter -> js-yaml 3 -> argparse, which parses front matter in Mastra's own files; no production route passes user text to a sprintf format string. Revisit with the single-train Mastra upgrade (issue #145) or when a fixed sprintf-js ships."
+  },
+  "@mastra/auth-workos": {
+    "owner": "platform",
+    "expires": "2026-11-05",
+    "reason": "No fixed sprintf-js is published (the advisory covers every release up to the latest, 1.1.3). It is reached only through @mastra/core -> gray-matter -> js-yaml 3 -> argparse, which parses front matter in Mastra's own files; no production route passes user text to a sprintf format string. Revisit with the single-train Mastra upgrade (issue #145) or when a fixed sprintf-js ships."
+  },
+  "@mastra/core": {
+    "owner": "platform",
+    "expires": "2026-11-05",
+    "reason": "No fixed sprintf-js is published (the advisory covers every release up to the latest, 1.1.3). It is reached only through @mastra/core -> gray-matter -> js-yaml 3 -> argparse, which parses front matter in Mastra's own files; no production route passes user text to a sprintf format string. Revisit with the single-train Mastra upgrade (issue #145) or when a fixed sprintf-js ships."
+  },
+  "@mastra/libsql": {
+    "owner": "platform",
+    "expires": "2026-11-05",
+    "reason": "No fixed sprintf-js is published (the advisory covers every release up to the latest, 1.1.3). It is reached only through @mastra/core -> gray-matter -> js-yaml 3 -> argparse, which parses front matter in Mastra's own files; no production route passes user text to a sprintf format string. Revisit with the single-train Mastra upgrade (issue #145) or when a fixed sprintf-js ships."
+  },
+  "@mastra/memory": {
+    "owner": "platform",
+    "expires": "2026-11-05",
+    "reason": "No fixed sprintf-js is published (the advisory covers every release up to the latest, 1.1.3). It is reached only through @mastra/core -> gray-matter -> js-yaml 3 -> argparse, which parses front matter in Mastra's own files; no production route passes user text to a sprintf format string. Revisit with the single-train Mastra upgrade (issue #145) or when a fixed sprintf-js ships."
+  },
+  "@mastra/observability": {
+    "owner": "platform",
+    "expires": "2026-11-05",
+    "reason": "No fixed sprintf-js is published (the advisory covers every release up to the latest, 1.1.3). It is reached only through @mastra/core -> gray-matter -> js-yaml 3 -> argparse, which parses front matter in Mastra's own files; no production route passes user text to a sprintf format string. Revisit with the single-train Mastra upgrade (issue #145) or when a fixed sprintf-js ships."
+  },
+  "@tailwindcss/typography": {
+    "owner": "web",
+    "expires": "2026-11-05",
+    "reason": "Fixed only in postcss-selector-parser 7.1.6; @tailwindcss/typography pins 6.0.10. It runs at build time over this repository's own stylesheets and never sees user-supplied CSS."
+  },
+  "argparse": {
+    "owner": "platform",
+    "expires": "2026-11-05",
+    "reason": "No fixed sprintf-js is published (the advisory covers every release up to the latest, 1.1.3). It is reached only through @mastra/core -> gray-matter -> js-yaml 3 -> argparse, which parses front matter in Mastra's own files; no production route passes user text to a sprintf format string. Revisit with the single-train Mastra upgrade (issue #145) or when a fixed sprintf-js ships."
+  },
+  "gray-matter": {
+    "owner": "platform",
+    "expires": "2026-11-05",
+    "reason": "No fixed sprintf-js is published (the advisory covers every release up to the latest, 1.1.3). It is reached only through @mastra/core -> gray-matter -> js-yaml 3 -> argparse, which parses front matter in Mastra's own files; no production route passes user text to a sprintf format string. Revisit with the single-train Mastra upgrade (issue #145) or when a fixed sprintf-js ships."
+  },
+  "js-yaml": {
+    "owner": "platform",
+    "expires": "2026-11-05",
+    "reason": "No fixed sprintf-js is published (the advisory covers every release up to the latest, 1.1.3). It is reached only through @mastra/core -> gray-matter -> js-yaml 3 -> argparse, which parses front matter in Mastra's own files; no production route passes user text to a sprintf format string. Revisit with the single-train Mastra upgrade (issue #145) or when a fixed sprintf-js ships."
+  },
+  "postcss-selector-parser": {
+    "owner": "web",
+    "expires": "2026-11-05",
+    "reason": "Fixed only in postcss-selector-parser 7.1.6; @tailwindcss/typography pins 6.0.10. It runs at build time over this repository's own stylesheets and never sees user-supplied CSS."
+  },
+  "sprintf-js": {
+    "owner": "platform",
+    "expires": "2026-11-05",
+    "reason": "No fixed sprintf-js is published (the advisory covers every release up to the latest, 1.1.3). It is reached only through @mastra/core -> gray-matter -> js-yaml 3 -> argparse, which parses front matter in Mastra's own files; no production route passes user text to a sprintf format string. Revisit with the single-train Mastra upgrade (issue #145) or when a fixed sprintf-js ships."
+  }
+}

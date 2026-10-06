@@ -22,7 +22,10 @@
     },
     "@mastra/memory": {
       "probe-image-size": "7.4.0"
-    }
+    },
+    "proxy-addr": "2.0.8",
+    "source-map-js": "1.2.2",
+    "fast-copy": "4.1.2"
   },
   "dependencies": {
     "fast-uri": "4.2.1",
