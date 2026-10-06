@@ -7,7 +7,7 @@ vi.mock('../src/neo4j.js', () => ({
 }));
 vi.mock('../src/sentry.js', () => ({ Sentry: { captureException: vi.fn() } }));
 
-import { handleCorpusStatusRequest, resetCorpusStatusCache } from '../src/corpus-status.js';
+import { getCorpusStatus, handleCorpusStatusRequest, resetCorpusStatusCache } from '../src/corpus-status.js';
 import { withSession } from '../src/neo4j.js';
 import { log } from '../src/logger.js';
 
@@ -47,5 +47,22 @@ describe('corpus-status route failure logging', () => {
       retrievalMode: 'hybrid',
     });
     expect(error).not.toHaveBeenCalled();
+  });
+});
+
+describe('corpus-status document count', () => {
+  it('leaves out revision rows a graph loaded before the relabel still holds as documents', async () => {
+    resetCorpusStatusCache();
+    const run = vi.fn(async (_query: string) => ({
+      records: [{ get: (key: string) => ({ lastUpdated: null, documentCount: 3322, releaseId: 'r1' } as Record<string, unknown>)[key] }],
+    }));
+    vi.mocked(withSession).mockImplementation((async (fn: (session: { run: typeof run }) => Promise<unknown>) => fn({ run })) as never);
+
+    const status = await getCorpusStatus();
+
+    expect(status.documentCount).toBe(3322);
+    const query = run.mock.calls[0][0].replace(/\s+/g, ' ');
+    // Only :Document nodes count, so :PolicyRevision nodes never do.
+    expect(query).toContain("MATCH (d:Document) WHERE coalesce(d.document_type, '') <> 'change_notice' OPTIONAL MATCH");
   });
 });

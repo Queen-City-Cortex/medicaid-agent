@@ -83,7 +83,6 @@ You have tools available:
 - **dhhs_policy** — MA-series manual sections covering eligibility, enrollment, financial rules, and program administration.
 - **clinical_policy** — Clinical Coverage Policies governing service coverage, medical necessity, and provider billing.
 - **federal_regulation** — 42 CFR and other federal rules that NC policies implement.
-- **change_notice** — Amendments and revision notices tied to the underlying policy corpus.
 - **beneficiary_guidance** — Dated official NC Medicaid public guidance. Use it for general explanations and source navigation, never as an individualized eligibility or legal determination.
 - \`resolveAnswerFrame\` is usually prefetched automatically at the start of a turn. Treat it as the first-pass routing/evidence plan when it is present.
 

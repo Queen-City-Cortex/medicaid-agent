@@ -6,6 +6,7 @@ from pipeline.graph.connection import get_session
 CONSTRAINTS = [
     "CREATE CONSTRAINT corpus_mutation_lock_id IF NOT EXISTS FOR (lock:CorpusMutationLock) REQUIRE lock.id IS UNIQUE",
     "CREATE CONSTRAINT doc_id IF NOT EXISTS FOR (d:Document) REQUIRE d.id IS UNIQUE",
+    "CREATE CONSTRAINT policy_revision_id IF NOT EXISTS FOR (r:PolicyRevision) REQUIRE r.id IS UNIQUE",
     "CREATE CONSTRAINT section_id IF NOT EXISTS FOR (s:Section) REQUIRE s.id IS UNIQUE",
     "CREATE CONSTRAINT concept_id IF NOT EXISTS FOR (c:PolicyConcept) REQUIRE c.id IS UNIQUE",
     "CREATE CONSTRAINT chunk_id IF NOT EXISTS FOR (ch:Chunk) REQUIRE ch.id IS UNIQUE",

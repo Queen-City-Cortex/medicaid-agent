@@ -379,3 +379,9 @@ describe('searchSections', () => {
     expect(hybrid.retrievalMode).toBe('hybrid');
   });
 });
+
+describe('searchSections description', () => {
+  it('does not offer change_notice as a document-type filter', () => {
+    expect((searchSections as unknown as { description: string }).description).not.toContain('change_notice');
+  });
+});

@@ -19,9 +19,11 @@ export const amendmentContextBackend: RetrievalBackend = {
     const keywordHits = [];
     for (const docTypes of profile.typeGroups) {
       try {
+        // No label on `amend`: a clinical policy's revisions are
+        // :PolicyRevision nodes, a change notice is a :Document.
         const result = await timeSearchStep(`amendment context ${docTypes.join('+')}`, () =>
           session.run(
-            `MATCH (amend:Document)-[:AMENDS]->(base:Document)
+            `MATCH (amend)-[:AMENDS]->(base:Document)
              WHERE (amend.document_type IN $docTypes
                 OR base.document_type IN $docTypes)
                AND ${notArchived('base')}

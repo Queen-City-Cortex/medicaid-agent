@@ -77,9 +77,12 @@ export function createPolicyLookupPrimitiveService({ withSession }: { withSessio
     return withSession(async (session) => {
       // Exact number only, compared as policyNumberKey does. A prefix match
       // returned sibling policies ("1A-2" also matched 1A-20 to 1A-28) and
-      // the newest sibling sorted first. Derived revision rows
-      // (document_type 'change_notice') share their policy's number and have
-      // no sections; getAmendments returns them.
+      // the newest sibling sorted first. A policy's revision-table entries
+      // share its number but are :PolicyRevision nodes, which this does not
+      // match; getAmendments returns them. Transitional: a graph loaded
+      // before the relabel holds them as :Document rows of type
+      // 'change_notice', which the type filter excludes. Delete the filter
+      // once the serving graph is loaded with :PolicyRevision.
       // The 0..1 supersession match runs BEFORE the section collect so it
       // can't multiply section rows.
       const result = await session.run(

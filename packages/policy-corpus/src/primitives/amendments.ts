@@ -47,10 +47,14 @@ function withNoticeNumberFromTitle(amendment: AmendmentDocumentView): AmendmentD
 }
 
 export function createAmendmentPrimitiveService({ withSession }: { withSession: SessionExecutor }) {
+  // A clinical policy's revision-table entries are `:PolicyRevision` nodes,
+  // not documents; this is the one reader that follows their AMENDS edges.
+  // An amending node is matched without a label, so a graph loaded before
+  // the relabel, where they are still `:Document`, reads the same.
   const getAmendments = async (documentId: string): Promise<AmendmentsView> => {
     return withSession(async (session) => {
       const documentResult = await session.run(
-        `MATCH (d:Document {id: $id})
+        `MATCH (d:Document|PolicyRevision {id: $id})
          RETURN
            ${documentMetadataReturn('d')}`,
         { id: documentId },
@@ -59,8 +63,8 @@ export function createAmendmentPrimitiveService({ withSession }: { withSession: 
 
       // One row past the cap shows whether the history was cut.
       const amendmentResult = await session.run(
-        `MATCH (d:Document {id: $id})
-         OPTIONAL MATCH (amend:Document)-[r:AMENDS]->(d)
+        `MATCH (d:Document|PolicyRevision {id: $id})
+         OPTIONAL MATCH (amend)-[r:AMENDS]->(d)
          RETURN
            ${documentMetadataReturn('amend')},
            amend.change_year AS changeYear,
@@ -86,7 +90,7 @@ export function createAmendmentPrimitiveService({ withSession }: { withSession: 
       // A change notice often amends several manuals, so all of them are
       // returned. A manual without a policy number sorts last.
       const amendsResult = await session.run(
-        `MATCH (d:Document {id: $id})-[:AMENDS]->(base:Document)
+        `MATCH (d:Document|PolicyRevision {id: $id})-[:AMENDS]->(base:Document)
          RETURN
            ${documentMetadataReturn('base')}
          ORDER BY base.policy_number ASC, base.id ASC`,

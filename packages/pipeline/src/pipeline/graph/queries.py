@@ -193,6 +193,56 @@ MERGE (src)-[r:AMENDS]->(tgt)
 SET r.change_description = pair.change_description
 """
 
+# Clinical-policy revision-table entries. The properties mirror the document
+# metadata the amendment readers return, so a revision reads like any other
+# amendment; the label keeps it out of every :Document reader.
+MERGE_POLICY_REVISIONS_BATCH = """
+UNWIND $revisions AS revision
+MATCH (base:Document {id: revision.base_document_id})
+MERGE (r:PolicyRevision {id: revision.id})
+SET r.title = revision.title,
+    r.document_type = 'change_notice',
+    r.policy_number = revision.policy_number,
+    r.category = 'Clinical Coverage Policy Revision',
+    r.status = 'amendment',
+    r.source_url = revision.source_url,
+    r.effective_date = revision.effective_date,
+    r.variant_date = revision.effective_date,
+    r.authority_tier = 'supporting',
+    r.source_format = 'derived',
+    r.answer_ready = true,
+    r.retrieval_ready = false,
+    r.last_indexed = datetime()
+MERGE (r)-[a:AMENDS]->(base)
+SET a.change_description = revision.change_description
+WITH r, base
+MATCH (r)-[stale:AMENDS]->(other)
+WHERE other <> base
+DELETE stale
+"""
+
+# Revisions are recomputed from the revision tables on every run. The label
+# scopes the delete: a node that is also a :Document is never removed.
+DELETE_STALE_POLICY_REVISIONS = """
+MATCH (r:PolicyRevision)
+WHERE NOT r.id IN $ids
+  AND NOT r:Document
+DETACH DELETE r
+"""
+
+# Transitional: until October 2026 a revision was a :Document with this id
+# shape, type and format and no sections. A real document has a hashed id
+# (doc:<family>:<16 hex>), a manifest family as its type and a file format.
+# Delete once no graph loaded before the relabel is reloaded in place.
+DELETE_DERIVED_REVISION_DOCUMENTS = """
+MATCH (d:Document)
+WHERE d.id STARTS WITH 'doc:change_notice:'
+  AND d.document_type = 'change_notice'
+  AND d.source_format = 'derived'
+  AND NOT EXISTS { (d)-[:HAS_SECTION]->() }
+DETACH DELETE d
+"""
+
 SET_DOCUMENT_STATUS_BATCH = """
 UNWIND $doc_ids AS doc_id
 MATCH (d:Document {id: doc_id})

@@ -17,6 +17,10 @@ describe('buildSystemPrompt', () => {
     expect(prompt).not.toContain('For pharmacy prior-authorization questions');
   });
 
+  it('does not list change_notice as a document type: no section carries it, so a search filtered on it finds nothing', () => {
+    expect(buildSystemPrompt()).not.toContain('change_notice');
+  });
+
   it('states federal bounds as bounds without naming a day count', () => {
     const rule = buildSystemPrompt().split('\n').find((line) => line.includes('only as the federal bound'));
 

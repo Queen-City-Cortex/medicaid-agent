@@ -183,8 +183,10 @@ integration('agent tools against a real Neo4j graph', () => {
   });
 
   it('looks up a policy by its exact number, not a sibling or a revision row', async () => {
-    // "TEST-PN-2" is a prefix of the newer "TEST-PN-27"; the revision row
-    // shares the policy's number, as derived revision-table rows do.
+    // "TEST-PN-2" is a prefix of the newer "TEST-PN-27"; the revision rows
+    // share the policy's number, as revision-table entries do. One is a
+    // :PolicyRevision node, as the pipeline writes them; the other is the
+    // :Document form a graph loaded before the relabel still holds.
     await run(
       `
       CREATE (:Document {
@@ -214,11 +216,21 @@ integration('agent tools against a real Neo4j graph', () => {
         source_url: 'https://example.com/test-pn-2',
         status: 'amendment'
       })
+      CREATE (:PolicyRevision {
+        id: $relabelledId,
+        title: 'Policy TEST-PN-2 Revision — 2025-06-01 (Section 5.1)',
+        document_type: 'change_notice',
+        policy_number: 'TEST-PN-2',
+        effective_date: '2025-06-01',
+        source_url: 'https://example.com/test-pn-2',
+        status: 'amendment'
+      })
       `,
       {
         policyId: `${FIXTURE_PREFIX}doc:pn-2`,
         siblingId: `${FIXTURE_PREFIX}doc:pn-27`,
         revisionId: `${FIXTURE_PREFIX}doc:pn-2:revision`,
+        relabelledId: `${FIXTURE_PREFIX}doc:pn-2:revision-relabelled`,
       },
     );
 
@@ -343,6 +355,75 @@ integration('agent tools against a real Neo4j graph', () => {
     expect(result.truncated).toBe(false);
     expect(result.amendments[0].changeSummary).toBe('Revised premium chart in section IV.I.');
     expect(result.amendments[1].changeSummary).toBe('Updated eligibility criteria in section IV.A.');
+  });
+
+  it('returns a clinical policy revision history from :PolicyRevision nodes and from the older :Document rows', async () => {
+    const policyId = `${FIXTURE_PREFIX}doc:rev-policy`;
+    const relabelledId = `${FIXTURE_PREFIX}doc:rev-2025-06-01`;
+    const olderFormId = `${FIXTURE_PREFIX}doc:rev-2024-03-01`;
+
+    // After a reload every revision is a :PolicyRevision; the :Document row
+    // is the form a graph loaded before the relabel holds. Both must read.
+    await run(
+      `
+      CREATE (policy:Document {
+        id: $policyId,
+        title: 'Fixture Policy TEST-REV-8C',
+        document_type: 'clinical_policy',
+        policy_number: 'TEST-REV-8C',
+        effective_date: '2025-06-01',
+        source_url: 'https://example.com/test-rev-8c',
+        status: 'current'
+      })
+      CREATE (relabelled:PolicyRevision {
+        id: $relabelledId,
+        title: 'Policy TEST-REV-8C Revision — 2025-06-01 (2 changes)',
+        document_type: 'change_notice',
+        policy_number: 'TEST-REV-8C',
+        effective_date: '2025-06-01',
+        source_url: 'https://example.com/test-rev-8c',
+        status: 'amendment',
+        source_format: 'derived'
+      })
+      CREATE (older:Document {
+        id: $olderFormId,
+        title: 'Policy TEST-REV-8C Revision — 2024-03-01 (Section 3.2)',
+        document_type: 'change_notice',
+        policy_number: 'TEST-REV-8C',
+        effective_date: '2024-03-01',
+        source_url: 'https://example.com/test-rev-8c',
+        status: 'amendment',
+        source_format: 'derived'
+      })
+      CREATE (relabelled)-[:AMENDS {change_description: $relabelledDesc}]->(policy)
+      CREATE (older)-[:AMENDS {change_description: 'Section 3.2: Clarified limits.'}]->(policy)
+      `,
+      { policyId, relabelledId, olderFormId, relabelledDesc: 'Section 5.1: Added codes.\nSection 6.0: Updated providers.' },
+    );
+
+    const history = await runTool(getAmendments, { documentId: policyId });
+    expect(history.document?.id).toBe(policyId);
+    expect(history.amendments.map((doc) => doc.id)).toEqual([relabelledId, olderFormId]);
+    expect(history.latestAmendment).toMatchObject({
+      id: relabelledId,
+      documentType: 'change_notice',
+      status: 'amendment',
+      effectiveDate: '2025-06-01',
+      url: 'https://example.com/test-rev-8c',
+      changeSummary: 'Section 5.1: Added codes.\nSection 6.0: Updated providers.',
+    });
+
+    // Asked about a revision itself, in either form, it names the policy it amends.
+    for (const revisionId of [relabelledId, olderFormId]) {
+      const revision = await runTool(getAmendments, { documentId: revisionId });
+      expect(revision.document?.id).toBe(revisionId);
+      expect(revision.amends.map((doc) => doc.id)).toEqual([policyId]);
+      expect(revision.amendments).toEqual([]);
+    }
+
+    // Neither form is a document to policy lookup.
+    const lookup = await runTool(lookupPolicy, { policyNumber: 'TEST-REV-8C' });
+    expect(lookup.documents.map((document) => document.id)).toEqual([policyId]);
   });
 
   it('orders undated change notices by year, then sequence, then id', async () => {

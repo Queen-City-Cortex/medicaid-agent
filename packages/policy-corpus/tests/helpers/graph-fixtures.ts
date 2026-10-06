@@ -340,19 +340,19 @@ export const queries = {
   documentMetadataById:
     (id: string): QueryMatcher =>
     (query, params) =>
-      normalizeQueryText(query).includes('MATCH (d:Document {id: $id}) RETURN d.id AS id') && params.id === id,
+      normalizeQueryText(query).includes('MATCH (d:Document|PolicyRevision {id: $id}) RETURN d.id AS id') && params.id === id,
 
   /** getAmendments amendment-trail query. */
   amendmentsOf:
     (id: string): QueryMatcher =>
     (query, params) =>
-      query.includes('OPTIONAL MATCH (amend:Document)-[r:AMENDS]->(d)') && params.id === id,
+      query.includes('OPTIONAL MATCH (amend)-[r:AMENDS]->(d)') && params.id === id,
 
   /** getAmendments base-document query. */
   amendmentBaseOf:
     (id: string): QueryMatcher =>
     (query, params) =>
-      query.includes('MATCH (d:Document {id: $id})-[:AMENDS]->(base:Document)') && params.id === id,
+      query.includes('MATCH (d:Document|PolicyRevision {id: $id})-[:AMENDS]->(base:Document)') && params.id === id,
 };
 
 // ---------------------------------------------------------------------------

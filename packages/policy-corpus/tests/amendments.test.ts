@@ -137,6 +137,22 @@ describe('getAmendments', () => {
     expect(amendsQuery).not.toContain('LIMIT');
   });
 
+  it('reads history from revision nodes and documents alike, on a graph loaded before or after the relabel', async () => {
+    const { corpus, session } = amendmentsFor([]);
+
+    await corpus.getAmendments('doc-ma3550');
+
+    const [documentQuery, trailQuery, amendsQuery] = session.run.mock.calls.map((call) => normalizeQueryText(call[0] as string));
+    // Clinical revision entries are :PolicyRevision; before the relabel they
+    // were :Document. No label on the amending node matches both.
+    expect(trailQuery).toContain('OPTIONAL MATCH (amend)-[r:AMENDS]->(d)');
+    for (const query of [documentQuery, trailQuery, amendsQuery]) {
+      expect(query).toContain('MATCH (d:Document|PolicyRevision {id: $id})');
+    }
+    // What a node amends is always a document.
+    expect(amendsQuery).toContain('-[:AMENDS]->(base:Document)');
+  });
+
   it('orders the trail in the query by year, sequence, date and id, with no null sort key', async () => {
     const { corpus, session } = amendmentsFor([]);
 

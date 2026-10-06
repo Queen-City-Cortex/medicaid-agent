@@ -140,9 +140,10 @@ export async function retrieveAmendmentTitleExpansionHits({
   if (titles.length === 0) return [];
 
   try {
+    // No label on `amend`: it may be a :Document or a :PolicyRevision.
     const result = await timeSearchStep('amendment title expansion', () =>
       session.run(
-        `MATCH (amend:Document)-[:AMENDS]->(base:Document)
+        `MATCH (amend)-[:AMENDS]->(base:Document)
          WHERE amend.title IN $titles
            AND ${notArchived('base')}
          MATCH (base)-[:HAS_SECTION]->(s:Section)

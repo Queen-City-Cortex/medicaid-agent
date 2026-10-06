@@ -1,9 +1,6 @@
 """Test amendment detection: two-tier extraction and change_description."""
 
 from pipeline.references import amendments
-from pipeline.graph.corpus_types import DocumentNode
-from pipeline.graph import queries
-import re
 from tests.fakes import RecordingSession, session_factory
 
 
@@ -11,41 +8,25 @@ class FakeGraphWriter:
     def __init__(self):
         self.edges = []
         self.amendment_doc_ids = []
+        self.revisions = None
 
     def merge_amendments(self, edges, amendment_doc_ids):
         self.edges = list(edges)
         self.amendment_doc_ids = list(amendment_doc_ids)
         return len(edges)
 
-
-def test_synthetic_document_supplies_every_merge_parameter():
-    doc = DocumentNode(
-        id="revision:test", title="Revision", document_type="clinical_policy", policy_number="8c",
-        category="clinical", status="current", source_url="https://example.org/policy", local_path="",
-        pdf_path="", page_count=0, section_count=0, effective_date="2026-01-01",
-        source_modified_date="2026-02-01", retrieved_at="2026-02-02 03:04:05",
-        source_checked_at="2026-02-02 03:04:05", source_changed_at="2026-02-01 01:02:03",
-    )
-    captured = []
-
-    class Session:
-        def run(self, query, parameters):
-            assert query == queries.MERGE_DOCUMENT
-            assert set(re.findall(r"\$(\w+)", query)) <= parameters.keys()
-            captured.append(parameters)
-
-    amendments._upsert_synthetic_documents(Session(), [doc])
-    assert captured[0]["source_modified_date"] == doc.source_modified_date
-    assert captured[0]["retrieved_at"] == doc.retrieved_at
-    assert captured[0]["source_checked_at"] == "2026-02-02T03:04:05+00:00"
-    assert captured[0]["source_changed_at"] == "2026-02-01T01:02:03+00:00"
+    def replace_policy_revisions(self, revisions):
+        self.revisions = list(revisions)
+        return len(revisions)
 
 
-def _detect(monkeypatch, docs, sections) -> FakeGraphWriter:
+def _detect(monkeypatch, docs, sections, revision_sections=(), source_urls=()) -> FakeGraphWriter:
     """Run detect_amendments() against an in-memory doc/section corpus."""
     session = RecordingSession(handlers=[
         (lambda q, p: "RETURN d.id AS doc_id, d.title AS title" in q, docs),
         (lambda q, p: "RETURN d.id AS doc_id, s.title AS sec_title" in q, sections),
+        (lambda q, p: "RETURN d.id AS doc_id, d.source_url AS source_url" in q, list(source_urls)),
+        (lambda q, p: "CONTAINS 'revision information'" in q, list(revision_sections)),
     ])
     fake_writer = FakeGraphWriter()
     monkeypatch.setattr(amendments, "get_session", session_factory(session))
@@ -229,7 +210,7 @@ def test_parse_revision_rows_handles_the_8c_table_format():
         "section_revised": "Section 6.0",
         "change_summary": "Nurse practitioner changes.",
     }
-    # Same-date collisions are preserved — the caller disambiguates by index.
+    # Same-date rows are kept here; the caller collapses them into one revision.
     assert rows[2]["effective_date"] == "2007-06-01"
     assert rows[3]["effective_date"] == "2007-06-01"
 
@@ -258,3 +239,74 @@ def test_parse_revision_rows_skips_malformed_dates():
     rows = _parse_revision_rows(content)
     assert len(rows) == 1
     assert rows[0]["effective_date"] == "2021-03-15"
+
+
+_REVISION_TABLE = """\
+| Date       | Section Revised    | Change                       |
+|:-----------|:-------------------|:-----------------------------|
+| 05/01/2005 | Section 6.0        | Nurse practitioner changes.  |
+| 06/01/2007 | Subsection 8.3     | Changed mental health codes. |
+| 06/01/2007 | Section 6.0        | Updated Licensed Clinical.   |
+"""
+
+_CLINICAL_DOC = {"doc_id": "doc:clinical_policy:8c", "title": "8C Outpatient Behavioral Health", "doc_type": "clinical_policy", "policy_number": "8C"}
+
+
+def test_same_date_revision_rows_collapse_into_one_revision(monkeypatch):
+    fake_writer = _detect(
+        monkeypatch,
+        [_CLINICAL_DOC],
+        [],
+        # The table appears in two revision sections; repeated rows count once.
+        revision_sections=[
+            {"doc_id": "doc:clinical_policy:8c", "sec_id": "sec:a", "content": _REVISION_TABLE},
+            {"doc_id": "doc:clinical_policy:8c", "sec_id": "sec:b", "content": _REVISION_TABLE},
+        ],
+        source_urls=[{"doc_id": "doc:clinical_policy:8c", "source_url": "https://example.org/8C.pdf"}],
+    )
+
+    assert [revision.id for revision in fake_writer.revisions] == [
+        "doc:change_notice:8C:2005-05-01",
+        "doc:change_notice:8C:2007-06-01",
+    ]
+    single, collapsed = fake_writer.revisions
+    assert single.title == "Policy 8C Revision — 2005-05-01 (Section 6.0)"
+    assert single.change_description == "Section 6.0: Nurse practitioner changes."
+    assert collapsed.title == "Policy 8C Revision — 2007-06-01 (2 changes)"
+    assert collapsed.change_description == (
+        "Subsection 8.3: Changed mental health codes.\n"
+        "Section 6.0: Updated Licensed Clinical."
+    )
+    assert collapsed.effective_date == "2007-06-01"
+    assert collapsed.base_document_id == "doc:clinical_policy:8c"
+    assert collapsed.source_url == "https://example.org/8C.pdf"
+    # Revisions are not documents: nothing asks the Document status or
+    # AMENDS writers to match them.
+    assert fake_writer.edges == []
+    assert fake_writer.amendment_doc_ids == []
+
+
+def test_revisions_are_replaced_even_when_no_table_parses(monkeypatch):
+    """An empty list still reaches the writer, which deletes stale revisions."""
+    fake_writer = _detect(monkeypatch, [_CLINICAL_DOC], [])
+    assert fake_writer.revisions == []
+
+    fake_writer = _detect(monkeypatch, [], [])
+    assert fake_writer.revisions == []
+
+
+def test_two_documents_with_one_policy_number_share_one_revision_per_date(monkeypatch):
+    twin = {**_CLINICAL_DOC, "doc_id": "doc:clinical_policy:8c-older"}
+    fake_writer = _detect(
+        monkeypatch,
+        [twin, _CLINICAL_DOC],
+        [],
+        revision_sections=[
+            {"doc_id": twin["doc_id"], "sec_id": "sec:t", "content": _REVISION_TABLE},
+            {"doc_id": _CLINICAL_DOC["doc_id"], "sec_id": "sec:a", "content": _REVISION_TABLE},
+        ],
+    )
+
+    assert len(fake_writer.revisions) == 2
+    # The lower document id owns the ids on every run.
+    assert {revision.base_document_id for revision in fake_writer.revisions} == {"doc:clinical_policy:8c"}

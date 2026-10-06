@@ -41,6 +41,23 @@ class DocumentNode:
 
 
 @dataclass(frozen=True)
+class PolicyRevisionNode:
+    """One dated entry of a clinical policy's revision table.
+
+    Not a document: it has no sections and no source of its own, so it is
+    written under its own label and reaches readers only through its AMENDS
+    edge to the policy.
+    """
+    id: str
+    title: str
+    policy_number: str
+    source_url: str
+    effective_date: str
+    base_document_id: str
+    change_description: str
+
+
+@dataclass(frozen=True)
 class SectionNode:
     id: str
     document_id: str

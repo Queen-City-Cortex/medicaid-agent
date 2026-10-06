@@ -14,6 +14,10 @@ let cached: { value: CachedCorpusStatus; expiresAt: number } | null = null;
 // max(last_indexed) is the real "corpus last updated" moment — not an
 // invented date. Cached for 5 minutes: the value changes only when the
 // pipeline runs, and the empty state requests it on every page load.
+// Transitional: a graph loaded before clinical-policy revision entries became
+// :PolicyRevision nodes holds them as :Document rows of type 'change_notice'
+// (over half the count). Delete the type filter once the serving graph is
+// loaded with :PolicyRevision.
 export async function getCorpusStatus(now: () => number = Date.now): Promise<CorpusStatus> {
   if (cached && cached.expiresAt > now()) {
     return { ...cached.value, retrievalMode: getRetrievalMode() };
@@ -22,6 +26,7 @@ export async function getCorpusStatus(now: () => number = Date.now): Promise<Cor
   const value = await withSession(async (session) => {
     const result = await session.run(
       `MATCH (d:Document)
+       WHERE coalesce(d.document_type, '') <> 'change_notice'
        OPTIONAL MATCH (release:CorpusRelease {id: 'current'})
        RETURN max(d.last_indexed) AS lastUpdated,
               count(DISTINCT d) AS documentCount,

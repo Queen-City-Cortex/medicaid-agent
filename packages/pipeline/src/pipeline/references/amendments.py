@@ -5,9 +5,8 @@ import re
 from rich.console import Console
 
 from pipeline.graph.connection import get_session
-from pipeline.graph import queries
-from pipeline.graph.corpus_types import AmendmentEdge, DocumentNode
-from pipeline.graph.corpus_writer import graph_writer, normalize_source_timestamp
+from pipeline.graph.corpus_types import AmendmentEdge, PolicyRevisionNode
+from pipeline.graph.corpus_writer import graph_writer
 
 console = Console()
 
@@ -167,31 +166,28 @@ def _parse_revision_rows(content: str) -> list[dict]:
 def _detect_clinical_policy_revisions(
     session,
     all_docs: list[dict],
-) -> tuple[dict, list[DocumentNode], list[AmendmentEdge]]:
-    """Extract clinical-policy revision tables into synthetic change_notice
-    documents + AMENDS edges.
+) -> tuple[dict, list[PolicyRevisionNode]]:
+    """Extract clinical-policy revision tables into policy revisions.
 
     Clinical coverage policies publish revision history as a markdown table
     inside a "Revision Information:" section rather than as separate change-
-    notice PDFs. This function parses those tables and materializes each row
-    as its own `change_notice` Document node so `getAmendments` on the base
-    CCP returns a real amendment chain.
+    notice PDFs. Each date in that table becomes one `:PolicyRevision` node
+    with an AMENDS edge to the policy, so `getAmendments` on the policy
+    returns its history. Rows that share a date are one revision whose
+    description lists every row.
 
-    Synthetic docs have IDs shaped like `doc:change_notice:<policy>:<iso>[:n]`
-    (the `:n` suffix disambiguates multiple revisions on the same date). They
-    are retrieval_ready=False so they don't surface in primary search, but
-    they participate in graph traversal and getAmendments lookups.
+    Revisions are not documents: they have no sections, and their id is
+    `doc:change_notice:<policy>:<iso>`.
     """
     clinical_docs = [d for d in all_docs if d.get("doc_type") == "clinical_policy"]
     stats = {"clinical_policies_scanned": len(clinical_docs), "clinical_revisions_parsed": 0}
     if not clinical_docs:
-        return stats, [], []
+        return stats, []
 
     doc_ids = [d["doc_id"] for d in clinical_docs]
 
-    # Hydrate each clinical doc with its source_url so synthetic change_notices
-    # can inherit a real, verifiable URL (the revision table lives inside the
-    # base PDF, so the base URL is the correct citation target).
+    # A revision cites the policy's own URL: the revision table lives inside
+    # the base PDF, so that is the verifiable citation target.
     source_url_result = session.run(
         "MATCH (d:Document) WHERE d.id IN $doc_ids RETURN d.id AS doc_id, d.source_url AS source_url",
         {"doc_ids": doc_ids},
@@ -218,11 +214,12 @@ def _detect_clinical_policy_revisions(
         revision_sections_by_doc.setdefault(rec["doc_id"], []).append(rec["content"] or "")
 
     doc_meta = {d["doc_id"]: d for d in clinical_docs}
-    synthetic_docs: list[DocumentNode] = []
-    amendment_edges: list[AmendmentEdge] = []
-    seen_synth_ids: set[str] = set()
+    revisions: list[PolicyRevisionNode] = []
+    seen_revision_ids: set[str] = set()
 
-    for base_doc_id, contents in revision_sections_by_doc.items():
+    # Sorted so that, when two documents carry one policy number, the same
+    # one owns the shared revision ids on every run.
+    for base_doc_id in sorted(revision_sections_by_doc):
         meta = doc_meta.get(base_doc_id) or {}
         policy = (meta.get("policy_number") or "").strip()
         if not policy:
@@ -231,95 +228,40 @@ def _detect_clinical_policy_revisions(
         # Collect every parsed revision across all revision sections (some CCPs
         # have multiple — e.g. title-only "Revision Information:" plus the
         # numbered "N.0 Policy Implementation/Revision Information").
-        all_rows: list[dict] = []
-        for content in contents:
-            all_rows.extend(_parse_revision_rows(content))
-        if not all_rows:
+        rows_by_date: dict[str, list[dict]] = {}
+        for content in revision_sections_by_doc[base_doc_id]:
+            for row in _parse_revision_rows(content):
+                rows_by_date.setdefault(row["effective_date"], []).append(row)
+        if not rows_by_date:
             continue
 
         stats["clinical_revisions_parsed"] += 1
-        date_counters: dict[str, int] = {}
-        for row in all_rows:
-            iso = row["effective_date"]
-            date_counters[iso] = date_counters.get(iso, 0) + 1
-            count = date_counters[iso]
-            suffix = "" if count == 1 else f":{count}"
-            synth_id = f"doc:change_notice:{policy}:{iso}{suffix}"
-            if synth_id in seen_synth_ids:
+        for iso, rows in rows_by_date.items():
+            revision_id = f"doc:change_notice:{policy}:{iso}"
+            if revision_id in seen_revision_ids:
                 continue
-            seen_synth_ids.add(synth_id)
+            seen_revision_ids.add(revision_id)
 
-            title = f"Policy {policy} Revision — {iso} ({row['section_revised']})"
-            # Inherit the base CCP's source_url so the citation link points to
-            # the authoritative PDF that actually contains this revision-table
-            # row. Fall back to the base doc id only if no URL is on record.
-            base_source_url = source_url_by_doc.get(base_doc_id) or f"derived:revision-table:{base_doc_id}"
-            synthetic_docs.append(
-                DocumentNode(
-                    id=synth_id,
-                    title=title,
-                    document_type="change_notice",
+            # dict.fromkeys: dedupe preserving order (a table repeated in two
+            # revision sections yields each row twice).
+            changes = list(dict.fromkeys(
+                f"{row['section_revised']}: {row['change_summary']}" for row in rows
+            ))
+            sections = list(dict.fromkeys(row["section_revised"] for row in rows))
+            detail = sections[0] if len(sections) == 1 else f"{len(changes)} changes"
+            revisions.append(
+                PolicyRevisionNode(
+                    id=revision_id,
+                    title=f"Policy {policy} Revision — {iso} ({detail})",
                     policy_number=policy,
-                    category="Clinical Coverage Policy Revision",
-                    status="amendment",
-                    source_url=base_source_url,
-                    local_path="",
-                    pdf_path="",
-                    page_count=0,
-                    section_count=0,
+                    source_url=source_url_by_doc.get(base_doc_id) or f"derived:revision-table:{base_doc_id}",
                     effective_date=iso,
-                    authority_tier="supporting",
-                    answer_role=None,
-                    source_format="derived",
-                    answer_ready=True,
-                    corpus_bucket=None,
-                    variant_group=None,
-                    variant_date=iso,
-                    retrieval_ready=False,
-                )
-            )
-            amendment_edges.append(
-                AmendmentEdge(
-                    source_id=synth_id,
-                    target_id=base_doc_id,
-                    change_description=f"{row['section_revised']}: {row['change_summary']}",
+                    base_document_id=base_doc_id,
+                    change_description="\n".join(changes),
                 )
             )
 
-    return stats, synthetic_docs, amendment_edges
-
-
-def _upsert_synthetic_documents(session, docs: list[DocumentNode]) -> None:
-    for doc in docs:
-        session.run(queries.MERGE_DOCUMENT, {
-            "id": doc.id,
-            "title": doc.title,
-            "document_type": doc.document_type,
-            "policy_number": doc.policy_number,
-            "category": doc.category,
-            "status": doc.status,
-            "source_url": doc.source_url,
-            "local_path": doc.local_path,
-            "pdf_path": doc.pdf_path,
-            "page_count": doc.page_count,
-            "section_count": doc.section_count,
-            "effective_date": doc.effective_date,
-            "change_year": doc.change_year,
-            "change_sequence": doc.change_sequence,
-            "source_modified_date": doc.source_modified_date,
-            "retrieved_at": doc.retrieved_at,
-            "authority_tier": doc.authority_tier,
-            "answer_role": doc.answer_role,
-            "source_format": doc.source_format,
-            "answer_ready": doc.answer_ready,
-            "corpus_bucket": doc.corpus_bucket,
-            "variant_group": doc.variant_group,
-            "variant_date": doc.variant_date,
-            "retrieval_ready": doc.retrieval_ready,
-            "archived": doc.archived,
-            "source_checked_at": normalize_source_timestamp(doc.source_checked_at),
-            "source_changed_at": normalize_source_timestamp(doc.source_changed_at),
-        })
+    return stats, revisions
 
 
 def detect_amendments() -> dict:
@@ -486,28 +428,23 @@ def detect_amendments() -> dict:
         for src, tgt in edges_to_create
     ]
 
-    # Phase 5.4: clinical-policy revision tables → synthetic change_notice docs.
-    # CCPs don't publish separate change-notice PDFs; their revision history
-    # lives in a "Revision Information:" table inside the base PDF. Extract
-    # each row as its own amendment node so getAmendments on the CCP works.
-    with get_session() as session:
-        ccp_stats, synthetic_docs, ccp_amendment_edges = _detect_clinical_policy_revisions(
-            session, all_docs,
-        )
-        if synthetic_docs:
-            _upsert_synthetic_documents(session, synthetic_docs)
-    stats.update(ccp_stats)
-    stats["clinical_revision_edges"] = len(ccp_amendment_edges)
-    amendment_edges.extend(ccp_amendment_edges)
-    console.print(
-        f"  Clinical-policy revisions: {ccp_stats.get('clinical_revisions_parsed', 0)} "
-        f"policies parsed, {len(ccp_amendment_edges)} synthetic AMENDS edges"
-    )
-
-    ccp_synth_ids = [doc.id for doc in synthetic_docs]
     stats["edges_created"] = graph_writer.merge_amendments(
         amendment_edges,
-        sorted(set(change_notice_ids + revised_spa_ids + ccp_synth_ids)),
+        sorted(set(change_notice_ids + revised_spa_ids)),
+    )
+
+    # Phase 5.4: clinical-policy revision tables → :PolicyRevision nodes.
+    # CCPs don't publish separate change-notice PDFs; their revision history
+    # lives in a "Revision Information:" table inside the base PDF. Runs even
+    # with nothing parsed, so revisions whose table is gone are deleted.
+    with get_session() as session:
+        ccp_stats, revisions = _detect_clinical_policy_revisions(session, all_docs)
+    stats.update(ccp_stats)
+    stats["clinical_revision_edges"] = graph_writer.replace_policy_revisions(revisions)
+    stats["edges_created"] += stats["clinical_revision_edges"]
+    console.print(
+        f"  Clinical-policy revisions: {ccp_stats.get('clinical_revisions_parsed', 0)} "
+        f"policies parsed, {len(revisions)} revisions"
     )
 
     return stats

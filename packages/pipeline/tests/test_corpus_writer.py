@@ -1,6 +1,7 @@
 """Tests for the graph write boundary."""
 
 import logging
+import re
 from dataclasses import replace
 from contextlib import contextmanager
 
@@ -12,6 +13,7 @@ from pipeline.graph.corpus_types import (
     ConceptLink,
     DocumentBundle,
     DocumentNode,
+    PolicyRevisionNode,
     ReferenceEdge,
     SectionNode,
 )
@@ -428,3 +430,75 @@ def test_merge_amendments_and_concept_links_write_through_boundary():
     assert session.calls[0][0] == queries.MERGE_AMENDS_BATCH
     assert session.calls[1][0] == queries.SET_DOCUMENT_STATUS_BATCH
     assert "MERGE (s)-[:DEFINES]->(c)" in session.calls[2][0]
+
+
+def _revision(revision_id: str) -> PolicyRevisionNode:
+    return PolicyRevisionNode(
+        id=revision_id, title="Policy 8C Revision", policy_number="8C",
+        source_url="https://example.org/8C.pdf", effective_date="2007-06-01",
+        base_document_id="doc:clinical_policy:8c", change_description="Section 6.0: Updated.",
+    )
+
+
+def test_replace_policy_revisions_deletes_old_forms_before_merging_in_one_transaction():
+    session = FakeSession()
+
+    @contextmanager
+    def fake_session_factory():
+        yield session
+
+    writer = CorpusGraphWriter(fake_session_factory)
+    count = writer.replace_policy_revisions([_revision("doc:change_notice:8C:2007-06-01")])
+
+    assert count == 1
+    assert session.commits == 1
+    assert [query for query, _ in session.calls] == [
+        queries.DELETE_DERIVED_REVISION_DOCUMENTS,
+        queries.DELETE_STALE_POLICY_REVISIONS,
+        queries.MERGE_POLICY_REVISIONS_BATCH,
+    ]
+    assert session.calls[1][1] == {"ids": ["doc:change_notice:8C:2007-06-01"]}
+    row = session.calls[2][1]["revisions"][0]
+    fields = set(re.findall(r"revision\.(\w+)", queries.MERGE_POLICY_REVISIONS_BATCH))
+    assert fields == row.keys()
+
+
+def test_replace_policy_revisions_with_none_still_deletes_stale_rows():
+    session = FakeSession()
+
+    @contextmanager
+    def fake_session_factory():
+        yield session
+
+    CorpusGraphWriter(fake_session_factory).replace_policy_revisions([])
+
+    assert [query for query, _ in session.calls] == [
+        queries.DELETE_DERIVED_REVISION_DOCUMENTS,
+        queries.DELETE_STALE_POLICY_REVISIONS,
+    ]
+    assert session.calls[1][1] == {"ids": []}
+
+
+def test_revision_deletes_cannot_match_a_real_document():
+    stale = queries.DELETE_STALE_POLICY_REVISIONS
+    assert "MATCH (r:PolicyRevision)" in stale
+    assert "NOT r:Document" in stale
+    assert ":Document)" not in stale.split("WHERE")[0]
+
+    old_form = queries.DELETE_DERIVED_REVISION_DOCUMENTS
+    for guard in (
+        "d.id STARTS WITH 'doc:change_notice:'",
+        "d.document_type = 'change_notice'",
+        "d.source_format = 'derived'",
+        "NOT EXISTS { (d)-[:HAS_SECTION]->() }",
+    ):
+        assert guard in old_form
+    assert " OR " not in old_form
+
+
+def test_policy_revisions_are_written_under_their_own_label():
+    merge = queries.MERGE_POLICY_REVISIONS_BATCH
+    assert "MERGE (r:PolicyRevision {id: revision.id})" in merge
+    assert "MERGE (r:Document" not in merge
+    assert "MATCH (base:Document {id: revision.base_document_id})" in merge
+    assert "MERGE (r)-[a:AMENDS]->(base)" in merge

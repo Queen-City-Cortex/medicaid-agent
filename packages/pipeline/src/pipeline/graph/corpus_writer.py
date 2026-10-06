@@ -32,6 +32,7 @@ from pipeline.graph.corpus_types import (
     AmendmentEdge,
     ConceptLink,
     DocumentBundle,
+    PolicyRevisionNode,
     ReferenceEdge,
     SupersessionEdge,
 )
@@ -215,6 +216,37 @@ class CorpusGraphWriter:
             self._execute_write(session, _work, "merge_amendments")
 
         return len(edges)
+
+    def replace_policy_revisions(self, revisions: list[PolicyRevisionNode]) -> int:
+        """Make the graph's :PolicyRevision nodes exactly ``revisions``.
+
+        One transaction: remove the former :Document form of these rows and
+        every revision no longer derived, then merge each revision with its
+        AMENDS edge to the policy.
+        """
+        rows = [
+            {
+                "id": revision.id,
+                "title": revision.title,
+                "policy_number": revision.policy_number,
+                "source_url": revision.source_url,
+                "effective_date": revision.effective_date,
+                "base_document_id": revision.base_document_id,
+                "change_description": revision.change_description,
+            }
+            for revision in revisions
+        ]
+
+        def _work(tx: ManagedTransaction) -> None:
+            tx.run(queries.DELETE_DERIVED_REVISION_DOCUMENTS)
+            tx.run(queries.DELETE_STALE_POLICY_REVISIONS, {"ids": [row["id"] for row in rows]})
+            for batch in chunked(rows, GRAPH_BATCH_SIZE):
+                tx.run(queries.MERGE_POLICY_REVISIONS_BATCH, {"revisions": batch})
+
+        with self._session_factory() as session:
+            self._execute_write(session, _work, "replace_policy_revisions")
+
+        return len(revisions)
 
     def merge_supersessions(self, edges: list[SupersessionEdge]) -> int:
         if not edges:
