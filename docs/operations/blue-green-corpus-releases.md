@@ -53,8 +53,13 @@ RAILWAY_ENVIRONMENT_ID=<environment-uuid>
 RAILWAY_AGENT_SERVICE_ID=<agent-service-uuid>
 BACKUP_AGE_RECIPIENT=<age-public-recipient>
 RAILWAY_TOKEN=<project-scoped-token>
+EVAL_IDENTITY_CATALOG=/data/pipeline/releases/evidence-identities.json
 HC_URL_CORPUS_JOB=<optional-healthchecks-io-ping-url>
 ```
+
+`EVAL_IDENTITY_CATALOG` names the frozen evidence identity catalog that
+`eval-identity-catalog` writes during [initial bootstrap](#initial-bootstrap).
+Every release evaluation requires it, so it stays set for scheduled runs.
 
 Inject `BUCKET`, `ACCESS_KEY_ID`, `SECRET_ACCESS_KEY`, `REGION`, and `ENDPOINT`
 from the existing Railway Object Storage bucket by variable reference. Also
@@ -70,6 +75,28 @@ also backs it up), but skip promotion and do not acknowledge the snapshot, and
 the job exits 3 so the healthcheck fails. The next clean run compares against
 the last acknowledged snapshot and promotes then. Any other non-zero crawler
 status is a crash and stops the job before parsing.
+
+A source snapshot that a release gate already rejected is not rebuilt. The
+[release preflight](#release-preflight) finds the rejected manifest and
+`promote` exits 21 before any graph is restarted; `scheduled` and `discover`
+then finish the mirror (`scheduled` also the cleanup and the backup), leave the
+snapshot unacknowledged and exit 21, so the healthcheck fails every day until
+the corpus, the code, the policy or an override changes. Any other `promote`
+failure still stops the job where it happened.
+
+`promote` has three statuses the job reads as something other than a failure
+of the release, each from one place:
+
+| Status | Meaning | `scheduled` and `discover` then |
+| --- | --- | --- |
+| 20 | The inactive graph is inside its rollback window (`release-retention-check`) | Leave the snapshot unacknowledged, finish, exit 0 |
+| 21 | This snapshot was already rejected and nothing that decides it changed (`release-preflight`) | Leave the snapshot unacknowledged, finish, exit 21 |
+| 22 | The serving release is promoted and was built from this snapshot with this fingerprint (`release-preflight`) | Acknowledge the snapshot, finish, exit 0 |
+
+75 remains the job's own lock-contention status. Status 22 covers a run that
+promoted a release and then stopped before the acknowledgement (a failed
+evidence upload, or a kill): the next attempt may first be deferred (20) while
+the rollback window is open, and the one after acknowledges without rebuilding.
 
 ## Supervised inspection and source preparation
 
@@ -181,7 +208,19 @@ gate. Scope records are not retirement evidence or permission to override gates.
 
    This is evaluation evidence, not a fabricated legacy release manifest.
    Baseline and candidate require the identical benchmark, implementation and
-   model fingerprint. Partial runs, infrastructure errors, missing verification
+   model fingerprint. The implementation is identified by its commit: the full
+   `RAILWAY_GIT_COMMIT_SHA` the corpus job was built from, or in a git checkout
+   the `HEAD` of a clean tree (a changed or untracked file is refused). Run the
+   baseline, the bootstrap and the activation from one deployed commit; a
+   redeploy of the corpus job from any other commit in between voids the
+   baseline. When a build is uploaded by hand, upload a clean checkout and set
+   `RAILWAY_GIT_COMMIT_SHA` to its commit: the image has no `.git` to check.
+   Two costs follow from naming the commit. A squash-merge, or a redeploy
+   triggered by any watched path, gives an unchanged tree a new commit and
+   voids a paid baseline. And a hand-set `RAILWAY_GIT_COMMIT_SHA` that is left
+   in place after its deploy lets different code share a fingerprint: remove
+   or correct it with every upload.
+   Partial runs, infrastructure errors, missing verification
    telemetry and disabled verification fail. Observability uses `:memory:`.
    Generate the canonical catalog once from the frozen source artifacts with
    `eval-identity-catalog --output /data/pipeline/releases/evidence-identities.json`.
@@ -197,7 +236,9 @@ gate. Scope records are not retirement evidence or permission to override gates.
    `BOOTSTRAP_TARGET_COLOR=blue`, `BOOTSTRAP_RESET_CONFIRM=neo4j-blue`, and
    `BOOTSTRAP_BASELINE_EVIDENCE=/data/pipeline/releases/legacy-baseline.json`.
    In the idle maintenance container, invoke `scripts/ops/railway-corpus-job.sh`
-   explicitly with those variables; do not enable cron. It runs strict parsing,
+   explicitly with those variables; do not enable cron. It runs strict parsing
+   and the [release preflight](#release-preflight), and only then restarts and
+   resets blue for
    loading, federal ingestion, relationships, embeddings, audits and full evals.
    Bootstrap never changes the agent target. Upload the validated manifest and
    all audit/evaluation evidence with `sync-corpus-artifacts.sh` under the lock.
@@ -293,9 +334,17 @@ Put the file on the corpus volume and name it in `RELEASE_OVERRIDE_FILE` for one
 operator-invoked `CORPUS_JOB_MODE=release` run, then remove the variable.
 `corpus-release.sh promote` passes the file only in that mode. A `scheduled` or
 `discover` run that finds the variable set exits 64 before the crawl, and
-`promote` outside release mode exits 64 before it reads Railway. Bootstrap does
-not take an override yet; the format needs nothing from a previous release, so
-it can.
+`promote` outside release mode exits 64 before it reads Railway.
+
+Bootstrap is operator-invoked and takes the same file: set
+`RELEASE_OVERRIDE_FILE` beside the bootstrap variables for that run. Its
+preflight checks the file against the manifest it has just prepared and stops
+before the graph is reset if an entry names another snapshot, so the first
+release can run from a frozen snapshot whose discovery is more than a day old
+with a `freshnessSla` override. To get the hash, run bootstrap without the
+file: the preflight stops on the stale family and prints the snapshot the
+override must be bound to. Bootstrap activation applies the manifest's recorded
+`gateOverrides` when it re-evaluates the gates, under the same binding.
 
 ### Minimum documents per family
 
@@ -314,8 +363,9 @@ value first subtracts the about 308 documents the agency has dropped from its
 index, which the first full crawl leaves out of the graph (see the de-listing
 procedure above); without that the first release would fail this gate for the
 right behaviour. Confirm every value against the first candidate graph. When the agency really shrinks a family, lower that
-family's number in a reviewed change; the release policy is outside the
-evaluation fingerprint, so the edit does not void a baseline.
+family's number in a reviewed change. Later releases compare with the previous
+manifest, which needs no fingerprint match; only the bootstrap baseline is
+tied to the commit (see [retrieval floors](#retrieval-floors-and-the-order-of-the-gates)).
 
 Policy version 3 requires retrieval recall of at least 0.9, primary-evidence hit
 rate of at least 0.95, answer score of at least 2.75, hallucination score of at
@@ -409,9 +459,16 @@ rebuilt graph is stored. Set them once, from a measurement:
    more. Change only those two numbers in `corpus-release-policy.json`, merge
    the change, and record the measured values, the graph's release id and the
    chosen floors in issue #188.
-5. Validate the same manifest again with the merged policy; do not rerun
-   bootstrap, which resets and rebuilds the graph. From `packages/pipeline`
-   with the candidate colour's graph variables:
+5. Deploy the merged commit to the corpus job. The merge is a new commit and
+   the evaluation fingerprint names the commit, so the legacy baseline from
+   step 2 of [initial bootstrap](#initial-bootstrap) no longer matches: run
+   `release-baseline` again from the merged commit (one retrieval and one
+   answer run against the legacy graph).
+6. Validate the same manifest again with the merged policy and the new
+   baseline; do not rerun bootstrap, which resets and rebuilds the graph. The
+   manifest keeps the `commitSha` the graph was built from and records the
+   commit it was evaluated under in `evaluationFingerprint`. From
+   `packages/pipeline` with the candidate colour's graph variables:
 
    ```bash
    MASTRA_OBSERVABILITY_PATH=:memory: uv run python -m pipeline.cli release-validate \
@@ -422,11 +479,12 @@ rebuilt graph is stored. Set them once, from a measurement:
    Then mark the graph (`release-mark-graph --state validated`) and upload the
    evidence with `sync-corpus-artifacts.sh`, as bootstrap would have.
 
-The floors accept no override. The release policy is not part of the evaluation
-fingerprint, so step 4 does not void the legacy baseline: a threshold decides
-what a score means for a release, not what the score is. Each validated or
-rejected manifest records the policy it was gated against as
-`releasePolicyHash`, and each gate records its own threshold.
+The floors accept no override. The policy has no value of its own in the
+evaluation fingerprint, but the fingerprint names the code commit, and a
+merged policy change is a commit: that is why step 5 runs the baseline again.
+The candidate graph is not rebuilt. Each validated or rejected manifest records
+the policy it was gated against as `releasePolicyHash`, and each gate records
+its own threshold.
 
 ### Baseline comparison
 
@@ -452,41 +510,173 @@ compared with the previous manifest's 55-question figures.
 Server-side answer verification remains mandatory independently of these corpus
 metrics.
 
+### Release preflight
+
+`bootstrap` and `promote` run `release-prepare` (strict parse and the manifest)
+and then `release-preflight` before the target graph is restarted, reset and
+re-embedded. The preflight needs no graph. It fails, listing every problem and
+its fix, when:
+
+- `EVAL_IDENTITY_CATALOG` is unset or its file is not a catalog, or the
+  evaluation fingerprint cannot be computed (verification disabled, for one);
+- the baseline cannot be compared: at bootstrap the legacy baseline evidence
+  has another fingerprint or is incomplete, and for a later release the
+  previous manifest lacks one of the five compared metrics;
+- the override file would be refused by `release-validate` (wrong shape, another
+  snapshot, an unknown gate, or a gate that cannot be overridden);
+- a family required for answering is past its `freshness_sla_days` by the
+  audit's rule and no `freshnessSla` override covers this snapshot. The check
+  reads the clock at the start of the build; a family that goes stale during
+  the build still fails the gate afterwards.
+
+It then looks in the releases directory for an earlier manifest that was
+`rejected` with the same `sourceSnapshotHash`, the same `evaluationFingerprint`
+(code, benchmark, catalog and model configuration; the two values read from
+the built graph are left out of the comparison) and the same
+`releasePolicyHash`. If that release failed a gate other than `freshnessSla`
+that this run carries no override for, the same build would be rejected again:
+the command exits 21 and names the release and its gates. A rejection for
+staleness alone does not count, because discovery timestamps are outside the
+snapshot hash. To build an unchanged snapshot again on purpose, set
+`RELEASE_RETRY_REJECTED=<rejected release id>` for the run; the variable covers
+that one release, so left in place it does not cover the retry's own rejection.
+
+The result is recorded on the manifest as the `preflight` stage. A manifest
+whose preflight failed stays `building` and is never uploaded.
+`release-validate` is still the gate: it repeats each of these checks against
+the built graph.
+
+`promote` also stops the target Neo4j service again (`railway down`) when it
+ends after restarting it and before the agent switch, so a rejected or failed
+build does not leave a second graph running. Its volume is kept. Bootstrap
+leaves its target running for activation.
+
 The promotion flow is:
 
-1. Read `ACTIVE_CORPUS_COLOR` and `CORPUS_RELEASE_ID` from the agent service.
-2. Refuse to reset the inactive color if its seven-day retention deadline has
-   not elapsed.
-3. Start the inactive graph and wait for Bolt.
-4. Parse, reset/load, ingest federal sources, resolve references/amendments,
+1. Read `ACTIVE_CORPUS_COLOR` and `CORPUS_RELEASE_ID` from the agent service
+   and require a settled cutover (see [interrupted cutovers](#interrupted-cutovers)).
+2. Defer if the inactive color still holds a release inside its rollback
+   window (see [deferred promotions](#deferred-promotions)).
+3. Parse, write the manifest and run the release preflight. Then start the
+   inactive graph and wait for Bolt.
+4. Reset/load, ingest federal sources, resolve references/amendments,
    embed, audit, and evaluate retrieval. Reject here, before any answer run,
    on a gate that is already decided.
 5. Run the three answer evaluations, upload the building evidence and reject
    on any unapproved gate.
-6. Set the agent URI, release ID, and active color without an intermediate
+6. Record the cutover: stamp the serving release's manifest with
+   `supersededByReleaseId` and `rollbackWindowEndsAt`, append `cutover_started`
+   to the candidate, and upload both manifests.
+7. Set the agent URI, release ID, and active color without an intermediate
    deploy; redeploy once.
-7. Require graph-backed `/readyz`, authenticated `/corpus-status`, provider
+8. Require graph-backed `/readyz`, authenticated `/corpus-status`, provider
    health, and a complete chat stream with a terminal `passed` or `corrected` outcome,
    nonempty released answer text and citations. Withheld, source-only and
    interrupted streams fail.
-8. Mark and upload the promoted manifest.
-9. Keep the old service live for 24 hours. The daily cleanup job then stops
-   compute while preserving its volume for at least seven days.
+9. Mark the manifest promoted (the rollback window restarts from this moment),
+   mark the graph, and upload both manifests.
+10. Keep the old service live for the rollback window (`rollbackWindowHours`,
+    24). The daily cleanup then stops its compute; its volume stays until the
+    next promotion resets that color.
 
-If cutover verification fails, automation restores the previous agent target
-and verifies it before exiting nonzero.
+If the switch, the verification or the promotion record fails, automation
+restores the previous agent target and exits nonzero. A restore is judged by
+the agent's Railway deployment and the graph-backed `/readyz` release id, not by
+the chat smoke: a withheld answer on a healthy target must not leave the
+restore recorded as failed.
+
+### Deferred promotions
+
+`rollbackWindowEndsAt` is the only deadline on a graph. While the inactive
+color holds a release inside its rollback window, `release-retention-check`
+exits 20 and `promote` passes that status on without touching anything. In
+`scheduled` and `discover` modes this is a deferral, not a failure: the
+snapshot stays unacknowledged so the next run tries again, the cleanup, mirror
+and backup still run, and the job succeeds. `CORPUS_JOB_MODE=release` and
+`bootstrap` end with status 20 and the message naming the deadline.
+
+With a 24-hour window and one run a day at 10:00 UTC, a change found the day
+after a promotion is deferred once and released the day after that. Releasing
+every day needs `operations.rollbackWindowHours` shorter than the cron interval
+less the build time; that number is the owner's to set.
+
+### Interrupted cutovers
+
+The record of a cutover is the manifest the agent names. Each step writes one
+thing, and `promote`, `rollback` and the cleanup all begin by reading it:
+
+| Left behind | How it happens | What the next run does |
+| --- | --- | --- |
+| Agent names a `promoted` release that is not stamped as superseded, on the color and URI its manifest records, and the running agent reports that release ready on `/readyz` | A finished promotion, rollback or recovery | Proceeds |
+| The same record, but `/readyz` reports another release or is not ready | The variables were set and the agent's redeploy failed, typically a restore whose three attempts all failed | Refuses: nothing is reset or stopped. `recover` checks the graph the variables name and redeploys the agent onto it |
+| Agent names a `promoted` release that is stamped `supersededByReleaseId` | The job died after recording the cutover and before the switch; or the switch and its restore both failed; or a rollback switched back and died before recording it | Restores that release as the target, records the other release `rolled_back`, clears the stamp, exits nonzero |
+| Agent names a `validated` or `recovery_pending` release | The job died after the switch and before the promotion was recorded, including a release that had passed verification | Restores the previous release named by the manifest, records the candidate `rolled_back`, exits nonzero |
+| Agent names an unpromoted release with no previous release | Bootstrap activation was interrupted | Refuses; rerun the same `release-activate-bootstrap` command |
+| The agent's color or URI disagrees with a settled manifest, or the serving manifest cannot be read from the volume or the bucket | Variables edited by hand, or lost evidence | Refuses; nothing is reset or stopped |
+
+`bootstrap` makes the same check whenever the agent already serves a blue or
+green release, because it resets the other color; beside a legacy agent, which
+has no color, there is no cutover to check. Every one of these paths needs
+`AGENT_PUBLIC_URL` and stops before it switches anything without it.
+
+A restore first checks that the previous graph answers with the job's own
+`NEO4J_<COLOR>_URI` and password, and leaves the agent where it is if it does
+not. `promote` refuses to start when the job's password for the serving color
+is not the agent's `NEO4J_PASSWORD`.
+
+A run that restores exits nonzero and resets nothing. The snapshot is still
+unacknowledged, so the following scheduled run builds and promotes again; a
+release that had in fact passed verification before the job died is therefore
+reverted once and released a day later. Both manifests are uploaded before the
+switch, so a rebuilt corpus volume reads the same state from the bucket.
+
+To recover without waiting for the next run, set the mode on the service (a
+variable in front of the `railway` command only reaches the local CLI), run
+it, and set it back:
+
+```bash
+railway variable set --skip-deploys --service corpus-job CORPUS_JOB_MODE=recover
+railway redeploy --service corpus-job --yes
+# when the run has finished:
+railway variable set --skip-deploys --service corpus-job CORPUS_JOB_MODE=scheduled
+```
+
+`recover` exits zero with a green healthcheck and does no crawl, mirror or
+backup, so a mode left on `recover` looks healthy while the corpus goes
+unrefreshed and unbacked-up: always set it back.
+
+`recover` does the same restore and exits zero when it completes, or when there
+is nothing to recover. When the variables and the running deployment disagree
+it redeploys the agent onto the release the variables name, after checking that
+graph answers; if it does not, it changes nothing and prints the manual steps. If the previous target cannot be restored the candidate
+stays `recovery_pending` with a `cutover_restore_failed` event, every later run
+keeps refusing to build, and `recover` can be repeated once Railway or the
+graph is reachable again. The abandoned graph is left running for inspection;
+the next promotion restarts and resets it. One exception: a run terminated
+after the cutover was recorded and before the switch has its target stopped by
+the exit hook, so the recovery's `release-mark-graph --state rolled_back` then
+fails against a stopped graph and the run reports the recovery as incomplete.
+The agent and both manifests are already correct in that case; the marker
+belongs to a graph the next promotion resets.
 
 ## Rollback
 
-Within the 24-hour window:
+Within the rollback window:
 
 ```bash
 CORPUS_JOB_MODE=rollback railway redeploy --service corpus-job --yes
 ```
 
-Rollback starts the previous color if necessary, switches the agent, verifies
-the previous graph-backed release ID and authenticated smoke, and records the
-event in both manifests. An expired rollback window fails before mutation.
+Rollback first requires a settled cutover: after an unfinished one it restores
+the previous release as above and stops, which is the rollback. Otherwise it
+starts the previous color if necessary, switches the agent, and waits for the
+agent's deployment and the previous graph-backed release ID on `/readyz`. That
+is what decides it, as for a restore: the previous release already passed its
+smoke when it was promoted, and one withheld answer must not send the agent
+back to the release being left. It then records the event in both manifests
+and runs the authenticated smoke; a failed smoke is reported and fails the run
+but moves nothing. An expired rollback window fails before mutation. If
+the job dies after the switch, the next run completes the record.
 
 ## Artifacts and recovery
 

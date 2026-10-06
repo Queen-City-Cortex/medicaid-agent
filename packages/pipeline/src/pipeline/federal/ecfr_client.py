@@ -1,4 +1,4 @@
-"""Fetch validated eCFR parts, with the official current GovInfo XML fallback."""
+"""Fetch validated CFR parts from GovInfo's current eCFR XML, with the eCFR API as fallback."""
 
 import hashlib
 import json
@@ -20,7 +20,7 @@ USER_AGENT = "NCMedicaidNavigator/1.0 (+https://queencitycortex.com/crawler-info
 MAX_RESPONSE_BYTES = 64 * 1024 * 1024
 _title_issue_dates: dict[int, str] = {}
 _bulk_titles: dict[int, tuple[ET.Element, dict]] = {}
-_bulk_only: set[int] = set()
+_bulk_unavailable: set[int] = set()
 
 
 def _download(url, timeout=60):
@@ -124,6 +124,16 @@ def _bulk_part(title, part):
     return text
 
 
+def _api_part(title, part):
+    date = _get_title_issue_date(title)
+    url = f"{ECFR_API_BASE}/full/{date}/title-{title}.xml?part={part}"
+    console.print(f"  Fetching {url}...")
+    raw, provenance = _download(url)
+    root = validate_part_xml(raw, title, part)
+    root.attrib.update(provenance, title=str(title), part=str(part), issue_date=date)
+    return ET.tostring(root, encoding="unicode")
+
+
 def _atomic_write(path, text):
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = None
@@ -147,21 +157,19 @@ def fetch_part_xml(title: int, part: int, refresh: bool = False) -> str:
             console.print("  [yellow]Invalid CFR cache; fetching official content again[/yellow]")
         else:
             return text
-    if title in _bulk_only:
-        text = _bulk_part(title, part)
+    # GovInfo's whole-title file is the primary source: the eCFR API's full-text
+    # endpoint has answered 406, or a document the validator rejects, on every
+    # recorded attempt. One title download serves all of its parts.
+    if title in _bulk_unavailable:
+        text = _api_part(title, part)
     else:
         try:
-            date = _get_title_issue_date(title)
-            url = f"{ECFR_API_BASE}/full/{date}/title-{title}.xml?part={part}"
-            console.print(f"  Fetching {url}...")
-            raw, provenance = _download(url)
-            root = validate_part_xml(raw, title, part)
-            root.attrib.update(provenance, title=str(title), part=str(part), issue_date=date)
-            text = ET.tostring(root, encoding="unicode")
-        except (urllib.error.URLError, TimeoutError, ValueError, KeyError) as error:
-            console.print(f"  eCFR access/content failed ({type(error).__name__}); trying current GovInfo XML")
             text = _bulk_part(title, part)
-            _bulk_only.add(title)
+        except (urllib.error.URLError, TimeoutError, ValueError) as error:
+            console.print(f"  GovInfo access/content failed ({type(error).__name__}); trying the eCFR API")
+            if title not in _bulk_titles:
+                _bulk_unavailable.add(title)
+            text = _api_part(title, part)
     # Neither a failed fallback nor rejected content can poison a prior cache.
     _atomic_write(cache, text)
     time.sleep(1)

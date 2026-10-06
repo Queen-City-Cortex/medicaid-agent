@@ -1,4 +1,4 @@
-"""Official fallback extraction preserves identities and rejected refreshes."""
+"""GovInfo extraction preserves identities; rejected refreshes leave the cache alone."""
 
 from io import BytesIO
 from pathlib import Path
@@ -39,7 +39,7 @@ def cache(tmp_path, monkeypatch):
     monkeypatch.setattr(client.time, "sleep", lambda _: None)
     client._title_issue_dates.clear()
     client._bulk_titles.clear()
-    client._bulk_only.clear()
+    client._bulk_unavailable.clear()
     return tmp_path
 
 
@@ -61,13 +61,13 @@ def install_responses(monkeypatch, primary=part_xml(), bulk=bulk_xml()):
     return calls
 
 
-def test_primary_content_is_validated_and_retains_provenance(cache, monkeypatch):
-    install_responses(monkeypatch)
+def test_govinfo_is_fetched_first_and_retains_provenance(cache, monkeypatch):
+    calls = install_responses(monkeypatch)
     text = client.fetch_part_xml(42, 440, refresh=True)
     root = ET.fromstring(text)
-    assert root.get("issue_date") == "2026-10-02"
     assert root.get("source_sha256")
-    assert "ecfr.gov" in root.get("retrieval_url")
+    assert "govinfo.gov" in root.get("retrieval_url")
+    assert not any("ecfr.gov" in url for url in calls)
     assert (cache / "title-42-part-440.xml").read_text() == text
 
 
@@ -79,8 +79,19 @@ def test_one_bulk_fetch_supplies_exact_parts_and_original_section_ids(cache, mon
     assert [s["section_number"] for s in parse_part_xml(one, 42, 440)] == ["440.1"]
     assert [s["section_number"] for s in parse_part_xml(two, 42, 441)] == ["441.1"]
     assert sum("govinfo.gov" in url for url in calls) == 1
-    assert sum("/full/" in url for url in calls) == 1
+    assert not any("/full/" in url for url in calls)
     assert "govinfo.gov" in ET.fromstring(one).get("retrieval_url")
+
+
+def test_an_unusable_govinfo_title_falls_back_to_the_api_once_per_title(cache, monkeypatch):
+    calls = install_responses(monkeypatch, bulk="<html>Maintenance</html>")
+    text = client.fetch_part_xml(42, 440, refresh=True)
+    root = ET.fromstring(text)
+    assert root.get("issue_date") == "2026-10-02"
+    assert "ecfr.gov" in root.get("retrieval_url")
+    client.fetch_part_xml(42, 440, refresh=True)
+    assert sum("govinfo.gov" in url for url in calls) == 1
+    assert sum("/full/" in url for url in calls) == 2
 
 
 @pytest.mark.parametrize("bad", ["<html>Maintenance</html>", "<broken", part_xml(45), part_xml(part=441), part_xml().replace(BODY, "")])

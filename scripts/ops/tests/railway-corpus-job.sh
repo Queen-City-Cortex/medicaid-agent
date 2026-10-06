@@ -72,7 +72,7 @@ pass "strict failure does not sync, back up, crawl, or touch snapshots"
 # a stub that appends its name to one call log; the stubs for the Healthchecks
 # pings record what the real entrypoint would send at exit.
 run_discovery_case() {
-  local name="$1" mode="$2" crawl_status="$3"
+  local name="$1" mode="$2" crawl_status="$3" promote_status="${4:-0}"
   (
     calls_log="$TEMP_ROOT/$name.calls"
     health_log="$TEMP_ROOT/$name.health"
@@ -86,7 +86,7 @@ run_discovery_case() {
     source "$ENTRYPOINT"
     node() { printf 'crawl\n' >> "$calls_log"; return "$crawl_status"; }
     jq() { return 0; }  # the answer-ready snapshot reports a change
-    promote_release() { printf 'promote\n' >> "$calls_log"; }
+    promote_release() { printf 'promote\n' >> "$calls_log"; return "$promote_status"; }
     cleanup_releases() { printf 'cleanup\n' >> "$calls_log"; }
     weekly_audit_if_due() { :; }
     monthly_evaluation_if_due() { :; }
@@ -152,6 +152,115 @@ expected=$'crawl\n-m pipeline.cli parse --strict-required\n-m pipeline.cli answe
 [[ "$(<"$TEMP_ROOT/clean.health")" == ok ]] || fail "clean run did not report Healthchecks success"
 pass "clean crawl promotes, acknowledges, backs up, and succeeds"
 
+# A snapshot that was already rejected at a gate is not rebuilt (promote exits
+# 21 from the release preflight). The crawl is still mirrored and backed up,
+# the snapshot stays unacknowledged, and the run ends non-zero.
+set +e
+run_discovery_case already-rejected scheduled 0 21
+status=$?
+set -e
+[[ "$status" -eq 21 ]] || fail "an already-rejected snapshot exited $status, expected 21"
+called already-rejected '^promote$' || fail "an already-rejected snapshot was never offered to promote"
+! called already-rejected 'acknowledge-answer-ready-snapshot' \
+  || fail "an already-rejected snapshot was acknowledged"
+[[ "$(tail -n 4 "$TEMP_ROOT/already-rejected.calls")" == $'sync\ncleanup\nsync\nbackup' ]] \
+  || fail "an already-rejected snapshot skipped the sync, cleanup or backup"
+[[ "$(<"$TEMP_ROOT/already-rejected.health")" == fail ]] \
+  || fail "an already-rejected snapshot did not send exactly one Healthchecks failure"
+pass "an already-rejected snapshot is not acknowledged, still syncs and backs up, and fails the run"
+
+set +e
+run_discovery_case already-rejected-discover discover 0 21
+status=$?
+set -e
+[[ "$status" -eq 21 ]] || fail "discover mode exited $status for an already-rejected snapshot"
+[[ "$(tail -n 1 "$TEMP_ROOT/already-rejected-discover.calls")" == sync ]] \
+  || fail "discover mode did not sync after an already-rejected snapshot"
+pass "discover mode syncs and fails the run for an already-rejected snapshot"
+
+# A reset blocked by the rollback window is a deferral (promote exits 20), not a
+# failure: the snapshot stays unacknowledged for the next run, cleanup, mirror
+# and backup still happen, and the run succeeds.
+set +e
+run_discovery_case reset-deferred scheduled 0 20
+status=$?
+set -e
+[[ "$status" -eq 0 ]] || fail "a deferred promotion exited $status, expected 0"
+called reset-deferred '^promote$' || fail "a deferred run never attempted the promotion"
+! called reset-deferred 'acknowledge-answer-ready-snapshot' \
+  || fail "a deferred promotion acknowledged the snapshot"
+[[ "$(tail -n 4 "$TEMP_ROOT/reset-deferred.calls")" == $'sync\ncleanup\nsync\nbackup' ]] \
+  || fail "a deferred promotion skipped the sync, cleanup or backup"
+[[ "$(<"$TEMP_ROOT/reset-deferred.health")" == ok ]] \
+  || fail "a deferred promotion did not report Healthchecks success"
+pass "a deferred promotion leaves the snapshot unacknowledged, still cleans up, syncs and backs up, and succeeds"
+
+set +e
+run_discovery_case reset-deferred-discover discover 0 20
+status=$?
+set -e
+[[ "$status" -eq 0 ]] || fail "discover mode exited $status for a deferred promotion"
+! called reset-deferred-discover 'acknowledge-answer-ready-snapshot' \
+  || fail "discover mode acknowledged a deferred snapshot"
+[[ "$(tail -n 1 "$TEMP_ROOT/reset-deferred-discover.calls")" == sync ]] \
+  || fail "discover mode did not sync after a deferred promotion"
+pass "discover mode syncs and succeeds when the promotion is deferred"
+
+# The serving release was already built from this snapshot (promote exits 22):
+# an earlier run promoted it and stopped before the acknowledgement. Acknowledge
+# now, rebuild nothing, and succeed.
+set +e
+run_discovery_case already-released scheduled 0 22
+status=$?
+set -e
+[[ "$status" -eq 0 ]] || fail "an already-released snapshot exited $status, expected 0"
+called already-released 'acknowledge-answer-ready-snapshot' \
+  || fail "an already-released snapshot was not acknowledged"
+[[ "$(tail -n 4 "$TEMP_ROOT/already-released.calls")" == $'sync\ncleanup\nsync\nbackup' ]] \
+  || fail "an already-released snapshot skipped the sync, cleanup or backup"
+[[ "$(<"$TEMP_ROOT/already-released.health")" == ok ]] \
+  || fail "an already-released snapshot did not report Healthchecks success"
+pass "a snapshot that is already the serving release is acknowledged without a rebuild, and the run succeeds"
+
+# Recover mode runs the release script's recover action and nothing else.
+(
+  calls_log="$TEMP_ROOT/recover-mode.calls"
+  fake_root="$TEMP_ROOT/recover-mode-root"
+  mkdir -p "$TEMP_ROOT/recover-mode-home" "$fake_root/scripts/ops"
+  printf '#!/usr/bin/env bash\nprintf "corpus-release %%s\\n" "$*" >> "%s"\n' "$calls_log" \
+    > "$fake_root/scripts/ops/corpus-release.sh"
+  chmod +x "$fake_root/scripts/ops/corpus-release.sh"
+  export HOME="$TEMP_ROOT/recover-mode-home" OPS_ENV="$TEMP_ROOT/no-ops.env"
+  export CORPUS_DATA_ROOT="$TEMP_ROOT/recover-mode-data" CORPUS_JOB_MODE=recover
+  export CORPUS_JOB_TEST_SOURCE_ONLY=1
+  source "$ENTRYPOINT"
+  REPO_ROOT="$fake_root"
+  run_job_mode
+  [[ "$(<"$calls_log")" == 'corpus-release recover' ]] \
+    || fail "recover mode ran: $(<"$calls_log")"
+) || exit $?
+pass "recover mode runs the release script's recover action"
+
+# A failed required family outranks a skipped release in the exit status.
+set +e
+run_discovery_case rejected-after-failed-family scheduled 3 21
+status=$?
+set -e
+[[ "$status" -eq 3 ]] || fail "a failed required family exited $status, expected 3"
+pass "a failed required-family discovery decides the exit status"
+
+# Any other promote failure is a failed release: nothing after it runs.
+set +e
+run_discovery_case promote-failed scheduled 0 1
+status=$?
+set -e
+[[ "$status" -eq 1 ]] || fail "a failed promotion exited $status, expected 1"
+[[ "$(tail -n 1 "$TEMP_ROOT/promote-failed.calls")" == promote ]] \
+  || fail "a failed promotion still acknowledged, synced, cleaned up or backed up"
+[[ "$(<"$TEMP_ROOT/promote-failed.health")" == fail ]] \
+  || fail "a failed promotion did not send a Healthchecks failure"
+pass "a failed promotion stops the run before acknowledge, sync, cleanup, or backup"
+
 # Any other crawler status is a crash: nothing after the crawl runs.
 set +e
 run_discovery_case crashed scheduled 1
@@ -206,13 +315,15 @@ run_promote_case() {
     export HOME="$TEMP_ROOT/$name-home" OPS_ENV="$TEMP_ROOT/no-ops.env"
     export CORPUS_DATA_ROOT="$TEMP_ROOT/$name-data" PIPELINE_PYTHON="$fake_python"
     export PYTHON_ARGS_LOG="$args_log" RAILWAY_GIT_COMMIT_SHA=abcdef1234
-    export REQUESTED_CORPUS_RELEASE_ID=release-2
-    unset CORPUS_JOB_MODE RELEASE_OVERRIDE_FILE
+    export REQUESTED_CORPUS_RELEASE_ID=release-2 AGENT_PUBLIC_URL=https://agent.test
+    unset CORPUS_JOB_MODE RELEASE_OVERRIDE_FILE RELEASE_RETRY_REJECTED
     [[ -z "$mode" ]] || export CORPUS_JOB_MODE="$mode"
     [[ -z "$override_file" ]] || export RELEASE_OVERRIDE_FILE="$override_file"
     # shellcheck source=../corpus-release.sh
     source "$REPO_ROOT/scripts/ops/corpus-release.sh"
     REPO_ROOT="$fake_root"
+    printf '{"releaseId":"release-1","targetColor":"blue","promotionState":"promoted"}\n' \
+      > "$RELEASES_DIR/release-1.json"
     agent_variables() {
       printf '%s\n' ACTIVE_CORPUS_COLOR=blue CORPUS_RELEASE_ID=release-1 \
         NEO4J_URI=bolt://blue NEO4J_PASSWORD=blue-password
@@ -222,6 +333,7 @@ run_promote_case() {
     download_manifest() { :; }
     redeploy_graph() { :; }
     set_agent_target() { :; }
+    wait_for_agent_release() { :; }
     verify_agent_release() { :; }
     promote >/dev/null 2>&1
   )

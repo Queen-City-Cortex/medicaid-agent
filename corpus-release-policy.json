@@ -47,7 +47,6 @@
     "maxVoidedAnswerRuns": 2
   },
   "operations": {
-    "rollbackWindowHours": 24,
-    "volumeRetentionDays": 7
+    "rollbackWindowHours": 24
   }
 }

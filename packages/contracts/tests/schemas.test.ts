@@ -85,7 +85,6 @@ describe('public contracts', () => {
       promotedAt: null,
       rolledBackAt: null,
       rollbackWindowEndsAt: null,
-      volumeRetainUntil: null,
     });
 
     expect(manifest.releaseId).toBe('20260725T220000Z-abcdef1');

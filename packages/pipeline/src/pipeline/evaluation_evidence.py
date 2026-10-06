@@ -4,8 +4,10 @@ import hashlib
 import json
 import math
 import os
+import re
 import shutil
 import statistics
+import subprocess
 from collections.abc import Callable
 from pathlib import Path
 from pipeline.source_lifecycle import stable_hash
@@ -27,7 +29,75 @@ from pipeline.release import (
 )
 
 
-def evaluation_fingerprint() -> dict:
+def _git(*arguments: str) -> str:
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(REPO_ROOT), *arguments],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=120,
+        )
+    except (OSError, subprocess.TimeoutExpired) as error:
+        raise ValueError(
+            f"Release evaluations could not ask git for the code revision: {error}"
+        ) from error
+    if result.returncode:
+        raise ValueError(
+            "Release evaluations could not ask git for the code revision: "
+            + result.stderr.strip()[:500]
+        )
+    return result.stdout
+
+
+def implementation_commit() -> str:
+    """The commit of the code that runs the evaluation.
+
+    In a git checkout it is HEAD, and the tree must be clean: a changed or
+    untracked file would be evaluated without being part of that commit. The
+    corpus-job image carries no `.git`; there the commit Railway built it from
+    (`RAILWAY_GIT_COMMIT_SHA`, the value `release-prepare` records as the
+    manifest's `commitSha`) is the identity, and the image is that commit by
+    construction. An operator who uploads a build by hand must upload a clean
+    checkout of the commit they declare.
+    """
+    declared = os.environ.get("RAILWAY_GIT_COMMIT_SHA", "").strip().lower()
+    if (REPO_ROOT / ".git").exists():
+        head = _git("rev-parse", "HEAD").strip()
+        # Explicit, so a user's git configuration cannot hide a file.
+        changed = _git(
+            "status",
+            "--porcelain",
+            "--untracked-files=normal",
+            "--ignore-submodules=none",
+        ).splitlines()
+        if changed:
+            raise ValueError(
+                f"Release evaluations require a clean checkout: {len(changed)} "
+                f"changed or untracked path(s), first `{changed[0].strip()}`. "
+                "Commit or remove them"
+            )
+        if declared and not head.startswith(declared):
+            raise ValueError(
+                f"RAILWAY_GIT_COMMIT_SHA is {declared} but this checkout is at {head}"
+            )
+        return head
+    if not re.fullmatch(r"[0-9a-f]{40}", declared):
+        raise ValueError(
+            "Release evaluations require the code revision: set "
+            "RAILWAY_GIT_COMMIT_SHA to the full 40-character commit this build "
+            "was made from (there is no git checkout here to read it from)"
+        )
+    return declared
+
+
+def evaluation_fingerprint(*, read_graph: bool = True) -> dict:
+    """Everything a score depends on apart from the graph it was measured on.
+
+    `read_graph=False` leaves out the two values read from the evaluated graph
+    (the Jev annotation digest and the validation corpus hash), for the release
+    preflight, which runs before that graph is built.
+    """
     if os.environ.get("VERIFIER_ENABLED", "true").lower() == "false":
         raise ValueError("Release evaluations require answer verification")
     if not os.environ.get("EVAL_IDENTITY_CATALOG"):
@@ -35,32 +105,20 @@ def evaluation_fingerprint() -> dict:
     # The agent's dotenv loader must not override the release's verifier setting.
     os.environ["VERIFIER_ENABLED"] = "true"
     os.environ["MASTRA_OBSERVABILITY_PATH"] = ":memory:"
-    sources = {}
-    for package in ["agent", "contracts", "policy-corpus", "pipeline"]:
-        for path in sorted((REPO_ROOT / "packages" / package / "src").rglob("*")):
-            if path.is_file() and path.suffix in {".py", ".ts", ".json"}:
-                sources[str(path.relative_to(REPO_ROOT))] = hashlib.sha256(
-                    path.read_bytes()
-                ).hexdigest()
-    # The release policy is deliberately absent: its thresholds decide what a
-    # score means for a release, not what the score is, so recalibrating one
-    # must not void a paid baseline. The manifest records `releasePolicyHash`.
-    for rel in [
-        "package-lock.json",
-        "packages/pipeline/uv.lock",
-        "corpus-manifest.json",
-    ]:
-        sources[rel] = hashlib.sha256((REPO_ROOT / rel).read_bytes()).hexdigest()
+    # The release policy is deliberately absent as a separate value: its
+    # thresholds decide what a score means for a release, not what the score
+    # is. It still moves with the commit, like every other tracked file.
     return {
         "benchmarkHash": hashlib.sha256(GOLDEN_DATASET_PATH.read_bytes()).hexdigest(),
-        "implementationHash": hashlib.sha256(
-            json.dumps(sources, sort_keys=True).encode()
+        "implementationCommit": implementation_commit(),
+        "corpusManifestHash": hashlib.sha256(
+            (REPO_ROOT / "corpus-manifest.json").read_bytes()
         ).hexdigest(),
         "embeddingModel": EMBEDDING_MODEL,
         "embeddingDimensions": EMBEDDING_DIMENSIONS,
         "topK": EVAL_DEFAULT_TOP_K,
         "judgeModel": EVAL_JUDGE_MODEL,
-        **jev_evaluation_identity(),
+        **jev_evaluation_identity(read_graph=read_graph),
         "modelEnvironment": {
             key: value
             for key, value in sorted(os.environ.items())
@@ -72,7 +130,7 @@ def evaluation_fingerprint() -> dict:
             and not any(secret in key for secret in ["KEY", "TOKEN", "SECRET"])
         },
         **({"validationPricingHash": stable_hash(json.loads(Path(os.environ["JEV_VALIDATION_PRICING"]).read_text())),
-            "validationCorpusHash": validation_corpus_hash()}
+            **({"validationCorpusHash": validation_corpus_hash()} if read_graph else {})}
            if os.environ.get("JEV_VALIDATION_LEDGER") else {}),
         "verificationRequired": True,
         "evidenceNormalization": {
@@ -283,13 +341,13 @@ def baseline_metrics(evidence: dict) -> dict:
     )
 
 
-def jev_evaluation_identity() -> dict:
+def jev_evaluation_identity(*, read_graph: bool = True) -> dict:
     roles = os.environ.get("JEV_SECTION_ROLES_ENABLED") == "true"
     scope = os.environ.get("SCOPE_GATE_PROVIDER", "").strip() or "openai"
     if not roles and scope == "openai":
         return {}
     annotation_digest = None
-    if roles:
+    if roles and read_graph:
         from pipeline.graph.connection import get_session
         with get_session() as session:
             record = session.run("MATCH (m:JevAnnotation {id: 'current'}) RETURN m.digest AS digest").single()

@@ -19,6 +19,7 @@ from pipeline.release import (
     load_json_object,
     load_release_policy,
     mark_manifest_cutover_restored,
+    mark_manifest_cutover_started,
     mark_manifest_promoted,
     mark_manifest_recovery_pending,
     mark_manifest_rolled_back,
@@ -1181,6 +1182,32 @@ def test_a_missing_baseline_rejects_the_release_before_any_answer_run(tmp_path):
     assert load_json_object(path)["promotionState"] == "rejected"
 
 
+def test_a_validated_manifest_stays_promotable_with_the_overrides_it_recorded(tmp_path):
+    from pipeline.release import validated_manifest_is_promotable
+
+    manifest = {**passing_manifest(), "sourceSnapshotHash": SNAPSHOT}
+    assert validated_manifest_is_promotable(manifest)
+    manifest["auditResults"]["freshnessSlaMet"] = 0
+    assert not validated_manifest_is_promotable(manifest)
+
+    # What release-validate stored when it accepted the override.
+    manifest["gateOverrides"] = {
+        "freshnessSla": override("Bootstrap ran from a reviewed frozen snapshot")
+    }
+    assert validated_manifest_is_promotable(manifest)
+
+    # The same record does not carry to another snapshot, or to a mandatory gate.
+    with pytest.raises(ValueError, match="bound to source snapshot"):
+        validated_manifest_is_promotable(
+            {**manifest, "sourceSnapshotHash": "sha256:" + "b" * 64}
+        )
+    manifest["evaluationResults"]["answerScore"] = 1.0
+    assert not validated_manifest_is_promotable(manifest)
+    manifest["gateOverrides"]["answerScore"] = override("Accepted by the operator")
+    with pytest.raises(ValueError, match="cannot be overridden"):
+        validated_manifest_is_promotable(manifest)
+
+
 def test_finalize_rejects_mandatory_failure_even_with_valid_override(tmp_path):
     path = tmp_path / "release.json"
     atomic_write_json(path, release_manifest())
@@ -1212,33 +1239,80 @@ def test_finalize_rejects_mandatory_failure_even_with_valid_override(tmp_path):
     assert not release_is_promotable(result["gates"])
 
 
-def test_promotion_sets_rollback_and_volume_retention_deadlines(tmp_path):
-    now = datetime(2026, 7, 25, 18, tzinfo=UTC)
-    current_path = tmp_path / "current.json"
-    previous_path = tmp_path / "previous.json"
-    current = release_manifest()
-    current["promotionState"] = "validated"
+def cutover_pair(tmp_path, *, state="validated"):
+    """A candidate on green and the promoted release on blue it would replace."""
+    current_path = tmp_path / "release-2.json"
+    previous_path = tmp_path / "release-1.json"
     previous = release_manifest(release_id="release-1")
     previous["targetColor"] = "blue"
     previous["promotionState"] = "promoted"
+    current = release_manifest(previous=previous)
+    current["promotionState"] = state
     atomic_write_json(current_path, current)
     atomic_write_json(previous_path, previous)
+    return current_path, previous_path
+
+
+def timestamp(value):
+    return value.isoformat().replace("+00:00", "Z")
+
+
+def test_the_rollback_window_is_recorded_before_the_agent_is_switched(tmp_path):
+    now = datetime(2026, 7, 25, 18, tzinfo=UTC)
+    current_path, previous_path = cutover_pair(tmp_path)
+
+    mark_manifest_cutover_started(current_path, previous_path, now=now)
+
+    # The candidate is still only validated: named by the agent in this state,
+    # it is an unfinished cutover, and the previous release can be restored.
+    candidate = load_json_object(current_path)
+    superseded = load_json_object(previous_path)
+    assert candidate["promotionState"] == "validated"
+    assert candidate["events"][-1]["type"] == "cutover_started"
+    assert candidate["events"][-1]["details"] == {"previousReleaseId": "release-1"}
+    assert superseded["supersededByReleaseId"] == "release-2"
+    assert superseded["rollbackWindowEndsAt"] == timestamp(now + timedelta(hours=24))
+    require_rollback_available(superseded, now=now + timedelta(hours=23))
+
+
+@pytest.mark.parametrize("state", ["building", "rejected", "promoted", "rolled_back"])
+def test_only_a_validated_release_can_start_a_cutover(tmp_path, state):
+    current_path, previous_path = cutover_pair(tmp_path, state=state)
+
+    with pytest.raises(ValueError, match="validated"):
+        mark_manifest_cutover_started(current_path, previous_path)
+
+    assert "supersededByReleaseId" not in load_json_object(previous_path)
+
+
+def test_promotion_restarts_the_rollback_window_from_the_verified_cutover(tmp_path):
+    started = datetime(2026, 7, 25, 18, tzinfo=UTC)
+    promoted_at = started + timedelta(minutes=9)
+    current_path, previous_path = cutover_pair(tmp_path)
+    mark_manifest_cutover_started(current_path, previous_path, now=started)
 
     mark_manifest_promoted(
         current_path,
         previous_manifest_path=previous_path,
-        now=now,
+        now=promoted_at,
     )
 
     promoted = load_json_object(current_path)
     superseded = load_json_object(previous_path)
     assert promoted["promotionState"] == "promoted"
-    assert superseded["rollbackWindowEndsAt"] == (
-        now + timedelta(hours=24)
-    ).isoformat().replace("+00:00", "Z")
-    assert superseded["volumeRetainUntil"] == (
-        now + timedelta(days=7)
-    ).isoformat().replace("+00:00", "Z")
+    assert superseded["supersededByReleaseId"] == "release-2"
+    assert superseded["rollbackWindowEndsAt"] == timestamp(
+        promoted_at + timedelta(hours=24)
+    )
+
+
+def test_the_rollback_window_is_the_only_reset_deadline(tmp_path):
+    from pipeline.release import POLICY_PATH
+
+    assert "volumeRetentionDays" not in POLICY_PATH.read_text()
+    manifest = release_manifest()
+    assert "volumeRetainUntil" not in manifest
+    assert manifest["rollbackWindowEndsAt"] is None
 
 
 def test_rollback_is_rejected_after_window(tmp_path):
@@ -1279,7 +1353,6 @@ def test_cutover_restoration_records_consistent_state_without_a_window(tmp_path)
     previous["targetColor"] = "blue"
     previous["supersededByReleaseId"] = current["releaseId"]
     previous["rollbackWindowEndsAt"] = (now + timedelta(hours=24)).isoformat()
-    previous["volumeRetainUntil"] = (now + timedelta(days=7)).isoformat()
     atomic_write_json(current_path, current)
     atomic_write_json(previous_path, previous)
 
@@ -1294,7 +1367,9 @@ def test_cutover_restoration_records_consistent_state_without_a_window(tmp_path)
     assert restored_previous["promotionState"] == "promoted"
     assert "supersededByReleaseId" not in restored_previous
     assert restored_previous["rollbackWindowEndsAt"] is None
-    assert restored_previous["volumeRetainUntil"] is None
+    # A restored release is no longer waiting out a window: its color's
+    # neighbour, and its own color after the next promotion, may be reset.
+    assert find_color_retention_blocker(tmp_path, "blue", now=now) is None
 
 
 def test_recovery_pending_is_durable_before_target_restoration(tmp_path):
@@ -1314,18 +1389,19 @@ def test_recovery_pending_is_durable_before_target_restoration(tmp_path):
     assert load_json_object(path) == pending
 
 
-def test_retention_blocks_reset_and_cleanup_waits_for_rollback_window(tmp_path):
+def test_an_open_rollback_window_defers_reset_and_cleanup_until_it_closes(tmp_path):
     now = datetime(2026, 7, 25, 18, tzinfo=UTC)
     old_path = tmp_path / "release-1.json"
     old = release_manifest(release_id="release-1")
     old["targetColor"] = "blue"
     old["supersededByReleaseId"] = "release-2"
     old["rollbackWindowEndsAt"] = (now + timedelta(hours=1)).isoformat()
-    old["volumeRetainUntil"] = (now + timedelta(days=7)).isoformat()
     atomic_write_json(old_path, old)
 
     blocker = find_color_retention_blocker(tmp_path, "blue", now=now)
     assert blocker["releaseId"] == "release-1"
+    assert blocker["rollbackWindowEndsAt"] == timestamp(now + timedelta(hours=1))
+    assert find_color_retention_blocker(tmp_path, "green", now=now) is None
     assert find_cleanup_candidate(
         tmp_path,
         current_release_id="release-2",
@@ -1333,10 +1409,46 @@ def test_retention_blocks_reset_and_cleanup_waits_for_rollback_window(tmp_path):
         now=now,
     ) is None
 
+    # Once the window has closed the graph can be stopped and its color reset:
+    # no later deadline holds it.
+    after = now + timedelta(hours=2)
+    assert find_color_retention_blocker(tmp_path, "blue", now=after) is None
     candidate = find_cleanup_candidate(
         tmp_path,
         current_release_id="release-2",
         inactive_color="blue",
-        now=now + timedelta(hours=2),
+        now=after,
     )
     assert candidate["manifestPath"] == str(old_path)
+    assert set(candidate) == {"releaseId", "manifestPath", "rollbackWindowEndsAt"}
+
+
+def retention_check(releases_dir):
+    from click.testing import CliRunner
+
+    from pipeline.cli import cli
+
+    return CliRunner().invoke(
+        cli,
+        ["release-retention-check", "--releases-dir", str(releases_dir), "--target-color", "blue"],
+    )
+
+
+def test_a_blocked_reset_exits_with_the_deferral_status(tmp_path):
+    from pipeline.release import RESET_DEFERRED_EXIT_CODE
+
+    old = release_manifest(release_id="release-1")
+    old["targetColor"] = "blue"
+    old["rollbackWindowEndsAt"] = timestamp(datetime.now(UTC) + timedelta(hours=1))
+    atomic_write_json(tmp_path / "release-1.json", old)
+
+    blocked = retention_check(tmp_path)
+
+    # Not 1 (a failure) and not 75 (the corpus job's lock-contention status).
+    assert blocked.exit_code == RESET_DEFERRED_EXIT_CODE == 20
+    assert "resetting it is deferred until then" in blocked.output
+    assert old["rollbackWindowEndsAt"] in blocked.output
+
+    old["rollbackWindowEndsAt"] = timestamp(datetime.now(UTC) - timedelta(seconds=1))
+    atomic_write_json(tmp_path / "release-1.json", old)
+    assert retention_check(tmp_path).exit_code == 0

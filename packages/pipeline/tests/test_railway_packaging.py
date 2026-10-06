@@ -58,6 +58,148 @@ def test_railway_corpus_job_exposes_guarded_bootstrap_mode() -> None:
     assert "redeploy_graph" in bootstrap
 
 
+def test_railway_corpus_job_accepts_the_recover_mode() -> None:
+    entrypoint = (REPO_ROOT / "scripts/ops/railway-corpus-job.sh").read_text()
+
+    assert 'recover) "$REPO_ROOT/scripts/ops/corpus-release.sh" recover ;;' in entrypoint
+    accepted = next(
+        line for line in entrypoint.splitlines() if line.startswith("  scheduled|discover|")
+    )
+    assert "|recover|" in accepted
+
+
+def inspect_cutover(
+    data_root: Path,
+    *,
+    release: str,
+    color: str,
+    uri: str | None = None,
+    deployed: str | None = None,
+) -> subprocess.CompletedProcess[str]:
+    """Run the release script's cutover check against manifests on disk."""
+    return subprocess.run(
+        [
+            "bash",
+            "-c",
+            f"""
+            source scripts/ops/corpus-release.sh
+            agent_variables() {{
+              printf '%s\\n' ACTIVE_CORPUS_COLOR={color} CORPUS_RELEASE_ID={release} \
+                NEO4J_URI={uri or f"bolt://{color}"}
+            }}
+            color_uri() {{ printf 'bolt://%s' "$1"; }}
+            download_manifest() {{ [[ -f "$2" ]]; }}
+            wait_for_agent_release() {{ [[ "$1" == "{deployed or release}" ]]; }}
+            inspect_cutover || exit $?
+            printf '%s|%s' "$(basename "$CUTOVER_CANDIDATE")" "$(basename "$CUTOVER_PREVIOUS")"
+            """,
+        ],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        check=False,
+        text=True,
+        env={
+            **os.environ,
+            "CORPUS_DATA_ROOT": str(data_root),
+            "HOME": str(data_root),
+            "AGENT_PUBLIC_URL": "https://agent.test",
+        },
+    )
+
+
+def test_the_cutover_check_reads_the_states_the_release_commands_write(
+    tmp_path: Path,
+) -> None:
+    """The shell fence and the Python lifecycle agree on every cutover state."""
+    from pipeline.release import (
+        atomic_write_json,
+        create_release_manifest,
+        load_json_object,
+        mark_manifest_cutover_restored,
+        mark_manifest_cutover_started,
+        mark_manifest_promoted,
+        mark_manifest_recovery_pending,
+    )
+
+    releases = tmp_path / "pipeline/releases"
+    previous_path = releases / "release-1.json"
+    current_path = releases / "release-2.json"
+    previous = create_release_manifest(
+        release_id="release-1",
+        commit_sha="abcdef1",
+        target_color="blue",
+        source_snapshot_hash="a" * 64,
+    )
+    previous["promotionState"] = "promoted"
+    current = create_release_manifest(
+        release_id="release-2",
+        commit_sha="abcdef1",
+        target_color="green",
+        source_snapshot_hash="b" * 64,
+        previous_manifest=previous,
+    )
+    current["promotionState"] = "validated"
+    atomic_write_json(previous_path, previous)
+    atomic_write_json(current_path, current)
+
+    def state(release: str, color: str) -> str:
+        result = inspect_cutover(tmp_path, release=release, color=color)
+        assert result.returncode == 0, result.stderr
+        return result.stdout
+
+    settled = "|"
+    unfinished = "release-2.json|release-1.json"
+
+    assert state("release-1", "blue") == settled
+
+    # Stamped, agent not yet switched: the serving release says it was replaced.
+    mark_manifest_cutover_started(current_path, previous_path)
+    assert state("release-1", "blue") == unfinished
+    # Switched, never recorded as promoted.
+    assert state("release-2", "green") == unfinished
+    mark_manifest_recovery_pending(current_path, "release-1", "cutover_command_failed")
+    assert state("release-2", "green") == unfinished
+    assert state("release-1", "blue") == unfinished
+
+    # A recorded restore settles it, on the previous release.
+    mark_manifest_cutover_restored(current_path, previous_path)
+    assert state("release-1", "blue") == settled
+
+    # A recorded promotion settles it, on the new release.
+    retried = load_json_object(current_path)
+    retried["promotionState"] = "validated"
+    atomic_write_json(current_path, retried)
+    mark_manifest_cutover_started(current_path, previous_path)
+    mark_manifest_promoted(current_path, previous_manifest_path=previous_path)
+    assert state("release-2", "green") == settled
+    # A rollback that switched the agent back without recording it.
+    assert state("release-1", "blue") == unfinished
+
+    # Settled on paper, but the running agent reports another release.
+    drifted = inspect_cutover(
+        tmp_path, release="release-2", color="green", deployed="release-1"
+    )
+    assert drifted.returncode == 1
+    assert "the variables and the running deployment disagree" in drifted.stderr
+
+    mismatch = inspect_cutover(tmp_path, release="release-2", color="blue")
+    assert mismatch.returncode == 1
+    assert "correct the agent variables by hand" in mismatch.stderr
+    wrong_graph = inspect_cutover(
+        tmp_path, release="release-2", color="green", uri="bolt://blue"
+    )
+    assert wrong_graph.returncode == 1
+    assert "Agent NEO4J_URI is not the green graph" in wrong_graph.stderr
+
+    first = load_json_object(previous_path)
+    first["promotionState"] = "validated"
+    first.pop("supersededByReleaseId", None)
+    atomic_write_json(previous_path, first)
+    unpromoted_first = inspect_cutover(tmp_path, release="release-1", color="blue")
+    assert unpromoted_first.returncode == 1
+    assert "release-activate-bootstrap" in unpromoted_first.stderr
+
+
 def run_release_shell(script: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         ["bash", "-c", script],

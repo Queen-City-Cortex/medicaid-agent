@@ -266,7 +266,6 @@ export const ReleaseManifestSchema = z.object({
   promotedAt: z.string().datetime().nullable(),
   rolledBackAt: z.string().datetime().nullable(),
   rollbackWindowEndsAt: z.string().datetime().nullable(),
-  volumeRetainUntil: z.string().datetime().nullable(),
   answerReadySnapshot: z.object({
     answerReadyDocuments: z.number().int().nonnegative(),
   }).optional(),

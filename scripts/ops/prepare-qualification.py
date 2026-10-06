@@ -245,6 +245,8 @@ def run(audit_only=False):
         raise ValueError("Canonical evidence catalog changed")
     write_receipt("evidence-identity-catalog.json", catalog)
     os.environ["EVAL_IDENTITY_CATALOG"] = str(OUTPUT_ROOT / "evidence-identity-catalog.json")
+    # The pinned image has no git checkout; its sealed revision is its identity.
+    os.environ["RAILWAY_GIT_COMMIT_SHA"] = expected["implementationRevision"]
     from pipeline.evaluation_evidence import evaluation_fingerprint
     write_receipt("evaluation-fingerprint.json", {"fingerprint": evaluation_fingerprint(), "evaluationsRun": False})
 

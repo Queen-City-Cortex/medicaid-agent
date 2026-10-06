@@ -24,6 +24,22 @@ ACTIVE_JOB_PID=""
 # for a source family that is required for answering.
 CRAWL_DISCOVERY_FAILED_EXIT=3
 CRAWL_EXIT=0
+# corpus-release.sh promote exits with this status (ALREADY_REJECTED_EXIT_CODE
+# in packages/pipeline/src/pipeline/release_preflight.py) when the same source
+# snapshot was already rejected at a gate and nothing that decides the outcome
+# has changed. The graph is not rebuilt.
+RELEASE_ALREADY_REJECTED_EXIT=21
+RELEASE_EXIT=0
+# corpus-release.sh promote exits with this status (RESET_DEFERRED_EXIT_CODE in
+# packages/pipeline/src/pipeline/release.py) when the inactive graph still
+# holds a release inside its rollback window. Nothing was reset; the promotion
+# waits for a later run and this run is not a failure.
+RELEASE_DEFERRED_EXIT=20
+# corpus-release.sh promote exits with this status (ALREADY_RELEASED_EXIT_CODE
+# in release_preflight.py) when the serving release was built from this same
+# snapshot and code: an earlier run promoted it and stopped before the
+# acknowledgement. Nothing is rebuilt and the snapshot is acknowledged now.
+RELEASE_ALREADY_RELEASED_EXIT=22
 
 ensure_data_layout() {
   # Only a new volume may initialize empty history. Existing registries must
@@ -82,8 +98,8 @@ discover_and_release() {
   fi
   # A failed required family still leaves a finished crawl: parse, mirror and
   # back up what the healthy families delivered, but never promote. The caller
-  # returns CRAWL_EXIT once its remaining steps have run, so the run ends
-  # non-zero. Any other status is a crash and stops here.
+  # ends with deferred_exit_status once its remaining steps have run, so the
+  # run ends non-zero. Any other status is a crash and stops here.
   if [[ "$CRAWL_EXIT" -ne 0 && "$CRAWL_EXIT" -ne "$CRAWL_DISCOVERY_FAILED_EXIT" ]]; then
     return "$CRAWL_EXIT"
   fi
@@ -100,13 +116,31 @@ discover_and_release() {
     log "discovery failed for a required source family; skipping release promotion"
   elif jq -e '.changed == true' "$SNAPSHOT_RESULT" >/dev/null; then
     log "answer-ready corpus changed; starting gated blue-green release"
-    promote_release
-    (
-      cd "$PIPELINE_DIR"
-      "$PY" -m pipeline.cli acknowledge-answer-ready-snapshot \
-        --state-file "$SNAPSHOT_STATE" \
-        --snapshot-file "$SNAPSHOT_RESULT"
-    )
+    local promote_exit=0
+    promote_release || promote_exit=$?
+    case "$promote_exit" in
+      0 | "$RELEASE_ALREADY_RELEASED_EXIT")
+        [[ "$promote_exit" -eq 0 ]] \
+          || log "this source snapshot is already the serving release; acknowledging it without a rebuild"
+        (
+          cd "$PIPELINE_DIR"
+          "$PY" -m pipeline.cli acknowledge-answer-ready-snapshot \
+            --state-file "$SNAPSHOT_STATE" \
+            --snapshot-file "$SNAPSHOT_RESULT"
+        )
+        ;;
+      "$RELEASE_DEFERRED_EXIT")
+        log "promotion deferred until the inactive graph's rollback window closes; the snapshot stays unacknowledged for the next run"
+        ;;
+      "$RELEASE_ALREADY_REJECTED_EXIT")
+        # Nothing was reset or rebuilt, so the crawl is still worth mirroring
+        # and backing up. The snapshot stays unacknowledged and the run ends
+        # non-zero until an operator changes what the rejected gate reads.
+        log "this source snapshot was already rejected; skipping the rebuild"
+        RELEASE_EXIT="$promote_exit"
+        ;;
+      *) return "$promote_exit" ;;
+    esac
   else
     log "answer-ready corpus unchanged"
   fi
@@ -134,6 +168,15 @@ monthly_evaluation_if_due() {
     MASTRA_OBSERVABILITY_PATH=":memory:" \
       "$PY" -m pipeline.cli eval --level answer
   )
+}
+
+# The status of a run whose remaining steps were still worth finishing: a
+# failed required-family discovery first, else a release that was skipped.
+deferred_exit_status() {
+  if [[ "$CRAWL_EXIT" -ne 0 ]]; then
+    return "$CRAWL_EXIT"
+  fi
+  return "$RELEASE_EXIT"
 }
 
 promote_release() {
@@ -193,7 +236,7 @@ scheduled() {
   monthly_evaluation_if_due
   sync_current_corpus
   backup_corpus
-  return "$CRAWL_EXIT"
+  deferred_exit_status
 }
 
 run_job_mode() {
@@ -201,12 +244,13 @@ run_job_mode() {
     scheduled) scheduled ;;
     discover)
       discover_and_release
-      return "$CRAWL_EXIT"
+      deferred_exit_status
       ;;
     recover-parse) recover_parse ;;
     bootstrap) "$REPO_ROOT/scripts/ops/corpus-release.sh" bootstrap ;;
     release) promote_release ;;
     rollback) "$REPO_ROOT/scripts/ops/corpus-release.sh" rollback ;;
+    recover) "$REPO_ROOT/scripts/ops/corpus-release.sh" recover ;;
     cleanup) cleanup_releases ;;
     audit)
       active_graph_env
@@ -342,7 +386,7 @@ if [[ "${CORPUS_JOB_CHILD:-0}" == "1" ]]; then
 fi
 
 case "$JOB_MODE" in
-  scheduled|discover|recover-parse|bootstrap|release|rollback|cleanup|audit|evaluate|backup) ;;
+  scheduled|discover|recover-parse|bootstrap|release|rollback|recover|cleanup|audit|evaluate|backup) ;;
   *) log "unknown CORPUS_JOB_MODE: $JOB_MODE"; exit 64 ;;
 esac
 

@@ -374,13 +374,12 @@ def test_an_incomplete_retrieval_run_cannot_decide_the_retrieval_gates():
     evidence.require_complete_retrieval(complete_result())
 
 
+COMMIT = "c" * 40
+
+
 def fake_repository(tmp_path, monkeypatch):
-    for package in ["agent", "contracts", "policy-corpus", "pipeline"]:
-        source = tmp_path / "packages" / package / "src"
-        source.mkdir(parents=True)
-        (source / "module.py").write_text("VALUE = 1\n")
-    (tmp_path / "packages" / "pipeline" / "uv.lock").write_text("lock")
-    for name in ["package-lock.json", "corpus-manifest.json", "corpus-release-policy.json"]:
+    """A build with no git checkout, as the corpus-job image is."""
+    for name in ["corpus-manifest.json", "corpus-release-policy.json"]:
         (tmp_path / name).write_text("{}")
     dataset = tmp_path / "dataset.json"
     dataset.write_text("[]")
@@ -389,14 +388,111 @@ def fake_repository(tmp_path, monkeypatch):
     monkeypatch.setattr(evidence, "REPO_ROOT", tmp_path)
     monkeypatch.setattr(evidence, "GOLDEN_DATASET_PATH", dataset)
     monkeypatch.setenv("EVAL_IDENTITY_CATALOG", str(catalog))
+    monkeypatch.setenv("RAILWAY_GIT_COMMIT_SHA", COMMIT)
     for variable in ["JEV_SECTION_ROLES_ENABLED", "SCOPE_GATE_PROVIDER", "JEV_VALIDATION_LEDGER"]:
         monkeypatch.delenv(variable, raising=False)
     return tmp_path
 
 
-def test_release_policy_is_not_part_of_the_evaluation_fingerprint(tmp_path, monkeypatch):
-    # A threshold decides what a score means for a release, never what the
-    # score is: recalibrating one must not void a paid baseline.
+def git(root, *arguments):
+    import subprocess
+
+    return subprocess.run(
+        [
+            "git", "-C", str(root),
+            "-c", "user.name=Test", "-c", "user.email=test@example.test",
+            "-c", "commit.gpgsign=false", "-c", "core.hooksPath=/dev/null",
+            *arguments,
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
+
+
+def git_checkout(tmp_path, monkeypatch):
+    """A clean checkout with one commit; returns its root and HEAD."""
+    (tmp_path / "checkout").mkdir()
+    root = fake_repository(tmp_path / "checkout", monkeypatch)
+    monkeypatch.delenv("RAILWAY_GIT_COMMIT_SHA")
+    (root / "module.py").write_text("VALUE = 1\n")
+    git(root, "init", "--quiet")
+    git(root, "add", "--all")
+    git(root, "commit", "--quiet", "--message", "first")
+    return root, git(root, "rev-parse", "HEAD")
+
+
+def test_the_fingerprint_names_the_commit_of_a_clean_checkout(tmp_path, monkeypatch):
+    root, head = git_checkout(tmp_path, monkeypatch)
+
+    before = evidence.evaluation_fingerprint()
+
+    assert before["implementationCommit"] == head
+    assert "implementationHash" not in before
+
+    (root / "module.py").write_text("VALUE = 2\n")
+    git(root, "commit", "--quiet", "--all", "--message", "second")
+    after = evidence.evaluation_fingerprint()
+    assert after["implementationCommit"] == git(root, "rev-parse", "HEAD") != head
+    assert {**after, "implementationCommit": head} == before
+
+
+@pytest.mark.parametrize("path", ["module.py", "untracked.py", "corpus-release-policy.json"])
+def test_a_checkout_with_a_changed_or_untracked_file_has_no_fingerprint(
+    tmp_path, monkeypatch, path
+):
+    root, _head = git_checkout(tmp_path, monkeypatch)
+    (root / path).write_text("VALUE = 3\n")
+
+    with pytest.raises(ValueError, match=f"clean checkout: 1 changed or untracked.*{path}"):
+        evidence.evaluation_fingerprint()
+
+
+def test_an_untracked_file_is_seen_whatever_git_is_configured_to_show(tmp_path, monkeypatch):
+    root, _head = git_checkout(tmp_path, monkeypatch)
+    git(root, "config", "status.showUntrackedFiles", "no")
+    (root / "untracked.py").write_text("VALUE = 3\n")
+
+    with pytest.raises(ValueError, match="clean checkout"):
+        evidence.evaluation_fingerprint()
+
+
+def test_a_declared_commit_must_be_the_checkout_it_runs_in(tmp_path, monkeypatch):
+    _root, head = git_checkout(tmp_path, monkeypatch)
+
+    monkeypatch.setenv("RAILWAY_GIT_COMMIT_SHA", head[:7])
+    assert evidence.implementation_commit() == head
+
+    monkeypatch.setenv("RAILWAY_GIT_COMMIT_SHA", COMMIT)
+    with pytest.raises(ValueError, match="but this checkout is at"):
+        evidence.implementation_commit()
+
+
+def test_a_build_without_git_takes_the_commit_it_was_deployed_from(tmp_path, monkeypatch):
+    fake_repository(tmp_path, monkeypatch)
+
+    assert evidence.evaluation_fingerprint()["implementationCommit"] == COMMIT
+
+    for declared in ["", COMMIT[:7], "not-a-commit"]:
+        monkeypatch.setenv("RAILWAY_GIT_COMMIT_SHA", declared)
+        with pytest.raises(ValueError, match="full 40-character commit"):
+            evidence.evaluation_fingerprint()
+
+
+def test_git_that_cannot_answer_fails_closed(tmp_path, monkeypatch):
+    root = fake_repository(tmp_path, monkeypatch)
+    (root / ".git").write_text("gitdir: /nonexistent\n")
+
+    with pytest.raises(ValueError, match="could not ask git"):
+        evidence.evaluation_fingerprint()
+
+
+def test_one_build_keeps_its_fingerprint_when_only_the_release_policy_file_differs(
+    tmp_path, monkeypatch
+):
+    # The policy has no value of its own in the fingerprint; the corpus
+    # manifest does. A policy change that is committed and deployed still
+    # changes the commit, and with it the fingerprint.
     root = fake_repository(tmp_path, monkeypatch)
     before = evidence.evaluation_fingerprint()
 
@@ -404,6 +500,10 @@ def test_release_policy_is_not_part_of_the_evaluation_fingerprint(tmp_path, monk
     assert evidence.evaluation_fingerprint() == before
 
     (root / "corpus-manifest.json").write_text('{"source_families": []}')
+    assert evidence.evaluation_fingerprint() != before
+
+    (root / "corpus-manifest.json").write_text("{}")
+    monkeypatch.setenv("RAILWAY_GIT_COMMIT_SHA", "d" * 40)
     assert evidence.evaluation_fingerprint() != before
 
 

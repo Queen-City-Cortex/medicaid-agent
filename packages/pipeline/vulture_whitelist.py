@@ -37,9 +37,11 @@ detect_amendments_cmd
 answer_ready_snapshot
 acknowledge_answer_ready_snapshot_command
 release_prepare
+release_preflight
 release_build_graph
 release_validate
 release_mark_promoted
+release_mark_cutover_started
 release_mark_rolled_back
 release_mark_cutover_restored
 release_mark_recovery_pending

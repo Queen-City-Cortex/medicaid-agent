@@ -375,7 +375,7 @@ def release_mark_promoted(
     manifest: Path,
     previous_manifest: Path | None,
 ) -> None:
-    """Record a verified promotion and the old graph retention deadlines."""
+    """Record a verified promotion; the old graph's rollback window runs from it."""
     promoted = mark_manifest_promoted(
         manifest,
         previous_manifest_path=previous_manifest,
@@ -521,14 +521,21 @@ def release_retention_check(
     releases_dir: Path,
     target_color: str,
 ) -> None:
-    """Block resetting a color while its previous volume must be retained."""
+    """Defer resetting a color while its release is inside its rollback window."""
+    import sys
+
+    from pipeline.release import RESET_DEFERRED_EXIT_CODE
+
     blocker = find_color_retention_blocker(releases_dir, target_color)
     if blocker:
         console.print(json.dumps(blocker, sort_keys=True))
-        raise click.ClickException(
-            f"neo4j-{target_color} retains release "
-            f"{blocker['releaseId']} until {blocker['volumeRetainUntil']}"
+        click.echo(
+            f"neo4j-{target_color} holds release {blocker['releaseId']} inside "
+            f"its rollback window until {blocker['rollbackWindowEndsAt']}; "
+            "resetting it is deferred until then",
+            err=True,
         )
+        sys.exit(RESET_DEFERRED_EXIT_CODE)
     console.print(json.dumps({"blocked": False}, sort_keys=True))
 
 
@@ -652,11 +659,7 @@ def release_activate_bootstrap(manifest: Path, backup_receipt: Path) -> None:
     from pipeline.bootstrap_activation import RailwayTarget, activate
     from pipeline.config import CORPUS_DATA_ROOT
     from pipeline.evaluation_evidence import baseline_metrics, evaluation_fingerprint
-    from pipeline.release import (
-        REPO_ROOT,
-        evaluate_release_manifest,
-        release_is_promotable,
-    )
+    from pipeline.release import REPO_ROOT, validated_manifest_is_promotable
     from pipeline.retirement import corpus_writer_lock
 
     if CORPUS_DATA_ROOT is None:
@@ -699,9 +702,13 @@ def release_activate_bootstrap(manifest: Path, backup_receipt: Path) -> None:
             if not os.environ.get(key):
                 raise RuntimeError(f"Fresh release authentication requires {key}")
         current = load_json_object(manifest)
-        if current.get("promotionState") != "validated" or not release_is_promotable(
-            evaluate_release_manifest(current)
-        ):
+        try:
+            promotable = validated_manifest_is_promotable(current)
+        except ValueError as error:
+            raise RuntimeError(
+                f"Candidate gate overrides are not valid for it: {error}"
+            ) from error
+        if current.get("promotionState") != "validated" or not promotable:
             raise RuntimeError("Candidate has not passed every release gate")
         baseline_metrics(current.get("baselineEvidence", {}))
         if current.get("evaluationFingerprint") != evaluation_fingerprint():
@@ -826,3 +833,114 @@ def release_activate_bootstrap(manifest: Path, backup_receipt: Path) -> None:
             baseline_release_id=release.get("baselineEvidence", {}).get("releaseId"),
         )
         click.echo(json.dumps(result))
+
+
+@cli.command("release-preflight")
+@click.option(
+    "--manifest",
+    type=click.Path(path_type=Path, exists=True, dir_okay=False),
+    required=True,
+)
+@click.option(
+    "--releases-dir",
+    type=click.Path(path_type=Path, file_okay=False),
+    required=True,
+)
+@click.option(
+    "--previous-manifest",
+    type=click.Path(path_type=Path, exists=True, dir_okay=False),
+    default=None,
+)
+@click.option(
+    "--baseline-evidence",
+    type=click.Path(path_type=Path, exists=True, dir_okay=False),
+    default=None,
+)
+@click.option(
+    "--override-file",
+    type=click.Path(path_type=Path, exists=True, dir_okay=False),
+    default=None,
+)
+@click.option(
+    "--retry-rejected",
+    default=None,
+    help="Release ID of one rejected release to build again unchanged",
+)
+def release_preflight(
+    manifest: Path,
+    releases_dir: Path,
+    previous_manifest: Path | None,
+    baseline_evidence: Path | None,
+    override_file: Path | None,
+    retry_rejected: str | None,
+) -> None:
+    """Check the release inputs that need no graph, before the graph is reset."""
+    import sys
+
+    from pipeline.release_preflight import (
+        ALREADY_REJECTED_EXIT_CODE,
+        ALREADY_RELEASED_EXIT_CODE,
+        PreflightFailed,
+        SnapshotAlreadyRejected,
+        SnapshotAlreadyReleased,
+        run_release_preflight,
+    )
+
+    try:
+        result = record_release_stage(
+            manifest,
+            "preflight",
+            lambda: run_release_preflight(
+                manifest,
+                releases_dir=releases_dir,
+                previous_manifest_path=previous_manifest,
+                baseline_evidence_path=baseline_evidence,
+                override_path=override_file,
+                retry_rejected=retry_rejected or None,
+            ),
+        )
+    except PreflightFailed as error:
+        raise click.ClickException(
+            "Release preflight failed before the graph was reset:\n- "
+            + "\n- ".join(error.problems)
+        ) from error
+    except SnapshotAlreadyReleased as error:
+        click.echo(
+            f"{error}, built with this same evaluation fingerprint. Nothing "
+            "was rebuilt; the corpus job acknowledges the snapshot.",
+            err=True,
+        )
+        sys.exit(ALREADY_RELEASED_EXIT_CODE)
+    except SnapshotAlreadyRejected as error:
+        click.echo(
+            f"{error}. The source snapshot, the evaluation fingerprint and the "
+            "release policy are unchanged, so the graph was not rebuilt. Change "
+            "the corpus, merge a fix or a reviewed policy change, write an "
+            "override for an overridable gate, or set "
+            f"RELEASE_RETRY_REJECTED={error.rejection['releaseId']} for one "
+            "deliberate retry.",
+            err=True,
+        )
+        sys.exit(ALREADY_REJECTED_EXIT_CODE)
+    for notice in result["notices"]:
+        click.echo(f"Note: {notice}", err=True)
+    console.print(json.dumps(result, sort_keys=True))
+
+
+@cli.command("release-mark-cutover-started")
+@click.option(
+    "--manifest",
+    type=click.Path(path_type=Path, exists=True, dir_okay=False),
+    required=True,
+)
+@click.option(
+    "--previous-manifest",
+    type=click.Path(path_type=Path, exists=True, dir_okay=False),
+    required=True,
+)
+def release_mark_cutover_started(manifest: Path, previous_manifest: Path) -> None:
+    """Record the rollback window and the cutover before the agent is switched."""
+    from pipeline.release import mark_manifest_cutover_started
+
+    started = mark_manifest_cutover_started(manifest, previous_manifest)
+    console.print(json.dumps(started, sort_keys=True))

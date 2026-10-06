@@ -153,7 +153,6 @@ def create_release_manifest(
         "promotedAt": None,
         "rolledBackAt": None,
         "rollbackWindowEndsAt": None,
-        "volumeRetainUntil": None,
     }
 
 
@@ -1057,14 +1056,57 @@ def mark_release_service_stopped(
         {
             "type": "graph_service_stopped",
             "at": format_timestamp(effective_now),
-            "details": {
-                "service": service,
-                "volumeRetainUntil": manifest.get("volumeRetainUntil"),
-            },
+            "details": {"service": service},
         }
     )
     atomic_write_json(manifest_path, manifest)
     return manifest
+
+
+def _stamp_superseded(
+    previous_manifest_path: Path,
+    release_id: str,
+    now: datetime,
+    policy: dict[str, Any],
+) -> None:
+    """Record on the previous release what replaces it and until when it can return."""
+    previous = load_json_object(previous_manifest_path)
+    previous["supersededByReleaseId"] = release_id
+    previous["rollbackWindowEndsAt"] = format_timestamp(
+        now + timedelta(hours=policy["operations"]["rollbackWindowHours"])
+    )
+    atomic_write_json(previous_manifest_path, previous)
+
+
+def mark_manifest_cutover_started(
+    manifest_path: Path,
+    previous_manifest_path: Path,
+    *,
+    now: datetime | None = None,
+    policy: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Record the cutover before the agent is switched.
+
+    From here until `mark_manifest_promoted`, a validated manifest the agent
+    names is an unfinished cutover. The previous release already carries its
+    rollback window, so a run that finds this state can restore it.
+    """
+    effective_now = now or utc_now()
+    manifest = load_json_object(manifest_path)
+    if manifest.get("promotionState") != "validated":
+        raise ValueError("Only a validated release can be cut over to")
+    _stamp_superseded(
+        previous_manifest_path,
+        manifest["releaseId"],
+        effective_now,
+        policy or load_release_policy(),
+    )
+    return append_release_event(
+        manifest_path,
+        "cutover_started",
+        {"previousReleaseId": load_json_object(previous_manifest_path)["releaseId"]},
+        now=effective_now,
+    )
 
 
 def mark_manifest_promoted(
@@ -1080,22 +1122,13 @@ def mark_manifest_promoted(
     if manifest.get("promotionState") != "validated":
         raise ValueError("Only a validated release can be promoted")
 
+    # The window was first recorded before the switch; it now runs from the
+    # verified promotion.
     if previous_manifest_path:
-        previous = load_json_object(previous_manifest_path)
-        previous["supersededByReleaseId"] = manifest["releaseId"]
-        previous["rollbackWindowEndsAt"] = format_timestamp(
-            effective_now
-            + timedelta(hours=policy["operations"]["rollbackWindowHours"])
+        _stamp_superseded(
+            previous_manifest_path, manifest["releaseId"], effective_now, policy
         )
-        previous["volumeRetainUntil"] = format_timestamp(
-            effective_now
-            + timedelta(days=policy["operations"]["volumeRetentionDays"])
-        )
-        atomic_write_json(previous_manifest_path, previous)
 
-    # Record the rollback window before declaring the new release promoted.
-    # If the second write fails, the shell orchestrator restores the previous
-    # target and can still reason about its rollback/retention deadlines.
     manifest["promotionState"] = "promoted"
     manifest["promotedAt"] = format_timestamp(effective_now)
     atomic_write_json(manifest_path, manifest)
@@ -1137,7 +1170,6 @@ def mark_manifest_cutover_restored(
     if previous.get("supersededByReleaseId") == current["releaseId"]:
         previous.pop("supersededByReleaseId")
         previous["rollbackWindowEndsAt"] = None
-        previous["volumeRetainUntil"] = None
     atomic_write_json(previous_manifest_path, previous)
     atomic_write_json(current_manifest_path, current)
     return current, previous
@@ -1192,13 +1224,26 @@ def require_rollback_available(
         raise ValueError("The 24-hour corpus rollback window has expired")
 
 
+# `release-retention-check` exits with this status when the target colour still
+# holds a release inside its rollback window. The reset is deferred, not failed:
+# the corpus job (RELEASE_DEFERRED_EXIT in scripts/ops/railway-corpus-job.sh)
+# leaves the snapshot unacknowledged and finishes its other work. 75 is taken:
+# the job script exits 75 when another run holds the volume lock.
+RESET_DEFERRED_EXIT_CODE = 20
+
+
 def find_color_retention_blocker(
     releases_dir: Path,
     target_color: str,
     *,
     now: datetime | None = None,
 ) -> dict[str, Any] | None:
-    """Return the retained release that prevents resetting a graph color."""
+    """Return the release still inside its rollback window on a graph color.
+
+    The rollback window is the only reset deadline: while it is open the
+    superseded graph must stay intact, and once it has closed (or a restore
+    has cleared it) the color may be rebuilt.
+    """
     effective_now = (now or utc_now()).astimezone(UTC)
     blockers: list[dict[str, Any]] = []
     for path in sorted(releases_dir.glob("*.json")):
@@ -1206,20 +1251,20 @@ def find_color_retention_blocker(
             manifest = load_json_object(path)
         except (OSError, ValueError, json.JSONDecodeError):
             continue
-        retain_until = _parse_timestamp(manifest.get("volumeRetainUntil"))
+        rollback_ends = _parse_timestamp(manifest.get("rollbackWindowEndsAt"))
         if (
             manifest.get("targetColor") == target_color
-            and retain_until
-            and retain_until > effective_now
+            and rollback_ends
+            and rollback_ends > effective_now
         ):
             blockers.append(
                 {
                     "releaseId": manifest.get("releaseId"),
                     "manifestPath": str(path),
-                    "volumeRetainUntil": format_timestamp(retain_until),
+                    "rollbackWindowEndsAt": format_timestamp(rollback_ends),
                 }
             )
-    return max(blockers, key=lambda item: item["volumeRetainUntil"], default=None)
+    return max(blockers, key=lambda item: item["rollbackWindowEndsAt"], default=None)
 
 
 def find_cleanup_candidate(
@@ -1250,7 +1295,6 @@ def find_cleanup_candidate(
                     "releaseId": manifest.get("releaseId"),
                     "manifestPath": str(path),
                     "rollbackWindowEndsAt": format_timestamp(rollback_ends),
-                    "volumeRetainUntil": manifest.get("volumeRetainUntil"),
                 }
             )
     return max(
@@ -1258,3 +1302,39 @@ def find_cleanup_candidate(
         key=lambda item: item["rollbackWindowEndsAt"],
         default=None,
     )
+
+
+def baseline_comparison_gaps(previous_manifest: dict[str, Any]) -> list[str]:
+    """Compared metrics a previous manifest lacks; each fails its regression gate."""
+    evaluation = previous_manifest.get("evaluationResults") or {}
+    return [
+        name
+        for name in _BASELINE_COMPARISON_METRICS
+        if _finite_number(evaluation.get(name)) is None
+    ]
+
+
+def unresolved_gate_failures(gates: Any) -> list[str]:
+    """Names of the recorded gates that failed without an accepted override."""
+    return [
+        str(gate.get("name"))
+        for gate in (gates if isinstance(gates, list) else [])
+        if isinstance(gate, dict)
+        and not gate.get("passed")
+        and not gate.get("overrideReason")
+    ]
+
+
+def validated_manifest_is_promotable(manifest: dict[str, Any]) -> bool:
+    """Re-evaluate a manifest's gates against the current policy.
+
+    The overrides accepted when it was validated are applied again, and are
+    again refused unless each is bound to this manifest's source snapshot and
+    names a gate that may be overridden.
+    """
+    gates = apply_overrides(
+        evaluate_release_manifest(manifest),
+        manifest.get("gateOverrides") or {},
+        manifest["sourceSnapshotHash"],
+    )
+    return release_is_promotable(gates)
