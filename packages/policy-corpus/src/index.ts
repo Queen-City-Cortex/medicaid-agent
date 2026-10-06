@@ -1,4 +1,5 @@
 export { createNeo4jPolicyCorpus, SEARCH_SNIPPET_CHARS } from './policy-corpus.js';
+export { CONTAINER_NOTE_LEAD, SECTION_WINDOW_CHARS, SECTION_WINDOW_MAX_CHARS } from './internal/scoring-constants.js';
 export { resolveCoverageScope, coverageEvidenceIssue, ANSWER_SCOPE_POLICY, type CoverageScope } from './scope/coverage.js';
 export {
   ANSWER_QUESTION_TYPES,
@@ -22,6 +23,7 @@ export {
   type DocumentView,
   type DocumentWithSectionsView,
   type FindConceptSectionsInput,
+  type GetSectionOptions,
   type LookupPolicyInput,
   type PolicyCorpus,
   type PolicyCorpusDependencies,

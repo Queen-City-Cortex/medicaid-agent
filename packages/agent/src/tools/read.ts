@@ -1,18 +1,49 @@
 import { visibleSection } from './section-metadata.js';
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
+import { SECTION_WINDOW_CHARS, SECTION_WINDOW_MAX_CHARS } from '@nc-medicaid/policy-corpus';
 import { policyCorpus } from '../policy-corpus.js';
 import { DocumentMetadataSchema } from './document-metadata.js';
 
 // ─── getSection ────────────────────────────────────────────────────────────────
 
+// Cypher substring() rejects a start above 2^31 - 1. An offset past the end
+// of a section is not an error: it returns an empty window with the total.
+const SECTION_OFFSET_MAX = 2_147_483_647;
+
+/** The window fields of a section read; a schema that omits them strips them. */
+export const SectionWindowSchema = z.object({
+  contentOffset: z.number().describe('Where content starts in the section text'),
+  totalChars: z.number().describe('Length of the whole section text'),
+  nextOffset: z.number().nullable().describe('Offset of the next window; null when content reaches the end'),
+  contentNote: z.string().nullable().describe('The range shown and how to continue; null when content is the whole text'),
+});
+
 export const getSection = createTool({
   id: 'get-section',
   description:
-    'Retrieve the full content and metadata of a specific policy section by its ID. ' +
-    'Use this when you need to read the complete text of a section found via searchSections.',
+    'Read the text and metadata of a specific policy section by its ID. ' +
+    `One call returns a window of the text (${SECTION_WINDOW_CHARS} characters by default, at most ${SECTION_WINDOW_MAX_CHARS}), not ` +
+    'necessarily all of it: totalChars is the full length and nextOffset is where the next window starts, ' +
+    'or null when content reaches the end. Call again with offset=nextOffset to read on. ' +
+    'Do not conclude that something is absent from a section while nextOffset is not null. ' +
+    'A heading with no text of its own returns the text of its sub-sections, paged the same way.',
   inputSchema: z.object({
     sectionId: z.string().describe('The unique section ID (e.g. "doc-123:sec-4.1")'),
+    offset: z
+      .number()
+      .int()
+      .min(0)
+      .max(SECTION_OFFSET_MAX)
+      .optional()
+      .describe('Characters to skip before the returned window (default 0); pass the previous nextOffset'),
+    length: z
+      .number()
+      .int()
+      .min(1)
+      .max(SECTION_WINDOW_MAX_CHARS)
+      .optional()
+      .describe(`Window size in characters (default ${SECTION_WINDOW_CHARS}, at most ${SECTION_WINDOW_MAX_CHARS})`),
   }),
   outputSchema: z.object({
     section: z
@@ -21,6 +52,7 @@ export const getSection = createTool({
         title: z.string().nullable(),
         sectionNumber: z.string().nullable(),
         content: z.string().nullable(),
+        ...SectionWindowSchema.shape,
         effectiveDate: z.string().nullable(),
         sourceModifiedDate: z.string().nullable().optional(),
         retrievedAt: z.string().nullable().optional(),
@@ -45,7 +77,10 @@ export const getSection = createTool({
       .nullable(),
   }),
   execute: async (inputData) => {
-    const section = await policyCorpus.getSection(inputData.sectionId);
+    const section = await policyCorpus.getSection(inputData.sectionId, {
+      offset: inputData.offset,
+      length: inputData.length,
+    });
     return { section: section ? visibleSection(section) : null };
   },
 });

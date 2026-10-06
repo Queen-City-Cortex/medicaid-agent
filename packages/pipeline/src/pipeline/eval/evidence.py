@@ -120,8 +120,10 @@ def build_judge_evidence(
         if not (src.get("text") or "").strip():
             continue
         # Dedup section bodies already in golden or read through another tool.
+        # A partial read is keyed "<section id>#chars=a-b": a window of a
+        # golden section is already covered by the golden block.
         if src.get("toolName") in SECTION_TOOLS and src.get("key"):
-            if src["key"] in seen_section_keys:
+            if src["key"].split("#chars=")[0] in golden_ids or src["key"] in seen_section_keys:
                 continue
             seen_section_keys.add(src["key"])
         agent_ordered.append(src)

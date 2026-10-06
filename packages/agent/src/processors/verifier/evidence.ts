@@ -1,4 +1,4 @@
-import type { AnswerFrame, AnswerFrameSection } from '@nc-medicaid/policy-corpus';
+import { CONTAINER_NOTE_LEAD, type AnswerFrame, type AnswerFrameSection } from '@nc-medicaid/policy-corpus';
 import { getConfig } from './config.js';
 import { answerUrlSet, sourceUrlSet } from './answer-validation.js';
 
@@ -8,7 +8,10 @@ export interface SourceEntry {
   /** Server-assigned role; web context cannot establish governing policy. */
   evidenceRole?: 'supplementary';
   toolName: string;
-  key: string;   // section or document ID
+  /** Section or document ID. A section entry that holds only part of the
+   *  text is keyed `<id>#chars=<from>-<to>`, so two ranges of one section do
+   *  not replace each other where entries are merged by key. */
+  key: string;
   text: string;  // serialized evidence text
   /** Citation URL for this source (citationLink or url), when available.
    *  Used to match sources against the answer's inline markdown citations —
@@ -31,6 +34,11 @@ interface GetSectionResult {
     title: string | null;
     sectionNumber: string | null;
     content: string | null;
+    /** The window `content` holds; absent on results stored before reads were windowed. */
+    contentOffset?: number;
+    totalChars?: number;
+    nextOffset?: number | null;
+    contentNote?: string | null;
     effectiveDate: string | null;
     sourceModifiedDate?: string | null;
     retrievedAt?: string | null;
@@ -135,12 +143,82 @@ function urlFromCitationLink(citationLink: string | null | undefined): string | 
   return match ? match[1] : null;
 }
 
-function extractGetSection(result: GetSectionResult): SourceEntry | null {
-  const sec = result?.section;
-  if (!sec) return null;
+type SectionResult = NonNullable<GetSectionResult['section']>;
 
-  const lines: string[] = [`[getSection]`];
+/** One read of a section: the characters [offset, end) of a text of `total`. */
+interface SectionRead {
+  section: SectionResult;
+  toolName: 'getSection' | 'resolveAnswerFrame:section';
+  /** Unicode characters, the unit the offsets count; JavaScript's string
+   *  length counts UTF-16 units and would misplace a join. */
+  chars: string[];
+  offset: number;
+  end: number;
+  /** Null when the result carries no window (stored before reads were windowed). */
+  total: number | null;
+}
+
+const KEY_RANGE_MARK = '#chars=';
+
+/** The section id of a section entry's key, with any range suffix removed. */
+function keySectionId(key: string): string {
+  const at = key.indexOf(KEY_RANGE_MARK);
+  return at === -1 ? key : key.slice(0, at);
+}
+
+/** Null when the read holds no text of a section that has some: an offset
+ *  past the end read nothing, so it must not vouch for the section. */
+function sectionRead(section: SectionResult, toolName: SectionRead['toolName']): SectionRead | null {
+  const chars = Array.from(section.content ?? '');
+  const offset = section.contentOffset ?? 0;
+  const total = section.totalChars ?? null;
+  if (total !== null && total > 0 && chars.length === 0) return null;
+  const end = total === null ? offset + chars.length : (section.nextOffset ?? Math.max(total, offset));
+  return { section, toolName, chars, offset, end, total };
+}
+
+/**
+ * Join reads of one section whose ranges touch or overlap into one read, in
+ * the place of the earliest. The quotation check searches each entry's text,
+ * so a quotation that crosses a window boundary is found only when the two
+ * windows are one entry. Ranges with a gap stay apart: text between them was
+ * not read. A read whose text does not fill its stated range is left alone.
+ */
+function stitchSectionReads(reads: Array<SectionRead | null>): void {
+  const exact = (read: SectionRead) => read.total !== null && read.chars.length === read.end - read.offset;
+  for (let merged = true; merged;) {
+    merged = false;
+    for (let i = 0; i < reads.length && !merged; i++) {
+      const first = reads[i];
+      if (!first || !exact(first)) continue;
+      for (let j = i + 1; j < reads.length; j++) {
+        const later = reads[j];
+        if (!later || !exact(later) || later.section.id !== first.section.id || later.total !== first.total) continue;
+        if (later.offset > first.end || first.offset > later.end) continue;
+        const [head, tail] = first.offset <= later.offset ? [first, later] : [later, first];
+        reads[i] = {
+          ...first,
+          chars: tail.end > head.end ? [...head.chars, ...tail.chars.slice(head.end - tail.offset)] : head.chars,
+          offset: head.offset,
+          end: Math.max(head.end, tail.end),
+        };
+        reads[j] = null;
+        merged = true;
+        break;
+      }
+    }
+  }
+}
+
+function formatSectionRead(read: SectionRead): SourceEntry {
+  const sec = read.section;
+  const partial = read.total !== null && (read.offset > 0 || read.end < read.total);
+
+  const lines: string[] = [read.toolName === 'getSection' ? `[getSection]` : `[corpusSection]`];
   lines.push(`ID: ${sec.id}`);
+  if (partial) {
+    lines.push(`Chars: ${read.offset}-${read.end} of ${read.total} (partial: the rest of this section's text was not retrieved)`);
+  }
   if (sec.title) lines.push(`Title: ${sec.title}`);
   if (sec.sectionNumber) lines.push(`Section: ${sec.sectionNumber}`);
   if (sec.policyNumber) lines.push(`Policy: ${sec.policyNumber}`);
@@ -152,11 +230,15 @@ function extractGetSection(result: GetSectionResult): SourceEntry | null {
   if (sec.federalRegisterCite) lines.push(`Federal Register cite: ${sec.federalRegisterCite}`);
   if (sec.citationLink) lines.push(`Citation link: ${sec.citationLink}`);
   else if (sec.url) lines.push(`URL: ${sec.url}`);
-  if (sec.content) lines.push(`\nContent:\n${sec.content}`);
+  // A heading read as the sections under it: the note says which were
+  // included and how many were left out, so the entry is not taken for the
+  // whole of what stands under the heading.
+  if (sec.contentNote?.startsWith(CONTAINER_NOTE_LEAD)) lines.push(`Read note: ${sec.contentNote}`);
+  if (read.chars.length > 0) lines.push(`\nContent:\n${read.chars.join('')}`);
 
   return {
-    toolName: 'getSection',
-    key: sec.id,
+    toolName: read.toolName,
+    key: partial ? `${sec.id}${KEY_RANGE_MARK}${read.offset}-${read.end}` : sec.id,
     text: lines.join('\n'),
     link: sec.url ?? urlFromCitationLink(sec.citationLink),
     policyNumber: sec.policyNumber,
@@ -288,6 +370,7 @@ function formatFrameSection(section: AnswerFrameSection): string {
   if (section.federalRegisterCite) lines.push(`Federal Register cite: ${section.federalRegisterCite}`);
   if (section.citationLink) lines.push(`Citation link: ${section.citationLink}`);
   else if (section.url) lines.push(`URL: ${section.url}`);
+  if (section.nextOffset != null) lines.push(`Text: first ${section.nextOffset} of ${section.totalChars} characters`);
   if (section.reason) lines.push(`Reason: ${section.reason}`);
   // Routing advice is separate from the original corpus text below.
   return lines.join('\n');
@@ -364,7 +447,7 @@ function extractResolveAnswerFrame(result: ResolveAnswerFrameResult, toolCallId:
 
 /** The planner's source bodies come directly from the corpus, while its
  * routing reasons are advisory. Keep those two kinds of information separate. */
-function extractFrameCorpusSections(result: ResolveAnswerFrameResult): SourceEntry[] {
+function frameSectionReads(result: ResolveAnswerFrameResult): SectionRead[] {
   const frame = result?.frame;
   if (!frame) return [];
   const seen = new Set<string>();
@@ -373,9 +456,8 @@ function extractFrameCorpusSections(result: ResolveAnswerFrameResult): SourceEnt
     .flatMap(section => {
       if (!section.content?.trim() || seen.has(section.id)) return [];
       seen.add(section.id);
-      const entry = extractGetSection({ section })!;
-      return [{ ...entry, toolName: 'resolveAnswerFrame:section',
-        text: entry.text.replace('[getSection]', '[corpusSection]') }];
+      const read = sectionRead(section, 'resolveAnswerFrame:section');
+      return read ? [read] : [];
     });
 }
 
@@ -395,15 +477,25 @@ export interface ToolResultRecord {
 export function extractSourcesFromToolResults(
   toolResults: Array<ToolResultRecord>,
 ): SourceEntry[] {
-  const sources: SourceEntry[] = [];
+  // Section reads are held back until every record is seen, so that windows
+  // of one section can be joined before any is formatted.
+  const slots: Array<SourceEntry | null> = [];
+  const reads: Array<SectionRead | null> = [];
+  const hold = (read: SectionRead | null) => {
+    if (!read) return;
+    slots.push(null);
+    reads[slots.length - 1] = read;
+  };
   for (const tr of toolResults) {
     if (!EVIDENCE_TOOLS.has(tr.toolName)) continue;
     const toolCallId = tr.toolCallId ?? '';
     let entry: SourceEntry | null = null;
     switch (tr.toolName) {
-      case 'getSection':
-        entry = extractGetSection(tr.result as GetSectionResult);
+      case 'getSection': {
+        const section = (tr.result as GetSectionResult)?.section;
+        if (section) hold(sectionRead(section, 'getSection'));
         break;
+      }
       case 'getDocument':
         entry = extractGetDocument(tr.result as GetDocumentResult);
         break;
@@ -420,10 +512,15 @@ export function extractSourcesFromToolResults(
         entry = extractResolveAnswerFrame(tr.result as ResolveAnswerFrameResult, toolCallId);
         break;
     }
-    if (entry) sources.push(entry);
-    if (tr.toolName === 'resolveAnswerFrame') sources.push(...extractFrameCorpusSections(tr.result as ResolveAnswerFrameResult));
+    if (entry) slots.push(entry);
+    if (tr.toolName === 'resolveAnswerFrame') frameSectionReads(tr.result as ResolveAnswerFrameResult).forEach(hold);
   }
-  return sources;
+  stitchSectionReads(reads);
+  return slots.flatMap((slot, index) => {
+    if (slot) return [slot];
+    const read = reads[index];
+    return read ? [formatSectionRead(read)] : [];
+  });
 }
 
 /**
@@ -432,48 +529,16 @@ export function extractSourcesFromToolResults(
  * `state: 'result'` and a `result` field containing the tool output.
  */
 export function extractSources(messages: Array<{ content?: { parts?: any[] } }>): SourceEntry[] {
-  const sources: SourceEntry[] = [];
-
+  const records: ToolResultRecord[] = [];
   for (const msg of messages) {
     for (const part of msg.content?.parts ?? []) {
       if (part.type !== 'tool-invocation') continue;
       const inv = part.toolInvocation;
       if (!inv || inv.state !== 'result') continue;
-
-      const toolName: string = inv.toolName;
-      const result: unknown = inv.result;
-      const toolCallId: string = inv.toolCallId ?? '';
-      if (!EVIDENCE_TOOLS.has(toolName)) continue;
-
-      let entry: SourceEntry | null = null;
-
-      switch (toolName) {
-        case 'getSection':
-          entry = extractGetSection(result as GetSectionResult);
-          break;
-        case 'getDocument':
-          entry = extractGetDocument(result as GetDocumentResult);
-          break;
-        case 'getAmendments':
-          entry = extractGetAmendments(result as GetAmendmentsResult, toolCallId);
-          break;
-        case 'lookupPolicy':
-          entry = extractLookupPolicy(result as LookupPolicyResult, toolCallId);
-          break;
-        case 'followReferences':
-          entry = extractFollowReferences(result as FollowReferencesResult, toolCallId);
-          break;
-        case 'resolveAnswerFrame':
-          entry = extractResolveAnswerFrame(result as ResolveAnswerFrameResult, toolCallId);
-          break;
-      }
-
-      if (entry) sources.push(entry);
-      if (toolName === 'resolveAnswerFrame') sources.push(...extractFrameCorpusSections(result as ResolveAnswerFrameResult));
+      records.push({ toolName: inv.toolName, toolCallId: inv.toolCallId, result: inv.result });
     }
   }
-
-  return sources;
+  return extractSourcesFromToolResults(records);
 }
 
 // ── buildSourceText ──────────────────────────────────────────────────────────
@@ -529,7 +594,7 @@ export function buildSourceText(
   // too: section text must claim the budget before them.
   const answerUrls = answerUrlSet(answerText);
   const isCited = (s: SourceEntry) => [...sourceUrlSet(s)].some(url => answerUrls.has(url))
-    || (!!s.link && answerText.includes(s.link)) || answerText.includes(s.key);
+    || (!!s.link && answerText.includes(s.link)) || answerText.includes(isBody(s) ? keySectionId(s.key) : s.key);
   const isBody = (s: SourceEntry) => SECTION_BODY_TOOLS.has(s.toolName);
   // Research findings first, then cited section bodies, cited other entries,
   // uncited bodies, the rest, and the routing hint last; tool-call order

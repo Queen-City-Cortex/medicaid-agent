@@ -32,8 +32,16 @@ export const OPERATIONAL_TYPE_GROUPS = [
   ['billing_guidance'],
   ['managed_care_guidance', 'managed_care_contract'],
 ];
-export const MAX_CONTENT_CHARS = 6000;
-export const MAX_COMBINED_CHARS = 6000;
+// One getSection read returns a window of a section's text. The default is
+// the size a read has always had; the maximum lets ten full windows fit the
+// verifier's default evidence budget (120,000 characters) with their headers.
+export const SECTION_WINDOW_CHARS = 6000;
+export const SECTION_WINDOW_MAX_CHARS = 12000;
+// A heading with no text of its own is read as the sections under it, at
+// most this many (a flat container can hold thousands) and this many levels
+// down.
+export const CONTAINER_SECTION_LIMIT = 100;
+export const CONTAINER_SECTION_DEPTH = 3;
 export const MAX_PER_GROUP_K = 100;
 export const MIN_DEFAULT_PER_GROUP_K = 25;
 export const MIN_EXPLICIT_PER_GROUP_K = 15;
@@ -106,3 +114,7 @@ export const FRAME_SUPPORT_LIMIT = 4;
 export const FRAME_AVOID_LIMIT = 3;
 export const FRAME_DOCUMENT_LIMIT = 3;
 export const DOCUMENT_SECTION_PICK_LIMIT = 2;
+
+/** Opens the note of every read of a heading that has no text of its own.
+ *  The verifier's evidence shows such a note in full (see the agent's evidence.ts). */
+export const CONTAINER_NOTE_LEAD = 'This heading has no text of its own.';

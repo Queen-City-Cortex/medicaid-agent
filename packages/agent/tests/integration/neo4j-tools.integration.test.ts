@@ -285,6 +285,115 @@ integration('agent tools against a real Neo4j graph', () => {
     expect(result.section?.status).toBe('current');
   });
 
+  it('pages a long section by Unicode characters and reports the total and next offset', async () => {
+    const docId = `${FIXTURE_PREFIX}doc:long-section`;
+    const sectionId = `${FIXTURE_PREFIX}sec:long-section`;
+    // "𝔘" is one character to Neo4j and two UTF-16 units to JavaScript, so a
+    // next offset taken from a JavaScript length would land one short per "𝔘".
+    const text = `${'𝔘'.repeat(10)}${'a'.repeat(6990)}REMITTANCE${'b'.repeat(11390)}`;
+
+    await run(
+      `
+      CREATE (d:Document {id: $docId, title: '42 CFR Part 438', document_type: 'federal_regulation',
+        source_url: 'https://example.com/438', status: 'current'})
+      CREATE (s:Section {id: $sectionId, document_id: $docId, section_number: '438.8',
+        title: 'Medical loss ratio', content_text: $text, content_length: size($text)})
+      CREATE (d)-[:HAS_SECTION]->(s)
+      `,
+      { docId, sectionId, text },
+    );
+
+    const first = await runTool(getSection, { sectionId });
+    expect(first.section).toMatchObject({ contentOffset: 0, totalChars: 18400, nextOffset: 6000 });
+    expect(Array.from(first.section!.content!)).toHaveLength(6000);
+    expect(first.section!.content).toHaveLength(6010);
+    expect(first.section!.contentNote).toContain('Showing characters 0-6000 of 18400. Call getSection with offset=6000 to read on.');
+
+    let read = first.section!.content!;
+    for (let offset = first.section!.nextOffset, reads = 0; offset != null && reads < 10; reads += 1) {
+      const next = await runTool(getSection, { sectionId, offset });
+      expect(next.section!.contentOffset).toBe(offset);
+      read += next.section!.content;
+      offset = next.section!.nextOffset;
+    }
+    expect(read).toBe(text);
+
+    const second = await runTool(getSection, { sectionId, offset: 6000, length: 12000 });
+    expect(second.section!.content).toContain('REMITTANCE');
+    expect(second.section).toMatchObject({ nextOffset: 18000 });
+
+    const past = await runTool(getSection, { sectionId, offset: 50000 });
+    expect(past.section).toMatchObject({ content: '', totalChars: 18400, nextOffset: null });
+  });
+
+  it('reads a container heading as the sections under it on a graph loaded before and after the hierarchy fix', async () => {
+    const docId = `${FIXTURE_PREFIX}doc:container`;
+    const id = (suffix: string) => `${FIXTURE_PREFIX}sec:container:${suffix}`;
+    const sections = [
+      { id: id('4.2'), number: '4.2', title: '4.2 Specific Criteria Not Covered', text: '' },
+      { id: id('4.2.1'), number: '4.2.1', title: '4.2.1 Specific Criteria', text: 'Not covered when:' },
+      { id: id('_s31'), number: null, title: 'a. Cosmetic Surgery', text: 'Cosmetic criteria.' },
+      { id: id('_s32'), number: null, title: 'b. Reconstructive Surgery', text: 'Reconstructive criteria.' },
+      { id: id('4.2.2'), number: '4.2.2', title: '4.2.2 Additional Criteria', text: 'None apply.' },
+      { id: id('4.3'), number: '4.3', title: '4.3 Other', text: 'Other text.' },
+    ];
+    const load = async (links: Array<[string, string]>) => {
+      await cleanupFixtures();
+      await run(
+        `
+        CREATE (d:Document {id: $docId, title: 'Policy 1-O-1', document_type: 'clinical_policy',
+          policy_number: '1-O-1', source_url: 'https://example.com/1-O-1', status: 'current'})
+        WITH d
+        UNWIND $sections AS section
+        CREATE (s:Section {id: section.id, document_id: $docId, section_number: section.number,
+          title: section.title, content_text: section.text, content_length: size(section.text)})
+        CREATE (d)-[:HAS_SECTION]->(s)
+        `,
+        { docId, sections },
+      );
+      await run(
+        `
+        UNWIND $links AS link
+        MATCH (parent:Section {id: link[0]})
+        MATCH (child:Section {id: link[1]})
+        CREATE (parent)-[:PARENT_OF]->(child)
+        `,
+        { links },
+      );
+    };
+
+    // As served today: the lettered headings are roots and "b." adopted 4.2.2; "a." adopted nothing.
+    await load([[id('4.2'), id('4.2.1')], [id('_s32'), id('4.2.2')]]);
+    const serving = await runTool(getSection, { sectionId: id('4.2') });
+    expect(serving.section!.content).toBe(
+      '### 4.2.1 Specific Criteria\nNot covered when:\n\n### 4.2.2 Additional Criteria\nNone apply.\n\n',
+    );
+    expect(serving.section).toMatchObject({ contentOffset: 0, totalChars: 90, nextOffset: null });
+    expect(serving.section!.contentNote).toContain(': 4.2.1; 4.2.2.');
+    expect(serving.section!.contentNote).toContain('stored apart from them');
+
+    const paged = await runTool(getSection, { sectionId: id('4.2'), offset: 40, length: 30 });
+    expect(paged.section!.content).toBe(Array.from(serving.section!.content!).slice(40, 70).join(''));
+    expect(paged.section).toMatchObject({ contentOffset: 40, totalChars: 90, nextOffset: 70 });
+
+    // After a reload: numbers decide the parents and lettered headings hang under 4.2.1.
+    await load([
+      [id('4.2'), id('4.2.1')],
+      [id('4.2.1'), id('_s31')],
+      [id('4.2.1'), id('_s32')],
+      [id('4.2'), id('4.2.2')],
+    ]);
+    const reloaded = await runTool(getSection, { sectionId: id('4.2') });
+    expect(reloaded.section!.content).toBe(
+      '### 4.2.1 Specific Criteria\nNot covered when:\n\n' +
+        '### a. Cosmetic Surgery\nCosmetic criteria.\n\n' +
+        '### b. Reconstructive Surgery\nReconstructive criteria.\n\n' +
+        '### 4.2.2 Additional Criteria\nNone apply.\n\n',
+    );
+    expect(reloaded.section!.contentNote).not.toContain('stored apart');
+    expect(reloaded.section!.content).not.toContain('Other text.');
+  });
+
   it('returns the queried document, its amendment chain and what it amends', async () => {
     const baseDocId = `${FIXTURE_PREFIX}doc:base`;
     const currentDocId = `${FIXTURE_PREFIX}doc:current`;

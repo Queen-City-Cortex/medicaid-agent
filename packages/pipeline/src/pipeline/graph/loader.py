@@ -235,9 +235,47 @@ def build_sections_from_items(doc_dict: dict, document_id: str) -> list[dict]:
     return sections
 
 
+# A worksheet becomes one synthetic section, and some run to tens of megabytes:
+# retrieval scores the whole sheet and a read returns one window of it, so a
+# row deep in the sheet could be ranked first and never read. A sheet longer
+# than this is stored as an empty heading with row groups of at most this many
+# characters under it. It is the default `getSection` window
+# (`SECTION_WINDOW_CHARS` in policy-corpus), so one read returns one group.
+SPREADSHEET_SECTION_MAX_CHARS = 6000
+# The first row is repeated at the top of every later group when it is short
+# enough to be a column header and not a block of notes.
+SPREADSHEET_HEADER_MAX_CHARS = SPREADSHEET_SECTION_MAX_CHARS // 4
+_SPREADSHEET_FORMATS = frozenset({"xlsx", "xls"})
+
+
+def _spreadsheet_row_groups(content_text: str) -> list[str]:
+    """Split sheet text into groups of whole lines; every line lands in one group.
+
+    A line longer than the limit is a group by itself, never cut or dropped.
+    """
+    rows = content_text.split("\n")
+    header = rows[0] if len(rows[0]) <= SPREADSHEET_HEADER_MAX_CHARS else None
+    groups: list[str] = []
+    current: list[str] = []
+    size = 0  # length of "\n".join(current)
+    own_rows = 0  # rows in `current` other than a repeated header
+    for row in rows:
+        if own_rows and size + 1 + len(row) > SPREADSHEET_SECTION_MAX_CHARS:
+            groups.append("\n".join(current))
+            current, size, own_rows = [], 0, 0
+            if header is not None:
+                current, size = [header], len(header)
+        size += len(row) + (1 if current else 0)
+        current.append(row)
+        own_rows += 1
+    groups.append("\n".join(current))
+    return groups
+
+
 def build_sections_from_synthetic_items(doc_dict: dict, document_id: str) -> list[dict]:
     """Build sections from synthetic parser output for DOCX/XLSX sources."""
     raw_sections = doc_dict.get("synthetic_sections", [])
+    is_spreadsheet = doc_dict.get("source_format") in _SPREADSHEET_FORMATS
     sections: list[dict] = []
     section_number_occurrences: dict[str, int] = {}
 
@@ -248,28 +286,113 @@ def build_sections_from_synthetic_items(doc_dict: dict, document_id: str) -> lis
             occurrence = section_number_occurrences.get(section_number, 0)
             section_number_occurrences[section_number] = occurrence + 1
 
-        sections.append(
-            {
-                "id": build_section_id(document_id, section_number, index, occurrence),
-                "document_id": document_id,
-                "section_number": section_number,
-                "title": raw_section.get("title"),
-                "level": raw_section.get("level", 0),
-                "content_text": (raw_section.get("content_text") or "").strip(),
-                "content_length": len((raw_section.get("content_text") or "").strip()),
-                "has_tables": raw_section.get("has_tables", False),
-                "has_definitions": raw_section.get("has_definitions", False),
-                "parent_id": None,
-                "prev_sibling_id": None,
-            }
-        )
+        section = {
+            "id": build_section_id(document_id, section_number, index, occurrence),
+            "document_id": document_id,
+            "section_number": section_number,
+            "title": raw_section.get("title"),
+            "level": raw_section.get("level", 0),
+            "content_text": (raw_section.get("content_text") or "").strip(),
+            "content_length": len((raw_section.get("content_text") or "").strip()),
+            "has_tables": raw_section.get("has_tables", False),
+            "has_definitions": raw_section.get("has_definitions", False),
+            "parent_id": None,
+            "prev_sibling_id": None,
+        }
+        sections.append(section)
+        if not is_spreadsheet or section["content_length"] <= SPREADSHEET_SECTION_MAX_CHARS:
+            continue
 
-    _assign_hierarchy(sections)
+        # The sheet keeps its id, so ids of the other sheets do not move.
+        groups = _spreadsheet_row_groups(section["content_text"])
+        section["content_text"], section["content_length"] = "", 0
+        for part, group in enumerate(groups, 1):
+            sections.append(
+                {
+                    **section,
+                    "id": f"{section['id']}:rows{part}",
+                    "section_number": None,
+                    "title": f"{section['title'] or 'Sheet'} (rows part {part} of {len(groups)})",
+                    "level": section["level"] + 1,
+                    "content_text": group,
+                    "content_length": len(group),
+                }
+            )
+
+    _assign_hierarchy_by_level(sections)
     return sections
 
 
+_DOTTED_NUMBER_RE = re.compile(r"\d+(?:\.\d+)+")
+
+
+def _number_path(section_number: str | None) -> tuple[str, ...] | None:
+    """ "3.2.1" -> ("3", "2", "1"); a trailing ".0" marks a top-level section
+    ("3.0" -> ("3",)), so it is the prefix of "3.1". None for other headings."""
+    if not section_number or not _DOTTED_NUMBER_RE.fullmatch(section_number):
+        return None
+    parts = section_number.split(".")
+    if parts[-1] == "0":
+        parts.pop()
+    return tuple(parts)
+
+
 def _assign_hierarchy(sections: list[dict]):
-    """Assign parent_id and prev_sibling_id based on level."""
+    """Assign parent_id and prev_sibling_id to Docling sections.
+
+    A numbered section belongs to the nearest earlier section whose number is
+    a prefix of its own ("3.2.2" to "3.2"), whatever headings stand between
+    them. Docling reports nearly every heading at depth 1, so placing by depth
+    made an unnumbered heading such as "e. Telehealth" a root that adopted the
+    numbered sections after it.
+
+    An unnumbered heading belongs to the unnumbered heading above it when one
+    is shallower, otherwise to the anchor: the last numbered section or
+    "Attachment X" heading. It can never be the parent of a numbered section.
+    An attachment starts a new scope: numbering may restart inside it, and a
+    numbered section with no prefix there belongs to the attachment.
+    """
+    numbered: list[tuple[tuple[str, ...], dict]] = []
+    unnumbered: list[dict] = []
+    attachment: dict | None = None
+    anchor: dict | None = None
+    last_child: dict[str | None, str] = {}
+
+    for section in sections:
+        path = _number_path(section["section_number"])
+        parent: dict | None = None
+        if path is not None:
+            while numbered and numbered[-1][0] != path[: len(numbered[-1][0])]:
+                numbered.pop()
+            while numbered and numbered[-1][0] == path:
+                numbered.pop()  # a repeated number starts again, it is not its own child
+            parent = numbered[-1][1] if numbered else attachment
+            numbered.append((path, section))
+            unnumbered, anchor = [], section
+        elif section["section_number"]:
+            numbered, unnumbered = [], []
+            attachment = anchor = section
+        elif section["level"] > 0 or section["title"]:
+            while unnumbered and unnumbered[-1]["level"] >= section["level"]:
+                unnumbered.pop()
+            parent = unnumbered[-1] if unnumbered else anchor
+            unnumbered.append(section)
+        # else: text before the first heading. It is no heading, so it joins
+        # neither stack and nothing hangs under it.
+
+        parent_id = parent["id"] if parent else None
+        section["parent_id"] = parent_id
+        # Siblings share a parent, so a NEXT_SIBLING chain is one family.
+        section["prev_sibling_id"] = last_child.get(parent_id)
+        last_child[parent_id] = section["id"]
+
+
+def _assign_hierarchy_by_level(sections: list[dict]):
+    """Assign parent_id and prev_sibling_id from heading levels.
+
+    Synthetic sections carry the source's real heading levels (a DOCX style,
+    a sheet and its row groups), unlike Docling's depth.
+    """
     stack: list[dict] = []  # Stack of ancestor sections
     prev_at_level: dict[int, str] = {}  # Last section ID at each level
 

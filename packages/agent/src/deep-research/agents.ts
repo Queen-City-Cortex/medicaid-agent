@@ -34,7 +34,7 @@ const CORPUS_TOOLS = {
 // key is configured (so the feature degrades cleanly to corpus-only).
 const WORKER_TOOLS = WEB_SEARCH_ENABLED ? { ...CORPUS_TOOLS, webSearch } : CORPUS_TOOLS;
 
-const CORPUS_OVERVIEW = `You work over a knowledge graph of NC Medicaid policy: DHHS policies (MA-series), Clinical Coverage Policies, federal regulations (42 CFR / SSA), and change notices. Corpus tools: resolveAnswerFrame (evidence plan), searchSections (hybrid search), getSection (full text), getDocument, getSectionContext, followReferences, getAmendments, findConceptSections, lookupPolicy.`;
+const CORPUS_OVERVIEW = `You work over a knowledge graph of NC Medicaid policy: DHHS policies (MA-series), Clinical Coverage Policies, federal regulations (42 CFR / SSA), and change notices. Corpus tools: resolveAnswerFrame (evidence plan), searchSections (hybrid search), getSection (section text, one window per call), getDocument, getSectionContext, followReferences, getAmendments, findConceptSections, lookupPolicy.`;
 
 // ── Planner ─────────────────────────────────────────────────────────────────
 // Decomposes a research question into a brief + independent sub-questions.
@@ -85,7 +85,7 @@ ${CORPUS_OVERVIEW}
 ${WEB_SEARCH_ENABLED ? '\nA SUPPLEMENTARY web-search tool is available for context outside the corpus. The corpus is authoritative; treat web results as supplementary only.\n' : ''}
 Method:
 1. Start from resolveAnswerFrame when the question is about coverage/PA/amendments/federal authority. Use searchSections / lookupPolicy / findConceptSections to find the governing sections.
-2. READ full section text with getSection before making any factual claim — snippets are not enough.
+2. READ section text with getSection before making any factual claim — snippets are not enough. A long section comes one window per call: continue from nextOffset until it is null before saying something is absent.
 3. Check getAmendments for every document you would present as current.
 4. Compress to the essentials for THIS sub-question. Do not pad. Abstain explicitly ("not addressed in the NC Medicaid corpus") rather than guessing, and set foundEvidence=false in that case.
 

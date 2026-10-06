@@ -8,6 +8,7 @@ import {
 import { z } from 'zod';
 import { policyCorpus } from '../policy-corpus.js';
 import { DocumentMetadataSchema } from './document-metadata.js';
+import { SectionWindowSchema } from './read.js';
 
 // Once-per-process latch for the eval-route emission below. It is intentional
 // that this never resets: AGENT_EVAL_CAPTURE_ROUTE is only set by the eval
@@ -23,6 +24,8 @@ const AnswerFrameSectionSchema = z.object({
   title: z.string().nullable(),
   sectionNumber: z.string().nullable(),
   content: z.string().nullable(),
+  // A frame section holds the first window of its text; these say when more remains.
+  ...SectionWindowSchema.shape,
   effectiveDate: z.string().nullable(),
   sourceModifiedDate: z.string().nullable().optional(),
   retrievedAt: z.string().nullable().optional(),

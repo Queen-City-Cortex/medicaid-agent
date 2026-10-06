@@ -14,6 +14,7 @@ import type {
   ReferenceView,
   ResolveAnswerFrameInput,
   SectionContextView,
+  GetSectionOptions,
   SectionView,
 } from './types.js';
 
@@ -106,7 +107,7 @@ export interface RetrievalBackend {
 }
 
 export interface LegalPrimitiveService {
-  getSection(sectionId: string): Promise<SectionView | null>;
+  getSection(sectionId: string, options?: GetSectionOptions): Promise<SectionView | null>;
   getDocument(documentId: string): Promise<DocumentWithSectionsView | null>;
   getSectionContext(sectionId: string): Promise<SectionContextView>;
   followReferences(sectionId: string): Promise<ReferenceView[]>;

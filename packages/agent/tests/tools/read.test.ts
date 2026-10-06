@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { z } from 'zod';
 
 // ── Mocks ────────────────────────────────────────────────────────────────────
 
@@ -30,7 +31,7 @@ describe('getSection', () => {
             title: 'Eligibility',
             sectionNumber: '4.1',
             content: 'Full section content here.',
-            contentLength: 25,
+            totalChars: 26,
             documentId: 'doc-1',
             documentTitle: 'Policy 8C',
             documentType: 'dhhs_policy',
@@ -50,6 +51,10 @@ describe('getSection', () => {
       title: 'Eligibility',
       sectionNumber: '4.1',
       content: 'Full section content here.',
+      contentOffset: 0,
+      totalChars: 26,
+      nextOffset: null,
+      contentNote: null,
       effectiveDate: '2025-01-01',
       lastRevised: null,
       federalRegisterCite: null,
@@ -79,104 +84,108 @@ describe('getSection', () => {
     expect(result.section).toBeNull();
   });
 
-  it('auto-fetches children for container headings', async () => {
-    setupSession([
+  const parentRecord = (id: string, title: string) =>
+    mockRecord({
+      id,
+      title,
+      sectionNumber: '4',
+      content: '',
+      totalChars: 0,
+      documentId: 'doc-1',
+      documentTitle: 'Policy 8C',
+      documentType: 'dhhs_policy',
+      policyNumber: '8C',
+      effectiveDate: '2025-01-01',
+      url: 'https://example.com/8C',
+      status: 'current',
+    });
+
+  it('reads a container heading as the text of the sections under it', async () => {
+    const session = setupSession([
+      { records: [parentRecord('sec-parent', 'Parent Section')] },
       {
-        // First query: section with empty content
+        // Second query: the document's sections with sizes and links, no text
         records: [
-          mockRecord({
-            id: 'sec-parent',
-            title: 'Parent Section',
-            sectionNumber: '4',
-            content: '',
-            contentLength: 0,
-            documentId: 'doc-1',
-            documentTitle: 'Policy 8C',
-            documentType: 'dhhs_policy',
-            policyNumber: '8C',
-            effectiveDate: '2025-01-01',
-            url: 'https://example.com/8C',
-            status: 'current',
-          }),
+          mockRecord({ id: 'sec-parent', title: 'Parent Section', sectionNumber: '4', chars: 0, parentId: null }),
+          mockRecord({ id: 'sec-child-2', title: 'Child B', sectionNumber: '4.2', chars: 15, parentId: 'sec-parent' }),
+          mockRecord({ id: 'sec-child-1', title: 'Child A', sectionNumber: '4.1', chars: 15, parentId: 'sec-parent' }),
+          mockRecord({ id: 'sec-other', title: 'Elsewhere', sectionNumber: '5.1', chars: 20, parentId: null }),
         ],
       },
       {
-        // Second query: children with content
+        // Third query: the slices of their text inside the window
         records: [
-          mockRecord({
-            parentTitle: 'Parent Section',
-            children: [
-              { id: 'sec-child-1', title: 'Child A', sectionNumber: '4.1', content: 'Child A content' },
-              { id: 'sec-child-2', title: 'Child B', sectionNumber: '4.2', content: 'Child B content' },
-            ],
-            documentId: 'doc-1',
-            documentTitle: 'Policy 8C',
-            documentType: 'dhhs_policy',
-            policyNumber: '8C',
-            effectiveDate: '2025-01-01',
-            url: 'https://example.com/8C',
-            status: 'current',
-          }),
+          mockRecord({ id: 'sec-child-1', text: 'Child A content' }),
+          mockRecord({ id: 'sec-child-2', text: 'Child B content' }),
         ],
       },
     ]);
 
     const result = await runTool(getSection, { sectionId: 'sec-parent' });
 
-    expect(result.section).not.toBeNull();
-    expect(result.section!.content).toContain(
-      '[Container heading with 2 child sections:]',
-    );
-    expect(result.section!.content).toContain('### Child A');
-    expect(result.section!.content).toContain('Child A content');
-    expect(result.section!.content).toContain('### Child B');
-    expect(result.section!.content).toContain('Child B content');
+    expect(result.section!.content).toBe('### Child A\nChild A content\n\n### Child B\nChild B content\n\n');
+    expect(result.section).toMatchObject({ contentOffset: 0, totalChars: 58, nextOffset: null });
+    expect(result.section!.contentNote).toContain('The text is that of the 2 sections under it');
+    expect(session.run.mock.calls[2][1]).toEqual({
+      pieces: [
+        { id: 'sec-child-1', start: 0, length: 15 },
+        { id: 'sec-child-2', start: 0, length: 15 },
+      ],
+    });
   });
 
-  it('returns empty container when no children have content', async () => {
-    setupSession([
+  it('returns an empty container when no section under it has text', async () => {
+    setupSession([{ records: [parentRecord('sec-empty', 'Empty Container')] }, { records: [] }]);
+
+    const result = await runTool(getSection, { sectionId: 'sec-empty' });
+
+    expect(result.section).toMatchObject({ content: '', totalChars: 0, nextOffset: null, contentNote: null });
+  });
+
+  it('passes the offset and length to the read and returns where to continue', async () => {
+    const session = setupSession([
       {
         records: [
           mockRecord({
-            id: 'sec-empty',
-            title: 'Empty Container',
-            sectionNumber: '5',
-            content: '',
-            contentLength: 0,
+            id: 'sec-long',
+            title: 'Medical loss ratio',
+            sectionNumber: '438.8',
+            content: 'r'.repeat(6000),
+            totalChars: 18400,
             documentId: 'doc-1',
-            documentTitle: 'Policy 8C',
-            documentType: 'dhhs_policy',
-            policyNumber: '8C',
-            effectiveDate: '2025-01-01',
-            url: 'https://example.com/8C',
-            status: 'current',
-          }),
-        ],
-      },
-      {
-        // Second query: no children with content
-        records: [
-          mockRecord({
-            parentTitle: 'Empty Container',
-            children: [],
-            documentId: 'doc-1',
-            documentTitle: 'Policy 8C',
-            documentType: 'dhhs_policy',
-            policyNumber: '8C',
-            effectiveDate: '2025-01-01',
-            url: 'https://example.com/8C',
-            status: 'current',
+            documentTitle: '42 CFR Part 438',
+            documentType: 'federal_regulation',
+            url: 'https://example.com/438',
           }),
         ],
       },
     ]);
 
-    const result = await runTool(getSection, { sectionId: 'sec-empty' });
+    const result = await runTool(getSection, { sectionId: 'sec-long', offset: 6000, length: 6000 });
 
-    expect(result.section).not.toBeNull();
-    expect(result.section!.id).toBe('sec-empty');
-    // Falls through to the normal return path since children array is empty
-    expect(result.section!.content).toBe('');
+    expect(session.run.mock.calls[0][1]).toMatchObject({ id: 'sec-long', offset: 6000, length: 6000 });
+    expect(result.section).toMatchObject({ contentOffset: 6000, totalChars: 18400, nextOffset: 12000 });
+    expect(result.section!.contentNote).toContain('Showing characters 6000-12000 of 18400. Call getSection with offset=12000 to read on.');
+    // The window fields must be in the output schema, which strips what it does not name.
+    expect((getSection.outputSchema as unknown as z.ZodTypeAny).parse(result).section).toMatchObject({ nextOffset: 12000, totalChars: 18400 });
+  });
+
+  it('accepts only whole, non-negative offsets and lengths within the ceiling', () => {
+    const accepts = (input: Record<string, unknown>) => (getSection.inputSchema as unknown as z.ZodTypeAny).safeParse({ sectionId: 's', ...input }).success;
+    expect(accepts({})).toBe(true);
+    expect(accepts({ offset: 0, length: 1 })).toBe(true);
+    expect(accepts({ offset: 5_000_000, length: 12000 })).toBe(true);
+    expect(accepts({ offset: -1 })).toBe(false);
+    expect(accepts({ offset: 1.5 })).toBe(false);
+    expect(accepts({ offset: 2 ** 31 })).toBe(false);
+    expect(accepts({ length: 0 })).toBe(false);
+    expect(accepts({ length: 12001 })).toBe(false);
+    expect(accepts({ length: 100.5 })).toBe(false);
+  });
+
+  it('does not describe one call as the complete text', () => {
+    expect(getSection.description).not.toMatch(/full content|complete text/i);
+    expect(getSection.description).toContain('nextOffset');
   });
 });
 

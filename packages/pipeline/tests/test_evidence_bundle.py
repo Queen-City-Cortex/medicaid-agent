@@ -235,3 +235,17 @@ def test_non_dict_agent_sources_are_skipped_safely():
     sources = [None, "a string", {"toolName": "getSection", "key": "sec:x", "text": "ok"}]
     bundle = build_judge_evidence([], sources)  # type: ignore[arg-type]
     assert bundle.sources_used == 1
+
+
+def test_a_window_of_a_golden_section_is_not_added_beside_it():
+    bundle = build_judge_evidence(
+        [_golden("sec:a", "Alpha content")],
+        [
+            _source("getSection", "sec:a#chars=0-6000", "A window of alpha"),
+            _source("getSection", "sec:b#chars=0-6000", "A window of beta"),
+        ],
+    )
+    assert bundle.golden_blocks_used == 1
+    assert bundle.sources_used == 1
+    assert not any("A window of alpha" in block for block in bundle.blocks)
+    assert any("A window of beta" in block for block in bundle.blocks)

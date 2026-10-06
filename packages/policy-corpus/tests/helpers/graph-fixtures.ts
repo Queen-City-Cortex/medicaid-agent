@@ -112,6 +112,7 @@ export interface SectionRecordFields extends TierFields {
   title?: string | null;
   sectionNumber?: string | null;
   content?: string | null;
+  totalChars?: number;
   lastRevised?: string | null;
   federalRegisterCite?: string | null;
   documentId?: string | null;
@@ -125,12 +126,18 @@ export interface SectionRecordFields extends TierFields {
   status?: string | null;
 }
 
-/** A `getSection` hydration row (mapped by buildSectionView). */
+/**
+ * A `getSection` hydration row (mapped by buildSectionView). `content` is the
+ * window Neo4j would return and `totalChars` the size of the whole text; the
+ * total defaults to the content's size, as for a text one window holds.
+ */
 export function sectionRecord(fields: SectionRecordFields): StubRecord {
   return strictRecord({
     title: null,
     sectionNumber: null,
     content: null,
+    totalChars: Array.from(fields.content ?? '').length,
+    roleContent: null,
     lastRevised: null,
     federalRegisterCite: null,
     documentId: null,
@@ -213,34 +220,25 @@ export function amendmentRecord(fields: AmendmentRecordFields): StubRecord {
   });
 }
 
-export interface ContainerChildrenRecordFields extends TierFields {
-  children: Array<{ id: string; title: string | null; sectionNumber: string | null; content: string | null }>;
-  documentId?: string | null;
-  documentTitle?: string | null;
-  documentType?: string | null;
-  policyNumber?: string | null;
-  effectiveDate?: string | null;
-  sourceModifiedDate?: string | null;
-  retrievedAt?: string | null;
-  url?: string | null;
-  status?: string | null;
+/** One row of a `getSection` container read's document outline (no text, only sizes and links). */
+export function outlineRecord(fields: { id: string; title?: string | null; sectionNumber?: string | null; chars: number; parentId?: string | null }): StubRecord {
+  return strictRecord({ title: null, sectionNumber: null, parentId: null, ...fields });
 }
 
-/** A `getSection` container-heading child-aggregation row. */
-export function containerChildrenRecord(fields: ContainerChildrenRecordFields): StubRecord {
-  return strictRecord({
-    documentId: null,
-    documentTitle: null,
-    documentType: null,
-    policyNumber: null,
-    effectiveDate: null,
-    sourceModifiedDate: null,
-    retrievedAt: null,
-    url: null,
-    status: null,
-    ...TIER_DEFAULTS,
-    ...fields,
-  });
+/**
+ * The body-slice rows of a container read: answers the `UNWIND $pieces` query
+ * as Neo4j does, cutting each named section's text by Unicode characters.
+ */
+export function containerBodyRecords(
+  bodies: Record<string, string>,
+  pieces: Array<{ id: string; start: number; length: number }>,
+): StubRecord[] {
+  return pieces.map((piece) =>
+    strictRecord({
+      id: piece.id,
+      text: Array.from(bodies[piece.id] ?? '').slice(piece.start, piece.start + piece.length).join(''),
+    }),
+  );
 }
 
 /** A `getSectionContext` ancestor/child/sibling row. */
@@ -322,12 +320,6 @@ export const queries = {
     (query, params) =>
       normalizeQueryText(query).includes('MATCH (s:Section {id: $id}) OPTIONAL MATCH (d:Document)-[:HAS_SECTION]->(s)') &&
       params.id === id,
-
-  /** getSection container-heading child aggregation. */
-  sectionChildrenById:
-    (id: string): QueryMatcher =>
-    (query, params) =>
-      query.includes('MATCH (s:Section {id: $id})-[:PARENT_OF]->(child:Section)') && params.id === id,
 
   /** getDocument (metadata + sections collection). */
   documentById:
@@ -633,4 +625,88 @@ export function hitFor(
     ...tierFieldsOf(doc),
     ...overrides,
   });
+}
+
+// ---------------------------------------------------------------------------
+// Section-text fixture: answers getSection's queries as Neo4j would
+// ---------------------------------------------------------------------------
+
+export interface TextSection {
+  id: string;
+  title?: string | null;
+  sectionNumber?: string | null;
+  text: string;
+  /** Id of the section this one hangs under (a PARENT_OF link). */
+  parentId?: string | null;
+}
+
+/** Cypher `substring`: positions count Unicode characters, not UTF-16 units. */
+function cypherSubstring(text: string, start: number, length: number): string {
+  return Array.from(text).slice(start, start + length).join('');
+}
+
+/**
+ * A corpus over one document's sections whose stub cuts windows from the
+ * query parameters, so a test reads a long section the way the tool does.
+ */
+export function createSectionTextCorpus(sections: TextSection[]): {
+  corpus: PolicyCorpus;
+  session: { run: ReturnType<typeof vi.fn> };
+} {
+  const byId = new Map(sections.map((section) => [section.id, section]));
+  const session = {
+    run: vi.fn(async (query: string, params: MockQueryParams = {}) => {
+      const text = normalizeQueryText(query);
+      if (text.includes('UNWIND $pieces AS piece')) {
+        const pieces = params.pieces as Array<{ id: string; start: number; length: number }>;
+        return {
+          records: containerBodyRecords(Object.fromEntries(sections.map((section) => [section.id, section.text])), pieces),
+        };
+      }
+      if (text.includes('MATCH (d:Document)-[:HAS_SECTION]->(:Section {id: $id}) MATCH (d)-[:HAS_SECTION]->(other:Section)')) {
+        if (!byId.has(params.id as string)) return { records: [] };
+        return {
+          records: sections.map((section) =>
+            outlineRecord({
+              id: section.id,
+              title: section.title ?? null,
+              sectionNumber: section.sectionNumber ?? null,
+              chars: Array.from(section.text).length,
+              parentId: section.parentId ?? null,
+            }),
+          ),
+        };
+      }
+      if (text.includes('MATCH (s:Section {id: $id}) OPTIONAL MATCH (d:Document)-[:HAS_SECTION]->(s)')) {
+        const section = byId.get(params.id as string);
+        if (!section) return { records: [] };
+        const totalChars = Array.from(section.text).length;
+        const offset = params.offset as number;
+        return {
+          records: [
+            sectionRecord({
+              id: section.id,
+              title: section.title ?? null,
+              sectionNumber: section.sectionNumber ?? null,
+              content: offset < totalChars ? cypherSubstring(section.text, offset, params.length as number) : '',
+              totalChars,
+              documentId: 'doc-1',
+              documentTitle: 'Policy 8C',
+              documentType: 'clinical_policy',
+              policyNumber: '8C',
+              url: 'https://example.com/8C',
+              status: 'current',
+            }),
+          ],
+        };
+      }
+      throw new Error(`Unexpected query: ${text.slice(0, 120)}`);
+    }),
+  };
+  const corpus = createNeo4jPolicyCorpus({
+    withSession: async (fn) => fn(session),
+    embedQuery: vi.fn(async () => [0.1, 0.2, 0.3]),
+    defaultTopK: 10,
+  });
+  return { corpus, session };
 }

@@ -12,12 +12,15 @@ from pipeline.graph.loader import (
     _change_notice_number,
     build_sections_from_items,
     build_sections_from_synthetic_items,
+    _assign_hierarchy,
+    SPREADSHEET_SECTION_MAX_CHARS,
     _extract_dhhs_policy_number,
     _extract_effective_date,
     load_all,
     load_document,
     read_crawler_metadata_by_local_path,
 )
+from pipeline.parse.post_process import extract_section_number, infer_level_from_number
 from pipeline.source_selection import build_source_selection_index
 from docling_core.types.doc import DocItemLabel
 from pipeline.identity import build_document_id, canonicalize_source_url
@@ -283,6 +286,234 @@ def test_build_sections_from_synthetic_items_preserves_duplicate_attachment_ids(
         "sec:doc:test:fixture:Attachment B",
         "sec:doc:test:fixture:Attachment B:dup1",
     ]
+
+
+def _headings(*headings: str | tuple[str | None, int]) -> dict[str, dict]:
+    """Run the Docling hierarchy over headings in document order, keyed by title.
+
+    A bare string is a heading at Docling depth 1, where nearly every heading
+    arrives; a tuple gives another depth. Numbers and levels are derived as
+    `build_sections_from_items` derives them.
+    """
+    sections = []
+    for index, heading in enumerate(headings):
+        title, depth = heading if isinstance(heading, tuple) else (heading, 1)
+        number = extract_section_number(title) if title else None
+        sections.append(
+            {
+                "id": f"s{index}",
+                "section_number": number,
+                "title": title,
+                "level": infer_level_from_number(number) or depth,
+                "parent_id": None,
+                "prev_sibling_id": None,
+            }
+        )
+    _assign_hierarchy(sections)
+    return {section["title"] or f"untitled{position}": section for position, section in enumerate(sections)}
+
+
+def _parents(by_title: dict[str, dict]) -> dict[str, str | None]:
+    title_of = {section["id"]: title for title, section in by_title.items()}
+    return {title: title_of.get(section["parent_id"]) for title, section in by_title.items()}
+
+
+class TestAssignHierarchy:
+    def test_unnumbered_heading_does_not_capture_the_numbered_sections_after_it(self):
+        sections = _headings("3.2 Specific Criteria", "3.2.1 Medicaid", "e. Telehealth", "3.2.2 NCHC", "3.3 Other")
+        parents = _parents(sections)
+
+        assert parents["3.2.2 NCHC"] == "3.2 Specific Criteria"
+        assert parents["3.3 Other"] != "e. Telehealth"
+        assert parents == {
+            "3.2 Specific Criteria": None,
+            "3.2.1 Medicaid": "3.2 Specific Criteria",
+            "e. Telehealth": "3.2.1 Medicaid",
+            "3.2.2 NCHC": "3.2 Specific Criteria",
+            "3.3 Other": None,
+        }
+
+    def test_siblings_share_a_parent(self):
+        sections = _headings(
+            "3.0 When Covered", "3.1 General", "3.2 Specific", "3.2.1 Medicaid", "a. First", "b. Second",
+            "3.2.2 NCHC", "3.3 Other", "4.0 When Not Covered",
+        )
+        previous = {title: section["prev_sibling_id"] for title, section in sections.items()}
+        id_of = {title: section["id"] for title, section in sections.items()}
+
+        assert previous == {
+            "3.0 When Covered": None,
+            "3.1 General": None,
+            "3.2 Specific": id_of["3.1 General"],
+            "3.2.1 Medicaid": None,
+            "a. First": None,
+            "b. Second": id_of["a. First"],
+            "3.2.2 NCHC": id_of["3.2.1 Medicaid"],
+            "3.3 Other": id_of["3.2 Specific"],
+            "4.0 When Not Covered": id_of["3.0 When Covered"],
+        }
+        by_id = {section["id"]: section for section in sections.values()}
+        for section in sections.values():
+            if section["prev_sibling_id"]:
+                assert by_id[section["prev_sibling_id"]]["parent_id"] == section["parent_id"]
+
+    @pytest.mark.parametrize(
+        ("headings", "expected"),
+        [
+            pytest.param(
+                ["3.0 Covered", "3.1 General", "3.2 Specific", "3.2.1 Medicaid"],
+                {"3.0 Covered": None, "3.1 General": "3.0 Covered", "3.2 Specific": "3.0 Covered", "3.2.1 Medicaid": "3.2 Specific"},
+                id="trailing-zero-is-the-prefix-of-its-subsections",
+            ),
+            pytest.param(
+                ["3.2 Specific", "3.2.1.1 Deep", "3.2.2 Next"],
+                {"3.2 Specific": None, "3.2.1.1 Deep": "3.2 Specific", "3.2.2 Next": "3.2 Specific"},
+                id="skipped-level-hangs-under-the-nearest-prefix",
+            ),
+            pytest.param(
+                ["2.0 Eligibility", "3.2.1 Orphan", "a. Lettered", "3.2.2 Orphan too"],
+                {"2.0 Eligibility": None, "3.2.1 Orphan": None, "a. Lettered": "3.2.1 Orphan", "3.2.2 Orphan too": None},
+                id="no-prefix-ancestor-is-a-root-not-a-child-of-the-last-heading",
+            ),
+            pytest.param(
+                ["1.0 Description", "1.1 Definitions", "1.0 Description again", "1.1 Definitions again"],
+                {"1.0 Description": None, "1.1 Definitions": "1.0 Description", "1.0 Description again": None, "1.1 Definitions again": "1.0 Description again"},
+                id="repeated-number-starts-again",
+            ),
+            pytest.param(
+                ["8.0 Policy History", "Attachment A: Claims-Related Information", "A. Claim Type", "B. Diagnosis Codes", "8.1 Late"],
+                {
+                    "8.0 Policy History": None,
+                    "Attachment A: Claims-Related Information": None,
+                    "A. Claim Type": "Attachment A: Claims-Related Information",
+                    "B. Diagnosis Codes": "Attachment A: Claims-Related Information",
+                    "8.1 Late": "Attachment A: Claims-Related Information",
+                },
+                id="attachment-anchors-lettered-items-and-ends-the-body-numbering",
+            ),
+            pytest.param(
+                ["1.0 Body", "1.1 Body detail", "Attachment B: Form", "1.0 Form intro", "1.1 Form detail", "(1) Item", "2.3 Form orphan", "Attachment C: Table", "Note"],
+                {
+                    "1.0 Body": None,
+                    "1.1 Body detail": "1.0 Body",
+                    "Attachment B: Form": None,
+                    "1.0 Form intro": "Attachment B: Form",
+                    "1.1 Form detail": "1.0 Form intro",
+                    "(1) Item": "1.1 Form detail",
+                    "2.3 Form orphan": "Attachment B: Form",
+                    "Attachment C: Table": None,
+                    "Note": "Attachment C: Table",
+                },
+                id="numbering-restarts-inside-an-attachment",
+            ),
+            pytest.param(
+                ["Overview", ("Background", 2), ("History", 2), ("Detail", 3), "Next"],
+                {"Overview": None, "Background": "Overview", "History": "Overview", "Detail": "History", "Next": None},
+                id="unnumbered-headings-keep-their-own-depth-links",
+            ),
+            pytest.param(
+                ["5.0 Requirements", "a. Outer", ("(1) Inner", 2), "b. Outer again", "5.1 Prior Approval"],
+                {"5.0 Requirements": None, "a. Outer": "5.0 Requirements", "(1) Inner": "a. Outer", "b. Outer again": "5.0 Requirements", "5.1 Prior Approval": "5.0 Requirements"},
+                id="nested-lettered-items-stay-under-the-numbered-anchor",
+            ),
+            pytest.param(
+                [(None, 0), "Front matter", "1.0 Description"],
+                {"untitled0": None, "Front matter": None, "1.0 Description": None},
+                id="text-before-the-first-heading-parents-nothing",
+            ),
+        ],
+    )
+    def test_parent_of_each_heading(self, headings, expected):
+        assert _parents(_headings(*headings)) == expected
+
+    def test_fixture_1a_14_has_no_numbered_section_under_an_unnumbered_heading(self):
+        payload = json.loads((FIXTURES_DIR / "1a-14_surgery-for-ambiguous-genitalia.json").read_text())
+        sections = build_sections_from_items(payload, "doc:clinical_policy:1A-14")
+        by_id = {section["id"]: section for section in sections}
+        by_title = {section["title"]: section for section in sections}
+        numbered = [section for section in sections if section["section_number"]]
+
+        assert len(numbered) > 20
+        for section in numbered:
+            parent = by_id.get(section["parent_id"])
+            if parent is None:
+                continue
+            assert parent["section_number"], f"{section['title']} hangs under unnumbered {parent['title']}"
+            if not parent["section_number"].startswith("Attachment"):
+                assert section["section_number"].startswith(parent["section_number"].removesuffix(".0") + ".")
+        attachment = next(section for section in sections if (section["title"] or "").startswith("Attachment A"))
+        assert by_title["A. Claim Type"]["parent_id"] == attachment["id"]
+        assert by_title["H. Reimbursement"]["parent_id"] == attachment["id"]
+        epsdt = by_title["b. EPSDT and Prior Approval Requirements"]
+        assert by_id[epsdt["parent_id"]]["section_number"]
+        for section in sections:
+            if section["level"] == 0:
+                assert not [child for child in sections if child["parent_id"] == section["id"]]
+        # Sibling chains stay inside one family, and ids do not depend on the hierarchy.
+        for section in sections:
+            if section["prev_sibling_id"]:
+                assert by_id[section["prev_sibling_id"]]["parent_id"] == section["parent_id"]
+        assert by_title["A. Claim Type"]["id"].startswith("sec:doc:clinical_policy:1A-14:_s")
+
+
+def _sheet(title: str, rows: list[str]) -> dict:
+    return {"section_number": None, "title": title, "level": 1, "content_text": "\n".join(rows), "has_tables": True}
+
+
+class TestSpreadsheetSectionCap:
+    HEADER = "Procedure Code | Description | Rate"
+    ROWS = [f"{code} | Service {code} | {code / 100:.2f}" for code in range(10000, 11500)]
+
+    def _build(self, sheets: list[dict], source_format: str = "xlsx") -> list[dict]:
+        return build_sections_from_synthetic_items(
+            {"synthetic_sections": sheets, "source_format": source_format}, "doc:fee:test"
+        )
+
+    def test_long_sheet_becomes_a_heading_with_row_groups_and_no_row_is_dropped(self):
+        rows = [self.HEADER, *self.ROWS]
+        sections = self._build([_sheet("Notes", ["Effective 2026"]), _sheet("Rates", rows), _sheet("Codes", ["A | B"])])
+
+        notes, sheet, *parts, codes = sections
+        # Sheet ids do not move when an earlier sheet is split.
+        assert (notes["id"], sheet["id"], codes["id"]) == ("sec:doc:fee:test:_s0", "sec:doc:fee:test:_s1", "sec:doc:fee:test:_s2")
+        assert notes["content_text"] == "Effective 2026"
+        assert (sheet["content_text"], sheet["content_length"], sheet["title"]) == ("", 0, "Rates")
+        assert len(parts) > 5
+        assert [part["id"] for part in parts] == [f"sec:doc:fee:test:_s1:rows{n}" for n in range(1, len(parts) + 1)]
+        assert parts[2]["title"] == f"Rates (rows part 3 of {len(parts)})"
+        for part in parts:
+            assert part["content_length"] == len(part["content_text"]) <= SPREADSHEET_SECTION_MAX_CHARS
+            assert part["content_text"].split("\n")[0] == self.HEADER
+            assert part["parent_id"] == sheet["id"] and part["has_tables"] is True
+        # Every row is in exactly one group, in order; only the header repeats.
+        rebuilt = parts[0]["content_text"].split("\n")
+        for part in parts[1:]:
+            rebuilt += part["content_text"].split("\n")[1:]
+        assert rebuilt == rows
+        assert [part["prev_sibling_id"] for part in parts] == [None, *[part["id"] for part in parts[:-1]]]
+        assert sheet["parent_id"] is None and codes["parent_id"] is None
+
+    def test_a_row_longer_than_the_cap_is_kept_whole_and_a_long_first_row_is_not_repeated(self):
+        notes = "N" * (SPREADSHEET_SECTION_MAX_CHARS // 4 + 1)
+        giant = "G" * (SPREADSHEET_SECTION_MAX_CHARS + 500)
+        rows = [notes, "a | 1", giant, "b | 2", *self.ROWS[:400]]
+        _sheet_section, *parts = self._build([_sheet("Rates", rows)])
+
+        assert giant in [part["content_text"] for part in parts]
+        assert [row for part in parts for row in part["content_text"].split("\n")] == rows
+
+    def test_a_sheet_within_the_cap_and_a_long_section_of_another_format_are_unchanged(self):
+        short = [self.HEADER, *self.ROWS[:50]]
+        [sheet] = self._build([_sheet("Rates", short)])
+        assert sheet["content_text"] == "\n".join(short) and sheet["id"] == "sec:doc:fee:test:_s0"
+
+        long_rows = [self.HEADER, *self.ROWS]
+        [slide] = self._build([_sheet("Slide 1", long_rows)], source_format="pptx")
+        assert slide["content_text"] == "\n".join(long_rows)
+
+    def test_legacy_xls_sheets_are_capped_too(self):
+        sections = self._build([_sheet("Rates", [self.HEADER, *self.ROWS])], source_format="xls")
+        assert len(sections) > 5 and sections[0]["content_text"] == ""
 
 
 class TestExtractDhhsPolicyNumber:

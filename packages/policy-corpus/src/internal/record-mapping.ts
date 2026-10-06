@@ -2,21 +2,21 @@ import { isValidatedJevRelease, jevHash, parseSectionRoles, sectionRoleInput } f
 // Mapping between Neo4j session records and the typed view objects the rest
 // of the package works with: retrieval hits, search hits, section/document
 // views, and section-context entries. Also holds the shared Cypher RETURN
-// fragment for document metadata and the content truncation applied to long
-// sections.
+// fragment for document metadata and the window a section read returns.
 
 import type {
   CorpusRetrievalHit,
   DocumentSectionView,
   DocumentView,
   DocumentWithSectionsView,
+  GetSectionOptions,
   SearchHit,
   SectionContextEntry,
   SectionView,
   SessionRecordLike,
 } from '../types.js';
 import { compareSectionListing } from './base.js';
-import { MAX_CONTENT_CHARS, SEARCH_SNIPPET_CHARS } from './scoring-constants.js';
+import { SEARCH_SNIPPET_CHARS, SECTION_WINDOW_CHARS, SECTION_WINDOW_MAX_CHARS } from './scoring-constants.js';
 
 /**
  * Cypher predicate keeping documents the agency tagged Archived out of
@@ -142,7 +142,54 @@ export function mapDocumentSections(rawSections: Array<{
     .sort(compareSectionListing);
 }
 
-export function buildSectionView(record: SessionRecordLike, content: string | null): SectionView {
+/** The slice of a section's text that one read returns. */
+export interface SectionWindow {
+  offset: number;
+  totalChars: number;
+  nextOffset: number | null;
+  note: string | null;
+}
+
+/** A caller's window as non-negative whole numbers within the ceiling. */
+export function sectionWindowRequest(options: GetSectionOptions = {}): { offset: number; length: number } {
+  const whole = (value: number | undefined, fallback: number) =>
+    typeof value === 'number' && Number.isFinite(value) ? Math.max(0, Math.floor(value)) : fallback;
+  return {
+    offset: whole(options.offset, 0),
+    length: Math.min(Math.max(1, whole(options.length, SECTION_WINDOW_CHARS)), SECTION_WINDOW_MAX_CHARS),
+  };
+}
+
+/**
+ * Describes the window [offset, offset + length) of a text of `totalChars`.
+ * The next offset comes from these whole numbers, never from the returned
+ * string's JavaScript length: Neo4j counts Unicode characters and JavaScript
+ * counts UTF-16 units, which differ for characters outside the basic plane.
+ */
+export function sectionWindow(offset: number, length: number, totalChars: number): SectionWindow {
+  const end = Math.min(offset + length, totalChars);
+  const nextOffset = end < totalChars ? end : null;
+  if (offset === 0 && nextOffset === null) return { offset, totalChars, nextOffset, note: null };
+  if (offset >= totalChars) {
+    return {
+      offset,
+      totalChars,
+      nextOffset,
+      note: `Offset ${offset} is past the end of this text (${totalChars} characters); nothing is shown.`,
+    };
+  }
+  return {
+    offset,
+    totalChars,
+    nextOffset,
+    note:
+      `Showing characters ${offset}-${end} of ${totalChars}. ` +
+      (nextOffset === null ? 'This is the end of the text. ' : `Call getSection with offset=${nextOffset} to read on. `) +
+      'Text outside this range has not been read: do not conclude that something is absent from it.',
+  };
+}
+
+export function buildSectionView(record: SessionRecordLike, content: string | null, window: SectionWindow): SectionView {
   const documentTitle = (record.get('documentTitle') as string | null | undefined) ?? null;
   const url = (record.get('url') as string | null | undefined) ?? null;
   const sourceModifiedDate = (record.get('sourceModifiedDate') as string | null | undefined) ?? null;
@@ -150,15 +197,20 @@ export function buildSectionView(record: SessionRecordLike, content: string | nu
   const rawRoles = process.env.JEV_SECTION_ROLES_ENABLED === 'true'
     && isValidatedJevRelease(record.get('releaseId'), record.get('annotationDigest'), record.get('liveAnnotationDigest'))
     ? record.get('sectionRoles') : undefined;
+  // The annotation is bound to the whole text, which `content` no longer is.
   const sectionRoles = rawRoles ? parseSectionRoles(rawRoles, jevHash(sectionRoleInput({
     title: (record.get('title') as string) ?? null, sectionNumber: (record.get('sectionNumber') as string) ?? null,
     documentTitle, documentType: (record.get('documentType') as string) ?? null, policyNumber: (record.get('policyNumber') as string) ?? null,
-  }, (record.get('content') as string) ?? null))) : undefined;
+  }, (record.get('roleContent') as string) ?? null))) : undefined;
   return {
     id: record.get('id') as string,
     title: (record.get('title') as string | null | undefined) ?? null,
     sectionNumber: (record.get('sectionNumber') as string | null | undefined) ?? null,
     content,
+    contentOffset: window.offset,
+    totalChars: window.totalChars,
+    nextOffset: window.nextOffset,
+    contentNote: window.note,
     ...(sectionRoles ? { sectionRoles } : {}),
     effectiveDate: (record.get('effectiveDate') as string | null | undefined) ?? null,
     ...(sourceModifiedDate !== null ? { sourceModifiedDate } : {}),
@@ -181,11 +233,6 @@ export function buildSectionView(record: SessionRecordLike, content: string | nu
     variantDate: (record.get('variantDate') as string | null | undefined) ?? null,
     retrievalReady: (record.get('retrievalReady') as boolean | null | undefined) ?? null,
   };
-}
-
-export function truncateContent(content: string | null): string | null {
-  if (!content || content.length <= MAX_CONTENT_CHARS) return content;
-  return `${content.slice(0, MAX_CONTENT_CHARS)}\n\n[Content truncated at 6,000 chars. Use getSectionContext to explore sub-sections.]`;
 }
 
 export function extractDocumentView(document: DocumentWithSectionsView): DocumentView {

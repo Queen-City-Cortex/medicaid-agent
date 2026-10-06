@@ -58,18 +58,18 @@ describe('section role boundaries', () => {
     vi.stubEnv('JEV_SECTION_ROLES_ENABLED', 'true');
     expect(rankPriorAuthRoles(input, false).map(s => s.id)).toEqual(['b', 'other', 'a', 'quantity', 'process']);
   });
-  it.each(['true', 'false'])('does not read nonexistent container fields with flag %s', async flag => {
+  it.each(['true', 'false'])('reads a container heading without role labels with flag %s', async flag => {
     vi.stubEnv('JEV_SECTION_ROLES_ENABLED', flag);
-    const parent = { get: (key: string) => ({ id: 'container', content: '', title: 'Heading', sectionRoles: undefined } as Record<string, unknown>)[key] };
-    const child = { get: (key: string) => {
-      if (key === 'content' || key === 'sectionRoles') throw new Error('This record has no field');
-      return key === 'children' ? [{ id: 'child', title: 'Child', sectionNumber: '1', content: 'Body' }] : null;
-    } };
-    const run = vi.fn().mockResolvedValueOnce({ records: [parent] }).mockResolvedValueOnce({ records: [child] });
+    const parent = { get: (key: string) => ({ id: 'container', content: '', totalChars: 0, title: 'Heading', sectionRoles: undefined } as Record<string, unknown>)[key] };
+    const child = { get: (key: string) => ({ id: 'child', title: 'Child', sectionNumber: null, chars: 4, parentId: 'container' } as Record<string, unknown>)[key] };
+    const outline = { get: (key: string) => ({ id: 'container', title: 'Heading', sectionNumber: null, chars: 0, parentId: null } as Record<string, unknown>)[key] };
+    const body = { get: (key: string) => ({ id: 'child', text: 'Body' } as Record<string, unknown>)[key] };
+    const run = vi.fn().mockResolvedValueOnce({ records: [parent] }).mockResolvedValueOnce({ records: [outline, child] }).mockResolvedValueOnce({ records: [body] });
     const service = createSectionPrimitiveService({ withSession: callback => callback({ run }) });
     const section = await service.getSection('container');
     expect(section?.content).toContain('Body');
     expect(section?.sectionRoles).toBeUndefined();
+    expect(run.mock.calls[0][1]).toMatchObject({ withRoles: flag === 'true' });
   });
 });
 
@@ -85,7 +85,8 @@ describe('retrieval requires stamped annotation identity', () => {
   ])('gates labels with release %s, stamp %s, live marker %s', async (releaseId, annotationDigest, liveAnnotationDigest, allowed) => {
     vi.stubEnv('JEV_SECTION_ROLES_ENABLED', 'true');
     const input = {title: 'Heading', sectionNumber: '1', documentTitle: 'Policy', documentType: 'clinical_policy', policyNumber: '10A', content: 'Full body'};
-    const values: Record<string, unknown> = {...input, id: 'section', releaseId, annotationDigest, liveAnnotationDigest,
+    // The window may be a slice; the label is checked against the whole text.
+    const values: Record<string, unknown> = {...input, content: 'Full', totalChars: 9, roleContent: input.content, id: 'section', releaseId, annotationDigest, liveAnnotationDigest,
       sectionRoles: {...labels({scope: .95}), inputHash: jevHash(input)}};
     const run = vi.fn().mockResolvedValue({records: [{get: (key: string) => values[key]}]});
     const service = createSectionPrimitiveService({withSession: callback => callback({run})});
@@ -93,6 +94,8 @@ describe('retrieval requires stamped annotation identity', () => {
     expect(Boolean(section?.sectionRoles)).toBe(allowed);
     expect(sectionRoleBonus(section!, ['scope'])).toBe(allowed ? 1 : 0);
     expect(run.mock.calls[0][0]).toContain('release.jev_annotation_digest AS annotationDigest');
-    expect(section?.content).toBe('Full body');
+    expect(run.mock.calls[0][0]).toContain('WHEN $withRoles AND s.jev_section_roles IS NOT NULL THEN s.content_text');
+    expect(run.mock.calls[0][1]).toMatchObject({ withRoles: true });
+    expect(section?.content).toBe('Full');
   });
 });

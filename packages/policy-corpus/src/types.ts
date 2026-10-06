@@ -63,7 +63,16 @@ export interface SectionView {
   id: string;
   title: string | null;
   sectionNumber: string | null;
+  /** One window of the section's text, never the whole of a long section. */
   content: string | null;
+  /** Where `content` starts in the section's text. Offsets and lengths count
+   *  Unicode characters, as Neo4j and the loader do, not UTF-16 units. */
+  contentOffset: number;
+  totalChars: number;
+  /** Offset of the next window; null when `content` reaches the end. */
+  nextOffset: number | null;
+  /** The range shown and how to continue; null when `content` is the whole text. */
+  contentNote: string | null;
   effectiveDate: string | null;
   sourceModifiedDate?: string | null;
   retrievedAt?: string | null;
@@ -86,6 +95,13 @@ export interface SectionView {
   variantGroup: string | null;
   variantDate: string | null;
   retrievalReady: boolean | null;
+}
+
+export interface GetSectionOptions {
+  /** Characters to skip before the returned window (default 0). */
+  offset?: number;
+  /** Window size, capped at SECTION_WINDOW_MAX_CHARS (default SECTION_WINDOW_CHARS). */
+  length?: number;
 }
 
 export interface SearchSectionsInput {
@@ -279,7 +295,7 @@ export interface PolicyCorpus {
   searchSections(input: SearchSectionsInput): Promise<SearchHit[]>;
   searchSectionsDetailed(input: SearchSectionsInput): Promise<CorpusRetrievalHit[]>;
   resolveAnswerFrame(input: ResolveAnswerFrameInput): Promise<AnswerFrame>;
-  getSection(sectionId: string): Promise<SectionView | null>;
+  getSection(sectionId: string, options?: GetSectionOptions): Promise<SectionView | null>;
   getDocument(documentId: string): Promise<DocumentWithSectionsView | null>;
   getSectionContext(sectionId: string): Promise<SectionContextView>;
   followReferences(sectionId: string): Promise<ReferenceView[]>;
