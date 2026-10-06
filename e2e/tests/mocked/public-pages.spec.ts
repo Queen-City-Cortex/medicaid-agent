@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-// The landing, terms, and privacy pages are the public (pre-auth) surface —
+// The landing, terms, privacy, and get-help pages are the public (pre-auth) surface —
 // these specs run logged out to prove the proxy allow-list actually admits
 // them without a WorkOS round-trip.
 test.use({ storageState: { cookies: [], origins: [] } });
@@ -15,7 +15,7 @@ test.describe('Landing page', () => {
     await page.getByRole('link', { name: /see disclaimer/i }).click();
     const disclaimer = page.locator('#disclaimer');
     await expect(disclaimer).toContainText('does not give legal advice');
-    await expect(disclaimer).toContainText('NC DHHS');
+    await expect(disclaimer).toContainText('Your county DSS or your health plan decides your case.');
   });
 
   test('links to terms, privacy, and sign-in', async ({ page }) => {
@@ -64,5 +64,19 @@ test.describe('Legal pages', () => {
     await expect(page.getByTestId('legal-draft-banner')).toBeVisible();
     await expect(page.getByRole('heading', { name: /retention and deletion/i })).toBeVisible();
     await expect(page.getByRole('heading', { name: /who processes it/i })).toBeVisible();
+  });
+});
+
+test.describe('Get help page', () => {
+  test('is reachable logged out from the footer and lists the three contacts', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('footer').getByRole('link', { name: 'Get help' }).click();
+    await expect(page).toHaveURL(/\/get-help$/);
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Get help');
+    const block = page.getByTestId('get-help');
+    await expect(block.getByRole('link', { name: 'Find your county DSS office' })).toBeVisible();
+    await expect(block.getByRole('link', { name: '1-877-201-3750' })).toBeVisible();
+    await expect(block.getByRole('link', { name: '1-866-219-5262' })).toBeVisible();
+    await expect(block).toContainText('Call or text 988.');
   });
 });

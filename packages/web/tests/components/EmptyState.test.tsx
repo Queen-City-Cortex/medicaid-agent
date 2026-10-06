@@ -19,7 +19,7 @@ describe('EmptyState', () => {
     const limits = screen.getByTestId('empty-state-limits');
     expect(limits).toHaveTextContent(/legal advice/i);
     expect(limits).toHaveTextContent(/individual cases or eligibility/i);
-    expect(limits).toHaveTextContent(/NC DHHS/);
+    expect(limits).toHaveTextContent(/county DSS or your health plan decides your case/);
   });
 
   it('groups example questions by persona', () => {

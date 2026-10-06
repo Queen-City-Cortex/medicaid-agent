@@ -10,6 +10,7 @@ import { DisclaimerNotice } from '@/components/DisclaimerNotice';
 import { EarlierMessages } from '@/components/EarlierMessages';
 import { EmptyState } from '@/components/EmptyState';
 import { MessageList } from '@/components/MessageList';
+import { GetHelp } from '@/components/GetHelp';
 import { ScrollToBottom } from '@/components/ScrollToBottom';
 import { ThreadSidebar } from '@/components/ThreadSidebar';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -347,6 +348,7 @@ export default function ChatPage() {
                         Try again
                       </button>
                     )}
+                    <GetHelp className="mt-3" />
                   </div>
                 </div>
               );

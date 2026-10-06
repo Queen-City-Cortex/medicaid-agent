@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Telescope, Loader2, Check, X, AlertTriangle, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DeepResearchReportView } from '@/components/DeepResearchReport';
+import { GetHelp } from '@/components/GetHelp';
 import type { DeepResearchController, DeepResearchPlan, DeepResearchStatus } from '@/lib/use-deep-research';
 
 function fmtElapsed(ms: number): string {
@@ -232,6 +233,7 @@ export function DeepResearchView({ controller }: { controller: DeepResearchContr
             <Button variant="link" size="sm" onClick={controller.reset} className="mt-1 h-auto p-0 text-accent">
               Try again
             </Button>
+            <GetHelp className="mt-3" />
           </div>
         </div>
       )}

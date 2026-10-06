@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { Landmark, ArrowUpRight } from 'lucide-react';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { SiteFooter } from '@/components/SiteFooter';
+import { GET_HELP_PATH, WHO_DECIDES } from '@/lib/get-help';
 
 export const metadata: Metadata = {
   title: 'NC Medicaid Navigator — policy research, cited to the source text',
@@ -201,17 +202,21 @@ export default async function Home() {
               NC Medicaid Navigator is a research tool. It does not give legal advice, does not
               create an attorney&ndash;client relationship, and cannot look up individual cases or
               eligibility. Answers are AI-generated from published policy documents and can be
-              wrong or out of date — verify critical details with NC DHHS or a qualified
-              professional before acting on them.
+              wrong or out of date. {WHO_DECIDES} Check important details with them or a
+              qualified professional before you act.
             </p>
             <p className="mt-3 text-sm text-muted-foreground">
               See the{' '}
-              <Link href="/terms" className="text-accent underline-offset-2 hover:underline">
+              <Link href="/terms" className="text-accent underline underline-offset-2">
                 terms of use
               </Link>{' '}
               and{' '}
-              <Link href="/privacy" className="text-accent underline-offset-2 hover:underline">
+              <Link href="/privacy" className="text-accent underline underline-offset-2">
                 privacy policy
+              </Link>
+              . Need help with your own case?{' '}
+              <Link href={GET_HELP_PATH} className="text-accent underline underline-offset-2">
+                Get help
               </Link>
               .
             </p>

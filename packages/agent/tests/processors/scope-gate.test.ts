@@ -63,6 +63,9 @@ describe('ScopeGateProcessor', () => {
     expect(tripped).toBe(true);
     expect(calls[0].options.metadata.code).toBe('off-topic');
     expect(calls[0].options.metadata.userMessage).toContain('NC Medicaid');
+    expect(calls[0].options.metadata.userMessage).toContain(
+      'In an emergency call 911. Thinking about suicide or in crisis? Call or text 988.',
+    );
   });
 
   it('sends recent conversation context to the classifier so follow-ups classify correctly', async () => {

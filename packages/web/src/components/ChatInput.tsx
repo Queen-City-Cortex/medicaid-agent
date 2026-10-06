@@ -3,6 +3,7 @@
 import { type RefObject } from 'react';
 import { Square, Telescope } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { CRISIS_LINE, GET_HELP_PATH, WHO_DECIDES } from '@/lib/get-help';
 import { useIsMobile } from '@/lib/use-is-mobile';
 import { cn } from '@/lib/utils';
 
@@ -133,13 +134,20 @@ export function ChatInput({
       </div>
       <div className="max-w-3xl mx-auto mt-2 flex items-baseline justify-between gap-4">
         <p id={helperTextId} className="text-xs text-muted-foreground">
-          Answers are AI-generated from NC Medicaid policy documents. Verify critical information with DHHS.{' '}
+          <span data-testid="crisis-line" className="block text-foreground">
+            {CRISIS_LINE}
+          </span>
+          Answers are AI-generated from NC Medicaid policy documents. {WHO_DECIDES}{' '}
           <a href="/terms" className="underline underline-offset-2 hover:text-foreground">
             Terms
           </a>
           {' · '}
           <a href="/privacy" className="underline underline-offset-2 hover:text-foreground">
             Privacy
+          </a>
+          {' · '}
+          <a href={GET_HELP_PATH} className="underline underline-offset-2 hover:text-foreground">
+            Get help
           </a>
         </p>
         {showCounter && (

@@ -31,7 +31,8 @@ describe('DisclaimerNotice', () => {
     const notice = screen.getByTestId('disclaimer-notice');
     expect(notice).toHaveTextContent(/not legal advice/i);
     expect(notice).toHaveTextContent(/AI-generated/i);
-    expect(notice).toHaveTextContent(/NC DHHS/);
+    expect(notice).toHaveTextContent(/county DSS or your health plan decides your case/);
+    expect(screen.getByRole('link', { name: 'Get help' })).toHaveAttribute('href', '/get-help');
     expect(screen.getByRole('link', { name: /terms of use/i })).toHaveAttribute('href', '/terms');
   });
 

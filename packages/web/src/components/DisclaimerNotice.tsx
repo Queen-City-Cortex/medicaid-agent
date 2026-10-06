@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { GET_HELP_PATH, WHO_DECIDES } from '@/lib/get-help';
 
 // The EmptyState's "not legal advice" text disappears after the first
 // message, so first-time users get one persistent, dismissable notice above
@@ -32,9 +33,13 @@ export function DisclaimerNotice() {
       >
         <p className="text-xs leading-relaxed text-foreground">
           This is a research tool, not legal advice — answers are AI-generated and can be wrong.
-          Verify critical details with NC DHHS.{' '}
+          {WHO_DECIDES}{' '}
           <a href="/terms" className="underline underline-offset-2 hover:text-accent">
             Terms of use
+          </a>
+          {' · '}
+          <a href={GET_HELP_PATH} className="underline underline-offset-2 hover:text-accent">
+            Get help
           </a>
         </p>
         <button

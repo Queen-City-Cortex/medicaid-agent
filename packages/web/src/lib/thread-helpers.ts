@@ -1,4 +1,5 @@
 import type { ListMemoryThreadsResponse } from '@mastra/client-js';
+import { WHO_DECIDES } from '@/lib/get-help';
 import { extractText } from '@/lib/parse-message';
 
 // The element type actually returned by `client.listMemoryThreads`. Unlike
@@ -202,7 +203,7 @@ export function buildThreadMarkdown({
   const lines: string[] = [
     `# ${title.trim() || 'Conversation'}`,
     '',
-    `*Exported ${exportedAt.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} from NC Medicaid Navigator. Answers are AI-generated from NC Medicaid policy documents — verify critical information with NC DHHS.*`,
+    `*Exported ${exportedAt.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} from NC Medicaid Navigator. Answers are AI-generated from NC Medicaid policy documents. ${WHO_DECIDES}*`,
     '',
   ];
 

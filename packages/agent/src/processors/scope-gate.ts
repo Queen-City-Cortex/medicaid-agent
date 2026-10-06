@@ -127,7 +127,7 @@ export class ScopeGateProcessor implements Processor {
         metadata: {
           code: 'off-topic',
           userMessage:
-            'I can only help with NC Medicaid and related public-benefits questions — eligibility, coverage, appeals, notices, and how other programs interact with Medicaid. Try asking one of those.',
+            'I can only help with NC Medicaid and related public-benefits questions — eligibility, coverage, appeals, notices, and how other programs interact with Medicaid. Try asking one of those. In an emergency call 911. Thinking about suicide or in crisis? Call or text 988.',
         },
       });
     }

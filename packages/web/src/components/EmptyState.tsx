@@ -1,6 +1,7 @@
 'use client';
 
 import { ArrowUpRight } from 'lucide-react';
+import { GET_HELP_PATH, WHO_DECIDES } from '@/lib/get-help';
 import type { CorpusStatus } from '@/lib/use-corpus-status';
 
 // First-run guidance, kept deliberately quiet: a scope line (what document
@@ -68,8 +69,10 @@ export function EmptyState({ onSelectExample, corpusStatus = null }: EmptyStateP
         source text.
       </p>
       <p data-testid="empty-state-limits" className="mx-auto mt-3 max-w-xl text-xs leading-relaxed text-muted-foreground">
-        It can&rsquo;t give legal advice or look up individual cases or eligibility. Verify critical
-        details with NC DHHS.
+        It can&rsquo;t give legal advice or look up individual cases or eligibility. {WHO_DECIDES}{' '}
+        <a href={GET_HELP_PATH} className="underline underline-offset-2 hover:text-foreground">
+          Get help
+        </a>
       </p>
       {corpusUpdated && (
         <p data-testid="empty-state-corpus-status" className="mx-auto mt-3 font-mono text-[11px] tracking-tight text-muted-foreground">

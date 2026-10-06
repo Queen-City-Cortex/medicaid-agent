@@ -33,6 +33,8 @@ test.describe('Abuse-guard UI', () => {
 
     const error = page.getByTestId('chat-error-rate-limited');
     await expect(error).toBeVisible();
+    // Every dead end carries the reviewed help contacts.
+    await expect(error.getByTestId('get-help')).toBeVisible();
     await expect(error).toContainText('limit of 30 messages per hour');
     // Retrying immediately would just re-429 — no Try again button.
     await expect(error.getByRole('button')).toHaveCount(0);

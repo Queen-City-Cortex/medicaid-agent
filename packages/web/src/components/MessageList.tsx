@@ -6,6 +6,7 @@ import type { UIMessage } from 'ai';
 import { ChevronRight, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { GetHelp } from '@/components/GetHelp';
 import { MessageActions } from '@/components/MessageActions';
 import { SourcesPanel, sourceRowId } from '@/components/SourcesPanel';
 import { ToolStep, getToolDescriptor, summarizeToolInput } from '@/components/ToolStep';
@@ -395,6 +396,7 @@ function AssistantMessage({
           )}
         </div>
       )}
+      {withheld && !isStreaming && <GetHelp className="mt-4" />}
 
       {narration && (
         <div
@@ -416,6 +418,7 @@ function AssistantMessage({
           className="my-4 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-foreground"
         >
           <p>{blockedMessage}</p>
+          <GetHelp className="mt-3" />
         </div>
       )}
 
@@ -465,6 +468,7 @@ function AssistantMessage({
             <RotateCcw className="size-3.5" />
             Try again
           </Button>
+          <GetHelp className="mt-3" />
         </div>
       )}
 

@@ -2,6 +2,7 @@
 
 import * as Sentry from '@sentry/nextjs';
 import { useEffect } from 'react';
+import { CRISIS_LINE, GET_HELP_CONTACTS } from '@/lib/get-help';
 
 // Catches errors that crash the root layout itself (which the segment-level
 // error.tsx cannot). Must render its own <html>/<body>. Sentry.captureException
@@ -33,9 +34,20 @@ export default function GlobalError({
             Something went wrong
           </h1>
           <p style={{ color: '#666' }}>
-            An unexpected error occurred. Please reload the page, or contact support if the
-            problem persists.
+            Something broke on our side. Please reload the page.
           </p>
+          {/* The root layout has crashed, so the styled GetHelp component and
+              the /get-help page may not render. List the contacts inline. */}
+          <p style={{ marginTop: '1.5rem', fontWeight: 600 }}>Need help with your own case?</p>
+          <ul style={{ listStyle: 'none', padding: 0, lineHeight: 1.6 }}>
+            {GET_HELP_CONTACTS.map((contact) => (
+              <li key={contact.id}>
+                <a href={contact.url}>{contact.name}</a>
+                {contact.phone ? <>: <a href={`tel:${contact.tel}`}>{contact.phone}</a></> : null}
+              </li>
+            ))}
+          </ul>
+          <p style={{ fontWeight: 600 }}>{CRISIS_LINE}</p>
         </div>
       </body>
     </html>

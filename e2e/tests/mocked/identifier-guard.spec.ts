@@ -48,7 +48,8 @@ test.describe('Identifier guard', () => {
     await chat.sendMessage('My Medicaid ID is 945123456K, am I covered?');
     const error = page.getByTestId('chat-error-identifier-detected');
     await expect(error).toBeVisible();
-    await expect(error).toHaveText(REJECTION);
+    // The box also carries the help contacts; the rejection is its own paragraph.
+    await expect(error.locator('p').first()).toHaveText(REJECTION);
     // Sending the same text again would be rejected again: no Try again button.
     await expect(error.getByRole('button')).toHaveCount(0);
     await expect(page.getByTestId('chat-error')).toHaveCount(0);
@@ -103,7 +104,7 @@ test.describe('Identifier guard', () => {
 
     await chat.sendMessage('My client Jane Roe, SSN 123-45-6789, was denied personal care services.');
     const error = page.getByTestId('chat-error-identifier-detected');
-    await expect(error).toHaveText(REJECTION);
+    await expect(error.locator('p').first()).toHaveText(REJECTION);
     await expect(chat.input).toBeEnabled();
     await expect(chat.input).toHaveValue('');
     // The sidebar re-reads the list when the turn ends; nothing was stored.

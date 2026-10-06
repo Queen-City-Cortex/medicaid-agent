@@ -1,6 +1,7 @@
 import Link from 'next/link';
+import { CRISIS_LINE, GET_HELP_PATH, WHO_DECIDES } from '@/lib/get-help';
 
-// Shared footer for the public pages (landing, terms, privacy). The chat
+// Shared footer for the public pages (landing, terms, privacy, get help). The chat
 // screen carries its own condensed version inside ChatInput's helper row.
 export function SiteFooter() {
   return (
@@ -14,9 +15,16 @@ export function SiteFooter() {
           <Link href="/privacy" className="transition-colors hover:text-foreground">
             Privacy
           </Link>
+          <span aria-hidden="true" className="h-px w-4 bg-border" />
+          <Link href={GET_HELP_PATH} className="transition-colors hover:text-foreground">
+            Get help
+          </Link>
         </nav>
+        <p data-testid="footer-crisis-line" className="text-xs leading-relaxed text-foreground">
+          {CRISIS_LINE}
+        </p>
         <p className="text-xs leading-relaxed text-muted-foreground">
-          AI-generated research, not legal advice. Verify critical details with NC DHHS.
+          AI-generated research, not legal advice. {WHO_DECIDES}
         </p>
         <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
           © {new Date().getFullYear()} Queen City Cortex LLC

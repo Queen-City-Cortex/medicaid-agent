@@ -111,7 +111,7 @@ for (const theme of THEMES) {
   test.describe(`Accessibility scan, ${theme} theme, public pages`, () => {
     test.use({ storageState: { cookies: [], origins: [] } });
 
-    for (const path of ['/', '/terms', '/privacy']) {
+    for (const path of ['/', '/terms', '/privacy', '/get-help']) {
       test(`${path} has no new violations`, async ({ page, context }) => {
         await useTheme(context, theme);
         await page.goto(path);

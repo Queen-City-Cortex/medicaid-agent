@@ -1,5 +1,5 @@
 import { VERIFICATION_PART, UNVERIFIED_HISTORY, WITHHELD_ANSWER } from '@nc-medicaid/contracts';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { UIMessage } from 'ai';
@@ -328,6 +328,7 @@ describe('MessageList', () => {
     // Why the turn ended is unknown here, so the notice names no cause.
     expect(screen.getByTestId('ended-without-answer')).toHaveTextContent('This answer ended before it was finished.');
     expect(screen.getByTestId('ended-without-answer')).not.toHaveTextContent(/error|stopped/i);
+    expect(within(screen.getByTestId('ended-without-answer')).getByTestId('get-help')).toBeInTheDocument();
     // MessageActions (Rerun etc.) must be reachable even though content is empty.
     expect(screen.getByTestId('message-actions')).toBeInTheDocument();
     // The tool steps stay expanded (no collapsed trail) — they are the only
@@ -734,6 +735,7 @@ describe('MessageList', () => {
       },
     ]);
     expect(screen.getByTestId('blocked-message')).toHaveTextContent('I can only help with NC Medicaid questions.');
+    expect(within(screen.getByTestId('blocked-message')).getByTestId('get-help')).toBeInTheDocument();
     expect(screen.queryByTestId('ended-without-answer')).not.toBeInTheDocument();
   });
 
@@ -877,6 +879,16 @@ describe('verification release UI', () => {
         { type: VERIFICATION_PART, data: { status: 'withheld', passCount: 0 } }] }], { explicitRelease: true, onRerun: rerun });
     await userEvent.setup().click(screen.getByTestId('verification-retry'));
     expect(rerun).toHaveBeenCalledWith(0);
+  });
+  it('shows the help contacts beside a withheld answer and not beside a released one', () => {
+    renderMessageList([{ id: 'withheld', role: 'assistant', parts: [
+      { type: VERIFICATION_PART, data: { status: 'withheld', reason: 'unsupported', passCount: 2 } }] }], { explicitRelease: true });
+    expect(screen.getByTestId('get-help')).toHaveTextContent('1-877-201-3750');
+    cleanup();
+    renderMessageList([{ id: 'released', role: 'assistant', parts: [
+      { type: 'text', text: 'A released answer.' },
+      { type: VERIFICATION_PART, data: { status: 'passed', passCount: 1 } }] }], { explicitRelease: true });
+    expect(screen.queryByTestId('get-help')).not.toBeInTheDocument();
   });
 });
 
