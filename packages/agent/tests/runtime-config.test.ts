@@ -19,6 +19,16 @@ describe('loadRuntimeConfig', () => {
     expect(config.corsOrigins).toEqual(['http://localhost:3000', 'https://example.test']);
   });
 
+  it('leaves observational memory off unless the variable turns it on', () => {
+    const enabled = (value?: string) => loadRuntimeConfig({ ...KEYS, NODE_ENV: 'development',
+      ...(value === undefined ? {} : { OBSERVATIONAL_MEMORY_ENABLED: value }) }).observationalMemoryEnabled;
+    expect(enabled()).toBe(false);
+    expect(enabled('false')).toBe(false);
+    expect(enabled('')).toBe(false);
+    expect(enabled('true')).toBe(true);
+    expect(enabled('1')).toBe(true);
+  });
+
   it('persists traces to DuckDB only outside production and CLI runs', () => {
     const production = {
       ...KEYS,

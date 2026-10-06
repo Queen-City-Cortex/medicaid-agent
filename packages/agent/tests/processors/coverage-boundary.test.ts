@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { CoverageBoundaryProcessor, coverageConversationQuery } from '../../src/processors/coverage-boundary.js';
+import { CHAT_PRIOR_TURNS, withPriorTurns } from '../../src/processors/prior-turns.js';
 import { runVerificationForAnswer } from '../../src/processors/verifier/run.js';
 import { ANSWER_SCOPE_POLICY, resolveCoverageScope } from '@nc-medicaid/policy-corpus';
 
@@ -23,13 +24,99 @@ describe('server coverage boundaries', () => {
     expect(coverageConversationQuery([...messages, { role: 'user', content: 'What about diabetes test coverage?' }])).toBe('What about diabetes test coverage?');
   });
 
+  it.each([
+    ['What MAGI income table applies in October 2026?', 'Is it true that adult dental is covered?'],
+    ['What is DHB-5097?', 'What does it take to get personal care services?'],
+    ['What MAGI income table applies in October 2026?', 'Is that the same for everyone?'],
+  ])('does not inherit %s into the unrelated question %s', (previous, latest) => {
+    const query = coverageConversationQuery([{ role: 'user', content: previous }, { role: 'user', content: latest }]);
+    expect(query).toBe(latest);
+    expect(resolveCoverageScope(query)).toBeNull();
+  });
+
+  const magi = 'What MAGI income table applies in October 2026?';
+  const users = (...texts: string[]) => texts.map(content => ({ role: 'user', content }));
+  const tables = ANSWER_SCOPE_POLICY.magi_tables.map(item => item.source_url);
+
+  // Dated continuations of a dated-table question keep its subject. A slash date
+  // is read by the scope code as its year alone, as it is in a first question.
+  it.each([
+    ['What about a family of four in 2023?', '2023-04-01', null],
+    ['And for a family of four in June 2025?', '2025-06-01', tables[0]],
+    ['and in 2025?', '2025-04-01', tables[0]],
+    ['for 2025 please', '2025-04-01', tables[0]],
+    ['And as of 6/1/2025?', '2025-04-01', tables[0]],
+    ['what about last year?', null, null],
+    ['OK then June 2025', '2025-06-01', tables[0]],
+    ['June 2025?', '2025-06-01', tables[0]],
+    ['2027?', '2027-04-01', null],
+  ])('inherits the MAGI table subject for the dated follow-up %s', (latest, requestedDate, table) => {
+    const scope = resolveCoverageScope(coverageConversationQuery(users(magi, latest)));
+    expect(scope).toMatchObject({ requestedDate, requiredSourceUrls: table ? [table] : [] });
+    expect(Boolean(scope?.notice)).toBe(!table);
+  });
+
+  it.each([
+    'My client applied in 2023 and was denied. Can they appeal that?',
+    'Was dental covered for adults back in 2019? Is that still true?',
+    'Does Medicaid cover translation services at appointments? Is that free?',
+    'Is it official that PCS hours were cut?',
+    'Translate that into Spanish.',
+    'And what about a family of four?',
+    'What did Congress do in June 2025?',
+    'And what is the eligibility rule for nursing home care for 2023?',
+  ])('does not inherit the MAGI table subject for %s', latest => {
+    const query = coverageConversationQuery(users(magi, latest));
+    expect(query).toBe(latest);
+    expect(resolveCoverageScope(query)).toBeNull();
+  });
+
+  it('keeps the most recent scoped subject across an unscoped turn, until a new subject replaces it', () => {
+    const chain = users(magi, 'What about for a family of four?', 'And for June 2025?');
+    expect(resolveCoverageScope(coverageConversationQuery(chain))).toMatchObject({ requestedDate: '2025-06-01', requiredSourceUrls: [tables[0]] });
+    // A newer scoped subject, or an explicitly named policy, ends the earlier one.
+    expect(coverageConversationQuery(users(magi, 'What is DHB-5097?', 'And for June 2025?'))).toBe('And for June 2025?');
+    expect(coverageConversationQuery(users(magi, 'What about Policy 8C?', 'And for June 2025?'))).toBe('And for June 2025?');
+  });
+
+  it('carries a form subject, not a dated table, into a language follow-up', () => {
+    for (const latest of ['In Gujarati?', 'Can you translate it into Gujarati?']) {
+      expect(resolveCoverageScope(coverageConversationQuery(users('What is DHB-5097?', latest)))?.limitationIds).toEqual(['gujarati-dhb-5097']);
+    }
+    expect(resolveCoverageScope(coverageConversationQuery(users('What is DHB-5097?', 'Show me the Spanish version')))?.requirements[0]).toContain('English DHB-5097');
+    // Unrelated questions that merely mention a language or a translation.
+    for (const latest of ['Does Medicaid cover translation services at appointments? Is that free?', 'My client only speaks Spanish. Can she get an interpreter for that hearing?']) {
+      expect(coverageConversationQuery(users('What is DHB-5097?', latest))).toBe(latest);
+    }
+  });
+
+  it('judges the stored prior turns with the new message, counting no turn twice', () => {
+    const prior = [{ id: 'q1', role: 'user', content: 'What MAGI income table applies in October 2026?' }, { id: 'a1', role: 'assistant', content: 'The April 2026 table.' }];
+    const latest = { id: 'q2', role: 'user', content: { format: 2, parts: [{ type: 'text', text: 'And for February 2025?' }] } };
+    const context = (value: unknown) => ({ get: (key: string) => key === CHAT_PRIOR_TURNS ? value : undefined });
+    // Observational memory on: Mastra passes the new message alone.
+    expect(withPriorTurns(context(prior), [latest])).toEqual([...prior, latest]);
+    // Off: the recalled history is already in the list, here with one older turn.
+    const recalled = [{ id: 'q0', role: 'user', content: 'Older.' }, ...prior.map(turn => ({ ...turn, content: { format: 2, parts: [{ type: 'text', text: turn.content }] } })), latest];
+    expect(withPriorTurns(context(prior), recalled)).toEqual([...prior, latest]);
+    // No key (CLI, deep research), an empty thread or a malformed value: the messages as given.
+    for (const value of [undefined, [], 'forged']) expect(withPriorTurns(context(value), recalled)).toBe(recalled);
+    expect(withPriorTurns(undefined, recalled)).toBe(recalled);
+
+    const abort = vi.fn(() => { throw new Error('blocked'); });
+    const requestContext = { ...context(prior), set: vi.fn() };
+    expect(() => new CoverageBoundaryProcessor().processInput({ messages: [latest], abort, requestContext } as never)).toThrow('blocked');
+    expect(requestContext.set).toHaveBeenCalledWith('coverage-verification-query', expect.stringContaining('MAGI income table'));
+    expect(abort).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ metadata: expect.objectContaining({ code: 'coverage-limitation' }) }));
+  });
+
   it('does not carry the limitation into an explicitly different policy', () => {
     expect(coverageConversationQuery([{ role: 'user', content: 'Quote the Gujarati DHB-5097' }, { role: 'user', content: 'What about Policy 8C?' }])).toBe('What about Policy 8C?');
   });
 
   it('uses a fixed informative limitation notice before the model runs', () => {
     const abort = vi.fn(() => { throw new Error('blocked'); });
-    const requestContext = { set: vi.fn() };
+    const requestContext = { get: vi.fn(), set: vi.fn() };
     expect(() => new CoverageBoundaryProcessor().processInput({ messages: [{ role: 'user', content: 'Download the official Gujarati DHB-5097 form' }], abort, requestContext } as never)).toThrow('blocked');
     expect(abort).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ metadata: expect.objectContaining({ code: 'coverage-limitation', userMessage: expect.stringContaining('unavailable') }) }));
   });

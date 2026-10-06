@@ -506,7 +506,7 @@ credentials may point at a different graph account.
 
 For an isolated HTTP diagnostic, use a consistent database snapshot on a separate
 non-public port in the production image, fresh authentication, and the actual
-graph/model configuration with observational memory enabled. Keep memory and its
+graph/model configuration and the deployed memory setting. Keep memory and its
 signing key together. Remove copied research/checkpoint/budget rows only in the
 disposable copy before startup so automatic recovery cannot resume production
 research. Preserve the original snapshot. Stop the diagnostic process, encrypt

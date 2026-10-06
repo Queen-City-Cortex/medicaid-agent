@@ -66,6 +66,8 @@ const RuntimeConfigShape = z.object({
   agentReasoningEffort: z.enum(REASONING_EFFORTS),
   maxBodyBytes: z.number().int().positive(),
   maxMessageChars: z.number().int().positive(),
+  // Off by default (owner decision, October 2026). Thread history is unaffected.
+  observationalMemoryEnabled: z.boolean(),
 });
 
 export type RuntimeConfig = z.infer<typeof RuntimeConfigShape>;
@@ -155,5 +157,6 @@ export function loadRuntimeConfig(
     agentReasoningEffort,
     maxBodyBytes: parseInteger(env, 'MAX_BODY_BYTES', 2 * 1024 * 1024),
     maxMessageChars: parseInteger(env, 'MAX_MESSAGE_CHARS', 10_000),
+    observationalMemoryEnabled: ['1', 'true'].includes(env.OBSERVATIONAL_MEMORY_ENABLED ?? ''),
   });
 }

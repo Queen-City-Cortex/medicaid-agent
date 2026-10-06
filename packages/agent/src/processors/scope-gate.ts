@@ -8,6 +8,7 @@ import { log, errorFields } from '../logger.js';
 import { Sentry } from '../sentry.js';
 import { contentText } from './message-utils.js';
 import type { GateTripwireMetadata } from './message-length-guard.js';
+import { withPriorTurns } from './prior-turns.js';
 
 /** On unless SCOPE_GATE_ENABLED is exactly 'false' — verifier kill-switch semantics. */
 export function isScopeGateEnabled(): boolean {
@@ -29,7 +30,9 @@ Bias toward on_topic/ambiguous: this service's users ask messy real-world questi
 
 // How much conversation the classifier sees. Follow-ups like "what about my
 // daughter?" are only classifiable with context, so the gate sends the last
-// few messages rather than the latest one alone.
+// few messages rather than the latest one alone. Earlier turns are cut short;
+// the newest message is sent whole, because a long one often ends with the
+// question (MessageLengthGuard has already bounded it).
 const CONTEXT_MESSAGES = 4;
 const CONTEXT_CHARS_PER_MESSAGE = 300;
 
@@ -37,9 +40,9 @@ export function conversationWindow(messages: Array<{ role?: string; content?: un
   return messages
     .filter((message) => message.role === 'user' || message.role === 'assistant')
     .slice(-CONTEXT_MESSAGES)
-    .map((message) => {
-      const text = contentText(message.content).slice(0, CONTEXT_CHARS_PER_MESSAGE);
-      return `${message.role}: ${text}`;
+    .map((message, index, window) => {
+      const text = contentText(message.content);
+      return `${message.role}: ${index === window.length - 1 ? text : text.slice(0, CONTEXT_CHARS_PER_MESSAGE)}`;
     })
     .join('\n');
 }
@@ -68,10 +71,10 @@ export class ScopeGateProcessor implements Processor {
   readonly id = 'scope-gate';
   readonly name = 'Scope Gate';
 
-  async processInput({ messages, abort }: ProcessInputArgs<GateTripwireMetadata>): Promise<ProcessInputResult> {
+  async processInput({ messages, requestContext, abort }: ProcessInputArgs<GateTripwireMetadata>): Promise<ProcessInputResult> {
     if (!isScopeGateEnabled()) return messages;
 
-    const window = conversationWindow(messages);
+    const window = conversationWindow(withPriorTurns(requestContext, messages));
     if (!window.trim()) return messages;
 
     let verdict: z.infer<typeof ScopeVerdictSchema>;

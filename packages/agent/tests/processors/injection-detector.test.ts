@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { CLASSIFIER_MODEL } from '../../src/model.js';
 import { createInjectionDetector, isDetectorFailure } from '../../src/processors/injection-detector.js';
@@ -24,6 +25,22 @@ describe('shared prompt-injection detector', () => {
     expect(bodies[0].store).toBe(false);
     // Mastra asks for temperature 0; the provider drops it for reasoning models.
     expect(bodies[0].temperature).toBeUndefined();
+  });
+
+  it('screens only the newest message, at both sites that build a detector', async () => {
+    const { bodies } = stubOpenAIResponses(verdict({ categories: null, reason: null }));
+    const text = (id: string, role: string, value: string) => ({ id, role, createdAt: new Date(), content: { format: 2, parts: [{ type: 'text', text: value }] } });
+    const thread = [text('q1', 'user', 'RECALLED_QUESTION'), text('a1', 'assistant', 'RECALLED_ANSWER'), text('q2', 'user', 'NEWEST_QUESTION')];
+    await expect(createInjectionDetector().processInput({ messages: thread, abort } as any)).resolves.toHaveLength(3);
+    expect(bodies).toHaveLength(1);
+    expect(JSON.stringify(bodies[0])).toContain('NEWEST_QUESTION');
+    expect(JSON.stringify(bodies[0])).not.toContain('RECALLED_');
+    // The chat agent and the research planner must not build their own.
+    for (const file of ['../../src/index.ts', '../../src/deep-research/agents.ts']) {
+      const source = readFileSync(new URL(file, import.meta.url), 'utf8');
+      expect(source).toContain('createInjectionDetector()');
+      expect(source).not.toContain('new PromptInjectionDetector');
+    }
   });
 
   it('logs nothing when the classifier answers, benign or not', async () => {

@@ -11,6 +11,7 @@ import { AGENT_MODEL } from './model.js';
 import { log, errorFields } from './logger.js';
 import { Sentry } from './sentry.js';
 import { CHAT_DIAGNOSTIC_CONTEXT, CHAT_VERIFICATION_QUESTION } from './processors/verifier/context.js';
+import { CHAT_PRIOR_TURNS, readPriorTurns } from './processors/prior-turns.js';
 import { finishChatDiagnostic, type ChatDiagnostic } from './processors/verifier/diagnostics.js';
 
 type ChatFinishEvent = Parameters<NonNullable<AgentExecutionOptions['onFinish']>>[0];
@@ -50,6 +51,8 @@ export function createChatRoute(usageRepo: Pick<UsageRepository, 'record'>, runL
       // Observation can replace messages with a summary and system reminder.
       // Verification must address the actual newest user text, not that reminder.
       requestContext.set(CHAT_VERIFICATION_QUESTION, question);
+      // Prior turns likewise: empty until the owner's stored thread is read below.
+      requestContext.set(CHAT_PRIOR_TURNS, []);
       // The AI-SDK chat adapter does not enforce the memory API's thread
       // ownership check before observation. Reject foreign history first.
       const memoryStore = await c.get('mastra').getStorage()?.getStore('memory');
@@ -60,6 +63,10 @@ export function createChatRoute(usageRepo: Pick<UsageRepository, 'record'>, runL
       if (thread && thread.resourceId !== userId) {
         return c.json({ error: { code: 'not_found', message: 'Conversation not found' } }, 404);
       }
+      // The coverage boundary and the scope gate judge a follow-up with the
+      // turns before it. Those come from the owner's stored thread, already
+      // screened and release-gated, and replace anything a client supplied.
+      if (thread) requestContext.set(CHAT_PRIOR_TURNS, await readPriorTurns(memoryStore, input.memory.thread));
       const signal = c.req.raw.signal;
       let diagnostic: ChatDiagnostic | undefined;
       const onAbort = () => finishChatDiagnostic(diagnostic, { status: 'cancelled' });

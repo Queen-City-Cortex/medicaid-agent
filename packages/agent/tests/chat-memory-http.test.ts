@@ -73,7 +73,7 @@ describe('production HTTP handler with guarded observational memory', () => {
           { type: 'finish', finishReason, usage },
         ] }) };
       } });
-      const memory = await createChatMemory(storage, { generateTitle: false,
+      const memory = await createChatMemory(storage, { generateTitle: false, observationalMemoryEnabled: true,
         observation: { model: observer, observation: { messageTokens: 1, bufferTokens: false }, reflection: { observationTokens: 100_000 } },
       });
       const getSection = createTool({ id: 'getSection', description: 'Read the fixture policy.', inputSchema: z.object({}),
@@ -249,7 +249,7 @@ describe('production HTTP handler with guarded observational memory', () => {
     }
   }, 30_000);
 
-  it('keeps observer text and raw tool errors out of the stream and stored rows under production memory defaults', async () => {
+  it('keeps observer text and raw tool errors out of the stream and stored rows under default observation thresholds', async () => {
     const observerSentinel = 'OBSERVER_PRIVATE_SENTINEL';
     const released = 'The service is covered. [Policy](https://example.gov/policy)';
     vi.mocked(verifyAnswer).mockResolvedValue(verdict);
@@ -279,7 +279,7 @@ describe('production HTTP handler with guarded observational memory', () => {
           return { section: { id: 'policy', title: 'Coverage', content: `The service is covered. ${'Policy text about coverage. '.repeat(1800)}`,
             url: 'https://example.gov/policy', citationLink: '[Policy](https://example.gov/policy)' } };
         } });
-      const memory = await createChatMemory(storage, { generateTitle: false, observation: { model: observer } });
+      const memory = await createChatMemory(storage, { generateTitle: false, observationalMemoryEnabled: true, observation: { model: observer } });
       const agent = new Agent({ id: 'test-agent', name: 'Test', instructions: 'Answer from policy.', model, memory,
         tools: { getSection }, outputProcessors: [new HallucinationVerifier()] });
       const mastra = new Mastra({ agents: { ncMedicaidAgent: agent }, storage, logger: false });
@@ -400,6 +400,16 @@ describe('production HTTP handler with guarded observational memory', () => {
 
   it('rejects an incompatible observational-memory store before serving chat', async () => {
     const storage = { getStore: vi.fn().mockResolvedValue({}) } as unknown as LibSQLStore;
-    await expect(createChatMemory(storage)).rejects.toThrow('patchThread');
+    await expect(createChatMemory(storage, { observationalMemoryEnabled: true })).rejects.toThrow('patchThread');
+  });
+
+  it('leaves observational memory off unless it is asked for', async () => {
+    const storage = new LibSQLStore({ id: 'http-default-test', url: ':memory:' });
+    const config = async (options?: Parameters<typeof createChatMemory>[1]) =>
+      (await createChatMemory(storage, options)).getMergedThreadConfig();
+    expect((await config()).observationalMemory).toBeFalsy();
+    expect((await config({ observationalMemoryEnabled: true })).observationalMemory).toBeTruthy();
+    // With it off the agent recalls a bounded tail of the stored thread.
+    expect((await config()).lastMessages).toBe(10);
   });
 });

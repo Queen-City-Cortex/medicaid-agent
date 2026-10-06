@@ -2,28 +2,62 @@ import type { Processor, ProcessInputArgs, ProcessInputResult } from '@mastra/co
 import { resolveCoverageScope } from '@nc-medicaid/policy-corpus';
 import { contentText } from './message-utils.js';
 import type { GateTripwireMetadata } from './message-length-guard.js';
+import { withPriorTurns } from './prior-turns.js';
 
 export const COVERAGE_VERIFICATION_QUERY = 'coverage-verification-query';
 
+const MONTHS = 'january|february|march|april|may|june|july|august|september|october|november|december';
+// The period forms the scope code's own date reading understands: a year, an ISO
+// or month-name date, and the relative phrases it treats as an unstated period.
+const PERIOD = new RegExp(`\\b20\\d{2}(?:-\\d{2}-\\d{2})?\\b|\\b(?:${MONTHS})\\b|\\b(?:last year|next year|previous year|back then)\\b`, 'gi');
+const HAS_PERIOD = /\b20\d{2}\b|\b(?:last year|next year|previous year|back then)\b/i;
+const HAS_LANGUAGE = /\b(?:english|spanish|gujarati|translat\w*)\b|ગુજરાતી/i;
+// How a continuation opens: a connective, or a request for the document itself.
+const CONTINUES = /^(?:(?:please|(?:can|could|will|would) you)\s+)?(?:and|ok(?:ay)?|then|what about|how about|for|in|on|as of|same|translate|provide|supply|show|give|generate|reproduce|download|quote)\b/i;
+// The longest dated follow-up seen in review had nine words; past that a message
+// carries a clause of its own. Three words is a date and at most one particle.
+const CONTINUATION_WORDS = 9;
+const BARE_WORDS = 3;
+const NAMED_POLICY = /\b(?:policy\s+\d[\w.-]*|ma[\s-]*\d{4}|hcwd|cap\/da|epsdt)\b/i;
+
+/**
+ * The question the coverage boundary judges. A turn with a scoped subject of its
+ * own, or that names another policy, stands alone and replaces any earlier
+ * subject. Otherwise a turn inherits the most recent scoped subject when it is
+ * a continuation (at most nine words opening with a continuation cue, or at most
+ * three words) and either states a period while that subject is date-bound, or
+ * names a language or translation while that subject is not date-bound. Every
+ * other turn stands alone and leaves the earlier subject in place for a later
+ * continuation. A translation of a dated answer therefore restates a released
+ * answer and carries no dated-source requirement.
+ */
 export function coverageConversationQuery(messages: Array<{ role?: string; content?: unknown }>): string {
   const users = messages.filter(message => message.role === 'user').map(message => contentText(message.content).trim()).filter(Boolean);
-  return users.reduce((previous, latest) => {
-    const dateOnly = /^(?:(?:what|how) about|and(?: for)?|in|on|for)?\s*(?:(?:january|february|march|april|may|june|july|august|september|october|november|december)\s+(?:\d{1,2}[,]?\s+)?)?20\d{2}(?:-\d{2}-\d{2})?\s*[?.!]*$/i.test(latest);
-    const languageOnly = /^(?:(?:what|how) about|and(?: in)?|in)?\s*(english|spanish|gujarati|ગુજરાતી)\s*[?.!]*$/i.test(latest);
-    if (resolveCoverageScope(latest) || (!dateOnly && !languageOnly && !/\b(it|that|those|same|instead)\b/i.test(latest))) return latest;
-    // Explicitly named new policies change subject rather than inherit a scoped topic.
-    if (!previous || !resolveCoverageScope(previous) || /\b(?:policy\s+\d[\w.-]*|ma[\s-]*\d{4}|hcwd|cap\/da|epsdt)\b/i.test(latest)) return latest;
-    let subject = previous;
-    if (/\b20\d{2}\b/.test(latest)) subject = subject.replace(/\b20\d{2}(?:-\d{2}-\d{2})?\b/g, '').replace(/\b(january|february|march|april|may|june|july|august|september|october|november|december)\b/gi, '');
-    if (/\b(english|spanish)\b/i.test(latest)) subject = subject.replace(/gujarati|ગુજરાતી/gi, '');
-    return `${subject}\nFollow-up: ${latest}`;
-  }, '');
+  let subject = '';
+  let query = '';
+  for (const latest of users) {
+    query = latest;
+    if (resolveCoverageScope(latest)) { subject = latest; continue; }
+    if (NAMED_POLICY.test(latest)) { subject = ''; continue; }
+    const scope = subject ? resolveCoverageScope(subject) : null;
+    const words = latest.split(/\s+/).length;
+    if (!scope || words > CONTINUATION_WORDS || (words > BARE_WORDS && !CONTINUES.test(latest))) continue;
+    // A dated table or a dated payment change, including one whose period is unsupported.
+    const dateBound = scope.requestedDate !== null || (!!scope.notice && !scope.limitationIds.length);
+    const period = HAS_PERIOD.test(latest);
+    if (dateBound ? !period : !HAS_LANGUAGE.test(latest)) continue;
+    let inherited = dateBound ? subject.replace(PERIOD, '') : subject;
+    if (/\b(english|spanish)\b/i.test(latest)) inherited = inherited.replace(/gujarati|ગુજરાતી/gi, '');
+    subject = query = `${inherited}\nFollow-up: ${latest}`;
+  }
+  return query;
 }
 
 export class CoverageBoundaryProcessor implements Processor {
   readonly id = 'coverage-boundary';
   processInput({ messages, requestContext, abort }: ProcessInputArgs<GateTripwireMetadata>): ProcessInputResult {
-    const query = coverageConversationQuery(messages);
+    // Earlier turns come from the stored thread, not the in-flight message list.
+    const query = coverageConversationQuery(withPriorTurns(requestContext, messages));
     requestContext?.set(COVERAGE_VERIFICATION_QUERY, query);
     const scope = resolveCoverageScope(query);
     if (scope?.notice) abort('Evidence required by this request is outside the supported coverage scope', {

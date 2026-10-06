@@ -6,7 +6,7 @@
 - Node.js 22.12+ (root `engines.node` is `>=22.12.0`; commander 15's ESM build needs it)
 - Python 3.11+ with venv at `packages/pipeline/.venv/`
 - `VOYAGE_API_KEY` environment variable set (for embeddings and search)
-- `OPENAI_API_KEY` environment variable set (for the agent, verifier, prompt-injection detector, and observational memory)
+- `OPENAI_API_KEY` environment variable set (for the agent, verifier, scope gate and prompt-injection detector)
 - `ANTHROPIC_API_KEY` only if you override `AGENT_MODEL` to a Claude model
 
 Copy `.env.example` to `.env` at the repo root and fill in keys. The agent and web packages pick up `.env` via `packages/agent/src/load-env.ts`. Note: the Mastra agent CLI does NOT get `.env` values from `tsx` / `npm exec` automatically when invoked ad-hoc — use the real entrypoints or export vars manually.
@@ -15,7 +15,7 @@ Copy `.env.example` to `.env` at the repo root and fill in keys. The agent and w
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `OPENAI_API_KEY` | Yes (agent) | — | OpenAI API key — always required: the verifier (`gpt-5.4-mini`), prompt-injection detector (`gpt-5-mini`), and observational memory (`gpt-5.4-mini`) run on OpenAI even when the main agent model is Claude |
+| `OPENAI_API_KEY` | Yes (agent) | — | OpenAI API key — always required: the verifier (`gpt-5.4-mini`), the scope gate and prompt-injection detector (`gpt-5-mini`), and observational memory when enabled (`gpt-5.4-mini`) run on OpenAI even when the main agent model is Claude |
 | `EVAL_OPENAI_API_KEY` | No | falls back to `OPENAI_API_KEY` | OpenAI key the **answer-level eval** runs the agent on, isolated from production. Set it to a separate OpenAI project/account so a research run can't drain the live agent's quota (which would surface to users as failing chats). |
 | `VOYAGE_API_KEY` | Yes (search/embed) | — | Voyage AI API key for embeddings |
 | `ANTHROPIC_API_KEY` | Only for Claude `AGENT_MODEL` | — | Anthropic API key; needed only when `AGENT_MODEL` is a `claude-*` model |
@@ -23,7 +23,7 @@ Copy `.env.example` to `.env` at the repo root and fill in keys. The agent and w
 | `AGENT_REASONING_EFFORT` | No | `medium` | Reasoning effort for the chat agent and the three deep-research agents on OpenAI models: `none`, `minimal`, `low`, `medium`, `high` or `xhigh`. Any other value stops startup. Set explicitly on every request so it no longer follows each model's API default. |
 | `VERIFIER_MODEL` | No | `gpt-5.4-mini` | Hallucination-verifier model |
 | `TRACE_STORE` | No | `off` in production and CLI runs, else `duckdb` | Where Mastra persists traces/metrics for Studio. `duckdb` writes a local DuckDB file (`MASTRA_OBSERVABILITY_PATH`, default `mastra.duckdb`); `off` skips the store and exporter entirely. Off in production because the file is ephemeral, nothing reads it without Studio, and DuckDB's buffer pool grew the agent to ~10 GB idle on Railway. |
-| `OBSERVATIONAL_MEMORY_ENABLED` | No | `true` | Kill switch for the cross-conversation memory features (observational + working memory), which store a per-user profile server-side (disclosed in /privacy). `false` disables both; thread history is unaffected. |
+| `OBSERVATIONAL_MEMORY_ENABLED` | No | `false` | Observational memory: a model-written summary of a conversation's earlier turns, stored server-side. Off unless `true` or `1` (owner decision, October 2026); do not build on it. With it off the agent recalls the newest ten stored messages of the thread through the release gate, bounded by the 128,000-token input limiter. Working memory is always disabled. The coverage boundary and scope gate read prior turns from the stored thread and behave the same in either mode. |
 | `NEO4J_URI` | No | `bolt://localhost:7687` | Neo4j connection URI |
 | `NEO4J_IDLE_CLOSE_MS` | No | `300000` (5 min) | Close the Neo4j driver after this long with no session in flight; the next use reconnects. Keeps an idle agent free of bolt keep-alive/ACK packets so Railway's Serverless sleep can trigger. `0` disables. |
 | `NEO4J_USER` | No | `neo4j` | Neo4j username |
@@ -75,8 +75,9 @@ AGENT_MODEL=claude-sonnet-4-6 npx mastra dev --dir src
 The LibSQL store on the agent's Railway volume (`/data/mastra.db`) holds
 **user-generated content that may contain client PII**: chat threads (legal
 aid attorneys and case managers paste real case details despite the UI's
-guidance not to), per-conversation observational summaries, deep-research
-runs, and feedback comments. Treat that file — and its dated backups in the Railway bucket
+guidance not to), per-conversation observational summaries from any period
+when that feature was on, deep-research runs, and feedback comments. Treat
+that file — and its dated backups in the Railway bucket
 (`agent/mastra/`, 30-day retention; see Backups & Restore) — accordingly:
 access is operational-only, never for content review.
 
@@ -99,10 +100,11 @@ sleeping agent purges when it next wakes.
   (`CONVERSATION_RETENTION_DAYS`; a saved message resets the clock), with
   their messages, thread state, feedback and observational summary. Sidebar
   delete removes a thread and its messages sooner.
-- **Observational summaries** — one per thread, never shared between a
-  user's threads. Deleted with the thread when it expires. Sidebar delete
-  leaves the summary row behind; the same job sweeps it 90 days after its
-  last update. `OBSERVATIONAL_MEMORY_ENABLED=false` stops new summaries.
+- **Observational summaries** — none are written while
+  `OBSERVATIONAL_MEMORY_ENABLED` is off (the default). Rows from an earlier
+  period are one per thread, never shared between a user's threads, and are
+  deleted with the thread when it expires. Sidebar delete leaves the summary
+  row behind; the same job sweeps it 90 days after its last update.
 - **Deep-research runs** — deleted 90 days after their last update (the
   same constant), with their checkpoints, budgets and workflow snapshots.
 - **Feedback** — deleted after 180 days (`FEEDBACK_RETENTION_DAYS`), or

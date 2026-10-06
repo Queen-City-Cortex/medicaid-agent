@@ -125,14 +125,10 @@ const storage =
       })
     : libsql;
 
-// Kill switch for the cross-conversation memory features (observational +
-// working memory). They store a per-user profile server-side — disclosed in
-// the privacy policy — and an org may reasonably want them off entirely.
+// Observational memory is off unless OBSERVATIONAL_MEMORY_ENABLED turns it on.
 // Thread history/persistence is unaffected.
-const MEMORY_FEATURES_ENABLED = boolEnv('OBSERVATIONAL_MEMORY_ENABLED', true);
-
 const memory = IS_CLI_RUN ? undefined : await createChatMemory(libsql, {
-  observationalMemoryEnabled: MEMORY_FEATURES_ENABLED,
+  observationalMemoryEnabled: runtimeConfig.observationalMemoryEnabled,
 });
 
 const SYSTEM_PROMPT = buildSystemPrompt();

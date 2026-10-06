@@ -30,7 +30,7 @@ function setup(enabled = true, threadOwner: string | null | undefined = undefine
   roots.push(directory); vi.stubEnv('VERIFIER_PRIVATE_DIAGNOSTICS_DIR', enabled ? directory : '');
   const info = vi.spyOn(log, 'info').mockImplementation(() => {});
   const getThreadById = vi.fn().mockResolvedValue(threadOwner === undefined ? null : { resourceId: threadOwner });
-  const getStore = vi.fn().mockResolvedValue({ getThreadById });
+  const getStore = vi.fn().mockResolvedValue({ getThreadById, listMessages: vi.fn().mockResolvedValue({ messages: [] }) });
   const app = new Hono();
   app.use('*', async (c, next) => {
     const context = await clientRequestContext(c.req.raw);

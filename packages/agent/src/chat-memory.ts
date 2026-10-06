@@ -5,9 +5,11 @@ import { openaiModel } from './model.js';
 type MemoryOptions = NonNullable<NonNullable<ConstructorParameters<typeof Memory>[0]>['options']>;
 type ObservationOptions = Exclude<NonNullable<MemoryOptions['observationalMemory']>, boolean>;
 
-/** Keep production and HTTP regression tests on the same memory configuration. */
+/** Keep production and HTTP regression tests on the same memory configuration.
+ *  Observational memory is off unless asked for; the agent then recalls the
+ *  thread's newest stored messages through the release-gated store. */
 export async function createChatMemory(storage: LibSQLStore, {
-  observationalMemoryEnabled = true,
+  observationalMemoryEnabled = false,
   observation = {},
   generateTitle,
 }: {

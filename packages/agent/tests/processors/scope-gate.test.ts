@@ -77,6 +77,17 @@ describe('ScopeGateProcessor', () => {
     expect(classifierInput).toContain('what about my daughter?');
   });
 
+  it('sends the newest message whole and cuts only earlier turns', async () => {
+    mockVerdict('on_topic');
+    const preamble = 'I am writing on behalf of a client and want to set out the background first. '.repeat(6);
+    const question = 'Does her Medicaid cover the seizure medicine?';
+    await run([makeUserMessage(`${'An earlier long message. '.repeat(20)}EARLIER_TAIL`), makeUserMessage(`${preamble}${question}`)]);
+    const classifierInput = mockGenerateObject.mock.calls[0][0].messages[0].content as string;
+    expect(preamble.length).toBeGreaterThan(300);
+    expect(classifierInput.endsWith(`user: ${preamble}${question}`)).toBe(true);
+    expect(classifierInput).not.toContain('EARLIER_TAIL');
+  });
+
   it('fails OPEN when the classifier call throws', async () => {
     mockGenerateObject.mockRejectedValueOnce(new Error('rate limit'));
     const { tripped } = await run([makeUserMessage('anything')]);
@@ -148,6 +159,21 @@ describe('Jev scope provider', () => {
     const pending = run([makeUserMessage('What about my daughter?')]);
     await vi.advanceTimersByTimeAsync(500);
     expect((await pending).tripped).toBe(false);
+  });
+  it('cannot be passed by a message too large for the classifier', async () => {
+    const f = vi.fn().mockResolvedValue(response(.96));
+    vi.stubGlobal('fetch', f);
+    const message = `START_MARK${'保'.repeat(9_970)}END_MARK!!`;
+    expect(message).toHaveLength(9_990);
+    expect((await run([makeUserMessage('An earlier question.'), makeUserMessage(message)])).tripped).toBe(true);
+    expect(f).toHaveBeenCalledTimes(1);
+    const body = f.mock.calls[0][1].body as string;
+    expect(new TextEncoder().encode(body).length).toBeLessThanOrEqual(30_000);
+    // The cut falls inside the newest message; its opening and its end are kept.
+    const state = JSON.parse(body).state as string;
+    expect(state).toContain('user: An earlier question.\nuser: START_MARK');
+    expect(state.endsWith('END_MARK!!')).toBe(true);
+    expect(state.length).toBeGreaterThan(8_000);
   });
   it('honors the same kill switch without calling either provider', async () => {
     vi.stubEnv('SCOPE_GATE_ENABLED', 'false');

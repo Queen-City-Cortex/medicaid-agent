@@ -26,6 +26,9 @@ export function createInjectionDetector(): PromptInjectionDetector {
     threshold: 0.8,
     strategy: 'block',
     detectionTypes: ['injection', 'jailbreak', 'system-override'],
+    // Recalled history was screened when it was sent; rescanning it costs one
+    // call per message and lets an old answer block every later turn.
+    lastMessageOnly: true,
     onDetection: (event) => {
       if (!isDetectorFailure(event)) return;
       log.error('prompt_injection.failed_open', { model: CLASSIFIER_MODEL });
