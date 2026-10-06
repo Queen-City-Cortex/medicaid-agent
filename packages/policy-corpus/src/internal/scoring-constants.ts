@@ -23,6 +23,10 @@ export const BASE_TYPE_GROUPS = [
   ['federal_regulation'],
   ['federal_statute'],
   ['bulletin', 'state_plan_amendment', 'waiver', 'provider_manual'],
+  // North Carolina General Statutes: authoritative state law. No boost is
+  // keyed on the type; the appeal alias in query-intent.ts names the hearing
+  // statutes when a question asks about an appeal.
+  ['nc_statute'],
   // Last, so existing groups keep winning exact-score ties in the hit merge.
   // A supporting-tier family: no boost or penalty is keyed on it.
   ['beneficiary_guidance'],

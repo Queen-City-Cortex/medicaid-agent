@@ -43,6 +43,7 @@ describe('retrieval profile signals', () => {
       ['clinical_policy'],
       ['dhhs_policy'],
       ['bulletin', 'state_plan_amendment', 'waiver', 'provider_manual'],
+      ['nc_statute'],
     ]);
   });
 

@@ -10,6 +10,7 @@ import { billingGuidanceSource } from '../sources/billing-guidance.js';
 import { managedCareGuidanceSource } from '../sources/managed-care-guidance.js';
 import { managedCareContractsSource } from '../sources/managed-care-contracts.js';
 import { beneficiaryGuidanceSource } from '../sources/beneficiary-guidance.js';
+import { ncStatuteSource } from '../sources/nc-statutes.js';
 import { logger } from '../utils/logger.js';
 import { config } from '../config.js';
 
@@ -26,6 +27,7 @@ const sourceModules: Partial<Record<SourceType, SourceModule>> = {
   managed_care_guidance: managedCareGuidanceSource,
   managed_care_contract: managedCareContractsSource,
   beneficiary_guidance: beneficiaryGuidanceSource,
+  nc_statute: ncStatuteSource,
 };
 
 /**

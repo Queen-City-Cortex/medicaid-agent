@@ -50,13 +50,14 @@ from pipeline.crawler_registry import (
 )
 from pipeline.parse.post_process import extract_section_number
 from pipeline.parse.artifact_paths import artifact_stem_for_source_path
+from pipeline.parse.nc_statute import parse_nc_statute_html
 from pipeline.parse.fee_xlsx import native_layout, render_sheet, representation_for
 from pipeline.parse.worker import parse_supported_file_worker
 from pipeline.corpus_manifest import SOURCE_FAMILY_MAP
 
 console = Console()
-PARSE_CACHE_VERSION = 6
-MIGRATABLE_PARSE_CACHE_VERSIONS = frozenset({4, 5})
+PARSE_CACHE_VERSION = 7
+MIGRATABLE_PARSE_CACHE_VERSIONS = frozenset({4, 5, 6})
 DEFAULT_PARSE_TIMEOUT_SECONDS = 600
 WORKER_ERROR_MESSAGE_LIMIT = 4096
 WORKER_CLEANUP_RESERVE_SECONDS = 5
@@ -132,6 +133,10 @@ def should_parse(source_path: Path, meta_path: Path, source_type: str | None = N
         if meta.get("representation") != representation:
             return True
         if meta.get("parse_cache_version") != PARSE_CACHE_VERSION:
+            # The statute parser exists only from v7, so an older sidecar for a
+            # statute page is another parser's output and is never upgraded.
+            if source_type == "nc_statute" and meta.get("parse_cache_version") in {4, 5, 6}:
+                return True
             return not _migrate_legacy_parsed_sidecar(
                 meta_path=meta_path,
                 meta=meta,
@@ -925,7 +930,8 @@ def _migrate_legacy_parsed_sidecar(
     json_path: Path,
     md_path: Path,
 ) -> bool:
-    """Upgrade valid v4/v5 payloads; figure and checkbox text already exists in them."""
+    """Upgrade valid v4-v6 payloads; figure and checkbox text already exists in them,
+    and v7 only added the North Carolina statute branch for a family with no cache."""
     if meta.get("parse_cache_version") not in MIGRATABLE_PARSE_CACHE_VERSIONS:
         return False
     if (
@@ -943,7 +949,7 @@ def _migrate_legacy_parsed_sidecar(
 
     # v5 introduced artifact integrity hashes. Migration must not bless a
     # modified payload merely by calculating a new hash for it.
-    if meta.get("parse_cache_version") == 5:
+    if meta.get("parse_cache_version") >= 5:
         artifacts = meta.get("artifacts")
         if not isinstance(artifacts, dict):
             return False
@@ -1183,6 +1189,8 @@ def parse_supported_file(
     if suffix == ".pptx":
         return parse_pptx(source_path)
     if suffix == ".html":
+        if source_type == "nc_statute":
+            return parse_nc_statute_html(source_path)
         return parse_html(source_path)
     raise ValueError(f"Unsupported parse format: {source_path.suffix}")
 

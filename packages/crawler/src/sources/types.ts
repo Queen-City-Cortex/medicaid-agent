@@ -9,7 +9,8 @@ export type SourceType =
   | 'billing_guidance'
   | 'managed_care_guidance'
   | 'managed_care_contract'
-  | 'beneficiary_guidance';
+  | 'beneficiary_guidance'
+  | 'nc_statute';
 
 export interface DiscoveredDocument {
   source_url: string;

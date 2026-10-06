@@ -188,6 +188,29 @@
         "https://medicaid.ncdhhs.gov/beneficiaries/medicaid-is-changing",
         "https://medicaid.ncdhhs.gov/beneficiaries/impact-hr-1-and-federal-changes-medicaid/nc-medicaid-work-and-community-engagement-requirements"
       ]
+    },
+    {
+      "source_type": "nc_statute",
+      "directory_name": "nc-statutes",
+      "authority_tier": "authoritative",
+      "answer_role": "appeals",
+      "required_for_answering": false,
+      "freshness_expectation": "weekly",
+      "discovery_interval_hours": 24,
+      "freshness_sla_days": 7,
+      "allowed_domains": [
+        "www.ncleg.gov"
+      ],
+      "allowed_file_formats": [
+        ".html"
+      ],
+      "landing_pages": [],
+      "seed_urls": [
+        "https://www.ncleg.gov/EnactedLegislation/Statutes/HTML/BySection/Chapter_108A/GS_108A-70.9A.html",
+        "https://www.ncleg.gov/EnactedLegislation/Statutes/HTML/BySection/Chapter_108A/GS_108A-79.html",
+        "https://www.ncleg.gov/EnactedLegislation/Statutes/HTML/BySection/Chapter_108D/GS_108D-14.html",
+        "https://www.ncleg.gov/EnactedLegislation/Statutes/HTML/BySection/Chapter_108D/GS_108D-15.html"
+      ]
     }
   ],
   "federal_sources": [

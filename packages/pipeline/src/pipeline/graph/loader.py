@@ -827,6 +827,10 @@ def load_document(
         }
 
     doc_dict = json.loads(json_path.read_text())
+    if source_type == "nc_statute":
+        # The page itself is the authority for its citation and catchline.
+        policy_number = doc_dict.get("statute_citation") or policy_number
+        title = doc_dict.get("document_title") or title
     sections = (
         build_sections_from_synthetic_items(doc_dict, doc_id)
         if "synthetic_sections" in doc_dict

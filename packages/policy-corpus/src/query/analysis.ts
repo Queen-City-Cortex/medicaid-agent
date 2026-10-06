@@ -22,6 +22,7 @@ import {
   asksForTelehealthServiceList,
   detectAnswerQuestionType,
   extractAliasedPolicyNumbers,
+  extractAppealPolicyNumbers,
   extractExplicitPolicyNumbers,
   extractRequestedYears,
   isBillingWorkflowQuery,
@@ -52,9 +53,13 @@ export function analyzeQuery(query: string, requestedType?: AnswerQuestionType):
   const requestedYears = extractRequestedYears(query);
   const federalAuthorityQuery = isFederalAuthorityQuery(normalizedQuery);
   const aliasedPolicyNumbers = federalAuthorityQuery ? [] : extractAliasedPolicyNumbers(normalizedQuery);
+  // The appeal alias feeds the search collector only (it never routes a
+  // frame's documents; see extractAppealPolicyNumbers) and is kept through
+  // the federal-authority gate: a federal hearing rule only bounds the limit.
   const explicitPolicyNumbers = dedupeTerms([
     ...extractExplicitPolicyNumbers(query),
     ...aliasedPolicyNumbers,
+    ...extractAppealPolicyNumbers(normalizedQuery),
   ]);
   const questionType = detectAnswerQuestionType(normalizedQuery, requestedType);
 

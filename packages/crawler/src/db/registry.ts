@@ -34,7 +34,8 @@ export interface DocumentRecord {
 }
 
 /** 'transient' said nothing about the document (see `recordTransientFailure`);
- *  'not_found' is a 404 on the removal streak; 'permanent' is any other failure. */
+ *  'not_found' is a 404, on the removal streak unless the row is a manifest
+ *  seed (then `consecutive_not_found` stays 0); 'permanent' is any other failure. */
 export type FailureKind = 'transient' | 'permanent' | 'not_found';
 
 export interface DownloadedInfo {

@@ -12,6 +12,7 @@
 | medicaid.ncdhhs.gov | "Non-commercial use" clause | **MEDIUM** | State |
 | policies.ncdhhs.gov | No terms found | LOW | State |
 | nctracks.nc.gov | No terms found | LOW | State |
+| www.ncleg.gov | **OPEN ITEM (owner):** terms page not reviewed; the four `nc_statute` seed pages were added on 2026-10-06 without fetching or assessing the site's terms of use | NOT ASSESSED | State |
 | ecfr.gov | Public domain | NONE | Federal |
 | uscode.house.gov | Public domain | NONE | Federal |
 

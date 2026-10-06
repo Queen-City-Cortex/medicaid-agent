@@ -452,3 +452,37 @@ export const VARIANT_SETTING_TERMS: Array<{
     reason: 'Preferred because the query asks about a residential treatment setting.',
   },
 ];
+
+// Appeal routing. A question that asks about an appeal is sent to the hearing
+// sources for the kind of decision it names: a service decision (General
+// Statutes 108A-70.9A for Medicaid Direct, 108D-14 and 108D-15 for a managed
+// care plan) or a county eligibility decision (108A-79 and the Notice and
+// Hearings Process sections MA-2420 and MA-3430). A question naming neither
+// kind gets the four statutes and no manual. No time limit is written here:
+// figures come from the retrieved statute text.
+export const APPEAL_QUERY_TERMS = [
+  'appeal', 'appeals', 'appealing', 'appealed', 'fair hearing', 'request a hearing', 'hearing request',
+  'notice of action', 'adverse benefit determination', 'adverse determination',
+];
+export const SERVICE_DECISION_APPEAL_TERMS = [
+  'prior authorization', 'prior approval', 'prior auth', 'service', 'services', 'treatment',
+  'adverse benefit determination', 'adverse determination',
+];
+export const MEDICAID_DIRECT_APPEAL_TERMS = ['medicaid direct', 'adverse determination'];
+export const MANAGED_CARE_APPEAL_TERMS = [
+  'managed care', 'health plan', 'prepaid health plan', 'php', 'tailored plan', 'standard plan', 'lme/mco',
+  'plan appeal', 'adverse benefit determination',
+];
+export const COUNTY_ELIGIBILITY_APPEAL_TERMS = [
+  'eligibility', 'eligible', 'application', 'county', 'dss', 'department of social services', 'social services',
+  'caseworker', 'redetermination', 'recertification',
+];
+// County agency names that contain a service cue word ("services"). They are
+// removed before the service cues are read, so a question about the
+// Department of Social Services is a county question only.
+export const COUNTY_AGENCY_NAMES = ['department of social services', 'social services'];
+export const MEDICAID_DIRECT_APPEAL_STATUTES = ['108A-70.9A'];
+export const MANAGED_CARE_APPEAL_STATUTES = ['108D-14', '108D-15'];
+export const COUNTY_ELIGIBILITY_APPEAL_STATUTE = '108A-79';
+// The manuals are named only on a county eligibility cue (see extractAppealPolicyNumbers).
+export const COUNTY_ELIGIBILITY_APPEAL_SOURCES = [COUNTY_ELIGIBILITY_APPEAL_STATUTE, 'MA-2420', 'MA-3430'];

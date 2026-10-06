@@ -16,7 +16,7 @@ export const searchSections = createTool({
   description:
     'Hybrid search (semantic + keyword) over NC Medicaid policy sections. ' +
     'Use this to find relevant policy sections for a topic or question. ' +
-    'Optionally filter by documentType (e.g. "dhhs_policy", "clinical_policy", "federal_regulation", "beneficiary_guidance").',
+    'Optionally filter by documentType (e.g. "dhhs_policy", "clinical_policy", "federal_regulation", "nc_statute", "beneficiary_guidance").',
   inputSchema: z.object({
     query: z.string().describe('Natural language search query'),
     documentTypes: z

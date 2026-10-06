@@ -10,6 +10,18 @@ import {
   policyNumberKey,
 } from './base.js';
 import { dedupeTerms } from './search.js';
+import {
+  APPEAL_QUERY_TERMS,
+  COUNTY_AGENCY_NAMES,
+  COUNTY_ELIGIBILITY_APPEAL_SOURCES,
+  COUNTY_ELIGIBILITY_APPEAL_STATUTE,
+  COUNTY_ELIGIBILITY_APPEAL_TERMS,
+  MANAGED_CARE_APPEAL_STATUTES,
+  MANAGED_CARE_APPEAL_TERMS,
+  MEDICAID_DIRECT_APPEAL_STATUTES,
+  MEDICAID_DIRECT_APPEAL_TERMS,
+  SERVICE_DECISION_APPEAL_TERMS,
+} from './term-lists.js';
 
 const YEAR_QUERY_RE = /\b(19|20)\d{2}\b/g;
 const REQUIREMENT_QUERY_TERMS = ['requirement', 'requirements', 'documentation', 'document', 'provide'];
@@ -525,6 +537,10 @@ const MANUAL_NUMBER_RE = new RegExp(
   'gi',
 );
 // Each pattern captures the number in group 1.
+// A North Carolina hearing statute as cited: "108A-70.9A", "G.S. 108A-70.9A",
+// "N.C.G.S. § 108D-15(d)". Only the section is kept; a subsection label is
+// not part of the stored number.
+export const NC_STATUTE_RE = /(?<![a-z0-9])(108[ad])[- ](\d{1,3}(?:\.\d{1,3})?[a-z]?)(?![a-z0-9])/gi;
 const CUED_NUMBER_RES = [
   // "policy 3L", "CCP 9", "Clinical Coverage Policy No. 1-H", "policy (5B)", "policy #15"
   String.raw`\b${POLICY_WORD}(?:\s+(?:no\.?|numbers?))?\s*[(:#]?\s*(${CLINICAL}|\d{1,2})${TOKEN_END}${NOT_A_QUANTITY}`,
@@ -562,6 +578,9 @@ export function extractExplicitPolicyNumbers(query: string): string[] {
   const spans: NumberSpan[] = [];
   for (const match of query.matchAll(SUFFIXED_CLINICAL_RE)) {
     spans.push({ start: match.index, end: match.index + match[0].length, policyNumber: match[0] });
+  }
+  for (const match of query.matchAll(NC_STATUTE_RE)) {
+    spans.push({ start: match.index, end: match.index + match[0].length, policyNumber: `${match[1]}-${match[2]}` });
   }
   for (const match of query.matchAll(MANUAL_NUMBER_RE)) {
     spans.push({ start: match.index, end: match.index + match[0].length, policyNumber: `${match[1]}-${match[2]}` });
@@ -620,6 +639,47 @@ export function preferTypedFormDocuments<T extends { title: string | null }>(tex
   const isTyped = (document: T) =>
     typedKeys.has(policyNumberKey((document.title ?? '').trim().split(/[\s,:]/)[0]));
   return [...documents.filter(isTyped), ...documents.filter((document) => !isTyped(document))];
+}
+
+// Kept through the federal-authority alias gate: a federal hearing rule only
+// bounds the time limit, so the North Carolina hearing sources must stay in
+// reach however the question is worded or typed.
+//
+// The county manuals (MA-2420, MA-3430) state the county time limit only, so
+// they are named only when the question carries a county eligibility cue. A
+// question that names neither kind of decision gets the four statutes and no
+// manual: 108A-79 states the county rule itself, so both time limits come
+// from statute text, and on a graph that does not hold the statutes yet the
+// alias resolves to nothing instead of showing the county figure alone.
+//
+// Not part of extractAliasedPolicyNumbers: a frame that finds a document for
+// a routed number uses it in place of the policy its hits point to, so the
+// hearing sources would displace the coverage policy on "is it covered, and
+// how do I appeal". Query analysis adds these numbers for the search
+// collector only, where they add hits.
+export function extractAppealPolicyNumbers(queryLower: string): string[] {
+  if (!matchesAnyTerm(queryLower, APPEAL_QUERY_TERMS)) return [];
+
+  // "Social services" names the county agency, not a service decision.
+  const serviceText = COUNTY_AGENCY_NAMES.reduce(
+    (text, name) => text.replace(new RegExp(`\\b${name}\\b`, 'g'), ' '),
+    queryLower,
+  );
+  const medicaidDirect = matchesAnyTerm(serviceText, MEDICAID_DIRECT_APPEAL_TERMS);
+  const managedCare = matchesAnyTerm(serviceText, MANAGED_CARE_APPEAL_TERMS);
+  const serviceDecision = medicaidDirect || managedCare || matchesAnyTerm(serviceText, SERVICE_DECISION_APPEAL_TERMS);
+  const countyDecision = matchesAnyTerm(queryLower, COUNTY_ELIGIBILITY_APPEAL_TERMS);
+  const serviceStatutes = [...MEDICAID_DIRECT_APPEAL_STATUTES, ...MANAGED_CARE_APPEAL_STATUTES];
+
+  if (countyDecision) {
+    return serviceDecision
+      ? [...serviceStatutes, ...COUNTY_ELIGIBILITY_APPEAL_SOURCES]
+      : [...COUNTY_ELIGIBILITY_APPEAL_SOURCES];
+  }
+  if (!serviceDecision) return [...serviceStatutes, COUNTY_ELIGIBILITY_APPEAL_STATUTE];
+  if (medicaidDirect && !managedCare) return [...MEDICAID_DIRECT_APPEAL_STATUTES];
+  if (managedCare && !medicaidDirect) return [...MANAGED_CARE_APPEAL_STATUTES];
+  return serviceStatutes;
 }
 
 export function extractAliasedPolicyNumbers(queryLower: string): string[] {

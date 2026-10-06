@@ -1,3 +1,4 @@
+import { CORPUS_MANIFEST } from '../corpus-manifest.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import { config, SOURCE_TYPE_DIRS } from '../config.js';
@@ -69,7 +70,9 @@ function getFilenames(
  * Apply a download result to the registry and stats. 404s are tracked as a
  * consecutive streak — a document is only marked 'removed' once it has 404ed
  * `notFoundRemovalThreshold` times in a row; until then it stays 'error' so a
- * transient 404 self-heals on a later run. A transient failure (see
+ * transient 404 self-heals on a later run. A 404 on a manifest seed is the
+ * exception: 'error' with kind 'not_found', never on that streak and never
+ * removed. A transient failure (see
  * `DownloadResult.transient`) keeps the document's last good status — the
  * row's whole-row identity, and so the release trigger, is unchanged and the
  * stored payload still loads — until `transientFailureThreshold` in a row.
@@ -106,7 +109,21 @@ function applyResult(
           result.rejectionReason ?? result.error ?? 'URL rejected',
         );
       }
-      if (result.statusCode === 404) {
+      // A manifest seed is listed by the manifest itself, so a 404 there is an
+      // outage or a moved file, never proof of withdrawal. It is recorded as
+      // an error of kind 'not_found' — visible, retried, payload kept — and
+      // stays off the consecutive-404 streak that removal and retirement read.
+      const manifestSeed = CORPUS_MANIFEST.source_families.some(
+        (family) =>
+          family.source_type === doc.source_type
+          && family.seed_urls.includes(doc.source_url),
+      );
+      if (result.statusCode === 404 && manifestSeed) {
+        ctx.registry.markError(doc.id, result.error ?? '404 Not Found', 'not_found');
+        logger.warn(
+          `${docLabel(doc)}... 404 on a manifest seed: kept for retry, not counted toward removal`,
+        );
+      } else if (result.statusCode === 404) {
         const threshold =
           ctx.notFoundRemovalThreshold ?? config.notFoundRemovalThreshold;
         const misses = ctx.registry.recordNotFound(

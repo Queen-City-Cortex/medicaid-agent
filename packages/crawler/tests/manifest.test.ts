@@ -20,6 +20,7 @@ describe('corpus manifest', () => {
       'managed_care_guidance',
       'managed_care_contract',
       'beneficiary_guidance',
+      'nc_statute',
     ]);
   });
 

@@ -1,5 +1,6 @@
 import type { DocumentSupersessionView, DocumentWithSectionsView, LookupPolicyInput, SessionExecutor } from '../types.js';
 import { documentMetadataReturn, mapDocumentMetadataRecord } from '../document-metadata.js';
+import { NC_STATUTE_RE } from '../internal/query-intent.js';
 import { mapDocumentSections, preferTypedFormDocuments } from '../internal/shared.js';
 
 const LOOKUP_DOCUMENT_LIMIT = 25;
@@ -18,7 +19,8 @@ function policyNumberKeyCypher(expression: string): string {
  * No." is dropped, and a manual or form number is reduced to the stored
  * PREFIX-digits ("DHB-5125B" is filed under DHB-5125). Hyphen, space and
  * case differences ("1-H", "MA 2180") need no candidate: the query compares
- * policy-number keys.
+ * policy-number keys. A cited North Carolina statute ("G.S. 108A-70.9A",
+ * "N.C.G.S. § 108D-15") is reduced to the stored section number.
  */
 export function candidatePolicyNumbers(raw: string): string[] {
   const typed = raw.trim();
@@ -41,6 +43,13 @@ export function candidatePolicyNumbers(raw: string): string[] {
   // source link or the asker used ("24-0028", "NC-24-0028", "SPA NC 24-0028").
   const spa = pn.match(/^(?:SPA[\s-]*)?(?:NC[\s-]*)?(\d{2}-\d{4})$/i);
   if (spa) candidates.add(`SPA ${spa[1]}`);
+
+  // The same pattern search uses to name a statute, so lookup and search
+  // agree on what a citation is. A cited subsection ("108A-70.9A(d)") resolves
+  // to the section's document; landing on the child section is out of scope.
+  for (const statute of pn.matchAll(NC_STATUTE_RE)) {
+    candidates.add(`${statute[1]}-${statute[2]}`.toUpperCase());
+  }
 
   return [...candidates];
 }

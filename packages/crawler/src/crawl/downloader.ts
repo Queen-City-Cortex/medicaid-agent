@@ -1,3 +1,4 @@
+import { statuteSectionFromUrl } from '../sources/nc-statutes.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import * as cheerio from 'cheerio';
@@ -126,6 +127,28 @@ export function looksLikeTextPayload(header: Buffer): boolean {
 
 function normalizeHtmlText(value: string): string {
   return value.replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
+/**
+ * ncleg.gov statute pages have no <article>. Accept one only when it is the
+ * requested section: the title is "G.S. <section>" and the body carries the
+ * "§ <section>." caption, so an error or maintenance page served with a 200
+ * (or another section's page) is rejected.
+ */
+export function validateStatuteHtml(filePath: string, sourceUrl: string): string | null {
+  const section = statuteSectionFromUrl(sourceUrl);
+  if (!section) {
+    return 'Statute URL does not name a GS_<section>.html page';
+  }
+  const $ = cheerio.load(fs.readFileSync(filePath, 'utf8'));
+  const escaped = section.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  if (
+    $('title').first().text().trim() !== `G.S. ${section}`
+    || !new RegExp(`§\\s*${escaped}\\.(?![0-9A-Za-z])`).test($('body').text())
+  ) {
+    return `HTML payload is not the statute page for G.S. ${section}`;
+  }
+  return null;
 }
 
 /**
@@ -472,7 +495,9 @@ export async function downloadDocument(
       return { action: 'error', error: 'Full-text bulletin HTML is allowed only for explicitly declared seed URLs' };
     }
     if (semanticHtmlRequired || detectedContentType === 'text/html') {
-      const validationError = validateSemanticArticleHtml(tmpPath, doc.title, requiredHtmlText);
+      const validationError = sourceType === 'nc_statute'
+        ? validateStatuteHtml(tmpPath, doc.source_url)
+        : validateSemanticArticleHtml(tmpPath, doc.title, requiredHtmlText);
       if (validationError) {
         fs.unlinkSync(tmpPath);
         logger.warn(`${doc.source_url} ${validationError.toLowerCase()} — rejected`);

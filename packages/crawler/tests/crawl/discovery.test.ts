@@ -16,10 +16,11 @@ function stubFetcher(
   };
 }
 
-// Families that read at least one configured page. beneficiary_guidance is a
-// static seed list and never fetches, so it cannot fail this way.
+// Families that read at least one configured page. beneficiary_guidance and
+// nc_statute are static seed lists and never fetch, so they cannot fail this way.
+const SEED_LIST_FAMILIES = ['beneficiary_guidance', 'nc_statute'];
 const FETCHING_FAMILIES = MANIFEST_SOURCE_TYPES.filter(
-  (sourceType) => sourceType !== 'beneficiary_guidance',
+  (sourceType) => !SEED_LIST_FAMILIES.includes(sourceType),
 );
 
 function providerManualPage(count: number): string {
@@ -43,9 +44,9 @@ describe('discoverDocuments', () => {
     );
 
     expect([...result.failedSourceTypes].sort()).toEqual([...FETCHING_FAMILIES].sort());
-    expect(result.successfulSourceTypes).toEqual(['beneficiary_guidance']);
+    expect([...result.successfulSourceTypes].sort()).toEqual(SEED_LIST_FAMILIES);
     expect(
-      result.documents.every((doc) => doc.source_type === 'beneficiary_guidance'),
+      result.documents.every((doc) => SEED_LIST_FAMILIES.includes(doc.source_type)),
     ).toBe(true);
   });
 

@@ -125,6 +125,67 @@ describe('crawl sync phases', () => {
     });
   });
 
+  describe('manifest seed URLs', () => {
+    it('marks a seed page not found on a 404 and never retires it', async () => {
+      // The manifest lists the page; a 404 there is an outage or a moved
+      // file, not proof of repeal. Only removing the seed de-lists it.
+      const url =
+        'https://www.ncleg.gov/EnactedLegislation/Statutes/HTML/BySection/Chapter_108D/GS_108D-14.html';
+      const id = registry.upsertDiscovered({
+        source_url: url,
+        discovered_from: url,
+        source_type: 'nc_statute',
+        title: 'N.C.G.S. 108D-14',
+        policy_number: '108D-14',
+        category: null,
+      });
+      registry.updateDownloaded(id, { ...sampleInfo, file_hash: 'existing-hash' });
+
+      const seeded = registry.getById(id)!;
+
+      // The row must be in the checked source types, or the stub never runs.
+      let calls = 0;
+      const notFound = makeContext(
+        registry,
+        () => {
+          calls += 1;
+          return { action: 'error', error: 'HTTP 404', statusCode: 404 };
+        },
+        { sourceTypes: ['nc_statute'] as SourceType[] },
+      );
+
+      // Not retired or removed, and not silently current either: from the
+      // first 404 the row is 'error' with kind 'not_found', its failure time
+      // is recorded, and the payload fields stay.
+      const seen: Record<number, unknown> = {};
+      for (let run = 1; run <= 10; run += 1) {
+        await runCheckPhase(notFound);
+        const doc = registry.getById(id)!;
+        expect(doc.removed_at).toBeNull();
+        expect(doc.last_failure_at).not.toBeNull();
+        expect(doc.error_message).toBe('HTTP 404');
+        expect(doc.local_path).toBe(seeded.local_path);
+        expect(doc.file_hash).toBe(seeded.file_hash);
+        expect(doc.last_downloaded_at).toBe(seeded.last_downloaded_at);
+        seen[run] = {
+          status: doc.status,
+          kind: doc.last_failure_kind,
+          consecutive_errors: doc.consecutive_errors,
+          consecutive_not_found: doc.consecutive_not_found,
+        };
+      }
+      expect(calls).toBe(10);
+      for (const run of [1, 3, 10]) {
+        expect(seen[run]).toEqual({
+          status: 'error',
+          kind: 'not_found',
+          consecutive_errors: run,
+          consecutive_not_found: 0,
+        });
+      }
+    });
+  });
+
   describe('consecutive-404 removal threshold', () => {
     it('keeps a document retryable until it 404s on N consecutive runs', async () => {
       const id = addDownloaded('https://example.com/gone.pdf');

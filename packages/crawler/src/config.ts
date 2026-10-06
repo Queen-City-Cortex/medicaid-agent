@@ -21,6 +21,7 @@ const billingGuidanceSource = getSourceFamily('billing_guidance');
 const managedCareGuidanceSource = getSourceFamily('managed_care_guidance');
 const managedCareContractSource = getSourceFamily('managed_care_contract');
 const beneficiaryGuidanceSource = getSourceFamily('beneficiary_guidance');
+const ncStatuteSource = getSourceFamily('nc_statute');
 
 export const config = {
   // Paths (resolved relative to crawler/ root)
@@ -68,6 +69,7 @@ export const config = {
     managed_care_guidance: 120, // 249
     managed_care_contract: 50, // 111
     beneficiary_guidance: 1, // static seed list; nothing is fetched
+    nc_statute: 4, // static seed list of four hearing statutes
   } satisfies Record<SourceType, number>,
 
   // User agent
@@ -126,6 +128,11 @@ export const config = {
     beneficiary_guidance: {
       landingPages: beneficiaryGuidanceSource.landing_pages,
       seedUrls: beneficiaryGuidanceSource.seed_urls,
+      enabled: true,
+    },
+    nc_statute: {
+      landingPages: ncStatuteSource.landing_pages,
+      seedUrls: ncStatuteSource.seed_urls,
       enabled: true,
     },
   },
