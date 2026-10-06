@@ -1,20 +1,35 @@
 import type { DocumentSupersessionView, DocumentWithSectionsView, LookupPolicyInput, SessionExecutor } from '../types.js';
 import { documentMetadataReturn, mapDocumentMetadataRecord } from '../document-metadata.js';
-import { mapDocumentSections } from '../internal/shared.js';
+import { mapDocumentSections, preferTypedFormDocuments } from '../internal/shared.js';
 
 const LOOKUP_DOCUMENT_LIMIT = 25;
+
+/** Cypher twin of `policyNumberKey` for a string expression. */
+function policyNumberKeyCypher(expression: string): string {
+  return `replace(replace(toUpper(${expression}), '-', ''), ' ', '')`;
+}
 
 /**
  * Expands a user/model-supplied policy number into the forms stored in the
  * graph. Federal documents are stored hyphenated ("42-CFR-440",
  * "SSA-Title-19"), but citations are naturally written "42 CFR 440",
  * "42 C.F.R. § 440.230", or "SSA Title 19" — without this, federal lookups
- * can never match.
+ * can never match. A leading "Policy", "CCP" or "Clinical Coverage Policy
+ * No." is dropped, and a manual or form number is reduced to the stored
+ * PREFIX-digits ("DHB-5125B" is filed under DHB-5125). Hyphen, space and
+ * case differences ("1-H", "MA 2180") need no candidate: the query compares
+ * policy-number keys.
  */
 export function candidatePolicyNumbers(raw: string): string[] {
-  const pn = raw.trim();
-  if (!pn) return [];
-  const candidates = new Set<string>([pn]);
+  const typed = raw.trim();
+  if (!typed) return [];
+  const candidates = new Set<string>([typed]);
+
+  const pn = typed.replace(/^(?:clinical\s+coverage\s+)?(?:policy|ccp)\b\s*(?:no\.?|number)?\s*[:#]?\s*/i, '').trim();
+  if (pn) candidates.add(pn);
+
+  const manual = pn.match(/^(MA|DMA|DHB|DSS)[- ]?(\d{3,5})(?!\d)/i);
+  if (manual) candidates.add(`${manual[1].toUpperCase()}-${manual[2]}`);
 
   const cfr = pn.match(/^(\d+)\s*C\.?\s*F\.?\s*R\.?\s*(?:§+\s*)?(?:part\s+)?(\d+)/i);
   if (cfr) candidates.add(`${cfr[1]}-CFR-${cfr[2]}`);
@@ -60,14 +75,18 @@ export function createPolicyLookupPrimitiveService({ withSession }: { withSessio
     if (candidates.length === 0) return [];
 
     return withSession(async (session) => {
+      // Exact number only, compared as policyNumberKey does. A prefix match
+      // returned sibling policies ("1A-2" also matched 1A-20 to 1A-28) and
+      // the newest sibling sorted first. Derived revision rows
+      // (document_type 'change_notice') share their policy's number and have
+      // no sections; getAmendments returns them.
       // The 0..1 supersession match runs BEFORE the section collect so it
       // can't multiply section rows.
       const result = await session.run(
         `MATCH (d:Document)
-         WHERE any(pn IN $pns WHERE
-           d.policy_number = pn
-           OR toLower(d.policy_number) = toLower(pn)
-           OR d.policy_number STARTS WITH pn)
+         WHERE coalesce(d.document_type, '') <> 'change_notice'
+           AND any(pn IN $pns WHERE
+             ${policyNumberKeyCypher('d.policy_number')} = ${policyNumberKeyCypher('pn')})
          OPTIONAL MATCH (d)-[sup:SUPERSEDED_BY]->(cur:Document)
          OPTIONAL MATCH (d)-[:HAS_SECTION]->(s:Section)
          RETURN
@@ -91,7 +110,7 @@ export function createPolicyLookupPrimitiveService({ withSession }: { withSessio
         { pns: candidates },
       );
 
-      return result.records.map((record) => ({
+      const documents = result.records.map((record) => ({
         ...mapDocumentMetadataRecord(record),
         sections: mapDocumentSections(
           (record.get('sections') as Array<{
@@ -102,6 +121,7 @@ export function createPolicyLookupPrimitiveService({ withSession }: { withSessio
         ),
         supersession: mapSupersession(record),
       })) satisfies DocumentWithSectionsView[];
+      return preferTypedFormDocuments(policyNumber, documents);
     });
   };
 

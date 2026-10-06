@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { policyCorpus } from '../policy-corpus.js';
 import { DocumentMetadataSchema } from './document-metadata.js';
 
-// A policy-number prefix can match 25 documents with thousands of sections
+// One policy number can be shared by 25 documents with thousands of sections
 // between them ("1915(c)": 3,018 on the July 2026 graph).
 export const LOOKUP_SECTION_LIMIT = 40;
 
@@ -12,6 +12,8 @@ export const lookupPolicy = createTool({
   description:
     'Look up a policy document by its policy number (e.g. "8C", "1A-1", "42 CFR 440", "SSA Title 19"). ' +
     'Federal citations may be written naturally ("42 CFR 440", "42 C.F.R. § 440.230") — they are normalized to the stored form. ' +
+    'The number must be the whole policy number: "8C" does not return "8C-1", and a family or partial number ' +
+    '("8", "3K") returns nothing, so use searchSections to find the policies in a family. ' +
     'Returns the document metadata and a list of its sections. ' +
     `Each list is capped at ${LOOKUP_SECTION_LIMIT}; sectionCount is the document's full count and sectionsTruncated ` +
     'says whether the list was cut. Use getDocument to page through the rest. ' +

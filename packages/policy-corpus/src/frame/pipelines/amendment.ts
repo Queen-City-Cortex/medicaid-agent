@@ -1,5 +1,5 @@
 import type { QueryAnalysis } from '../../contracts.js';
-import type { AnswerFrame, DocumentWithSectionsView } from '../../types.js';
+import type { AnswerFrame, DocumentView, DocumentWithSectionsView } from '../../types.js';
 import type { FrameContext } from '../context.js';
 import {
   AMENDMENT_PRIMARY_TERMS,
@@ -13,7 +13,15 @@ import {
   dedupeTerms,
   isRevisionHeaderTitle,
   uniqueBy,
+  type DocumentCandidate,
 } from '../../internal/shared.js';
+
+// Each consulted document costs three statements; a lookup can return 25.
+const AMENDMENT_TRAIL_DOCUMENT_LIMIT = 3;
+
+function isAmendmentDocument(document: DocumentView): boolean {
+  return document.status === 'amendment' || document.documentType === 'change_notice';
+}
 
 export async function resolveAmendmentFrame(
   context: FrameContext,
@@ -50,64 +58,84 @@ export async function resolveAmendmentFrame(
     ? await context.hydrateSectionCandidates(latestRevisionPrimaryCandidates, FRAME_PRIMARY_LIMIT)
     : [];
   const lookupDocuments = await context.collectLookupDocuments(query);
-  const baseDocuments = lookupDocuments.length > 0
-    ? lookupDocuments
-    : uniqueBy(
-        (
-          await Promise.all(
-            dedupeTerms(hits.map((hit) => hit.sectionId)).slice(0, 4).map(async (sectionId) => {
-              const section = await context.getSection(sectionId);
-              if (!section?.documentId) return null;
-              return context.getDocument(section.documentId);
-            }),
-          )
-        ).filter((document): document is DocumentWithSectionsView => document != null),
-        (document) => document.id,
-      );
-  const amendmentViews = await Promise.all(baseDocuments.map((document) => context.getAmendments(document.id)));
-  const authoritativeCandidates = [
-    ...(await context.collectDocumentsForSections(
+  const lookupDocumentIds = new Set(lookupDocuments.map((document) => document.id));
+  // The amendment trail is read from the policy or manual itself. A change
+  // notice or revision row that shares its number has no trail of its own,
+  // so one is consulted only when the lookup returned nothing else, where it
+  // still leads back to the base manual.
+  const namedDocuments = lookupDocuments.filter((document) => !isAmendmentDocument(document));
+  const trailDocuments = (
+    lookupDocuments.length > 0
+      ? namedDocuments.length > 0
+        ? namedDocuments
+        : lookupDocuments.slice(0, 1)
+      : uniqueBy(
+          (
+            await Promise.all(
+              dedupeTerms(hits.map((hit) => hit.sectionId)).slice(0, 4).map(async (sectionId) => {
+                const section = await context.getSection(sectionId);
+                if (!section?.documentId) return null;
+                return context.getDocument(section.documentId);
+              }),
+            )
+          ).filter((document): document is DocumentWithSectionsView => document != null),
+          (document) => document.id,
+        )
+  ).slice(0, AMENDMENT_TRAIL_DOCUMENT_LIMIT);
+  const amendmentViews = await Promise.all(trailDocuments.map((document) => context.getAmendments(document.id)));
+
+  // A policy the question names leads the frame: it outranks its own
+  // revision rows and revision-header matches from other policies (clinical
+  // coverage policies use "Revision Information:", which the title heuristic
+  // does not match, so an unrelated MA-series header would otherwise win).
+  const authoritativeCandidates: DocumentCandidate[] = lookupDocuments.map((document, index) => ({
+    document,
+    reason: 'Explicit policy lookup (takes precedence over unrelated revision-header hits).',
+    score: 1.8 - index * 0.05,
+  }));
+  const authoritativeIds = new Set(lookupDocumentIds);
+  const addIfAbsent = (candidate: DocumentCandidate) => {
+    if (authoritativeIds.has(candidate.document.id)) return;
+    authoritativeIds.add(candidate.document.id);
+    authoritativeCandidates.push(candidate);
+  };
+
+  (
+    await context.collectDocumentsForSections(
       latestRevisionHydrated.map((candidate) => candidate.section),
       'Document containing the latest verified revision marker.',
-    )).map((candidate, index) => ({
-      ...candidate,
-      score: 1.7 - index * 0.05,
-    })),
-  ];
+    )
+  ).forEach((candidate, index) => addIfAbsent({ ...candidate, score: 1.7 - index * 0.05 }));
   for (const [index, view] of amendmentViews.entries()) {
-    if (!latestRevisionOnly && view.authoritativeDocument) {
-      authoritativeCandidates.push({
+    if (latestRevisionOnly) {
+      // Nothing else carries a named clinical policy's newest revision-table
+      // row into this route's frame. DHHS change notices stay out: the
+      // manual's own revision header is the recency signal there.
+      const newest = view.amendments[0];
+      if (newest?.documentType === 'change_notice' && lookupDocumentIds.has(trailDocuments[index].id)) {
+        addIfAbsent({
+          document: newest,
+          reason: 'Most recent revision-table row of the named policy.',
+          score: 1.75 - index * 0.05,
+        });
+      }
+      continue;
+    }
+    if (view.authoritativeDocument) {
+      addIfAbsent({
         document: view.authoritativeDocument,
         reason: 'Authoritative document from amendment lookup.',
         score: 1.3 - index * 0.05,
       });
     }
-    if (!latestRevisionOnly && view.baseDocument) {
-      authoritativeCandidates.push({
+    if (view.baseDocument) {
+      addIfAbsent({
         document: view.baseDocument,
         reason: 'Base document referenced by the amendment trail.',
         score: 0.9 - index * 0.05,
       });
     }
   }
-
-  // When the user explicitly names a policy (via lookupPolicy), those
-  // documents must outrank revision-header matches from *other* policies.
-  // Otherwise a query that explicitly asks about Policy 8C routes to some
-  // unrelated MA-series doc whose section titles happen to include
-  // "REVISED / CHANGE NO." (clinical coverage policies use "Revision
-  // Information:" which doesn't match the title heuristic). Only boost
-  // when the looked-up document isn't already represented in the
-  // authoritative candidates — otherwise we double-count.
-  const existingAuthoritativeIds = new Set(authoritativeCandidates.map((c) => c.document.id));
-  lookupDocuments.forEach((document, index) => {
-    if (existingAuthoritativeIds.has(document.id)) return;
-    authoritativeCandidates.push({
-      document,
-      reason: 'Explicit policy lookup (takes precedence over unrelated revision-header hits).',
-      score: 1.8 - index * 0.05,
-    });
-  });
 
   const primaryCandidates = uniqueBy(
     [

@@ -63,6 +63,9 @@ export function escapeRegExp(value: string): string {
   return value.replace(REGEX_SPECIAL, '\\$&');
 }
 
+export const TOKEN_START = '(?<![\\w-])';
+export const TOKEN_END = '(?![\\w-])';
+
 /**
  * Token-boundary containment: the needle must not be embedded inside a longer
  * word/number token. Raw substring checks caused systematic misrouting — e.g.
@@ -71,7 +74,16 @@ export function escapeRegExp(value: string): string {
  */
 export function matchesToken(text: string, token: string): boolean {
   if (!token) return false;
-  return new RegExp(`(?<![\\w-])${escapeRegExp(token)}(?![\\w-])`).test(text);
+  return new RegExp(`${TOKEN_START}${escapeRegExp(token)}${TOKEN_END}`).test(text);
+}
+
+/**
+ * Comparison key for a policy number: upper-case with hyphens and whitespace
+ * removed, so "1-H", "1H" and "1h" name one policy and "MA 2180" equals
+ * "MA-2180". Use it only to compare; show the stored number to people.
+ */
+export function policyNumberKey(value: string | null | undefined): string {
+  return (value ?? '').toUpperCase().replace(/[\s-]/g, '');
 }
 
 const termPatterns = new Map<string, RegExp>();

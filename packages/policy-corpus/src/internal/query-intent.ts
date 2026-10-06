@@ -1,5 +1,14 @@
 import type { AnswerQuestionType } from '../types.js';
-import { includesPhrase, matchesAnyTerm, matchesTerm, matchesToken, normalizeSearchText } from './base.js';
+import {
+  TOKEN_END,
+  TOKEN_START,
+  includesPhrase,
+  matchesAnyTerm,
+  matchesTerm,
+  matchesToken,
+  normalizeSearchText,
+  policyNumberKey,
+} from './base.js';
 import { dedupeTerms } from './search.js';
 
 const YEAR_QUERY_RE = /\b(19|20)\d{2}\b/g;
@@ -494,12 +503,123 @@ export function detectAnswerQuestionType(
   return 'general';
 }
 
+// Policy numbers the question names. "3D", "3b", "9" and "15" are policy
+// numbers and also ordinary tokens ("3D mammogram", "stage 3b", "age 9",
+// "15 visits"), so a number of that shape counts only beside a cue.
+//
+// 3L, 1-H, 10A
+const BARE_CLINICAL = String.raw`\d{1,2}-?[a-z]`;
+// 8A-1, 1A-27, 1-O-1: a numeric suffix is distinctive enough to need no cue.
+const SUFFIXED_CLINICAL = String.raw`${BARE_CLINICAL}(?:-\d{1,2})+`;
+const CLINICAL = String.raw`${BARE_CLINICAL}(?:-\d{1,2})*`;
+const POLICY_WORD = String.raw`(?:polic(?:y|ies)|ccps?)`;
+// "policy 30 days", "policy 15 visit limit", "policy 3.2": not policy 30, 15 or 3.
+const NOT_A_QUANTITY = String.raw`(?!\.\d|\s*(?:%|percent\b|(?:-\s*)?(?:day|week|month|year|hour|minute|visit|unit|time|dollar)s?\b))`;
+
+const SUFFIXED_CLINICAL_RE = new RegExp(`${TOKEN_START}${SUFFIXED_CLINICAL}${TOKEN_END}`, 'gi');
+// The graph stores manual and form numbers as PREFIX-digits: a form suffix
+// ("DHB-5125B", "MA-3233-A", "DSS-8110sp") is part of the title, not of the
+// stored number. Group 3 is the typed suffix.
+const MANUAL_NUMBER_RE = new RegExp(
+  String.raw`${TOKEN_START}(MA|DMA|DHB|DSS)[- ]?(\d{3,5})(?!\d)(-?[a-z]{1,3}${TOKEN_END})?`,
+  'gi',
+);
+// Each pattern captures the number in group 1.
+const CUED_NUMBER_RES = [
+  // "policy 3L", "CCP 9", "Clinical Coverage Policy No. 1-H", "policy (5B)", "policy #15"
+  String.raw`\b${POLICY_WORD}(?:\s+(?:no\.?|numbers?))?\s*[(:#]?\s*(${CLINICAL}|\d{1,2})${TOKEN_END}${NOT_A_QUANTITY}`,
+  // "the 3L policy"
+  String.raw`${TOKEN_START}(${CLINICAL})\s+${POLICY_WORD}\b`,
+  // "covered under 3L?", "under 8C, is ...": the number must end the clause or
+  // be followed by a policy word, so "under 3d imaging" names no policy.
+  String.raw`\bunder\s+(${CLINICAL})${TOKEN_END}(?=\s*(?:[,.;:?!)]|$)|\s+(?:${POLICY_WORD}|section)\b)`,
+  // "section 5.6 of 3L", "3L section 5.6", "8C, § 3.2"
+  String.raw`(?:\bsection|§)\s*\d[\d.]*\s+(?:of|in|under)\s+(${CLINICAL})${TOKEN_END}`,
+  String.raw`${TOKEN_START}(${CLINICAL}),?\s+(?:section\s+|§\s*)\d`,
+].map((pattern) => new RegExp(pattern, 'dgi'));
+const BARE_CLINICAL_RE = new RegExp(`${TOKEN_START}${BARE_CLINICAL}${TOKEN_END}`, 'gi');
+const LIST_JOIN_RE = /^\s*(?:,|\/|&|,?\s*\band\b|,?\s*\bor\b|\bvs\.?|\bversus\b)\s*$/i;
+
+interface NumberSpan {
+  start: number;
+  end: number;
+  policyNumber: string;
+}
+
+/**
+ * - Clinical numbers with a numeric suffix (8A-1, 1A-27, 1-O-1) and manual or
+ *   form numbers (MA-2180, "MA 2180", DHB-5125B as DHB-5125) are taken
+ *   wherever they appear.
+ * - A bare clinical token (3L, 1-H) is taken only beside a cue (see
+ *   CUED_NUMBER_RES) or in a list with a number that already qualified
+ *   ("3L or 3L-1", "policies 8C and 8A").
+ * - A bare numeral (7, 9, 15) is taken only directly after "policy" or "CCP".
+ *
+ * Numbers are returned as typed, upper-cased, once per policyNumberKey. The
+ * graph may hold "1H" for a typed "1-H"; lookupPolicy compares keys.
+ */
 export function extractExplicitPolicyNumbers(query: string): string[] {
-  const matches = [
-    ...(query.match(/\b\d+[A-Za-z](?:-[A-Za-z0-9]+)?\b/g) ?? []),
-    ...(query.match(/\b(?:MA|DMA|DHB|DSS)-\d+[A-Za-z0-9-]*\b/gi) ?? []),
-  ];
-  return dedupeTerms(matches.map((match) => match.toUpperCase()));
+  const spans: NumberSpan[] = [];
+  for (const match of query.matchAll(SUFFIXED_CLINICAL_RE)) {
+    spans.push({ start: match.index, end: match.index + match[0].length, policyNumber: match[0] });
+  }
+  for (const match of query.matchAll(MANUAL_NUMBER_RE)) {
+    spans.push({ start: match.index, end: match.index + match[0].length, policyNumber: `${match[1]}-${match[2]}` });
+  }
+  for (const pattern of CUED_NUMBER_RES) {
+    for (const match of query.matchAll(pattern)) {
+      const [start, end] = match.indices![1]!;
+      spans.push({ start, end, policyNumber: match[1] });
+    }
+  }
+
+  // Repeat so a list of three resolves.
+  let grew = true;
+  while (grew) {
+    grew = false;
+    for (const match of query.matchAll(BARE_CLINICAL_RE)) {
+      const start = match.index;
+      const end = start + match[0].length;
+      if (spans.some((span) => span.start <= start && span.end >= end)) continue;
+      const joined = spans.some(
+        (span) =>
+          (span.start >= end && LIST_JOIN_RE.test(query.slice(end, span.start))) ||
+          (span.end <= start && LIST_JOIN_RE.test(query.slice(span.end, start))),
+      );
+      if (joined) {
+        spans.push({ start, end, policyNumber: match[0] });
+        grew = true;
+      }
+    }
+  }
+
+  const seen = new Set<string>();
+  return spans
+    .sort((left, right) => left.start - right.start)
+    .map((span) => span.policyNumber.toUpperCase())
+    .filter((policyNumber) => {
+      const key = policyNumberKey(policyNumber);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+}
+
+/**
+ * Puts the form the asker typed first: "DHB-5125B" is stored under DHB-5125
+ * beside the base notice, the A form and their Spanish editions, each with
+ * its full form number at the start of its title.
+ */
+export function preferTypedFormDocuments<T extends { title: string | null }>(text: string, documents: T[]): T[] {
+  const typedKeys = new Set(
+    Array.from(text.matchAll(MANUAL_NUMBER_RE))
+      .filter((match) => match[3])
+      .map((match) => policyNumberKey(match[0])),
+  );
+  if (typedKeys.size === 0) return documents;
+  const isTyped = (document: T) =>
+    typedKeys.has(policyNumberKey((document.title ?? '').trim().split(/[\s,:]/)[0]));
+  return [...documents.filter(isTyped), ...documents.filter((document) => !isTyped(document))];
 }
 
 export function extractAliasedPolicyNumbers(queryLower: string): string[] {

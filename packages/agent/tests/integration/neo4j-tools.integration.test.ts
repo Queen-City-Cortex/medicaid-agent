@@ -182,6 +182,61 @@ integration('agent tools against a real Neo4j graph', () => {
     expect(lookup.documents[0]?.status).toBe('current');
   });
 
+  it('looks up a policy by its exact number, not a sibling or a revision row', async () => {
+    // "TEST-PN-2" is a prefix of the newer "TEST-PN-27"; the revision row
+    // shares the policy's number, as derived revision-table rows do.
+    await run(
+      `
+      CREATE (:Document {
+        id: $policyId,
+        title: 'Fixture Policy TEST-PN-2',
+        document_type: 'clinical_policy',
+        policy_number: 'TEST-PN-2',
+        effective_date: '2019-12-04',
+        source_url: 'https://example.com/test-pn-2',
+        status: 'current'
+      })
+      CREATE (:Document {
+        id: $siblingId,
+        title: 'Fixture Policy TEST-PN-27',
+        document_type: 'clinical_policy',
+        policy_number: 'TEST-PN-27',
+        effective_date: '2024-06-01',
+        source_url: 'https://example.com/test-pn-27',
+        status: 'current'
+      })
+      CREATE (:Document {
+        id: $revisionId,
+        title: 'Policy TEST-PN-2 Revision — 2025-01-01 (Section 3.2)',
+        document_type: 'change_notice',
+        policy_number: 'TEST-PN-2',
+        effective_date: '2025-01-01',
+        source_url: 'https://example.com/test-pn-2',
+        status: 'amendment'
+      })
+      `,
+      {
+        policyId: `${FIXTURE_PREFIX}doc:pn-2`,
+        siblingId: `${FIXTURE_PREFIX}doc:pn-27`,
+        revisionId: `${FIXTURE_PREFIX}doc:pn-2:revision`,
+      },
+    );
+
+    const lookup = await runTool(lookupPolicy, { policyNumber: 'TEST-PN-2' });
+    expect(lookup.documents.map((document) => document.id)).toEqual([`${FIXTURE_PREFIX}doc:pn-2`]);
+
+    // Case, hyphens and spaces do not distinguish numbers.
+    const respelled = await runTool(lookupPolicy, { policyNumber: 'test pn2' });
+    expect(respelled.documents.map((document) => document.id)).toEqual([`${FIXTURE_PREFIX}doc:pn-2`]);
+
+    const sibling = await runTool(lookupPolicy, { policyNumber: 'TEST-PN-27' });
+    expect(sibling.documents.map((document) => document.id)).toEqual([`${FIXTURE_PREFIX}doc:pn-27`]);
+
+    // A family prefix is not a policy number.
+    const family = await runTool(lookupPolicy, { policyNumber: 'TEST-PN' });
+    expect(family.documents).toEqual([]);
+  });
+
   it('returns section-level citation metadata from the owning document', async () => {
     const docId = `${FIXTURE_PREFIX}doc:get-section`;
     const sectionId = `${FIXTURE_PREFIX}sec:get-section`;

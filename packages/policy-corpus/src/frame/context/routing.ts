@@ -23,6 +23,7 @@ import {
   narrowInferredCoverageDocuments,
   selectSettingPreferredDocuments,
   normalizeSearchText,
+  preferTypedFormDocuments,
   recordToRetrievalHit,
   retrievalDocumentMetadataReturn,
   scoreTermMatches,
@@ -41,7 +42,7 @@ export function createFrameRoutingHelpers({
     if (policyNumbers.length === 0) return [];
 
     const documents = await Promise.all(policyNumbers.map((policyNumber) => lookupPolicy({ policyNumber })));
-    return uniqueBy(documents.flat(), (document) => document.id);
+    return preferTypedFormDocuments(query, uniqueBy(documents.flat(), (document) => document.id));
   };
 
   const collectImplementationLookupDocuments = async (query: string): Promise<DocumentWithSectionsView[]> => {

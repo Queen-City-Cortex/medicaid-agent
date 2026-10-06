@@ -33,6 +33,21 @@ describe('candidatePolicyNumbers', () => {
     expect(candidatePolicyNumbers('1A-30')).toEqual(['1A-30']);
   });
 
+  it('drops a leading policy cue', () => {
+    expect(candidatePolicyNumbers('Policy 8C')).toEqual(['Policy 8C', '8C']);
+    expect(candidatePolicyNumbers('Clinical Coverage Policy No. 1-H')).toContain('1-H');
+    expect(candidatePolicyNumbers('CCP 3L')).toContain('3L');
+    expect(candidatePolicyNumbers('policy 42 CFR 440')).toContain('42-CFR-440');
+  });
+
+  it('reduces a manual or form number to the stored prefix and digits', () => {
+    expect(candidatePolicyNumbers('DHB-5125B')).toEqual(['DHB-5125B', 'DHB-5125']);
+    expect(candidatePolicyNumbers('MA 2180')).toContain('MA-2180');
+    expect(candidatePolicyNumbers('ma2180')).toContain('MA-2180');
+    expect(candidatePolicyNumbers('MA-3233-A')).toContain('MA-3233');
+    expect(candidatePolicyNumbers('MA-2180')).toEqual(['MA-2180']);
+  });
+
   it('returns no candidates for empty or whitespace input', () => {
     expect(candidatePolicyNumbers('')).toEqual([]);
     expect(candidatePolicyNumbers('   ')).toEqual([]);
@@ -58,5 +73,39 @@ describe('createPolicyLookupPrimitiveService', () => {
     const [cypher, params] = run.mock.calls[0];
     expect(params.pns).toEqual(['42 CFR 440', '42-CFR-440']);
     expect(cypher).toContain('LIMIT 25');
+  });
+
+  it('matches the exact policy-number key and leaves out derived revision rows', async () => {
+    const run = vi.fn().mockResolvedValue({ records: [] });
+    const withSession = vi.fn(async (fn: (session: { run: typeof run }) => Promise<unknown>) => fn({ run }));
+    const service = createPolicyLookupPrimitiveService({ withSession: withSession as any });
+
+    await service.lookupPolicy({ policyNumber: '1A-2' });
+
+    const where = (run.mock.calls[0][0] as string).replace(/\s+/g, ' ').match(/WHERE (.*?) OPTIONAL MATCH/)?.[1];
+    expect(where).toBe(
+      "coalesce(d.document_type, '') <> 'change_notice' AND any(pn IN $pns WHERE " +
+        "replace(replace(toUpper(d.policy_number), '-', ''), ' ', '') = replace(replace(toUpper(pn), '-', ''), ' ', ''))",
+    );
+    // A prefix match returned 1A-20 to 1A-28 for "1A-2".
+    expect(run.mock.calls[0][0]).not.toContain('STARTS WITH');
+    // An any() sort key after the aggregating RETURN fails on Neo4j 2026.05.
+    expect((run.mock.calls[0][0] as string).split('ORDER BY')[1]).not.toContain('any(');
+  });
+
+  it('lists the form the caller typed first', async () => {
+    const record = (id: string, title: string) => ({
+      get: (key: string) => ({ id, title, policyNumber: 'DHB-5125', sections: [] } as Record<string, unknown>)[key] ?? null,
+    });
+    const run = vi.fn().mockResolvedValue({
+      records: [record('base', 'DHB-5125 Notice'), record('a', 'DHB-5125A Notice A'), record('b', 'DHB-5125B Notice B')],
+    });
+    const withSession = vi.fn(async (fn: (session: { run: typeof run }) => Promise<unknown>) => fn({ run }));
+    const service = createPolicyLookupPrimitiveService({ withSession: withSession as any });
+
+    const documents = await service.lookupPolicy({ policyNumber: 'DHB-5125B' });
+
+    expect(run.mock.calls[0][1].pns).toEqual(['DHB-5125B', 'DHB-5125']);
+    expect(documents.map((document) => document.id)).toEqual(['b', 'base', 'a']);
   });
 });

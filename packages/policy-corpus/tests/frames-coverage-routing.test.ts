@@ -172,6 +172,77 @@ describe('coverage frame document routing', () => {
     expectAllHandlersUsed();
   });
 
+  it('does not anchor a "3D mammograms" question on Policy 3D', async () => {
+    const DOC_3D: GraphDocument = {
+      id: 'doc-3d',
+      title: 'Hospice Services',
+      documentType: 'clinical_policy',
+      policyNumber: '3D',
+      effectiveDate: '2025-06-01',
+      url: 'https://example.com/3D',
+      sections: [
+        { id: 'sec-3d-10', number: '1.0', title: '1.0 Description of the Procedure, Product, or Service', content: 'Hospice is palliative care for the terminally ill.', chars: 900 },
+        { id: 'sec-3d-41', number: '4.1', title: '4.1 General Criteria Not Covered', content: 'Hospice services that do not meet the criteria are not covered.', chars: 900 },
+      ],
+    };
+    const DOC_1K1: GraphDocument = {
+      id: 'doc-1k1',
+      title: 'Breast Imaging Procedures',
+      documentType: 'clinical_policy',
+      policyNumber: '1K-1',
+      effectiveDate: '2024-03-01',
+      url: 'https://example.com/1K-1',
+      sections: [
+        {
+          id: 'sec-1k1-321',
+          number: '3.2.1',
+          title: '3.2.1 Specific criteria covered by Medicaid',
+          content: 'Breast tomosynthesis, also known as 3D mammography, is covered with screening and diagnostic mammograms.',
+          chars: 1100,
+        },
+        { id: 'sec-1k1-41', number: '4.1', title: '4.1 General Criteria Not Covered', content: 'Breast imaging that does not meet the criteria is not covered.', chars: 900 },
+      ],
+    };
+
+    const { corpus } = createCorpus([
+      {
+        label: 'vector clinical',
+        match: queries.sectionVector('clinical_policy'),
+        result: { records: [hitFor(DOC_1K1, 'sec-1k1-321', 0.95), hitFor(DOC_3D, 'sec-3d-10', 0.6)] },
+      },
+      ...documentGraphHandlers(DOC_3D),
+      ...documentGraphHandlers(DOC_1K1),
+    ]);
+
+    const frame = await resolveTypedFrame(corpus, 'coverage', 'Does NC Medicaid cover 3D mammograms?');
+
+    expect(frame.authoritativeDocuments[0]?.policyNumber).toBe('1K-1');
+    expect(frame.primarySections.map((section) => section.policyNumber)).not.toContain('3D');
+    expect(frame.primarySections.map((section) => section.id)).toContain('sec-1k1-321');
+  });
+
+  it('lists the form the question names first among documents filed under one number', async () => {
+    const form = (id: string, title: string): GraphDocument => ({
+      id,
+      title,
+      documentType: 'dhhs_policy',
+      policyNumber: 'DHB-5125',
+      effectiveDate: '2025-01-01',
+      url: `https://example.com/${id}`,
+      sections: [{ id: `sec-${id}`, number: null, title: 'Notice', content: 'Notice of suspension of transportation services.', chars: 400 }],
+    });
+    const forms = [form('dhb-5125', 'DHB-5125 Notice'), form('dhb-5125a', 'DHB-5125A Notice A'), form('dhb-5125b', 'DHB-5125B Notice B')];
+
+    const { corpus } = createCorpus([
+      policyLookupHandler('DHB-5125', forms),
+      ...forms.flatMap((document) => documentGraphHandlers(document, { policyLookup: false })),
+    ]);
+
+    const frame = await resolveTypedFrame(corpus, 'coverage', 'Is the DHB-5125B notice required before transportation is suspended?');
+
+    expect(frame.authoritativeDocuments[0]?.id).toBe('dhb-5125b');
+  });
+
   it('keeps CAP/DA general eligibility questions on broad eligibility sections instead of reimbursement or provider operations', async () => {
     const DOC_3K2: GraphDocument = {
       id: 'doc-3k2',
