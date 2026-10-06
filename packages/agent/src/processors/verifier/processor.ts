@@ -41,6 +41,26 @@ function mergeSources(sources: SourceEntry[]): SourceEntry[] {
   return [...new Map(sources.map(source => [JSON.stringify(source), source])).values()];
 }
 
+/** Drop interim narration. Reasoning stays so the provider can replay it inline
+ *  on the next step (storage is off, so nothing else carries it), except in a
+ *  step whose narration is removed: there the reasoning item would be sent
+ *  without the output item that followed it. */
+function withoutInterimText<T extends { type: string }>(parts: T[]): T[] {
+  const kept: T[] = [];
+  let step: T[] = [];
+  const flush = () => {
+    const narrated = step.some(p => p.type === 'text');
+    kept.push(...step.filter(p => p.type !== 'text' && !(narrated && p.type === 'reasoning')));
+    step = [];
+  };
+  for (const part of parts) {
+    if (part.type === 'step-start') flush();
+    step.push(part);
+  }
+  flush();
+  return kept;
+}
+
 export class HallucinationVerifier implements Processor {
   readonly id = 'hallucination-verifier';
   readonly name = 'Hallucination Verifier';
@@ -66,7 +86,7 @@ export class HallucinationVerifier implements Processor {
       // Interim narration must not enter memory or future model context.
       const lastUser = messages.reduce((last, m, i) => m.role === 'user' ? i : last, -1);
       return messages.map((m, i) => i > lastUser && m.role === 'assistant'
-        ? { ...m, content: { ...m.content, parts: m.content.parts.filter(p => p.type !== 'text' && p.type !== 'reasoning') } }
+        ? { ...m, content: { ...m.content, parts: withoutInterimText(m.content.parts) } }
         : m);
     }
     const diagnostic = requestContext?.get(CHAT_DIAGNOSTIC_CONTEXT) as ChatDiagnostic | undefined;

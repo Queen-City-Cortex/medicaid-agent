@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
-vi.mock('ai', () => ({ generateObject: vi.fn() }));
+vi.mock('ai', async original => ({ ...await original<typeof import('ai')>(), generateObject: vi.fn() }));
 
 import { generateObject } from 'ai';
 import { verifyAnswer, VERIFICATION_UNAVAILABLE } from '../../../src/processors/verifier/verify.js';

@@ -35,3 +35,47 @@ class TestDatasetFromCachedResult:
     def test_returns_none_for_legacy_runs_without_dataset(self, tmp_path):
         cached = _write_cached_answer(tmp_path, {"top_k": 10})
         assert _dataset_from_cached_result(cached) is None
+
+
+def test_answer_run_config_records_the_agent_reported_configuration(monkeypatch):
+    from pipeline.eval import runner
+
+    reported = {"agent_model": "gpt-5.6-terra", "agent_reasoning_effort": "medium", "verifier_model": "gpt-5.6-terra"}
+    entry = {"id": "q-1", "evidence": {}}
+    saved: dict = {}
+
+    class Normalizer:
+        mapping_hash = "hash"
+
+        def graph_entries(self, entries):
+            return entries
+
+        def evidence(self):
+            return {"version": 1}
+
+        def normalized(self, raw):
+            return raw
+
+    monkeypatch.setattr(runner, "load_dataset", lambda path: [entry])
+    monkeypatch.setattr("pipeline.eval.identity.load_normalizer", lambda: Normalizer())
+    monkeypatch.setattr(
+        "pipeline.eval.levels.answer.evaluate_answers",
+        lambda entries, use_unified_evidence: [{"id": "q-1", "agent_config": None}],
+    )
+
+    def fake_save(level, per_question, config_overrides):
+        saved.update(config_overrides)
+        return "unused"
+
+    monkeypatch.setattr(runner, "save_result", fake_save)
+    monkeypatch.setattr("pipeline.eval.results.load_result", lambda path: {})
+
+    runner.run_eval("answer")
+    assert "agent_config" not in saved  # no row reported one
+
+    monkeypatch.setattr(
+        "pipeline.eval.levels.answer.evaluate_answers",
+        lambda entries, use_unified_evidence: [{"id": "q-1", "agent_config": reported}],
+    )
+    runner.run_eval("answer")
+    assert saved["agent_config"] == reported

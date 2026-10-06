@@ -99,6 +99,11 @@ def run_eval(
         from pipeline.config import EVAL_JUDGE_MODEL
         config_overrides["judge_model"] = EVAL_JUDGE_MODEL
         config_overrides["evidence_mode"] = "legacy" if legacy_evidence else "unified-v2"
+        # Reported by the agent itself: stamping from this process's environment
+        # would record nothing on a default run and miss the agent's own .env.
+        agent_configs = [row["agent_config"] for row in per_question if row.get("agent_config")]
+        if agent_configs:
+            config_overrides["agent_config"] = agent_configs[0]
     if level == "citation" and from_result:
         config_overrides["from_result"] = str(from_result)
 

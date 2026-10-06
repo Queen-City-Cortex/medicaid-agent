@@ -12,9 +12,7 @@ import {
   type VerificationResult,
 } from '../../src/processors/hallucination-verifier.js';
 
-vi.mock('ai', () => ({
-  generateObject: vi.fn(),
-}));
+vi.mock('ai', async original => ({ ...await original<typeof import('ai')>(), generateObject: vi.fn() }));
 import { generateObject } from 'ai';
 
 function makeVerification(overrides: Partial<VerificationResult> = {}): VerificationResult {

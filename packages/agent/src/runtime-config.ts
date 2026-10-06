@@ -1,5 +1,6 @@
 import { sectionRoleAllowlist } from '@nc-medicaid/policy-corpus';
 import { z } from 'zod';
+import { REASONING_EFFORTS, parseReasoningEffort } from './model.js';
 
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '::1']);
 
@@ -62,6 +63,7 @@ const RuntimeConfigShape = z.object({
     password: z.string().min(1),
   }),
   agentModel: z.string().min(1),
+  agentReasoningEffort: z.enum(REASONING_EFFORTS),
   maxBodyBytes: z.number().int().positive(),
   maxMessageChars: z.number().int().positive(),
   retention: z.object({
@@ -85,6 +87,7 @@ export function loadRuntimeConfig(
   const production = environment === 'production';
   const publicProduction = production && nonEmpty(env, 'PUBLIC_PRODUCTION') === 'true';
   const agentModel = nonEmpty(env, 'AGENT_MODEL') ?? 'gpt-5.6-terra';
+  const agentReasoningEffort = parseReasoningEffort(env.AGENT_REASONING_EFFORT);
   const databaseUrl = nonEmpty(env, 'DATABASE_URL') ?? 'file:./mastra.db';
   const neo4j = {
     uri: nonEmpty(env, 'NEO4J_URI') ?? 'bolt://localhost:7687',
@@ -155,6 +158,7 @@ export function loadRuntimeConfig(
     corsOrigins,
     neo4j,
     agentModel,
+    agentReasoningEffort,
     maxBodyBytes: parseInteger(env, 'MAX_BODY_BYTES', 2 * 1024 * 1024),
     maxMessageChars: parseInteger(env, 'MAX_MESSAGE_CHARS', 10_000),
     retention: {

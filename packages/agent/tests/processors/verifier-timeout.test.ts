@@ -3,8 +3,8 @@ import { generateObject } from 'ai';
 import { verifyAnswer, VERIFICATION_UNAVAILABLE } from '../../src/processors/verifier/verify.js';
 import { log } from '../../src/logger.js';
 
-vi.mock('ai', () => ({ generateObject: vi.fn() }));
-vi.mock('@ai-sdk/openai', () => ({ createOpenAI: () => () => 'test-model' }));
+vi.mock('ai', async original => ({ ...await original<typeof import('ai')>(), generateObject: vi.fn() }));
+vi.mock('../../src/model.js', () => ({ openaiModel: () => 'test-model' }));
 afterEach(() => { vi.restoreAllMocks(); vi.useRealTimers(); });
 
 describe('verification deadline', () => {

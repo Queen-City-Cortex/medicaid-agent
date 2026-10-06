@@ -1,6 +1,5 @@
 import { Agent } from '@mastra/core/agent';
-import { PromptInjectionDetector } from '@mastra/core/processors';
-import { createModel } from '../model.js';
+import { createModel, AGENT_DEFAULT_OPTIONS } from '../model.js';
 import { CITATION_GUIDANCE } from '../prompt.js';
 import { DEEP_RESEARCH_MODEL, WEB_SEARCH_ENABLED } from './config.js';
 import { searchSections } from '../tools/search.js';
@@ -11,6 +10,7 @@ import { lookupPolicy } from '../tools/lookup.js';
 import { resolveAnswerFrame } from '../tools/answer-frame.js';
 import { webSearch } from '../tools/web-search.js';
 import { ScopeGateProcessor } from '../processors/scope-gate.js';
+import { createInjectionDetector } from '../processors/injection-detector.js';
 
 const CORPUS_TOOLS = {
   resolveAnswerFrame,
@@ -41,6 +41,7 @@ export const deepResearchPlannerAgent = new Agent({
   name: 'Deep Research Planner',
   description: 'Decomposes a broad NC Medicaid research question into a research brief and independent sub-questions.',
   model: createModel(DEEP_RESEARCH_MODEL),
+  defaultOptions: AGENT_DEFAULT_OPTIONS,
   instructions: `You are the planning lead for a deep-research run on NC Medicaid policy.
 
 ${CORPUS_OVERVIEW}
@@ -55,12 +56,7 @@ Prefer fewer, high-leverage sub-questions over many overlapping ones. You may ru
   tools: { resolveAnswerFrame, searchSections, lookupPolicy },
   inputProcessors: [
     new ScopeGateProcessor(),
-    new PromptInjectionDetector({
-      model: 'openai/gpt-5-mini',
-      threshold: 0.8,
-      strategy: 'block',
-      detectionTypes: ['injection', 'jailbreak', 'system-override'],
-    }),
+    createInjectionDetector(),
   ],
 });
 
@@ -74,6 +70,7 @@ export const deepResearchWorkerAgent = new Agent({
   name: 'Deep Research Worker',
   description: 'Researches a single NC Medicaid sub-question and returns cited findings.',
   model: createModel(DEEP_RESEARCH_MODEL),
+  defaultOptions: AGENT_DEFAULT_OPTIONS,
   instructions: `You are a research worker. You are given ONE sub-question about NC Medicaid policy. Research it thoroughly, then return a compressed, citation-bearing summary.
 
 ${CORPUS_OVERVIEW}
@@ -98,6 +95,7 @@ export const deepResearchReportAgent = new Agent({
   name: 'Deep Research Report Writer',
   description: 'Synthesizes deep-research findings into a long, cited NC Medicaid policy report.',
   model: createModel(DEEP_RESEARCH_MODEL),
+  defaultOptions: AGENT_DEFAULT_OPTIONS,
   instructions: `You are the report writer for a deep-research run on NC Medicaid policy. You are given the research brief and a set of per-sub-question findings, each already carrying inline citations.
 
 The findings below are COMPLETE and are the only input you need. NEVER ask the user to paste findings, grant permission, or answer clarifying questions, and never offer to produce the report "once you have" more input — write the full report immediately from the findings provided. If a finding says the corpus was silent on something, report that gap; do not request more data.

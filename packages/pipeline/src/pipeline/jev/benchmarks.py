@@ -13,6 +13,11 @@ from pipeline.jev.inference import INPUT_USD_PER_MILLION, budgeted_classify
 REPO_ROOT = Path(__file__).resolve().parents[5]
 FIXTURES = REPO_ROOT / "packages/pipeline/data/jev"
 WORKER = REPO_ROOT / "packages/agent/src/jev/eval-worker.ts"
+# The scope baseline is the agent's classifier default, CLASSIFIER_MODEL in
+# packages/agent/src/model.ts; keep the two equal. gpt-5-mini leaves the OpenAI
+# API on 2026-12-11. Moving it means a new scope campaign and confirmed rates:
+# the 0.25/2 USD per million below belong to gpt-5-mini only.
+SCOPE_BASELINE_MODEL = "gpt-5-mini"
 
 
 def worker(payload: dict) -> dict:
@@ -61,7 +66,7 @@ def prepare_scope(root: Path) -> dict:
     rows = json.loads((FIXTURES / "scope-conversations.json").read_text())
     spec = worker({"mode": "scope-spec", "messages": []})["result"]
     return freeze(root / "scope-inputs.json", {"version": 1, "kind": "scope", "model": MODEL, "rows": rows,
-                                            "specHash": digest(spec["questions"]), "baselineModel": os.environ.get("SCOPE_GATE_MODEL", "gpt-5-mini"),
+                                            "specHash": digest(spec["questions"]), "baselineModel": os.environ.get("SCOPE_GATE_MODEL", SCOPE_BASELINE_MODEL),
                                             "baselineConfiguration": "production-sdk-defaults-v2", "baselineMaxOutputTokens": 128000, "deadlineMs": 500})
 
 
@@ -147,19 +152,19 @@ def run_scope(root: Path, ledger: Ledger) -> dict:
     done = {(r["id"], r["provider"]) for r in result["rows"]}
     for row in fixture["rows"]:
         spec = worker({"mode": "scope-spec", "messages": row["messages"]})["result"]
-        if fixture["specHash"] != digest(spec["questions"]) or fixture["baselineModel"] != os.environ.get("SCOPE_GATE_MODEL", "gpt-5-mini"):
+        if fixture["specHash"] != digest(spec["questions"]) or fixture["baselineModel"] != os.environ.get("SCOPE_GATE_MODEL", SCOPE_BASELINE_MODEL):
             raise ValueError("Scope classifier configuration changed after inputs were frozen")
         for provider in ("openai", "jev"):
             if (row["id"], provider) in done:
                 continue
-            model = os.environ.get("SCOPE_GATE_MODEL", "gpt-5-mini") if provider == "openai" else MODEL
+            model = os.environ.get("SCOPE_GATE_MODEL", SCOPE_BASELINE_MODEL) if provider == "openai" else MODEL
             if not os.environ.get("OPENAI_API_KEY" if provider == "openai" else "TYPESAFE_API_KEY"):
                 result["status"] = "pending_credentials"
                 write_progress(path, result)
                 continue
             # Only the pinned, known-price baseline may run. No unbounded calls.
-            if provider == "openai" and (model != "gpt-5-mini" or os.environ.get("JEV_CONFIRMED_SCOPE_PRICING") != "gpt-5-mini:0.25:2"):
-                raise ValueError("Confirm current gpt-5-mini rates with JEV_CONFIRMED_SCOPE_PRICING=gpt-5-mini:0.25:2")
+            if provider == "openai" and (model != SCOPE_BASELINE_MODEL or os.environ.get("JEV_CONFIRMED_SCOPE_PRICING") != f"{SCOPE_BASELINE_MODEL}:0.25:2"):
+                raise ValueError(f"Confirm current {SCOPE_BASELINE_MODEL} rates with JEV_CONFIRMED_SCOPE_PRICING={SCOPE_BASELINE_MODEL}:0.25:2")
             if provider == "jev" and os.environ.get("JEV_CONFIRMED_INPUT_USD_PER_MILLION") != "0.042":
                 raise ValueError("Confirm Jev pricing before paid scope calls")
             reservation = None

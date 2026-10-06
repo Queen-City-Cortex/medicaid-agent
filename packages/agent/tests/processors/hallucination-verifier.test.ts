@@ -1,9 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { renderCorrectedAnswer, extractSources, buildSourceText, verifyAnswer, VerificationResult, SourceEntry, VERIFICATION_UNAVAILABLE, computeVerificationConfidence, replaceFinalAnswerText } from '../../src/processors/hallucination-verifier.js';
 
-vi.mock('ai', () => ({
-  generateObject: vi.fn(),
-}));
+vi.mock('ai', async original => ({ ...await original<typeof import('ai')>(), generateObject: vi.fn() }));
 import { generateObject } from 'ai';
 
 import { makeDocument, makeFrame, makeSection } from '../helpers/answer-frame-fixtures.js';

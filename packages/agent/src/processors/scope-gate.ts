@@ -1,9 +1,8 @@
 import { classifyScopeWithJev } from '../jev/scope.js';
 import type { Processor, ProcessInputArgs, ProcessInputResult } from '@mastra/core/processors';
 import { generateObject } from 'ai';
-import { createOpenAI } from '@ai-sdk/openai';
 import { z } from 'zod';
-import { strEnv } from '../env.js';
+import { CLASSIFIER_MODEL, openaiModel } from '../model.js';
 import { SCOPE_DESCRIPTION } from '../prompt.js';
 import { log, errorFields } from '../logger.js';
 import { Sentry } from '../sentry.js';
@@ -47,9 +46,8 @@ export function conversationWindow(messages: Array<{ role?: string; content?: un
 
 /** Shared production call, including SDK defaults, for scope validation. */
 export async function classifyScopeWithOpenAI(window: string) {
-  const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY });
   const result = await generateObject({
-    model: openai(strEnv('SCOPE_GATE_MODEL', 'gpt-5-mini')),
+    model: openaiModel(CLASSIFIER_MODEL),
     schema: ScopeVerdictSchema,
     system: CLASSIFIER_INSTRUCTIONS,
     messages: [{ role: 'user', content: `## CONVERSATION (latest last)\n\n${window}` }],

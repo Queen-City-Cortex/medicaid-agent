@@ -1,5 +1,6 @@
 import { Memory } from '@mastra/memory';
 import type { LibSQLStore } from '@mastra/libsql';
+import { openaiModel } from './model.js';
 
 type MemoryOptions = NonNullable<NonNullable<ConstructorParameters<typeof Memory>[0]>['options']>;
 type ObservationOptions = Exclude<NonNullable<MemoryOptions['observationalMemory']>, boolean>;
@@ -24,7 +25,7 @@ export async function createChatMemory(storage: LibSQLStore, {
     storage,
     options: {
       ...(generateTitle !== undefined ? { generateTitle } : {}),
-      ...(observationalMemoryEnabled ? { observationalMemory: { model: 'openai/gpt-5.4-mini', ...observation } } : {}),
+      ...(observationalMemoryEnabled ? { observationalMemory: { model: openaiModel('gpt-5.4-mini'), ...observation } } : {}),
       // Profile writes precede verification; only guarded observations may be recalled.
       workingMemory: { enabled: false },
     },

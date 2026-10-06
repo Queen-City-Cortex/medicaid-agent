@@ -1,5 +1,6 @@
 import { VOYAGE_API_KEY, VOYAGE_API_URL, VOYAGE_MODEL } from './config.js';
 import { strEnv } from './env.js';
+import { CLASSIFIER_MODEL } from './model.js';
 import { log, errorFields } from './logger.js';
 
 // Provider reachability checks for /dependencyz. Neo4j and LibSQL belong to
@@ -60,25 +61,28 @@ async function checkOpenAI(): Promise<ProviderHealth> {
         Authorization: `Bearer ${process.env.OPENAI_API_KEY ?? ''}`,
       },
       body: JSON.stringify({
-        // gpt-5-mini is itself on the chat request path (prompt-injection
-        // detector, scope gate), so a key that can't call it can't serve
-        // chats either. Override if that ever diverges, so the probe can't
-        // page on a model the deployment doesn't actually use.
-        model: strEnv('HEALTHZ_OPENAI_PROBE_MODEL', 'gpt-5-mini'),
+        // The classifier model is itself on the chat request path
+        // (prompt-injection detector, scope gate), so a key that can't call
+        // it can't serve chats either. Override if that ever diverges, so the
+        // probe can't page on a model the deployment doesn't actually use.
+        model: strEnv('HEALTHZ_OPENAI_PROBE_MODEL', CLASSIFIER_MODEL),
         messages: [{ role: 'user', content: 'ok' }],
         max_completion_tokens: 1,
+        store: false,
       }),
       signal: AbortSignal.timeout(PROVIDER_CHECK_TIMEOUT_MS),
     });
-    // Classify by status, not response.ok: 401/403 (bad key), 429 (quota /
-    // rate) and 5xx (provider down) are the outages chats would hit. Other
-    // 4xx prove the key AND billing work — e.g. gpt-5-mini spends its 1-token
+    // Classify by status, not response.ok: 401/403 (bad key), 404 (the model
+    // is gone: a retired classifier model makes both gates fail open), 429
+    // (quota / rate) and 5xx (provider down) are the outages chats would hit.
+    // Other 4xx prove the key AND billing work — e.g. gpt-5-mini spends its 1-token
     // budget on reasoning and returns an invalid_request "output limit
     // reached" 400 (observed 2026-07-10 right after the quota top-up), which
     // must not read as an outage.
     if (
       response.status === 401 ||
       response.status === 403 ||
+      response.status === 404 ||
       response.status === 429 ||
       response.status >= 500
     ) {

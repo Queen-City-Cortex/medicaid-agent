@@ -12,6 +12,9 @@ from pipeline.jev.client import canonical, digest, question_spec
 from pipeline.jev.budget import BudgetExceeded
 from pipeline.jev.validation import reserve_transport, settle_transport
 
+# Deliberate pins: existing AI-draft artifacts record these ids. gpt-5-mini
+# leaves the OpenAI API on 2026-12-11; a draft campaign after that needs a new
+# pin with confirmed pricing, and earlier artifacts stay labelled as they are.
 MODELS = {"openai": "gpt-5-mini", "opus": "claude-opus-4-6"}
 MAX_INPUT_BYTES = 160_000
 

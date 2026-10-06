@@ -51,4 +51,17 @@ describe('agent startup validation', () => {
     expect(code).not.toBe(0);
     expect(output).toContain('DATABASE_URL must use persistent storage in production');
   }, 25_000);
+
+  it('refuses a reasoning effort outside the allow-list', async () => {
+    const { code, output } = await runAgent({
+      PATH: process.env.PATH,
+      OPENAI_API_KEY: 'test-openai-key',
+      VOYAGE_API_KEY: 'test-voyage-key',
+      AGENT_REASONING_EFFORT: 'extreme',
+      FORCE_COLOR: '0',
+    });
+
+    expect(code).not.toBe(0);
+    expect(output).toContain('AGENT_REASONING_EFFORT must be one of: none, minimal, low, medium, high, xhigh');
+  }, 25_000);
 });

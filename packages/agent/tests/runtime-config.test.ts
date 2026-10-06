@@ -67,6 +67,12 @@ describe('loadRuntimeConfig', () => {
     })).toThrow('NEO4J_URI');
   });
 
+  it('validates the agent reasoning effort against its allow-list', () => {
+    expect(loadRuntimeConfig({ ...KEYS }).agentReasoningEffort).toBe('medium');
+    expect(loadRuntimeConfig({ ...KEYS, AGENT_REASONING_EFFORT: 'high' }).agentReasoningEffort).toBe('high');
+    expect(() => loadRuntimeConfig({ ...KEYS, AGENT_REASONING_EFFORT: 'extreme' })).toThrow('AGENT_REASONING_EFFORT must be one of');
+  });
+
   it('requires WorkOS server configuration in production', () => {
     expect(() => loadRuntimeConfig({
       ...KEYS,

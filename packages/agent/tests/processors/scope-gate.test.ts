@@ -1,8 +1,6 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 
-vi.mock('ai', () => ({
-  generateObject: vi.fn(),
-}));
+vi.mock('ai', async original => ({ ...await original<typeof import('ai')>(), generateObject: vi.fn() }));
 import { generateObject } from 'ai';
 
 import { ScopeGateProcessor, isScopeGateEnabled } from '../../src/processors/scope-gate.js';

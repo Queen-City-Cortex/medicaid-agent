@@ -1,8 +1,8 @@
 import { isRetryableResearchError } from '../../deep-research/recovery-errors.js';
 import { generateObject } from 'ai';
-import { createOpenAI } from '@ai-sdk/openai';
 import { z } from 'zod';
 import { getConfig } from './config.js';
+import { openaiModel } from '../../model.js';
 import { log, errorFields } from '../../logger.js';
 
 // ── verifyAnswer ─────────────────────────────────────────────────────────────
@@ -91,9 +91,8 @@ export async function verifyAnswer(
 ): Promise<VerificationResult> {
   const deadline = AbortSignal.timeout(30_000);
   try {
-    const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const { object, usage } = await generateObject({
-      model: openai(getConfig().model),
+      model: openaiModel(getConfig().model),
       schema: VerificationSchema,
       abortSignal: signal ? AbortSignal.any([signal, deadline]) : deadline,
       maxRetries: 0,

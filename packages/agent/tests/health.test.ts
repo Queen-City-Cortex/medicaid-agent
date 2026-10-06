@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { checkProviders, resetProviderHealthCache } from '../src/health.js';
 import { log } from '../src/logger.js';
+import { CLASSIFIER_MODEL } from '../src/model.js';
 
 beforeEach(() => {
   resetProviderHealthCache();
@@ -60,6 +61,37 @@ describe('checkProviders', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     await expect(checkProviders()).resolves.toEqual({ voyage: 'ok', openai: 'error' });
+  });
+
+  it('asks OpenAI not to store the probe completion', async () => {
+    const fetchMock = vi.fn(async (_url: string | URL | Request, _init?: RequestInit) => ({ ok: true, status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await checkProviders();
+    const probe = fetchMock.mock.calls.find(([url]) => String(url).includes('openai'))!;
+    expect(JSON.parse(String(probe[1]!.body)).store).toBe(false);
+  });
+
+  it('treats an OpenAI 404 as an outage: the probed model no longer exists', async () => {
+    // A retired classifier model switches both fail-open gates off.
+    const fetchMock = vi.fn(async (url: string | URL | Request) =>
+      String(url).includes('openai')
+        ? { ok: false, status: 404, text: async () => 'model_not_found' }
+        : { ok: true },
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(checkProviders()).resolves.toEqual({ voyage: 'ok', openai: 'error' });
+    expect(log.error).toHaveBeenCalledWith('dependencyz.openai_failed', { status: 404, errText: 'model_not_found' });
+  });
+
+  it('probes the classifier model unless overridden', async () => {
+    const fetchMock = vi.fn(async (_url: string | URL | Request, _init?: RequestInit) => ({ ok: true, status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await checkProviders();
+    const probe = fetchMock.mock.calls.find(([url]) => String(url).includes('openai'))!;
+    expect(JSON.parse(String(probe[1]!.body)).model).toBe(CLASSIFIER_MODEL);
   });
 
   it('treats a non-auth/quota OpenAI 4xx as healthy (key and billing proven)', async () => {

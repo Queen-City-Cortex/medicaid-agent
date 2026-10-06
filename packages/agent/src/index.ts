@@ -8,9 +8,9 @@ import { Sentry } from './sentry.js';
 import { log, errorFields } from './logger.js';
 import { Mastra } from '@mastra/core';
 import { Agent, type OnIterationCompleteHandler } from '@mastra/core/agent';
-import { PromptInjectionDetector, TokenLimiterProcessor } from '@mastra/core/processors';
+import { TokenLimiterProcessor } from '@mastra/core/processors';
 import { MastraCompositeStore } from '@mastra/core/storage';
-import { createModel, AGENT_MODEL } from './model.js';
+import { createModel, AGENT_MODEL, AGENT_DEFAULT_OPTIONS } from './model.js';
 import { deepResearchWorkflow } from './deep-research/workflow.js';
 import { LibSQLStore } from '@mastra/libsql';
 import { Observability, DefaultExporter, SensitiveDataFilter } from '@mastra/observability';
@@ -32,6 +32,7 @@ import { AnswerFramePlanningProcessor } from './processors/answer-frame-planning
 import { OpenAIResponsesDedupProcessor } from './processors/openai-responses-dedup.js';
 import { MessageLengthGuard } from './processors/message-length-guard.js';
 import { ScopeGateProcessor } from './processors/scope-gate.js';
+import { createInjectionDetector } from './processors/injection-detector.js';
 import { CoverageBoundaryProcessor } from './processors/coverage-boundary.js';
 import { RateLimitRepository } from './rate-limit/repository.js';
 import { createBodySizeGuard, createRateLimitMiddleware } from './rate-limit/middleware.js';
@@ -157,12 +158,7 @@ const inputProcessors = IS_CLI_RUN
       new MessageLengthGuard(),
       new CoverageBoundaryProcessor(),
       new ScopeGateProcessor(),
-      new PromptInjectionDetector({
-        model: 'openai/gpt-5-mini',
-        threshold: 0.8,
-        strategy: 'block',
-        detectionTypes: ['injection', 'jailbreak', 'system-override'],
-      }),
+      createInjectionDetector(),
       openAIResponsesDedup,
       answerFramePrefetch,
       answerFramePlanning,
@@ -216,6 +212,7 @@ export const ncMedicaidAgent = new Agent({
     return `Current date: ${date}.\n\n${SYSTEM_PROMPT}`;
   },
   model: createModel(AGENT_MODEL),
+  defaultOptions: AGENT_DEFAULT_OPTIONS,
   tools: {
     resolveAnswerFrame,
     searchSections,

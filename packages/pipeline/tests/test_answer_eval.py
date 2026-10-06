@@ -216,6 +216,26 @@ def run_with_verifier(monkeypatch, runs, *, max_retries=1):
     return answer.evaluate_answers([ENTRY])[0], counts["agent"], counts["judge"]
 
 
+def test_row_records_the_configuration_the_agent_reported(monkeypatch):
+    # The harness cannot know the agent's resolved defaults or its own .env.
+    reported = {"agent_model": "gpt-5.6-terra", "agent_reasoning_effort": "medium", "verifier_model": "gpt-5.6-terra"}
+    monkeypatch.setattr(
+        answer,
+        "_invoke_agent",
+        lambda question, *, progress_label=None: ("answer", None, PASSED, {"sources": [], "agent_config": reported}),
+    )
+    monkeypatch.setattr(answer, "_fetch_evidence_sections", lambda sections: [])
+    monkeypatch.setattr(answer, "judge_answer", lambda **kwargs: {"overall": 3, "completeness": 3, "factual_accuracy": 3})
+
+    assert answer.evaluate_answers([ENTRY])[0]["agent_config"] == reported
+
+
+def test_row_without_an_evidence_block_records_no_configuration(monkeypatch):
+    row, _, _ = run_with_verifier(monkeypatch, [("answer", PASSED)])
+
+    assert row["agent_config"] is None
+
+
 def test_withheld_answer_is_not_judged_and_has_no_hallucination_score(monkeypatch):
     # Judging the fixed notice scored every withhold hallucination 3, so the
     # safety metric rose when the product answered fewer questions.

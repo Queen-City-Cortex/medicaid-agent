@@ -111,7 +111,8 @@ def extract_verifier_metadata(stdout: str) -> dict | None:
 def extract_evidence_metadata(stdout: str) -> dict | None:
     """Extract the agent's tool-sourced evidence payload (``---EVIDENCE---`` block).
 
-    Shape: ``{"sources": [{"toolName", "key", "text"}, ...], "evidence_bytes": int}``.
+    Shape: ``{"sources": [{"toolName", "key", "text"}, ...], "evidence_bytes": int,
+    "agent_config": {"agent_model", "agent_reasoning_effort", "verifier_model"}}``.
     The block is printed before ``---VERIFIER---`` / ``---ANSWER---``, so bound
     the search accordingly.
     """
@@ -619,6 +620,8 @@ def evaluate_answers(entries: list[dict], *, use_unified_evidence: bool = True) 
             "route_widened": (((route_info or {}).get("route") or {}).get("widening_policy") or "none") != "none",
             "route_inspection_error": route_error,
             "verifier": verifier_info,
+            # Model and reasoning effort as the agent process resolved them.
+            "agent_config": (evidence_info or {}).get("agent_config"),
             "citation_support": citation_support,
             "agent_evidence": {
                 "source_count": len((evidence_info or {}).get("sources") or []),
