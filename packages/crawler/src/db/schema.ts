@@ -249,6 +249,32 @@ function canonicalizeSpaNumbers(db: Database.Database): void {
   `);
 }
 
+/**
+ * Index membership is an observation kept beside the registry, never a
+ * `documents` column: whole-row registry hashes must not change per run.
+ * `source_listings` records the last run in which discovery returned a URL
+ * and the tags its index row carried; `source_index_checks` records the last
+ * run in which an index page was listed in full. A document is de-listed only
+ * when its page has a complete check newer than its own last listing.
+ */
+function ensureSourceListings(db: Database.Database): void {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS source_listings (
+      source_url TEXT PRIMARY KEY,
+      index_url TEXT NOT NULL,
+      last_listed_at TEXT NOT NULL,
+      last_listed_run_id INTEGER NOT NULL,
+      tags TEXT NOT NULL DEFAULT '[]'
+    );
+    CREATE TABLE IF NOT EXISTS source_index_checks (
+      index_url TEXT PRIMARY KEY,
+      source_type TEXT NOT NULL,
+      last_complete_at TEXT NOT NULL,
+      last_complete_run_id INTEGER NOT NULL
+    );
+  `);
+}
+
 export function initializeSchema(db: Database.Database): void {
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
@@ -259,4 +285,5 @@ export function initializeSchema(db: Database.Database): void {
   ensureColumn(db, 'documents', 'removed_at', 'TEXT');
   canonicalizeExistingDocumentUrls(db);
   canonicalizeSpaNumbers(db);
+  ensureSourceListings(db);
 }

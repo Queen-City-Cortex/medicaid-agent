@@ -100,6 +100,7 @@ class CorpusGraphWriter:
                 "variant_group": document.variant_group,
                 "variant_date": document.variant_date,
                 "retrieval_ready": document.retrieval_ready,
+                "archived": document.archived,
                 "source_checked_at": normalize_source_timestamp(document.source_checked_at),
                 "source_changed_at": normalize_source_timestamp(document.source_changed_at),
             })

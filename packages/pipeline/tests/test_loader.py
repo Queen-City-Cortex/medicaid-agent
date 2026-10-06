@@ -446,6 +446,140 @@ def test_load_document_removes_a_registry_document_marked_removed(
     assert writer.received("delete_document") == [result["document_id"]]
 
 
+def _listing_registry(tmp_path, source_url, *, listed_run, checked_run, tags="[]"):
+    db_path = tmp_path / "crawler.db"
+    index_url = "https://policies.ncdhhs.gov/index/"
+    with sqlite3.connect(db_path) as db:
+        db.executescript(
+            """
+            CREATE TABLE documents (id INTEGER PRIMARY KEY, source_url TEXT UNIQUE,
+              discovered_from TEXT, source_type TEXT, title TEXT, local_path TEXT,
+              status TEXT);
+            CREATE TABLE source_listings (source_url TEXT PRIMARY KEY, index_url TEXT,
+              last_listed_at TEXT, last_listed_run_id INTEGER, tags TEXT);
+            CREATE TABLE source_index_checks (index_url TEXT PRIMARY KEY, source_type TEXT,
+              last_complete_at TEXT, last_complete_run_id INTEGER);
+            """
+        )
+        db.execute(
+            "INSERT INTO documents"
+            " (source_url, discovered_from, source_type, title, local_path, status)"
+            " VALUES (?, ?, 'dhhs_policy', ?, ?, 'unchanged')",
+            (
+                source_url,
+                index_url,
+                source_url.rsplit("/", 1)[-1],
+                "dhhs-policies/" + source_url.rsplit("/", 1)[-1],
+            ),
+        )
+        db.execute(
+            "INSERT INTO source_listings VALUES (?, ?, 'then', ?, ?)",
+            (source_url, index_url, listed_run, tags),
+        )
+        if checked_run is not None:
+            db.execute(
+                "INSERT INTO source_index_checks VALUES (?, 'dhhs_policy', 'now', ?)",
+                (index_url, checked_run),
+            )
+    return db_path
+
+
+@pytest.mark.parametrize(
+    ("checked_run", "skipped"),
+    [(2, "delisted_from_index"), (1, None), (None, None)],
+)
+def test_load_document_excludes_a_dhhs_policy_dropped_from_its_index(
+    monkeypatch,
+    tmp_path,
+    checked_run,
+    skipped,
+):
+    """Only a complete listing newer than the row's own proves it was dropped."""
+    source_url = "https://policies.ncdhhs.gov/wp-content/uploads/MA-2240-2.pdf"
+    json_path = tmp_path / "ma-2240-2.json"
+    json_path.write_text("{}")
+    json_path.with_suffix(".meta.json").write_text(
+        json.dumps(
+            {
+                "source_file": "dhhs-policies/MA-2240-2.pdf",
+                "parse_status": "parsed",
+                "answer_ready": True,
+                "section_count": 1,
+            }
+        )
+    )
+    db_path = _listing_registry(
+        tmp_path, source_url, listed_run=1, checked_run=checked_run
+    )
+    monkeypatch.setattr("pipeline.graph.loader.CRAWLER_DB_PATH", db_path)
+    monkeypatch.setattr(
+        "pipeline.graph.loader.build_sections_from_items",
+        lambda doc_dict, document_id: [
+            {"id": f"{document_id}:sec:1", "title": "Penalty period", "content_text": "x"}
+        ],
+    )
+    writer = RecordingGraphWriter()
+    monkeypatch.setattr("pipeline.graph.loader.graph_writer", writer)
+
+    result = load_document(json_path, "dhhs_policy")
+
+    assert result.get("skipped") == skipped
+    if skipped:
+        assert writer.received("upsert_document_bundle") == []
+        assert writer.received("delete_document") == [result["document_id"]]
+    else:
+        assert len(writer.received("upsert_document_bundle")) == 1
+    with sqlite3.connect(db_path) as db:
+        assert db.execute("SELECT status FROM documents").fetchone() == ("unchanged",)
+
+
+@pytest.mark.parametrize(
+    ("tags", "archived", "status"),
+    [('["archived", "manual"]', True, "archived"), ('["manual"]', False, "current")],
+)
+def test_load_document_marks_a_document_the_agency_tagged_archived(
+    monkeypatch,
+    tmp_path,
+    tags,
+    archived,
+    status,
+):
+    """An archived table still loads and stays answer-ready; retrieval skips it."""
+    source_url = "https://policies.ncdhhs.gov/wp-content/uploads/2025-NON-MAGI.pdf"
+    json_path = tmp_path / "2025-non-magi.json"
+    json_path.write_text("{}")
+    json_path.with_suffix(".meta.json").write_text(
+        json.dumps(
+            {
+                "source_file": "dhhs-policies/2025-NON-MAGI.pdf",
+                "parse_status": "parsed",
+                "answer_ready": True,
+                "section_count": 1,
+            }
+        )
+    )
+    db_path = _listing_registry(
+        tmp_path, source_url, listed_run=2, checked_run=2, tags=tags
+    )
+    monkeypatch.setattr("pipeline.graph.loader.CRAWLER_DB_PATH", db_path)
+    monkeypatch.setattr(
+        "pipeline.graph.loader.build_sections_from_items",
+        lambda doc_dict, document_id: [
+            {"id": f"{document_id}:sec:1", "title": "Income limits", "content_text": "x"}
+        ],
+    )
+    writer = RecordingGraphWriter()
+    monkeypatch.setattr("pipeline.graph.loader.graph_writer", writer)
+
+    load_document(json_path, "dhhs_policy")
+
+    (bundle,) = writer.received("upsert_document_bundle")
+    assert bundle.document.archived is archived
+    assert bundle.document.status == status
+    assert bundle.document.answer_ready is True
+    assert bundle.document.retrieval_ready is True
+
+
 @pytest.mark.parametrize(
     ("meta_overrides", "reason"),
     [

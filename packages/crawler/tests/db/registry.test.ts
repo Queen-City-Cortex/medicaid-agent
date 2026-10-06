@@ -553,7 +553,7 @@ describe('DocumentRegistry', () => {
         documents_unchanged: 3,
         documents_updated: 1,
         documents_errored: 1,
-      }, ['clinical_policy']);
+      }, ['clinical_policy'], []);
       expect(registry.getSourceFreshness()).toEqual([
         {
           source_type: 'clinical_policy',
@@ -561,6 +561,160 @@ describe('DocumentRegistry', () => {
           last_content_change_at: null,
         },
       ]);
+    });
+  });
+
+  describe('index listings', () => {
+    const stats = {
+      documents_discovered: 0,
+      documents_downloaded: 0,
+      documents_unchanged: 0,
+      documents_updated: 0,
+      documents_errored: 0,
+    };
+    const dhhsDoc = (name: string): DiscoveredDocument => ({
+      source_url: `https://policies.ncdhhs.gov/wp-content/uploads/${name}`,
+      discovered_from: 'https://policies.ncdhhs.gov/index/',
+      source_type: 'dhhs_policy',
+      title: name,
+      policy_number: null,
+      category: null,
+    });
+    const indexChecks = () =>
+      db
+        .prepare(
+          'SELECT index_url, source_type, last_complete_run_id FROM source_index_checks ORDER BY index_url',
+        )
+        .all();
+
+    it('records the run that last listed a document under its canonical URL', () => {
+      const doc = dhhsDoc('MA-2240-3.pdf');
+      registry.upsertDiscovered(doc);
+      registry.recordListing(1, { ...doc, source_url: `${doc.source_url}#page=2` });
+      registry.recordListing(2, doc);
+
+      expect(registry.getListing(doc.source_url)).toEqual({
+        source_url: doc.source_url,
+        index_url: 'https://policies.ncdhhs.gov/index/',
+        last_listed_at: expect.any(String),
+        last_listed_run_id: 2,
+        tags: '[]',
+      });
+      expect(
+        db.prepare('SELECT count(*) AS n FROM source_listings').get(),
+      ).toEqual({ n: 1 });
+    });
+
+    it('adds no listing column to documents and leaves status alone', () => {
+      const doc = dhhsDoc('MA-2240-1.pdf');
+      const id = registry.upsertDiscovered(doc);
+      registry.markUnchanged(id);
+      const before = registry.getById(id);
+      registry.recordListing(1, doc);
+      const runId = registry.startCrawlRun(['dhhs_policy']);
+      registry.completeCrawlRun(runId, stats, ['dhhs_policy'], ['dhhs_policy']);
+
+      expect(registry.getById(id)).toEqual(before);
+      expect(
+        db.prepare('SELECT count(*) AS n FROM source_retirements').get(),
+      ).toEqual({ n: 0 });
+    });
+
+    it('stamps an index page as checked only for a family listed in full, and only for pages this run listed', () => {
+      const listed = dhhsDoc('MA-2240-3.pdf');
+      const dropped = {
+        ...dhhsDoc('old.pdf'),
+        discovered_from: 'https://policies.ncdhhs.gov/other-index/',
+      };
+      const bulletin: DiscoveredDocument = {
+        ...sampleDoc,
+        source_type: 'bulletin',
+        source_url: 'https://medicaid.ncdhhs.gov/blog/post',
+        discovered_from: 'https://medicaid.ncdhhs.gov/blog',
+      };
+      for (const doc of [listed, dropped, bulletin]) registry.upsertDiscovered(doc);
+
+      const first = registry.startCrawlRun(['dhhs_policy', 'bulletin']);
+      registry.recordListing(first, dropped);
+      registry.completeCrawlRun(first, stats, ['dhhs_policy'], []);
+      expect(indexChecks()).toEqual([]);
+
+      const second = registry.startCrawlRun(['dhhs_policy', 'bulletin']);
+      registry.recordListing(second, listed);
+      registry.recordListing(second, bulletin);
+      registry.completeCrawlRun(
+        second,
+        stats,
+        ['dhhs_policy', 'bulletin'],
+        ['dhhs_policy'],
+      );
+
+      expect(indexChecks()).toEqual([
+        {
+          index_url: 'https://policies.ncdhhs.gov/index/',
+          source_type: 'dhhs_policy',
+          last_complete_run_id: second,
+        },
+      ]);
+    });
+
+    it('overwrites tags on every listing so a removed tag is cleared', () => {
+      const doc = dhhsDoc('2025-non-magi.pdf');
+      registry.upsertDiscovered(doc);
+      registry.recordListing(1, { ...doc, doc_tags: ['manual', 'archived'] });
+      expect(registry.getListing(doc.source_url)?.tags).toBe(
+        '["archived","manual"]',
+      );
+
+      registry.recordListing(2, { ...doc, doc_tags: ['manual'] });
+      expect(registry.getListing(doc.source_url)?.tags).toBe('["manual"]');
+    });
+
+    it('adds the listing tables to an existing registry and keeps their rows on reopen', () => {
+      const legacyDb = new Database(':memory:');
+      legacyDb.exec(`
+        CREATE TABLE documents (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          source_url TEXT NOT NULL UNIQUE,
+          discovered_from TEXT NOT NULL,
+          source_type TEXT NOT NULL,
+          title TEXT, policy_number TEXT, category TEXT,
+          local_path TEXT, file_hash TEXT, file_size INTEGER, mime_type TEXT,
+          detected_content_type TEXT, content_disposition_filename TEXT,
+          etag TEXT, last_modified TEXT,
+          first_seen_at TEXT NOT NULL DEFAULT (datetime('now')),
+          last_checked_at TEXT, last_downloaded_at TEXT, last_changed_at TEXT,
+          status TEXT NOT NULL DEFAULT 'discovered',
+          error_message TEXT,
+          download_attempts INTEGER DEFAULT 0,
+          consecutive_errors INTEGER DEFAULT 0
+        );
+        INSERT INTO documents (source_url, discovered_from, source_type, status)
+        VALUES ('https://policies.ncdhhs.gov/wp-content/uploads/old.pdf',
+                'https://policies.ncdhhs.gov/index/', 'dhhs_policy', 'unchanged');
+      `);
+      const documentColumns = () =>
+        (legacyDb.pragma('table_info(documents)') as Array<{ name: string }>)
+          .map((column) => column.name)
+          .filter((name) => /listed|tags/.test(name));
+
+      initializeSchema(legacyDb);
+      const legacyRegistry = createRegistry(legacyDb);
+      expect(
+        legacyRegistry.getListing(
+          'https://policies.ncdhhs.gov/wp-content/uploads/old.pdf',
+        ),
+      ).toBeNull();
+      legacyRegistry.recordListing(7, dhhsDoc('old.pdf'));
+
+      initializeSchema(legacyDb);
+      expect(
+        createRegistry(legacyDb).getListing(
+          'https://policies.ncdhhs.gov/wp-content/uploads/old.pdf',
+        )?.last_listed_run_id,
+      ).toBe(7);
+      expect(documentColumns()).toEqual([]);
+      legacyDb.close();
     });
   });
 });

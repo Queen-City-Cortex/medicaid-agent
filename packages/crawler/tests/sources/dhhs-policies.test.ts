@@ -73,8 +73,9 @@ describe('parseDhhsPoliciesPage', () => {
   });
 
   it('many results have a sub-category assigned', () => {
+    // Rows filed only under the top-level section have none.
     const withCategory = docs.filter((d) => d.category !== null);
-    expect(withCategory.length).toBeGreaterThan(900);
+    expect(withCategory.length).toBeGreaterThan(800);
   });
 
   it('all policy_number fields are null', () => {
@@ -105,10 +106,74 @@ describe('parseDhhsPoliciesPage', () => {
     expect(fcm.length).toBeGreaterThan(20);
   });
 
+  it('reads the category only from the categories column', () => {
+    // The tag and file-type columns carry data-slug spans too.
+    const categories = new Set(docs.map((d) => d.category));
+    expect([...categories].sort()).toEqual(
+      [
+        null,
+        'Adult Medicaid',
+        'Basic Medicaid Eligibility Requirements',
+        "Family and Children's Medicaid",
+        'Forms in Other Languages',
+        'Medicaid Eligibility Information System (EIS)',
+      ].sort(),
+    );
+  });
+
+  it('returns the tag column as slugs, separately from the category', () => {
+    const doc = docs.find(
+      (d) => d.source_url.includes('MEDICAID-ELIGIBILITY_9-9-2024.pdf'),
+    );
+    expect(doc?.doc_tags).toEqual(['manual']);
+    const tags = new Set(docs.flatMap((d) => d.doc_tags ?? []));
+    expect([...tags].sort()).toEqual([
+      'administrative-letter',
+      'change-notice',
+      'form',
+      'manual',
+      'policy',
+      'procedure',
+    ]);
+  });
+
   it('categories do not include the top-level "health-benefits-nc-medicaid" slug as a value', () => {
     for (const doc of docs) {
       expect(doc.category).not.toBe('health-benefits-nc-medicaid');
       expect(doc.category).not.toBe('Health Benefits/NC Medicaid');
     }
+  });
+});
+
+describe('parseDhhsPoliciesPage with tagged rows', () => {
+  const tagged = parseDhhsPoliciesPage(
+    readFileSync(
+      path.join(__dirname, '../fixtures/dhhs-policies-index-tagged.html'),
+      'utf8',
+    ),
+    INDEX_URL,
+  );
+  const byFile = (name: string) =>
+    tagged.find((d) => d.source_url.endsWith(name));
+
+  it("captures the agency's Archived tag without changing the category", () => {
+    const archived = byFile('2025-NON-MAGI-MEDICAID-INCOME-RESERVE-LIMITS.pdf');
+    expect(archived?.doc_tags).toEqual(['archived', 'manual']);
+    expect(archived?.category).toBe('Adult Medicaid');
+  });
+
+  it('never reads a tag as the category of a row with no sub-category', () => {
+    const letter = byFile('DHB-ADMINISTRATIVE-LETTER-03-21.pdf');
+    expect(letter?.category).toBeNull();
+    expect(letter?.doc_tags).toEqual(['archived', 'administrative-letter']);
+  });
+
+  it('leaves current and untagged rows without the archived tag', () => {
+    expect(
+      byFile('2026-NON-MAGI-MEDICAID-INCOME-RESERVE-LIMITS.pdf')?.doc_tags,
+    ).toEqual(['manual']);
+    const untagged = byFile('MA-2240-Transfer-of-Assets-3.pdf');
+    expect(untagged?.doc_tags).toEqual([]);
+    expect(untagged?.category).toBe('Adult Medicaid');
   });
 });

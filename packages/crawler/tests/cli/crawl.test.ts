@@ -53,6 +53,33 @@ async function runCrawl(...args: string[]): Promise<void> {
   await program.parseAsync(['crawl', ...args], { from: 'user' });
 }
 
+function dhhsDocument(name: string) {
+  return {
+    source_url: `https://policies.ncdhhs.gov/wp-content/uploads/${name}`,
+    discovered_from:
+      'https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/',
+    source_type: 'dhhs_policy' as const,
+    title: name,
+    policy_number: null,
+    category: null,
+  };
+}
+
+function listedRuns(): Array<{ source_url: string; last_listed_run_id: number }> {
+  return (state.db as Database.Database)
+    .prepare(
+      'SELECT source_url, last_listed_run_id FROM source_listings ORDER BY source_url',
+    )
+    .all() as Array<{ source_url: string; last_listed_run_id: number }>;
+}
+
+function checkedIndexRuns(): number[] {
+  return (state.db as Database.Database)
+    .prepare('SELECT last_complete_run_id FROM source_index_checks')
+    .all()
+    .map((row) => (row as { last_complete_run_id: number }).last_complete_run_id);
+}
+
 function stampedFamilies(): string[] {
   return (state.db as Database.Database)
     .prepare('SELECT source_type FROM source_freshness ORDER BY source_type')
@@ -122,6 +149,75 @@ describe('crawl command', () => {
     await runCrawl();
 
     expect(process.exitCode).toBeUndefined();
+  });
+
+  it('records a listing for every URL a run returns and leaves an absent document at its earlier run', async () => {
+    discoverDocuments.mockResolvedValue({
+      ...discoveryResult(['dhhs_policy'], []),
+      documents: [dhhsDocument('MA-2240-2.pdf'), dhhsDocument('MA-2240-3.pdf')],
+    });
+    await runCrawl();
+    discoverDocuments.mockResolvedValue({
+      ...discoveryResult(['dhhs_policy'], []),
+      documents: [dhhsDocument('MA-2240-3.pdf')],
+    });
+    await runCrawl();
+
+    expect(listedRuns()).toEqual([
+      { source_url: dhhsDocument('MA-2240-2.pdf').source_url, last_listed_run_id: 1 },
+      { source_url: dhhsDocument('MA-2240-3.pdf').source_url, last_listed_run_id: 2 },
+    ]);
+    expect(checkedIndexRuns()).toEqual([2]);
+  });
+
+  it('stores the index tags of each listed document and clears one the agency removes', async () => {
+    const tags = () =>
+      (state.db as Database.Database)
+        .prepare('SELECT tags FROM source_listings')
+        .get() as { tags: string };
+    discoverDocuments.mockResolvedValue({
+      ...discoveryResult(['dhhs_policy'], []),
+      documents: [
+        { ...dhhsDocument('2025-NON-MAGI.pdf'), doc_tags: ['archived', 'manual'] },
+      ],
+    });
+    await runCrawl();
+    expect(tags()).toEqual({ tags: '["archived","manual"]' });
+
+    discoverDocuments.mockResolvedValue({
+      ...discoveryResult(['dhhs_policy'], []),
+      documents: [{ ...dhhsDocument('2025-NON-MAGI.pdf'), doc_tags: ['manual'] }],
+    });
+    await runCrawl();
+    expect(tags()).toEqual({ tags: '["manual"]' });
+  });
+
+  it('records what a failed family listed but never treats its index as checked', async () => {
+    discoverDocuments.mockResolvedValue({
+      ...discoveryResult([], ['dhhs_policy']),
+      documents: [dhhsDocument('MA-2240-3.pdf')],
+    });
+
+    await runCrawl();
+
+    expect(listedRuns()).toHaveLength(1);
+    expect(checkedIndexRuns()).toEqual([]);
+  });
+
+  it('never treats an index as checked on a dry, --source or --since-year run', async () => {
+    discoverDocuments.mockResolvedValue({
+      ...discoveryResult(['dhhs_policy'], []),
+      documents: [dhhsDocument('MA-2240-3.pdf')],
+    });
+
+    await runCrawl('--dry-run');
+    await runCrawl('--source', 'dhhs_policy');
+    await runCrawl('--since-year', '2025');
+
+    expect(listedRuns()).toEqual([
+      { source_url: dhhsDocument('MA-2240-3.pdf').source_url, last_listed_run_id: 3 },
+    ]);
+    expect(checkedIndexRuns()).toEqual([]);
   });
 
   it('enforces family minimums only on a default full run', async () => {

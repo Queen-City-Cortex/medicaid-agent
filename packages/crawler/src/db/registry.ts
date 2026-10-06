@@ -72,8 +72,24 @@ export interface SourceFreshnessRecord {
   last_content_change_at: string | null;
 }
 
+export interface SourceListingRecord {
+  source_url: string;
+  index_url: string;
+  last_listed_at: string;
+  last_listed_run_id: number;
+  /** JSON array of the index row's tag slugs. */
+  tags: string;
+}
+
 export interface DocumentRegistry {
   upsertDiscovered(doc: DiscoveredDocument): number;
+  /**
+   * Record that this run's discovery returned the document. Presence is
+   * evidence whatever the family's outcome; tags are overwritten so one the
+   * agency removes is cleared.
+   */
+  recordListing(runId: number, doc: DiscoveredDocument): void;
+  getListing(url: string): SourceListingRecord | null;
   getByUrl(url: string): DocumentRecord | null;
   getById(id: number): DocumentRecord | null;
   updateDownloaded(id: number, info: DownloadedInfo): void;
@@ -101,10 +117,17 @@ export interface DocumentRegistry {
   getStats(): StatRow[];
   getAllDocuments(): DocumentRecord[];
   startCrawlRun(sourceTypes: string[]): number;
+  /**
+   * `completeListingSourceTypes` are the families whose index pages this run
+   * listed in full (discovery passed with family minimums enforced). Only
+   * those pages are stamped as checked, so only they can show a document as
+   * absent; a failed, partial or dry run proves nothing about absence.
+   */
   completeCrawlRun(
     runId: number,
     stats: CrawlRunStats,
     successfulSourceTypes: string[],
+    completeListingSourceTypes: string[],
   ): void;
   failCrawlRun(runId: number): void;
 }
@@ -331,6 +354,46 @@ export function createRegistry(db: Database.Database): DocumentRegistry {
       )
   `);
 
+  // Prepared on first use: `reactivate` opens registries without running the
+  // schema migration, so the listing tables may not exist there.
+  let listingStatements: {
+    upsert: Database.Statement;
+    get: Database.Statement;
+    stampChecks: Database.Statement;
+  } | null = null;
+  function listings() {
+    listingStatements ??= {
+      upsert: db.prepare(`
+        INSERT INTO source_listings (
+          source_url, index_url, last_listed_at, last_listed_run_id, tags
+        )
+        VALUES (@source_url, @index_url, datetime('now'), @run_id, @tags)
+        ON CONFLICT(source_url) DO UPDATE SET
+          index_url = @index_url,
+          last_listed_at = datetime('now'),
+          last_listed_run_id = @run_id,
+          tags = @tags
+      `),
+      get: db.prepare('SELECT * FROM source_listings WHERE source_url = ?'),
+      // Every index page that listed at least one of the family's documents
+      // in this run. A page that listed nothing is not stamped.
+      stampChecks: db.prepare(`
+        INSERT INTO source_index_checks (
+          index_url, source_type, last_complete_at, last_complete_run_id
+        )
+        SELECT DISTINCT l.index_url, d.source_type, datetime('now'), @run_id
+        FROM source_listings l
+        JOIN documents d ON d.source_url = l.source_url
+        WHERE l.last_listed_run_id = @run_id AND d.source_type = @source_type
+        ON CONFLICT(index_url) DO UPDATE SET
+          source_type = excluded.source_type,
+          last_complete_at = excluded.last_complete_at,
+          last_complete_run_id = excluded.last_complete_run_id
+      `),
+    };
+    return listingStatements;
+  }
+
   // Wrap a registry write so a SQLite failure (locked db, disk full, constraint
   // violation) is attributable to its operation and document instead of crashing
   // the sync phase with no signal about which write failed. Re-throws — behavior
@@ -359,6 +422,24 @@ export function createRegistry(db: Database.Database): DocumentRegistry {
       runWrite('upsertDiscovered', null, () => insertStmt.run(canonicalDoc));
       const row = getByUrlStmt.get(canonicalDoc.source_url) as DocumentRecord;
       return row.id;
+    },
+
+    recordListing(runId: number, doc: DiscoveredDocument): void {
+      runWrite('recordListing', null, () =>
+        listings().upsert.run({
+          source_url: canonicalizeSourceUrl(doc.source_url),
+          index_url: doc.discovered_from,
+          run_id: runId,
+          tags: JSON.stringify([...new Set(doc.doc_tags ?? [])].sort()),
+        }),
+      );
+    },
+
+    getListing(url: string): SourceListingRecord | null {
+      return (
+        (listings().get.get(canonicalizeSourceUrl(url)) as SourceListingRecord) ??
+        null
+      );
     },
 
     getByUrl(url: string): DocumentRecord | null {
@@ -458,12 +539,19 @@ export function createRegistry(db: Database.Database): DocumentRegistry {
       runId: number,
       stats: CrawlRunStats,
       successfulSourceTypes: string[],
+      completeListingSourceTypes: string[],
     ): void {
       runWrite('completeCrawlRun', runId, () => {
         db.transaction(() => {
           completeRunStmt.run({ id: runId, ...stats });
           for (const sourceType of successfulSourceTypes) {
             updateSourceFreshnessStmt.run({ source_type: sourceType });
+          }
+          for (const sourceType of completeListingSourceTypes) {
+            listings().stampChecks.run({
+              run_id: runId,
+              source_type: sourceType,
+            });
           }
         })();
       });

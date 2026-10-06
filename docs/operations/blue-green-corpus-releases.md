@@ -543,6 +543,29 @@ byte prefix if the transfer ends early. Resume with bounded object-store byte ra
 verify each range length and the complete object length, then run the full decrypt/
 restore check. A partial local archive never satisfies the backup gate.
 
+## Reviewing documents dropped from the DHHS index
+
+A `dhhs_policy` row that a complete crawl no longer finds on the agency index is
+left out of the graph load as `delisted_from_index`. Its registry status,
+payload, parse and evidence stay in place, and it returns on the first crawl
+that lists it again. Only a default full `crawl` in which the family passed
+discovery can show a document as absent.
+
+The first full crawl after this behaviour ships de-lists the whole backlog at
+once: about 308 rows on the October 2026 workstation registry, roughly 197 of
+them administrative letters. Review them as one release before loading:
+
+1. Run the full crawl, then `pipeline audit-corpus`. The JSON report marks each
+   affected document `"delisted_from_index": true` and the family row counts
+   them; the release graph is not touched.
+2. Read the list. Check that superseded manual sections have a listed
+   replacement, and spot-check the administrative letters against the agency
+   site, since an index can drop a letter that is still in force. There is
+   no per-document override yet: if a de-listed document must stay answerable,
+   hold the release and raise it rather than editing the registry by hand.
+3. Record the outcome with the release. Expect the overridable
+   `maxAnswerReadyDrop` gate to need a recorded override for this one release.
+
 ## Applying reviewed availability observations
 
 Collection remains read-only. To record collected HTTP checks without another

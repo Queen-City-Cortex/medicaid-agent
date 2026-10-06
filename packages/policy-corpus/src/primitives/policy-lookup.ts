@@ -73,12 +73,14 @@ export function createPolicyLookupPrimitiveService({ withSession }: { withSessio
          RETURN
            ${documentMetadataReturn('d')},
            collect({id: s.id, number: s.section_number, title: s.title}) AS sections,
+           coalesce(d.archived, false) AS archived,
            sup.effective AS supersessionEffective,
            sup.reason AS supersessionReason,
            cur.policy_number AS supersededByPolicyNumber,
            cur.title AS supersededByTitle,
            cur.source_url AS supersededByUrl
          ORDER BY
+           CASE WHEN archived THEN 1 ELSE 0 END,
            CASE WHEN toUpper(coalesce(d.title, '')) CONTAINS 'CHANGE NOTICE' THEN 1 ELSE 0 END,
            CASE WHEN coalesce(d.status, '') = 'amendment' THEN 1 ELSE 0 END,
            CASE WHEN d.effective_date IS NULL THEN 1 ELSE 0 END,

@@ -6,6 +6,7 @@ import {
   CHANGE_NOTICE_HEADER_SECTION_WEIGHT,
   DOCUMENT_EXPANSION_BASE_SCORE,
   DOCUMENT_EXPANSION_SECTION_WEIGHT,
+  notArchived,
   recordToRetrievalHit,
   retrievalDocumentMetadataReturn,
   timeSearchStep,
@@ -29,6 +30,7 @@ export async function retrieveDocumentExpansionHits({
       session.run(
         `MATCH (d:Document)
          WHERE d.title IN $titles
+           AND ${notArchived('d')}
          MATCH (d)-[:HAS_SECTION]->(s:Section)
          WHERE s.content_length > 0
          WITH d, s,
@@ -87,6 +89,7 @@ export async function retrieveChangeNoticeHeaderHits({
       session.run(
         `MATCH (d:Document)
          WHERE d.title IN $titles
+           AND ${notArchived('d')}
          MATCH (d)-[:HAS_SECTION]->(s:Section)
          WITH d, s,
               CASE
@@ -139,6 +142,7 @@ export async function retrieveAmendmentTitleExpansionHits({
       session.run(
         `MATCH (amend:Document)-[:AMENDS]->(base:Document)
          WHERE amend.title IN $titles
+           AND ${notArchived('base')}
          MATCH (base)-[:HAS_SECTION]->(s:Section)
          WHERE s.content_length > 0
          WITH base, s,

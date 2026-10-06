@@ -4,6 +4,7 @@ import {
   AMENDMENT_CONTEXT_DOC_LIMIT,
   AMENDMENT_CONTEXT_DOC_WEIGHT,
   AMENDMENT_CONTEXT_SECTION_WEIGHT,
+  notArchived,
   recordToRetrievalHit,
   retrievalDocumentMetadataReturn,
   timeSearchStep,
@@ -20,8 +21,9 @@ export const amendmentContextBackend: RetrievalBackend = {
         const result = await timeSearchStep(`amendment context ${docTypes.join('+')}`, () =>
           session.run(
             `MATCH (amend:Document)-[:AMENDS]->(base:Document)
-             WHERE amend.document_type IN $docTypes
-                OR base.document_type IN $docTypes
+             WHERE (amend.document_type IN $docTypes
+                OR base.document_type IN $docTypes)
+               AND ${notArchived('base')}
              WITH amend, base,
                   reduce(
                     docScore = 0,

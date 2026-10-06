@@ -6,6 +6,7 @@ import {
   DOCUMENT_KEYWORD_SECTION_WEIGHT,
   SECTION_KEYWORD_BASE_SCORE,
   SECTION_KEYWORD_WEIGHT,
+  notArchived,
   recordToRetrievalHit,
   retrievalDocumentMetadataReturn,
   timeSearchStep,
@@ -23,6 +24,7 @@ export const sectionKeywordBackend: RetrievalBackend = {
           session.run(
             `MATCH (d:Document)-[:HAS_SECTION]->(s:Section)
              WHERE d.document_type IN $docTypes
+               AND ${notArchived('d')}
                AND s.content_length > 0
              WITH d, s,
                   reduce(
@@ -87,6 +89,7 @@ export const documentKeywordBackend: RetrievalBackend = {
           session.run(
             `MATCH (d:Document)
              WHERE d.document_type IN $docTypes
+               AND ${notArchived('d')}
              WITH d,
                   reduce(
                     docScore = 0,

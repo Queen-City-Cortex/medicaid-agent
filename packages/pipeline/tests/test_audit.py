@@ -101,6 +101,49 @@ def test_audit_surfaces_parse_quality_and_missing_graph_load(tmp_path):
     assert entry["states"] == ["discovered", "downloaded", "parsed"]
 
 
+def test_audit_does_not_count_a_delisted_document_as_a_missing_load(tmp_path):
+    source_file = tmp_path / "documents" / "MA-2240-2.pdf"
+    source_file.parent.mkdir(parents=True)
+    source_file.write_bytes(b"%PDF-1.4 test")
+    parsed_entry = {
+        "source_type": "dhhs_policy",
+        "meta_path": str(tmp_path / "MA-2240-2.meta.json"),
+        "json_path": str(tmp_path / "MA-2240-2.json"),
+        "source_file": str(source_file),
+        "source_format": "pdf",
+        "parse_status": "parsed",
+        "quality_flags": [],
+        "answer_ready": True,
+        "section_count": 4,
+    }
+    registry_row = _registry_row("dhhs_policy", source_file, status="unchanged")
+
+    def audit(delisted: bool, graph_documents: list[dict]) -> dict:
+        return build_corpus_audit_report(
+            source_families=(get_source_family("dhhs_policy"),),
+            registry_rows=[{**registry_row, "delisted_from_index": delisted}],
+            local_files=[_local_file("dhhs_policy", source_file)],
+            parsed_sidecars=[parsed_entry],
+            graph_documents=graph_documents,
+        )
+
+    listed = audit(False, [])
+    assert listed["documents"][0]["failure_reasons"] == ["missing_graph_load"]
+
+    excluded = audit(True, [])
+    assert excluded["documents"][0]["failure_reasons"] == []
+    assert excluded["documents"][0]["delisted_from_index"] is True
+    assert excluded["documents"][0]["registry_status"] == "unchanged"
+    assert excluded["summary"]["by_failure_reason"] == {}
+    assert excluded["source_families"][0]["counts"]["delisted_from_index"] == 1
+
+    still_loaded = audit(
+        True,
+        [{"id": "doc:1", "source_url": registry_row["source_url"], "answer_ready": True}],
+    )
+    assert still_loaded["documents"][0]["failure_reasons"] == ["ineligible_graph_load"]
+
+
 def test_audit_marks_remaining_legacy_ppt_as_unsupported_format(tmp_path):
     source_file = tmp_path / "documents" / "legacy-slides.ppt"
     source_file.parent.mkdir(parents=True)

@@ -32,6 +32,7 @@ class DocumentNode:
     variant_group: str | None = None
     variant_date: str | None = None
     retrieval_ready: bool = True
+    archived: bool = False
     source_checked_at: str | None = None
     source_changed_at: str | None = None
 

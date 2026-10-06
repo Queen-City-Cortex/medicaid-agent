@@ -314,6 +314,7 @@ def _upsert_synthetic_documents(session, docs: list[DocumentNode]) -> None:
             "variant_group": doc.variant_group,
             "variant_date": doc.variant_date,
             "retrieval_ready": doc.retrieval_ready,
+            "archived": doc.archived,
             "source_checked_at": normalize_source_timestamp(doc.source_checked_at),
             "source_changed_at": normalize_source_timestamp(doc.source_changed_at),
         })

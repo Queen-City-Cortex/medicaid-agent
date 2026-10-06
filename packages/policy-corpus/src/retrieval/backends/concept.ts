@@ -1,5 +1,5 @@
 import type { RetrievalBackend } from '../../contracts.js';
-import { CONCEPT_MATCH_SCORE, recordToRetrievalHit, retrievalDocumentMetadataReturn, timeSearchStep } from '../../internal/shared.js';
+import { CONCEPT_MATCH_SCORE, notArchived, recordToRetrievalHit, retrievalDocumentMetadataReturn, timeSearchStep } from '../../internal/shared.js';
 
 export const conceptBackend: RetrievalBackend = {
   name: 'concept',
@@ -17,6 +17,7 @@ export const conceptBackend: RetrievalBackend = {
            MATCH (d:Document)-[:HAS_SECTION]->(s)
            WHERE s.content_length > 200
              AND s.section_number IS NOT NULL
+             AND ${notArchived('d')}
            ${profile.hasExplicitDocumentTypes ? 'AND d.document_type IN $docTypes' : ''}
            RETURN
              s.id AS sectionId,

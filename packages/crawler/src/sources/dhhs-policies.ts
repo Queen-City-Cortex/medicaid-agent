@@ -37,11 +37,18 @@ import type { DiscoveredDocument } from './types.js';
  * Key observations:
  *   - The download URL is the `href` of `a.dlp-download-link`.
  *   - The document title is the text of the first `<a>` in the first `<td>`.
- *   - The sub-category comes from the first `<span data-slug>` that is NOT the
+ *   - The sub-category comes from the first `<span data-slug>` in the
+ *     categories column (`data-column="doc_categories"`) that is NOT the
  *     top-level "health-benefits-nc-medicaid" slug.
+ *   - Tags are a separate column (`data-column="doc_tags"`): the document
+ *     kind (manual, administrative-letter, form, ...) and the agency's own
+ *     "archived" mark on superseded documents. They are returned as slugs in
+ *     `doc_tags` and never read as a category.
  *   - Every row on this page belongs to the health-benefits-nc-medicaid section;
  *     no additional sub-page fetching is required.
  */
+const TOP_LEVEL_SLUG = 'health-benefits-nc-medicaid';
+
 export function parseDhhsPoliciesPage(
   html: string,
   pageUrl: string,
@@ -71,28 +78,22 @@ export function parseDhhsPoliciesPage(
     const title = rawTitle || null;
 
     // ── Category ─────────────────────────────────────────────────────────────
-    // Pick the first span[data-slug] whose slug is not the top-level section
-    const TOP_LEVEL_SLUGS = new Set([
-      'health-benefits-nc-medicaid',
-      // type tags that appear in the categories column
-      'administrative-letter',
-      'change-notice',
-      'manual',
-      'policy',
-      'form',
-      'forms',
-    ]);
+    // First sub-category in the categories column; the top-level section
+    // every row belongs to is not one.
+    const category =
+      $(row)
+        .find('a[data-column="doc_categories"] span[data-slug]')
+        .filter((_j, span) => $(span).attr('data-slug') !== TOP_LEVEL_SLUG)
+        .first()
+        .text()
+        .trim() || null;
 
-    let category: string | null = null;
-    $(row)
-      .find('span[data-slug]')
-      .each((_j, span) => {
-        if (category) return; // already found one
-        const slug = $(span).attr('data-slug') ?? '';
-        if (!TOP_LEVEL_SLUGS.has(slug)) {
-          category = $(span).text().trim() || null;
-        }
-      });
+    // ── Tags ─────────────────────────────────────────────────────────────────
+    const doc_tags = $(row)
+      .find('a[data-column="doc_tags"] span[data-slug]')
+      .map((_j, span) => $(span).attr('data-slug') ?? '')
+      .get()
+      .filter(Boolean);
 
     docs.push({
       source_url,
@@ -101,6 +102,7 @@ export function parseDhhsPoliciesPage(
       title,
       policy_number: null,
       category,
+      doc_tags,
     });
   });
 

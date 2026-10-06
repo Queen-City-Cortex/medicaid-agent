@@ -18,6 +18,8 @@ export interface DiscoveredDocument {
   title: string | null;
   policy_number: string | null;
   category: string | null;
+  /** Tag slugs the index row carries (for example the agency's "archived"). */
+  doc_tags?: string[];
 }
 
 export interface SourceModule {

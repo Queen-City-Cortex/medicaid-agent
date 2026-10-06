@@ -82,14 +82,24 @@ export function registerCrawlCommand(program: Command): void {
 
       // Discovery phase. Family minimums describe a default full crawl;
       // --source and --since-year runs list less by design.
+      const enforceMinimums =
+        !opts.source && sinceYear === config.defaultSinceYear;
       const discovery = await discoverDocuments(fetcher, sourceTypes, sinceYear, {
-        enforceMinimums:
-          !opts.source && sinceYear === config.defaultSinceYear,
+        enforceMinimums,
       });
       const discovered = discovery.documents;
+      // Absence from an index is evidence only when the family passed with
+      // its floor enforced. A --source or --since-year run lists less by
+      // design, and a failed family may have listed a fragment.
+      const completeListingSourceTypes = enforceMinimums
+        ? discovery.successfulSourceTypes
+        : [];
 
       let newCount = 0;
       for (const doc of discovered) {
+        // Recorded before the scope and robots filters: a URL this run may
+        // not fetch is still on its index.
+        registry.recordListing(runId, doc);
         if (!isAllowedSourceUrl(doc.source_type, doc.source_url)) {
           registry.recordRejectedUrl(
             doc.source_url,
@@ -124,6 +134,7 @@ export function registerCrawlCommand(program: Command): void {
             documents_updated: 0,
             documents_errored: discovery.failedSourceTypes.length,
           },
+          [],
           [],
         );
         reportDiscoveryFailures(discovery.failedSourceTypes);
@@ -160,6 +171,7 @@ export function registerCrawlCommand(program: Command): void {
         runId,
         stats,
         discovery.successfulSourceTypes,
+        completeListingSourceTypes,
       );
       logger.info(`Crawl run #${runId} complete`);
       logger.info(`  Discovered: ${stats.documents_discovered} new documents`);

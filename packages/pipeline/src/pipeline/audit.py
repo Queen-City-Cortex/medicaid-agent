@@ -17,6 +17,7 @@ from pipeline.config import (
 )
 from pipeline.corpus_manifest import CORPUS_MANIFEST, SourceFamilyManifest
 from pipeline.crawler_registry import (
+    DELISTED_FROM_INDEX,
     normalize_local_path,
     read_registry_rows,
     read_source_freshness,
@@ -245,8 +246,12 @@ def classify_document_entry(
         failure_reasons.append("zero_section_parse")
     if "title_only_or_blank_body" in quality_flags:
         failure_reasons.append("title_only_or_blank_body")
+    # Leaving a de-listed document out of the graph is the intended outcome,
+    # not a missing load; finding one still loaded is an ineligible load.
+    delisted = bool(registry_row and registry_row.get(DELISTED_FROM_INDEX))
     should_load = bool(
         registry_status in _ACTIVE_REGISTRY_STATUSES
+        and not delisted
         and parsed
         and parsed_entry
         and parsed_entry.get("answer_ready")
@@ -286,6 +291,7 @@ def classify_document_entry(
         "source_url": source_url,
         "title": registry_row.get("title") if registry_row else None,
         "registry_status": registry_status,
+        DELISTED_FROM_INDEX: delisted,
         "local_path": local_path,
         "parsed_artifact": parsed_entry.get("json_path") if parsed_entry else None,
         "graph_document_id": graph_entry.get("id") if graph_entry else None,
@@ -473,6 +479,7 @@ def build_corpus_audit_report(
             "loaded": sum("loaded" in entry["states"] for entry in family_docs),
             "answer_ready": sum("answer_ready" in entry["states"] for entry in family_docs),
             "retrieval_ready": sum(entry["retrieval_ready"] for entry in family_docs),
+            DELISTED_FROM_INDEX: sum(entry[DELISTED_FROM_INDEX] for entry in family_docs),
         }
         bucket_counts = Counter((entry["corpus_bucket"] or "default") for entry in family_docs)
 
@@ -565,6 +572,13 @@ def render_audit_markdown(report: dict[str, Any]) -> str:
                 failures=failures,
             )
         )
+
+        if family["counts"][DELISTED_FROM_INDEX]:
+            lines.append(
+                "|  |  |  |  |  |  |  |  | de-listed from index, excluded from load: {count} |".format(
+                    count=family["counts"][DELISTED_FROM_INDEX],
+                )
+            )
 
         if (
             family.get("corpus_buckets")

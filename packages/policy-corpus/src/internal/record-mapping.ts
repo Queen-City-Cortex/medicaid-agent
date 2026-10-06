@@ -18,6 +18,15 @@ import type {
 import { compareSectionListing } from './base.js';
 import { MAX_CONTENT_CHARS, SEARCH_SNIPPET_CHARS } from './scoring-constants.js';
 
+/**
+ * Cypher predicate keeping documents the agency tagged Archived out of
+ * default retrieval. They stay in the graph: an exact lookup, a required
+ * dated source or a direct section read still reaches them.
+ */
+export function notArchived(alias: string): string {
+  return `coalesce(${alias}.archived, false) = false`;
+}
+
 export function retrievalDocumentMetadataReturn(alias: string): string {
   return `${alias}.authority_tier AS authorityTier,
                ${alias}.answer_role AS answerRole,

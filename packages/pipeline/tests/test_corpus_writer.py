@@ -183,6 +183,18 @@ def test_registry_timestamps_use_neo4j_utc_format_without_changing_retrieval(val
     assert parameters["retrieved_at"] == value
 
 
+def test_document_merge_writes_the_archived_flag():
+    bundle = _make_bundle()
+    session = FakeSession()
+    _writer_for(session).upsert_document_bundle(
+        replace(bundle, document=replace(bundle.document, archived=True, status="archived"))
+    )
+    parameters = next(parameters for query, parameters in session.calls if query == queries.MERGE_DOCUMENT)
+    assert "d.archived = $archived" in queries.MERGE_DOCUMENT
+    assert parameters["archived"] is True
+    assert parameters["status"] == "archived"
+
+
 def test_invalid_sqlite_calendar_date_fails_before_commit():
     bundle = _make_bundle()
     session = FakeSession()

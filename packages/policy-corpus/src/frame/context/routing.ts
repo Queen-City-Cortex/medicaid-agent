@@ -151,13 +151,16 @@ export function createFrameRoutingHelpers({
     query: string,
     hits: CorpusRetrievalHit[],
   ): Promise<DocumentWithSectionsView[]> => {
-    const lookupDocuments = await collectLookupDocuments(query);
+    // A document the agency archived never routes a coverage frame; a query
+    // that names only archived documents falls through to the hits.
+    const isCurrent = (document: DocumentWithSectionsView) => document.status !== 'archived';
+    const lookupDocuments = (await collectLookupDocuments(query)).filter(isCurrent);
     if (lookupDocuments.length > 0) {
       return isHcwdIncomePremiumQuery(normalizeSearchText(query))
         ? narrowHcwdCoverageDocuments(query, lookupDocuments)
         : lookupDocuments;
     }
-    const inferredDocuments = await collectPolicyDocumentsFromHits(query, hits, FRAME_DOCUMENT_LIMIT + 1);
+    const inferredDocuments = (await collectPolicyDocumentsFromHits(query, hits, FRAME_DOCUMENT_LIMIT + 1)).filter(isCurrent);
     // Setting preference must run BEFORE narrowing: narrowInferredCoverage-
     // Documents keeps only the raw-score winner for non-sibling sets, which
     // discarded the congregate PCS policy whenever CAP/DA outranked it on an

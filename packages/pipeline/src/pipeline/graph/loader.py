@@ -12,7 +12,13 @@ from rich.console import Console
 
 from pipeline.config import PARSED_DATA_DIR, CRAWLER_DATA_DIR, CRAWLER_DB_PATH, SOURCE_TYPE_DIRS
 from pipeline.corpus_manifest import get_source_family
-from pipeline.crawler_registry import normalize_local_path, read_registry_rows
+from pipeline.crawler_registry import (
+    DELISTED_FROM_INDEX,
+    IndexListing,
+    normalize_local_path,
+    read_index_listings,
+    read_registry_rows,
+)
 from pipeline.identity import build_document_id, canonicalize_source_url
 from pipeline.parse.post_process import (
     extract_section_number,
@@ -34,6 +40,18 @@ _DHHS_CHANGE_NOTICE_RE = re.compile(
 _ACTIVE_REGISTRY_STATUSES = frozenset({"downloaded", "updated", "unchanged"})
 
 
+@lru_cache(maxsize=4)
+def _build_cached_index_listings(
+    db_path: str, db_mtime_ns: int | None
+) -> dict[str, IndexListing]:
+    return read_index_listings(Path(db_path))
+
+
+def _index_listing(source_url: str | None) -> IndexListing | None:
+    db_mtime_ns = CRAWLER_DB_PATH.stat().st_mtime_ns if CRAWLER_DB_PATH.exists() else None
+    return _build_cached_index_listings(str(CRAWLER_DB_PATH), db_mtime_ns).get(source_url)
+
+
 def _document_exclusion_reason(meta: dict, crawler_meta: dict) -> str | None:
     """Return why a parsed artifact must stay out of the release graph."""
     if not crawler_meta:
@@ -49,6 +67,9 @@ def _document_exclusion_reason(meta: dict, crawler_meta: dict) -> str | None:
     registry_status = crawler_meta.get("status")
     if registry_status not in _ACTIVE_REGISTRY_STATUSES:
         return f"inactive_registry_status:{registry_status or 'missing'}"
+    listing = _index_listing(crawler_meta.get("source_url"))
+    if listing and listing.delisted:
+        return DELISTED_FROM_INDEX
 
     parse_status = meta.get("parse_status") or "parsed"
     if parse_status != "parsed":
@@ -441,6 +462,11 @@ def _build_document_bundle(
         for section in sections
     ]
 
+    # The agency still publishes an archived document, so it loads and stays
+    # citable, but default retrieval skips it.
+    listing = _index_listing(crawler_meta.get("source_url"))
+    archived = bool(listing and listing.archived)
+
     return DocumentBundle(
         document=DocumentNode(
             id=document_id,
@@ -448,7 +474,7 @@ def _build_document_bundle(
             document_type=source_type,
             policy_number=policy_number or waiver_id,
             category=crawler_meta.get("category"),
-            status="current",
+            status="archived" if archived else "current",
             source_url=(
                 canonicalize_source_url(crawler_meta["source_url"])
                 if crawler_meta.get("source_url")
@@ -473,6 +499,7 @@ def _build_document_bundle(
             variant_group=selection.variant_group,
             variant_date=selection.variant_date,
             retrieval_ready=selection.retrieval_ready,
+            archived=archived,
             source_checked_at=crawler_meta.get("last_checked_at"),
             source_changed_at=crawler_meta.get("last_changed_at"),
         ),
