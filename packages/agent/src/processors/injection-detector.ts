@@ -1,5 +1,5 @@
 import { PromptInjectionDetector, type PromptInjectionDetectionEvent } from '@mastra/core/processors';
-import { CLASSIFIER_MODEL, openaiModel } from '../model.js';
+import { CLASSIFIER_DEADLINE_MS, CLASSIFIER_MODEL, openaiModel, withCallDeadline } from '../model.js';
 import { log } from '../logger.js';
 import { Sentry } from '../sentry.js';
 
@@ -19,10 +19,14 @@ export function isDetectorFailure({ detectionResult }: PromptInjectionDetectionE
 }
 
 /** The one prompt-injection detector configuration, shared by the chat agent
- *  and the deep-research planner. */
+ *  and the deep-research planner. The installed detector takes no deadline or
+ *  abort signal, so the deadline is put on its model; a call that outlasts it
+ *  fails open like any other detector error. Its internal agent already makes
+ *  one attempt only. `lastMessageOnly` means one call, and so at most one
+ *  failure report, per request. */
 export function createInjectionDetector(): PromptInjectionDetector {
   return new PromptInjectionDetector({
-    model: openaiModel(CLASSIFIER_MODEL),
+    model: withCallDeadline(openaiModel(CLASSIFIER_MODEL), CLASSIFIER_DEADLINE_MS),
     threshold: 0.8,
     strategy: 'block',
     detectionTypes: ['injection', 'jailbreak', 'system-override'],
@@ -31,7 +35,7 @@ export function createInjectionDetector(): PromptInjectionDetector {
     lastMessageOnly: true,
     onDetection: (event) => {
       if (!isDetectorFailure(event)) return;
-      log.error('prompt_injection.failed_open', { model: CLASSIFIER_MODEL });
+      log.error('prompt_injection.failed_open', { model: CLASSIFIER_MODEL, deadlineMs: CLASSIFIER_DEADLINE_MS });
       Sentry.captureException(new Error('Prompt-injection detector failed open'), { tags: { component: 'prompt-injection-detector' } });
     },
   });

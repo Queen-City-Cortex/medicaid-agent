@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { CLASSIFIER_MODEL } from '../../src/model.js';
+import { CLASSIFIER_DEADLINE_MS, CLASSIFIER_MODEL } from '../../src/model.js';
 import { createInjectionDetector, isDetectorFailure } from '../../src/processors/injection-detector.js';
 import { log } from '../../src/logger.js';
 import { stubOpenAIKey, stubOpenAIResponses } from '../helpers/openai-responses-stub.js';
@@ -64,7 +64,7 @@ describe('shared prompt-injection detector', () => {
     const error = vi.spyOn(log, 'error').mockImplementation(() => {});
 
     await expect(run()).resolves.toHaveLength(1);
-    expect(error).toHaveBeenCalledExactlyOnceWith('prompt_injection.failed_open', { model: CLASSIFIER_MODEL });
+    expect(error).toHaveBeenCalledExactlyOnceWith('prompt_injection.failed_open', { model: CLASSIFIER_MODEL, deadlineMs: CLASSIFIER_DEADLINE_MS });
   });
 
   it('pins the failure signature of the installed detector', () => {

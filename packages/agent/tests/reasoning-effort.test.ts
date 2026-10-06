@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Agent } from '@mastra/core/agent';
 import { Mastra } from '@mastra/core';
 import { handleChatStream } from '@mastra/ai-sdk';
-import { AGENT_DEFAULT_OPTIONS, AGENT_REASONING_EFFORT, createModel, parseReasoningEffort } from '../src/model.js';
+import { AGENT_DEFAULT_OPTIONS, AGENT_REASONING_EFFORT, createModel, parseReasoningEffort, sentReasoningEffort } from '../src/model.js';
 import { deepResearchPlannerAgent, deepResearchReportAgent, deepResearchWorkerAgent } from '../src/deep-research/agents.js';
 import { stubOpenAIResponses } from './helpers/openai-responses-stub.js';
 
@@ -22,6 +22,29 @@ describe('AGENT_REASONING_EFFORT', () => {
     expect(parseReasoningEffort('high')).toBe('high');
     expect(() => parseReasoningEffort('extreme')).toThrow('AGENT_REASONING_EFFORT must be one of: none, minimal, low, medium, high, xhigh');
     expect(() => parseReasoningEffort('Medium')).toThrow();
+  });
+});
+
+describe('sentReasoningEffort, the value the CLI reports in agent_config', () => {
+  const makeAgent = (modelId: string) => new Agent({
+    id: 'chat', name: 'Chat', instructions: 'Answer the question.',
+    model: createModel(modelId), defaultOptions: AGENT_DEFAULT_OPTIONS,
+  });
+
+  // The last three are OpenAI ids the provider does not treat as reasoning models.
+  it.each(['gpt-5.6-terra', 'gpt-5.4', 'gpt-5-mini', 'o3', 'o4-mini', 'gpt-4.1', 'gpt-5-chat-latest', 'o4'])(
+    'matches what the installed OpenAI provider puts on the wire for %s', async (modelId) => {
+      const { bodies } = stubOpenAIResponses([ANSWER]);
+      await makeAgent(modelId).generate('Is it covered?', { maxSteps: 1 });
+      expect(bodies[0].reasoning?.effort ?? null).toBe(sentReasoningEffort(modelId));
+    });
+
+  it('is the configured effort for a reasoning model and null where none is sent', () => {
+    expect(sentReasoningEffort('gpt-5.6-terra')).toBe(AGENT_REASONING_EFFORT);
+    expect(sentReasoningEffort('gpt-4.1')).toBeNull();
+    expect(sentReasoningEffort('gpt-5-chat-latest')).toBeNull();
+    // Anthropic models ignore the openai options.
+    expect(sentReasoningEffort('claude-sonnet-4-5')).toBeNull();
   });
 });
 

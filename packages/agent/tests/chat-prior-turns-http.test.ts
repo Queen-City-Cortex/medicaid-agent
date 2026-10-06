@@ -14,7 +14,7 @@ import { createChatRoute } from '../src/chat-route.js';
 import { createResourceBindingMiddleware } from '../src/auth-middleware.js';
 import { installMemoryReleaseGate } from '../src/answer-release.js';
 import { COVERAGE_VERIFICATION_QUERY, CoverageBoundaryProcessor } from '../src/processors/coverage-boundary.js';
-import { ScopeGateProcessor } from '../src/processors/scope-gate.js';
+import { CHAT_ABORT_SIGNAL, ScopeGateProcessor } from '../src/processors/scope-gate.js';
 import { CHAT_PRIOR_TURNS, readPriorTurns, type PriorTurn } from '../src/processors/prior-turns.js';
 import { contentText } from '../src/processors/message-utils.js';
 import { HallucinationVerifier } from '../src/processors/verifier/processor.js';
@@ -242,4 +242,30 @@ describe('stored prior turns', () => {
       expect(JSON.stringify(turns)).not.toContain('UNSIGNED_ANSWER');
     } finally { await chat.close(); }
   });
+});
+
+describe('the request abort signal reaches the scope classifier', () => {
+  it('aborts the classifier call when the client disconnects, whatever the client put in the context', async () => {
+    const chat = await harness(false);
+    try {
+      // A classifier that does not answer until its signal aborts.
+      const signals: AbortSignal[] = [];
+      vi.mocked(generateObject).mockImplementation((({ abortSignal, maxRetries }: { abortSignal: AbortSignal; maxRetries: number }) => {
+        expect(maxRetries).toBe(0);
+        signals.push(abortSignal);
+        return new Promise((_resolve, reject) => abortSignal.addEventListener('abort', () => reject(abortSignal.reason), { once: true }));
+      }) as never);
+      const client = new AbortController();
+      const pending = chat.app.request(new Request('http://agent.test/chat', { method: 'POST', signal: client.signal,
+        headers: { 'content-type': 'application/json', authorization: 'Bearer test-owner' },
+        body: JSON.stringify({ messages: [{ id: crypto.randomUUID(), role: 'user', parts: [{ type: 'text', text: 'Does Medicaid cover dental?' }] }],
+          memory: { thread: 'disconnect' }, requestContext: { [CHAT_ABORT_SIGNAL]: { aborted: false } } }) }));
+      await vi.waitFor(() => expect(signals).toHaveLength(1));
+      expect(signals[0].aborted).toBe(false);
+      expect(chat.contexts.at(-1)!.get(CHAT_ABORT_SIGNAL)).toBeInstanceOf(AbortSignal);
+      client.abort();
+      await vi.waitFor(() => expect(signals[0].aborted).toBe(true));
+      await Promise.resolve(pending).then(response => response.text()).catch(() => {});
+    } finally { await chat.close(); }
+  }, 30_000);
 });

@@ -38,6 +38,22 @@ export function openaiModel(modelId: string): ProviderModel {
   });
 }
 
+/** `model` with a deadline on every call it makes, joined to any signal the
+ *  caller passed. For callers that cannot pass a signal themselves: Mastra's
+ *  PromptInjectionDetector has no deadline or signal option. */
+export function withCallDeadline(model: ProviderModel, deadlineMs: number): ProviderModel {
+  return wrapLanguageModel({
+    model,
+    middleware: {
+      specificationVersion: 'v3',
+      transformParams: async ({ params }) => {
+        const deadline = AbortSignal.timeout(deadlineMs);
+        return { ...params, abortSignal: params.abortSignal ? AbortSignal.any([params.abortSignal, deadline]) : deadline };
+      },
+    },
+  });
+}
+
 // Model for the cheap classifiers that run before the agent: the scope gate,
 // both prompt-injection detectors, and the health probe's default target.
 // SCOPE_GATE_MODEL overrides it for all of them. gpt-5-mini's only snapshot
@@ -46,6 +62,14 @@ export function openaiModel(modelId: string): ProviderModel {
 // default here to gpt-5.4-mini before that date, after the qualification
 // steps in docs/development/gotchas.md.
 export const CLASSIFIER_MODEL = strEnv('SCOPE_GATE_MODEL', 'gpt-5-mini');
+
+// Deadline for one classifier call on the request path (scope gate and
+// prompt-injection detector). Both run before the agent starts and both fail
+// open, so this is the longest a slow provider can hold a turn at each gate.
+// Provisional: the top of the 8 to 10 second range from the October 2026
+// review, because the classifier's latency at its default reasoning effort has
+// not been measured. Set it from a measured run (docs/development/gotchas.md).
+export const CLASSIFIER_DEADLINE_MS = 10_000;
 
 // Default chosen by the 2026-07-09 agent-model A/B gate (scripts/eval-ab.sh
 // agent, 3 runs × 50 held-out questions per arm): gpt-5.6-terra matched or beat
@@ -79,6 +103,17 @@ export const AGENT_REASONING_EFFORT = parseReasoningEffort(process.env.AGENT_REA
 export const AGENT_DEFAULT_OPTIONS = {
   providerOptions: { openai: { reasoningEffort: AGENT_REASONING_EFFORT } },
 };
+
+/** The reasoning effort a request to `modelId` actually carries, or null when
+ *  none is sent: Anthropic models ignore the `openai` options, and the OpenAI
+ *  provider drops the setting for ids it does not treat as reasoning models
+ *  (its rule, copied here: o1, o3, o4-mini and gpt-5 other than gpt-5-chat).
+ *  tests/reasoning-effort.test.ts checks this against the installed provider. */
+export function sentReasoningEffort(modelId: string): ReasoningEffort | null {
+  const reasoning = modelId.startsWith('o1') || modelId.startsWith('o3') || modelId.startsWith('o4-mini')
+    || (modelId.startsWith('gpt-5') && !modelId.startsWith('gpt-5-chat'));
+  return reasoning ? AGENT_REASONING_EFFORT : null;
+}
 
 /** Resolve a model id ("gpt-5.6-terra", "claude-…") to an AI SDK model instance.
  *  OpenAI reasoning models use the o1/o3/o4 prefixes; everything non-OpenAI

@@ -112,6 +112,13 @@ const MIGRATIONS: ReadonlyArray<{ version: number; statements: string[] }> = [
       `CREATE TABLE research_budgets (run_id TEXT NOT NULL, key TEXT NOT NULL, used INTEGER NOT NULL, limit_value INTEGER NOT NULL, PRIMARY KEY(run_id, key))`,
     ],
   },
+  {
+    // The service-wide run ceiling and the retention delete filter on time alone.
+    version: 7,
+    statements: [
+      `CREATE INDEX IF NOT EXISTS idx_rate_limit_time ON rate_limit_events (created_at)`,
+    ],
+  },
 ];
 
 const USER_THREADS = 'SELECT id FROM mastra_threads WHERE resourceId = ?';

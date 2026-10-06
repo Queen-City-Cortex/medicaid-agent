@@ -2,7 +2,7 @@ import { classifyScopeWithJev } from '../jev/scope.js';
 import type { Processor, ProcessInputArgs, ProcessInputResult } from '@mastra/core/processors';
 import { generateObject } from 'ai';
 import { z } from 'zod';
-import { CLASSIFIER_MODEL, openaiModel } from '../model.js';
+import { CLASSIFIER_DEADLINE_MS, CLASSIFIER_MODEL, openaiModel } from '../model.js';
 import { SCOPE_DESCRIPTION } from '../prompt.js';
 import { log, errorFields } from '../logger.js';
 import { Sentry } from '../sentry.js';
@@ -47,11 +47,24 @@ export function conversationWindow(messages: Array<{ role?: string; content?: un
     .join('\n');
 }
 
-/** Shared production call, including SDK defaults, for scope validation. */
-export async function classifyScopeWithOpenAI(window: string) {
+/** Server-owned request-context key: the HTTP request's abort signal. Mastra
+ *  1.58 does not hand `abortSignal` to input processors, so the chat route
+ *  sets it here; a client can only supply JSON, which is never an AbortSignal. */
+export const CHAT_ABORT_SIGNAL = 'chatAbortSignal';
+
+/**
+ * The scope classification call. The gate passes `bounds`: the request's
+ * abort signal joined to its deadline, and no retries. The Jev scope baseline
+ * (jev/eval-worker.ts) calls it without bounds, so that benchmark still runs
+ * at SDK defaults, the configuration its frozen fixtures name. Reasoning
+ * effort is the model's default on both paths; changing it is a classifier
+ * change (docs/development/gotchas.md).
+ */
+export async function classifyScopeWithOpenAI(window: string, bounds: { abortSignal?: AbortSignal; maxRetries?: number } = {}) {
   const result = await generateObject({
     model: openaiModel(CLASSIFIER_MODEL),
     schema: ScopeVerdictSchema,
+    ...bounds,
     system: CLASSIFIER_INSTRUCTIONS,
     messages: [{ role: 'user', content: `## CONVERSATION (latest last)\n\n${window}` }],
   });
@@ -65,28 +78,46 @@ export async function classifyScopeWithOpenAI(window: string) {
  * section is the defense-in-depth for whatever slips through.
  *
  * Fails OPEN on classifier errors — the worst case of an outage is one
- * off-topic answer, which must not take the product down.
+ * off-topic answer, which must not take the product down. The OpenAI call
+ * makes one attempt under CLASSIFIER_DEADLINE_MS, so a slow provider fails
+ * open at the deadline instead of holding the turn. Every pass without a
+ * verdict is logged as `scope_gate.failed_open` with its reason.
  */
 export class ScopeGateProcessor implements Processor {
   readonly id = 'scope-gate';
   readonly name = 'Scope Gate';
 
-  async processInput({ messages, requestContext, abort }: ProcessInputArgs<GateTripwireMetadata>): Promise<ProcessInputResult> {
+  async processInput({ messages, requestContext, abort, abortSignal }: ProcessInputArgs<GateTripwireMetadata>): Promise<ProcessInputResult> {
     if (!isScopeGateEnabled()) return messages;
 
     const window = conversationWindow(withPriorTurns(requestContext, messages));
     if (!window.trim()) return messages;
 
+    const fromRoute = requestContext?.get(CHAT_ABORT_SIGNAL);
+    const requestSignal = fromRoute instanceof AbortSignal ? fromRoute : abortSignal;
+    const deadline = AbortSignal.timeout(CLASSIFIER_DEADLINE_MS);
     let verdict: z.infer<typeof ScopeVerdictSchema>;
     try {
       if (process.env.SCOPE_GATE_PROVIDER?.trim() === 'jev') {
         verdict = await classifyScopeWithJev(window, CLASSIFIER_INSTRUCTIONS);
       } else {
-        verdict = (await classifyScopeWithOpenAI(window)).object;
+        verdict = (await classifyScopeWithOpenAI(window, {
+          abortSignal: requestSignal ? AbortSignal.any([requestSignal, deadline]) : deadline,
+          maxRetries: 0,
+        })).object;
       }
     } catch (err) {
-      log.error('scope_gate.failed_open', errorFields(err));
-      Sentry.captureException(err, { tags: { component: 'scope-gate' } });
+      // The client leaving and our own deadline firing are not provider
+      // errors: they are logged, and only a real failure goes to Sentry (a
+      // slow provider would otherwise raise one exception per turn).
+      if (requestSignal?.aborted) {
+        log.info('scope_gate.failed_open', { reason: 'client_aborted' });
+      } else if (deadline.aborted) {
+        log.warn('scope_gate.failed_open', { reason: 'deadline', deadlineMs: CLASSIFIER_DEADLINE_MS, model: CLASSIFIER_MODEL });
+      } else {
+        log.error('scope_gate.failed_open', { reason: 'error', ...errorFields(err) });
+        Sentry.captureException(err, { tags: { component: 'scope-gate' } });
+      }
       return messages;
     }
 

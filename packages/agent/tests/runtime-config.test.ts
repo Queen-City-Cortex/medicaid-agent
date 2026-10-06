@@ -76,6 +76,17 @@ describe('loadRuntimeConfig', () => {
     })).toThrow('NEO4J_URI');
   });
 
+  it('leaves the service-wide run ceiling off by default and rejects a value that is not an integer', () => {
+    const ceiling = (value?: string) => loadRuntimeConfig({ ...KEYS, NODE_ENV: 'development',
+      ...(value === undefined ? {} : { RATE_LIMIT_GLOBAL_PER_DAY: value }) }).rateLimitGlobalPerDay;
+    expect(ceiling()).toBe(0);
+    expect(ceiling('')).toBe(0);
+    expect(ceiling('-1')).toBe(-1);
+    expect(ceiling('2000')).toBe(2000);
+    expect(() => ceiling('2k')).toThrow('RATE_LIMIT_GLOBAL_PER_DAY must be an integer');
+    expect(() => ceiling('1.5')).toThrow('RATE_LIMIT_GLOBAL_PER_DAY must be an integer');
+  });
+
   it('validates the agent reasoning effort against its allow-list', () => {
     expect(loadRuntimeConfig({ ...KEYS }).agentReasoningEffort).toBe('medium');
     expect(loadRuntimeConfig({ ...KEYS, AGENT_REASONING_EFFORT: 'high' }).agentReasoningEffort).toBe('high');

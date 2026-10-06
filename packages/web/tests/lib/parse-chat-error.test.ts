@@ -11,6 +11,12 @@ describe('parseChatError', () => {
     expect(parseChatError(error)).toEqual({ kind: 'rate-limited', message });
   });
 
+  it('classifies the service-wide ceiling apart from the user\'s own limit', () => {
+    const message = 'This service has reached its daily limit for new questions. Please try again in 3 hour(s).';
+    const error = new Error(body('service_limit_reached', message, { retryAfterSeconds: 10_800, details: { window: 'day', scope: 'service' } }));
+    expect(parseChatError(error)).toEqual({ kind: 'service-limit', message });
+  });
+
   it('classifies a 413 payload-too-large body', () => {
     expect(parseChatError(new Error(body('payload_too_large', 'That request is too large.'))))
       .toEqual({ kind: 'payload-too-large', message: 'That request is too large.' });

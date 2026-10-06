@@ -11,6 +11,7 @@ import {
 } from '@nc-medicaid/contracts';
 import { afterEach, describe, expect, it } from 'vitest';
 import { AppDatabase } from '../../src/storage/app-database.js';
+import { RateLimitRepository } from '../../src/rate-limit/repository.js';
 import { UsageRepository } from '../../src/usage/repository.js';
 
 const DAY_MS = 86_400_000;
@@ -37,7 +38,34 @@ describe('AppDatabase', () => {
     await database.migrate();
     await database.migrate();
     const result = await database.client.execute('SELECT version FROM _app_migrations ORDER BY version');
-    expect(result.rows.map((row) => Number(row.version))).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(result.rows.map((row) => Number(row.version))).toEqual([1, 2, 3, 4, 5, 6, 7]);
+  });
+
+  it('indexes rate-limit events by time, on a new database and on one the repository already bootstrapped', async () => {
+    const indexes = async (database: AppDatabase) => (await database.client.execute(
+      "SELECT name FROM sqlite_master WHERE type = 'index' AND tbl_name = 'rate_limit_events' ORDER BY name")).rows.map((row) => String(row.name));
+    const fresh = createDatabase();
+    await fresh.migrate();
+    expect(await indexes(fresh)).toEqual(['idx_rate_limit_time', 'idx_rate_limit_user_time']);
+
+    // The existing database: migrated before the index existed, holding rows.
+    const existing = createDatabase();
+    await existing.migrate();
+    await existing.client.execute('DROP INDEX idx_rate_limit_time');
+    await existing.client.execute('DELETE FROM _app_migrations WHERE version = 7');
+    await existing.client.execute({ sql: 'INSERT INTO rate_limit_events (user_id, route, created_at) VALUES (?, ?, ?)', args: ['user-1', 'chat', 1] });
+    const reopened = new AppDatabase(existing.client);
+    await reopened.migrate();
+    expect(await indexes(reopened)).toEqual(['idx_rate_limit_time', 'idx_rate_limit_user_time']);
+
+    // The repository creates the same index lazily; the migration then adopts it.
+    const lazy = createDatabase();
+    await new RateLimitRepository(lazy.client).checkAndRecord('user-1', 'chat');
+    expect(await indexes(lazy)).toEqual(['idx_rate_limit_time', 'idx_rate_limit_user_time']);
+    await expect(lazy.migrate()).resolves.toBeUndefined();
+    await expect(lazy.migrate()).resolves.toBeUndefined();
+    const plan = await lazy.client.execute({ sql: 'EXPLAIN QUERY PLAN SELECT COUNT(*) FROM rate_limit_events WHERE created_at > ?', args: [0] });
+    expect(JSON.stringify(plan.rows)).toContain('idx_rate_limit_time');
   });
 
   it('adopts a lazily bootstrapped latest usage schema', async () => {
@@ -52,7 +80,7 @@ describe('AppDatabase', () => {
 
     await expect(database.migrate()).resolves.toBeUndefined();
     const versions = await database.client.execute('SELECT version FROM _app_migrations ORDER BY version');
-    expect(versions.rows.map((row) => Number(row.version))).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(versions.rows.map((row) => Number(row.version))).toEqual([1, 2, 3, 4, 5, 6, 7]);
   });
 
   it('deletes all app-owned data for one resource only', async () => {

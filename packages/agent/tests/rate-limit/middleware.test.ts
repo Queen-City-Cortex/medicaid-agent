@@ -21,6 +21,7 @@ function buildApp(middleware: unknown, boundUserId?: string) {
   app.post('/chat', (c) => c.json({ ok: true }));
   app.get('/chat', (c) => c.json({ ok: true }));
   app.post('/feedback', (c) => c.json({ ok: true }));
+  app.post('/research/runs', (c) => c.json({ ok: true }));
   app.post('/api/workflows/deepResearchWorkflow/start-async', (c) => c.json({ ok: true }));
   return app;
 }
@@ -37,6 +38,7 @@ describe('createRateLimitMiddleware', () => {
   afterEach(() => {
     delete process.env.RATE_LIMIT_MESSAGES_PER_HOUR;
     delete process.env.RATE_LIMIT_MESSAGES_PER_DAY;
+    delete process.env.RATE_LIMIT_GLOBAL_PER_DAY;
     delete process.env.NODE_ENV;
   });
 
@@ -74,6 +76,31 @@ describe('createRateLimitMiddleware', () => {
     const app = buildApp(createRateLimitMiddleware(repo));
     for (let i = 0; i < 5; i++) {
       expect((await app.request('/chat', { method: 'POST' })).status).toBe(200);
+    }
+  });
+
+  it('429s every user with its own code and message once the service-wide ceiling is reached', async () => {
+    process.env.RATE_LIMIT_GLOBAL_PER_DAY = '2';
+    expect((await buildApp(createRateLimitMiddleware(repo), 'user_A').request('/chat', { method: 'POST' })).status).toBe(200);
+    expect((await buildApp(createRateLimitMiddleware(repo), 'user_B').request('/research/runs', { method: 'POST' })).status).toBe(200);
+
+    for (const path of ['/chat', '/research/runs']) {
+      const denied = await buildApp(createRateLimitMiddleware(repo), 'user_C').request(path, { method: 'POST' });
+      expect(denied.status).toBe(429);
+      expect(denied.headers.get('Retry-After')).toMatch(/^\d+$/);
+      const body = await denied.json();
+      expect(body).toMatchObject({ error: { code: 'service_limit_reached', retryAfterSeconds: expect.any(Number), details: { window: 'day', scope: 'service' } } });
+      expect(body.error.message).toBe('This service has reached its daily limit for new questions. Please try again in 24 hour(s).');
+      // The ceiling's size is the operator's, not the user's, to know.
+      expect(JSON.stringify(body)).not.toContain('"limit"');
+    }
+    // Reads stay available while the ceiling holds.
+    expect((await buildApp(createRateLimitMiddleware(repo), 'user_C').request('/chat', { method: 'GET' })).status).toBe(200);
+  });
+
+  it('leaves the ceiling off when the variable is unset', async () => {
+    for (const user of ['user_A', 'user_B', 'user_C', 'user_D']) {
+      expect((await buildApp(createRateLimitMiddleware(repo), user).request('/chat', { method: 'POST' })).status).toBe(200);
     }
   });
 

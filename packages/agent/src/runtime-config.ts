@@ -64,6 +64,9 @@ const RuntimeConfigShape = z.object({
   }),
   agentModel: z.string().min(1),
   agentReasoningEffort: z.enum(REASONING_EFFORTS),
+  // Service-wide ceiling on run starts in 24 hours; zero or less is off, the
+  // default. RateLimitRepository reads the variable itself on each request.
+  rateLimitGlobalPerDay: z.number().int(),
   maxBodyBytes: z.number().int().positive(),
   maxMessageChars: z.number().int().positive(),
   // Off by default (owner decision, October 2026). Thread history is unaffected.
@@ -155,6 +158,7 @@ export function loadRuntimeConfig(
     neo4j,
     agentModel,
     agentReasoningEffort,
+    rateLimitGlobalPerDay: parseInteger(env, 'RATE_LIMIT_GLOBAL_PER_DAY', 0),
     maxBodyBytes: parseInteger(env, 'MAX_BODY_BYTES', 2 * 1024 * 1024),
     maxMessageChars: parseInteger(env, 'MAX_MESSAGE_CHARS', 10_000),
     observationalMemoryEnabled: ['1', 'true'].includes(env.OBSERVATIONAL_MEMORY_ENABLED ?? ''),

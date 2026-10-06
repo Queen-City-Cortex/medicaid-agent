@@ -17,6 +17,7 @@ describe('RateLimitRepository', () => {
   afterEach(() => {
     delete process.env.RATE_LIMIT_MESSAGES_PER_HOUR;
     delete process.env.RATE_LIMIT_MESSAGES_PER_DAY;
+    delete process.env.RATE_LIMIT_GLOBAL_PER_DAY;
   });
 
   it('allows up to the hourly limit, then blocks with the hour window', async () => {
@@ -90,5 +91,60 @@ describe('RateLimitRepository', () => {
     // attempt had been recorded the user would still be blocked.
     const after = await repo.checkAndRecord('u1', 'chat', T0 + HOUR + 4);
     expect(after.allowed).toBe(true);
+  });
+
+  describe('service-wide daily ceiling', () => {
+    // One start per user, so no per-user window is ever the reason.
+    const start = (n: number, at = T0 + n) => repo.checkAndRecord(`u${n}`, n % 2 ? 'chat' : 'deep-research', at);
+
+    it('is off by default: any number of users start runs', async () => {
+      for (let n = 0; n < 20; n++) expect((await start(n)).allowed).toBe(true);
+    });
+
+    it.each(['0', '-1'])('is off when the variable is %s', async (value) => {
+      process.env.RATE_LIMIT_GLOBAL_PER_DAY = value;
+      for (let n = 0; n < 20; n++) expect((await start(n)).allowed).toBe(true);
+    });
+
+    it('refuses every user once the count is reached, with a decision distinct from the per-user one', async () => {
+      process.env.RATE_LIMIT_GLOBAL_PER_DAY = '4';
+      // Chat turns and research starts count alike.
+      for (let n = 0; n < 4; n++) expect((await start(n, T0 + n * MINUTE)).allowed).toBe(true);
+      const denied = await start(4, T0 + 10 * MINUTE);
+      // The oldest counted start (T0) leaves the day window at T0 + 24h.
+      expect(denied).toEqual({ allowed: false, scope: 'service', window: 'day', limit: 4, retryAfterSeconds: 24 * 60 * 60 - 10 * 60 });
+      // A user who already has runs today is refused the same way.
+      expect(await start(0, T0 + 11 * MINUTE)).toMatchObject({ allowed: false, scope: 'service' });
+    });
+
+    it('reports the user\'s own limit first when both are reached', async () => {
+      process.env.RATE_LIMIT_GLOBAL_PER_DAY = '3';
+      for (let i = 0; i < 3; i++) await repo.checkAndRecord('u1', 'chat', T0 + i);
+      expect(await repo.checkAndRecord('u1', 'chat', T0 + 5)).toMatchObject({ allowed: false, scope: 'user', window: 'hour', limit: 3 });
+      expect(await repo.checkAndRecord('u2', 'chat', T0 + 5)).toMatchObject({ allowed: false, scope: 'service' });
+    });
+
+    it('slides: starts older than a day stop counting', async () => {
+      process.env.RATE_LIMIT_GLOBAL_PER_DAY = '2';
+      await start(0, T0);
+      await start(1, T0 + HOUR);
+      expect((await start(2, T0 + 2 * HOUR)).allowed).toBe(false);
+      expect((await start(2, T0 + 24 * HOUR + 1)).allowed).toBe(true);
+    });
+
+    it('does not record refused starts, so the lockout cannot extend itself', async () => {
+      process.env.RATE_LIMIT_GLOBAL_PER_DAY = '1';
+      await start(0, T0);
+      for (let n = 1; n < 6; n++) expect((await start(n, T0 + n * HOUR)).allowed).toBe(false);
+      expect((await start(6, T0 + 24 * HOUR + 1)).allowed).toBe(true);
+    });
+
+    it('is atomic: a burst from many users cannot exceed the ceiling', async () => {
+      process.env.RATE_LIMIT_GLOBAL_PER_DAY = '3';
+      const results = await Promise.all(Array.from({ length: 12 }, (_, n) => repo.checkAndRecord(`u${n}`, 'chat', T0)));
+      expect(results.filter((r) => r.allowed)).toHaveLength(3);
+      expect(results.filter((r) => !r.allowed)).toHaveLength(9);
+      expect(results.filter((r) => !r.allowed).every((r) => !r.allowed && r.scope === 'service')).toBe(true);
+    });
   });
 });

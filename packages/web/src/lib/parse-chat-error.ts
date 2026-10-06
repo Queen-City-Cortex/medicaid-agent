@@ -3,12 +3,14 @@
  * SDK surfaces the response body text as the Error message, so the agent's
  * `{ error: { code, message } }` responses arrive here as JSON strings.
  * Retrying cannot fix a kind that carries a server message, so the page shows
- * that message without a retry button. `disconnected` is a request that never
+ * that message without a retry button. `service-limit` is the daily ceiling
+ * every user shares, as opposed to `rate-limited`, the user's own limit. `disconnected` is a request that never
  * reached the server or a stream that broke off: `fetch` rejects with a
  * TypeError, worded differently by each browser. Anything else is generic.
  */
 export type ChatErrorInfo =
   | { kind: 'rate-limited'; message: string }
+  | { kind: 'service-limit'; message: string }
   | { kind: 'payload-too-large'; message: string }
   | { kind: 'identifier-detected'; message: string }
   | { kind: 'disconnected' }
@@ -49,6 +51,7 @@ export function parseChatError(error: unknown): ChatErrorInfo {
   const { code, message } = envelope as { code?: unknown; message?: unknown };
   if (typeof message !== 'string' || !message) return { kind: 'generic' };
   if (code === 'rate_limited') return { kind: 'rate-limited', message };
+  if (code === 'service_limit_reached') return { kind: 'service-limit', message };
   if (code === 'payload_too_large') return { kind: 'payload-too-large', message };
   if (code === 'client_identifier_detected') return { kind: 'identifier-detected', message };
   return { kind: 'generic' };

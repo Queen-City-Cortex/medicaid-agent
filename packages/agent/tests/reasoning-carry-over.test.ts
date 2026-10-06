@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import { Agent } from '@mastra/core/agent';
 import { createTool } from '@mastra/core/tools';
-import { openaiModel } from '../src/model.js';
+import { AGENT_DEFAULT_OPTIONS, createModel, openaiModel } from '../src/model.js';
 import { HallucinationVerifier } from '../src/processors/verifier/processor.js';
 import { OpenAIResponsesDedupProcessor } from '../src/processors/openai-responses-dedup.js';
 import { stubOpenAIResponses, type StubOutputItem } from './helpers/openai-responses-stub.js';
@@ -112,6 +112,43 @@ describe('reasoning carry-over with storage off', () => {
     ]);
     expect(replayed).not.toContain('item_reference');
     expect(bodies[2].input.filter((item: any) => item.type === 'function_call')).toHaveLength(2);
+  });
+
+  // Without the web verifier nothing removes an interim sentence, so the whole
+  // step is replayed. OpenAI rejects a reasoning item that is not followed by
+  // the output item it produced, so the order is part of the contract.
+  const NARRATED_STEP: StubOutputItem[] = [
+    { type: 'reasoning', id: 'rs_narrated', encrypted_content: 'narrated-blob', summary: [] },
+    { type: 'message', id: 'msg_interim', text: 'Let me look that up.' },
+    TOOL_STEP[1],
+  ];
+  // Deep-research agents are built as deep-research/agents.ts builds them:
+  // the model factory, the shared default options, no output processors.
+  const researchAgent = () => new Agent({
+    id: 'research-shape', name: 'Research shape', instructions: 'Research the question.',
+    model: createModel('gpt-5.6-terra'), defaultOptions: AGENT_DEFAULT_OPTIONS, tools: { lookup },
+  });
+
+  it.each([
+    ['CLI', () => makeAgent({ web: false })],
+    ['deep-research', researchAgent],
+  ])('%s: a narrated step is replayed as reasoning, then the assistant message, then the function call', async (_path, build) => {
+    const { bodies } = stubOpenAIResponses([NARRATED_STEP, ANSWER_STEP]);
+    const result = await build().generate('Is it covered?', { maxSteps: 3 });
+
+    expect(result.text).toContain('The service is covered.');
+    expect(bodies).toHaveLength(2);
+    const replayed = bodies[1].input.slice(bodies[1].input.findIndex((item: any) => item.type === 'reasoning'));
+    expect(replayed.map((item: any) => item.type ?? item.role)).toEqual(['reasoning', 'assistant', 'function_call', 'function_call_output']);
+    expect(replayed[0]).toEqual({ type: 'reasoning', id: 'rs_narrated', encrypted_content: 'narrated-blob', summary: [] });
+    expect(JSON.stringify(replayed[1])).toContain('Let me look that up.');
+    expect(replayed[2]).toMatchObject({ type: 'function_call', call_id: 'call_1', name: 'lookup' });
+    for (const body of bodies) {
+      expect(body.store).toBe(false);
+      expect(body.include).toContain('reasoning.encrypted_content');
+      expect(body.previous_response_id).toBeUndefined();
+      expect(JSON.stringify(body)).not.toContain('item_reference');
+    }
   });
 
   it('drops reasoning that has no encrypted content instead of referencing a stored item', async () => {

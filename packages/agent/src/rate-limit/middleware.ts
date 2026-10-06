@@ -75,7 +75,8 @@ export function createBodySizeGuard(): GuardMiddleware {
 }
 
 /**
- * Per-user sliding-window rate limit on agent-run starts. Reads the user id
+ * Per-user sliding-window rate limit on agent-run starts, plus the optional
+ * service-wide daily ceiling (RATE_LIMIT_GLOBAL_PER_DAY). Reads the user id
  * bound by createResourceBindingMiddleware (which must run earlier in the
  * middleware array — Mastra's own auth is per-route and runs too late).
  * In production, storage errors fail closed so a database outage cannot turn
@@ -102,8 +103,25 @@ export function createRateLimitMiddleware(repo: RateLimitRepository): GuardMiddl
           decision.retryAfterSeconds >= 3600
             ? `${Math.ceil(decision.retryAfterSeconds / 3600)} hour(s)`
             : `${Math.ceil(decision.retryAfterSeconds / 60)} minute(s)`;
-        log.warn('rate_limit.blocked', { userId, route, window: decision.window, limit: decision.limit });
         c.header('Retry-After', String(decision.retryAfterSeconds));
+        if (decision.scope === 'service') {
+          // Every user is locked out until runs age out of the day: this is
+          // the operator's signal. The body does not state the ceiling.
+          log.error('rate_limit.service_ceiling_reached', { userId, route, limit: decision.limit, retryAfterSeconds: decision.retryAfterSeconds });
+          Sentry.captureMessage('Service-wide daily run ceiling reached', { level: 'error', tags: { component: 'rate-limit' } });
+          return c.json(
+            {
+              error: {
+                code: 'service_limit_reached',
+                message: `This service has reached its daily limit for new questions. Please try again in ${retryText}.`,
+                retryAfterSeconds: decision.retryAfterSeconds,
+                details: { window: decision.window, scope: decision.scope },
+              },
+            },
+            429,
+          );
+        }
+        log.warn('rate_limit.blocked', { userId, route, window: decision.window, limit: decision.limit });
         return c.json(
           {
             error: {

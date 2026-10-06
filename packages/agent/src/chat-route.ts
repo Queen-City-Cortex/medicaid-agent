@@ -12,6 +12,7 @@ import { log, errorFields } from './logger.js';
 import { Sentry } from './sentry.js';
 import { CHAT_DIAGNOSTIC_CONTEXT, CHAT_VERIFICATION_QUESTION } from './processors/verifier/context.js';
 import { CHAT_PRIOR_TURNS, readPriorTurns } from './processors/prior-turns.js';
+import { CHAT_ABORT_SIGNAL } from './processors/scope-gate.js';
 import { finishChatDiagnostic, type ChatDiagnostic } from './processors/verifier/diagnostics.js';
 
 type ChatFinishEvent = Parameters<NonNullable<AgentExecutionOptions['onFinish']>>[0];
@@ -68,6 +69,8 @@ export function createChatRoute(usageRepo: Pick<UsageRepository, 'record'>, runL
       // screened and release-gated, and replace anything a client supplied.
       if (thread) requestContext.set(CHAT_PRIOR_TURNS, await readPriorTurns(memoryStore, input.memory.thread));
       const signal = c.req.raw.signal;
+      // Mastra does not pass the abort signal to input processors.
+      requestContext.set(CHAT_ABORT_SIGNAL, signal);
       let diagnostic: ChatDiagnostic | undefined;
       const onAbort = () => finishChatDiagnostic(diagnostic, { status: 'cancelled' });
       const finishDiagnostic = () => {
