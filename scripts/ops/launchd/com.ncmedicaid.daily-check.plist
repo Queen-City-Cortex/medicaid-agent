@@ -18,8 +18,10 @@
   </dict>
   <key>WorkingDirectory</key>
   <string>__REPO_ROOT__</string>
-  <!-- launchd does not load the user's fish config: node/npx/jq/rclone need
-       Homebrew on PATH explicitly. -->
+  <!-- launchd does not load the user's fish config: jq/rclone/railway need
+       Homebrew on PATH explicitly. Node does not come from here: Homebrew's
+       node is a newer major, so scripts/ops/lib.sh puts the pinned Node
+       (OPS_NODE_BIN) ahead of this PATH and checks it against .nvmrc. -->
   <key>EnvironmentVariables</key>
   <dict>
     <key>PATH</key>

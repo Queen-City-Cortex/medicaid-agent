@@ -3,7 +3,7 @@
 ## Prerequisites
 
 - Docker running (Neo4j via `docker compose up -d neo4j` or `npm run dev:infra`)
-- Node.js 22.12+ (root `engines.node` is `>=22.12.0`; commander 15's ESM build needs it)
+- Node.js 22.23.3, the version in `.nvmrc` and root `engines.node` (CI installs it from `.nvmrc`; the three Dockerfiles pin the same version)
 - Python 3.11+ with venv at `packages/pipeline/.venv/`
 - `VOYAGE_API_KEY` environment variable set (for embeddings and search)
 - `OPENAI_API_KEY` environment variable set (for the agent, verifier, scope gate and prompt-injection detector)

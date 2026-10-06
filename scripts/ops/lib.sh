@@ -27,6 +27,43 @@ mkdir -p "$LOG_DIR" "$CACHE_DIR"
 
 log() { printf '%s %s\n' "$(date '+%Y-%m-%dT%H:%M:%S%z')" "$*"; }
 
+# ── Node runtime ─────────────────────────────────────────────────────────────
+# launchd puts Homebrew first on PATH, and Homebrew's node moves to each new
+# major, where native modules built for the pinned one (better-sqlite3) no
+# longer load. OPS_NODE_BIN is the directory holding the pinned Node; set it
+# in ops.env when it is not the default below. Where that directory has no
+# node (the Railway image, CI) PATH is left alone and the node already on it
+# is the one checked.
+#
+# The check runs when this file is sourced, before any script does work, and
+# compares the major version with .nvmrc: the native-module ABI changes per
+# major, and a patch-exact check would stop every laptop job each time the
+# pin moves. It passes when there is no node on PATH (some scripts never run
+# one) or no .nvmrc beside the scripts (the corpus image does not copy it; its
+# Node comes from the pinned base image). Passing is silent, and the failure
+# goes to stderr, because callers capture the stdout of scripts that source
+# this file.
+
+OPS_NODE_BIN="${OPS_NODE_BIN:-$HOME/.hermes/node/bin}"
+if [[ -x "$OPS_NODE_BIN/node" ]]; then
+  export PATH="$OPS_NODE_BIN:$PATH"
+fi
+
+require_pinned_node() {
+  local pinned found
+  [[ -f "$REPO_ROOT/.nvmrc" ]] || return 0
+  command -v node >/dev/null 2>&1 || return 0
+  pinned="$(tr -d '[:space:]' < "$REPO_ROOT/.nvmrc")"
+  pinned="${pinned#v}"
+  found="$(node --version 2>/dev/null || true)"
+  found="${found#v}"
+  if [[ "${found%%.*}" != "${pinned%%.*}" ]]; then
+    log "node ${found:-(no version reported)} at $(command -v node) does not match .nvmrc ($pinned): Node ${pinned%%.*} is required. Install it and set OPS_NODE_BIN in $OPS_ENV to the directory that holds it (default \$HOME/.hermes/node/bin)." >&2
+    return 1
+  fi
+}
+require_pinned_node || exit 1
+
 # ── healthchecks.io dead-man's-switch pings ─────────────────────────────────
 # Each script sets HC_URL before using these (from an HC_URL_* in ops.env).
 # All pings are best-effort: a healthchecks outage must never fail a backup.

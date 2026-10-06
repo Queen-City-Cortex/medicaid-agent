@@ -81,12 +81,12 @@ jobs:
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          node-version: 22.23.3
+          node-version-file: .nvmrc
           cache: npm
 
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
-          python-version: '3.11'
+          python-version-file: packages/pipeline/.python-version
 
       - run: npm install --global npm@11.11.0
 
@@ -188,7 +188,7 @@ jobs:
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          node-version: 22.23.3
+          node-version-file: .nvmrc
           cache: npm
 
       - run: npm install --global npm@11.11.0
