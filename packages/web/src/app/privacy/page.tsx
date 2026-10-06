@@ -42,7 +42,9 @@ export default function PrivacyPage() {
           conversations and is never shared across users.
         </li>
         <li>
-          <strong>Feedback.</strong> Ratings and comments you leave on answers.
+          <strong>Feedback.</strong> Ratings and comments you leave on answers. When you rate an
+          answer as unhelpful, our team may read your comment together with that question and
+          answer to improve the service.
         </li>
         <li>
           <strong>Usage and error records.</strong> Request counts (for rate limiting and abuse

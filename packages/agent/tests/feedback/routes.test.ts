@@ -28,6 +28,7 @@ function buildApp(repo: FeedbackRepository, user?: unknown) {
 function mockRepo(): FeedbackRepository {
   return {
     upsert: vi.fn().mockResolvedValue({ id: 'fb-1', isNew: true }),
+    ownsThread: vi.fn().mockResolvedValue(true),
     delete: vi.fn().mockResolvedValue(true),
     getByThread: vi.fn().mockResolvedValue([]),
   } as any;
@@ -117,6 +118,59 @@ describe('POST /feedback', () => {
     const app = buildApp(repo);
     const res = await postJson(app, { messageId: 'msg-1', threadId: 'thread-1', rating: 'up' });
     expect(res.status).toBe(401);
+    expect(repo.upsert).not.toHaveBeenCalled();
+  });
+
+  // One row per identifier kind. PRIV-1 (#293) will redact phone numbers and
+  // e-mail addresses in `screenUserText` and so flip those two rows from a
+  // refusal to a stored, redacted comment; the other three stay refusals.
+  it.each([
+    ['ssn', 'The answer ignored that her SSN is 123-45-6789.'],
+    ['date_of_birth', 'Wrong age band, DOB: 01/02/2015.'],
+    ['member_id', 'It should have used Medicaid ID 900123456K.'],
+    ['email', 'Send corrections to jane.client@example.com please.'],
+    ['phone', 'Her caseworker is at 919-555-0142, not the number cited.'],
+  ])('refuses a comment carrying a client identifier (%s) and stores nothing', async (_kind, comment) => {
+    const info = vi.spyOn(log, 'info').mockImplementation(() => {});
+    const app = buildApp(repo, USER);
+    const res = await postJson(app, { messageId: 'msg-1', threadId: 'thread-1', rating: 'down', comment });
+    expect(res.status).toBe(422);
+    expect(await res.json()).toEqual({ error: {
+      code: 'client_identifier_detected',
+      message: 'Remove client-identifying information before sending this comment.',
+    } });
+    expect(repo.upsert).not.toHaveBeenCalled();
+    expect(info).not.toHaveBeenCalled();
+    info.mockRestore();
+  });
+
+  it('stores a clean comment and logs the thumbs-down by ids, without its text', async () => {
+    const info = vi.spyOn(log, 'info').mockImplementation(() => {});
+    const app = buildApp(repo, USER);
+    const comment = 'This cites the adult policy; my question was about a child.';
+    const res = await postJson(app, { messageId: 'msg-1', threadId: 'thread-1', rating: 'down', comment });
+    expect(res.status).toBe(201);
+    expect(repo.upsert).toHaveBeenCalledWith(expect.objectContaining({ rating: 'down', comment }));
+    expect(info.mock.calls).toEqual([['feedback.negative', {
+      feedbackId: 'fb-1', threadId: 'thread-1', messageId: 'msg-1', rating: 'down', hasComment: true, commentLength: comment.length,
+    }]]);
+    expect(JSON.stringify(info.mock.calls)).not.toContain('adult policy');
+
+    info.mockClear();
+    await postJson(app, { messageId: 'msg-2', threadId: 'thread-1', rating: 'down' });
+    expect(info.mock.calls).toEqual([['feedback.negative', expect.objectContaining({ messageId: 'msg-2', hasComment: false, commentLength: 0 })]]);
+    info.mockClear();
+    await postJson(app, { messageId: 'msg-3', threadId: 'thread-1', rating: 'up' });
+    expect(info).not.toHaveBeenCalled();
+    info.mockRestore();
+  });
+
+  it('refuses feedback on a conversation the caller does not own', async () => {
+    vi.mocked(repo.ownsThread).mockResolvedValue(false);
+    const app = buildApp(repo, USER);
+    const res = await postJson(app, { messageId: 'msg-1', threadId: 'thread-1', rating: 'down', comment: 'Bad' });
+    expect(res.status).toBe(404);
+    expect(repo.ownsThread).toHaveBeenCalledWith('thread-1', 'user-123');
     expect(repo.upsert).not.toHaveBeenCalled();
   });
 });

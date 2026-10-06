@@ -23,3 +23,11 @@ export function findSensitiveIdentifiers(text: string): SensitiveIdentifierKind[
     .filter(([, pattern]) => pattern.test(text))
     .map(([kind]) => kind);
 }
+
+/** The one screen for user-written text that is stored outside a chat turn
+ * (feedback comments today). It returns the text to keep and the identifier
+ * kinds that refuse it; callers store `text`, never their own copy, so a
+ * change from refusing a kind to redacting it is made here alone. */
+export function screenUserText(text: string): { text: string; refused: SensitiveIdentifierKind[] } {
+  return { text, refused: findSensitiveIdentifiers(text) };
+}

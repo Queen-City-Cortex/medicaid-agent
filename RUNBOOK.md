@@ -79,7 +79,17 @@ guidance not to), per-conversation observational summaries from any period
 when that feature was on, deep-research runs, and feedback comments. Treat
 that file — and its dated backups in the Railway bucket
 (`agent/mastra/`, 30-day retention; see Backups & Restore) — accordingly:
-access is operational-only, never for content review.
+access is operational-only, never for content review, with one exception: an
+exchange a user rated thumbs-down may be read to improve answers, as the
+privacy page and the comment box say. Read those with
+`npx tsx scripts/feedback-review.ts` (from `packages/agent`, `DATABASE_URL`
+pointing at a downloaded backup), which prints the question, released answer
+and comment for each recent thumbs-down whose conversation still exists. Its
+output is user text: read it in the terminal, do not paste it into tickets,
+chat or commits, and promote a reviewed case into `data/golden/dataset.json`
+by hand, rewritten without client details. Each thumbs-down also logs
+`feedback.negative` with ids and the comment's length only, so the log shows
+when there is something to review.
 
 Vendor-side copies: every OpenAI request the agent makes sets `store: false`
 (one factory, `openaiModel` in `packages/agent/src/model.ts`), so OpenAI keeps

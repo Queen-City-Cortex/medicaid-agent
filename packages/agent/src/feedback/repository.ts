@@ -69,6 +69,20 @@ export class FeedbackRepository {
     this.initialized = true;
   }
 
+  /** Whether the thread exists and belongs to this user. False when the
+   * memory tables are absent, as on a database with no conversations yet. */
+  async ownsThread(threadId: string, resourceId: string): Promise<boolean> {
+    try {
+      const result = await this.client.execute({
+        sql: 'SELECT 1 FROM mastra_threads WHERE id = ? AND resourceId = ?',
+        args: [threadId, resourceId],
+      });
+      return result.rows.length > 0;
+    } catch {
+      return false;
+    }
+  }
+
   async upsert(input: FeedbackInput): Promise<{ id: string; isNew: boolean }> {
     await this.ensureTable();
 

@@ -22,7 +22,12 @@ export async function submitFeedback(
     credentials: 'include',
     body: JSON.stringify(params),
   });
-  if (!res.ok) throw new Error(`Feedback submit failed: ${res.status}`);
+  if (!res.ok) {
+    // The body carries the agent's `{ error: { code, message } }`, which
+    // `parseChatError` reads to show a refusal the user can act on.
+    const body = await res.text().catch(() => '');
+    throw new Error(`Feedback submit failed: ${res.status}${body ? ` ${body}` : ''}`);
+  }
   return res.json();
 }
 

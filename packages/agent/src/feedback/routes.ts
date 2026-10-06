@@ -3,6 +3,7 @@ import type { ContextWithMastra } from '@mastra/core/server';
 import { FeedbackInputSchema } from '@nc-medicaid/contracts';
 import type { FeedbackRepository } from './repository.js';
 import { log } from '../logger.js';
+import { screenUserText } from '../sensitive-data.js';
 
 export function getResourceId(c: ContextWithMastra): string | null {
   const rc = c.get('requestContext');
@@ -31,6 +32,21 @@ export function createFeedbackRoutes(repo: FeedbackRepository): {
 
     const resourceId = getResourceId(c);
     if (!resourceId) return c.json({ error: { code: 'unauthorized', message: 'Not authenticated' } }, 401);
+    // Comments are stored and read by the team, so they pass the same screen
+    // as a chat question and are refused the same way.
+    const comment = parsed.data.comment === undefined ? null : screenUserText(parsed.data.comment);
+    if (comment?.refused.length) {
+      return c.json({
+        error: {
+          code: 'client_identifier_detected',
+          message: 'Remove client-identifying information before sending this comment.',
+        },
+      }, 422);
+    }
+    // Feedback is reviewed beside the conversation it names, so the caller must own it.
+    if (!await repo.ownsThread(parsed.data.threadId, resourceId)) {
+      return c.json({ error: { code: 'not_found', message: 'Conversation not found' } }, 404);
+    }
     const id = crypto.randomUUID();
 
     const result = await repo.upsert({
@@ -39,8 +55,19 @@ export function createFeedbackRoutes(repo: FeedbackRepository): {
       threadId: parsed.data.threadId,
       resourceId,
       rating: parsed.data.rating,
-      comment: parsed.data.comment ?? null,
+      comment: comment?.text ?? null,
     });
+    if (parsed.data.rating === 'down') {
+      // Ids and sizes only: the comment and the question stay out of the log.
+      log.info('feedback.negative', {
+        feedbackId: result.id,
+        threadId: parsed.data.threadId,
+        messageId: parsed.data.messageId,
+        rating: 'down',
+        hasComment: Boolean(comment?.text),
+        commentLength: comment?.text.length ?? 0,
+      });
+    }
 
     return c.json({ id: result.id }, result.isNew ? 201 : 200);
   };

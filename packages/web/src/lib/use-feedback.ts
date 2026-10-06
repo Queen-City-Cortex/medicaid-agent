@@ -3,12 +3,15 @@
 import { useCallback, useState } from 'react';
 import { getFeedbackByThread, submitFeedback, deleteFeedback } from '@/lib/feedback-client';
 import { MASTRA_URL } from '@/lib/mastra-url';
+import { parseChatError } from '@/lib/parse-chat-error';
 
 /** Per-message feedback as rendered in the UI. */
 export interface MessageFeedback {
   id: string;
   rating: 'up' | 'down';
   comment: string | null;
+  /** Why the last comment was refused, when the server gave a reason to show. */
+  commentError?: string;
 }
 
 function removeFeedbackEntry(
@@ -33,6 +36,9 @@ export interface UseFeedbackOptions {
  *   id on success. On any failure — including a missing access token — the
  *   optimistic change is reverted: a previous entry is restored, a brand-new
  *   one is removed.
+ * - A comment the server refuses for carrying a client identifier is reverted
+ *   like any failure, and the server's message is kept on the entry as
+ *   `commentError` until the next attempt.
  * - `handleRate`/`handleComment` take the thread id at call time so the hook
  *   has no dependency on which thread is active.
  * - `loadFeedback` never throws (it logs); callers check `isActive` is still
@@ -96,7 +102,7 @@ export function useFeedback({ getAccessToken }: UseFeedbackOptions) {
   const handleComment = useCallback(async (threadId: string, messageId: string, comment: string) => {
     const prev = feedbackMap[messageId];
     if (!prev) return;
-    setFeedbackMap(m => ({ ...m, [messageId]: { ...m[messageId], comment } }));
+    setFeedbackMap(m => ({ ...m, [messageId]: { ...m[messageId], comment, commentError: undefined } }));
 
     try {
       const token = await getAccessToken();
@@ -107,8 +113,10 @@ export function useFeedback({ getAccessToken }: UseFeedbackOptions) {
         token,
       );
       setFeedbackMap(m => ({ ...m, [messageId]: { ...m[messageId], id: result.id } }));
-    } catch {
-      setFeedbackMap(m => ({ ...m, [messageId]: prev }));
+    } catch (err) {
+      const refusal = parseChatError(err);
+      const commentError = refusal.kind === 'identifier-detected' ? refusal.message : undefined;
+      setFeedbackMap(m => ({ ...m, [messageId]: { ...prev, commentError } }));
     }
   }, [feedbackMap, getAccessToken]);
 

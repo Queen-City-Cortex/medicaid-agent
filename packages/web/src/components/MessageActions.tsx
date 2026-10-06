@@ -8,6 +8,7 @@ interface FeedbackState {
   id: string;
   rating: 'up' | 'down';
   comment: string | null;
+  commentError?: string;
 }
 
 interface MessageActionsProps {
@@ -71,6 +72,7 @@ export function MessageActions({ content, onRerun, messageId, feedback, onRate, 
   };
 
   const handleThumbClick = (rating: 'up' | 'down') => {
+    setCommentText('');
     if (feedback?.rating === rating) {
       onClearRating?.();
     } else {
@@ -78,11 +80,10 @@ export function MessageActions({ content, onRerun, messageId, feedback, onRate, 
     }
   };
 
+  // The text stays in the box: a refused comment comes back for editing, and
+  // an accepted one hides the box.
   const handleCommentSubmit = () => {
-    if (commentText.trim()) {
-      onComment?.(commentText.trim());
-      setCommentText('');
-    }
+    if (commentText.trim()) onComment?.(commentText.trim());
   };
 
   return (
@@ -142,24 +143,33 @@ export function MessageActions({ content, onRerun, messageId, feedback, onRate, 
       </div>
 
       {feedback?.rating === 'down' && onComment && !feedback.comment && (
-        <div className="flex items-center gap-2 mt-2 animate-in fade-in slide-in-from-top-1 duration-150">
-          <input
-            type="text"
-            value={commentText}
-            onChange={e => setCommentText(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') handleCommentSubmit(); }}
-            placeholder="What went wrong?"
-            aria-label="Feedback comment — describe what went wrong with this response"
-            className="flex-1 text-xs px-3 py-1.5 rounded-md border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-accent"
-          />
-          <button
-            onClick={handleCommentSubmit}
-            disabled={!commentText.trim()}
-            aria-label="Submit comment"
-            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-30"
-          >
-            <Send className="w-3.5 h-3.5" />
-          </button>
+        <div className="mt-2 animate-in fade-in slide-in-from-top-1 duration-150">
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={commentText}
+              onChange={e => setCommentText(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') handleCommentSubmit(); }}
+              placeholder="What went wrong?"
+              aria-label="Feedback comment — describe what went wrong with this response"
+              className="flex-1 text-xs px-3 py-1.5 rounded-md border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-accent"
+            />
+            <button
+              onClick={handleCommentSubmit}
+              disabled={!commentText.trim()}
+              aria-label="Submit comment"
+              className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-30"
+            >
+              <Send className="w-3.5 h-3.5" />
+            </button>
+          </div>
+          {feedback.commentError && (
+            <p role="alert" className="mt-1 text-xs text-destructive">{feedback.commentError}</p>
+          )}
+          <p className="mt-1 text-xs text-muted-foreground">
+            Our team may read your rating, your comment and this question and answer to improve
+            answers. Do not include client-identifying information.
+          </p>
         </div>
       )}
     </div>

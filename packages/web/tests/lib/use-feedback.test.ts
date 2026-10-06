@@ -170,6 +170,26 @@ describe('useFeedback', () => {
       expect(result.current.feedbackMap['m1']).toEqual({ id: 'fb-1', rating: 'up', comment: null });
     });
 
+    it('keeps the server message when a comment is refused for a client identifier, until the next attempt', async () => {
+      const { result } = setup();
+      await rateSuccessfully(result);
+      const message = 'Remove client-identifying information before sending this comment.';
+      submitFeedbackMock.mockRejectedValueOnce(new Error(
+        `Feedback submit failed: 422 ${JSON.stringify({ error: { code: 'client_identifier_detected', message } })}`,
+      ));
+      await act(async () => {
+        await result.current.handleComment('t1', 'm1', 'call 919-555-0142');
+      });
+      expect(result.current.feedbackMap['m1']).toEqual({ id: 'fb-1', rating: 'up', comment: null, commentError: message });
+
+      // Any other failure reverts without a message, and clears the old one.
+      submitFeedbackMock.mockRejectedValueOnce(new Error('Feedback submit failed: 500'));
+      await act(async () => {
+        await result.current.handleComment('t1', 'm1', 'too vague');
+      });
+      expect(result.current.feedbackMap['m1']).toStrictEqual({ id: 'fb-1', rating: 'up', comment: null, commentError: undefined });
+    });
+
     it('is a no-op without an existing rating', async () => {
       const { result } = setup();
 

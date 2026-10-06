@@ -91,18 +91,69 @@ describe('execution gateway', () => {
     ['DELETE', '/feedback/f-1'],
     ['GET', '/corpus-status'],
     ['GET', '/api/memory/threads'],
-    ['POST', '/api/memory/threads'],
+    ['POST', '/api/memory/threads', '{"resourceId":"user-1"}'],
     ['GET', '/api/memory/threads/t-1'],
-    ['PATCH', '/api/memory/threads/t-1'],
+    ['PATCH', '/api/memory/threads/t-1', '{"title":"Renamed"}'],
     ['DELETE', '/api/memory/threads/t-1'],
     ['GET', '/api/memory/threads/t-1/messages'],
     ['POST', '/api/memory/threads/t-1/clone'],
-  ])('allows the required owned operation %s %s', async (method, path) => {
+  ])('allows the required owned operation %s %s', async (method, path, body = '{}') => {
     expect((await app('user-1').request(path, {
       method,
       headers: { 'content-type': 'application/json' },
-      body: ['POST', 'PATCH'].includes(method) ? '{}' : undefined,
+      body: ['POST', 'PATCH'].includes(method) ? body : undefined,
     })).status).toBe(200);
+  });
+
+  it('refuses a thread body that is not JSON or is larger than a title needs', async () => {
+    const send = (body: string) => app('user-1').request('/api/memory/threads/t-1', {
+      method: 'PATCH', headers: { 'content-type': 'application/json' }, body,
+    });
+    for (const body of ['', 'title=Renamed', '[]', 'null']) expect((await send(body)).status).toBe(400);
+    const large = await send(JSON.stringify({ title: 'Renamed', padding: 'x'.repeat(4096) }));
+    expect(large.status).toBe(413);
+    expect(await large.json()).toEqual({ error: { code: 'payload_too_large', message: 'Request body is too large' } });
+    // The body is still there for the framework's handler to read.
+    const reads = new Hono();
+    reads.use('*', async (c, next) => {
+      (c as never as { set: (key: string, value: unknown) => void })
+        .set('requestContext', new RequestContext([[MASTRA_RESOURCE_ID_KEY, 'user-1']]));
+      await next();
+    });
+    reads.use('*', createExecutionGateway() as unknown as MiddlewareHandler);
+    reads.patch('*', async (c) => c.json(await c.req.json()));
+    const passed = await reads.request('/api/memory/threads/t-1', {
+      method: 'PATCH', headers: { 'content-type': 'application/json' }, body: '{"title":"Renamed"}',
+    });
+    expect(await passed.json()).toEqual({ title: 'Renamed' });
+  });
+
+  it('replaces a framework error body on a thread route and leaves an application refusal alone', async () => {
+    const failing = (status: number, body: unknown) => {
+      const instance = new Hono();
+      instance.use('*', async (c, next) => {
+        (c as never as { set: (key: string, value: unknown) => void })
+          .set('requestContext', new RequestContext([[MASTRA_RESOURCE_ID_KEY, 'user-1']]));
+        await next();
+      });
+      instance.use('*', createExecutionGateway() as unknown as MiddlewareHandler);
+      instance.all('*', (c) => {
+        // Stands in for a header an outer layer (CORS) already put on the response.
+        c.header('access-control-allow-origin', 'https://app.example');
+        return c.json(body as object, status as 500);
+      });
+      return instance.request('/api/memory/threads/t-1');
+    };
+    const raw = await failing(500, { error: 'SQLITE_ERROR: no such table: mastra_threads' });
+    expect(raw.status).toBe(500);
+    // Only the body is replaced: a browser on another origin must still be able to read it.
+    expect(raw.headers.get('access-control-allow-origin')).toBe('https://app.example');
+    expect(raw.headers.get('content-type')).toContain('application/json');
+    expect(await raw.text()).not.toContain('SQLITE');
+    const limited = { error: { code: 'rate_limited', message: 'Too many requests', retryAfterSeconds: 60 } };
+    const passed = await failing(429, limited);
+    expect(passed.status).toBe(429);
+    expect(await passed.json()).toEqual(limited);
   });
 
   it('refuses the message include parameter, which the framework does not scope by owner', async () => {

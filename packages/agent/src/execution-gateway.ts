@@ -1,7 +1,12 @@
 import type { ContextWithMastra } from '@mastra/core/server';
+import { IdentifierSchema } from '@nc-medicaid/contracts';
 import type { Next } from 'hono';
+import { z } from 'zod';
 import { getBoundUserId } from './auth-middleware.js';
+import { log } from './logger.js';
 import type { GuardMiddleware } from './rate-limit/middleware.js';
+
+type BodySchema = z.ZodType<{ title?: string; resourceId?: string }>;
 
 interface RouteRule {
   methods: ReadonlySet<string>;
@@ -9,12 +14,14 @@ interface RouteRule {
   public: boolean;
   rejectedQuery: readonly string[];
   returnsThread: boolean;
+  bodies: Readonly<Record<string, BodySchema>>;
+  fixedErrors: boolean;
 }
 
 function rule(
   methods: string[],
   pattern: RegExp,
-  options: { public?: boolean; rejectedQuery?: string[]; returnsThread?: boolean } = {},
+  options: Partial<Omit<RouteRule, 'methods' | 'pattern'>> = {},
 ): RouteRule {
   return {
     methods: new Set(methods),
@@ -22,8 +29,34 @@ function rule(
     public: options.public ?? false,
     rejectedQuery: options.rejectedQuery ?? [],
     returnsThread: options.returnsThread ?? false,
+    bodies: options.bodies ?? {},
+    fixedErrors: options.fixedErrors ?? false,
   };
 }
+
+/** The web titles a thread with the first 60 characters of its question. */
+const THREAD_TITLE_MAX = 200;
+/** An allowed thread body is a title and three ids; this is several times that. */
+const THREAD_BODY_MAX_BYTES = 4096;
+const threadTitle = z.string().min(1).max(THREAD_TITLE_MAX);
+
+// Everything a client may put in a thread request, by method; any other key is
+// refused. The framework stores `metadata` as sent and gives `metadata.mastra`
+// to the model as system messages, past every input guard, so no client may
+// write it. `resourceId` stays because the framework's create schema requires
+// the key; it must name the signed-in user. `agentId` is repeated in the body
+// by the framework's client and read from the query.
+const CREATE_THREAD = { POST: z.object({
+  title: threadTitle.optional(),
+  threadId: IdentifierSchema.optional(),
+  resourceId: z.string(),
+  agentId: IdentifierSchema.optional(),
+}).strict() };
+const UPDATE_THREAD = { PATCH: z.object({ title: threadTitle }).strict() };
+const CLONE_THREAD = { POST: z.object({
+  title: threadTitle.optional(),
+  resourceId: z.string().optional(),
+}).strict() };
 
 // Positive list only: framework upgrades may add executable routes, and those
 // routes must remain unreachable until the application explicitly adopts them.
@@ -36,13 +69,96 @@ const OWNED_ROUTES: readonly RouteRule[] = [
   rule(['GET'], /^\/research\/runs\/[^/]+$/),
   rule(['POST'], /^\/research\/runs\/[^/]+\/(?:decision|cancel)$/),
   rule(['GET'], /^\/(?:livez|readyz|dependencyz|healthz)$/, { public: true }),
-  rule(['GET', 'POST'], /^\/api\/memory\/threads$/, { returnsThread: true }),
-  rule(['GET', 'PATCH', 'DELETE'], /^\/api\/memory\/threads\/[^/]+$/, { returnsThread: true }),
+  rule(['GET', 'POST'], /^\/api\/memory\/threads$/, { returnsThread: true, fixedErrors: true, bodies: CREATE_THREAD }),
+  rule(['GET', 'PATCH', 'DELETE'], /^\/api\/memory\/threads\/[^/]+$/, { returnsThread: true, fixedErrors: true, bodies: UPDATE_THREAD }),
   // The framework resolves `include` message ids without an owner filter, so
   // it would return another user's messages. The application never sends it.
-  rule(['GET'], /^\/api\/memory\/threads\/[^/]+\/messages$/, { rejectedQuery: ['include'] }),
-  rule(['POST'], /^\/api\/memory\/threads\/[^/]+\/clone$/, { returnsThread: true }),
+  rule(['GET'], /^\/api\/memory\/threads\/[^/]+\/messages$/, { rejectedQuery: ['include'], fixedErrors: true }),
+  rule(['POST'], /^\/api\/memory\/threads\/[^/]+\/clone$/, { returnsThread: true, fixedErrors: true, bodies: CLONE_THREAD }),
 ];
+
+function badRequest(c: ContextWithMastra, message: string): Response {
+  return c.json({ error: { code: 'bad_request', message } }, 400);
+}
+
+/** Reads at most `limit` bytes of the body from a copy of the request, or
+ * returns null when it is longer. The framework's handler and its body-size
+ * check read the original stream afterwards, and a stream can be read once. */
+async function boundedBody(request: Request, limit: number): Promise<string | null> {
+  const reader = request.clone().body?.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  for (;;) {
+    const chunk = await reader?.read();
+    if (!chunk || chunk.done) break;
+    size += chunk.value.length;
+    if (size > limit) {
+      // Not awaited: a copy's cancel settles only once the original is cancelled too.
+      void reader?.cancel();
+      return null;
+    }
+    chunks.push(chunk.value);
+  }
+  return Buffer.concat(chunks).toString('utf8');
+}
+
+/** Checks a request body against its route's schema and returns the refusal,
+ * or null to continue. Nothing is rewritten, so what was checked is what the
+ * framework parses. */
+async function refusedBody(c: ContextWithMastra, schema: BodySchema, userId: string | null): Promise<Response | null> {
+  const text = await boundedBody(c.req.raw, THREAD_BODY_MAX_BYTES);
+  if (text === null) {
+    return c.json({ error: { code: 'payload_too_large', message: 'Request body is too large' } }, 413);
+  }
+  let body: unknown;
+  try {
+    body = JSON.parse(text);
+  } catch {
+    return badRequest(c, 'Request body must be JSON');
+  }
+  const parsed = schema.safeParse(body);
+  if (!parsed.success) {
+    return badRequest(c, parsed.error.issues.every((issue) => issue.path[0] === 'title')
+      ? `A conversation title must be 1 to ${THREAD_TITLE_MAX} characters`
+      : 'A conversation request may set a title only; other fields, including metadata, are not supported');
+  }
+  if (parsed.data.resourceId !== undefined && parsed.data.resourceId !== userId) {
+    return badRequest(c, 'resourceId must be the signed-in user');
+  }
+  return null;
+}
+
+const FIXED_ERRORS: Readonly<Record<number, { code: string; message: string }>> = {
+  400: { code: 'bad_request', message: 'The request was not valid.' },
+  401: { code: 'unauthorized', message: 'Authentication required' },
+  403: { code: 'forbidden', message: 'You do not have access to this conversation.' },
+  404: { code: 'not_found', message: 'Conversation not found.' },
+};
+const FIXED_SERVER_ERROR = { code: 'internal_error', message: 'The conversation could not be loaded or saved. Please try again.' };
+
+/** The framework's memory handlers answer a failure with the raw error, which
+ * for a storage failure names tables and SQL. The client gets the status and a
+ * fixed message. A server error's own text goes to the log; a client error's
+ * text can quote the request, so only its status is logged, and the route is
+ * logged as its pattern because a path holds a client-chosen thread id. Any
+ * other client error, such as a rate limit, is the application's own and passes. */
+async function withFixedError(route: RouteRule, method: string, response: Response): Promise<Response> {
+  const status = response.status;
+  if (status < 500 && !FIXED_ERRORS[status]) return response;
+  const fields: Record<string, unknown> = { method, route: route.pattern.source, status };
+  if (status >= 500) {
+    const body = await response.json().catch(() => null) as { error?: unknown } | null;
+    fields.error = typeof body?.error === 'string' ? body.error : 'unreadable error body';
+    log.warn('memory_route.failed', fields);
+  } else {
+    log.info('memory_route.refused', fields);
+  }
+  // Keep the response's own headers (CORS among them); only the body changes.
+  const headers = new Headers(response.headers);
+  headers.delete('content-length');
+  headers.set('content-type', 'application/json');
+  return new Response(JSON.stringify({ error: FIXED_ERRORS[status] ?? FIXED_SERVER_ERROR }), { status, headers });
+}
 
 /** The framework keeps observational-memory state under `metadata.mastra` on
  * the thread row, including the observer's unverified task and suggested
@@ -93,9 +209,17 @@ export function createExecutionGateway(options: ExecutionGatewayOptions = {}): G
           error: { code: 'bad_request', message: `Query parameter "${rejected}" is not supported` },
         }, 400);
       }
+      const bodySchema = route.bodies[c.req.method.toUpperCase()];
+      if (bodySchema) {
+        const refusal = await refusedBody(c, bodySchema, getBoundUserId(c));
+        if (refusal) return refusal;
+      }
       await next();
-      if (route.returnsThread) {
-        const response = await withoutFrameworkMetadata(c.res);
+      const failed = route.fixedErrors && c.res.status >= 400;
+      if (failed || route.returnsThread) {
+        const response = failed
+          ? await withFixedError(route, c.req.method.toUpperCase(), c.res)
+          : await withoutFrameworkMetadata(c.res);
         // Hono merges into an existing response; clear it to replace the body.
         c.res = undefined;
         c.res = response;

@@ -168,5 +168,31 @@ describe('MessageActions', () => {
     await userEvent.type(screen.getByPlaceholderText('What went wrong?'), 'Wrong policy');
     await userEvent.click(screen.getByLabelText('Submit comment'));
     expect(onComment).toHaveBeenCalledWith('Wrong policy');
+    // The text stays until the comment is accepted, so a refused one can be edited.
+    expect(screen.getByPlaceholderText('What went wrong?')).toHaveValue('Wrong policy');
+  });
+
+  it('says comments may be reviewed, and shows why a comment was refused', () => {
+    const { rerender } = render(
+      <MessageActions
+        content="test"
+        messageId="msg-1"
+        feedback={{ id: 'fb-1', rating: 'down', comment: null }}
+        onRate={() => {}}
+        onComment={() => {}}
+      />,
+    );
+    expect(screen.getByText(/Our team may read your rating, your comment and this question and answer/)).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    rerender(
+      <MessageActions
+        content="test"
+        messageId="msg-1"
+        feedback={{ id: 'fb-1', rating: 'down', comment: null, commentError: 'Remove client-identifying information before sending this comment.' }}
+        onRate={() => {}}
+        onComment={() => {}}
+      />,
+    );
+    expect(screen.getByRole('alert')).toHaveTextContent('Remove client-identifying information before sending this comment.');
   });
 });

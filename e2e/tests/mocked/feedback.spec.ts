@@ -55,6 +55,45 @@ test.describe('Message Feedback', () => {
     await expect(commentInput).not.toBeVisible();
   });
 
+  test('a comment refused for a client identifier stays in the box with the reason', async ({ page }) => {
+    await mockMastraAPI(page, {
+      streamResponse: new AISdkStreamBuilder()
+        .start()
+        .textDelta('Here is policy info.')
+        .stepFinish()
+        .finish(),
+    });
+    const message = 'Remove client-identifying information before sending this comment.';
+    // Registered after the shared mock, so it answers comment submissions first.
+    await page.route('**/feedback', async (route) => {
+      const body = route.request().method() === 'POST' ? route.request().postDataJSON() : null;
+      if (!body?.comment?.includes('919-555-0142')) return route.fallback();
+      await route.fulfill({
+        status: 422,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: { code: 'client_identifier_detected', message } }),
+      });
+    });
+
+    await page.goto('/chat');
+    const chat = new ChatPage(page);
+    await chat.sendMessage('What is the policy?');
+    await chat.waitForAssistantMessage();
+    await page.getByLabel('Rate unhelpful').click();
+
+    const commentInput = page.getByPlaceholder('What went wrong?');
+    await expect(page.getByText(/Our team may read your rating, your comment/)).toBeVisible();
+    await commentInput.fill('Her caseworker is at 919-555-0142');
+    await page.getByLabel('Submit comment').click();
+    await expect(page.getByText(message)).toBeVisible();
+    await expect(commentInput).toHaveValue('Her caseworker is at 919-555-0142');
+
+    await commentInput.fill('Her caseworker has a different number');
+    await page.getByLabel('Submit comment').click();
+    await expect(commentInput).not.toBeVisible();
+    await expect(page.getByText(message)).not.toBeVisible();
+  });
+
   test('feedback rehydrates when selecting an existing thread', async ({ page }) => {
     const threadId = 'thread-with-feedback';
     const messageId = 'msg-rated';

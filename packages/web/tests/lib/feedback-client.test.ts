@@ -37,10 +37,18 @@ describe('submitFeedback', () => {
   });
 
   it('throws on non-ok response', async () => {
-    mockFetch.mockResolvedValue({ ok: false, status: 400 });
+    mockFetch.mockResolvedValue({ ok: false, status: 400, text: () => Promise.resolve('') });
     await expect(
       submitFeedback({ messageId: 'm', threadId: 't', rating: 'up' }, 'http://localhost:4111', 'tok'),
-    ).rejects.toThrow('Feedback submit failed: 400');
+    ).rejects.toThrow(/^Feedback submit failed: 400$/);
+  });
+
+  it('carries the response body of a refusal in the error', async () => {
+    const body = JSON.stringify({ error: { code: 'client_identifier_detected', message: 'Remove client-identifying information before sending this comment.' } });
+    mockFetch.mockResolvedValue({ ok: false, status: 422, text: () => Promise.resolve(body) });
+    await expect(
+      submitFeedback({ messageId: 'm', threadId: 't', rating: 'down', comment: 'x' }, 'http://localhost:4111', 'tok'),
+    ).rejects.toThrow(`Feedback submit failed: 422 ${body}`);
   });
 });
 

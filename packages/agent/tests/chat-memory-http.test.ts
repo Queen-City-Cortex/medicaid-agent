@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, it, expect, vi } from 'vitest';
 import { Hono, type Handler, type MiddlewareHandler } from 'hono';
+import { createClient } from '@libsql/client';
 import { Agent } from '@mastra/core/agent';
 import { createTool } from '@mastra/core/tools';
 import { Mastra } from '@mastra/core';
@@ -153,14 +154,30 @@ describe('production HTTP handler with guarded observational memory', () => {
         expect(body).not.toContain('"mastra"');
       }
       // A rename sends the title alone, and must leave the stored metadata intact.
-      const renamed = await memoryCall('PATCH', '/thread?agentId=ncMedicaidAgent', { title: thread.title });
+      const renamed = await memoryCall('PATCH', '/thread?agentId=ncMedicaidAgent', { title: 'Renamed in the sidebar' });
       expect(renamed.status).toBe(200);
       expect(await renamed.text()).not.toContain(observerSentinel);
-      expect((await store.getThreadById({ threadId: 'thread' }))!.metadata).toEqual(updated.metadata);
+      expect(await store.getThreadById({ threadId: 'thread' })).toMatchObject({ title: 'Renamed in the sidebar', metadata: updated.metadata });
       expect(updated.metadata?.mastra).toBeDefined();
+      // The framework sends `metadata.mastra.om` to the model as system
+      // messages, so a client may not write thread metadata at all.
+      const planted = 'PLANTED_METADATA_SENTINEL';
+      const plantedMetadata = { mastra: { om: { currentTask: planted, suggestedResponse: planted } } };
+      for (const body of [{ title: 'Planted', metadata: plantedMetadata }, { metadata: plantedMetadata }, { title: 'Planted', metadata: {} }]) {
+        const refused = await memoryCall('PATCH', '/thread?agentId=ncMedicaidAgent', body);
+        expect(refused.status).toBe(400);
+        expect(await refused.text()).not.toContain(planted);
+      }
+      expect(await store.getThreadById({ threadId: 'thread' })).toMatchObject({ title: 'Renamed in the sidebar', metadata: updated.metadata });
+      const promptsBeforePlanting = modelPrompts.length;
       vi.mocked(verifyAnswer).mockResolvedValue({ ...verdict, supported: false });
       const withheld = await post('What if the answer cannot be verified?');
       const withheldText = await withheld.text();
+      expect(modelPrompts.length).toBeGreaterThan(promptsBeforePlanting);
+      // The observer's own hints are in these prompts; the client's text is not.
+      expect(JSON.stringify(modelPrompts.slice(promptsBeforePlanting))).toContain('<current-task>');
+      expect(JSON.stringify(modelPrompts)).not.toContain(planted);
+      expect(JSON.stringify(observerPrompts)).not.toContain(planted);
       expect(withheldText).toContain('withheld');
       expect(withheldText).not.toContain(draft);
       expect(JSON.stringify(await store.listMessages({ threadId: 'thread', perPage: false }))).not.toContain(draft);
@@ -368,7 +385,7 @@ describe('production HTTP handler with guarded observational memory', () => {
       const takeover = await call('user-b', 'POST', threads, { threadId: 'thread-a', title: 'Taken', resourceId: 'user-b' });
       expect(takeover.status).toBe(404);
       expect(await store.getThreadById({ threadId: 'thread-a' })).toEqual(owned);
-      expect((await call('user-b', 'PATCH', '/api/memory/threads/thread-a?agentId=ncMedicaidAgent', { title: 'Taken', resourceId: 'user-b' })).status).toBe(403);
+      expect((await call('user-b', 'PATCH', '/api/memory/threads/thread-a?agentId=ncMedicaidAgent', { title: 'Taken' })).status).toBe(403);
       expect((await call('user-b', 'POST', '/api/memory/threads/thread-a/clone?agentId=ncMedicaidAgent', {})).status).toBe(403);
       // A clone may not land on another owner's id either.
       expect((await call('user-b', 'POST', '/api/memory/threads/thread-b/clone?agentId=ncMedicaidAgent', { newThreadId: 'thread-a' })).status).not.toBe(200);
@@ -379,8 +396,44 @@ describe('production HTTP handler with guarded observational memory', () => {
 
       // The owner's own re-save and rename still succeed.
       expect((await call('user-a', 'POST', threads, { threadId: 'thread-a', title: 'A title', resourceId: 'user-a' })).status).toBe(200);
-      expect((await call('user-a', 'PATCH', '/api/memory/threads/thread-a?agentId=ncMedicaidAgent', { title: 'Renamed', resourceId: 'user-b' })).status).toBe(200);
+      expect((await call('user-a', 'PATCH', '/api/memory/threads/thread-a?agentId=ncMedicaidAgent', { title: 'Renamed' })).status).toBe(200);
       expect(await store.getThreadById({ threadId: 'thread-a' })).toMatchObject({ resourceId: 'user-a', title: 'Renamed' });
+      // The web client's own create body, which repeats the agent id.
+      expect((await call('user-a', 'POST', threads, { threadId: 'thread-web', resourceId: 'user-a', agentId: 'ncMedicaidAgent', title: 'From the web' })).status).toBe(200);
+      expect(await store.getThreadById({ threadId: 'thread-web' })).toMatchObject({ resourceId: 'user-a', title: 'From the web' });
+
+      // Thread bodies are an allow-list: a title, plus the ids a create or a
+      // copy needs. Metadata, another owner and an over-long title are refused.
+      const renamed = (await store.getThreadById({ threadId: 'thread-a' }))!;
+      const planted = { mastra: { om: { suggestedResponse: 'PLANTED_METADATA_SENTINEL' } } };
+      const thread = '/api/memory/threads/thread-a?agentId=ncMedicaidAgent';
+      const clone = '/api/memory/threads/thread-a/clone?agentId=ncMedicaidAgent';
+      const refusals: Array<[string, string, unknown]> = [
+        ['POST', threads, { threadId: 'thread-new', resourceId: 'user-a', title: 'New', metadata: planted }],
+        ['POST', threads, { threadId: 'thread-new', resourceId: 'user-a', title: 'New', metadata: {} }],
+        ['POST', threads, { threadId: 'thread-new', resourceId: 'user-b', title: 'New' }],
+        ['POST', threads, { threadId: 'thread-new', resourceId: 'user-a', title: 'x'.repeat(201) }],
+        ['POST', threads, { threadId: 'thread-new', resourceId: 'user-a', title: 7 }],
+        ['PATCH', thread, { title: 'Again', metadata: planted }],
+        ['PATCH', thread, { title: 'Again', resourceId: 'user-a' }],
+        ['PATCH', thread, { title: 'x'.repeat(201) }],
+        ['PATCH', thread, {}],
+        ['POST', clone, { title: 'Copy', metadata: planted }],
+        ['POST', clone, { title: 'Copy', resourceId: 'user-b' }],
+        ['POST', clone, { title: 'Copy', options: { messageLimit: 1 } }],
+      ];
+      for (const [method, path, body] of refusals) {
+        const refused = await call('user-a', method, path, body);
+        expect([method, path, body, refused.status]).toEqual([method, path, body, 400]);
+        expect(await refused.text()).not.toContain('PLANTED_METADATA_SENTINEL');
+      }
+      expect(await store.getThreadById({ threadId: 'thread-new' })).toBeNull();
+      expect(await store.getThreadById({ threadId: 'thread-a' })).toEqual(renamed);
+      expect((await store.listThreads({ filter: { resourceId: 'user-a' }, perPage: false })).threads.map(item => item.id).sort()).toEqual(['thread-a', 'thread-web']);
+      expect((await call('user-a', 'PATCH', thread, { title: 'x'.repeat(200) })).status).toBe(200);
+      const copied = await call('user-a', 'POST', clone, { title: 'A title (copy)', resourceId: 'user-a' });
+      expect(copied.status).toBe(200);
+      expect((await copied.json()).thread).toMatchObject({ resourceId: 'user-a', title: 'A title (copy)' });
 
       // `include` resolves message ids without an owner filter in the store.
       const include = encodeURIComponent(JSON.stringify([{ id: 'message-a', withPreviousMessages: 5, withNextMessages: 5 }]));
@@ -392,6 +445,27 @@ describe('production HTTP handler with guarded observational memory', () => {
       const own = await call('user-b', 'GET', '/api/memory/threads/thread-b/messages?agentId=ncMedicaidAgent');
       expect(own.status).toBe(200);
       expect(await own.text()).not.toContain('USER_A_PRIVATE_SENTINEL');
+
+      // The framework answers a failed request with the raw error. Only the
+      // status reaches the client; the storage error goes to the agent log.
+      const missing = await call('user-a', 'GET', '/api/memory/threads/thread-none?agentId=ncMedicaidAgent');
+      expect(missing.status).toBe(404);
+      expect(await missing.json()).toEqual({ error: { code: 'not_found', message: 'Conversation not found.' } });
+      const warn = vi.spyOn(log, 'warn');
+      const raw = createClient({ url: `file:${directory}/test.db` });
+      await raw.execute('ALTER TABLE mastra_threads RENAME TO mastra_threads_moved');
+      raw.close();
+      for (const [method, path, body] of [['GET', thread, undefined], ['PATCH', thread, { title: 'Broken' }],
+        ['POST', threads, { threadId: 'thread-c', resourceId: 'user-a', title: 'C' }], ['POST', clone, {}],
+        ['GET', '/api/memory/threads/thread-a/messages?agentId=ncMedicaidAgent', undefined]] as const) {
+        const failed = await call('user-a', method, path, body);
+        expect([method, path, failed.status]).toEqual([method, path, 500]);
+        expect(await failed.json()).toEqual({ error: { code: 'internal_error', message: 'The conversation could not be loaded or saved. Please try again.' } });
+      }
+      expect(warn).toHaveBeenCalledWith('memory_route.failed', expect.objectContaining({ method: 'PATCH', status: 500, error: expect.stringContaining('mastra_threads') }));
+      expect(JSON.stringify(warn.mock.calls)).not.toContain('Broken');
+      expect(JSON.stringify(warn.mock.calls)).not.toContain('thread-a');
+      warn.mockRestore();
     } finally {
       await storage.close();
       await rm(directory, { recursive: true, force: true });
