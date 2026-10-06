@@ -381,6 +381,14 @@ promote() {
   local target_service target_uri target_password release_id manifest
   local previous_manifest=""
 
+  # A gate override is an operator's decision about one source snapshot. Only
+  # an operator-invoked release may carry one; any other run that finds the
+  # variable set stops before it reads Railway or resets a graph.
+  if [[ -n "${RELEASE_OVERRIDE_FILE:-}" && "${CORPUS_JOB_MODE:-scheduled}" != "release" ]]; then
+    echo "RELEASE_OVERRIDE_FILE is honoured only with CORPUS_JOB_MODE=release; unset it" >&2
+    exit 64
+  fi
+
   variables="$(agent_variables)"
   active_color="$(variable_from "$variables" ACTIVE_CORPUS_COLOR)"
   current_release="$(variable_from "$variables" CORPUS_RELEASE_ID)"

@@ -26,6 +26,17 @@ from pipeline.release import (
 )
 
 
+SNAPSHOT = "sha256:" + "a" * 64
+
+
+def family_minimums():
+    return load_release_policy()["mandatory"]["minimumLoadedDocuments"]["families"]
+
+
+def override(reason, snapshot=SNAPSHOT):
+    return {"reason": reason, "sourceSnapshotHash": snapshot}
+
+
 def passing_manifest():
     return {
         "auditResults": {
@@ -47,11 +58,19 @@ def passing_manifest():
             "withheldAnswers": 2,
             "benchmarkQuestions": 55,
             "answerRuns": 3,
-            "aggregateRegression": 0.1,
+            "retrievalPrecisionRegression": 0.01,
+            "retrievalRecallRegression": 0.01,
+            "primaryDocumentHitRateRegression": 0.01,
+            "answerScoreAllRowsRegression": 0.1,
+            "hallucinationScoreRegression": 0.1,
         },
         "counts": {
             "maxSourceFamilyDocumentDrop": 0.01,
             "answerReadyDrop": 0.01,
+            **{
+                f"sourceFamily.{family}.loaded": minimum
+                for family, minimum in family_minimums().items()
+            },
         },
     }
 
@@ -68,6 +87,7 @@ def release_manifest(*, release_id="release-2", previous=None):
 
 
 def audit_report():
+    minimums = family_minimums()
     return {
         "summary": {
             "duplicate_document_ids": 0,
@@ -78,14 +98,30 @@ def audit_report():
                 "source_type": "clinical_policy",
                 "required_for_answering": True,
                 "freshness_status": "fresh",
-                "counts": {"discovered": 100, "answer_ready": 98},
+                "counts": {
+                    "discovered": 100,
+                    "loaded": minimums["clinical_policy"],
+                    "answer_ready": 98,
+                },
             },
             {
                 "source_type": "provider_manual",
                 "required_for_answering": False,
                 "freshness_status": "stale",
-                "counts": {"discovered": 20, "answer_ready": 18},
+                "counts": {"discovered": 20, "loaded": 18, "answer_ready": 18},
             },
+            # The other families with a minimum: loaded exactly at it, and
+            # outside the document and answer-ready totals asserted below.
+            *[
+                {
+                    "source_type": family,
+                    "required_for_answering": True,
+                    "freshness_status": "fresh",
+                    "counts": {"loaded": minimum, "answer_ready": 0},
+                }
+                for family, minimum in minimums.items()
+                if family != "clinical_policy"
+            ],
         ],
         "documents": [
             *[
@@ -141,6 +177,20 @@ def answer_result(*, overall=2.9, released=2.9, hallucination=2.8, withheld=0):
     }
 
 
+def baseline(**metrics):
+    """A previous release that the fixture results above do not regress from."""
+    return {
+        "evaluationResults": {
+            "retrievalPrecision": 0.1,
+            "retrievalRecall": 0.9,
+            "primaryDocumentHitRate": 0.95,
+            "answerScoreAllRows": 2.5,
+            "hallucinationScore": 2.5,
+            **metrics,
+        }
+    }
+
+
 def test_passing_manifest_is_promotable():
     assert release_is_promotable(evaluate_release_manifest(passing_manifest()))
 
@@ -151,7 +201,7 @@ def test_sparse_label_precision_is_reported_without_an_absolute_gate():
     measured = retrieval_result()
     measured['aggregate']['precision_at_k'] = 0.2
     manifest['evaluationResults'] = build_release_evaluation_results(
-        measured, [answer_result()] * 3, None,
+        measured, [answer_result()] * 3, baseline(),
     )
 
     gates = evaluate_release_manifest(manifest)
@@ -168,7 +218,11 @@ def test_sparse_label_precision_is_reported_without_an_absolute_gate():
     ('hallucinationScore', 2.49),
     ('withheldAnswers', 6),
     ('answerRuns', 2),
-    ('aggregateRegression', 0.151),
+    ('retrievalPrecisionRegression', 0.026),
+    ('retrievalRecallRegression', 0.026),
+    ('primaryDocumentHitRateRegression', 0.026),
+    ('answerScoreAllRowsRegression', 0.151),
+    ('hallucinationScoreRegression', 0.151),
 ])
 @pytest.mark.parametrize('failure', ['below_threshold', 'missing', 'non_finite'])
 def test_retained_evaluation_gates_still_fail_closed(metric, failing_value, failure):
@@ -192,21 +246,24 @@ def test_precision_regression_still_contributes_to_baseline_comparison():
     measured = retrieval_result()
     measured['aggregate']['precision_at_k'] = 0.1
     evaluation = build_release_evaluation_results(
-        measured, [answer_result()], {'evaluationResults': {'retrievalPrecision': 0.3}},
+        measured, [answer_result()] * 3, baseline(retrievalPrecision=0.3),
     )
     manifest = passing_manifest()
     manifest['evaluationResults'] = evaluation
 
     assert evaluation['retrievalPrecision'] == 0.1
-    assert evaluation['aggregateRegression'] == pytest.approx(0.2)
-    assert not release_is_promotable(evaluate_release_manifest(manifest))
+    assert evaluation['retrievalPrecisionRegression'] == pytest.approx(0.2)
+    assert [
+        gate['name'] for gate in evaluate_release_manifest(manifest) if not gate['passed']
+    ] == ['retrievalPrecisionRegression']
 
 
 def test_updated_release_policy_rejects_the_old_gate_contract(tmp_path):
     policy = load_release_policy()
-    assert policy['policyVersion'] == 2
+    assert policy['policyVersion'] == 3
     assert 'retrievalPrecision' not in policy['evaluation']
-    policy['policyVersion'] = 1
+    assert 'maxAggregateRegression' not in policy['evaluation']
+    policy['policyVersion'] = 2
     path = tmp_path / 'old-policy.json'
     path.write_text(json.dumps(policy))
 
@@ -221,7 +278,8 @@ def test_mandatory_gate_cannot_be_overridden():
     with pytest.raises(ValueError, match="cannot be overridden"):
         apply_overrides(
             gates,
-            {"duplicateIdentities": "accepted for a documented reason"},
+            {"duplicateIdentities": override("accepted for a documented reason")},
+            SNAPSHOT,
         )
 
 
@@ -232,17 +290,185 @@ def test_overridable_gate_requires_a_reason():
 
     assert not release_is_promotable(gates)
     with pytest.raises(ValueError, match="at least 10"):
-        apply_overrides(gates, {"answerReadyDrop": "too short"})
+        apply_overrides(gates, {"answerReadyDrop": override("too short")}, SNAPSHOT)
     assert release_is_promotable(
         apply_overrides(
             gates,
             {
-                "answerReadyDrop": (
+                "answerReadyDrop": override(
                     "Upstream source consolidated duplicate attachments"
                 )
             },
+            SNAPSHOT,
         )
     )
+
+
+def test_an_override_written_for_another_snapshot_is_rejected(tmp_path):
+    manifest = passing_manifest()
+    manifest["counts"]["maxSourceFamilyDocumentDrop"] = 0.6
+    gates = evaluate_release_manifest(manifest)
+    reason = "Bulletins before 2019 were consolidated by the agency"
+    earlier_snapshot = "sha256:" + "b" * 64
+
+    # Accepted once, for the snapshot the operator looked at.
+    assert release_is_promotable(
+        apply_overrides(
+            gates, {"sourceFamilyDocumentDrop": override(reason, earlier_snapshot)},
+            earlier_snapshot,
+        )
+    )
+    # Left in place, the same file meets the next release's snapshot.
+    stale = {"sourceFamilyDocumentDrop": override(reason, earlier_snapshot)}
+    with pytest.raises(ValueError, match="bound to source snapshot sha256:bbbb"):
+        apply_overrides(gates, stale, SNAPSHOT)
+
+    path = tmp_path / "release.json"
+    atomic_write_json(path, release_manifest())
+    with pytest.raises(ValueError, match="bound to source snapshot"):
+        finalize_release_manifest(
+            path,
+            audit_report=audit_report(),
+            graph_metrics=graph_metrics(),
+            retrieval_result=retrieval_result(),
+            answer_results=[answer_result()] * 3,
+            previous_manifest=baseline(),
+            overrides=stale,
+        )
+    assert load_json_object(path)["promotionState"] == "building"
+
+
+@pytest.mark.parametrize("entry", [
+    "Upstream source consolidated duplicate attachments",
+    {"reason": "Upstream source consolidated duplicate attachments"},
+    {"reason": "Upstream source consolidated duplicate attachments", "sourceSnapshotHash": None},
+    {"reason": "Upstream source consolidated duplicate attachments", "sourceSnapshotHash": "latest"},
+    {**override("Upstream source consolidated duplicate attachments"), "maxActual": 0.1},
+])
+def test_an_override_without_a_valid_snapshot_binding_is_rejected(entry):
+    manifest = passing_manifest()
+    manifest["counts"]["answerReadyDrop"] = 0.03
+
+    with pytest.raises(ValueError):
+        apply_overrides(
+            evaluate_release_manifest(manifest), {"answerReadyDrop": entry}, SNAPSHOT
+        )
+
+
+def test_the_manifest_records_the_override_and_the_snapshot_it_was_bound_to(tmp_path):
+    path = tmp_path / "release.json"
+    atomic_write_json(path, release_manifest())
+    previous = baseline()
+    previous["counts"] = {"sourceFamily.provider_manual.documents": 40}
+    accepted = {
+        "sourceFamilyDocumentDrop": override(
+            "Provider manuals were merged into one handbook", "A" * 64
+        )
+    }
+
+    result = finalize_release_manifest(
+        path,
+        audit_report=audit_report(),
+        graph_metrics=graph_metrics(),
+        retrieval_result=retrieval_result(),
+        answer_results=[answer_result()] * 3,
+        previous_manifest=previous,
+        overrides=accepted,
+    )
+
+    assert result["promotionState"] == "validated"
+    assert result["gateOverrides"] == accepted
+    assert result["sourceSnapshotHash"] == SNAPSHOT
+    gate = next(g for g in result["gates"] if g["name"] == "sourceFamilyDocumentDrop")
+    assert not gate["passed"]
+    assert gate["overrideReason"] == "Provider manuals were merged into one handbook"
+
+
+def test_a_family_below_its_minimum_document_count_fails_a_mandatory_gate():
+    minimum = family_minimums()["clinical_policy"]
+    manifest = passing_manifest()
+    manifest["counts"]["sourceFamily.clinical_policy.loaded"] = minimum - 1
+
+    gates = evaluate_release_manifest(manifest)
+    gate = next(g for g in gates if g["name"] == "sourceFamilyMinimum.clinical_policy")
+
+    assert gate == {
+        "name": "sourceFamilyMinimum.clinical_policy",
+        "passed": False,
+        "actual": minimum - 1,
+        "threshold": minimum,
+        "overridable": False,
+        "overrideReason": None,
+    }
+    assert not release_is_promotable(gates)
+    with pytest.raises(ValueError, match="cannot be overridden"):
+        apply_overrides(
+            gates,
+            {"sourceFamilyMinimum.clinical_policy": override("The agency retired them")},
+            SNAPSHOT,
+        )
+
+
+def test_small_drops_that_pass_the_drop_gate_still_meet_the_absolute_minimum(tmp_path):
+    # Each release loses under 5% of the family against the one before, so the
+    # drop gate never fires; the minimum does not move with the baseline.
+    minimum = family_minimums()["clinical_policy"]
+    report = audit_report()
+    report["source_families"][0]["counts"]["loaded"] = minimum - 1
+    previous = baseline()
+    previous["counts"] = {"sourceFamily.clinical_policy.documents": 102}
+    path = tmp_path / "release.json"
+    atomic_write_json(path, release_manifest())
+
+    result = finalize_release_manifest(
+        path,
+        audit_report=report,
+        graph_metrics=graph_metrics(),
+        retrieval_result=retrieval_result(),
+        answer_results=[answer_result()] * 3,
+        previous_manifest=previous,
+    )
+
+    assert result["counts"]["maxSourceFamilyDocumentDrop"] < 0.05
+    assert result["counts"]["sourceFamily.clinical_policy.loaded"] == minimum - 1
+    assert [gate["name"] for gate in result["gates"] if not gate["passed"]] == [
+        "sourceFamilyMinimum.clinical_policy"
+    ]
+    assert result["promotionState"] == "rejected"
+
+
+def test_a_family_missing_from_the_audit_fails_its_minimum():
+    manifest = passing_manifest()
+    del manifest["counts"]["sourceFamily.waiver.loaded"]
+
+    gate = next(
+        g for g in evaluate_release_manifest(manifest)
+        if g["name"] == "sourceFamilyMinimum.waiver"
+    )
+
+    assert not gate["passed"] and gate["actual"] is None
+
+
+def test_every_required_source_family_has_a_minimum_document_count(tmp_path):
+    from pipeline.corpus_manifest import CORPUS_MANIFEST
+
+    policy = load_release_policy()
+    minimums = policy["mandatory"]["minimumLoadedDocuments"]
+    required = {
+        family.source_type
+        for family in CORPUS_MANIFEST.source_families
+        if family.required_for_answering
+    }
+
+    assert set(minimums["families"]) == required
+    assert all(type(count) is int and count > 0 for count in minimums["families"].values())
+    assert minimums["provisional"] is True
+
+    minimums["families"]["waiver"] = 0
+    path = tmp_path / "policy.json"
+    path.write_text(json.dumps(policy))
+    with pytest.raises(ValueError, match="minimum document count"):
+        load_release_policy(path)
 
 
 def test_missing_and_non_finite_metrics_fail_closed():
@@ -325,7 +551,7 @@ def test_audit_ignores_optional_stale_family_but_counts_required_parse_errors():
     assert audit["staleSourceFamilies"] == []
 
 
-def test_evaluation_uses_promoted_baseline_and_largest_regression():
+def test_evaluation_compares_each_metric_with_the_promoted_baseline():
     previous = {
         "evaluationResults": {
             "retrievalPrecision": 0.95,
@@ -344,14 +570,212 @@ def test_evaluation_uses_promoted_baseline_and_largest_regression():
 
     assert evaluation["retrievalPrecision"] == 0.92
     assert evaluation["answerScore"] == 2.9
-    assert evaluation["aggregateRegression"] == pytest.approx(0.1)
+    assert {
+        key: pytest.approx(value)
+        for key, value in evaluation.items()
+        if key.endswith("Regression")
+    } == {
+        "retrievalPrecisionRegression": 0.03,
+        "retrievalRecallRegression": 0.01,
+        "primaryDocumentHitRateRegression": 0.02,
+        "answerScoreAllRowsRegression": 0.1,
+        "hallucinationScoreRegression": 0.1,
+    }
+    assert "aggregateRegression" not in evaluation
+
+
+def test_a_release_with_no_baseline_fails_every_regression_gate():
+    manifest = passing_manifest()
+    manifest["evaluationResults"] = build_release_evaluation_results(
+        retrieval_result(), [answer_result()] * 3, None,
+    )
+
+    gates = evaluate_release_manifest(manifest)
+
+    failed = [gate for gate in gates if not gate["passed"]]
+    assert [gate["name"] for gate in failed] == [
+        "retrievalPrecisionRegression",
+        "retrievalRecallRegression",
+        "primaryDocumentHitRateRegression",
+        "answerScoreAllRowsRegression",
+        "hallucinationScoreRegression",
+    ]
+    assert all(gate["actual"] is None and not gate["overridable"] for gate in failed)
+    assert not release_is_promotable(gates)
+
+
+def test_a_baseline_missing_one_compared_metric_fails_that_regression_gate():
+    incomplete = baseline()
+    del incomplete["evaluationResults"]["hallucinationScore"]
+    manifest = passing_manifest()
+    manifest["evaluationResults"] = build_release_evaluation_results(
+        retrieval_result(), [answer_result()] * 3, incomplete,
+    )
+
+    assert [
+        gate["name"] for gate in evaluate_release_manifest(manifest) if not gate["passed"]
+    ] == ["hallucinationScoreRegression"]
+
+
+def test_regression_limits_differ_by_metric():
+    # 0.1 is inside the limit for the 0-3 answer scores and far outside the
+    # limit for the 0-1 retrieval rates.
+    manifest = passing_manifest()
+    manifest["evaluationResults"] = build_release_evaluation_results(
+        retrieval_result(),
+        [answer_result()] * 3,
+        baseline(retrievalRecall=1.03, answerScoreAllRows=3.0, hallucinationScore=2.9),
+    )
+
+    gates = {gate["name"]: gate for gate in evaluate_release_manifest(manifest)}
+
+    assert gates["retrievalRecallRegression"]["actual"] == pytest.approx(0.1)
+    assert not gates["retrievalRecallRegression"]["passed"]
+    assert gates["answerScoreAllRowsRegression"]["actual"] == pytest.approx(0.1)
+    assert gates["answerScoreAllRowsRegression"]["passed"]
+    assert gates["hallucinationScoreRegression"]["passed"]
+
+
+@pytest.mark.parametrize(("lost", "passes"), [(1, True), (2, False)])
+@pytest.mark.parametrize("questions", [50, 55])
+def test_retrieval_limit_tolerates_one_lost_question_and_never_two(questions, lost, passes):
+    measured = retrieval_result()
+    measured["aggregate"]["primary_hit_rate"] = (questions - 2 - lost) / questions
+    manifest = passing_manifest()
+    manifest["evaluationResults"] = build_release_evaluation_results(
+        measured,
+        [answer_result()] * 3,
+        baseline(primaryDocumentHitRate=(questions - 2) / questions),
+    )
+    manifest["evaluationResults"]["primaryDocumentHitRate"] = 0.96  # the floor is not under test
+
+    gate = next(
+        gate
+        for gate in evaluate_release_manifest(manifest)
+        if gate["name"] == "primaryDocumentHitRateRegression"
+    )
+
+    assert gate["passed"] is passes
+
+
+def test_release_policy_needs_a_regression_limit_for_each_compared_metric(tmp_path):
+    policy = load_release_policy()
+    assert set(policy["evaluation"]["maxRegression"]) == {
+        "retrievalPrecision",
+        "retrievalRecall",
+        "primaryDocumentHitRate",
+        "answerScoreAllRows",
+        "hallucinationScore",
+    }
+    del policy["evaluation"]["maxRegression"]["hallucinationScore"]
+    path = tmp_path / "policy.json"
+    path.write_text(json.dumps(policy))
+
+    with pytest.raises(ValueError, match="regression limit"):
+        load_release_policy(path)
+
+
+def scored_retrieval(recall_by_question, *, uncovered=()):
+    """A retrieval result with per-question rows, as the eval runner saves it."""
+    from pipeline.eval.results import compute_rollup
+
+    rows = [
+        {
+            "id": question,
+            "precision": recall / 10,
+            "recall": recall,
+            "mrr": recall,
+            "primary_hit": recall > 0,
+            "evidence_identity": {
+                "raw_expected_primary": [
+                    f"missing:sec:{question}" if question in uncovered else f"sec:{question}"
+                ],
+                "raw_expected_supporting": [],
+            },
+        }
+        for question, recall in recall_by_question.items()
+    ]
+    return {"per_question": rows, "aggregate": compute_rollup(rows)}
+
+
+def scored_answer(overall_by_question):
+    from pipeline.eval.results import compute_rollup
+
+    rows = [
+        {"id": question, "scores": {"overall": overall, "hallucination": 3, "outcome": "passed"}}
+        for question, overall in overall_by_question.items()
+    ]
+    return {
+        "config": {"dataset_count": len(rows)},
+        "per_question": rows,
+        "aggregate": compute_rollup(rows),
+    }
+
+
+def test_baseline_comparison_leaves_out_questions_the_baseline_graph_could_not_answer():
+    from pipeline.release import uncovered_question_ids, without_questions
+
+    # The baseline graph has no evidence for q-4, so it misses there by
+    # construction. Over all four questions the candidate's gain on q-4 hides
+    # its losses on the three questions both graphs can answer.
+    old_retrieval = scored_retrieval(
+        {"q-1": 1.0, "q-2": 1.0, "q-3": 1.0, "q-4": 0.0}, uncovered={"q-4"}
+    )
+    old_answer = scored_answer({"q-1": 3, "q-2": 3, "q-3": 3, "q-4": 0})
+    new_retrieval = scored_retrieval({"q-1": 1.0, "q-2": 1.0, "q-3": 0.5, "q-4": 1.0})
+    new_answers = [scored_answer({"q-1": 3, "q-2": 3, "q-3": 2, "q-4": 3})] * 3
+
+    excluded = uncovered_question_ids(old_retrieval)
+    shared_baseline = {"evaluationResults": build_release_evaluation_results(
+        without_questions(old_retrieval, excluded),
+        [without_questions(old_answer, excluded)],
+        None,
+    )}
+    over_all = build_release_evaluation_results(
+        new_retrieval,
+        new_answers,
+        {"evaluationResults": build_release_evaluation_results(
+            old_retrieval, [old_answer], None,
+        )},
+    )
+    over_shared = build_release_evaluation_results(
+        new_retrieval, new_answers, shared_baseline, excluded_questions=excluded,
+    )
+
+    assert excluded == {"q-4"}
+    assert over_all["retrievalRecallRegression"] == 0
+    assert over_all["answerScoreAllRowsRegression"] == 0
+    assert over_shared["retrievalRecallRegression"] == pytest.approx(1 / 6)
+    assert over_shared["primaryDocumentHitRateRegression"] == 0
+    assert over_shared["answerScoreAllRowsRegression"] == pytest.approx(1 / 3)
+    # The floors still read every question.
+    assert over_shared["retrievalRecall"] == pytest.approx(0.875)
+    assert over_shared["answerScoreAllRows"] == pytest.approx(2.75)
+
+
+def test_a_question_the_candidate_cannot_answer_stays_in_the_comparison():
+    from pipeline.release import uncovered_question_ids
+
+    old_retrieval = scored_retrieval({"q-1": 1.0, "q-2": 1.0})
+    new_retrieval = scored_retrieval({"q-1": 1.0, "q-2": 0.0}, uncovered={"q-2"})
+
+    evaluation = build_release_evaluation_results(
+        new_retrieval,
+        [scored_answer({"q-1": 3, "q-2": 3})] * 3,
+        {"evaluationResults": build_release_evaluation_results(
+            old_retrieval, [scored_answer({"q-1": 3, "q-2": 3})], None,
+        )},
+        excluded_questions=uncovered_question_ids(old_retrieval),
+    )
+
+    assert evaluation["retrievalRecallRegression"] == pytest.approx(0.5)
 
 
 def test_answer_floor_reads_released_answers_and_reports_all_rows():
     evaluation = build_release_evaluation_results(
         retrieval_result(),
         [answer_result(overall=2.5, released=2.8, withheld=5)] * 3,
-        None,
+        baseline(),
     )
     manifest = passing_manifest()
     manifest["evaluationResults"] = evaluation
@@ -383,7 +807,7 @@ def test_results_from_the_old_harness_fail_the_released_floor_and_the_cap():
     manifest["evaluationResults"] = build_release_evaluation_results(
         retrieval_result(),
         [{"config": {"dataset_count": 55}, "aggregate": {"overall": 2.9, "hallucination": 2.8}}] * 3,
-        None,
+        baseline(),
     )
 
     failed = {
@@ -412,10 +836,10 @@ def test_withheld_answer_cap_is_a_mandatory_gate(withheld, passes):
 def test_withheld_answer_cap_cannot_be_overridden(tmp_path):
     manifest = passing_manifest()
     manifest["evaluationResults"]["withheldAnswers"] = 6
-    reason = {"withheldAnswers": "The verifier was unusually strict on this run"}
+    reason = {"withheldAnswers": override("The verifier was unusually strict on this run")}
 
     with pytest.raises(ValueError, match="withheldAnswers cannot be overridden"):
-        apply_overrides(evaluate_release_manifest(manifest), reason)
+        apply_overrides(evaluate_release_manifest(manifest), reason, SNAPSHOT)
 
     path = tmp_path / "release.json"
     atomic_write_json(path, release_manifest())
@@ -478,9 +902,9 @@ def test_baseline_comparison_charges_withheld_answers_on_all_rows():
     manifest["evaluationResults"] = evaluation
     gates = evaluate_release_manifest(manifest)
 
-    assert evaluation["aggregateRegression"] == pytest.approx(0.2)
+    assert evaluation["answerScoreAllRowsRegression"] == pytest.approx(0.2)
     assert {gate["name"] for gate in gates if not gate["passed"]} == {
-        "aggregateRegression"
+        "answerScoreAllRowsRegression"
     }
 
 
@@ -495,7 +919,7 @@ def test_baseline_comparison_ignores_released_score_and_withheld_count():
         baseline,
     )
 
-    assert evaluation["aggregateRegression"] == 0
+    assert evaluation["answerScoreAllRowsRegression"] == 0
 
 
 def finalize_with_answer_runs(tmp_path, runs, **kwargs):
@@ -507,7 +931,7 @@ def finalize_with_answer_runs(tmp_path, runs, **kwargs):
         graph_metrics=graph_metrics(),
         retrieval_result=retrieval_result(),
         answer_results=runs,
-        previous_manifest=None,
+        previous_manifest=baseline(),
         **kwargs,
     )
 
@@ -550,12 +974,12 @@ def test_baseline_comparison_uses_the_three_run_all_rows_mean(tmp_path):
             answer_result(overall=2.6, released=2.9, withheld=5),
             answer_result(overall=2.7, released=2.9, withheld=5),
         ],
-        baseline_evaluation={"answerScoreAllRows": 2.8, "answerScore": 2.8},
+        baseline_evaluation=baseline(answerScoreAllRows=2.8)["evaluationResults"],
     )
 
-    assert result["evaluationResults"]["aggregateRegression"] == pytest.approx(0.2)
+    assert result["evaluationResults"]["answerScoreAllRowsRegression"] == pytest.approx(0.2)
     assert [gate["name"] for gate in result["gates"] if not gate["passed"]] == [
-        "aggregateRegression"
+        "answerScoreAllRowsRegression"
     ]
 
 
@@ -576,7 +1000,7 @@ def test_fewer_than_three_valid_answer_runs_cannot_be_promoted(tmp_path, valid_r
     assert result["promotionState"] == "rejected"
     with pytest.raises(ValueError, match="answerRuns cannot be overridden"):
         finalize_with_answer_runs(
-            tmp_path, runs, overrides={"answerRuns": "Two runs agreed closely enough"}
+            tmp_path, runs, overrides={"answerRuns": override("Two runs agreed closely enough")}
         )
 
 
@@ -605,6 +1029,80 @@ def test_answer_runs_of_different_benchmark_sizes_fail_the_cap(tmp_path):
     ]
 
 
+def decide_before_answer_runs(tmp_path, measured, **kwargs):
+    from pipeline.release import reject_before_answer_runs
+
+    path = tmp_path / "release.json"
+    atomic_write_json(path, release_manifest())
+    failed = reject_before_answer_runs(
+        path,
+        audit_report=audit_report(),
+        graph_metrics=graph_metrics(),
+        retrieval_result=measured,
+        previous_manifest=baseline(),
+        **kwargs,
+    )
+    return failed, load_json_object(path)
+
+
+def test_a_retrieval_floor_breach_rejects_the_release_before_any_answer_run(tmp_path):
+    measured = retrieval_result()
+    measured["aggregate"]["recall_at_k"] = 0.5
+    measured["aggregate"]["primary_hit_rate"] = 0.6
+
+    failed, manifest = decide_before_answer_runs(tmp_path, measured)
+
+    assert failed == [
+        "retrievalRecall",
+        "primaryDocumentHitRate",
+        "retrievalRecallRegression",
+        "primaryDocumentHitRateRegression",
+    ]
+    assert manifest["promotionState"] == "rejected"
+    assert manifest["validatedAt"]
+    assert manifest["evaluationResults"]["retrievalRecall"] == 0.5
+    # Only the gates that were decided are recorded; no answer run existed.
+    recorded = {gate["name"] for gate in manifest["gates"]}
+    assert {"retrievalRecall", "duplicateIdentities", "freshnessSla"} <= recorded
+    assert not recorded & {
+        "answerScore",
+        "hallucinationScore",
+        "answerRuns",
+        "withheldAnswers",
+        "answerScoreAllRowsRegression",
+        "hallucinationScoreRegression",
+    }
+
+
+def test_passing_retrieval_leaves_the_manifest_building_for_the_answer_runs(tmp_path):
+    failed, manifest = decide_before_answer_runs(tmp_path, retrieval_result())
+
+    assert failed == []
+    assert manifest["promotionState"] == "building"
+    assert manifest["gates"] == [] and manifest["validatedAt"] is None
+
+
+def test_a_missing_baseline_rejects_the_release_before_any_answer_run(tmp_path):
+    from pipeline.release import reject_before_answer_runs
+
+    path = tmp_path / "release.json"
+    atomic_write_json(path, release_manifest())
+    failed = reject_before_answer_runs(
+        path,
+        audit_report=audit_report(),
+        graph_metrics=graph_metrics(),
+        retrieval_result=retrieval_result(),
+        previous_manifest=None,
+    )
+
+    assert failed == [
+        "retrievalPrecisionRegression",
+        "retrievalRecallRegression",
+        "primaryDocumentHitRateRegression",
+    ]
+    assert load_json_object(path)["promotionState"] == "rejected"
+
+
 def test_finalize_rejects_mandatory_failure_even_with_valid_override(tmp_path):
     path = tmp_path / "release.json"
     atomic_write_json(path, release_manifest())
@@ -628,7 +1126,7 @@ def test_finalize_rejects_mandatory_failure_even_with_valid_override(tmp_path):
         answer_results=[answer_result()] * 3,
         previous_manifest=previous,
         overrides={
-            "answerReadyDrop": "Document removals were approved upstream"
+            "answerReadyDrop": override("Document removals were approved upstream")
         },
     )
 

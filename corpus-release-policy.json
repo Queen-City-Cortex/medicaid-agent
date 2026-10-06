@@ -1,12 +1,24 @@
 {
-  "policyVersion": 2,
+  "policyVersion": 3,
   "mandatory": {
     "duplicateIdentities": 0,
     "missingAnswerReadyLoads": 0,
     "requiredCurrentParseExceptions": 0,
     "embeddingCoverage": 1.0,
     "invalidEmbeddingDimensions": 0,
-    "requiredSourceFamiliesPresent": 1
+    "requiredSourceFamiliesPresent": 1,
+    "minimumLoadedDocuments": {
+      "provisional": true,
+      "basis": "80% of the documents loaded per required family in the 2026-10-03 preparation build (docs/validation/qualification-preparation-2026-10-03/completion.json), rounded down; dhhs_policy is 80% of that build less the about 308 documents the agency has de-listed, which the first full crawl will exclude",
+      "revisit": "Owner confirms against the first candidate graph; lower a family only when the agency really shrinks it",
+      "families": {
+        "clinical_policy": 141,
+        "bulletin": 144,
+        "state_plan_amendment": 352,
+        "waiver": 8,
+        "dhhs_policy": 709
+      }
+    }
   },
   "overridable": {
     "maxSourceFamilyDocumentDrop": 0.05,
@@ -24,7 +36,13 @@
       "provisional": true,
       "revisit": "Issue #259 (EVAL-2) sets this from the measured candidate graph"
     },
-    "maxAggregateRegression": 0.15,
+    "maxRegression": {
+      "retrievalPrecision": 0.025,
+      "retrievalRecall": 0.025,
+      "primaryDocumentHitRate": 0.025,
+      "answerScoreAllRows": 0.15,
+      "hallucinationScore": 0.15
+    },
     "answerRuns": 3,
     "maxVoidedAnswerRuns": 2
   },

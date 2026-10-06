@@ -4,7 +4,7 @@ import pytest
 
 from pipeline.eval.answer_scope import CASES, run_scope_acceptance
 from pipeline.answer_scope import scope_policy
-from pipeline.release import apply_overrides, evaluate_release_manifest
+from pipeline.release import apply_overrides, evaluate_release_manifest, load_release_policy
 
 
 def passing_manifest():
@@ -27,9 +27,27 @@ def passing_manifest():
             "withheldAnswers": 2,
             "benchmarkQuestions": 55,
             "answerRuns": 3,
-            "aggregateRegression": 0.1,
+            **dict.fromkeys(
+                [
+                    "retrievalPrecisionRegression",
+                    "retrievalRecallRegression",
+                    "primaryDocumentHitRateRegression",
+                    "answerScoreAllRowsRegression",
+                    "hallucinationScoreRegression",
+                ],
+                0.01,
+            ),
         },
-        "counts": {"maxSourceFamilyDocumentDrop": 0.01, "answerReadyDrop": 0.01},
+        "counts": {
+            "maxSourceFamilyDocumentDrop": 0.01,
+            "answerReadyDrop": 0.01,
+            **{
+                f"sourceFamily.{family}.loaded": minimum
+                for family, minimum in load_release_policy()["mandatory"][
+                    "minimumLoadedDocuments"
+                ]["families"].items()
+            },
+        },
     }
 
 
@@ -154,8 +172,12 @@ def test_scoped_promotion_cannot_skip_or_override_live_acceptance(change):
         apply_overrides(
             gates,
             {
-                "answerScopeAcceptancePassed": "A long operator explanation cannot waive the mandatory boundary checks."
+                "answerScopeAcceptancePassed": {
+                    "reason": "A long operator explanation cannot waive the mandatory boundary checks.",
+                    "sourceSnapshotHash": manifest["sourceSnapshotHash"],
+                }
             },
+            manifest["sourceSnapshotHash"],
         )
 
 

@@ -255,7 +255,7 @@ def compare_answers(baseline: list[dict], candidate: list[dict]) -> dict:
     b, c = means["baseline"], means["candidate"]
     failures = [key for key in ("retrievalRecall", "primaryDocumentHitRate", "answerScore", "hallucinationScore")
                 if any(r.get(key, 0) < policy[key] for r in metrics["candidate"])]
-    if any(b[k] - c[k] > policy["maxAggregateRegression"] for k in ("retrievalPrecision", "retrievalRecall", "primaryDocumentHitRate", "answerScoreAllRows", "hallucinationScore")):
+    if any(b[k] - c[k] > limit for k, limit in policy["maxRegression"].items()):
         failures.append("aggregateRegression")
     if c["hallucinationScore"] < b["hallucinationScore"]:
         failures.append("groundingDecline")

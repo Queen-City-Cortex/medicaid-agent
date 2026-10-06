@@ -29,8 +29,11 @@ from pipeline.release import (
     mark_manifest_rolled_back,
     mark_release_service_stopped,
     record_release_stage,
+    reject_before_answer_runs,
     require_rollback_available,
+    snapshot_bound_reasons,
     source_snapshot_hash,
+    uncovered_question_ids,
 )
 
 
@@ -191,7 +194,12 @@ def release_validate(
     override_file: Path | None,
     baseline_evidence: Path | None = None,
 ) -> None:
-    """Audit and evaluate the release, failing closed on every missing gate."""
+    """Audit and evaluate the release, failing closed on every missing gate.
+
+    Every gate that needs no agent answer is decided before the scope
+    acceptance cases and the answer runs, so a release that has already failed
+    is not charged for them.
+    """
     from pipeline.audit import run_corpus_audit
     from pipeline.eval.runner import run_eval
 
@@ -200,6 +208,7 @@ def release_validate(
         collect_answer_runs,
         evaluation_fingerprint,
         require_complete_results,
+        require_complete_retrieval,
         verification_summary,
     )
 
@@ -207,9 +216,17 @@ def release_validate(
         raise click.ClickException(
             "Choose bootstrap baseline evidence or a previous release, not both"
         )
+    if not baseline_evidence and not previous_manifest:
+        raise click.ClickException(
+            "A release is compared with a baseline: pass --previous-manifest "
+            "or --baseline-evidence"
+        )
     baseline = load_json_object(baseline_evidence) if baseline_evidence else None
     metrics = baseline_metrics(baseline) if baseline else None
     release = load_json_object(manifest)
+    # A stale or malformed override file stops here, before any stage runs.
+    overrides = load_json_object(override_file) if override_file else {}
+    snapshot_bound_reasons(overrides, release["sourceSnapshotHash"])
     release["evaluationFingerprint"] = evaluation_fingerprint()
     if baseline:
         release["baselineEvidence"] = baseline
@@ -241,18 +258,6 @@ def release_validate(
         }
 
     record_release_stage(manifest, "audit", audit_operation)
-    if release.get("answerScopePolicyHash"):
-        from pipeline.eval.answer_scope import run_scope_acceptance
-
-        def scope_operation() -> dict:
-            result = run_scope_acceptance(release["sourceSnapshotHash"])
-            evidence_path = release_dir / "answer-scope-acceptance.json"
-            atomic_write_json(evidence_path, result)
-            if not result["all_passed"]:
-                raise RuntimeError("Repeated answer scope acceptance failed")
-            return result
-
-        record_release_stage(manifest, "answerScopeAcceptance", scope_operation)
     graph_metrics = record_release_stage(
         manifest,
         "graphValidation",
@@ -277,6 +282,39 @@ def release_validate(
         }
 
     record_release_stage(manifest, "retrievalEvaluation", retrieval_operation)
+    require_complete_retrieval(retrieval_result)
+
+    evidence = {
+        "audit_report": audit_payload,
+        "graph_metrics": graph_metrics,
+        "retrieval_result": retrieval_result,
+        "previous_manifest": (
+            load_json_object(previous_manifest) if previous_manifest else None
+        ),
+        "overrides": overrides,
+        "baseline_evaluation": metrics,
+        "baseline_excluded_questions": (
+            uncovered_question_ids(baseline["retrieval"]) if baseline else None
+        ),
+    }
+    failed = reject_before_answer_runs(manifest, **evidence)
+    if failed:
+        raise click.ClickException(
+            f"Corpus release rejected before the answer stage by: {', '.join(failed)}"
+        )
+
+    if release.get("answerScopePolicyHash"):
+        from pipeline.eval.answer_scope import run_scope_acceptance
+
+        def scope_operation() -> dict:
+            result = run_scope_acceptance(release["sourceSnapshotHash"])
+            evidence_path = release_dir / "answer-scope-acceptance.json"
+            atomic_write_json(evidence_path, result)
+            if not result["all_passed"]:
+                raise RuntimeError("Repeated answer scope acceptance failed")
+            return result
+
+        record_release_stage(manifest, "answerScopeAcceptance", scope_operation)
 
     evaluation_policy = load_release_policy()["evaluation"]
     answer_results = collect_answer_runs(
@@ -303,17 +341,8 @@ def release_validate(
             baseline["answer"]
         )
     atomic_write_json(manifest, current)
-    previous = load_json_object(previous_manifest) if previous_manifest else None
-    overrides = load_json_object(override_file) if override_file else {}
     finalized = finalize_release_manifest(
-        manifest,
-        audit_report=audit_payload,
-        graph_metrics=graph_metrics,
-        retrieval_result=retrieval_result,
-        answer_results=answer_results,
-        previous_manifest=previous,
-        overrides=overrides,
-        baseline_evaluation=metrics,
+        manifest, answer_results=answer_results, **evidence
     )
     if finalized["promotionState"] != "validated":
         failed = [

@@ -57,7 +57,7 @@ def atomic_write_json(path: Path, payload: dict[str, Any]) -> None:
 
 def load_release_policy(path: Path = POLICY_PATH) -> dict[str, Any]:
     policy = load_json_object(path)
-    if policy.get("policyVersion") != 2:
+    if policy.get("policyVersion") != 3:
         raise ValueError("Unsupported corpus release policy version")
     for section in ("mandatory", "overridable", "evaluation", "operations"):
         if not isinstance(policy.get(section), dict):
@@ -71,7 +71,32 @@ def load_release_policy(path: Path = POLICY_PATH) -> dict[str, Any]:
         raise ValueError(
             "Release policy needs a withheld-answer cap with max and benchmarkSize"
         )
+    limits = policy["evaluation"].get("maxRegression")
+    if (
+        not isinstance(limits, dict)
+        or set(limits) != set(_BASELINE_COMPARISON_METRICS)
+        or any(_finite_number(limit) is None for limit in limits.values())
+    ):
+        raise ValueError(
+            "Release policy needs one regression limit for each of: "
+            + ", ".join(_BASELINE_COMPARISON_METRICS)
+        )
+    minimums = policy["mandatory"].get("minimumLoadedDocuments")
+    families = minimums.get("families") if isinstance(minimums, dict) else None
+    if (
+        not isinstance(families, dict)
+        or not families
+        or any(type(count) is not int or count < 1 for count in families.values())
+    ):
+        raise ValueError(
+            "Release policy needs a positive minimum document count per source family"
+        )
     return policy
+
+
+def release_policy_hash(path: Path = POLICY_PATH) -> str:
+    """Identify the gate thresholds a manifest was validated against."""
+    return f"sha256:{hashlib.sha256(path.read_bytes()).hexdigest()}"
 
 
 def _normalized_hash(value: str) -> str:
@@ -433,6 +458,8 @@ def build_release_counts(
         answer_ready_key = f"sourceFamily.{source_type}.answerReady"
         counts[document_key] = documents
         counts[answer_ready_key] = answer_ready
+        # Documents this build loaded into the candidate graph.
+        counts[f"sourceFamily.{source_type}.loaded"] = int(family_counts.get("loaded", 0))
         family_document_keys.append(document_key)
         documents_total += documents
         answer_ready_total += answer_ready
@@ -523,6 +550,20 @@ _BASELINE_COMPARISON_METRICS = (
 )
 
 
+# Gates that read paid agent answers: the scope acceptance cases and the answer
+# runs. Every other gate is decided once the audit and the retrieval evaluation
+# exist, before either is paid for.
+_ANSWER_GATES = frozenset({
+    "answerScopeAcceptancePassed",
+    "answerScore",
+    "hallucinationScore",
+    "answerRuns",
+    "withheldAnswers",
+    "answerScoreAllRowsRegression",
+    "hallucinationScoreRegression",
+})
+
+
 def _mean_across_runs(values: list[Any]) -> float | None:
     """Mean of one metric over the answer runs; absent from any run, absent."""
     numbers = [_finite_number(value) for value in values]
@@ -532,16 +573,81 @@ def _mean_across_runs(values: list[Any]) -> float | None:
     return statistics.mean(numbers)
 
 
+def _question_id(row: dict[str, Any]) -> Any:
+    return row.get("id", row.get("question_id"))
+
+
+def uncovered_question_ids(result: dict[str, Any]) -> set[str]:
+    """Questions with labelled evidence the evaluated graph does not hold.
+
+    The evaluation scores such a section as a miss whatever retrieval does, so
+    these questions measure the graph's coverage and not its quality.
+    """
+    uncovered = set()
+    for row in result.get("per_question", []):
+        identity = row.get("evidence_identity") or {}
+        expected = [
+            *identity.get("raw_expected_primary", []),
+            *identity.get("raw_expected_supporting", []),
+        ]
+        if any(str(section).startswith("missing:") for section in expected):
+            uncovered.add(_question_id(row))
+    return uncovered
+
+
+def without_questions(result: dict[str, Any], excluded: set[str]) -> dict[str, Any]:
+    """The same evaluation result, aggregated over the remaining questions."""
+    if not excluded:
+        return result
+    from pipeline.eval.results import compute_rollup
+
+    rows = [
+        row for row in result.get("per_question", [])
+        if _question_id(row) not in excluded
+    ]
+    return {**result, "per_question": rows, "aggregate": compute_rollup(rows)}
+
+
 def build_release_evaluation_results(
     retrieval_result: dict[str, Any],
     answer_results: list[dict[str, Any]],
     previous_manifest: dict[str, Any] | None,
+    *,
+    excluded_questions: set[str] | None = None,
 ) -> dict[str, float]:
     """Reduce one retrieval run and the answer runs to the gated metrics.
 
     Every answer metric is the mean of the per-run values, so no single run
-    decides a gate.
+    decides a gate. Each compared metric gets its own regression value against
+    the baseline; with no baseline, or a baseline lacking the metric, there is
+    none and its gate fails. `excluded_questions` are the questions the
+    baseline graph could not answer: the baseline metrics were computed
+    without them, so the candidate is compared without them too. The floors
+    read every question regardless.
     """
+    evaluation = _gated_metrics(retrieval_result, answer_results)
+    if previous_manifest is None:
+        return evaluation
+    compared = (
+        _gated_metrics(
+            without_questions(retrieval_result, excluded_questions),
+            [without_questions(result, excluded_questions) for result in answer_results],
+        )
+        if excluded_questions
+        else evaluation
+    )
+    previous_evaluation = previous_manifest.get("evaluationResults", {})
+    for key in _BASELINE_COMPARISON_METRICS:
+        previous = _finite_number(previous_evaluation.get(key))
+        if key in compared and previous is not None:
+            evaluation[f"{key}Regression"] = max(0.0, previous - compared[key])
+    return evaluation
+
+
+def _gated_metrics(
+    retrieval_result: dict[str, Any],
+    answer_results: list[dict[str, Any]],
+) -> dict[str, float]:
     retrieval = retrieval_result.get("aggregate", {})
     answers = [result.get("aggregate", {}) for result in answer_results]
     benchmark_sizes = {
@@ -570,25 +676,11 @@ def build_release_evaluation_results(
         ),
         "answerRuns": len(answer_results),
     }
-    evaluation = {
+    return {
         key: value
         for key, raw_value in candidates.items()
         if (value := _finite_number(raw_value)) is not None
     }
-
-    previous_evaluation = (
-        previous_manifest.get("evaluationResults", {})
-        if previous_manifest
-        else {}
-    )
-    regressions = [
-        max(0.0, float(previous_evaluation[key]) - evaluation[key])
-        for key in _BASELINE_COMPARISON_METRICS
-        if key in evaluation
-        and _finite_number(previous_evaluation.get(key)) is not None
-    ]
-    evaluation["aggregateRegression"] = max(regressions, default=0.0)
-    return evaluation
 
 
 def _gate(
@@ -674,6 +766,21 @@ def evaluate_release_manifest(
             overridable=False,
         ),
     ]
+    # The drop gates below compare only with the previous release, so losses
+    # under their limits compound and an override waives them. These floors do
+    # not move: a family that has really shrunk needs a deliberate policy edit.
+    for family, minimum_documents in sorted(
+        mandatory["minimumLoadedDocuments"]["families"].items()
+    ):
+        gates.append(
+            _gate(
+                f"sourceFamilyMinimum.{family}",
+                counts.get(f"sourceFamily.{family}.loaded"),
+                minimum_documents,
+                minimum=True,
+                overridable=False,
+            )
+        )
     if manifest.get("answerScopePolicyHash") or audit.get("answerScopeAcceptancePassed") == 0:
         stage = manifest.get("stageResults", {}).get("answerScopeAcceptance", {})
         receipt = stage.get("result") or {}
@@ -731,15 +838,18 @@ def evaluate_release_manifest(
             overridable=False,
         )
     )
-    gates.append(
-        _gate(
-            "aggregateRegression",
-            evaluation.get("aggregateRegression"),
-            evaluation_policy["maxAggregateRegression"],
-            minimum=False,
-            overridable=False,
+    # One limit per metric: the retrieval rates run from 0 to 1 and the answer
+    # scores from 0 to 3. No baseline means no value, and the gate fails.
+    for name in _BASELINE_COMPARISON_METRICS:
+        gates.append(
+            _gate(
+                f"{name}Regression",
+                evaluation.get(f"{name}Regression"),
+                evaluation_policy["maxRegression"][name],
+                minimum=False,
+                overridable=False,
+            )
         )
-    )
     gates.extend(
         [
             _gate(
@@ -768,29 +878,61 @@ def evaluate_release_manifest(
     return gates
 
 
+def snapshot_bound_reasons(
+    overrides: dict[str, Any],
+    source_snapshot_hash: str,
+) -> dict[str, str]:
+    """Check every override was written for this source snapshot; return the reasons.
+
+    An override is an operator's decision about one candidate. Each entry names
+    the snapshot it was made for, so a file left in place cannot waive a gate
+    for any later release.
+    """
+    reasons = {}
+    for name, entry in overrides.items():
+        if (
+            not isinstance(entry, dict)
+            or set(entry) != {"reason", "sourceSnapshotHash"}
+            or not all(isinstance(value, str) for value in entry.values())
+        ):
+            raise ValueError(
+                f"Override for {name} must be an object with exactly a reason "
+                "and the sourceSnapshotHash it was written for"
+            )
+        bound_to = _normalized_hash(entry["sourceSnapshotHash"])
+        if bound_to != source_snapshot_hash:
+            raise ValueError(
+                f"Override for {name} is bound to source snapshot {bound_to}, "
+                f"not this release's {source_snapshot_hash}"
+            )
+        reasons[name] = entry["reason"].strip()
+        if len(reasons[name]) < 10:
+            raise ValueError(
+                f"Override reason for {name} must contain at least 10 characters"
+            )
+    return reasons
+
+
 def apply_overrides(
     gates: list[dict[str, Any]],
-    overrides: dict[str, str],
+    overrides: dict[str, Any],
+    source_snapshot_hash: str,
 ) -> list[dict[str, Any]]:
-    """Apply documented reasons only to the three explicitly overridable gates."""
+    """Apply snapshot-bound reasons only to the three explicitly overridable gates."""
     by_name = {gate["name"]: gate for gate in gates}
     unknown = sorted(set(overrides) - set(by_name))
     if unknown:
         raise ValueError(f"Unknown release gate override(s): {', '.join(unknown)}")
+    for name in overrides:
+        if not by_name[name]["overridable"]:
+            raise ValueError(f"Release gate {name} cannot be overridden")
 
     updated = [dict(gate) for gate in gates]
     updated_by_name = {gate["name"]: gate for gate in updated}
-    for name, reason in overrides.items():
+    for name, reason in snapshot_bound_reasons(overrides, source_snapshot_hash).items():
         gate = updated_by_name[name]
-        if not gate["overridable"]:
-            raise ValueError(f"Release gate {name} cannot be overridden")
-        normalized = reason.strip()
-        if len(normalized) < 10:
-            raise ValueError(
-                f"Override reason for {name} must contain at least 10 characters"
-            )
         if not gate["passed"]:
-            gate["overrideReason"] = normalized[:2_000]
+            gate["overrideReason"] = reason[:2_000]
     return updated
 
 
@@ -806,7 +948,7 @@ def release_is_promotable(gates: list[dict[str, Any]]) -> bool:
     )
 
 
-def finalize_release_manifest(
+def _gated_manifest(
     manifest_path: Path,
     *,
     audit_report: dict[str, Any],
@@ -814,10 +956,11 @@ def finalize_release_manifest(
     retrieval_result: dict[str, Any],
     answer_results: list[dict[str, Any]],
     previous_manifest: dict[str, Any] | None,
-    overrides: dict[str, str] | None = None,
+    overrides: dict[str, Any] | None = None,
     baseline_evaluation: dict[str, float] | None = None,
-    now: datetime | None = None,
+    baseline_excluded_questions: set[str] | None = None,
 ) -> dict[str, Any]:
+    """The manifest with its metrics and every gate evaluated; nothing written."""
     manifest = load_json_object(manifest_path)
     manifest["counts"] = build_release_counts(audit_report, previous_manifest)
     manifest["auditResults"] = build_release_audit_results(
@@ -828,9 +971,54 @@ def finalize_release_manifest(
         retrieval_result,
         answer_results,
         {"evaluationResults": baseline_evaluation} if baseline_evaluation is not None else previous_manifest,
+        excluded_questions=baseline_excluded_questions,
     )
+    manifest["baselineComparisonExcludedQuestions"] = sorted(
+        baseline_excluded_questions or ()
+    )
+    manifest["releasePolicyHash"] = release_policy_hash()
     gates = evaluate_release_manifest(manifest)
-    manifest["gates"] = apply_overrides(gates, overrides or {})
+    manifest["gateOverrides"] = overrides or {}
+    manifest["gates"] = apply_overrides(
+        gates, manifest["gateOverrides"], manifest["sourceSnapshotHash"]
+    )
+    return manifest
+
+
+def reject_before_answer_runs(
+    manifest_path: Path,
+    *,
+    now: datetime | None = None,
+    **evidence: Any,
+) -> list[str]:
+    """Reject the release now if a gate that needs no agent answer has failed.
+
+    Returns the failed gates. An empty list leaves the manifest untouched and
+    the answer stage may start; otherwise the manifest is written as rejected
+    with the gates decided so far, and no answer should be paid for.
+    """
+    manifest = _gated_manifest(manifest_path, answer_results=[], **evidence)
+    decided = [gate for gate in manifest["gates"] if gate["name"] not in _ANSWER_GATES]
+    if release_is_promotable(decided):
+        return []
+    manifest["gates"] = decided
+    manifest["promotionState"] = "rejected"
+    manifest["validatedAt"] = format_timestamp(now or utc_now())
+    atomic_write_json(manifest_path, manifest)
+    return [
+        gate["name"]
+        for gate in decided
+        if not gate["passed"] and not gate["overrideReason"]
+    ]
+
+
+def finalize_release_manifest(
+    manifest_path: Path,
+    *,
+    now: datetime | None = None,
+    **evidence: Any,
+) -> dict[str, Any]:
+    manifest = _gated_manifest(manifest_path, **evidence)
     promotable = release_is_promotable(manifest["gates"])
     manifest["promotionState"] = "validated" if promotable else "rejected"
     manifest["validatedAt"] = format_timestamp(now or utc_now())

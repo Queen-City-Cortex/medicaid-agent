@@ -248,13 +248,69 @@ CORPUS_JOB_MODE=release railway redeploy --service corpus-job --yes
 [`corpus-release-policy.json`](../../corpus-release-policy.json) is checked in
 and fail-closed. Duplicate identities, missing answer-ready graph loads,
 required-document parse exceptions, incomplete/wrong-dimension embeddings,
-missing required source families, and evaluation failures cannot be
-overridden. Only source-family count drop, total answer-ready drop, and
-freshness SLA failures accept a recorded reason of at least ten characters.
+missing required source families, a required family below its minimum
+document count, and evaluation failures cannot be overridden. Only
+source-family count drop, total answer-ready drop, and freshness SLA failures
+accept an override, written for one source snapshot as described below.
 
-Policy version 2 requires retrieval recall of at least 0.9, primary-evidence hit
+### Gate overrides
+
+An override is an operator's decision about one candidate. The file is a JSON
+object keyed by gate name (`sourceFamilyDocumentDrop`, `answerReadyDrop` or
+`freshnessSla`); each entry holds exactly a reason of at least ten characters
+and the source snapshot it was written for:
+
+```json
+{
+  "sourceFamilyDocumentDrop": {
+    "reason": "The agency merged 31 superseded bulletins into the 2026 index",
+    "sourceSnapshotHash": "sha256:<64 hex characters>"
+  }
+}
+```
+
+Take `sourceSnapshotHash` from the rejected release's manifest
+(`/data/pipeline/releases/<release-id>.json`), or `snapshot_hash` from
+`/data/pipeline/release-state/answer-ready-result.json`; the `sha256:` prefix
+is optional. `release-validate` checks the file before any stage runs and
+refuses an entry whose hash is not the candidate's, an entry in any other
+shape, an unknown gate and a gate that cannot be overridden. If the corpus
+changes after the file is written, the hash no longer matches and the override
+must be decided again. The manifest keeps the accepted entries in
+`gateOverrides` and the reason on the gate.
+
+Put the file on the corpus volume and name it in `RELEASE_OVERRIDE_FILE` for one
+operator-invoked `CORPUS_JOB_MODE=release` run, then remove the variable.
+`corpus-release.sh promote` passes the file only in that mode. A `scheduled` or
+`discover` run that finds the variable set exits 64 before the crawl, and
+`promote` outside release mode exits 64 before it reads Railway. Bootstrap does
+not take an override yet; the format needs nothing from a previous release, so
+it can.
+
+### Minimum documents per family
+
+The two count gates compare a release only with the one before it, so losses
+under their limits (5% of a family, 2% of answer-ready documents) compound,
+and an override waives them. `mandatory.minimumLoadedDocuments.families`
+therefore sets an absolute floor on the documents loaded into the candidate
+graph for each family required for answering (`loaded` in the corpus audit,
+`sourceFamily.<family>.loaded` in the manifest). Each family has its own
+`sourceFamilyMinimum.<family>` gate; a family missing from the audit fails it,
+and no override waives it. These gates are decided before the answer stage.
+
+The values are provisional (`"provisional": true`): 80% of what the 2026-10-03
+preparation build loaded for each family, rounded down. The `dhhs_policy`
+value first subtracts the about 308 documents the agency has dropped from its
+index, which the first full crawl leaves out of the graph (see the de-listing
+procedure above); without that the first release would fail this gate for the
+right behaviour. Confirm every value against the first candidate graph. When the agency really shrinks a family, lower that
+family's number in a reviewed change; the release policy is outside the
+evaluation fingerprint, so the edit does not void a baseline.
+
+Policy version 3 requires retrieval recall of at least 0.9, primary-evidence hit
 rate of at least 0.95, answer score of at least 2.75, hallucination score of at
-least 2.5, at most 5 withheld answers, and aggregate regression of at most 0.15.
+least 2.5, at most 5 withheld answers, and a regression from the baseline of at
+most 0.025 on each retrieval metric and 0.15 on each answer metric.
 Precision remains in release reports and baseline comparisons, without an
 absolute threshold. The golden benchmark names a sparse set of known relevant
 sections: at ten returned results, its current mean precision ceiling is about
@@ -274,7 +330,7 @@ build from meeting the floors by answering less:
   [issue #259](https://github.com/Queen-City-Cortex/medicaid-agent/issues/259)
   replaces it once the candidate graph has been measured. The 2.75 floor is
   revisited there too and is unchanged until then.
-- `aggregateRegression` compares the all-rows answer score
+- `answerScoreAllRowsRegression` compares the all-rows answer score
   (`answerScoreAllRows` in the manifest) with the baseline, so withholding the
   weakest answers lowers the compared score. The released-rows `answerScore`
   and the withheld count are not part of that comparison.
@@ -296,6 +352,93 @@ Each release validation therefore pays for three answer runs, and up to five
 during an outage. The baseline it is compared with is still a single
 `release-baseline` run.
 
+### Retrieval floors and the order of the gates
+
+`release-validate` decides every gate that needs no agent answer before the
+answer stage: the audit and graph gates, both retrieval floors and the three
+retrieval regression limits. If one fails it writes the manifest as `rejected`
+with the gates decided so far and exits with `Corpus release rejected before
+the answer stage by: …`. Neither the scope acceptance cases nor an answer run
+is paid for, and the retrieval result is already saved as
+`<release-id>/retrieval-evaluation.json`.
+
+The two retrieval floors (`evaluation.retrievalRecall` and
+`evaluation.primaryDocumentHitRate`) are **not calibrated**. 0.9 and 0.95
+predate the 55-question benchmark; no retrieval run on that benchmark or on a
+rebuilt graph is stored. Set them once, from a measurement:
+
+1. Build the candidate graph (bootstrap does this). With the floors as they
+   are, expect validation to stop before the answer stage on the two retrieval
+   floors. That stop is the measurement.
+2. Read the result:
+
+   ```bash
+   jq '{questions: (.per_question | length),
+        recall: .aggregate.recall_at_k,
+        primaryHit: .aggregate.primary_hit_rate,
+        missing: .config.evidence_normalization.missingCanonicalIds}' \
+     /data/pipeline/releases/<release-id>/retrieval-evaluation.json
+   ```
+
+   Require 55 questions and an empty `missing` list. A labelled section absent
+   from the candidate graph is a corpus defect to fix, not a number to
+   calibrate around.
+3. Confirm the measurement repeats. From `packages/pipeline`, with the
+   candidate colour's `NEO4J_URI` and `NEO4J_PASSWORD`, the frozen
+   `EVAL_IDENTITY_CATALOG` and the embedding provider key:
+
+   ```bash
+   MASTRA_OBSERVABILITY_PATH=:memory: uv run python -m pipeline.cli eval --level retrieval
+   ```
+
+   Retrieval is deterministic on one graph, so both figures must equal step 2
+   exactly. This runs no answer or judge model; it pays for query embeddings.
+4. Set each floor to the measured value minus 0.02 to 0.04, rounded down to two
+   decimals. One question moves the primary-evidence hit rate by 0.018, so
+   that margin allows one or two questions of drift between rebuilds and no
+   more. Change only those two numbers in `corpus-release-policy.json`, merge
+   the change, and record the measured values, the graph's release id and the
+   chosen floors in issue #188.
+5. Validate the same manifest again with the merged policy; do not rerun
+   bootstrap, which resets and rebuilds the graph. From `packages/pipeline`
+   with the candidate colour's graph variables:
+
+   ```bash
+   MASTRA_OBSERVABILITY_PATH=:memory: uv run python -m pipeline.cli release-validate \
+     --manifest /data/pipeline/releases/<release-id>.json \
+     --baseline-evidence /data/pipeline/releases/legacy-baseline.json
+   ```
+
+   Then mark the graph (`release-mark-graph --state validated`) and upload the
+   evidence with `sync-corpus-artifacts.sh`, as bootstrap would have.
+
+The floors accept no override. The release policy is not part of the evaluation
+fingerprint, so step 4 does not void the legacy baseline: a threshold decides
+what a score means for a release, not what the score is. Each validated or
+rejected manifest records the policy it was gated against as
+`releasePolicyHash`, and each gate records its own threshold.
+
+### Baseline comparison
+
+Every release is compared with a baseline: the previous release's manifest, or
+at bootstrap the legacy `release-baseline` evidence. `release-validate` refuses
+to start without one, and a comparison that cannot be made fails its gate: each
+of `retrievalPrecision`, `retrievalRecall`, `primaryDocumentHitRate`,
+`answerScoreAllRows` and `hallucinationScore` has its own
+`<metric>Regression` gate and its own limit in `evaluation.maxRegression`. No
+override waives them. The retrieval limit of 0.025 tolerates one benchmark
+question changing and never two, on 50 or on 55 questions.
+
+At bootstrap the comparison leaves out every question for which the legacy
+graph lacks a labelled section (`missing:` evidence identities in the baseline
+retrieval result; today the five beneficiary-guidance questions). The legacy
+graph misses those by construction, so including them would let the candidate
+lose ground on the 50 questions both graphs can answer and still show no
+regression. The manifest lists them in `baselineComparisonExcludedQuestions`.
+The floors still read all 55 questions, and a question the candidate cannot
+answer stays in the comparison and counts against it. A later release is
+compared with the previous manifest's 55-question figures.
+
 Server-side answer verification remains mandatory independently of these corpus
 metrics.
 
@@ -306,8 +449,10 @@ The promotion flow is:
    not elapsed.
 3. Start the inactive graph and wait for Bolt.
 4. Parse, reset/load, ingest federal sources, resolve references/amendments,
-   embed, audit, and evaluate.
-5. Upload the building evidence and reject on any unapproved gate.
+   embed, audit, and evaluate retrieval. Reject here, before any answer run,
+   on a gate that is already decided.
+5. Run the three answer evaluations, upload the building evidence and reject
+   on any unapproved gate.
 6. Set the agent URI, release ID, and active color without an intermediate
    deploy; redeploy once.
 7. Require graph-backed `/readyz`, authenticated `/corpus-status`, provider

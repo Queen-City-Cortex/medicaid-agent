@@ -64,6 +64,13 @@ active_graph_env() {
 }
 
 discover_and_release() {
+  # A gate override is an operator's decision about one source snapshot and is
+  # honoured only in release mode. Left set, it fails the unattended run here,
+  # before the crawl, so it is removed instead of meeting a later release.
+  if [[ -n "${RELEASE_OVERRIDE_FILE:-}" ]]; then
+    log "RELEASE_OVERRIDE_FILE is set; gate overrides apply only to CORPUS_JOB_MODE=release. Unset it."
+    return 64
+  fi
   log "daily discovery starting"
   if (
     cd "$CRAWLER_DIR" &&

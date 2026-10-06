@@ -22,6 +22,8 @@ from pipeline.release import (
     append_release_event,
     build_release_evaluation_results,
     record_release_stage,
+    uncovered_question_ids,
+    without_questions,
 )
 
 
@@ -40,11 +42,13 @@ def evaluation_fingerprint() -> dict:
                 sources[str(path.relative_to(REPO_ROOT))] = hashlib.sha256(
                     path.read_bytes()
                 ).hexdigest()
+    # The release policy is deliberately absent: its thresholds decide what a
+    # score means for a release, not what the score is, so recalibrating one
+    # must not void a paid baseline. The manifest records `releasePolicyHash`.
     for rel in [
         "package-lock.json",
         "packages/pipeline/uv.lock",
         "corpus-manifest.json",
-        "corpus-release-policy.json",
     ]:
         sources[rel] = hashlib.sha256((REPO_ROOT / rel).read_bytes()).hexdigest()
     return {
@@ -161,11 +165,12 @@ def collect_answer_runs(
     return valid
 
 
-def require_complete_results(retrieval: dict, answer: dict) -> None:
+def _require_complete_rows(results: list[dict]) -> list[dict]:
+    """Check each result covers the benchmark; return their identity evidence."""
     from pipeline.eval.dataset import load_dataset
 
     expected = {row["id"] for row in load_dataset()}
-    for result in [retrieval, answer]:
+    for result in results:
         rows = result.get("per_question", [])
         ids = [row.get("id", row.get("question_id")) for row in rows]
         if len(ids) != len(expected) or set(ids) != expected:
@@ -177,8 +182,7 @@ def require_complete_results(retrieval: dict, answer: dict) -> None:
                 "Evaluation infrastructure errors invalidate release evidence"
             )
     normalizations = [
-        result.get("config", {}).get("evidence_normalization")
-        for result in [retrieval, answer]
+        result.get("config", {}).get("evidence_normalization") for result in results
     ]
     if not all(normalizations) or any(
         n.get("version") != 1 or not n.get("mappingHash") for n in normalizations
@@ -186,13 +190,10 @@ def require_complete_results(retrieval: dict, answer: dict) -> None:
         raise ValueError(
             "Release comparisons require evidence identity mappings for both evaluation levels"
         )
-    if (
-        normalizations[0]["catalogHash"] != normalizations[1]["catalogHash"]
-        or normalizations[0]["mappingHash"] != normalizations[1]["mappingHash"]
-    ):
-        raise ValueError(
-            "Evaluation graph identity changed between retrieval and answer runs"
-        )
+    return normalizations
+
+
+def _require_untampered_identities(normalizations: list[dict]) -> None:
     for normalization in normalizations:
         if (
             not isinstance(normalization.get("mappings"), list)
@@ -206,6 +207,23 @@ def require_complete_results(retrieval: dict, answer: dict) -> None:
             != normalization["catalogHash"]
         ):
             raise ValueError("Evaluation identity catalog mismatch")
+
+
+def require_complete_retrieval(retrieval: dict) -> None:
+    """What the retrieval gates need before they may stop a release early."""
+    _require_untampered_identities(_require_complete_rows([retrieval]))
+
+
+def require_complete_results(retrieval: dict, answer: dict) -> None:
+    normalizations = _require_complete_rows([retrieval, answer])
+    if (
+        normalizations[0]["catalogHash"] != normalizations[1]["catalogHash"]
+        or normalizations[0]["mappingHash"] != normalizations[1]["mappingHash"]
+    ):
+        raise ValueError(
+            "Evaluation graph identity changed between retrieval and answer runs"
+        )
+    _require_untampered_identities(normalizations)
     verification_summary(answer)
 
 
@@ -255,8 +273,13 @@ def baseline_metrics(evidence: dict) -> dict:
             "Baseline benchmark or implementation/model configuration mismatch"
         )
     require_complete_results(evidence["retrieval"], evidence["answer"])
+    # A question whose evidence the baseline graph lacks is a miss by
+    # construction. The comparison leaves it out on both sides.
+    excluded = uncovered_question_ids(evidence["retrieval"])
     return build_release_evaluation_results(
-        evidence["retrieval"], [evidence["answer"]], None
+        without_questions(evidence["retrieval"], excluded),
+        [without_questions(evidence["answer"], excluded)],
+        None,
     )
 
 

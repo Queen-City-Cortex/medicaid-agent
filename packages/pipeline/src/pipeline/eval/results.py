@@ -105,7 +105,7 @@ def _error_counts(rows: list[dict]) -> dict:
 _NON_METRIC_KEYS = {"judge_errors", "agent_errors", "scorable_count", "withheld_count"}
 
 
-def _compute_rollup(rows: list[dict]) -> dict:
+def compute_rollup(rows: list[dict]) -> dict:
     """Compute all persisted aggregates for a run subset."""
     retrieval_rollup, scorable_count, retrieval_unscored = _compute_retrieval_rollup(rows)
     answer_rollup = _compute_answer_rollup(rows)
@@ -133,13 +133,13 @@ def save_result(level: str, per_question: list[dict], config_overrides: dict | N
 
     run_id = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
 
-    aggregate = _compute_rollup(per_question)
+    aggregate = compute_rollup(per_question)
 
     # Compute by_difficulty
     by_difficulty: dict[str, dict] = {}
     for diff in ["simple", "moderate", "complex"]:
         subset = [q for q in per_question if q.get("difficulty") == diff]
-        rollup = _compute_rollup(subset)
+        rollup = compute_rollup(subset)
         if _has_metric_values(rollup):
             by_difficulty[diff] = {
                 **rollup,
@@ -153,7 +153,7 @@ def save_result(level: str, per_question: list[dict], config_overrides: dict | N
         if not cat:
             continue
         subset = [q for q in per_question if q.get("reasoning_type") == cat]
-        rollup = _compute_rollup(subset)
+        rollup = compute_rollup(subset)
         if _has_metric_values(rollup):
             by_category[cat] = {
                 **rollup,

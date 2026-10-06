@@ -244,24 +244,32 @@ def test_repeated_voided_answer_runs_stop_validation_before_any_gate(tmp_path):
     assert len(release["events"]) == 3
 
 
-def test_release_validate_gates_on_the_mean_of_three_answer_runs(tmp_path, monkeypatch):
+def validate_release(
+    tmp_path, monkeypatch, outcomes, *, recall=0.95, baseline=True, baseline_evidence=None,
+    scoped=False, overrides=None,
+):
+    """Run `release-validate` with every graph, audit and model call faked."""
     from click.testing import CliRunner
 
     import pipeline.audit
     import pipeline.cli.release as cli_release
     import pipeline.eval.runner
     from pipeline.cli import cli
-    from tests.test_release import audit_report, graph_metrics
+    from tests.test_release import audit_report, baseline as previous_release, graph_metrics
 
     manifest = building_manifest(tmp_path)
-    # Alone, the first run is under the 2.75 floor; the mean of the three is not.
-    fake = FakeAnswerEval(tmp_path / "eval-results", [(2.6, 0), (2.8, 0), (2.9, 0)])
+    if scoped:
+        atomic_write_json(
+            manifest, {**load_json_object(manifest), "answerScopePolicyHash": "reviewed"}
+        )
+    fake = FakeAnswerEval(tmp_path / "eval-results", outcomes)
 
     def run_eval(level):
         if level == "answer":
             return fake()
         result = complete_result()
         result["run_id"] = "retrieval-1"
+        result["aggregate"]["recall_at_k"] = recall
         (fake.results_dir / "retrieval-1_retrieval.json").write_text(json.dumps(result))
         return result
 
@@ -277,7 +285,28 @@ def test_release_validate_gates_on_the_mean_of_three_answer_runs(tmp_path, monke
     monkeypatch.setattr(cli_release, "inspect_release_graph", lambda *args: graph_metrics())
     monkeypatch.setattr(cli_release, "mark_graph_release", lambda release: {"releaseId": release["releaseId"]})
 
-    outcome = CliRunner().invoke(cli, ["release-validate", "--manifest", str(manifest)])
+    arguments = ["release-validate", "--manifest", str(manifest)]
+    if baseline_evidence:
+        path = tmp_path / "legacy-baseline.json"
+        path.write_text(json.dumps(baseline_evidence))
+        arguments += ["--baseline-evidence", str(path)]
+    if overrides is not None:
+        path = tmp_path / "overrides.json"
+        path.write_text(json.dumps(overrides))
+        arguments += ["--override-file", str(path)]
+    if baseline and not baseline_evidence:
+        previous = tmp_path / "releases" / "release-1.json"
+        atomic_write_json(previous, previous_release())
+        arguments += ["--previous-manifest", str(previous)]
+    outcome = CliRunner().invoke(cli, arguments)
+    return outcome, fake, manifest
+
+
+def test_release_validate_gates_on_the_mean_of_three_answer_runs(tmp_path, monkeypatch):
+    # Alone, the first run is under the 2.75 floor; the mean of the three is not.
+    outcome, fake, manifest = validate_release(
+        tmp_path, monkeypatch, [(2.6, 0), (2.8, 0), (2.9, 0)]
+    )
 
     assert outcome.exit_code == 0, outcome.output
     assert fake.calls == 3
@@ -286,3 +315,198 @@ def test_release_validate_gates_on_the_mean_of_three_answer_runs(tmp_path, monke
     assert release["evaluationResults"]["answerRuns"] == 3
     assert release["evaluationResults"]["answerScore"] == pytest.approx((2.6 + 2.8 + 2.9) / 3)
     assert len(release["verificationSummaries"]) == 3
+
+
+def test_release_validate_stops_on_a_retrieval_floor_breach_before_the_answer_stage(
+    tmp_path, monkeypatch
+):
+    outcome, fake, manifest = validate_release(
+        tmp_path, monkeypatch, [(2.9, 0)] * 3, recall=0.5
+    )
+
+    assert outcome.exit_code != 0
+    assert "rejected before the answer stage by: retrievalRecall" in outcome.output
+    assert fake.calls == 0
+    release = load_json_object(manifest)
+    assert release["promotionState"] == "rejected"
+    assert release["stageResults"]["retrievalEvaluation"]["status"] == "passed"
+    assert not any(name.startswith("answerEvaluation") for name in release["stageResults"])
+    assert (manifest.parent / "release-2" / "retrieval-evaluation.json").exists()
+    recall = next(gate for gate in release["gates"] if gate["name"] == "retrievalRecall")
+    assert recall["actual"] == 0.5 and not recall["passed"] and not recall["overridable"]
+
+
+def test_a_scoped_release_that_fails_retrieval_is_not_charged_for_scope_acceptance(
+    tmp_path, monkeypatch
+):
+    import pipeline.eval.answer_scope
+
+    def paid_scope_cases(snapshot):
+        raise AssertionError("scope acceptance ran before the retrieval gates")
+
+    monkeypatch.setattr(pipeline.eval.answer_scope, "run_scope_acceptance", paid_scope_cases)
+    outcome, fake, manifest = validate_release(
+        tmp_path, monkeypatch, [(2.9, 0)] * 3, recall=0.5, scoped=True
+    )
+
+    assert "rejected before the answer stage by: retrievalRecall" in outcome.output
+    assert fake.calls == 0
+    assert "answerScopeAcceptance" not in load_json_object(manifest)["stageResults"]
+
+
+def test_release_validate_needs_a_baseline_before_it_does_any_work(tmp_path, monkeypatch):
+    outcome, fake, manifest = validate_release(
+        tmp_path, monkeypatch, [(2.9, 0)] * 3, baseline=False
+    )
+
+    assert outcome.exit_code != 0
+    assert "--previous-manifest or --baseline-evidence" in outcome.output
+    assert fake.calls == 0
+    assert load_json_object(manifest)["stageResults"] == {}
+
+
+def test_an_incomplete_retrieval_run_cannot_decide_the_retrieval_gates():
+    partial = complete_result()
+    partial["per_question"].pop()
+
+    with pytest.raises(ValueError, match="complete benchmark"):
+        evidence.require_complete_retrieval(partial)
+    evidence.require_complete_retrieval(complete_result())
+
+
+def fake_repository(tmp_path, monkeypatch):
+    for package in ["agent", "contracts", "policy-corpus", "pipeline"]:
+        source = tmp_path / "packages" / package / "src"
+        source.mkdir(parents=True)
+        (source / "module.py").write_text("VALUE = 1\n")
+    (tmp_path / "packages" / "pipeline" / "uv.lock").write_text("lock")
+    for name in ["package-lock.json", "corpus-manifest.json", "corpus-release-policy.json"]:
+        (tmp_path / name).write_text("{}")
+    dataset = tmp_path / "dataset.json"
+    dataset.write_text("[]")
+    catalog = tmp_path / "catalog.json"
+    catalog.write_text(json.dumps({"sections": []}))
+    monkeypatch.setattr(evidence, "REPO_ROOT", tmp_path)
+    monkeypatch.setattr(evidence, "GOLDEN_DATASET_PATH", dataset)
+    monkeypatch.setenv("EVAL_IDENTITY_CATALOG", str(catalog))
+    for variable in ["JEV_SECTION_ROLES_ENABLED", "SCOPE_GATE_PROVIDER", "JEV_VALIDATION_LEDGER"]:
+        monkeypatch.delenv(variable, raising=False)
+    return tmp_path
+
+
+def test_release_policy_is_not_part_of_the_evaluation_fingerprint(tmp_path, monkeypatch):
+    # A threshold decides what a score means for a release, never what the
+    # score is: recalibrating one must not void a paid baseline.
+    root = fake_repository(tmp_path, monkeypatch)
+    before = evidence.evaluation_fingerprint()
+
+    (root / "corpus-release-policy.json").write_text('{"evaluation": {"retrievalRecall": 0.5}}')
+    assert evidence.evaluation_fingerprint() == before
+
+    (root / "corpus-manifest.json").write_text('{"source_families": []}')
+    assert evidence.evaluation_fingerprint() != before
+
+
+def test_the_validated_manifest_records_the_policy_that_gated_it(tmp_path, monkeypatch):
+    from pipeline.release import release_policy_hash
+
+    outcome, _fake, manifest = validate_release(tmp_path, monkeypatch, [(2.9, 0)] * 3)
+
+    assert outcome.exit_code == 0, outcome.output
+    assert load_json_object(manifest)["releasePolicyHash"] == release_policy_hash()
+    assert release_policy_hash().startswith("sha256:")
+
+
+def test_baseline_metrics_cover_only_questions_the_baseline_graph_holds(monkeypatch):
+    from tests.test_release import scored_answer, scored_retrieval
+
+    monkeypatch.setattr(evidence, "evaluation_fingerprint", lambda: {"model": "frozen"})
+    monkeypatch.setattr(evidence, "require_complete_results", lambda *results: None)
+    baseline = {
+        "schemaVersion": 1,
+        "fingerprint": {"model": "frozen"},
+        "retrieval": scored_retrieval(
+            {"q-1": 1.0, "q-2": 0.5, "q-3": 0.0}, uncovered={"q-3"}
+        ),
+        "answer": scored_answer({"q-1": 3, "q-2": 2, "q-3": 0}),
+    }
+
+    metrics = evidence.baseline_metrics(baseline)
+
+    assert metrics["retrievalRecall"] == pytest.approx(0.75)
+    assert metrics["primaryDocumentHitRate"] == 1
+    assert metrics["answerScoreAllRows"] == pytest.approx(2.5)
+
+
+def test_bootstrap_compares_the_candidate_on_the_questions_the_legacy_graph_holds(
+    tmp_path, monkeypatch
+):
+    from pipeline.eval.results import compute_rollup
+
+    plain_result = complete_result
+    legacy_gaps = sorted(item["id"] for item in load_dataset())[-5:]
+
+    def measured_result(uncovered=(), recall=0.93):
+        result = plain_result()
+        for row in result["per_question"]:
+            missed = row["question_id"] in uncovered
+            row.update(
+                precision=0.2,
+                recall=0.0 if missed else recall,
+                mrr=1.0,
+                primary_hit=not missed,
+                scores={"overall": 0 if missed else 3, "hallucination": 3, "outcome": "passed"},
+                evidence_identity={
+                    "raw_expected_primary": [
+                        ("missing:" if missed else "") + "sec:" + row["question_id"]
+                    ],
+                    "raw_expected_supporting": [],
+                },
+            )
+        result["aggregate"] = compute_rollup(result["per_question"])
+        return result
+
+    # The candidate graph holds every labelled section; the legacy graph lacks
+    # five, and is slightly better on the fifty it does hold. Over all 55
+    # questions that loss would vanish behind the five the candidate gained.
+    monkeypatch.setitem(globals(), "complete_result", measured_result)
+    legacy = measured_result(uncovered=legacy_gaps, recall=0.95)
+    outcome, fake, manifest = validate_release(
+        tmp_path,
+        monkeypatch,
+        [(3.0, 0)] * 3,
+        baseline_evidence={
+            "schemaVersion": 1,
+            "releaseId": "legacy",
+            "fingerprint": {"model": "frozen"},
+            "retrieval": legacy,
+            "answer": legacy,
+        },
+    )
+
+    assert outcome.exit_code == 0, outcome.output
+    release = load_json_object(manifest)
+    assert release["baselineComparisonExcludedQuestions"] == legacy_gaps
+    assert release["evaluationResults"]["retrievalRecallRegression"] == pytest.approx(0.02)
+    assert release["evaluationResults"]["answerScoreAllRowsRegression"] == 0
+    assert legacy["aggregate"]["recall_at_k"] < 0.93
+
+
+def test_release_validate_rejects_a_stale_override_before_it_does_any_work(
+    tmp_path, monkeypatch
+):
+    stale = {
+        "freshnessSla": {
+            "reason": "The agency site was down during the crawl window",
+            "sourceSnapshotHash": "sha256:" + "b" * 64,
+        }
+    }
+
+    outcome, fake, manifest = validate_release(
+        tmp_path, monkeypatch, [(2.9, 0)] * 3, overrides=stale
+    )
+
+    assert isinstance(outcome.exception, ValueError)
+    assert "bound to source snapshot" in str(outcome.exception)
+    assert fake.calls == 0
+    assert load_json_object(manifest)["stageResults"] == {}

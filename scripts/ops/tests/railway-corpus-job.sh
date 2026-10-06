@@ -162,6 +162,96 @@ set -e
 [[ "$(<"$TEMP_ROOT/crashed.health")" == fail ]] || fail "crashed crawl did not send a Healthchecks failure"
 pass "crawler crash stops the run before parse, sync, backup, or promotion"
 
+# A gate override is an operator's decision about one snapshot. An unattended
+# run that finds RELEASE_OVERRIDE_FILE still set stops before it does anything.
+for mode in scheduled discover; do
+  set +e
+  RELEASE_OVERRIDE_FILE="$TEMP_ROOT/overrides.json" \
+    run_discovery_case "standing-override-$mode" "$mode" 0
+  status=$?
+  set -e
+  [[ "$status" -eq 64 ]] || fail "$mode run with a standing override exited $status, expected 64"
+  [[ ! -e "$TEMP_ROOT/standing-override-$mode.calls" ]] \
+    || fail "$mode run with a standing override crawled, parsed or promoted"
+  [[ "$(<"$TEMP_ROOT/standing-override-$mode.health")" == fail ]] \
+    || fail "$mode run with a standing override did not send a Healthchecks failure"
+done
+pass "scheduled and discover runs fail before any work while a gate override file is set"
+
+# The operator's release mode is the one path that may carry the override.
+set +e
+RELEASE_OVERRIDE_FILE="$TEMP_ROOT/overrides.json" \
+  run_discovery_case operator-release release 0
+status=$?
+set -e
+[[ "$status" -eq 0 ]] || fail "release mode with an override file exited $status"
+[[ "$(<"$TEMP_ROOT/operator-release.calls")" == promote ]] \
+  || fail "release mode with an override file did not promote"
+pass "release mode promotes with a gate override file set"
+
+# corpus-release.sh promote with every Railway, graph and upload step stubbed.
+# Prints the release-validate arguments the pipeline CLI would have received.
+run_promote_case() {
+  local name="$1" mode="$2" override_file="$3"
+  (
+    args_log="$TEMP_ROOT/$name.args"
+    fake_python="$TEMP_ROOT/python-$name"
+    fake_root="$TEMP_ROOT/$name-root"
+    make_fake_python "$fake_python" 0
+    mkdir -p "$TEMP_ROOT/$name-home" "$fake_root/scripts/ops"
+    for script in sync-corpus-artifacts.sh upload-release-manifest.sh; do
+      printf '#!/usr/bin/env bash\nexit 0\n' > "$fake_root/scripts/ops/$script"
+      chmod +x "$fake_root/scripts/ops/$script"
+    done
+    export HOME="$TEMP_ROOT/$name-home" OPS_ENV="$TEMP_ROOT/no-ops.env"
+    export CORPUS_DATA_ROOT="$TEMP_ROOT/$name-data" PIPELINE_PYTHON="$fake_python"
+    export PYTHON_ARGS_LOG="$args_log" RAILWAY_GIT_COMMIT_SHA=abcdef1234
+    export REQUESTED_CORPUS_RELEASE_ID=release-2
+    unset CORPUS_JOB_MODE RELEASE_OVERRIDE_FILE
+    [[ -z "$mode" ]] || export CORPUS_JOB_MODE="$mode"
+    [[ -z "$override_file" ]] || export RELEASE_OVERRIDE_FILE="$override_file"
+    # shellcheck source=../corpus-release.sh
+    source "$REPO_ROOT/scripts/ops/corpus-release.sh"
+    REPO_ROOT="$fake_root"
+    agent_variables() {
+      printf '%s\n' ACTIVE_CORPUS_COLOR=blue CORPUS_RELEASE_ID=release-1 \
+        NEO4J_URI=bolt://blue NEO4J_PASSWORD=blue-password
+    }
+    color_uri() { printf 'bolt://%s' "$1"; }
+    color_password() { printf '%s-password' "$1"; }
+    download_manifest() { :; }
+    redeploy_graph() { :; }
+    set_agent_target() { :; }
+    verify_agent_release() { :; }
+    promote >/dev/null 2>&1
+  )
+}
+
+validate_arguments() { grep -- 'release-validate' "$TEMP_ROOT/$1.args"; }
+
+run_promote_case promote-operator release "$TEMP_ROOT/overrides.json" \
+  || fail "operator release with an override file failed"
+[[ "$(validate_arguments promote-operator)" == *" --override-file $TEMP_ROOT/overrides.json" ]] \
+  || fail "operator release did not pass the override file: $(validate_arguments promote-operator)"
+pass "operator-invoked release passes the override file to release-validate"
+
+run_promote_case promote-plain release "" || fail "release without an override file failed"
+[[ "$(validate_arguments promote-plain)" != *override-file* ]] \
+  || fail "release without an override file passed one"
+pass "release without an override file passes none"
+
+for mode in scheduled ""; do
+  set +e
+  run_promote_case "promote-unattended-${mode:-unset}" "$mode" "$TEMP_ROOT/overrides.json"
+  status=$?
+  set -e
+  [[ "$status" -eq 64 ]] \
+    || fail "promote outside release mode with an override file exited $status, expected 64"
+  [[ ! -e "$TEMP_ROOT/promote-unattended-${mode:-unset}.args" ]] \
+    || fail "promote outside release mode reached the pipeline with an override file set"
+done
+pass "promote outside release mode refuses a gate override file before touching anything"
+
 # Persistent-path flock rejects overlap and is released when the holder exits.
 (
   lock="$TEMP_ROOT/locks/corpus-job.lock"
