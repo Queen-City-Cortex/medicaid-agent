@@ -104,7 +104,11 @@ def extract_route_metadata(stdout: str) -> dict | None:
 
 
 def extract_verifier_metadata(stdout: str) -> dict | None:
-    """Extract hallucination-verifier telemetry (printed as a `---VERIFIER---` block)."""
+    """Extract hallucination-verifier telemetry (printed as a `---VERIFIER---` block).
+
+    When an input gate refused the question the CLI prints the same block with
+    a withheld outcome, zero passes and a ``gate`` object; see ``_gate_refusal``.
+    """
     return _extract_marker_block(stdout, VERIFIER_MARKER, ("---ANSWER---",))
 
 
@@ -112,7 +116,10 @@ def extract_evidence_metadata(stdout: str) -> dict | None:
     """Extract the agent's tool-sourced evidence payload (``---EVIDENCE---`` block).
 
     Shape: ``{"sources": [{"toolName", "key", "text"}, ...], "evidence_bytes": int,
-    "agent_config": {"agent_model", "agent_reasoning_effort", "verifier_model"}}``.
+    "agent_config": {"agent_model", "agent_reasoning_effort", "verifier_model",
+    "input_processors": [id, ...], "runtime_options": {"memory", "prompt_injection_detector"}}}``.
+    ``input_processors`` is the gate and processor order the CLI ran, and
+    ``runtime_options`` names what it left out of the production assembly.
     The block is printed before ``---VERIFIER---`` / ``---ANSWER---``, so bound
     the search accordingly.
     """
@@ -150,6 +157,19 @@ def _verifier_outcome(verifier_info: object) -> tuple[str | None, str | None]:
     return outcome.get("status"), reason
 
 
+def _gate_refusal(verifier_info: object) -> dict | None:
+    """The input gate that refused the question, as ``{"processor_id", "code"}``.
+
+    The CLI runs the production length, coverage and scope gates. A refusal
+    reaches no model and no verifier; the CLI reports it in the verifier block
+    as a withheld outcome carrying ``gate``. None when no gate refused.
+    """
+    if not isinstance(verifier_info, dict):
+        return None
+    gate = verifier_info.get("gate")
+    return gate if isinstance(gate, dict) and gate.get("code") else None
+
+
 def _is_verifier_unavailable(verifier_info: object) -> bool:
     """True when the verifier could not run, as opposed to rejecting the answer."""
     return _verifier_outcome(verifier_info)[1] == "unavailable"
@@ -184,8 +204,8 @@ def _build_agent_env() -> dict[str, str]:
     agent_env = {**os.environ, "ANTHROPIC_API_KEY": ANTHROPIC_API_KEY, "VOYAGE_API_KEY": VOYAGE_API_KEY}
     agent_env["MASTRA_OBSERVABILITY_PATH"] = agent_env.get("MASTRA_OBSERVABILITY_PATH", ":memory:")
 
-    # Evals run the agent, which calls OpenAI for the model, hallucination
-    # verifier, prompt-injection detector, and observational memory. Prefer a
+    # Evals run the agent, which calls OpenAI for the model, the scope-gate
+    # classifier (one call per question) and the hallucination verifier. Prefer a
     # dedicated EVAL_OPENAI_API_KEY so a research run cannot drain the
     # production agent's OpenAI quota (which would surface to users as failing
     # chats). Falls back to OPENAI_API_KEY when no separate eval key is set.
@@ -206,7 +226,7 @@ def _invoke_agent_cli(question: str, *, progress_label: str | None = None) -> tu
     agent_env["AGENT_EVAL_CAPTURE_ROUTE"] = "true"
 
     proc = subprocess.Popen(
-        ["node", str(AGENT_DIR.parent.parent / "node_modules/tsx/dist/cli.mjs"), "src/index.ts", question],
+        ["node", str(AGENT_DIR.parent.parent / "node_modules/tsx/dist/cli.mjs"), "src/cli.ts", question],
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -381,8 +401,9 @@ def evaluate_answers(entries: list[dict], *, use_unified_evidence: bool = True) 
        tool-sourced evidence — the same bundle the hallucination verifier
        sees. When False, legacy behavior: golden sections only.
     4. Calls ``judge_answer()`` to score the response, unless the verifier
-       withheld the answer: that row scores overall 0 with no hallucination
-       score and is not sent to the judge.
+       withheld the answer or an input gate refused the question: that row
+       scores overall 0 with no hallucination score and is not sent to the
+       judge. A refusal also carries ``gate_refusal``.
     5. Returns per-question results with scores.
     """
     results: list[dict] = []
@@ -547,6 +568,7 @@ def evaluate_answers(entries: list[dict], *, use_unified_evidence: bool = True) 
 
         # --- Score with judge ---
         verifier_status, verifier_reason = _verifier_outcome(verifier_info)
+        gate_refusal = _gate_refusal(verifier_info)
         if agent_error:
             # Infra failure, not answer quality: scoring these 0 conflated
             # timeouts with "major hallucination" and dragged every mean down.
@@ -560,6 +582,29 @@ def evaluate_answers(entries: list[dict], *, use_unified_evidence: bool = True) 
                 "overall": None,
                 "explanation": agent_error,
                 "error_type": "agent",
+            }
+        elif gate_refusal:
+            # A production input gate refused the question, so a web user would
+            # get the gate's fixed message and no answer. Scored like a withheld
+            # answer (zero, no hallucination score, counted in withheld_count)
+            # and marked with the gate so it is not read as a verifier decision.
+            print(
+                f"[answer eval] {question_id} refused by input gate "
+                f"{gate_refusal.get('processor_id') or 'unknown'} ({gate_refusal['code']}); judge skipped",
+                flush=True,
+            )
+            scores = {
+                "factual_accuracy": 0,
+                "completeness": 0,
+                "hallucination": None,
+                "citation_quality": 0,
+                "overall": 0,
+                "explanation": (
+                    f"Question refused by the {gate_refusal.get('processor_id') or 'unknown'} "
+                    f"input gate ({gate_refusal['code']}); not judged"
+                ),
+                "outcome": "withheld",
+                "gate": gate_refusal,
             }
         elif verifier_status == "withheld":
             # The agent released only the fixed withholding notice. Judging
@@ -620,7 +665,10 @@ def evaluate_answers(entries: list[dict], *, use_unified_evidence: bool = True) 
             "route_widened": (((route_info or {}).get("route") or {}).get("widening_policy") or "none") != "none",
             "route_inspection_error": route_error,
             "verifier": verifier_info,
-            # Model and reasoning effort as the agent process resolved them.
+            # None unless a production input gate refused the question.
+            "gate_refusal": gate_refusal,
+            # Model, reasoning effort, input-processor order and the named
+            # runtime options, as the agent process resolved them.
             "agent_config": (evidence_info or {}).get("agent_config"),
             "citation_support": citation_support,
             "agent_evidence": {

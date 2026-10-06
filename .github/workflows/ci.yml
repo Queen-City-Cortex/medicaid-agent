@@ -233,6 +233,48 @@ jobs:
       - name: Build agent image
         run: docker build -f packages/agent/Dockerfile -t agent-ci .
 
+      # A bundle can build and still fail at start-up: the entrypoint migrates
+      # the database, installs the memory release gate and builds the server
+      # at import. Start the image and wait for liveness. Every value is a
+      # placeholder: start-up validates that the settings exist and never
+      # calls a provider, and /livez needs no graph. The image sets
+      # NODE_ENV=production, so the production checks apply:
+      #   OPENAI_API_KEY, VOYAGE_API_KEY          required, any non-empty value
+      #   WORKOS_API_KEY, WORKOS_CLIENT_ID,
+      #   WORKOS_REDIRECT_URI                     the WorkOS client refuses to construct without them
+      #   DATABASE_URL + tmpfs /data              a production file database must live under /data
+      #   NEO4J_URI, NEO4J_PASSWORD               must not be localhost or the development default
+      #   CORS_ORIGINS                            must not be localhost
+      - name: Boot agent image and wait for liveness
+        run: |
+          docker run -d --name agent-boot -p 127.0.0.1:4111:4111 --tmpfs /data \
+            -e OPENAI_API_KEY=ci-placeholder \
+            -e VOYAGE_API_KEY=ci-placeholder \
+            -e WORKOS_API_KEY=ci-placeholder \
+            -e WORKOS_CLIENT_ID=ci-placeholder \
+            -e WORKOS_REDIRECT_URI=https://ci.invalid/callback \
+            -e DATABASE_URL=file:/data/mastra.db \
+            -e NEO4J_URI=bolt://neo4j.invalid:7687 \
+            -e NEO4J_PASSWORD=ci-placeholder \
+            -e CORS_ORIGINS=https://ci.invalid \
+            agent-ci
+          for attempt in $(seq 1 60); do
+            if [ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:4111/livez)" = "200" ]; then
+              echo "agent image is live after ${attempt} attempt(s)"
+              docker rm -f agent-boot >/dev/null
+              exit 0
+            fi
+            if [ "$(docker inspect -f '{{.State.Running}}' agent-boot)" != "true" ]; then
+              echo "agent container exited before it was live"
+              break
+            fi
+            sleep 2
+          done
+          echo "agent image did not answer GET /livez with 200"
+          docker logs agent-boot
+          docker rm -f agent-boot >/dev/null
+          exit 1
+
       # NEXT_PUBLIC_* args only need to be present (Next.js inlines them at
       # build time); the values are placeholders — this job validates that the
       # bundle compiles, not runtime config. Sentry source-map upload stays off

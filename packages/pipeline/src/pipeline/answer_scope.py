@@ -65,6 +65,8 @@ def implementation_hash() -> str:
         "packages/agent/src/processors/verifier/processor.ts",
         "packages/agent/src/tools/answer-frame.ts",
         "packages/agent/src/index.ts",
+        "packages/agent/src/runtime.ts",
+        "packages/agent/src/cli.ts",
         "packages/agent/src/deep-research/agents.ts",
         "packages/agent/src/deep-research/routes.ts",
         "packages/pipeline/src/pipeline/answer_scope.py",

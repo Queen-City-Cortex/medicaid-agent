@@ -45,9 +45,9 @@ def main():
         (args.checkout / "packages/pipeline/data/golden/dataset.json").read_text()
     )
     entries = {entry["id"]: entry for entry in dataset}
-    index = args.checkout / "packages/agent/src/index.ts"
+    index = args.checkout / "packages/agent/src/cli.ts"
     index_before = hashlib.sha256(index.read_bytes()).hexdigest()
-    marker = "const result = await agent.generate(CLI_QUESTION, {"
+    marker = "const result = await agent.generate(QUESTION, {"
     content = index.read_text()
     if content.count(marker) != 1:
         raise ValueError("Unknown CLI entry point; refuse to patch the private sample")
@@ -57,7 +57,7 @@ def main():
         )
     )
     source_files = [
-        args.checkout / "packages/agent/src/index.ts",
+        args.checkout / "packages/agent/src/cli.ts",
         args.checkout / "packages/agent/src/prompt.ts",
         args.checkout / "packages/agent/src/processors/verifier/verify.ts",
         args.checkout / "package-lock.json",
@@ -125,7 +125,7 @@ def main():
                 "tsx",
                 "--import",
                 str(args.checkout / "scripts/ops/sample-budget-preload.mjs"),
-                "src/index.ts",
+                "src/cli.ts",
                 entries[qid]["question"],
             ]
             started = time.monotonic()

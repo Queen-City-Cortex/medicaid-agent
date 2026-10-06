@@ -49,7 +49,7 @@ describe('sentReasoningEffort, the value the CLI reports in agent_config', () =>
 });
 
 describe('agent requests carry the configured reasoning effort', () => {
-  // Built the way index.ts builds the chat agent: same factory, same options.
+  // Built the way runtime.ts builds the chat agent: same factory, same options.
   const makeAgent = () => new Agent({
     id: 'chat', name: 'Chat', instructions: 'Answer the question.',
     model: createModel('gpt-5.4'), defaultOptions: AGENT_DEFAULT_OPTIONS,

@@ -3,7 +3,7 @@ import * as Sentry from '@sentry/node';
 // Error tracking, gated on SENTRY_DSN *and* a non-development environment. When
 // the DSN is unset (evals, CI, tests) Sentry.init is never called, so this
 // module is a no-op and never opens a network connection. Imported as the
-// second line of index.ts — right after ./load-env.js populates process.env —
+// second line of index.ts (the CLI loads it through runtime.ts) — right after ./load-env.js populates process.env —
 // so the DSN and release are available here.
 //
 // The development gate exists because local `mastra dev` sessions (which often

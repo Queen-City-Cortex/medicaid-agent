@@ -36,7 +36,7 @@ describe('shared prompt-injection detector', () => {
     expect(JSON.stringify(bodies[0])).toContain('NEWEST_QUESTION');
     expect(JSON.stringify(bodies[0])).not.toContain('RECALLED_');
     // The chat agent and the research planner must not build their own.
-    for (const file of ['../../src/index.ts', '../../src/deep-research/agents.ts']) {
+    for (const file of ['../../src/runtime.ts', '../../src/deep-research/agents.ts']) {
       const source = readFileSync(new URL(file, import.meta.url), 'utf8');
       expect(source).toContain('createInjectionDetector()');
       expect(source).not.toContain('new PromptInjectionDetector');

@@ -10,10 +10,10 @@ import { strEnv } from './env.js';
 // OpenAI provider's own extras.
 type ProviderModel = ReturnType<ReturnType<typeof createAnthropic>>;
 
-// Model provider factory shared by the chat agent (src/index.ts) and the deep
+// Model provider factory shared by the chat agent (src/runtime.ts) and the deep
 // research agents (deep-research/agents.ts). Lives in its own module so the
 // agents can import `createModel` without pulling in the whole Mastra instance
-// from index.ts (which imports the agents — that would be a cycle).
+// from index.ts or cli.ts (which import the agents — that would be a cycle).
 
 const anthropic = createAnthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,

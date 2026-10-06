@@ -391,3 +391,124 @@ def test_build_agent_env_falls_back_to_openai_key(monkeypatch):
     monkeypatch.delenv("EVAL_OPENAI_API_KEY", raising=False)
     env = answer._build_agent_env()
     assert env["OPENAI_API_KEY"] == "prod-key"
+
+
+# What `src/cli.ts` prints when the coverage boundary refuses a question, with
+# Mastra's log lines before the blocks as they appear on a pipe.
+GATE_NOTICE = "I cannot establish the applicable MAGI income table for that period within the supported dated coverage."
+GATE_REFUSAL_STDOUT = "\n".join([
+    'WARN (mastra): Input processor tripwire triggered',
+    '    reason: "Evidence required by this request is outside the supported coverage scope"',
+    "",
+    "---EVIDENCE---",
+    "",
+    '{"sources":[],"evidence_bytes":0,"agent_config":{"agent_model":"gpt-5.6-terra","agent_reasoning_effort":"medium",'
+    '"verifier_model":"gpt-5.6-terra","input_processors":["message-length-guard","coverage-boundary","scope-gate",'
+    '"openai-responses-dedup","answer-frame-prefetch","answer-frame-planning","token-limiter"],'
+    '"runtime_options":{"memory":false,"prompt_injection_detector":false}}}',
+    "",
+    "---VERIFIER---",
+    "",
+    '{"gate":{"processor_id":"coverage-boundary","code":"coverage-limitation"},'
+    '"coverage_policy_id":"bounded-policy-research-v1","coverage_issue":"' + GATE_NOTICE + '",'
+    '"latency_ms":0,"pass_count":0,"withholding_reason":"coverage-limitation",'
+    '"outcome":{"status":"withheld","reason":"coverage-limitation","passCount":0},'
+    '"rewrote":false,"supported":false,"verifier_unavailable":false}',
+    "",
+    "---ANSWER---",
+    "",
+    GATE_NOTICE,
+    "",
+])
+
+
+def refused_by_gate(monkeypatch):
+    monkeypatch.setattr(
+        answer.subprocess, "Popen", lambda *args, **kwargs: DummyProc(stdout=GATE_REFUSAL_STDOUT)
+    )
+    return answer._invoke_agent_cli("What MAGI income table and limits apply in February 2025?")
+
+
+def test_invoke_agent_cli_runs_the_cli_entrypoint(monkeypatch):
+    observed = {}
+
+    def fake_popen(command, **kwargs):
+        observed["command"] = command
+        return DummyProc(stdout="---ANSWER---\nok\n")
+
+    monkeypatch.setattr(answer.subprocess, "Popen", fake_popen)
+    answer._invoke_agent_cli("Question?")
+
+    assert observed["command"][0] == "node"
+    assert observed["command"][1].endswith("node_modules/tsx/dist/cli.mjs")
+    assert observed["command"][2:] == ["src/cli.ts", "Question?"]
+    assert (answer.AGENT_DIR / "src/cli.ts").is_file()
+
+
+def test_gate_refusal_is_a_distinct_withheld_outcome_and_is_neither_judged_nor_retried(monkeypatch):
+    text, route, verifier, evidence = refused_by_gate(monkeypatch)
+    assert text == GATE_NOTICE
+    assert route is None
+    assert answer._gate_refusal(verifier) == {"processor_id": "coverage-boundary", "code": "coverage-limitation"}
+    monkeypatch.setattr(answer, "_invoke_agent", lambda question, *, progress_label=None: (text, route, verifier, evidence))
+    monkeypatch.setattr(answer, "_fetch_evidence_sections", lambda sections: [])
+    judged = []
+    monkeypatch.setattr(answer, "judge_answer", lambda **kwargs: judged.append(kwargs))
+
+    row = answer.evaluate_answers([ENTRY])[0]
+
+    assert judged == []
+    assert row["agent_answer"] == GATE_NOTICE
+    assert row["agent_error"] is None
+    assert row["gate_refusal"] == {"processor_id": "coverage-boundary", "code": "coverage-limitation"}
+    assert row["scores"]["outcome"] == "withheld"
+    assert row["scores"]["gate"] == row["gate_refusal"]
+    assert row["scores"]["overall"] == 0
+    assert row["scores"]["hallucination"] is None
+    assert "coverage-boundary input gate (coverage-limitation)" in row["scores"]["explanation"]
+    # Not an error: the row stays valid release evidence and counts as withheld.
+    assert "error_type" not in row["scores"]
+    # The row records which gates ran and which runtime options were off.
+    assert row["agent_config"]["input_processors"][:3] == ["message-length-guard", "coverage-boundary", "scope-gate"]
+    assert row["agent_config"]["runtime_options"] == {"memory": False, "prompt_injection_detector": False}
+
+    from pipeline.eval.results import compute_rollup
+    from pipeline.evaluation_evidence import verification_summary
+
+    assert verification_summary({"per_question": [row]})["withholdingReasons"] == {"coverage-limitation": 1}
+    assert compute_rollup([row])["withheld_count"] == 1
+
+
+def test_verifier_withhold_and_released_answer_carry_no_gate_refusal(monkeypatch):
+    withheld, _, _ = run_with_verifier(monkeypatch, [(WITHHELD_NOTICE, WITHHELD)])
+    released, _, _ = run_with_verifier(monkeypatch, [("answer", PASSED)])
+
+    assert withheld["gate_refusal"] is None and "gate" not in withheld["scores"]
+    assert released["gate_refusal"] is None
+
+
+def test_scope_acceptance_accepts_a_coverage_boundary_refusal_as_its_withheld_case(monkeypatch):
+    from pipeline import evaluation_evidence
+    from pipeline.answer_scope import scope_policy
+    from pipeline.eval.answer_scope import CASES, run_scope_acceptance
+
+    monkeypatch.setattr(evaluation_evidence, "evaluation_fingerprint", lambda: {})
+    refusal = refused_by_gate(monkeypatch)
+    assert refusal[2]["coverage_policy_id"] == scope_policy()["id"]
+
+    def invoke(question, **_kwargs):
+        case = next(case for case in CASES if case[1] == question)
+        if case[2] == "withheld":
+            return refusal
+        verifier = {
+            "coverage_policy_id": scope_policy()["id"],
+            "verifier_unavailable": False,
+            "outcome": {"status": "passed"},
+            "coverage_issue": None,
+            "pass_count": 1,
+            "supported": True,
+            "citations_complete": True,
+        }
+        return "Answer " + " ".join(case[3]), {}, verifier, {"sources": []}
+
+    assert run_scope_acceptance("a" * 64, invoke=invoke)["all_passed"] is True
