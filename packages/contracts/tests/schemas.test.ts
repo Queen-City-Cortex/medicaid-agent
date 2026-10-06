@@ -1,12 +1,22 @@
 import { describe, expect, it } from 'vitest';
 import {
+  CONVERSATION_RETENTION_DAYS,
+  FEEDBACK_RETENTION_DAYS,
   FeedbackInputSchema,
+  RATE_LIMIT_RETENTION_HOURS,
   ReleaseManifestSchema,
   ResearchDecisionInputSchema,
   ResearchStartInputSchema,
+  USAGE_RETENTION_DAYS,
 } from '../src/index.js';
 
 describe('public contracts', () => {
+  // The privacy page and the runbook state these periods; changing one is a policy decision, not a tuning change.
+  it('fixes the retention periods the privacy policy states', () => {
+    expect({ CONVERSATION_RETENTION_DAYS, FEEDBACK_RETENTION_DAYS, USAGE_RETENTION_DAYS, RATE_LIMIT_RETENTION_HOURS })
+      .toEqual({ CONVERSATION_RETENTION_DAYS: 90, FEEDBACK_RETENTION_DAYS: 180, USAGE_RETENTION_DAYS: 400, RATE_LIMIT_RETENTION_HOURS: 25 });
+  });
+
   it('bounds feedback identifiers and comments', () => {
     expect(FeedbackInputSchema.safeParse({
       messageId: 'm-1',

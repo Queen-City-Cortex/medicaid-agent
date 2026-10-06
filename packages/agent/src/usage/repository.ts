@@ -1,5 +1,5 @@
 import { createClient, type Client } from '@libsql/client';
-import { intEnv } from '../env.js';
+import { USAGE_RETENTION_DAYS } from '@nc-medicaid/contracts';
 import { log, errorFields } from '../logger.js';
 import type { AppDatabase } from '../storage/app-database.js';
 import { estimateCostUsd } from './pricing.js';
@@ -104,16 +104,11 @@ export class UsageRepository {
           now,
         ],
       });
-      // Opportunistic prune past the billing-history horizon. A retention
-      // of <= 0 disables pruning entirely — it must never mean "delete the
-      // history this table exists to keep".
-      const retentionDays = intEnv('USAGE_RETENTION_DAYS', 400);
-      if (retentionDays > 0) {
-        await this.client.execute({
-          sql: 'DELETE FROM usage_events WHERE created_at < ?',
-          args: [now - retentionDays * DAY_MS],
-        });
-      }
+      // Opportunistic prune past the billing-history horizon.
+      await this.client.execute({
+        sql: 'DELETE FROM usage_events WHERE created_at < ?',
+        args: [now - USAGE_RETENTION_DAYS * DAY_MS],
+      });
     } catch (err) {
       log.warn('usage.record_failed', errorFields(err));
     }

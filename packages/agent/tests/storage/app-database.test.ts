@@ -3,9 +3,18 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createClient } from '@libsql/client';
 import { LibSQLStore } from '@mastra/libsql';
+import {
+  CONVERSATION_RETENTION_DAYS,
+  FEEDBACK_RETENTION_DAYS,
+  RATE_LIMIT_RETENTION_HOURS,
+  USAGE_RETENTION_DAYS,
+} from '@nc-medicaid/contracts';
 import { afterEach, describe, expect, it } from 'vitest';
 import { AppDatabase } from '../../src/storage/app-database.js';
 import { UsageRepository } from '../../src/usage/repository.js';
+
+const DAY_MS = 86_400_000;
+const HOUR_MS = 3_600_000;
 
 describe('AppDatabase', () => {
   const databases: AppDatabase[] = [];
@@ -73,15 +82,48 @@ describe('AppDatabase', () => {
   it('retains checkpoints with their run and removes expired private drafts and budgets', async () => {
     const database = createDatabase();
     await database.migrate();
-    for (const [id, date] of [['old', '2020-01-01T00:00:00.000Z'], ['recent', new Date().toISOString()]]) {
+    const now = Date.now();
+    const daysAgo = (days: number) => new Date(now - days * DAY_MS).toISOString();
+    for (const [id, date] of [['old', daysAgo(CONVERSATION_RETENTION_DAYS + 1)], ['recent', daysAgo(CONVERSATION_RETENTION_DAYS - 1)]]) {
       await database.client.execute({ sql: 'INSERT INTO research_runs (id, resource_id, state, question, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)', args: [id, 'owner', 'completed', 'q', date, date] });
       await database.client.execute({ sql: 'INSERT INTO research_checkpoints VALUES (?, ?, ?, ?)', args: [id, 'synthesis', '"PRIVATE_DRAFT_SENTINEL"', 1] });
       await database.client.execute({ sql: 'INSERT INTO research_budgets VALUES (?, ?, ?, ?)', args: [id, 'synthesis', 1, 1] });
     }
-    await database.runRetention({ conversationsDays: 90, feedbackDays: 90, usageDays: 90, rateLimitHours: 1 });
+    await database.runRetention(now);
     for (const table of ['research_checkpoints', 'research_budgets']) {
       expect((await database.client.execute(`SELECT run_id FROM ${table}`)).rows.map(row => row.run_id)).toEqual(['recent']);
     }
+    expect((await database.client.execute('SELECT id FROM research_runs')).rows.map(row => row.id)).toEqual(['recent']);
+  });
+
+  it('deletes feedback, usage and rate-limit rows one step past their periods and keeps rows one step inside', async () => {
+    const database = createDatabase();
+    await database.migrate();
+    const now = Date.now();
+    const feedback = (id: string, days: number) => ({
+      sql: 'INSERT INTO feedback VALUES (?, ?, ?, ?, ?, ?, ?)',
+      args: [id, `thread-${id}`, `message-${id}`, 'owner', 'up', null, new Date(now - days * DAY_MS).toISOString()],
+    });
+    const usage = (model: string, days: number) => ({
+      sql: 'INSERT INTO usage_events (user_id, route, model_id, created_at) VALUES (?, ?, ?, ?)',
+      args: ['owner', 'chat', model, now - days * DAY_MS],
+    });
+    const rateLimit = (route: string, hours: number) => ({
+      sql: 'INSERT INTO rate_limit_events (user_id, route, created_at) VALUES (?, ?, ?)',
+      args: ['owner', route, now - hours * HOUR_MS],
+    });
+    await database.client.batch([
+      feedback('old', FEEDBACK_RETENTION_DAYS + 1), feedback('recent', FEEDBACK_RETENTION_DAYS - 1),
+      usage('old', USAGE_RETENTION_DAYS + 1), usage('recent', USAGE_RETENTION_DAYS - 1),
+      rateLimit('old', RATE_LIMIT_RETENTION_HOURS + 1), rateLimit('recent', RATE_LIMIT_RETENTION_HOURS - 1),
+    ], 'write');
+
+    await database.runRetention(now);
+
+    const column = async (sql: string) => (await database.client.execute(sql)).rows.map((row) => row.id);
+    expect(await column('SELECT id FROM feedback')).toEqual(['recent']);
+    expect(await column('SELECT model_id AS id FROM usage_events')).toEqual(['recent']);
+    expect(await column('SELECT route AS id FROM rate_limit_events')).toEqual(['recent']);
   });
 
   it('expires a conversation with its messages, thread state and observational memory on the real Mastra schema', async () => {
@@ -103,7 +145,10 @@ describe('AppDatabase', () => {
 
     const memory = (await storage.getStore('memory'))!;
     const threadState = (await storage.getStore('threadState'))!;
-    const old = '2020-01-01T00:00:00.000Z';
+    // One day past the period and one day inside it, so the test pins the exported constant.
+    const retentionNow = Date.now();
+    const old = new Date(retentionNow - (CONVERSATION_RETENTION_DAYS + 1) * DAY_MS).toISOString();
+    const recent = new Date(retentionNow - (CONVERSATION_RETENTION_DAYS - 1) * DAY_MS).toISOString();
     const observe = (threadId: string | null, resourceId: string) =>
       memory.initializeObservationalMemory({ threadId, resourceId, scope: threadId ? 'thread' : 'resource', config: {} });
     for (const threadId of ['expired', 'live']) {
@@ -122,10 +167,12 @@ describe('AppDatabase', () => {
     await observe(null, 'owner');
     await database.client.batch([
       { sql: 'UPDATE mastra_threads SET "updatedAt" = ? WHERE id = ?', args: [old, 'expired'] },
+      { sql: 'UPDATE mastra_threads SET "updatedAt" = ? WHERE id = ?', args: [recent, 'live'] },
       { sql: 'UPDATE mastra_observational_memory SET "updatedAt" = ? WHERE "threadId" = ? OR "threadId" IS NULL', args: [old, 'orphan-old'] },
+      { sql: 'UPDATE mastra_observational_memory SET "updatedAt" = ? WHERE "threadId" = ?', args: [recent, 'orphan-new'] },
     ], 'write');
 
-    await database.runRetention({ conversationsDays: 90, feedbackDays: 90, usageDays: 90, rateLimitHours: 1 });
+    await database.runRetention(retentionNow);
 
     const column = async (sql: string) => (await database.client.execute(sql)).rows.map((row) => row.id);
     expect(await column('SELECT id FROM mastra_threads')).toEqual(['live']);

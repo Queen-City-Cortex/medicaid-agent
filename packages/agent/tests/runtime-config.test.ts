@@ -17,7 +17,6 @@ describe('loadRuntimeConfig', () => {
       CORS_ORIGINS: ' http://localhost:3000/, https://example.test ',
     });
     expect(config.corsOrigins).toEqual(['http://localhost:3000', 'https://example.test']);
-    expect(config.retention.conversationsDays).toBe(90);
   });
 
   it('persists traces to DuckDB only outside production and CLI runs', () => {

@@ -90,6 +90,14 @@ export const VERIFICATION_PART = 'data-verification-status' as const;
 export const WITHHELD_ANSWER = 'I could not verify this answer against the retrieved sources. Please review the sources below or try again.';
 export const UNVERIFIED_HISTORY = 'This previous answer was not verified before release. Please run the question again.';
 
+// Retention periods the agent enforces (AppDatabase.runRetention) and the privacy page states.
+// They are fixed here with no environment override, so the published policy cannot drift from the server.
+/** Conversations idle this long are deleted with their messages; research runs use the same period. */
+export const CONVERSATION_RETENTION_DAYS = 90;
+export const FEEDBACK_RETENTION_DAYS = 180;
+export const USAGE_RETENTION_DAYS = 400;
+export const RATE_LIMIT_RETENTION_HOURS = 25;
+
 export const ResearchRunStateSchema = z.enum([
   'queued',
   'planning',

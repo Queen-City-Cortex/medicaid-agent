@@ -85,7 +85,7 @@ const researchService = new ResearchService(
 
 // Bound operational data even when no user manually deletes it. The timer is
 // unref'd so it never keeps CLI runs or graceful shutdown alive.
-const runRetention = () => appDatabase.runRetention(runtimeConfig.retention).catch((err) => {
+const runRetention = () => appDatabase.runRetention().catch((err) => {
   log.error('storage.retention_failed', errorFields(err));
   Sentry.captureException(err, { tags: { component: 'retention' } });
 });

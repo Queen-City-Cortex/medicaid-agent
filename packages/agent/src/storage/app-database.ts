@@ -1,11 +1,10 @@
 import { createClient, type Client, type InStatement } from '@libsql/client';
-
-interface RetentionPolicy {
-  conversationsDays: number;
-  feedbackDays: number;
-  usageDays: number;
-  rateLimitHours: number;
-}
+import {
+  CONVERSATION_RETENTION_DAYS,
+  FEEDBACK_RETENTION_DAYS,
+  RATE_LIMIT_RETENTION_HOURS,
+  USAGE_RETENTION_DAYS,
+} from '@nc-medicaid/contracts';
 
 const MIGRATIONS: ReadonlyArray<{ version: number; statements: string[] }> = [
   {
@@ -115,6 +114,81 @@ const MIGRATIONS: ReadonlyArray<{ version: number; statements: string[] }> = [
   },
 ];
 
+const USER_THREADS = 'SELECT id FROM mastra_threads WHERE resourceId = ?';
+const USER_RESEARCH_RUNS = 'SELECT id FROM research_runs WHERE resource_id = ?';
+
+/**
+ * Every statement that removes one user's data, in execution order. Each `?` binds the user id.
+ * Rows found through another table are deleted before the rows that identify them: snapshots,
+ * checkpoints and budgets before research runs; thread state, messages and summaries before threads.
+ * `mastraTables` are the Mastra-owned tables a statement reads, which a store may not have created.
+ *
+ * The operator command passes these statements inside a double-quoted shell word (see
+ * renderUserDataDeletionSql), so they use bare identifiers and no double quotes.
+ */
+const USER_DATA_DELETIONS: ReadonlyArray<{ sql: string; mastraTables: string[] }> = [
+  {
+    sql: `DELETE FROM mastra_workflow_snapshot WHERE resourceId IN (${USER_RESEARCH_RUNS})
+          OR run_id IN (SELECT workflow_run_id FROM research_runs WHERE resource_id = ?)`,
+    mastraTables: ['mastra_workflow_snapshot'],
+  },
+  { sql: 'DELETE FROM feedback WHERE resource_id = ?', mastraTables: [] },
+  { sql: 'DELETE FROM rate_limit_events WHERE user_id = ?', mastraTables: [] },
+  { sql: 'DELETE FROM usage_events WHERE user_id = ?', mastraTables: [] },
+  { sql: `DELETE FROM research_checkpoints WHERE run_id IN (${USER_RESEARCH_RUNS})`, mastraTables: [] },
+  { sql: `DELETE FROM research_budgets WHERE run_id IN (${USER_RESEARCH_RUNS})`, mastraTables: [] },
+  { sql: 'DELETE FROM research_runs WHERE resource_id = ?', mastraTables: [] },
+  {
+    sql: `DELETE FROM mastra_thread_state WHERE threadId IN (${USER_THREADS})`,
+    mastraTables: ['mastra_thread_state', 'mastra_threads'],
+  },
+  // Messages and summaries are matched by owner and through the user's threads, so a row saved without an owner goes too.
+  {
+    sql: `DELETE FROM mastra_messages WHERE resourceId = ? OR thread_id IN (${USER_THREADS})`,
+    mastraTables: ['mastra_messages', 'mastra_threads'],
+  },
+  {
+    sql: `DELETE FROM mastra_observational_memory WHERE resourceId = ? OR threadId IN (${USER_THREADS})`,
+    mastraTables: ['mastra_observational_memory', 'mastra_threads'],
+  },
+  { sql: 'DELETE FROM mastra_threads WHERE resourceId = ?', mastraTables: ['mastra_threads'] },
+  { sql: 'DELETE FROM mastra_resources WHERE id = ?', mastraTables: ['mastra_resources'] },
+];
+
+function userDataDeletionStatements(
+  resourceId: string,
+  hasMastraTable: (table: string) => boolean,
+): Array<{ sql: string; args: string[] }> {
+  return USER_DATA_DELETIONS
+    .filter((deletion) => deletion.mastraTables.every(hasMastraTable))
+    .map(({ sql }) => ({ sql, args: Array<string>(sql.split('?').length - 1).fill(resourceId) }));
+}
+
+// WorkOS user ids are `user_` plus a 26-character ULID (Crockford base32, upper case).
+const WORKOS_USER_ID = /^user_[0-9A-HJKMNP-TV-Z]{26}$/;
+// Printed SQL may hold only these characters, none of which a double-quoted shell word interprets.
+const SHELL_INERT_SQL = /^[A-Za-z0-9_ '(),;=]+$/;
+
+/**
+ * The statements deleteUserData runs, as one line of SQL for `sqlite3` on the production volume,
+ * where every Mastra table exists. A failed statement leaves the transaction uncommitted (run
+ * sqlite3 with -bail); the final SELECT prints USER_DATA_DELETED only after the commit.
+ *
+ * The id is inlined as a literal, so it must be a WorkOS user id and nothing else.
+ */
+export function renderUserDataDeletionSql(userId: string): string {
+  if (!WORKOS_USER_ID.test(userId)) {
+    throw new Error('Expected a WorkOS user id: user_ followed by 26 upper-case letters and digits.');
+  }
+  const deletions = userDataDeletionStatements(userId, () => true)
+    .map(({ sql }) => sql.replaceAll('?', `'${userId}'`).replace(/\s+/g, ' '));
+  const sql = ['BEGIN IMMEDIATE', ...deletions, 'COMMIT', `SELECT 'USER_DATA_DELETED';`].join('; ');
+  if (!SHELL_INERT_SQL.test(sql)) {
+    throw new Error('A user data deletion statement contains a character the operator command cannot quote.');
+  }
+  return `${sql}\n`;
+}
+
 export class AppDatabase {
   readonly client: Client;
   private migrated = false;
@@ -192,12 +266,12 @@ export class AppDatabase {
     return result.rows.length > 0;
   }
 
-  async runRetention(policy: RetentionPolicy, now = Date.now()): Promise<void> {
+  async runRetention(now = Date.now()): Promise<void> {
     await this.migrate();
-    const conversationCutoff = new Date(now - policy.conversationsDays * 86_400_000).toISOString();
-    const feedbackCutoff = new Date(now - policy.feedbackDays * 86_400_000).toISOString();
-    const usageCutoff = now - policy.usageDays * 86_400_000;
-    const rateLimitCutoff = now - policy.rateLimitHours * 3_600_000;
+    const conversationCutoff = new Date(now - CONVERSATION_RETENTION_DAYS * 86_400_000).toISOString();
+    const feedbackCutoff = new Date(now - FEEDBACK_RETENTION_DAYS * 86_400_000).toISOString();
+    const usageCutoff = now - USAGE_RETENTION_DAYS * 86_400_000;
+    const rateLimitCutoff = now - RATE_LIMIT_RETENTION_HOURS * 3_600_000;
 
     const statements: InStatement[] = [
       { sql: 'DELETE FROM feedback WHERE created_at < ?', args: [feedbackCutoff] },
@@ -265,46 +339,11 @@ export class AppDatabase {
 
   async deleteUserData(resourceId: string): Promise<void> {
     await this.migrate();
-    const statements: InStatement[] = [
-      { sql: 'DELETE FROM feedback WHERE resource_id = ?', args: [resourceId] },
-      { sql: 'DELETE FROM rate_limit_events WHERE user_id = ?', args: [resourceId] },
-      { sql: 'DELETE FROM usage_events WHERE user_id = ?', args: [resourceId] },
-      ...['research_checkpoints', 'research_budgets'].map(table => ({ sql: `DELETE FROM ${table} WHERE run_id IN (SELECT id FROM research_runs WHERE resource_id = ?)`, args: [resourceId] })),
-      { sql: 'DELETE FROM research_runs WHERE resource_id = ?', args: [resourceId] },
-    ];
-    if (await this.hasTable('mastra_workflow_snapshot')) {
-      statements.unshift({
-        sql: `DELETE FROM mastra_workflow_snapshot WHERE "resourceId" IN
-          (SELECT id FROM research_runs WHERE resource_id = ?)
-          OR run_id IN (SELECT workflow_run_id FROM research_runs WHERE resource_id = ?)`,
-        args: [resourceId, resourceId],
-      });
+    const present = new Set<string>();
+    for (const table of new Set(USER_DATA_DELETIONS.flatMap((deletion) => deletion.mastraTables))) {
+      if (await this.hasTable(table)) present.add(table);
     }
-
-    if (await this.hasTable('mastra_threads')) {
-      if (await this.hasTable('mastra_thread_state')) {
-        statements.push({
-          sql: `DELETE FROM mastra_thread_state WHERE "threadId" IN
-                (SELECT id FROM mastra_threads WHERE "resourceId" = ?)`,
-          args: [resourceId],
-        });
-      }
-      if (await this.hasTable('mastra_messages')) {
-        statements.push({ sql: 'DELETE FROM mastra_messages WHERE "resourceId" = ?', args: [resourceId] });
-      }
-      statements.push({ sql: 'DELETE FROM mastra_threads WHERE "resourceId" = ?', args: [resourceId] });
-    }
-    if (await this.hasTable('mastra_observational_memory')) {
-      statements.push({
-        sql: 'DELETE FROM mastra_observational_memory WHERE "resourceId" = ?',
-        args: [resourceId],
-      });
-    }
-    if (await this.hasTable('mastra_resources')) {
-      statements.push({ sql: 'DELETE FROM mastra_resources WHERE id = ?', args: [resourceId] });
-    }
-
-    await this.client.batch(statements, 'write');
+    await this.client.batch(userDataDeletionStatements(resourceId, (table) => present.has(table)), 'write');
   }
 
   close(): void {

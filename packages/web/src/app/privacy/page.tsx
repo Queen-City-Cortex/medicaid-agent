@@ -1,5 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import {
+  CONVERSATION_RETENTION_DAYS,
+  FEEDBACK_RETENTION_DAYS,
+  RATE_LIMIT_RETENTION_HOURS,
+  USAGE_RETENTION_DAYS,
+} from '@nc-medicaid/contracts';
 import { LegalShell } from '@/components/LegalShell';
 import { LEGAL_CONTACT_EMAIL } from '@/lib/legal';
 
@@ -30,16 +36,18 @@ export default function PrivacyPage() {
           sources consulted are stored server-side so you can revisit your threads.
         </li>
         <li>
-          <strong>Assistant memory.</strong> The assistant may retain working notes across your
-          own conversations — for example your role or the programs you ask about — to answer you
-          better. This memory is scoped to your account and is never shared across users.
+          <strong>Conversation summaries.</strong> In a long conversation the assistant may keep
+          a condensed summary of earlier messages so it can keep answering in context. A summary
+          belongs to the one conversation it was made in: it is not carried into your other
+          conversations and is never shared across users.
         </li>
         <li>
           <strong>Feedback.</strong> Ratings and comments you leave on answers.
         </li>
         <li>
           <strong>Usage and error records.</strong> Request counts (for rate limiting and abuse
-          prevention) and error reports via Sentry. We do not run advertising or behavioral
+          prevention), the model and token counts of each request (for cost accounting), and
+          error reports via Sentry. We do not run advertising or behavioral
           analytics, and we use no tracking cookies — only the cookies required to keep you
           signed in and remember your theme.
         </li>
@@ -77,18 +85,42 @@ export default function PrivacyPage() {
       <h2>5. Retention and deletion</h2>
       <ul>
         <li>
-          <strong>Conversations</strong> are kept until you delete them. Deleting a thread from
-          the sidebar deletes its stored messages.
+          <strong>Conversations</strong> are deleted after {CONVERSATION_RETENTION_DAYS} days
+          without activity, together with their messages and any feedback left on them. Sending
+          a message restarts the period. You can delete a conversation sooner from the sidebar,
+          which deletes its stored messages.
         </li>
         <li>
-          <strong>Rate-limit records</strong> are pruned automatically after roughly a day.
+          <strong>Conversation summaries</strong> are deleted with their conversation when it
+          expires. If you delete the conversation yourself, its summary is deleted{' '}
+          {CONVERSATION_RETENTION_DAYS} days after it was last updated.
+        </li>
+        <li>
+          <strong>Deep-research runs</strong>, including their plans and reports, are deleted{' '}
+          {CONVERSATION_RETENTION_DAYS} days after they last changed.
+        </li>
+        <li>
+          <strong>Feedback</strong> is deleted after {FEEDBACK_RETENTION_DAYS} days, or sooner
+          with the conversation it belongs to.
+        </li>
+        <li>
+          <strong>Usage records</strong> are deleted after {USAGE_RETENTION_DAYS} days.
+        </li>
+        <li>
+          <strong>Rate-limit records</strong> are deleted after {RATE_LIMIT_RETENTION_HOURS} hours.
+        </li>
+        <li>
+          <strong>Backups.</strong> A backup copy of the conversation store is taken daily and
+          each copy is deleted after 30 days. Anything deleted from the live service remains in
+          the backup copies made before the deletion until those copies are deleted.
         </li>
         <li>
           <strong>Error reports</strong> follow Sentry&rsquo;s retention (90 days by default).
         </li>
         <li>
           <strong>Account deletion.</strong> To delete your account and associated data entirely,
-          contact us at the address below.
+          contact us at the address below. Backup copies made before the deletion keep that data
+          until they are deleted, up to 30 days later.
         </li>
       </ul>
 

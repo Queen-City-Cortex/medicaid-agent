@@ -4,6 +4,6 @@
 export const LEGAL_REVIEW_PENDING = true;
 
 // Shown as "Last updated" on both legal pages.
-export const LEGAL_LAST_UPDATED = 'July 10, 2026';
+export const LEGAL_LAST_UPDATED = 'October 5, 2026';
 
 export const LEGAL_CONTACT_EMAIL = 'legal@queencitycortex.com';

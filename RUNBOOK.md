@@ -75,8 +75,8 @@ AGENT_MODEL=claude-sonnet-4-6 npx mastra dev --dir src
 The LibSQL store on the agent's Railway volume (`/data/mastra.db`) holds
 **user-generated content that may contain client PII**: chat threads (legal
 aid attorneys and case managers paste real case details despite the UI's
-guidance not to), working/observational memory profiles, and feedback
-comments. Treat that file — and its dated backups in the Railway bucket
+guidance not to), per-conversation observational summaries, deep-research
+runs, and feedback comments. Treat that file — and its dated backups in the Railway bucket
 (`agent/mastra/`, 30-day retention; see Backups & Restore) — accordingly:
 access is operational-only, never for content review.
 
@@ -90,27 +90,55 @@ Monitoring. Whether this organisation has either cannot be read from the code.
 Responses stored before the change expire on the vendor's schedule; deleting a
 thread in the app never reached them.
 
-Retention in force:
-- **Chat threads** — user-controlled; sidebar delete removes the thread and
-  its messages server-side. Feedback rows for deleted threads are pruned
-  opportunistically (`FeedbackRepository.pruneOrphans`).
-- **Rate-limit events** — pruned after ~25h; **usage events** — pruned after
-  `USAGE_RETENTION_DAYS` (default 400).
-- **Memory profiles** — kept while the account exists; disable entirely with
-  `OBSERVATIONAL_MEMORY_ENABLED=false`.
+Retention in force. The periods are constants in
+`packages/contracts/src/schemas.ts` with no environment override, and the
+privacy page renders the same constants. `AppDatabase.runRetention` applies
+them at every agent boot and every 24 hours while the agent stays up; a
+sleeping agent purges when it next wakes.
+- **Chat threads** — deleted after 90 days without activity
+  (`CONVERSATION_RETENTION_DAYS`; a saved message resets the clock), with
+  their messages, thread state, feedback and observational summary. Sidebar
+  delete removes a thread and its messages sooner.
+- **Observational summaries** — one per thread, never shared between a
+  user's threads. Deleted with the thread when it expires. Sidebar delete
+  leaves the summary row behind; the same job sweeps it 90 days after its
+  last update. `OBSERVATIONAL_MEMORY_ENABLED=false` stops new summaries.
+- **Deep-research runs** — deleted 90 days after their last update (the
+  same constant), with their checkpoints, budgets and workflow snapshots.
+- **Feedback** — deleted after 180 days (`FEEDBACK_RETENTION_DAYS`), or
+  sooner with its expired thread. Feedback for threads deleted from the
+  sidebar is pruned opportunistically (`FeedbackRepository.pruneOrphans`).
+- **Usage events** — deleted after 400 days (`USAGE_RETENTION_DAYS`).
+- **Rate-limit events** — deleted after 25 hours
+  (`RATE_LIMIT_RETENTION_HOURS`).
+- **Backups** — dated bucket copies are deleted after 30 days
+  (`scripts/ops/backup-mastra.sh`), so anything purged above survives in
+  earlier copies for up to 30 more days. The prune runs only when a backup
+  run reaches its last step.
 - **Account deletion requests** (privacy policy contact): delete the user in
-  WorkOS, their threads via the memory API (each thread delete also removes
-  its messages; orphaned feedback is pruned automatically), then remove the
-  remaining rows directly on the agent volume (or work on a downloaded
-  backup, verify, and upload — see Backups & Restore):
+  WorkOS, then run this command from `packages/agent` on the ops laptop.
+  `<user-id>` is the WorkOS user id (`user_` followed by 26 characters);
+  `<instance-id>` is the RUNNING agent instance, found after waking the agent
+  as in steps 1 and 2 of the chat-store backup (see Backups & Restore):
 
-  ```sql
-  -- sqlite3 /data/mastra.db, with <id> = the WorkOS user id
-  DELETE FROM mastra_threads     WHERE resourceId = '<id>';   -- if any remain
-  DELETE FROM feedback           WHERE resource_id = '<id>';
-  DELETE FROM usage_events       WHERE user_id = '<id>';
-  DELETE FROM rate_limit_events  WHERE user_id = '<id>';
+  ```bash
+  railway ssh -s '@nc-medicaid/agent' --deployment-instance <instance-id> -- \
+    "sqlite3 -bail /data/mastra.db \"$(npx tsx scripts/delete-user-data.ts <user-id>)\""
   ```
+
+  The deletion happened only if the output contains `USER_DATA_DELETED`;
+  `railway ssh` exits 0 even when the remote command fails. The script
+  prints, as one transaction, the statements `AppDatabase.deleteUserData`
+  runs: the user's threads, messages, thread state, observational summaries,
+  feedback, usage and rate-limit events, research runs with their
+  checkpoints, budgets and workflow snapshots, and the Mastra resource row.
+  It prints nothing unless given exactly one WorkOS user id, and it opens no
+  database itself, so running it without the `railway ssh` wrapper is a safe
+  way to read the SQL first. Do not hand-write DELETE statements instead.
+  Dated backups taken before the deletion still hold the user's rows until
+  each is 30 days old; after restoring one of them, run the command again
+  for every user deleted since it was taken. The command has been tested
+  against a local copy of the schema but not yet run against production.
 
 ### Abuse Protections
 

@@ -66,12 +66,6 @@ const RuntimeConfigShape = z.object({
   agentReasoningEffort: z.enum(REASONING_EFFORTS),
   maxBodyBytes: z.number().int().positive(),
   maxMessageChars: z.number().int().positive(),
-  retention: z.object({
-    conversationsDays: z.number().int().positive(),
-    feedbackDays: z.number().int().positive(),
-    usageDays: z.number().int().positive(),
-    rateLimitHours: z.number().int().positive(),
-  }),
 });
 
 export type RuntimeConfig = z.infer<typeof RuntimeConfigShape>;
@@ -161,11 +155,5 @@ export function loadRuntimeConfig(
     agentReasoningEffort,
     maxBodyBytes: parseInteger(env, 'MAX_BODY_BYTES', 2 * 1024 * 1024),
     maxMessageChars: parseInteger(env, 'MAX_MESSAGE_CHARS', 10_000),
-    retention: {
-      conversationsDays: parseInteger(env, 'CONVERSATION_RETENTION_DAYS', 90),
-      feedbackDays: parseInteger(env, 'FEEDBACK_RETENTION_DAYS', 180),
-      usageDays: parseInteger(env, 'USAGE_RETENTION_DAYS', 400),
-      rateLimitHours: parseInteger(env, 'RATE_LIMIT_RETENTION_HOURS', 25),
-    },
   });
 }
