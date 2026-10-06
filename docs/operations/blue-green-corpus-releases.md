@@ -346,7 +346,7 @@ gate. Scope records are not retirement evidence or permission to override gates.
 
 1. Complete `recovery-inventory` with zero blocking required failures and zero undocumented
    removals. Freeze the code revision, source snapshot, retirement evidence and
-   golden dataset 3.0 (its validated entries are the benchmark; run
+   golden dataset 3.1 (its validated entries are the benchmark; run
    `eval-validate-golden` against the catalog). Keep maintenance mode and the writer lock.
 2. Run a fresh baseline against the **legacy** graph using that exact code and
    model configuration. Run the CLI from `packages/pipeline` with its legacy
@@ -543,8 +543,8 @@ build from meeting the floors by answering less:
 - `withheldAnswers` caps the withheld count. The cap is a count set against one
   benchmark size (`evaluation.withheldAnswers` holds `max` and `benchmarkSize`);
   a run of any other size fails the gate until the cap is set again. No override
-  can waive it. Golden dataset 3.0 scores only validated entries (8 on
-  2026-10-05), so the current value no longer matches: `release-validate` stops
+  can waive it. Golden dataset 3 scores only validated entries (10 on
+  2026-10-06, version 3.1), so the current value no longer matches: `release-validate` stops
   before any run, naming both sizes, until the owner sets the cap again for the
   validated count. The value, 5 of 55, is provisional (`"provisional": true`):
   [issue #259](https://github.com/Queen-City-Cortex/medicaid-agent/issues/259)

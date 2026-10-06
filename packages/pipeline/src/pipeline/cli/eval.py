@@ -395,15 +395,31 @@ def eval_validate_golden(dataset: str | None, catalog: str | None):
             "No section text to check quotes against. Build a catalog with "
             "eval-identity-catalog and pass --catalog or set EVAL_IDENTITY_CATALOG."
         )
-    # Quotes recorded on entries still awaiting review are checked too.
-    quoted = [entry for entry in entries if entry.get("supporting_quotes")]
-    errors = check_supporting_quotes(quoted, catalog_sections(Path(catalog)))
+    sections = catalog_sections(Path(catalog))
+    # Quotes recorded on entries still awaiting review are checked too, where
+    # the catalog holds their section. A frozen identity catalog holds only the
+    # validated entries' sections, so the rest are reported as not checked.
+    quoted, unchecked = [], 0
+    for entry in entries:
+        quotes = entry.get("supporting_quotes") or []
+        if entry.get("status") != "validated":
+            present = [quote for quote in quotes if quote["section_id"] in sections]
+            unchecked += len(quotes) - len(present)
+            quotes = present
+        if quotes:
+            quoted.append({**entry, "supporting_quotes": quotes})
+    errors = check_supporting_quotes(quoted, sections)
     if errors:
         raise click.ClickException(
             f"{len(errors)} supporting-quote failures:\n  " + "\n  ".join(errors)
         )
     quotes = sum(len(entry["supporting_quotes"]) for entry in quoted)
     click.echo(f"Supporting quotes: PASS ({quotes} quotes on {len(quoted)} entries)")
+    if unchecked:
+        click.echo(
+            f"Not checked: {unchecked} quotes on entries awaiting review, "
+            "whose sections are not in this catalog"
+        )
 
 
 @cli.command("eval-identity-catalog")

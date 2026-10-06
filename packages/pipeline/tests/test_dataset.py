@@ -212,9 +212,9 @@ class TestGoldenDataset:
             assert "agent" not in entry["answer"].get("text", "")
 
     def test_dataset_is_versioned(self):
-        assert dataset_version() == "3.0"
-        assert dataset_version(HELDOUT_PATH) == "3.0"
-        assert "## v3.0" in (GOLDEN_DATASET_PATH.parent / "CHANGELOG.md").read_text()
+        assert dataset_version() == "3.1"
+        assert dataset_version(HELDOUT_PATH) == "3.1"
+        assert "## v3.1" in (GOLDEN_DATASET_PATH.parent / "CHANGELOG.md").read_text()
 
     def test_every_paraphrase_inherits_its_key_from_a_golden_parent(self):
         golden = {entry["id"]: entry for entry in load_dataset()}
@@ -289,3 +289,25 @@ class TestValidateGoldenCommand:
         result = self.run(tmp_path, monkeypatch, SECTION_TEXT, [SAMPLE_ENTRY, partial])
 
         assert result.exit_code != 0 and "q-009" in result.output
+
+    def test_reports_quotes_awaiting_review_whose_section_the_catalog_does_not_hold(self, tmp_path, monkeypatch):
+        # A frozen identity catalog holds only the validated entries' sections.
+        pending = {
+            **UNVALIDATED,
+            "evidence": {"primary_sections": [
+                {"document_id": "doc:clinical_policy:2B", "section_id": "sec:doc:clinical_policy:2B:1.0", "relevance": "scope"}
+            ]},
+            "supporting_quotes": [
+                {"section_id": "sec:doc:clinical_policy:2B:1.0", "quote": "a sentence in a section outside the catalog"}
+            ],
+        }
+        result = self.run(tmp_path, monkeypatch, SECTION_TEXT, [SAMPLE_ENTRY, pending])
+
+        assert result.exit_code == 0, result.output
+        assert "Supporting quotes: PASS (1 quotes on 1 entries)" in result.output
+        assert "Not checked: 1 quotes on entries awaiting review" in result.output
+
+    def test_a_validated_quote_whose_section_the_catalog_does_not_hold_still_fails(self, tmp_path, monkeypatch):
+        result = self.run(tmp_path, monkeypatch, {"sec:other": "Unrelated text."})
+
+        assert result.exit_code != 0 and "is missing" in result.output
