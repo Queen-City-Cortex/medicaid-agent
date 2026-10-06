@@ -233,6 +233,22 @@ function canonicalizeExistingDocumentUrls(db: Database.Database): void {
   })();
 }
 
+// parseSpaNumber once stored "YY-NNNN" or "NC-YY-NNNN" when the link text
+// lacked the "SPA" prefix. Rows no longer listed on the site are never
+// rediscovered, so reshape them here; rediscovered rows heal through the upsert.
+function canonicalizeSpaNumbers(db: Database.Database): void {
+  db.exec(`
+    UPDATE documents
+    SET policy_number = 'SPA ' || substr(policy_number, -7)
+    WHERE source_type = 'state_plan_amendment'
+      AND (
+        policy_number GLOB '[0-9][0-9]-[0-9][0-9][0-9][0-9]'
+        OR policy_number GLOB 'NC[0-9][0-9]-[0-9][0-9][0-9][0-9]'
+        OR policy_number GLOB 'NC-[0-9][0-9]-[0-9][0-9][0-9][0-9]'
+      )
+  `);
+}
+
 export function initializeSchema(db: Database.Database): void {
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
@@ -242,4 +258,5 @@ export function initializeSchema(db: Database.Database): void {
   ensureColumn(db, 'documents', 'consecutive_not_found', 'INTEGER NOT NULL DEFAULT 0');
   ensureColumn(db, 'documents', 'removed_at', 'TEXT');
   canonicalizeExistingDocumentUrls(db);
+  canonicalizeSpaNumbers(db);
 }

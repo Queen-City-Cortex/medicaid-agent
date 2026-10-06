@@ -25,6 +25,14 @@ describe('candidatePolicyNumbers', () => {
     expect(candidatePolicyNumbers('ssa title 19')).toContain('SSA-Title-19');
   });
 
+  it('adds the stored State Plan Amendment shape for bare and NC-prefixed numbers', () => {
+    for (const asked of ['24-0028', 'NC-24-0028', 'NC 24-0028', 'SPA NC 24-0028', 'spa 24-0028']) {
+      expect(candidatePolicyNumbers(asked)).toContain('SPA 24-0028');
+    }
+    // A clinical policy number is not an amendment number.
+    expect(candidatePolicyNumbers('1A-30')).toEqual(['1A-30']);
+  });
+
   it('returns no candidates for empty or whitespace input', () => {
     expect(candidatePolicyNumbers('')).toEqual([]);
     expect(candidatePolicyNumbers('   ')).toEqual([]);

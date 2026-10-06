@@ -37,11 +37,17 @@ describe('parseSpaNumber', () => {
   });
 
   it('extracts bare "YY-NNNN" at start of text', () => {
-    expect(parseSpaNumber('24-0003 Some title')).toBe('24-0003');
+    expect(parseSpaNumber('24-0003 Some title')).toBe('SPA 24-0003');
   });
 
   it('extracts "NC-YY-NNNN" format', () => {
-    expect(parseSpaNumber('NC-24-0003 Some title')).toBe('NC-24-0003');
+    expect(parseSpaNumber('NC-24-0003 Some title')).toBe('SPA 24-0003');
+  });
+
+  it('stores one shape for both link-text forms of an amendment', () => {
+    expect(parseSpaNumber('24-0028 Proposed Amendment to CMS')).toBe(
+      parseSpaNumber('SPA 24-0028 1-Day Public Notice (Health Homes)'),
+    );
   });
 
   it('returns null when no SPA number present', () => {

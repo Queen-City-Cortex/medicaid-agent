@@ -8,11 +8,12 @@ const BASE_URL = 'https://medicaid.ncdhhs.gov';
 /**
  * Extract a SPA number from link text or surrounding text.
  *
- * Common formats found on the NC Medicaid site:
+ * Every recognised form is stored in one shape, "SPA YY-NNNN", so all
+ * documents of an amendment share a policy number:
  *   "SPA 26-0001 10-Day Public Notice ..."  → "SPA 26-0001"
- *   "SPA NC 24-0001 ..."                    → "SPA NC 24-0001"
- *   "NC-24-0001 ..."                         → "NC-24-0001"
- *   "24-0001 ..."                            → "24-0001"
+ *   "SPA NC 24-0001 ..."                    → "SPA 24-0001"
+ *   "NC-24-0001 ..."                         → "SPA 24-0001"
+ *   "24-0001 ..."                            → "SPA 24-0001"
  *
  * Returns null if no recognisable SPA number is found.
  */
@@ -23,10 +24,10 @@ export function parseSpaNumber(text: string): string | null {
     return `SPA ${spaMatch[1].replace(/\s+/, '-')}`;
   }
 
-  // Match bare "YY-NNNN" (two digit year dash four digit number) at start of text
-  const bareMatch = text.match(/^((?:NC-?)?\d{2}-\d{4})\b/);
+  // Match bare "[NC-]YY-NNNN" (two digit year dash four digit number) at start of text
+  const bareMatch = text.match(/^(?:NC-?)?(\d{2}-\d{4})\b/);
   if (bareMatch) {
-    return bareMatch[1];
+    return `SPA ${bareMatch[1]}`;
   }
 
   return null;

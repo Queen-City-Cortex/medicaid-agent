@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -6,6 +6,7 @@ import {
   parseClinicalPoliciesPage,
   parsePolicyTitle,
 } from '../../src/sources/clinical-policies.js';
+import { logger } from '../../src/utils/logger.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const fixtureHtml = readFileSync(
@@ -35,7 +36,19 @@ describe('parsePolicyTitle', () => {
     expect(result.title).toBe('Enhanced Mental Health and Substance Abuse Services');
   });
 
-  it('returns null policy_number when no comma present', () => {
+  it('keeps multi-part policy numbers before the comma intact', () => {
+    const result = parsePolicyTitle('1-O-1, Reconstructive and Cosmetic Surgery');
+    expect(result.policy_number).toBe('1-O-1');
+    expect(result.title).toBe('Reconstructive and Cosmetic Surgery');
+  });
+
+  it('falls back to a leading policy number when the link has no comma', () => {
+    const result = parsePolicyTitle('1A-30 Spinal Surgeries');
+    expect(result.policy_number).toBe('1A-30');
+    expect(result.title).toBe('Spinal Surgeries');
+  });
+
+  it('returns null policy_number when no comma or leading number is present', () => {
     const result = parsePolicyTitle('No Comma Title Here');
     expect(result.policy_number).toBeNull();
     expect(result.title).toBe('No Comma Title Here');
@@ -83,9 +96,35 @@ describe('parseClinicalPoliciesPage', () => {
     }
   });
 
-  it('many results have a policy_number extracted', () => {
-    const withPolicyNumber = docs.filter((d) => d.policy_number !== null);
-    expect(withPolicyNumber.length).toBeGreaterThan(50);
+  it('every result has a distinct policy_number', () => {
+    expect(docs.filter((d) => !d.policy_number)).toEqual([]);
+    const numbers = docs.map((d) => d.policy_number);
+    expect(new Set(numbers).size).toBe(numbers.length);
+  });
+
+  it('numbers the comma-less spinal surgeries link', () => {
+    const doc = docs.find((d) =>
+      d.source_url.includes('/1a-30-spinal-surgeries/'),
+    );
+    expect(doc?.policy_number).toBe('1A-30');
+    expect(doc?.title).toBe('Spinal Surgeries');
+  });
+
+  it('warns about a download link left without a policy number', () => {
+    const warnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => {});
+    try {
+      const [doc] = parseClinicalPoliciesPage(
+        '<ul><li><a href="/new-policy/download?attachment">Unnumbered Policy</a></li></ul>',
+        INDEX_URL,
+      );
+      expect(doc.policy_number).toBeNull();
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Unnumbered Policy'),
+      );
+    } finally {
+      warnSpy.mockRestore();
+    }
   });
 
   it('some results have categories extracted', () => {

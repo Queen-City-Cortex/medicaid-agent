@@ -6,15 +6,19 @@ import type { DiscoveredDocument } from './types.js';
 
 const BASE_URL = 'https://medicaid.ncdhhs.gov';
 
+const LEADING_POLICY_NUMBER_RE = /^(\d{1,2}[A-Z]?(?:-[A-Z0-9]{1,3})*)\s+(\S.*)$/;
+
 /**
  * Extract a policy number from link text.
  * Common formats:
  *   "1N-1, Allergy Testing"          → "1N-1"
  *   "15, Ambulance Services"         → "15"
  *   "8A, Enhanced Mental Health..."  → "8A"
+ *   "1A-30 Spinal Surgeries"         → "1A-30"
  *
- * The policy number is the token before the first comma.
- * Returns null if no comma is found or the prefix looks too long (>20 chars).
+ * The policy number is the token before the first comma. A link without a
+ * comma (or with a prefix longer than 20 chars) falls back to a leading
+ * policy number followed by whitespace; otherwise the number is null.
  */
 export function parsePolicyTitle(text: string): {
   policy_number: string | null;
@@ -23,6 +27,10 @@ export function parsePolicyTitle(text: string): {
   const trimmed = text.trim();
   const commaIdx = trimmed.indexOf(',');
   if (commaIdx === -1 || commaIdx > 20) {
+    const leading = trimmed.match(LEADING_POLICY_NUMBER_RE);
+    if (leading) {
+      return { policy_number: leading[1], title: leading[2] };
+    }
     return { policy_number: null, title: trimmed };
   }
   const policy_number = trimmed.slice(0, commaIdx).trim();
@@ -67,6 +75,11 @@ export function parseClinicalPoliciesPage(
     if (!linkText) return;
 
     const { policy_number, title } = parsePolicyTitle(linkText);
+    if (!policy_number) {
+      logger.warn(
+        `clinical-policies: no policy number in link "${linkText}" (${source_url})`,
+      );
+    }
 
     // Walk up the DOM to find the nearest preceding h3 sibling for category
     // The h3 and ul are siblings inside .field__item

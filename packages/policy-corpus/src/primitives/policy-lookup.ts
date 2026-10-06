@@ -22,6 +22,11 @@ export function candidatePolicyNumbers(raw: string): string[] {
   const ssa = pn.match(/^SSA[\s-]*Title[\s-]*(\d+)/i);
   if (ssa) candidates.add(`SSA-Title-${ssa[1]}`);
 
+  // State Plan Amendments are stored as "SPA YY-NNNN" whatever form the
+  // source link or the asker used ("24-0028", "NC-24-0028", "SPA NC 24-0028").
+  const spa = pn.match(/^(?:SPA[\s-]*)?(?:NC[\s-]*)?(\d{2}-\d{4})$/i);
+  if (spa) candidates.add(`SPA ${spa[1]}`);
+
   return [...candidates];
 }
 
