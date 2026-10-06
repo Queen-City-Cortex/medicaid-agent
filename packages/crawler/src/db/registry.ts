@@ -29,7 +29,13 @@ export interface DocumentRecord {
   download_attempts: number;
   consecutive_errors: number;
   consecutive_not_found: number;
+  last_failure_at: string | null;
+  last_failure_kind: FailureKind | null;
 }
+
+/** 'transient' said nothing about the document (see `recordTransientFailure`);
+ *  'not_found' is a 404 on the removal streak; 'permanent' is any other failure. */
+export type FailureKind = 'transient' | 'permanent' | 'not_found';
 
 export interface DownloadedInfo {
   local_path: string;
@@ -95,7 +101,18 @@ export interface DocumentRegistry {
   updateDownloaded(id: number, info: DownloadedInfo): void;
   updateChanged(id: number, info: DownloadedInfo): void;
   markUnchanged(id: number): void;
-  markError(id: number, message: string): void;
+  /** Set status='error'. `kind` is 'transient' when a streak of transient
+   *  failures reached the threshold; the payload fields stay. */
+  markError(id: number, message: string, kind?: FailureKind): void;
+  /**
+   * Record a failure that said nothing about the document: a network, DNS or
+   * timeout error, a 5xx or a 429. The status, the stored payload fields and
+   * `last_checked_at` stay as the last completed check left them, so a loaded
+   * row's retrieved_at is still the time its payload was confirmed; the
+   * failure is kept in `last_failure_at`, `error_message` and the
+   * consecutive-error count. The caller decides when a streak becomes `error`.
+   */
+  recordTransientFailure(id: number, message: string): void;
   /**
    * Record a 404 for the document. Sets status='error' (so it retries) and
    * increments the consecutive-404 streak. Returns the new streak length so
@@ -169,7 +186,9 @@ export function createRegistry(db: Database.Database): DocumentRegistry {
       download_attempts = download_attempts + 1,
       consecutive_errors = 0,
       consecutive_not_found = 0,
-      error_message = NULL
+      error_message = NULL,
+      last_failure_at = NULL,
+      last_failure_kind = NULL
     WHERE id = @id
   `);
 
@@ -190,7 +209,9 @@ export function createRegistry(db: Database.Database): DocumentRegistry {
       download_attempts = download_attempts + 1,
       consecutive_errors = 0,
       consecutive_not_found = 0,
-      error_message = NULL
+      error_message = NULL,
+      last_failure_at = NULL,
+      last_failure_kind = NULL
     WHERE id = @id
   `);
 
@@ -200,7 +221,9 @@ export function createRegistry(db: Database.Database): DocumentRegistry {
       status = 'unchanged',
       consecutive_errors = 0,
       consecutive_not_found = 0,
-      error_message = NULL
+      error_message = NULL,
+      last_failure_at = NULL,
+      last_failure_kind = NULL
     WHERE id = ?
   `);
 
@@ -211,7 +234,21 @@ export function createRegistry(db: Database.Database): DocumentRegistry {
       error_message = @message,
       download_attempts = download_attempts + 1,
       consecutive_errors = consecutive_errors + 1,
-      consecutive_not_found = 0
+      consecutive_not_found = 0,
+      last_failure_at = datetime('now'),
+      last_failure_kind = @kind
+    WHERE id = @id
+  `);
+
+  // Status, payload fields and last_checked_at are deliberately absent.
+  const recordTransientFailureStmt = db.prepare(`
+    UPDATE documents SET
+      error_message = @message,
+      download_attempts = download_attempts + 1,
+      consecutive_errors = consecutive_errors + 1,
+      consecutive_not_found = 0,
+      last_failure_at = datetime('now'),
+      last_failure_kind = 'transient'
     WHERE id = @id
   `);
 
@@ -224,7 +261,9 @@ export function createRegistry(db: Database.Database): DocumentRegistry {
       error_message = @message,
       download_attempts = download_attempts + 1,
       consecutive_errors = consecutive_errors + 1,
-      consecutive_not_found = consecutive_not_found + 1
+      consecutive_not_found = consecutive_not_found + 1,
+      last_failure_at = datetime('now'),
+      last_failure_kind = 'not_found'
     WHERE id = @id
   `);
 
@@ -464,8 +503,12 @@ export function createRegistry(db: Database.Database): DocumentRegistry {
       runWrite('markUnchanged', id, () => markUnchangedStmt.run(id));
     },
 
-    markError(id: number, message: string): void {
-      runWrite('markError', id, () => markErrorStmt.run({ id, message }));
+    markError(id: number, message: string, kind: FailureKind = 'permanent'): void {
+      runWrite('markError', id, () => markErrorStmt.run({ id, message, kind }));
+    },
+
+    recordTransientFailure(id: number, message: string): void {
+      runWrite('recordTransientFailure', id, () => recordTransientFailureStmt.run({ id, message }));
     },
 
     recordNotFound(id: number, message: string): number {

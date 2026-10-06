@@ -78,3 +78,31 @@ describe('State Plan Amendment number migration', () => {
     ).toEqual({ count: 0 });
   });
 });
+
+describe('failure column migration', () => {
+  it('adds the failure columns to a registry created before them, without rebuilding rows', () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'crawler-schema-'));
+    const db = new Database(path.join(tempDir, 'crawler.db'));
+    try {
+      initializeSchema(db);
+      db.exec('ALTER TABLE documents DROP COLUMN last_failure_at');
+      db.exec('ALTER TABLE documents DROP COLUMN last_failure_kind');
+      db.prepare(`
+        INSERT INTO documents (source_url, discovered_from, source_type, status, local_path, file_hash)
+        VALUES ('https://example.com/a.pdf', 'https://example.com/index', 'clinical_policy', 'unchanged', 'clinical_policy/a.pdf', 'abc')
+      `).run();
+
+      initializeSchema(db);
+
+      expect(db.prepare('SELECT * FROM documents').all()).toEqual([
+        expect.objectContaining({
+          source_url: 'https://example.com/a.pdf', status: 'unchanged', file_hash: 'abc',
+          last_failure_at: null, last_failure_kind: null,
+        }),
+      ]);
+    } finally {
+      db.close();
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+});

@@ -45,6 +45,11 @@ export const config = {
   // stay 'error' and retry on the next run.
   notFoundRemovalThreshold: 3,
 
+  // A failure that says nothing about the document (network, DNS, timeout,
+  // 5xx, 429) leaves its status alone until it has happened this many runs
+  // in a row; then the row becomes 'error' like any other failure.
+  transientFailureThreshold: 3,
+
   // Fewest documents a default full crawl may list for a family before its
   // discovery counts as failed. Each floor is about half the lowest count in
   // workstation runs #24-#26 (2026-08-29 to 2026-09-26), taking bulletins from

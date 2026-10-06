@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   CONVERSATION_RETENTION_DAYS,
+  CorpusStatusSchema,
   FEEDBACK_RETENTION_DAYS,
   FeedbackInputSchema,
   RATE_LIMIT_RETENTION_HOURS,
@@ -30,6 +31,14 @@ describe('public contracts', () => {
       rating: 'down',
       comment: 'x'.repeat(2_001),
     }).success).toBe(false);
+  });
+
+  it('describes the serving release age beside the corpus facts', () => {
+    const status = { lastUpdated: null, documentCount: 4215, releaseId: 'r1', releaseMarkedAt: '2026-09-22T04:10:00.123Z', releaseAgeDays: 14 };
+    expect(CorpusStatusSchema.parse(status)).toEqual(status);
+    expect(CorpusStatusSchema.safeParse({ ...status, releaseMarkedAt: null, releaseAgeDays: null }).success).toBe(true);
+    expect(CorpusStatusSchema.safeParse({ ...status, releaseAgeDays: -1 }).success).toBe(false);
+    expect(CorpusStatusSchema.safeParse({ ...status, releaseMarkedAt: 'yesterday' }).success).toBe(false);
   });
 
   it('does not expose an auto-approval research input', () => {

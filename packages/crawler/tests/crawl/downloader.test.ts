@@ -11,7 +11,7 @@ import {
   archiveOldVersion,
   downloadDocument,
 } from '../../src/crawl/downloader.js';
-import { HttpStatusError } from '../../src/crawl/fetcher.js';
+import { FileTooLargeError, HttpStatusError, UrlRejectedError } from '../../src/crawl/fetcher.js';
 import { config, SOURCE_TYPE_DIRS } from '../../src/config.js';
 import { logger } from '../../src/utils/logger.js';
 import { hashBuffer } from '../../src/utils/hash.js';
@@ -248,6 +248,8 @@ describe('downloadDocument', () => {
       download_attempts: 0,
       consecutive_errors: 0,
       consecutive_not_found: 0,
+      last_failure_at: null,
+      last_failure_kind: null,
       ...overrides,
     };
   }
@@ -380,6 +382,64 @@ describe('downloadDocument', () => {
     );
     expect(result.action).toBe('error');
     expect(result.error).toMatch(/HTML\/text/);
+  });
+
+  describe('transient against permanent failures', () => {
+    const fetcherThrowing = (error: Error): Fetcher => ({
+      fetchHtml: () => { throw new Error('not used'); },
+      async fetchFile() { throw error; },
+    });
+    const fetcherAnswering = (statusCode: number): Fetcher => ({
+      fetchHtml: () => { throw new Error('not used'); },
+      async fetchFile() { return { statusCode, headers: {}, filePath: null, downloaded: false }; },
+    });
+    const systemError = (code: string) => Object.assign(new Error(`request failed: ${code}`), { code });
+
+    it.each([
+      ['a 503 the fetcher gave up on', fetcherThrowing(new HttpStatusError(503, 'https://medicaid.ncdhhs.gov/policy.pdf')), 503],
+      ['a 429 the fetcher gave up on', fetcherThrowing(new HttpStatusError(429, 'https://medicaid.ncdhhs.gov/policy.pdf')), 429],
+      ['a reset connection', fetcherThrowing(systemError('ECONNRESET')), undefined],
+      ['a DNS failure', fetcherThrowing(systemError('ENOTFOUND')), undefined],
+      ['an undici timeout', fetcherThrowing(systemError('UND_ERR_HEADERS_TIMEOUT')), undefined],
+    ])('%s is transient: the registry keeps the last good status', async (_label, fetcher, statusCode) => {
+      const result = await downloadDocument(makeDoc(), fetcher, new Set());
+      expect(result).toMatchObject({ action: 'error', transient: true, statusCode });
+    });
+
+    it.each([
+      ['a 404', fetcherAnswering(404), 404],
+      ['a 410', fetcherAnswering(410), 410],
+      ['a 403', fetcherAnswering(403), 403],
+    ])('%s is not transient: the response is about the document', async (_label, fetcher, statusCode) => {
+      const result = await downloadDocument(makeDoc(), fetcher, new Set());
+      expect(result).toMatchObject({ action: 'error', statusCode });
+      expect(result.transient).toBeUndefined();
+    });
+
+    it('a payload that breaks the source contract is not transient', async () => {
+      const html = '<!DOCTYPE html><html><body><h1>Maintenance</h1></body></html>';
+      const result = await downloadDocument(makeDoc(), fetcherWriting(html, { 'content-type': 'text/html' }), new Set());
+      expect(result.action).toBe('error');
+      expect(result.transient).toBeUndefined();
+    });
+
+    it('a redirect outside the allow-list is not transient', async () => {
+      const result = await downloadDocument(makeDoc(), fetcherThrowing(new UrlRejectedError('https://outside.example/x.pdf')), new Set());
+      expect(result).toMatchObject({ action: 'error', rejectedUrl: 'https://outside.example/x.pdf' });
+      expect(result.transient).toBeUndefined();
+    });
+
+    it('an oversize payload is not transient', async () => {
+      const result = await downloadDocument(makeDoc(), fetcherThrowing(new FileTooLargeError(10)), new Set());
+      expect(result.action).toBe('error');
+      expect(result.transient).toBeUndefined();
+    });
+
+    it("the downloader's own validation failures are not transient", async () => {
+      const result = await downloadDocument(makeDoc(), fetcherThrowing(new Error('Too many redirects from https://medicaid.ncdhhs.gov/policy.pdf')), new Set());
+      expect(result.action).toBe('error');
+      expect(result.transient).toBeUndefined();
+    });
   });
 
   it('accepts a real PDF payload', async () => {

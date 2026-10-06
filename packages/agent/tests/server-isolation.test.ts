@@ -1,4 +1,6 @@
+import { connect, type AddressInfo } from 'node:net';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { serve } from '@hono/node-server';
 import { MockLanguageModelV3, simulateReadableStream } from 'ai/test';
 import { log } from '../src/logger.js';
 import { CHAT_PRIOR_TURNS } from '../src/processors/prior-turns.js';
@@ -110,7 +112,8 @@ const FRAMEWORK_FAMILIES = [
   'workspaces',
 ];
 // The framework registers these before `server.middleware`, so neither the
-// resource binding nor the gateway runs for them. See the two tests on them.
+// resource binding nor the gateway runs for them; the refusal registered
+// through `setServerMiddleware` runs before them instead. See the tests on them.
 const AHEAD_OF_GATEWAY = [
   'GET /browser/:agentId/stream',
   'GET /api/agents/:agentId/browser/session',
@@ -313,34 +316,71 @@ describe('two users on the production server', () => {
     expect(behind.length).toBeGreaterThan(300);
   }, 60_000);
 
-  it('knows which framework routes are registered ahead of the gateway, and what they answer', async () => {
+  // The installed server (@mastra/deployer 1.45.0) registers these framework
+  // routes before `server.middleware`, so neither the resource binding nor the
+  // gateway runs for them. `refuseFrameworkRoutes` in runtime.ts puts a refusal
+  // ahead of them through `mastra.setServerMiddleware`, which the server
+  // registers right after its context middleware. The pinned set is the list
+  // that refusal must cover: a framework upgrade that registers a fifth route
+  // ahead of the gateway fails here until it is read and either listed in the
+  // refusal or ruled public.
+  it('pins the framework routes registered ahead of the gateway', () => {
     expect(routeTable().ahead).toEqual(AHEAD_OF_GATEWAY);
-    // Each answers a constant: the agent has no browser toolset, so there is
-    // no session to read or close, and nothing here is per user.
-    const session = await send(null, 'GET', `/api/agents/${AGENT}/browser/session?threadId=${THREAD_A}`);
-    expect([session.status, session.json()]).toEqual([200, { hasSession: false, screencastAvailable: true }]);
-    const close = await send('b', 'POST', `/api/agents/${AGENT}/browser/close`, { body: { threadId: THREAD_A } });
-    expect([close.status, close.json()]).toEqual([404, { error: 'No browser session for this agent' }]);
-    const health = await send(null, 'GET', '/health');
-    expect([health.status, health.json()]).toEqual([200, { success: true }]);
-    // Without a WebSocket upgrade the stream route falls through to the gateway.
-    const stream = await send(null, 'GET', `/browser/${AGENT}/stream?threadId=${THREAD_A}`);
-    expect([stream.status, stream.json()]).toEqual([404, REFUSED]);
   });
 
-  // FINDING (TEST-5): the gateway is a positive list, but the installed server
-  // (@mastra/deployer 1.45.0) registers these framework routes before
-  // `server.middleware`, so they answer without a token and without the
-  // gateway. Today each answers a constant (previous test). This is the
-  // assertion the card asks for; it fails, and must stay failing-as-marked
-  // until production refuses these routes. Do not weaken it.
   it.each([
     ['GET', `/api/agents/${AGENT}/browser/session?threadId=${THREAD_A}`],
     ['POST', `/api/agents/${AGENT}/browser/close`],
     ['GET', '/health'],
-  ])('refuses the framework route %s %s, which is registered ahead of the gateway', { fails: true }, async (method, path) => {
-    const response = await send(null, method, path, { body: method === 'POST' ? { threadId: THREAD_A } : undefined });
+    ['GET', `/browser/${AGENT}/stream?threadId=${THREAD_A}`],
+  ])('refuses the framework route %s %s, registered ahead of the gateway, to everyone', async (method, path) => {
+    for (const [caller, headers] of [[null, {}], ['b', STUDIO_HEADERS]] as const) {
+      const response = await send(caller, method, path, { body: method === 'POST' ? { threadId: THREAD_A } : undefined, headers });
+      expect([response.status, response.json()], `as ${caller ?? 'nobody'}`).toEqual([404, REFUSED]);
+    }
+  });
+
+  const UPGRADE_HEADERS = {
+    upgrade: 'websocket', connection: 'Upgrade', 'sec-websocket-key': 'dGhlIHNhbXBsZSBub25jZQ==', 'sec-websocket-version': '13',
+  };
+
+  it('refuses the stream route when asked to upgrade to a WebSocket', async () => {
+    const response = await send('a', 'GET', `/browser/${AGENT}/stream?threadId=${THREAD_A}`, { headers: UPGRADE_HEADERS });
     expect([response.status, response.json()]).toEqual([404, REFUSED]);
+  });
+
+  it('refuses a real WebSocket upgrade on the stream route', async () => {
+    // The listener the deployer builds: the app over node:http, with the
+    // framework's upgrade handler attached. @hono/node-ws runs the upgrade
+    // request through the app and, when no handler claimed it, writes the
+    // app's status to the socket and closes it.
+    const listener = serve({ fetch: app.fetch, port: 0, hostname: '127.0.0.1' });
+    try {
+      // The deployer hangs the upgrade handler on the app, outside its type.
+      const { injectWebSocket } = app as typeof app & { injectWebSocket?: (server: typeof listener) => void };
+      expect(typeof injectWebSocket).toBe('function');
+      injectWebSocket!(listener);
+      await new Promise<void>(resolve => listener.listening ? resolve() : listener.once('listening', () => resolve()));
+      const { port } = listener.address() as AddressInfo;
+      const reply = await new Promise<string>((resolve, reject) => {
+        let data = '';
+        const socket = connect(port, '127.0.0.1', () => {
+          socket.write([
+            `GET /browser/${AGENT}/stream?threadId=${THREAD_A} HTTP/1.1`, `Host: 127.0.0.1:${port}`, 'Authorization: Bearer token-a',
+            ...Object.entries(UPGRADE_HEADERS).map(([name, value]) => `${name}: ${value}`), '', '',
+          ].join('\r\n'));
+        });
+        socket.on('data', chunk => { data += chunk.toString(); });
+        socket.on('close', () => resolve(data));
+        socket.on('error', reject);
+        // An accepted upgrade keeps the socket open: give up and report what came back.
+        socket.setTimeout(2_000, () => { socket.destroy(); resolve(data); });
+      });
+      expect(reply.startsWith('HTTP/1.1 404 ')).toBe(true);
+      expect(reply).not.toContain('101');
+    } finally {
+      await new Promise<void>(resolve => listener.close(() => resolve()));
+    }
   });
 
   it.each([

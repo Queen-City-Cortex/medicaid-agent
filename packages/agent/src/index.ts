@@ -4,7 +4,7 @@ import { log } from './logger.js';
 import { Mastra } from '@mastra/core';
 import { MastraAuthWorkos } from '@mastra/auth-workos';
 import { deepResearchWorkflow } from './deep-research/workflow.js';
-import { createAgentRuntime } from './runtime.js';
+import { createAgentRuntime, refuseFrameworkRoutes } from './runtime.js';
 
 // The HTTP server entrypoint. `createAgentRuntime` builds the agent, storage
 // and server options; this file owns what only a long-running server has: the
@@ -59,4 +59,5 @@ export const mastra = new Mastra({
   },
 });
 
+refuseFrameworkRoutes(mastra);
 void runtime.researchService.recover(mastra);

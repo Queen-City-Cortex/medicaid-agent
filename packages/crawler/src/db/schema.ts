@@ -39,7 +39,12 @@ CREATE TABLE IF NOT EXISTS documents (
   error_message TEXT,
   download_attempts INTEGER DEFAULT 0,
   consecutive_errors INTEGER DEFAULT 0,
-  consecutive_not_found INTEGER NOT NULL DEFAULT 0
+  consecutive_not_found INTEGER NOT NULL DEFAULT 0,
+  -- The most recent failed fetch: when, and 'transient', 'permanent' or
+  -- 'not_found'. A transient failure leaves status alone, so these are the
+  -- only record of it beside error_message and consecutive_errors.
+  last_failure_at TEXT,
+  last_failure_kind TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_documents_status ON documents(status);
@@ -283,6 +288,8 @@ export function initializeSchema(db: Database.Database): void {
   // crawled corpus doesn't have to be rebuilt.
   ensureColumn(db, 'documents', 'consecutive_not_found', 'INTEGER NOT NULL DEFAULT 0');
   ensureColumn(db, 'documents', 'removed_at', 'TEXT');
+  ensureColumn(db, 'documents', 'last_failure_at', 'TEXT');
+  ensureColumn(db, 'documents', 'last_failure_kind', 'TEXT');
   canonicalizeExistingDocumentUrls(db);
   canonicalizeSpaNumbers(db);
   ensureSourceListings(db);

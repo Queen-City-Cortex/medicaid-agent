@@ -51,6 +51,11 @@ export const CorpusStatusSchema = z.object({
   lastUpdated: z.string().datetime().nullable(),
   documentCount: z.number().int().nonnegative(),
   releaseId: z.string().min(1).max(128).nullable().optional(),
+  /** When the serving release's graph marker was last stamped: at promotion,
+   *  or at validation after a restore. Null when the graph has no marker. */
+  releaseMarkedAt: z.string().datetime().nullable().optional(),
+  /** Whole days since `releaseMarkedAt`, at the time of the request. */
+  releaseAgeDays: z.number().int().nonnegative().nullable().optional(),
   retrievalMode: z.enum(['hybrid', 'lexical-degraded']).optional(),
 });
 export type CorpusStatus = z.infer<typeof CorpusStatusSchema>;

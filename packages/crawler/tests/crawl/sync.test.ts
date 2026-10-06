@@ -192,19 +192,133 @@ describe('crawl sync phases', () => {
       expect(doc.consecutive_not_found).toBe(0);
     });
 
-    it('non-404 HTTP errors mark error, not removed', async () => {
+    it('a permanent non-404 failure marks error, not removed', async () => {
       const id = addDownloaded('https://example.com/flaky.pdf');
 
       const ctx = makeContext(registry, () => ({
         action: 'error',
-        error: 'HTTP 503',
-        statusCode: 503,
+        error: 'Content-type text/html not allowed for source_type clinical_policy',
       }));
 
       await runCheckPhase(ctx);
+      const doc = registry.getById(id)!;
+      expect(doc.status).toBe('error');
+      expect(doc.last_failure_kind).toBe('permanent');
+      expect(doc.last_failure_at).not.toBeNull();
       await runCheckPhase(ctx);
       await runCheckPhase(ctx);
       expect(registry.getById(id)!.status).toBe('error');
+    });
+  });
+
+  describe('transient failures', () => {
+    const transient = (registry: DocumentRegistry) =>
+      makeContext(registry, () => ({
+        action: 'error',
+        error: 'HTTP 503 from https://example.com/flaky.pdf',
+        statusCode: 503,
+        transient: true,
+      }), { transientFailureThreshold: 3 });
+
+    it('keeps the last good status, payload and hash, and records the failure', async () => {
+      const id = addDownloaded('https://example.com/flaky.pdf', 'good-hash');
+      await runCheckPhase(makeContext(registry, () => ({ action: 'unchanged' })));
+      const before = registry.getById(id)!;
+      expect(before.status).toBe('unchanged');
+
+      const stats = await runCheckPhase(transient(registry));
+
+      const doc = registry.getById(id)!;
+      expect(stats.errored).toBe(1);
+      expect(doc.status).toBe('unchanged');
+      expect(doc.local_path).toBe(before.local_path);
+      expect(doc.file_hash).toBe('good-hash');
+      expect(doc.file_size).toBe(before.file_size);
+      expect(doc.etag).toBe(before.etag);
+      // The row still says when its status was last established, not when
+      // the failed check happened: the loader stamps retrieved_at from it.
+      expect(doc.last_checked_at).toBe(before.last_checked_at);
+      expect(doc.last_failure_at).not.toBeNull();
+      expect(doc.last_failure_kind).toBe('transient');
+      expect(doc.error_message).toBe('HTTP 503 from https://example.com/flaky.pdf');
+      expect(doc.consecutive_errors).toBe(1);
+      expect(doc.download_attempts).toBe(before.download_attempts + 1);
+    });
+
+    it('moves to error only after the threshold of consecutive transient failures', async () => {
+      const id = addDownloaded('https://example.com/flaky.pdf');
+
+      await runCheckPhase(transient(registry));
+      await runCheckPhase(transient(registry));
+      const kept = registry.getById(id)!;
+      expect(kept.status).toBe('downloaded');
+      expect(kept.consecutive_errors).toBe(2);
+
+      await runCheckPhase(transient(registry));
+      const demoted = registry.getById(id)!;
+      expect(demoted.status).toBe('error');
+      expect(demoted.consecutive_errors).toBe(3);
+      expect(demoted.last_failure_kind).toBe('transient');
+      expect(demoted.file_hash).toBe('existing-hash');
+    });
+
+    it('a document never fetched stays discovered, so the download phase retries it', async () => {
+      const id = addDiscovered('https://example.com/new.pdf');
+
+      const { processedIds } = await runDownloadPhase(transient(registry));
+      expect(processedIds).toEqual(new Set([id]));
+      const doc = registry.getById(id)!;
+      expect(doc.status).toBe('discovered');
+      expect(doc.consecutive_errors).toBe(1);
+      expect(doc.local_path).toBeNull();
+
+      // Next run's download phase selects it again, and a success heals it.
+      const ok = makeContext(registry, () => ({ action: 'downloaded', info: sampleInfo }));
+      const stats = await runDownloadPhase(ok);
+      expect(stats.stats.downloaded).toBe(1);
+      expect(registry.getById(id)!.status).toBe('downloaded');
+    });
+
+    it('a later success clears the failure fields', async () => {
+      const id = addDownloaded('https://example.com/flaky.pdf');
+      await runCheckPhase(transient(registry));
+      expect(registry.getById(id)!.last_failure_at).not.toBeNull();
+
+      await runCheckPhase(makeContext(registry, () => ({ action: 'unchanged' })));
+
+      const doc = registry.getById(id)!;
+      expect(doc.status).toBe('unchanged');
+      expect(doc.consecutive_errors).toBe(0);
+      expect(doc.error_message).toBeNull();
+      expect(doc.last_failure_at).toBeNull();
+      expect(doc.last_failure_kind).toBeNull();
+    });
+
+    it('a transient failure on an error row keeps it error', async () => {
+      const id = addDownloaded('https://example.com/flaky.pdf');
+      registry.markError(id, 'Payload looks like HTML/text');
+
+      await runCheckPhase(transient(registry));
+
+      const doc = registry.getById(id)!;
+      expect(doc.status).toBe('error');
+      expect(doc.last_failure_kind).toBe('transient');
+      expect(doc.consecutive_errors).toBe(2);
+    });
+
+    it('a 404 is never transient: it counts toward removal as before', async () => {
+      const id = addDownloaded('https://example.com/gone.pdf');
+      const notFound = makeContext(registry, () => ({
+        action: 'error',
+        error: 'HTTP 404',
+        statusCode: 404,
+      }));
+
+      await runCheckPhase(notFound);
+      const doc = registry.getById(id)!;
+      expect(doc.status).toBe('error');
+      expect(doc.consecutive_not_found).toBe(1);
+      expect(doc.last_failure_kind).toBe('not_found');
     });
   });
 

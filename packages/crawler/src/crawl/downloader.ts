@@ -262,8 +262,25 @@ export interface DownloadResult {
    * Undefined for non-HTTP failures (network errors, rejected payloads).
    */
   statusCode?: number;
+  /**
+   * True when the failure said nothing about the document: the fetcher gave
+   * up on a 5xx or 429, or the transport failed (connection, DNS, timeout,
+   * local I/O). Absent for a response about the document (404, 410, 403) and
+   * for every contract failure (wrong payload type, rejected redirect, size,
+   * the DHHS wrapper checks).
+   */
+  transient?: true;
   rejectedUrl?: string;
   rejectionReason?: string;
+}
+
+// undici and Node report transport failures with a string `code`
+// (UND_ERR_CONNECT_TIMEOUT, ECONNRESET, ENOTFOUND, EAI_AGAIN ...); the
+// fetcher's and downloader's own contract errors never carry one.
+function isTransientFailure(err: unknown): boolean {
+  if (err instanceof HttpStatusError) return err.statusCode >= 500 || err.statusCode === 429;
+  if (err instanceof UrlRejectedError || err instanceof FileTooLargeError) return false;
+  return typeof (err as { code?: unknown }).code === 'string';
 }
 
 function isDhhsDocumentPage(sourceType: string, url: string): boolean {
@@ -568,6 +585,7 @@ export async function downloadDocument(
       action: 'error',
       error: (err as Error).message,
       statusCode: err instanceof HttpStatusError ? err.statusCode : undefined,
+      ...(isTransientFailure(err) ? { transient: true as const } : {}),
       rejectedUrl: err instanceof UrlRejectedError ? err.url : undefined,
       rejectionReason:
         err instanceof UrlRejectedError

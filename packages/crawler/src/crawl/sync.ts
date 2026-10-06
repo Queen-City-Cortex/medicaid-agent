@@ -23,6 +23,8 @@ export interface SyncContext {
   download?: typeof downloadDocument;
   /** Consecutive 404s before a document is marked removed. */
   notFoundRemovalThreshold?: number;
+  /** Consecutive transient failures before a document is marked error. */
+  transientFailureThreshold?: number;
   /** Maximum number of source-family download workers. */
   concurrency?: number;
 }
@@ -67,7 +69,10 @@ function getFilenames(
  * Apply a download result to the registry and stats. 404s are tracked as a
  * consecutive streak — a document is only marked 'removed' once it has 404ed
  * `notFoundRemovalThreshold` times in a row; until then it stays 'error' so a
- * transient 404 self-heals on a later run.
+ * transient 404 self-heals on a later run. A transient failure (see
+ * `DownloadResult.transient`) keeps the document's last good status — the
+ * row's whole-row identity, and so the release trigger, is unchanged and the
+ * stored payload still loads — until `transientFailureThreshold` in a row.
  */
 function applyResult(
   ctx: SyncContext,
@@ -116,6 +121,24 @@ function applyResult(
         } else {
           logger.warn(
             `${docLabel(doc)}... 404 (${misses}/${threshold} consecutive before removal)`,
+          );
+        }
+      } else if (result.transient) {
+        const threshold =
+          ctx.transientFailureThreshold ?? config.transientFailureThreshold;
+        // `doc` is the row as the phase read it; the writes are applied
+        // serially afterwards, so its count is current.
+        const streak = doc.consecutive_errors + 1;
+        const message = result.error ?? 'Unknown error';
+        if (streak >= threshold) {
+          ctx.registry.markError(doc.id, message, 'transient');
+          logger.warn(
+            `${docLabel(doc)}... error after ${streak} consecutive transient failures: ${message}`,
+          );
+        } else {
+          ctx.registry.recordTransientFailure(doc.id, message);
+          logger.warn(
+            `${docLabel(doc)}... transient failure, kept ${doc.status} (${streak}/${threshold} before error): ${message}`,
           );
         }
       } else {

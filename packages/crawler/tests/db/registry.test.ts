@@ -171,6 +171,65 @@ describe('DocumentRegistry', () => {
     });
   });
 
+  describe('recordTransientFailure', () => {
+    it('records the failure without touching the status, the payload or the check time', () => {
+      const id = registry.upsertDiscovered(sampleDoc);
+      registry.updateDownloaded(id, {
+        local_path: 'test.pdf',
+        file_hash: 'abc',
+        file_size: 100,
+        mime_type: 'application/pdf',
+        detected_content_type: 'application/pdf',
+        content_disposition_filename: null,
+        etag: 'v1',
+        last_modified: null,
+      });
+      const before = registry.getById(id)!;
+
+      registry.recordTransientFailure(id, 'ECONNRESET');
+      registry.recordTransientFailure(id, 'HTTP 503 from https://example.com/doc.pdf');
+
+      const doc = registry.getById(id)!;
+      expect(doc.status).toBe('downloaded');
+      expect(doc.local_path).toBe('test.pdf');
+      expect(doc.file_hash).toBe('abc');
+      expect(doc.etag).toBe('v1');
+      expect(doc.last_checked_at).toBe(before.last_checked_at);
+      expect(doc.last_downloaded_at).toBe(before.last_downloaded_at);
+      expect(doc.error_message).toBe('HTTP 503 from https://example.com/doc.pdf');
+      expect(doc.consecutive_errors).toBe(2);
+      expect(doc.consecutive_not_found).toBe(0);
+      expect(doc.download_attempts).toBe(3);
+      expect(doc.last_failure_kind).toBe('transient');
+      expect(doc.last_failure_at).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
+    });
+
+    it('is cleared by any successful check or download', () => {
+      const id = registry.upsertDiscovered(sampleDoc);
+      registry.recordTransientFailure(id, 'ETIMEDOUT');
+      registry.markUnchanged(id);
+      expect(registry.getById(id)!).toMatchObject({
+        consecutive_errors: 0, error_message: null, last_failure_at: null, last_failure_kind: null,
+      });
+
+      registry.recordTransientFailure(id, 'ETIMEDOUT');
+      registry.updateChanged(id, {
+        local_path: 'test.pdf', file_hash: 'def', file_size: 1, mime_type: null,
+        detected_content_type: null, content_disposition_filename: null, etag: null, last_modified: null,
+      });
+      expect(registry.getById(id)!).toMatchObject({ last_failure_at: null, last_failure_kind: null });
+    });
+
+    it('markError and recordNotFound record their own kinds', () => {
+      const id = registry.upsertDiscovered(sampleDoc);
+      registry.markError(id, 'Payload looks like HTML/text');
+      expect(registry.getById(id)!.last_failure_kind).toBe('permanent');
+      expect(registry.getById(id)!.last_failure_at).not.toBeNull();
+      registry.recordNotFound(id, '404 Not Found');
+      expect(registry.getById(id)!.last_failure_kind).toBe('not_found');
+    });
+  });
+
   describe('recordNotFound', () => {
     it('sets status to error and returns the consecutive-404 streak', () => {
       const id = registry.upsertDiscovered(sampleDoc);

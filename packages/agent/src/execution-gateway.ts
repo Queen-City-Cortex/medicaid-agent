@@ -75,6 +75,35 @@ function badRequest(c: ContextWithMastra, message: string): Response {
   return c.json({ error: { code: 'bad_request', message } }, 400);
 }
 
+function notFound(c: ContextWithMastra): Response {
+  return c.json({ error: { code: 'not_found', message: 'Not found' } }, 404);
+}
+
+// The installed server (@mastra/deployer 1.45.0, createHonoServer) registers
+// these before `server.middleware`: the browser screencast routes, including
+// the WebSocket upgrade, and its own health check. The gateway never sees
+// them. They are refused by `createFrameworkRouteRefusal`, which runs ahead of
+// them; `/health` is refused rather than ruled public because nothing uses it
+// (Railway probes /readyz, the ops scripts /healthz). Keep this list equal to
+// the set server-isolation.test.ts pins.
+const ROUTES_AHEAD_OF_GATEWAY: readonly RegExp[] = [
+  /^\/health$/,
+  /^\/browser\/[^/]+\/stream$/,
+  /^\/api\/agents\/[^/]+\/browser\/(?:session|close)$/,
+];
+
+/** Answers the gateway's 404 to the routes the framework registers ahead of
+ *  it, for every method and caller, and passes everything else on. It must
+ *  be registered before those routes (see `refuseFrameworkRoutes`). */
+export function createFrameworkRouteRefusal(): GuardMiddleware {
+  return async function frameworkRouteRefusal(c: ContextWithMastra, next: Next): Promise<Response | void> {
+    if (ROUTES_AHEAD_OF_GATEWAY.some((pattern) => pattern.test(c.req.path))) {
+      return notFound(c);
+    }
+    await next();
+  };
+}
+
 /** Reads at most `limit` bytes of the body from a copy of the request, or
  * returns null when it is longer. The framework's handler and its body-size
  * check read the original stream afterwards, and a stream can be read once. */
@@ -226,8 +255,6 @@ export function createExecutionGateway(options: ExecutionGatewayOptions = {}): G
       await next();
       return;
     }
-    return c.json({
-      error: { code: 'not_found', message: 'Not found' },
-    }, 404);
+    return notFound(c);
   };
 }

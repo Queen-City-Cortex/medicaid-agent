@@ -6,7 +6,7 @@ import { MastraAuthProvider } from '@mastra/core/server';
 import type { LibSQLStore } from '@mastra/libsql';
 import { createHonoServer } from '@mastra/deployer/server';
 import { deepResearchWorkflow } from '../../src/deep-research/workflow.js';
-import { createAgentRuntime, type AgentRuntimeOptions, type AgentServerRuntime } from '../../src/runtime.js';
+import { createAgentRuntime, refuseFrameworkRoutes, type AgentRuntimeOptions, type AgentServerRuntime } from '../../src/runtime.js';
 import { STUB_OPENAI_KEY } from './openai-responses-stub.js';
 
 /** Stands in for WorkOS: a known token is its user, any other token is nobody. */
@@ -52,6 +52,7 @@ export async function bootProductionServer(
       logger: false,
       server: { ...runtime.serverOptions },
     });
+    refuseFrameworkRoutes(mastra);
     const app = await createHonoServer(mastra, { tools: {} });
     return { runtime, app, close: async () => {
       runtime.appDatabase.close();

@@ -38,7 +38,7 @@ import { loadRuntimeConfig, type RuntimeConfig } from './runtime-config.js';
 import { assertVerifierModelUsable } from './processors/verifier/config.js';
 import { AppDatabase } from './storage/app-database.js';
 import { AnswerAuditRepository } from './storage/answer-audit.js';
-import { createExecutionGateway } from './execution-gateway.js';
+import { createExecutionGateway, createFrameworkRouteRefusal } from './execution-gateway.js';
 import { healthApiRoutes } from './readiness.js';
 import { ResearchRepository } from './deep-research/repository.js';
 import { ResearchService } from './deep-research/service.js';
@@ -74,6 +74,19 @@ export interface AgentRuntimeOptions {
 }
 
 export type AgentServerOptions = Required<Pick<ServerConfig, 'auth' | 'middleware' | 'cors' | 'onError' | 'apiRoutes'>>;
+
+/**
+ * Call on the Mastra instance as soon as it is built, in the entrypoint and
+ * in the test harness alike. `createHonoServer` registers the browser
+ * screencast routes and `/health` before `server.middleware`, so the gateway
+ * never sees them; it registers `getServerMiddleware()` earlier still, right
+ * after its own context middleware, and that is the only hook that runs
+ * first. The path must be given: a bare handler defaults to `/api/*`, which
+ * would miss `/health` and `/browser/:agentId/stream`.
+ */
+export function refuseFrameworkRoutes(mastra: Mastra): void {
+  mastra.setServerMiddleware([{ path: '*', handler: createFrameworkRouteRefusal() }]);
+}
 
 export interface AgentRuntime {
   config: RuntimeConfig;
