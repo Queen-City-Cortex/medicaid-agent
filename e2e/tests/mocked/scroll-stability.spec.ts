@@ -109,4 +109,38 @@ test.describe('Scroll stability', () => {
     });
     expect(outerScrollTop).toBe(0);
   });
+
+  test('thread list scrolls and keeps Sign out in view once it outgrows the sidebar', async ({ page }) => {
+    await mockMastraAPI(page, {
+      threads: Array.from({ length: 40 }, (_, i) => ({
+        id: `thread-${i}`,
+        title: `Conversation ${i}`,
+        updatedAt: new Date(Date.UTC(2026, 0, 1) - i * 86_400_000).toISOString(),
+      })),
+    });
+    const chat = new ChatPage(page);
+    await chat.goto();
+    await expect(chat.threadItems()).toHaveCount(40);
+
+    // The list must scroll inside the sidebar instead of growing with its content.
+    const scrollState = await page.evaluate(() => {
+      const vp = document.querySelector('#thread-sidebar [data-slot="scroll-area-viewport"]');
+      if (!vp) return null;
+      return { scrollHeight: vp.scrollHeight, clientHeight: vp.clientHeight };
+    });
+    expect(scrollState).not.toBeNull();
+    expect(scrollState!.scrollHeight).toBeGreaterThan(scrollState!.clientHeight);
+
+    // toBeInViewport also fails when the footer is clipped by the sidebar wrapper.
+    const signOut = page.getByRole('button', { name: 'Sign out' });
+    await expect(signOut).toBeInViewport({ ratio: 1 });
+    const box = await signOut.boundingBox();
+    const viewport = page.viewportSize();
+    expect(box).not.toBeNull();
+    expect(box!.y + box!.height).toBeLessThanOrEqual(viewport!.height);
+
+    await chat.threadItems().last().scrollIntoViewIfNeeded();
+    await expect(chat.threadItems().last()).toBeInViewport();
+    await expect(signOut).toBeInViewport({ ratio: 1 });
+  });
 });

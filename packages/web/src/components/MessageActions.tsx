@@ -20,7 +20,7 @@ interface MessageActionsProps {
   onComment?: (comment: string) => void;
 }
 
-const btnClass = 'p-1.5 rounded-md text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted transition-colors';
+const btnClass = 'p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors';
 const btnActiveUp = 'p-1.5 rounded-md text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 transition-colors';
 const btnActiveDown = 'p-1.5 rounded-md text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-950/30 transition-colors';
 

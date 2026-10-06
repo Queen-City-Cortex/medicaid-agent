@@ -49,7 +49,7 @@ function describe(v: VerificationState): BadgePresentation {
       icon: TriangleAlert,
       text: 'Partially verified',
       detail: detailBits.join(' ') || 'Some checks could not be completed.',
-      className: 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300',
+      className: 'border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-300',
     };
   }
 
@@ -57,7 +57,7 @@ function describe(v: VerificationState): BadgePresentation {
     icon: CircleCheck,
     text: 'Verified against cited sources',
     detail: null,
-    className: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+    className: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300',
   };
 }
 
@@ -73,7 +73,7 @@ export function VerificationBadge({ verification, outcome = verification?.outcom
           icon: ShieldAlert,
           text: 'Answer withheld',
           detail: 'The answer could not be verified against the retrieved sources.',
-          className: 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300',
+          className: 'border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-300',
         }
       : {
           icon: CircleCheck,
@@ -83,7 +83,7 @@ export function VerificationBadge({ verification, outcome = verification?.outcom
           detail: verification?.counts.relevanceMinor
             ? 'Minor relevance observations were noted during verification.'
             : null,
-          className: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+          className: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300',
         }
     : verification ? describe(verification) : null;
   if (!presentation) return null;

@@ -86,7 +86,7 @@ export default async function Home() {
             signature move: the subhead carries a real footnote that resolves
             to the disclaimer, exactly like answers cite sources. */}
         <section className="px-4 pb-16 pt-20 text-center md:px-8">
-          <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground/70">
+          <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
             Cited to the source text
           </p>
           <h1 className="font-heading mx-auto mt-4 max-w-2xl text-4xl font-semibold tracking-tight text-foreground md:text-5xl">

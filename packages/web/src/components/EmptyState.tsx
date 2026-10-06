@@ -50,7 +50,7 @@ export function EmptyState({ onSelectExample, corpusStatus = null }: EmptyStateP
 
   return (
     <div className="py-14 text-center">
-      <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground/70">
+      <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
         Cited to the source text
       </p>
       <h2
@@ -67,12 +67,12 @@ export function EmptyState({ onSelectExample, corpusStatus = null }: EmptyStateP
         regulations (42 CFR), the Social Security Act, and change notices — with citations to the
         source text.
       </p>
-      <p data-testid="empty-state-limits" className="mx-auto mt-3 max-w-xl text-xs leading-relaxed text-muted-foreground/80">
+      <p data-testid="empty-state-limits" className="mx-auto mt-3 max-w-xl text-xs leading-relaxed text-muted-foreground">
         It can&rsquo;t give legal advice or look up individual cases or eligibility. Verify critical
         details with NC DHHS.
       </p>
       {corpusUpdated && (
-        <p data-testid="empty-state-corpus-status" className="mx-auto mt-3 font-mono text-[11px] tracking-tight text-muted-foreground/70">
+        <p data-testid="empty-state-corpus-status" className="mx-auto mt-3 font-mono text-[11px] tracking-tight text-muted-foreground">
           {corpusStatus!.documentCount.toLocaleString('en-US')} documents · last updated {corpusUpdated}
         </p>
       )}
@@ -104,7 +104,7 @@ export function EmptyState({ onSelectExample, corpusStatus = null }: EmptyStateP
                   className="group flex items-start gap-3 rounded-lg border border-border border-l-2 border-l-accent/40 bg-card px-4 py-3 text-left text-[15px] leading-snug text-foreground transition-all hover:border-l-accent hover:bg-accent/[0.05] hover:shadow-[0_1px_0_0_var(--border),0_8px_24px_-16px_rgba(0,0,0,0.4)]"
                 >
                   <span className="flex-1">{q}</span>
-                  <ArrowUpRight className="mt-px size-4 shrink-0 text-muted-foreground/35 transition-all group-hover:translate-x-px group-hover:-translate-y-px group-hover:text-accent" />
+                  <ArrowUpRight className="mt-px size-4 shrink-0 text-muted-foreground transition-all group-hover:translate-x-px group-hover:-translate-y-px group-hover:text-accent" />
                 </button>
               ))}
             </div>

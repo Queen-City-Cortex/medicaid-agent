@@ -122,7 +122,7 @@ function MarkdownText({
                       // ::after overlay extends the effective hit area to ≥24px
                       // in each dimension without shifting layout — tap-target
                       // minimums matter for mobile case managers.
-                      className="relative ml-0.5 inline-flex cursor-pointer items-center rounded-sm px-0.5 font-mono text-[0.72em] font-medium text-accent/80 after:absolute after:-inset-2 after:content-[''] hover:bg-accent/15 hover:text-accent"
+                      className="relative ml-0.5 inline-flex cursor-pointer items-center rounded-sm px-0.5 font-mono text-[0.72em] font-medium text-accent after:absolute after:-inset-2 after:content-[''] hover:bg-accent/15 hover:text-accent"
                       aria-label={`Jump to source ${sourceNumber} in the Sources panel`}
                     >
                       [{sourceNumber}]
@@ -419,7 +419,7 @@ function AssistantMessage({
       )}
 
       {!isStreaming && generatedAt && finalAnswerText && (
-        <p data-testid="generated-at" className="mt-3 font-mono text-[10px] uppercase tracking-wider text-muted-foreground/60">
+        <p data-testid="generated-at" className="mt-3 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
           Generated {generatedAt}
         </p>
       )}

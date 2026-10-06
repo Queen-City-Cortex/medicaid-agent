@@ -247,7 +247,7 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
   return (
     <div className="flex flex-col h-full bg-sidebar">
       <div className="px-4 py-4 flex items-center justify-between shrink-0">
-        <span className="font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-sidebar-foreground/55">
+        <span className="font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
           Threads
         </span>
         <Button
@@ -255,7 +255,7 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
           size="sm"
           data-testid="new-thread-button"
           onClick={onNewThread}
-          className="h-7 gap-1.5 px-2 font-mono text-[11px] uppercase tracking-wider text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+          className="h-7 gap-1.5 px-2 font-mono text-[11px] uppercase tracking-wider text-muted-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent"
         >
           <Plus className="size-3.5" />
           New
@@ -265,7 +265,7 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
       <Separator className="bg-sidebar-border shrink-0" />
 
       {/* Thread list */}
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1 min-h-0">
         <div className="py-2">
           {isLoading && threads.length === 0 && (
             <div className="space-y-1 py-1" aria-label="Loading threads">
@@ -285,7 +285,7 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
               <p className="text-xs text-destructive mb-2">{error}</p>
               <button
                 onClick={() => fetchThreads()}
-                className="text-xs text-sidebar-foreground/70 hover:text-sidebar-foreground underline underline-offset-2"
+                className="text-xs text-muted-foreground hover:text-sidebar-foreground underline underline-offset-2"
               >
                 Retry
               </button>
@@ -293,7 +293,7 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
           )}
 
           {!isLoading && !error && threads.length === 0 && (
-            <p className="px-4 py-3 text-xs text-sidebar-foreground/40">No threads yet</p>
+            <p className="px-4 py-3 text-xs text-muted-foreground">No threads yet</p>
           )}
 
           {threads.map((thread) => {
@@ -307,7 +307,7 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
                 className={`group border-l-2 px-4 py-2.5 transition-colors ${
                   isActive
                     ? 'border-l-accent bg-sidebar-accent text-sidebar-foreground'
-                    : 'border-l-transparent text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground/90'
+                    : 'border-l-transparent text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'
                 }`}
               >
                 <div className="flex items-start justify-between gap-2">
@@ -325,7 +325,7 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
                         onBlur={() => handleRename(thread.id)}
                         className="flex-1 min-w-0 text-xs bg-sidebar-accent border border-sidebar-border rounded px-1.5 py-0.5 text-sidebar-foreground outline-none focus:ring-1 focus:ring-ring"
                       />
-                      <span className="font-mono text-[10px] tabular-nums text-sidebar-foreground/40 shrink-0 mt-0.5">
+                      <span className="font-mono text-[10px] tabular-nums text-muted-foreground shrink-0 mt-0.5">
                         {formatDate(thread.updatedAt)}
                       </span>
                     </>
@@ -335,14 +335,14 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
                         type="button"
                         data-testid="thread-item"
                         onClick={() => onSelectThread(thread.id)}
-                        className="flex-1 min-w-0 text-left rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+                        className="flex-1 min-w-0 text-left rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
                         <span className="text-[13px] leading-snug line-clamp-2 block">
                           {displayTitle}
                         </span>
                       </button>
                       <div className="flex items-center gap-1 shrink-0 mt-0.5">
-                        <span className="font-mono text-[10px] tabular-nums text-sidebar-foreground/40">
+                        <span className="font-mono text-[10px] tabular-nums text-muted-foreground">
                           {formatDate(thread.updatedAt)}
                         </span>
                         <DropdownMenu onOpenChange={(open) => setMenuOpenThreadId(open ? thread.id : null)}>
@@ -351,7 +351,7 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
                             className={`flex p-0.5 rounded transition-colors ${
                               menuOpenThreadId === thread.id
                                 ? 'text-sidebar-foreground bg-sidebar-accent'
-                                : 'text-sidebar-foreground/45 hover:text-sidebar-foreground hover:bg-sidebar-accent'
+                                : 'text-muted-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent'
                             }`}
                           >
                             <Ellipsis className="w-3.5 h-3.5" />
@@ -405,14 +405,14 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
       <Separator className="bg-sidebar-border shrink-0" />
       <div className="px-4 py-3 shrink-0 bg-sidebar-accent/40">
         <div className="flex items-center justify-between gap-2">
-          <span className="font-mono text-[11px] text-sidebar-foreground/50 truncate min-w-0">
+          <span className="font-mono text-[11px] text-muted-foreground truncate min-w-0">
             {user?.email ?? ''}
           </span>
           <Button
             variant="ghost"
             size="sm"
             onClick={() => signOut({ returnTo: new URL('/', window.location.origin).href })}
-            className="h-7 px-2 font-mono text-[11px] uppercase tracking-wider text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent shrink-0"
+            className="h-7 px-2 font-mono text-[11px] uppercase tracking-wider text-muted-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent shrink-0"
           >
             Sign out
           </Button>

@@ -29,8 +29,8 @@ function VerificationLine({ v }: { v: DeepResearchReport['citationProvenance'] }
       data-testid="deep-research-verification"
       className={`mt-1 inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-xs ${
         clean
-          ? 'border-emerald-500/30 bg-emerald-500/5 text-emerald-700 dark:text-emerald-400'
-          : 'border-amber-500/30 bg-amber-500/5 text-amber-700 dark:text-amber-400'
+          ? 'border-emerald-500/30 bg-emerald-500/5 text-emerald-800 dark:text-emerald-400'
+          : 'border-amber-500/30 bg-amber-500/5 text-amber-800 dark:text-amber-400'
       }`}
     >
       <Icon className="size-3.5" />

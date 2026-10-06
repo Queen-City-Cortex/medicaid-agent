@@ -15,10 +15,10 @@ export function SiteFooter() {
             Privacy
           </Link>
         </nav>
-        <p className="text-xs leading-relaxed text-muted-foreground/80">
+        <p className="text-xs leading-relaxed text-muted-foreground">
           AI-generated research, not legal advice. Verify critical details with NC DHHS.
         </p>
-        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground/60">
+        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
           © {new Date().getFullYear()} Queen City Cortex LLC
         </p>
       </div>

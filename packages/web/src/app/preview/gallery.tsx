@@ -226,8 +226,8 @@ export function PreviewGallery() {
           <div className="flex h-[460px] overflow-hidden rounded-xl border border-border">
             <div className="flex w-[240px] flex-col bg-sidebar border-r border-sidebar-border">
               <div className="flex items-center justify-between px-4 py-4">
-                <span className="font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-sidebar-foreground/55">Threads</span>
-                <span className="flex h-7 items-center gap-1.5 rounded-md px-2 font-mono text-[11px] uppercase tracking-wider text-sidebar-foreground/70"><Plus className="size-3.5" />New</span>
+                <span className="font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">Threads</span>
+                <span className="flex h-7 items-center gap-1.5 rounded-md px-2 font-mono text-[11px] uppercase tracking-wider text-muted-foreground"><Plus className="size-3.5" />New</span>
               </div>
               <div className="h-px bg-sidebar-border" />
               <div className="py-2 text-sidebar-foreground">
@@ -237,18 +237,18 @@ export function PreviewGallery() {
                   { t: 'HCWD earned income limit', d: 'Jun 12', active: false },
                   { t: 'CAP/DA level-of-care criteria', d: 'Jun 9', active: false },
                 ].map((x) => (
-                  <div key={x.t} className={`group flex items-start justify-between gap-2 border-l-2 px-4 py-2.5 ${x.active ? 'border-l-accent bg-sidebar-accent text-sidebar-foreground' : 'border-l-transparent text-sidebar-foreground/70'}`}>
+                  <div key={x.t} className={`group flex items-start justify-between gap-2 border-l-2 px-4 py-2.5 ${x.active ? 'border-l-accent bg-sidebar-accent text-sidebar-foreground' : 'border-l-transparent text-muted-foreground'}`}>
                     <span className="text-[13px] leading-snug line-clamp-2">{x.t}</span>
                     <div className="mt-0.5 flex shrink-0 items-center gap-1">
-                      <span className="font-mono text-[10px] tabular-nums text-sidebar-foreground/40">{x.d}</span>
-                      <Ellipsis className="size-3.5 text-sidebar-foreground/40" />
+                      <span className="font-mono text-[10px] tabular-nums text-muted-foreground">{x.d}</span>
+                      <Ellipsis className="size-3.5 text-muted-foreground" />
                     </div>
                   </div>
                 ))}
               </div>
               <div className="mt-auto flex items-center justify-between gap-2 bg-sidebar-accent/40 px-4 py-3">
-                <span className="font-mono text-[11px] text-sidebar-foreground/50 truncate">demo@example.com</span>
-                <span className="font-mono text-[11px] uppercase tracking-wider text-sidebar-foreground/50">Sign out</span>
+                <span className="font-mono text-[11px] text-muted-foreground truncate">demo@example.com</span>
+                <span className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Sign out</span>
               </div>
             </div>
             <div className="flex min-w-0 flex-1 flex-col bg-background">

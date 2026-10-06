@@ -151,7 +151,7 @@ export function DeepResearchView({ controller }: { controller: DeepResearchContr
             <ul className="space-y-1 pl-1 text-sm text-muted-foreground">
               {plan.subQuestions.map((sq, i) => (
                 <li key={i} className="flex items-start gap-2">
-                  <Loader2 className="mt-0.5 size-3 shrink-0 animate-spin text-accent/60" />
+                  <Loader2 className="mt-0.5 size-3 shrink-0 animate-spin text-accent" />
                   <span className="truncate">{sq.question}</span>
                 </li>
               ))}

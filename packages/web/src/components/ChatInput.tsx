@@ -71,7 +71,7 @@ export function ChatInput({
         {/* Unified composer: textarea + action button share one bordered field
             that lights up its gold ring on focus — a single deliberate "filing"
             input rather than two loose controls. */}
-        <div className="flex items-end gap-2 rounded-xl border border-input bg-background py-1.5 pl-2 pr-1.5 transition-shadow focus-within:border-accent/50 focus-within:ring-2 focus-within:ring-accent/20">
+        <div className="flex items-end gap-2 rounded-xl border border-input bg-background py-1.5 pl-2 pr-1.5 transition-shadow focus-within:border-ring focus-within:ring-2 focus-within:ring-ring">
           <textarea
             id="chat-input"
             ref={inputRef}
@@ -96,7 +96,7 @@ export function ChatInput({
             }}
             maxLength={MAX_INPUT_LENGTH}
             placeholder={deepResearch ? 'Describe a topic to research in depth…' : 'Ask about NC Medicaid policy…'}
-            className="flex-1 resize-none overflow-y-auto bg-transparent px-2 py-1.5 text-[15px] text-foreground placeholder:text-muted-foreground/70 focus:outline-none scrollbar-none"
+            className="flex-1 resize-none overflow-y-auto bg-transparent px-2 py-1.5 text-[15px] text-foreground placeholder:text-muted-foreground focus:outline-none scrollbar-none"
             style={{ maxHeight: '120px' }}
           />
           {/* The textarea stays enabled during a run so the user can draft the
