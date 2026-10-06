@@ -74,6 +74,44 @@ export function matchesToken(text: string, token: string): boolean {
   return new RegExp(`(?<![\\w-])${escapeRegExp(token)}(?![\\w-])`).test(text);
 }
 
+const termPatterns = new Map<string, RegExp>();
+
+function termPattern(term: string): RegExp {
+  let pattern = termPatterns.get(term);
+  if (!pattern) {
+    const words = term.split(/[\s-]+/).filter(Boolean).map(escapeRegExp);
+    pattern = new RegExp(`(?<![a-z0-9])${words.join('[\\s-]+')}(?![a-z0-9])`);
+    termPatterns.set(term, pattern);
+  }
+  return pattern;
+}
+
+/**
+ * Whole-word vocabulary match for query-side router terms. Both arguments
+ * must already be lower-case. A term never matches inside a longer word
+ * ("ach" in "each", "form" in "information", "therapy" in "chemotherapy"),
+ * and a multi-word term matches only as that sequence of whole words.
+ *
+ * - Hyphens and whitespace are interchangeable between words, so "in-home"
+ *   also matches "in home" and "over the counter" matches "over-the-counter".
+ *   A hyphen is therefore a word boundary: "covered" matches in "non-covered".
+ * - A slash is a word boundary and is literal inside a term: "cap/c" matches
+ *   "cap/c" but not "cap/choice", and "pcs" matches in "pcs/home health".
+ * - A possessive is outside the word: "child" matches "child's".
+ * - Plurals and other inflections are not inferred. List each form wanted.
+ *
+ * For policy numbers use matchesToken, which keeps the hyphen inside the
+ * token so "8C" does not match "8C-1".
+ */
+export function matchesTerm(text: string, term: string): boolean {
+  if (!term) return false;
+  return termPattern(term).test(text);
+}
+
+export function matchesAnyTerm(text: string, terms: readonly string[]): boolean {
+  return terms.some((term) => matchesTerm(text, term));
+}
+
 export function scorePhraseMatches(text: string, phrases: readonly string[], weight = 1): number {
   return phrases.reduce((score, phrase) => score + (text.includes(phrase) ? weight : 0), 0);
 }

@@ -29,13 +29,23 @@ import {
   SCOPE_SECTION_TERMS,
 } from './term-lists.js';
 
+// The state groups a federal-authority search keeps beside the federal ones.
+// Beneficiary guidance stays out of the federal path.
+const FEDERAL_QUERY_STATE_TYPE_GROUPS = BASE_TYPE_GROUPS.filter(
+  (group) => !group.some((documentType) => documentType.startsWith('federal_') || documentType === 'beneficiary_guidance'),
+);
+
 export function defaultTypeGroupsForQuery(queryLower: string): string[][] {
   if (isFederalAuthorityQuery(queryLower)) {
-    return [
-      ['federal_regulation'],
-      ['federal_statute'],
-      federalImplementationDocumentTypes(queryLower),
-    ];
+    // Additive: federal sources lead, and every state group keeps its own
+    // per-group budget. The federal flag is a lexical guess; when it is wrong
+    // (an income limit quoted against the federal poverty level, say) the
+    // state rule must still be retrievable.
+    const groups = [['federal_regulation'], ['federal_statute'], ...FEDERAL_QUERY_STATE_TYPE_GROUPS];
+    if (isMlrQuery(queryLower) || isManagedCareOperationsQuery(queryLower)) {
+      groups.push(['managed_care_contract']);
+    }
+    return groups;
   }
 
   return isOperationalRoutingQuery(queryLower)

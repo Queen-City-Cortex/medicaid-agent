@@ -1,21 +1,44 @@
 import type { AnswerQuestionType } from '../types.js';
-import { includesPhrase, matchesToken, normalizeSearchText } from './base.js';
+import { includesPhrase, matchesAnyTerm, matchesTerm, matchesToken, normalizeSearchText } from './base.js';
 import { dedupeTerms } from './search.js';
 
 const YEAR_QUERY_RE = /\b(19|20)\d{2}\b/g;
 const REQUIREMENT_QUERY_TERMS = ['requirement', 'requirements', 'documentation', 'document', 'provide'];
 // 'minor' is deliberately absent: in this corpus it overwhelmingly means
 // "small" ("minor home modifications" under CAP/DA), not "a child".
-const PEDIATRIC_QUERY_TERMS = ['under 21', 'child', 'children', 'pediatric', 'pediatrics', 'adolescent', 'youth'];
+const PEDIATRIC_QUERY_TERMS = [
+  'under 21',
+  'child',
+  'children',
+  'pediatric',
+  'pediatrics',
+  'adolescent',
+  'adolescents',
+  'youth',
+  'youths',
+];
+
+// The predicates that decide question type, document-type groups, aliased
+// policy numbers and care setting match whole words (matchesTerm): a bare
+// substring test typed "information" as a billing question ("form") and
+// "childless adults" as pediatric. Plurals are listed, not inferred.
 
 export function isPriorAuthorizationQuery(queryLower: string): boolean {
   return (
-    queryLower.includes('prior authorization') ||
-    queryLower.includes('prior approval') ||
-    queryLower.includes('prior auth') ||
+    matchesAnyTerm(queryLower, [
+      'prior authorization',
+      'prior authorizations',
+      'prior approval',
+      'prior approvals',
+      'prior auth',
+      'prior auths',
+      'prior authorize',
+      'prior authorized',
+      'prior authorizing',
+    ]) ||
     // Word-bounded: the old "pa " substring matched "spa " (State Plan
     // Amendment questions misrouted to prior_authorization).
-    (/\bpa\b/.test(queryLower) && queryLower.includes('criteria'))
+    (matchesTerm(queryLower, 'pa') && matchesTerm(queryLower, 'criteria'))
   );
 }
 
@@ -65,29 +88,37 @@ export function variantDateMatchesRequestedYear(variantDate: string | null, requ
 }
 
 export function isBillingWorkflowQuery(queryLower: string): boolean {
-  return includesPhrase(queryLower, [
+  return matchesAnyTerm(queryLower, [
     'billing',
+    'claim',
     'claims',
-    'claim ',
     'nctracks',
     'submission',
+    'submissions',
     'modifier',
+    'modifiers',
     'remittance',
     'invoice',
+    'invoices',
     'crosswalk',
+    'crosswalks',
     'form',
     'forms',
   ]);
 }
 
 export function isManagedCareOperationsQuery(queryLower: string): boolean {
-  return includesPhrase(queryLower, [
+  return matchesAnyTerm(queryLower, [
     'managed care',
     'health plan',
+    'health plans',
     'provider playbook',
     'tailored plan',
+    'tailored plans',
     'standard plan',
+    'standard plans',
     'contract',
+    'contracts',
     'contracting',
     'ombudsman',
   ]);
@@ -95,11 +126,8 @@ export function isManagedCareOperationsQuery(queryLower: string): boolean {
 
 export function isManagedCareContractQuery(queryLower: string): boolean {
   return (
-    queryLower.includes('contract') ||
-    queryLower.includes('contracts') ||
-    queryLower.includes('contracting') ||
-    queryLower.includes('exhibit') ||
-    (queryLower.includes('obligation') && isManagedCareOperationsQuery(queryLower))
+    matchesAnyTerm(queryLower, ['contract', 'contracts', 'contracting', 'exhibit', 'exhibits']) ||
+    (matchesAnyTerm(queryLower, ['obligation', 'obligations']) && isManagedCareOperationsQuery(queryLower))
   );
 }
 
@@ -120,31 +148,31 @@ export function isCoverageQuestion(queryLower: string): boolean {
     // Word-bounded: the old bare 'cover' substring typed "estate recovery"
     // and any 'recovery' question as coverage.
     /\bcover(s|ed|ing|age)?\b/.test(queryLower) ||
-    queryLower.includes('telehealth') ||
-    queryLower.includes('epsdt') ||
-    queryLower.includes('medically necessary') ||
-    ((queryLower.includes('requirement') ||
-      queryLower.includes('requirements') ||
-      queryLower.includes('criteria') ||
-      queryLower.includes('documentation')) &&
-      !queryLower.includes('termination') &&
-      !queryLower.includes('discharge') &&
-      !queryLower.includes('notification'))
+    matchesAnyTerm(queryLower, ['telehealth', 'epsdt', 'medically necessary']) ||
+    (matchesAnyTerm(queryLower, ['requirement', 'requirements', 'criteria', 'documentation']) &&
+      !matchesAnyTerm(queryLower, [
+        'termination',
+        'terminations',
+        'discharge',
+        'discharges',
+        'notification',
+        'notifications',
+      ]))
   );
 }
 
 export function isClinicalCriteriaLifecycleQuery(queryLower: string): boolean {
-  return (
-    queryLower.includes('entrance criteria') ||
-    queryLower.includes('continued service') ||
-    queryLower.includes('continued services') ||
-    queryLower.includes('continued stay') ||
-    queryLower.includes('discharge criteria')
-  );
+  return matchesAnyTerm(queryLower, [
+    'entrance criteria',
+    'continued service',
+    'continued services',
+    'continued stay',
+    'discharge criteria',
+  ]);
 }
 
 export function isTelehealthQuery(queryLower: string): boolean {
-  return queryLower.includes('telehealth');
+  return matchesTerm(queryLower, 'telehealth');
 }
 
 export function asksForTelehealthServiceList(queryLower: string): boolean {
@@ -170,13 +198,22 @@ export function asksForTelehealthServiceList(queryLower: string): boolean {
 
 export function isCongregatePcsQuery(queryLower: string): boolean {
   return (
-    includesPhrase(queryLower, ['personal care services', 'pcs']) &&
-    includesPhrase(queryLower, ['assisted living', 'congregate', 'adult care home', 'group home'])
+    matchesAnyTerm(queryLower, ['personal care services', 'pcs']) &&
+    matchesAnyTerm(queryLower, [
+      'assisted living',
+      'congregate',
+      'adult care home',
+      'adult care homes',
+      'group home',
+      'group homes',
+    ])
   );
 }
 
+const AMBULANCE_QUERY_TERMS = ['ambulance', 'ambulances'];
+
 export function isAmbulanceNotCoveredQuery(queryLower: string): boolean {
-  return queryLower.includes('ambulance') && asksForNotCoveredDetails(queryLower);
+  return matchesAnyTerm(queryLower, AMBULANCE_QUERY_TERMS) && asksForNotCoveredDetails(queryLower);
 }
 
 export function isDeterministicPriorAuthQuery(queryLower: string): boolean {
@@ -213,31 +250,44 @@ export function asksForPriorAuthSubmissionProcess(queryLower: string): boolean {
 }
 
 function isHcwdQuery(queryLower: string): boolean {
-  return (
-    queryLower.includes('hcwd') ||
-    queryLower.includes('health coverage for workers with disabilities') ||
-    queryLower.includes('health care for workers with disabilities')
-  );
+  return matchesAnyTerm(queryLower, [
+    'hcwd',
+    'health coverage for workers with disabilities',
+    'health care for workers with disabilities',
+  ]);
 }
 
-function isOutpatientPharmacyPolicyQuery(queryLower: string): boolean {
-  if (
-    includesPhrase(queryLower, [
-      'part d',
-      'medicare prescription drug',
-      'medicare prescription-drug',
-      'medicare drug benefit',
-    ])
-  ) {
-    return false;
-  }
+function isMedicarePartDQuery(queryLower: string): boolean {
+  return matchesAnyTerm(queryLower, [
+    'part d',
+    'medicare prescription drug',
+    'medicare prescription-drug',
+    'medicare drug benefit',
+  ]);
+}
 
-  return includesPhrase(queryLower, [
+/** Policy 9, Outpatient Pharmacy: the pharmacy benefit as a whole. */
+function isOutpatientPharmacyPolicyQuery(queryLower: string): boolean {
+  if (isMedicarePartDQuery(queryLower)) return false;
+
+  return matchesAnyTerm(queryLower, [
     'outpatient pharmacy',
     'pharmacy benefit',
     'pharmacy claims',
     'prescription drug',
     'prescription drugs',
+  ]);
+}
+
+/**
+ * Policy 9A, Over-the-Counter Products. Policy 9 lists over-the-counter
+ * products among its exclusions and defers to 9A for the ones Medicaid covers,
+ * so this wording must not anchor on Policy 9.
+ */
+function isOverTheCounterPolicyQuery(queryLower: string): boolean {
+  if (isMedicarePartDQuery(queryLower)) return false;
+
+  return matchesAnyTerm(queryLower, [
     'over-the-counter medication',
     'over-the-counter medications',
     'over the counter medication',
@@ -298,7 +348,7 @@ export function asksForNotCoveredDetails(queryLower: string): boolean {
 
 export function isPolicyVariantQuery(queryLower: string): boolean {
   const explicitPolicies = extractExplicitPolicyNumbers(queryLower);
-  return explicitPolicies.length >= 2 || queryLower.includes('difference between') || queryLower.includes('vs ');
+  return explicitPolicies.length >= 2 || matchesAnyTerm(queryLower, ['difference between', 'differences between', 'vs']);
 }
 
 export function asksForHistory(queryLower: string): boolean {
@@ -372,13 +422,17 @@ export function asksForAuthorityCitation(queryLower: string): boolean {
 }
 
 export function asksForPublicNoticeDetails(queryLower: string): boolean {
-  return (
-    queryLower.includes('public notice') ||
-    queryLower.includes('comment period') ||
-    queryLower.includes('public hearing') ||
-    queryLower.includes('hearing') ||
-    queryLower.includes('notice and comment')
-  );
+  // No bare "hearing": it is also "hearing aids" and a beneficiary's fair
+  // hearing, neither of which is a public-notice question.
+  return matchesAnyTerm(queryLower, [
+    'public notice',
+    'public notices',
+    'comment period',
+    'comment periods',
+    'public hearing',
+    'public hearings',
+    'notice and comment',
+  ]);
 }
 
 export function asksForCertificationDetails(queryLower: string): boolean {
@@ -392,11 +446,11 @@ export function asksForCertificationDetails(queryLower: string): boolean {
 }
 
 export function isMlrQuery(queryLower: string): boolean {
-  return queryLower.includes('medical loss ratio') || /\bmlr\b/.test(queryLower);
+  return matchesAnyTerm(queryLower, ['medical loss ratio', 'medical loss ratios', 'mlr']);
 }
 
 export function isPediatricQuery(queryLower: string): boolean {
-  return includesPhrase(queryLower, PEDIATRIC_QUERY_TERMS);
+  return matchesAnyTerm(queryLower, PEDIATRIC_QUERY_TERMS);
 }
 
 export function isDeterministicCoverageQuery(queryLower: string): boolean {
@@ -451,40 +505,46 @@ export function extractExplicitPolicyNumbers(query: string): string[] {
 export function extractAliasedPolicyNumbers(queryLower: string): string[] {
   const policyNumbers: string[] = [];
 
-  if (queryLower.includes('cap/da')) {
+  // CAP/Choice is the consumer-directed option of the disabled-adults waiver.
+  if (matchesAnyTerm(queryLower, ['cap/da', 'cap/choice'])) {
     policyNumbers.push('3K-2');
   }
 
-  if (queryLower.includes('cap/c')) {
+  // Bounded: a bare "cap/c" substring also matched CAP/Choice and CAP/CD,
+  // which Policy 3K-2 defines, and pinned them to the children's waiver.
+  if (matchesAnyTerm(queryLower, ['cap/c', 'cap/children'])) {
     policyNumbers.push('3K-1');
   }
 
-  if (queryLower.includes('outpatient therapy') || queryLower.includes('outpatient therapies')) {
+  // Policy 10A's own name for its service. The corpus uses bare "outpatient
+  // therapy" only in behavioral-health policies, so that wording is left to
+  // search.
+  if (matchesAnyTerm(queryLower, ['outpatient specialized therapy', 'outpatient specialized therapies'])) {
     policyNumbers.push('10A');
   }
 
   if (
-    queryLower.includes('telehealth') &&
-    (
-      queryLower.includes('speech therapy') ||
-      queryLower.includes('speech-language therapy') ||
-      queryLower.includes('speech language therapy') ||
-      queryLower.includes('audiology therapy') ||
-      queryLower.includes('aural rehabilitation')
-    )
+    matchesTerm(queryLower, 'telehealth') &&
+    matchesAnyTerm(queryLower, ['speech therapy', 'speech-language therapy', 'audiology therapy', 'aural rehabilitation'])
   ) {
     policyNumbers.push('10A');
   }
 
-  if (queryLower.includes('outpatient behavioral health')) {
+  if (matchesTerm(queryLower, 'outpatient behavioral health')) {
     policyNumbers.push('8C');
   }
 
-  if (queryLower.includes('ambulance') && !queryLower.includes('nemt') && !queryLower.includes('non-emergency medical transportation')) {
+  if (
+    matchesAnyTerm(queryLower, AMBULANCE_QUERY_TERMS) &&
+    !matchesAnyTerm(queryLower, ['nemt', 'non-emergency medical transportation'])
+  ) {
     policyNumbers.push('15');
   }
 
-  if (isOutpatientPharmacyPolicyQuery(queryLower)) {
+  // Never both: the frame keeps one preferred document and the two would tie.
+  if (isOverTheCounterPolicyQuery(queryLower)) {
+    policyNumbers.push('9A');
+  } else if (isOutpatientPharmacyPolicyQuery(queryLower)) {
     policyNumbers.push('9');
   }
 
@@ -502,28 +562,54 @@ export function queryMentionsPolicyNumber(queryLower: string, policyNumber: stri
   return matchesToken(queryLower, normalizeSearchText(policyNumber));
 }
 
+const FEDERAL_POVERTY_RE = /\bfederal[\s-]+poverty\b/g;
+const STATE_PLAN_AMENDMENT_RE = /\b(?:state[\s-]+)?plan[\s-]+amendments?\b/g;
+
 export function isFederalAuthorityQuery(queryLower: string): boolean {
+  // The federal poverty level is an income yardstick in state eligibility
+  // rules, not a request for federal authority.
+  const withoutPovertyLevel = queryLower.replace(FEDERAL_POVERTY_RE, ' ');
   return (
     isEpsdtOverviewQuery(queryLower) ||
-    queryLower.includes('federal') ||
-    queryLower.includes('statutory') ||
-    queryLower.includes('social security act') ||
-    queryLower.includes('cfr') ||
-    (queryLower.includes('waiver') && queryLower.includes('application'))
+    matchesAnyTerm(withoutPovertyLevel, ['federal', 'statutory', 'social security act', 'cfr']) ||
+    (matchesAnyTerm(queryLower, ['waiver', 'waivers']) && matchesAnyTerm(queryLower, ['application', 'applications']))
   );
 }
+
+const RECENCY_QUERY_TERMS = ['most recent', 'latest'];
 
 export function isChangeNoticeQuery(queryLower: string): boolean {
   // Bare "most recent" is a recency qualifier, not an amendment question —
   // "the most recent income limit for HCWD" used to misroute to the
   // amendment lane. Recency only counts alongside change vocabulary.
+  //
+  // A State Plan Amendment is a kind of document, not a change to a policy:
+  // naming one is not asking what was amended.
+  const withoutStatePlanAmendment = queryLower.replace(STATE_PLAN_AMENDMENT_RE, ' ');
   return (
-    queryLower.includes('change notice') ||
-    queryLower.includes('amended') ||
-    queryLower.includes('amendment') ||
+    matchesAnyTerm(withoutStatePlanAmendment, [
+      'change notice',
+      'change notices',
+      'amended',
+      'amendment',
+      'amendments',
+    ]) ||
     (
-      includesPhrase(queryLower, ['most recent', 'latest']) &&
-      includesPhrase(queryLower, ['change', 'revision', 'notice', 'update', 'version'])
+      matchesAnyTerm(queryLower, RECENCY_QUERY_TERMS) &&
+      matchesAnyTerm(queryLower, [
+        'change',
+        'changes',
+        'changed',
+        'revision',
+        'revisions',
+        'notice',
+        'notices',
+        'update',
+        'updates',
+        'updated',
+        'version',
+        'versions',
+      ])
     )
   );
 }
@@ -531,6 +617,6 @@ export function isChangeNoticeQuery(queryLower: string): boolean {
 export function isLatestChangeNoticeQuery(queryLower: string): boolean {
   return (
     isChangeNoticeQuery(queryLower) &&
-    (queryLower.includes('most recent') || queryLower.includes('latest') || queryLower.includes('current'))
+    matchesAnyTerm(queryLower, [...RECENCY_QUERY_TERMS, 'current'])
   );
 }

@@ -5,7 +5,7 @@
 // sections, sibling policy families) down to the governing document(s).
 
 import type { CorpusRetrievalHit, DocumentWithSectionsView } from '../types.js';
-import { combineText, includesPhrase, normalizeSearchText, uniqueBy } from './base.js';
+import { combineText, includesPhrase, matchesAnyTerm, normalizeSearchText, uniqueBy } from './base.js';
 import { dedupeTerms, extractSearchTerms, scoreTermMatches } from './search.js';
 import {
   DOCUMENT_COVERAGE_HIT_BOOST,
@@ -100,6 +100,14 @@ export function pickTopDocumentCandidates(candidates: DocumentCandidate[], limit
     .map((candidate) => toAnswerFrameDocument(candidate.document, candidate.reason));
 }
 
+type SettingVariant = (typeof VARIANT_SETTING_TERMS)[number];
+
+function documentMatchesSetting(document: DocumentWithSectionsView, variant: SettingVariant): boolean {
+  const policyNumber = document.policyNumber?.toUpperCase();
+  if (policyNumber && variant.policyNumbers?.includes(policyNumber)) return true;
+  return includesPhrase(combineText(document.title, document.policyNumber), variant.titleTerms);
+}
+
 export function scoreVariantDocument(document: DocumentWithSectionsView, queryLower: string, policyNumbers: string[]): DocumentCandidate {
   let score = 0;
   let reason = 'Relevant policy variant returned by policy lookup.';
@@ -116,7 +124,7 @@ export function scoreVariantDocument(document: DocumentWithSectionsView, queryLo
     score -= 1.5;
   }
   for (const variant of VARIANT_SETTING_TERMS) {
-    if (includesPhrase(queryLower, variant.terms) && includesPhrase(titleText, variant.titleTerms)) {
+    if (matchesAnyTerm(queryLower, variant.terms) && documentMatchesSetting(document, variant)) {
       score += 1.2;
       reason = variant.reason;
     }
@@ -187,17 +195,15 @@ export function narrowHcwdCoverageDocuments(query: string, documents: DocumentWi
  * non-sibling distractor (e.g. CAP/DA outranking the congregate PCS policy on
  * raw hit scores for an "adult care home" question) bypassed it entirely.
  * Returns the original documents and a null reason when the query names no
- * setting or no document title matches it.
+ * setting or no document matches it.
  */
 export function selectSettingPreferredDocuments(
   queryLower: string,
   documents: DocumentWithSectionsView[],
 ): { documents: DocumentWithSectionsView[]; reason: string | null } {
   for (const variant of VARIANT_SETTING_TERMS) {
-    if (!includesPhrase(queryLower, variant.terms)) continue;
-    const matching = documents.filter((document) =>
-      includesPhrase(combineText(document.title, document.policyNumber), variant.titleTerms),
-    );
+    if (!matchesAnyTerm(queryLower, variant.terms)) continue;
+    const matching = documents.filter((document) => documentMatchesSetting(document, variant));
     if (matching.length > 0) {
       return { documents: matching, reason: variant.reason };
     }

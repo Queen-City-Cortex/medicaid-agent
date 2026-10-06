@@ -231,11 +231,24 @@ describe('narrowHcwdCoverageDocuments', () => {
 
 // ── selectSettingPreferredDocuments ──────────────────────────────────────────
 
+// The personal-care pair under its real titles: Policy 3L's title names no setting.
+const IN_HOME_PCS = { id: 'in-home', policyNumber: '3L', title: 'State Plan Personal Care Services (PCS)' };
+const CONGREGATE_PCS = {
+  id: 'congregate',
+  policyNumber: '3L-1',
+  title: 'State Plan Personal Care Services (PCS) Provided in Congregate Settings',
+};
+
 describe('selectSettingPreferredDocuments', () => {
+  const pcsDocs = () => [makeDoc(IN_HOME_PCS), makeDoc(CONGREGATE_PCS)];
+  const preferredIds = (query: string, docs = pcsDocs()) => {
+    const result = selectSettingPreferredDocuments(query, docs);
+    return result.reason ? result.documents.map((d) => d.id) : null;
+  };
+
   it('narrows to documents whose titles match the queried care setting', () => {
-    const docs = [makeDoc({ id: 'cong', title: 'Congregate PCS' }), makeDoc({ id: 'home', title: 'State Plan PCS' })];
-    const result = selectSettingPreferredDocuments('coverage for a congregate setting', docs);
-    expect(result.documents.map((d) => d.id)).toEqual(['cong']);
+    const result = selectSettingPreferredDocuments('coverage for a congregate setting', pcsDocs());
+    expect(result.documents.map((d) => d.id)).toEqual(['congregate']);
     expect(result.reason).toContain('congregate');
   });
 
@@ -251,6 +264,62 @@ describe('selectSettingPreferredDocuments', () => {
     const result = selectSettingPreferredDocuments('congregate care home', docs);
     expect(result.documents).toBe(docs);
     expect(result.reason).toBe(null);
+  });
+
+  it('does not read the adult-care-home abbreviation inside ordinary words', () => {
+    for (const query of [
+      'how many hours of personal care services does nc medicaid cover each month for someone living in their own home?',
+      'how many hours of personal care services does nc medicaid cover for a beneficiary who needs help reaching the bathroom?',
+      'can an adult beneficiary get a replacement cpap machine every year?',
+      'which forms do i attach to a pcs request?',
+    ]) {
+      expect(preferredIds(query), query).toBe(null);
+    }
+  });
+
+  it('prefers the congregate policy for congregate wordings, singular, plural and abbreviated', () => {
+    for (const query of [
+      'my mother lives in an adult care home. can she get personal care services?',
+      'are personal care services covered in adult care homes?',
+      'can residents of group homes get pcs?',
+      'does pcs cover residents of assisted living facilities?',
+      'can someone in an ach get pcs?',
+    ]) {
+      expect(preferredIds(query), query).toEqual(['congregate']);
+    }
+  });
+
+  it('prefers Policy 3L, and only 3L, for in-home wordings', () => {
+    for (const query of [
+      'does nc medicaid cover in-home personal care services for adults?',
+      'does nc medicaid cover in home personal care for adults?',
+      'can my father get pcs at home?',
+      'are home-based personal care services covered?',
+    ]) {
+      expect(preferredIds(query), query).toEqual(['in-home']);
+    }
+  });
+
+  it('does not read "at home" across the words of another phrase', () => {
+    expect(preferredIds('what home health services are covered?')).toBe(null);
+  });
+
+  it('matches a setting policy number exactly, not as a prefix of its sibling', () => {
+    // Only the sibling is present: "3L" must not match "3L-1".
+    expect(preferredIds('are in-home personal care services covered?', [makeDoc(CONGREGATE_PCS)])).toBe(null);
+  });
+
+  it('prefers the nursing facility and residential treatment families, singular and plural', () => {
+    const docs = () => [
+      makeDoc({ id: 'nursing', policyNumber: '2B-1', title: 'Nursing Facility Services' }),
+      makeDoc({ id: 'residential', policyNumber: '8D-2', title: 'Residential Treatment Services' }),
+    ];
+    expect(preferredIds('how many therapeutic leave days are allowed in a nursing home?', docs())).toEqual(['nursing']);
+    expect(preferredIds('how many therapeutic leave days are allowed in nursing homes?', docs())).toEqual(['nursing']);
+    expect(preferredIds('is therapeutic leave covered in residential treatment facilities?', docs())).toEqual([
+      'residential',
+    ]);
+    expect(preferredIds('is therapeutic leave covered?', docs())).toBe(null);
   });
 });
 
@@ -272,6 +341,28 @@ describe('scoreVariantDocument', () => {
       [],
     );
     expect(amendment.score).toBeLessThan(current.score);
+  });
+});
+
+describe('scoreVariantDocument care-setting preference', () => {
+  const score = (doc: { id: string; policyNumber: string; title: string }, query: string) =>
+    scoreVariantDocument(makeDoc(doc), query, []);
+
+  it('gives the congregate policy no setting bonus for "each month ... in their own home"', () => {
+    const query =
+      'how many hours of personal care services does nc medicaid cover each month for someone living in their own home?';
+    const congregate = score(CONGREGATE_PCS, query);
+    expect(congregate.reason).toBe('Relevant policy variant returned by policy lookup.');
+    expect(congregate.score).toBeLessThan(score(CONGREGATE_PCS, 'are personal care services covered in adult care homes?').score);
+  });
+
+  it('ranks Policy 3L first for an in-home question and 3L-1 first for a congregate one', () => {
+    const inHomeQuery = 'does nc medicaid cover in-home personal care services for adults?';
+    expect(score(IN_HOME_PCS, inHomeQuery).score).toBeGreaterThan(score(CONGREGATE_PCS, inHomeQuery).score);
+    expect(score(IN_HOME_PCS, inHomeQuery).reason).toBe('Preferred because the query asks about in-home services.');
+
+    const congregateQuery = 'are personal care services covered in adult care homes?';
+    expect(score(CONGREGATE_PCS, congregateQuery).score).toBeGreaterThan(score(IN_HOME_PCS, congregateQuery).score);
   });
 });
 

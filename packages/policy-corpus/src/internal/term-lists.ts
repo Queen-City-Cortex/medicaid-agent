@@ -392,15 +392,38 @@ export const FEDERAL_PROGRAM_NAME_EXPANSIONS: ReadonlyArray<{ token: string; exp
   { token: 'mlr', expansions: ['medical loss ratio'] },
 ];
 
-export const VARIANT_SETTING_TERMS: Array<{ terms: string[]; titleTerms: string[]; reason: string }> = [
+// Care-setting preferences. `terms` are query-side and matched as whole words
+// (matchesTerm: "in-home" also matches "in home"; plurals are listed, not
+// inferred). A document matches a setting when its policy number is exactly
+// one of `policyNumbers`, or else when its title contains a `titleTerms`
+// phrase. The personal-care pair needs the exact number: Policy 3L's title
+// names no setting, and "3L" is a prefix of "3L-1".
+export const VARIANT_SETTING_TERMS: Array<{
+  terms: string[];
+  titleTerms: string[];
+  policyNumbers?: string[];
+  reason: string;
+}> = [
   {
-    terms: ['congregate', 'adult care home', 'group home', 'ach', 'assisted living', 'assisted living facility'],
+    terms: [
+      'congregate',
+      'adult care home',
+      'adult care homes',
+      'group home',
+      'group homes',
+      'ach',
+      'assisted living',
+      'assisted living facility',
+      'assisted living facilities',
+    ],
     titleTerms: ['congregate', 'adult care home', 'group home'],
+    policyNumbers: ['3L-1'],
     reason: 'Preferred because the query asks about a congregate or facility-based setting.',
   },
   {
-    terms: ['in-home', 'in home', 'home-based', 'home setting', 'at home'],
-    titleTerms: ['state plan pcs', 'in-home', 'in home'],
+    terms: ['in-home', 'home-based', 'home setting', 'at home'],
+    titleTerms: ['in-home', 'in home'],
+    policyNumbers: ['3L'],
     reason: 'Preferred because the query asks about in-home services.',
   },
   // Nursing facility vs residential treatment: both policy families use
@@ -408,12 +431,18 @@ export const VARIANT_SETTING_TERMS: Array<{ terms: string[]; titleTerms: string[
   // (a nursing-facility leave question routed to Residential Treatment
   // Services). The query's facility type names the governing family.
   {
-    terms: ['nursing facility', 'nursing facilities', 'nursing home', 'skilled nursing'],
+    terms: ['nursing facility', 'nursing facilities', 'nursing home', 'nursing homes', 'skilled nursing'],
     titleTerms: ['nursing facility', 'nursing facilities', 'nursing home'],
     reason: 'Preferred because the query asks about a nursing facility setting.',
   },
   {
-    terms: ['residential treatment', 'residential facility', 'residential treatment facility'],
+    terms: [
+      'residential treatment',
+      'residential facility',
+      'residential facilities',
+      'residential treatment facility',
+      'residential treatment facilities',
+    ],
     titleTerms: ['residential treatment'],
     reason: 'Preferred because the query asks about a residential treatment setting.',
   },
