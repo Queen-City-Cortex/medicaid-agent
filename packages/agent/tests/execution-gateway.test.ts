@@ -1,5 +1,5 @@
 import { MASTRA_RESOURCE_ID_KEY, RequestContext } from '@mastra/core/request-context';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Hono } from 'hono';
 import type { MiddlewareHandler } from 'hono';
 import {
@@ -20,6 +20,10 @@ function app(boundUserId?: string, options: ExecutionGatewayOptions = {}) {
   instance.all('*', (c) => c.json({ reached: true }));
   return instance;
 }
+
+const REFUSED = { error: { code: 'not_found', message: 'Not found' } };
+
+afterEach(() => { vi.unstubAllEnvs(); });
 
 describe('execution gateway', () => {
   it('allows the owned chat route but hides generic agent execution', async () => {
@@ -193,5 +197,114 @@ describe('execution gateway', () => {
     // The list on the same path, and the cross-origin preflight for it, still pass.
     expect((await app('user-1').request('/api/memory/threads?agentId=ncMedicaidAgent')).status).toBe(200);
     expect((await app().request('/api/memory/threads', { method: 'OPTIONS' })).status).toBe(200);
+  });
+
+  it.each([
+    // One segment is one thread id: nothing below a thread but its messages and its copy.
+    ['GET', '/api/memory/threads/t-1/working-memory'],
+    ['GET', '/api/memory/threads/t-1/messages/m-1'],
+    ['GET', '/api/memory/threads/t-1/messages/'],
+    ['GET', '/api/memory/threads/t-1/'],
+    ['GET', '/api/memory/threads/'],
+    ['PATCH', '/api/memory/threads/t-1/t-2'],
+    ['DELETE', '/api/memory/threads/t-1/messages'],
+    ['DELETE', '/api/memory/threads/t-1/clone'],
+    ['POST', '/api/memory/threads/t-1/clone/t-2'],
+    ['POST', '/api/memory/threads/t-1/clone/'],
+    ['GET', '/api/memory/network/threads/t-1'],
+    ['GET', '/api/memory/threads/t-1%2Fworking-memory/working-memory'],
+    ['GET', '/prefix/api/memory/threads/t-1'],
+    ['POST', '/chat/extra'],
+    ['GET', '/feedback/f-1'],
+    ['DELETE', '/feedback/f-1/extra'],
+    ['GET', '/research/runs/run-1/decision'],
+    ['POST', '/research/runs/run-1/decision/extra'],
+    ['POST', '/research/runs/run-1/approve'],
+    ['GET', '/livez/extra'],
+  ])('refuses the nested or neighbouring path %s %s', async (method, path) => {
+    const response = await app('user-1').request(path, {
+      method,
+      headers: { 'content-type': 'application/json' },
+      body: ['POST', 'PATCH'].includes(method) ? '{"title":"Renamed"}' : undefined,
+    });
+    expect(response.status).toBe(404);
+    expect(await response.json()).toEqual(REFUSED);
+  });
+
+  it.each([
+    ['GET', '/chat'],
+    ['PUT', '/chat'],
+    ['PUT', '/feedback'],
+    ['DELETE', '/feedback'],
+    ['POST', '/feedback/f-1'],
+    ['POST', '/corpus-status'],
+    ['GET', '/research/runs'],
+    ['POST', '/research/runs/run-1'],
+    ['DELETE', '/research/runs/run-1'],
+    ['GET', '/research/runs/run-1/cancel'],
+    ['POST', '/livez'],
+    ['POST', '/api/memory/threads'],
+    ['PUT', '/api/memory/threads'],
+    ['DELETE', '/api/memory/threads'],
+    ['POST', '/api/memory/threads/t-1'],
+    ['PUT', '/api/memory/threads/t-1'],
+    ['POST', '/api/memory/threads/t-1/messages'],
+    ['PATCH', '/api/memory/threads/t-1/messages'],
+    ['GET', '/api/memory/threads/t-1/clone'],
+    ['PATCH', '/api/memory/threads/t-1/clone'],
+  ])('refuses the wrong method %s on the owned path %s', async (method, path) => {
+    const response = await app('user-1').request(path, {
+      method,
+      headers: { 'content-type': 'application/json' },
+      body: method === 'GET' ? undefined : '{"title":"Renamed"}',
+    });
+    expect(response.status).toBe(404);
+    expect(await response.json()).toEqual(REFUSED);
+  });
+
+  describe('Studio flag', () => {
+    const unowned: Array<[string, string]> = [
+      ['GET', '/api/agents'],
+      ['POST', '/api/agents/ncMedicaidAgent/generate'],
+      ['POST', '/api/memory/threads'],
+      ['GET', '/api/memory/threads/t-1/working-memory'],
+      ['POST', '/api/workflows/deepResearchWorkflow/start-async'],
+    ];
+    const request = (gateway: ReturnType<typeof app>, method: string, path: string) => gateway.request(path, {
+      method,
+      // What Studio sends; the gateway gives the header no weight.
+      headers: { 'content-type': 'application/json', 'x-mastra-client-type': 'studio', 'x-mastra-dev-playground': 'true' },
+      body: method === 'POST' ? '{}' : undefined,
+    });
+
+    it.each(unowned)('never opens %s %s in production', async (method, path) => {
+      vi.stubEnv('NODE_ENV', 'production');
+      for (const user of ['user-1', undefined]) {
+        const response = await request(app(user, { allowStudio: true }), method, path);
+        expect(response.status).toBe(404);
+        expect(await response.json()).toEqual(REFUSED);
+      }
+    });
+
+    it.each(unowned)('opens %s %s outside production only when the flag is set', async (method, path) => {
+      for (const environment of ['development', 'test']) {
+        vi.stubEnv('NODE_ENV', environment);
+        expect(await (await request(app('user-1', { allowStudio: true }), method, path)).json()).toEqual({ reached: true });
+        for (const options of [{}, { allowStudio: false }, { allowStudio: undefined }]) {
+          const response = await request(app('user-1', options), method, path);
+          expect(response.status).toBe(404);
+          expect(await response.json()).toEqual(REFUSED);
+        }
+      }
+    });
+
+    it('leaves the owned routes as they are: a user is still required', async () => {
+      vi.stubEnv('NODE_ENV', 'development');
+      const gateway = app(undefined, { allowStudio: true });
+      expect((await request(gateway, 'GET', '/api/memory/threads/t-1')).status).toBe(401);
+      expect((await request(gateway, 'POST', '/chat')).status).toBe(401);
+      expect((await request(gateway, 'GET', '/api/memory/threads/t-1/messages?include=x')).status).toBe(401);
+      expect((await request(app('user-1', { allowStudio: true }), 'GET', '/api/memory/threads/t-1/messages?include=x')).status).toBe(400);
+    });
   });
 });

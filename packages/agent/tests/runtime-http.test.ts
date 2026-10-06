@@ -1,23 +1,13 @@
-import { mkdtemp, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import { Mastra } from '@mastra/core';
-import { MastraAuthProvider } from '@mastra/core/server';
-import type { LibSQLStore } from '@mastra/libsql';
-import { createHonoServer } from '@mastra/deployer/server';
 import { MockLanguageModelV3, simulateReadableStream } from 'ai/test';
-import { deepResearchWorkflow } from '../src/deep-research/workflow.js';
 import { verifyAnswer } from '../src/processors/verifier/verify.js';
-import { createAgentRuntime, type AgentServerRuntime } from '../src/runtime.js';
-import { STUB_OPENAI_KEY, stubOpenAIResponses } from './helpers/openai-responses-stub.js';
+import { stubOpenAIResponses } from './helpers/openai-responses-stub.js';
+import { bootProductionServer, type ProductionServer } from './helpers/production-server.js';
 
-// The app production serves, built by the production factory: real LibSQL
-// storage, the real processor lists and the real middleware array, through
-// Mastra's own server builder. Only what would leave the process is replaced:
-// the chat model (the factory's `model` option), the WorkOS token check (its
-// `server` option), the two classifier calls (an offline OpenAI endpoint) and
-// the verifier's model call.
+// The app production serves (see `bootProductionServer`). Only what would
+// leave the process is replaced: the chat model (the factory's `model`
+// option), the WorkOS token check (its `server` option), the two classifier
+// calls (an offline OpenAI endpoint) and the verifier's model call.
 vi.mock('../src/processors/verifier/verify.js', async original => ({
   ...await original<typeof import('../src/processors/verifier/verify.js')>(), verifyAnswer: vi.fn(),
 }));
@@ -34,15 +24,10 @@ const classifierReply = (value: unknown) => [{ type: 'message' as const, id: 'ms
 const ON_TOPIC = classifierReply({ verdict: 'on_topic', reason: 'About Medicaid coverage.' });
 const NO_INJECTION = classifierReply({ categories: null, reason: null });
 
-class TestAuth extends MastraAuthProvider<{ id: string }> {
-  async authenticateToken(token: string) { return token === 'test-owner' ? { id: 'owner' } : null; }
-  async authorizeUser() { return true; }
-}
-
 describe('the production runtime behind Mastra\'s HTTP server', () => {
-  let directory: string;
-  let runtime: AgentServerRuntime;
-  let app: Awaited<ReturnType<typeof createHonoServer>>;
+  let server: ProductionServer;
+  let runtime: ProductionServer['runtime'];
+  let app: ProductionServer['app'];
   let classifierCalls: any[];
   const modelPrompts: string[] = [];
 
@@ -55,7 +40,6 @@ describe('the production runtime behind Mastra\'s HTTP server', () => {
   };
 
   beforeAll(async () => {
-    directory = await mkdtemp(join(tmpdir(), 'runtime-http-'));
     vi.stubEnv('RATE_LIMIT_MESSAGES_PER_HOUR', '3');
     vi.stubEnv('MAX_MESSAGE_CHARS', '200');
     vi.stubEnv('SCOPE_GATE_ENABLED', 'true');
@@ -71,29 +55,14 @@ describe('the production runtime behind Mastra\'s HTTP server', () => {
         { type: 'finish', finishReason: { unified: 'stop', raw: 'stop' }, usage },
       ] }) };
     } });
-    const auth = new TestAuth();
-    runtime = await createAgentRuntime(
-      { memory: true, promptInjectionDetector: true, verifyOutput: true, model, server: () => ({ auth, tokenVerifier: auth }) },
-      { NODE_ENV: 'test', OPENAI_API_KEY: STUB_OPENAI_KEY, VOYAGE_API_KEY: 'stub', DATABASE_URL: `file:${directory}/app.db`, TRACE_STORE: 'off' },
-    );
-    // The same literal as src/index.ts, less the listener settings.
-    const mastra = new Mastra({
-      agents: { ncMedicaidAgent: runtime.agent },
-      workflows: { deepResearchWorkflow },
-      storage: runtime.storage,
-      observability: runtime.observability,
-      logger: false,
-      server: { ...runtime.serverOptions },
-    });
-    app = await createHonoServer(mastra, { tools: {} });
+    server = await bootProductionServer({ 'test-owner': 'owner' }, { memory: true, promptInjectionDetector: true, verifyOutput: true, model });
+    ({ runtime, app } = server);
   });
 
   afterAll(async () => {
     vi.unstubAllGlobals();
     vi.unstubAllEnvs();
-    runtime?.appDatabase.close();
-    await (runtime?.storage as LibSQLStore | undefined)?.close();
-    await rm(directory, { recursive: true, force: true });
+    await server?.close();
   });
 
   it('builds the input and output processors in production order', async () => {
