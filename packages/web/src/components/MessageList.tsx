@@ -227,6 +227,12 @@ function AssistantMessage({
     !withheld &&
     finalAnswerText.trim().length === 0 &&
     (lastToolIndex !== -1 || release?.status === 'verifying' || stopped);
+  // The same turn read from storage, after a reload or once its thread's Chat
+  // was dropped: nothing here watched it end, and it may still be running on
+  // the server. It gets a plain note and no retry, which would start a second
+  // run beside the first. A turn still streaming in this session is shown
+  // live by its own Chat and never reaches this.
+  const storedWithoutAnswer = endedWithoutAnswer && createdAt !== null && !stopped;
   // An input guard (scope gate, length guard, injection detector) aborted the
   // run before generation. Without explicit rendering these turns were blank —
   // the stream carries only the data-tripwire part and a finish.
@@ -413,11 +419,27 @@ function AssistantMessage({
         </div>
       )}
 
-      {endedWithoutAnswer && !blockedMessage && (
+      {storedWithoutAnswer && !blockedMessage && (
+        <div
+          data-testid="stored-without-answer"
+          role="note"
+          className="my-4 rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm text-foreground"
+        >
+          <p className="font-medium">No answer has been saved for this question.</p>
+          <p className="mt-1 text-muted-foreground">
+            It may still be in progress. Reload the page to check.
+            {sources.length > 0 && ' The sources below show what was found so far.'}
+          </p>
+        </div>
+      )}
+
+      {endedWithoutAnswer && !storedWithoutAnswer && !blockedMessage && (
         <div
           data-testid="ended-without-answer"
           data-reason={stopped ? 'stopped' : 'unknown'}
-          role={stopped ? 'status' : 'alert'}
+          // An alert only for the turn that ended while its thread was on
+          // screen; one that ended off screen is met in reading order.
+          role={stopped ? 'status' : endedHere ? 'alert' : 'group'}
           className={stopped
             ? 'my-4 rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm text-foreground'
             : 'my-4 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-foreground'}
@@ -497,7 +519,7 @@ function AssistantMessage({
       {!isStreaming && (finalAnswerText || endedWithoutAnswer || withheld) && (
         <MessageActions
           content={withheld ? withheldNoticeText(withheld) : buildAnswerClipboardText(finalAnswerText, sources)}
-          onRerun={busy || retryElsewhere || withheld ? undefined : handleRerun}
+          onRerun={busy || retryElsewhere || withheld || storedWithoutAnswer ? undefined : handleRerun}
           messageId={msg.id}
           feedback={feedbackMap[msg.id] ?? null}
           onRate={(rating) => onRate(msg.id, rating)}
@@ -535,7 +557,10 @@ export function MessageList({ messages, isStreaming, status, onRerun, wasStopped
 
   // The question being answered, kept after its answer ends for as long as it
   // stays on screen: the answer right after it is the one that ended here.
-  // Opening another thread drops it, so coming back announces nothing again.
+  // The page keys this component by thread, so opening another thread starts
+  // it afresh: an answer that ended while its thread was off screen, or one
+  // already announced, is a plain group on return, and the announcer above
+  // never reads a change of thread as an answer arriving.
   const [askedHereId, setAskedHereId] = useState<string | null>(null);
   if (busy) {
     const asking = messages.findLast((message) => message.role === 'user')?.id ?? null;

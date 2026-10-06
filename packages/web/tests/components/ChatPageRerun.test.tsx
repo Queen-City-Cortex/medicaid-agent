@@ -22,6 +22,11 @@ vi.mock('@workos-inc/authkit-nextjs/components', () => ({
 }));
 
 vi.mock('@ai-sdk/react', () => ({
+  // The hook builds one Chat per thread and hands it to useChat, mocked below.
+  Chat: class Chat {
+    messages = [];
+    status = 'ready';
+  },
   useChat: () => ({
     messages: mocks.chat.messages,
     status: mocks.chat.status,

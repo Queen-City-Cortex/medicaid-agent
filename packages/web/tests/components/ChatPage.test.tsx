@@ -15,6 +15,11 @@ vi.mock('@workos-inc/authkit-nextjs/components', () => ({
 const chat = vi.hoisted(() => ({ error: null as Error | null }));
 
 vi.mock('@ai-sdk/react', () => ({
+  // The hook builds one Chat per thread and hands it to useChat, mocked below.
+  Chat: class Chat {
+    messages = [];
+    status = 'ready';
+  },
   useChat: () => ({
     messages: [],
     status: chat.error ? 'error' : 'ready',

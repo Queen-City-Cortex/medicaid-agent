@@ -130,3 +130,11 @@ export async function loadEarlierThreadMessages(
     failed,
   };
 }
+
+/** `loaded` without the messages already in `shown`: a turn asked while its
+ *  thread was still loading can be stored by the time the page is read. */
+export function withoutShown<T extends { id: string }>(loaded: T[], shown: readonly { id: string }[]): T[] {
+  if (shown.length === 0) return loaded;
+  const ids = new Set(shown.map((message) => message.id));
+  return loaded.filter((message) => !ids.has(message.id));
+}

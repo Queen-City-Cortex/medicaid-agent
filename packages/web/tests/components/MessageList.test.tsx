@@ -579,6 +579,77 @@ describe('MessageList', () => {
     expect(notice).not.toHaveTextContent(/error|stopped/i);
   });
 
+  // ── A turn read from storage with no answer ───────────────────────────
+
+  const STORED_IN_TOOLS = { ...STOPPED_IN_TOOLS, metadata: { createdAt: '2026-06-22T15:30:00.000Z' } } as UIMessage;
+
+  it('shows a stored turn with tools and no answer as a plain note, with no way to start a second run', () => {
+    const onRerun = vi.fn();
+    renderMessageList([QUESTION, STORED_IN_TOOLS], { onRerun });
+
+    const note = screen.getByTestId('stored-without-answer');
+    expect(note).toHaveTextContent('No answer has been saved for this question.');
+    expect(note).toHaveTextContent('It may still be in progress. Reload the page to check.');
+    // Not an alert: nothing happened while the user was here.
+    expect(note).toHaveAttribute('role', 'note');
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    // The run may still be going on the server: no retry in the note, and no
+    // "Ask again" under it.
+    expect(screen.queryByTestId('ended-without-answer')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('try-again-button')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /try again|ask again/i })).not.toBeInTheDocument();
+    expect(onRerun).not.toHaveBeenCalled();
+    // The steps that were stored are still shown, as stopped, not running.
+    expect(screen.getByText('Interrupted')).toBeInTheDocument();
+    expect(document.querySelector('.animate-spin')).toBeNull();
+  });
+
+  it('shows the same note for a stored turn that was last seen being checked', () => {
+    renderMessageList([QUESTION, { ...STOPPED_WHILE_VERIFYING, metadata: { createdAt: '2026-06-22T15:30:00.000Z' } } as UIMessage],
+      { explicitRelease: true });
+
+    expect(screen.getByTestId('stored-without-answer')).toBeInTheDocument();
+    expect(screen.queryByTestId('try-again-button')).not.toBeInTheDocument();
+    expect(screen.queryByText('PRIVATE_DRAFT_SENTINEL')).not.toBeInTheDocument();
+  });
+
+  it('shows a turn that is still streaming as streaming, with neither notice', () => {
+    renderMessageList([QUESTION, STOPPED_IN_TOOLS], { isStreaming: true, status: 'streaming' });
+
+    expect(screen.getByTestId('progress-narration')).toBeInTheDocument();
+    expect(screen.queryByTestId('stored-without-answer')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('ended-without-answer')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /try again/i })).not.toBeInTheDocument();
+  });
+
+  it('keeps the retry for a turn that ended without an answer in this session', () => {
+    renderMessageList([QUESTION, STOPPED_IN_TOOLS]);
+
+    expect(screen.queryByTestId('stored-without-answer')).not.toBeInTheDocument();
+    expect(within(screen.getByTestId('ended-without-answer')).getByTestId('try-again-button')).toBeInTheDocument();
+  });
+
+  it('announces a turn that ended without an answer only when it ended on screen', () => {
+    // Ended while its thread was off screen: the Chat still holds it, and the
+    // list mounts with the turn already over.
+    const { unmount } = render(messageList([QUESTION, STOPPED_IN_TOOLS]));
+    expect(screen.getByTestId('ended-without-answer')).toHaveAttribute('role', 'group');
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    unmount();
+
+    // Ended while it was being watched.
+    const rerender = renderMessageList([QUESTION, STOPPED_IN_TOOLS], { isStreaming: true, status: 'streaming' });
+    rerender([QUESTION, STOPPED_IN_TOOLS]);
+    expect(screen.getByTestId('ended-without-answer')).toHaveAttribute('role', 'alert');
+  });
+
+  it('keeps the stopped notice and its retry on a turn the user stopped, stored or not', () => {
+    renderMessageList([QUESTION, STORED_IN_TOOLS], { wasStopped: id => id === 'assistant-tools' });
+
+    expect(screen.queryByTestId('stored-without-answer')).not.toBeInTheDocument();
+    expect(screen.getByTestId('ended-without-answer')).toHaveTextContent('You stopped this answer.');
+  });
+
   it('drops the checking line and shows a stopped notice after Stop during verification', () => {
     renderMessageList([QUESTION, STOPPED_WHILE_VERIFYING], { explicitRelease: true, wasStopped: id => id === 'assistant-verifying' });
 

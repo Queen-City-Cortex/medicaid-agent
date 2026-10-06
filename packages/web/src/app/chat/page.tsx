@@ -301,7 +301,10 @@ export default function ChatPage() {
 
             <EarlierMessages status={history} hasMessages={messages.length > 0} onLoad={loadEarlierMessages} />
 
+            {/* Keyed by thread: what it remembers of a turn (announcements,
+                which answer ended on screen) belongs to one thread. */}
             <MessageList
+              key={threadId}
               messages={messages}
               isStreaming={isStreaming}
               status={status}
