@@ -2,18 +2,23 @@ import * as cheerio from 'cheerio';
 import { config } from '../config.js';
 import { getSourceFamily } from '../corpus-manifest.js';
 import { logger } from '../utils/logger.js';
+import { requireEntryPage } from './crawl-helpers.js';
 import type { DiscoveredDocument, Fetcher } from './types.js';
 
 const BASE_URL = 'https://medicaid.ncdhhs.gov';
 const MAX_PAGES = 50;
+const POST_URL_SHAPE = /\/blog\/\d{4}\/\d{2}\/\d{2}\//;
 
 /**
  * Parse a bulletin blog-listing page (e.g. /blog-category/bulletins?page=N).
  *
  * HTML structure (Drupal Views):
  *   .views-row
- *     h3 > a[href="/blog/YYYY/MM/DD/slug"]  ← post link
+ *     a[href="/blog/YYYY/MM/DD/slug"]        ← post link
  *   ul.js-pager__items a[rel="next"]         ← next page
+ *
+ * Posts are matched by URL shape, not by the heading that wraps the link: the
+ * site moved titles from h3 to h2 in 2026 and a heading selector matched none.
  */
 export function parseBulletinListingPage(
   html: string,
@@ -21,14 +26,15 @@ export function parseBulletinListingPage(
 ): { postUrls: string[]; nextPageUrl: string | null } {
   const $ = cheerio.load(html);
 
-  const postUrls: string[] = [];
+  const posts = new Set<string>();
 
-  $('.views-row h3 a').each((_i, el) => {
+  $('.views-row a[href]').each((_i, el) => {
     const href = $(el).attr('href');
     if (!href) return;
     const url = href.startsWith('http') ? href : `${BASE_URL}${href}`;
-    postUrls.push(url);
+    if (POST_URL_SHAPE.test(url)) posts.add(url);
   });
+  const postUrls = [...posts];
 
   // Pagination: <a rel="next" href="...">
   const nextHref = $('a[rel="next"]').attr('href');
@@ -159,6 +165,9 @@ function yearFromBlogUrl(url: string): number | null {
  * 3. Stops paginating when every post on a page is older than sinceYear,
  *    or after MAX_PAGES pages.
  *
+ * Throws when the digests page or any listing page is not 200, and when a
+ * listing page yields no posts on page 1 or while a next link exists.
+ *
  * HTML-only posts (no PDF attachment) are logged at debug level and skipped.
  */
 export const bulletinsSource = {
@@ -178,15 +187,10 @@ export const bulletinsSource = {
     logger.info(`bulletins: fetching digests page ${digestsUrl}`);
     const { body: digestsHtml, statusCode: digestsStatus } =
       await fetcher.fetchHtml(digestsUrl);
-    if (digestsStatus !== 200) {
-      logger.warn(
-        `bulletins: unexpected status ${digestsStatus} for digests page`,
-      );
-    } else {
-      const digestDocs = parseDigestsPage(digestsHtml, digestsUrl, sinceYear);
-      logger.info(`bulletins: discovered ${digestDocs.length} digest documents`);
-      allDocs.push(...digestDocs);
-    }
+    requireEntryPage('bulletins', digestsUrl, digestsStatus);
+    const digestDocs = parseDigestsPage(digestsHtml, digestsUrl, sinceYear);
+    logger.info(`bulletins: discovered ${digestDocs.length} digest documents`);
+    allDocs.push(...digestDocs);
 
     // ── Step 2: Blog listing pagination ───────────────────────────────────
     const blogListingUrl = config.sources.bulletin.blogListingUrl;
@@ -201,10 +205,9 @@ export const bulletinsSource = {
         await fetcher.fetchHtml(currentUrl);
 
       if (listStatus !== 200) {
-        logger.warn(
-          `bulletins: unexpected status ${listStatus} for listing page ${currentUrl}`,
+        throw new Error(
+          `bulletins: status ${listStatus} for listing page ${currentUrl}`,
         );
-        break;
       }
 
       const { postUrls, nextPageUrl } = parseBulletinListingPage(
@@ -213,6 +216,13 @@ export const bulletinsSource = {
       );
 
       if (postUrls.length === 0) {
+        // Only a last page may be empty. An empty first page, or one that
+        // still links onward, means the listing markup is no longer understood.
+        if (pageCount === 1 || nextPageUrl !== null) {
+          throw new Error(
+            `bulletins: no posts parsed from listing page ${currentUrl}`,
+          );
+        }
         logger.debug(`bulletins: empty page at ${currentUrl}, stopping`);
         break;
       }

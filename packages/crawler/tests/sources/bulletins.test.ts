@@ -3,16 +3,23 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
+  bulletinsSource,
   parseBulletinListingPage,
   parseDigestsPage,
   parseBulletinPostPage,
 } from '../../src/sources/bulletins.js';
+import type { Fetcher } from '../../src/sources/types.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const fixtureDir = path.join(__dirname, '../fixtures');
 
 const blogListingHtml = readFileSync(
   path.join(fixtureDir, 'bulletins-blog-listing.html'),
+  'utf8',
+);
+// Trimmed capture of the live listing after titles moved from h3 to h2.
+const liveBlogListingHtml = readFileSync(
+  path.join(fixtureDir, 'bulletins-blog-listing-2026-10-05.html'),
   'utf8',
 );
 const digestsHtml = readFileSync(
@@ -33,22 +40,22 @@ const POST_URL =
 
 // ── parseBulletinListingPage ──────────────────────────────────────────────────
 
-describe('parseBulletinListingPage', () => {
-  const result = parseBulletinListingPage(blogListingHtml, BLOG_LISTING_URL);
+describe.each([
+  ['March 2026 capture (h3 titles)', blogListingHtml],
+  ['October 2026 capture (h2 titles)', liveBlogListingHtml],
+])('parseBulletinListingPage on the %s', (_name, html) => {
+  const result = parseBulletinListingPage(html, BLOG_LISTING_URL);
 
-  it('returns exactly 10 post URLs from the first page', () => {
+  it('returns exactly 10 distinct post URLs from the first page', () => {
     expect(result.postUrls.length).toBe(10);
+    expect(new Set(result.postUrls).size).toBe(10);
   });
 
-  it('all post URLs are absolute https URLs', () => {
+  it('every post URL is an absolute /blog/YYYY/MM/DD/slug URL', () => {
     for (const url of result.postUrls) {
-      expect(url).toMatch(/^https:\/\//);
-    }
-  });
-
-  it('all post URLs follow the /blog/YYYY/MM/DD/slug pattern', () => {
-    for (const url of result.postUrls) {
-      expect(url).toMatch(/\/blog\/\d{4}\/\d{2}\/\d{2}\//);
+      expect(url).toMatch(
+        /^https:\/\/medicaid\.ncdhhs\.gov\/blog\/\d{4}\/\d{2}\/\d{2}\/[a-z0-9-]+$/,
+      );
     }
   });
 
@@ -61,18 +68,111 @@ describe('parseBulletinListingPage', () => {
     expect(result.nextPageUrl).toMatch(/^https:\/\//);
   });
 
-  it('first post URL matches the most-recent bulletin', () => {
-    // The fixture was fetched on 2026-03-26, top post is from that date
-    expect(result.postUrls[0]).toContain(
-      'reminders-about-required-provider-disclosures',
-    );
-  });
+});
 
+describe('parseBulletinListingPage', () => {
   it('returns null nextPageUrl on a page with no next-page link', () => {
     // Synthesise minimal HTML with no pager
     const html = '<html><body><div class="views-row"><h3><a href="/blog/2025/01/01/foo">Foo</a></h3></div></body></html>';
     const r = parseBulletinListingPage(html, BLOG_LISTING_URL);
     expect(r.nextPageUrl).toBeNull();
+  });
+
+  it('parses a row whose title is an h2.field-content', () => {
+    const html = '<div class="views-row"><div class="views-field views-field-title"><h2 class="field-content"><a href="/blog/2026/10/02/foo">Foo</a></h2></div></div>';
+    const r = parseBulletinListingPage(html, BLOG_LISTING_URL);
+    expect(r.postUrls).toEqual(['https://medicaid.ncdhhs.gov/blog/2026/10/02/foo']);
+  });
+
+  it('keeps one URL per post and ignores row links that are not posts', () => {
+    const html = `
+      <div class="views-row">
+        <h2><a href="/blog/2026/10/02/foo">Foo</a></h2>
+        <a href="/blog/2026/10/02/foo">Read more</a>
+        <a href="/blog-category/bulletins">Bulletins</a>
+        <a href="/media/123/download?attachment">Attachment</a>
+      </div>`;
+    const r = parseBulletinListingPage(html, BLOG_LISTING_URL);
+    expect(r.postUrls).toEqual(['https://medicaid.ncdhhs.gov/blog/2026/10/02/foo']);
+  });
+});
+
+// ── bulletinsSource.discover ─────────────────────────────────────────────────
+
+describe('bulletinsSource.discover', () => {
+  const PAGE_2_URL = `${BLOG_LISTING_URL}?page=1`;
+  const row = (href: string) =>
+    `<div class="views-row"><h2 class="field-content"><a href="${href}">Post</a></h2></div>`;
+  const nextLink = '<a rel="next" href="/blog-category/bulletins?page=1">Next</a>';
+
+  function fetcherFor(
+    listings: Record<string, { body: string; statusCode: number }>,
+  ): Fetcher {
+    return {
+      fetchHtml: async (url: string) => {
+        if (url === DIGESTS_URL) return { body: digestsHtml, statusCode: 200 };
+        return listings[url] ?? { body: postHtml, statusCode: 200 };
+      },
+      fetchFile: async () => {
+        throw new Error('not used');
+      },
+    };
+  }
+
+  it('rejects a 200 first listing page with rows but no parsable posts', async () => {
+    const fetcher = fetcherFor({
+      [BLOG_LISTING_URL]: {
+        body: '<div class="views-row"><h2 class="field-content"><a href="/news/redesigned">Post</a></h2></div>',
+        statusCode: 200,
+      },
+    });
+
+    await expect(bulletinsSource.discover(fetcher, 2018)).rejects.toThrow(
+      /no posts parsed/,
+    );
+  });
+
+  it('rejects a listing page that is not 200', async () => {
+    const fetcher = fetcherFor({
+      [BLOG_LISTING_URL]: { body: 'Forbidden', statusCode: 403 },
+    });
+
+    await expect(bulletinsSource.discover(fetcher, 2018)).rejects.toThrow(/403/);
+  });
+
+  it('rejects a later listing page that is not 200', async () => {
+    const fetcher = fetcherFor({
+      [BLOG_LISTING_URL]: { body: row('/blog/2026/10/02/foo') + nextLink, statusCode: 200 },
+      [PAGE_2_URL]: { body: 'Not found', statusCode: 404 },
+    });
+
+    await expect(bulletinsSource.discover(fetcher, 2018)).rejects.toThrow(/404/);
+  });
+
+  it('rejects a later listing page with no posts while a next link exists', async () => {
+    const fetcher = fetcherFor({
+      [BLOG_LISTING_URL]: { body: row('/blog/2026/10/02/foo') + nextLink, statusCode: 200 },
+      [PAGE_2_URL]: { body: nextLink, statusCode: 200 },
+    });
+
+    await expect(bulletinsSource.discover(fetcher, 2018)).rejects.toThrow(
+      /no posts parsed/,
+    );
+  });
+
+  it('stops quietly at an empty last page and returns post attachments', async () => {
+    const fetcher = fetcherFor({
+      [BLOG_LISTING_URL]: { body: row('/blog/2026/10/02/foo') + nextLink, statusCode: 200 },
+      [PAGE_2_URL]: { body: '<html><body></body></html>', statusCode: 200 },
+    });
+
+    const docs = await bulletinsSource.discover(fetcher, 2018);
+
+    expect(
+      docs.some(
+        (doc) => doc.discovered_from === 'https://medicaid.ncdhhs.gov/blog/2026/10/02/foo',
+      ),
+    ).toBe(true);
   });
 });
 

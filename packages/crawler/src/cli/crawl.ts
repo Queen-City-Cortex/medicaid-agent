@@ -5,8 +5,30 @@ import { discoverDocuments } from '../crawl/discovery.js';
 import { mergeStats, runCheckPhase, runDownloadPhase } from '../crawl/sync.js';
 import { logger } from '../utils/logger.js';
 import { buildFetcher, initDb, parseSourceTypes } from './shared.js';
-import { isAllowedSourceUrl } from '../corpus-manifest.js';
+import { getSourceFamily, isAllowedSourceUrl } from '../corpus-manifest.js';
 import type { SourceType } from '../sources/types.js';
+
+/**
+ * Exit status when discovery failed for a family that is required for
+ * answering. The run itself finished (downloads and checks are recorded), so
+ * this is distinct from a crash: a caller may still parse and back up, but
+ * must not promote a release.
+ */
+export const DISCOVERY_FAILED_EXIT_CODE = 3;
+
+function reportDiscoveryFailures(failedSourceTypes: SourceType[]): void {
+  if (failedSourceTypes.length === 0) return;
+  logger.warn(`  Discovery failed: ${failedSourceTypes.join(', ')}`);
+  const required = failedSourceTypes.filter(
+    (sourceType) => getSourceFamily(sourceType).required_for_answering,
+  );
+  if (required.length > 0) {
+    logger.error(
+      `Discovery failed for required source families: ${required.join(', ')}`,
+    );
+    process.exitCode = DISCOVERY_FAILED_EXIT_CODE;
+  }
+}
 
 export function registerCrawlCommand(program: Command): void {
   program
@@ -58,8 +80,12 @@ export function registerCrawlCommand(program: Command): void {
       const startTime = Date.now();
       logger.info(`Starting crawl run #${runId}`);
 
-      // Discovery phase
-      const discovery = await discoverDocuments(fetcher, sourceTypes, sinceYear);
+      // Discovery phase. Family minimums describe a default full crawl;
+      // --source and --since-year runs list less by design.
+      const discovery = await discoverDocuments(fetcher, sourceTypes, sinceYear, {
+        enforceMinimums:
+          !opts.source && sinceYear === config.defaultSinceYear,
+      });
       const discovered = discovery.documents;
 
       let newCount = 0;
@@ -88,6 +114,7 @@ export function registerCrawlCommand(program: Command): void {
 
       if (dryRun) {
         logger.info('Dry run — skipping downloads');
+        // A dry run never stamps source freshness.
         registry.completeCrawlRun(
           runId,
           {
@@ -97,8 +124,9 @@ export function registerCrawlCommand(program: Command): void {
             documents_updated: 0,
             documents_errored: discovery.failedSourceTypes.length,
           },
-          discovery.successfulSourceTypes,
+          [],
         );
+        reportDiscoveryFailures(discovery.failedSourceTypes);
         registry.close();
         return;
       }
@@ -139,11 +167,7 @@ export function registerCrawlCommand(program: Command): void {
       logger.info(`  Unchanged: ${stats.documents_unchanged}`);
       logger.info(`  Updated: ${stats.documents_updated}`);
       logger.info(`  Errors: ${stats.documents_errored}`);
-      if (discovery.failedSourceTypes.length > 0) {
-        logger.warn(
-          `  Discovery failed: ${discovery.failedSourceTypes.join(', ')}`,
-        );
-      }
+      reportDiscoveryFailures(discovery.failedSourceTypes);
       logger.info(`  Duration: ${elapsed}s`);
 
       registry.close();

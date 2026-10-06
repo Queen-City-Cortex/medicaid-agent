@@ -1,7 +1,7 @@
 import * as cheerio from 'cheerio';
 import { config } from '../config.js';
 import { logger } from '../utils/logger.js';
-import { pushNewDocuments } from './crawl-helpers.js';
+import { pushNewDocuments, requireEntryPage } from './crawl-helpers.js';
 import { MEDICAID_BASE_URL, absoluteMedicaidUrl, collectDrupalDocumentLinks } from './medicaid-page-documents.js';
 import type { DiscoveredDocument, Fetcher } from './types.js';
 
@@ -62,7 +62,9 @@ export const feeSchedulesSource = {
         pageCount += 1;
         logger.info(`fee-schedules: fetching listing ${currentUrl}`);
         const { body, statusCode } = await fetcher.fetchHtml(currentUrl);
-        if (statusCode !== 200) {
+        if (currentUrl === listingUrl) {
+          requireEntryPage('fee-schedules', currentUrl, statusCode);
+        } else if (statusCode !== 200) {
           logger.warn(`fee-schedules: unexpected status ${statusCode} for ${currentUrl}`);
           break;
         }

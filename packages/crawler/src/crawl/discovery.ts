@@ -28,10 +28,18 @@ const sourceModules: Partial<Record<SourceType, SourceModule>> = {
   beneficiary_guidance: beneficiaryGuidanceSource,
 };
 
+/**
+ * Run each family's discovery. A family passes only when its module returns
+ * without throwing and lists at least one document; with `enforceMinimums`
+ * (default full runs) it must also reach its configured floor. Documents from
+ * a family that fell short are still returned: recording them is harmless,
+ * but the family is reported as failed so it is not stamped fresh.
+ */
 export async function discoverDocuments(
   fetcher: Fetcher,
   sourceTypes: SourceType[],
   sinceYear: number,
+  options: { enforceMinimums: boolean },
 ): Promise<{
   documents: DiscoveredDocument[];
   successfulSourceTypes: SourceType[];
@@ -57,7 +65,16 @@ export async function discoverDocuments(
       }
 
       try {
-        documents.push(...(await module.discover(fetcher, sinceYear)));
+        const found = await module.discover(fetcher, sinceYear);
+        documents.push(...found);
+        const minimum = options.enforceMinimums
+          ? config.minDiscoveredDocuments[sourceType]
+          : 1;
+        if (found.length < minimum) {
+          throw new Error(
+            `listed ${found.length} documents, expected at least ${minimum}`,
+          );
+        }
         successfulSourceTypes.push(sourceType);
       } catch (err) {
         failedSourceTypes.push(sourceType);

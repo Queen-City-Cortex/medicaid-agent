@@ -143,7 +143,9 @@ bucket config live in `~/.config/nc-medicaid/ops.env`.
 
 No laptop job loads data into the production graph. (`daily-check.sh` can
 only ask for a blue-green release, and only when `CORPUS_RELEASE_TRIGGER_URL`
-is set in `ops.env`.) The Saturday job whose last step wiped and reloaded the
+is set in `ops.env`.) When discovery fails for a source family that is required
+for answering, the crawler exits 3: the daily check still parses and takes the
+snapshot, never asks for a release, and exits 3 so its healthcheck fails. The Saturday job whose last step wiped and reloaded the
 serving Neo4j graph in place was removed in October 2026, together with `npm run deploy-data`, its
 evaluation gate and its TCP-proxy helper. Its intended successor is the
 [blue-green corpus release](docs/operations/blue-green-corpus-releases.md), which rebuilds an inactive graph and

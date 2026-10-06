@@ -20,9 +20,24 @@ export function pushNewDocuments(
 }
 
 /**
+ * Throw unless a configured entry page (index, seed, landing or start URL)
+ * answered 200. A blocked or missing entry page means the family's listing is
+ * unknown, so its discovery must fail rather than report an empty result.
+ */
+export function requireEntryPage(
+  logPrefix: string,
+  pageUrl: string,
+  statusCode: number,
+): void {
+  if (statusCode !== 200) {
+    throw new Error(`${logPrefix}: status ${statusCode} for configured page ${pageUrl}`);
+  }
+}
+
+/**
  * Build a SourceModule that discovers documents from a single index page:
- * fetch the index URL, bail (with a warning) on a non-200 response, and run
- * the supplied parser over the body.
+ * fetch the index URL, throw on a non-200 response or an index that parses to
+ * no documents, and otherwise return what the supplied parser finds.
  *
  * Sources built this way ignore `sinceYear` — they enumerate whatever the
  * index currently lists and have no year metadata to filter on.
@@ -40,12 +55,12 @@ export function singleIndexSource(options: {
       logger.info(`${logPrefix}: fetching index ${indexUrl}`);
 
       const { body, statusCode } = await fetcher.fetchHtml(indexUrl);
-      if (statusCode !== 200) {
-        logger.warn(`${logPrefix}: unexpected status ${statusCode} for ${indexUrl}`);
-        return [];
-      }
+      requireEntryPage(logPrefix, indexUrl, statusCode);
 
       const docs = parse(body, indexUrl);
+      if (docs.length === 0) {
+        throw new Error(`${logPrefix}: no documents parsed from ${indexUrl}`);
+      }
       logger.info(`${logPrefix}: discovered ${docs.length} documents`);
       return docs;
     },
@@ -62,7 +77,8 @@ export function singleIndexSource(options: {
  * - `derivePageFromDocument` (optional) enqueues an extra page derived from
  *   each newly discovered document URL (e.g. a document's detail/wrapper page).
  *
- * Non-200 pages are logged and skipped; each page is visited at most once.
+ * A non-200 start URL throws; non-200 sub-pages and detail pages are logged
+ * and skipped. Each page is visited at most once.
  * Sources built this way ignore `sinceYear` — they surface only the current
  * document set.
  */
@@ -89,7 +105,8 @@ export function pageCrawlSource(options: {
         queue.push(pageUrl);
       };
 
-      for (const pageUrl of startUrls()) {
+      const entryPages = new Set(startUrls());
+      for (const pageUrl of entryPages) {
         enqueue(pageUrl);
       }
 
@@ -100,7 +117,9 @@ export function pageCrawlSource(options: {
 
         logger.info(`${logPrefix}: fetching ${pageUrl}`);
         const { body, statusCode } = await fetcher.fetchHtml(pageUrl);
-        if (statusCode !== 200) {
+        if (entryPages.has(pageUrl)) {
+          requireEntryPage(logPrefix, pageUrl, statusCode);
+        } else if (statusCode !== 200) {
           logger.warn(`${logPrefix}: unexpected status ${statusCode} for ${pageUrl}`);
           continue;
         }

@@ -545,15 +545,15 @@ describe('DocumentRegistry', () => {
   });
 
   describe('crawl runs', () => {
-    it('creates and completes a crawl run with source freshness metadata', () => {
-      const runId = registry.startCrawlRun(['clinical_policy']);
+    it('stamps source freshness only for the families passed as successful', () => {
+      const runId = registry.startCrawlRun(['clinical_policy', 'bulletin']);
       registry.completeCrawlRun(runId, {
         documents_discovered: 10,
         documents_downloaded: 5,
         documents_unchanged: 3,
         documents_updated: 1,
         documents_errored: 1,
-      });
+      }, ['clinical_policy']);
       expect(registry.getSourceFreshness()).toEqual([
         {
           source_type: 'clinical_policy',

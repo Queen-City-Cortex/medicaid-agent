@@ -1,6 +1,7 @@
 import * as cheerio from 'cheerio';
 import { config } from '../config.js';
 import { logger } from '../utils/logger.js';
+import { requireEntryPage } from './crawl-helpers.js';
 import type { DiscoveredDocument, Fetcher } from './types.js';
 
 const BASE_URL = 'https://medicaid.ncdhhs.gov';
@@ -92,12 +93,7 @@ export const waiversSource = {
       logger.info(`waivers: fetching seed page ${seedUrl}`);
       const { body, statusCode } = await fetcher.fetchHtml(seedUrl);
 
-      if (statusCode !== 200) {
-        logger.warn(
-          `waivers: unexpected status ${statusCode} for seed page ${seedUrl}`,
-        );
-        continue;
-      }
+      requireEntryPage('waivers', seedUrl, statusCode);
 
       const docs = parseWaiverPage(body, seedUrl);
       logger.info(

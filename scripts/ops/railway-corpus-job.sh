@@ -19,6 +19,11 @@ JOB_RUN_ID="${RAILWAY_DEPLOYMENT_ID:-$(date -u '+%Y%m%dT%H%M%SZ')-$$}"
 JOB_STARTED_EPOCH="$(date +%s)"
 JOB_FINAL_STATUS=starting
 ACTIVE_JOB_PID=""
+# The crawler exits with this status (DISCOVERY_FAILED_EXIT_CODE in
+# packages/crawler/src/cli/crawl.ts) when its run finished but discovery failed
+# for a source family that is required for answering.
+CRAWL_DISCOVERY_FAILED_EXIT=3
+CRAWL_EXIT=0
 
 ensure_data_layout() {
   # Only a new volume may initialize empty history. Existing registries must
@@ -60,10 +65,21 @@ active_graph_env() {
 
 discover_and_release() {
   log "daily discovery starting"
-  (
-    cd "$CRAWLER_DIR"
-    node "$REPO_ROOT/node_modules/tsx/dist/cli.mjs" src/index.ts crawl
-  )
+  if (
+    cd "$CRAWLER_DIR" &&
+      node "$REPO_ROOT/node_modules/tsx/dist/cli.mjs" src/index.ts crawl
+  ); then
+    CRAWL_EXIT=0
+  else
+    CRAWL_EXIT=$?
+  fi
+  # A failed required family still leaves a finished crawl: parse, mirror and
+  # back up what the healthy families delivered, but never promote. The caller
+  # returns CRAWL_EXIT once its remaining steps have run, so the run ends
+  # non-zero. Any other status is a crash and stops here.
+  if [[ "$CRAWL_EXIT" -ne 0 && "$CRAWL_EXIT" -ne "$CRAWL_DISCOVERY_FAILED_EXIT" ]]; then
+    return "$CRAWL_EXIT"
+  fi
   (
     cd "$PIPELINE_DIR"
     "$PY" -m pipeline.cli parse --strict-required
@@ -73,9 +89,11 @@ discover_and_release() {
       --no-acknowledge
   )
 
-  if jq -e '.changed == true' "$SNAPSHOT_RESULT" >/dev/null; then
+  if [[ "$CRAWL_EXIT" -ne 0 ]]; then
+    log "discovery failed for a required source family; skipping release promotion"
+  elif jq -e '.changed == true' "$SNAPSHOT_RESULT" >/dev/null; then
     log "answer-ready corpus changed; starting gated blue-green release"
-    "$REPO_ROOT/scripts/ops/corpus-release.sh" promote
+    promote_release
     (
       cd "$PIPELINE_DIR"
       "$PY" -m pipeline.cli acknowledge-answer-ready-snapshot \
@@ -109,6 +127,14 @@ monthly_evaluation_if_due() {
     MASTRA_OBSERVABILITY_PATH=":memory:" \
       "$PY" -m pipeline.cli eval --level answer
   )
+}
+
+promote_release() {
+  "$REPO_ROOT/scripts/ops/corpus-release.sh" promote
+}
+
+cleanup_releases() {
+  "$REPO_ROOT/scripts/ops/corpus-release-cleanup.sh"
 }
 
 sync_current_corpus() {
@@ -155,22 +181,26 @@ recover_parse() {
 
 scheduled() {
   discover_and_release
-  "$REPO_ROOT/scripts/ops/corpus-release-cleanup.sh"
+  cleanup_releases
   weekly_audit_if_due
   monthly_evaluation_if_due
   sync_current_corpus
   backup_corpus
+  return "$CRAWL_EXIT"
 }
 
 run_job_mode() {
   case "$JOB_MODE" in
     scheduled) scheduled ;;
-    discover) discover_and_release ;;
+    discover)
+      discover_and_release
+      return "$CRAWL_EXIT"
+      ;;
     recover-parse) recover_parse ;;
     bootstrap) "$REPO_ROOT/scripts/ops/corpus-release.sh" bootstrap ;;
-    release) "$REPO_ROOT/scripts/ops/corpus-release.sh" promote ;;
+    release) promote_release ;;
     rollback) "$REPO_ROOT/scripts/ops/corpus-release.sh" rollback ;;
-    cleanup) "$REPO_ROOT/scripts/ops/corpus-release-cleanup.sh" ;;
+    cleanup) cleanup_releases ;;
     audit)
       active_graph_env
       cd "$PIPELINE_DIR"

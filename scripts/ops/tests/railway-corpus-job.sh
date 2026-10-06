@@ -68,6 +68,100 @@ pass "clean recovery is bounded, strict, synced, and backed up"
 ) || exit $?
 pass "strict failure does not sync, back up, crawl, or touch snapshots"
 
+# Run one discovery mode with a fake crawler exit status. Every external step is
+# a stub that appends its name to one call log; the stubs for the Healthchecks
+# pings record what the real entrypoint would send at exit.
+run_discovery_case() {
+  local name="$1" mode="$2" crawl_status="$3"
+  (
+    calls_log="$TEMP_ROOT/$name.calls"
+    health_log="$TEMP_ROOT/$name.health"
+    fake_python="$TEMP_ROOT/python-$name"
+    make_fake_python "$fake_python" 0
+    mkdir -p "$TEMP_ROOT/$name-home"
+    export HOME="$TEMP_ROOT/$name-home" OPS_ENV="$TEMP_ROOT/no-ops.env"
+    export CORPUS_DATA_ROOT="$TEMP_ROOT/$name-data" PIPELINE_PYTHON="$fake_python"
+    export PYTHON_ARGS_LOG="$calls_log" CORPUS_JOB_MODE="$mode"
+    export CORPUS_JOB_TEST_SOURCE_ONLY=1
+    source "$ENTRYPOINT"
+    node() { printf 'crawl\n' >> "$calls_log"; return "$crawl_status"; }
+    jq() { return 0; }  # the answer-ready snapshot reports a change
+    promote_release() { printf 'promote\n' >> "$calls_log"; }
+    cleanup_releases() { printf 'cleanup\n' >> "$calls_log"; }
+    weekly_audit_if_due() { :; }
+    monthly_evaluation_if_due() { :; }
+    sync_current_corpus() { printf 'sync\n' >> "$calls_log"; }
+    backup_corpus() { printf 'backup\n' >> "$calls_log"; }
+    hc_fail() { printf 'fail\n' >> "$health_log"; }
+    hc_ok() { printf 'ok\n' >> "$health_log"; }
+    hc_trap
+    run_job_mode
+    hc_ok
+  ) >/dev/null 2>&1
+}
+
+called() { grep -q -- "$2" "$TEMP_ROOT/$1.calls"; }
+
+# A required family failing discovery (crawler exit 3) still parses, snapshots,
+# mirrors and backs up, but never promotes or acknowledges, and the run fails.
+set +e
+run_discovery_case required-failed scheduled 3
+status=$?
+set -e
+[[ "$status" -eq 3 ]] || fail "required-family failure exited $status, expected 3"
+called required-failed 'parse --strict-required' || fail "required-family failure skipped parse"
+called required-failed 'answer-ready-snapshot' || fail "required-family failure skipped the snapshot"
+called required-failed '^sync$' || fail "required-family failure skipped the corpus sync"
+called required-failed '^backup$' || fail "required-family failure skipped the backup"
+called required-failed '^cleanup$' || fail "required-family failure skipped release cleanup"
+! called required-failed '^promote$' || fail "required-family failure promoted a release"
+! called required-failed 'acknowledge-answer-ready-snapshot' \
+  || fail "required-family failure acknowledged the snapshot"
+[[ "$(tail -n 1 "$TEMP_ROOT/required-failed.calls")" == backup ]] \
+  || fail "required-family failure returned before the backup"
+[[ "$(<"$TEMP_ROOT/required-failed.health")" == fail ]] \
+  || fail "required-family failure did not send exactly one Healthchecks failure"
+pass "required-family discovery failure parses, syncs and backs up, skips promotion, and fails the run"
+
+# Discover mode has the same gate and returns the crawl status after its sync.
+set +e
+run_discovery_case required-failed-discover discover 3
+status=$?
+set -e
+[[ "$status" -eq 3 ]] || fail "discover mode exited $status, expected 3"
+called required-failed-discover 'parse --strict-required' || fail "discover mode skipped parse"
+called required-failed-discover '^sync$' || fail "discover mode skipped the corpus sync"
+! called required-failed-discover '^promote$' || fail "discover mode promoted a release"
+[[ "$(<"$TEMP_ROOT/required-failed-discover.health")" == fail ]] \
+  || fail "discover mode did not send a Healthchecks failure"
+pass "discover mode skips promotion and fails after a required-family discovery failure"
+
+# A clean crawl with a changed snapshot promotes, acknowledges and succeeds.
+set +e
+run_discovery_case clean scheduled 0
+status=$?
+set -e
+[[ "$status" -eq 0 ]] || fail "clean scheduled run exited $status"
+expected=$'crawl\n-m pipeline.cli parse --strict-required\n-m pipeline.cli answer-ready-snapshot'
+[[ "$(<"$TEMP_ROOT/clean.calls")" == "$expected"* ]] || fail "clean run did not crawl, parse, then snapshot"
+[[ "$(grep -n -- '^promote$' "$TEMP_ROOT/clean.calls" | cut -d: -f1)" \
+  -lt "$(grep -n -- 'acknowledge-answer-ready-snapshot' "$TEMP_ROOT/clean.calls" | cut -d: -f1)" ]] \
+  || fail "clean run did not promote before acknowledging"
+[[ "$(tail -n 4 "$TEMP_ROOT/clean.calls")" == $'sync\ncleanup\nsync\nbackup' ]] \
+  || fail "clean run did not sync, clean up, sync and back up"
+[[ "$(<"$TEMP_ROOT/clean.health")" == ok ]] || fail "clean run did not report Healthchecks success"
+pass "clean crawl promotes, acknowledges, backs up, and succeeds"
+
+# Any other crawler status is a crash: nothing after the crawl runs.
+set +e
+run_discovery_case crashed scheduled 1
+status=$?
+set -e
+[[ "$status" -eq 1 ]] || fail "crashed crawl exited $status, expected 1"
+[[ "$(<"$TEMP_ROOT/crashed.calls")" == crawl ]] || fail "crashed crawl ran later steps"
+[[ "$(<"$TEMP_ROOT/crashed.health")" == fail ]] || fail "crashed crawl did not send a Healthchecks failure"
+pass "crawler crash stops the run before parse, sync, backup, or promotion"
+
 # Persistent-path flock rejects overlap and is released when the holder exits.
 (
   lock="$TEMP_ROOT/locks/corpus-job.lock"

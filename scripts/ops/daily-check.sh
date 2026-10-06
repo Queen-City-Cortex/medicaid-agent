@@ -18,8 +18,23 @@ SNAPSHOT_STATE="$CACHE_DIR/answer-ready.snapshot.json"
 SNAPSHOT_RESULT="$CACHE_DIR/answer-ready.latest.json"
 PY="$PIPELINE_DIR/.venv/bin/python"
 
+# The crawler exits with this status (DISCOVERY_FAILED_EXIT_CODE in
+# packages/crawler/src/cli/crawl.ts) when its run finished but discovery failed
+# for a source family that is required for answering.
+CRAWL_DISCOVERY_FAILED_EXIT=3
+
 log "daily document discovery starting"
-(cd "$REPO_ROOT/packages/crawler" && npx tsx src/index.ts crawl)
+if (cd "$REPO_ROOT/packages/crawler" && npx tsx src/index.ts crawl); then
+  crawl_exit=0
+else
+  crawl_exit=$?
+fi
+# A failed required family still leaves a finished crawl: parse what the
+# healthy families delivered, never ask for a release, and exit non-zero at the
+# end so the healthcheck goes red. Any other status is a crash and stops here.
+if [[ "$crawl_exit" -ne 0 && "$crawl_exit" -ne "$CRAWL_DISCOVERY_FAILED_EXIT" ]]; then
+  exit "$crawl_exit"
+fi
 
 log "parsing newly downloaded or changed documents"
 (cd "$PIPELINE_DIR" && "$PY" -m pipeline.cli parse)
@@ -29,6 +44,11 @@ log "checking answer-ready corpus snapshot"
   --state-file "$SNAPSHOT_STATE" \
   --json-output "$SNAPSHOT_RESULT" \
   --no-acknowledge)
+
+if [[ "$crawl_exit" -ne 0 ]]; then
+  log "discovery failed for a required source family — not triggering a corpus release"
+  exit "$crawl_exit"
+fi
 
 if jq -e '.changed == true' "$SNAPSHOT_RESULT" >/dev/null; then
   if [[ -n "${CORPUS_RELEASE_TRIGGER_URL:-}" ]]; then

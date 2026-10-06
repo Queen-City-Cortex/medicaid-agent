@@ -104,7 +104,7 @@ export interface DocumentRegistry {
   completeCrawlRun(
     runId: number,
     stats: CrawlRunStats,
-    successfulSourceTypes?: string[],
+    successfulSourceTypes: string[],
   ): void;
   failCrawlRun(runId: number): void;
 }
@@ -304,12 +304,6 @@ export function createRegistry(db: Database.Database): DocumentRegistry {
     WHERE id = ?
   `);
 
-  const getRunStmt = db.prepare(`
-    SELECT source_types
-    FROM crawl_runs
-    WHERE id = ?
-  `);
-
   const updateSourceFreshnessStmt = db.prepare(`
     INSERT INTO source_freshness (
       source_type,
@@ -463,20 +457,12 @@ export function createRegistry(db: Database.Database): DocumentRegistry {
     completeCrawlRun(
       runId: number,
       stats: CrawlRunStats,
-      successfulSourceTypes?: string[],
+      successfulSourceTypes: string[],
     ): void {
       runWrite('completeCrawlRun', runId, () => {
         db.transaction(() => {
           completeRunStmt.run({ id: runId, ...stats });
-          const run = getRunStmt.get(runId) as
-            | { source_types: string }
-            | undefined;
-          const sourceTypes = successfulSourceTypes ?? (
-            run
-              ? JSON.parse(run.source_types) as string[]
-              : []
-          );
-          for (const sourceType of sourceTypes) {
+          for (const sourceType of successfulSourceTypes) {
             updateSourceFreshnessStmt.run({ source_type: sourceType });
           }
         })();

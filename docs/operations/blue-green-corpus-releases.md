@@ -63,6 +63,14 @@ provide the current OpenAI, Voyage, WorkOS, and evaluation-judge secrets.
 The scheduled job exits after each run. Railway skips a cron occurrence if the
 previous one is still active, so a stuck job must be treated as an incident.
 
+When discovery fails for a source family that is required for answering, the
+crawler finishes its run and exits 3. The `scheduled` and `discover` modes then
+still parse, take the answer-ready snapshot and mirror the corpus (`scheduled`
+also backs it up), but skip promotion and do not acknowledge the snapshot, and
+the job exits 3 so the healthcheck fails. The next clean run compares against
+the last acknowledged snapshot and promotes then. Any other non-zero crawler
+status is a crash and stops the job before parsing.
+
 ## Supervised inspection and source preparation
 
 For an interrupted initial ingest, temporarily set the corpus-job config file to

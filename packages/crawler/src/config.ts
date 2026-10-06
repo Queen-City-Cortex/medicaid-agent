@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { CORPUS_MANIFEST, getSourceFamily } from './corpus-manifest.js';
+import type { SourceType } from './sources/types.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, '..');
@@ -43,6 +44,26 @@ export const config = {
   // consecutive attempts — transient 404s (CDN hiccups, mid-deploy windows)
   // stay 'error' and retry on the next run.
   notFoundRemovalThreshold: 3,
+
+  // Fewest documents a default full crawl may list for a family before its
+  // discovery counts as failed. Each floor is about half the lowest count in
+  // workstation runs #24-#26 (2026-08-29 to 2026-09-26), taking bulletins from
+  // #24 and #25 only: the broken listing parser returned 96 in run #26, which
+  // the floor must stay above. These numbers await the owner's confirmation.
+  // Lower a floor deliberately when the agency really shrinks a family.
+  minDiscoveredDocuments: {
+    clinical_policy: 90, // 177
+    bulletin: 190, // 388-389
+    state_plan_amendment: 190, // 385-393
+    waiver: 6, // 12
+    provider_manual: 16, // 33
+    dhhs_policy: 450, // 920-1037
+    fee_schedule: 1000, // 1998
+    billing_guidance: 9, // 19-20
+    managed_care_guidance: 120, // 249
+    managed_care_contract: 50, // 111
+    beneficiary_guidance: 1, // static seed list; nothing is fetched
+  } satisfies Record<SourceType, number>,
 
   // User agent
   userAgent:

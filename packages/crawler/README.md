@@ -67,6 +67,25 @@ answer role and authority tier come from `corpus-manifest.json`.
 as staged ingests and use `audit-corpus` (pipeline) to track partial progress
 rather than expecting one crawl/parse/load pass to finish quickly.
 
+## Discovery failures and freshness
+
+A family's discovery fails when a configured index, seed or landing page does
+not answer 200, when it lists no documents, or, on a default full crawl (no
+`--source`, default `--since-year`), when it lists fewer documents than its
+floor in `minDiscoveredDocuments` (`src/config.ts`). Non-200 sub-pages and
+detail pages are logged and skipped; the floor is what catches a large silent
+loss behind them. Lower a floor deliberately when the agency really shrinks a
+family.
+
+`source_freshness` is stamped only for families whose discovery passed, and
+never on `--dry-run`. Documents listed by a family that fell short of its floor
+are still recorded and downloaded. The command finishes its download and check
+phases, then exits 3 if any failed family is `required_for_answering` in
+`corpus-manifest.json`; a failed family that is not required is logged and left
+unstamped, and the exit status stays 0. `scripts/ops/railway-corpus-job.sh` and
+`scripts/ops/daily-check.sh` treat exit 3 as "parse and back up, do not
+release"; keep the three in step if the status changes.
+
 ## Testing
 
 ```bash
