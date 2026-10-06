@@ -5,7 +5,7 @@ import { handleChatStream } from '@mastra/ai-sdk';
 import { createUIMessageStreamResponse } from 'ai';
 import { gateAnswerStream, trustedChatInput } from './answer-release.js';
 import { getBoundUserId } from './auth-middleware.js';
-import { findSensitiveIdentifiers } from './sensitive-data.js';
+import { screenUserText } from './sensitive-data.js';
 import type { UsageRepository } from './usage/repository.js';
 import { AGENT_MODEL } from './model.js';
 import { log, errorFields } from './logger.js';
@@ -34,9 +34,9 @@ export function createChatRoute(usageRepo: Pick<UsageRepository, 'record'>, runL
       }
       // Screen only the text the server keeps. Clients may replay the whole
       // thread, and earlier answers legitimately carry agency phone numbers.
-      const input = trustedChatInput(body, userId);
-      const question = input.messages[0].parts.map(part => part.text.trim()).filter(Boolean).join('\n').trim();
-      if (findSensitiveIdentifiers(question).length) {
+      const trusted = trustedChatInput(body, userId);
+      const screened = screenUserText(trusted.messages[0].parts.map(part => part.text.trim()).filter(Boolean).join('\n').trim());
+      if (screened.refused.length) {
         return c.json({
           error: {
             code: 'client_identifier_detected',
@@ -44,6 +44,11 @@ export function createChatRoute(usageRepo: Pick<UsageRepository, 'record'>, runL
           },
         }, 422);
       }
+      // From here on the question exists only as the screened text, with phone
+      // numbers and e-mail addresses replaced by a marker: one text part for
+      // storage, the gates and the model, and the same string for the verifier.
+      const question = screened.text;
+      const input = { ...trusted, messages: [{ ...trusted.messages[0], parts: question ? [{ type: 'text' as const, text: question }] : [] }] };
       const threadId = (body?.memory as { thread?: string } | undefined)?.thread;
       const requestContext = c.get('requestContext');
       // Mastra merges client context before this route. Only the server may

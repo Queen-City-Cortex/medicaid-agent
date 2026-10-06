@@ -6,7 +6,7 @@ import {
 } from '@nc-medicaid/contracts';
 import { resolveCoverageScope } from '@nc-medicaid/policy-corpus';
 import { getBoundUserId } from '../auth-middleware.js';
-import { findSensitiveIdentifiers } from '../sensitive-data.js';
+import { screenUserText } from '../sensitive-data.js';
 import {
   ResearchStartRejectedError,
 } from './repository.js';
@@ -37,7 +37,9 @@ export function createResearchHandlers(service: ResearchService) {
     if (!parsed.success) {
       return apiError(c, 400, 'invalid_request', 'Question must be between 1 and 10,000 characters.');
     }
-    if (findSensitiveIdentifiers(parsed.data.question).length) {
+    // The run keeps and plans from the screened text, never the posted one.
+    const { text: question, refused } = screenUserText(parsed.data.question);
+    if (refused.length) {
       return apiError(
         c,
         422,
@@ -46,14 +48,14 @@ export function createResearchHandlers(service: ResearchService) {
       );
     }
 
-    const scope = resolveCoverageScope(parsed.data.question);
+    const scope = resolveCoverageScope(question);
     if (scope?.notice) return apiError(c, 422, 'coverage-limitation', scope.notice);
 
     try {
       const run = await service.repository.create(
         crypto.randomUUID(),
         resourceId,
-        parsed.data.question,
+        question,
       );
       void service.plan(run.runId, c.get('mastra') as unknown as ResearchMastra);
       return c.json(run, 202);

@@ -178,7 +178,7 @@ describe('useFeedback', () => {
         `Feedback submit failed: 422 ${JSON.stringify({ error: { code: 'client_identifier_detected', message } })}`,
       ));
       await act(async () => {
-        await result.current.handleComment('t1', 'm1', 'call 919-555-0142');
+        await result.current.handleComment('t1', 'm1', 'Medicaid ID 900123456K');
       });
       expect(result.current.feedbackMap['m1']).toEqual({ id: 'fb-1', rating: 'up', comment: null, commentError: message });
 

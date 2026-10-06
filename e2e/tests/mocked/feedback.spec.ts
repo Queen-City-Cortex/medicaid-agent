@@ -67,7 +67,7 @@ test.describe('Message Feedback', () => {
     // Registered after the shared mock, so it answers comment submissions first.
     await page.route('**/feedback', async (route) => {
       const body = route.request().method() === 'POST' ? route.request().postDataJSON() : null;
-      if (!body?.comment?.includes('919-555-0142')) return route.fallback();
+      if (!body?.comment?.includes('900123456K')) return route.fallback();
       await route.fulfill({
         status: 422,
         contentType: 'application/json',
@@ -83,12 +83,12 @@ test.describe('Message Feedback', () => {
 
     const commentInput = page.getByPlaceholder('What went wrong?');
     await expect(page.getByText(/Our team may read your rating, your comment/)).toBeVisible();
-    await commentInput.fill('Her caseworker is at 919-555-0142');
+    await commentInput.fill('Her Medicaid ID is 900123456K');
     await page.getByLabel('Submit comment').click();
     await expect(page.getByText(message)).toBeVisible();
-    await expect(commentInput).toHaveValue('Her caseworker is at 919-555-0142');
+    await expect(commentInput).toHaveValue('Her Medicaid ID is 900123456K');
 
-    await commentInput.fill('Her caseworker has a different number');
+    await commentInput.fill('Her record has a different category');
     await page.getByLabel('Submit comment').click();
     await expect(commentInput).not.toBeVisible();
     await expect(page.getByText(message)).not.toBeVisible();

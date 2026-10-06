@@ -44,10 +44,18 @@ describe('chat identifier screen', () => {
     });
   });
 
+  it('does not reject a phone number or an e-mail address in the newest user message', async () => {
+    const res = await post({
+      memory: { thread: 't-1' },
+      messages: [user('My notice says to call 866-219-5262 or write to appeals@example.gov. Should I?')],
+    });
+    expect(res.status).toBe(503);
+  });
+
   it('does not reject on an identifier that appears only in an earlier user turn', async () => {
     const res = await post({
       memory: { thread: 't-1' },
-      messages: [user('Call me at (919) 555-1212'), assistant('Withheld.'), user('What does Policy 3L cover?')],
+      messages: [user('My SSN is 123-45-6789'), assistant('Withheld.'), user('What does Policy 3L cover?')],
     });
     expect(res.status).toBe(503);
   });

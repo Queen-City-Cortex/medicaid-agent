@@ -121,15 +121,11 @@ describe('POST /feedback', () => {
     expect(repo.upsert).not.toHaveBeenCalled();
   });
 
-  // One row per identifier kind. PRIV-1 (#293) will redact phone numbers and
-  // e-mail addresses in `screenUserText` and so flip those two rows from a
-  // refusal to a stored, redacted comment; the other three stay refusals.
   it.each([
     ['ssn', 'The answer ignored that her SSN is 123-45-6789.'],
     ['date_of_birth', 'Wrong age band, DOB: 01/02/2015.'],
+    ['date_of_birth', 'Wrong age band, her date of birth is 01/02/2015.'],
     ['member_id', 'It should have used Medicaid ID 900123456K.'],
-    ['email', 'Send corrections to jane.client@example.com please.'],
-    ['phone', 'Her caseworker is at 919-555-0142, not the number cited.'],
   ])('refuses a comment carrying a client identifier (%s) and stores nothing', async (_kind, comment) => {
     const info = vi.spyOn(log, 'info').mockImplementation(() => {});
     const app = buildApp(repo, USER);
@@ -141,6 +137,20 @@ describe('POST /feedback', () => {
     } });
     expect(repo.upsert).not.toHaveBeenCalled();
     expect(info).not.toHaveBeenCalled();
+    info.mockRestore();
+  });
+
+  it.each([
+    ['email', 'Send corrections to jane.client@example.com please.', 'Send corrections to [email removed] please.'],
+    ['phone', 'Her caseworker is at 919-555-0142, not the number cited.', 'Her caseworker is at [phone number removed], not the number cited.'],
+  ])('stores a comment with its %s replaced by a marker', async (_kind, comment, kept) => {
+    const info = vi.spyOn(log, 'info').mockImplementation(() => {});
+    const app = buildApp(repo, USER);
+    const res = await postJson(app, { messageId: 'msg-1', threadId: 'thread-1', rating: 'down', comment });
+    expect(res.status).toBe(201);
+    expect(vi.mocked(repo.upsert).mock.calls).toEqual([[expect.objectContaining({ comment: kept })]]);
+    expect(info.mock.calls).toEqual([['feedback.negative', expect.objectContaining({ hasComment: true, commentLength: kept.length })]]);
+    expect(JSON.stringify([vi.mocked(repo.upsert).mock.calls, info.mock.calls, await res.json()])).not.toMatch(/919-555-0142|jane\.client/);
     info.mockRestore();
   });
 

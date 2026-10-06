@@ -63,4 +63,23 @@ test.describe('Identifier guard', () => {
     expect(bodies[0].memory.thread).toBeTruthy();
     expect(bodies[1].memory.thread).toBe(bodies[0].memory.thread);
   });
+
+  test('a question quoting a notice phone number is answered, with no identifier error', async ({ page }) => {
+    // The agent replaces the number with a marker and answers; it no longer
+    // returns 422 for a phone number or an e-mail address.
+    await mockMastraAPI(page, {
+      streamResponse: new AISdkStreamBuilder()
+        .start()
+        .textDelta('Legal Aid of North Carolina gives free help with Medicaid appeals.')
+        .stepFinish()
+        .finish(),
+    });
+
+    const chat = new ChatPage(page);
+    await chat.goto();
+    await chat.sendMessage('My notice says to call 866-219-5262 for free legal help. Should I?');
+    await chat.waitForAssistantMessage('Legal Aid of North Carolina');
+    await expect(page.getByTestId('chat-error-identifier-detected')).toHaveCount(0);
+    await expect(page.getByTestId('chat-error')).toHaveCount(0);
+  });
 });

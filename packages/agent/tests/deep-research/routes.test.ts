@@ -74,6 +74,23 @@ describe('owned research routes', () => {
     expect(await repository.listQueued()).toEqual([]);
   });
 
+  it('stores and plans from the question with its phone number and e-mail address replaced', async () => {
+    const app = buildApp(service);
+    const response = await app.request('/research/runs', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ question: 'My notice says to call 866-219-5262 or write to sentinel.client@example.com. What are my appeal rights?' }),
+    });
+
+    expect(response.status).toBe(202);
+    const body = await response.json();
+    const question = 'My notice says to call [phone number removed] or write to [email removed]. What are my appeal rights?';
+    expect(body.question).toBe(question);
+    // The planner reads the question from this row, never from the request.
+    expect(await repository.get(body.runId, 'user-1')).toMatchObject({ question });
+    expect(JSON.stringify([body, await repository.listQueued(), vi.mocked(service.plan).mock.calls])).not.toMatch(/866-219-5262|sentinel\.client/);
+  });
+
   it('returns a coverage notice before storing an unsupported research request or consuming quota', async () => {
     const app = buildApp(service);
     const response = await app.request('/research/runs', {
