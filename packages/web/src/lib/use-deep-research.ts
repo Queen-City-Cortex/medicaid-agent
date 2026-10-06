@@ -25,7 +25,7 @@ export type DeepResearchStatus =
   | 'error';
 
 interface ErrorEnvelope {
-  error?: { code?: string; message?: string } | string;
+  error?: { code?: string; message?: string; retryAt?: string } | string;
 }
 
 type GetAccessToken = () => Promise<string | null | undefined>;
@@ -34,7 +34,18 @@ const POLL_INTERVAL_MS = 1_500;
 const MAX_FAILED_POLLS = 3;
 
 class ResearchRequestError extends Error {
-  constructor(message: string, readonly status: number, readonly code?: string) { super(message); }
+  constructor(message: string, readonly status: number, readonly code?: string, readonly retryAt?: string) { super(message); }
+}
+
+// The daily limits are not failures of a run: there is nothing to retry until
+// the stated time.
+const DAILY_LIMIT_CODES = ['research_daily_quota', 'research_planning_limit'];
+
+function dailyLimitNotice(cause: ResearchRequestError): string {
+  const retryAt = cause.retryAt ? new Date(cause.retryAt) : null;
+  if (!retryAt || Number.isNaN(retryAt.getTime())) return `${cause.message} Try again later.`;
+  const when = retryAt.toLocaleString([], { weekday: 'long', hour: 'numeric', minute: '2-digit' });
+  return `${cause.message} You can start another after ${when}.`;
 }
 
 // A missing or forbidden run will not come back; anything else may be a blip.
@@ -94,6 +105,7 @@ export function useDeepResearch({ getAccessToken, userId }: { getAccessToken: Ge
         errorMessage(payload, response.status),
         response.status,
         typeof payload.error === 'object' ? payload.error.code : undefined,
+        typeof payload.error === 'object' ? payload.error.retryAt : undefined,
       );
     }
     return (response.status === 204 ? undefined : await response.json()) as T;
@@ -237,6 +249,13 @@ export function useDeepResearch({ getAccessToken, userId }: { getAccessToken: Ge
     } catch (cause) {
       if (controller.signal.aborted) return;
       let shown = cause;
+      if (cause instanceof ResearchRequestError && cause.code && DAILY_LIMIT_CODES.includes(cause.code)) {
+        setNotice(dailyLimitNotice(cause));
+        setQuestion('');
+        setStartedAt(null);
+        setStatus('idle');
+        return;
+      }
       if (cause instanceof ResearchRequestError && cause.code === 'active_research_run') {
         // The start was refused because a run already exists: show that run,
         // which the user can approve or cancel, rather than a dead end.
@@ -261,7 +280,9 @@ export function useDeepResearch({ getAccessToken, userId }: { getAccessToken: Ge
     }
   }, [adopt, applyRun, currentRun, poll, request, userId]);
 
-  const approve = useCallback(async (editedSubQuestions?: DeepResearchSubQuestion[]) => {
+  // Approval can only prune: `keptSubQuestions` are positions in the proposed
+  // plan, and leaving it out keeps the whole plan.
+  const approve = useCallback(async (keptSubQuestions?: number[]) => {
     const runId = runIdRef.current;
     if (!runId) return;
     setStatus('researching');
@@ -272,8 +293,8 @@ export function useDeepResearch({ getAccessToken, userId }: { getAccessToken: Ge
       abortRef.current = controller;
       await request(`/research/runs/${encodeURIComponent(runId)}/decision`, {
         method: 'POST',
-        body: JSON.stringify(editedSubQuestions?.length
-          ? { approved: true, editedSubQuestions }
+        body: JSON.stringify(keptSubQuestions
+          ? { approved: true, keptSubQuestions }
           : { approved: true }),
       }, controller.signal);
       await poll(runId, controller.signal);

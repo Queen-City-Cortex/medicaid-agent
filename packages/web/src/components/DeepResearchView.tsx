@@ -31,6 +31,12 @@ export function DeepResearchView({ controller }: { controller: DeepResearchContr
 
   if (status === 'idle') {
     return (
+      <>
+      {controller.notice && (
+        <p data-testid="deep-research-notice" className="rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+          {controller.notice}
+        </p>
+      )}
       <div
         data-testid="deep-research-empty"
         className="mx-auto mt-16 max-w-xl rounded-xl border border-dashed border-border bg-card/40 px-6 py-10 text-center"
@@ -42,6 +48,7 @@ export function DeepResearchView({ controller }: { controller: DeepResearchContr
           investigates across the NC Medicaid corpus and produces a long, cited report.
         </p>
       </div>
+      </>
     );
   }
 
@@ -118,8 +125,8 @@ export function DeepResearchView({ controller }: { controller: DeepResearchContr
             <Button
               data-testid="approve-plan"
               onClick={() => {
-                const kept = plan.subQuestions.filter((_, i) => !excluded.has(i));
-                // Only pass edits when the user actually pruned the plan.
+                const kept = plan.subQuestions.map((_, i) => i).filter((i) => !excluded.has(i));
+                // Only name the kept questions when the user actually pruned the plan.
                 controller.approve(kept.length === plan.subQuestions.length ? undefined : kept);
               }}
               disabled={excluded.size === plan.subQuestions.length}

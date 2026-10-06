@@ -21,6 +21,7 @@ import {
 } from '@nc-medicaid/contracts';
 import { log, errorFields } from '../logger.js';
 import { ResearchRepository } from './repository.js';
+import type { ResearchApproval } from './schemas.js';
 import type { UsageRepository } from '../usage/repository.js';
 import { withResearchUsageContext } from './usage.js';
 
@@ -35,7 +36,7 @@ interface WorkflowResultLike {
 interface WorkflowRunLike {
   runId: string;
   start(args: { inputData: { question: string } }): Promise<WorkflowResultLike>;
-  resume(args: { step: string; resumeData: ResearchDecisionInput }): Promise<WorkflowResultLike>;
+  resume(args: { step: string; resumeData: ResearchApproval }): Promise<WorkflowResultLike>;
   cancel(): Promise<void>;
 }
 
@@ -241,12 +242,18 @@ export class ResearchService {
     resourceId: string,
     decision: ResearchDecisionInput,
     mastra: ResearchMastra,
-  ): Promise<'accepted' | 'not_found' | 'conflict'> {
+  ): Promise<'accepted' | 'not_found' | 'conflict' | 'invalid'> {
     const owned = await this.repository.get(runId, resourceId);
     if (!owned) return 'not_found';
     if (owned.state !== 'awaiting_approval') return 'conflict';
     const internal = await this.repository.getInternal(runId);
     if (!internal?.workflowRunId) return 'conflict';
+    // Approval is prune-only. Before approval the public plan is exactly the
+    // stored planner output, so the kept positions resolve to the planner's
+    // own questions; the request supplies no question text.
+    const proposed = owned.plan?.subQuestions ?? [];
+    const kept = decision.keptSubQuestions ?? proposed.map((_, index) => index);
+    if (decision.approved && (!kept.length || kept.some(index => index >= proposed.length))) return 'invalid';
     const workflowRun = await mastra.getWorkflow('deepResearchWorkflow').createRun({
       runId: internal.workflowRunId,
       resourceId: runId,
@@ -262,11 +269,11 @@ export class ResearchService {
       return 'accepted';
     }
 
-    // Store the actual approved questions even when the user made no edits.
+    // Store the actual approved questions even when the user removed none.
     // Recovery must never substitute a newly generated plan for this decision.
-    const approvedDecision: ResearchDecisionInput = { approved: true,
-      editedSubQuestions: (decision.editedSubQuestions ?? owned.plan?.subQuestions)
-        ?.slice(0, internal.limits?.maxSubQuestions ?? DEFAULT_RESEARCH_LIMITS.maxSubQuestions) };
+    const approvedDecision: ResearchApproval = { approved: true,
+      editedSubQuestions: kept.map(index => proposed[index])
+        .slice(0, internal.limits?.maxSubQuestions ?? DEFAULT_RESEARCH_LIMITS.maxSubQuestions) };
 
     const leaseOwner = `${this.instanceId}:research:${runId}`;
     if (!await this.repository.acquire(

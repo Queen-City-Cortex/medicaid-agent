@@ -48,6 +48,8 @@ interface Backend {
   active?: ReturnType<typeof run> | null;
   /** Refuse the start as the server does while another run is active. */
   rejectStart?: boolean;
+  /** Refuse the start with this response instead. */
+  refuseStart?: () => Promise<Response>;
   /** Responses for `GET /research/runs/run-1`, consumed in order before the default. */
   polls?: Array<() => Promise<Response>>;
 }
@@ -58,6 +60,7 @@ function setup(backend: Backend = {}) {
   const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation((input, init) => {
     const url = String(input);
     if (url.endsWith('/research/runs') && init?.method === 'POST') {
+      if (backend.refuseStart) return backend.refuseStart();
       return backend.rejectStart
         ? json({ error: { code: 'active_research_run', message: 'Only one active research run is allowed per user.' } }, 409)
         : json(run('queued'), 202);
@@ -159,6 +162,23 @@ describe('useDeepResearch', () => {
     expect(result.current.status).toBe('cancelled');
   });
 
+  it.each([
+    ['research_daily_quota', 'You have used both research reports available in a 24-hour period.'],
+    ['research_planning_limit', 'You have started the most research plans allowed in a 24-hour period.'],
+  ])('shows %s as a notice with the time to try again, not as a failed report', async (code, message) => {
+    const retryAt = '2026-07-24T12:00:00.000Z';
+    const { result } = setup({ refuseStart: () => json({ error: { code, message, retryAfterSeconds: 3600, retryAt } }, 429) });
+    await act(async () => { await result.current.start('Does X?'); });
+    expect(result.current.status).toBe('idle');
+    expect(result.current.error).toBeNull();
+    expect(result.current.isBusy).toBe(false);
+    const when = new Date(retryAt).toLocaleString([], { weekday: 'long', hour: 'numeric', minute: '2-digit' });
+    expect(result.current.notice).toBe(`${message} You can start another after ${when}.`);
+
+    act(() => result.current.reset());
+    expect(result.current.notice).toBeNull();
+  });
+
   it('shows the refusal when no active run can be found after a 409', async () => {
     const { result } = setup({ rejectStart: true });
     await act(async () => { await result.current.start('Does X?'); });
@@ -227,6 +247,22 @@ describe('useDeepResearch', () => {
     );
     expect(result.current.status).toBe('done');
     expect(result.current.report?.reportMarkdown).toContain('# Report');
+  });
+
+  it('approves a pruned plan by naming the kept positions, never question text', async () => {
+    const { result, fetchMock } = setup();
+    await act(async () => { await result.current.start('Does X?'); });
+    await act(async () => { await result.current.approve([2, 0]); });
+    const decision = fetchMock.mock.calls.find(([input]) => String(input).endsWith('/decision'));
+    expect(JSON.parse(String(decision?.[1]?.body))).toEqual({ approved: true, keptSubQuestions: [2, 0] });
+  });
+
+  it('approves the whole plan without naming sub-questions', async () => {
+    const { result, fetchMock } = setup();
+    await act(async () => { await result.current.start('Does X?'); });
+    await act(async () => { await result.current.approve(); });
+    const decision = fetchMock.mock.calls.find(([input]) => String(input).endsWith('/decision'));
+    expect(JSON.parse(String(decision?.[1]?.body))).toEqual({ approved: true });
   });
 
   it('reset aborts polling and clears the plan', async () => {

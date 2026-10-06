@@ -42,20 +42,107 @@ describe('ResearchRepository', () => {
     } satisfies Partial<ResearchStartRejectedError>);
   });
 
-  it('permits only two starts in a rolling 24-hour window', async () => {
+  describe('daily limits', () => {
+    const DAY = 86_400_000;
     const dayStart = Date.parse('2026-07-23T12:00:00.000Z');
-    await repository.create('run-1', 'user-1', 'First', dayStart);
-    await repository.cancel('run-1', 'user-1', dayStart + 1);
-    await repository.create('run-2', 'user-1', 'Second', dayStart + 2);
-    await repository.cancel('run-2', 'user-1', dayStart + 3);
+    const PLAN = {
+      brief: 'Find coverage',
+      subQuestions: [{ question: 'Scope?', rationale: 'Establish scope', channels: ['vector' as const], useWeb: false }],
+    };
+    const REPORT = {
+      verification: { status: 'passed' as const, passCount: 1 },
+      status: 'completed' as const,
+      question: 'Q',
+      brief: PLAN.brief,
+      reportMarkdown: 'Supported report.',
+      subQuestions: PLAN.subQuestions,
+      corpusSources: [],
+      webSources: [],
+      workerFailures: [],
+      citationProvenance: null,
+      stats: { reflectionRounds: 0, subQuestionCount: 1, corpusSourceCount: 0, webSourceCount: 0 },
+    };
 
-    await expect(
-      repository.create('run-3', 'user-1', 'Third', dayStart + 4),
-    ).rejects.toMatchObject({ reason: 'daily_quota' });
+    async function proposePlan(runId: string, now: number) {
+      await repository.create(runId, 'user-1', 'Q', now);
+      expect(await repository.acquire(runId, 'queued', 'planning', runId, 2, now)).toBe(true);
+      expect(await repository.awaitingApproval(runId, PLAN, runId, now)).toBe(true);
+    }
+    async function approvePlan(runId: string, now: number) {
+      await proposePlan(runId, now);
+      expect(await repository.acquire(
+        runId, 'awaiting_approval', 'researching', runId, 2, now,
+        { approved: true, editedSubQuestions: PLAN.subQuestions },
+      )).toBe(true);
+    }
+    const start = (runId: string, now: number) => repository.create(runId, 'user-1', 'Q', now);
 
-    await expect(
-      repository.create('run-4', 'user-1', 'Tomorrow', dayStart + 86_400_001),
-    ).resolves.toMatchObject({ runId: 'run-4' });
+    it('does not count a plan the user declined or cancelled before approving', async () => {
+      await proposePlan('declined-1', dayStart);
+      await repository.cancel('declined-1', 'user-1', dayStart + 1);
+      await proposePlan('declined-2', dayStart + 2);
+      await repository.cancel('declined-2', 'user-1', dayStart + 3);
+      // Cancelled while still queued, before any plan existed.
+      await start('cancelled-early', dayStart + 4);
+      await repository.cancel('cancelled-early', 'user-1', dayStart + 5);
+
+      await expect(start('run-4', dayStart + 6)).resolves.toMatchObject({ runId: 'run-4' });
+    });
+
+    it('does not count a run whose planning failed', async () => {
+      for (const [index, runId] of ['failed-1', 'failed-2'].entries()) {
+        await start(runId, dayStart + index * 10);
+        await repository.acquire(runId, 'queued', 'planning', runId, 2, dayStart + index * 10);
+        expect(await repository.fail(runId, new Error('Planner did not produce a research plan'), runId, dayStart + index * 10 + 1)).toBe(true);
+      }
+
+      await expect(start('run-3', dayStart + 30)).resolves.toMatchObject({ runId: 'run-3' });
+    });
+
+    it('does not count a plan that expired unanswered', async () => {
+      await proposePlan('abandoned', dayStart);
+      expect(await repository.expireAwaitingApproval(dayStart + DAY)).toEqual([{ runId: 'abandoned', workflowRunId: null }]);
+      await approvePlan('report-1', dayStart + DAY + 1);
+      await repository.complete('report-1', REPORT, 'report-1', dayStart + DAY + 2);
+
+      await expect(start('run-3', dayStart + DAY + 3)).resolves.toMatchObject({ runId: 'run-3' });
+    });
+
+    it('counts approved runs whether they completed, failed or were cancelled afterwards', async () => {
+      await approvePlan('completed', dayStart);
+      expect(await repository.complete('completed', REPORT, 'completed', dayStart + 1)).toBe(true);
+      await approvePlan('failed', dayStart + 2);
+      expect(await repository.fail('failed', new Error('Answer grounding failed'), 'failed', dayStart + 3)).toBe(true);
+
+      const refused = await start('run-3', dayStart + 4).catch(error => error);
+      expect(refused).toBeInstanceOf(ResearchStartRejectedError);
+      // The older approved run leaves the window first and frees one report.
+      expect(refused).toMatchObject({ reason: 'daily_quota', retryAt: dayStart + DAY });
+      await expect(start('still-refused', dayStart + DAY - 1)).rejects.toMatchObject({ reason: 'daily_quota', retryAt: dayStart + DAY });
+
+      await approvePlan('cancelled-after-approval', dayStart + DAY);
+      await repository.cancel('cancelled-after-approval', 'user-1', dayStart + DAY + 1);
+      await expect(start('run-5', dayStart + DAY + 1)).rejects.toMatchObject({ reason: 'daily_quota', retryAt: dayStart + DAY + 2 });
+    });
+
+    it('stops a create-and-cancel loop at six plans in a rolling 24-hour window', async () => {
+      for (let index = 0; index < 6; index += 1) {
+        await proposePlan(`plan-${index}`, dayStart + index * 10);
+        await repository.cancel(`plan-${index}`, 'user-1', dayStart + index * 10 + 1);
+      }
+
+      await expect(start('plan-6', dayStart + 100)).rejects.toMatchObject({ reason: 'planning_limit', retryAt: dayStart + DAY });
+      await expect(repository.create('theirs', 'user-2', 'Q', dayStart + 100)).resolves.toMatchObject({ runId: 'theirs' });
+      await expect(start('plan-7', dayStart + DAY + 1)).resolves.toMatchObject({ runId: 'plan-7' });
+    });
+
+    it('reports the active run ahead of either daily limit', async () => {
+      await approvePlan('report-1', dayStart);
+      await repository.complete('report-1', REPORT, 'report-1', dayStart + 1);
+      await approvePlan('report-2', dayStart + 2);
+
+      await expect(start('run-3', dayStart + 3)).rejects.toMatchObject({ reason: 'active_run', retryAt: null });
+    });
   });
 
   it('leases work idempotently and enforces the global concurrency bound', async () => {

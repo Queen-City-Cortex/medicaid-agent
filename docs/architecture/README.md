@@ -26,7 +26,7 @@ The [CLI entrypoint](../../packages/agent/src/index.ts) emits `---VERIFIER---` m
 
 ## Research persistence and recovery
 
-[ResearchService](../../packages/agent/src/deep-research/service.ts) coordinates planning, user approval, execution, cancellation, and bounded checkpoint recovery through [ResearchRepository](../../packages/agent/src/deep-research/repository.ts). Interrupted execution can resume private completed steps with fresh internal Mastra executions, preserving approved edits, original limits, consumed steps, and corpus identity.
+[ResearchService](../../packages/agent/src/deep-research/service.ts) coordinates planning, user approval, execution, cancellation, and bounded checkpoint recovery through [ResearchRepository](../../packages/agent/src/deep-research/repository.ts). Interrupted execution can resume private completed steps with fresh internal Mastra executions, preserving the approved subset of the plan, original limits, consumed steps, and corpus identity.
 
 Recovery permits at most two claims per run. Changed corpus/configuration, incompatible checkpoints, exhausted budgets, or failed grounding are terminal. Saved verifier drafts remain private until verified. See the [runbook](../operations/answer-release-and-recovery.md) for lease ownership, retry schedules, retention, and validation.
 

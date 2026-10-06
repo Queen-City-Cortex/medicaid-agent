@@ -59,9 +59,19 @@ export function createResearchHandlers(service: ResearchService) {
       return c.json(run, 202);
     } catch (error) {
       if (error instanceof ResearchStartRejectedError) {
-        return error.reason === 'active_run'
-          ? apiError(c, 409, 'active_research_run', 'Only one active research run is allowed per user.')
-          : apiError(c, 429, 'research_daily_quota', 'The daily limit is two research starts per user.');
+        if (error.reason === 'active_run') {
+          return apiError(c, 409, 'active_research_run', 'Only one active research run is allowed per user.');
+        }
+        const retryAfterSeconds = error.retryAt === null ? null : Math.max(1, Math.ceil((error.retryAt - Date.now()) / 1000));
+        if (retryAfterSeconds !== null) c.header('Retry-After', String(retryAfterSeconds));
+        return c.json({
+          error: {
+            ...(error.reason === 'daily_quota'
+              ? { code: 'research_daily_quota', message: 'You have used both research reports available in a 24-hour period.' }
+              : { code: 'research_planning_limit', message: 'You have started the most research plans allowed in a 24-hour period.' }),
+            ...(error.retryAt === null ? {} : { retryAfterSeconds, retryAt: new Date(error.retryAt).toISOString() }),
+          },
+        }, 429);
       }
       throw error;
     }
@@ -106,6 +116,9 @@ export function createResearchHandlers(service: ResearchService) {
     );
     if (result === 'not_found') {
       return apiError(c, 404, 'research_run_not_found', 'Research run not found.');
+    }
+    if (result === 'invalid') {
+      return apiError(c, 400, 'invalid_decision', 'Approval can only keep sub-questions from the proposed plan.');
     }
     if (result === 'conflict') {
       return apiError(c, 409, 'invalid_research_state', 'The research run is not awaiting approval or capacity is unavailable.');

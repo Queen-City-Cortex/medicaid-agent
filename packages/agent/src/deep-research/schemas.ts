@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import {
-  ResearchDecisionInputSchema,
   ResearchPlanSchema,
   ResearchReportSchema,
   ResearchStartInputSchema,
@@ -67,7 +66,14 @@ export type DeepResearchReport = z.infer<typeof DeepResearchReportSchema>;
 
 export const DeepResearchInputSchema = ResearchStartInputSchema;
 
-export const PlanApprovalResumeSchema = ResearchDecisionInputSchema;
+// The stored approval, which is also what the workflow resumes with. Only
+// `ResearchService.decide` builds it, from the stored plan: the questions are
+// the planner's own, never text from the approval request.
+export const ResearchApprovalSchema = z.object({
+  approved: z.boolean(),
+  editedSubQuestions: z.array(SubQuestionSchema).min(1).max(8).optional(),
+});
+export type ResearchApproval = z.infer<typeof ResearchApprovalSchema>;
 
 export const PlanApprovalSuspendSchema = z.object({
   brief: z.string(),

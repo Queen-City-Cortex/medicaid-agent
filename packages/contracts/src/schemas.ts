@@ -116,10 +116,15 @@ export const ResearchStartInputSchema = z.object({
 });
 export type ResearchStartInput = z.infer<typeof ResearchStartInputSchema>;
 
+// Approval is prune-only: the request names which proposed sub-questions to
+// keep by their position in the plan and can carry no question text. Omitting
+// the list keeps the whole plan. Unknown keys are rejected, not ignored.
 export const ResearchDecisionInputSchema = z.object({
   approved: z.boolean(),
-  editedSubQuestions: z.array(ResearchSubQuestionSchema).min(1).max(8).optional(),
-});
+  keptSubQuestions: z.array(z.number().int().min(0).max(7)).min(1).max(8)
+    .refine(kept => new Set(kept).size === kept.length, 'A sub-question can be kept only once')
+    .optional(),
+}).strict();
 export type ResearchDecisionInput = z.infer<typeof ResearchDecisionInputSchema>;
 
 export const CitationProvenanceSchema = z.object({

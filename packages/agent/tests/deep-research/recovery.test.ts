@@ -196,7 +196,7 @@ describe('checkpoint recovery through real Mastra workflow and SQLite', () => {
     expect((await repository.get('run', 'owner'))?.report).toBeNull();
     expect(deepResearchReportAgent.generate).not.toHaveBeenCalled();
   });
-  it('recovers after durable edited approval before provider work begins', async () => {
+  it('recovers after a durable pruned approval before provider work begins', async () => {
     await finishPlanning();
     const original = mastra.getWorkflow('deepResearchWorkflow').createRun.bind(mastra.getWorkflow('deepResearchWorkflow'));
     const spy = vi.spyOn(mastra.getWorkflow('deepResearchWorkflow'), 'createRun').mockImplementationOnce(async (...args) => {
@@ -204,13 +204,14 @@ describe('checkpoint recovery through real Mastra workflow and SQLite', () => {
       vi.spyOn(run, 'resume').mockRejectedValueOnce(new Error('ECONNRESET'));
       return run;
     });
-    await service.decide('run', 'owner', { approved: true, editedSubQuestions: [question('Edited scope?')] }, mastra);
+    await service.decide('run', 'owner', { approved: true, keptSubQuestions: [1] }, mastra);
     await vi.waitFor(async () => expect((await repository.getInternal('run'))?.state).toBe('recovering'));
     spy.mockRestore();
     await recover();
-    expect((await repository.get('run', 'owner'))?.report?.subQuestions[0].question).toBe('Edited scope?');
-    expect((await repository.get('run', 'owner'))?.plan?.subQuestions[0].question).toBe('Edited scope?');
+    expect((await repository.get('run', 'owner'))?.report?.subQuestions.map(sq => sq.question)).toEqual(['Eligibility?']);
+    expect((await repository.get('run', 'owner'))?.plan?.subQuestions.map(sq => sq.question)).toEqual(['Eligibility?']);
     expect(deepResearchWorkerAgent.generate).toHaveBeenCalledTimes(1);
+    expect(String(vi.mocked(deepResearchWorkerAgent.generate).mock.calls[0][0])).toContain('Eligibility?');
   });
   it('does not reflect back to sub-questions the user removed at approval', async () => {
     const proposed = [question('Scope?'), question('Eligibility?'), question('Prior authorization?'), question('Appeals?')];
@@ -222,7 +223,7 @@ describe('checkpoint recovery through real Mastra workflow and SQLite', () => {
         : { sufficient: false, gaps: 'Removed topics are uncovered', followUps: removed } } as any;
     });
     await finishPlanning();
-    await service.decide('run', 'owner', { approved: true, editedSubQuestions: proposed.slice(0, 2) }, mastra);
+    await service.decide('run', 'owner', { approved: true, keptSubQuestions: [0, 1] }, mastra);
     await vi.waitFor(async () => expect((await repository.get('run', 'owner'))?.state).toBe('completed'));
     const result = (await repository.get('run', 'owner'))!;
     const researched = vi.mocked(deepResearchWorkerAgent.generate).mock.calls.map(call => String(call[0]));

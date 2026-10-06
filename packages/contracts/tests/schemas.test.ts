@@ -37,17 +37,21 @@ describe('public contracts', () => {
     expect(parsed).toEqual({ question: 'Compare policies' });
   });
 
-  it('bounds edited research plans', () => {
-    const item = {
-      question: 'Question?',
-      rationale: 'Needed',
-      channels: ['keyword'] as const,
-      useWeb: false,
-    };
-    expect(ResearchDecisionInputSchema.safeParse({
+  it('lets a research decision only name proposed sub-questions to keep', () => {
+    const accepts = (input: unknown) => ResearchDecisionInputSchema.safeParse(input).success;
+    expect(accepts({ approved: true })).toBe(true);
+    expect(accepts({ approved: false })).toBe(true);
+    expect(accepts({ approved: true, keptSubQuestions: [2, 0] })).toBe(true);
+    expect(accepts({ approved: true, keptSubQuestions: [] })).toBe(false);
+    expect(accepts({ approved: true, keptSubQuestions: [1, 1] })).toBe(false);
+    expect(accepts({ approved: true, keptSubQuestions: [-1] })).toBe(false);
+    expect(accepts({ approved: true, keptSubQuestions: [0.5] })).toBe(false);
+    expect(accepts({ approved: true, keptSubQuestions: [8] })).toBe(false);
+    expect(accepts({ approved: true, keptSubQuestions: ['Question?'] })).toBe(false);
+    expect(accepts({
       approved: true,
-      editedSubQuestions: Array.from({ length: 9 }, () => item),
-    }).success).toBe(false);
+      editedSubQuestions: [{ question: 'Question?', rationale: 'Needed', channels: ['keyword'], useWeb: false }],
+    })).toBe(false);
   });
 
   it('validates durable corpus release stage results', () => {

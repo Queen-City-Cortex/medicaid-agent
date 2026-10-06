@@ -1,9 +1,7 @@
 import { isRetryableResearchError } from './recovery-errors.js';
 import { log } from '../logger.js';
 import {
-  ResearchDecisionInputSchema,
   VerificationOutcomeSchema,
-  type ResearchDecisionInput,
   type VerificationOutcome,
   ResearchPlanSchema,
   ResearchReportSchema,
@@ -15,6 +13,7 @@ import {
 } from '@nc-medicaid/contracts';
 import type { Row } from '@libsql/client';
 import type { AppDatabase } from '../storage/app-database.js';
+import { ResearchApprovalSchema, type ResearchApproval } from './schemas.js';
 
 const ACTIVE_STATES: readonly ResearchRunState[] = [
   'recovering',
@@ -29,6 +28,11 @@ const LEASE_MS = 15 * 60_000;
 // A plan nobody answers holds the owner's single active-run slot and has no
 // lease, so it needs its own expiry.
 const PLAN_APPROVAL_TTL_MS = DAY_MS;
+// Per user, per rolling 24 hours. Only a run whose plan was approved consumes
+// a report: it has spent worker and verifier calls whatever happened next. The
+// planner runs before approval, so every created run counts toward the plans.
+const DAILY_REPORT_LIMIT = 2;
+const DAILY_PLAN_LIMIT = 6;
 const RUN_SELECT = `SELECT research_runs.*,
   (SELECT COUNT(*) FROM research_checkpoints WHERE run_id = research_runs.id AND key GLOB 'worker:*' AND key NOT LIKE '%:draft' AND key NOT LIKE '%:verification:%') AS completed_questions,
   (SELECT COUNT(*) FROM research_checkpoints WHERE run_id = research_runs.id) AS checkpoint_count,
@@ -36,7 +40,7 @@ const RUN_SELECT = `SELECT research_runs.*,
   FROM research_runs`;
 
 export interface InternalResearchRun extends ResearchRun {
-  approval: ResearchDecisionInput | null;
+  approval: ResearchApproval | null;
   limits: Record<string, number> | null;
   corpusRelease: string | null;
   checkpointVersion: number;
@@ -46,13 +50,16 @@ export interface InternalResearchRun extends ResearchRun {
   leaseExpiresAt: number | null;
 }
 
-export type ResearchStartRejectionReason = 'active_run' | 'daily_quota';
+export type ResearchStartRejectionReason = 'active_run' | 'daily_quota' | 'planning_limit';
 
 export class ResearchStartRejectedError extends Error {
-  constructor(readonly reason: ResearchStartRejectionReason) {
+  /** `retryAt`: when a daily limit next admits a start, in epoch milliseconds. */
+  constructor(readonly reason: ResearchStartRejectionReason, readonly retryAt: number | null = null) {
     super(reason === 'active_run'
       ? 'Only one active research run is allowed'
-      : 'The daily research-run limit has been reached');
+      : reason === 'daily_quota'
+        ? 'The daily research-report limit has been reached'
+        : 'The daily research-plan limit has been reached');
     this.name = 'ResearchStartRejectedError';
   }
 }
@@ -68,7 +75,7 @@ function parseJson<T>(
 function toRun(row: Row): ResearchRun {
   const report = parseJson(row.report_json, ResearchReportSchema);
   const plan = parseJson(row.plan_json, ResearchPlanSchema);
-  const approval = parseJson(row.approval_json, ResearchDecisionInputSchema);
+  const approval = parseJson(row.approval_json, ResearchApprovalSchema);
   const legacy = row.state === 'completed' && report && !report.verification;
   return ResearchRunSchema.parse({
     recoveryProgress: { completedQuestions: Number(row.completed_questions ?? 0), checkpoints: Number(row.checkpoint_count ?? 0) },
@@ -94,7 +101,7 @@ function toRun(row: Row): ResearchRun {
 function toInternalRun(row: Row): InternalResearchRun {
   return {
     ...toRun(row),
-    approval: parseJson(row.approval_json, ResearchDecisionInputSchema),
+    approval: parseJson(row.approval_json, ResearchApprovalSchema),
     limits: typeof row.limits_json === 'string' ? JSON.parse(row.limits_json) : null,
     corpusRelease: typeof row.corpus_release === 'string' ? row.corpus_release : null,
     checkpointVersion: Number(row.checkpoint_version),
@@ -128,8 +135,12 @@ export class ResearchRepository {
             )
             AND (
               SELECT COUNT(*) FROM research_runs
+              WHERE resource_id = ? AND created_at > ? AND approval_json IS NOT NULL
+            ) < ${DAILY_REPORT_LIMIT}
+            AND (
+              SELECT COUNT(*) FROM research_runs
               WHERE resource_id = ? AND created_at > ?
-            ) < 2
+            ) < ${DAILY_PLAN_LIMIT}
             RETURNING *`,
       args: [
         runId,
@@ -141,18 +152,37 @@ export class ResearchRepository {
         ...ACTIVE_STATES,
         resourceId,
         dayCutoff,
+        resourceId,
+        dayCutoff,
       ],
     });
     const row = result.rows[0];
     if (row) return toRun(row);
 
+    // Refused: say why. This read is advisory; the insert above decided.
     const active = await this.database.client.execute({
       sql: `SELECT 1 FROM research_runs
             WHERE resource_id = ? AND state IN (${activePlaceholders})
             LIMIT 1`,
       args: [resourceId, ...ACTIVE_STATES],
     });
-    throw new ResearchStartRejectedError(active.rows.length > 0 ? 'active_run' : 'daily_quota');
+    if (active.rows.length > 0) throw new ResearchStartRejectedError('active_run');
+    const recent = await this.database.client.execute({
+      sql: `SELECT created_at, approval_json IS NOT NULL AS approved FROM research_runs
+            WHERE resource_id = ? AND created_at > ?
+            ORDER BY created_at`,
+      args: [resourceId, dayCutoff],
+    });
+    // A limit admits a start again once enough of its oldest runs are a day old.
+    const reopens = (createdAt: unknown[], limit: number) => createdAt.length < limit
+      ? null
+      : Date.parse(String(createdAt[createdAt.length - limit])) + DAY_MS;
+    const reports = reopens(recent.rows.filter(run => run.approved).map(run => run.created_at), DAILY_REPORT_LIMIT);
+    const plans = reopens(recent.rows.map(run => run.created_at), DAILY_PLAN_LIMIT);
+    throw new ResearchStartRejectedError(
+      reports === null ? 'planning_limit' : 'daily_quota',
+      Math.max(reports ?? 0, plans ?? 0) || null,
+    );
   }
 
   async get(runId: string, resourceId: string): Promise<ResearchRun | null> {
@@ -198,7 +228,7 @@ export class ResearchRepository {
     leaseOwner: string,
     maxConcurrent: number,
     now = Date.now(),
-    approval?: ResearchDecisionInput,
+    approval?: ResearchApproval,
   ): Promise<boolean> {
     await this.database.migrate();
     const result = await this.database.client.execute({

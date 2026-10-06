@@ -1,6 +1,7 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { createHash } from 'node:crypto';
-import type { ResearchDecisionInput, VerificationOutcome } from '@nc-medicaid/contracts';
+import type { VerificationOutcome } from '@nc-medicaid/contracts';
+import type { ResearchApproval } from './schemas.js';
 import type { ResearchRepository } from './repository.js';
 import { MAX_SUB_QUESTIONS, MAX_REFLECTION_ROUNDS, WORKER_MAX_STEPS, PLANNER_MAX_STEPS, RESEARCH_CONCURRENCY, NOVELTY_MIN_NEW_IDS } from './config.js';
 import { log } from '../logger.js';
@@ -14,7 +15,7 @@ interface CheckpointContext {
   repository: ResearchRepository;
   runId: string;
   owner: string;
-  approval: ResearchDecisionInput | null;
+  approval: ResearchApproval | null;
   limits: typeof DEFAULT_RESEARCH_LIMITS;
   assertCorpus: () => Promise<void>;
 }
@@ -25,7 +26,7 @@ export function withResearchCheckpoints<T>(context: CheckpointContext, work: () 
 export function researchLimits(): typeof DEFAULT_RESEARCH_LIMITS {
   return storage.getStore()?.limits ?? DEFAULT_RESEARCH_LIMITS;
 }
-export function researchApproval(): ResearchDecisionInput | null {
+export function researchApproval(): ResearchApproval | null {
   return storage.getStore()?.approval ?? null;
 }
 export function questionKey(question: unknown): string {
