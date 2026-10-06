@@ -12,13 +12,13 @@ import {
   uniqueBy,
 } from '../../../internal/shared.js';
 import type { CoverageQueryFlags } from '../candidates.js';
+import { isEpsdtSpecialProvisionSection, orderEpsdtProvisionSections } from '../structure.js';
 
 export interface CoverageSectionGroups {
   generalEligibilityAnchorSections: AnswerFrameSection[];
   generalEligibilityContextSections: AnswerFrameSection[];
   generalEligibilityAdministrativeSections: AnswerFrameSection[];
   generalEligibilityLimitationSections: AnswerFrameSection[];
-  coverageScopeSections: AnswerFrameSection[];
   congregateCriteriaSections: AnswerFrameSection[];
   congregateServiceSections: AnswerFrameSection[];
   congregateRoomAndBoardSections: AnswerFrameSection[];
@@ -35,31 +35,25 @@ export function collectCoverageSectionGroups(
 ): CoverageSectionGroups {
   return {
     ...collectGeneralEligibilityGroups(surfacedSections, flags),
-    ...collectCoverageScopeGroups(surfacedSections, flags),
     ...collectCongregatePcsGroups(surfacedSections, flags),
     ...collectEpsdtExceptionGroups(surfacedSections, flags),
   };
 }
 
-// The standard EPSDT special-provision section (template heading, usually
-// 2.2.x) when it was surfaced for a coverage/exclusion question — kept as a
-// named group so score-ranked supporting selection can't silently drop the
-// under-21 contrast evidence.
+// The policy's under-21 EPSDT provision when it was surfaced with text for an
+// adult coverage question (isAdultCoverageQuestion) — kept as a named group so it leads
+// the supporting evidence and never takes a primary slot (its heading says
+// "limitations", which the not-covered anchors would otherwise pick up).
+// Matched on its heading by the shared predicate, never on body text: the
+// template's 4.0 note names the provision without being it. A question that
+// is already about a child ranks the provision like any other section.
 function collectEpsdtExceptionGroups(
   surfacedSections: AnswerFrameSection[],
   flags: CoverageQueryFlags,
 ): Pick<CoverageSectionGroups, 'epsdtExceptionSections'> {
   const epsdtExceptionSections =
-    flags.yesNoCoverageQuery || flags.notCoveredQuery
-      ? uniqueBy(
-          surfacedSections.filter((section) =>
-            includesPhrase(combineText(section.sectionNumber, section.title, section.content), [
-              'epsdt special provision',
-              'exception to policy limitations',
-            ]),
-          ),
-          (section) => section.id,
-        )
+    flags.adultCoverageQuery
+      ? orderEpsdtProvisionSections(uniqueBy(surfacedSections.filter(isEpsdtSpecialProvisionSection), (section) => section.id))
       : [];
   return { epsdtExceptionSections };
 }
@@ -127,38 +121,6 @@ function collectGeneralEligibilityGroups(
     generalEligibilityAdministrativeSections,
     generalEligibilityLimitationSections,
   };
-}
-
-function collectCoverageScopeGroups(
-  surfacedSections: AnswerFrameSection[],
-  flags: CoverageQueryFlags,
-): Pick<CoverageSectionGroups, 'coverageScopeSections'> {
-  const coverageScopeSections = flags.yesNoCoverageQuery
-    ? uniqueBy(
-        surfacedSections.filter((section) => {
-          const text = combineText(section.sectionNumber, section.title, section.content);
-          const sectionNumber = normalizeSearchText(section.sectionNumber);
-          return (
-            !isCoverageProcessTitle(section.title) &&
-            (
-              sectionNumber === '1.0' ||
-              sectionNumber === '2.1.1' ||
-              includesPhrase(text, [
-                'scope',
-                'description',
-                '2.1.1',
-                '1.0',
-                'general provisions',
-                'description of the procedure, product, or service',
-              ])
-            )
-          );
-        }),
-        (section) => section.id,
-      )
-    : [];
-
-  return { coverageScopeSections };
 }
 
 function collectCongregatePcsGroups(

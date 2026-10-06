@@ -1,5 +1,5 @@
 // Coverage answer frames: evidence selection for coverage questions —
-// telehealth/10A aliasing, yes/no scope+not-covered routing, pharmacy
+// telehealth/10A aliasing, yes/no framing on real template policies, pharmacy
 // exclusions, and CAP/DA requirement framing.
 
 import { describe, expect, it } from 'vitest';
@@ -12,6 +12,14 @@ import {
   sectionHit,
   type GraphDocument,
 } from './helpers/graph-fixtures.js';
+import { expectFrameContentInvariant } from './helpers/frame-invariants.js';
+import {
+  TEMPLATE_POLICY_5B,
+  TEMPLATE_POLICY_9,
+  templatePolicyHandlers,
+  templateSection,
+  templateSectionByTitle,
+} from './helpers/template-policy-fixtures.js';
 
 describe('coverage frame', () => {
   it('returns coverage and limiting evidence for service questions', async () => {
@@ -272,60 +280,11 @@ describe('coverage frame', () => {
     expectAllHandlersUsed();
   });
 
-  it('keeps yes/no coverage questions on scope and not-covered sections instead of request attachments', async () => {
-    const DOC_5B: GraphDocument = {
-      id: 'doc-5b',
-      title: 'Orthotics & Prosthetics',
-      documentType: 'clinical_policy',
-      policyNumber: '5B',
-      effectiveDate: '2024-07-15',
-      url: 'https://example.com/5B',
-      sections: [
-        { id: 'sec-5b-info', number: null, title: 'Information:', content: 'Request details for providers.', chars: 200 },
-        {
-          id: 'sec-5b-attach',
-          number: 'Attachment E',
-          title: 'Attachment E: Requesting Unlisted Orthotics and Prosthetics for Adults',
-          content: 'Requesting unlisted orthotics and prosthetics.',
-          chars: 900,
-        },
-        {
-          id: 'sec-5b-211',
-          number: '2.1.1',
-          title: '2.1.1 Description',
-          content: 'This policy covers orthotic and prosthetic devices.',
-          chars: 600,
-        },
-        {
-          id: 'sec-5b-31',
-          number: '3.1',
-          title: '3.1 General Criteria Covered',
-          content: 'Coverage criteria for orthotics and prosthetics under this policy.',
-          chars: 700,
-        },
-        {
-          id: 'sec-5b-41',
-          number: '4.1',
-          title: '4.1 General Criteria Not Covered',
-          content: 'Chiropractic services are not covered under this policy.',
-          chars: 700,
-        },
-        {
-          id: 'sec-5b-42',
-          number: '4.2',
-          title: '4.2 Specific Criteria Not Covered',
-          content: 'Specific criteria not covered under this policy.',
-          chars: 680,
-        },
-        {
-          id: 'sec-5b-421',
-          number: '4.2.1',
-          title: '4.2.1 Specific Criteria Not Covered by Medicaid',
-          content: 'Specific non-covered device criteria.',
-          chars: 650,
-        },
-      ],
-    };
+  it('keeps yes/no coverage questions on the description, the top hits and the criteria sections instead of attachments', async () => {
+    const policy = TEMPLATE_POLICY_5B;
+    const DOC_5B = policy.document;
+    const related = templateSectionByTitle(policy, 'Related Clinical Coverage Policies');
+    const attachment = templateSection(policy, 'Attachment A');
 
     const { corpus, expectAllHandlersUsed } = createCorpus([
       {
@@ -333,17 +292,16 @@ describe('coverage frame', () => {
         match: queries.sectionVector('clinical_policy'),
         result: {
           records: [
-            hitFor(DOC_5B, 'sec-5b-info', 0.97),
-            hitFor(DOC_5B, 'sec-5b-attach', 0.95),
-            hitFor(DOC_5B, 'sec-5b-41', 0.79),
-            hitFor(DOC_5B, 'sec-5b-211', 0.76),
-            hitFor(DOC_5B, 'sec-5b-31', 0.82),
-            hitFor(DOC_5B, 'sec-5b-42', 0.81),
-            hitFor(DOC_5B, 'sec-5b-421', 0.72),
+            hitFor(DOC_5B, related.id, 0.97),
+            hitFor(DOC_5B, attachment.id, 0.95),
+            hitFor(DOC_5B, templateSection(policy, '4.1').id, 0.79),
+            hitFor(DOC_5B, templateSection(policy, '2.1.1').id, 0.76),
+            hitFor(DOC_5B, templateSection(policy, '3.1').id, 0.82),
+            hitFor(DOC_5B, templateSection(policy, '4.2.1').id, 0.72),
           ],
         },
       },
-      ...documentGraphHandlers(DOC_5B),
+      ...templatePolicyHandlers(policy),
     ]);
 
     const frame = await resolveTypedFrame(
@@ -355,47 +313,26 @@ describe('coverage frame', () => {
     expect(frame.authoritativeDocuments[0]?.policyNumber).toBe('5B');
     expect(frame.route.lane).toBe('baseline_hybrid');
     expect(frame.route.determinism_hints.cite_scope_and_not_covered).toBe(true);
-    expect(frame.primarySections.map((section) => section.sectionNumber)).toEqual(expect.arrayContaining(['2.1.1', '4.1']));
-    expect(frame.primarySections.map((section) => section.sectionNumber)).not.toEqual(
-      expect.arrayContaining(['3.1', '4.2']),
+    // The description section, then the two best hits that are not template
+    // criteria sections. The real "2.1.1 General" is enrolment boilerplate and
+    // is here only because search returned it.
+    expect(frame.primarySections.map((section) => section.sectionNumber)).toEqual(['1.0', '3.1', '2.1.1']);
+    expect(frame.supportingSections.map((section) => section.sectionNumber)).toEqual(
+      expect.arrayContaining(['4.1', '4.2.1', '3.2.1']),
     );
-    expect([...frame.primarySections, ...frame.supportingSections].map((section) => section.title)).toEqual(
-      expect.arrayContaining([
-        '2.1.1 Description',
-        '4.1 General Criteria Not Covered',
-        '4.2.1 Specific Criteria Not Covered by Medicaid',
-      ]),
+    expect([...frame.primarySections, ...frame.supportingSections].map((section) => section.title)).not.toEqual(
+      expect.arrayContaining([related.title]),
     );
-    expect(frame.primarySections.map((section) => section.title)).not.toEqual(
-      expect.arrayContaining(['Information:', 'Attachment E: Requesting Unlisted Orthotics and Prosthetics for Adults']),
+    expect([...frame.primarySections, ...frame.supportingSections].map((section) => section.title)).not.toEqual(
+      expect.arrayContaining([attachment.title]),
     );
+    expectFrameContentInvariant(frame);
     expectAllHandlersUsed();
   });
 
   it('routes outpatient pharmacy exclusion questions to Policy 9 instead of Medicare Part D manuals', async () => {
-    const POLICY_9: GraphDocument = {
-      id: 'doc-9',
-      title: 'Outpatient Pharmacy',
-      documentType: 'clinical_policy',
-      policyNumber: '9',
-      effectiveDate: '2025-01-01',
-      url: 'https://example.com/policy-9',
-      sections: [
-        {
-          id: 'sec-9-211',
-          number: '2.1.1',
-          title: '2.1.1 Description of the Procedure, Product, or Service',
-          content: 'The outpatient pharmacy benefit covers prescribed drugs within the NC Medicaid pharmacy program.',
-        },
-        {
-          id: 'sec-9-41',
-          number: '4.1',
-          title: '4.1 General Criteria Not Covered',
-          content:
-            'The procedure, product, or service is not covered when it is experimental, investigational, or part of a clinical trial.',
-        },
-      ],
-    };
+    const policy = TEMPLATE_POLICY_9;
+    const POLICY_9 = policy.document;
     // The Medicare Part D manual is fully hydratable (lookup, sections, and
     // document metadata), so the exclusion assertions below are exercised
     // against a competitor the frame could actually pick — not one that
@@ -421,14 +358,19 @@ describe('coverage frame', () => {
       {
         label: 'vector clinical',
         match: queries.sectionVector('clinical_policy'),
-        result: { records: [hitFor(POLICY_9, 'sec-9-41', 0.72), hitFor(POLICY_9, 'sec-9-211', 0.69)] },
+        result: {
+          records: [
+            hitFor(POLICY_9, templateSection(policy, '4.1').id, 0.72),
+            hitFor(POLICY_9, templateSection(policy, '2.1.1').id, 0.69),
+          ],
+        },
       },
       {
         label: 'vector dhhs',
         match: queries.sectionVector('dhhs_policy'),
         result: { records: [hitFor(MA_2312, 'sec-ma-2312', 0.99)] },
       },
-      ...documentGraphHandlers(POLICY_9),
+      ...templatePolicyHandlers(policy),
       ...documentGraphHandlers(MA_2312),
     ]);
 
@@ -445,9 +387,10 @@ describe('coverage frame', () => {
     // guarantee — Part D manuals excluded outright — holds again.
     expect(frame.authoritativeDocuments.map((document) => document.policyNumber)).toEqual(['9']);
     expect(frame.authoritativeDocuments.map((document) => document.policyNumber)).not.toContain('MA-2312');
-    expect(frame.primarySections.map((section) => section.sectionNumber)).toEqual(expect.arrayContaining(['4.1']));
-    const exclusionSection = frame.primarySections.find((section) => section.sectionNumber === '4.1');
+    expect(frame.primarySections[0]?.sectionNumber).toBe('1.0');
+    const exclusionSection = frame.supportingSections.find((section) => section.sectionNumber === '4.1');
     expect(exclusionSection?.content).toContain('experimental, investigational');
+    expectFrameContentInvariant(frame);
     expectAllHandlersUsed();
   });
 

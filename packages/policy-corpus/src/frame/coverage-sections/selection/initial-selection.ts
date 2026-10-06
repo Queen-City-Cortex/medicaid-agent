@@ -4,7 +4,6 @@ import {
   FRAME_SUPPORT_LIMIT,
   NOT_COVERED_SECTION_TERMS,
   TELEHEALTH_PRIMARY_SECTION_TERMS,
-  YES_NO_COVERAGE_SECTION_TERMS,
   combineText,
   isAdministrativeFormTitle,
   isAttachmentTitle,
@@ -23,7 +22,6 @@ import type { CoverageScoredSection } from './scoring.js';
 
 export interface CoverageInitialSelection {
   primaryLimit: number;
-  yesNoCoveragePrimaryScored: CoverageScoredSection[];
   notCoveredPrimaryScored: CoverageScoredSection[];
   telehealthPrimaryScored: CoverageScoredSection[];
   initialPrimarySections: AnswerFrameSection[];
@@ -65,9 +63,6 @@ export function buildCoverageInitialSelection({
     return true;
   });
 
-  const yesNoCoveragePrimaryScored = flags.yesNoCoverageQuery
-    ? preferredPrimaryScored.filter((entry) => scorePhraseMatches(entry.text, YES_NO_COVERAGE_SECTION_TERMS, 1) > 0)
-    : [];
   const notCoveredPrimaryScored = flags.notCoveredQuery
     ? preferredPrimaryScored.filter(
         (entry) =>
@@ -156,7 +151,6 @@ export function buildCoverageInitialSelection({
 
   return {
     primaryLimit,
-    yesNoCoveragePrimaryScored,
     notCoveredPrimaryScored,
     telehealthPrimaryScored,
     initialPrimarySections,

@@ -1,5 +1,13 @@
 import type { Processor, ProcessInputStepArgs, ProcessInputStepResult } from '@mastra/core/processors';
-import { analyzeQuery, resolveCoverageScope, type AnswerFrame, type AnswerFrameDocument, type AnswerFrameSection } from '@nc-medicaid/policy-corpus';
+import {
+  analyzeQuery,
+  isAdultCoverageQuestion,
+  isEpsdtSpecialProvisionSection,
+  resolveCoverageScope,
+  type AnswerFrame,
+  type AnswerFrameDocument,
+  type AnswerFrameSection,
+} from '@nc-medicaid/policy-corpus';
 import { COVERAGE_VERIFICATION_QUERY } from './coverage-boundary.js';
 import { contentText, latestToolResult, latestUserText, messageParts } from './message-utils.js';
 
@@ -143,6 +151,11 @@ function evaluateRules<C>(rules: ReadonlyArray<ChecklistRule<C>>, ctx: C): Check
   return checklist;
 }
 
+// One wording for the route rule and the coverage rule, so the checklist
+// lists it once when both fire.
+const YES_NO_CITATION_LINE =
+  'For this yes/no coverage question, answer yes or no first and cite the section whose text supports that answer.';
+
 // --- Coverage family --------------------------------------------------------
 
 const TELEHEALTH_SECTION_PHRASES = ['telehealth'];
@@ -198,7 +211,6 @@ const BASELINE_ELIGIBILITY_PHRASES = ['general provisions', '2.1.1'];
 const GENERAL_COVERED_PHRASES = ['3.1', 'general criteria covered'];
 const SPECIFIC_ELIGIBILITY_PHRASES = ['3.2.1', 'specific criteria covered'];
 const ELIGIBILITY_SCOPE_PHRASES = ['18 years of age', 'adult with disabilities', 'risk of institutionalization'];
-const EPSDT_EXCEPTION_PHRASES = ['epsdt special provision', 'exception to policy limitations'];
 const TELEHEALTH_CONDITION_PHRASES = [
   'exposure to others should be avoided',
   'remote or underserved',
@@ -208,7 +220,41 @@ const TELEHEALTH_CONDITION_PHRASES = [
   'increase therapist productivity',
 ];
 const UNDER_21_QUESTION_PHRASES = ['under age 21', 'under 21', 'epsdt'];
-const ADULT_EXCLUSION_NEGATIVE_PHRASES = ['under age 21', 'under 21', 'epsdt', 'child', 'children', 'pediatric'];
+const NOT_COVERED_TITLE_PHRASES = ['not covered', 'non-covered', 'noncovered', 'exclusion'];
+// Words of a coverage question that say nothing about which service is asked.
+const GENERIC_QUESTION_TERMS = new Set([
+  'cover', 'covers', 'covered', 'covering', 'coverage', 'clinical', 'beneficiary', 'beneficiaries', 'benefit', 'benefits',
+  'adult', 'adults', 'under', 'over', 'will', 'would', 'does', 'what', 'need', 'needs', 'they', 'them', 'there', 'anywhere',
+]);
+
+/**
+ * Surfaced sections that state what is not covered, with text: headed as
+ * not-covered criteria or exclusions, or numbered under section 4 of a
+ * clinical coverage policy ("When the Procedure, Product, or Service Is Not
+ * Covered"), whose subsections are often titled by service alone.
+ */
+function notCoveredSectionsOf(frame: AnswerFrame): AnswerFrameSection[] {
+  return unique([...frame.primarySections, ...frame.supportingSections]).filter(
+    (section) =>
+      Boolean(section.content?.trim()) &&
+      (includesAny(normalize(section.title), NOT_COVERED_TITLE_PHRASES) ||
+        (section.documentType === 'clinical_policy' && /^4\.[1-9]/.test(section.sectionNumber ?? ''))),
+  );
+}
+
+/**
+ * Whether any surfaced section uses a word of the question that names the
+ * service: a service-focus term that is not generic and not part of the
+ * document's own title. A rough test, used only to choose between two
+ * checklist lines, both of which tell the model to read the text.
+ */
+function namesAskedService(questionLower: string, frame: AnswerFrame, sections: AnswerFrameSection[]): boolean {
+  const documentWords = normalize(frame.authoritativeDocuments.map((document) => `${document.title} ${document.policyNumber}`).join(' '));
+  const terms = analyzeQuery(questionLower).serviceFocusTerms.filter(
+    (term) => !GENERIC_QUESTION_TERMS.has(term) && !documentWords.includes(term),
+  );
+  return terms.some((term) => sections.some((section) => sectionText(section).includes(term)));
+}
 const CONGREGATE_QUESTION_PHRASES = ['assisted living', 'congregate'];
 const NOT_COVERED_QUESTION_PHRASES = ['not covered', 'not cover'];
 
@@ -226,10 +272,12 @@ function coverageContext(questionLower: string, frame: AnswerFrame) {
     ambulanceNotCoveredQuestion: questionLower.includes('ambulance') && includesAny(questionLower, NOT_COVERED_QUESTION_PHRASES),
     yesNoCoverageQuestion: isYesNoCoverageQuestion(questionLower),
     generalEligibilityQuestion: includesAny(questionLower, ['eligibility criteria', 'general eligibility']),
-    // Local coverage matcher: the shared yes/no regex misses "covered"
-    // phrasing (separate follow-up).
-    adultExclusionQuestion:
-      /\bcover(s|ed|age)?\b/.test(questionLower) && !includesAny(questionLower, ADULT_EXCLUSION_NEGATIVE_PHRASES),
+    // The PolicyCorpus predicate that also gates whether the frame carries
+    // the EPSDT provision: any wording that asks about coverage and is not
+    // already about a child.
+    adultExclusionQuestion: isAdultCoverageQuestion(questionLower),
+    notCoveredSections: notCoveredSectionsOf(frame),
+    serviceNamed: namesAskedService(questionLower, frame, allSections),
     generalSections: matchingSections(allSections, GENERAL_COVERAGE_PHRASES),
     serviceSpecificSections: matchingSections(allSections, SERVICE_SPECIFIC_PHRASES),
     documentationSections: matchingSections(allSections, DOCUMENTATION_PHRASES),
@@ -250,7 +298,10 @@ function coverageContext(questionLower: string, frame: AnswerFrame) {
     generalCoveredSections: matchingSections(allSections, GENERAL_COVERED_PHRASES),
     specificEligibilitySections: matchingSections(allSections, SPECIFIC_ELIGIBILITY_PHRASES),
     eligibilityScopeSections: matchingSections(allSections, ELIGIBILITY_SCOPE_PHRASES),
-    epsdtExceptionSections: matchingSections(allSections, EPSDT_EXCEPTION_PHRASES),
+    // The provision itself, by heading and with text (the shared PolicyCorpus
+    // predicate): a section that only mentions it in its body, such as the
+    // § 4.0 cross-reference note, is not a section to send the model to.
+    epsdtExceptionSections: allSections.filter(isEpsdtSpecialProvisionSection),
   };
 }
 
@@ -259,6 +310,8 @@ type CoverageContext = ReturnType<typeof coverageContext>;
 // Shared branch predicates for rules that belong to the same question theme.
 const inTelehealthBranch = (ctx: CoverageContext): boolean =>
   ctx.questionLower.includes('telehealth') && ctx.telehealthSections.length > 0;
+const asksYesNo = (ctx: CoverageContext): boolean =>
+  ctx.yesNoCoverageQuestion || ctx.frame.route.determinism_hints.cite_scope_and_not_covered;
 const inNotCoveredBranch = (ctx: CoverageContext): boolean =>
   includesAny(ctx.questionLower, NOT_COVERED_QUESTION_PHRASES) && ctx.limitationSections.length > 0;
 const inCongregateBranch = (ctx: CoverageContext): boolean =>
@@ -293,11 +346,38 @@ const COVERAGE_RULES: ReadonlyArray<ChecklistRule<CoverageContext>> = [
       ctx.yesNoCoverageQuestion &&
       ctx.generalSections.length > 0 &&
       ctx.limitationSections.length > 0 &&
+      ctx.notCoveredSections.length === 0 &&
       !includesAny(ctx.questionLower, CONGREGATE_QUESTION_PHRASES),
-    render: (ctx) => [
-      `For this yes/no coverage question, answer yes or no first, then cite both the scope section ${listSections(ctx.generalSections, 1)} and the not-covered section ${listSections(ctx.limitationSections, 1)}.`,
-      'If the surfaced scope or description section shows that this policy governs a different service category than the one asked about, say that plainly, keep the citations on the scope/not-covered sections, and avoid padding the answer with broader criteria that do not change the yes/no result.',
-    ],
+    render: () => YES_NO_CITATION_LINE,
+  },
+  // The not-covered sections are supporting evidence in a coverage frame, so
+  // the plan names them: a "yes, when criteria are met" drafted from the
+  // covered criteria is wrong when the exclusion list names the service.
+  // Pinned, so that the six-item cap cannot drop the one line that points at
+  // the exclusions; it carries the yes/no line with it, which the rules
+  // above and the route rule then leave out.
+  {
+    pinned: true,
+    when: (ctx) =>
+      (asksYesNo(ctx) || ctx.adultExclusionQuestion) &&
+      ctx.notCoveredSections.length > 0 &&
+      !inNotCoveredBranch(ctx) &&
+      !includesAny(ctx.questionLower, CONGREGATE_QUESTION_PHRASES),
+    render: (ctx) => {
+      const sections = `the not-covered section${ctx.notCoveredSections.length === 1 ? '' : 's'} ${listSections(ctx.notCoveredSections)}`;
+      return asksYesNo(ctx)
+        ? `${YES_NO_CITATION_LINE} Before answering yes, read ${sections}. If the asked service is listed there, the answer is no: cite that section.`
+        : `Before saying a service is covered, read ${sections}. If the asked service is listed there, it is not covered: cite that section.`;
+    },
+  },
+  {
+    when: (ctx) =>
+      asksYesNo(ctx) &&
+      ctx.allSections.length > 0 &&
+      !ctx.serviceNamed &&
+      !includesAny(ctx.questionLower, CONGREGATE_QUESTION_PHRASES),
+    render: () =>
+      'No surfaced section appears to name the asked service. If the section text bears that out, cite the description section and say plainly that the policy does not address the service; do not pad the answer with broader criteria that do not change the yes/no result.',
   },
   // Evidence-gated EPSDT-exception directive for ADULT exclusion questions:
   // fires only when the frame actually surfaced the policy's EPSDT
@@ -709,8 +789,13 @@ const ROUTE_RULES: ReadonlyArray<ChecklistRule<RouteContext>> = [
     render: () => 'Answer directly from the current frame before widening further.',
   },
   {
-    when: (ctx) => ctx.frame.route.lane === 'baseline_hybrid' && ctx.frame.route.determinism_hints.cite_scope_and_not_covered,
-    render: () => 'For this yes/no coverage question, answer yes or no first and pair the governing scope section with the not-covered section.',
+    // With not-covered sections in the frame the coverage rules give this
+    // line together with the sections to check.
+    when: (ctx) =>
+      ctx.frame.route.lane === 'baseline_hybrid' &&
+      ctx.frame.route.determinism_hints.cite_scope_and_not_covered &&
+      notCoveredSectionsOf(ctx.frame).length === 0,
+    render: () => YES_NO_CITATION_LINE,
   },
   {
     when: (ctx) => ctx.frame.route.lane === 'baseline_hybrid' && ctx.frame.avoidSections.length > 0,
@@ -824,7 +909,9 @@ function buildPlanMessage(question: PlanQuestion, frame: ResolveAnswerFrameResul
   const lines = [
     PLAN_MARKER,
     // An outline of headings with no text under them is not something to answer from.
-    ...(hasSectionText(frame) ? ['Use the structured frame as the answer outline for this turn.'] : []),
+    ...(hasSectionText(frame)
+      ? ['Use the structured frame as the answer outline for this turn.']
+      : ['The frame carries no section text. Retrieve the governing sections (searchSections, getSection) before answering.']),
     'Start with the answer itself, not a search log.',
     'Do not say what tools you called, what you searched for, or what you plan to do next unless the missing evidence materially limits the conclusion.',
     `Route: ${frame.route.lane} (${frame.route.rationale}); widening policy: ${frame.route.widening_policy}.`,

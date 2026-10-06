@@ -39,4 +39,6 @@ export {
 export { classifyJev, validateJevResponse, JevError, JEV_MODEL, type JevQuestion, type JevResponse } from './jev/client.js';
 export { isValidatedJevRelease, jevCorpusIdentity, sectionRoleAllowlist, type SectionRoles } from './jev/section-roles.js';
 export { analyzeQuery } from './query/analysis.js';
+export { isEpsdtSpecialProvisionSection } from './frame/coverage-sections/structure.js';
+export { isAdultCoverageQuestion } from './frame/coverage-sections/candidates.js';
 export { sectionRoleHeuristics } from './jev/heuristics.js';

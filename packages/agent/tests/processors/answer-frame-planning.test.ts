@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { analyzeQuery } from '@nc-medicaid/policy-corpus';
+import { analyzeQuery, isAdultCoverageQuestion } from '@nc-medicaid/policy-corpus';
 import { AnswerFramePlanningProcessor } from '../../src/processors/answer-frame-planning.js';
 import { COVERAGE_VERIFICATION_QUERY } from '../../src/processors/coverage-boundary.js';
 import {
   type FrameFixture,
+  TEMPLATE_5B_SECTIONS,
+  TEMPLATE_8C_SECTIONS,
   makeDocument,
   makeFrame,
   makeRoute,
@@ -521,9 +523,11 @@ describe('AnswerFramePlanningProcessor', () => {
     expect(result?.systemMessages?.[0]?.content).toContain('the current dollar amounts were not verified in the surfaced evidence');
   });
 
-  it('adds yes/no coverage guidance to cite both scope and not-covered sections', () => {
+  it('tells a yes/no coverage answer to cite the section that supports it, or the description when the service is outside the policy', () => {
     const processor = new AnswerFramePlanningProcessor();
 
+    // Policy 5B as the frame now returns it: the real description section
+    // leads and the template not-covered section supports.
     const result = processor.processInputStep!(
       makeFrameArgs(
         'Does NC Medicaid cover chiropractic services under Clinical Coverage Policy 5B?',
@@ -540,32 +544,39 @@ describe('AnswerFramePlanningProcessor', () => {
           ],
           primarySections: [
             sec5b({
-              id: 'sec-41',
-              title: '4.1 General Criteria Not Covered',
-              sectionNumber: '4.1',
-              content: 'Chiropractic services are not covered under this policy.',
-              reason: 'Not-covered section.',
+              id: 'sec-10',
+              title: '1.0 Description of the Procedure, Product, or Service',
+              sectionNumber: '1.0',
+              content:
+                "Orthotic and prosthetic devices are covered by NC Medicaid (Medicaid) when they are prescribed by the beneficiary's treating physician, physician's assistant, or nurse practitioner and medical necessity is documented.",
+              reason: 'Description section of the policy for the yes/no coverage question.',
             }),
           ],
           supportingSections: [
             sec5b({
-              id: 'sec-211',
-              title: '2.1.1 Description',
-              sectionNumber: '2.1.1',
-              content: 'This policy covers orthotic and prosthetic devices.',
-              reason: 'Scope section.',
+              id: 'sec-41',
+              title: '4.1 General Criteria Not Covered',
+              sectionNumber: '4.1',
+              content:
+                'Medicaid shall not cover the procedure, product, or service related to this policy when: the beneficiary does not meet the eligibility requirements listed in Section 2.0;',
+              reason: 'Covered or not-covered criteria section of the policy for the yes/no coverage question.',
             }),
           ],
         }),
       ),
     );
 
-    expect(result?.systemMessages?.[0]?.content).toContain('answer yes or no first');
-    expect(result?.systemMessages?.[0]?.content).toContain('scope section');
-    expect(result?.systemMessages?.[0]?.content).toContain('not-covered section');
-    expect(result?.systemMessages?.[0]?.content).toContain('pair the governing scope section with the not-covered section');
-    expect(result?.systemMessages?.[0]?.content).toContain('governs a different service category than the one asked about');
-    expect(result?.systemMessages?.[0]?.content).toContain('keep the citations on the scope/not-covered sections');
+    const plan = result?.systemMessages?.[0]?.content ?? '';
+    // One line carries the yes/no rule and the section to check before a yes;
+    // the route rule and the coverage rule do not repeat it.
+    expect(checklistLines(plan).filter((line) => line.includes('answer yes or no first'))).toEqual([
+      '- For this yes/no coverage question, answer yes or no first and cite the section whose text supports that answer. Before answering yes, read the not-covered section § 4.1. If the asked service is listed there, the answer is no: cite that section.',
+    ]);
+    // "chiropractic" is in neither section, so the outside-the-policy line is offered, as a condition.
+    expect(plan).toContain(
+      'No surfaced section appears to name the asked service. If the section text bears that out, cite the description section and say plainly that the policy does not address the service',
+    );
+    expect(plan).not.toContain('scope section');
   });
 
   it('adds congregate PCS guidance for assisted-living coverage questions', () => {
@@ -992,6 +1003,8 @@ describe('AnswerFramePlanningProcessor', () => {
     '§ 2.2.1 EPSDT Special Provision: Exception to Policy Limitations for a Medicaid Beneficiary under 21 Years of Age';
   const START_WITH_LINE = `- Start with the governing coverage rule from § 2.1.1 Description of the Procedure, Product, or Service; § 4.1 General Criteria Not Covered; ${EPSDT_SECTION_LABEL} before lower-level details.`;
   const EPSDT_LINE = `- The frame surfaced an EPSDT special-provision section (${EPSDT_SECTION_LABEL}). Before finalizing a no-coverage conclusion for adults, read that section and state what it says about beneficiaries under 21, citing it. Do not assert what the exception allows beyond that section's text.`;
+  const YES_NO_CHECK_LINE =
+    '- For this yes/no coverage question, answer yes or no first and cite the section whose text supports that answer. Before answering yes, read the not-covered section § 4.1 General Criteria Not Covered. If the asked service is listed there, the answer is no: cite that section.';
   const NUMERIC_EVIDENCE_LINES = [
     '- State only numbers, thresholds, dates, and change markers that appear directly in surfaced evidence.',
     '- Do not reconstruct charts, infer updated math, or fill in missing numeric tables from context.',
@@ -1007,15 +1020,15 @@ describe('AnswerFramePlanningProcessor', () => {
     // The router's real route for this question, not the fixture default.
     expect(plan).toContain('Route: baseline_hybrid (single_document_coverage)');
     expect(plan).toContain('Do not lead with: § Attachment A');
-    // Eight items are candidates here; the pinned EPSDT directive keeps its
-    // place and the cap removes later unpinned items instead.
+    // Two pinned items (the not-covered check and the EPSDT directive) and
+    // four unpinned ones: all fit under the cap.
     expect(checklistLines(plan)).toEqual([
       '- Answer directly from the current frame before widening further.',
-      '- For this yes/no coverage question, answer yes or no first and pair the governing scope section with the not-covered section.',
       '- Keep attachments, request-process instructions, and other procedural sections secondary unless the user asked for them.',
       START_WITH_LINE,
-      '- For this yes/no coverage question, answer yes or no first, then cite both the scope section § 2.1.1 Description of the Procedure, Product, or Service and the not-covered section § 4.1 General Criteria Not Covered.',
+      YES_NO_CHECK_LINE,
       EPSDT_LINE,
+      '- Do not lead with attachments, forms, or request-process sections unless the user explicitly asked for them.',
     ]);
     expect(plan).toContain('EPSDT special-provision section');
     expect(plan).toContain('2.2.1');
@@ -1050,18 +1063,170 @@ describe('AnswerFramePlanningProcessor', () => {
     const first = checklistLines(processor.processInputStep!(makeFrameArgs(question, scopedFrame))?.systemMessages?.[0]?.content);
     const second = checklistLines(processor.processInputStep!(makeFrameArgs(question, scopedFrame))?.systemMessages?.[0]?.content);
 
-    // Six pinned items fill the cap, so no unpinned item is added.
-    expect(first).toEqual(['- Test scope notice.', '- Test scope requirement.', ...NUMERIC_EVIDENCE_LINES, EPSDT_LINE]);
+    // Seven pinned items: pinned items are never dropped, so the list runs
+    // one past the cap and no unpinned item is added.
+    expect(first).toEqual(['- Test scope notice.', '- Test scope requirement.', ...NUMERIC_EVIDENCE_LINES, YES_NO_CHECK_LINE, EPSDT_LINE]);
     expect(second).toEqual(first);
-    // Without the scope items two unpinned slots open, filled in rule order
-    // around the pinned items rather than after them.
+    // Without the scope items one unpinned slot opens, filled in rule order
+    // around the pinned items rather than after them. The pinned not-covered
+    // check takes the slot the "Start with" line had.
     expect(checklistLines(processor.processInputStep!(makeFrameArgs(question, frame))?.systemMessages?.[0]?.content)).toEqual([
       ...NUMERIC_EVIDENCE_LINES,
       '- Do not widen beyond the current structured frame for extra numeric details. Finalize from the verified evidence you already have.',
-      START_WITH_LINE,
+      YES_NO_CHECK_LINE,
       EPSDT_LINE,
     ]);
   });
+
+  // Frames built from real template-policy sections (see the fixtures file).
+  function templateFrameArgs(question: string, frame: Pick<FrameFixture, 'primarySections' | 'supportingSections'>) {
+    return makeFrameArgs(question, makeFrame({ route: analyzeQuery(question).route, ...frame }));
+  }
+
+  const CHIROPRACTIC_5B = 'Does NC Medicaid cover chiropractic services under Clinical Coverage Policy 5B?';
+  const ACUPUNCTURE_8C = 'Is acupuncture a covered service under Clinical Coverage Policy 8C (Outpatient Behavioral Health)?';
+
+  it('sends the model to section 2.2.1 for the under-21 exception, and never to the § 4.0 note', () => {
+    const processor = new AnswerFramePlanningProcessor();
+    const { description, epsdtProvision, generalNotCovered, notCovered } = TEMPLATE_5B_SECTIONS;
+
+    // The § 4.0 note is listed ahead of the provision, as a search hit would be.
+    const plan =
+      processor.processInputStep!(
+        templateFrameArgs(CHIROPRACTIC_5B, {
+          primarySections: [description, notCovered],
+          supportingSections: [epsdtProvision, generalNotCovered],
+        }),
+      )?.systemMessages?.[0]?.content ?? '';
+
+    expect(plan).toContain('The frame surfaced an EPSDT special-provision section (§ 2.2.1). Before finalizing');
+    expect(plan).not.toContain('special-provision section (§ 4.0');
+  });
+
+  it('does not take the 3.0, 4.0, 5.0 or 7.0 notes for the provision when they are all the frame holds', () => {
+    const processor = new AnswerFramePlanningProcessor();
+    const { description, covered, notCovered, requirements, additional, generalNotCovered } = TEMPLATE_5B_SECTIONS;
+
+    const plan =
+      processor.processInputStep!(
+        templateFrameArgs(CHIROPRACTIC_5B, {
+          primarySections: [description, notCovered],
+          supportingSections: [covered, requirements, additional, generalNotCovered],
+        }),
+      )?.systemMessages?.[0]?.content ?? '';
+
+    // Each note says "Refer to Subsection 2.2.1 regarding EPSDT Exception to
+    // Policy Limitations"; none of them is a section to read for the exception.
+    expect(String(notCovered.content)).toContain('EPSDT Exception to Policy Limitations');
+    expect(plan).not.toContain('EPSDT special-provision section');
+  });
+
+  it('names the "42 U.S.C. § 1396d(r)" heading by its title when section 2.2.1 is empty', () => {
+    const processor = new AnswerFramePlanningProcessor();
+    const { description, emptyEpsdtProvision, epsdtStatute, generalNotCovered, notCovered } = TEMPLATE_8C_SECTIONS;
+
+    const plan =
+      processor.processInputStep!(
+        templateFrameArgs(ACUPUNCTURE_8C, {
+          primarySections: [description, notCovered],
+          supportingSections: [emptyEpsdtProvision, epsdtStatute, generalNotCovered],
+        }),
+      )?.systemMessages?.[0]?.content ?? '';
+
+    expect(plan).toContain(
+      'The frame surfaced an EPSDT special-provision section (a. 42 U.S.C. § 1396d(r) [1905(r) of the Social Security Act]).',
+    );
+    expect(plan).not.toContain('special-provision section (§ 2.2.1');
+    expect(plan).not.toContain('special-provision section (§ 4.0');
+  });
+
+  const doc8c = makeDocument({
+    id: 'doc-8c',
+    title: 'Outpatient Behavioral Health Services Provided by Direct-Enrolled Providers',
+    policyNumber: '8C',
+  });
+  const frame8c = (question: string): FrameFixture =>
+    makeFrame({
+      route: analyzeQuery(question).route,
+      authoritativeDocuments: [doc8c],
+      primarySections: [TEMPLATE_8C_SECTIONS.description, TEMPLATE_8C_SECTIONS.specificCovered],
+      supportingSections: [
+        TEMPLATE_8C_SECTIONS.epsdtStatute,
+        TEMPLATE_8C_SECTIONS.generalNotCovered,
+        TEMPLATE_8C_SECTIONS.behavioralHealthNotCovered,
+      ],
+    });
+  const CHECK_8C =
+    '- For this yes/no coverage question, answer yes or no first and cite the section whose text supports that answer. Before answering yes, read the not-covered sections § 4.1; § 4.2.1.1. If the asked service is listed there, the answer is no: cite that section.';
+  const NOT_NAMED_LINE =
+    '- No surfaced section appears to name the asked service. If the section text bears that out, cite the description section and say plainly that the policy does not address the service; do not pad the answer with broader criteria that do not change the yes/no result.';
+  const EPSDT_STATUTE_LINE =
+    "- The frame surfaced an EPSDT special-provision section (a. 42 U.S.C. § 1396d(r) [1905(r) of the Social Security Act]). Before finalizing a no-coverage conclusion for adults, read that section and state what it says about beneficiaries under 21, citing it. Do not assert what the exception allows beyond that section's text.";
+  const START_8C =
+    '- Start with the governing coverage rule from § 1.0; a. 42 U.S.C. § 1396d(r) [1905(r) of the Social Security Act]; § 4.1 before lower-level details.';
+
+  it('names the not-covered sections to read before a yes when one of them excludes the asked service', () => {
+    // Policy 8C § 4.2.1.1 lists "sleep therapy for psychiatric disorders";
+    // the covered criteria in § 3.2.1.1 would otherwise support a "yes".
+    const question = 'Does Medicaid cover sleep therapy for psychiatric disorders?';
+    expect(String(TEMPLATE_8C_SECTIONS.behavioralHealthNotCovered.content)).toContain('sleep therapy for psychiatric disorders');
+
+    const plan = new AnswerFramePlanningProcessor().processInputStep!(makeFrameArgs(question, frame8c(question)))?.systemMessages?.[0]?.content;
+
+    expect(checklistLines(plan)).toEqual([
+      '- Answer directly from the current frame before widening further.',
+      START_8C,
+      CHECK_8C,
+      EPSDT_STATUTE_LINE,
+    ]);
+    expect(String(plan)).not.toContain('does not address');
+  });
+
+  it('offers "the policy does not address it" only when no surfaced section names the service', () => {
+    const plan = new AnswerFramePlanningProcessor().processInputStep!(makeFrameArgs(ACUPUNCTURE_8C, frame8c(ACUPUNCTURE_8C)))?.systemMessages?.[0]?.content;
+
+    expect(checklistLines(plan)).toEqual([
+      '- Answer directly from the current frame before widening further.',
+      START_8C,
+      CHECK_8C,
+      NOT_NAMED_LINE,
+      EPSDT_STATUTE_LINE,
+    ]);
+  });
+
+  it('gives the not-covered check and the EPSDT directive to a coverage question that is not a leading yes/no', () => {
+    const question = 'What does Medicaid cover for acupuncture?';
+    const { description, epsdtProvision, specificNotCovered, generalNotCovered } = TEMPLATE_5B_SECTIONS;
+    const frame = makeFrame({
+      route: analyzeQuery(question).route,
+      authoritativeDocuments: [makeDocument({ id: 'doc-5b', title: 'Orthotics & Prosthetics', policyNumber: '5B' })],
+      primarySections: [description],
+      supportingSections: [epsdtProvision, specificNotCovered, generalNotCovered],
+    });
+    expect(frame.route?.determinism_hints.cite_scope_and_not_covered).toBe(false);
+
+    const plan = new AnswerFramePlanningProcessor().processInputStep!(makeFrameArgs(question, frame))?.systemMessages?.[0]?.content;
+
+    expect(checklistLines(plan)).toEqual([
+      '- Answer directly from the current frame before widening further.',
+      '- Start with the governing coverage rule from § 1.0; § 2.2.1; § 4.1 before lower-level details.',
+      '- Before saying a service is covered, read the not-covered sections § 4.2.1; § 4.1. If the asked service is listed there, it is not covered: cite that section.',
+      "- The frame surfaced an EPSDT special-provision section (§ 2.2.1). Before finalizing a no-coverage conclusion for adults, read that section and state what it says about beneficiaries under 21, citing it. Do not assert what the exception allows beyond that section's text.",
+    ]);
+  });
+
+  it.each(['Would Medicaid cover a gym membership?', 'My mom needs dentures, are they covered?'])(
+    'gives the EPSDT directive for the adult coverage wording PolicyCorpus surfaces the provision for: %s',
+    (question) => {
+      const { description, epsdtProvision, generalNotCovered } = TEMPLATE_5B_SECTIONS;
+      const plan = new AnswerFramePlanningProcessor().processInputStep!(
+        templateFrameArgs(question, { primarySections: [description], supportingSections: [epsdtProvision, generalNotCovered] }),
+      )?.systemMessages?.[0]?.content;
+
+      expect(isAdultCoverageQuestion(question.toLowerCase())).toBe(true);
+      expect(String(plan)).toContain('The frame surfaced an EPSDT special-provision section (§ 2.2.1).');
+    },
+  );
 
   it('omits the EPSDT directive when no EPSDT section is surfaced', () => {
     const processor = new AnswerFramePlanningProcessor();
@@ -1087,7 +1252,7 @@ describe('AnswerFramePlanningProcessor', () => {
 describe('AnswerFramePlanningProcessor question source and empty frames', () => {
   const OUTLINE_LINE = 'Use the structured frame as the answer outline for this turn.';
   const YES_NO_LINE =
-    '- For this yes/no coverage question, answer yes or no first, then cite both the scope section § 2.1.1 Description of the Procedure, Product, or Service and the not-covered section § 4.1 General Criteria Not Covered.';
+    '- For this yes/no coverage question, answer yes or no first and cite the section whose text supports that answer. Before answering yes, read the not-covered section § 4.1 General Criteria Not Covered. If the asked service is listed there, the answer is no: cite that section.';
   const NUMERIC_LINE = '- State only numbers, thresholds, dates, and change markers that appear directly in surfaced evidence.';
   const sec10a = sectionMaker({ documentId: 'doc-10a', documentTitle: 'Outpatient Specialized Therapies', policyNumber: '10A' });
 
@@ -1160,6 +1325,7 @@ describe('AnswerFramePlanningProcessor question source and empty frames', () => 
     const withText = plan(makeFrameArgs(question, therapyFrame(question)));
     expect(withText).toContain(OUTLINE_LINE);
     expect(withText).toContain('- Answer directly from the current frame before widening further.');
+    expect(withText).not.toContain('The frame carries no section text.');
 
     for (const frame of [
       // Sections listed with empty or missing text, and no sections at all.
@@ -1171,6 +1337,8 @@ describe('AnswerFramePlanningProcessor question source and empty frames', () => 
       expect(empty).toContain('Preferred sources: 10A (Outpatient Specialized Therapies).');
       expect(empty).not.toContain(OUTLINE_LINE);
       expect(empty).not.toContain('Answer directly from');
+      // With nothing to answer from, the plan says to retrieve first.
+      expect(empty).toContain('The frame carries no section text. Retrieve the governing sections (searchSections, getSection) before answering.');
     }
   });
 

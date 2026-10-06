@@ -12,14 +12,11 @@ import {
 } from '../../../internal/shared.js';
 import type { CoverageQueryFlags } from '../candidates.js';
 import type { CoverageScoredSection } from './scoring.js';
-import type { CoverageSectionGroups } from './groups.js';
 import type { CoverageInitialSelection } from './initial-selection.js';
 
 // --- Stage 4: anchors ---------------------------------------------------------
 
 export interface CoverageAnchorSets {
-  yesNoCoverageAnchorSections: AnswerFrameSection[];
-  yesNoCoverageScopeAnchorSections: AnswerFrameSection[];
   notCoveredAnchorSections: AnswerFrameSection[];
   limitationAnchorSections: AnswerFrameSection[];
   ambulanceSpecificNotCoveredSections: AnswerFrameSection[];
@@ -30,17 +27,15 @@ export interface CoverageAnchorSets {
 
 export function buildCoverageAnchors({
   surfacedSections,
-  groups,
   flags,
   selection,
 }: {
   surfacedSections: AnswerFrameSection[];
-  groups: CoverageSectionGroups;
   flags: CoverageQueryFlags;
   selection: CoverageInitialSelection;
 }): CoverageAnchorSets {
   const generalLimitationPrimaryScored =
-    flags.yesNoCoverageQuery || flags.notCoveredQuery
+    flags.notCoveredQuery
       ? uniqueBy(
           surfacedSections
             .filter((section) => {
@@ -75,7 +70,7 @@ export function buildCoverageAnchors({
         )
       : [];
   const specificLimitationPrimaryScored =
-    flags.yesNoCoverageQuery || flags.notCoveredQuery
+    flags.notCoveredQuery
       ? uniqueBy(
           surfacedSections
             .filter((section) => {
@@ -107,42 +102,28 @@ export function buildCoverageAnchors({
           (entry) => entry.section.id,
         )
       : [];
-  const yesNoCoverageAnchorSections = flags.yesNoCoverageQuery
-    ? selection.yesNoCoveragePrimaryScored
-        .sort((left, right) => right.primaryScore - left.primaryScore)
-        .slice(0, selection.primaryLimit)
-        .map((entry) => entry.section)
-    : [];
-  const yesNoCoverageScopeAnchorSections = flags.yesNoCoverageQuery
-    ? selection.yesNoCoveragePrimaryScored
-        .filter((entry) => groups.coverageScopeSections.some((section) => section.id === entry.section.id))
-        .sort((left, right) => right.primaryScore - left.primaryScore)
-        .slice(0, 1)
-        .map((entry) => entry.section)
-    : [];
   const notCoveredAnchorSections = flags.notCoveredQuery
     ? selection.notCoveredPrimaryScored
         .sort((left, right) => right.supportScore - left.supportScore)
         .slice(0, selection.primaryLimit)
         .map((entry) => entry.section)
     : [];
-  const generalLimitationAnchorSections = (flags.yesNoCoverageQuery || flags.notCoveredQuery)
+  const generalLimitationAnchorSections = flags.notCoveredQuery
     ? generalLimitationPrimaryScored
         .sort((left, right) => right.supportScore - left.supportScore)
         .slice(0, 1)
         .map((entry) => entry.section)
     : [];
-  const specificLimitationAnchorSections = (flags.yesNoCoverageQuery || flags.notCoveredQuery)
+  const specificLimitationAnchorSections = flags.notCoveredQuery
     ? specificLimitationPrimaryScored
         .sort((left, right) => right.supportScore - left.supportScore)
         .slice(0, 1)
         .map((entry) => entry.section)
     : [];
-  const limitationAnchorSections = flags.notCoveredQuery
-    ? uniqueBy([...specificLimitationAnchorSections, ...generalLimitationAnchorSections], (section) => section.id)
-    : flags.yesNoCoverageQuery
-      ? uniqueBy([...generalLimitationAnchorSections, ...specificLimitationAnchorSections], (section) => section.id).slice(0, 1)
-      : [];
+  const limitationAnchorSections = uniqueBy(
+    [...specificLimitationAnchorSections, ...generalLimitationAnchorSections],
+    (section) => section.id,
+  );
   const ambulanceSpecificNotCoveredSections = flags.ambulanceNotCoveredQuery
     ? uniqueBy(
         surfacedSections.filter((section) => {
@@ -182,8 +163,6 @@ export function buildCoverageAnchors({
     : null;
 
   return {
-    yesNoCoverageAnchorSections,
-    yesNoCoverageScopeAnchorSections,
     notCoveredAnchorSections,
     limitationAnchorSections,
     ambulanceSpecificNotCoveredSections,

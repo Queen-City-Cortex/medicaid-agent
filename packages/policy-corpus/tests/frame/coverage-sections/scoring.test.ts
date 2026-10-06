@@ -22,6 +22,8 @@ function makeFlags(overrides: Partial<CoverageQueryFlags> = {}): CoverageQueryFl
     ambulanceNotCoveredQuery: false,
     congregatePcsQuery: false,
     yesNoCoverageQuery: false,
+    pediatricQuery: false,
+    adultCoverageQuery: false,
     hcwdIncomePremiumQuery: false,
     earnedIncomeLimitQuery: false,
     telehealthAvoidTerms: [],

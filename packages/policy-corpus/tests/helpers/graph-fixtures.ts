@@ -354,6 +354,8 @@ export const queries = {
 export interface SessionHandler {
   match: QueryMatcher;
   result?: { records: StubRecord[] };
+  /** Builds the result from the query's parameters, for a query whose rows depend on them. */
+  respond?: (params: MockQueryParams) => { records: StubRecord[] };
   error?: Error;
   /**
    * Generated convenience handlers (documentGraphHandlers) may legitimately
@@ -385,6 +387,7 @@ export function createCorpus(handlers: SessionHandler[]): CorpusStub {
       if (!handler) return { records: [] };
       used.add(handler);
       if (handler.error) throw handler.error;
+      if (handler.respond) return handler.respond(params);
       return handler.result ?? { records: [] };
     }),
   };

@@ -4,11 +4,25 @@ import type { FrameContext } from '../context.js';
 import { selectAnswerRoute } from '../../internal/answer-routing.js';
 import { buildPolicyVariantFrameForDocuments } from './policy-variant.js';
 import { rebalanceCoverageFrame } from '../rebalance/coverage.js';
-import { buildCoverageQueryFlags, collectCoverageDocumentHydratedCandidates } from '../coverage-sections/candidates.js';
+import {
+  buildCoverageQueryFlags,
+  collectCoverageDocumentHydratedCandidates,
+  collectYesNoStructuralCandidates,
+  hasCoverageTheme,
+  type YesNoStructuralCandidates,
+} from '../coverage-sections/candidates.js';
+import {
+  hasPolicyTemplateSections,
+  hasSubstantiveText,
+  isEpsdtCrossReferenceNote,
+  isEpsdtProvisionHeading,
+  isYesNoSupportingTemplateSection,
+} from '../coverage-sections/structure.js';
 import {
   COVERAGE_AVOID_TERMS,
   COVERAGE_PRIMARY_TERMS,
   COVERAGE_SUPPORT_TERMS,
+  FRAME_AVOID_LIMIT,
   FRAME_PRIMARY_LIMIT,
   FRAME_SUPPORT_LIMIT,
   HCWD_INCOME_RULE_TERMS,
@@ -18,12 +32,17 @@ import {
   extractDocumentView,
   extractTitleClusterTerms,
   includesPhrase,
+  isAttachmentTitle,
+  isBoilerplateTitle,
+  isGenericSectionTitle,
   looksLikeSiblingPolicySet,
   normalizeSearchText,
   selectSettingPreferredDocuments,
   scoreTermMatches,
   uniqueBy,
   type DocumentCandidate,
+  type HydratedSectionCandidate,
+  type SectionCandidate,
 } from '../../internal/shared.js';
 
 interface CoverageSeedHits {
@@ -129,6 +148,167 @@ function selectCoverageSeedHits({
   return { candidateHits, limitationHits, primarySeedHits, serviceClusterTerms };
 }
 
+interface CoverageCandidateSets {
+  primaryCandidates: SectionCandidate[];
+  supportingCandidates: SectionCandidate[];
+}
+
+// Yes/no question on a template policy: the description section leads, chosen
+// by structure; the top search hits within the policy follow in score order
+// and are read with their text; the template not-covered and covered sections
+// (4.1, 4.2.1, 3.2.1) support. Nothing here looks at a section's body.
+function buildYesNoCandidates({
+  context,
+  structural,
+  documentPrimaryHydrated,
+  documentSupportingHydrated,
+  candidateHits,
+  avoidTitleHits,
+  limitationCandidates,
+  themed,
+}: {
+  context: FrameContext;
+  structural: YesNoStructuralCandidates;
+  documentPrimaryHydrated: HydratedSectionCandidate[];
+  documentSupportingHydrated: HydratedSectionCandidate[];
+  candidateHits: CorpusRetrievalHit[];
+  avoidTitleHits: CorpusRetrievalHit[];
+  limitationCandidates: SectionCandidate[];
+  /** The question has a theme whose rebalance branch ranks the title-matched profile sections. */
+  themed: boolean;
+}): CoverageCandidateSets {
+  const avoidTitleHitIds = new Set(avoidTitleHits.map((hit) => hit.sectionId));
+  const rankedHits = candidateHits
+    .filter(
+      (hit) =>
+        !avoidTitleHitIds.has(hit.sectionId) &&
+        // The EPSDT provision is supporting evidence, offered by its profile.
+        !isEpsdtProvisionHeading({ sectionNumber: hit.sectionNumber, title: hit.sectionTitle }) &&
+        // Nor is a section whose whole text is the note that points to it.
+        !isEpsdtCrossReferenceNote(hit) &&
+        !isAttachmentTitle(hit.sectionTitle) &&
+        !isGenericSectionTitle(hit.sectionTitle) &&
+        !isBoilerplateTitle(hit.sectionTitle) &&
+        !normalizeSearchText(hit.sectionTitle).includes('requesting '),
+    )
+    .map((hit, index) => ({ hit, index }))
+    .sort((left, right) => right.hit.score - left.hit.score || left.index - right.index)
+    .map(({ hit }) => hit);
+  const toCandidate = (hit: CorpusRetrievalHit): SectionCandidate => ({
+    sectionId: hit.sectionId,
+    reason: 'Search hit within the policy for the yes/no coverage question.',
+  });
+  const topHitCandidates = rankedHits.filter((hit) => !isYesNoSupportingTemplateSection(hit)).map(toCandidate);
+  // A template section that is itself a hit is read last among the primary
+  // candidates: rebalance lists it as supporting, and it leads only when the
+  // policy offers no description and no other hit.
+  const templateHitCandidates = rankedHits.filter((hit) => isYesNoSupportingTemplateSection(hit)).map(toCandidate);
+  const profilePrimaryCandidates = context.toSectionCandidates(
+    documentPrimaryHydrated.filter((candidate) => !isYesNoSupportingTemplateSection(candidate.section)),
+  );
+  const profileSupportingCandidates = context.toSectionCandidates(documentSupportingHydrated);
+  return {
+    primaryCandidates: uniqueBy(
+      [
+        ...context.toSectionCandidates(structural.descriptionHydrated),
+        // Title-matched profile sections are read ahead of the hits only for
+        // a themed question; otherwise they would crowd the hits out again.
+        ...(themed ? profilePrimaryCandidates : []),
+        ...topHitCandidates,
+        ...(themed ? [] : profilePrimaryCandidates),
+        ...templateHitCandidates,
+      ],
+      (candidate) => candidate.sectionId,
+    ).slice(0, FRAME_PRIMARY_LIMIT * 2),
+    supportingCandidates: uniqueBy(
+      [
+        ...context.toSectionCandidates(documentSupportingHydrated.filter((candidate) => isEpsdtProvisionHeading(candidate.section))),
+        // As with the primary candidates: a themed question reads its
+        // profile sections before the template criteria sections.
+        ...(themed ? profileSupportingCandidates : []),
+        ...context.toSectionCandidates(structural.templateSupportingHydrated),
+        ...(themed ? [] : profileSupportingCandidates),
+        ...topHitCandidates,
+        ...limitationCandidates,
+      ],
+      (candidate) => candidate.sectionId,
+    ).slice(0, FRAME_SUPPORT_LIMIT * 4),
+  };
+}
+
+function buildServiceCandidates({
+  context,
+  documentPrimaryHydrated,
+  documentSupportingHydrated,
+  candidateHits,
+  limitationHits,
+  limitationCandidates,
+  primarySeedHits,
+  serviceFocusTerms,
+  serviceClusterTerms,
+}: {
+  context: FrameContext;
+  documentPrimaryHydrated: HydratedSectionCandidate[];
+  documentSupportingHydrated: HydratedSectionCandidate[];
+  candidateHits: CorpusRetrievalHit[];
+  limitationHits: CorpusRetrievalHit[];
+  limitationCandidates: SectionCandidate[];
+  primarySeedHits: CorpusRetrievalHit[];
+  serviceFocusTerms: string[];
+  serviceClusterTerms: string[];
+}): CoverageCandidateSets {
+  const primaryCandidateLimit = serviceFocusTerms.length > 0 ? 2 : FRAME_PRIMARY_LIMIT * 2;
+  const numberedClusteredSupportingCandidates = serviceClusterTerms.length === 0
+    ? []
+    : buildSectionCandidates(
+        candidateHits.filter((hit) => hit.sectionNumber && scoreTermMatches(serviceClusterTerms, hit.sectionTitle) >= 2),
+        serviceClusterTerms,
+        [],
+        FRAME_SUPPORT_LIMIT * 4,
+        'Supporting numbered section from the same service cluster.',
+      );
+  const clusteredSupportingCandidates = serviceClusterTerms.length === 0
+    ? []
+    : buildSectionCandidates(
+        candidateHits.filter((hit) => scoreTermMatches(serviceClusterTerms, hit.sectionTitle) >= 2),
+        serviceClusterTerms,
+        [],
+        FRAME_SUPPORT_LIMIT * 4,
+        'Supporting section from the same service cluster.',
+      );
+  return {
+    primaryCandidates: uniqueBy(
+      [
+        ...context.toSectionCandidates(documentPrimaryHydrated),
+        ...buildSectionCandidates(
+          primarySeedHits,
+          COVERAGE_PRIMARY_TERMS,
+          COVERAGE_AVOID_TERMS,
+          primaryCandidateLimit,
+          'Primary coverage evidence.',
+        ),
+      ],
+      (candidate) => candidate.sectionId,
+    ).slice(0, FRAME_PRIMARY_LIMIT * 2),
+    supportingCandidates: uniqueBy(
+      [
+        ...context.toSectionCandidates(documentSupportingHydrated),
+        ...limitationCandidates,
+        ...numberedClusteredSupportingCandidates,
+        ...clusteredSupportingCandidates,
+        ...buildSectionCandidates(
+          [...limitationHits, ...candidateHits],
+          [...COVERAGE_SUPPORT_TERMS, ...serviceClusterTerms],
+          PRIOR_AUTH_AVOID_TERMS,
+          FRAME_SUPPORT_LIMIT * 4,
+          'Supporting limitation or documentation evidence.',
+        ),
+      ],
+      (candidate) => candidate.sectionId,
+    ).slice(0, FRAME_SUPPORT_LIMIT * 4),
+  };
+}
+
 export async function resolveCoverageFrame(
   context: FrameContext,
   analysis: QueryAnalysis,
@@ -183,6 +363,14 @@ export async function resolveCoverageFrame(
       .map((document) => document.policyNumber?.toUpperCase())
       .filter((policyNumber): policyNumber is string => Boolean(policyNumber)),
   );
+  // A yes/no question about a clinical coverage policy written on the
+  // template is framed by that template's structure. Manuals and other
+  // documents keep the service-focused selection, whatever their sections
+  // are numbered.
+  const yesNoStructure =
+    flags.yesNoCoverageQuery &&
+    scopedRoutingDocuments[0]?.documentType === 'clinical_policy' &&
+    hasPolicyTemplateSections(scopedRoutingDocuments[0].sections);
   const { candidateHits, limitationHits, primarySeedHits, serviceClusterTerms } = selectCoverageSeedHits({
     hits,
     focusHits,
@@ -191,13 +379,28 @@ export async function resolveCoverageFrame(
     serviceFocusTerms,
     queryTerms,
   });
-  const { documentPrimaryHydrated, documentSupportingHydrated } = await collectCoverageDocumentHydratedCandidates({
+  const profileCandidates = await collectCoverageDocumentHydratedCandidates({
     context,
     scopedRoutingDocuments,
     queryLower,
     flags,
+    yesNoStructure,
   });
-  const primaryCandidateLimit = serviceFocusTerms.length > 0 ? 2 : FRAME_PRIMARY_LIMIT * 2;
+  // A section with no body is never offered for a primary or supporting slot.
+  const documentPrimaryHydrated = profileCandidates.documentPrimaryHydrated.filter((candidate) => hasSubstantiveText(candidate.section));
+  const documentSupportingHydrated = profileCandidates.documentSupportingHydrated.filter((candidate) =>
+    hasSubstantiveText(candidate.section),
+  );
+  // A hit is negative guidance only when its own heading carries an avoid
+  // term the question did not use. Matching avoid terms in body text put the
+  // answering section in the avoid list, and a question about "contact
+  // lenses" is asking for the section with "contact" in its title.
+  const avoidTerms = [
+    ...PRIOR_AUTH_AVOID_TERMS,
+    ...COVERAGE_AVOID_TERMS,
+    ...(flags.telehealthQuery ? flags.telehealthAvoidTerms : []),
+  ].filter((term) => !queryLower.includes(term));
+  const avoidTitleHits = candidateHits.filter((hit) => includesPhrase(normalizeSearchText(hit.sectionTitle), avoidTerms));
   const limitationCandidates = buildSectionCandidates(
     limitationHits,
     ['not covered', 'limitation', 'limitations', 'exclusion'],
@@ -205,71 +408,33 @@ export async function resolveCoverageFrame(
     FRAME_SUPPORT_LIMIT * 4,
     'Supporting limitation evidence.',
   );
-  // When the route hint demands citing both scope and not-covered, promote up
-  // to 2 limitation candidates into the primary set so the agent treats them
-  // as first-class evidence rather than supporting. Without this, negative-
-  // coverage answers routinely fabricate exclusion section numbers because
-  // the §4.1-style section lives in supportingSections and the agent trusts
-  // primarySections first.
-  const promotedLimitationCandidates = route.determinism_hints.cite_scope_and_not_covered
-    ? limitationCandidates.slice(0, 2).map((candidate) => ({
-        ...candidate,
-        reason: 'Not-covered section required by cite_scope_and_not_covered hint.',
-      }))
-    : [];
-  const primaryCandidates = uniqueBy(
-    [
-      ...context.toSectionCandidates(documentPrimaryHydrated),
-      ...promotedLimitationCandidates,
-      ...buildSectionCandidates(
+  const { primaryCandidates, supportingCandidates } = yesNoStructure
+    ? buildYesNoCandidates({
+        context,
+        structural: await collectYesNoStructuralCandidates({ context, scopedRoutingDocuments }),
+        documentPrimaryHydrated,
+        documentSupportingHydrated,
+        candidateHits,
+        avoidTitleHits,
+        limitationCandidates,
+        themed: hasCoverageTheme(flags),
+      })
+    : buildServiceCandidates({
+        context,
+        documentPrimaryHydrated,
+        documentSupportingHydrated,
+        candidateHits,
+        limitationHits,
+        limitationCandidates,
         primarySeedHits,
-        COVERAGE_PRIMARY_TERMS,
-        COVERAGE_AVOID_TERMS,
-        primaryCandidateLimit,
-        'Primary coverage evidence.',
-      ),
-    ],
-    (candidate) => candidate.sectionId,
-  ).slice(0, FRAME_PRIMARY_LIMIT * 2);
-  const numberedClusteredSupportingCandidates = serviceClusterTerms.length === 0
-    ? []
-    : buildSectionCandidates(
-        candidateHits.filter((hit) => hit.sectionNumber && scoreTermMatches(serviceClusterTerms, hit.sectionTitle) >= 2),
+        serviceFocusTerms,
         serviceClusterTerms,
-        [],
-        FRAME_SUPPORT_LIMIT * 4,
-        'Supporting numbered section from the same service cluster.',
-      );
-  const clusteredSupportingCandidates = serviceClusterTerms.length === 0
-    ? []
-    : buildSectionCandidates(
-        candidateHits.filter((hit) => scoreTermMatches(serviceClusterTerms, hit.sectionTitle) >= 2),
-        serviceClusterTerms,
-        [],
-        FRAME_SUPPORT_LIMIT * 4,
-        'Supporting section from the same service cluster.',
-      );
-  const supportingCandidates = uniqueBy(
-    [
-      ...context.toSectionCandidates(documentSupportingHydrated),
-      ...limitationCandidates,
-      ...numberedClusteredSupportingCandidates,
-      ...clusteredSupportingCandidates,
-      ...buildSectionCandidates(
-        [...limitationHits, ...candidateHits],
-        [...COVERAGE_SUPPORT_TERMS, ...serviceClusterTerms],
-        PRIOR_AUTH_AVOID_TERMS,
-        FRAME_SUPPORT_LIMIT * 4,
-        'Supporting limitation or documentation evidence.',
-      ),
-    ],
-    (candidate) => candidate.sectionId,
-  ).slice(0, FRAME_SUPPORT_LIMIT * 4);
+      });
   const avoidCandidates = buildSectionCandidates(
-    candidateHits,
-    [...PRIOR_AUTH_AVOID_TERMS, ...COVERAGE_AVOID_TERMS, ...(flags.telehealthQuery ? flags.telehealthAvoidTerms : [])],
+    avoidTitleHits,
+    avoidTerms,
     [],
-    3,
+    FRAME_AVOID_LIMIT,
     'Tangential or process-focused section to avoid unless explicitly requested.',
   );
 
@@ -292,9 +457,15 @@ export async function resolveCoverageFrame(
     authoritativeCandidates,
     primaryCandidates,
     supportingCandidates,
-    avoidCandidates,
     variantReasoning: variantFrame?.variantReasoning ?? settingPreference.reason,
     latestRevisionSections: [],
   });
-  return rebalanceCoverageFrame(frame, queryLower, serviceFocusTerms, serviceClusterTerms);
+  // Avoid sections are read here, with their text, so that rebalance judges
+  // them on what they say and a section it promotes keeps its body. Rebalance
+  // strips the text from whatever is still an avoid section when it returns.
+  const surfacedIds = new Set([...frame.primarySections, ...frame.supportingSections].map((section) => section.id));
+  const avoidSections = (await context.hydrateSectionCandidates(avoidCandidates, FRAME_AVOID_LIMIT, surfacedIds)).map(
+    (candidate) => candidate.section,
+  );
+  return rebalanceCoverageFrame({ ...frame, avoidSections }, queryLower, serviceFocusTerms, serviceClusterTerms, yesNoStructure);
 }
