@@ -1,9 +1,8 @@
 import type { SourceEntry } from './evidence.js';
 
-// ── Rendering helpers ───────────────────────────────────────────────────────
+// ── Verifier markers ────────────────────────────────────────────────────────
 
-const MISSING_CITATION_MARKER = '[missing citation:';
-const VERIFIER_MARKER_PREFIXES = ['[unverified:', '[wrong source:', MISSING_CITATION_MARKER];
+const VERIFIER_MARKER_PREFIXES = ['[unverified:', '[wrong source:', '[missing citation:'];
 
 interface MarkerSpan {
   start: number;
@@ -60,29 +59,6 @@ function scanMarkerSpans(text: string, markerPrefixes: string[]): MarkerSpan[] {
   }
 
   return spans;
-}
-
-/**
- * Parse `[missing citation: <content>]` markers out of the verifier's corrected
- * answer. Returns the body with markers stripped and the list of suggested
- * citations in the order they appeared.
- */
-function extractMissingCitations(text: string): { body: string; citations: string[] } {
-  const spans = scanMarkerSpans(text, [MISSING_CITATION_MARKER]);
-  const citations = spans.map((span) => span.content).filter(Boolean);
-
-  const segments: string[] = [];
-  let cursor = 0;
-  for (const span of spans) {
-    segments.push(text.slice(cursor, span.start));
-    cursor = span.end;
-  }
-  segments.push(text.slice(cursor));
-
-  let body = segments.join('');
-  // Clean up whitespace that the marker left behind (e.g., `sentence. <gap> `).
-  body = body.replace(/[ \t]+\n/g, '\n').replace(/ {2,}/g, ' ').trim();
-  return { body, citations };
 }
 
 // ── Deterministic rewrite guards ────────────────────────────────────────────
@@ -159,8 +135,6 @@ export const REFERRAL_PAGE_URLS = [
 const ALWAYS_ALLOWED_URLS = new Set(['https://medicaid.ncdhhs.gov', ...REFERRAL_PAGE_URLS].map(normalizeUrl));
 
 export interface UrlValidationResult {
-  /** Answer with unknown markdown links demoted to their plain-text labels. */
-  validatedAnswer: string;
   /** Original (un-normalized) URLs that appear in no retrieved source. */
   unknownUrls: string[];
   checkedUrlCount: number;
@@ -174,7 +148,7 @@ export interface UrlValidationResult {
  * in the tool-output text), the routing hint excepted. The agent has no legitimate way to know a URL its
  * tools never returned — an unknown URL is a fabrication (observed with
  * h-043 in the 2026-06-12 eval: an invented `/download?attachment` link).
- * Unknown links are demoted to plain text so they are not clickable.
+ * The answer text is never edited here: an unknown URL fails the release.
  */
 export function validateAnswerUrls(answerText: string, sources: SourceEntry[]): UrlValidationResult {
   const retrieved = new Set<string>();
@@ -186,18 +160,14 @@ export function validateAnswerUrls(answerText: string, sources: SourceEntry[]): 
   let checkedUrlCount = 0;
   let retrievedUrlCount = 0;
   let allowedUrlCount = 0;
-  const check = (url: string): boolean => {
+  const check = (url: string): void => {
     checkedUrlCount += 1;
     const normalized = normalizeUrl(url);
-    if (retrieved.has(normalized)) { retrievedUrlCount += 1; return true; }
-    if (ALWAYS_ALLOWED_URLS.has(normalized)) { allowedUrlCount += 1; return true; }
-    unknownUrls.push(url);
-    return false;
+    if (retrieved.has(normalized)) retrievedUrlCount += 1;
+    else if (ALWAYS_ALLOWED_URLS.has(normalized)) allowedUrlCount += 1;
+    else unknownUrls.push(url);
   };
-  const validatedAnswer = answerText.replace(MARKDOWN_LINK_PATTERN, (match, label: string, url: string) => {
-    if (check(url)) return match;
-    return label;
-  });
+  for (const [, , url] of answerText.matchAll(MARKDOWN_LINK_PATTERN)) check(url);
 
   // Markdown autolinks, reference definitions and plain URLs must obey the
   // same allowlist as inline links. Check each URL once across formats.
@@ -210,7 +180,7 @@ export function validateAnswerUrls(answerText: string, sources: SourceEntry[]): 
     check(url);
   }
 
-  return { validatedAnswer, unknownUrls, checkedUrlCount, retrievedUrlCount, allowedUrlCount };
+  return { unknownUrls, checkedUrlCount, retrievedUrlCount, allowedUrlCount };
 }
 
 /** Every URL the answer uses, normalized exactly as `validateAnswerUrls`
@@ -310,14 +280,11 @@ export function validateAnswerSections(answerText: string, sources: SourceEntry[
 }
 
 export interface QuoteValidationResult {
-  /** Answer with unknown long quotes marked `[unverified quote — ...]`. */
-  validatedAnswer: string;
   unknownQuotes: string[];
   checkedQuoteCount: number;
 }
 
 const QUOTE_MIN_LENGTH = 30;
-const UNVERIFIED_QUOTE_MARK = ' [unverified quote — not found in retrieved sources]';
 
 function normalizeQuotedText(text: string): string {
   return text
@@ -332,10 +299,9 @@ function normalizeQuotedText(text: string): string {
 /**
  * Deterministic quote check: long double-quoted spans claim to be verbatim
  * source text. Each is searched for (whitespace/curly-quote-insensitively) in
- * the full retrieved source text; quotes that appear nowhere get a visible
- * `[unverified quote]` mark appended (marked, not deleted — removing text the
- * answer presents as verbatim is riskier than flagging it). Short quoted
- * phrases (scare quotes like "not covered") are ignored.
+ * the full retrieved source text; a quote that appears nowhere is reported and
+ * fails the release. Short quoted phrases (scare quotes like "not covered")
+ * are ignored.
  */
 export function validateAnswerQuotes(
   answerText: string,
@@ -349,17 +315,12 @@ export function validateAnswerQuotes(
 
   const unknownQuotes: string[] = [];
   let checkedQuoteCount = 0;
-  const validatedAnswer = answerText.replace(
-    /["“]([^"“”]+)["”]/g,
-    (match, inner: string) => {
-      const normalized = normalizeQuotedText(inner);
-      if (normalized.length < minLength) return match;
-      checkedQuoteCount += 1;
-      if (haystack.includes(normalized)) return match;
-      unknownQuotes.push(inner);
-      return `${match}${UNVERIFIED_QUOTE_MARK}`;
-    },
-  );
+  for (const [, inner] of answerText.matchAll(/["“]([^"“”]+)["”]/g)) {
+    const normalized = normalizeQuotedText(inner);
+    if (normalized.length < minLength) continue;
+    checkedQuoteCount += 1;
+    if (!haystack.includes(normalized)) unknownQuotes.push(inner);
+  }
 
   // A blockquote also claims to reproduce source wording. Join wrapped lines
   // and omit a trailing citation before matching the actual quotation.
@@ -372,38 +333,5 @@ export function validateAnswerQuotes(
     if (!haystack.includes(normalized) && !unknownQuotes.includes(quote)) unknownQuotes.push(quote);
   }
 
-  return { validatedAnswer, unknownQuotes, checkedQuoteCount };
-}
-
-/**
- * Render the verifier's corrected answer for the user. `[unverified: ...]` and
- * `[wrong source: ...]` markers stay inline because they carry factual
- * uncertainty signal; `[missing citation: ...]` markers are moved to a short
- * footer because they're grammatical annotations, not content claims, and they
- * read poorly mid-sentence.
- */
-export function renderCorrectedAnswer(corrected: string, fallback?: string): string {
-  if (!corrected) return corrected;
-  const { body, citations } = extractMissingCitations(corrected);
-  if (citations.length === 0) return body;
-
-  // If the verifier's rewrite is ENTIRELY [missing citation: ...] markers,
-  // extraction leaves the body empty. Returning just the citation footer
-  // produces a user-visible "answer" with no substance (observed with q-006
-  // in the 2026-04-21 eval, scored 0/3). Prefer the untouched original
-  // answer text when available; otherwise keep the markers inline.
-  if (!body.trim()) {
-    return (fallback ?? corrected).trim();
-  }
-
-  const uniqueCitations: string[] = [];
-  const seen = new Set<string>();
-  for (const citation of citations) {
-    if (!seen.has(citation)) {
-      seen.add(citation);
-      uniqueCitations.push(citation);
-    }
-  }
-  const footer = uniqueCitations.map((citation) => `- ${citation}`).join('\n');
-  return `${body}\n\n---\n\n*Suggested citations for uncited claims above:*\n${footer}`;
+  return { unknownQuotes, checkedQuoteCount };
 }

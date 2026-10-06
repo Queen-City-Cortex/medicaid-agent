@@ -3,7 +3,6 @@ import type { UIMessage } from 'ai';
 import {
   buildCitationResolver,
   extractMessageSources,
-  extractVerificationState,
   getToolName,
   getTrailingAssistantText,
   hasRenderableAssistantPart,
@@ -559,99 +558,5 @@ describe('resolveCitedSources', () => {
     expect(citedCount).toBe(0);
     expect(ordered).toEqual(sources);
     expect(resolveCitation('42 CFR § 441.310', CFR_URL)).toBeUndefined();
-  });
-});
-
-// ── extractVerificationState ─────────────────────────────────────────────────
-
-function msgWith(parts: unknown[]): UIMessage {
-  return { id: 'm', role: 'assistant', parts } as unknown as UIMessage;
-}
-
-describe('extractVerificationState', () => {
-  it('returns null when no verification parts are present', () => {
-    expect(extractVerificationState(msgWith([]))).toBeNull();
-    expect(
-      extractVerificationState(msgWith([{ type: 'text', text: 'hi' }])),
-    ).toBeNull();
-  });
-
-  it('extracts rewrite state with counts and severity', () => {
-    const state = extractVerificationState(
-      msgWith([
-        { type: 'text', text: 'answer' },
-        {
-          type: 'data-verification-rewrite',
-          data: {
-            severity: 'medium',
-            confidence: 0.7,
-            counts: { unsupported: 1, missingCitation: 0, relevanceMajor: 0, relevanceMinor: 0 },
-            pureMarkerFallback: false,
-          },
-        },
-      ]),
-    );
-    expect(state).toEqual({
-      severity: 'medium',
-      confidence: 0.7,
-      rewrote: true,
-      counts: { unsupported: 1, missingCitation: 0, relevanceMajor: 0, relevanceMinor: 0 },
-      pureMarkerFallback: false,
-    });
-  });
-
-  it('extracts the no-rewrite happy path from data-verification-ok', () => {
-    const state = extractVerificationState(
-      msgWith([
-        {
-          type: 'data-verification-ok',
-          data: { severity: 'high', confidence: 1, counts: {} },
-        },
-      ]),
-    );
-    expect(state?.rewrote).toBe(false);
-    expect(state?.severity).toBe('high');
-    expect(state?.confidence).toBe(1);
-  });
-
-  it('prefers rewrite over ok when both are present', () => {
-    const state = extractVerificationState(
-      msgWith([
-        { type: 'data-verification-ok', data: { severity: 'high', confidence: 1 } },
-        {
-          type: 'data-verification-rewrite',
-          data: { severity: 'low', confidence: 0.2, counts: { unsupported: 3 } },
-        },
-      ]),
-    );
-    expect(state?.rewrote).toBe(true);
-    expect(state?.severity).toBe('low');
-  });
-
-  it('surfaces pureMarkerFallback when the rewrite was unusable', () => {
-    const state = extractVerificationState(
-      msgWith([
-        {
-          type: 'data-verification-rewrite',
-          data: {
-            severity: 'low',
-            confidence: 0.4,
-            counts: {},
-            pureMarkerFallback: true,
-          },
-        },
-      ]),
-    );
-    expect(state?.pureMarkerFallback).toBe(true);
-  });
-
-  it('rejects malformed parts without throwing', () => {
-    const state = extractVerificationState(
-      msgWith([
-        { type: 'data-verification-rewrite', data: { severity: 'bogus', confidence: 0.5 } },
-        { type: 'data-verification-ok', data: { severity: 'high', confidence: 'not-a-number' } },
-      ]),
-    );
-    expect(state).toBeNull();
   });
 });

@@ -1,7 +1,7 @@
 import { VERIFICATION_PART, UNVERIFIED_HISTORY } from '@nc-medicaid/contracts';
 import { describe, it, expect } from 'vitest';
 import { coalesceThreadMessages, convertThreadMessageToUIMessage, extractText } from '../../src/lib/parse-message';
-import { extractVerificationState, getTrailingAssistantText, isToolPart } from '../../src/lib/message-parts';
+import { extractReleaseState, getTrailingAssistantText, isToolPart } from '../../src/lib/message-parts';
 
 describe('extractText', () => {
   it('returns string content as-is', () => {
@@ -285,13 +285,10 @@ describe('coalesceThreadMessages', () => {
     expect(types.some((t) => t.startsWith('data-om'))).toBe(false);
   });
 
-  it('preserves the verifier state so the trust badge restores', () => {
+  it('preserves the release outcome so the trust badge restores, and drops the retired rewrite part', () => {
     const [, assistant] = coalesceThreadMessages(turn);
-    const v = extractVerificationState(assistant);
-    expect(v).not.toBeNull();
-    expect(v!.severity).toBe('low');
-    expect(v!.rewrote).toBe(true);
-    expect(v!.counts.unsupported).toBe(6);
+    expect(extractReleaseState(assistant)).toEqual({ status: 'passed', passCount: 1 });
+    expect(assistant.parts.map((p) => p.type)).not.toContain('data-verification-rewrite');
   });
 
   it('anchors id + timestamp on the answer-bearing message', () => {

@@ -9,7 +9,7 @@ import { MessageList } from '@/components/MessageList';
 import { SourcesPanel } from '@/components/SourcesPanel';
 import { VerificationBadge } from '@/components/VerificationBadge';
 import { DeepResearchView } from '@/components/DeepResearchView';
-import type { MessageSource, VerificationState } from '@/lib/message-parts';
+import type { MessageSource } from '@/lib/message-parts';
 import type { DeepResearchController, DeepResearchPlan, DeepResearchReport } from '@/lib/use-deep-research';
 
 const SOURCES: MessageSource[] = [
@@ -42,14 +42,6 @@ const SOURCES: MessageSource[] = [
     snippet: null,
   },
 ];
-
-const VERIFIED: VerificationState = {
-  severity: 'high',
-  confidence: 0.94,
-  rewrote: false,
-  pureMarkerFallback: false,
-  counts: { unsupported: 0, missingCitation: 0, relevanceMajor: 0, relevanceMinor: 0 },
-};
 
 const CONVERSATION: UIMessage[] = [
   {
@@ -318,7 +310,7 @@ export function PreviewGallery() {
         <section className="space-y-4">
           <Eyebrow>Verification + sources</Eyebrow>
           <div className="rounded-xl border border-border bg-background px-6 py-6">
-            <VerificationBadge verification={VERIFIED} />
+            <VerificationBadge outcome={{ status: 'passed', passCount: 1 }} />
             <SourcesPanel sources={SOURCES} citedCount={2} messageId="demo" open />
           </div>
         </section>

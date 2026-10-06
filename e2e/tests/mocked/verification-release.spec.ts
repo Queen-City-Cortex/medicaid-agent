@@ -6,10 +6,7 @@ import { AISdkStreamBuilder } from '../../helpers/stream-builder';
 const PRIVATE = 'PRIVATE_DRAFT_SENTINEL';
 test('corrected answers stay verified in the stream and after history reload', async ({ page }, testInfo) => {
   const stream = new AISdkStreamBuilder().start().textDelta('A corrected policy answer.')
-    .dataPart('data-verification-status', {
-      status: 'corrected', passCount: 2, severity: 'high', confidence: 1,
-      counts: { unsupported: 0, missingCitation: 0, relevanceMajor: 0, relevanceMinor: 0 },
-    }).finish();
+    .dataPart('data-verification-status', { status: 'corrected', passCount: 2 }).finish();
   await mockMastraAPI(page, {
     streamResponse: stream,
     threads: [{ id: 'corrected', title: 'Corrected research' }],

@@ -119,7 +119,30 @@ const MIGRATIONS: ReadonlyArray<{ version: number; statements: string[] }> = [
       `CREATE INDEX IF NOT EXISTS idx_rate_limit_time ON rate_limit_events (created_at)`,
     ],
   },
+  {
+    // One verification record per chat answer (see storage/answer-audit.ts). Private: no route reads it.
+    version: 8,
+    statements: [
+      `CREATE TABLE IF NOT EXISTS answer_audit (
+        message_id TEXT PRIMARY KEY,
+        thread_id TEXT NOT NULL,
+        resource_id TEXT NOT NULL,
+        outcome_json TEXT NOT NULL,
+        telemetry_json TEXT NOT NULL,
+        findings_json TEXT NOT NULL,
+        usage_json TEXT NOT NULL,
+        corpus_release TEXT,
+        agent_model TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_answer_audit_thread ON answer_audit (thread_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_answer_audit_resource ON answer_audit (resource_id)`,
+    ],
+  },
 ];
+
+/** How long a verification record may outlive a thread row it cannot find before the sweep removes it. */
+const ANSWER_AUDIT_ORPHAN_GRACE_MS = 60 * 60 * 1000;
 
 const USER_THREADS = 'SELECT id FROM mastra_threads WHERE resourceId = ?';
 const USER_RESEARCH_RUNS = 'SELECT id FROM research_runs WHERE resource_id = ?';
@@ -140,6 +163,7 @@ const USER_DATA_DELETIONS: ReadonlyArray<{ sql: string; mastraTables: string[] }
     mastraTables: ['mastra_workflow_snapshot'],
   },
   { sql: 'DELETE FROM feedback WHERE resource_id = ?', mastraTables: [] },
+  { sql: 'DELETE FROM answer_audit WHERE resource_id = ?', mastraTables: [] },
   { sql: 'DELETE FROM rate_limit_events WHERE user_id = ?', mastraTables: [] },
   { sql: 'DELETE FROM usage_events WHERE user_id = ?', mastraTables: [] },
   { sql: `DELETE FROM research_checkpoints WHERE run_id IN (${USER_RESEARCH_RUNS})`, mastraTables: [] },
@@ -280,7 +304,12 @@ export class AppDatabase {
     const usageCutoff = now - USAGE_RETENTION_DAYS * 86_400_000;
     const rateLimitCutoff = now - RATE_LIMIT_RETENTION_HOURS * 3_600_000;
 
+    // A verification record is deleted at the conversation period after it was
+    // written, or sooner with its thread (expired below, or deleted from the sidebar).
+    const orphanGrace = new Date(now - ANSWER_AUDIT_ORPHAN_GRACE_MS).toISOString();
+
     const statements: InStatement[] = [
+      { sql: 'DELETE FROM answer_audit WHERE created_at < ?', args: [conversationCutoff] },
       { sql: 'DELETE FROM feedback WHERE created_at < ?', args: [feedbackCutoff] },
       { sql: 'DELETE FROM usage_events WHERE created_at < ?', args: [usageCutoff] },
       { sql: 'DELETE FROM rate_limit_events WHERE created_at < ?', args: [rateLimitCutoff] },
@@ -302,6 +331,18 @@ export class AppDatabase {
           sql: `DELETE FROM feedback WHERE thread_id IN
                 (SELECT id FROM mastra_threads WHERE "updatedAt" < ?)`,
           args: [conversationCutoff],
+        },
+        {
+          sql: `DELETE FROM answer_audit WHERE thread_id IN
+                (SELECT id FROM mastra_threads WHERE "updatedAt" < ?)`,
+          args: [conversationCutoff],
+        },
+        // Sidebar delete removes the thread row and knows nothing about this table. The grace
+        // period spares a first turn whose thread row is not saved yet.
+        {
+          sql: `DELETE FROM answer_audit WHERE created_at < ?
+                AND thread_id NOT IN (SELECT id FROM mastra_threads)`,
+          args: [orphanGrace],
         },
       );
       if (await this.hasTable('mastra_thread_state')) {
@@ -342,6 +383,15 @@ export class AppDatabase {
     }
 
     await this.client.batch(statements, 'write');
+  }
+
+  /** Remove the verification records and feedback of one deleted thread. */
+  async deleteThreadRecords(threadId: string): Promise<void> {
+    await this.migrate();
+    await this.client.batch([
+      { sql: 'DELETE FROM answer_audit WHERE thread_id = ?', args: [threadId] },
+      { sql: 'DELETE FROM feedback WHERE thread_id = ?', args: [threadId] },
+    ], 'write');
   }
 
   async deleteUserData(resourceId: string): Promise<void> {

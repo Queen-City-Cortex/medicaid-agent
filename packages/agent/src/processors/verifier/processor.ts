@@ -7,6 +7,11 @@ import { emitVerifierTelemetry, runVerificationForAnswer } from './run.js';
 import { createPrivateVerificationCapture, finishChatDiagnostic, type ChatDiagnostic } from './diagnostics.js';
 import { CHAT_DIAGNOSTIC_CONTEXT, CHAT_VERIFICATION_QUESTION } from './context.js';
 import { COVERAGE_VERIFICATION_QUERY } from '../coverage-boundary.js';
+import { getConfig } from './config.js';
+import { AGENT_MODEL } from '../../model.js';
+import { log } from '../../logger.js';
+import type { UsageRepository } from '../../usage/repository.js';
+import type { AnswerAuditRepository, VerifierCallUsage } from '../../storage/answer-audit.js';
 
 // ── Processor Class ─────────────────────────────────────────────────────────
 
@@ -61,9 +66,23 @@ function withoutInterimText<T extends { type: string }>(parts: T[]): T[] {
   return kept;
 }
 
+/** The token counts of one verifier call, by name: nothing else a provider reports is kept. */
+function callUsage(usage: unknown): VerifierCallUsage {
+  const counts = (usage ?? {}) as Record<string, unknown>;
+  return Object.fromEntries((['inputTokens', 'outputTokens', 'totalTokens', 'reasoningTokens', 'cachedInputTokens'] as const)
+    .filter(name => typeof counts[name] === 'number').map(name => [name, counts[name]]));
+}
+
 export class HallucinationVerifier implements Processor {
   readonly id = 'hallucination-verifier';
   readonly name = 'Hallucination Verifier';
+
+  /** Where a chat turn's verifier cost and verification record go. Both are
+   *  optional and written without being awaited: neither can delay or fail a release. */
+  constructor(private readonly stores: {
+    usage?: Pick<UsageRepository, 'record'>;
+    audit?: Pick<AnswerAuditRepository, 'record'>;
+  } = {}) {}
 
   processToolResult({ toolName, toolCallId, result, args, providerExecuted, state }: ProcessToolResultArgs): void {
     // Observation may compact tool messages before final synthesis. Preserve
@@ -100,67 +119,32 @@ export class HallucinationVerifier implements Processor {
     const originalQuestion = requestContext?.get(CHAT_VERIFICATION_QUESTION);
     const question = typeof originalQuestion === 'string' ? originalQuestion : extractLatestUserQuestion(messages);
     const coverageQuery = requestContext?.get(COVERAGE_VERIFICATION_QUERY);
-    const result = await runVerificationForAnswer({ question, coverageQuery: typeof coverageQuery === 'string' ? coverageQuery : question, answerText: text, sources, signal: abortSignal, capture });
-    const { finalAnswer, outcome, confidence, telemetry } = result;
-    finishChatDiagnostic(diagnostic, outcome, telemetry.latency_ms);
     const last = messages.reduce((last, m, i) => m.role === 'assistant' ? i : last, -1);
+    // The answer's stored message: its id is the one history returns and
+    // feedback is filed under, and memory stamped it with the thread's owner.
+    const { id: messageId, threadId, resourceId } = messages[last] ?? {};
+    const owned = Boolean(messageId && threadId && resourceId);
+    const verifierUsage: VerifierCallUsage[] = [];
+    const onUsage = (usage: unknown) => {
+      const counts = callUsage(usage);
+      verifierUsage.push(counts);
+      if (!owned) return;
+      void this.stores.usage?.record({ userId: resourceId!, route: 'chat', phase: 'verifier', threadId,
+        modelId: getConfig().model, provider: 'openai', ...counts })?.catch(() => {});
+    };
+    const result = await runVerificationForAnswer({ question, coverageQuery: typeof coverageQuery === 'string' ? coverageQuery : question, answerText: text, sources, onUsage, signal: abortSignal, capture });
+    const { finalAnswer, outcome, telemetry } = result;
+    finishChatDiagnostic(diagnostic, outcome, telemetry.latency_ms);
     const released = messages.map((m, i) => i === last ? releaseMessage(m, finalAnswer, outcome) : m);
-    await writer?.custom({ type: VERIFICATION_PART, data: { ...outcome, answer: finalAnswer,
-      confidence: confidence.confidence, severity: confidence.severity, counts: confidence.counts } } as any);
+    await writer?.custom({ type: VERIFICATION_PART, data: { ...outcome, answer: finalAnswer } } as any);
     if (!writer) emitVerifierTelemetry(telemetry);
+    if (owned) {
+      // Ids and the outcome only; `verification.release` in run.ts has no ids.
+      log.info('chat.verification', { threadId, messageId, ...outcome, latencyMs: telemetry.latency_ms });
+      void this.stores.audit?.record({ messageId, threadId: threadId!, resourceId: resourceId!, outcome, telemetry,
+        findings: result.findings, usage: verifierUsage,
+        corpusRelease: process.env.CORPUS_RELEASE_ID?.trim() || null, agentModel: AGENT_MODEL })?.catch(() => {});
+    }
     return released;
   }
-}
-
-/**
- * Replace ONLY the final answer text: the last text part of the last
- * assistant message. Earlier assistant messages (prior turns) and interim
- * progress-update text parts must remain untouched — a blanket rewrite
- * clobbers conversation history with the current turn's corrected answer.
- */
-export function replaceFinalAnswerText(
-  messages: MastraDBMessage[],
-  corrected: string,
-): MastraDBMessage[] {
-  let lastAssistantIdx = -1;
-  for (let i = messages.length - 1; i >= 0; i--) {
-    if (messages[i].role === 'assistant') {
-      lastAssistantIdx = i;
-      break;
-    }
-  }
-  if (lastAssistantIdx === -1) return messages;
-
-  return messages.map((msg, idx) => {
-    if (idx !== lastAssistantIdx) return msg;
-
-    const content = (msg as any).content;
-    // Defensive: the type says content is always structured, but legacy rows
-    // can carry plain-string content — don't crash on them.
-    if (typeof content === 'string') {
-      return { ...msg, content: corrected } as unknown as MastraDBMessage;
-    }
-
-    const parts = Array.isArray(content?.parts) ? content.parts : null;
-    if (!parts) return msg;
-
-    let lastTextIdx = -1;
-    for (let i = parts.length - 1; i >= 0; i--) {
-      if (parts[i]?.type === 'text') {
-        lastTextIdx = i;
-        break;
-      }
-    }
-    if (lastTextIdx === -1) return msg;
-
-    return {
-      ...msg,
-      content: {
-        ...content,
-        parts: parts.map((part: any, i: number) =>
-          i === lastTextIdx ? { ...part, text: corrected } : part,
-        ),
-      },
-    } as MastraDBMessage;
-  });
 }

@@ -9,12 +9,6 @@ import {
   validateAnswerSections,
   validateAnswerUrls,
 } from './answer-validation.js';
-import {
-  type VerificationConfidence,
-  type VerificationSeverity,
-  computeVerificationConfidence,
-} from './confidence.js';
-
 import { WITHHELD_ANSWER, type VerificationOutcome } from '@nc-medicaid/contracts';
 import { log } from '../../logger.js';
 import { resolveCoverageScope, coverageEvidenceIssue } from '@nc-medicaid/policy-corpus';
@@ -60,10 +54,6 @@ export interface VerifierTelemetry {
   verifier_model: string;
   source_entry_count: number;
   evidence_bytes: number;
-  confidence: number;
-  severity: VerificationSeverity;
-  pure_marker_fallback: boolean;
-  substance_loss_fallback: boolean;
   /** Non-marker substance ratio of the LLM rewrite vs the original answer;
    *  null when no LLM rewrite was produced. */
   rewrite_substance_ratio: number | null;
@@ -78,6 +68,40 @@ export interface VerifierTelemetry {
   unknown_section_count: number;
 }
 
+/** Bounds on one stored finding, so none can carry a whole draft. */
+const MAX_FINDING_CHARS = 500;
+const MAX_FINDINGS_PER_LIST = 50;
+
+/**
+ * What one pass found, kept for the operator's verification record. The claim,
+ * issue and quotation texts are excerpts of the candidate in the verifier's or
+ * the answer's own words, which is why the record is private and deleted with
+ * the conversation. The candidate itself, the model's correction and the
+ * evidence text are deliberately absent.
+ */
+export interface PassFindings {
+  pass: number;
+  unsupportedClaims: Array<{ claim: string; reason: string }>;
+  missingCitationClaims: Array<{ claim: string; suggestedCitation: string }>;
+  relevanceIssues: Array<{ issue: string; severity: 'minor' | 'major' }>;
+  unknownUrls: string[];
+  unknownQuotes: string[];
+}
+
+function passFindings(pass: number, verification: VerificationResult, unknownUrls: string[] = [], unknownQuotes: string[] = []): PassFindings {
+  const clip = (text: string) => text.slice(0, MAX_FINDING_CHARS);
+  const bounded = <T>(list: T[] | undefined) => (list ?? []).slice(0, MAX_FINDINGS_PER_LIST);
+  return {
+    pass,
+    unsupportedClaims: bounded(verification.unsupportedClaims).map(({ claim, reason }) => ({ claim: clip(claim), reason: clip(reason) })),
+    missingCitationClaims: bounded(verification.missingCitationClaims)
+      .map(({ claim, suggestedCitation }) => ({ claim: clip(claim), suggestedCitation: clip(suggestedCitation) })),
+    relevanceIssues: bounded(verification.relevanceIssues).map(({ issue, severity }) => ({ issue: clip(issue), severity })),
+    unknownUrls: bounded(unknownUrls).map(clip),
+    unknownQuotes: bounded(unknownQuotes).map(clip),
+  };
+}
+
 export interface VerificationRunResult {
   retryable: boolean;
   outcome: VerificationOutcome;
@@ -87,7 +111,8 @@ export interface VerificationRunResult {
   rewrote: boolean;
   telemetry: VerifierTelemetry;
   verification: VerificationResult;
-  confidence: VerificationConfidence;
+  /** One entry per pass that reached a verdict, in order. */
+  findings: PassFindings[];
 }
 
 /** Print a `---VERIFIER---` telemetry block in the format the eval harness
@@ -118,12 +143,12 @@ export async function runVerificationForAnswer({ question, coverageQuery, answer
   let outcome: VerificationOutcome = { status: 'withheld', reason: 'unsupported', passCount: 0 };
   let fabricatedUrlCount = 0;
   let fabricatedQuoteCount = 0;
-  const substanceLoss = false;
   let substanceRatio: number | null = null;
   let unavailable = false;
   let evidenceCharsSent = 0;
   let evidenceEntriesDropped = 0;
   let unknownSections: UnknownSection[] = [];
+  const findings: PassFindings[] = [];
   const scope = resolveCoverageScope(coverageQuery ?? question);
   const scopeIssue = coverageEvidenceIssue(scope, sources);
   const hasEvidence = sources.some(isCorpusEvidence);
@@ -131,6 +156,7 @@ export async function runVerificationForAnswer({ question, coverageQuery, answer
     if (scopeIssue) {
       verification = { supported: false, relevant: true, citationsComplete: false, unsupportedClaims: [{ claim: 'Full answer', reason: scopeIssue }], missingCitationClaims: [], relevanceIssues: [], correctedAnswer: '' };
       outcome.reason = 'unsupported';
+      findings.push(passFindings(pass, verification));
       break;
     }
     const urls = validateAnswerUrls(candidate, sources);
@@ -158,6 +184,7 @@ export async function runVerificationForAnswer({ question, coverageQuery, answer
       fabricatedUrlCount += urls.unknownUrls.length;
       fabricatedQuoteCount += quotes.unknownQuotes.length;
       capture?.({ stage: 'pass', pass, candidate, evidenceText, dropped: evidence.dropped.map(source => source.key), deterministic: { urls, quotes, sections }, verification });
+      findings.push(passFindings(pass, verification, urls.unknownUrls, quotes.unknownQuotes));
       break;
     }
     if (evidence.citedBodyDropped || evidence.findingDropped) {
@@ -167,6 +194,7 @@ export async function runVerificationForAnswer({ question, coverageQuery, answer
       verification = { supported: false, relevant: true, citationsComplete: false, unsupportedClaims: [{ claim: 'Full answer', reason: EVIDENCE_OVER_BUDGET }], missingCitationClaims: [], relevanceIssues: [], correctedAnswer: '' };
       outcome.reason = 'unsupported';
       capture?.({ stage: 'pass', pass, candidate, evidenceText, dropped: evidence.dropped.map(source => source.key), deterministic: { urls, quotes, sections }, verification });
+      findings.push(passFindings(pass, verification, urls.unknownUrls, quotes.unknownQuotes));
       break;
     }
     evidenceCharsSent = evidenceText.length;
@@ -176,6 +204,7 @@ export async function runVerificationForAnswer({ question, coverageQuery, answer
         ...(sources.some(source => source.evidenceRole === 'supplementary') ? { hasSupplementaryEvidence: true } : {}),
       });
     capture?.({ stage: 'pass', pass, candidate, evidenceText, dropped: evidence.dropped.map(source => source.key), deterministic: { urls, quotes, sections }, verification });
+    findings.push(passFindings(pass, verification, urls.unknownUrls, quotes.unknownQuotes));
     outcome.passCount = pass;
     unavailable = verification.unsupportedClaims.some(c => c.reason === VERIFICATION_UNAVAILABLE);
     if (unavailable) { outcome.reason = 'unavailable'; break; }
@@ -204,11 +233,6 @@ export async function runVerificationForAnswer({ question, coverageQuery, answer
     candidate = correction;
   }
   const withheld = outcome.status === 'withheld';
-  const confidence = computeVerificationConfidence(verification, {
-    pureMarkerFallback: false, substanceLossFallback: substanceLoss,
-    fabricatedUrlCount, fabricatedQuoteCount,
-  });
-  if (withheld) { confidence.confidence = 0; confidence.severity = 'low'; }
   const rewrote = outcome.status !== 'passed';
   const telemetry: VerifierTelemetry = {
     coverage_policy_id: scope?.policyId ?? null, coverage_issue: scopeIssue,
@@ -221,8 +245,6 @@ export async function runVerificationForAnswer({ question, coverageQuery, answer
     major_relevance_issue: verification.relevanceIssues?.some(i => i.severity === 'major') ?? false,
     verifier_unavailable: unavailable, verifier_model: getConfig().model,
     source_entry_count: sources.length, evidence_bytes: sources.reduce((n,s) => n+s.text.length,0),
-    confidence: confidence.confidence, severity: confidence.severity,
-    pure_marker_fallback: false, substance_loss_fallback: substanceLoss,
     rewrite_substance_ratio: substanceRatio, fabricated_url_count: fabricatedUrlCount,
     fabricated_quote_count: fabricatedQuoteCount,
     evidence_chars_sent: evidenceCharsSent, evidence_entries_dropped: evidenceEntriesDropped,
@@ -236,5 +258,5 @@ export async function runVerificationForAnswer({ question, coverageQuery, answer
   }
   capture?.({ stage: 'outcome', outcome, telemetry });
   log.info('verification.release', { ...outcome, latencyMs: Date.now()-started });
-  return { retryable: unavailable && verification.failureRetryable === true, finalAnswer: withheld ? WITHHELD_ANSWER : candidate, outcome, rewrote, telemetry, verification, confidence };
+  return { retryable: unavailable && verification.failureRetryable === true, finalAnswer: withheld ? WITHHELD_ANSWER : candidate, outcome, rewrote, telemetry, verification, findings };
 }

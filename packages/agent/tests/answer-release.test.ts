@@ -170,7 +170,9 @@ describe('answer release', () => {
     expect(output.filter(p => p.type === 'text-delta')).toHaveLength(1);
   });
   it('emits only rebuilt chunks from the allow-list and fixed text for errors', async () => {
-    const outcome = { status: 'passed', passCount: 1, confidence: 0.9, severity: 'high',
+    const outcome = { status: 'withheld', reason: 'invalid_citation', passCount: 2 };
+    // Retired telemetry, and a finding in the verifier's own words: none of it is a named field.
+    const unnamed = { confidence: 0.9, severity: 'high', rewrote: true, findings: [{ claim: PRIVATE }],
       counts: { unsupported: 0, missingCitation: 0, relevanceMajor: 0, relevanceMinor: 0, fabricatedUrl: 0, fabricatedQuote: 0 } };
     // One of every chunk type the AI SDK or the framework adapter can produce,
     // each carrying a field that must not cross.
@@ -212,7 +214,7 @@ describe('answer release', () => {
       { type: 'finish-step', leak: PRIVATE },
       { type: 'error', errorText: PRIVATE },
       { type: 'data-verification-status', data: { status: 'verifying', leak: PRIVATE } },
-      { type: 'data-verification-status', data: { ...outcome, answer: 'Released answer.', leak: PRIVATE } },
+      { type: 'data-verification-status', data: { ...outcome, ...unnamed, answer: 'Released answer.', leak: PRIVATE } },
       { type: 'abort', reason: PRIVATE },
       { type: 'finish', finishReason: 'stop', messageMetadata: { leak: PRIVATE } },
     ] as unknown as UIMessageChunk[];
@@ -347,9 +349,16 @@ describe('answer release', () => {
       expect(Object.hasOwn(store, 'saveMessages')).toBe(false);
     }
 
-    installMemoryReleaseGate(memory);
+    const deleted: string[] = [];
+    installMemoryReleaseGate(memory, async threadId => { deleted.push(threadId); throw new Error('records store down'); });
     for (const name of GUARDED_MEMORY_METHODS) expect(Object.hasOwn(memory, name)).toBe(true);
     for (const name of Object.keys(PASS_THROUGH_MEMORY_METHODS)) expect(Object.hasOwn(memory, name)).toBe(false);
+    // Deleting a thread reports its id once the store has removed it; a failed clean-up does not fail the delete.
+    const now = new Date();
+    await memory.saveThread({ thread: { id: 'gone', resourceId: 'user', title: 't', createdAt: now, updatedAt: now } });
+    await expect(memory.deleteThread({ threadId: 'gone' })).resolves.toBeUndefined();
+    expect(deleted).toEqual(['gone']);
+    expect(await memory.getThreadById({ threadId: 'gone' })).toBeNull();
     await storage.close();
   });
 });

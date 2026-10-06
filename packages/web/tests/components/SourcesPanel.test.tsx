@@ -1,8 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { SourcesPanel } from '../../src/components/SourcesPanel';
-import type { MessageSource, VerificationState } from '../../src/lib/message-parts';
+import type { MessageSource } from '../../src/lib/message-parts';
 
 const SAMPLE: MessageSource[] = [
   {
@@ -79,56 +79,9 @@ describe('SourcesPanel', () => {
     expect(items[1]).toHaveAttribute('data-highlighted');
   });
 
-  it('does not render a confidence dot when verification prop is absent', () => {
+  it('names the trigger by its sources alone, with no confidence dot', () => {
     render(<SourcesPanel sources={SAMPLE} />);
     expect(screen.queryByTestId('verification-dot')).not.toBeInTheDocument();
-  });
-
-  it.each<[VerificationState['severity'], string]>([
-    ['high', 'high'],
-    ['medium', 'medium'],
-    ['low', 'low'],
-  ])('renders the confidence dot with data-severity=%s', (severity) => {
-    const verification: VerificationState = {
-      severity,
-      confidence: severity === 'high' ? 1 : severity === 'medium' ? 0.7 : 0.3,
-      rewrote: severity !== 'high',
-      counts: { unsupported: 0, missingCitation: 0, relevanceMajor: 0, relevanceMinor: 0 },
-      pureMarkerFallback: false,
-    };
-    render(<SourcesPanel sources={SAMPLE} verification={verification} />);
-    const dot = screen.getByTestId('verification-dot');
-    expect(dot).toHaveAttribute('data-severity', severity);
-    // The dot is presentational — not focusable, hidden from the
-    // accessibility tree — so it does not nest an interactive element
-    // inside the CollapsibleTrigger button.
-    expect(dot).toHaveAttribute('aria-hidden', 'true');
-    expect(dot).not.toHaveAttribute('tabindex');
-    // Its meaning lives in the trigger's accessible name instead.
-    expect(screen.getByTestId('sources-panel-trigger')).toHaveAccessibleName(
-      new RegExp(`Verifier confidence: ${severity}`),
-    );
-  });
-
-  it('dot click does not toggle the collapsible panel', async () => {
-    const user = userEvent.setup();
-    const onOpenChange = vi.fn();
-    const verification: VerificationState = {
-      severity: 'medium',
-      confidence: 0.7,
-      rewrote: true,
-      counts: { unsupported: 1, missingCitation: 0, relevanceMajor: 0, relevanceMinor: 0 },
-      pureMarkerFallback: false,
-    };
-    render(
-      <SourcesPanel
-        sources={SAMPLE}
-        verification={verification}
-        open={false}
-        onOpenChange={onOpenChange}
-      />,
-    );
-    await user.click(screen.getByTestId('verification-dot'));
-    expect(onOpenChange).not.toHaveBeenCalled();
+    expect(screen.getByTestId('sources-panel-trigger')).not.toHaveAccessibleName(/confidence|checks passed|rewr/i);
   });
 });

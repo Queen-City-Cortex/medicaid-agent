@@ -38,7 +38,7 @@ describe('AppDatabase', () => {
     await database.migrate();
     await database.migrate();
     const result = await database.client.execute('SELECT version FROM _app_migrations ORDER BY version');
-    expect(result.rows.map((row) => Number(row.version))).toEqual([1, 2, 3, 4, 5, 6, 7]);
+    expect(result.rows.map((row) => Number(row.version))).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
   });
 
   it('indexes rate-limit events by time, on a new database and on one the repository already bootstrapped', async () => {
@@ -80,7 +80,7 @@ describe('AppDatabase', () => {
 
     await expect(database.migrate()).resolves.toBeUndefined();
     const versions = await database.client.execute('SELECT version FROM _app_migrations ORDER BY version');
-    expect(versions.rows.map((row) => Number(row.version))).toEqual([1, 2, 3, 4, 5, 6, 7]);
+    expect(versions.rows.map((row) => Number(row.version))).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
   });
 
   it('deletes all app-owned data for one resource only', async () => {
@@ -101,7 +101,22 @@ describe('AppDatabase', () => {
       { sql: 'INSERT INTO mastra_messages VALUES (?, ?, ?)', args: ['m2', 't2', 'u2'] },
     ], 'write');
 
+    const audit = (messageId: string, threadId: string, user: string) => ({
+      sql: 'INSERT INTO answer_audit VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      args: [messageId, threadId, user, '{}', '{}', '[]', '[]', null, 'model', new Date().toISOString()],
+    });
+    await database.client.batch([audit('m1', 't1', 'u1'), audit('m2', 't2', 'u2')], 'write');
+
     await database.deleteUserData('u1');
+    expect((await database.client.execute('SELECT message_id FROM answer_audit')).rows.map((row) => row.message_id)).toEqual(['m2']);
+    expect((await database.client.execute('SELECT id FROM feedback')).rows.map((row) => row.id)).toEqual(['f2']);
+
+    // Deleting one thread removes its verification records and feedback at once.
+    await database.client.batch([audit('m3', 't3', 'u2'), {
+      sql: 'INSERT INTO feedback VALUES (?, ?, ?, ?, ?, ?, ?)', args: ['f3', 't3', 'm3', 'u2', 'down', 'note', new Date().toISOString()],
+    }], 'write');
+    await database.deleteThreadRecords('t3');
+    expect((await database.client.execute('SELECT message_id FROM answer_audit')).rows.map((row) => row.message_id)).toEqual(['m2']);
     expect((await database.client.execute('SELECT id FROM feedback')).rows.map((row) => row.id)).toEqual(['f2']);
     expect((await database.client.execute('SELECT id FROM mastra_threads')).rows.map((row) => row.id)).toEqual(['t2']);
     expect((await database.client.execute('SELECT id FROM mastra_messages')).rows.map((row) => row.id)).toEqual(['m2']);
@@ -124,7 +139,7 @@ describe('AppDatabase', () => {
     expect((await database.client.execute('SELECT id FROM research_runs')).rows.map(row => row.id)).toEqual(['recent']);
   });
 
-  it('deletes feedback, usage and rate-limit rows one step past their periods and keeps rows one step inside', async () => {
+  it('deletes verification records, feedback, usage and rate-limit rows one step past their periods and keeps rows one step inside', async () => {
     const database = createDatabase();
     await database.migrate();
     const now = Date.now();
@@ -140,7 +155,12 @@ describe('AppDatabase', () => {
       sql: 'INSERT INTO rate_limit_events (user_id, route, created_at) VALUES (?, ?, ?)',
       args: ['owner', route, now - hours * HOUR_MS],
     });
+    const audit = (id: string, days: number) => ({
+      sql: 'INSERT INTO answer_audit VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      args: [id, `thread-${id}`, 'owner', '{}', '{}', '[]', '[]', null, 'model', new Date(now - days * DAY_MS).toISOString()],
+    });
     await database.client.batch([
+      audit('old', CONVERSATION_RETENTION_DAYS + 1), audit('recent', CONVERSATION_RETENTION_DAYS - 1),
       feedback('old', FEEDBACK_RETENTION_DAYS + 1), feedback('recent', FEEDBACK_RETENTION_DAYS - 1),
       usage('old', USAGE_RETENTION_DAYS + 1), usage('recent', USAGE_RETENTION_DAYS - 1),
       rateLimit('old', RATE_LIMIT_RETENTION_HOURS + 1), rateLimit('recent', RATE_LIMIT_RETENTION_HOURS - 1),
@@ -149,6 +169,7 @@ describe('AppDatabase', () => {
     await database.runRetention(now);
 
     const column = async (sql: string) => (await database.client.execute(sql)).rows.map((row) => row.id);
+    expect(await column('SELECT message_id AS id FROM answer_audit')).toEqual(['recent']);
     expect(await column('SELECT id FROM feedback')).toEqual(['recent']);
     expect(await column('SELECT model_id AS id FROM usage_events')).toEqual(['recent']);
     expect(await column('SELECT route AS id FROM rate_limit_events')).toEqual(['recent']);
@@ -200,9 +221,22 @@ describe('AppDatabase', () => {
       { sql: 'UPDATE mastra_observational_memory SET "updatedAt" = ? WHERE "threadId" = ?', args: [recent, 'orphan-new'] },
     ], 'write');
 
+    // Verification records: one per thread, one written a period ago in the live thread, and two whose
+    // thread is gone (deleted from the sidebar an hour ago, and a first turn not saved yet).
+    const audit = (messageId: string, threadId: string, createdAt: string) => ({
+      sql: 'INSERT INTO answer_audit VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      args: [messageId, threadId, 'owner', '{}', '{}', '[]', '[]', null, 'model', createdAt],
+    });
+    const minutesAgo = (minutes: number) => new Date(retentionNow - minutes * 60_000).toISOString();
+    await database.client.batch([
+      audit('audit-expired', 'expired', recent), audit('audit-live', 'live', recent), audit('audit-live-old', 'live', old),
+      audit('audit-deleted-thread', 'deleted', minutesAgo(61)), audit('audit-unsaved-thread', 'unsaved', minutesAgo(59)),
+    ], 'write');
+
     await database.runRetention(retentionNow);
 
     const column = async (sql: string) => (await database.client.execute(sql)).rows.map((row) => row.id);
+    expect(await column('SELECT message_id AS id FROM answer_audit ORDER BY message_id')).toEqual(['audit-live', 'audit-unsaved-thread']);
     expect(await column('SELECT id FROM mastra_threads')).toEqual(['live']);
     expect(await column('SELECT thread_id AS id FROM mastra_messages')).toEqual(['live']);
     expect(await column('SELECT "threadId" AS id FROM mastra_thread_state')).toEqual(['live']);

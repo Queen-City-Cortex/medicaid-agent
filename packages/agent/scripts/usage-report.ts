@@ -9,6 +9,10 @@
  * RUNBOOK "Backups & Restore") to report on production numbers. Costs are
  * estimates from src/usage/pricing.ts — rows whose model has no price entry
  * are counted and flagged, never dropped.
+ *
+ * `runs` counts agent runs only (rows with no phase). The chat verifier and
+ * each deep-research phase write one row per model call; those appear under
+ * `calls` and in the token and cost totals.
  */
 import '../src/load-env.js';
 import { createClient } from '@libsql/client';
@@ -55,7 +59,8 @@ async function main() {
 
   const result = await client.execute({
     sql: `SELECT ${GROUP_EXPR[by]} AS grp, model_id,
-                 COUNT(*) AS runs,
+                 SUM(CASE WHEN phase IS NULL THEN 1 ELSE 0 END) AS runs,
+                 COUNT(*) AS calls,
                  SUM(COALESCE(input_tokens, 0)) AS input_tokens,
                  SUM(COALESCE(output_tokens, 0)) AS output_tokens,
                  SUM(COALESCE(cached_input_tokens, 0)) AS cached_input_tokens
@@ -89,6 +94,7 @@ async function main() {
         String(row.grp).padEnd(28),
         by === 'model' ? '' : modelId.padEnd(18),
         `runs=${String(row.runs).padStart(5)}`,
+        `calls=${String(row.calls).padStart(5)}`,
         `in=${String(row.input_tokens).padStart(11)}`,
         `cached=${String(row.cached_input_tokens).padStart(11)}`,
         `out=${String(row.output_tokens).padStart(9)}`,

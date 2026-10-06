@@ -14,7 +14,6 @@ import { getMessageCreatedAt } from '@/lib/parse-message';
 import {
   buildAnswerClipboardText,
   extractMessageSources,
-  extractVerificationState,
   getToolName,
   getTrailingAssistantText,
   hasRenderableAssistantPart,
@@ -182,7 +181,6 @@ function AssistantMessage({
     msg,
     extractMessageSources(msg),
   );
-  const verification = extractVerificationState(msg);
   // Generation timestamp from memory's createdAt — present only on restored
   // thread messages (exactly where "when was this answer generated?" matters;
   // a just-streamed answer is self-evidently from now).
@@ -393,7 +391,7 @@ function AssistantMessage({
       )}
 
       {!isStreaming && canShowAnswer && finalAnswerText && (
-        <VerificationBadge verification={verification} outcome={release} />
+        <VerificationBadge outcome={release} />
       )}
 
       {collapseTrail && (
@@ -429,7 +427,6 @@ function AssistantMessage({
           open={panelOpen}
           onOpenChange={setPanelOpen}
           highlightedKey={highlightedKey}
-          verification={verification}
         />
       )}
 

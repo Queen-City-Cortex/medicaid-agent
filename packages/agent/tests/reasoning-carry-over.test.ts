@@ -12,7 +12,6 @@ vi.mock('../src/processors/verifier/run.js', async original => ({
   runVerificationForAnswer: vi.fn(async ({ answerText }: { answerText: string }) => ({
     finalAnswer: answerText,
     outcome: { status: 'passed', passCount: 1 },
-    confidence: { confidence: 'high', severity: 'none', counts: {} },
     telemetry: { latency_ms: 0 },
   })),
   emitVerifierTelemetry: vi.fn(),

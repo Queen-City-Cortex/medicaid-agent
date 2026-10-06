@@ -47,6 +47,13 @@ export default function PrivacyPage() {
           answer to improve the service.
         </li>
         <li>
+          <strong>Verification records.</strong> Each answer is checked automatically against
+          the policy text it was drawn from. We keep the result of that check: whether the answer
+          was released, corrected or withheld, and which of its statements the check could not
+          support. Our team may read these records to investigate a wrong or withheld answer.
+          They are not shown in the Service.
+        </li>
+        <li>
           <strong>Usage and error records.</strong> Request counts (for rate limiting and abuse
           prevention), the model and token counts of each request (for cost accounting), and
           error reports via Sentry. We do not run advertising or behavioral
@@ -104,6 +111,11 @@ export default function PrivacyPage() {
         <li>
           <strong>Feedback</strong> is deleted after {FEEDBACK_RETENTION_DAYS} days, or sooner
           with the conversation it belongs to.
+        </li>
+        <li>
+          <strong>Verification records</strong> are deleted {CONVERSATION_RETENTION_DAYS} days
+          after they are written, or sooner with the conversation they belong to when it expires.
+          If you delete the conversation yourself, its verification records are deleted with it.
         </li>
         <li>
           <strong>Usage records</strong> are deleted after {USAGE_RETENTION_DAYS} days.

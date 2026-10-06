@@ -24,9 +24,19 @@ describe('PrivacyPage', () => {
     expect(item('Conversations')).toContain(`${CONVERSATION_RETENTION_DAYS} days without activity`);
     expect(item('Deep-research runs')).toContain(`${CONVERSATION_RETENTION_DAYS} days`);
     expect(item('Feedback')).toContain(`${FEEDBACK_RETENTION_DAYS} days`);
+    expect(item('Verification records')).toContain(`${CONVERSATION_RETENTION_DAYS} days after they are written`);
     expect(item('Usage records')).toContain(`${USAGE_RETENTION_DAYS} days`);
     expect(item('Rate-limit records')).toContain(`${RATE_LIMIT_RETENTION_HOURS} hours`);
     expect(document.body.textContent).not.toMatch(/kept until you delete/i);
+  });
+
+  it('says a verification record is kept for each answer and is not shown in the app', () => {
+    render(<PrivacyPage />);
+    const collected = item('Verification records.');
+    expect(collected).toMatch(/released, corrected or withheld/);
+    expect(collected).toMatch(/statements the check could not support/);
+    expect(collected).toMatch(/not shown in the Service/);
+    expect(item('Verification records')).toMatch(/delete the conversation yourself.*deleted with it/);
   });
 
   it('says deleted data stays in backups for up to 30 days', () => {

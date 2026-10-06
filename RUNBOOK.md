@@ -76,7 +76,8 @@ The LibSQL store on the agent's Railway volume (`/data/mastra.db`) holds
 **user-generated content that may contain client PII**: chat threads (legal
 aid attorneys and case managers paste real case details despite the UI's
 guidance not to), per-conversation observational summaries from any period
-when that feature was on, deep-research runs, and feedback comments. Treat
+when that feature was on, deep-research runs, feedback comments, and the
+verification record of each chat answer (`answer_audit`, below). Treat
 that file — and its dated backups in the Railway bucket
 (`agent/mastra/`, 30-day retention; see Backups & Restore) — accordingly:
 access is operational-only, never for content review, with one exception: an
@@ -120,7 +121,24 @@ sleeping agent purges when it next wakes.
 - **Feedback** — deleted after 180 days (`FEEDBACK_RETENTION_DAYS`), or
   sooner with its expired thread. Feedback for threads deleted from the
   sidebar is pruned opportunistically (`FeedbackRepository.pruneOrphans`).
-- **Usage events** — deleted after 400 days (`USAGE_RETENTION_DAYS`).
+- **Verification records** (`answer_audit`) — one row per chat answer, keyed
+  by the stored assistant message id (the id feedback is filed under): the
+  release outcome, the verifier telemetry, each pass's findings (unsupported
+  and uncited claims, relevance issues, unmatched links and quotations), the
+  verifier's token usage, `CORPUS_RELEASE_ID` and the agent model. The
+  findings quote short excerpts of the checked text, so treat rows as user
+  content. A row never holds the question, the draft, the model's correction
+  or the evidence text, and no route returns it. Deleted 90 days after it was
+  written (`CONVERSATION_RETENTION_DAYS`), or sooner with its expired thread;
+  rows for a thread deleted from the sidebar are deleted with it, and the
+  daily retention run removes any that delete missed. To see why one answer was withheld or
+  corrected, on a downloaded backup:
+  `sqlite3 backup.db "SELECT outcome_json, findings_json FROM answer_audit WHERE message_id = '<message-id>'"`
+  (the `chat.verification` log line carries the thread and message ids).
+- **Usage events** — deleted after 400 days (`USAGE_RETENTION_DAYS`). A chat
+  turn writes one row for the agent run (no phase) and one per verifier call
+  (phase `verifier`); `scripts/usage-report.ts` prints them as `runs` and
+  `calls`.
 - **Rate-limit events** — deleted after 25 hours
   (`RATE_LIMIT_RETENTION_HOURS`).
 - **Backups** — dated bucket copies are deleted after 30 days
@@ -142,7 +160,7 @@ sleeping agent purges when it next wakes.
   `railway ssh` exits 0 even when the remote command fails. The script
   prints, as one transaction, the statements `AppDatabase.deleteUserData`
   runs: the user's threads, messages, thread state, observational summaries,
-  feedback, usage and rate-limit events, research runs with their
+  feedback, verification records, usage and rate-limit events, research runs with their
   checkpoints, budgets and workflow snapshots, and the Mastra resource row.
   It prints nothing unless given exactly one WorkOS user id, and it opens no
   database itself, so running it without the `railway ssh` wrapper is a safe

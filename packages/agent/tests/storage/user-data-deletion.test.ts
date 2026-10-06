@@ -63,6 +63,10 @@ describe('user data deletion', () => {
         // Rows reachable only through the thread: the owner column is empty.
         { sql: 'UPDATE mastra_messages SET "resourceId" = NULL WHERE id = ?', args: [`message-b-${user}`] },
         { sql: 'INSERT INTO feedback VALUES (?, ?, ?, ?, ?, ?, ?)', args: [`feedback-${user}`, threadId, `message-a-${user}`, user, 'down', 'note', iso] },
+        {
+          sql: 'INSERT INTO answer_audit VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          args: [`message-a-${user}`, threadId, user, '{}', '{}', '[{"unsupportedClaims":[{"claim":"client details"}]}]', '[]', null, 'model', iso],
+        },
         { sql: 'INSERT INTO rate_limit_events (user_id, route, created_at) VALUES (?, ?, ?)', args: [user, 'chat', now.getTime()] },
         { sql: 'INSERT INTO usage_events (user_id, route, model_id, created_at) VALUES (?, ?, ?, ?)', args: [user, 'chat', 'model', now.getTime()] },
         {
@@ -89,6 +93,7 @@ describe('user data deletion', () => {
       mastra_resources: 'SELECT id AS owner FROM mastra_resources',
       mastra_workflow_snapshot: `SELECT replace(replace(run_id, 'first-', ''), 'workflow-', '') AS owner FROM mastra_workflow_snapshot`,
       feedback: 'SELECT resource_id AS owner FROM feedback',
+      answer_audit: 'SELECT resource_id AS owner FROM answer_audit',
       rate_limit_events: 'SELECT user_id AS owner FROM rate_limit_events',
       usage_events: 'SELECT user_id AS owner FROM usage_events',
       research_runs: 'SELECT resource_id AS owner FROM research_runs',
@@ -105,7 +110,7 @@ describe('user data deletion', () => {
 
   const onlyOwner = (owner: string[]) => Object.fromEntries([
     'mastra_threads', 'mastra_messages', 'mastra_thread_state', 'mastra_observational_memory', 'mastra_resources',
-    'mastra_workflow_snapshot', 'feedback', 'rate_limit_events', 'usage_events', 'research_runs',
+    'mastra_workflow_snapshot', 'feedback', 'answer_audit', 'rate_limit_events', 'usage_events', 'research_runs',
     'research_checkpoints', 'research_budgets',
   ].map((table) => [table, owner]));
 
@@ -123,6 +128,19 @@ describe('user data deletion', () => {
     for (const table of ['mastra_messages', 'mastra_workflow_snapshot', 'mastra_observational_memory']) {
       expect((await database.client.execute(`SELECT COUNT(*) AS n FROM ${table}`)).rows[0].n).toBe(2);
     }
+  });
+
+  it('deletes from every application table that has an owner column, so a new one cannot be left out', async () => {
+    const database = await seed();
+    const tables = (await database.client.execute(`SELECT name FROM sqlite_master WHERE type = 'table'`)).rows.map((row) => String(row.name));
+    const owned: string[] = [];
+    for (const table of tables.filter((name) => !name.startsWith('mastra_'))) {
+      const columns = (await database.client.execute(`PRAGMA table_info(${table})`)).rows.map((row) => String(row.name));
+      if (columns.some((column) => ['resource_id', 'user_id'].includes(column))) owned.push(table);
+    }
+    expect(owned).toContain('answer_audit');
+    const sql = renderUserDataDeletionSql(TARGET);
+    for (const table of owned) expect(sql).toContain(`DELETE FROM ${table} WHERE`);
   });
 
   it('prints one transaction that ends with the success marker and deletes threads last among thread-keyed rows', () => {

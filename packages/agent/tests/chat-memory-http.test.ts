@@ -19,6 +19,9 @@ import { HallucinationVerifier } from '../src/processors/verifier/processor.js';
 import { clientRequestContext } from './helpers/client-request-context.js';
 import { verifyAnswer } from '../src/processors/verifier/verify.js';
 import { log } from '../src/logger.js';
+import { AppDatabase } from '../src/storage/app-database.js';
+import { AnswerAuditRepository } from '../src/storage/answer-audit.js';
+import { UsageRepository } from '../src/usage/repository.js';
 import { z } from 'zod';
 
 vi.mock('../src/processors/verifier/verify.js', async original => ({
@@ -323,7 +326,7 @@ describe('production HTTP handler with guarded observational memory', () => {
       expect([...new Set(chunks(first).map(chunk => chunk.type))].sort()).toEqual(['data-verification-status', 'finish', 'finish-step',
         'start', 'start-step', 'text-delta', 'text-end', 'text-start', 'tool-input-available', 'tool-input-start', 'tool-output-available']);
       expect(chunks(first).find(chunk => chunk.type === 'tool-output-available').output.section.url).toBe('https://example.gov/policy');
-      expect(chunks(first).filter(chunk => chunk.type === 'data-verification-status').at(-1)).toMatchObject({ data: { status: 'passed', severity: 'high', confidence: 1 } });
+      expect(chunks(first).filter(chunk => chunk.type === 'data-verification-status').at(-1)).toEqual({ type: 'data-verification-status', data: { status: 'passed', passCount: 1 } });
       await vi.waitFor(async () => {
         // The observer's marker is stored with the released answer; its text is not.
         const rows = JSON.stringify(await storedMessages({ threadId: 'thread', perPage: false }));
@@ -352,6 +355,114 @@ describe('production HTTP handler with guarded observational memory', () => {
       });
     } finally {
       await storage.close();
+    }
+  }, 30_000);
+
+  it('files each answer\'s verification record under the message id the stream and history give the browser, and records verifier usage', async () => {
+    const draft = 'Adults get 40 visits a year. PRIVATE_DRAFT_SENTINEL more unsupported prose. [Policy](https://example.gov/policy)';
+    const released = 'The service is covered. [Policy](https://example.gov/policy)';
+    const finding = { claim: 'Adults get 40 visits a year', reason: 'Not in the policy' };
+    const tokens = { inputTokens: 900, outputTokens: 30, totalTokens: 930 };
+    // Turn by turn: clean, corrected on the recheck, then unsupported with no usable correction.
+    let turn = 'passed';
+    vi.mocked(verifyAnswer).mockImplementation(async (_question, text, _evidence, onUsage) => {
+      onUsage?.(tokens);
+      if (turn === 'passed' || text === released) return verdict;
+      return { ...verdict, supported: false, unsupportedClaims: [finding], correctedAnswer: turn === 'corrected' ? released : '' };
+    });
+    const directory = await mkdtemp(join(tmpdir(), 'http-audit-'));
+    const url = `file:${directory}/test.db`;
+    const storage = new LibSQLStore({ id: 'http-audit-test', url });
+    const database = new AppDatabase(url);
+    const info = vi.spyOn(log, 'info');
+    try {
+      await storage.init();
+      const store = (await storage.getStore('memory'))!;
+      installMemoryReleaseGate(store);
+      const stream = (chunks: unknown[]) => ({ stream: simulateReadableStream({ chunks: [{ type: 'stream-start', warnings: [] }, ...chunks] }) }) as never;
+      let calls = 0;
+      const model = new MockLanguageModelV3({ doStream: async () => ++calls % 2 === 1
+        ? stream([{ type: 'tool-call', toolCallId: `read-${calls}`, toolName: 'getSection', input: '{}' },
+          { type: 'finish', finishReason: { unified: 'tool-calls', raw: 'tool_calls' }, usage }])
+        : stream([{ type: 'text-start', id: 'draft' }, { type: 'text-delta', id: 'draft', delta: turn === 'passed' ? released : draft },
+          { type: 'text-end', id: 'draft' }, { type: 'finish', finishReason, usage }]) });
+      const getSection = createTool({ id: 'getSection', description: 'Read the fixture policy.', inputSchema: z.object({}),
+        execute: async () => ({ section: { id: 'policy', title: 'Coverage', content: 'The service is covered.',
+          url: 'https://example.gov/policy', citationLink: '[Policy](https://example.gov/policy)' } }) });
+      const memory = await createChatMemory(storage, { generateTitle: false });
+      const usageRepo = new UsageRepository(database);
+      const agent = new Agent({ id: 'test-agent', name: 'Test', instructions: 'Answer from policy.', model, memory, tools: { getSection },
+        outputProcessors: [new HallucinationVerifier({ usage: usageRepo, audit: new AnswerAuditRepository(database) })] });
+      const mastra = new Mastra({ agents: { ncMedicaidAgent: agent }, storage, logger: false });
+      const app = new Hono();
+      app.use('*', async (c, next) => {
+        (c as any).set('requestContext', await clientRequestContext(c.req.raw));
+        (c as any).set('mastra', mastra);
+        await next();
+      });
+      app.use('*', createResourceBindingMiddleware({ authenticateToken: async () => ({ id: 'owner' }) }) as unknown as MiddlewareHandler);
+      const route = createChatRoute(usageRepo, { maxSteps: 2 });
+      if (!('handler' in route)) throw new Error('Expected a direct HTTP handler');
+      app.post('/chat', route.handler as unknown as Handler);
+      const post = async (text: string) => {
+        const body = await (await app.request('/chat', { method: 'POST',
+          headers: { 'content-type': 'application/json', authorization: 'Bearer test-owner' },
+          body: JSON.stringify({ messages: [{ id: crypto.randomUUID(), role: 'user', parts: [{ type: 'text', text }] }],
+            memory: { thread: 'thread', resource: 'attacker' } }) })).text();
+        return body.split('\n').filter(line => line.startsWith('data: {')).map(line => JSON.parse(line.slice(6)));
+      };
+      const rows = async (sql: string) => (await database.client.execute(sql)).rows;
+
+      const streamed: string[] = [];
+      for (turn of ['passed', 'corrected', 'withheld']) {
+        const chunks = await post(`Is the service covered (${turn})?`);
+        expect(chunks.filter(chunk => chunk.type === 'data-verification-status').at(-1).data.status).toBe(turn);
+        // Nothing of the record reaches the browser.
+        expect(JSON.stringify(chunks)).not.toContain(finding.reason);
+        streamed.push(chunks.find(chunk => chunk.type === 'start').messageId);
+      }
+
+      await vi.waitFor(async () => expect(await rows('SELECT message_id FROM answer_audit')).toHaveLength(3));
+      const audit = await rows('SELECT * FROM answer_audit ORDER BY created_at, rowid');
+      expect(audit.map(row => JSON.parse(String(row.outcome_json)))).toEqual([
+        { status: 'passed', passCount: 1 }, { status: 'corrected', passCount: 2 },
+        { status: 'withheld', reason: 'unusable_correction', passCount: 1 },
+      ]);
+      expect(audit.every(row => row.thread_id === 'thread' && row.resource_id === 'owner')).toBe(true);
+      // The id the live stream gives the browser, which it sends with feedback on a just-streamed answer.
+      expect(audit.map(row => row.message_id)).toEqual(streamed);
+      // The id history gives it after a reload: the stored message that carries the answer text.
+      await vi.waitFor(async () => {
+        const history = (await store.listMessages({ threadId: 'thread', perPage: false })).messages
+          .filter(message => message.role === 'assistant' && message.content.parts.some(part => part.type === 'text'));
+        expect(history.map(message => message.id)).toEqual(streamed);
+      });
+      expect(JSON.parse(String(audit[1].findings_json)).map((pass: { unsupportedClaims: unknown[] }) => pass.unsupportedClaims)).toEqual([[finding], []]);
+      expect(JSON.parse(String(audit[2].findings_json))[0].unsupportedClaims).toEqual([finding]);
+      expect(JSON.parse(String(audit[1].usage_json))).toEqual([tokens, tokens]);
+      const everything = JSON.stringify(audit);
+      expect(everything).toContain(finding.claim);
+      expect(everything).not.toContain('PRIVATE_DRAFT_SENTINEL');
+      expect(everything).not.toContain('Is the service covered');
+
+      // One usage row per verifier call beside the three agent runs, all owned by the token's user.
+      await vi.waitFor(async () => expect(await rows('SELECT phase FROM usage_events')).toHaveLength(7));
+      expect(await rows(`SELECT COALESCE(phase, 'agent') AS phase, COUNT(*) AS n, MIN(user_id) AS owner, MIN(thread_id) AS thread,
+        SUM(input_tokens) AS input FROM usage_events WHERE route = 'chat' GROUP BY phase ORDER BY phase`)).toMatchObject([
+        { phase: 'agent', n: 3, owner: 'owner', thread: 'thread' },
+        { phase: 'verifier', n: 4, owner: 'owner', thread: 'thread', input: 3600 },
+      ]);
+
+      const lines = info.mock.calls.filter(([event]) => event === 'chat.verification').map(([, fields]) => fields);
+      expect(lines.map(fields => [fields!.threadId, fields!.messageId, fields!.status])).toEqual(
+        streamed.map((messageId, index) => ['thread', messageId, ['passed', 'corrected', 'withheld'][index]]));
+      expect(JSON.stringify(info.mock.calls)).not.toContain('PRIVATE_DRAFT_SENTINEL');
+      expect(JSON.stringify(info.mock.calls)).not.toContain(finding.claim);
+    } finally {
+      info.mockRestore();
+      database.close();
+      await storage.close();
+      await rm(directory, { recursive: true, force: true });
     }
   }, 30_000);
 

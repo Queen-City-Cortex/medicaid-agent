@@ -2,9 +2,8 @@
 
 import { ChevronRight, ExternalLink } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import type { MessageSource, VerificationState } from '@/lib/message-parts';
+import type { MessageSource } from '@/lib/message-parts';
 
 export interface SourcesPanelProps {
   /** Sources in display order: cited entries first, then merely-consulted. */
@@ -21,8 +20,6 @@ export interface SourcesPanelProps {
   onOpenChange?: (open: boolean) => void;
   /** Key of a source to highlight briefly (after a footnote click). */
   highlightedKey?: string | null;
-  /** Verifier confidence state for the assistant message. When present, renders a small dot next to the Sources label with a tooltip explaining the score. */
-  verification?: VerificationState | null;
 }
 
 function countLabel(count: number, citedCount: number | undefined): string {
@@ -41,82 +38,6 @@ const ORIGIN_LABELS: Record<string, string> = {
   lookupPolicy: 'looked up',
   getAmendments: 'amendment check',
 };
-
-// Dot color matches the project's existing feedback + alert tokens: emerald
-// for positive signals (MessageActions), amber for warnings (endedWithoutAnswer
-// notice), red for destructive / failure signals.
-const DOT_CLASSES: Record<VerificationState['severity'], string> = {
-  high: 'bg-emerald-500 dark:bg-emerald-400 ring-emerald-500/20 dark:ring-emerald-400/20',
-  medium: 'bg-amber-500 dark:bg-amber-400 ring-amber-500/25 dark:ring-amber-400/25',
-  low: 'bg-red-500 dark:bg-red-400 ring-red-500/25 dark:ring-red-400/25',
-};
-
-const DOT_SR_LABEL: Record<VerificationState['severity'], string> = {
-  high: 'Verifier confidence: high',
-  medium: 'Verifier confidence: medium',
-  low: 'Verifier confidence: low',
-};
-
-function verificationTooltipLines(v: VerificationState): string[] {
-  const pct = Math.round(v.confidence * 100);
-  const header = `Verifier confidence: ${v.severity} (${pct}%)`;
-  if (v.pureMarkerFallback) {
-    return [header, 'Rewrite was empty — falling back to the original answer.'];
-  }
-  if (!v.rewrote) {
-    return [header, 'All checks passed without rewrite.'];
-  }
-  const bits: string[] = [];
-  if (v.counts.unsupported) bits.push(`${v.counts.unsupported} unsupported claim${v.counts.unsupported === 1 ? '' : 's'}`);
-  if (v.counts.missingCitation) bits.push(`${v.counts.missingCitation} uncited claim${v.counts.missingCitation === 1 ? '' : 's'}`);
-  if (v.counts.relevanceMajor) bits.push(`${v.counts.relevanceMajor} major relevance issue${v.counts.relevanceMajor === 1 ? '' : 's'}`);
-  if (v.counts.relevanceMinor) bits.push(`${v.counts.relevanceMinor} minor relevance issue${v.counts.relevanceMinor === 1 ? '' : 's'}`);
-  return bits.length ? [header, bits.join(' · ')] : [header, 'Verifier rewrote the answer.'];
-}
-
-interface ConfidenceDotProps {
-  verification: VerificationState;
-}
-
-function ConfidenceDot({ verification }: ConfidenceDotProps) {
-  const lines = verificationTooltipLines(verification);
-  return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger
-          // Render as a span rather than the default button — SourcesPanel's
-          // CollapsibleTrigger is itself a <button>, and nesting buttons is
-          // invalid HTML. The dot is purely presentational (aria-hidden, not
-          // focusable): a focusable element nested inside the trigger button
-          // would be invalid interactive nesting. Its meaning is exposed via
-          // the sr-only text inside the trigger instead; the tooltip remains
-          // as a pointer-hover affordance.
-          render={<span />}
-          aria-hidden="true"
-          data-testid="verification-dot"
-          data-severity={verification.severity}
-          // Stop the dot from toggling the Collapsible when the user
-          // clicks it — otherwise opening the panel would flicker the
-          // tooltip off.
-          onClick={(event) => event.stopPropagation()}
-          className={cn(
-            'inline-flex size-2.5 shrink-0 rounded-full ring-2 transition-colors',
-            DOT_CLASSES[verification.severity],
-          )}
-        />
-        <TooltipContent>
-          <div className="flex flex-col gap-0.5">
-            {lines.map((line, i) => (
-              <span key={i} className={i === 0 ? 'font-medium' : 'text-background/75'}>
-                {line}
-              </span>
-            ))}
-          </div>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  );
-}
 
 /** DOM id for a source row, scoped by the owning message. Stable across renders so footnote clicks can target it. */
 export function sourceRowId(messageId: string | undefined, sourceKey: string): string {
@@ -185,7 +106,7 @@ function SourceRow({
   );
 }
 
-export function SourcesPanel({ sources, citedCount, messageId, open, onOpenChange, highlightedKey, verification }: SourcesPanelProps) {
+export function SourcesPanel({ sources, citedCount, messageId, open, onOpenChange, highlightedKey }: SourcesPanelProps) {
   if (sources.length === 0) return null;
 
   const cited = citedCount === undefined ? sources : sources.slice(0, citedCount);
@@ -200,19 +121,9 @@ export function SourcesPanel({ sources, citedCount, messageId, open, onOpenChang
           className="group flex w-full items-center justify-between rounded-xl border border-border/70 bg-muted/25 px-4 py-3 text-left transition-colors hover:bg-muted/45"
         >
           <div className="flex min-w-0 items-center gap-3">
-            {verification && <ConfidenceDot verification={verification} />}
             <div className="min-w-0">
               <div className="text-sm font-medium text-foreground">
                 Sources
-                {/* The confidence dot above is presentational; expose its
-                    meaning in the trigger's accessible name instead. */}
-                {verification && (
-                  <span className="sr-only">
-                    {' — '}
-                    {DOT_SR_LABEL[verification.severity]}.{' '}
-                    {verificationTooltipLines(verification).slice(1).join(' ')}
-                  </span>
-                )}
               </div>
               <div className="font-mono text-[11px] tracking-tight text-muted-foreground">{countLabel(sources.length, citedCount)}</div>
             </div>

@@ -6,7 +6,6 @@ import {
   normalizeUrl,
   validateAnswerUrls,
   validateAnswerQuotes,
-  computeVerificationConfidence,
   runVerificationForAnswer,
   type SourceEntry,
   type VerificationResult,
@@ -92,17 +91,13 @@ describe('validateAnswerUrls', () => {
   it('passes through answers whose markdown URLs all match source links', () => {
     const answer = 'PCS is covered [Policy 3L-1 § 3.2.1](https://medicaid.ncdhhs.gov/3l-1-pcs).';
     const result = validateAnswerUrls(answer, [makeSource()]);
-    expect(result.validatedAnswer).toBe(answer);
-    expect(result.unknownUrls).toEqual([]);
-    expect(result.checkedUrlCount).toBe(1);
+    expect(result).toEqual({ unknownUrls: [], checkedUrlCount: 1, retrievedUrlCount: 1, allowedUrlCount: 0 });
   });
 
-  it('demotes a fabricated link to plain text and reports it', () => {
+  it('reports a fabricated link and returns no rewritten answer', () => {
     const answer = `The change notice is at [Policy 8C change notice](${FABRICATED_URL}).`;
     const result = validateAnswerUrls(answer, [makeSource()]);
-    expect(result.unknownUrls).toEqual([FABRICATED_URL]);
-    expect(result.validatedAnswer).toBe('The change notice is at Policy 8C change notice.');
-    expect(result.validatedAnswer).not.toContain('](http');
+    expect(result).toEqual({ unknownUrls: [FABRICATED_URL], checkedUrlCount: 1, retrievedUrlCount: 0, allowedUrlCount: 0 });
   });
 
   it('accepts URLs present only in a source entry text', () => {
@@ -113,7 +108,7 @@ describe('validateAnswerUrls', () => {
     const answer = 'See [Policy 8C](https://medicaid.ncdhhs.gov/8c-policy-page).';
     const result = validateAnswerUrls(answer, [source]);
     expect(result.unknownUrls).toEqual([]);
-    expect(result.validatedAnswer).toBe(answer);
+    expect(result.retrievedUrlCount).toBe(1);
   });
 
   it('matches after normalization (trailing slash and host case)', () => {
@@ -135,8 +130,7 @@ describe('validateAnswerUrls', () => {
     const [ombudsman, dss] = REFERRAL_PAGE_URLS.map(form);
     const answer = `Call the [NC Medicaid Ombudsman](${ombudsman}) or find your [county DSS office](${dss}).`;
     const result = validateAnswerUrls(answer, []);
-    expect(result).toMatchObject({ unknownUrls: [], checkedUrlCount: 2, allowedUrlCount: 2, retrievedUrlCount: 0 });
-    expect(result.validatedAnswer).toBe(answer);
+    expect(result).toEqual({ unknownUrls: [], checkedUrlCount: 2, allowedUrlCount: 2, retrievedUrlCount: 0 });
   });
 
   it.each([
@@ -148,15 +142,20 @@ describe('validateAnswerUrls', () => {
     'https://ncdhhs.gov/divisions/social-services/local-dss-directory',
   ])('still flags %s, a different ncdhhs.gov page', url => {
     const result = validateAnswerUrls(`See [this page](${url}).`, []);
-    expect(result).toMatchObject({ unknownUrls: [url], allowedUrlCount: 0 });
-    expect(result.validatedAnswer).toBe('See this page.');
+    expect(result).toEqual({ unknownUrls: [url], checkedUrlCount: 1, allowedUrlCount: 0, retrievedUrlCount: 0 });
   });
 
-  it('does not touch verifier markers or non-link brackets', () => {
+  it('checks a link inside a verifier marker and ignores non-link brackets', () => {
     const answer = '[unverified: claim about limits] and [missing citation: [X § 1](https://medicaid.ncdhhs.gov/3l-1-pcs)]';
     const result = validateAnswerUrls(answer, [makeSource()]);
-    expect(result.validatedAnswer).toBe(answer);
-    expect(result.unknownUrls).toEqual([]);
+    expect(result).toEqual({ unknownUrls: [], checkedUrlCount: 1, retrievedUrlCount: 1, allowedUrlCount: 0 });
+  });
+
+  it('reports unknown URLs in answer order: markdown links first, then other forms once each', () => {
+    const answer = `Read https://example.gov/bare first, then [A](${FABRICATED_URL}), [B](https://example.gov/b) and <${FABRICATED_URL}>.`;
+    const result = validateAnswerUrls(answer, [makeSource()]);
+    expect(result).toEqual({ unknownUrls: [FABRICATED_URL, 'https://example.gov/b', 'https://example.gov/bare'],
+      checkedUrlCount: 3, retrievedUrlCount: 0, allowedUrlCount: 0 });
   });
 });
 
@@ -168,22 +167,20 @@ describe('validateAnswerQuotes', () => {
   it('flags a long quote absent from sources', () => {
     const answer = 'The notice says "this change was subsequently carried over to the CAP/DA services manual revision" exactly.';
     const result = validateAnswerQuotes(answer, [source]);
-    expect(result.unknownQuotes).toHaveLength(1);
-    expect(result.validatedAnswer).toContain('[unverified quote — not found in retrieved sources]');
+    expect(result).toEqual({ checkedQuoteCount: 1,
+      unknownQuotes: ['this change was subsequently carried over to the CAP/DA services manual revision'] });
   });
 
   it('accepts a quote present modulo whitespace and curly quotes', () => {
     const answer = 'Per the policy, “Therapeutic leave is limited to sixty days per calendar year for nursing facility residents” applies.';
     const result = validateAnswerQuotes(answer, [source]);
-    expect(result.unknownQuotes).toEqual([]);
-    expect(result.validatedAnswer).toBe(answer);
+    expect(result).toEqual({ unknownQuotes: [], checkedQuoteCount: 1 });
   });
 
   it('ignores short quoted phrases', () => {
     const answer = 'The section labels this "not covered" explicitly.';
     const result = validateAnswerQuotes(answer, [source]);
-    expect(result.checkedQuoteCount).toBe(0);
-    expect(result.validatedAnswer).toBe(answer);
+    expect(result).toEqual({ unknownQuotes: [], checkedQuoteCount: 0 });
   });
 });
 
@@ -213,25 +210,6 @@ describe('assessRewriteSubstance', () => {
     const check = assessRewriteSubstance(original, corrected);
     expect(check.ratio).toBeGreaterThan(0.8);
     expect(check.lostSubstance).toBe(false);
-  });
-});
-
-describe('computeVerificationConfidence guard options', () => {
-  it('clamps to low when substanceLossFallback is true with clean counts', () => {
-    const result = computeVerificationConfidence(makeVerification(), { substanceLossFallback: true });
-    expect(result.confidence).toBeLessThanOrEqual(0.55);
-    expect(result.severity).toBe('low');
-    expect(result.substanceLossFallback).toBe(true);
-  });
-
-  it('deducts per fabricated URL and quote', () => {
-    const result = computeVerificationConfidence(makeVerification(), {
-      fabricatedUrlCount: 1,
-      fabricatedQuoteCount: 1,
-    });
-    expect(result.confidence).toBeCloseTo(0.55, 5);
-    expect(result.counts.fabricatedUrl).toBe(1);
-    expect(result.counts.fabricatedQuote).toBe(1);
   });
 });
 
@@ -266,11 +244,10 @@ describe('runVerificationForAnswer guards', () => {
 
     expect(result.finalAnswer).toBe(WITHHELD_ANSWER);
     expect(result.outcome.status).toBe('withheld');
-    expect(result.telemetry.confidence).toBeLessThanOrEqual(0.55);
-    expect(result.telemetry.severity).toBe('low');
+    expect(result.outcome.reason).toBe('unusable_correction');
   });
 
-  it('strips fabricated URLs even when all LLM checks pass', async () => {
+  it('withholds an answer with a fabricated URL even when all LLM checks pass', async () => {
     vi.mocked(generateObject).mockResolvedValueOnce({ object: makeVerification() } as any);
 
     const answer = `${original} The notice is at [Change notice](${FABRICATED_URL}).`;
@@ -284,10 +261,10 @@ describe('runVerificationForAnswer guards', () => {
     expect(result.finalAnswer).not.toContain(FABRICATED_URL);
     expect(result.finalAnswer).toBe(WITHHELD_ANSWER);
     expect(result.telemetry.fabricated_url_count).toBe(1);
-    expect(result.telemetry.confidence).toBeLessThan(1);
+    expect(result.outcome.status).toBe('withheld');
   });
 
-  it('marks a fabricated quote even when all LLM checks pass', async () => {
+  it('withholds an answer with a fabricated quote even when all LLM checks pass', async () => {
     vi.mocked(generateObject).mockResolvedValueOnce({ object: makeVerification() } as any);
 
     const answer = `${original} The notice states "this revision was subsequently carried over into the service manual for the next plan year".`;
@@ -315,17 +292,20 @@ describe('runVerificationForAnswer guards', () => {
     expect(result.finalAnswer).toBe(original);
     expect(result.telemetry.fabricated_url_count).toBe(0);
     expect(result.telemetry.fabricated_quote_count).toBe(0);
-    expect(result.telemetry.substance_loss_fallback).toBe(false);
-    expect(result.telemetry.confidence).toBe(1);
     // The eval harness reads these by name — the do-not-rename contract.
     for (const field of [
       'rewrote', 'supported', 'relevant', 'citations_complete', 'unsupported_claim_count',
       'missing_citation_count', 'relevance_issue_count', 'major_relevance_issue',
       'verifier_unavailable', 'verifier_model',
-      'source_entry_count', 'evidence_bytes', 'confidence', 'severity', 'pure_marker_fallback',
+      'source_entry_count', 'evidence_bytes',
     ]) {
       expect(result.telemetry).toHaveProperty(field);
     }
+    // The retired confidence score and the two flags that were always false.
+    for (const field of ['confidence', 'severity', 'pure_marker_fallback', 'substance_loss_fallback']) {
+      expect(result.telemetry).not.toHaveProperty(field);
+    }
+    expect(result).not.toHaveProperty('confidence');
   });
 });
 

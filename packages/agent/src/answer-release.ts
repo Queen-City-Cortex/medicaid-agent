@@ -4,7 +4,7 @@ import type { MemoryStorage } from '@mastra/core/storage';
 import type { UIMessage, UIMessageChunk } from 'ai';
 import { VERIFICATION_PART, WITHHELD_ANSWER, UNVERIFIED_HISTORY, VerificationOutcomeSchema,
   type VerificationOutcome, type VerificationProgress } from '@nc-medicaid/contracts';
-import { log } from './logger.js';
+import { log, errorFields } from './logger.js';
 
 // Initialized from persistent application storage before serving requests.
 let secret = randomBytes(32).toString('hex');
@@ -83,6 +83,7 @@ export function trustedChatInput(body: { messages?: UIMessage[]; memory?: { thre
 export const GUARDED_MEMORY_METHODS = [
   'saveThread', 'getObservationalMemory', 'getObservationalMemoryHistory', 'initializeObservationalMemory',
   'saveMessages', 'listMessages', 'listMessagesById', 'listMessagesByResourceId', 'cloneThread', 'updateMessages',
+  'deleteThread',
 ] as const;
 
 const PLUMBING = 'Class or framework plumbing; touches no stored row.';
@@ -101,7 +102,7 @@ const OBSERVATION_CONFIG = 'Can write the release marker, but only framework cod
 export const PASS_THROUGH_MEMORY_METHODS: Readonly<Record<string, string>> = {
   constructor: PLUMBING, toRawConfig: PLUMBING, __setRawConfig: PLUMBING, __setLogger: PLUMBING,
   init: MAINTENANCE, prune: MAINTENANCE, dangerouslyClearAll: MAINTENANCE, deleteMessages: MAINTENANCE,
-  deleteThread: MAINTENANCE, clearObservationalMemory: MAINTENANCE,
+  clearObservationalMemory: MAINTENANCE,
   parseRow: HELPER, _sortMessages: HELPER, _getIncludedMessages: HELPER, getOMKey: HELPER, parseOMRow: HELPER,
   parseOrderBy: HELPER, deepMergeConfig: HELPER, validateMetadataKeys: HELPER, validatePagination: HELPER,
   validatePaginationInput: HELPER,
@@ -131,7 +132,11 @@ function storeMethodNames(memory: object): Set<string> {
 /** Enforce the same boundary for memory recall, history, clones and writes.
  * Default-deny: an adapter method this file has not classified fails start-up
  * rather than running unguarded. */
-export function installMemoryReleaseGate(memory: MemoryStorage): void {
+export function installMemoryReleaseGate(
+  memory: MemoryStorage,
+  /** Deletes what the application stores about a thread outside the memory store. */
+  onThreadDeleted?: (threadId: string) => Promise<void>,
+): void {
   const guarded: readonly string[] = GUARDED_MEMORY_METHODS;
   const unclassified = [...storeMethodNames(memory)]
     .filter(name => !guarded.includes(name) && !Object.hasOwn(PASS_THROUGH_MEMORY_METHODS, name));
@@ -161,6 +166,13 @@ export function installMemoryReleaseGate(memory: MemoryStorage): void {
     } finally {
       if (savesInFlight.get(id) === save) savesInFlight.delete(id);
     }
+  };
+  // A deleted thread takes its verification records and feedback with it. The
+  // daily retention sweep removes any row this misses.
+  const deleteThread = memory.deleteThread.bind(memory);
+  memory.deleteThread = async args => {
+    await deleteThread(args);
+    await onThreadDeleted?.(args.threadId).catch(err => log.warn('thread.delete_records_failed', errorFields(err)));
   };
   // Older observations summarize pre-gate prose and cannot be trusted. New
   // observations are derived from guarded messages after the output processor.
@@ -223,20 +235,12 @@ const asText = (value: unknown) => typeof value === 'string' ? value : undefined
 const defined = <T extends object>(fields: T) =>
   Object.fromEntries(Object.entries(fields).filter(([, value]) => value !== undefined)) as T;
 
-const VERIFICATION_COUNTS = ['unsupported', 'missingCitation', 'relevanceMajor', 'relevanceMinor', 'fabricatedUrl', 'fabricatedQuote'];
-/** The verifier's progress and terminal decision, without the answer text. */
-function verificationProgress(data: unknown): VerificationProgress & { confidence?: number; severity?: string; counts?: Record<string, number> } | null {
-  const fields = (data ?? {}) as Record<string, unknown>;
-  if (fields.status === 'verifying') return { status: 'verifying' };
-  const outcome = VerificationOutcomeSchema.safeParse(fields);
-  if (!outcome.success) return null;
-  const counts = (fields.counts ?? {}) as Record<string, unknown>;
-  return defined({ ...outcome.data,
-    confidence: typeof fields.confidence === 'number' ? fields.confidence : undefined,
-    severity: ['high', 'medium', 'low'].find(level => level === fields.severity),
-    counts: fields.counts === undefined ? undefined : Object.fromEntries(VERIFICATION_COUNTS
-      .filter(name => typeof counts[name] === 'number').map(name => [name, counts[name] as number])),
-  });
+/** The verifier's progress and terminal decision (status, reason and pass
+ * count), without the answer text or anything else the processor wrote. */
+function verificationProgress(data: unknown): VerificationProgress | null {
+  if ((data as { status?: unknown } | null)?.status === 'verifying') return { status: 'verifying' };
+  const outcome = VerificationOutcomeSchema.safeParse(data);
+  return outcome.success ? defined(outcome.data) : null;
 }
 
 /** Every chunk the client receives is built here from named fields. A type

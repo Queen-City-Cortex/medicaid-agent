@@ -47,6 +47,7 @@ import { buildSystemPrompt } from './prompt.js';
 import { boolEnv, intEnv, isVerifierEnabled } from './env.js';
 import { loadRuntimeConfig } from './runtime-config.js';
 import { AppDatabase } from './storage/app-database.js';
+import { AnswerAuditRepository } from './storage/answer-audit.js';
 import { createExecutionGateway } from './execution-gateway.js';
 import { healthApiRoutes } from './readiness.js';
 import { ResearchRepository } from './deep-research/repository.js';
@@ -72,7 +73,7 @@ const libsql = new LibSQLStore({
 const appDatabase = new AppDatabase(runtimeConfig.databaseUrl);
 await appDatabase.migrate();
 configureAnswerRelease(String((await appDatabase.client.execute('SELECT secret FROM answer_release_keys WHERE id = 1')).rows[0].secret));
-installMemoryReleaseGate((await libsql.getStore('memory'))!);
+installMemoryReleaseGate((await libsql.getStore('memory'))!, threadId => appDatabase.deleteThreadRecords(threadId));
 const feedbackRepo = new FeedbackRepository(appDatabase);
 const rateLimitRepo = new RateLimitRepository(appDatabase);
 const usageRepo = new UsageRepository(appDatabase);
@@ -133,7 +134,7 @@ const memory = IS_CLI_RUN ? undefined : await createChatMemory(libsql, {
 
 const SYSTEM_PROMPT = buildSystemPrompt();
 
-const hallucinationVerifier = new HallucinationVerifier();
+const hallucinationVerifier = new HallucinationVerifier({ usage: usageRepo, audit: new AnswerAuditRepository(appDatabase) });
 const answerFramePrefetch = new AnswerFramePrefetchProcessor();
 const answerFramePlanning = new AnswerFramePlanningProcessor();
 const openAIResponsesDedup = new OpenAIResponsesDedupProcessor();

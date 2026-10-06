@@ -679,7 +679,7 @@ describe('MessageList', () => {
 
 
 describe('verification release UI', () => {
-  it('shows a corrected release after history reload without confidence fields', () => {
+  it('shows a corrected release after history reload', () => {
     renderMessageList([{ id: 'restored-corrected', role: 'assistant', parts: [
       { type: 'text', text: 'A corrected answer.' },
       { type: VERIFICATION_PART, data: { status: 'corrected', passCount: 2 } },
