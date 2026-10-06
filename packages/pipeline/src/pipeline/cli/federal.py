@@ -19,7 +19,7 @@ def ingest_cfr(part: int | None, refresh: bool):
 
 
 @cli.command("ingest-ssa")
-@click.option("--refresh", is_flag=True, help="Force re-fetch from ssa.gov")
+@click.option("--refresh", is_flag=True, help="Force re-fetch of the GovInfo statute compilations")
 def ingest_ssa(refresh: bool):
     """Fetch and load Social Security Act Title XIX (Medicaid) and XXI (CHIP)."""
     from pipeline.federal.loader import load_ssa

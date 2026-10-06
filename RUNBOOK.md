@@ -807,4 +807,4 @@ npm run dev:infra   # creates the data volume if missing, then docker compose up
 | Provider Manuals | nctracks.nc.gov/content/public/providers/provider-manuals.html | Quarterly |
 | DHHS Policies | policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/ | As needed |
 | Federal Regulations | ecfr.gov (42 CFR, 45 CFR) | Quarterly |
-| Social Security Act | uscode.house.gov (42 USC Ch. 7) | Rarely |
+| Social Security Act | govinfo.gov Statute Compilations COMPS-8765 (Title XIX) and COMPS-8770 (Title XXI) | When the Act is amended |

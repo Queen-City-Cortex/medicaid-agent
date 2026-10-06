@@ -209,11 +209,11 @@ def run(audit_only=False):
     loader.fetch_part_xml = lambda title, part, refresh=False: cached(f"title-{title}-part-{part}.xml")
 
     def cached_statute(title, refresh=False):
-        html = cached(f"usc-title42-subchapter{title}.html")
-        ssa_client.validate_usc_subchapter(html, title)
-        return html
+        xml_text = cached(f"{ssa_client.STATUTE_PACKAGES[title]}.xml")
+        ssa_client.validate_statute_xml(xml_text, title)
+        return xml_text
 
-    ssa_client.fetch_usc_subchapter = cached_statute
+    ssa_client.fetch_statute_xml = cached_statute
     from pipeline.graph.corpus_writer import graph_writer
     original_upsert = graph_writer.upsert_document_bundle
     adapter_counts = {"federalCheckTimesCleared": 0}

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { ANSWER_SCOPE_POLICY, coverageEvidenceIssue, resolveCoverageScope } from '../src/scope/coverage.js';
+import { ANSWER_SCOPE_POLICY, RETROACTIVE_COVERAGE_CAVEAT, RETROACTIVE_COVERAGE_CAVEAT_ENDS, coverageEvidenceIssue, resolveCoverageScope } from '../src/scope/coverage.js';
 import { createAnswerFrameResolver } from '../src/frame/service.js';
 import type { LegalPrimitiveService } from '../src/contracts.js';
 import type { SessionExecutor } from '../src/types.js';
@@ -290,5 +290,40 @@ describe('bounded answer scope', () => {
     expect(session.run).toHaveBeenCalledWith(expect.stringContaining('d.source_url IN $urls'), { urls: [ANSWER_SCOPE_POLICY.magi_tables[1].source_url] });
     expect(result.primarySections).toEqual([]);
     expect(result.coverageScope?.notice).toContain('not available in this graph');
+  });
+
+  describe('retroactive-coverage caveat for section 1902(a)(34), until 2027-01-01', () => {
+    const before = new Date('2026-12-31T12:00:00Z');
+    const after = new Date('2027-01-01T00:00:00Z');
+
+    it.each([
+      'How many months of retroactive coverage does Medicaid give before the application?',
+      'Is retroactive Medicaid eligibility three months?',
+      'What does section 1902(a)(34) require?',
+      'Can Medicaid cover bills from the three months before the month I applied?',
+      'Does Medicaid coverage apply retroactively to my hospital stay?',
+    ])('adds the caveat as a requirement, not a notice, for %s', question => {
+      expect(resolveCoverageScope(question, before)).toMatchObject({
+        notice: null, requiredSourceUrls: [], requirements: [RETROACTIVE_COVERAGE_CAVEAT],
+      });
+    });
+
+    it('stops on the day the amended wording applies', () => {
+      expect(RETROACTIVE_COVERAGE_CAVEAT_ENDS).toBe('2027-01-01');
+      expect(resolveCoverageScope('How many months of retroactive coverage does Medicaid give?', after)).toBeNull();
+    });
+
+    it.each([
+      'Does Medicaid cover physical therapy for adults?',
+      'How do I apply for Medicaid three months after moving to North Carolina?',
+      'Is a rate change retroactive for providers?',
+    ])('leaves %s alone', question => {
+      expect(resolveCoverageScope(question, before)).toBeNull();
+    });
+
+    it('does not displace a scope that already applies', () => {
+      const scope = resolveCoverageScope('What is the MAGI income limit for retroactive coverage months?', before);
+      expect(scope?.requirements).not.toContain(RETROACTIVE_COVERAGE_CAVEAT);
+    });
   });
 });

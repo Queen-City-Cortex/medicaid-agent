@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<statuteCompilation xmlns="http://schemas.gpo.gov/xml/uslm" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" style="-uslm-dtd:statute" xml:lang="en" xsi:schemaLocation="http://schemas.gpo.gov/xml/uslm https://www.govinfo.gov/schemas/xml/uslm/uslm-2.0.13.xsd"><meta style="-uslm-dtd:compilation-act-form">
+        <dc:title>SOCIAL SECURITY ACT</dc:title>
+        <containsShortTitle>TITLE XXI OF THE SOCIAL SECURITY ACT</containsShortTitle>
+        <citableAs>Chapter 531 of the 74th Congress, as amended</citableAs>
+        <citableAs>49 Stat. 620, as amended</citableAs>
+        <citableAsShortTitle>SOCIAL SECURITY ACT</citableAsShortTitle>
+        <docNumber>ch531</docNumber>
+        <currentThroughPublicLaw>119–75</currentThroughPublicLaw>
+        <dc:type>Statute Compilation</dc:type>
+        <dc:creator>United States House of Representatives</dc:creator>
+        <dc:creator>Office of the Legislative Counsel</dc:creator>
+        <dc:format>text/xml</dc:format>
+        <dc:language>EN</dc:language>
+        <dc:rights>Pursuant to Title 17 Section 105 of the United States Code, this file is not subject to copyright protection and is in the public domain.</dc:rights>
+        <processedBy>GPO Statute Compilations USLM converter, version 20240419</processedBy>
+        <processedDate>2026-02-20</processedDate>
+        <containsShortTitle>Social Security Act-TITLE XXI (State Children's Health Insurance Program)</containsShortTitle>
+        <containsShortTitle>Federal Employees Unemployment Compensation Act</containsShortTitle>
+        <containsShortTitle>Health Insurance for the Aged Act</containsShortTitle>
+        <containsShortTitle>Medicaid Act</containsShortTitle>
+        <containsShortTitle>Medicare Act</containsShortTitle>
+        <containsShortTitle>Social Security Act</containsShortTitle>
+        <containsShortTitle>Medicare Access and CHIP Reauthorization Act of 2015</containsShortTitle>
+        <property role="fileId">8770</property>
+        <congress>74</congress>
+        <approvedDate>1935-08-14</approvedDate>
+    </meta>
+    <main style="-uslm-dtd:legis-body"><title identifier="/us/sComp/74/271/tXXI" style="-uslm-dtd:title" styleType="traditional"><num style="-uslm-dtd:enum" value="XXI">TITLE XXI—</num><heading style="-uslm-dtd:header">STATE CHILDREN'S HEALTH INSURANCE PROGRAM </heading>
+            <section identifier="/us/sComp/74/271/tXXI/s2101" style="-uslm-dtd:section" styleType="OLC">
+                <num style="-uslm-dtd:enum" value="2101">SEC. 2101. </num><editorialNote role="uscRef" style="-uslm-dtd:usc-reference"><b>[</b><ref href="/us/usc/t42/s1397aa">42 U.S.C. 1397aa</ref><b>]</b> </editorialNote><heading style="-uslm-dtd:header">PURPOSE; STATE CHILD HEALTH PLANS. </heading>
+                <subsection identifier="/us/sComp/74/271/tXXI/s2101/a" style="-uslm-dtd:subsection" styleType="OLC">
+                    <num style="-uslm-dtd:enum" value="a">(a) </num><heading style="-uslm-dtd:header">Purpose.—</heading><chapeau style="-uslm-dtd:text">Except with respect to the rural health transformation program established in section 2105(h), the purpose of this title is to provide funds to States to enable them to initiate and expand the provision of child health assistance to uninsured, low-income children in an effective and efficient manner that is coordinated with other sources of health benefits coverage for children. Such assistance shall be provided primarily for obtaining health benefits coverage through—</chapeau>
+                    <paragraph identifier="/us/sComp/74/271/tXXI/s2101/a/1" style="-uslm-dtd:paragraph" styleType="OLC">
+                        <num style="-uslm-dtd:enum" value="1">(1) </num><content style="-uslm-dtd:text">obtaining coverage that meets the requirements of section 2103, or</content>
+                    </paragraph>
+                    <paragraph identifier="/us/sComp/74/271/tXXI/s2101/a/2" style="-uslm-dtd:paragraph" styleType="OLC">
+                        <num style="-uslm-dtd:enum" value="2">(2) </num><content style="-uslm-dtd:text">providing benefits under the State's medicaid plan under title XIX,</content>
+                    </paragraph><continuation role="subsection" style="-uslm-dtd:continuation-text">or a combination of both.</continuation>
+                </subsection>
+                <subsection identifier="/us/sComp/74/271/tXXI/s2101/b" style="-uslm-dtd:subsection" styleType="OLC">
+                    <num style="-uslm-dtd:enum" value="b">(b) </num><heading style="-uslm-dtd:header">State Child Health Plan Required.—</heading><chapeau style="-uslm-dtd:text">A State is not eligible for payment under subsection (a) or (g) of section 2105 unless the State has submitted to the Secretary under section 2106 a plan that—</chapeau>
+                    <paragraph identifier="/us/sComp/74/271/tXXI/s2101/b/1" style="-uslm-dtd:paragraph" styleType="OLC">
+                        <num style="-uslm-dtd:enum" value="1">(1) </num><content style="-uslm-dtd:text">sets forth how the State intends to use the funds provided under this title to provide child health assistance to needy children consistent with the provisions of this title, and</content>
+                    </paragraph>
+                    <paragraph identifier="/us/sComp/74/271/tXXI/s2101/b/2" style="-uslm-dtd:paragraph" styleType="OLC">
+                        <num style="-uslm-dtd:enum" value="2">(2) </num><content style="-uslm-dtd:text">has been approved under section 2106.</content>
+                    </paragraph>
+                </subsection>
+                <subsection identifier="/us/sComp/74/271/tXXI/s2101/c" style="-uslm-dtd:subsection" styleType="OLC">
+                    <num style="-uslm-dtd:enum" value="c">(c) </num><heading style="-uslm-dtd:header">State Entitlement.—</heading><content style="-uslm-dtd:text">This title constitutes budget authority in advance of appropriations Acts and represents the obligation of the Federal Government to provide for the payment to States of amounts provided under section 2104.</content>
+                </subsection>
+                <subsection identifier="/us/sComp/74/271/tXXI/s2101/d" style="-uslm-dtd:subsection" styleType="OLC">
+                    <num style="-uslm-dtd:enum" value="d">(d) </num><heading style="-uslm-dtd:header">Effective Date.—</heading><content style="-uslm-dtd:text">No State is eligible for payments under section 2105 for child health assistance for coverage provided for periods beginning before October 1, 1997.</content>
+                </subsection>
+            </section>
+            <section identifier="/us/sComp/74/271/tXXI/s2103" style="-uslm-dtd:section" styleType="OLC">
+                <num style="-uslm-dtd:enum" value="2103">SEC. 2103. </num><editorialNote role="uscRef" style="-uslm-dtd:usc-reference"><b>[</b><ref href="/us/usc/t42/s1397cc">42 U.S.C. 1397cc</ref><b>]</b> </editorialNote><heading style="-uslm-dtd:header">COVERAGE REQUIREMENTS FOR CHILDREN'S HEALTH INSURANCE. </heading>
+                <subsection identifier="/us/sComp/74/271/tXXI/s2103/a" style="-uslm-dtd:subsection" styleType="OLC">
+                    <num style="-uslm-dtd:enum" value="a">(a) </num><heading style="-uslm-dtd:header">Required Scope of Health Insurance Coverage.—</heading><chapeau style="-uslm-dtd:text">The child health assistance provided to a targeted low-income child under the plan in the form described in paragraph (1) of section 2101(a) shall consist, consistent with paragraphs (5), (6), (7) and (8) of subsection (c), of any of the following:</chapeau>
+                    <paragraph identifier="/us/sComp/74/271/tXXI/s2103/a/1" style="-uslm-dtd:paragraph" styleType="OLC">
+                        <num style="-uslm-dtd:enum" value="1">(1) </num><heading style="-uslm-dtd:header">Benchmark coverage.—</heading><content style="-uslm-dtd:text">Health benefits coverage that is at least equivalent to the benefits coverage in a benchmark benefit package described in subsection (b).</content>
+                    </paragraph>
+                    </subsection>
+                <subsection identifier="/us/sComp/74/271/tXXI/s2103/b" style="-uslm-dtd:subsection" styleType="OLC">
+                    <num style="-uslm-dtd:enum" value="b">(b) </num><heading style="-uslm-dtd:header">Benchmark Benefit Packages.—</heading><chapeau style="-uslm-dtd:text">The benchmark benefit packages are as follows:</chapeau>
+                    <paragraph identifier="/us/sComp/74/271/tXXI/s2103/b/1" style="-uslm-dtd:paragraph" styleType="OLC">
+                        <num style="-uslm-dtd:enum" value="1">(1) </num><heading style="-uslm-dtd:header">FEHBP-equivalent children's health insurance coverage.—</heading><content style="-uslm-dtd:text">The standard Blue Cross/Blue Shield preferred provider option service benefit plan, described in and offered under section 8903(1) of title 5, United States Code.</content>
+                    </paragraph>
+                    </subsection>
+                </section>
+            <section identifier="/us/sComp/74/271/tXXI/s2105" style="-uslm-dtd:section" styleType="OLC">
+                <num style="-uslm-dtd:enum" value="2105">SEC. 2105. </num><editorialNote role="uscRef" style="-uslm-dtd:usc-reference"><b>[</b><ref href="/us/usc/t42/s1397ee">42 U.S.C. 1397ee</ref><b>]</b> </editorialNote><heading style="-uslm-dtd:header">PAYMENTS TO STATES. </heading>
+                <subsection identifier="/us/sComp/74/271/tXXI/s2105/a" style="-uslm-dtd:subsection" styleType="OLC">
+                    <num style="-uslm-dtd:enum" value="a">(a) </num><heading style="-uslm-dtd:header">Payments.—</heading>
+                    <paragraph identifier="/us/sComp/74/271/tXXI/s2105/a/1" style="-uslm-dtd:paragraph" styleType="OLC">
+                        <num style="-uslm-dtd:enum" value="1">(1) </num><heading style="-uslm-dtd:header">In general.—</heading><chapeau style="-uslm-dtd:text">Subject to the succeeding provisions of this section, the Secretary shall pay to each State with a plan approved under this title, from its allotment under section 2104, an amount for each quarter equal to the enhanced FMAP (or, in the case of expenditures described in subparagraph (D)(iv), the higher of 75 percent or the sum of the enhanced FMAP plus 5 percentage points) of expenditures in the quarter—</chapeau>
+                        <subparagraph identifier="/us/sComp/74/271/tXXI/s2105/a/1/A" style="-uslm-dtd:subparagraph" styleType="OLC">
+                            <num style="-uslm-dtd:enum" value="A">(A) </num><content style="-uslm-dtd:text">for child health assistance under the plan for targeted low-income children in the form of providing medical assistance for which payment is made on the basis of an enhanced FMAP under the fourth sentence of section 1905(b);</content>
+                        </subparagraph>
+                        </paragraph>
+                    </subsection>
+                <subsection identifier="/us/sComp/74/271/tXXI/s2105/b" style="-uslm-dtd:subsection" styleType="OLC">
+                    <num style="-uslm-dtd:enum" value="b">(b) </num><heading style="-uslm-dtd:header">Enhanced FMAP.—</heading><content style="-uslm-dtd:text">For purposes of subsection (a), the “<quotedText style="-uslm-dtd:quote">enhanced FMAP</quotedText>”, for a State for a fiscal year, is equal to the Federal medical assistance percentage (as defined in the first sentence of section 1905(b)) for the State increased by a number of percentage points equal to 30 percent of the number of percentage points by which (1) such Federal medical assistance percentage for the State, is less than (2) 100 percent; but in no case shall the enhanced FMAP for a State exceed 85 percent. Notwithstanding the preceding sentence, during the period that begins on October 1, 2015, and ends on September 30, 2019, the enhanced FMAP determined for a State for a fiscal year (or for any portion of a fiscal year occurring during such period) shall be increased by 23 percentage points, and during the period that begins on October 1, 2019, and ends on September 30, 2020, the enhanced FMAP determined for a State for a fiscal year (or for any portion of a fiscal year occurring during such period) shall be increased by 11.5 percentage points but in no case shall exceed 100 percent. The increase in the enhanced FMAP under the preceding sentence shall not apply with respect to determining the payment to a State under subsection (a)(1) for expenditures described in subparagraph (D)(iv), paragraphs (8), (9), (11) of subsection (c), or clause (4) of the first sentence of section 1905(b).</content>
+                </subsection>
+                <subsection identifier="/us/sComp/74/271/tXXI/s2105/c" style="-uslm-dtd:subsection" styleType="OLC">
+                    <num style="-uslm-dtd:enum" value="c">(c) </num><heading style="-uslm-dtd:header">Limitation on Certain Payments for Certain Expenditures.—</heading>
+                    <paragraph identifier="/us/sComp/74/271/tXXI/s2105/c/1" style="-uslm-dtd:paragraph" styleType="OLC">
+                        <num style="-uslm-dtd:enum" value="1">(1) </num><heading style="-uslm-dtd:header">General limitations.—</heading><content style="-uslm-dtd:text">Funds provided to a State under this title shall only be used to carry out the purposes of this title (as described in section 2101) or to carry out the rural health transformation program established in subsection (h) and, except in the case of amounts made available under subsection (h), may not include coverage of a nonpregnant childless adult, and any health insurance coverage provided with such funds may include coverage of abortion only if necessary to save the life of the mother or if the pregnancy is the result of an act of rape or incest. For purposes of the preceding sentence, a caretaker relative (as such term is defined for purposes of carrying out section 1931) shall not be considered a childless adult.</content>
+                    </paragraph>
+                    </subsection>
+                <subsection identifier="/us/sComp/74/271/tXXI/s2105/d" style="-uslm-dtd:subsection" styleType="OLC">
+                    <num style="-uslm-dtd:enum" value="d">(d) </num><heading style="-uslm-dtd:header">Maintenance of Effort.—</heading>
+                    <paragraph identifier="/us/sComp/74/271/tXXI/s2105/d/1" style="-uslm-dtd:paragraph" styleType="OLC">
+                        <num style="-uslm-dtd:enum" value="1">(1) </num><heading style="-uslm-dtd:header">In medicaid eligibility standards.—</heading><content style="-uslm-dtd:text">No payment may be made under subsection (a) with respect to child health assistance provided under a State child health plan if the State adopts income and resource standards and methodologies for purposes of determining a child's eligibility for medical assistance under the State plan under title XIX that are more restrictive than those applied as of June 1, 1997, except as required under section 1902(e)(14).</content>
+                    </paragraph>
+                    </subsection>
+                <subsection identifier="/us/sComp/74/271/tXXI/s2105/e" style="-uslm-dtd:subsection" styleType="OLC">
+                    <num style="-uslm-dtd:enum" value="e">(e) </num><heading style="-uslm-dtd:header">Advance Payment; Retrospective Adjustment.—</heading><content style="-uslm-dtd:text">The Secretary may make payments under this section for each quarter on the basis of advance estimates of expenditures submitted by the State and such other investigation as the Secretary may find necessary, and may reduce or increase the payments as necessary to adjust for any overpayment or underpayment for prior quarters.</content>
+                </subsection>
+                <subsection identifier="/us/sComp/74/271/tXXI/s2105/f" style="-uslm-dtd:subsection" styleType="OLC">
+                    <num style="-uslm-dtd:enum" value="f">(f) </num><heading style="-uslm-dtd:header">Flexibility in Submittal of Claims.—</heading><content style="-uslm-dtd:text">Nothing in this section or subsections (e) and (f) of section 2104 shall be construed as preventing a State from claiming as expenditures in the quarter expenditures that were incurred in a previous quarter.</content>
+                </subsection>
+                <subsection identifier="/us/sComp/74/271/tXXI/s2105/g" style="-uslm-dtd:subsection" styleType="OLC">
+                    <num style="-uslm-dtd:enum" value="g">(g) </num><heading style="-uslm-dtd:header">Authority for Qualifying States To Use Certain Funds for Medicaid Expenditures.—</heading>
+                    <paragraph identifier="/us/sComp/74/271/tXXI/s2105/g/1" style="-uslm-dtd:paragraph" styleType="OLC">
+                        <num style="-uslm-dtd:enum" value="1">(1) </num><heading style="-uslm-dtd:header">State option.—</heading>
+                        <subparagraph identifier="/us/sComp/74/271/tXXI/s2105/g/1/A" style="-uslm-dtd:subparagraph" styleType="OLC">
+                            <num style="-uslm-dtd:enum" value="A">(A) </num><heading style="-uslm-dtd:header">In general.—</heading><content style="-uslm-dtd:text">Notwithstanding any other provision of law, subject to paragraph (4), a qualifying State (as defined in paragraph (2)) may elect to use not more than 20 percent of any allotment under section 2104 for fiscal year 1998, 1999, 2000, 2001, 2004, 2005, 2006, 2007, or 2008 (insofar as it is available under subsections (e) and (g) of such section) for payments under title XIX in accordance with subparagraph (B), instead of for expenditures under this title.</content>
+                        </subparagraph>
+                        </paragraph>
+                    </subsection>
+                <subsection identifier="/us/sComp/74/271/tXXI/s2105/h" style="-uslm-dtd:subsection" styleType="OLC">
+                    <num style="-uslm-dtd:enum" value="h">(h) </num><heading style="-uslm-dtd:header">Rural Health Transformation Program.—</heading>
+                    <paragraph identifier="/us/sComp/74/271/tXXI/s2105/h/1" style="-uslm-dtd:paragraph" styleType="OLC">
+                        <num style="-uslm-dtd:enum" value="1">(1) </num><heading style="-uslm-dtd:header">Appropriation.—</heading>
+                        <subparagraph identifier="/us/sComp/74/271/tXXI/s2105/h/1/A" style="-uslm-dtd:subparagraph" styleType="OLC">
+                            <num style="-uslm-dtd:enum" value="A">(A) </num><heading style="-uslm-dtd:header">In general.—</heading><chapeau style="-uslm-dtd:text">There are appropriated, out of any money in the Treasury not otherwise appropriated, to the Administrator of the Centers for Medicare &amp; Medicaid Services (in this subsection referred to as the “<quotedText style="-uslm-dtd:quote">Administrator</quotedText>”), to provide allotments to States for purposes of carrying out the activities described in paragraph (6)—</chapeau>
+                            </subparagraph>
+                        </paragraph>
+                    </subsection>
+            </section>
+            <section identifier="/us/sComp/74/271/tXXI/s2108" style="-uslm-dtd:section" styleType="OLC">
+                <num style="-uslm-dtd:enum" value="2108">SEC. 2108. </num><editorialNote role="uscRef" style="-uslm-dtd:usc-reference"><b>[</b><ref href="/us/usc/t42/s1397hh">42 U.S.C. 1397hh</ref><b>]</b> </editorialNote><heading style="-uslm-dtd:header">ANNUAL REPORTS; EVALUATIONS. </heading>
+                <subsection identifier="/us/sComp/74/271/tXXI/s2108/a" style="-uslm-dtd:subsection" styleType="OLC">
+                    <num style="-uslm-dtd:enum" value="a">(a) </num><heading style="-uslm-dtd:header">Annual Report.—</heading><chapeau style="-uslm-dtd:text">Subject to subsection (e), the State shall—</chapeau>
+                    <paragraph identifier="/us/sComp/74/271/tXXI/s2108/a/1" style="-uslm-dtd:paragraph" styleType="OLC">
+                        <num style="-uslm-dtd:enum" value="1">(1) </num><content style="-uslm-dtd:text">assess the operation of the State plan under this title in each fiscal year, including the progress made in reducing the number of uncovered low-income children; and</content>
+                    </paragraph>
+                    </subsection>
+                <subsection identifier="/us/sComp/74/271/tXXI/s2108/b" style="-uslm-dtd:subsection" styleType="OLC">
+                    <num style="-uslm-dtd:enum" value="b">(b) </num><heading style="-uslm-dtd:header">State Evaluations.—</heading>
+                    <paragraph identifier="/us/sComp/74/271/tXXI/s2108/b/1" style="-uslm-dtd:paragraph" styleType="OLC">
+                        <num style="-uslm-dtd:enum" value="1">(1) </num><heading style="-uslm-dtd:header">In general.—</heading><chapeau style="-uslm-dtd:text">By March 31, 2000, each State that has a State child health plan shall submit to the Secretary an evaluation that includes each of the following:</chapeau>
+                        <subparagraph identifier="/us/sComp/74/271/tXXI/s2108/b/1/A" style="-uslm-dtd:subparagraph" styleType="OLC">
+                            <num style="-uslm-dtd:enum" value="A">(A) </num><content style="-uslm-dtd:text">An assessment of the effectiveness of the State plan in increasing the number of children with creditable health coverage.</content>
+                        </subparagraph>
+                        </paragraph>
+                    </subsection>
+                <subsection identifier="/us/sComp/74/271/tXXI/s2108/c" style="-uslm-dtd:subsection" styleType="OLC">
+                    <num style="-uslm-dtd:enum" value="c">(c) </num><heading style="-uslm-dtd:header">Federal Evaluation.—</heading>
+                    <paragraph identifier="/us/sComp/74/271/tXXI/s2108/c/1" style="-uslm-dtd:paragraph" styleType="OLC">
+                        <num style="-uslm-dtd:enum" value="1">(1) </num><heading style="-uslm-dtd:header">In general.—</heading><content style="-uslm-dtd:text">The Secretary, directly or through contracts or interagency agreements, shall conduct an independent evaluation of 10 States with approved child health plans.</content>
+                    </paragraph>
+                    </subsection>
+                <subsection identifier="/us/sComp/74/271/tXXI/s2108/d" style="-uslm-dtd:subsection" styleType="OLC">
+                    <num style="-uslm-dtd:enum" value="d">(d)<ref class="footnoteRef" idref="ID77F295AF34E44C009EE90F52CA7C8A6E" style="-uslm-dtd:footnote-ref">6</ref> </num><heading style="-uslm-dtd:header">Access to Records for IG and GAO Audits and Evaluations.—</heading><content style="-uslm-dtd:text">For the purpose of evaluating and auditing the program established under this title, or title XIX, the Secretary, the Office of Inspector General, and the Comptroller General shall have access to any books, accounts, records, correspondence, and other documents that are related to the expenditure of Federal funds under this title and that are in the possession, custody, or control of States receiving Federal funds under this title or political subdivisions thereof, or any grantee or contractor of such States or political subdivisions.</content><footnote id="ID77F295AF34E44C009EE90F52CA7C8A6E" style="-uslm-dtd:footnote"><sup style="-uslm-dtd:superscript">6</sup><content><p style="-uslm-dtd:para; margin-left:1em">Subsection (e) of section 1301(e) of division G of Public Law 111–8 provides:</p>
+                    <p style="-uslm-dtd:para; margin-left:1em">(e) <headingText style="-uslm-dtd:header-in-text">Inspector General Audit and GAO Report on Enrollees Eligible for Medicaid</headingText>.—Section 2108(d) of the Social Security Act (42 U.S.C. 1397hh(d)) is amended—</p>
+                    <p style="-uslm-dtd:para; margin-left:2em">(1) in the heading by striking “<quotedText style="-uslm-dtd:quote"><headingText style="-uslm-dtd:header-in-text">and GAO Report</headingText></quotedText>”; and</p>
+                    <p style="-uslm-dtd:para; margin-left:2em">(2) by striking paragraph (3).</p>
+                    <p style="-uslm-dtd:para; margin-left:1em">The amendments made by such subsection do not execute.</p></content></footnote>
+                </subsection>
+                <subsection identifier="/us/sComp/74/271/tXXI/s2108/e" style="-uslm-dtd:subsection" styleType="OLC">
+                    <num style="-uslm-dtd:enum" value="e">(e) </num><heading style="-uslm-dtd:header">Information Required for Inclusion in State Annual Report.—</heading><chapeau style="-uslm-dtd:text">The State shall include the following information in the annual report required under subsection (a):</chapeau>
+                    <paragraph identifier="/us/sComp/74/271/tXXI/s2108/e/1" style="-uslm-dtd:paragraph" styleType="OLC">
+                        <num style="-uslm-dtd:enum" value="1">(1) </num><content style="-uslm-dtd:text">Eligibility criteria, enrollment, and retention data (including data with respect to continuity of coverage or duration of benefits).</content>
+                    </paragraph>
+                    </subsection>
+                <subsection identifier="/us/sComp/74/271/tXXI/s2108/e" style="-uslm-dtd:subsection" styleType="OLC">
+                    <num style="-uslm-dtd:enum" value="e">(e)<ref class="footnoteRef" idref="IDF1371D9596A344ADA4E9F3728BCBA38A" style="-uslm-dtd:footnote-ref">8</ref> </num><heading style="-uslm-dtd:header">Information on Dental Care for Children.—</heading><footnote id="IDF1371D9596A344ADA4E9F3728BCBA38A" style="-uslm-dtd:footnote"><sup style="-uslm-dtd:superscript">8</sup><p style="-uslm-dtd:para; margin-left:1em">So in law. Section 501(e)(2) of Public Law 111–3 added a second subsection (e) to this section.</p></footnote>
+                    <paragraph identifier="/us/sComp/74/271/tXXI/s2108/e/1" style="-uslm-dtd:paragraph" styleType="OLC">
+                        <num style="-uslm-dtd:enum" value="1">(1) </num><heading style="-uslm-dtd:header">In general.—</heading><chapeau style="-uslm-dtd:text">Each annual report under subsection (a) shall include the following information with respect to care and services described in section 1905(r)(3) provided to targeted low-income children enrolled in the State child health plan under this title at any time during the year involved:</chapeau>
+                        <subparagraph identifier="/us/sComp/74/271/tXXI/s2108/e/1/A" style="-uslm-dtd:subparagraph" styleType="OLC">
+                            <num style="-uslm-dtd:enum" value="A">(A) </num><content style="-uslm-dtd:text">The number of enrolled children by age grouping used for reporting purposes under section 1902(a)(43).</content>
+                        </subparagraph>
+                        </paragraph>
+                    </subsection>
+            </section>
+            <section identifier="/us/sComp/74/271/tXXI/s2110" role="definitions" style="-uslm-dtd:section" styleType="OLC">
+                <num style="-uslm-dtd:enum" value="2110">SEC. 2110. </num><editorialNote role="uscRef" style="-uslm-dtd:usc-reference"><b>[</b><ref href="/us/usc/t42/s1397jj">42 U.S.C. 1397jj</ref><b>]</b> </editorialNote><heading style="-uslm-dtd:header">DEFINITIONS. </heading>
+                <subsection identifier="/us/sComp/74/271/tXXI/s2110/a" style="-uslm-dtd:subsection" styleType="OLC">
+                    <num style="-uslm-dtd:enum" value="a">(a) </num><heading style="-uslm-dtd:header">Child Health Assistance.—</heading><chapeau style="-uslm-dtd:text">For purposes of this title, the term “<term style="-uslm-dtd:term">child health assistance</term>” means payment for part or all of the cost of health benefits coverage for targeted low-income children that includes any of the following (and includes, in the case described in section 2105(a)(1)(D)(i), payment for part or all of the cost of providing any of the following),  as specified under the State plan:</chapeau>
+                    <paragraph identifier="/us/sComp/74/271/tXXI/s2110/a/1" style="-uslm-dtd:paragraph" styleType="OLC">
+                        <num style="-uslm-dtd:enum" value="1">(1) </num><content style="-uslm-dtd:text">Inpatient hospital services.</content>
+                    </paragraph>
+                    </subsection>
+                <subsection identifier="/us/sComp/74/271/tXXI/s2110/b" style="-uslm-dtd:subsection" styleType="OLC">
+                    <num style="-uslm-dtd:enum" value="b">(b) </num><heading style="-uslm-dtd:header">Targeted Low-Income Child Defined.—</heading><chapeau style="-uslm-dtd:text">For purposes of this title—</chapeau>
+                    <paragraph identifier="/us/sComp/74/271/tXXI/s2110/b/1" style="-uslm-dtd:paragraph" styleType="OLC">
+                        <num style="-uslm-dtd:enum" value="1">(1) </num><heading style="-uslm-dtd:header">In general.—</heading><chapeau style="-uslm-dtd:text">Subject to paragraph (2), the term “<term style="-uslm-dtd:term">targeted low-income child</term>” means a child—</chapeau>
+                        <subparagraph identifier="/us/sComp/74/271/tXXI/s2110/b/1/A" style="-uslm-dtd:subparagraph" styleType="OLC">
+                            <num style="-uslm-dtd:enum" value="A">(A) </num><content style="-uslm-dtd:text">who has been determined eligible by the State for child health assistance under the State plan;</content>
+                        </subparagraph>
+                        </paragraph>
+                    </subsection>
+                </section>
+            </title></main></statuteCompilation>

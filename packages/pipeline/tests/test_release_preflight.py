@@ -575,3 +575,24 @@ def test_fingerprint_before_the_build_leaves_out_graph_values(tmp_path, monkeypa
         "validationCorpusHash": "corpus",
     }
     assert preflight.graph_independent(recorded) == fingerprint
+
+
+def test_statute_freshness_is_not_a_discovery_gate():
+    # The statute source is a GovInfo compilation whose processedDate can be
+    # months old while the text is current; the freshness gate covers crawled
+    # families only, and the manifest's federal_statute SLA is read by nothing
+    # that decides a release.
+    rows = [
+        {"source_type": "federal_statute", "last_successful_discovery_at": "2026-02-20T00:00:00+00:00"},
+        *fresh_rows(),
+    ]
+    assert "federal_statute" not in {row["sourceType"] for row in preflight.required_family_freshness(rows)}
+    report = build_corpus_audit_report(
+        source_families=CORPUS_MANIFEST.source_families,
+        registry_rows=[],
+        local_files=[],
+        parsed_sidecars=[],
+        graph_documents=[],
+        source_freshness=rows,
+    )
+    assert "federal_statute" not in {family["source_type"] for family in report["source_families"]}

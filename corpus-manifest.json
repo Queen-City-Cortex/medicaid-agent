@@ -206,10 +206,10 @@
       "authority_tier": "authoritative",
       "answer_role": "federal_authority",
       "required_for_answering": true,
-      "freshness_expectation": "monthly",
+      "freshness_expectation": "re-fetched within 30 days; current through the package's own currentThroughPublicLaw, never judged by its processedDate",
       "refresh_interval_hours": 720,
       "freshness_sla_days": 30,
-      "source_url": "https://uscode.house.gov/"
+      "source_url": "https://www.govinfo.gov/app/collection/comps/"
     }
   ]
 }

@@ -1,27 +1,51 @@
-"""Fetch Social Security Act text from uscode.house.gov.
+"""Fetch Social Security Act titles from GovInfo's Statute Compilations.
 
-SSA.gov blocks automated access (403). The U.S. Code version at
-uscode.house.gov has identical substantive text. SSA section numbers
-(1902, 1905) map to USC sections (42 USC 1396a, 1396d).
+The compilations are the Office of the Legislative Counsel's text of the Act
+as amended, numbered by SSA section (1902, 1905). They replaced the
+uscode.house.gov subchapter pages, which carried editorial notes as statute
+text and answered maintenance pages in October 2026. The USC mapping below is
+kept for resolving "42 U.S.C. 1396a" citations back to SSA numbers.
 """
 
+import hashlib
 import time
-import urllib.request
+import xml.etree.ElementTree as ET
+from datetime import datetime, timezone
 from pathlib import Path
 
 from rich.console import Console
 
 from pipeline.config import ECFR_CACHE_DIR, SSA_CACHE_MAX_AGE_DAYS
+from pipeline.federal.ecfr_client import _atomic_write, _download
+from pipeline.federal.uslm_parser import USLM, compilation_metadata, parse_statute_compilation
 
 console = Console()
 
-USER_AGENT = "NCMedicaidNavigator/1.0 (+https://queencitycortex.com/crawler-info)"
-
-# USC URLs for Medicaid (Subchapter XIX) and CHIP (Subchapter XXI)
-USC_URLS = {
-    19: "https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title42-chapter7-subchapter19&edition=prelim",
-    21: "https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title42-chapter7-subchapter21&edition=prelim",
+# GovInfo Statute Compilation packages: Title XIX (Medicaid) and Title XXI (CHIP).
+STATUTE_PACKAGES = {19: "COMPS-8765", 21: "COMPS-8770"}
+STATUTE_TITLE_NAMES = {19: "XIX", 21: "XXI"}
+# Sections a compiled title must carry with substantive text before it is
+# accepted as a response or a cache.
+REQUIRED_STATUTE_SECTIONS = {
+    19: {"1902", "1905", "1915"},
+    21: {"2101", "2103", "2110"},
 }
+
+
+def statute_package_url(title_num: int) -> str:
+    """The USLM XML file inside the GovInfo package."""
+    package = STATUTE_PACKAGES[title_num]
+    return f"https://www.govinfo.gov/content/pkg/{package}/uslm/{package}.xml"
+
+
+def statute_source_url(title_num: int) -> str:
+    """The package's landing page; the statute Document's ``source_url``."""
+    return f"https://www.govinfo.gov/app/details/{STATUTE_PACKAGES[title_num]}"
+
+
+def statute_cache_path(title_num: int) -> Path:
+    return ECFR_CACHE_DIR / f"{STATUTE_PACKAGES[title_num]}.xml"
+
 
 # SSA section number → USC section number mapping.
 #
@@ -29,7 +53,7 @@ USC_URLS = {
 # credit line names its SSA section, e.g. "(Aug. 14, 1935, ch. 531, title XIX,
 # §1945, as added ...)". Do NOT assume the suffix sequence is contiguous:
 # SSA 1944 is 1396w-3a (not w-4), and 1396w-7 belongs to no SSA section at all
-# (see FREESTANDING_USC_SECTIONS below).
+# (a freestanding Pub. L. 117-328 provision, like 1396b-1 and 1396w-9).
 SSA_TO_USC = {
     # Title XIX — Medicaid
     "1900": "1396",
@@ -107,73 +131,66 @@ SSA_TO_USC = {
 # Reverse mapping for resolving USC references back to SSA numbers
 USC_TO_SSA = {v: k for k, v in SSA_TO_USC.items()}
 
-# USC sections in chapter 7 subchapters XIX/XXI that are NOT part of the
-# Social Security Act: their source credits cite only a standalone Public Law
-# (no "Aug. 14, 1935, ch. 531" act credit), so they have no SSA section number
-# and MUST NOT be given an entry in SSA_TO_USC. They are skipped by ingest-ssa
-# by design; ingest them as freestanding USC documents if they're ever needed.
-FREESTANDING_USC_SECTIONS = {
-    "1396b-1",  # Pub. L. 111-148 §2702 — payment adjustment, health care-acquired conditions
-    "1396w-7",  # Pub. L. 117-328 div. FF §5124 — crisis response services continuum
-    "1396w-9",  # Pub. L. 119-75 div. J §6104 — maternity/labor/delivery cost studies
-}
 
-
-def _cache_path(title_num: int) -> Path:
-    return ECFR_CACHE_DIR / f"usc-title42-subchapter{title_num}.html"
-
-
-def validate_usc_subchapter(html: str, title_num: int) -> None:
-    """Require statutory text before accepting either a response or a cache."""
-    from pipeline.federal.ssa_parser import parse_usc_subchapter
-
-    required = {
-        19: {"1902", "1905", "1915"},
-        21: {"2101", "2103", "2110"},
-    }[title_num]
-    sections = parse_usc_subchapter(html, title_num)
+def validate_statute_xml(text: str, title_num: int) -> None:
+    """Require the compiled title's anchor sections before accepting a response or a cache."""
+    try:
+        root = ET.fromstring(text)
+    except ET.ParseError as error:
+        raise ValueError("Invalid statute XML") from error
+    if root.tag != f"{{{USLM}}}statuteCompilation":
+        raise ValueError("Expected a GovInfo statute compilation, not HTML")
+    short_titles = [
+        (node.text or "").strip().upper()
+        for node in root.iter(f"{{{USLM}}}containsShortTitle")
+    ]
+    if f"TITLE {STATUTE_TITLE_NAMES[title_num]} OF THE SOCIAL SECURITY ACT" not in short_titles:
+        raise ValueError(f"Statute compilation is not SSA Title {STATUTE_TITLE_NAMES[title_num]}")
     substantive = {
         section["section_number"]
-        for section in sections
+        for section in parse_statute_compilation(text, title_num)
         if len(section["content_text"].strip()) >= 100
     }
+    required = REQUIRED_STATUTE_SECTIONS[title_num]
     if not required <= substantive:
         raise ValueError(
-            f"USC subchapter {title_num} response lacks required statutory text: "
-            + ", ".join(sorted(required - substantive))
+            f"Statute compilation for Title {STATUTE_TITLE_NAMES[title_num]} lacks required "
+            "statutory text: " + ", ".join(sorted(required - substantive))
         )
 
 
-def fetch_usc_subchapter(title_num: int, refresh: bool = False) -> str:
-    """Fetch the full USC subchapter HTML from uscode.house.gov."""
-    cache = _cache_path(title_num)
-    cache_age_days = (
-        (time.time() - cache.stat().st_mtime) / 86_400
-        if cache.exists()
-        else None
-    )
-    if (
-        not refresh
-        and cache_age_days is not None
-        and cache_age_days < SSA_CACHE_MAX_AGE_DAYS
-    ):
-        html = cache.read_text(encoding="utf-8")
-        try:
-            validate_usc_subchapter(html, title_num)
-        except ValueError:
-            console.print("  [yellow]Invalid USC cache; fetching statutory text again[/yellow]")
-        else:
-            return html
+def fetch_statute_xml(title_num: int, refresh: bool = False) -> str:
+    """Fetch one compiled SSA title from GovInfo, keeping a validated cache."""
+    cache = statute_cache_path(title_num)
+    if not refresh and cache.exists():
+        age_days = (time.time() - cache.stat().st_mtime) / 86_400
+        if 0 <= age_days < SSA_CACHE_MAX_AGE_DAYS:
+            text = cache.read_text(encoding="utf-8")
+            try:
+                validate_statute_xml(text, title_num)
+            except ValueError:
+                console.print("  [yellow]Invalid statute cache; fetching the compilation again[/yellow]")
+            else:
+                return text
 
-    url = USC_URLS[title_num]
-    console.print(f"  Fetching USC Subchapter {title_num}: {url}")
-    ECFR_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    url = statute_package_url(title_num)
+    console.print(f"  Fetching SSA Title {STATUTE_TITLE_NAMES[title_num]}: {url}")
+    text, _ = _download(url, timeout=120)
+    # A rejected response leaves the previous bytes and modification time alone.
+    validate_statute_xml(text, title_num)
+    _atomic_write(cache, text)
+    time.sleep(1)
+    return text
 
-    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(req, timeout=120) as response:
-        html = response.read().decode("utf-8")
 
-    validate_usc_subchapter(html, title_num)
-    cache.write_text(html, encoding="utf-8")
-    time.sleep(2)  # Be polite to government servers
-    return html
+def statute_provenance(title_num: int) -> dict:
+    """What was ingested: the package, its currency statement and the cached file's hash."""
+    cache = statute_cache_path(title_num)
+    payload = cache.read_bytes()
+    return {
+        "package": STATUTE_PACKAGES[title_num],
+        "retrieval_url": statute_package_url(title_num),
+        "source_sha256": hashlib.sha256(payload).hexdigest(),
+        "fetched_at": datetime.fromtimestamp(cache.stat().st_mtime, timezone.utc).isoformat(),
+        **compilation_metadata(payload.decode("utf-8")),
+    }

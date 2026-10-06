@@ -52,6 +52,10 @@ release_cleanup_candidate
 release_check_rollback
 release_mark_service_stopped
 
+# --- SSA <-> USC section tables, kept for U.S.C. citation extraction (DATA-17, #350) ---
+SSA_TO_USC
+USC_TO_SSA
+
 # --- html.parser.HTMLParser overrides (called by the stdlib parser) ---
 _.handle_starttag
 _.handle_endtag

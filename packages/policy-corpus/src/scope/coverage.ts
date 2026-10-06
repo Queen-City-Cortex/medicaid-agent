@@ -101,8 +101,22 @@ export function resolveCoverageScope(question: string, today = new Date()): Cove
     }
     return result;
   }
+  // Dated caveat (owner decision on issue #255). The statute compilation this
+  // corpus loads prints the amended retroactive-coverage wording of section
+  // 1902(a)(34) with no note, though it governs only applications made on or
+  // after January 1, 2027. From that date the text is simply current law and
+  // this branch stops firing; delete it then.
+  if (today.toISOString().slice(0, 10) < RETROACTIVE_COVERAGE_CAVEAT_ENDS && RETROACTIVE_COVERAGE_QUESTION.test(q)) {
+    result.requirements = [RETROACTIVE_COVERAGE_CAVEAT];
+    return result;
+  }
   return null;
 }
+
+/** First day the amended section 1902(a)(34) wording applies; the caveat ends then. */
+export const RETROACTIVE_COVERAGE_CAVEAT_ENDS = '2027-01-01';
+const RETROACTIVE_COVERAGE_QUESTION = /\bretroactiv\w*\s+(?:medicaid\s+)?(?:coverage|eligib\w*|enrol\w*|benefits?|period|months?|medicaid)\b|\b(?:coverage|eligib\w*|medicaid)\b.{0,40}\bretroactiv|\b1902\s*\(\s*a\s*\)\s*\(\s*34\s*\)|\bmonths?\s+(?:before|prior to)\s+(?:the\s+)?(?:month\s+(?:of|in which)\s+)?(?:\w+\s+){0,3}appl(?:y|ied|ies|ication)/;
+export const RETROACTIVE_COVERAGE_CAVEAT = 'The text of section 1902(a)(34) of the Social Security Act in this corpus is the wording amended by Public Law 119-21, which applies to applications made on or after January 1, 2027. Do not state the retroactive-coverage period in that text as the rule for an application made before January 1, 2027; the corpus does not hold the earlier statutory wording. Give a retroactive period for an earlier application only from a North Carolina policy source retrieved for it, and say which application dates the amended wording applies to.';
 
 export interface CoverageEvidence { text: string; link?: string | null; toolName: string; evidenceRole?: string }
 

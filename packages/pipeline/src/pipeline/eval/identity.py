@@ -253,7 +253,8 @@ def build_catalog(entries: list[dict]) -> dict:
         build_sections_from_synthetic_items,
     )
     from pipeline.federal.parser import parse_part_xml
-    from pipeline.federal.ssa_parser import parse_usc_subchapter
+    from pipeline.federal.ssa_client import statute_cache_path, statute_source_url
+    from pipeline.federal.uslm_parser import parse_statute_compilation
     from pipeline.references.citations import (
         federal_regulation_doc_id,
         federal_statute_doc_id,
@@ -389,12 +390,12 @@ def build_catalog(entries: list[dict]) -> dict:
     for title in [19, 21]:
         doc_id = federal_statute_doc_id(title)
         if doc_id in needed:
-            artifact = ECFR_CACHE_DIR / f"usc-title42-subchapter{title}.html"
+            artifact = statute_cache_path(title)
             append(
                 doc_id,
                 "federal_statute",
-                f"https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title42-chapter7-subchapter{title}",
-                parse_usc_subchapter(artifact.read_text(), title),
+                statute_source_url(title),
+                parse_statute_compilation(artifact.read_text(), title),
                 artifact,
             )
     if needed - loaded:

@@ -33,6 +33,8 @@ def _build_federal_document_bundle(
     policy_number: str,
     source_url: str,
     sections: list[dict],
+    source_modified_date: str | None = None,
+    retrieved_at: str | None = None,
 ) -> DocumentBundle:
     section_nodes = [
         SectionNode(
@@ -67,6 +69,8 @@ def _build_federal_document_bundle(
             page_count=0,
             section_count=len(section_nodes),
             effective_date=None,
+            source_modified_date=source_modified_date,
+            retrieved_at=retrieved_at,
             authority_tier="authoritative",
             answer_role="federal_authority",
             source_format="xml",
@@ -103,36 +107,48 @@ def load_cfr_part(title: int, part: int, refresh: bool = False) -> dict:
 def load_ssa(refresh: bool = False) -> dict:
     """Fetch, parse, and load SSA Title XIX and XXI into Neo4j.
 
-    Uses uscode.house.gov (ssa.gov blocks automated access).
-    Section numbers are SSA-style (1902, 1905) since that's what
-    NC Medicaid documents cite.
+    Uses GovInfo's Statute Compilations, which are numbered by SSA section
+    (1902, 1905) — what NC Medicaid documents cite. Each title's package,
+    currency statement and file hash are returned under ``packages``.
     """
-    from pipeline.federal.ssa_client import fetch_usc_subchapter
-    from pipeline.federal.ssa_parser import parse_usc_subchapter
+    from pipeline.federal.ssa_client import (
+        STATUTE_TITLE_NAMES,
+        fetch_statute_xml,
+        statute_provenance,
+        statute_source_url,
+    )
+    from pipeline.federal.uslm_parser import parse_statute_compilation
     from pipeline.graph.schema import ensure_schema
 
     ensure_schema()
-    stats = {"titles_loaded": 0, "sections_total": 0, "errors": 0}
+    stats: dict = {"titles_loaded": 0, "sections_total": 0, "errors": 0, "packages": {}}
 
     for title_num in [19, 21]:
         doc_id = federal_statute_doc_id(title_num)
-        title_name = "XIX" if title_num == 19 else "XXI"
+        title_name = STATUTE_TITLE_NAMES[title_num]
         program = "Medicaid" if title_num == 19 else "CHIP"
         console.print(f"  SSA Title {title_name} ({program})...", end=" ")
 
         try:
-            html = fetch_usc_subchapter(title_num, refresh=refresh)
-            section_list = _add_sequential_siblings(parse_usc_subchapter(html, title_num))
+            xml_text = fetch_statute_xml(title_num, refresh=refresh)
+            section_list = _add_sequential_siblings(parse_statute_compilation(xml_text, title_num))
+            provenance = statute_provenance(title_num)
             graph_writer.upsert_document_bundle(
                 _build_federal_document_bundle(
                     document_id=doc_id,
-                    title=f"Social Security Act — Title {title_name} ({program})",
+                    title=(
+                        f"Social Security Act — Title {title_name} ({program}), "
+                        f"as amended through P.L. {provenance['current_through_public_law']}"
+                    ),
                     document_type="federal_statute",
                     policy_number=f"SSA-Title-{title_num}",
-                    source_url=f"https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title42-chapter7-subchapter{title_num}",
+                    source_url=statute_source_url(title_num),
                     sections=section_list,
+                    source_modified_date=provenance["processed_date"],
+                    retrieved_at=provenance["fetched_at"],
                 )
             )
+            stats["packages"][str(title_num)] = provenance
             stats["sections_total"] += len(section_list)
 
             console.print(f"[green]OK[/green] ({len(section_list)} sections)")
