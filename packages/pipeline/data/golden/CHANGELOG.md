@@ -80,8 +80,8 @@ and 3.1 are not comparable**, and issue #188 must name the version that is froze
   sections that hold the text instead of empty headings and the generic 2.1.1, 3.1 and
   4.1 template sections. They stay `needs_validation`: a reworded key is a statement of
   what Medicaid policy says, so the owner or an attorney approves the wording before it
-  is scored. `validation_note` lists what changed; `key-review-3.1.md` shows each
-  original beside its proposed replacement. Approving a key is a change of `status` and
+  is scored. `validation_note` lists what changed; `key-review-3.1.md` pairs each
+  claim with the text it rests on, for the owner's review. Approving a key is a change of `status` and
   a version bump.
 - Where a policy never mentions the thing asked about (chiropractic care in 5B,
   acupuncture in 8C, massage in 10A, gym fees in 1A-2, whitening in 4A), the key now
