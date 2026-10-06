@@ -12,7 +12,7 @@
 | medicaid.ncdhhs.gov | "Non-commercial use" clause | **MEDIUM** | State |
 | policies.ncdhhs.gov | No terms found | LOW | State |
 | nctracks.nc.gov | No terms found | LOW | State |
-| www.ncleg.gov | **OPEN ITEM (owner):** terms page not reviewed; the four `nc_statute` seed pages were added on 2026-10-06 without fetching or assessing the site's terms of use | NOT ASSESSED | State |
+| www.ncleg.gov | No terms-of-use page; Disclaimer says "as is" and not a replacement for any official source; online statutes "are not official"; robots.txt `Crawl-delay: 2` (pages read 2026-10-06; see section 6) | NOT ASSESSED — facts recorded, owner sign-off pending | State |
 | ecfr.gov | Public domain | NONE | Federal |
 | uscode.house.gov | Public domain | NONE | Federal |
 
@@ -66,6 +66,40 @@
 **robots.txt:** Only blocks Yahoo's Slurp crawler. No other restrictions.
 
 **Legal status:** The U.S. Code is public domain. Prepared by the Office of Law Revision Counsel of the U.S. House of Representatives.
+
+### 6. www.ncleg.gov (North Carolina General Statutes — 4 section pages)
+
+Facts only, each from the page named, all read on 2026-10-06. This section states no legal conclusion.
+
+**Terms:** The site has no terms-of-use page. Its footer links are Disclaimer, Privacy, Website Support, Subscribe, and Webservices.
+
+**Disclaimer** (`https://www.ncleg.gov/Disclaimer`, read 2026-10-06):
+
+> The site's purpose is "to provide a starting point for access to and research and use of legislative information by the citizens of North Carolina and other persons interested in law, public policy, and the legislative process".
+> "Information placed on these Web pages is not intended to replace any official source".
+> "Photographs and graphics … may be under Copyright Protection".
+
+Information is presented "as is" and without warranties. The Disclaimer makes no statement about statute text.
+
+**General Statutes page** (`https://www.ncleg.gov/laws/GeneralStatutes`, read 2026-10-06):
+
+> "The General Statutes include changes through S.L. 2026-30."
+> "General Statutes published on this website are not official".
+
+The General Assembly "will not be responsible for any errors or omissions which may occur in these files". Editor's notes are not on the site; they are in print, or on LexisNexis by subscription.
+
+**robots.txt** (`https://www.ncleg.gov/robots.txt`, read 2026-10-06), in full: `User-agent: *`, `Disallow: /WHPTest/`, `Disallow: /Ethics/`, `Crawl-delay: 2`. The seeded URLs are under `/EnactedLegislation/Statutes/HTML/BySection/`, which is not disallowed.
+
+**Not read:** the Privacy page; North Carolina law on reuse of statute text.
+
+**What the project does:**
+
+- Fetches four fixed section pages per crawl (the `nc_statute` `seed_urls` in `corpus-manifest.json`: G.S. 108A-70.9A, 108A-79, 108D-14, 108D-15), each possibly as a conditional request. It does not crawl the General Statutes or fetch any index page.
+- Starts requests to the host at least 2 seconds apart: the fetcher serializes each host and waits `defaultDelayMs` (2000 ms) between request starts, and a robots `Crawl-delay` can only raise that. Pinned by `packages/crawler/tests/crawl/fetcher.test.ts`.
+- Tells the model, in the `nc_statute` legend line of `packages/agent/src/prompt.ts`, that the text is "the General Assembly's online copy of the statute (not the official publication; editor's notes are not included)".
+- Does not record the "changes through S.L. …" statement: the section pages do not carry it and the General Statutes page is not fetched.
+
+**Status:** NOT ASSESSED. This assessment still needs the owner's sign-off.
 
 ---
 

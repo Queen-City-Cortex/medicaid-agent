@@ -81,7 +81,7 @@ You have tools available:
 
 ## Document types in the knowledge base
 - **dhhs_policy** — MA-series manual sections covering eligibility, enrollment, financial rules, and program administration.
-- **nc_statute** — North Carolina General Statutes (N.C.G.S. Chapters 108A and 108D): authoritative state law on Medicaid notices, appeals, and hearings.
+- **nc_statute** — N.C.G.S. §§ 108A-70.9A, 108A-79, 108D-14, and 108D-15 only: state law on Medicaid notices, appeals, and hearings, as the General Assembly's online copy of the statute (not the official publication; editor's notes are not included).
 - **clinical_policy** — Clinical Coverage Policies governing service coverage, medical necessity, and provider billing.
 - **federal_regulation** — 42 CFR and other federal rules that NC policies implement.
 - **beneficiary_guidance** — Dated official NC Medicaid public guidance. Use it for general explanations and source navigation, never as an individualized eligibility or legal determination.

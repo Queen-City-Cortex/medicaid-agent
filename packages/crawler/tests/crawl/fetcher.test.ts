@@ -8,6 +8,7 @@ import {
   FileTooLargeError,
   UrlRejectedError,
 } from '../../src/crawl/fetcher.js';
+import { buildFetcher } from '../../src/cli/shared.js';
 
 // We test the rate-limiting and retry logic, not actual HTTP
 // Actual HTTP is tested in integration tests
@@ -168,5 +169,70 @@ describe('audit evidence transport', () => {
       expect(seen).toEqual([base + '/start', base + '/missing']);
       await expect(fetcher.fetchEvidence(base + '/start', 1024, () => true, async () => { throw new Error('robots disallows'); })).rejects.toThrow('robots');
     } finally { server.closeAllConnections(); await new Promise<void>(resolve => server.close(() => resolve())); }
+  });
+});
+
+// www.ncleg.gov/robots.txt asks for `Crawl-delay: 2` (read 2026-10-06). The
+// four nc_statute seeds are fetched in one run, so the per-host pacing is what
+// keeps them at least two seconds apart.
+describe('per-host pacing (ncleg.gov Crawl-delay: 2)', () => {
+  it('starts consecutive requests to one host at least the delay apart, even when issued together', async () => {
+    const delayMs = 300;
+    const arrivals: number[] = [];
+    const server = createServer((_request, response) => {
+      arrivals.push(Date.now());
+      response.writeHead(200, { 'content-type': 'text/html' });
+      response.end('<html></html>');
+    });
+    await new Promise<void>((resolve) =>
+      server.listen(0, '127.0.0.1', resolve),
+    );
+    const address = server.address();
+    if (!address || typeof address === 'string') {
+      throw new Error('test server did not expose a port');
+    }
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'fetch-pace-'));
+
+    try {
+      const fetcher = createFetcher({
+        userAgent: 'TestBot/1.0',
+        defaultDelayMs: delayMs,
+        requestTimeoutMs: 2000,
+        maxRetries: 0,
+        backoffBaseMs: 1,
+        backoffMaxMs: 1,
+        maxRedirects: 0,
+        maxConcurrentRequests: 3,
+      });
+
+      // Issued concurrently, as two source families sharing a host would be.
+      await Promise.all(
+        ['a', 'b', 'c', 'd'].map((name) =>
+          fetcher.fetchFile(
+            `http://127.0.0.1:${address.port}/GS_${name}.html`,
+            path.join(tempDir, `${name}.tmp`),
+            { isAllowedUrl: () => true },
+          ),
+        ),
+      );
+
+      expect(arrivals).toHaveLength(4);
+      const gaps = arrivals.slice(1).map((time, index) => time - arrivals[index]);
+      // 25 ms of slack for timer rounding between the client and server clocks.
+      for (const gap of gaps) expect(gap).toBeGreaterThanOrEqual(delayMs - 25);
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+      server.closeAllConnections();
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+  });
+
+  it('gives www.ncleg.gov at least two seconds, and a robots Crawl-delay can only raise it', () => {
+    // If the shared default ever drops below 2000 ms, add a per-host floor for
+    // www.ncleg.gov rather than loosening this test.
+    const fetcher = buildFetcher();
+    expect(fetcher.getDelayForDomain('www.ncleg.gov')).toBeGreaterThanOrEqual(2000);
+    fetcher.setCrawlDelay('www.ncleg.gov', 500);
+    expect(fetcher.getDelayForDomain('www.ncleg.gov')).toBeGreaterThanOrEqual(2000);
   });
 });
