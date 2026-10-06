@@ -17,17 +17,12 @@ function renderMessageList(messages: UIMessage[], options?: {
   explicitRelease?: boolean;
   isStreaming?: boolean;
   status?: string;
-  onRerun?: (messageIndex: number, userIndex: number) => void;
-  archivedVersions?: Record<string, UIMessage[]>;
-  activeVersion?: Record<string, number>;
-  onSelectVersion?: (userMsgId: string, version: number) => void;
+  onRerun?: (userIndex: number) => void;
+  wasStopped?: (messageId: string) => boolean;
 }) {
   const releasedFixture = (m: UIMessage): UIMessage => m.role === 'assistant' && m.parts.some(p => p.type === 'text') && !m.parts.some(p => p.type === VERIFICATION_PART)
     ? { ...m, parts: [...m.parts, { type: VERIFICATION_PART, data: { status: 'passed', passCount: 1 } }] } : m;
-  if (!options?.explicitRelease) {
-    messages = messages.map(releasedFixture);
-    if (options?.archivedVersions) options.archivedVersions = Object.fromEntries(Object.entries(options.archivedVersions).map(([key, versions]) => [key, versions.map(releasedFixture)]));
-  }
+  if (!options?.explicitRelease) messages = messages.map(releasedFixture);
   const messagesEndRef = { current: null };
 
   render(
@@ -36,14 +31,12 @@ function renderMessageList(messages: UIMessage[], options?: {
       isStreaming={options?.isStreaming ?? false}
       status={options?.status ?? 'ready'}
       onRerun={options?.onRerun ?? vi.fn()}
+      wasStopped={options?.wasStopped}
       messagesEndRef={messagesEndRef}
       feedbackMap={{}}
       onRate={vi.fn()}
       onClearRating={vi.fn()}
       onComment={vi.fn()}
-      archivedVersions={options?.archivedVersions}
-      activeVersion={options?.activeVersion}
-      onSelectVersion={options?.onSelectVersion ?? (() => {})}
     />,
   );
 }
@@ -302,10 +295,9 @@ describe('MessageList', () => {
   });
 
   it('shows an explicit "ended without answer" notice + Rerun when tools ran but no final text was produced', () => {
-    // This is the symptom of a mid-stream API error: tools have "Done" state
-    // but no final text part was ever emitted. Without the notice the UI goes
-    // silent; MessageActions (including Rerun) were also hidden because they
-    // were gated on finalAnswerText.
+    // Tools have "Done" state but no final text part was ever emitted. Without
+    // the notice the UI goes silent; MessageActions (including Rerun) were
+    // also hidden because they were gated on finalAnswerText.
     renderMessageList([
       {
         id: 'assistant-empty',
@@ -324,7 +316,9 @@ describe('MessageList', () => {
     ]);
 
     expect(screen.getByTestId('ended-without-answer')).toBeInTheDocument();
-    expect(screen.getByText(/finished without a final answer/i)).toBeInTheDocument();
+    // Why the turn ended is unknown here, so the notice names no cause.
+    expect(screen.getByTestId('ended-without-answer')).toHaveTextContent('This answer ended before it was finished.');
+    expect(screen.getByTestId('ended-without-answer')).not.toHaveTextContent(/error|stopped/i);
     // MessageActions (Rerun etc.) must be reachable even though content is empty.
     expect(screen.getByTestId('message-actions')).toBeInTheDocument();
     // The tool steps stay expanded (no collapsed trail) — they are the only
@@ -362,8 +356,9 @@ describe('MessageList', () => {
 
     const user = userEvent.setup();
     await user.click(screen.getByTestId('try-again-button'));
-    // Same wiring as the MessageActions rerun button: (assistantIndex, userIndex).
-    expect(onRerun).toHaveBeenCalledWith(1, 0);
+    // Same wiring as the MessageActions "Ask again" button: the index of the
+    // question this message answered.
+    expect(onRerun).toHaveBeenCalledWith(0);
   });
 
   it('does not show the "ended without answer" notice while streaming', () => {
@@ -535,61 +530,110 @@ describe('MessageList', () => {
     expect(ordered[0].sectionNumber).toBe('5.6');
   });
 
-  // ── Version navigation ────────────────────────────────────────────────
+  // ── Stopped, dropped and failed turns ─────────────────────────────────
 
-  const USER_MSG: UIMessage = {
-    id: 'user-1',
-    role: 'user',
-    parts: [{ type: 'text', text: 'Question?' }],
-  } as unknown as UIMessage;
-
-  const ASSISTANT_V2: UIMessage = {
-    id: 'assistant-v2-live',
+  const QUESTION: UIMessage = { id: 'user-q', role: 'user', parts: [{ type: 'text', text: 'Is dental covered?' }] };
+  const STOPPED_IN_TOOLS: UIMessage = {
+    id: 'assistant-tools',
     role: 'assistant',
-    parts: [{ type: 'text', text: 'Second answer (live).' }],
+    parts: [
+      { type: 'dynamic-tool', toolName: 'searchSections', toolCallId: 'tc-1', state: 'output-available', input: { query: 'x' }, output: { sections: [] } },
+      { type: 'dynamic-tool', toolName: 'getSection', toolCallId: 'tc-2', state: 'input-available', input: { sectionId: 's-1' } },
+    ],
   } as unknown as UIMessage;
-
-  const ASSISTANT_V1_ARCHIVED: UIMessage = {
-    id: 'assistant-v1-archived',
+  const STOPPED_WHILE_VERIFYING: UIMessage = {
+    id: 'assistant-verifying',
     role: 'assistant',
-    parts: [{ type: 'text', text: 'First answer (archived).' }],
+    parts: [{ type: 'text', text: 'PRIVATE_DRAFT_SENTINEL' }, { type: VERIFICATION_PART, data: { status: 'verifying' } }],
   } as unknown as UIMessage;
 
-  it('does not render a version-nav when no earlier versions exist', () => {
-    renderMessageList([USER_MSG, ASSISTANT_V2]);
-    expect(screen.queryByTestId('version-nav')).not.toBeInTheDocument();
+  it('shows an interrupted step, no spinner and a stopped notice after Stop in the tool loop', () => {
+    renderMessageList([QUESTION, STOPPED_IN_TOOLS], { wasStopped: id => id === 'assistant-tools' });
+
+    expect(screen.getByText('Interrupted')).toBeInTheDocument();
+    expect(screen.queryByText('Running')).not.toBeInTheDocument();
+    expect(document.querySelector('.animate-spin')).toBeNull();
+    expect(screen.queryByTestId('progress-narration')).not.toBeInTheDocument();
+    const notice = screen.getByTestId('ended-without-answer');
+    expect(notice).toHaveTextContent('You stopped this answer.');
+    expect(notice).toHaveAttribute('role', 'status');
+    expect(notice).not.toHaveTextContent(/error/i);
   });
 
-  it('renders the version-nav when an earlier version is archived', () => {
-    renderMessageList([USER_MSG, ASSISTANT_V2], {
-      archivedVersions: { 'user-1': [ASSISTANT_V1_ARCHIVED] },
-    });
-    expect(screen.getByTestId('version-indicator')).toHaveTextContent('Answer 2 of 2');
-    // Live (v2) is the default displayed version. The MessageActions mock also
-    // renders the trailing answer text, so we expect it twice (prose + mock).
-    expect(screen.getAllByText('Second answer (live).').length).toBeGreaterThan(0);
-    expect(screen.queryByText('First answer (archived).')).not.toBeInTheDocument();
+  it('names no cause when a turn that ended in the tool loop was not stopped by the user', () => {
+    renderMessageList([QUESTION, STOPPED_IN_TOOLS]);
+
+    expect(screen.getByText('Interrupted')).toBeInTheDocument();
+    expect(document.querySelector('.animate-spin')).toBeNull();
+    const notice = screen.getByTestId('ended-without-answer');
+    expect(notice).toHaveTextContent('This answer ended before it was finished.');
+    expect(notice).not.toHaveTextContent(/error|stopped/i);
   });
 
-  it('renders the archived content when activeVersion points at an earlier slot', () => {
-    renderMessageList([USER_MSG, ASSISTANT_V2], {
-      archivedVersions: { 'user-1': [ASSISTANT_V1_ARCHIVED] },
-      activeVersion: { 'user-1': 1 },
-    });
-    expect(screen.getAllByText('First answer (archived).').length).toBeGreaterThan(0);
-    expect(screen.queryByText('Second answer (live).')).not.toBeInTheDocument();
-    expect(screen.getByTestId('version-indicator')).toHaveTextContent('Answer 1 of 2');
+  it('drops the checking line and shows a stopped notice after Stop during verification', () => {
+    renderMessageList([QUESTION, STOPPED_WHILE_VERIFYING], { explicitRelease: true, wasStopped: id => id === 'assistant-verifying' });
+
+    expect(screen.queryByTestId('verification-progress')).not.toBeInTheDocument();
+    expect(screen.getByTestId('ended-without-answer')).toHaveTextContent('You stopped this answer.');
+    expect(screen.queryByText('PRIVATE_DRAFT_SENTINEL')).not.toBeInTheDocument();
   });
 
-  it('fires onSelectVersion with the user-msg id and new version number', async () => {
-    const onSelectVersion = vi.fn();
-    renderMessageList([USER_MSG, ASSISTANT_V2], {
-      archivedVersions: { 'user-1': [ASSISTANT_V1_ARCHIVED] },
-      onSelectVersion,
-    });
-    const user = (await import('@testing-library/user-event')).default.setup();
-    await user.click(screen.getByTestId('version-prev'));
-    expect(onSelectVersion).toHaveBeenCalledWith('user-1', 1);
+  it('shows the neutral notice, not the checking line, for a turn that ended while verifying', () => {
+    renderMessageList([QUESTION, STOPPED_WHILE_VERIFYING], { explicitRelease: true });
+
+    expect(screen.queryByTestId('verification-progress')).not.toBeInTheDocument();
+    expect(screen.getByTestId('ended-without-answer')).toHaveTextContent('This answer ended before it was finished.');
+    expect(screen.queryByText('PRIVATE_DRAFT_SENTINEL')).not.toBeInTheDocument();
+  });
+
+  it('shows a stopped notice when Stop landed before any progress was shown', () => {
+    renderMessageList([QUESTION, { id: 'assistant-draft', role: 'assistant', parts: [{ type: 'text', text: 'PRIVATE_DRAFT_SENTINEL' }] }],
+      { explicitRelease: true, wasStopped: id => id === 'assistant-draft' });
+
+    expect(screen.getByTestId('ended-without-answer')).toHaveTextContent('You stopped this answer.');
+    expect(screen.queryByText('PRIVATE_DRAFT_SENTINEL')).not.toBeInTheDocument();
+  });
+
+  it('puts the stopped notice under the question when Stop landed before the answer began', async () => {
+    const onRerun = vi.fn();
+    renderMessageList([QUESTION], { onRerun, wasStopped: id => id === 'user-q' });
+
+    const notice = screen.getByTestId('stopped-before-answer');
+    expect(notice).toHaveTextContent('You stopped this answer.');
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Try again' }));
+    expect(onRerun).toHaveBeenCalledWith(0);
+  });
+
+  it('leaves the retry to the page-level error box while it is showing', () => {
+    renderMessageList([QUESTION, STOPPED_IN_TOOLS], { status: 'error' });
+
+    expect(screen.getByText('Interrupted')).toBeInTheDocument();
+    expect(document.querySelector('.animate-spin')).toBeNull();
+    expect(screen.queryByTestId('ended-without-answer')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument();
+  });
+
+  it('keeps the notice on an earlier ended turn while a later one has failed', () => {
+    renderMessageList([QUESTION, STOPPED_IN_TOOLS, { ...QUESTION, id: 'user-q2' }], { status: 'error' });
+
+    expect(screen.getByTestId('ended-without-answer')).toBeInTheDocument();
+  });
+
+  it('announces a stopped answer as stopped, not ready', () => {
+    const props = {
+      messages: [QUESTION, STOPPED_IN_TOOLS],
+      onRerun: vi.fn(),
+      messagesEndRef: { current: null },
+      feedbackMap: {},
+      onRate: vi.fn(),
+      onClearRating: vi.fn(),
+      onComment: vi.fn(),
+    };
+    const { rerender } = render(<MessageList {...props} isStreaming={true} status="streaming" />);
+    rerender(<MessageList {...props} isStreaming={false} status="ready" wasStopped={id => id === 'assistant-tools'} />);
+
+    expect(screen.getByTestId('chat-status-announcer')).toHaveTextContent('Answer stopped');
   });
 
   it('renders a guard tripwire as a friendly blocked-message notice, not a blank bubble', () => {
@@ -661,6 +705,6 @@ describe('verification release UI', () => {
       { id: 'answer', role: 'assistant', parts: [{ type: 'text', text: UNVERIFIED_HISTORY },
         { type: VERIFICATION_PART, data: { status: 'withheld', passCount: 0 } }] }], { explicitRelease: true, onRerun: rerun });
     await userEvent.setup().click(screen.getByTestId('verification-retry'));
-    expect(rerun).toHaveBeenCalledWith(1, 0);
+    expect(rerun).toHaveBeenCalledWith(0);
   });
 });

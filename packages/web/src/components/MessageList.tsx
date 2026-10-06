@@ -12,7 +12,6 @@ import { MessageActions } from '@/components/MessageActions';
 import { SourcesPanel, sourceRowId } from '@/components/SourcesPanel';
 import { ToolStep, getToolDescriptor, summarizeToolInput } from '@/components/ToolStep';
 import { VerificationBadge } from '@/components/VerificationBadge';
-import { VersionNav } from '@/components/VersionNav';
 import { getMessageCreatedAt } from '@/lib/parse-message';
 import {
   buildAnswerClipboardText,
@@ -41,17 +40,15 @@ interface MessageListProps {
   messages: UIMessage[];
   isStreaming: boolean;
   status: string;
-  onRerun: (messageIndex: number, userIndex: number) => void;
+  /** Asks the question at `userIndex` again as a new turn. */
+  onRerun: (userIndex: number) => void;
+  /** True for a message whose turn ended because the user pressed Stop. */
+  wasStopped?: (messageId: string) => boolean;
   messagesEndRef: RefObject<HTMLDivElement | null>;
   feedbackMap: Record<string, { id: string; rating: 'up' | 'down'; comment: string | null }>;
   onRate: (messageId: string, rating: 'up' | 'down') => void;
   onClearRating: (messageId: string) => void;
   onComment: (messageId: string, comment: string) => void;
-  /** Client-side history of previous assistant messages keyed by the user msg they answered. Non-empty entries mean the user has re-run and earlier answers exist. */
-  archivedVersions?: Record<string, UIMessage[]>;
-  /** 1-based active version per user msg id. Missing / equal to total means "show live (latest)". */
-  activeVersion?: Record<string, number>;
-  onSelectVersion?: (userMsgId: string, version: number) => void;
 }
 
 /** Visible text of a rendered markdown node, including nested formatting. */
@@ -148,6 +145,9 @@ function AssistantMessage({
   messageIndex,
   messages,
   isStreaming,
+  busy,
+  stopped,
+  retryElsewhere,
   feedbackMap,
   onRerun,
   onRate,
@@ -158,8 +158,14 @@ function AssistantMessage({
   messageIndex: number;
   messages: UIMessage[];
   isStreaming: boolean;
+  /** An answer is on its way, so a question cannot be asked again yet. */
+  busy: boolean;
+  /** The user pressed Stop on this turn. */
+  stopped: boolean;
+  /** The page-level error box is showing and owns the retry for this turn. */
+  retryElsewhere: boolean;
   feedbackMap: Record<string, { id: string; rating: 'up' | 'down'; comment: string | null }>;
-  onRerun: (messageIndex: number, userIndex: number) => void;
+  onRerun: (userIndex: number) => void;
   onRate: (messageId: string, rating: 'up' | 'down') => void;
   onClearRating: (messageId: string) => void;
   onComment: (messageId: string, comment: string) => void;
@@ -193,15 +199,17 @@ function AssistantMessage({
         minute: '2-digit',
       })
     : null;
-  // Detect the "tools ran but agent gave up without a text answer" state. This
-  // happens when a mid-tool-loop model call throws (e.g. transient
-  // AI_APICallError) and Mastra terminates the stream with finishReason that
-  // isn't 'stop', so the verifier's text-replacement branch never runs and
-  // the persisted message has tool parts but no final text. Without a
-  // fallback, the UI renders silently (tools + Sources panel + blank space),
-  // which is indistinguishable from "finished". Show an explicit notice.
+  // The turn is over and produced no answer: the stream ended in the tool
+  // loop or while the answer was still being checked, or the user stopped it.
+  // Without a notice the UI goes silent (tools + Sources panel + blank
+  // space), which is indistinguishable from "finished". Why it ended is only
+  // known when the user pressed Stop in this session; after a reload or a
+  // dropped stream it is not, so the default wording names no cause.
   const endedWithoutAnswer =
-    !isStreaming && lastToolIndex !== -1 && finalAnswerText.trim().length === 0;
+    !isStreaming &&
+    !retryElsewhere &&
+    finalAnswerText.trim().length === 0 &&
+    (lastToolIndex !== -1 || release?.status === 'verifying' || stopped);
   // An input guard (scope gate, length guard, injection detector) aborted the
   // run before generation. Without explicit rendering these turns were blank —
   // the stream carries only the data-tripwire part and a finish.
@@ -247,9 +255,9 @@ function AssistantMessage({
     window.setTimeout(() => setHighlightedKey(null), 1800);
   };
 
-  // Shared by the MessageActions rerun button and the "Try again" button in
-  // the ended-without-answer notice: find the user message this assistant
-  // message answered and re-send it.
+  // Shared by the MessageActions "Ask again" button and the "Try again"
+  // buttons: find the question this assistant message answered and ask it
+  // again as a new turn.
   const handleRerun = () => {
     let userIdx = -1;
     for (let index = messageIndex - 1; index >= 0; index--) {
@@ -259,7 +267,7 @@ function AssistantMessage({
       }
     }
     if (userIdx === -1) return;
-    onRerun(messageIndex, userIdx);
+    onRerun(userIdx);
   };
 
   const renderPart = (
@@ -271,6 +279,7 @@ function AssistantMessage({
         <ToolStep
           key={part.toolCallId ?? `tool-${index}`}
           part={part}
+          isLive={isStreaming}
         />
       );
     }
@@ -327,8 +336,8 @@ function AssistantMessage({
         </div>
       )}
 
-      {release?.status === 'verifying' && <p role="status" data-testid="verification-progress" className="my-3 text-sm text-muted-foreground">Checking the answer against sources…</p>}
-      {release?.status === 'withheld' && <Button variant="outline" size="sm" onClick={handleRerun} data-testid="verification-retry">Try again</Button>}
+      {isStreaming && release?.status === 'verifying' && <p role="status" data-testid="verification-progress" className="my-3 text-sm text-muted-foreground">Checking the answer against sources…</p>}
+      {release?.status === 'withheld' && !retryElsewhere && <Button variant="outline" size="sm" onClick={handleRerun} disabled={busy} data-testid="verification-retry">Try again</Button>}
 
       {narration && (
         <div
@@ -356,20 +365,29 @@ function AssistantMessage({
       {endedWithoutAnswer && !blockedMessage && (
         <div
           data-testid="ended-without-answer"
-          role="alert"
-          className="my-4 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-foreground"
+          data-reason={stopped ? 'stopped' : 'unknown'}
+          role={stopped ? 'status' : 'alert'}
+          className={stopped
+            ? 'my-4 rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm text-foreground'
+            : 'my-4 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-foreground'}
         >
-          <p className="font-medium">The agent finished without a final answer.</p>
-          <p className="mt-1 text-muted-foreground">
-            This usually means a transient API error interrupted the synthesis step. The sources
-            below show what was retrieved.
+          <p className="font-medium">
+            {stopped ? 'You stopped this answer.' : 'This answer ended before it was finished.'}
           </p>
+          {sources.length > 0 && (
+            <p className="mt-1 text-muted-foreground">
+              {stopped
+                ? 'The sources below show what was found before you stopped.'
+                : 'The sources below show what was found so far.'}
+            </p>
+          )}
           <Button
             data-testid="try-again-button"
             variant="outline"
             size="sm"
             className="mt-3"
             onClick={handleRerun}
+            disabled={busy}
           >
             <RotateCcw className="size-3.5" />
             Try again
@@ -427,7 +445,7 @@ function AssistantMessage({
       {!isStreaming && (finalAnswerText || endedWithoutAnswer) && (
         <MessageActions
           content={buildAnswerClipboardText(finalAnswerText, sources)}
-          onRerun={handleRerun}
+          onRerun={busy || retryElsewhere ? undefined : handleRerun}
           messageId={msg.id}
           feedback={feedbackMap[msg.id] ?? null}
           onRate={(rating) => onRate(msg.id, rating)}
@@ -439,7 +457,10 @@ function AssistantMessage({
   );
 }
 
-export function MessageList({ messages, isStreaming, status, onRerun, messagesEndRef, feedbackMap, onRate, onClearRating, onComment, archivedVersions, activeVersion, onSelectVersion }: MessageListProps) {
+export function MessageList({ messages, isStreaming, status, onRerun, wasStopped, messagesEndRef, feedbackMap, onRate, onClearRating, onComment }: MessageListProps) {
+  const lastMessage = messages[messages.length - 1];
+  const lastStopped = lastMessage !== undefined && (wasStopped?.(lastMessage.id) ?? false);
+
   // Screen-reader announcements for chat state transitions. A single hidden
   // live region announcing "Researching…" / "Answer ready" replaces aria-live
   // on the streaming message container, which re-announced every chunk.
@@ -452,24 +473,11 @@ export function MessageList({ messages, isStreaming, status, onRerun, messagesEn
     if (status === 'submitted') {
       setAnnouncement('Researching…');
     } else if (status === 'ready' && (prevStatus === 'streaming' || prevStatus === 'submitted')) {
-      setAnnouncement('Answer ready');
+      setAnnouncement(lastStopped ? 'Answer stopped' : 'Answer ready');
     }
   }
 
-  // Walk once to remember the nearest preceding user message for each
-  // assistant. Used to look up archived versions + render a VersionNav above
-  // the displayed message when earlier answers exist.
-  const parentUserIdByAssistantIndex = new Map<number, string>();
-  {
-    let lastUserId: string | null = null;
-    for (let i = 0; i < messages.length; i++) {
-      const m = messages[i];
-      if (m.role === 'user') lastUserId = m.id;
-      else if (m.role === 'assistant' && lastUserId) {
-        parentUserIdByAssistantIndex.set(i, lastUserId);
-      }
-    }
-  }
+  const busy = status === 'submitted' || status === 'streaming';
 
   return (
     <>
@@ -477,16 +485,7 @@ export function MessageList({ messages, isStreaming, status, onRerun, messagesEn
         {announcement}
       </div>
 
-      {messages.map((msg, i) => {
-        const parentUserId = parentUserIdByAssistantIndex.get(i);
-        const archived: UIMessage[] = parentUserId ? (archivedVersions?.[parentUserId] ?? []) : [];
-        const totalVersions = archived.length + 1;
-        // Default active version = live (the last slot). Explicit active version only matters when archived.length > 0.
-        const active = parentUserId ? (activeVersion?.[parentUserId] ?? totalVersions) : totalVersions;
-        const showLive = active === totalVersions;
-        const displayMsg = showLive ? msg : archived[active - 1] ?? msg;
-
-        return (
+      {messages.map((msg, i) => (
           <div key={msg.id} className="group">
             {msg.role === 'user' && (
               <div className="flex justify-end mb-6 animate-in fade-in slide-in-from-bottom-2 duration-200">
@@ -504,32 +503,44 @@ export function MessageList({ messages, isStreaming, status, onRerun, messagesEn
             )}
 
             {msg.role === 'assistant' && (
-              <>
-                {totalVersions > 1 && parentUserId && onSelectVersion && (
-                  <div className="mt-3 pl-2">
-                    <VersionNav
-                      current={active}
-                      total={totalVersions}
-                      onSelect={(v) => onSelectVersion(parentUserId, v)}
-                    />
-                  </div>
-                )}
-                <AssistantMessage
-                  msg={displayMsg}
-                  messageIndex={i}
-                  messages={messages}
-                  isStreaming={showLive && isStreaming && i === messages.length - 1}
-                  feedbackMap={feedbackMap}
-                  onRerun={onRerun}
-                  onRate={onRate}
-                  onClearRating={onClearRating}
-                  onComment={onComment}
-                />
-              </>
+              <AssistantMessage
+                msg={msg}
+                messageIndex={i}
+                messages={messages}
+                isStreaming={isStreaming && i === messages.length - 1}
+                busy={busy}
+                stopped={wasStopped?.(msg.id) ?? false}
+                retryElsewhere={status === 'error' && i === messages.length - 1}
+                feedbackMap={feedbackMap}
+                onRerun={onRerun}
+                onRate={onRate}
+                onClearRating={onClearRating}
+                onComment={onComment}
+              />
             )}
           </div>
-        );
-      })}
+      ))}
+
+      {/* Stopped before any answer began: there is no assistant message to
+          carry the notice, so it sits under the question. */}
+      {status === 'ready' && lastMessage?.role === 'user' && lastStopped && (
+        <div
+          data-testid="stopped-before-answer"
+          role="status"
+          className="ml-2 mt-6 rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm text-foreground"
+        >
+          <p className="font-medium">You stopped this answer.</p>
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-3"
+            onClick={() => onRerun(messages.length - 1)}
+          >
+            <RotateCcw className="size-3.5" />
+            Try again
+          </Button>
+        </div>
+      )}
 
       {/* Submitted but no assistant message yet */}
       {status === 'submitted' && (messages.length === 0 || messages[messages.length - 1]?.role !== 'assistant') && (

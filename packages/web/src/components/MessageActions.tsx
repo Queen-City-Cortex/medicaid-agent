@@ -107,10 +107,10 @@ export function MessageActions({ content, onRerun, messageId, feedback, onRate, 
 
         {onRerun && (
           <Tooltip>
-            <TooltipTrigger className={btnClass} onClick={onRerun} aria-label="Re-run query">
+            <TooltipTrigger className={btnClass} onClick={onRerun} aria-label="Ask again">
               <RotateCcw className="w-3.5 h-3.5" />
             </TooltipTrigger>
-            <TooltipContent>Re-run</TooltipContent>
+            <TooltipContent>Ask again</TooltipContent>
           </Tooltip>
         )}
 

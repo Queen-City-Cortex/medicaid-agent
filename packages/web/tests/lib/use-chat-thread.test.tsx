@@ -12,18 +12,17 @@ const mocks = vi.hoisted(() => ({
     status: 'ready' as string,
     error: undefined as Error | undefined,
   },
-  lastUseChatOptions: null as null | { onFinish?: () => void },
+  lastUseChatOptions: null as null | { onFinish?: (event: { messages: Array<{ id: string }>; isAbort: boolean }) => void },
 }));
 
 vi.mock('@ai-sdk/react', () => ({
-  useChat: (options: { onFinish?: () => void }) => {
+  useChat: (options: typeof mocks.lastUseChatOptions) => {
     mocks.lastUseChatOptions = options;
     return {
       messages: mocks.chat.messages,
       status: mocks.chat.status,
       error: mocks.chat.error,
       sendMessage: vi.fn(),
-      regenerate: vi.fn(),
       stop: vi.fn(),
       setMessages: mocks.setMessages,
     };
@@ -255,9 +254,33 @@ describe('useChatThread', () => {
     expect(result.current.threadVersion).toBe(0);
 
     act(() => {
-      mocks.lastUseChatOptions?.onFinish?.();
+      mocks.lastUseChatOptions?.onFinish?.({ messages: [{ id: 'u1' }, { id: 'a1' }], isAbort: false });
     });
 
     expect(result.current.threadVersion).toBe(1);
+    expect(result.current.wasStopped('a1')).toBe(false);
+  });
+
+  it('remembers the message a turn ended on when the user pressed Stop', () => {
+    const { result } = setup();
+
+    act(() => {
+      mocks.lastUseChatOptions?.onFinish?.({ messages: [{ id: 'u1' }, { id: 'a1' }], isAbort: true });
+    });
+
+    expect(result.current.wasStopped('a1')).toBe(true);
+    expect(result.current.wasStopped('u1')).toBe(false);
+    // The bump is what re-renders the page so the notice appears.
+    expect(result.current.threadVersion).toBe(1);
+  });
+
+  it('remembers the question when Stop landed before any answer began', () => {
+    const { result } = setup();
+
+    act(() => {
+      mocks.lastUseChatOptions?.onFinish?.({ messages: [{ id: 'u1' }], isAbort: true });
+    });
+
+    expect(result.current.wasStopped('u1')).toBe(true);
   });
 });

@@ -101,10 +101,10 @@ describe('MessageActions', () => {
 
   it('shows rerun button only when onRerun is provided', () => {
     const { rerender } = render(<MessageActions content="test" />);
-    expect(screen.queryByLabelText('Re-run query')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Ask again')).not.toBeInTheDocument();
 
     rerender(<MessageActions content="test" onRerun={() => {}} />);
-    expect(screen.getByLabelText('Re-run query')).toBeInTheDocument();
+    expect(screen.getByLabelText('Ask again')).toBeInTheDocument();
   });
 
   it('renders thumbs-up and thumbs-down buttons when messageId is provided', () => {

@@ -4,6 +4,19 @@ import { describe, expect, it } from 'vitest';
 import { ToolStep } from '../../src/components/ToolStep';
 
 describe('ToolStep', () => {
+  const unfinished = { type: 'dynamic-tool', toolName: 'getSection', toolCallId: 'tc-live', state: 'input-available', input: { sectionId: 's-1' } } as const;
+
+  it('spins on an unfinished step only while its run is live', () => {
+    const { container, rerender } = render(<ToolStep part={unfinished} isLive />);
+    expect(screen.getByText('Running')).toBeInTheDocument();
+    expect(container.querySelector('.animate-spin')).not.toBeNull();
+
+    rerender(<ToolStep part={unfinished} isLive={false} />);
+    expect(screen.getByText('Interrupted')).toBeInTheDocument();
+    expect(screen.queryByText('Running')).not.toBeInTheDocument();
+    expect(container.querySelector('.animate-spin')).toBeNull();
+  });
+
   it('renders known tool names with friendly labels and stays collapsed by default', () => {
     render(
       <ToolStep

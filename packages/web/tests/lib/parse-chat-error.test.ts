@@ -45,4 +45,14 @@ describe('parseChatError', () => {
     expect(parseChatError(new Error(JSON.stringify(['array'])))).toEqual({ kind: 'generic' });
     expect(parseChatError(undefined)).toEqual({ kind: 'generic' });
   });
+
+  it('classifies a failed or broken-off request as a dropped connection, in each browser\'s wording', () => {
+    for (const message of ['Failed to fetch', 'network error', 'NetworkError when attempting to fetch resource.', 'Load failed', 'Error in input stream']) {
+      expect(parseChatError(new TypeError(message))).toEqual({ kind: 'disconnected' });
+    }
+    // Only the transport's own failure counts: a server message that mentions
+    // the network, or a programming TypeError, stays generic.
+    expect(parseChatError(new Error('network error'))).toEqual({ kind: 'generic' });
+    expect(parseChatError(new TypeError("Cannot read properties of undefined (reading 'id')"))).toEqual({ kind: 'generic' });
+  });
 });

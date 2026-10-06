@@ -2,13 +2,16 @@
  * Classifies errors thrown by the chat transport. On a non-OK response the AI
  * SDK surfaces the response body text as the Error message, so the agent's
  * `{ error: { code, message } }` responses arrive here as JSON strings.
- * Retrying cannot fix any of the classified kinds, so the page shows the
- * server's message for them without a retry button. Anything else is generic.
+ * Retrying cannot fix a kind that carries a server message, so the page shows
+ * that message without a retry button. `disconnected` is a request that never
+ * reached the server or a stream that broke off: `fetch` rejects with a
+ * TypeError, worded differently by each browser. Anything else is generic.
  */
 export type ChatErrorInfo =
   | { kind: 'rate-limited'; message: string }
   | { kind: 'payload-too-large'; message: string }
   | { kind: 'identifier-detected'; message: string }
+  | { kind: 'disconnected' }
   | { kind: 'generic' };
 
 /** Parse `raw` as JSON, or — if the transport wrapped the body in a text
@@ -34,6 +37,9 @@ function extractJsonObject(raw: string): Record<string, unknown> | null {
 }
 
 export function parseChatError(error: unknown): ChatErrorInfo {
+  if (error instanceof TypeError && /fetch|network|load failed|input stream/i.test(error.message)) {
+    return { kind: 'disconnected' };
+  }
   const raw = error instanceof Error ? error.message : typeof error === 'string' ? error : '';
   if (!raw) return { kind: 'generic' };
   const body = extractJsonObject(raw);

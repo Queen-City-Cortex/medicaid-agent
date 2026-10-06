@@ -235,19 +235,24 @@ function PayloadSection({ title, body }: { title: string; body: string }) {
 
 export interface ToolStepProps {
   part: ToolMessagePart;
+  /** The run this step belongs to is still streaming. An unfinished step in a
+   *  run that is over (stopped, dropped, or restored from history) will never
+   *  finish, so it reads "Interrupted" instead of spinning. */
+  isLive?: boolean;
 }
 
-export function ToolStep({ part }: ToolStepProps) {
+export function ToolStep({ part, isLive = false }: ToolStepProps) {
   const toolName = getToolName(part);
   const { label, Icon } = getToolDescriptor(toolName);
   const input = part.input;
   const output = part.output;
   const inputSummary = summarizeToolInput(toolName, input);
   const outputSummary = summarizeToolOutput(toolName, output);
-  const running = isRunningState(part.state);
+  const unfinished = isRunningState(part.state);
+  const running = unfinished && isLive;
   const completed = isCompletedState(part.state);
   const failed = isErrorState(part.state);
-  const statusLabel = running ? 'Running' : completed ? 'Done' : failed ? 'Failed' : 'Pending';
+  const statusLabel = running ? 'Running' : unfinished ? 'Interrupted' : completed ? 'Done' : failed ? 'Failed' : 'Pending';
 
   // Track open state so the (potentially large) raw payloads are only
   // stringified while the panel is actually open — formatJson on every render

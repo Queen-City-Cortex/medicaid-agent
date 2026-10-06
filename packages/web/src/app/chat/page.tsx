@@ -12,10 +12,10 @@ import { MessageList } from '@/components/MessageList';
 import { ScrollToBottom } from '@/components/ScrollToBottom';
 import { ThreadSidebar } from '@/components/ThreadSidebar';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { isTextPart } from '@/lib/message-parts';
 import { parseChatError } from '@/lib/parse-chat-error';
 import { useIsMobile } from '@/lib/use-is-mobile';
 import { useMastraClientRunner } from '@/lib/use-mastra-client';
-import { useAnswerVersions } from '@/lib/use-answer-versions';
 import { useChatThread } from '@/lib/use-chat-thread';
 import { useDeepResearch } from '@/lib/use-deep-research';
 import { useCorpusStatus } from '@/lib/use-corpus-status';
@@ -60,14 +60,6 @@ export default function ChatPage() {
     handleComment: commentOnMessage,
   } = useFeedback({ getAccessToken });
 
-  const {
-    archivedVersions,
-    activeVersion,
-    resetVersions,
-    selectVersion,
-    handleRerun: rerunAnswer,
-  } = useAnswerVersions();
-
   // Deep Research is a distinct mode (declared before onThreadSwitch so the
   // thread-switch reset can flip back to chat view). A HITL plan-approval gate
   // then a long cited report, driven by the deepResearchWorkflow via the
@@ -83,18 +75,17 @@ export default function ChatPage() {
   // referentially stable.
   const resetDeepResearch = deepResearch.reset;
 
-  // Feedback, answer versions, and deep-research mode are per-thread client
-  // state — drop them all when the visible thread changes. Resetting deep mode
+  // Feedback and deep-research mode are per-thread client state — drop them
+  // both when the visible thread changes. Resetting deep mode
   // here fixes the case where picking a past chat while Deep Research was on
   // left the DeepResearchView mounted and the selection appeared to do nothing.
   const onThreadSwitch = useCallback(() => {
     resetFeedback();
-    resetVersions();
     // Only leave Deep Research if the user is in it. With the mode off the
     // reset would abort the page-load lookup of the active run and hide it.
     if (deepMode) resetDeepResearch();
     setDeepMode(false);
-  }, [resetFeedback, resetVersions, resetDeepResearch, deepMode]);
+  }, [resetFeedback, resetDeepResearch, deepMode]);
 
   const {
     threadId,
@@ -105,8 +96,8 @@ export default function ChatPage() {
     isStreaming,
     isLoading,
     sendMessage,
-    regenerate,
     stop,
+    wasStopped,
     ensureThreadExists,
     handleSelectThread,
     handleNewThread,
@@ -160,9 +151,24 @@ export default function ChatPage() {
     setDeepMode((v) => !v);
   }, [deepMode, deepResearch]);
 
-  const handleRerun = useCallback((messageIndex: number, userIndex: number) => {
-    rerunAnswer({ messages, regenerate, messageIndex, userIndex });
-  }, [rerunAnswer, messages, regenerate]);
+  // "Ask again" sends the question as a new turn, which is what the agent
+  // stores: it keeps only the newest user text and appends it to the thread.
+  // Nothing on screen is replaced, so a reload shows the same transcript.
+  const handleRerun = useCallback((userIndex: number) => {
+    const question = messages[userIndex];
+    if (isLoading || question?.role !== 'user') return;
+    const text = question.parts.filter(isTextPart).map(part => part.text).join('');
+    if (!text.trim()) return;
+    // A question with nothing after it never got an answer (the request
+    // failed, or was stopped, before one began): resend it in place rather
+    // than showing the same question twice.
+    const unanswered = userIndex === messages.length - 1;
+    void sendMessage(unanswered ? { text, messageId: question.id } : { text });
+  }, [messages, isLoading, sendMessage]);
+
+  const handleRetryLast = useCallback(() => {
+    handleRerun(messages.findLastIndex(message => message.role === 'user'));
+  }, [handleRerun, messages]);
 
   const handleSelectExample = useCallback((question: string) => {
     setInput(question);
@@ -287,24 +293,27 @@ export default function ChatPage() {
               isStreaming={isStreaming}
               status={status}
               onRerun={handleRerun}
+              wasStopped={wasStopped}
               messagesEndRef={messagesEndRef}
               feedbackMap={feedbackMap}
               onRate={handleRate}
               onClearRating={handleClearRating}
               onComment={handleComment}
-              archivedVersions={archivedVersions}
-              activeVersion={activeVersion}
-              onSelectVersion={selectVersion}
             />
 
             {error && (() => {
               const info = parseChatError(error);
               // Retrying a rate-limited request immediately just re-429s, so
               // the guard errors show the server's message without the button.
+              // A dropped connection is said plainly rather than blamed on
+              // the service.
+              const canRetry = info.kind === 'generic' || info.kind === 'disconnected';
               const message =
                 info.kind === 'generic'
                   ? 'Sorry, there was an error processing your question.'
-                  : info.message;
+                  : info.kind === 'disconnected'
+                    ? 'The connection dropped before the answer finished. Check your internet connection, then try again.'
+                    : info.message;
               return (
                 <div data-testid="assistant-message" className="pl-2 mt-6 animate-in fade-in slide-in-from-bottom-2 duration-200">
                   <div
@@ -312,10 +321,10 @@ export default function ChatPage() {
                     className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive"
                   >
                     <p>{message}</p>
-                    {info.kind === 'generic' && (
+                    {canRetry && (
                       <button
                         type="button"
-                        onClick={() => regenerate()}
+                        onClick={handleRetryLast}
                         className="mt-2 inline-flex items-center rounded-md border border-destructive/40 px-3 py-1 text-xs font-medium text-destructive hover:bg-destructive/10 transition-colors"
                       >
                         Try again

@@ -27,7 +27,7 @@ export interface UseChatThreadOptions {
   getAccessToken: () => Promise<string | null | undefined>;
   /**
    * Called synchronously whenever the visible thread changes (select or new)
-   * so per-thread UI state (feedback, answer versions) can be reset.
+   * so per-thread UI state (feedback) can be reset.
    */
   onThreadSwitch: () => void;
   /**
@@ -98,10 +98,24 @@ export function useChatThread({
     },
   }), [threadId, resourceId, getAccessToken]);
 
-  const { messages, status, error, sendMessage, regenerate, setMessages, stop } = useChat({
+  // Ids of the messages a turn ended on because the user pressed Stop: the
+  // partial answer, or the question itself when no answer had begun. A ref,
+  // not message state: the SDK sets status 'ready' before onFinish fires and
+  // the message cache snapshots on that edge, so a mark written into the
+  // messages would race the snapshot. The threadVersion bump in onFinish
+  // re-renders the page, which is when the lookup is read. Not persisted:
+  // after a reload the reason a turn ended is unknown.
+  const stoppedIds = useRef(new Set<string>());
+  const wasStopped = useCallback((messageId: string) => stoppedIds.current.has(messageId), []);
+
+  const { messages, status, error, sendMessage, setMessages, stop } = useChat({
     id: `${threadId}:${resourceId}`,
     transport,
-    onFinish: () => setThreadVersion(v => v + 1),
+    onFinish: ({ messages: finished, isAbort }) => {
+      const last = finished[finished.length - 1];
+      if (isAbort && last) stoppedIds.current.add(last.id);
+      setThreadVersion(v => v + 1);
+    },
     onError: (err) => console.error('[chat] stream error:', err),
   });
 
@@ -226,8 +240,8 @@ export function useChatThread({
     isStreaming,
     isLoading,
     sendMessage,
-    regenerate,
     stop,
+    wasStopped,
     ensureThreadExists,
     loadThread,
     handleSelectThread,
