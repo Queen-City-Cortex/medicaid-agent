@@ -66,3 +66,26 @@ def test_report_survives_judge_and_agent_error_rows(capsys):
     # The genuine failure still shows up; error rows are not listed as misses.
     assert "Failures" in out
     assert "q-2" in out
+
+
+def test_report_prints_the_first_routed_document_summary(capsys):
+    result = {
+        "run_id": "2026-10-06T00:00:00",
+        "level": "answer",
+        "config": {"dataset_count": 2, "judge_model": "test"},
+        "aggregate": {"overall": 3.0},
+        "by_difficulty": {},
+        "by_category": {},
+        "per_question": [_scored_row("q-1", 3), _scored_row("q-2", 3)],
+        "route_first_document": {
+            "primary": 1, "supporting": 0, "none": 1, "unknown": 0,
+            "golden": 1, "golden_rate": 0.5, "not_golden_ids": ["q-2"],
+        },
+    }
+
+    print_answer_report(result)
+
+    out = capsys.readouterr().out
+    assert "First routed document" in out
+    assert "golden 1 (primary 1, supporting 0)  not golden 1" in out
+    assert "not golden: q-2" in out

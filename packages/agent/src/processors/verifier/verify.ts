@@ -3,7 +3,7 @@ import { generateObject } from 'ai';
 import { z } from 'zod';
 import { getConfig } from './config.js';
 import { REFERRAL_PAGE_URLS } from './answer-validation.js';
-import { openaiModel } from '../../model.js';
+import { createModel } from '../../model.js';
 import { log, errorFields } from '../../logger.js';
 
 // ── verifyAnswer ─────────────────────────────────────────────────────────────
@@ -94,7 +94,7 @@ export async function verifyAnswer(
   const deadline = AbortSignal.timeout(30_000);
   try {
     const { object, usage } = await generateObject({
-      model: openaiModel(getConfig().model),
+      model: createModel(getConfig().model),
       schema: VerificationSchema,
       abortSignal: signal ? AbortSignal.any([signal, deadline]) : deadline,
       maxRetries: 0,

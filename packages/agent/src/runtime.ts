@@ -35,6 +35,7 @@ import { corpusStatusRoute } from './corpus-status.js';
 import { buildSystemPrompt } from './prompt.js';
 import { boolEnv, intEnv } from './env.js';
 import { loadRuntimeConfig, type RuntimeConfig } from './runtime-config.js';
+import { assertVerifierModelUsable } from './processors/verifier/config.js';
 import { AppDatabase } from './storage/app-database.js';
 import { AnswerAuditRepository } from './storage/answer-audit.js';
 import { createExecutionGateway } from './execution-gateway.js';
@@ -115,7 +116,10 @@ const onIterationComplete: OnIterationCompleteHandler = ({ iteration, finishReas
  * check that must stop the process from starting belongs here.
  */
 export function validateStartup(env: NodeJS.ProcessEnv, options: { cli: boolean }): RuntimeConfig {
-  return loadRuntimeConfig(env, options);
+  const config = loadRuntimeConfig(env, options);
+  // A verifier model the process cannot call withholds every answer; refuse to start instead.
+  assertVerifierModelUsable(env);
+  return config;
 }
 
 /**

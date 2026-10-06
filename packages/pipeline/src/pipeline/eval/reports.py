@@ -93,6 +93,19 @@ def print_answer_report(result: dict):
             bar = "█" * int(mean) + "░" * (3 - int(mean))
             console.print(f"  {dim:<20s} {mean:.2f} / 3.00  {bar}")
 
+    route = result.get("route_first_document")
+    if route:
+        rate = route.get("golden_rate")
+        console.print("\n  [bold]First routed document[/bold]")
+        console.print(f"  {'─' * 50}")
+        console.print(
+            f"  golden {route['golden']} (primary {route['primary']}, supporting {route['supporting']})"
+            f"  not golden {route['none']}  no route recorded {route['unknown']}"
+            f"  rate {'n/a' if rate is None else f'{rate:.1%}'}"
+        )
+        if route.get("not_golden_ids"):
+            console.print(f"  not golden: {', '.join(route['not_golden_ids'])}")
+
     # By difficulty
     if by_diff:
         console.print("\n  [bold]By Difficulty (mean overall score)[/bold]")

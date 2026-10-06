@@ -20,6 +20,8 @@ packages/agent/src/public/
 /coverage/
 /packages/*/coverage/
 packages/pipeline/data/eval-results/*.json
+# Verifier benchmark run records hold model-written findings about stored drafts.
+packages/agent/benchmark-results/
 packages/**/.brv/
 
 # graphify knowledge-graph output (ignore the heavy artifacts, keep the report)

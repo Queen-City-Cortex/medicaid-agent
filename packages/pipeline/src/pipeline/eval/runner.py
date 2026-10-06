@@ -75,6 +75,13 @@ def run_eval(
     else:
         return {"error": f"Unknown level: {level}. Available: retrieval, cross-ref, answer, citation"}
 
+    if level == "answer":
+        from pipeline.eval.results import route_first_document_role
+
+        # Graph ids, as the router reports them.
+        for row, raw_entry in zip(per_question, raw_entries, strict=True):
+            row["route_first_document"] = route_first_document_role(row, raw_entry)
+
     # Save results
     config_overrides = {}
     if normalizer:

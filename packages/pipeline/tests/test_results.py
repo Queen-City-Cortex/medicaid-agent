@@ -275,3 +275,78 @@ def test_withheld_rows_count_against_overall_but_not_hallucination(tmp_path, mon
     assert "hallucination_released" not in agg
     assert agg["withheld_count"] == 1
     assert "agent_errors" not in agg
+
+
+def _routed(document_id):
+    return {"route_authoritative_document": {"id": document_id, "policy_number": None, "title": None}}
+
+
+def test_route_first_document_role_matches_golden_documents():
+    entry = {
+        "evidence": {
+            "primary_sections": [
+                {"document_id": "doc:clinical_policy:2B-1", "section_id": "sec:doc:clinical_policy:2B-1:5.8"}
+            ],
+            "supporting_sections": [
+                # Dataset id differs from the graph's: the graph id is inside the section id.
+                {"document_id": "doc:cfr:canonical", "section_id": "sec:doc:cfr:42:447:447.40"},
+                {"document_id": "doc:absent", "section_id": "missing:sec:doc:absent:1"},
+            ],
+        }
+    }
+
+    assert results.route_first_document_role(_routed("doc:clinical_policy:2B-1"), entry) == "primary"
+    assert results.route_first_document_role(_routed("doc:cfr:42:447"), entry) == "supporting"
+    assert results.route_first_document_role(_routed("doc:cfr:canonical"), entry) == "supporting"
+    # The stored wrong-policy case: Policy 8D-2 routed for a 2B-1 question.
+    assert results.route_first_document_role(_routed("doc:clinical_policy:8D-2"), entry) == "none"
+    # A prefix of a golden document id is a different document.
+    assert results.route_first_document_role(_routed("doc:clinical_policy:2B"), entry) == "none"
+    assert results.route_first_document_role({"route_authoritative_document": None}, entry) is None
+    assert results.route_first_document_role({}, entry) is None
+    assert results.route_first_document_role(_routed("doc:x"), {"evidence": {}}) == "none"
+
+
+def test_save_result_reports_first_routed_document_beside_the_aggregate(tmp_path, monkeypatch):
+    monkeypatch.setattr(results, "EVAL_RESULTS_DIR", tmp_path)
+    monkeypatch.setattr(results.subprocess, "check_output", lambda *args, **kwargs: "abc123\n")
+
+    def row(question_id, role):
+        return {
+            "id": question_id,
+            "difficulty": "simple",
+            "reasoning_type": "single_lookup",
+            "scores": {"overall": 3, "factual_accuracy": 3, "completeness": 3, "hallucination": 3, "citation_quality": 3},
+            "route_first_document": role,
+        }
+
+    rows = [row("q-1", "primary"), row("q-2", "supporting"), row("q-3", "none"), row("q-4", None)]
+    payload = json.loads(results.save_result("answer", rows).read_text())
+
+    assert payload["route_first_document"] == {
+        "primary": 1,
+        "supporting": 1,
+        "none": 1,
+        "unknown": 1,
+        "golden": 2,
+        "golden_rate": 2 / 3,
+        "not_golden_ids": ["q-3"],
+    }
+    # Scores and the keys the gates read are untouched by the new field.
+    without = [{k: v for k, v in r.items() if k != "route_first_document"} for r in rows]
+    assert payload["aggregate"] == results.compute_rollup(without)
+    assert not any("route" in key for key in payload["aggregate"])
+    for group in (*payload["by_difficulty"].values(), *payload["by_category"].values()):
+        assert not any("route" in key for key in group)
+
+
+def test_save_result_omits_route_summary_for_runs_without_the_field(tmp_path, monkeypatch):
+    monkeypatch.setattr(results, "EVAL_RESULTS_DIR", tmp_path)
+    monkeypatch.setattr(results.subprocess, "check_output", lambda *args, **kwargs: "abc123\n")
+
+    path = results.save_result(
+        "retrieval",
+        [{"id": "q-1", "difficulty": "simple", "reasoning_type": "single_lookup", "precision": 1.0, "recall": 1.0, "mrr": 1.0, "primary_hit": True}],
+    )
+
+    assert "route_first_document" not in json.loads(path.read_text())

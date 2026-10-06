@@ -11,6 +11,7 @@ The [October 3 qualification repair](../validation/qualification-unblock-2026-10
 | --- | --- |
 | General configuration and commands | [RUNBOOK.md](../../RUNBOOK.md) |
 | Verified chat release and bounded research recovery | [Answer release and recovery](answer-release-and-recovery.md) |
+| Measuring the verifier's catch and false-withhold rates | [Verifier benchmark](verifier-benchmark.md) |
 | Candidate graphs, evidence gates, promotion and rollback | [Blue-green corpus releases](blue-green-corpus-releases.md) |
 | Preparation without embeddings or paid evaluations | [Offline qualification preparation](qualification-preparation.md) |
 | Failed downloads, parser remediation and source retirement | [Corpus parser recovery](corpus-parser-recovery.md) |

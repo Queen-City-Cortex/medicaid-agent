@@ -15,13 +15,13 @@ Copy `.env.example` to `.env` at the repo root and fill in keys. The agent and w
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `OPENAI_API_KEY` | Yes (agent) | — | OpenAI API key — always required: the verifier (`gpt-5.4-mini`), the scope gate and prompt-injection detector (`gpt-5-mini`), and observational memory when enabled (`gpt-5.4-mini`) run on OpenAI even when the main agent model is Claude |
+| `OPENAI_API_KEY` | Yes (agent) | — | OpenAI API key — always required: the verifier (`gpt-5.6-terra` unless `VERIFIER_MODEL` names a Claude model), the scope gate and prompt-injection detector (`gpt-5-mini`), and observational memory when enabled (`gpt-5.4-mini`) run on OpenAI even when the main agent model is Claude |
 | `EVAL_OPENAI_API_KEY` | No | falls back to `OPENAI_API_KEY` | OpenAI key the **answer-level eval** runs the agent on, isolated from production. Set it to a separate OpenAI project/account so a research run can't drain the live agent's quota (which would surface to users as failing chats). |
 | `VOYAGE_API_KEY` | Yes (search/embed) | — | Voyage AI API key for embeddings |
-| `ANTHROPIC_API_KEY` | Only for Claude `AGENT_MODEL` | — | Anthropic API key; needed only when `AGENT_MODEL` is a `claude-*` model |
+| `ANTHROPIC_API_KEY` | Only for a Claude model | — | Anthropic API key; needed only when `AGENT_MODEL` or `VERIFIER_MODEL` is a `claude-*` model |
 | `AGENT_MODEL` | No | `gpt-5.6-terra` | Main agent model (`gpt-*`/`o3*`/`o4*` route to OpenAI, anything else to Anthropic) |
 | `AGENT_REASONING_EFFORT` | No | `medium` | Reasoning effort for the chat agent and the three deep-research agents on OpenAI models: `none`, `minimal`, `low`, `medium`, `high` or `xhigh`. Any other value stops startup. Set explicitly on every request so it no longer follows each model's API default. |
-| `VERIFIER_MODEL` | No | `gpt-5.4-mini` | Hallucination-verifier model |
+| `VERIFIER_MODEL` | No | `gpt-5.6-terra` | Answer-verifier model, routed like `AGENT_MODEL`. A `claude-*` id needs `ANTHROPIC_API_KEY`. Change it only against the [verifier benchmark](docs/operations/verifier-benchmark.md) |
 | `TRACE_STORE` | No | `off` in production and CLI runs, else `duckdb` | Where Mastra persists traces/metrics for Studio. `duckdb` writes a local DuckDB file (`MASTRA_OBSERVABILITY_PATH`, default `mastra.duckdb`); `off` skips the store and exporter entirely. Off in production because the file is ephemeral, nothing reads it without Studio, and DuckDB's buffer pool grew the agent to ~10 GB idle on Railway. |
 | `OBSERVATIONAL_MEMORY_ENABLED` | No | `false` | Observational memory: a model-written summary of a conversation's earlier turns, stored server-side. Off unless `true` or `1` (owner decision, October 2026); do not build on it. With it off the agent recalls the newest ten stored messages of the thread through the release gate, bounded by the 128,000-token input limiter. Working memory is always disabled. The coverage boundary and scope gate read prior turns from the stored thread and behave the same in either mode. |
 | `NEO4J_URI` | No | `bolt://localhost:7687` | Neo4j connection URI |

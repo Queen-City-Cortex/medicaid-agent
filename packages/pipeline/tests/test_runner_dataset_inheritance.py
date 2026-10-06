@@ -79,3 +79,31 @@ def test_answer_run_config_records_the_agent_reported_configuration(monkeypatch)
     )
     runner.run_eval("answer")
     assert saved["agent_config"] == reported
+
+
+def test_answer_rows_record_whether_the_first_routed_document_is_golden(monkeypatch):
+    from pipeline.eval import runner
+
+    entries = [
+        {"id": "q-1", "evidence": {"primary_sections": [{"document_id": "doc:a", "section_id": "sec:doc:a:1"}]}},
+        {"id": "q-2", "evidence": {"primary_sections": [{"document_id": "doc:b", "section_id": "sec:doc:b:1"}]}},
+        {"id": "q-3", "evidence": {"primary_sections": [{"document_id": "doc:c", "section_id": "sec:doc:c:1"}]}},
+    ]
+    saved: list[dict] = []
+
+    monkeypatch.setattr(runner, "load_dataset", lambda path: entries)
+    monkeypatch.setattr("pipeline.eval.identity.load_normalizer", lambda: None)
+    monkeypatch.setattr(
+        "pipeline.eval.levels.answer.evaluate_answers",
+        lambda entries, use_unified_evidence: [
+            {"id": "q-1", "route_authoritative_document": {"id": "doc:a"}},
+            {"id": "q-2", "route_authoritative_document": {"id": "doc:other"}},
+            {"id": "q-3", "route_authoritative_document": None},
+        ],
+    )
+    monkeypatch.setattr(runner, "save_result", lambda level, per_question, config: saved.extend(per_question) or "unused")
+    monkeypatch.setattr("pipeline.eval.results.load_result", lambda path: {})
+
+    runner.run_eval("answer")
+
+    assert [row["route_first_document"] for row in saved] == ["primary", "none", None]

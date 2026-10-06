@@ -86,6 +86,52 @@ def _compute_answer_rollup(rows: list[dict]) -> dict:
     return rollup
 
 
+def _section_document(section_id: str) -> str | None:
+    """Document id inside a section id of the form `sec:<document id>:<part>`."""
+    if not section_id.startswith("sec:") or section_id.count(":") < 2:
+        return None
+    return section_id[len("sec:"):].rsplit(":", 1)[0]
+
+
+def route_first_document_role(row: dict, entry: dict) -> str | None:
+    """Whether the first document the router chose is a golden document.
+
+    `primary` or `supporting` when the routed document holds a golden section
+    of that kind, `none` when it holds neither, and None when the run recorded
+    no routed document. A golden section names its document in `document_id`
+    and, on graphs whose ids differ from the dataset's, inside the graph's own
+    section id; either match counts. Reported only: no score or gate reads it.
+    """
+    routed = (row.get("route_authoritative_document") or {}).get("id")
+    if not routed:
+        return None
+    evidence = entry.get("evidence") or {}
+    for role, key in (("primary", "primary_sections"), ("supporting", "supporting_sections")):
+        for section in evidence.get(key) or []:
+            if routed in (section.get("document_id"), _section_document(section.get("section_id") or "")):
+                return role
+    return "none"
+
+
+def route_first_document_summary(rows: list[dict]) -> dict | None:
+    """Per-run counts of `route_first_document`, or None for runs without it."""
+    if not any("route_first_document" in row for row in rows):
+        return None
+    counts = {"primary": 0, "supporting": 0, "none": 0, "unknown": 0}
+    for row in rows:
+        counts[row.get("route_first_document") or "unknown"] += 1
+    golden = counts["primary"] + counts["supporting"]
+    known = golden + counts["none"]
+    return {
+        **counts,
+        "golden": golden,
+        "golden_rate": golden / known if known else None,
+        "not_golden_ids": sorted(
+            str(row.get("id")) for row in rows if row.get("route_first_document") == "none"
+        ),
+    }
+
+
 def _error_counts(rows: list[dict]) -> dict:
     """Count rows excluded from aggregates, keyed by error type.
 
@@ -183,6 +229,11 @@ def save_result(level: str, per_question: list[dict], config_overrides: dict | N
         "by_category": by_category,
         "per_question": per_question,
     }
+    # Beside `aggregate`, not inside it: eval-compare and the release gates
+    # read every aggregate key as a score.
+    route_summary = route_first_document_summary(per_question)
+    if route_summary is not None:
+        result["route_first_document"] = route_summary
 
     filename = f"{run_id}_{level}.json"
     path = EVAL_RESULTS_DIR / filename
