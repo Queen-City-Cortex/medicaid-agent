@@ -84,8 +84,10 @@ export function rebalancePriorAuthFrame(frame: AnswerFrame, queryLower: string):
       ...frame,
       primarySections,
       supportingSections,
-      avoidSections: uniqueBy([...frame.avoidSections, ...processSections], (section) => section.id).filter(
-        (section) => !surfacedIds.has(section.id),
+      avoidSections: withoutText(
+        uniqueBy([...frame.avoidSections, ...processSections], (section) => section.id).filter(
+          (section) => !surfacedIds.has(section.id),
+        ),
       ),
     };
   }
@@ -127,6 +129,12 @@ export function rebalancePriorAuthFrame(frame: AnswerFrame, queryLower: string):
     ...frame,
     primarySections,
     supportingSections,
-    avoidSections,
+    avoidSections: withoutText(avoidSections),
   };
+}
+
+// Avoid sections are negative guidance and ship without text, including a
+// process section rebalance moves out of the primary or supporting list.
+function withoutText(sections: AnswerFrameSection[]): AnswerFrameSection[] {
+  return sections.map((section) => ({ ...section, content: null }));
 }

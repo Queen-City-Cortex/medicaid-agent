@@ -195,6 +195,10 @@ export const PRIOR_AUTH_PRIMARY_TERMS = [
   'medical necessity',
   'coverage criteria',
 ];
+// Prior Approval and Prior Authorization headings outrank every other primary
+// term: template policies repeat "criteria" in five or more 3.x and 4.x
+// headings, which would otherwise tie with "5.1 Prior Approval".
+export const PRIOR_AUTH_HEADING_TERMS = ['prior approval', 'prior authorization'];
 export const PRIOR_AUTH_QUANTITY_TERMS = [
   'quantity and episodic drugs',
   'quantity limit',
@@ -221,6 +225,7 @@ export const PRIOR_AUTH_DOCUMENT_SECTION_TERMS = [
 export const PRIOR_AUTH_PROCESS_SECTION_TERMS = [
   'requesting prior authorization',
   'prior authorization process',
+  'request process',
   'retroactive prior authorization',
   'web portal',
   'fax',

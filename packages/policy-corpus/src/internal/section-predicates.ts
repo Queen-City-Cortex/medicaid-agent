@@ -42,7 +42,8 @@ export function isPriorAuthCriteriaSection(section: AnswerFrameSection): boolean
 }
 
 export function isPriorAuthProcessSection(section: AnswerFrameSection): boolean {
-  return includesPhrase(combineText(section.sectionNumber, section.title, section.content), PRIOR_AUTH_PROCESS_SECTION_TERMS);
+  // Title only: criteria sections often tell the reader how to request approval.
+  return includesPhrase(combineText(section.sectionNumber, section.title), PRIOR_AUTH_PROCESS_SECTION_TERMS);
 }
 
 export function isPriorAuthExceptionSection(section: AnswerFrameSection): boolean {

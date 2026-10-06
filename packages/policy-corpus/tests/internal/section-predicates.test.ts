@@ -96,7 +96,9 @@ describe('prior-authorization section predicates', () => {
 
   it('isPriorAuthProcessSection matches process terms', () => {
     expect(isPriorAuthProcessSection(makeSection({ id: 'a', title: 'Prior Authorization Process' }))).toBe(true);
-    expect(isPriorAuthProcessSection(makeSection({ id: 'b', content: 'submit via web portal' }))).toBe(true);
+    // Title only: a criteria section that says how to submit is not a process section.
+    expect(isPriorAuthProcessSection(makeSection({ id: 'b', content: 'submit via web portal' }))).toBe(false);
+    expect(isPriorAuthProcessSection(makeSection({ id: 'd', title: 'Prior Approval Request Process' }))).toBe(true);
     expect(isPriorAuthProcessSection(makeSection({ id: 'c', title: 'Eligibility' }))).toBe(false);
   });
 
