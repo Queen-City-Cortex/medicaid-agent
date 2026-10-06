@@ -24,6 +24,14 @@ describe('parseChatError', () => {
     });
   });
 
+  it('reads the nested identifier envelope when the transport wraps it in text, ignoring extra fields', () => {
+    const message = 'Remove client-identifying information before sending this question.';
+    const error = new Error(`422 Unprocessable Entity: ${body('client_identifier_detected', message, { details: { kinds: ['member_id'] } })}`);
+    expect(parseChatError(error)).toEqual({ kind: 'identifier-detected', message });
+    // The same code and message outside the envelope are not the agent's shape.
+    expect(parseChatError(new Error(JSON.stringify({ error: 'client_identifier_detected', message })))).toEqual({ kind: 'generic' });
+  });
+
   it('extracts an embedded JSON object when the transport wraps the body in text', () => {
     const error = new Error(`Too Many Requests: ${body('rate_limited', 'Slow down.', { retryAfterSeconds: 60 })}`);
     expect(parseChatError(error)).toEqual({ kind: 'rate-limited', message: 'Slow down.' });

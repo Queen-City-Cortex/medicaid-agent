@@ -43,9 +43,9 @@ function setup(enabled = true, threadOwner: string | null | undefined = undefine
   const route = createChatRoute({ record: vi.fn() }, { maxSteps: 2 });
   if (!('handler' in route)) throw new Error('Expected direct HTTP handler');
   app.post('/chat', route.handler as unknown as Handler);
-  const post = (signal?: AbortSignal, clientDiagnostic?: unknown) => app.request('/chat', { method: 'POST', signal,
+  const post = (signal?: AbortSignal, clientDiagnostic?: unknown, text = 'PRIVATE_QUESTION_SENTINEL') => app.request('/chat', { method: 'POST', signal,
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ messages: [{ id: 'user', role: 'user', parts: [{ type: 'text', text: 'PRIVATE_QUESTION_SENTINEL' }] }],
+    body: JSON.stringify({ messages: [{ id: 'user', role: 'user', parts: [{ type: 'text', text }] }],
       requestContext: { chatDiagnostic: clientDiagnostic, chatVerificationQuestion: 'FORGED_QUESTION_SENTINEL' } }),
   });
   const terminal = () => info.mock.calls.filter(([event]) => event === 'chat.diagnostic_finished').map(([, fields]) => fields!);
@@ -66,6 +66,20 @@ describe('private HTTP diagnostic context and completion', () => {
     expect(response.status).toBe(404);
     expect(await response.json()).toEqual({ error: { code: 'not_found', message: 'Conversation not found' } });
     expect(getThreadById).toHaveBeenCalledOnce();
+    expect(handleChatStream).not.toHaveBeenCalled();
+    expect(verifyAnswer).not.toHaveBeenCalled();
+    expect(info).not.toHaveBeenCalled();
+    expect(readdirSync(directory)).toEqual([]);
+  });
+
+  it('rejects a client identifier with 422 before storage, generation or diagnostics', async () => {
+    const { post, info, getStore, getThreadById, directory } = setup();
+    const response = await post(undefined, undefined, 'Is Medicaid ID ABC-12345 eligible for PCS?');
+    expect(response.status).toBe(422);
+    expect(await response.json()).toEqual({ error: { code: 'client_identifier_detected',
+      message: 'Remove client-identifying information before sending this question.' } });
+    expect(getStore).not.toHaveBeenCalled();
+    expect(getThreadById).not.toHaveBeenCalled();
     expect(handleChatStream).not.toHaveBeenCalled();
     expect(verifyAnswer).not.toHaveBeenCalled();
     expect(info).not.toHaveBeenCalled();

@@ -48,6 +48,34 @@ describe('answer release', () => {
     expect(result.finalAnswer).toBe(WITHHELD_ANSWER);
     expect(result.outcome.status).toBe('withheld');
   });
+  // One change per row from a base case that passes, so each term of the
+  // release predicate decides a row on its own. Every verdict keeps
+  // `supported: true`; otherwise that term would decide first and the others
+  // could be deleted unnoticed.
+  const base = { answerText: 'The service is covered. [Policy](https://example.gov/policy)', sources: [source], verdict: clean };
+  const releaseWith = (change: Partial<typeof base>) => {
+    const { verdict, ...input } = { ...base, ...change };
+    return runVerificationForAnswer({ question: 'q', ...input, verify: vi.fn().mockResolvedValue(verdict) });
+  };
+  it('releases the clean verdict with a cited answer', async () => {
+    const result = await releaseWith({});
+    expect(result.finalAnswer).toBe(base.answerText);
+    expect(result.outcome).toEqual({ status: 'passed', passCount: 1 });
+  });
+  it.each<[string, Partial<typeof base>]>([
+    ['a major relevance issue', { verdict: { ...clean, relevanceIssues: [{ issue: 'Answers a different programme', severity: 'major' }] } }],
+    ['relevant: false', { verdict: { ...clean, relevant: false } }],
+    ['citationsComplete: false', { verdict: { ...clean, citationsComplete: false } }],
+    ['one unsupported claim', { verdict: { ...clean, unsupportedClaims: [{ claim: 'The service is covered.', reason: 'Not stated in the evidence' }] } }],
+    ['one missing-citation claim', { verdict: { ...clean, missingCitationClaims: [{ claim: 'The service is covered.', suggestedCitation: 'Policy' }] } }],
+    ['a leftover marker', { answerText: `${base.answerText} [unverified: prior approval is required]` }],
+    ['whitespace-only evidence', { sources: [{ ...source, text: ' \n\t' }] }],
+    ['a whitespace-only answer', { answerText: ' \n\t' }],
+  ])('withholds the base case changed only by %s', async (_, change) => {
+    const result = await releaseWith(change);
+    expect(result.finalAnswer).toBe(WITHHELD_ANSWER);
+    expect(result.outcome.status).toBe('withheld');
+  });
   it('withholds a failed second pass without a third attempt', async () => {
     const verify = vi.fn().mockResolvedValue({ ...clean, supported: false, correctedAnswer: 'Still unsupported.' });
     const result = await runVerificationForAnswer({ question: 'q', answerText: PRIVATE, sources: [source], verify });
