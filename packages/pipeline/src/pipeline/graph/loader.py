@@ -14,8 +14,10 @@ from pipeline.config import PARSED_DATA_DIR, CRAWLER_DATA_DIR, CRAWLER_DB_PATH, 
 from pipeline.corpus_manifest import get_source_family
 from pipeline.crawler_registry import (
     DELISTED_FROM_INDEX,
+    PAYLOAD_RETAINED_STATUSES,
     IndexListing,
     normalize_local_path,
+    parsed_from_registry_payload,
     read_index_listings,
     read_registry_rows,
 )
@@ -37,7 +39,27 @@ _DHHS_CHANGE_NOTICE_RE = re.compile(
     r"CHANGE\s+NOTICE\s+FOR\s+MANUAL\s+NO\.",
     re.IGNORECASE,
 )
-_ACTIVE_REGISTRY_STATUSES = frozenset({"downloaded", "updated", "unchanged"})
+# The State Plan landing page mixes the approved plan with amendments the
+# agency has only proposed. The crawler follows four kinds of sub-page
+# (`SPA_SUBPAGE_RE` in the crawler's state-plan source); these three hold
+# proposals, and `spa-updates` holds approved changes. The landing page links
+# a few proposals directly, which only their titles identify.
+_STATE_PLAN_PROPOSAL_PAGE_RE = re.compile(
+    r"proposed-public-notices|ten-day-postings?|proposed-amendments-sent"
+)
+_STATE_PLAN_PROPOSAL_TITLE_RE = re.compile(
+    r"Public Notice|Proposed Amendment Sent to CMS|^Draft",
+    re.IGNORECASE,
+)
+
+
+def _is_state_plan_proposal(source_type: str, title: str, crawler_meta: dict) -> bool:
+    if source_type != "state_plan_amendment":
+        return False
+    return bool(
+        _STATE_PLAN_PROPOSAL_PAGE_RE.search(crawler_meta.get("discovered_from") or "")
+        or _STATE_PLAN_PROPOSAL_TITLE_RE.search(title)
+    )
 
 
 @lru_cache(maxsize=4)
@@ -65,11 +87,15 @@ def _document_exclusion_reason(meta: dict, crawler_meta: dict) -> str | None:
         if any(row["source_url"] == crawler_meta.get("source_url") and row["resource_role"] == "index" for row in classifications):
             return "classified_discovery_index"
     registry_status = crawler_meta.get("status")
-    if registry_status not in _ACTIVE_REGISTRY_STATUSES:
+    if registry_status not in PAYLOAD_RETAINED_STATUSES:
         return f"inactive_registry_status:{registry_status or 'missing'}"
     listing = _index_listing(crawler_meta.get("source_url"))
     if listing and listing.delisted:
         return DELISTED_FROM_INDEX
+    # A failed check proves nothing about the stored payload, so the row loads
+    # only when these parsed bytes are the last bytes the crawler fetched.
+    if registry_status == "error" and not parsed_from_registry_payload(crawler_meta, meta):
+        return "error_without_verified_payload"
 
     parse_status = meta.get("parse_status") or "parsed"
     if parse_status != "parsed":
@@ -466,6 +492,9 @@ def _build_document_bundle(
     # citable, but default retrieval skips it.
     listing = _index_listing(crawler_meta.get("source_url"))
     archived = bool(listing and listing.archived)
+    # A proposal is not approved State Plan text: it loads as supporting
+    # material whatever tier its family carries.
+    proposed = _is_state_plan_proposal(source_type, title, crawler_meta)
 
     return DocumentBundle(
         document=DocumentNode(
@@ -474,7 +503,7 @@ def _build_document_bundle(
             document_type=source_type,
             policy_number=policy_number or waiver_id,
             category=crawler_meta.get("category"),
-            status="archived" if archived else "current",
+            status="archived" if archived else "proposed" if proposed else "current",
             source_url=(
                 canonicalize_source_url(crawler_meta["source_url"])
                 if crawler_meta.get("source_url")
@@ -491,7 +520,7 @@ def _build_document_bundle(
                 or crawler_meta.get("last_downloaded_at")
                 or crawler_meta.get("first_seen_at")
             ),
-            authority_tier=source_family.authority_tier,
+            authority_tier="supporting" if proposed else source_family.authority_tier,
             answer_role=source_family.answer_role,
             source_format=meta.get("source_format"),
             answer_ready=bool(meta.get("answer_ready", True)),
@@ -543,11 +572,7 @@ def _parse_artifact_authority_key(
     _, context = candidate
     meta = context.get("meta", {})
     crawler_meta = context.get("crawler_meta", {})
-    registry_hash = str(crawler_meta.get("file_hash") or "").removeprefix("sha256:")
-    parsed_hash = str(
-        meta.get("source_file_hash") or meta.get("source_pdf_hash") or ""
-    ).removeprefix("sha256:")
-    checksum_matches = int(bool(registry_hash and parsed_hash == registry_hash))
+    checksum_matches = int(parsed_from_registry_payload(crawler_meta, meta))
     source_file_path = context.get("source_file_path")
     registry_path = crawler_meta.get("local_path")
     source_path_matches = int(

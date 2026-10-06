@@ -147,6 +147,14 @@ reconciles registry rows that never acquired a local payload; missing required
 downloads block release, while optional supporting-source failures remain visible
 under the existing source-family policy.
 
+A row whose last crawl check failed (`status=error`) keeps its earlier payload
+and stays in the release. It loads when the registry `file_hash` equals the hash
+in its parsed sidecar. If the hashes differ the loader skips it as
+`error_without_verified_payload`, the audit reports `missing_graph_load` and the
+mandatory `missingAnswerReadyLoads` gate rejects the release: re-parse the
+stored payload or repair the crawl, then rebuild. An `error` row whose parse
+failed counts in `requiredCurrentParseExceptions`.
+
 ## Initial bootstrap
 
 The legacy-to-blue transition is supervised; keep the legacy graph serving until

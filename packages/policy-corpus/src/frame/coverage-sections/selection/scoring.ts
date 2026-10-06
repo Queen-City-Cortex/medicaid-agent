@@ -90,7 +90,8 @@ function scoreCoverageSection(
     )
       ? 3.2
       : 0;
-  const hcwdHistoricalPrimaryPenalty = flags.hcwdIncomePremiumQuery && section.status === 'amendment' ? 0.9 : 0;
+  const hcwdHistoricalPrimaryPenalty =
+    flags.hcwdIncomePremiumQuery && (section.status === 'amendment' || section.status === 'proposed') ? 0.9 : 0;
   const hcwdTangentialPenalty =
     flags.hcwdIncomePremiumQuery &&
     (

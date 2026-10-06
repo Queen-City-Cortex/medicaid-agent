@@ -120,7 +120,8 @@ export function scoreVariantDocument(document: DocumentWithSectionsView, queryLo
   if (document.status === 'current') {
     score += 0.6;
   }
-  if (titleText.includes('change notice') || document.status === 'amendment') {
+  // A proposed State Plan amendment is no more the current policy than a change notice.
+  if (titleText.includes('change notice') || document.status === 'amendment' || document.status === 'proposed') {
     score -= 1.5;
   }
   for (const variant of VARIANT_SETTING_TERMS) {

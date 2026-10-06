@@ -85,6 +85,7 @@ export function buildCoverageInitialSelection({
       ? preferredPrimaryScored.filter(
           (entry) =>
             entry.section.status !== 'amendment' &&
+            entry.section.status !== 'proposed' &&
             !isYearSpecificPremiumTitle(entry.section.title) &&
             !isYearSpecificPremiumTitle(entry.section.documentTitle) &&
             !isAdministrativeFormTitle(entry.section.title) &&

@@ -43,7 +43,11 @@ from pipeline.config import (
     PARSE_SUPPORTED_FILE_FORMATS,
     SOURCE_TYPE_DIRS,
 )
-from pipeline.crawler_registry import normalize_local_path, read_registry_rows
+from pipeline.crawler_registry import (
+    PAYLOAD_RETAINED_STATUSES,
+    normalize_local_path,
+    read_registry_rows,
+)
 from pipeline.parse.post_process import extract_section_number
 from pipeline.parse.artifact_paths import artifact_stem_for_source_path
 from pipeline.parse.fee_xlsx import native_layout, render_sheet, representation_for
@@ -59,7 +63,6 @@ WORKER_CLEANUP_RESERVE_SECONDS = 5
 WORKER_TERMINATE_GRACE_SECONDS = 2
 WORKER_NORMAL_EXIT_GRACE_SECONDS = 1
 MIN_SUBSTANTIVE_PAGE_CHARS = 40
-ACTIVE_REGISTRY_STATUSES = frozenset({"downloaded", "updated", "unchanged", "error"})
 
 
 def create_converter(*, do_ocr: bool = False) -> DocumentConverter:
@@ -1485,7 +1488,7 @@ def _active_registry_files(
                 else CRAWLER_DATA_DIR / normalized
             )
             for row in registry_rows
-            if row.get("status") in ACTIVE_REGISTRY_STATUSES
+            if row.get("status") in PAYLOAD_RETAINED_STATUSES
             and (normalized := normalize_local_path(row.get("local_path")))
         }
         if selected_file is not None:

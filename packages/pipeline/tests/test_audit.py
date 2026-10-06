@@ -144,6 +144,54 @@ def test_audit_does_not_count_a_delisted_document_as_a_missing_load(tmp_path):
     assert still_loaded["documents"][0]["failure_reasons"] == ["ineligible_graph_load"]
 
 
+def test_audit_expects_an_answer_ready_error_row_in_the_graph(tmp_path):
+    """A failed check keeps the payload, so its parse is loaded or a missing load."""
+    source_file = tmp_path / "documents" / "3L.pdf"
+    source_file.parent.mkdir(parents=True)
+    source_file.write_bytes(b"%PDF-1.4 test")
+    parsed_entry = {
+        "source_type": "clinical_policy",
+        "meta_path": str(tmp_path / "3L.meta.json"),
+        "json_path": str(tmp_path / "3L.json"),
+        "source_file": str(source_file),
+        "source_format": "pdf",
+        "parse_status": "parsed",
+        "quality_flags": [],
+        "answer_ready": True,
+        "section_count": 4,
+    }
+    registry_row = _registry_row("clinical_policy", source_file, status="error")
+
+    def audit(*, parsed=True, delisted=False, graph_documents=()) -> dict:
+        return build_corpus_audit_report(
+            source_families=(get_source_family("clinical_policy"),),
+            registry_rows=[{**registry_row, "delisted_from_index": delisted}],
+            local_files=[_local_file("clinical_policy", source_file)],
+            parsed_sidecars=[parsed_entry] if parsed else [],
+            graph_documents=list(graph_documents),
+        )
+
+    graph_entry = {"id": "doc:1", "source_url": registry_row["source_url"], "answer_ready": True}
+
+    loaded = audit(graph_documents=[graph_entry])
+    assert loaded["documents"][0]["failure_reasons"] == ["crawler_error"]
+    assert loaded["documents"][0]["answer_ready"] is True
+    assert loaded["source_families"][0]["counts"]["loaded"] == 1
+
+    refused = audit()
+    assert refused["documents"][0]["failure_reasons"] == ["crawler_error", "missing_graph_load"]
+    assert refused["summary"]["by_failure_reason"]["missing_graph_load"] == 1
+
+    unparsed = audit(parsed=False)
+    assert unparsed["documents"][0]["failure_reasons"] == ["crawler_error", "missing_parsed"]
+
+    delisted = audit(delisted=True)
+    assert delisted["documents"][0]["failure_reasons"] == ["crawler_error"]
+    assert audit(delisted=True, graph_documents=[graph_entry])["documents"][0][
+        "failure_reasons"
+    ] == ["crawler_error", "ineligible_graph_load"]
+
+
 def test_audit_marks_remaining_legacy_ppt_as_unsupported_format(tmp_path):
     source_file = tmp_path / "documents" / "legacy-slides.ppt"
     source_file.parent.mkdir(parents=True)

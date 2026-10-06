@@ -16,6 +16,11 @@ from typing import Any
 
 from pipeline.config import CRAWLER_DATA_DIR, CRAWLER_DB_PATH
 
+# Statuses that keep whatever payload the crawler last fetched, so the row stays
+# in the corpus. `error` is one of them: a failed check or download leaves
+# `local_path` and `file_hash` untouched (both null if nothing was ever fetched).
+PAYLOAD_RETAINED_STATUSES = frozenset({"downloaded", "updated", "unchanged", "error"})
+
 # Index membership is an observation, not a crawl status: a de-listed row keeps
 # its `status`, payload and evidence and is only left out of the release graph.
 # Enforced for the one family whose index was measured.
@@ -34,6 +39,19 @@ class IndexListing:
     @property
     def archived(self) -> bool:
         return _ARCHIVED_TAG in self.tags
+
+
+def bare_sha256(value: Any) -> str:
+    return str(value or "").removeprefix("sha256:")
+
+
+def parsed_from_registry_payload(registry_row: dict[str, Any], sidecar: dict[str, Any]) -> bool:
+    """True when the parsed bytes are the last bytes the crawler fetched."""
+    registry_hash = bare_sha256(registry_row.get("file_hash"))
+    parsed_hash = bare_sha256(
+        sidecar.get("source_file_hash") or sidecar.get("source_pdf_hash")
+    )
+    return bool(registry_hash and parsed_hash == registry_hash)
 
 
 def normalize_local_path(path_value: str | None, data_dir: Path = CRAWLER_DATA_DIR) -> str | None:

@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from pipeline.corpus_manifest import get_source_family
 from pipeline.graph.loader import (
     _build_document_bundle,
     build_sections_from_items,
@@ -446,6 +447,94 @@ def test_load_document_removes_a_registry_document_marked_removed(
     assert writer.received("delete_document") == [result["document_id"]]
 
 
+_FETCHED_HASH = "a" * 64
+
+
+@pytest.mark.parametrize(
+    ("sidecar_hash", "skipped"),
+    [
+        ({"source_file_hash": f"sha256:{_FETCHED_HASH}"}, None),
+        ({"source_pdf_hash": _FETCHED_HASH}, None),
+        ({"source_file_hash": "b" * 64}, "error_without_verified_payload"),
+        ({}, "error_without_verified_payload"),
+    ],
+)
+def test_load_document_loads_an_error_row_only_from_the_payload_the_registry_holds(
+    monkeypatch,
+    tmp_path,
+    sidecar_hash,
+    skipped,
+):
+    """A failed check keeps the last fetched bytes; only a parse of those loads."""
+    json_path = tmp_path / "3L.json"
+    json_path.write_text("{}")
+    json_path.with_suffix(".meta.json").write_text(
+        json.dumps(
+            {
+                "source_file": "3L.pdf",
+                "parse_status": "parsed",
+                "answer_ready": True,
+                "section_count": 1,
+                **sidecar_hash,
+            }
+        )
+    )
+    monkeypatch.setattr(
+        "pipeline.graph.loader.read_crawler_metadata",
+        lambda source_type, filename_stem: {
+            "title": "Clinical Coverage Policy 3L",
+            "source_url": "https://example.com/3L.pdf",
+            "local_path": "clinical-policies/3L.pdf",
+            "status": "error",
+            "file_hash": _FETCHED_HASH,
+        },
+    )
+    monkeypatch.setattr(
+        "pipeline.graph.loader.build_sections_from_items",
+        lambda doc_dict, document_id: [
+            {"id": f"{document_id}:sec:1", "title": "Coverage", "content_text": "x"}
+        ],
+    )
+    writer = RecordingGraphWriter()
+    monkeypatch.setattr("pipeline.graph.loader.graph_writer", writer)
+
+    result = load_document(json_path, "clinical_policy")
+
+    assert result.get("skipped") == skipped
+    if skipped:
+        assert writer.received("upsert_document_bundle") == []
+        assert writer.received("delete_document") == [result["document_id"]]
+    else:
+        assert len(writer.received("upsert_document_bundle")) == 1
+
+
+def test_load_document_does_not_load_an_error_row_the_registry_has_no_hash_for(
+    monkeypatch,
+    tmp_path,
+):
+    json_path = tmp_path / "3L.json"
+    json_path.write_text("{}")
+    json_path.with_suffix(".meta.json").write_text(
+        json.dumps({"source_file": "3L.pdf", "parse_status": "parsed", "answer_ready": True})
+    )
+    monkeypatch.setattr(
+        "pipeline.graph.loader.read_crawler_metadata",
+        lambda source_type, filename_stem: {
+            "source_url": "https://example.com/3L.pdf",
+            "local_path": "clinical-policies/3L.pdf",
+            "status": "error",
+            "file_hash": None,
+        },
+    )
+    writer = RecordingGraphWriter()
+    monkeypatch.setattr("pipeline.graph.loader.graph_writer", writer)
+
+    result = load_document(json_path, "clinical_policy")
+
+    assert result["skipped"] == "error_without_verified_payload"
+    assert writer.received("upsert_document_bundle") == []
+
+
 def _listing_registry(tmp_path, source_url, *, listed_run, checked_run, tags="[]"):
     db_path = tmp_path / "crawler.db"
     index_url = "https://policies.ncdhhs.gov/index/"
@@ -454,7 +543,7 @@ def _listing_registry(tmp_path, source_url, *, listed_run, checked_run, tags="[]
             """
             CREATE TABLE documents (id INTEGER PRIMARY KEY, source_url TEXT UNIQUE,
               discovered_from TEXT, source_type TEXT, title TEXT, local_path TEXT,
-              status TEXT);
+              status TEXT, file_hash TEXT);
             CREATE TABLE source_listings (source_url TEXT PRIMARY KEY, index_url TEXT,
               last_listed_at TEXT, last_listed_run_id INTEGER, tags TEXT);
             CREATE TABLE source_index_checks (index_url TEXT PRIMARY KEY, source_type TEXT,
@@ -531,6 +620,38 @@ def test_load_document_excludes_a_dhhs_policy_dropped_from_its_index(
         assert len(writer.received("upsert_document_bundle")) == 1
     with sqlite3.connect(db_path) as db:
         assert db.execute("SELECT status FROM documents").fetchone() == ("unchanged",)
+
+
+def test_load_document_keeps_an_error_row_dropped_from_its_index_excluded(
+    monkeypatch,
+    tmp_path,
+):
+    """A matching payload does not undo the de-listing of an `error` row."""
+    source_url = "https://policies.ncdhhs.gov/wp-content/uploads/MA-2240-2.pdf"
+    json_path = tmp_path / "ma-2240-2.json"
+    json_path.write_text("{}")
+    json_path.with_suffix(".meta.json").write_text(
+        json.dumps(
+            {
+                "source_file": "dhhs-policies/MA-2240-2.pdf",
+                "source_file_hash": _FETCHED_HASH,
+                "parse_status": "parsed",
+                "answer_ready": True,
+                "section_count": 1,
+            }
+        )
+    )
+    db_path = _listing_registry(tmp_path, source_url, listed_run=1, checked_run=2)
+    with sqlite3.connect(db_path) as db:
+        db.execute("UPDATE documents SET status = 'error', file_hash = ?", (_FETCHED_HASH,))
+    monkeypatch.setattr("pipeline.graph.loader.CRAWLER_DB_PATH", db_path)
+    writer = RecordingGraphWriter()
+    monkeypatch.setattr("pipeline.graph.loader.graph_writer", writer)
+
+    result = load_document(json_path, "dhhs_policy")
+
+    assert result["skipped"] == "delisted_from_index"
+    assert writer.received("upsert_document_bundle") == []
 
 
 @pytest.mark.parametrize(
@@ -708,6 +829,124 @@ def test_read_crawler_metadata_by_local_path_normalizes_absolute_paths(monkeypat
     assert metadata["source_url"] == "https://example.test/rates.pdf"
     assert metadata["title"] == "Rate Sheet PDF"
     assert metadata["local_path"] == "fee-schedules/rate-sheet.pdf"
+
+
+_STATE_PLAN_INDEX = "https://medicaid.ncdhhs.gov/meetingsnotices/medicaid-state-plan-public-notices"
+
+
+@pytest.mark.parametrize(
+    ("discovered_from", "title", "status", "authority_tier"),
+    [
+        (
+            "https://medicaid.ncdhhs.gov/meetings-notices/medicaid-state-plan-public-notices/2025-proposed-public-notices",
+            "SPA 25-0026 (Skilled Nursing Facility Rate Methodology)",
+            "proposed",
+            "supporting",
+        ),
+        (
+            f"{_STATE_PLAN_INDEX}/2025-ten-day-postings-submissions-cms",
+            "SPA 25-0012 (Home Health Services)",
+            "proposed",
+            "supporting",
+        ),
+        (
+            "https://medicaid.ncdhhs.gov/documents/2021-proposed-amendments-sent-cms",
+            "SPA 21-0002 (Personal Care Services)",
+            "proposed",
+            "supporting",
+        ),
+        (
+            "https://medicaid.ncdhhs.gov/meetings-notices/medicaid-state-plan-public-notices/2021-spa-updates",
+            "Update to State Plan for Health Benefits (21-0002)",
+            "current",
+            "authoritative",
+        ),
+        (
+            _STATE_PLAN_INDEX,
+            "SPA 26-0008 10-Day Public Notice (Skilled Nursing Facility Ventilator Services (SNF Vent))",
+            "proposed",
+            "supporting",
+        ),
+        (
+            _STATE_PLAN_INDEX,
+            "SPA 26-0003 Proposed Amendment Sent to CMS (Home Health Services)",
+            "proposed",
+            "supporting",
+        ),
+        (
+            _STATE_PLAN_INDEX,
+            "draft application for NC 1915(b) Waiver Renewal",
+            "proposed",
+            "supporting",
+        ),
+        (
+            _STATE_PLAN_INDEX,
+            "State Plan under Title XIX of the Social Security Act Medical Assistance Program",
+            "current",
+            "authoritative",
+        ),
+        (_STATE_PLAN_INDEX, "Expansion Eligibility SPA Approval", "current", "authoritative"),
+    ],
+)
+def test_build_document_bundle_marks_state_plan_proposals_proposed_and_supporting(
+    monkeypatch,
+    tmp_path,
+    discovered_from,
+    title,
+    status,
+    authority_tier,
+):
+    """One row per page the State Plan crawl reads, and the index-page titles."""
+    monkeypatch.setattr("pipeline.graph.loader._source_selection_index", lambda: {})
+
+    bundle = _build_document_bundle(
+        json_path=tmp_path / "spa.json",
+        source_type="state_plan_amendment",
+        title=title,
+        policy_number=None,
+        waiver_id=None,
+        crawler_meta={
+            "source_url": "https://medicaid.ncdhhs.gov/spa/download",
+            "discovered_from": discovered_from,
+            "status": "unchanged",
+        },
+        meta={"source_file": "state-plan-amendments/spa.pdf"},
+        sections=[],
+        effective_date=None,
+        document_id="doc:state_plan_amendment:spa",
+    )
+
+    assert bundle.document.status == status
+    assert bundle.document.authority_tier == authority_tier
+    assert bundle.document.answer_ready is True
+    assert bundle.document.retrieval_ready is True
+
+
+def test_build_document_bundle_reads_a_proposal_only_from_the_state_plan_family(
+    monkeypatch,
+    tmp_path,
+):
+    monkeypatch.setattr("pipeline.graph.loader._source_selection_index", lambda: {})
+
+    bundle = _build_document_bundle(
+        json_path=tmp_path / "bulletin.json",
+        source_type="bulletin",
+        title="Public Notice of Rate Changes",
+        policy_number=None,
+        waiver_id=None,
+        crawler_meta={
+            "source_url": "https://medicaid.ncdhhs.gov/blog/public-notice",
+            "discovered_from": "https://medicaid.ncdhhs.gov/2025-proposed-public-notices",
+            "status": "unchanged",
+        },
+        meta={"source_file": "bulletins/bulletin.html"},
+        sections=[],
+        effective_date=None,
+        document_id="doc:bulletin:notice",
+    )
+
+    assert bundle.document.status == "current"
+    assert bundle.document.authority_tier == get_source_family("bulletin").authority_tier
 
 
 def test_build_document_bundle_applies_fee_schedule_selection(monkeypatch, tmp_path):

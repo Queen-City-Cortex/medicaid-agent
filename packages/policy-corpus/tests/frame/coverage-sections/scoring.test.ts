@@ -6,6 +6,7 @@ import type { CoverageQueryFlags } from '../../../src/frame/coverage-sections/ca
 // this a focused unit test of selection/scoring.ts. Runs against the REAL shared.ts
 // helpers and term lists — no mocks — so the assertions lock in the actual formula.
 import { scoreCoverageSections } from '../../../src/frame/coverage-sections/selection/scoring.js';
+import { buildCoverageInitialSelection } from '../../../src/frame/coverage-sections/selection/initial-selection.js';
 import { makeSection } from '../../helpers/objects.js';
 
 // ── Fixtures ─────────────────────────────────────────────────────────────────
@@ -162,6 +163,38 @@ describe('scoreCoverageSections — behavior', () => {
     // hcwdCurrentDocumentBonus, which contributes to primaryScore only.
     expect(target.primaryScore - other.primaryScore).toBeCloseTo(1.5, 10);
     expect(target.supportScore - other.supportScore).toBeCloseTo(0, 10);
+  });
+});
+
+describe('a proposed State Plan section under an HCWD income/premium query', () => {
+  const flags = { hcwdIncomePremiumQuery: true };
+  const scored = (status: string) => scoreOne(makeSection({ id: status, status }), { flags });
+
+  it('takes the primary penalty an amendment takes, without its history bonus as support', () => {
+    expect(scored('proposed').primaryScore).toBe(scored('amendment').primaryScore);
+    expect(scored('proposed').primaryScore).toBeLessThan(scored('current').primaryScore);
+    expect(scored('proposed').supportScore).toBe(scored('current').supportScore);
+  });
+
+  it('is kept out of the current primary sections like an amendment', () => {
+    const select = (status: string) =>
+      buildCoverageInitialSelection({
+        scored: scoreCoverageSections(
+          [
+            makeSection({ id: 'other', title: 'Income limit', content: 'income', status, documentId: 'doc:other' }),
+            makeSection({ id: 'rule', title: 'Premiums', content: 'premium', documentId: 'doc:rule' }),
+          ],
+          [],
+          [],
+          makeFlags(flags),
+        ),
+        serviceFocusTerms: [],
+        flags: makeFlags(flags),
+      }).initialPrimarySections.map((section) => section.id);
+
+    expect(select('current')).toContain('other');
+    expect(select('amendment')).toEqual(['rule']);
+    expect(select('proposed')).toEqual(['rule']);
   });
 });
 

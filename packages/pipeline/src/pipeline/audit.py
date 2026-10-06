@@ -18,6 +18,7 @@ from pipeline.config import (
 from pipeline.corpus_manifest import CORPUS_MANIFEST, SourceFamilyManifest
 from pipeline.crawler_registry import (
     DELISTED_FROM_INDEX,
+    PAYLOAD_RETAINED_STATUSES,
     normalize_local_path,
     read_registry_rows,
     read_source_freshness,
@@ -41,7 +42,6 @@ FAILURE_REASONS = (
     "missing_graph_load",
     "ineligible_graph_load",
 )
-_ACTIVE_REGISTRY_STATUSES = frozenset({"downloaded", "updated", "unchanged"})
 
 
 def _normalize_local_path(path_value: str | None) -> str | None:
@@ -247,10 +247,13 @@ def classify_document_entry(
     if "title_only_or_blank_body" in quality_flags:
         failure_reasons.append("title_only_or_blank_body")
     # Leaving a de-listed document out of the graph is the intended outcome,
-    # not a missing load; finding one still loaded is an ineligible load.
+    # not a missing load; finding one still loaded is an ineligible load. An
+    # `error` row keeps its payload, so its answer-ready parse is expected in
+    # the graph: the loader refuses it when the parsed bytes are not the
+    # registry's, and that refusal is a missing load.
     delisted = bool(registry_row and registry_row.get(DELISTED_FROM_INDEX))
     should_load = bool(
-        registry_status in _ACTIVE_REGISTRY_STATUSES
+        registry_status in PAYLOAD_RETAINED_STATUSES
         and not delisted
         and parsed
         and parsed_entry

@@ -342,6 +342,18 @@ describe('scoreVariantDocument', () => {
     );
     expect(amendment.score).toBeLessThan(current.score);
   });
+
+  it('penalizes a proposed State Plan document as much as an amendment', () => {
+    const score = (status: string | null) =>
+      scoreVariantDocument(
+        makeDoc({ id: status ?? 'none', documentType: 'state_plan_amendment', policyNumber: '25-0026', title: 'SPA 25-0026', status }),
+        'q',
+        [],
+      ).score;
+    expect(score('proposed')).toBe(score('amendment'));
+    // Losing the `current` bonus alone is not the penalty.
+    expect(score('proposed')).toBeLessThan(score(null));
+  });
 });
 
 describe('scoreVariantDocument care-setting preference', () => {

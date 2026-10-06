@@ -3,6 +3,8 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
+from pipeline.audit import build_corpus_audit_report
+from pipeline.corpus_manifest import get_source_family
 from pipeline.release import (
     apply_overrides,
     atomic_write_json,
@@ -549,6 +551,82 @@ def test_audit_ignores_optional_stale_family_but_counts_required_parse_errors():
     assert audit["requiredCurrentParseExceptions"] == 1
     assert audit["freshnessSlaMet"] == 1
     assert audit["staleSourceFamilies"] == []
+
+
+def _release_with_one_required_error_document(tmp_path, *, loaded, parse_status="parsed"):
+    """The audit of one required document whose last crawl check failed."""
+    source_file = tmp_path / "documents" / "3L.pdf"
+    source_file.parent.mkdir(parents=True, exist_ok=True)
+    source_file.write_bytes(b"%PDF-1.4 test")
+    source_url = "https://example.test/3L.pdf"
+    report = build_corpus_audit_report(
+        source_families=(get_source_family("clinical_policy"),),
+        registry_rows=[
+            {
+                "source_url": source_url,
+                "title": "3L",
+                "source_type": "clinical_policy",
+                "local_path": str(source_file),
+                "status": "error",
+            }
+        ],
+        local_files=[],
+        parsed_sidecars=[
+            {
+                "source_type": "clinical_policy",
+                "source_file": str(source_file),
+                "source_format": "pdf",
+                "parse_status": parse_status,
+                "quality_flags": [],
+                "answer_ready": parse_status == "parsed",
+            }
+        ],
+        graph_documents=(
+            [{"id": "doc:1", "source_url": source_url, "answer_ready": True}]
+            if loaded
+            else []
+        ),
+    )
+    manifest = passing_manifest()
+    manifest["auditResults"].update(build_release_audit_results(report, graph_metrics()))
+    return manifest, build_release_counts(report, None)
+
+
+def test_a_required_error_document_left_out_of_the_graph_fails_a_mandatory_gate(tmp_path):
+    manifest, counts = _release_with_one_required_error_document(tmp_path, loaded=False)
+
+    gates = {gate["name"]: gate for gate in evaluate_release_manifest(manifest)}
+
+    assert manifest["auditResults"]["missingAnswerReadyLoads"] == 1
+    assert gates["missingAnswerReadyLoads"]["passed"] is False
+    assert [
+        name for name, gate in gates.items() if not gate["passed"] and not gate["overridable"]
+    ] == ["missingAnswerReadyLoads"]
+    assert counts["sourceFamily.clinical_policy.documents"] == 1
+    assert counts["sourceFamily.clinical_policy.loaded"] == 0
+
+
+def test_a_required_error_document_loaded_from_its_payload_passes_the_load_gate(tmp_path):
+    manifest, counts = _release_with_one_required_error_document(tmp_path, loaded=True)
+
+    gates = {gate["name"]: gate for gate in evaluate_release_manifest(manifest)}
+
+    assert all(gate["passed"] for gate in gates.values() if not gate["overridable"])
+    assert counts["sourceFamily.clinical_policy.documents"] == 1
+    assert counts["sourceFamily.clinical_policy.loaded"] == 1
+    assert counts["answerReadyTotal"] == 1
+
+
+def test_a_required_error_document_that_failed_to_parse_counts_as_a_parse_exception(tmp_path):
+    manifest, _ = _release_with_one_required_error_document(
+        tmp_path, loaded=False, parse_status="parse_exception"
+    )
+
+    gates = {gate["name"]: gate for gate in evaluate_release_manifest(manifest)}
+
+    assert manifest["auditResults"]["missingAnswerReadyLoads"] == 0
+    assert gates["requiredCurrentParseExceptions"]["passed"] is False
+    assert gates["requiredCurrentParseExceptions"]["overridable"] is False
 
 
 def test_evaluation_compares_each_metric_with_the_promoted_baseline():

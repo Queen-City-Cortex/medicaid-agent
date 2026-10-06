@@ -15,13 +15,13 @@ from tempfile import NamedTemporaryFile
 from typing import Any, TypeVar
 
 from pipeline.config import EMBEDDING_DIMENSIONS, EMBEDDING_MODEL
+from pipeline.crawler_registry import PAYLOAD_RETAINED_STATUSES
 
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
 POLICY_PATH = REPO_ROOT / "corpus-release-policy.json"
 _COMMIT_SHA = re.compile(r"^[0-9a-f]{7,40}$")
 _COLORS = frozenset({"blue", "green"})
-_ACTIVE_REGISTRY_STATUSES = frozenset({"downloaded", "updated", "unchanged"})
 _T = TypeVar("_T")
 
 
@@ -441,7 +441,7 @@ def build_release_counts(
     family_document_keys: list[str] = []
     active_documents_by_family: dict[str, int] = {}
     for document in audit_report.get("documents", []):
-        if document.get("registry_status") not in _ACTIVE_REGISTRY_STATUSES:
+        if document.get("registry_status") not in PAYLOAD_RETAINED_STATUSES:
             continue
         source_type = str(document.get("source_type", ""))
         if source_type:
@@ -496,7 +496,7 @@ def build_release_audit_results(
         for document in audit_report.get("documents", [])
         if document.get("required_for_answering")
         and not document.get("scope_limitation_id")
-        and document.get("registry_status") in _ACTIVE_REGISTRY_STATUSES
+        and document.get("registry_status") in PAYLOAD_RETAINED_STATUSES
         and document.get("parse_status") == "parse_exception"
     )
     stale_required = sorted(

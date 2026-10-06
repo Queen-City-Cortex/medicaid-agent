@@ -15,6 +15,7 @@ from pipeline.config import (
     CRAWLER_DB_PATH,
     PARSED_DATA_DIR,
 )
+from pipeline.crawler_registry import PAYLOAD_RETAINED_STATUSES
 from pipeline.parse.converter import (
     PARSE_CACHE_VERSION,
     SOURCE_TYPE_DIRS,
@@ -85,7 +86,7 @@ def main(argv=None):
             ).fetchall()
             if not (
                 len(rows) == 1
-                and rows[0][0] in {"downloaded", "updated", "unchanged", "error"}
+                and rows[0][0] in PAYLOAD_RETAINED_STATUSES
                 and rows[0][1] == item.get("source_url")
             ):
                 raise ValueError(f"Inactive or ambiguous registry identity: {rel}")

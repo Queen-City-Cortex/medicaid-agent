@@ -117,6 +117,9 @@ non-answer-ready, malformed, stale, or incomplete sidecars remain retryable.
 An existing empty registry and every active registry row whose downloaded source
 file is missing are non-overridable strict failures; crawler `error` rows
 remain active and retryable because they can retain the last downloaded source.
+The graph load follows the same rule: an `error` row loads when the registry
+`file_hash` equals the hash in its parsed sidecar, and an answer-ready `error`
+row that is not loaded fails the `missingAnswerReadyLoads` release gate.
 Removed and orphaned historical files are outside the active inventory. A PDF
 bypasses OCR only when
 every substantive page preserves the normalized source token sequence and
