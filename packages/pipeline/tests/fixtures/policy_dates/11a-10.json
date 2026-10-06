@@ -1,0 +1,21 @@
+{
+  "source": "parsed/clinical-policies/11a-10_hematopoietic-stem-cell-transplantation-hsct-for-central-nervous-system-cns-embryonal-tum.json",
+  "note": "A row is dated 09/01/2105.",
+  "title": "Hematopoietic Stem-Cell Transplantation (HSCT) for Central Nervous System (CNS) Embryonal Tumors & Ependymoma",
+  "policy_number": "11A-10",
+  "source_changed_at": "2026-03-27 00:04:39",
+  "sections": [
+    {
+      "title": null,
+      "content_text": "NC Medicaid\nHematopoietic Stem-Cell\nTransplantation (HSCT) for\nCentral Nervous System (CNS)\nEmbryonal Tumors & Ependymoma\nTo all beneficiaries enrolled in a Prepaid Health Plan (PHP): for questions about benefits and services available on or after implementation, please contact your PHP."
+    },
+    {
+      "title": "Table of Contents",
+      "content_text": "Medicaid\nClinical Coverage Policy No: 11A-10\nAmended Date: August 15, 2023\nNC Medicaid\nHematopoietic Stem-Cell\nTransplantation (HSCT) for\nCentral Nervous System (CNS)\nEmbryonal Tumors & Ependymoma\nMedicaid\nClinical Coverage Policy No: 11A-10\nAmended Date: August 15, 2023"
+    },
+    {
+      "title": "Revision Information:",
+      "content_text": "| Date       | Section Revised              | Change                                                                                                                                                                                                                                 |\n|:-----------|:-----------------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|\n| 07/01/2005 | Entire Policy                | Medicaid: Policy was updated to include coverage criteria effective with approved date of State Plan amendment 4/1/05.                                                                                                                 |\n| 09/01/2105 | Section 2.2                  | Medicaid: The special provision related to EPSDT was revised.                                                                                                                                                                          |\n| 12/01/2005 | Section 2.2                  | Medicaid: The web address for DMA's EDPST policy instructions was added to this section.                                                                                                                                               |"
+    }
+  ]
+}

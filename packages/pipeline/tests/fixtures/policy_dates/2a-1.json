@@ -1,0 +1,17 @@
+{
+  "source": "parsed/clinical-policies/2a-1_clinical-coverage-policy-2a-1.json",
+  "note": "Banner reads 'January 1. 2026', with a period.",
+  "title": "Acute Inpatient Hospital Services",
+  "policy_number": "2A-1",
+  "source_changed_at": "2026-03-27 00:01:05",
+  "sections": [
+    {
+      "title": "NC Medicaid",
+      "content_text": ""
+    },
+    {
+      "title": "Acute Inpatient Hospital Services",
+      "content_text": "Medicaid\nClinical Coverage Policy No: 2A-1\nAmended Date: January 1. 2026\nTo all beneficiaries enrolled in a Prepaid Health Plan (PHP): for questions about benefits and services available on or after implementation, please contact your PHP."
+    }
+  ]
+}

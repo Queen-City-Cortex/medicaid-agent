@@ -1,0 +1,25 @@
+{
+  "source": "parsed/dhhs-policies/change-notice-for-manual-no-10-18-change-notice-for-manual-no-10-18-income.json",
+  "note": "Header DATE: line shape.",
+  "title": "CHANGE NOTICE FOR MANUAL NO. 10-18, Change Notice For Manual No. 10-18, Income",
+  "policy_number": null,
+  "source_changed_at": "2026-03-28 04:58:40",
+  "sections": [
+    {
+      "title": "CHANGE NOTICE FOR MANUAL NO. 10-18, INCOME",
+      "content_text": ""
+    },
+    {
+      "title": "December 27, 2018",
+      "content_text": "Manual:\nAged, Blind and Disabled\nChange No:\n10-18\nTo:\nCounty Directors of Social Services"
+    },
+    {
+      "title": "I. BACKGROUND AND CONTENT OF CHANGE",
+      "content_text": "The Division of Health Benefits (DHB) has revised and/or updated Medicaid policy to provide clarity and/or correction to policy. The revisions are spelled out in section II below."
+    },
+    {
+      "title": "II. POLICY UPDATE",
+      "content_text": "MA-2250, Income\nThe Income policy has been revised in the online Adult Medicaid Manual:\nWith the additional procedures for potential Unemployment Insurance Benefit (UIB) claims."
+    }
+  ]
+}

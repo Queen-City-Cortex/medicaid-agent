@@ -29,6 +29,9 @@ from pipeline.parse.post_process import (
 )
 from pipeline.graph.corpus_types import DocumentBundle, DocumentNode, SectionNode
 from pipeline.graph.corpus_writer import graph_writer
+from pipeline.policy_dates import banner_date, notice_header_date
+from pipeline.policy_dates import logger as policy_dates_logger
+from pipeline.references.amendments import _parse_revision_rows, is_revision_heading
 from pipeline.source_selection import (
     build_source_selection_index,
     resolve_source_selection_metadata,
@@ -419,8 +422,6 @@ def _assign_hierarchy_by_level(sections: list[dict]):
         stack.append(section)
 
 
-# Date extraction patterns
-_DATE_MM_DD_YYYY = re.compile(r"(\d{2}/\d{2}/\d{4})")
 # "CHANGE NOTICE FOR MANUAL NO. 04-26", "CHANGE NOTICE FOR MANUAL, NO: 07-15",
 # "CHANGE NOTICE FOR MANUALS NO. 22-08" and "DMA CHANGE NOTICE FOR MANUAL 01-14".
 _CHANGE_NOTICE_YEAR_RE = re.compile(
@@ -429,35 +430,62 @@ _CHANGE_NOTICE_YEAR_RE = re.compile(
 )
 
 
+# A notice's `DATE:` line is within its first four sections, sometimes as a
+# section title of its own.
+_NOTICE_HEADER_SECTIONS = 4
+
+
+def _document_text(sections: list[dict]) -> str:
+    return "\n".join(
+        f"{sec.get('title') or ''}\n{sec.get('content_text') or ''}" for sec in sections
+    )
+
+
 def _extract_effective_date(
-    source_type: str, title: str, sections: list[dict],
+    source_type: str,
+    title: str,
+    sections: list[dict],
+    *,
+    policy_number: str | None = None,
+    source_changed_at: str | None = None,
 ) -> str | None:
-    """Extract the most recent effective/amended date from a document.
+    """Read the date a document states for itself.
 
     Returns ISO date string (YYYY-MM-DD) or None.
     """
     if source_type == "clinical_policy":
-        # Find the History/Revision section and get the most recent date
-        for sec in sections:
-            sec_title = sec.get("title") or ""
-            if "History" in sec_title or "Revision" in sec_title:
-                content = sec.get("content_text") or ""
-                dates = _DATE_MM_DD_YYYY.findall(content)
-                if dates:
-                    # Parse all dates, return the most recent
-                    parsed = []
-                    for d in dates:
-                        try:
-                            month, day, year = d.split("/")
-                            parsed.append(f"{year}-{month}-{day}")
-                        except ValueError:
-                            continue
-                    if parsed:
-                        return max(parsed)  # lexicographic max = most recent
+        # The title block's banner is the policy's current date. The history
+        # table is not: 10C's last row is later than its banner, and rows
+        # carry typos such as 09/01/2105. Its latest valid row stands in
+        # only for a policy with no banner.
+        if banner := banner_date(_document_text(sections)):
+            return banner.isoformat()
+        row_dates = [
+            row["effective_date"]
+            for sec in sections
+            if is_revision_heading(sec.get("title"))
+            for row in _parse_revision_rows(
+                sec.get("content_text") or "",
+                policy_number=policy_number or "",
+                source_changed_at=source_changed_at,
+            )
+        ]
+        return max(row_dates, default=None)
 
-    # A DHHS change notice gets no date here: its title carries a number, not
-    # a date, and January 1 of the year was a date no source states. See
-    # `_change_notice_number`.
+    # A DHHS change notice is dated by its own header DATE: line, and has no
+    # date without one. Its number, not this date, orders it among notices
+    # (see `_change_notice_number`), so a header year that disagrees with
+    # the number's year is kept and logged.
+    number = _change_notice_number(source_type, title)
+    if number:
+        # The header is the notice's opening; a later `DATE:` is body text.
+        dated = notice_header_date(_document_text(sections[:_NOTICE_HEADER_SECTIONS]))
+        if dated and dated.year != number[0]:
+            policy_dates_logger.warning(
+                "Change notice %r is numbered for %d but its DATE line reads %s",
+                title, number[0], dated.isoformat(),
+            )
+        return dated.isoformat() if dated else None
     return None
 
 
@@ -813,7 +841,13 @@ def load_document(
         }
 
     # Extract effective date from content
-    effective_date = _extract_effective_date(source_type, title, sections)
+    effective_date = _extract_effective_date(
+        source_type,
+        title,
+        sections,
+        policy_number=policy_number,
+        source_changed_at=crawler_meta.get("last_changed_at"),
+    )
     bundle = _build_document_bundle(
         json_path=json_path,
         source_type=source_type,

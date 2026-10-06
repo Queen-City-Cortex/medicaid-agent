@@ -1,0 +1,25 @@
+{
+  "source": "parsed/dhhs-policies/change-notice-for-manual-no-09-18-notice-and-hearings-process.json",
+  "note": "Header DATE: line shape.",
+  "title": "CHANGE NOTICE FOR MANUAL NO. 09-18, Notice And Hearings Process",
+  "policy_number": null,
+  "source_changed_at": "2026-03-28 04:58:20",
+  "sections": [
+    {
+      "title": "CHANGE NOTICE FOR MANUAL NO. 09-18, NOTICE AND HEARINGS PROCESS",
+      "content_text": ""
+    },
+    {
+      "title": "DATE: December 17 2018",
+      "content_text": "Manual:\nAged, Blind, and Disabled Medicaid\nChange No:\n09-18\nTo:\nCounty Directors of Social Services"
+    },
+    {
+      "title": "I. BACKGROUND AND CONTENT OF CHANGE",
+      "content_text": "The Division of Health Benefits (DHB) has revised and updated Medicaid policy in order to provide clarity and/or corrections to previously published policy. These revisions are spelled out in section II below."
+    },
+    {
+      "title": "II. POLICY UPDATE",
+      "content_text": ""
+    }
+  ]
+}

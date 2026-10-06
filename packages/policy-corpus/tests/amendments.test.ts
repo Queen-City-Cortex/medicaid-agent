@@ -25,13 +25,14 @@ const MANUAL = documentRecord({
 
 // A DHHS change notice as the loader writes it: no date, the year and
 // sequence of its number ("04-26") stored instead.
-function notice(number: string, id = `doc-cn-${number}`) {
+function notice(number: string, id = `doc-cn-${number}`, effectiveDate: string | null = null) {
   const [sequence, year] = number.split('-').map((part) => Number.parseInt(part, 10));
   return amendmentRecord({
     id,
     title: `CHANGE NOTICE FOR MANUAL NO. ${number}, NEMT`,
     documentType: 'dhhs_policy',
     url: `https://example.com/${id}`,
+    effectiveDate,
     status: 'amendment',
     changeYear: 2000 + year,
     changeSequence: sequence,
@@ -91,6 +92,28 @@ describe('getAmendments', () => {
       'doc-cn-01-26',
       'doc-cn-11-25',
     ]);
+  });
+
+  it('orders notices sharing a header date by sequence, and by number year before date', async () => {
+    const { corpus } = amendmentsFor([
+      notice('02-26', 'doc-cn-02-26', '2026-03-04'),
+      // Numbered in 2025 but dated after every 2026 notice: the number governs.
+      notice('11-25', 'doc-cn-11-25', '2026-06-30'),
+      notice('04-26', 'doc-cn-04-26', '2026-03-04'),
+      notice('03-26', 'doc-cn-03-26', '2026-03-04'),
+    ]);
+
+    const view = await corpus.getAmendments('doc-ma3550');
+
+    expect(view.amendments.map((amendment) => amendment.id)).toEqual(['doc-cn-04-26', 'doc-cn-03-26', 'doc-cn-02-26', 'doc-cn-11-25']);
+  });
+
+  it('keeps a January 1 header date on a notice that stores its year and sequence', async () => {
+    const { corpus } = amendmentsFor([notice('01-26', 'doc-cn-01-26', '2026-01-01')]);
+
+    const view = await corpus.getAmendments('doc-ma3550');
+
+    expect(view.latestAmendment).toMatchObject({ id: 'doc-cn-01-26', changeYear: 2026, changeSequence: 1, effectiveDate: '2026-01-01' });
   });
 
   it('orders dated revision rows by date and puts undated, unnumbered rows last', async () => {

@@ -1,0 +1,21 @@
+{
+  "source": "parsed/clinical-policies/1e-3_sterilization-procedures.json",
+  "note": "Last row is dated 08/15/2025; 07/31/2028 is in its description column.",
+  "title": "Sterilization Procedures",
+  "policy_number": "1E-3",
+  "source_changed_at": "2026-03-27 00:01:57",
+  "sections": [
+    {
+      "title": "NC Medicaid",
+      "content_text": ""
+    },
+    {
+      "title": "Sterilization Procedures",
+      "content_text": "Medicaid\nClinical Coverage Policy No: 1E-3\nAmended Date: January 1, 2026\nTo all beneficiaries enrolled in a Prepaid Health Plan (PHP): for questions about benefits and services available on or after implementation, please contact your PHP."
+    },
+    {
+      "title": "History:",
+      "content_text": "| Date       | Section Revised                                    | Change                                                                                                                                                                                                                                                                                      |\n|:-----------|:---------------------------------------------------|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|\n| 08/15/2025 | Attachment B and C               | Updated Sterilization Consent form with new Expiration Date of 07/31/2028                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |"
+    }
+  ]
+}

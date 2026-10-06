@@ -644,7 +644,7 @@ def test_load_document_emits_document_bundle_through_graph_writer(monkeypatch, t
     )
     monkeypatch.setattr(
         "pipeline.graph.loader._extract_effective_date",
-        lambda source_type, title, sections: "2025-01-01",
+        lambda source_type, title, sections, **_: "2025-01-01",
     )
 
     writer = RecordingGraphWriter()
@@ -698,7 +698,7 @@ def test_load_document_does_not_infer_policy_number_for_change_notice(monkeypatc
     )
     monkeypatch.setattr(
         "pipeline.graph.loader._extract_effective_date",
-        lambda source_type, title, sections: None,
+        lambda source_type, title, sections, **_: None,
     )
 
     captured: dict[str, object] = {}

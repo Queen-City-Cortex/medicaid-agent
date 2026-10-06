@@ -49,6 +49,7 @@ interface GetSectionResult {
     policyNumber: string | null;
     url: string | null;
     citationLink: string | null;
+    status?: string | null;
   } | null;
 }
 
@@ -123,12 +124,25 @@ const EVIDENCE_TOOLS = new Set([
 
 // ── Formatters ───────────────────────────────────────────────────────────────
 
+/**
+ * A DHHS change notice carries the date printed in its own header, which is
+ * when the notice was issued, not when a policy took effect. Every other
+ * document, a clinical revision entry included, has an effective date.
+ * A DHHS payload that does not say its status could be either, so its date
+ * gets the neutral label: a notice's header date is never called effective.
+ */
+function dateLabel(meta: { documentType: string | null; status?: string | null }): 'Dated' | 'Date' | 'Effective' {
+  if (meta.documentType !== 'dhhs_policy') return 'Effective';
+  if (meta.status === undefined) return 'Date';
+  return meta.status === 'amendment' ? 'Dated' : 'Effective';
+}
+
 function formatDocMeta(doc: DocumentMetadata): string {
   const parts: string[] = [`ID: ${doc.id}`];
   if (doc.title) parts.push(`Title: ${doc.title}`);
   if (doc.policyNumber) parts.push(`Policy: ${doc.policyNumber}`);
   if (doc.documentType) parts.push(`Type: ${doc.documentType}`);
-  if (doc.effectiveDate) parts.push(`Effective: ${doc.effectiveDate}`);
+  if (doc.effectiveDate) parts.push(`${dateLabel(doc)}: ${doc.effectiveDate}`);
   if (doc.sourceModifiedDate) parts.push(`Source modified: ${doc.sourceModifiedDate}`);
   if (doc.retrievedAt) parts.push(`Retrieved: ${doc.retrievedAt}`);
   if (doc.status) parts.push(`Status: ${doc.status}`);
@@ -223,7 +237,7 @@ function formatSectionRead(read: SectionRead): SourceEntry {
   if (sec.sectionNumber) lines.push(`Section: ${sec.sectionNumber}`);
   if (sec.policyNumber) lines.push(`Policy: ${sec.policyNumber}`);
   if (sec.documentType) lines.push(`Type: ${sec.documentType}`);
-  if (sec.effectiveDate) lines.push(`Effective: ${sec.effectiveDate}`);
+  if (sec.effectiveDate) lines.push(`${dateLabel(sec)}: ${sec.effectiveDate}`);
   if (sec.sourceModifiedDate) lines.push(`Source modified: ${sec.sourceModifiedDate}`);
   if (sec.retrievedAt) lines.push(`Retrieved: ${sec.retrievedAt}`);
   if (sec.lastRevised) lines.push(`Last revised: ${sec.lastRevised}`);
@@ -298,7 +312,8 @@ function extractGetAmendments(result: GetAmendmentsResult, toolCallId: string): 
   if (amendments.length > 0) {
     lines.push(`\nAmendments (${amendments.length}${result?.truncated ? ', older ones omitted' : ''}):`);
     for (const a of amendments) {
-      lines.push(`  - ${a.id} | ${a.title || '(no title)'} | ${a.effectiveDate || 'unknown date'}`);
+      const date = a.effectiveDate && dateLabel(a) === 'Dated' ? `Dated: ${a.effectiveDate}` : a.effectiveDate;
+      lines.push(`  - ${a.id} | ${a.title || '(no title)'} | ${date || 'unknown date'}`);
       if (a.changeSummary) lines.push(`    Summary: ${a.changeSummary}`);
     }
   }

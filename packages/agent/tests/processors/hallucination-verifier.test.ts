@@ -124,6 +124,113 @@ describe('extractSources', () => {
     expect(text).toContain('Revises eligibility criteria for adult day care.');
   });
 
+  // A DHHS change notice's date is the one printed in its header: when the
+  // notice was issued, not when a policy took effect.
+  const dateLabelSources = (output: Record<string, unknown>, toolName = 'getAmendments') =>
+    extractSources([makeToolMessage([{ toolCallId: 'call-date', toolName, output }])]);
+  const manualMeta = {
+    id: 'doc-ma3550',
+    title: 'MA-3550 NEMT',
+    documentType: 'dhhs_policy',
+    policyNumber: 'MA-3550',
+    effectiveDate: null,
+    url: 'https://example.com/ma3550',
+    status: 'current',
+  };
+
+  it('labels a DHHS change notice date as Dated, never Effective', () => {
+    const notice = {
+      id: 'doc-cn-04-26',
+      title: 'CHANGE NOTICE FOR MANUAL NO. 04-26, NEMT',
+      documentType: 'dhhs_policy',
+      policyNumber: null,
+      effectiveDate: '2026-03-04',
+      url: 'https://example.com/cn-04-26',
+      status: 'amendment',
+      changeSummary: 'Notice 04-26 revises MA-3550.',
+    };
+
+    const [trail] = dateLabelSources({ document: manualMeta, amends: [], amendments: [notice], latestAmendment: notice, truncated: false });
+    expect(trail.text).toContain('Latest amendment:\nID: doc-cn-04-26');
+    expect(trail.text).toContain('\nDated: 2026-03-04\n');
+    expect(trail.text).toContain('  - doc-cn-04-26 | CHANGE NOTICE FOR MANUAL NO. 04-26, NEMT | Dated: 2026-03-04');
+    expect(trail.text).not.toContain('Effective:');
+
+    const [queried] = dateLabelSources({ document: notice, amends: [manualMeta], amendments: [], latestAmendment: null, truncated: false });
+    expect(queried.text).toContain('Dated: 2026-03-04');
+    expect(queried.text).not.toContain('Effective:');
+
+    const [doc] = dateLabelSources({ document: { ...notice, sections: [] } }, 'getDocument');
+    expect(doc.text).toContain('Dated: 2026-03-04');
+    expect(doc.text).not.toContain('Effective:');
+
+    const section = { id: 'doc-cn-04-26:sec-1', title: 'Background', sectionNumber: '1', content: 'This notice revises MA-3550.', effectiveDate: '2026-03-04', documentId: 'doc-cn-04-26', documentType: 'dhhs_policy', policyNumber: null };
+    const [read] = dateLabelSources({ section: { ...section, status: 'amendment' } }, 'getSection');
+    expect(read.text).toContain('Dated: 2026-03-04');
+    expect(read.text).not.toContain('Effective:');
+
+    // An undated notice still reads "unknown date", with no label.
+    const [undated] = dateLabelSources({ document: manualMeta, amends: [], amendments: [{ ...notice, effectiveDate: null }], latestAmendment: null, truncated: false });
+    expect(undated.text).toContain('| unknown date');
+    expect(undated.text).not.toContain('Dated:');
+  });
+
+  it('keeps Effective for a clinical policy document and its sections', () => {
+    const policy = {
+      id: 'doc-8c',
+      title: 'Clinical Coverage Policy 8C',
+      documentType: 'clinical_policy',
+      policyNumber: '8C',
+      effectiveDate: '2025-08-01',
+      url: 'https://example.com/8C',
+      status: 'current',
+    };
+
+    const [doc] = dateLabelSources({ document: { ...policy, sections: [] } }, 'getDocument');
+    expect(doc.text).toContain('Effective: 2025-08-01');
+    expect(doc.text).not.toContain('Dated:');
+
+    const [read] = dateLabelSources({
+      section: { id: 'doc-8c:sec-3', title: 'Coverage', sectionNumber: '3', content: 'Covered when medically necessary.', effectiveDate: '2025-08-01', documentId: 'doc-8c', documentType: 'clinical_policy', policyNumber: '8C', status: 'current' },
+    }, 'getSection');
+    expect(read.text).toContain('Effective: 2025-08-01');
+    expect(read.text).not.toContain('Dated:');
+
+    // A current DHHS manual is not a notice either: the status decides.
+    const [manual] = dateLabelSources({ document: { ...manualMeta, effectiveDate: '2024-07-01', sections: [] } }, 'getDocument');
+    expect(manual.text).toContain('Effective: 2024-07-01');
+  });
+
+  it('labels the date of a DHHS section read that does not say its status neutrally', () => {
+    // Without a status the section could belong to a change notice, whose
+    // header date must never be called effective.
+    const [read] = dateLabelSources({
+      section: { id: 'doc-cn:sec-1', title: 'I. BACKGROUND', sectionNumber: null, content: 'MA-2250 is revised.', effectiveDate: '2025-03-11', documentId: 'doc-cn', documentType: 'dhhs_policy', policyNumber: null },
+    }, 'getSection');
+    expect(read.text).toContain('\nDate: 2025-03-11');
+    expect(read.text).not.toContain('Effective:');
+    expect(read.text).not.toContain('Dated:');
+  });
+
+  it('leaves a clinical revision entry as it was: Effective in its metadata, a bare date in the trail', () => {
+    const revision = {
+      id: 'doc-8c:rev-2025-08-01',
+      title: 'Policy 8C Revision 2025-08-01',
+      documentType: 'clinical_policy',
+      policyNumber: '8C',
+      effectiveDate: '2025-08-01',
+      url: null,
+      status: 'amendment',
+      changeSummary: 'Revises eligibility criteria.',
+    };
+
+    const [trail] = dateLabelSources({ document: { ...manualMeta, id: 'doc-8c' }, amends: [], amendments: [revision], latestAmendment: revision, truncated: false });
+    expect(trail.text).toContain('Latest amendment:\nID: doc-8c:rev-2025-08-01');
+    expect(trail.text).toContain('\nEffective: 2025-08-01\n');
+    expect(trail.text).toContain('  - doc-8c:rev-2025-08-01 | Policy 8C Revision 2025-08-01 | 2025-08-01\n');
+    expect(trail.text).not.toContain('Dated:');
+  });
+
   it('lists every manual a change notice amends in getAmendments evidence', () => {
     const manual = (id: string, policyNumber: string) => ({
       id,

@@ -7,6 +7,7 @@ from rich.console import Console
 from pipeline.graph.connection import get_session
 from pipeline.graph.corpus_types import AmendmentEdge, PolicyRevisionNode
 from pipeline.graph.corpus_writer import graph_writer
+from pipeline.policy_dates import build_numeric_date, logger, revision_row_rejection
 
 console = Console()
 
@@ -39,7 +40,7 @@ _SIGNAL_PATTERNS = [
 # This pattern matches a single data row; header and `|:---|:---|...` separator
 # rows fail the date group and are skipped.
 _CCP_REVISION_ROW_RE = re.compile(
-    r"^\|\s*(\d{1,2})/(\d{1,2})/(\d{4})\s*\|\s*([^|]+?)\s*\|\s*(.+?)\s*\|\s*$",
+    r"^\|\s*(\d{1,2})/(\d{1,2})/(\d{4}|\d{2})\s*\|\s*([^|]+?)\s*\|\s*(.+?)\s*\|\s*$",
 )
 
 
@@ -139,11 +140,32 @@ def _extract_context(text: str, ma_number: str, max_chars: int = 300) -> str:
     return text[sent_start:sent_end].strip()
 
 
-def _parse_revision_rows(content: str) -> list[dict]:
+# The titles a revision table sits under, after any section number:
+# "Revision Information:", "Policy Implementation/Revision Information",
+# "Policy Implementation and History" and "History:". A bare "history" test
+# would also take rows from "Psychosocial History" or "Family History".
+_REVISION_HEADING_RE = re.compile(
+    r"revision information|^[\d.\s]*(?:policy implementation (?:and|/) ?)?history\s*:?\s*$",
+    re.IGNORECASE,
+)
+
+
+def is_revision_heading(title: str | None) -> bool:
+    return bool(_REVISION_HEADING_RE.search(title or ""))
+
+
+def _parse_revision_rows(
+    content: str,
+    *,
+    policy_number: str = "",
+    source_changed_at: str | None = None,
+) -> list[dict]:
     """Parse clinical-policy revision-table rows out of a section's content.
 
     Each row yields `{effective_date (ISO), section_revised, change_summary}`.
-    Malformed dates are skipped so a corrupted row never breaks the pipeline.
+    A row whose date is not a calendar date, or lies more than a year after
+    the source file last changed, yields nothing and is logged with its
+    policy number and text.
     """
     rows: list[dict] = []
     for line in content.splitlines():
@@ -151,12 +173,16 @@ def _parse_revision_rows(content: str) -> list[dict]:
         if not match:
             continue
         month, day, year, section_revised, change_summary = match.groups()
-        try:
-            iso_date = f"{int(year):04d}-{int(month):02d}-{int(day):02d}"
-        except (ValueError, TypeError):
+        row_date = build_numeric_date(month, day, year)
+        rejection = revision_row_rejection(row_date, source_changed_at)
+        if row_date is None or rejection:
+            logger.warning(
+                "Rejected revision row for policy %s (%s): %s",
+                policy_number or "unknown", rejection, line.strip(),
+            )
             continue
         rows.append({
-            "effective_date": iso_date,
+            "effective_date": row_date.isoformat(),
             "section_revised": section_revised.strip(),
             "change_summary": change_summary.strip(),
         })
@@ -189,12 +215,16 @@ def _detect_clinical_policy_revisions(
     # A revision cites the policy's own URL: the revision table lives inside
     # the base PDF, so that is the verifiable citation target.
     source_url_result = session.run(
-        "MATCH (d:Document) WHERE d.id IN $doc_ids RETURN d.id AS doc_id, d.source_url AS source_url",
+        "MATCH (d:Document) WHERE d.id IN $doc_ids "
+        "RETURN d.id AS doc_id, d.source_url AS source_url, "
+        "toString(d.source_changed_at) AS source_changed_at",
         {"doc_ids": doc_ids},
     )
-    source_url_by_doc: dict[str, str] = {
-        rec["doc_id"]: (rec["source_url"] or "") for rec in source_url_result
-    }
+    source_url_by_doc: dict[str, str] = {}
+    source_changed_at_by_doc: dict[str, str | None] = {}
+    for rec in source_url_result:
+        source_url_by_doc[rec["doc_id"]] = rec["source_url"] or ""
+        source_changed_at_by_doc[rec["doc_id"]] = rec.get("source_changed_at")
 
     result = session.run(
         """
@@ -204,13 +234,17 @@ def _detect_clinical_policy_revisions(
           AND s.content_text <> ''
           AND (
             toLower(coalesce(s.title, '')) CONTAINS 'revision information'
+            OR toLower(coalesce(s.title, '')) CONTAINS 'history'
           )
-        RETURN d.id AS doc_id, s.id AS sec_id, s.content_text AS content
+        RETURN d.id AS doc_id, s.id AS sec_id, s.title AS title, s.content_text AS content
         """,
         {"doc_ids": doc_ids},
     )
     revision_sections_by_doc: dict[str, list[str]] = {}
     for rec in result:
+        # The query's CONTAINS is the coarse filter; the title rule is here.
+        if not is_revision_heading(rec["title"]):
+            continue
         revision_sections_by_doc.setdefault(rec["doc_id"], []).append(rec["content"] or "")
 
     doc_meta = {d["doc_id"]: d for d in clinical_docs}
@@ -230,7 +264,11 @@ def _detect_clinical_policy_revisions(
         # numbered "N.0 Policy Implementation/Revision Information").
         rows_by_date: dict[str, list[dict]] = {}
         for content in revision_sections_by_doc[base_doc_id]:
-            for row in _parse_revision_rows(content):
+            for row in _parse_revision_rows(
+                content,
+                policy_number=policy,
+                source_changed_at=source_changed_at_by_doc.get(base_doc_id),
+            ):
                 rows_by_date.setdefault(row["effective_date"], []).append(row)
         if not rows_by_date:
             continue

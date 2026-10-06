@@ -1,0 +1,25 @@
+{
+  "source": "parsed/dhhs-policies/change-notice-for-manual-no-01-14-hcwd-phase-iii.json",
+  "note": "Header DATE: line shape.",
+  "title": "CHANGE NOTICE FOR MANUAL NO. 01-14, HCWD Phase III",
+  "policy_number": null,
+  "source_changed_at": "2026-03-28 04:54:00",
+  "sections": [
+    {
+      "title": "ABD",
+      "content_text": ""
+    },
+    {
+      "title": "DMA CHANGE NOTICE FOR MANUAL 01-14",
+      "content_text": "DATE:  03/4/14\nManual:\nAged, Blind, and Disabled Medicaid\nChange No:\n01-14\nTo:\nCounty Directors of Social Services\nEffective:\n3/01/14 (FPL changes 4/1/14)\nMake the following change(s)"
+    },
+    {
+      "title": "I. BACKGROUND",
+      "content_text": "North Carolina is authorized to provide Medicaid for disabled/blind workers under the Health Coverage for Workers with Disabilities Act (G.S. 108A-66.1). Health Coverage for Workers with Disabilities (HCWD) provides an incentive for persons with disabilities t"
+    },
+    {
+      "title": "II. CONTENT OF CHANGE",
+      "content_text": ""
+    }
+  ]
+}

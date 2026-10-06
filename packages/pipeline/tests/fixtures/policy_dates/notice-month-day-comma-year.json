@@ -1,0 +1,25 @@
+{
+  "source": "parsed/dhhs-policies/change-notice-for-manual-no-01-05-case-mix.json",
+  "note": "Header DATE: line shape.",
+  "title": "CHANGE NOTICE FOR MANUAL NO. 01-05, Case Mix",
+  "policy_number": null,
+  "source_changed_at": "2026-03-28 04:53:56",
+  "sections": [
+    {
+      "title": "CHANGE NOTICE FOR MANUAL NO. 01-05, CASE MIX",
+      "content_text": "DATE:  JUNE 17, 2004\nManual:\nFamily and Children's Medicaid\nChange No:\n01-05\nTo:\nCounty Directors of Social Services\nEffective:\nJuly 1, 2004"
+    },
+    {
+      "title": "I. BACKGROUND",
+      "content_text": "Effective May 1, 2004, the rates for long term care facilities changed to a case mix payment system following the Medicare payment system model.  Case mix is a payment system where the facility payment rate is based on the medical needs of all the patients rat"
+    },
+    {
+      "title": "II. CONTENT OF CHANGE",
+      "content_text": "MA-3325, Long Term Care Budgeting, is changed to:\n Delete reference to intermediate care,\n Clarify the requirement for a DMA-5045 to be completed and retained in the case record for an individual under 21 receiving care and treatment in a group home or other n"
+    },
+    {
+      "title": "III. EFFECTIVE DATE AND IMPLEMENTATION",
+      "content_text": "The change is effective July 1, 2004.  Apply the new rates to all applications taken and redeterminations begun on or after July 1, 2004.  If during redetermination the patient who had been eligible based on the minimum Medicaid reimbursement rate has an incom"
+    }
+  ]
+}

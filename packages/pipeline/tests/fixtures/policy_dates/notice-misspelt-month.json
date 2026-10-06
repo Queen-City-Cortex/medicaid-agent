@@ -1,0 +1,25 @@
+{
+  "source": "parsed/dhhs-policies/change-notice-for-manual-no-02-25-2025-federal-poverty-level-changes-fpl-income-changes.json",
+  "note": "Header DATE: line shape.",
+  "title": "CHANGE NOTICE FOR MANUAL NO. 02-25, 2025 Federal Poverty Level Changes (FPL) Income Changes",
+  "policy_number": null,
+  "source_changed_at": "2026-03-28 04:55:18",
+  "sections": [
+    {
+      "title": null,
+      "content_text": "<unknown>"
+    },
+    {
+      "title": "CHANGE NOTICE FOR MANUAL NO. 02-25, 2025 FEDERAL POVERTY LEVEL CHANGES (FPL) INCOME CHANGES",
+      "content_text": "DATE: JANAURY 29, 2025\nManual:\nAged, Blind, and Disabled Medicaid\nChange No:\n02-25\nTo:\nCounty Directors of Social Services"
+    },
+    {
+      "title": "I. BACKGROUND AND CONTENT OF CHANGE",
+      "content_text": "Federal law requires poverty levels to be adjusted annually on the basis of the Consumer Price Index (CPI). This letter issues the 2025 Federal Poverty Level (FPL) income limit effective April 1, 2025."
+    },
+    {
+      "title": "II. POLICY UPDATE",
+      "content_text": "MA-2252, Non-MAGI Medicaid Income/Reserve Limits, has been updated with 2025 amounts."
+    }
+  ]
+}

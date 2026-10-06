@@ -1,0 +1,25 @@
+{
+  "source": "parsed/dhhs-policies/change-notice-for-manual-no-01-24-2024-pickle-amendment.json",
+  "note": "Header DATE: line shape.",
+  "title": "CHANGE NOTICE FOR MANUAL NO. 01-24, 2024 Pickle Amendment",
+  "policy_number": null,
+  "source_changed_at": "2026-03-28 04:54:34",
+  "sections": [
+    {
+      "title": null,
+      "content_text": "<unknown>"
+    },
+    {
+      "title": "CHANGE NOTICE FOR MANUAL NO. 01-24, 2024 PICKLE AMENDMENT",
+      "content_text": ""
+    },
+    {
+      "title": "DATE: JANUARY 2, 2024",
+      "content_text": "Manual:\nAged, Blind and Disabled Medicaid\nChange No:\n01-24\nTo:\nCounty Directors of Social Services"
+    },
+    {
+      "title": "I. BACKGROUND AND CONTENT OF CHANGE",
+      "content_text": "Division of Health Benefits (DHB) has updated MA-2110, Pass-along policy with 2024 Cost of Living Adjustment (COLA) related changes."
+    }
+  ]
+}

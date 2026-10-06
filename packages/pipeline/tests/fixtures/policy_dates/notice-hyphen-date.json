@@ -1,0 +1,25 @@
+{
+  "source": "parsed/dhhs-policies/change-notice-for-manual-no-14-10-series-1-of-corrections-additions-deletions-andor-updates.json",
+  "note": "Header DATE: line shape.",
+  "title": "CHANGE NOTICE FOR MANUAL NO. 14-10, Series # 1 Of Corrections, Additions, Deletions And/Or Updates",
+  "policy_number": null,
+  "source_changed_at": "2026-03-28 04:59:54",
+  "sections": [
+    {
+      "title": "CHANGE NOTICE FOR MANUAL NO. 14-10, SERIES # 1 OF CORRECTIONS, ADDITIONS, DELETIONS AND/OR UPDATES",
+      "content_text": "DATE: 09-24-2010\nManual:\nAged, Blind, and Disabled Medicaid\nChange No:\n14-10\nTo:\nCounty Directors of Social Services\nEffective:\n10-01-2010"
+    },
+    {
+      "title": "I. BACKGROUND",
+      "content_text": "This is the first of a series of change notices being compiled containing various ABD Medicaid manual section corrections, additions, deletions and/or updates that were not included or not updated within the Medicaid policy at publication."
+    },
+    {
+      "title": "II. CONTENT OF CHANGE",
+      "content_text": "The Table of Contents is updated to include all manual sections.\nThe manuals sections are revised as follows:"
+    },
+    {
+      "title": "A. MA-2306, Application Processing-Corrective Action Procedures, is revised to:",
+      "content_text": "Correct the fax number and mailing address for the Medicaid Application Monitoring Unit."
+    }
+  ]
+}

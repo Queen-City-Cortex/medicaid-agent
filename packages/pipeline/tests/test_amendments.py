@@ -259,8 +259,8 @@ def test_same_date_revision_rows_collapse_into_one_revision(monkeypatch):
         [],
         # The table appears in two revision sections; repeated rows count once.
         revision_sections=[
-            {"doc_id": "doc:clinical_policy:8c", "sec_id": "sec:a", "content": _REVISION_TABLE},
-            {"doc_id": "doc:clinical_policy:8c", "sec_id": "sec:b", "content": _REVISION_TABLE},
+            {"doc_id": "doc:clinical_policy:8c", "sec_id": "sec:a", "title": "Revision Information:", "content": _REVISION_TABLE},
+            {"doc_id": "doc:clinical_policy:8c", "sec_id": "sec:b", "title": "Revision Information:", "content": _REVISION_TABLE},
         ],
         source_urls=[{"doc_id": "doc:clinical_policy:8c", "source_url": "https://example.org/8C.pdf"}],
     )
@@ -302,8 +302,8 @@ def test_two_documents_with_one_policy_number_share_one_revision_per_date(monkey
         [twin, _CLINICAL_DOC],
         [],
         revision_sections=[
-            {"doc_id": twin["doc_id"], "sec_id": "sec:t", "content": _REVISION_TABLE},
-            {"doc_id": _CLINICAL_DOC["doc_id"], "sec_id": "sec:a", "content": _REVISION_TABLE},
+            {"doc_id": twin["doc_id"], "sec_id": "sec:t", "title": "Revision Information:", "content": _REVISION_TABLE},
+            {"doc_id": _CLINICAL_DOC["doc_id"], "sec_id": "sec:a", "title": "Revision Information:", "content": _REVISION_TABLE},
         ],
     )
 

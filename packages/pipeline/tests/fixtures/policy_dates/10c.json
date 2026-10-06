@@ -1,0 +1,21 @@
+{
+  "source": "parsed/clinical-policies/10c_10c-local-education-agencies.json",
+  "note": "Banner April 1, 2023 is earlier than the last history row, 12/15/2023.",
+  "title": "Local Education Agencies (LEAs)",
+  "policy_number": "10C",
+  "source_changed_at": "2026-03-27 00:04:19",
+  "sections": [
+    {
+      "title": null,
+      "content_text": "Local Education Agencies (LEAs)\nMedicaid\nClinical Coverage Policy No.: 10C\nAmended Date: April 1, 2023\nTo all beneficiaries enrolled in a Prepaid Health Plan (PHP): for questions about benefits and services available on or after implementation, please contact your PHP."
+    },
+    {
+      "title": "Table of Contents",
+      "content_text": ""
+    },
+    {
+      "title": "8.0 Policy Implementation and History",
+      "content_text": "| 4/15/2023  | All Sections and Attachment(s)            | Updated policy template language due to North Carolina Health Choice Program's move to Medicaid. Policy posted 4/15/2023 with an effective date of 4/1/2023.                                                                                                                                                                                                   |\n| 12/15/2023 |                                           | Removed the language 'This clinical coverage policy has an effective date of November 15, 2020; however, until the end of the public health emergency, the temporary coverage and reimbursement flexibilities enabled by NC Medicaid through a series of COVID-19 Special Medicaid Bulletins will remain in effect.' Posting date and Amended date not changed |"
+    }
+  ]
+}

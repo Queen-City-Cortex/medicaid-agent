@@ -1,0 +1,21 @@
+{
+  "source": "parsed/clinical-policies/1c-1_podiatry-services.json",
+  "note": "Rows dated 0/01/2010 (month zero), 05/0/07 (day zero) and 12/01/10 (two-digit year).",
+  "title": "Podiatry Services",
+  "policy_number": "1C-1",
+  "source_changed_at": "2026-03-27 00:03:33",
+  "sections": [
+    {
+      "title": "NC Medicaid Podiatry Services",
+      "content_text": "Medicaid\nClinical Coverage Policy No: 1C-1\nAmended Date: October 15, 2023\nTo all beneficiaries enrolled in a Prepaid Health Plan (PHP): for questions about benefits and services available on or after implementation, please contact your PHP."
+    },
+    {
+      "title": "Table of Contents",
+      "content_text": "NC Medicaid\nPodiatry Services"
+    },
+    {
+      "title": "Revision Information:",
+      "content_text": "| Date      | Section Revised      | Change                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |\n|:----------|:---------------------|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|\n| 05/0/07   | Sections 2 through 5 | EPSDT information was revised to clarify exceptions to policy limitations for recipients under 21 years of age.                                                                                                                                                                                                                                                                                                                                                                 |\n| 0/01/2010 | Throughout           | Policy Conversion: Implementation of Session Law 2009-451, Section 10.32 'NC HEALTH CHOICE/PROCEDURES FOR CHANGING MEDICAL POLICY.'                                                                                                                                                                                                                                                                                                                                             |\n| 12/01/10  | Section 1.0          | Added NCGS 90-202.2 and enclosed definition with quotations. Added standard DMApolicy language.                                                                                                                                                                                                                                                                                                                                                                                 |"
+    }
+  ]
+}

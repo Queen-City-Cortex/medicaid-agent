@@ -1,0 +1,25 @@
+{
+  "source": "parsed/dhhs-policies/change-notice-for-manual-no-07-04-certification-authorization.json",
+  "note": "Header DATE: line shape.",
+  "title": "CHANGE NOTICE FOR MANUAL NO. 07-04, Certification & Authorization",
+  "policy_number": null,
+  "source_changed_at": "2026-03-28 04:57:30",
+  "sections": [
+    {
+      "title": "CHANGE NOTICE FOR MANUAL NO. 07-04, CERTIFICATION & AUTHORIZATION",
+      "content_text": ""
+    },
+    {
+      "title": "DATE:",
+      "content_text": "Manual:\nAged, Blind, and Disabled Medicaid\nChange No:\n07-04\nTo:\nCounty Directors of Social Services\nEffective:\nOctober 1, 2003"
+    },
+    {
+      "title": "I. BACKGROUND",
+      "content_text": "Currently, MA-2350, Certification and Authorization, and MA-500, Classification, are not the same in establishing authorization dates for cases with excess reserve."
+    },
+    {
+      "title": "II. CONTENT OF CHANGE",
+      "content_text": "MA-2350, Certification and Authorization, has been revised to instruct the IMC to authorize the day reserve is reduced to the allowable limits as stated in MA-500, Classification."
+    }
+  ]
+}
