@@ -4,7 +4,9 @@ import hashlib
 import json
 import math
 import os
+import shutil
 import statistics
+from collections.abc import Callable
 from pathlib import Path
 from pipeline.source_lifecycle import stable_hash
 
@@ -15,7 +17,12 @@ from pipeline.config import (
     EVAL_JUDGE_MODEL,
     GOLDEN_DATASET_PATH,
 )
-from pipeline.release import REPO_ROOT, build_release_evaluation_results
+from pipeline.release import (
+    REPO_ROOT,
+    append_release_event,
+    build_release_evaluation_results,
+    record_release_stage,
+)
 
 
 def evaluation_fingerprint() -> dict:
@@ -77,6 +84,83 @@ def evaluation_fingerprint() -> dict:
     }
 
 
+def infrastructure_error_rows(result: dict) -> list[str]:
+    """IDs of rows that record an agent, judge or verifier outage, not a score."""
+    return [
+        str(row.get("id", row.get("question_id")))
+        for row in result.get("per_question", [])
+        if row.get("error") or (row.get("scores") or {}).get("error_type")
+    ]
+
+
+class VoidedAnswerRun(RuntimeError):
+    """An answer run that measured an outage instead of the candidate graph."""
+
+
+def collect_answer_runs(
+    manifest_path: Path,
+    release_dir: Path,
+    run_answer_eval: Callable[[], dict],
+    *,
+    results_dir: Path,
+    runs: int,
+    max_voided: int,
+) -> list[dict]:
+    """Run the candidate answer evaluation until `runs` runs are valid.
+
+    The gates read the mean of these runs. A run with an infrastructure error
+    is voided: kept as evidence, recorded in the manifest, left out of the mean
+    and run again. Only the first `runs` valid runs count, so a valid low run
+    is never replaced. More than `max_voided` voided runs stops validation
+    before any gate is evaluated, because each run is paid.
+    """
+    valid: list[dict] = []
+    voided = 0
+
+    def operation() -> dict:
+        result = run_answer_eval()
+        if "error" in result:
+            raise RuntimeError(result["error"])
+        errors = infrastructure_error_rows(result)
+        destination = release_dir / (
+            f"answer-evaluation-voided-{voided + 1}.json"
+            if errors
+            else f"answer-evaluation-{len(valid) + 1}.json"
+        )
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(results_dir / f"{result['run_id']}_answer.json", destination)
+        if errors:
+            raise VoidedAnswerRun(
+                f"answer run {result['run_id']} voided by infrastructure errors "
+                f"on {len(errors)} question(s): {', '.join(errors)}; "
+                f"evidence kept at {destination}"
+            )
+        valid.append(result)
+        return {
+            "runId": result["run_id"],
+            "aggregate": result["aggregate"],
+            "evidencePath": str(destination),
+        }
+
+    while len(valid) < runs:
+        try:
+            record_release_stage(
+                manifest_path, f"answerEvaluation{len(valid) + 1}", operation
+            )
+        except VoidedAnswerRun as error:
+            voided += 1
+            append_release_event(
+                manifest_path, "answer_run_voided", {"reason": str(error)[:2_000]}
+            )
+            if voided > max_voided:
+                raise RuntimeError(
+                    f"{voided} answer runs were voided by infrastructure errors "
+                    f"and only {len(valid)} of {runs} were valid; no release gate "
+                    "was evaluated. Fix the outage and validate again."
+                ) from error
+    return valid
+
+
 def require_complete_results(retrieval: dict, answer: dict) -> None:
     from pipeline.eval.dataset import load_dataset
 
@@ -88,10 +172,7 @@ def require_complete_results(retrieval: dict, answer: dict) -> None:
             raise ValueError(
                 "Release evidence must cover the complete benchmark exactly once"
             )
-        if any(
-            row.get("error") or (row.get("scores") or {}).get("error_type")
-            for row in rows
-        ):
+        if infrastructure_error_rows(result):
             raise ValueError(
                 "Evaluation infrastructure errors invalidate release evidence"
             )
@@ -175,7 +256,7 @@ def baseline_metrics(evidence: dict) -> dict:
         )
     require_complete_results(evidence["retrieval"], evidence["answer"])
     return build_release_evaluation_results(
-        evidence["retrieval"], evidence["answer"], None
+        evidence["retrieval"], [evidence["answer"]], None
     )
 
 

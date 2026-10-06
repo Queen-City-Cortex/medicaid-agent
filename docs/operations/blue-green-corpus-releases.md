@@ -246,13 +246,50 @@ freshness SLA failures accept a recorded reason of at least ten characters.
 
 Policy version 2 requires retrieval recall of at least 0.9, primary-evidence hit
 rate of at least 0.95, answer score of at least 2.75, hallucination score of at
-least 2.5, and aggregate regression of at most 0.15. Precision remains in release
-reports and baseline comparisons, without an absolute threshold. The golden
-benchmark names a sparse set of known relevant sections: at ten returned
-results, its current mean precision ceiling is about 0.21, so a 0.9 threshold
-would reject even perfect retrieval of the labeled evidence. A future absolute
-precision gate requires broader relevance labeling and calibration. Server-side
-answer verification remains mandatory independently of these corpus metrics.
+least 2.5, at most 5 withheld answers, and aggregate regression of at most 0.15.
+Precision remains in release reports and baseline comparisons, without an
+absolute threshold. The golden benchmark names a sparse set of known relevant
+sections: at ten returned results, its current mean precision ceiling is about
+0.21, so a 0.9 threshold would reject even perfect retrieval of the labeled
+evidence. A future absolute precision gate requires broader relevance labeling
+and calibration.
+
+The answer and hallucination floors apply to released answers only: rows the
+verifier passed or corrected. A withheld answer is not judged; it scores 0 on
+the all-rows answer score and has no hallucination score. Two gates keep a
+build from meeting the floors by answering less:
+
+- `withheldAnswers` caps the withheld count. The cap is a count set against one
+  benchmark size (`evaluation.withheldAnswers` holds `max` and `benchmarkSize`);
+  a run of any other size fails the gate until the cap is set again. No override
+  can waive it. The value, 5 of 55, is provisional (`"provisional": true`):
+  [issue #259](https://github.com/Queen-City-Cortex/medicaid-agent/issues/259)
+  replaces it once the candidate graph has been measured. The 2.75 floor is
+  revisited there too and is unchanged until then.
+- `aggregateRegression` compares the all-rows answer score
+  (`answerScoreAllRows` in the manifest) with the baseline, so withholding the
+  weakest answers lowers the compared score. The released-rows `answerScore`
+  and the withheld count are not part of that comparison.
+
+Evaluation results from before the withheld-aware harness carry neither the
+released-rows mean nor the withheld count, and fail both gates.
+
+One answer run does not decide a release. `release-validate` runs the answer
+evaluation three times (`evaluation.answerRuns`) and every answer gate above
+reads the mean of the three per-run values; retrieval is run once. The
+`answerRuns` gate fails a manifest built from fewer than three valid runs and
+accepts no override. A run with an agent, judge or verifier infrastructure
+error on any question is voided: its result is kept beside the others as
+`answer-evaluation-voided-<n>.json`, the manifest records an
+`answer_run_voided` event, and the run is repeated. Only the first three valid
+runs count. After more than two voided runs (`evaluation.maxVoidedAnswerRuns`)
+validation stops with the manifest still `building` and no gate evaluated.
+Each release validation therefore pays for three answer runs, and up to five
+during an outage. The baseline it is compared with is still a single
+`release-baseline` run.
+
+Server-side answer verification remains mandatory independently of these corpus
+metrics.
 
 The promotion flow is:
 

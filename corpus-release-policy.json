@@ -18,7 +18,15 @@
     "primaryDocumentHitRate": 0.95,
     "answerScore": 2.75,
     "hallucinationScore": 2.5,
-    "maxAggregateRegression": 0.15
+    "withheldAnswers": {
+      "max": 5,
+      "benchmarkSize": 55,
+      "provisional": true,
+      "revisit": "Issue #259 (EVAL-2) sets this from the measured candidate graph"
+    },
+    "maxAggregateRegression": 0.15,
+    "answerRuns": 3,
+    "maxVoidedAnswerRuns": 2
   },
   "operations": {
     "rollbackWindowHours": 24,

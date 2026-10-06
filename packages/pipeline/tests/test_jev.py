@@ -338,7 +338,7 @@ def test_answer_comparison_binds_roles_annotations_and_scope_provider(monkeypatc
     monkeypatch.setattr(evidence, "require_complete_results", lambda *args: None)
     monkeypatch.setattr(evidence, "verification_summary", lambda *args: {"withholdingRate": 0})
     monkeypatch.setattr(release, "build_release_evaluation_results", lambda *args: dict.fromkeys(
-        ["retrievalPrecision", "retrievalRecall", "primaryDocumentHitRate", "answerScore", "hallucinationScore"], 3))
+        ["retrievalPrecision", "retrievalRecall", "primaryDocumentHitRate", "answerScore", "answerScoreAllRows", "hallucinationScore"], 3))
     def run(arm, i):
         return {"qualificationHash": "reviewed-roles", "fingerprint": {"implementationHash": "same", "jev": {
             "scopeProvider": "openai", "sectionRolesEnabled": arm == "candidate",

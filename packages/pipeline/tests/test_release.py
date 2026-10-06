@@ -42,7 +42,11 @@ def passing_manifest():
             "retrievalRecall": 0.91,
             "primaryDocumentHitRate": 0.96,
             "answerScore": 2.8,
+            "answerScoreAllRows": 2.7,
             "hallucinationScore": 2.6,
+            "withheldAnswers": 2,
+            "benchmarkQuestions": 55,
+            "answerRuns": 3,
             "aggregateRegression": 0.1,
         },
         "counts": {
@@ -125,8 +129,16 @@ def retrieval_result():
     }
 
 
-def answer_result():
-    return {"aggregate": {"overall": 2.9, "hallucination": 2.8}}
+def answer_result(*, overall=2.9, released=2.9, hallucination=2.8, withheld=0):
+    return {
+        "config": {"dataset_count": 55},
+        "aggregate": {
+            "overall": overall,
+            "overall_released": released,
+            "hallucination": hallucination,
+            "withheld_count": withheld,
+        },
+    }
 
 
 def test_passing_manifest_is_promotable():
@@ -139,7 +151,7 @@ def test_sparse_label_precision_is_reported_without_an_absolute_gate():
     measured = retrieval_result()
     measured['aggregate']['precision_at_k'] = 0.2
     manifest['evaluationResults'] = build_release_evaluation_results(
-        measured, answer_result(), None,
+        measured, [answer_result()] * 3, None,
     )
 
     gates = evaluate_release_manifest(manifest)
@@ -154,6 +166,8 @@ def test_sparse_label_precision_is_reported_without_an_absolute_gate():
     ('primaryDocumentHitRate', 0.94),
     ('answerScore', 2.74),
     ('hallucinationScore', 2.49),
+    ('withheldAnswers', 6),
+    ('answerRuns', 2),
     ('aggregateRegression', 0.151),
 ])
 @pytest.mark.parametrize('failure', ['below_threshold', 'missing', 'non_finite'])
@@ -178,7 +192,7 @@ def test_precision_regression_still_contributes_to_baseline_comparison():
     measured = retrieval_result()
     measured['aggregate']['precision_at_k'] = 0.1
     evaluation = build_release_evaluation_results(
-        measured, answer_result(), {'evaluationResults': {'retrievalPrecision': 0.3}},
+        measured, [answer_result()], {'evaluationResults': {'retrievalPrecision': 0.3}},
     )
     manifest = passing_manifest()
     manifest['evaluationResults'] = evaluation
@@ -317,20 +331,278 @@ def test_evaluation_uses_promoted_baseline_and_largest_regression():
             "retrievalPrecision": 0.95,
             "retrievalRecall": 0.94,
             "primaryDocumentHitRate": 0.99,
-            "answerScore": 3.0,
+            "answerScoreAllRows": 3.0,
             "hallucinationScore": 2.9,
         }
     }
 
     evaluation = build_release_evaluation_results(
         retrieval_result(),
-        answer_result(),
+        [answer_result()],
         previous,
     )
 
     assert evaluation["retrievalPrecision"] == 0.92
     assert evaluation["answerScore"] == 2.9
     assert evaluation["aggregateRegression"] == pytest.approx(0.1)
+
+
+def test_answer_floor_reads_released_answers_and_reports_all_rows():
+    evaluation = build_release_evaluation_results(
+        retrieval_result(),
+        [answer_result(overall=2.5, released=2.8, withheld=5)] * 3,
+        None,
+    )
+    manifest = passing_manifest()
+    manifest["evaluationResults"] = evaluation
+
+    gates = evaluate_release_manifest(manifest)
+
+    assert evaluation["answerScore"] == 2.8
+    assert evaluation["answerScoreAllRows"] == 2.5
+    assert evaluation["withheldAnswers"] == 5
+    assert evaluation["benchmarkQuestions"] == 55
+    floor = next(gate for gate in gates if gate["name"] == "answerScore")
+    assert floor["actual"] == 2.8 and floor["passed"]
+    assert release_is_promotable(gates)
+
+
+def test_all_rows_score_above_the_floor_cannot_carry_weak_released_answers():
+    manifest = passing_manifest()
+    manifest["evaluationResults"]["answerScore"] = 2.74
+    manifest["evaluationResults"]["answerScoreAllRows"] = 2.9
+
+    gates = evaluate_release_manifest(manifest)
+
+    assert not next(gate for gate in gates if gate["name"] == "answerScore")["passed"]
+    assert not release_is_promotable(gates)
+
+
+def test_results_from_the_old_harness_fail_the_released_floor_and_the_cap():
+    manifest = passing_manifest()
+    manifest["evaluationResults"] = build_release_evaluation_results(
+        retrieval_result(),
+        [{"config": {"dataset_count": 55}, "aggregate": {"overall": 2.9, "hallucination": 2.8}}] * 3,
+        None,
+    )
+
+    failed = {
+        gate["name"]
+        for gate in evaluate_release_manifest(manifest)
+        if not gate["passed"]
+    }
+
+    assert failed == {"answerScore", "withheldAnswers"}
+
+
+@pytest.mark.parametrize(("withheld", "passes"), [(5, True), (6, False)])
+def test_withheld_answer_cap_is_a_mandatory_gate(withheld, passes):
+    manifest = passing_manifest()
+    manifest["evaluationResults"]["withheldAnswers"] = withheld
+
+    gates = evaluate_release_manifest(manifest)
+    cap = next(gate for gate in gates if gate["name"] == "withheldAnswers")
+
+    assert cap["passed"] is passes
+    assert cap["threshold"] == 5
+    assert cap["overridable"] is False
+    assert release_is_promotable(gates) is passes
+
+
+def test_withheld_answer_cap_cannot_be_overridden(tmp_path):
+    manifest = passing_manifest()
+    manifest["evaluationResults"]["withheldAnswers"] = 6
+    reason = {"withheldAnswers": "The verifier was unusually strict on this run"}
+
+    with pytest.raises(ValueError, match="withheldAnswers cannot be overridden"):
+        apply_overrides(evaluate_release_manifest(manifest), reason)
+
+    path = tmp_path / "release.json"
+    atomic_write_json(path, release_manifest())
+    with pytest.raises(ValueError, match="withheldAnswers cannot be overridden"):
+        finalize_release_manifest(
+            path,
+            audit_report=audit_report(),
+            graph_metrics=graph_metrics(),
+            retrieval_result=retrieval_result(),
+            answer_results=[answer_result(overall=2.5, released=2.9, withheld=6)] * 3,
+            previous_manifest=None,
+            overrides=reason,
+        )
+    assert load_json_object(path)["promotionState"] == "building"
+
+
+def test_withheld_answer_cap_fails_closed_on_another_benchmark_size():
+    manifest = passing_manifest()
+    manifest["evaluationResults"]["benchmarkQuestions"] = 60
+
+    gates = evaluate_release_manifest(manifest)
+    cap = next(gate for gate in gates if gate["name"] == "withheldAnswers")
+
+    assert not cap["passed"] and cap["actual"] is None
+    assert not release_is_promotable(gates)
+
+
+def test_withheld_answer_cap_was_set_against_the_current_benchmark():
+    from pipeline.eval.dataset import load_dataset
+
+    cap = load_release_policy()["evaluation"]["withheldAnswers"]
+
+    assert cap["benchmarkSize"] == len(load_dataset())
+    assert 0 <= cap["max"] < cap["benchmarkSize"]
+    assert cap["provisional"] is True
+
+
+@pytest.mark.parametrize("cap", [None, 5, {"max": 5}, {"max": 56, "benchmarkSize": 55}])
+def test_release_policy_requires_a_complete_withheld_answer_cap(tmp_path, cap):
+    policy = load_release_policy()
+    policy["evaluation"]["withheldAnswers"] = cap
+    path = tmp_path / "policy.json"
+    path.write_text(json.dumps(policy))
+
+    with pytest.raises(ValueError, match="withheld-answer cap"):
+        load_release_policy(path)
+
+
+def test_baseline_comparison_charges_withheld_answers_on_all_rows():
+    baseline = {"evaluationResults": build_release_evaluation_results(
+        retrieval_result(), [answer_result(overall=2.8, released=2.8)], None,
+    )}
+
+    evaluation = build_release_evaluation_results(
+        retrieval_result(),
+        [answer_result(overall=2.6, released=2.95, withheld=5)] * 3,
+        baseline,
+    )
+    manifest = passing_manifest()
+    manifest["evaluationResults"] = evaluation
+    gates = evaluate_release_manifest(manifest)
+
+    assert evaluation["aggregateRegression"] == pytest.approx(0.2)
+    assert {gate["name"] for gate in gates if not gate["passed"]} == {
+        "aggregateRegression"
+    }
+
+
+def test_baseline_comparison_ignores_released_score_and_withheld_count():
+    baseline = {"evaluationResults": build_release_evaluation_results(
+        retrieval_result(), [answer_result(overall=2.8, released=3.0, withheld=5)], None,
+    )}
+
+    evaluation = build_release_evaluation_results(
+        retrieval_result(),
+        [answer_result(overall=2.8, released=2.8, withheld=0)],
+        baseline,
+    )
+
+    assert evaluation["aggregateRegression"] == 0
+
+
+def finalize_with_answer_runs(tmp_path, runs, **kwargs):
+    path = tmp_path / "release.json"
+    atomic_write_json(path, release_manifest())
+    return finalize_release_manifest(
+        path,
+        audit_report=audit_report(),
+        graph_metrics=graph_metrics(),
+        retrieval_result=retrieval_result(),
+        answer_results=runs,
+        previous_manifest=None,
+        **kwargs,
+    )
+
+
+def test_answer_gates_read_the_three_run_mean_not_the_first_run(tmp_path):
+    # The first run alone is under the 2.75 floor and over the cap of 5.
+    result = finalize_with_answer_runs(tmp_path, [
+        answer_result(overall=2.3, released=2.6, hallucination=2.4, withheld=7),
+        answer_result(overall=2.7, released=2.8, hallucination=2.7, withheld=4),
+        answer_result(overall=2.8, released=2.9, hallucination=2.7, withheld=4),
+    ])
+
+    evaluation = result["evaluationResults"]
+    assert evaluation["answerRuns"] == 3
+    assert evaluation["answerScore"] == pytest.approx((2.6 + 2.8 + 2.9) / 3)
+    assert evaluation["answerScoreAllRows"] == pytest.approx(2.6)
+    assert evaluation["hallucinationScore"] == pytest.approx(2.6)
+    assert evaluation["withheldAnswers"] == pytest.approx(5)
+    assert result["promotionState"] == "validated"
+
+
+def test_one_strong_run_cannot_carry_a_three_run_mean_under_the_floor(tmp_path):
+    result = finalize_with_answer_runs(tmp_path, [
+        answer_result(released=2.95),
+        answer_result(released=2.6),
+        answer_result(released=2.6),
+    ])
+
+    assert result["promotionState"] == "rejected"
+    assert [gate["name"] for gate in result["gates"] if not gate["passed"]] == [
+        "answerScore"
+    ]
+
+
+def test_baseline_comparison_uses_the_three_run_all_rows_mean(tmp_path):
+    result = finalize_with_answer_runs(
+        tmp_path,
+        [
+            answer_result(overall=2.5, released=2.9, withheld=5),
+            answer_result(overall=2.6, released=2.9, withheld=5),
+            answer_result(overall=2.7, released=2.9, withheld=5),
+        ],
+        baseline_evaluation={"answerScoreAllRows": 2.8, "answerScore": 2.8},
+    )
+
+    assert result["evaluationResults"]["aggregateRegression"] == pytest.approx(0.2)
+    assert [gate["name"] for gate in result["gates"] if not gate["passed"]] == [
+        "aggregateRegression"
+    ]
+
+
+@pytest.mark.parametrize("valid_runs", [0, 1, 2])
+def test_fewer_than_three_valid_answer_runs_cannot_be_promoted(tmp_path, valid_runs):
+    runs = [answer_result()] * valid_runs
+    result = finalize_with_answer_runs(tmp_path, runs)
+
+    gate = next(gate for gate in result["gates"] if gate["name"] == "answerRuns")
+    assert gate == {
+        "name": "answerRuns",
+        "passed": False,
+        "actual": valid_runs,
+        "threshold": 3,
+        "overridable": False,
+        "overrideReason": None,
+    }
+    assert result["promotionState"] == "rejected"
+    with pytest.raises(ValueError, match="answerRuns cannot be overridden"):
+        finalize_with_answer_runs(
+            tmp_path, runs, overrides={"answerRuns": "Two runs agreed closely enough"}
+        )
+
+
+def test_answer_metric_missing_from_one_run_fails_closed(tmp_path):
+    incomplete = answer_result()
+    del incomplete["aggregate"]["overall_released"]
+
+    result = finalize_with_answer_runs(
+        tmp_path, [answer_result(), incomplete, answer_result()]
+    )
+
+    assert "answerScore" not in result["evaluationResults"]
+    assert result["promotionState"] == "rejected"
+
+
+def test_answer_runs_of_different_benchmark_sizes_fail_the_cap(tmp_path):
+    other = answer_result()
+    other["config"]["dataset_count"] = 50
+
+    result = finalize_with_answer_runs(
+        tmp_path, [answer_result(), other, answer_result()]
+    )
+
+    assert [gate["name"] for gate in result["gates"] if not gate["passed"]] == [
+        "withheldAnswers"
+    ]
 
 
 def test_finalize_rejects_mandatory_failure_even_with_valid_override(tmp_path):
@@ -353,7 +625,7 @@ def test_finalize_rejects_mandatory_failure_even_with_valid_override(tmp_path):
         audit_report=report,
         graph_metrics=bad_graph,
         retrieval_result=retrieval_result(),
-        answer_result=answer_result(),
+        answer_results=[answer_result()] * 3,
         previous_manifest=previous,
         overrides={
             "answerReadyDrop": "Document removals were approved upstream"

@@ -7,6 +7,7 @@ import json
 import math
 import os
 import re
+import statistics
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -61,6 +62,15 @@ def load_release_policy(path: Path = POLICY_PATH) -> dict[str, Any]:
     for section in ("mandatory", "overridable", "evaluation", "operations"):
         if not isinstance(policy.get(section), dict):
             raise ValueError(f"Release policy is missing {section}")
+    cap = policy["evaluation"].get("withheldAnswers")
+    if (
+        not isinstance(cap, dict)
+        or not all(type(cap.get(key)) is int for key in ("max", "benchmarkSize"))
+        or not 0 <= cap["max"] < cap["benchmarkSize"]
+    ):
+        raise ValueError(
+            "Release policy needs a withheld-answer cap with max and benchmarkSize"
+        )
     return policy
 
 
@@ -501,19 +511,64 @@ def _finite_number(value: Any) -> float | None:
     return converted if math.isfinite(converted) else None
 
 
+# The baseline comparison scores every row, a withheld answer counting 0, so a
+# build cannot improve it by withholding its weakest answers. The released-rows
+# answer score and the withheld count have their own gates and stay out of it.
+_BASELINE_COMPARISON_METRICS = (
+    "retrievalPrecision",
+    "retrievalRecall",
+    "primaryDocumentHitRate",
+    "answerScoreAllRows",
+    "hallucinationScore",
+)
+
+
+def _mean_across_runs(values: list[Any]) -> float | None:
+    """Mean of one metric over the answer runs; absent from any run, absent."""
+    numbers = [_finite_number(value) for value in values]
+    if not numbers or any(number is None for number in numbers):
+        return None
+    # Exact, so three runs at a floor average to the floor and not just under.
+    return statistics.mean(numbers)
+
+
 def build_release_evaluation_results(
     retrieval_result: dict[str, Any],
-    answer_result: dict[str, Any],
+    answer_results: list[dict[str, Any]],
     previous_manifest: dict[str, Any] | None,
 ) -> dict[str, float]:
+    """Reduce one retrieval run and the answer runs to the gated metrics.
+
+    Every answer metric is the mean of the per-run values, so no single run
+    decides a gate.
+    """
     retrieval = retrieval_result.get("aggregate", {})
-    answer = answer_result.get("aggregate", {})
+    answers = [result.get("aggregate", {}) for result in answer_results]
+    benchmark_sizes = {
+        result.get("config", {}).get("dataset_count") for result in answer_results
+    }
     candidates = {
         "retrievalPrecision": retrieval.get("precision_at_k"),
         "retrievalRecall": retrieval.get("recall_at_k"),
         "primaryDocumentHitRate": retrieval.get("primary_hit_rate"),
-        "answerScore": answer.get("overall"),
-        "hallucinationScore": answer.get("hallucination"),
+        # The floors read released answers: the harness reports their mean
+        # beside the all-rows mean, and scores hallucination on them only.
+        "answerScore": _mean_across_runs(
+            [answer.get("overall_released") for answer in answers]
+        ),
+        "answerScoreAllRows": _mean_across_runs(
+            [answer.get("overall") for answer in answers]
+        ),
+        "hallucinationScore": _mean_across_runs(
+            [answer.get("hallucination") for answer in answers]
+        ),
+        "withheldAnswers": _mean_across_runs(
+            [answer.get("withheld_count") for answer in answers]
+        ),
+        "benchmarkQuestions": (
+            benchmark_sizes.pop() if len(benchmark_sizes) == 1 else None
+        ),
+        "answerRuns": len(answer_results),
     }
     evaluation = {
         key: value
@@ -527,9 +582,10 @@ def build_release_evaluation_results(
         else {}
     )
     regressions = [
-        max(0.0, float(previous_evaluation[key]) - current)
-        for key, current in evaluation.items()
-        if _finite_number(previous_evaluation.get(key)) is not None
+        max(0.0, float(previous_evaluation[key]) - evaluation[key])
+        for key in _BASELINE_COMPARISON_METRICS
+        if key in evaluation
+        and _finite_number(previous_evaluation.get(key)) is not None
     ]
     evaluation["aggregateRegression"] = max(regressions, default=0.0)
     return evaluation
@@ -654,6 +710,29 @@ def evaluate_release_manifest(
         )
     gates.append(
         _gate(
+            "answerRuns",
+            evaluation.get("answerRuns"),
+            evaluation_policy["answerRuns"],
+            minimum=True,
+            overridable=False,
+        )
+    )
+    # The cap is a count set against one benchmark size. A run of any other
+    # size fails it until the cap is set again for that benchmark.
+    withheld_cap = evaluation_policy["withheldAnswers"]
+    gates.append(
+        _gate(
+            "withheldAnswers",
+            evaluation.get("withheldAnswers")
+            if evaluation.get("benchmarkQuestions") == withheld_cap["benchmarkSize"]
+            else None,
+            withheld_cap["max"],
+            minimum=False,
+            overridable=False,
+        )
+    )
+    gates.append(
+        _gate(
             "aggregateRegression",
             evaluation.get("aggregateRegression"),
             evaluation_policy["maxAggregateRegression"],
@@ -733,7 +812,7 @@ def finalize_release_manifest(
     audit_report: dict[str, Any],
     graph_metrics: dict[str, Any],
     retrieval_result: dict[str, Any],
-    answer_result: dict[str, Any],
+    answer_results: list[dict[str, Any]],
     previous_manifest: dict[str, Any] | None,
     overrides: dict[str, str] | None = None,
     baseline_evaluation: dict[str, float] | None = None,
@@ -747,7 +826,7 @@ def finalize_release_manifest(
     )
     manifest["evaluationResults"] = build_release_evaluation_results(
         retrieval_result,
-        answer_result,
+        answer_results,
         {"evaluationResults": baseline_evaluation} if baseline_evaluation is not None else previous_manifest,
     )
     gates = evaluate_release_manifest(manifest)

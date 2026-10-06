@@ -21,6 +21,7 @@ from pipeline.release import (
     finalize_release_manifest,
     inspect_release_graph,
     load_json_object,
+    load_release_policy,
     mark_graph_release,
     mark_manifest_cutover_restored,
     mark_manifest_promoted,
@@ -196,6 +197,7 @@ def release_validate(
 
     from pipeline.evaluation_evidence import (
         baseline_metrics,
+        collect_answer_runs,
         evaluation_fingerprint,
         require_complete_results,
         verification_summary,
@@ -276,32 +278,26 @@ def release_validate(
 
     record_release_stage(manifest, "retrievalEvaluation", retrieval_operation)
 
-    answer_result: dict = {}
+    evaluation_policy = load_release_policy()["evaluation"]
+    answer_results = collect_answer_runs(
+        manifest,
+        release_dir,
+        lambda: run_eval(level="answer"),
+        results_dir=EVAL_RESULTS_DIR,
+        runs=evaluation_policy["answerRuns"],
+        max_voided=evaluation_policy["maxVoidedAnswerRuns"],
+    )
 
-    def answer_operation() -> dict:
-        nonlocal answer_result
-        answer_result = run_eval(level="answer")
-        if "error" in answer_result:
-            raise RuntimeError(answer_result["error"])
-        source = EVAL_RESULTS_DIR / f"{answer_result['run_id']}_answer.json"
-        destination = release_dir / "answer-evaluation.json"
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(source, destination)
-        return {
-            "runId": answer_result["run_id"],
-            "aggregate": answer_result["aggregate"],
-            "evidencePath": str(destination),
-        }
-
-    record_release_stage(manifest, "answerEvaluation", answer_operation)
-
-    require_complete_results(retrieval_result, answer_result)
+    for answer_result in answer_results:
+        require_complete_results(retrieval_result, answer_result)
     if release["evaluationFingerprint"] != evaluation_fingerprint():
         raise click.ClickException(
             "Evaluation configuration changed during candidate validation"
         )
     current = load_json_object(manifest)
-    current["verificationSummary"] = verification_summary(answer_result)
+    current["verificationSummaries"] = [
+        verification_summary(answer_result) for answer_result in answer_results
+    ]
     if baseline:
         current["baselineVerificationSummary"] = verification_summary(
             baseline["answer"]
@@ -314,7 +310,7 @@ def release_validate(
         audit_report=audit_payload,
         graph_metrics=graph_metrics,
         retrieval_result=retrieval_result,
-        answer_result=answer_result,
+        answer_results=answer_results,
         previous_manifest=previous,
         overrides=overrides,
         baseline_evaluation=metrics,
@@ -703,7 +699,12 @@ def release_activate_bootstrap(manifest: Path, backup_receipt: Path) -> None:
             for name in [
                 "corpus-audit.json",
                 "retrieval-evaluation.json",
-                "answer-evaluation.json",
+                *(
+                    f"answer-evaluation-{run}.json"
+                    for run in range(
+                        1, load_release_policy()["evaluation"]["answerRuns"] + 1
+                    )
+                ),
             ]
         ]
         for local, remote in objects:
