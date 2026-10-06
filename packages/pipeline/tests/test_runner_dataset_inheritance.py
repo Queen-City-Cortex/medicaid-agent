@@ -41,7 +41,7 @@ def test_answer_run_config_records_the_agent_reported_configuration(monkeypatch)
     from pipeline.eval import runner
 
     reported = {"agent_model": "gpt-5.6-terra", "agent_reasoning_effort": "medium", "verifier_model": "gpt-5.6-terra"}
-    entry = {"id": "q-1", "evidence": {}}
+    entry = {"id": "q-1", "evidence": {}, "status": "validated"}
     saved: dict = {}
 
     class Normalizer:
@@ -81,13 +81,79 @@ def test_answer_run_config_records_the_agent_reported_configuration(monkeypatch)
     assert saved["agent_config"] == reported
 
 
+def _run_retrieval(monkeypatch, entries, catalog=None):
+    """Run the retrieval level over `entries` with the graph stubbed out."""
+    from pipeline.eval import runner
+
+    seen: dict = {}
+
+    def fake_retrieval(scored, top_k=None):
+        seen["ids"] = [entry["id"] for entry in scored]
+        return [{"id": entry["id"]} for entry in scored]
+
+    def fake_save(level, per_question, config_overrides):
+        seen["config"] = config_overrides
+        return "unused"
+
+    monkeypatch.delenv("EVAL_IDENTITY_CATALOG", raising=False)
+    if catalog is not None:
+        monkeypatch.setenv("EVAL_IDENTITY_CATALOG", str(catalog))
+    monkeypatch.setattr(runner, "load_dataset", lambda path: entries)
+    monkeypatch.setattr("pipeline.eval.identity.load_normalizer", lambda: None)
+    monkeypatch.setattr("pipeline.eval.levels.retrieval.evaluate_retrieval", fake_retrieval)
+    monkeypatch.setattr(runner, "save_result", fake_save)
+    monkeypatch.setattr("pipeline.eval.results.load_result", lambda path: {})
+    result = runner.run_eval("retrieval")
+    return result, seen
+
+
+QUOTED = {
+    "id": "q-1",
+    "status": "validated",
+    "evidence": {"primary_sections": [{"section_id": "sec:a"}]},
+    "answer": {"text": "The limit is sixty days.", "confidence": "high"},
+    "supporting_quotes": [{"section_id": "sec:a", "quote": "within sixty days"}],
+}
+UNREVIEWED = {"id": "q-2", "status": "needs_validation", "validation_note": "Not checked.", "evidence": {}}
+
+
+def test_run_skips_unvalidated_entries_and_records_the_count_and_version(monkeypatch, capsys):
+    _, seen = _run_retrieval(monkeypatch, [QUOTED, UNREVIEWED])
+
+    assert seen["ids"] == ["q-1"]
+    assert seen["config"]["skipped_unvalidated"] == 1
+    assert seen["config"]["dataset_version"] == "3.0"
+    assert "scoring 1 validated questions; skipped 1" in capsys.readouterr().out
+
+
+def test_run_with_no_validated_entry_scores_nothing(monkeypatch):
+    result, seen = _run_retrieval(monkeypatch, [UNREVIEWED])
+
+    assert result == {"error": "No matching validated entries found"}
+    assert "ids" not in seen
+
+
+def test_run_refuses_to_start_when_a_quote_is_not_in_the_frozen_catalog(tmp_path, monkeypatch):
+    import pytest
+
+    catalog = tmp_path / "catalog.json"
+    catalog.write_text(json.dumps({"sections": [{"section_id": "sec:a", "content_text": "within ninety days"}]}))
+
+    with pytest.raises(ValueError, match="supporting-quote preflight: q-1: section sec:a does not contain"):
+        _run_retrieval(monkeypatch, [QUOTED], catalog)
+
+    catalog.write_text(json.dumps({"sections": [{"section_id": "sec:a", "content_text": "A request within  sixty days."}]}))
+    _, seen = _run_retrieval(monkeypatch, [QUOTED], catalog)
+    assert seen["ids"] == ["q-1"]
+
+
 def test_answer_rows_record_whether_the_first_routed_document_is_golden(monkeypatch):
     from pipeline.eval import runner
 
     entries = [
-        {"id": "q-1", "evidence": {"primary_sections": [{"document_id": "doc:a", "section_id": "sec:doc:a:1"}]}},
-        {"id": "q-2", "evidence": {"primary_sections": [{"document_id": "doc:b", "section_id": "sec:doc:b:1"}]}},
-        {"id": "q-3", "evidence": {"primary_sections": [{"document_id": "doc:c", "section_id": "sec:doc:c:1"}]}},
+        {"id": "q-1", "status": "validated", "evidence": {"primary_sections": [{"document_id": "doc:a", "section_id": "sec:doc:a:1"}]}},
+        {"id": "q-2", "status": "validated", "evidence": {"primary_sections": [{"document_id": "doc:b", "section_id": "sec:doc:b:1"}]}},
+        {"id": "q-3", "status": "validated", "evidence": {"primary_sections": [{"document_id": "doc:c", "section_id": "sec:doc:c:1"}]}},
     ]
     saved: list[dict] = []
 

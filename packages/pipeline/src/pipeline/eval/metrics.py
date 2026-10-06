@@ -43,6 +43,7 @@ def compare_runs(
     """Compare two eval runs and flag regressions.
 
     Raises ValueError when the runs were judged under different evidence modes,
+    scored against different golden dataset versions,
     or are different eval levels: their aggregate
     shapes don't overlap, so the union comparison would report every
     baseline-only metric as a drop to 0.0 — noise, not signal, and fatal to a
@@ -61,6 +62,14 @@ def compare_runs(
     if mode_a and mode_b and mode_a != mode_b:
         raise ValueError(
             f"cannot compare runs judged under different evidence modes ({mode_a} vs {mode_b})"
+        )
+
+    version_a = (run_a.get("config") or {}).get("dataset_version")
+    version_b = (run_b.get("config") or {}).get("dataset_version")
+    if version_a != version_b:
+        raise ValueError(
+            "cannot compare runs scored against different golden dataset versions "
+            f"({version_a or 'unversioned'} vs {version_b or 'unversioned'})"
         )
 
     diffs: list[dict] = []

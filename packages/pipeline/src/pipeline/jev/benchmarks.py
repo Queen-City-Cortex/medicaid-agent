@@ -53,8 +53,10 @@ def prepare_routing(root: Path) -> dict:
     # Paraphrases contribute text only: historical evidence IDs are not current graph identities.
     rows = [{k: row[k] for k in ("id", "question", "paraphrase_of") if k in row}
             for row in golden + existing + fresh]
-    if len(rows) != 155 or len({r["id"] for r in rows}) != 155:
-        raise ValueError("Routing benchmark must have 55 original and 100 paraphrase inputs")
+    # Routing reads the question text only, so every golden question counts,
+    # whether or not its answer key has been validated.
+    if len(existing) + len(fresh) != 100 or len({r["id"] for r in rows}) != len(golden) + 100:
+        raise ValueError("Routing benchmark must have every golden question and 100 paraphrase inputs")
     baselines = worker({"mode": "routing-batch", "questions": [r["question"] for r in rows]})["result"]
     for row, baseline in zip(rows, baselines, strict=True):
         row["baseline"] = baseline
@@ -137,7 +139,7 @@ def run_routing(root: Path, ledger: Ledger) -> dict:
             result["errorCode"] = error.code
             break
         write_progress(path, result)
-    if len(result["rows"]) == 155:
+    if len(result["rows"]) == len(fixture["rows"]):
         result["status"] = "pending_review"
     write_progress(path, result)
     return result
@@ -251,7 +253,9 @@ def run_frames(root: Path, ledger_path: Path, pricing_path: Path, *, routing: bo
     if not os.environ.get("EVAL_IDENTITY_CATALOG"):
         return {"status": "pending_identity_catalog"}
     normalizer = load_normalizer()
-    golden = normalizer.graph_entries(json.loads(GOLDEN_DATASET_PATH.read_text()))
+    # Frames are measured against golden evidence, so only validated entries count.
+    from pipeline.eval.dataset import benchmark_entries, load_dataset
+    golden = normalizer.graph_entries(benchmark_entries(load_dataset()))
     references = {r["id"]: {e["section_id"] for e in r["evidence"]["primary_sections"]} for r in golden}
     os.environ["JEV_VALIDATION_LEDGER"] = str(ledger_path.resolve())
     os.environ["JEV_VALIDATION_PRICING"] = str(pricing_path.resolve())

@@ -225,9 +225,9 @@ def collect_answer_runs(
 
 def _require_complete_rows(results: list[dict]) -> list[dict]:
     """Check each result covers the benchmark; return their identity evidence."""
-    from pipeline.eval.dataset import load_dataset
+    from pipeline.eval.dataset import benchmark_entries, load_dataset
 
-    expected = {row["id"] for row in load_dataset()}
+    expected = {row["id"] for row in benchmark_entries(load_dataset())}
     for result in results:
         rows = result.get("per_question", [])
         ids = [row.get("id", row.get("question_id")) for row in rows]

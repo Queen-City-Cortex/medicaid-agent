@@ -1,9 +1,17 @@
 """Eval orchestrator — selects level, iterates questions, collects results."""
 
 import json
+import os
 from pathlib import Path
 
-from pipeline.eval.dataset import load_dataset, filter_dataset
+from pipeline.eval.dataset import (
+    benchmark_entries,
+    catalog_sections,
+    check_supporting_quotes,
+    dataset_version,
+    filter_dataset,
+    load_dataset,
+)
 from pipeline.eval.results import save_result
 
 
@@ -52,9 +60,29 @@ def run_eval(
         reasoning_type=reasoning_type,
         question_id=question_id,
     )
+    # Only entries whose key is backed by quotes are scored, at every level:
+    # the release evidence needs the same question set from each of them.
+    matched = len(entries)
+    entries = benchmark_entries(entries)
+    skipped = matched - len(entries)
+    print(
+        f"[eval] scoring {len(entries)} validated questions; "
+        f"skipped {skipped} that need validation",
+        flush=True,
+    )
 
     if not entries:
-        return {"error": "No matching entries found"}
+        return {"error": "No matching validated entries found"}
+
+    catalog_path = os.environ.get("EVAL_IDENTITY_CATALOG")
+    if catalog_path:
+        # Same frozen catalog the identity preflight uses; no graph involved.
+        quote_errors = check_supporting_quotes(entries, catalog_sections(Path(catalog_path)))
+        if quote_errors:
+            raise ValueError(
+                "Golden answer keys failed the supporting-quote preflight: "
+                + "; ".join(quote_errors)
+            )
 
     from pipeline.eval.identity import load_normalizer
     normalizer = load_normalizer() if level in {"retrieval", "answer"} else None
@@ -83,7 +111,12 @@ def run_eval(
             row["route_first_document"] = route_first_document_role(row, raw_entry)
 
     # Save results
-    config_overrides = {}
+    config_overrides = {
+        # Runs on different dataset versions answer to different keys and are
+        # not comparable; eval-compare refuses the pair.
+        "dataset_version": dataset_version(dataset_path),
+        "skipped_unvalidated": skipped,
+    }
     if normalizer:
         config_overrides["evidence_normalization"] = normalizer.evidence()
         for row, entry, raw_entry in zip(per_question, entries, raw_entries, strict=True):

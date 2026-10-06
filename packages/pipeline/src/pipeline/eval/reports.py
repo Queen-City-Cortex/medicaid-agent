@@ -15,7 +15,11 @@ def print_retrieval_report(result: dict):
 
     console.print(f"\n[bold]{'=' * 50}[/bold]")
     console.print(f"  [bold]Retrieval Evaluation — {result['run_id']}[/bold]")
-    console.print(f"  Dataset: {config['dataset_count']} questions")
+    console.print(
+        f"  Dataset: {config['dataset_count']} questions scored"
+        f" (version {config.get('dataset_version') or 'unversioned'},"
+        f" {config.get('skipped_unvalidated', 0)} skipped as needing validation)"
+    )
     console.print(f"  Model: {config['embedding_model']} | Top-k: {config['top_k']}")
     console.print(f"[bold]{'=' * 50}[/bold]")
 
@@ -72,7 +76,11 @@ def print_answer_report(result: dict):
 
     console.print(f"\n[bold]{'=' * 55}[/bold]")
     console.print(f"  [bold]Answer Quality Evaluation — {result['run_id']}[/bold]")
-    console.print(f"  Dataset: {config['dataset_count']} questions")
+    console.print(
+        f"  Dataset: {config['dataset_count']} questions scored"
+        f" (version {config.get('dataset_version') or 'unversioned'},"
+        f" {config.get('skipped_unvalidated', 0)} skipped as needing validation)"
+    )
     console.print(f"  Judge model: {config.get('judge_model', 'unknown')}")
     console.print(f"[bold]{'=' * 55}[/bold]")
 

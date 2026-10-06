@@ -1,5 +1,5 @@
 """Evaluation commands: eval, eval-mixed-corpus, eval-compare, eval-runs,
-eval-answer-stability, eval-validate."""
+eval-answer-stability, eval-validate, eval-validate-golden."""
 
 import click
 
@@ -187,7 +187,7 @@ def eval_compare(run_a: str, run_b: str, fail_on_regression: bool):
     try:
         diffs = compare_runs(result_a, result_b, threshold=EVAL_REGRESSION_THRESHOLD)
     except ValueError as exc:
-        # Different eval levels — a shape mismatch, not a metric drop.
+        # Different levels, evidence modes or dataset versions: not comparable.
         console.print(f"[red]{exc}[/red]")
         if fail_on_regression:
             raise SystemExit(1) from exc
@@ -351,19 +351,75 @@ def eval_validate(dataset: str | None):
     console.print(f"Categories: {', '.join(sorted(categories))}")
 
 
+@cli.command("eval-validate-golden")
+@click.option(
+    "--dataset",
+    type=click.Path(exists=True, dir_okay=False, path_type=str),
+    help="Alternate dataset JSON. Default is data/golden/dataset.json.",
+)
+@click.option(
+    "--catalog",
+    type=click.Path(exists=True, dir_okay=False, path_type=str),
+    envvar="EVAL_IDENTITY_CATALOG",
+    help="Frozen identity catalog from eval-identity-catalog. "
+         "Defaults to EVAL_IDENTITY_CATALOG.",
+)
+def eval_validate_golden(dataset: str | None, catalog: str | None):
+    """Check golden supporting quotes against frozen section text. Reads no graph."""
+    from pathlib import Path
+
+    from pipeline.eval.dataset import (
+        benchmark_entries,
+        catalog_sections,
+        check_supporting_quotes,
+        dataset_version,
+        load_dataset,
+        validate_dataset,
+    )
+
+    dataset_path = Path(dataset) if dataset else None
+    errors = validate_dataset(dataset_path)
+    if errors:
+        raise click.ClickException("Dataset is not valid:\n  " + "\n  ".join(errors))
+    entries = load_dataset(dataset_path)
+    validated = benchmark_entries(entries)
+    click.echo(
+        f"Golden dataset version {dataset_version(dataset_path) or 'unversioned'}: "
+        f"{len(entries)} entries, {len(validated)} validated, "
+        f"{len(entries) - len(validated)} need validation"
+    )
+    if not catalog:
+        # Section text lives in the corpus, not in Git. Without the frozen
+        # catalog nothing was checked, and that must not read as a pass.
+        raise click.ClickException(
+            "No section text to check quotes against. Build a catalog with "
+            "eval-identity-catalog and pass --catalog or set EVAL_IDENTITY_CATALOG."
+        )
+    # Quotes recorded on entries still awaiting review are checked too.
+    quoted = [entry for entry in entries if entry.get("supporting_quotes")]
+    errors = check_supporting_quotes(quoted, catalog_sections(Path(catalog)))
+    if errors:
+        raise click.ClickException(
+            f"{len(errors)} supporting-quote failures:\n  " + "\n  ".join(errors)
+        )
+    quotes = sum(len(entry["supporting_quotes"]) for entry in quoted)
+    click.echo(f"Supporting quotes: PASS ({quotes} quotes on {len(quoted)} entries)")
+
+
 @cli.command("eval-identity-catalog")
 @click.option("--output", type=click.Path(dir_okay=False, path_type=str), required=True)
 def eval_identity_catalog(output: str):
     """Freeze canonical evidence identities from approved parses and federal caches."""
     from pathlib import Path
     from pipeline.config import CORPUS_DATA_ROOT
-    from pipeline.eval.dataset import load_dataset
+    from pipeline.eval.dataset import benchmark_entries, load_dataset
     from pipeline.eval.identity import build_catalog
     from pipeline.release import atomic_write_json
     from pipeline.retirement import corpus_writer_lock
     if CORPUS_DATA_ROOT is None:
         raise click.ClickException("CORPUS_DATA_ROOT is required")
     with corpus_writer_lock(CORPUS_DATA_ROOT):
-        catalog = build_catalog(load_dataset())
+        # Only validated entries are scored, so only their evidence is frozen.
+        catalog = build_catalog(benchmark_entries(load_dataset()))
         atomic_write_json(Path(output), catalog)
     click.echo(f"Frozen evidence catalog: {catalog['catalogHash']}")

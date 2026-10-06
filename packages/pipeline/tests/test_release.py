@@ -946,14 +946,32 @@ def test_withheld_answer_cap_fails_closed_on_another_benchmark_size():
     assert not release_is_promotable(gates)
 
 
+# Golden dataset 3.0 scores only entries with a validated answer key, far fewer
+# than the 55 questions the cap was set for. The owner re-sets the cap (issue
+# #259); this then passes, strict xfail turns it red, and the marker goes.
+@pytest.mark.xfail(
+    strict=True,
+    reason="owner must re-set evaluation.withheldAnswers for the validated benchmark size",
+)
 def test_withheld_answer_cap_was_set_against_the_current_benchmark():
-    from pipeline.eval.dataset import load_dataset
+    from pipeline.eval.dataset import benchmark_entries, load_dataset
 
     cap = load_release_policy()["evaluation"]["withheldAnswers"]
 
-    assert cap["benchmarkSize"] == len(load_dataset())
+    assert cap["benchmarkSize"] == len(benchmark_entries(load_dataset()))
     assert 0 <= cap["max"] < cap["benchmarkSize"]
     assert cap["provisional"] is True
+
+
+def test_validation_refuses_a_cap_set_for_another_benchmark_size():
+    from pipeline.release import require_withheld_cap_for
+
+    policy = load_release_policy()
+    size = policy["evaluation"]["withheldAnswers"]["benchmarkSize"]
+
+    require_withheld_cap_for(size, policy)
+    with pytest.raises(ValueError, match=rf"5 of {size}\).*scores 8 validated questions.*re-set"):
+        require_withheld_cap_for(8, policy)
 
 
 @pytest.mark.parametrize("cap", [None, 5, {"max": 5}, {"max": 56, "benchmarkSize": 55}])

@@ -682,6 +682,21 @@ def _gated_metrics(
     }
 
 
+def require_withheld_cap_for(
+    benchmark_size: int, policy: dict[str, Any] | None = None
+) -> None:
+    """Refuse a validation the withheld-answer gate is certain to fail."""
+    cap = (policy or load_release_policy())["evaluation"]["withheldAnswers"]
+    if cap["benchmarkSize"] != benchmark_size:
+        raise ValueError(
+            f"The withheld-answer cap ({cap['max']} of {cap['benchmarkSize']}) was set "
+            f"for another benchmark: the golden dataset now scores {benchmark_size} "
+            "validated questions. The owner must re-set evaluation.withheldAnswers in "
+            "corpus-release-policy.json for that size (issue #259) before a release "
+            "can be validated."
+        )
+
+
 def _gate(
     name: str,
     actual: Any,

@@ -31,6 +31,7 @@ from pipeline.release import (
     record_release_stage,
     reject_before_answer_runs,
     require_rollback_available,
+    require_withheld_cap_for,
     snapshot_bound_reasons,
     source_snapshot_hash,
     uncovered_question_ids,
@@ -201,6 +202,7 @@ def release_validate(
     is not charged for them.
     """
     from pipeline.audit import run_corpus_audit
+    from pipeline.eval.dataset import benchmark_entries, load_dataset
     from pipeline.eval.runner import run_eval
 
     from pipeline.evaluation_evidence import (
@@ -227,6 +229,8 @@ def release_validate(
     # A stale or malformed override file stops here, before any stage runs.
     overrides = load_json_object(override_file) if override_file else {}
     snapshot_bound_reasons(overrides, release["sourceSnapshotHash"])
+    # Before any paid run: a cap set for another benchmark size cannot pass.
+    require_withheld_cap_for(len(benchmark_entries(load_dataset())))
     release["evaluationFingerprint"] = evaluation_fingerprint()
     if baseline:
         release["baselineEvidence"] = baseline

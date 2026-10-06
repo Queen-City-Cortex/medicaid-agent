@@ -14,7 +14,8 @@
       "topics",
       "answer",
       "evidence",
-      "source"
+      "source",
+      "status"
     ],
     "properties": {
       "id": {
@@ -72,7 +73,6 @@
       "answer": {
         "type": "object",
         "required": [
-          "text",
           "confidence"
         ],
         "properties": {
@@ -158,6 +158,45 @@
       "paraphrase_of": {
         "type": "string",
         "pattern": "^q-\\d+$"
+      },
+      "status": {
+        "type": "string",
+        "enum": [
+          "validated",
+          "needs_validation"
+        ],
+        "description": "validated: every fact the answer asserts is backed by a verbatim supporting quote from a section the entry cites. needs_validation: skipped by evaluations until reviewed."
+      },
+      "supporting_quotes": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "section_id",
+            "quote"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "section_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "quote": {
+              "type": "string",
+              "minLength": 10
+            }
+          }
+        }
+      },
+      "validation_note": {
+        "type": "string",
+        "minLength": 10,
+        "description": "For needs_validation entries: what the cited sections do not support."
+      },
+      "expected_behavior": {
+        "type": "string",
+        "minLength": 10,
+        "description": "What the agent is expected to do (tools to call, what not to claim). Never sent to the judge as the reference answer."
       }
     }
   }

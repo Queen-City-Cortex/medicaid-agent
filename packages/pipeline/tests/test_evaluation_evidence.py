@@ -4,8 +4,16 @@ from datetime import UTC, datetime
 import pytest
 
 from pipeline import evaluation_evidence as evidence
-from pipeline.eval.dataset import load_dataset
 from pipeline.release import atomic_write_json, create_release_manifest, load_json_object
+
+# These tests exercise the gates with the benchmark size the release policy's
+# withheld-answer cap is set for, whatever the golden dataset holds today.
+BENCHMARK = [{"id": f"q-{number:03d}", "status": "validated"} for number in range(1, 56)]
+
+
+@pytest.fixture(autouse=True)
+def benchmark_of_the_size_the_policy_was_set_for(monkeypatch):
+    monkeypatch.setattr("pipeline.eval.dataset.load_dataset", lambda path=None: BENCHMARK)
 
 
 def complete_result():
@@ -27,7 +35,7 @@ def complete_result():
                     "latency_ms": 1000,
                 },
             }
-            for item in load_dataset()
+            for item in BENCHMARK
         ],
         "aggregate": {
             "precision_at_k": 0.2,
@@ -544,7 +552,7 @@ def test_bootstrap_compares_the_candidate_on_the_questions_the_legacy_graph_hold
     from pipeline.eval.results import compute_rollup
 
     plain_result = complete_result
-    legacy_gaps = sorted(item["id"] for item in load_dataset())[-5:]
+    legacy_gaps = sorted(item["id"] for item in BENCHMARK)[-5:]
 
     def measured_result(uncovered=(), recall=0.93):
         result = plain_result()
@@ -610,3 +618,31 @@ def test_release_validate_rejects_a_stale_override_before_it_does_any_work(
     assert "bound to source snapshot" in str(outcome.exception)
     assert fake.calls == 0
     assert load_json_object(manifest)["stageResults"] == {}
+
+
+def test_complete_release_evidence_is_every_validated_entry_and_no_other(monkeypatch):
+    unreviewed = {"id": "q-900", "status": "needs_validation"}
+    monkeypatch.setattr(
+        "pipeline.eval.dataset.load_dataset", lambda path=None: [*BENCHMARK, unreviewed]
+    )
+
+    evidence.require_complete_retrieval(complete_result())
+
+    with_unreviewed = complete_result()
+    with_unreviewed["per_question"].append({"question_id": "q-900"})
+    with pytest.raises(ValueError, match="complete benchmark"):
+        evidence.require_complete_retrieval(with_unreviewed)
+
+
+def test_release_validate_stops_before_any_run_when_the_cap_is_for_another_size(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setattr("pipeline.eval.dataset.load_dataset", lambda path=None: BENCHMARK[:8])
+
+    outcome, fake, _ = validate_release(tmp_path, monkeypatch, [(3.0, 0)] * 3)
+
+    assert outcome.exit_code != 0
+    assert "scores 8 validated questions" in str(outcome.exception)
+    assert "re-set evaluation.withheldAnswers" in str(outcome.exception)
+    assert fake.calls == 0
+    assert not list(fake.results_dir.glob("*_retrieval.json"))

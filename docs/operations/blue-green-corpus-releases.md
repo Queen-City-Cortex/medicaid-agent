@@ -346,7 +346,8 @@ gate. Scope records are not retirement evidence or permission to override gates.
 
 1. Complete `recovery-inventory` with zero blocking required failures and zero undocumented
    removals. Freeze the code revision, source snapshot, retirement evidence and
-   the complete 55-question benchmark. Keep maintenance mode and the writer lock.
+   golden dataset 3.0 (its validated entries are the benchmark; run
+   `eval-validate-golden` against the catalog). Keep maintenance mode and the writer lock.
 2. Run a fresh baseline against the **legacy** graph using that exact code and
    model configuration. Run the CLI from `packages/pipeline` with its legacy
    `NEO4J_URI` and `NEO4J_PASSWORD` supplied securely:
@@ -376,7 +377,7 @@ gate. Scope records are not retirement evidence or permission to override gates.
    Generate the canonical catalog once from the frozen source artifacts with
    `eval-identity-catalog --output /data/pipeline/releases/evidence-identities.json`.
    Set `EVAL_IDENTITY_CATALOG` to that same file for the baseline, candidate,
-   activation, and later scheduled validation. The 55 questions remain unchanged.
+   activation, and later scheduled validation. The dataset version remains unchanged.
    Mapping uses canonical source URL, family, and section identity; duplicate or
    unnumbered sections need exact content and structure. Missing sections count
    as misses; ambiguous mappings invalidate the comparison. Both results retain
@@ -542,7 +543,10 @@ build from meeting the floors by answering less:
 - `withheldAnswers` caps the withheld count. The cap is a count set against one
   benchmark size (`evaluation.withheldAnswers` holds `max` and `benchmarkSize`);
   a run of any other size fails the gate until the cap is set again. No override
-  can waive it. The value, 5 of 55, is provisional (`"provisional": true`):
+  can waive it. Golden dataset 3.0 scores only validated entries (8 on
+  2026-10-05), so the current value no longer matches: `release-validate` stops
+  before any run, naming both sizes, until the owner sets the cap again for the
+  validated count. The value, 5 of 55, is provisional (`"provisional": true`):
   [issue #259](https://github.com/Queen-City-Cortex/medicaid-agent/issues/259)
   replaces it once the candidate graph has been measured. The 2.75 floor is
   revisited there too and is unchanged until then.
@@ -596,7 +600,7 @@ rebuilt graph is stored. Set them once, from a measurement:
      /data/pipeline/releases/<release-id>/retrieval-evaluation.json
    ```
 
-   Require 55 questions and an empty `missing` list. A labelled section absent
+   Require every validated golden question and an empty `missing` list. A labelled section absent
    from the candidate graph is a corpus defect to fix, not a number to
    calibrate around.
 3. Confirm the measurement repeats. From `packages/pipeline`, with the
@@ -659,9 +663,9 @@ retrieval result; today the five beneficiary-guidance questions). The legacy
 graph misses those by construction, so including them would let the candidate
 lose ground on the 50 questions both graphs can answer and still show no
 regression. The manifest lists them in `baselineComparisonExcludedQuestions`.
-The floors still read all 55 questions, and a question the candidate cannot
+The floors still read every scored question, and a question the candidate cannot
 answer stays in the comparison and counts against it. A later release is
-compared with the previous manifest's 55-question figures.
+compared with the previous manifest's figures for the whole benchmark.
 
 Server-side answer verification remains mandatory independently of these corpus
 metrics.

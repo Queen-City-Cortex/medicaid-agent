@@ -393,6 +393,39 @@ def test_build_agent_env_falls_back_to_openai_key(monkeypatch):
     assert env["OPENAI_API_KEY"] == "prod-key"
 
 
+def test_unparseable_judge_reply_is_an_infrastructure_error_row(monkeypatch):
+    # The real judge with a fake HTTP layer: prose instead of JSON used to be
+    # recorded as five zeros and averaged into the run.
+    from pipeline.eval import judge
+    from pipeline.evaluation_evidence import infrastructure_error_rows
+
+    class Prose:
+        status_code = 200
+
+        def raise_for_status(self) -> None:
+            return None
+
+        def json(self) -> dict:
+            return {"content": [{"type": "text", "text": "The agent is right."}], "stop_reason": "end_turn"}
+
+    monkeypatch.setattr(judge, "ANTHROPIC_API_KEY", "test-key")
+    monkeypatch.setattr(judge.httpx, "post", lambda url, **kwargs: Prose())
+    monkeypatch.setattr(
+        answer, "_invoke_agent", lambda question, *, progress_label=None: ("answer", None, PASSED, None)
+    )
+    monkeypatch.setattr(answer, "_fetch_evidence_sections", lambda sections: [])
+
+    row = answer.evaluate_answers([ENTRY])[0]
+
+    assert row["scores"]["error_type"] == "judge"
+    assert row["judge_error"] is True
+    assert all(
+        row["scores"][dim] is None
+        for dim in ("factual_accuracy", "completeness", "hallucination", "citation_quality", "overall")
+    )
+    assert infrastructure_error_rows({"per_question": [row]}) == [ENTRY["id"]]
+
+
 # What `src/cli.ts` prints when the coverage boundary refuses a question, with
 # Mastra's log lines before the blocks as they appear on a pipe.
 GATE_NOTICE = "I cannot establish the applicable MAGI income table for that period within the supported dated coverage."

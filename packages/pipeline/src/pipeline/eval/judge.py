@@ -1,12 +1,32 @@
 """LLM-as-judge wrapper — calls Claude Sonnet via httpx to score agent answers."""
 
 import json
+import time
 
 import httpx
 
 from pipeline.config import ANTHROPIC_API_KEY, EVAL_JUDGE_MODEL
 
 API_URL = "https://api.anthropic.com/v1/messages"
+
+# One question costs two judge calls (reference, then grounding). Each call
+# gets this many HTTP attempts, so a question sends at most 2 x 3 requests.
+JUDGE_MAX_ATTEMPTS = 3
+JUDGE_BACKOFF_SECS = 2.0
+JUDGE_MAX_BACKOFF_SECS = 30.0
+# 429 (rate limit) and every 5xx, which includes Anthropic's 529 (overloaded).
+# Other 4xx codes are not retried: a rejected credential or request fails the
+# same way every time and must surface on the first call.
+_RETRYABLE_STATUS = frozenset({429}) | frozenset(range(500, 600))
+# Thresholds were set with this model and request shape. Any other model gets
+# the successor shape and needs calibrating on stored rows first.
+CALIBRATED_JUDGE_MODEL = "claude-sonnet-4-6"
+
+_sleep = time.sleep
+
+
+class JudgeError(RuntimeError):
+    """The judge produced no usable score. The row is an error, never a zero."""
 
 REFERENCE_DIMENSIONS = ("factual_accuracy", "completeness", "overall")
 GROUNDING_DIMENSIONS = ("hallucination", "citation_quality")
@@ -19,7 +39,7 @@ REFERENCE_PROMPT = """You are evaluating an AI agent's answer to a Medicaid poli
 
 Question: {question}
 
-Reference Answer (verified correct):
+Reference Answer:
 {golden_answer}
 
 Agent's Answer:
@@ -77,6 +97,12 @@ def judge_answer(
     the grounding call sees the question, the answer and the evidence. Neither
     sees the other's input.
 
+    Both calls must succeed. If either one runs out of attempts, is cut off or
+    refused, or returns anything other than integer scores from 0 to 3 for
+    its own dimensions, this raises JudgeError and the question has no scores
+    at all: a row is never half judged. The grounding call is not sent when
+    the reference call fails.
+
     Returns:
         {
             "factual_accuracy": 0-3,
@@ -110,45 +136,116 @@ def judge_answer(
     )
 
     # Each call contributes only its own dimensions, whatever else it returns.
-    merged = {
-        **{dim: reference.get(dim) for dim in REFERENCE_DIMENSIONS},
-        **{dim: grounding.get(dim) for dim in GROUNDING_DIMENSIONS},
+    return {
+        **{dim: reference[dim] for dim in REFERENCE_DIMENSIONS},
+        **{dim: grounding[dim] for dim in GROUNDING_DIMENSIONS},
         "explanation": (
             f"Reference: {reference.get('explanation', '')}\n"
             f"Grounding: {grounding.get('explanation', '')}"
         ),
     }
-    if merged.get("overall") is None:
-        # Some judge responses omit `overall` despite the prompt. Compute it
-        # from the other reference dimensions, so evidence cannot move it.
-        dims = [merged.get(k) for k in ("factual_accuracy", "completeness")]
-        vals = [v for v in dims if isinstance(v, (int, float))]
-        if vals:
-            merged["overall"] = round(sum(vals) / len(vals))
-    return merged
+
+
+def _request_body(model: str, prompt: str) -> dict:
+    """The request for one judge prompt.
+
+    The calibrated model keeps the request its thresholds were measured with.
+    Later Claude models reject `temperature` and think before answering, so
+    the successor shape drops it, pins the effort and leaves room for both.
+    """
+    messages = [{"role": "user", "content": prompt}]
+    if model == CALIBRATED_JUDGE_MODEL:
+        return {
+            "model": model,
+            "max_tokens": 1024,
+            "temperature": 0,
+            "messages": messages,
+        }
+    return {
+        "model": model,
+        "max_tokens": 16000,
+        "output_config": {"effort": "low"},
+        "messages": messages,
+    }
+
+
+def _retry_delay(response: httpx.Response | None, attempt: int) -> float:
+    """Seconds to wait before the next attempt, honouring `retry-after`."""
+    delay = JUDGE_BACKOFF_SECS * 2 ** (attempt - 1)
+    if response is not None:
+        try:
+            delay = float(response.headers.get("retry-after", ""))
+        except ValueError:
+            pass
+    return max(0.0, min(delay, JUDGE_MAX_BACKOFF_SECS))
+
+
+def _post(prompt: str) -> dict:
+    """Send one judge prompt, retrying transient failures within the budget."""
+    for attempt in range(1, JUDGE_MAX_ATTEMPTS + 1):
+        response = None
+        try:
+            response = httpx.post(
+                API_URL,
+                json=_request_body(EVAL_JUDGE_MODEL, prompt),
+                headers={
+                    "x-api-key": ANTHROPIC_API_KEY,
+                    "anthropic-version": "2023-06-01",
+                    "Content-Type": "application/json",
+                },
+                timeout=60,
+            )
+        except httpx.TransportError as exc:  # timeouts are transport errors
+            failure = f"{type(exc).__name__}: {exc}"
+        else:
+            if response.status_code not in _RETRYABLE_STATUS:
+                response.raise_for_status()
+                return response.json()
+            failure = f"HTTP {response.status_code}"
+        if attempt == JUDGE_MAX_ATTEMPTS:
+            raise JudgeError(
+                f"Judge request failed after {JUDGE_MAX_ATTEMPTS} attempts: {failure}"
+            )
+        _sleep(_retry_delay(response, attempt))
+    raise AssertionError("unreachable")
 
 
 def _score(prompt: str, dimensions: tuple[str, ...]) -> dict:
-    """Send one judge prompt and parse the JSON object it returns."""
-    resp = httpx.post(
-        API_URL,
-        json={
-            "model": EVAL_JUDGE_MODEL,
-            "max_tokens": 1024,
-            "temperature": 0,
-            "messages": [{"role": "user", "content": prompt}],
-        },
-        headers={
-            "x-api-key": ANTHROPIC_API_KEY,
-            "anthropic-version": "2023-06-01",
-            "Content-Type": "application/json",
-        },
-        timeout=60,
-    )
-    resp.raise_for_status()
+    """Send one judge prompt and return its validated scores."""
+    body = _post(prompt)
+    # A reply cut off at max_tokens or refused is not a score, even when the
+    # text so far happens to parse.
+    stop_reason = body.get("stop_reason")
+    if stop_reason != "end_turn":
+        raise JudgeError(f"Judge reply did not finish (stop_reason={stop_reason})")
+    # Models that think first return a thinking block before the text block.
+    content = next(
+        (
+            block.get("text", "")
+            for block in body.get("content") or []
+            if isinstance(block, dict) and block.get("type") == "text"
+        ),
+        "",
+    ).strip()
 
-    content = resp.json()["content"][0]["text"].strip()
+    parsed = _parse_object(content, dimensions)
+    if parsed is None:
+        raise JudgeError(f"Judge reply is not a JSON object: {content[:300]}")
+    invalid = [
+        f"{dim}={parsed.get(dim, 'missing')!r}"
+        for dim in dimensions
+        # `type(...) is int` also rejects booleans and numeric strings.
+        if type(parsed.get(dim)) is not int or not 0 <= parsed[dim] <= 3
+    ]
+    if invalid:
+        raise JudgeError(
+            f"Judge scores must be integers from 0 to 3: {', '.join(invalid)}"
+        )
+    return parsed
 
+
+def _parse_object(content: str, dimensions: tuple[str, ...]) -> dict | None:
+    """The JSON object in a judge reply, or None when there is none."""
     # Strip markdown code fences if present
     if content.startswith("```"):
         lines = content.splitlines()
@@ -196,8 +293,4 @@ def _score(prompt: str, dimensions: tuple[str, ...]) -> dict:
                         pass
                     break
 
-    # Last resort: zeroes with raw text as explanation.
-    return {
-        **{dimension: 0 for dimension in dimensions},
-        "explanation": f"JSON parse error. Raw response: {content[:300]}",
-    }
+    return None

@@ -105,6 +105,14 @@ class TestCompareRuns:
         with pytest.raises(ValueError, match="evidence modes"):
             compare_runs(run_a, run_b)
 
+    @pytest.mark.parametrize("other", [{"dataset_version": "2.1"}, {}])
+    def test_rejects_cross_dataset_version_comparison(self, other):
+        run_a = {"level": "answer", "config": {"dataset_version": "3.0"}, "aggregate": {"overall": 2.8}}
+        run_b = {"level": "answer", "config": other, "aggregate": {"overall": 2.6}}
+        with pytest.raises(ValueError, match="different golden dataset versions"):
+            compare_runs(run_a, run_b)
+        assert compare_runs(run_a, run_a) is not None
+
     def test_rejects_cross_level_comparison(self):
         run_a = {"level": "answer", "aggregate": {"overall": 2.8}}
         run_b = {"level": "retrieval", "aggregate": {"precision_at_k": 0.9}}

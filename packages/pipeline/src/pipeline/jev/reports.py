@@ -99,7 +99,7 @@ def report_routing(root: Path) -> dict:
     if result.get("inputDigest") != fixture["digest"]:
         raise ValueError("Routing evidence input identity mismatch")
     inferred = {r["id"]: r["candidate"] for r in result["rows"]}
-    if len(inferred) != 155 or len(result["rows"]) != 155:
+    if len(inferred) != len(fixture["rows"]) or len(result["rows"]) != len(fixture["rows"]):
         return {"status": result.get("status", "pending_inference"), "completed": len(inferred)}
     disagree, agreements = [], []
     for row in fixture["rows"]:

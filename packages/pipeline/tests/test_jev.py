@@ -396,3 +396,23 @@ def test_empty_scope_provider_preserves_disabled_fingerprint(monkeypatch):
     monkeypatch.setenv('SCOPE_GATE_PROVIDER', '  ')
     monkeypatch.setenv('JEV_SECTION_ROLES_ENABLED', 'false')
     assert jev_evaluation_identity() == {}
+
+
+def test_routing_inputs_are_every_golden_question_plus_one_hundred_paraphrases(tmp_path, monkeypatch):
+    # Routing reads question text only, so an unvalidated answer key does not
+    # remove a question from this benchmark.
+    from pipeline.config import GOLDEN_DATASET_PATH
+    from pipeline.jev import benchmarks
+
+    golden = json.loads(GOLDEN_DATASET_PATH.read_text())
+    monkeypatch.setattr(
+        benchmarks, "worker",
+        lambda payload: {"result": [{"questionType": "general", "flags": {}} for _ in payload["questions"]]},
+    )
+    monkeypatch.setattr(benchmarks, "question_spec", lambda: {"routing": {}})
+
+    fixture = benchmarks.prepare_routing(tmp_path)
+
+    assert len(fixture["rows"]) == len(golden) + 100
+    assert {row["id"] for row in golden} <= {row["id"] for row in fixture["rows"]}
+    assert any(entry["status"] != "validated" for entry in golden)
