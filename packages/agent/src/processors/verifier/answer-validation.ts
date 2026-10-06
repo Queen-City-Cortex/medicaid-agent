@@ -144,9 +144,19 @@ export function normalizeUrl(url: string): string {
 const MARKDOWN_LINK_PATTERN = /\[([^\]]*)\]\(\s*(https?:\/\/[^)\s]+)\s*\)/g;
 const BARE_URL_PATTERN = /https?:\/\/[^\s)\]'"<>]+/g;
 
-/** Hosts that legitimately appear without a backing tool output (the
- *  verification disclaimer links the NC DHHS portal root). */
-const ALWAYS_ALLOWED_URLS = new Set([normalizeUrl('https://medicaid.ncdhhs.gov')]);
+/** Contact pages an answer may link when it tells a person where to get help
+ *  with their own case: the NC Medicaid Ombudsman and the county DSS
+ *  directory. The verifier prompt names the same two pages; keep both in step
+ *  with the web "Get help" block (`packages/web/src/lib/get-help.ts`). */
+export const REFERRAL_PAGE_URLS = [
+  'https://medicaid.ncdhhs.gov/about-nc-medicaid/nc-medicaid-ombudsman',
+  'https://www.ncdhhs.gov/divisions/social-services/local-dss-directory',
+] as const;
+
+/** URLs that legitimately appear without a backing tool output: the NC DHHS
+ *  portal root linked by the verification disclaimer, and the referral pages.
+ *  Exact matches after normalization; no other page on either host is allowed. */
+const ALWAYS_ALLOWED_URLS = new Set(['https://medicaid.ncdhhs.gov', ...REFERRAL_PAGE_URLS].map(normalizeUrl));
 
 export interface UrlValidationResult {
   /** Answer with unknown markdown links demoted to their plain-text labels. */
@@ -161,7 +171,7 @@ export interface UrlValidationResult {
 /**
  * Deterministic URL check: every markdown link target in the answer must
  * exist somewhere in the retrieved sources (the `link` field or a URL embedded
- * in the tool-output text). The agent has no legitimate way to know a URL its
+ * in the tool-output text), the routing hint excepted. The agent has no legitimate way to know a URL its
  * tools never returned — an unknown URL is a fabrication (observed with
  * h-043 in the 2026-06-12 eval: an invented `/download?attachment` link).
  * Unknown links are demoted to plain text so they are not clickable.
@@ -169,10 +179,7 @@ export interface UrlValidationResult {
 export function validateAnswerUrls(answerText: string, sources: SourceEntry[]): UrlValidationResult {
   const retrieved = new Set<string>();
   for (const source of sources) {
-    if (source.link) retrieved.add(normalizeUrl(source.link));
-    for (const url of source.text.match(BARE_URL_PATTERN) ?? []) {
-      retrieved.add(normalizeUrl(url));
-    }
+    for (const url of sourceUrlSet(source)) retrieved.add(url);
   }
 
   const unknownUrls: string[] = [];
@@ -215,8 +222,11 @@ export function answerUrlSet(answerText: string): Set<string> {
 }
 
 /** The URLs a source can vouch for in `validateAnswerUrls`: its link and any
- *  URL in its text. An answer URL that matches one of them cites this source. */
+ *  URL in its text. An answer URL that matches one of them cites this source.
+ *  The routing hint vouches for none: it lists documents and sections the
+ *  router chose, including ones to avoid, without their text. */
 export function sourceUrlSet(source: SourceEntry): Set<string> {
+  if (source.toolName === 'resolveAnswerFrame') return new Set();
   const urls = new Set((source.text.match(BARE_URL_PATTERN) ?? []).map(normalizeUrl));
   if (source.link) urls.add(normalizeUrl(source.link));
   return urls;

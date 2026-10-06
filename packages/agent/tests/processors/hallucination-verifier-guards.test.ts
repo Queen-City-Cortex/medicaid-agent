@@ -11,6 +11,7 @@ import {
   type SourceEntry,
   type VerificationResult,
 } from '../../src/processors/hallucination-verifier.js';
+import { REFERRAL_PAGE_URLS } from '../../src/processors/verifier/answer-validation.js';
 
 vi.mock('ai', async original => ({ ...await original<typeof import('ai')>(), generateObject: vi.fn() }));
 import { generateObject } from 'ai';
@@ -53,6 +54,12 @@ describe('VERIFIER_PROMPT content', () => {
     expect(VERIFIER_PROMPT).toContain('routing hint');
     expect(VERIFIER_PROMPT).toContain('NOT evidence');
     expect(VERIFIER_PROMPT).toMatch(/at most MINOR/);
+  });
+
+  it('exempts only a referral to the two contact pages, not any policy claim', () => {
+    for (const url of REFERRAL_PAGE_URLS) expect(VERIFIER_PROMPT).toContain(`(${url})`);
+    expect(VERIFIER_PROMPT).toMatch(/only to tell the person where to get help with their own case/);
+    expect(VERIFIER_PROMPT).toMatch(/supports no statement about policy/);
   });
 
   it('forbids replacing the answer body with meta-commentary', () => {
@@ -118,6 +125,31 @@ describe('validateAnswerUrls', () => {
   it('allows the NC DHHS portal root used by the verification disclaimer', () => {
     const answer = 'Verify with [NC DHHS](https://medicaid.ncdhhs.gov/).';
     expect(validateAnswerUrls(answer, []).unknownUrls).toEqual([]);
+  });
+
+  it.each([
+    ['as listed', (url: string) => url],
+    ['with a trailing slash', (url: string) => `${url}/`],
+    ['with an upper-case host', (url: string) => url.replace('ncdhhs.gov', 'NCDHHS.GOV')],
+  ])('allows the Ombudsman and county DSS referral pages %s', (_, form) => {
+    const [ombudsman, dss] = REFERRAL_PAGE_URLS.map(form);
+    const answer = `Call the [NC Medicaid Ombudsman](${ombudsman}) or find your [county DSS office](${dss}).`;
+    const result = validateAnswerUrls(answer, []);
+    expect(result).toMatchObject({ unknownUrls: [], checkedUrlCount: 2, allowedUrlCount: 2, retrievedUrlCount: 0 });
+    expect(result.validatedAnswer).toBe(answer);
+  });
+
+  it.each([
+    'https://www.ncdhhs.gov/divisions/social-services',
+    'https://www.ncdhhs.gov/divisions/social-services/local-dss-directory/wake',
+    'https://www.ncdhhs.gov/divisions/social-services/local-dss-directory?county=wake',
+    'https://medicaid.ncdhhs.gov/about-nc-medicaid',
+    'https://medicaid.ncdhhs.gov/about-nc-medicaid/nc-medicaid-ombudsman/complaints',
+    'https://ncdhhs.gov/divisions/social-services/local-dss-directory',
+  ])('still flags %s, a different ncdhhs.gov page', url => {
+    const result = validateAnswerUrls(`See [this page](${url}).`, []);
+    expect(result).toMatchObject({ unknownUrls: [url], allowedUrlCount: 0 });
+    expect(result.validatedAnswer).toBe('See this page.');
   });
 
   it('does not touch verifier markers or non-link brackets', () => {

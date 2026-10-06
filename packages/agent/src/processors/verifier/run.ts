@@ -1,6 +1,6 @@
 import { createPrivateVerificationCapture, type PrivateVerificationCapture } from './diagnostics.js';
 import { getConfig } from './config.js';
-import { type SourceEntry, buildSourceText } from './evidence.js';
+import { type SourceEntry, buildSourceText, isCorpusEvidence } from './evidence.js';
 import { type VerificationResult, VERIFICATION_UNAVAILABLE, verifyAnswer } from './verify.js';
 import {
   assessRewriteSubstance,
@@ -19,6 +19,11 @@ import { resolveCoverageScope, coverageEvidenceIssue } from '@nc-medicaid/policy
 
 /** Withholding reason when cited section text or a research finding did not fit the evidence budget. */
 export const EVIDENCE_OVER_BUDGET = 'Cited source text or a research finding exceeded the verifier evidence budget';
+
+/** Withholding reason when the answer cites a link or quotation and the turn retrieved no evidence. */
+export const NO_EVIDENCE_FOR_CITATION = 'The answer cites a link or quotation but no evidence was retrieved';
+/** Withholding reason when the turn produced no source entry at all. */
+export const NO_SOURCES_RETRIEVED = 'No sources were retrieved';
 
 // ── Shared verification flow ────────────────────────────────────────────────
 
@@ -110,6 +115,7 @@ export async function runVerificationForAnswer({ question, coverageQuery, answer
   let evidenceEntriesDropped = 0;
   const scope = resolveCoverageScope(coverageQuery ?? question);
   const scopeIssue = coverageEvidenceIssue(scope, sources);
+  const hasEvidence = sources.some(isCorpusEvidence);
   for (let pass = 1; pass <= 2; pass++) {
     if (scopeIssue) {
       verification = { supported: false, relevant: true, citationsComplete: false, unsupportedClaims: [{ claim: 'Full answer', reason: scopeIssue }], missingCitationClaims: [], relevanceIssues: [], correctedAnswer: '' };
@@ -123,6 +129,21 @@ export async function runVerificationForAnswer({ question, coverageQuery, answer
     evidenceEntriesDropped = evidence.dropped.length;
     if (evidence.dropped.length) {
       log.warn('verifier.evidence_dropped', { pass, entriesDropped: evidence.dropped.length, citedBodyDropped: evidence.citedBodyDropped, findingDropped: evidence.findingDropped });
+    }
+    // The routing hint is on every chat turn and is not evidence. With nothing
+    // else retrieved, a link or long quotation can only come from the hint or
+    // the model's memory, so withhold without a model call. An answer that
+    // cites nothing (an abstention, with or without an always-allowed link)
+    // still goes to the model, unless the turn retrieved no text at all.
+    const cites = urls.checkedUrlCount - urls.allowedUrlCount + quotes.checkedQuoteCount > 0;
+    if (!hasEvidence && (cites || !sources.some(source => source.text.trim()))) {
+      const uncitable = urls.unknownUrls.length + quotes.unknownQuotes.length > 0;
+      verification = { supported: false, relevant: true, citationsComplete: false, unsupportedClaims: [{ claim: 'Full answer', reason: cites ? NO_EVIDENCE_FOR_CITATION : NO_SOURCES_RETRIEVED }], missingCitationClaims: [], relevanceIssues: [], correctedAnswer: '' };
+      outcome.reason = uncitable ? 'invalid_citation' : 'unsupported';
+      fabricatedUrlCount += urls.unknownUrls.length;
+      fabricatedQuoteCount += quotes.unknownQuotes.length;
+      capture?.({ stage: 'pass', pass, candidate, evidenceText, dropped: evidence.dropped.map(source => source.key), deterministic: { urls, quotes }, verification });
+      break;
     }
     if (evidence.citedBodyDropped || evidence.findingDropped) {
       // The model would be judging claims whose cited text, or a report whose
@@ -151,7 +172,7 @@ export async function runVerificationForAnswer({ question, coverageQuery, answer
       && verification.unsupportedClaims.length === 0 && (verification.missingCitationClaims?.length ?? 0) === 0
       && urls.unknownUrls.length === 0 && quotes.unknownQuotes.length === 0
       && !/\[(?:unverified|wrong source|missing citation):/i.test(candidate);
-    if (clean && candidate.trim() && sources.some(s => s.text.trim())) {
+    if (clean && candidate.trim()) {
       outcome = { status: pass === 1 ? 'passed' : 'corrected', passCount: pass };
       break;
     }

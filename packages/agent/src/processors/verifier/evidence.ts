@@ -183,6 +183,8 @@ function extractGetDocument(result: GetDocumentResult): SourceEntry | null {
 function extractGetAmendments(result: GetAmendmentsResult, toolCallId: string): SourceEntry | null {
   // Use authoritativeDocument id as key, fall back to a generated key
   const auth = result?.authoritativeDocument;
+  const amendments = result?.amendments ?? [];
+  if (!auth && !result?.baseDocument && amendments.length === 0) return null;
   const key = auth ? auth.id : `amendments:${toolCallId}`;
 
   const lines: string[] = [`[getAmendments]`];
@@ -192,7 +194,6 @@ function extractGetAmendments(result: GetAmendmentsResult, toolCallId: string): 
     lines.push(formatDocMeta(auth));
   }
 
-  const amendments = result?.amendments ?? [];
   if (amendments.length > 0) {
     lines.push(`\nAmendments (${amendments.length}):`);
     for (const a of amendments) {
@@ -462,6 +463,15 @@ const SECTION_BODY_TOOLS = new Set(['getSection', 'resolveAnswerFrame:section'])
  *  each one is required evidence for the report-level check. */
 export const RESEARCH_FINDING_TOOL = 'researchFinding';
 
+/** The frame's routing entry: advice from the router, with no source text. */
+const ROUTING_HINT_TOOL = 'resolveAnswerFrame';
+
+/** True for an entry that can support a claim. The routing hint cannot, and
+ *  it is present on every chat turn, so "some source has text" proves nothing. */
+export function isCorpusEvidence(source: SourceEntry): boolean {
+  return source.toolName !== ROUTING_HINT_TOOL && source.text.trim().length > 0;
+}
+
 export interface VerifierEvidence {
   text: string;
   /** Entries left out because they did not fit the budget. */
@@ -497,8 +507,13 @@ export function buildSourceText(
     || (!!s.link && answerText.includes(s.link)) || answerText.includes(s.key);
   const isBody = (s: SourceEntry) => SECTION_BODY_TOOLS.has(s.toolName);
   // Research findings first, then cited section bodies, cited other entries,
-  // uncited bodies, then the rest; tool-call order within each group.
-  const tier = (s: SourceEntry) => s.toolName === RESEARCH_FINDING_TOOL ? 0 : 1 + (isCited(s) ? 0 : 2) + (isBody(s) ? 0 : 1);
+  // uncited bodies, the rest, and the routing hint last; tool-call order
+  // within each group. The hint lists the URL of every section the router
+  // chose, so it would otherwise count as cited on nearly every answer and
+  // take budget ahead of real evidence.
+  const tier = (s: SourceEntry) => s.toolName === RESEARCH_FINDING_TOOL ? 0
+    : s.toolName === ROUTING_HINT_TOOL ? 5
+    : 1 + (isCited(s) ? 0 : 2) + (isBody(s) ? 0 : 1);
   const ordered = sources.map((source, index) => ({ source, index, tier: tier(source) }))
     .sort((a, b) => a.tier - b.tier || a.index - b.index);
 

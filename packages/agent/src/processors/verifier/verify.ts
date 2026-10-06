@@ -2,6 +2,7 @@ import { isRetryableResearchError } from '../../deep-research/recovery-errors.js
 import { generateObject } from 'ai';
 import { z } from 'zod';
 import { getConfig } from './config.js';
+import { REFERRAL_PAGE_URLS } from './answer-validation.js';
 import { openaiModel } from '../../model.js';
 import { log, errorFields } from '../../logger.js';
 
@@ -50,6 +51,7 @@ Identify every factual claim and check whether it is supported by the source doc
 - A claim is UNSUPPORTED if the source documents do not contain that information, or the answer contradicts the sources.
 - Text presented in quotation marks claims to be verbatim: it is UNSUPPORTED unless it appears (allowing whitespace differences) in a non-frame source.
 - Any URL appearing in the answer must come from the SOURCE DOCUMENTS; a URL not present in the sources is an unsupported claim.
+- Exception: a link to the NC Medicaid Ombudsman page (${REFERRAL_PAGE_URLS[0]}) or the county DSS directory (${REFERRAL_PAGE_URLS[1]}) need not appear in the SOURCE DOCUMENTS when the answer uses it only to tell the person where to get help with their own case. Such a referral is not a factual claim and needs no citation. The link supports no statement about policy, coverage, eligibility, amounts, deadlines or rights; any such statement still needs support from the SOURCE DOCUMENTS.
 - Focus on: dollar amounts, dates, thresholds, visit limits, eligibility criteria, policy numbers, and specific requirements.
 - Ignore narrative transitions, hedging language, and meta-commentary about the research process.
 

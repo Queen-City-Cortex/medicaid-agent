@@ -8,6 +8,9 @@ import type { UIMessageChunk } from 'ai';
 import { guardMessage, releaseMessage, installMemoryReleaseGate, gateAnswerStream, trustedChatInput,
   GUARDED_MEMORY_METHODS, PASS_THROUGH_MEMORY_METHODS } from '../src/answer-release.js';
 import { runVerificationForAnswer } from '../src/processors/verifier/run.js';
+import { extractSources, extractSourcesFromToolResults, isCorpusEvidence } from '../src/processors/verifier/evidence.js';
+import { REFERRAL_PAGE_URLS } from '../src/processors/verifier/answer-validation.js';
+import { makeDocument, makeFrame, makeSection } from './helpers/answer-frame-fixtures.js';
 import { WITHHELD_ANSWER, UNVERIFIED_HISTORY } from '@nc-medicaid/contracts';
 import type { VerificationResult } from '../src/processors/verifier/verify.js';
 
@@ -70,6 +73,7 @@ describe('answer release', () => {
     ['one missing-citation claim', { verdict: { ...clean, missingCitationClaims: [{ claim: 'The service is covered.', suggestedCitation: 'Policy' }] } }],
     ['a leftover marker', { answerText: `${base.answerText} [unverified: prior approval is required]` }],
     ['whitespace-only evidence', { sources: [{ ...source, text: ' \n\t' }] }],
+    ['evidence that is only a routing hint', { sources: [{ ...source, toolName: 'resolveAnswerFrame' }] }],
     ['a whitespace-only answer', { answerText: ' \n\t' }],
   ])('withholds the base case changed only by %s', async (_, change) => {
     const result = await releaseWith(change);
@@ -82,9 +86,68 @@ describe('answer release', () => {
     expect(verify).toHaveBeenCalledTimes(2);
     expect(result.finalAnswer).toBe(WITHHELD_ANSWER);
   });
-  it('does not release an answer when no evidence was retrieved', async () => {
-    const result = await runVerificationForAnswer({ question: 'q', answerText: PRIVATE, sources: [], verify: vi.fn().mockResolvedValue(clean) });
+  // What chat reaches when the frame names a document but returns no section
+  // text: the forced routing hint is the turn's only source entry.
+  const HINT_URL = 'https://example.gov/policy';
+  const AVOID_URL = 'https://example.gov/avoid';
+  const routingOnly = extractSourcesFromToolResults([{ toolName: 'resolveAnswerFrame', toolCallId: 'frame', result: { frame: makeFrame({
+    authoritativeDocuments: [makeDocument({ url: HINT_URL })],
+    avoidSections: [makeSection({ id: 'avoid', content: null, url: AVOID_URL })],
+  }) } }]);
+  it.each([
+    ['the document the routing hint lists', `Outpatient therapy is limited to 16 visits per year. [Policy](${HINT_URL})`],
+    ['a section the routing hint says to avoid', `Outpatient therapy is limited to 16 visits per year. [Section](${AVOID_URL})`],
+    ['a long quotation', 'The policy says "Outpatient therapy is limited to sixteen visits in each plan year."'],
+  ])('withholds without a model call when the routing hint is the only evidence and the answer cites %s', async (_, answerText) => {
+    expect(routingOnly.map(entry => entry.toolName)).toEqual(['resolveAnswerFrame']);
+    const verify = vi.fn().mockResolvedValue(clean);
+    const result = await runVerificationForAnswer({ question: 'q', answerText, sources: routingOnly, verify });
+    expect(verify).not.toHaveBeenCalled();
+    expect(result.finalAnswer).toBe(WITHHELD_ANSWER);
+    expect(result.outcome).toEqual({ status: 'withheld', reason: 'invalid_citation', passCount: 0 });
+    expect(result.retryable).toBe(false);
+  });
+  it('yields no source entry for a getAmendments result that names no document', async () => {
+    const empty = { toolName: 'getAmendments', toolCallId: 'a', result: { amendments: [], baseDocument: null, authoritativeDocument: null } };
+    expect(extractSourcesFromToolResults([empty])).toEqual([]);
+    expect(extractSources([{ content: { parts: [{ type: 'tool-invocation', toolInvocation: { ...empty, state: 'result' } }] } }])).toEqual([]);
+    const named = extractSourcesFromToolResults([{ ...empty, result: { ...empty.result, authoritativeDocument: makeDocument({ url: HINT_URL }) } }]);
+    expect(named).toMatchObject([{ toolName: 'getAmendments', link: HINT_URL }]);
+    expect(isCorpusEvidence(named[0])).toBe(true);
+  });
+  it.each([
+    ['with no link', 'I could not find a visit limit for that service in the NC Medicaid policy documents.'],
+    ['linking only the NC Medicaid portal', 'I could not find a visit limit for that service. See [NC Medicaid](https://medicaid.ncdhhs.gov/).'],
+  ])('still releases an abstention %s when the routing hint is the only evidence', async (_, answerText) => {
+    const verify = vi.fn().mockResolvedValue(clean);
+    const result = await runVerificationForAnswer({ question: 'q', answerText, sources: routingOnly, verify });
+    expect(verify).toHaveBeenCalledTimes(1);
+    expect(result.finalAnswer).toBe(answerText);
+    expect(result.outcome).toEqual({ status: 'passed', passCount: 1 });
+  });
+  it.each(REFERRAL_PAGE_URLS)('does not flag a referral to %s as a fabricated link', async url => {
+    const referral = `For help with your own case, see [this contact page](${url}/).`;
+    const cited = await releaseWith({ answerText: `${base.answerText} ${referral}` });
+    expect(cited.outcome).toEqual({ status: 'passed', passCount: 1 });
+    expect(cited.telemetry.fabricated_url_count).toBe(0);
+    // A dead-end answer: no evidence, no claim, only where to get help.
+    const abstention = `I could not find that in the NC Medicaid policy documents. ${referral}`;
+    const deadEnd = await runVerificationForAnswer({ question: 'q', answerText: abstention, sources: routingOnly, verify: vi.fn().mockResolvedValue(clean) });
+    expect(deadEnd.finalAnswer).toBe(abstention);
+    expect(deadEnd.outcome).toEqual({ status: 'passed', passCount: 1 });
+  });
+  it('still flags a different ncdhhs.gov page as a fabricated link', async () => {
+    const other = 'https://www.ncdhhs.gov/divisions/social-services';
+    const result = await releaseWith({ answerText: `${base.answerText} See [Social Services](${other}).` });
+    expect(result.finalAnswer).toBe(WITHHELD_ANSWER);
     expect(result.outcome.status).toBe('withheld');
+    expect(result.telemetry.fabricated_url_count).toBe(1);
+  });
+  it('withholds without a model call when the turn retrieved nothing at all', async () => {
+    const verify = vi.fn().mockResolvedValue(clean);
+    const result = await runVerificationForAnswer({ question: 'q', answerText: 'I could not find that.', sources: [], verify });
+    expect(verify).not.toHaveBeenCalled();
+    expect(result.outcome).toEqual({ status: 'withheld', reason: 'unsupported', passCount: 0 });
   });
   it('keeps minor relevance observations informational', async () => {
     const result = await runVerificationForAnswer({ question: 'q', answerText: 'The service is covered. [Policy](https://example.gov/policy)', sources: [source],

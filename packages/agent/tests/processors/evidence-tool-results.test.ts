@@ -99,7 +99,7 @@ describe('extractSourcesFromToolResults', () => {
       {
         toolName: 'getAmendments',
         toolCallId: 'call-42',
-        result: { amendments: [], baseDocument: null, authoritativeDocument: null },
+        result: { amendments: [{ id: 'doc:spa:24-0001', title: 'SPA 24-0001', effectiveDate: '2024-01-01', changeSummary: null }], baseDocument: null, authoritativeDocument: null },
       },
     ]);
     expect(entry.key).toBe('amendments:call-42');
