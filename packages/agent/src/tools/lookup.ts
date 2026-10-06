@@ -2,7 +2,6 @@ import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { policyCorpus } from '../policy-corpus.js';
 import { DocumentMetadataSchema } from './document-metadata.js';
-import { inListingOrder } from './section-metadata.js';
 
 // A policy-number prefix can match 25 documents with thousands of sections
 // between them ("1915(c)": 3,018 on the July 2026 graph).
@@ -51,8 +50,8 @@ export const lookupPolicy = createTool({
   execute: async (inputData) => ({
     documents: (await policyCorpus.lookupPolicy(inputData)).map((document) => ({
       ...document,
-      // Same order as getDocument, so its next page continues this list.
-      sections: inListingOrder(document.sections).slice(0, LOOKUP_SECTION_LIMIT),
+      // PolicyCorpus lists sections in one order, so getDocument's next page continues this list.
+      sections: document.sections.slice(0, LOOKUP_SECTION_LIMIT),
       sectionCount: document.sections.length,
       sectionsTruncated: document.sections.length > LOOKUP_SECTION_LIMIT,
     })),

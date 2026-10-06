@@ -3,6 +3,7 @@
 
 import { describe, expect, it, vi } from 'vitest';
 import { createNeo4jPolicyCorpus, SEARCH_SNIPPET_CHARS } from '../src/index.js';
+import { AUTHORITATIVE_POLICY_BOOST, NON_AUTHORITATIVE_POLICY_PENALTY } from '../src/internal/scoring-constants.js';
 import { createCorpus, queries, sectionHit } from './helpers/graph-fixtures.js';
 
 describe('searchSections', () => {
@@ -248,6 +249,56 @@ describe('searchSectionsDetailed', () => {
 
     expect(operationalGroups.some((docTypes) => docTypes.includes('fee_schedule'))).toBe(true);
     expect(operationalGroups.some((docTypes) => docTypes.includes('billing_guidance'))).toBe(true);
+  });
+
+  it('reaches beneficiary guidance by default search and keeps it below authoritative policy on coverage questions', async () => {
+    const sameText = {
+      sectionNumber: '1',
+      sectionTitle: 'Acupuncture',
+      documentTitle: 'Acupuncture',
+      content: 'Acupuncture is covered when the listed criteria are met.',
+      score: 0.9,
+    };
+    const { corpus, session, expectAllHandlersUsed } = createCorpus([
+      {
+        label: 'vector clinical',
+        match: queries.sectionVector('clinical_policy'),
+        result: {
+          records: [
+            sectionHit({ ...sameText, sectionId: 'sec-policy', documentType: 'clinical_policy', authorityTier: 'authoritative' }),
+          ],
+        },
+      },
+      {
+        label: 'vector beneficiary guidance',
+        match: queries.sectionVector('beneficiary_guidance'),
+        result: {
+          records: [
+            sectionHit({
+              ...sameText,
+              sectionId: 'sec-guidance',
+              documentType: 'beneficiary_guidance',
+              authorityTier: 'supporting',
+              answerRole: 'beneficiary_guidance',
+            }),
+          ],
+        },
+      },
+    ]);
+
+    const hits = await corpus.searchSectionsDetailed({ query: 'Is acupuncture covered by NC Medicaid?', topK: 5 });
+
+    const guidanceScans = session.run.mock.calls
+      .map(([, params]) => (params as Record<string, unknown> | undefined)?.docTypes)
+      .filter((docTypes): docTypes is string[] => Array.isArray(docTypes) && docTypes.includes('beneficiary_guidance'));
+    // Its own group: never folded into another family's per-group quota.
+    expect(guidanceScans.length).toBeGreaterThan(0);
+    expect(guidanceScans.every((docTypes) => docTypes.length === 1)).toBe(true);
+
+    expect(hits.map((hit) => hit.sectionId)).toEqual(['sec-policy', 'sec-guidance']);
+    // Identical text and raw score: the gap is the tier boost plus the tier penalty, nothing family-specific.
+    expect(hits[0].score - hits[1].score).toBeCloseTo(AUTHORITATIVE_POLICY_BOOST + NON_AUTHORITATIVE_POLICY_PENALTY, 10);
+    expectAllHandlersUsed();
   });
 
   it('prefers fee schedules for reimbursement questions', async () => {

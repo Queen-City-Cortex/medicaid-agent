@@ -15,7 +15,7 @@ import type {
   DocumentWithSectionsView,
   SectionView,
 } from '../types.js';
-import { combineText, normalizeSearchText, scorePhraseMatches, uniqueBy } from './base.js';
+import { combineText, compareSectionListing, normalizeSearchText, scorePhraseMatches, uniqueBy } from './base.js';
 import { buildAnswerRoute } from './answer-routing.js';
 import { DOCUMENT_SECTION_PICK_LIMIT } from './scoring-constants.js';
 
@@ -95,11 +95,13 @@ export function pickDocumentSectionsByTitle(
       const avoidScore = scorePhraseMatches(titleText, avoidTerms, 1);
       return {
         id: section.id,
+        number: section.number,
         score: includeScore * 2 - avoidScore,
       };
     })
     .filter((section) => section.score > 0)
-    .sort((left, right) => right.score - left.score)
+    // Tied title matches fill slots in listing order, whatever order the caller's sections are in.
+    .sort((left, right) => right.score - left.score || compareSectionListing(left, right))
     .slice(0, limit)
     .map((section) => section.id);
 }

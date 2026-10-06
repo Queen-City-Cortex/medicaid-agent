@@ -23,6 +23,9 @@ export const BASE_TYPE_GROUPS = [
   ['federal_regulation'],
   ['federal_statute'],
   ['bulletin', 'state_plan_amendment', 'waiver', 'provider_manual'],
+  // Last, so existing groups keep winning exact-score ties in the hit merge.
+  // A supporting-tier family: no boost or penalty is keyed on it.
+  ['beneficiary_guidance'],
 ];
 export const OPERATIONAL_TYPE_GROUPS = [
   ['fee_schedule'],

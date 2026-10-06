@@ -1,4 +1,4 @@
-import { inListingOrder, visibleSection } from './section-metadata.js';
+import { visibleSection } from './section-metadata.js';
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { policyCorpus } from '../policy-corpus.js';
@@ -92,7 +92,7 @@ export const getDocument = createTool({
     const document = await policyCorpus.getDocument(inputData.documentId);
     if (!document) return { document: null };
     const offset = inputData.sectionOffset ?? 0;
-    const page = inListingOrder(document.sections).slice(offset, offset + DOCUMENT_SECTION_LIMIT);
+    const page = document.sections.slice(offset, offset + DOCUMENT_SECTION_LIMIT);
     return {
       document: {
         ...document,

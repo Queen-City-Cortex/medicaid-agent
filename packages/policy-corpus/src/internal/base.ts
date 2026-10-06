@@ -36,6 +36,27 @@ export function includesPhrase(text: string, phrases: readonly string[]): boolea
   return phrases.some((phrase) => text.includes(phrase));
 }
 
+const naturalOrder = new Intl.Collator('en', { numeric: true });
+
+/**
+ * The graph stores no section position and returns a document's sections in
+ * no fixed order. This is the one listing order: section number in natural
+ * order ("2" before "10", "Attachment A" after the numbers), then the unique
+ * id, which also keeps unnumbered sections (`_s0`, `_s1`, …) first and in
+ * parse order.
+ */
+export function compareSectionListing(
+  left: { id: string; number: string | null },
+  right: { id: string; number: string | null },
+): number {
+  return (
+    naturalOrder.compare(left.number ?? '', right.number ?? '') ||
+    naturalOrder.compare(left.id, right.id) ||
+    // The collator treats "01" and "1" as equal; ids are unique, so this makes the order total.
+    (left.id < right.id ? -1 : left.id > right.id ? 1 : 0)
+  );
+}
+
 const REGEX_SPECIAL = /[.*+?^${}()|[\]\\]/g;
 
 export function escapeRegExp(value: string): string {

@@ -15,6 +15,7 @@ import type {
   SectionView,
   SessionRecordLike,
 } from '../types.js';
+import { compareSectionListing } from './base.js';
 import { MAX_CONTENT_CHARS, SEARCH_SNIPPET_CHARS } from './scoring-constants.js';
 
 export function retrievalDocumentMetadataReturn(alias: string): string {
@@ -104,7 +105,8 @@ export function mapDocumentSections(rawSections: Array<{
             title: section.title,
             chars,
           };
-    });
+    })
+    .sort(compareSectionListing);
 }
 
 export function buildSectionView(record: SessionRecordLike, content: string | null): SectionView {
