@@ -24,4 +24,25 @@ When something surprises you, tell the developer and update this file or the [pr
 - Keep source retirement evidence, availability accounting, and audit artifacts durable. A missing payload or DNS failure is not proof of withdrawal.
 - Work from current main for new tasks. Preserve pending files and Git refs before removing old branches or worktrees; see the [repository audit](docs/development/repository-audit-2026-10-02.md).
 
+## Code Review Rules
+
+### Answer release
+
+- Model-written prose must not reach the browser, the history endpoints or stored message rows unless the verifier passed that exact text. This includes observer notes, classifier reasons and raw tool or storage errors.
+  Safe path: text reaches the client only through the release gate in `packages/agent/src/answer-release.ts`, which rebuilds each stream chunk from named fields; a new chunk type or field is dropped unless it is added there deliberately.
+- Withholding is always acceptable; releasing unverified text never is. Flag any change that turns a failure into a pass, treats missing evidence as support, or lets the verifier judge text it was not shown.
+
+### Verifier bounds
+
+- Do not raise the verifier's 30-second deadline or its two-pass ceiling, and do not add verifier retries (issue #188).
+  Exception: a change for deep-research reports only, when it cites the owner's decision in issue #188.
+
+### Inference providers
+
+- Text that may contain user input goes only to OpenAI, Anthropic, Groq or Cerebras. Flag any other inference endpoint, and any new OpenAI call site built outside `packages/agent/src/model.ts`, where provider settings such as response storage are set once.
+
+### Ownership
+
+- Every route that reads or writes a conversation, research run or feedback row takes the user from the verified token, never from the request body or query. Flag a handler that trusts a client-supplied owner or thread id without checking the stored owner.
+
 See the [development guide](docs/development/README.md) for commands and the [operations index](docs/operations/README.md) for release procedures.
