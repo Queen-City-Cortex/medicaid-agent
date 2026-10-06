@@ -21,7 +21,15 @@ from pipeline.config import PARSED_DATA_DIR
 # needs the replacement tuple.
 CFR_SUPERSESSIONS: dict[tuple[int, int], CfrSupersession] = load_cfr_supersessions()
 
-_CONTEXTUAL_DOCUMENT_REF_TYPES = {"cross_document", "spa", "waiver"}
+# A section reference names another policy only through one of these literal
+# connectives, matched against the whole text between the two citations:
+# "Section 5.0 of clinical coverage policy 10A" and "Clinical Coverage Policy
+# 3K-2, Section 5.1". Proximity alone bound revision-table rows and unrelated
+# sentences to whichever policy happened to be mentioned nearby.
+_SECTION_OF_POLICY_RE = re.compile(r"\s+of\s+(?:the\s+)?(?:NC\s+)?(?:Medicaid\s+)?")
+_POLICY_THEN_SECTION_RE = re.compile(r",\s*")
+
+_WAIVER_AUTHORITY_RE = re.compile(r"1915\s*\(([a-zA-Z])\)")
 
 _CANONICAL_DOCUMENT_ORDER = (
     "ORDER BY "
@@ -141,6 +149,15 @@ def _section_result(node_id: str) -> dict:
     }
 
 
+def _unresolved_result() -> dict:
+    return {
+        "resolved": False,
+        "target_node_id": None,
+        "target_type": None,
+        "edge_type": None,
+    }
+
+
 def _find_canonical_document(session, match_clause: str, params: dict) -> str | None:
     """Run a document MATCH clause with the canonical ordering; return d.id or None."""
     result = session.run(
@@ -169,7 +186,7 @@ def _find_section_by_number(session, doc_id: str, section_number: str) -> str | 
     return record["s.id"] if record else None
 
 
-def _resolve_cross_document(session, ref, source_document_id, preferred_document_id):
+def _resolve_cross_document(session, ref, source_document_id, bound_document_id):
     # 1. Exact match on policy_number
     doc_id = _find_canonical_document(
         session,
@@ -190,40 +207,35 @@ def _resolve_cross_document(session, ref, source_document_id, preferred_document
     if doc_id:
         return _document_result(doc_id)
 
-    # 3. Prefix match for parent references: "5A" → "5A-1", "3H" → "3H-1"
-    doc_id = _find_canonical_document(
-        session,
-        "MATCH (d:Document) "
-        "WHERE d.policy_number STARTS WITH $target "
-        "AND d.document_type = 'clinical_policy' ",
-        {"target": ref.target_id},
-    )
-    if doc_id:
-        return _document_result(doc_id)
-
+    # A family citation ("11A", "5A") names no single sibling, so it stays
+    # unresolved rather than being linked to one of them.
     return None
 
 
-def _resolve_section(session, ref, source_document_id, preferred_document_id):
-    target_documents = []
-    if preferred_document_id and preferred_document_id != source_document_id:
-        target_documents.append(preferred_document_id)
-    target_documents.append(source_document_id)
-
-    for target_document_id in target_documents:
+def _resolve_section(session, ref, source_document_id, bound_document_id):
+    # A reference bound to another policy resolves there or not at all, and by
+    # exact section number only: the title fallback would match "3.1.1" inside
+    # that policy's "5.3.1.1".
+    if bound_document_id and bound_document_id != source_document_id:
         section_id = _resolve_section_in_document(
             session,
-            target_document_id,
+            bound_document_id,
+            ref.target_id,
+        )
+    else:
+        section_id = _resolve_section_in_document(
+            session,
+            source_document_id,
             ref.target_id,
             title_hint=ref.target_id,
         )
-        if section_id:
-            return _section_result(section_id)
+    if section_id:
+        return _section_result(section_id)
 
     return None
 
 
-def _resolve_attachment(session, ref, source_document_id, preferred_document_id):
+def _resolve_attachment(session, ref, source_document_id, bound_document_id):
     section_num = f"Attachment {ref.target_id}"
     section_id = _resolve_section_in_document(
         session,
@@ -237,7 +249,7 @@ def _resolve_attachment(session, ref, source_document_id, preferred_document_id)
     return None
 
 
-def _resolve_spa(session, ref, source_document_id, preferred_document_id):
+def _resolve_spa(session, ref, source_document_id, bound_document_id):
     candidates = _spa_candidates(ref.target_id)
     doc_id = _find_canonical_document(
         session,
@@ -253,7 +265,7 @@ def _resolve_spa(session, ref, source_document_id, preferred_document_id):
     return None
 
 
-def _resolve_federal(session, ref, source_document_id, preferred_document_id):
+def _resolve_federal(session, ref, source_document_id, bound_document_id):
     # Handle SSA-Title references (LLM outputs like "SSA-Title-19")
     ssa_match = re.match(r"^SSA-Title-(\d+|XIX|XXI?)$", ref.target_id, re.IGNORECASE)
     if ssa_match:
@@ -291,7 +303,7 @@ def _resolve_federal(session, ref, source_document_id, preferred_document_id):
     return None
 
 
-def _resolve_ssa_section(session, ref, source_document_id, preferred_document_id):
+def _resolve_ssa_section(session, ref, source_document_id, bound_document_id):
     for title_num in [19, 21]:
         doc_id = federal_statute_doc_id(title_num)
         section_id = _find_section_by_number(session, doc_id, ref.target_id)
@@ -301,26 +313,25 @@ def _resolve_ssa_section(session, ref, source_document_id, preferred_document_id
     return None
 
 
-def _resolve_waiver(session, ref, source_document_id, preferred_document_id):
-    # Normalize: "1915 (c)" → "1915(c)", "1915(C)" → "1915(c)"
-    target = re.sub(
-        r"1915\s*\(([a-zA-Z])\)",
-        lambda m: f"1915({m.group(1).lower()})",
-        ref.target_id,
-    )
-    doc_id = _find_canonical_document(
-        session,
-        "MATCH (d:Document {policy_number: $pn}) ",
-        {"pn": target},
-    )
-    if doc_id:
-        return _document_result(doc_id)
+def _resolve_waiver(session, ref, source_document_id, bound_document_id):
+    # "1915(c)" cites the statutory authority, not one of the waiver documents
+    # that share it as a policy number. "1915 (C)" → "1915(c)"; the parent
+    # section stands in when the statute was loaded without that subsection.
+    match = _WAIVER_AUTHORITY_RE.search(ref.target_id)
+    if not match:
+        return None
+
+    doc_id = federal_statute_doc_id(19)
+    for section_number in (f"1915({match.group(1).lower()})", "1915"):
+        section_id = _find_section_by_number(session, doc_id, section_number)
+        if section_id:
+            return _section_result(section_id)
 
     return None
 
 
 # Per-ref_type resolution handlers, each (session, ref, source_document_id,
-# preferred_document_id) -> resolution dict | None (None means unresolved).
+# bound_document_id) -> resolution dict | None (None means unresolved).
 _REF_TYPE_HANDLERS = {
     "cross_document": _resolve_cross_document,
     "section": _resolve_section,
@@ -336,10 +347,13 @@ _REF_TYPE_HANDLERS = {
 def resolve_reference(
     ref: ReferenceMatch,
     source_document_id: str,
-    preferred_document_id: str | None = None,
+    bound_document_id: str | None = None,
 ) -> dict:
     """
     Attempt to resolve a reference to a graph node.
+
+    ``bound_document_id`` is the policy a section reference literally names;
+    such a reference resolves in that policy only.
 
     Returns a dict with resolution result:
     {
@@ -352,16 +366,11 @@ def resolve_reference(
     handler = _REF_TYPE_HANDLERS.get(ref.ref_type)
     if handler:
         with get_session() as session:
-            resolution = handler(session, ref, source_document_id, preferred_document_id)
+            resolution = handler(session, ref, source_document_id, bound_document_id)
             if resolution:
                 return resolution
 
-    return {
-        "resolved": False,
-        "target_node_id": None,
-        "target_type": None,
-        "edge_type": None,
-    }
+    return _unresolved_result()
 
 
 def _resolve_reference_edge(
@@ -371,15 +380,10 @@ def _resolve_reference_edge(
     stats: dict,
     unresolved: list[dict],
     *,
-    preferred_document_id: str | None = None,
     resolution: dict | None = None,
 ) -> ReferenceEdge | None:
     """Resolve a single reference and return the edge payload if successful."""
-    resolution = resolution or resolve_reference(
-        ref,
-        document_id,
-        preferred_document_id=preferred_document_id,
-    )
+    resolution = resolution or resolve_reference(ref, document_id)
 
     if resolution["resolved"]:
         # Skip self-references (section linking back to its own document)
@@ -410,34 +414,29 @@ def _resolve_reference_edge(
         return None
 
 
-def _pick_contextual_target_document_id(
+def _bound_policy_index(
     ref_index: int,
     refs: list[ReferenceMatch],
-    contextual_documents: dict[int, str],
-) -> str | None:
+    text: str,
+) -> int | None:
+    """Index of the policy citation a section reference is literally joined to."""
     ref = refs[ref_index]
     if ref.ref_type != "section":
         return None
 
-    candidates: list[tuple[int, int, int, str]] = []
-    for other_index, document_id in contextual_documents.items():
-        if other_index == ref_index:
+    for other_index, other in enumerate(refs):
+        if other.ref_type != "cross_document":
             continue
+        if other.start >= ref.end and _SECTION_OF_POLICY_RE.fullmatch(
+            text, ref.end, other.start
+        ):
+            return other_index
+        if other.end <= ref.start and _POLICY_THEN_SECTION_RE.fullmatch(
+            text, other.end, ref.start
+        ):
+            return other_index
 
-        other = refs[other_index]
-        precedes = 0 if other.end <= ref.start else 1
-        distance = (
-            ref.start - other.end
-            if other.end <= ref.start
-            else abs(other.start - ref.end)
-        )
-        candidates.append((precedes, distance, abs(other_index - ref_index), document_id))
-
-    if not candidates:
-        return None
-
-    candidates.sort()
-    return candidates[0][3]
+    return None
 
 
 def extract_and_resolve_all(llm_assist: bool = False) -> dict:
@@ -470,29 +469,36 @@ def extract_and_resolve_all(llm_assist: bool = False) -> dict:
         refs = extract_references(content)
         stats["extracted"] += len(refs)
 
-        precomputed_resolutions: dict[int, dict] = {}
-        contextual_documents: dict[int, str] = {}
+        resolutions: dict[int, dict] = {
+            ref_index: resolve_reference(ref, document_id)
+            for ref_index, ref in enumerate(refs)
+            if ref.ref_type == "cross_document"
+        }
         for ref_index, ref in enumerate(refs):
-            if ref.ref_type in _CONTEXTUAL_DOCUMENT_REF_TYPES:
-                resolution = resolve_reference(ref, document_id)
-                precomputed_resolutions[ref_index] = resolution
-                if resolution["resolved"] and resolution["target_type"] == "document":
-                    contextual_documents[ref_index] = resolution["target_node_id"]
+            policy_index = _bound_policy_index(ref_index, refs, content)
+            if policy_index is not None:
+                # The policy named beside the section decides the target. If
+                # that policy is unknown the reference is unresolved; falling
+                # back to the citing document would invent a link.
+                policy = resolutions[policy_index]
+                resolutions[ref_index] = (
+                    resolve_reference(
+                        ref,
+                        document_id,
+                        bound_document_id=policy["target_node_id"],
+                    )
+                    if policy["resolved"]
+                    else _unresolved_result()
+                )
 
         for ref_index, ref in enumerate(refs):
-            preferred_document_id = _pick_contextual_target_document_id(
-                ref_index,
-                refs,
-                contextual_documents,
-            )
             edge = _resolve_reference_edge(
                 ref,
                 section_id,
                 document_id,
                 stats,
                 unresolved,
-                preferred_document_id=preferred_document_id,
-                resolution=precomputed_resolutions.get(ref_index),
+                resolution=resolutions.get(ref_index),
             )
             if edge:
                 resolved_edges.append(edge)
@@ -569,7 +575,7 @@ def extract_and_resolve_all(llm_assist: bool = False) -> dict:
         stats["llm_unresolved"] = llm_stats["unresolved"]
         unresolved.extend(llm_unresolved)
 
-    graph_writer.merge_reference_edges(resolved_edges)
+    graph_writer.rebuild_reference_edges(resolved_edges)
 
     # Save unresolved references
     unresolved_path = PARSED_DATA_DIR.parent / "unresolved-references.json"

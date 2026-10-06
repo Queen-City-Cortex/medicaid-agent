@@ -124,6 +124,13 @@ MATCH (next:Section {id: pair.next_id})
 MERGE (prev)-[:NEXT_SIBLING]->(next)
 """
 
+# Reference resolution is recomputed from section text on every run, so edges a
+# corrected resolver no longer produces must not survive a re-merge.
+DELETE_REGEX_REFERENCE_EDGES = """
+MATCH (:Section)-[r:REFERENCES|REFERENCES_DOCUMENT {extraction_method: 'regex'}]->()
+DELETE r
+"""
+
 MERGE_REFERENCES_BATCH = """
 UNWIND $edges AS edge
 MATCH (src:Section {id: edge.source_id})

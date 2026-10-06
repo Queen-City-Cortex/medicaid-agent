@@ -285,7 +285,7 @@ def test_upsert_document_bundle_deletes_all_existing_sections_when_parse_has_no_
     assert session.calls[1][1] == {"doc_id": "doc:empty", "section_ids": []}
 
 
-def test_merge_reference_edges_batches_by_edge_type():
+def test_rebuild_reference_edges_clears_regex_edges_before_merging_by_edge_type():
     session = FakeSession()
 
     @contextmanager
@@ -294,7 +294,7 @@ def test_merge_reference_edges_batches_by_edge_type():
 
     writer = CorpusGraphWriter(fake_session_factory)
 
-    count = writer.merge_reference_edges([
+    count = writer.rebuild_reference_edges([
         ReferenceEdge(
             source_id="sec:1",
             target_id="sec:2",
@@ -315,9 +315,20 @@ def test_merge_reference_edges_batches_by_edge_type():
 
     assert count == 2
     assert [query for query, _ in session.calls] == [
+        queries.DELETE_REGEX_REFERENCE_EDGES,
         queries.MERGE_REFERENCES_BATCH,
         queries.MERGE_REFERENCES_DOCUMENT_BATCH,
     ]
+    assert session.commits == 1
+    assert "extraction_method: 'regex'" in queries.DELETE_REGEX_REFERENCE_EDGES
+
+
+def test_rebuild_reference_edges_clears_stale_regex_edges_when_nothing_resolves():
+    session = FakeSession()
+    writer = _writer_for(session)
+
+    assert writer.rebuild_reference_edges([]) == 0
+    assert [query for query, _ in session.calls] == [queries.DELETE_REGEX_REFERENCE_EDGES]
 
 
 def test_upsert_document_bundle_commits_once_on_success():

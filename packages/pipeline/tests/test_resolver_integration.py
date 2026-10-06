@@ -211,7 +211,7 @@ def test_resolve_reference_across_mixed_corpora():
             end=45,
         ),
         source_document_id=SOURCE_DOC_ID,
-        preferred_document_id=CLINICAL_DOC_ID,
+        bound_document_id=CLINICAL_DOC_ID,
     )
     federal_regulation = resolve_reference(
         ReferenceMatch(

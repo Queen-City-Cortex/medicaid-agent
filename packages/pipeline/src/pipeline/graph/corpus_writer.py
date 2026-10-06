@@ -152,10 +152,13 @@ class CorpusGraphWriter:
             raise ValueError("Cannot mutate an annotated release graph")
         tx.run(queries.INVALIDATE_JEV_ANNOTATION)
 
-    def merge_reference_edges(self, edges: list[ReferenceEdge]) -> int:
-        if not edges:
-            return 0
+    def rebuild_reference_edges(self, edges: list[ReferenceEdge]) -> int:
+        """Drop every regex-origin reference edge, then merge ``edges``.
 
+        One transaction, so a resolver change converges on re-run without
+        leaving the graph briefly stripped of references. LLM-origin edges are
+        kept: that phase is optional and its output is not reproducible.
+        """
         section_edges = [
             {
                 "source_id": edge.source_id,
@@ -179,13 +182,14 @@ class CorpusGraphWriter:
         ]
 
         def _work(tx: ManagedTransaction) -> None:
+            tx.run(queries.DELETE_REGEX_REFERENCE_EDGES)
             for batch in chunked(section_edges, GRAPH_BATCH_SIZE):
                 tx.run(queries.MERGE_REFERENCES_BATCH, {"edges": batch})
             for batch in chunked(document_edges, GRAPH_BATCH_SIZE):
                 tx.run(queries.MERGE_REFERENCES_DOCUMENT_BATCH, {"edges": batch})
 
         with self._session_factory() as session:
-            self._execute_write(session, _work, "merge_reference_edges")
+            self._execute_write(session, _work, "rebuild_reference_edges")
 
         return len(edges)
 
