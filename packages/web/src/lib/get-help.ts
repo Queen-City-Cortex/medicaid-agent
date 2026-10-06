@@ -4,7 +4,7 @@
 // beside it, then update the date below. Never fill a field from memory.
 //
 // Last verified: 2026-10-05 (each field read from its source page that day).
-// Owner review: pending. See the SAFE-12 card before relying on these.
+// Owner review: approved 2026-10-06 (SAFE-12, issue #241).
 export const GET_HELP_LAST_VERIFIED = '2026-10-05';
 
 /** Public page that shows the full block; linked beside Terms and Privacy. */
