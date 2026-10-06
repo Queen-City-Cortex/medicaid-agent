@@ -1,7 +1,5 @@
 'use client';
 
-import { WITHHELD_ANSWER, UNVERIFIED_HISTORY } from '@nc-medicaid/contracts';
-import { extractReleaseState } from '@/lib/message-verification';
 import { isValidElement, useState, type ReactNode, type RefObject } from 'react';
 import ReactMarkdown from 'react-markdown';
 import type { UIMessage } from 'ai';
@@ -23,6 +21,7 @@ import {
   isTextPart,
   isToolPart,
   isTripwirePart,
+  releasedAnswer,
   resolveCitedSources,
   type CitationResolver,
   type MessageSource,
@@ -170,10 +169,8 @@ function AssistantMessage({
   onClearRating: (messageId: string) => void;
   onComment: (messageId: string, comment: string) => void;
 }) {
-  const release = extractReleaseState(msg);
+  const { release, parts } = releasedAnswer(msg);
   const canShowAnswer = release?.status === 'passed' || release?.status === 'corrected';
-  const parts = (msg.parts ?? []).filter(p => p.type !== 'text' || canShowAnswer);
-  if (release?.status === 'withheld') parts.push({ type: 'text', text: release.reason === 'unverified_history' ? UNVERIFIED_HISTORY : WITHHELD_ANSWER });
   const lastToolIndex = parts.reduce((latest, part, index) => (isToolPart(part) ? index : latest), -1);
   const finalAnswerText = getTrailingAssistantText({ ...msg, parts });
   const visibleParts = parts
@@ -490,8 +487,10 @@ export function MessageList({ messages, isStreaming, status, onRerun, wasStopped
             {msg.role === 'user' && (
               <div className="flex justify-end mb-6 animate-in fade-in slide-in-from-bottom-2 duration-200">
                 {/* The user's question reads as ink on paper — a right-aligned
-                    filled block, distinct from the full-width answer document. */}
-                <div data-testid="user-message" className="bg-primary text-primary-foreground rounded-xl rounded-tr-sm px-5 py-3 max-w-[80%] shadow-[0_1px_2px_rgba(0,0,0,0.12)]">
+                    filled block, distinct from the full-width answer document.
+                    Browsers print no backgrounds by default, so on paper the
+                    block becomes an outline with ink-coloured text. */}
+                <div data-testid="user-message" className="bg-primary text-primary-foreground rounded-xl rounded-tr-sm px-5 py-3 max-w-[80%] shadow-[0_1px_2px_rgba(0,0,0,0.12)] print:border print:border-border print:bg-transparent print:text-foreground print:shadow-none">
                   {/* pre-wrap keeps the user's line breaks (attorneys paste
                       multi-line fact patterns); overflow-wrap:anywhere stops a
                       long pasted URL or ID from blowing out the bubble. */}

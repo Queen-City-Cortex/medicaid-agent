@@ -157,22 +157,32 @@ export function resolveCitedSources(
 // ─── Clipboard text ──────────────────────────────────────────────────────────
 
 /**
+ * Rewrite each inline markdown link of an answer. `render` gets the link's
+ * footnote number in `orderedSources`, or undefined when it matches no row.
+ */
+export function mapCitationLinks(
+  answerText: string,
+  orderedSources: MessageSource[],
+  render: (label: string, url: string, sourceNumber: number | undefined) => string,
+): string {
+  const resolve = buildCitationResolver(orderedSources);
+  return answerText.replace(MARKDOWN_LINK_RE, (_match, label: string, url: string) =>
+    // Emphasis markers are dropped for the lookup only, as on screen.
+    render(label, url, resolve(label.replace(/[*`]/g, ''), url)));
+}
+
+/**
  * Render the answer for the clipboard: inline markdown citations become
  * "label [n]" footnote references and a numbered source list is appended.
  * Raw markdown link syntax pasted into an email reads as noise to the
- * case managers and attorneys this is built for.
+ * case managers and attorneys this is built for. A link that matches no
+ * source keeps its address, as "label (url)".
  */
 export function buildAnswerClipboardText(answerText: string, orderedSources: MessageSource[]): string {
   if (!answerText.trim()) return answerText;
-  const resolve = buildCitationResolver(orderedSources);
 
-  const body = answerText.replace(
-    MARKDOWN_LINK_RE,
-    (_match, label: string, url: string) => {
-      const sourceNumber = resolve(label, url);
-      return sourceNumber !== undefined ? `${label} [${sourceNumber}]` : label;
-    },
-  );
+  const body = mapCitationLinks(answerText, orderedSources, (label, url, sourceNumber) =>
+    sourceNumber !== undefined ? `${label} [${sourceNumber}]` : `${label} (${url})`);
 
   if (orderedSources.length === 0) return body;
 

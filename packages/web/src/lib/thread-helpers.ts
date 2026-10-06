@@ -115,19 +115,80 @@ export function buildThreadDisplayTitles(
 
 // ─── Thread export ───────────────────────────────────────────────────────────
 
-import { convertThreadMessageToUIMessage } from '@/lib/parse-message';
+import type { UIMessage } from 'ai';
+import { getMessageCreatedAt } from '@/lib/parse-message';
 import {
-  buildAnswerClipboardText,
   extractMessageSources,
   getTrailingAssistantText,
+  isTextPart,
+  isToolPart,
+  mapCitationLinks,
+  releasedAnswer,
   resolveCitedSources,
+  type MessageSource,
 } from '@/lib/message-parts';
+
+function sourceLines(sources: MessageSource[], firstNumber: number): string[] {
+  return sources.map((source, i) => `${firstNumber + i}. [${source.label}](${source.url})`);
+}
+
+/** How the answer was checked, and when it was written when that is known. */
+function statusLine(status: string, msg: UIMessage): string {
+  const createdAt = getMessageCreatedAt(msg);
+  const date = createdAt
+    ? new Date(createdAt).toLocaleString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZoneName: 'short' })
+    : null;
+  return `*${date ? `${status} · ${date}` : status}*`;
+}
+
+/**
+ * One assistant turn, as the screen shows it: a released answer with its
+ * citation links, footnote numbers and source list; a withheld one as its
+ * notice alone; a turn that never produced an answer as a line saying so.
+ */
+function answerMarkdown(msg: UIMessage): string[] {
+  const { release, parts } = releasedAnswer(msg);
+  const text = getTrailingAssistantText({ ...msg, parts }).trim();
+
+  if (release?.status === 'withheld') {
+    return ['## Answer withheld', '', text, '', statusLine('Withheld: not verified', msg), ''];
+  }
+  if (!text) {
+    return parts.some(isToolPart) ? ['## No answer', '', 'This answer ended before it was finished.', ''] : [];
+  }
+
+  const { ordered, citedCount } = resolveCitedSources(msg, extractMessageSources(msg));
+  const lines = [
+    '## Answer',
+    '',
+    mapCitationLinks(text, ordered, (label, url, sourceNumber) =>
+      sourceNumber !== undefined ? `[${label}](${url}) [${sourceNumber}]` : `[${label}](${url})`),
+    '',
+  ];
+  if (ordered.length > 0) {
+    // Cited rows first, then the rows that were only consulted, numbered
+    // straight through like the Sources panel.
+    const split = citedCount > 0 && citedCount < ordered.length ? citedCount : ordered.length;
+    lines.push('**Sources**', '', ...sourceLines(ordered.slice(0, split), 1), '');
+    if (split < ordered.length) {
+      lines.push('Also consulted, not cited in the answer:', '', ...sourceLines(ordered.slice(split), split + 1), '');
+    }
+  }
+  lines.push(
+    statusLine(release?.status === 'corrected'
+      ? 'Corrected and verified against cited sources'
+      : 'Verified against cited sources', msg),
+    '',
+  );
+  return lines;
+}
 
 /**
  * Render a thread as a readable Markdown document — the deliverable a
- * legal-aid attorney or case manager puts in a case file. Each answer keeps
- * its inline citations as numbered footnotes with a source list, matching
- * the in-app Sources panel.
+ * legal-aid attorney or case manager puts in a case file. Takes the turns as
+ * the screen shows them (`coalesceThreadMessages` output), so each answer
+ * keeps its citation links, the footnote numbers and source list of the
+ * in-app Sources panel, and its verification status.
  */
 export function buildThreadMarkdown({
   title,
@@ -136,7 +197,7 @@ export function buildThreadMarkdown({
 }: {
   title: string;
   exportedAt: Date;
-  messages: Array<{ id?: string; role: string; content: unknown }>;
+  messages: UIMessage[];
 }): string {
   const lines: string[] = [
     `# ${title.trim() || 'Conversation'}`,
@@ -145,28 +206,19 @@ export function buildThreadMarkdown({
     '',
   ];
 
-  for (const raw of messages) {
-    const msg = convertThreadMessageToUIMessage(raw);
-    if (!msg) continue;
-
+  for (const msg of messages) {
     if (msg.role === 'user') {
       const text = (msg.parts ?? [])
-        .filter((part): part is { type: 'text'; text: string } => part.type === 'text')
+        .filter(isTextPart)
         .map((part) => part.text)
         .join('\n\n')
         .trim();
       if (text) {
         lines.push('## Question', '', text, '');
       }
-      continue;
+    } else if (msg.role === 'assistant') {
+      lines.push(...answerMarkdown(msg));
     }
-
-    if (msg.role !== 'assistant') continue;
-    const answer = getTrailingAssistantText(msg).trim();
-    if (!answer) continue;
-
-    const { ordered } = resolveCitedSources(msg, extractMessageSources(msg));
-    lines.push('## Answer', '', buildAnswerClipboardText(answer, ordered), '');
   }
 
   return lines.join('\n');

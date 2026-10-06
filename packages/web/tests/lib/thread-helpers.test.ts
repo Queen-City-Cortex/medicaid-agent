@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
+import { UNVERIFIED_HISTORY, VERIFICATION_PART, WITHHELD_ANSWER } from '@nc-medicaid/contracts';
+import { coalesceThreadMessages } from '../../src/lib/parse-message';
 import {
   buildThreadDisplayTitles,
+  buildThreadMarkdown,
   deriveThreadTitleFromMessages,
   deriveThreadTitleFromText,
   formatDate,
@@ -227,5 +230,127 @@ describe('buildThreadDisplayTitles', () => {
     const threads = [makeThread('t1')];
     const titles = buildThreadDisplayTitles(threads, {});
     expect(titles.get('t1')).toBe('New conversation');
+  });
+});
+
+describe('buildThreadMarkdown', () => {
+  const POLICY_1F = 'https://medicaid.ncdhhs.gov/1f/download';
+  const POLICY_3A = 'https://medicaid.ncdhhs.gov/3a/download';
+  const DRAFT = 'DRAFT: coverage is unlimited.';
+  const verification = (status: string) => ({ type: VERIFICATION_PART, data: { status, passCount: 1 } });
+  const search = (id: string, sections: unknown[]) => ({
+    type: 'tool-invocation',
+    toolInvocation: { toolCallId: id, toolName: 'searchSections', state: 'result', args: {}, result: { sections } },
+  });
+  const section = (policyNumber: string, sectionNumber: string, url: string) =>
+    ({ id: `${policyNumber}-${sectionNumber}`, title: 'Section', sectionNumber, policyNumber, url });
+  const row = (id: string, role: string, minute: number, parts: unknown[]) => ({
+    id,
+    role,
+    // Midday UTC, so the date reads the same in every time zone.
+    createdAt: `2026-06-22T12:${String(minute).padStart(2, '0')}:00Z`,
+    content: { format: 2, parts },
+  });
+
+  // Stored the way the agent stores turns: the answer row is written before
+  // the tool-call row that holds its sources.
+  const stored = [
+    row('u1', 'user', 0, [{ type: 'text', text: 'Is chiropractic care covered?' }]),
+    row('a1', 'assistant', 1, [
+      { type: 'text', text: `Yes, up to 8 visits a year [Policy 1F § 5.6](${POLICY_1F}). See the [provider portal](https://example.org/portal).` },
+      verification('passed'),
+    ]),
+    row('t1', 'assistant', 2, [search('c1', [section('3A', '2.1', POLICY_3A), section('1F', '5.6', POLICY_1F)])]),
+
+    row('u2', 'user', 10, [{ type: 'text', text: 'Is prior approval needed?' }]),
+    row('t2', 'assistant', 11, [search('c2', [section('1F', '5.6', POLICY_1F)])]),
+    row('a2', 'assistant', 12, [
+      { type: 'text', text: `Not for the first visits [Policy 1F § 5.6](${POLICY_1F}).` },
+      verification('corrected'),
+    ]),
+
+    row('u3', 'user', 20, [{ type: 'text', text: 'Are home visits covered?' }]),
+    row('t3', 'assistant', 21, [search('c3', [section('1F', '5.6', POLICY_1F)])]),
+    row('a3', 'assistant', 22, [{ type: 'text', text: DRAFT }, verification('withheld')]),
+
+    // A row with no verification record: stored before answers were checked.
+    row('u4', 'user', 30, [{ type: 'text', text: 'What about acupuncture?' }]),
+    row('a4', 'assistant', 31, [{ type: 'text', text: `${DRAFT} Second draft.` }]),
+  ];
+
+  const markdown = buildThreadMarkdown({
+    title: 'Chiropractic coverage',
+    exportedAt: new Date('2026-06-23T12:00:00Z'),
+    messages: coalesceThreadMessages(stored),
+  });
+  /** The export from one question up to the next. */
+  const turn = (question: string) => {
+    const from = markdown.indexOf(question);
+    const next = markdown.indexOf('## Question', from);
+    return markdown.slice(from, next === -1 ? undefined : next);
+  };
+
+  it('keeps each citation link, numbers it, and lists the sources under the same numbers', () => {
+    const cited = turn('Is chiropractic care covered?');
+
+    expect(cited).toContain('## Answer');
+    // The cited section is source 1 although the search returned it second.
+    expect(cited).toContain(`[Policy 1F § 5.6](${POLICY_1F}) [1]`);
+    expect(cited).toContain(`1. [Policy 1F § 5.6](${POLICY_1F})`);
+    expect(cited).toContain(`2. [Policy 3A § 2.1](${POLICY_3A})`);
+    expect(cited.indexOf('**Sources**')).toBeLessThan(cited.indexOf('Also consulted'));
+    expect(cited.indexOf('Also consulted')).toBeLessThan(cited.indexOf('2. [Policy 3A'));
+  });
+
+  it('keeps the URL of a link that matches no source, without a number', () => {
+    const cited = turn('Is chiropractic care covered?');
+
+    expect(cited).toContain('[provider portal](https://example.org/portal).');
+    expect(cited).not.toContain('[provider portal](https://example.org/portal) [');
+  });
+
+  it('states how each answer was verified, and when', () => {
+    expect(turn('Is chiropractic care covered?')).toContain('*Verified against cited sources · June 22, 2026');
+    expect(turn('Is prior approval needed?')).toContain('*Corrected and verified against cited sources · June 22, 2026');
+  });
+
+  it('exports a withheld answer as its notice, with no answer heading, draft text or sources', () => {
+    const withheld = turn('Are home visits covered?');
+
+    expect(withheld).toContain('## Answer withheld');
+    expect(withheld).toContain(WITHHELD_ANSWER);
+    expect(withheld).toContain('*Withheld: not verified · June 22, 2026');
+    expect(withheld).not.toMatch(/^## Answer$/m);
+    expect(withheld).not.toContain('Sources');
+    expect(withheld).not.toContain(POLICY_1F);
+  });
+
+  it('exports an unverified stored row as its notice', () => {
+    const unverified = turn('What about acupuncture?');
+
+    expect(unverified).toContain('## Answer withheld');
+    expect(unverified).toContain(UNVERIFIED_HISTORY);
+    expect(unverified).not.toMatch(/^## Answer$/m);
+  });
+
+  it('never writes draft text', () => {
+    expect(markdown).not.toContain('DRAFT');
+    expect(markdown.match(/^## Answer$/gm)).toHaveLength(2);
+    expect(markdown.match(/^## Answer withheld$/gm)).toHaveLength(2);
+  });
+
+  it('says so when a turn ended without an answer', () => {
+    const unfinished = buildThreadMarkdown({
+      title: 'Unfinished',
+      exportedAt: new Date('2026-06-23T12:00:00Z'),
+      messages: coalesceThreadMessages([
+        row('u1', 'user', 0, [{ type: 'text', text: 'Is dental covered?' }]),
+        row('t1', 'assistant', 1, [search('c1', [section('1F', '5.6', POLICY_1F)])]),
+      ]),
+    });
+
+    expect(unfinished).toContain('## No answer');
+    expect(unfinished).toContain('This answer ended before it was finished.');
+    expect(unfinished).not.toMatch(/^## Answer$/m);
   });
 });

@@ -7,6 +7,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { ChatInput } from '@/components/ChatInput';
 import { DeepResearchView } from '@/components/DeepResearchView';
 import { DisclaimerNotice } from '@/components/DisclaimerNotice';
+import { EarlierMessages } from '@/components/EarlierMessages';
 import { EmptyState } from '@/components/EmptyState';
 import { MessageList } from '@/components/MessageList';
 import { ScrollToBottom } from '@/components/ScrollToBottom';
@@ -99,6 +100,8 @@ export default function ChatPage() {
     stop,
     wasStopped,
     ensureThreadExists,
+    history,
+    loadEarlierMessages,
     handleSelectThread,
     handleNewThread,
   } = useChatThread({
@@ -287,6 +290,8 @@ export default function ChatPage() {
                 corpusStatus={corpusStatus}
               />
             )}
+
+            <EarlierMessages status={history} hasMessages={messages.length > 0} onLoad={loadEarlierMessages} />
 
             <MessageList
               messages={messages}

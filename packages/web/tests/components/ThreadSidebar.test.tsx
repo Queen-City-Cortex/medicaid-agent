@@ -252,6 +252,102 @@ describe('ThreadSidebar', () => {
     expect(await screen.findByText('Failed to duplicate thread')).toBeInTheDocument();
   });
 
+  it('asks for the ten oldest messages when deriving a title', async () => {
+    listMemoryThreads.mockResolvedValue({
+      threads: [{ id: 'thread-untitled', title: '', updatedAt: '2026-04-13T12:00:00Z' }],
+    });
+    listMessages.mockResolvedValue({
+      messages: [{ id: 'm1', role: 'user', content: 'What is EPSDT?' }],
+    });
+
+    render(
+      <ThreadSidebar
+        currentThreadId="other-thread"
+        resourceId="user-1"
+        onSelectThread={() => {}}
+        onNewThread={() => {}}
+      />,
+    );
+
+    expect(await screen.findByText('What is EPSDT?')).toBeInTheDocument();
+    expect(listMessages).toHaveBeenCalledWith({
+      page: 0,
+      perPage: 10,
+      orderBy: { field: 'createdAt', direction: 'ASC' },
+    });
+  });
+
+  describe('export of a thread longer than one page', () => {
+    const stored = Array.from({ length: 101 }, (_, i) => ({
+      id: `m${i}`,
+      role: 'user',
+      content: `question number ${i}.`,
+      createdAt: new Date(Date.UTC(2026, 3, 23, 12, 0, i)).toISOString(),
+    }));
+
+    async function exportThread() {
+      const user = userEvent.setup();
+      getThread.mockResolvedValue({ id: 'thread-1', title: 'My conversation' });
+      const createObjectURL = vi.fn((_blob: Blob) => 'blob:mock-url');
+      const originalCreate = URL.createObjectURL;
+      const originalRevoke = URL.revokeObjectURL;
+      URL.createObjectURL = createObjectURL as unknown as typeof URL.createObjectURL;
+      URL.revokeObjectURL = vi.fn() as unknown as typeof URL.revokeObjectURL;
+      const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+      const restore = () => {
+        URL.createObjectURL = originalCreate;
+        URL.revokeObjectURL = originalRevoke;
+        clickSpy.mockRestore();
+      };
+      render(
+        <ThreadSidebar
+          currentThreadId="other-thread"
+          resourceId="user-1"
+          onSelectThread={() => {}}
+          onNewThread={() => {}}
+        />,
+      );
+      await user.click(await screen.findByRole('button', { name: 'Thread actions for My conversation' }));
+      await user.click(await screen.findByTestId('thread-export'));
+      return { createObjectURL, restore };
+    }
+
+    it('writes every stored message, from the first question on', async () => {
+      listMessages.mockImplementation(async ({ page, perPage }: { page: number; perPage: number }) => ({
+        messages: stored.slice(page * perPage, (page + 1) * perPage),
+        hasMore: (page + 1) * perPage < stored.length,
+      }));
+
+      const { createObjectURL, restore } = await exportThread();
+      try {
+        await waitFor(() => expect(createObjectURL).toHaveBeenCalled());
+        const text = await createObjectURL.mock.calls[0][0].text();
+        expect(text).toContain('question number 0.');
+        expect(text).toContain('question number 100.');
+        expect(text.indexOf('question number 0.')).toBeLessThan(text.indexOf('question number 100.'));
+      } finally {
+        restore();
+      }
+    });
+
+    it('writes no file and says so when a page fails', async () => {
+      listMessages.mockImplementation(async ({ page, perPage }: { page: number; perPage: number }) => {
+        if (page === 1) throw new Error('page 1 failed');
+        return { messages: stored.slice(0, perPage), hasMore: true };
+      });
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      const { createObjectURL, restore } = await exportThread();
+      try {
+        expect(await screen.findByText('Failed to export thread. No file was saved.')).toBeInTheDocument();
+        expect(createObjectURL).not.toHaveBeenCalled();
+      } finally {
+        restore();
+        consoleError.mockRestore();
+      }
+    });
+  });
+
   it('exports the thread as a Markdown document with a slugged filename', async () => {
     const user = userEvent.setup();
     getThread.mockResolvedValue({

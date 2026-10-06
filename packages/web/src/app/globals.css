@@ -4,7 +4,15 @@
 
 @plugin "@tailwindcss/typography";
 
-@custom-variant dark (&:is(.dark *));
+/* Dark styles are for screens. Paper is white whichever theme is on, so no
+   `dark:` utility applies in print (see the print block at the end). */
+@custom-variant dark {
+  @media not print {
+    &:is(.dark *) {
+      @slot;
+    }
+  }
+}
 
 @theme inline {
   --color-background: var(--background);
@@ -260,5 +268,32 @@ body::before {
   /* Footnote jump buttons are interactive chrome. */
   [data-testid='citation-footnote'] {
     display: none !important;
+  }
+}
+
+/* ─── Print colours: ink on white paper in either theme ───────────────────── */
+/* Browsers drop backgrounds when printing, so the dark theme's pale text
+   would land on white paper. These are the tokens the printed transcript
+   uses, set to ink values for paper; they are not a copy of the light theme
+   and need not follow it. The sidebar and masthead do not print. */
+@media print {
+  .dark {
+    color-scheme: light;
+    --background: oklch(1 0 0);
+    --foreground: oklch(0.2 0.01 60);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.2 0.01 60);
+    --primary: oklch(0.2 0.01 60);
+    --primary-foreground: oklch(1 0 0);
+    --secondary: oklch(0.95 0.005 85);
+    --secondary-foreground: oklch(0.2 0.01 60);
+    --muted: oklch(0.95 0.005 85);
+    --muted-foreground: oklch(0.4 0.01 60);
+    --accent: oklch(0.45 0.1 70);
+    --accent-foreground: oklch(1 0 0);
+    --destructive: oklch(0.45 0.18 27);
+    --border: oklch(0.2 0.01 60 / 30%);
+    --input: oklch(0.2 0.01 60 / 30%);
+    --ring: oklch(0.45 0.1 70);
   }
 }

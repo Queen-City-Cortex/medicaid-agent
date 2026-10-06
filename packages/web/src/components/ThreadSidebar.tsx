@@ -29,6 +29,8 @@ import {
   deriveThreadTitleFromMessages,
   formatDate,
 } from '@/lib/thread-helpers';
+import { coalesceThreadMessages } from '@/lib/parse-message';
+import { listAllThreadMessages } from '@/lib/thread-messages';
 import type { UpdateMemoryThreadParams } from '@mastra/client-js';
 import type { Thread } from '@/lib/thread-helpers';
 
@@ -126,8 +128,14 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
       for (const thread of untitledThreads) {
         requestedDerivedTitlesRef.current.add(thread.id);
         try {
+          // The title is the first question, so the ten oldest messages are
+          // enough; the default request returns the newest ones instead.
           const result = await run((client) =>
-            client.getMemoryThread({ threadId: thread.id, agentId: AGENT_ID }).listMessages(),
+            client.getMemoryThread({ threadId: thread.id, agentId: AGENT_ID }).listMessages({
+              page: 0,
+              perPage: 10,
+              orderBy: { field: 'createdAt', direction: 'ASC' },
+            }),
           );
 
           const derivedTitle = deriveThreadTitleFromMessages(
@@ -211,14 +219,17 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
     try {
       const [meta, msgs] = await run((client) => {
         const thread = client.getMemoryThread({ threadId, agentId: AGENT_ID });
-        return Promise.all([thread.get(), thread.listMessages()]);
+        // Every stored message, or a rejection: a file that silently lacked
+        // the start of the conversation would be worse than no file.
+        return Promise.all([thread.get(), listAllThreadMessages(thread)]);
       });
       // Export as Markdown — the deliverable for legal-aid users is a
-      // readable document for a case file, not a JSON blob.
+      // readable document for a case file, not a JSON blob. Turns are merged
+      // as on screen, so each answer has its sources and verification status.
       const markdown = buildThreadMarkdown({
         title: sourceTitle || meta.title || 'Conversation',
         exportedAt: new Date(),
-        messages: msgs.messages ?? [],
+        messages: coalesceThreadMessages(msgs),
       });
       const blob = new Blob([markdown], { type: 'text/markdown' });
       const url = URL.createObjectURL(blob);
@@ -238,7 +249,7 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (err) {
       console.error('Failed to export thread:', err);
-      setError('Failed to export thread');
+      setError('Failed to export thread. No file was saved.');
     }
   };
 

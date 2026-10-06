@@ -7,10 +7,18 @@ import type { UIMessage } from 'ai';
 import { debugLog } from '@/lib/debug';
 import { generateUUID } from '@/lib/utils';
 import { coalesceThreadMessages } from '@/lib/parse-message';
+import { loadEarlierThreadMessages, type RestoreBatch, type RestoreCursor } from '@/lib/thread-messages';
 import { MASTRA_URL } from '@/lib/mastra-url';
 import type { MastraRunner } from '@/lib/use-mastra-client';
 
 const AGENT_ID = 'nc-medicaid-navigator';
+
+/**
+ * How much of the visible thread's stored history is on screen: all of it,
+ * a request in flight, older messages left to load on request, or a request
+ * that failed and can be retried.
+ */
+export type ThreadHistoryStatus = 'complete' | 'loading' | 'more' | 'failed';
 
 export interface UseChatThreadOptions {
   /** Memory resource the threads belong to (the WorkOS user id). */
@@ -54,6 +62,9 @@ export interface UseChatThreadOptions {
  *   the complete response even before the DB write settles.
  * - New threads are created lazily on first send (see `ensureThreadExists`),
  *   never eagerly on "+ New".
+ * - A stored thread opens on its newest messages (see `thread-messages.ts`
+ *   for the bound). `history` says whether older ones remain or failed to
+ *   load, and `loadEarlierMessages` fetches the next batch above what is shown.
  * - `threadVersion` increments when a response finishes — used as the
  *   sidebar's refresh key.
  */
@@ -77,6 +88,11 @@ export function useChatThread({
   // The thread the user is currently viewing — guards against a slow
   // loadThread response overwriting a newer selection.
   const activeThreadRef = useRef(threadId);
+
+  const [history, setHistory] = useState<ThreadHistoryStatus>('complete');
+  // Where each partly loaded thread stopped. Absent once a thread is loaded
+  // to its start, and for a thread whose first load has not succeeded.
+  const restoreCursors = useRef<Map<string, RestoreCursor>>(new Map());
 
   // Transport re-creates when threadId/resourceId change — this also resets useChat state
   const transport = useMemo(() => new DefaultChatTransport({
@@ -169,29 +185,44 @@ export function useChatThread({
   }, [resourceId, run]);
 
   const loadThread = useCallback(async (tid: string) => {
+    const cursor = restoreCursors.current.get(tid);
+    setHistory('loading');
+    let batch: RestoreBatch;
     try {
-      const result = await run((client) =>
-        client.getMemoryThread({ threadId: tid, agentId: AGENT_ID }).listMessages(),
+      batch = await run((client) =>
+        loadEarlierThreadMessages(client.getMemoryThread({ threadId: tid, agentId: AGENT_ID }), cursor),
       );
-      // The user may have switched threads while this request was in flight —
-      // a stale response must not overwrite the newer thread's messages.
-      if (activeThreadRef.current !== tid) return;
-      const dbMessages = (result.messages ?? []) as Array<{
-        id?: string; role: string; content: unknown; createdAt?: string | Date;
-      }>;
-      // Coalesce each agent turn's split assistant messages (answer / tools /
-      // verifier / observational-memory) into one, so a reloaded thread
-      // renders like the live stream (Research trail, footnotes, trust badge).
-      const converted = coalesceThreadMessages(dbMessages);
-      const assistantParts = converted.filter(m => m.role === 'assistant').flatMap(m => m.parts);
-      debugLog(`[chat] loadThread ${tid.slice(0, 8)}… | ${dbMessages.length} db msgs → ${converted.length} ui msgs | assistant parts: ${assistantParts.length} (types: ${[...new Set(assistantParts.map(p => p.type))].join(',')})`);
-      setMessages(converted);
-      await loadThreadFeedback(tid, () => activeThreadRef.current === tid);
     } catch (err) {
       console.error('Failed to load thread messages:', err);
-      if (activeThreadRef.current === tid) setMessages([]);
+      if (activeThreadRef.current !== tid) return;
+      if (!cursor) setMessages([]);
+      setHistory('failed');
+      return;
+    }
+    // The user may have switched threads while this request was in flight —
+    // a stale response must not overwrite the newer thread's messages.
+    if (activeThreadRef.current !== tid) return;
+    if (batch.next) restoreCursors.current.set(tid, batch.next);
+    else restoreCursors.current.delete(tid);
+    // Coalesce each agent turn's split assistant messages (answer / tools /
+    // verifier / observational-memory) into one, so a reloaded thread
+    // renders like the live stream (Research trail, footnotes, trust badge).
+    const converted = coalesceThreadMessages(batch.messages);
+    const assistantParts = converted.filter(m => m.role === 'assistant').flatMap(m => m.parts);
+    debugLog(`[chat] loadThread ${tid.slice(0, 8)}… | ${batch.messages.length} db msgs → ${converted.length} ui msgs | assistant parts: ${assistantParts.length} (types: ${[...new Set(assistantParts.map(p => p.type))].join(',')})`);
+    // Earlier messages go above what is shown, which may by now include a
+    // turn the user has just asked.
+    if (cursor) setMessages(current => [...converted, ...current]);
+    else setMessages(converted);
+    setHistory(batch.failed ? 'failed' : batch.next ? 'more' : 'complete');
+    try {
+      await loadThreadFeedback(tid, () => activeThreadRef.current === tid);
+    } catch (err) {
+      console.error('Failed to load thread feedback:', err);
     }
   }, [setMessages, run, loadThreadFeedback]);
+
+  const loadEarlierMessages = useCallback(() => loadThread(threadId), [loadThread, threadId]);
 
   const handleSelectThread = useCallback(async (tid: string) => {
     const hasCached = messageCache.current.has(tid);
@@ -205,8 +236,11 @@ export function useChatThread({
     if (cached && cached.length > 0) {
       pendingRestore.current = cached;
       messageCache.current.delete(tid);
+      setHistory(restoreCursors.current.has(tid) ? 'more' : 'complete');
     } else {
       pendingRestore.current = null;
+      // Nothing of this thread is on screen, so start from its newest messages.
+      restoreCursors.current.delete(tid);
       await loadThread(tid);
     }
 
@@ -223,6 +257,7 @@ export function useChatThread({
     activeThreadRef.current = newId;
     setThreadId(newId);
     setMessages([]);
+    setHistory('complete');
     onThreadSwitch();
     closeMobileSidebar();
     // The thread is created lazily by handleSend (with the question as its
@@ -243,7 +278,8 @@ export function useChatThread({
     stop,
     wasStopped,
     ensureThreadExists,
-    loadThread,
+    history,
+    loadEarlierMessages,
     handleSelectThread,
     handleNewThread,
   };

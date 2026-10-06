@@ -44,11 +44,11 @@ function makeDeferred<T>() {
 }
 
 function setup() {
-  const listMessagesImpls = new Map<string, () => Promise<{ messages?: unknown[] }>>();
+  const listMessagesImpls = new Map<string, (params: { page: number }) => Promise<{ messages?: unknown[]; hasMore?: boolean }>>();
   const createMemoryThread = vi.fn(async () => undefined);
   const getMemoryThread = vi.fn((params: { threadId: string; agentId: string }) => ({
-    listMessages: () =>
-      (listMessagesImpls.get(params.threadId) ?? (async () => ({ messages: [] as unknown[] })))(),
+    listMessages: (paging: { page: number }) =>
+      (listMessagesImpls.get(params.threadId) ?? (async () => ({ messages: [] as unknown[] })))(paging),
   }));
   const client = { createMemoryThread, getMemoryThread };
   // Pass-through runner: execute the op against the mock client. The real
@@ -149,6 +149,78 @@ describe('useChatThread', () => {
 
     expect(mocks.setMessages).toHaveBeenCalledWith([]);
     expect(loadThreadFeedback).not.toHaveBeenCalled();
+    // The failure is reported, not shown as an empty conversation.
+    expect(result.current.history).toBe('failed');
+  });
+
+  // A stored thread of `pages` full pages, served newest page first: page 0 is
+  // the newest question and answer, the last page the oldest.
+  const pagedThread = (pages: number) => async ({ page }: { page: number }) => ({
+    messages: [
+      { id: `q${page}`, role: 'user', content: `question on page ${page}`, createdAt: `2026-01-0${9 - page}T12:00:00Z` },
+      { id: `a${page}`, role: 'assistant', content: { format: 2, parts: [] }, createdAt: `2026-01-0${9 - page}T12:00:01Z` },
+    ],
+    hasMore: page < pages - 1,
+  });
+  const lastSetMessages = (current: MinimalMessage[] = []) => {
+    const arg = mocks.setMessages.mock.calls.at(-1)![0] as MinimalMessage[] | ((m: MinimalMessage[]) => MinimalMessage[]);
+    return (typeof arg === 'function' ? arg(current) : arg).map((m) => m.id);
+  };
+
+  it('loads a thread of several pages whole and reports it complete', async () => {
+    const { result, listMessagesImpls } = setup();
+    listMessagesImpls.set('thread-long', pagedThread(2));
+
+    await act(async () => {
+      await result.current.handleSelectThread('thread-long');
+    });
+
+    expect(lastSetMessages()).toEqual(['q1', 'q0']);
+    expect(result.current.history).toBe('complete');
+  });
+
+  it('opens a very long thread on its newest messages and loads earlier ones on request', async () => {
+    const { result, listMessagesImpls } = setup();
+    listMessagesImpls.set('thread-huge', pagedThread(4));
+
+    await act(async () => {
+      await result.current.handleSelectThread('thread-huge');
+    });
+
+    expect(lastSetMessages()).toEqual(['q2', 'q1', 'q0']);
+    expect(result.current.history).toBe('more');
+
+    await act(async () => {
+      await result.current.loadEarlierMessages();
+    });
+
+    // Earlier messages go above whatever is on screen by then.
+    expect(lastSetMessages([{ id: 'on-screen', role: 'user', parts: [] }])).toEqual(['q3', 'on-screen']);
+    expect(result.current.history).toBe('complete');
+  });
+
+  it('keeps the newest messages and reports the failure when an earlier page fails', async () => {
+    const { result, listMessagesImpls } = setup();
+    let failing = true;
+    listMessagesImpls.set('thread-flaky', async (paging) => {
+      if (paging.page === 1 && failing) throw new Error('page 1 failed');
+      return pagedThread(2)(paging);
+    });
+
+    await act(async () => {
+      await result.current.handleSelectThread('thread-flaky');
+    });
+
+    expect(lastSetMessages()).toEqual(['q0']);
+    expect(result.current.history).toBe('failed');
+
+    failing = false;
+    await act(async () => {
+      await result.current.loadEarlierMessages();
+    });
+
+    expect(lastSetMessages([{ id: 'q0', role: 'user', parts: [] }])).toEqual(['q1', 'q0']);
+    expect(result.current.history).toBe('complete');
   });
 
   it('restores cached messages on thread switch instead of refetching from the DB', async () => {

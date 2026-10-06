@@ -28,6 +28,22 @@ export interface MockMastraOptions {
   feedbackEntries?: Array<{ id: string; messageId: string; threadId: string; rating: string; comment: string | null }>;
 }
 
+/**
+ * One page of `stored` (oldest first), paged as the server pages it: 40 rows
+ * unless `perPage` says otherwise; the newest rows first unless `orderBy` asks
+ * for ascending; and the rows of a page oldest first whichever way it was cut.
+ */
+export function pageOfMessages(stored: MockMessage[], url: URL) {
+  const page = Number(url.searchParams.get('page') ?? 0);
+  const perPage = Number(url.searchParams.get('perPage') ?? 40);
+  const orderBy = JSON.parse(url.searchParams.get('orderBy') ?? '{}') as { direction?: string };
+  const offset = page * perPage;
+  const messages = orderBy.direction === 'ASC'
+    ? stored.slice(offset, offset + perPage)
+    : stored.slice(Math.max(0, stored.length - offset - perPage), stored.length - offset);
+  return { messages, total: stored.length, page, perPage, hasMore: offset + perPage < stored.length };
+}
+
 function isNextServerAction(headers: Record<string, string>): boolean {
   return Boolean(headers['next-action'] || headers['next-router-state-tree']);
 }
@@ -102,21 +118,24 @@ export async function mockMastraAPI(page: Page, options: MockMastraOptions = {})
       await route.fallback();
       return;
     }
-    const messages = options.threadMessages ?? [];
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({
-        messages,
-        total: messages.length,
-        page: 0,
-        perPage: 100,
-        hasMore: false,
-      }),
+      body: JSON.stringify(pageOfMessages(options.threadMessages ?? [], new URL(route.request().url()))),
     });
   });
 
-  // 5. GET /feedback?threadId=... — getFeedbackByThread
+  // 4b. GET /api/memory/threads/:id — the thread record, read by export
+  await page.route('**/api/memory/threads/*', async (route) => {
+    const id = new URL(route.request().url()).pathname.split('/').pop();
+    const thread = (options.threads ?? []).find((candidate) => candidate.id === id);
+    if (route.request().method() !== 'GET' || !thread) {
+      await route.fallback();
+      return;
+    }
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(thread) });
+  });
+
   await page.route('**/feedback?*', async (route) => {
     if (route.request().method() !== 'GET') {
       await route.fallback();

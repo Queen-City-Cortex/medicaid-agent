@@ -152,4 +152,14 @@ describe('buildAnswerClipboardText', () => {
   it('returns the body unchanged when there are no sources', () => {
     expect(buildAnswerClipboardText('Plain answer.', [])).toBe('Plain answer.');
   });
+
+  it('keeps the URL of a link that matches no source', () => {
+    const sources = [source({ key: 'a', url: 'https://example.com/8c', label: 'Policy 8C § 3.2.1' })];
+    const text = buildAnswerClipboardText(
+      'Covered per [Policy 8C § 3.2.1](https://example.com/8c). See the [provider portal](https://example.org/portal).',
+      sources,
+    );
+    expect(text).toContain('Policy 8C § 3.2.1 [1].');
+    expect(text).toContain('See the provider portal (https://example.org/portal).');
+  });
 });
