@@ -138,6 +138,126 @@ describe('bounded answer scope', () => {
     expect(scope(question)?.requiredSourceUrls).toEqual([]);
   });
 
+  // Sentences the October 2026 review found refused or re-framed by substring matches.
+  it.each([
+    'My mom got COVID and now needs care at home. Will Medicaid pay for a home health aide?',
+    'Does Medicaid cover at-home nursing for a COVID long-hauler?',
+    'Are OTC medications like cough medicine covered by Medicaid if I have COVID?',
+    'Are COVID vaccines given at home covered by Medicaid for homebound patients?',
+    'Is Paxlovid covered for COVID patients recovering at home?',
+    'Under Medicaid expansion, is there a limit on physical therapy visits?',
+    'Are there visit limits for physical therapy under Medicaid expansion?',
+    'Does Medicaid expansion cover portable oxygen equipment?',
+    'What is the copay amount for prescriptions under Medicaid expansion?',
+    'Is Medicaid expansion coverage limited for immigrants who arrived in 2019?',
+    'Does MAGI count child support as income?',
+    'What is Modified Adjusted Gross Income (MAGI)?',
+    'What does MAGI stand for?',
+  ])('leaves an unrelated question to ordinary research: %s', question => {
+    expect(scope(question)).toBeNull();
+  });
+
+  it.each([
+    'I make $2000 a month. What is the MAGI income limit for a family of 3?',
+    'I make 2000 dollars a month. What is the MAGI income limit for a family of 3?',
+    'We earn about 2025 a month. What is the MAGI income limit for a family of 3?',
+    'My son was born in 2015. Is he under the MAGI income limit for children?',
+    'My daughter was born on March 3, 2025. Is she under the MAGI income limit for children?',
+    'My son was born 6/1/2025. Is he under the MAGI income limit for children?',
+    'Is the MAGI income limit based on income before or after taxes?',
+    'What is the income limit for Medicaid expansion after the 5% disregard?',
+    'What is the MAGI income limit for a family of 3?',
+  ])('reads no period from an amount, a birth year or a bare before/after: %s', question => {
+    expect(scope(question)).toMatchObject({ notice: null, requestedDate: '2026-10-03', requiredSourceUrls: [ANSWER_SCOPE_POLICY.magi_tables[1].source_url] });
+  });
+
+  it.each([
+    ['What is the 2025 MAGI income limit for a household of 2?', '2025-04-01', 0],
+    ['I make $2000 a month. What was the MAGI income limit in June 2025?', '2025-06-01', 0],
+    ['My son was born in 2015. What MAGI income limit applied to him in 2025?', '2025-04-01', 0],
+    ['What was the MAGI income limit in 2025 per month for a family of 3?', '2025-04-01', 0],
+    ['Where can I get the 2025 MAGI income limits?', '2025-04-01', 0],
+    ['What is the MAGI limit for a family of 3?', '2026-10-03', 1],
+    ['What does the MA-3321 table list for a household of one?', '2026-10-03', 1],
+  ] as const)('keeps the stated period and the dated table for %s', (question, date, table) => {
+    expect(scope(question)).toMatchObject({ notice: null, requestedDate: date, requiredSourceUrls: [ANSWER_SCOPE_POLICY.magi_tables[table].source_url] });
+  });
+
+  // Still refused: a stated year outside the supported tables fails closed even when it
+  // belongs to another clause, and the review's wider edits to "previous" and to
+  // "authorization" were not part of this change.
+  it.each([
+    'I make $2000 a month. What was the MAGI income limit in 2019?',
+    'What were the MAGI income limits before the increase?',
+    'What were the previous MAGI income limits?',
+    'Medicaid expansion started in December 2023. What is the income limit for a single adult?',
+    'Does Medicaid cover COVID tests taken at home?',
+    'Does Medicaid cover over-the-counter COVID testing?',
+  ])('still states the limitation for %s', question => {
+    expect(scope(question)?.notice).toBeTruthy();
+    expect(scope(question)?.requiredSourceUrls).toEqual([]);
+  });
+
+  it.each([
+    'I lost my previous job. Do I meet the Medicaid expansion income limit now?',
+    'Do I need prior authorization for Paxlovid after a positive at-home COVID test?',
+  ])('states no limitation for %s', question => {
+    expect(scope(question)?.notice ?? null).toBeNull();
+  });
+
+  it.each([
+    'What are the Medicaid expansion limits for 2019?',
+    'What was the MAGI eligibility threshold in 2019?',
+  ])('still treats %s as a dated income-limit question', question => {
+    expect(scope(question)?.notice).toBeTruthy();
+  });
+
+  it('does not read a visit limit as an income limit', () => {
+    expect(scope('What are the Medicaid expansion visit limits for physical therapy?')).toBeNull();
+  });
+
+  const DAY = 86_400_000;
+  const latestTable = ANSWER_SCOPE_POLICY.magi_tables.reduce((latest, item) => item.supported_until > latest.supported_until ? item : latest);
+  const daysOfSupportLeft = (now: number) => (Date.parse(`${latestTable.supported_until}T00:00:00Z`) - now) / DAY;
+
+  it('supports an undated MAGI question through the last reviewed day and not after it', () => {
+    const question = 'What is the MAGI income limit for a family of 3?';
+    const lastDay = new Date(`${latestTable.supported_until}T00:00:00Z`);
+    expect(resolveCoverageScope(question, lastDay)).toMatchObject({ notice: null, requiredSourceUrls: [latestTable.source_url] });
+    expect(resolveCoverageScope(question, new Date(lastDay.getTime() + DAY))?.notice).toBeTruthy();
+  });
+
+  // Real clock, on purpose: this turns CI red 45 days before undated MAGI questions start being refused.
+  it('has at least 45 days of reviewed MAGI table support left', () => {
+    expect(daysOfSupportLeft(Date.parse('2020-01-01T00:00:00Z'))).toBeGreaterThan(45);
+    expect(daysOfSupportLeft(Date.parse(`${latestTable.supported_until}T00:00:00Z`) - 44 * DAY)).toBeLessThan(45);
+    expect(
+      daysOfSupportLeft(Date.now()),
+      `MAGI table support ends on ${latestTable.supported_until}, fewer than 45 days away; after that day every undated MAGI income-limit question is refused. `
+      + 'Do the review that docs/operations/answer-coverage-scope.md requires before extending support (confirm the table at '
+      + `${latestTable.source_url} stays in force, or ingest its successor), then change magi_tables[].supported_until for that table, or add the new table's entry, `
+      + 'in packages/policy-corpus/src/scope/policy.json, and update the supported dates in the "Runtime behavior" table of that document. '
+      + 'The policy hash changes, so stored answer-scope approvals must be prepared again.',
+    ).toBeGreaterThanOrEqual(45);
+  });
+
+  it('reads a 10,000-character question in linear time', () => {
+    const fill = (unit: string, tail = '') => unit.repeat(Math.ceil(10_000 / unit.length)).slice(0, 10_000 - tail.length) + tail;
+    const inputs = [
+      fill('provide a copy of ', 'zzz'),
+      fill('magi income $1,000,000 born in march 3, 1999 original attachment '),
+      fill('covid otc home test original standing order magi 2025 '),
+      fill('i make about 2000 born on the 3 of march '),
+      fill('gujarati 5097 what is the deadline notice form language access interpreter '),
+      fill('a'), fill('$'), fill('1'), fill('1,'), fill('make 1'), fill(' '), fill('income '), fill('born in '), fill('born 1/'), fill('original '),
+    ];
+    for (const input of inputs) {
+      const started = performance.now();
+      resolveCoverageScope(input, today);
+      expect(performance.now() - started, input.slice(0, 40)).toBeLessThan(500);
+    }
+  });
+
   it('fails closed when the scoped source is absent from the actual graph', async () => {
     const primitives = { getDocument: vi.fn(), getSection: vi.fn(), getAmendments: vi.fn(), lookupPolicy: vi.fn() } as unknown as LegalPrimitiveService;
     const session = { run: vi.fn().mockResolvedValue({ records: [] }) };

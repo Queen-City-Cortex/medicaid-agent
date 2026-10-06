@@ -1,5 +1,6 @@
 import type { Processor, ProcessInputArgs, ProcessInputResult } from '@mastra/core/processors';
 import { resolveCoverageScope } from '@nc-medicaid/policy-corpus';
+import { log } from '../logger.js';
 import { contentText } from './message-utils.js';
 import type { GateTripwireMetadata } from './message-length-guard.js';
 import { withPriorTurns } from './prior-turns.js';
@@ -60,9 +61,13 @@ export class CoverageBoundaryProcessor implements Processor {
     const query = coverageConversationQuery(withPriorTurns(requestContext, messages));
     requestContext?.set(COVERAGE_VERIFICATION_QUERY, query);
     const scope = resolveCoverageScope(query);
-    if (scope?.notice) abort('Evidence required by this request is outside the supported coverage scope', {
-      metadata: { code: 'coverage-limitation', userMessage: scope.notice },
-    });
+    if (scope?.notice) {
+      // Identifiers only: the question, its date and the notice stay out of the log.
+      log.info('coverage_boundary.blocked', { policyId: scope.policyId, limitationIds: scope.limitationIds, reason: scope.limitationIds.length ? 'unavailable_original' : 'unsupported_period' });
+      abort('Evidence required by this request is outside the supported coverage scope', {
+        metadata: { code: 'coverage-limitation', userMessage: scope.notice },
+      });
+    }
     return messages;
   }
 }

@@ -3,6 +3,7 @@ import { CoverageBoundaryProcessor, coverageConversationQuery } from '../../src/
 import { CHAT_PRIOR_TURNS, withPriorTurns } from '../../src/processors/prior-turns.js';
 import { runVerificationForAnswer } from '../../src/processors/verifier/run.js';
 import { ANSWER_SCOPE_POLICY, resolveCoverageScope } from '@nc-medicaid/policy-corpus';
+import { log } from '../../src/logger.js';
 
 describe('server coverage boundaries', () => {
   it('preserves a short follow-up about an unavailable original', () => {
@@ -119,6 +120,27 @@ describe('server coverage boundaries', () => {
     const requestContext = { get: vi.fn(), set: vi.fn() };
     expect(() => new CoverageBoundaryProcessor().processInput({ messages: [{ role: 'user', content: 'Download the official Gujarati DHB-5097 form' }], abort, requestContext } as never)).toThrow('blocked');
     expect(abort).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ metadata: expect.objectContaining({ code: 'coverage-limitation', userMessage: expect.stringContaining('unavailable') }) }));
+  });
+
+  it('logs a blocked request by its identifiers, without the question, its date or the notice', () => {
+    const info = vi.spyOn(log, 'info').mockImplementation(() => {});
+    const run = (content: string) => {
+      const abort = vi.fn(() => { throw new Error('blocked'); });
+      try { new CoverageBoundaryProcessor().processInput({ messages: [{ role: 'user', content }], abort, requestContext: { get: vi.fn(), set: vi.fn() } } as never); } catch { /* aborted */ }
+      return abort;
+    };
+    expect(run('Download the official Gujarati DHB-5097 form for Zebulon')).toHaveBeenCalled();
+    expect(run('What MAGI income limits apply in February 2025 for Zebulon?')).toHaveBeenCalled();
+    expect(info.mock.calls).toEqual([
+      ['coverage_boundary.blocked', { policyId: ANSWER_SCOPE_POLICY.id, limitationIds: ['gujarati-dhb-5097'], reason: 'unavailable_original' }],
+      ['coverage_boundary.blocked', { policyId: ANSWER_SCOPE_POLICY.id, limitationIds: [], reason: 'unsupported_period' }],
+    ]);
+    expect(JSON.stringify(info.mock.calls)).not.toMatch(/zebulon|2025-02|unavailable in this corpus|cannot establish/i);
+    info.mockClear();
+    expect(run('I make $2000 a month. What is the MAGI income limit for a family of 3?')).not.toHaveBeenCalled();
+    expect(run('My mom got COVID and now needs care at home. Will Medicaid pay for a home health aide?')).not.toHaveBeenCalled();
+    expect(info).not.toHaveBeenCalled();
+    info.mockRestore();
   });
 
   it.each([

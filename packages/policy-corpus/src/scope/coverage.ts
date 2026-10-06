@@ -13,7 +13,17 @@ export interface CoverageScope {
 
 const months = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
 
-function requestedDate(query: string, today: Date): string | null {
+// Numbers that are not a requested period: a dollar amount, a stated wage, a birth date.
+// A year followed only by "a month" or "per year" stays a period, so "in 2025 per month" keeps its table.
+const notAPeriod = [
+  /\$\s?\d[\d,.]*/g,
+  /\b\d[\d,.]*\s*(?:dollars|bucks|usd)\b/g,
+  /\b(?:mak(?:e|es|ing)|earn(?:s|ing|ed)?|bring(?:s|ing)? home|income (?:is|of|was))\s+(?:(?:about|around|roughly|only|just)\s+)?\d[\d,.]*/g,
+  new RegExp(`\\bborn\\s+(?:(?:in|on)\\s+)?(?:(?:\\d{1,2}/){2}|(?:(?:the|of|${months.join('|')}|\\d{1,2}(?:st|nd|rd|th)?)[\\s,]+){0,4})(?:19|20)\\d{2}\\b`, 'g'),
+];
+
+function requestedDate(text: string, today: Date): string | null {
+  const query = notAPeriod.reduce((rest, pattern) => rest.replace(pattern, ' '), text);
   const years = [...new Set(query.match(/\b20\d{2}\b/g) ?? [])];
   if (years.length > 1) return null; // Ask separately rather than guess a comparison's date.
   const iso = query.match(/\b(20\d{2})-(\d{2})-(\d{2})\b/);
@@ -26,7 +36,7 @@ function requestedDate(query: string, today: Date): string | null {
   if (month) return requestedDate(`${month[3]}-${String(months.indexOf(month[1]) + 1).padStart(2, '0')}-${(month[2] ?? '01').padStart(2, '0')}`, today);
   // A year-only table request means that year's published April table, not January applicability.
   if (years.length === 1) return `${years[0]}-04-01`;
-  if (/\b(historical|previous|before|after|last year|next year|back then)\b/.test(query)) return null;
+  if (/\b(historical|previous (?:\w+ ){0,2}(?:years?|tables?|charts?|limits?|thresholds?|amounts?|standards?|versions?|periods?)|(?:before|after) (?:the )?(?:update|change|increase)|last year|next year|back then)\b/.test(query)) return null;
   return today.toISOString().slice(0, 10);
 }
 
@@ -42,10 +52,10 @@ export function resolveCoverageScope(question: string, today = new Date()): Cove
   const contentIntent = /\b(?:says?|said|wording|translat\w*|contain\w*|differ\w*|read (?:me|us|out)|(?:send|show|give|get|email) (?:me|us)|need the|(?:copy|version) of)\b/.test(q);
   const noticeDeadline = /(?:(?:what|which)(?:'s| is| was| are)?|when(?:'s| is| was))\s+(?:(?:the|my|its|that)\s+)?(?:deadline|due date)|(?:tell|give) (?:me|us).{0,20}(?:deadline|due date)|(?:deadline|due date).{0,40}\b(?:it|notice|5097|form)\s+(?:lists?|gives?|states?|says?|shows?|sets?)|(?:notice|5097).{0,40}(?:give|state|specif|set|list).{0,20}(?:deadline|due date)|(?:deadline|due date).{0,40}when is it/.test(q);
   const gujarati = /gujarati|ગુજરાતી/.test(q) && /5097|request.{0,20}information/.test(q) && ((!languageAccess && !(procedureQuestion && !contentIntent && !noticeDeadline)) || originalRequest);
-  const covid = /covid|sars.cov.2/.test(q) && /otc|over.the.counter|home.{0,12}test|at.home/.test(q);
+  const covid = /covid|sars.cov.2/.test(q) && /\btest(?:s|ing)?\b/.test(q) && /otc|over.the.counter|home.{0,12}test|at.home/.test(q);
   const paymentQuestion = /cover|pay|reimburs|billing|benefit|free|cost/.test(q);
   const pharmacist = /pharmacist/.test(q);
-  const authorityTerms = /\boriginal\s+(?:(?:standing|statewide|pharmacist|covid(?:-19)?)\s+)*orders?\b|standing.order|statewide.order|dispens|prescrib|prescription|authori|without a (?:doctor|prescription)/.test(q)
+  const authorityTerms = /\boriginal\s+(?:(?:standing|statewide|pharmacist|covid(?:-19)?)\s+)*orders?\b|standing.order|statewide.order|dispens|prescrib|prescription|(?<!prior )authori|without a (?:doctor|prescription)/.test(q)
     || (pharmacist && /\ballow|\bpermit|\border(?:s|ed|ing)?\b|conditions?|withdr[ae]w|rescind/.test(q));
   const authority = /covid|sars.cov.2/.test(q) && (covid || /standing.order/.test(q)) && (authorityTerms || (pharmacist && !paymentQuestion));
   const originalArtifact = /original\w*.{0,60}(?:attachment|file|document|source|pdf|upload|version|copy|copies|post(?:ed|ing))|(?:attachment|file|document|pdf)s?.{0,30}original/.test(q)
@@ -61,7 +71,10 @@ export function resolveCoverageScope(question: string, today = new Date()): Cove
         : 'These original source attachments are unavailable in this corpus. I cannot reconstruct or compare their contents, or confirm that they were duplicates, withdrawn, or superseded. Questions supported by available dated documents can be researched separately.';
     return result;
   }
-  const magi = /\bmagi\b|ma[\s-]*3321|medicaid expansion/.test(q) && /income|limit|threshold|table|chart|amount/.test(q) && !/non[\s-]*magi/.test(q);
+  // An income limit is asked about, not a word that merely contains "table" or "limit".
+  const incomeLimit = (/\bincome\b/.test(q) && /\b(?:limits?|thresholds?|tables?|charts?|amounts?|standards?)\b/.test(q))
+    || /(?:\bmagi\b|ma[\s-]*3321|medicaid expansion)\s+(?:(?:income|eligibility|financial)\s+)?(?:limits?|thresholds?|tables?|charts?)\b/.test(q);
+  const magi = /\bmagi\b|ma[\s-]*3321|medicaid expansion/.test(q) && incomeLimit && !/non[\s-]*magi/.test(q);
   if (magi) {
     result.requestedDate = requestedDate(q, today);
     const table = policy.magi_tables.find(item => result.requestedDate && item.effective_from <= result.requestedDate && item.supported_until >= result.requestedDate);
