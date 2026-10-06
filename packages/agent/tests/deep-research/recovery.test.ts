@@ -12,6 +12,7 @@ import { deepResearchPlannerAgent, deepResearchWorkerAgent, deepResearchReportAg
 import { verifyAnswer } from '../../src/processors/verifier/verify.js';
 import { questionKey } from '../../src/deep-research/checkpoints.js';
 import { ANSWER_SCOPE_POLICY } from '@nc-medicaid/policy-corpus';
+import { RESEARCH_GAP_NOTICE } from '@nc-medicaid/contracts';
 
 const graph = vi.hoisted(() => ({ run: vi.fn() }));
 vi.mock('../../src/neo4j.js', () => ({
@@ -29,6 +30,9 @@ const question = (q: string) => ({ question: q, rationale: 'Read governing evide
 const PLAN = { brief: 'Find coverage', subQuestions: [question('Scope?'), question('Eligibility?')] };
 const CLEAN = { supported: true, relevant: true, citationsComplete: true, unsupportedClaims: [], missingCitationClaims: [], relevanceIssues: [], correctedAnswer: '' };
 const ANSWER = 'The service is covered. [Policy](https://example.gov/policy)';
+// A worker draft the verifier rejects. It must stay in the private checkpoints.
+const WITHHELD_DRAFT = 'WITHHELD-DRAFT-SENTINEL the benefit has no limit. [Policy](https://example.gov/policy)';
+const UNSUPPORTED = { ...CLEAN, supported: false, unsupportedClaims: [{ claim: 'the benefit has no limit', reason: 'Not in the evidence' }] };
 
 describe('checkpoint recovery through real Mastra workflow and SQLite', () => {
   let directory: string;
@@ -117,6 +121,14 @@ describe('checkpoint recovery through real Mastra workflow and SQLite', () => {
       }
     },
   );
+  it('still deletes the workflow snapshot of a declined run, whose workflow id was cleared', async () => {
+    await finishPlanning();
+    expect((await database.client.execute('SELECT COUNT(*) AS n FROM mastra_workflow_snapshot')).rows[0].n).toBe(1);
+    expect(await service.decide('run', 'owner', { approved: false }, mastra)).toBe('accepted');
+    expect(await repository.getInternal('run')).toMatchObject({ state: 'cancelled', workflowRunId: null });
+    await database.deleteUserData('owner');
+    expect((await database.client.execute('SELECT COUNT(*) AS n FROM mastra_workflow_snapshot')).rows[0].n).toBe(0);
+  });
   it('verifies checkpointed supplementary evidence and reports real URL provenance', async () => {
     const snippet = 'This recent guidance provides supplementary context for the program.';
     const text = `${snippet} [Guidance](https://example.gov/recent). [Portal](https://medicaid.ncdhhs.gov)`;
@@ -332,5 +344,78 @@ describe('checkpoint recovery through real Mastra workflow and SQLite', () => {
     expect(deepResearchWorkerAgent.generate).toHaveBeenCalledTimes(2);
     expect(deepResearchReportAgent.generate).toHaveBeenCalledTimes(1);
     expect(reportChecks).toBe(3);
+  });
+
+  /** Workers whose prompt names one of `questions` return the draft the verifier rejects. */
+  function withholdDraftsFor(questions: string[], rejection: object = UNSUPPORTED) {
+    const worker = vi.mocked(deepResearchWorkerAgent.generate).getMockImplementation() as any;
+    vi.mocked(deepResearchWorkerAgent.generate).mockImplementation((async (prompt: unknown, options?: any) => {
+      const result = await worker(prompt, options);
+      return questions.some(q => String(prompt).includes(q)) ? { ...result, text: WITHHELD_DRAFT } : result;
+    }) as any);
+    vi.mocked(verifyAnswer).mockImplementation(async (_question, answer) => (answer.includes('WITHHELD-DRAFT-SENTINEL') ? rejection : CLEAN) as any);
+  }
+  async function storedRunRow(): Promise<string> {
+    return JSON.stringify((await database.client.execute("SELECT * FROM research_runs WHERE id = 'run'")).rows[0]);
+  }
+  it('reports one withheld worker finding as a gap and builds the report from the verified finding only', async () => {
+    withholdDraftsFor(['Eligibility?']);
+    await finishPlanning();
+    await service.decide('run', 'owner', { approved: true }, mastra);
+    await vi.waitFor(async () => expect(['completed', 'failed', 'recovering']).toContain((await repository.get('run', 'owner'))?.state));
+    const result = (await repository.get('run', 'owner'))!;
+    expect(result.state).toBe('completed');
+    expect(result.recoveryCount).toBe(0);
+    // The gap is the sub-question text and the fixed notice, nothing else.
+    expect(result.report?.workerFailures).toEqual([{ subQuestion: 'Eligibility?', message: RESEARCH_GAP_NOTICE }]);
+    expect(result.report?.reportMarkdown).toBe(ANSWER);
+    expect(result.verification).toMatchObject({ status: 'passed' });
+
+    // The writer is told which sub-question is a gap and never sees its draft.
+    expect(deepResearchReportAgent.generate).toHaveBeenCalledTimes(1);
+    const synthesisPrompt = String(vi.mocked(deepResearchReportAgent.generate).mock.calls[0][0]);
+    expect(synthesisPrompt).toContain('these sub-questions could not be answered from verified sources. State each one as an unresolved gap. Do not answer them, and do not write what their answers might be:\n- Eligibility?');
+    expect(synthesisPrompt).toContain('### Sub-question 1: Scope?');
+    expect(synthesisPrompt).not.toContain('WITHHELD-DRAFT-SENTINEL');
+
+    // The report is checked against the one finding that passed.
+    const reportCheck = vi.mocked(verifyAnswer).mock.calls.at(-1)!;
+    expect(reportCheck[1]).toBe(ANSWER);
+    expect(reportCheck[2].match(/\[researchFinding\]/g)).toHaveLength(1);
+    expect(reportCheck[2]).toContain('Sub-question: Scope?');
+    expect(reportCheck[2]).not.toContain('Eligibility?');
+    expect(reportCheck[2]).not.toContain('WITHHELD-DRAFT-SENTINEL');
+
+    // The draft exists only in its private checkpoint.
+    expect(JSON.stringify(await repository.checkpoint('run', `worker:${questionKey(PLAN.subQuestions[1])}:draft`))).toContain('WITHHELD-DRAFT-SENTINEL');
+    expect(JSON.stringify(result)).not.toContain('WITHHELD-DRAFT-SENTINEL');
+    expect(await storedRunRow()).not.toContain('WITHHELD-DRAFT-SENTINEL');
+  });
+  it('fails the run without a report when every worker finding is withheld', async () => {
+    withholdDraftsFor(['Scope?', 'Eligibility?']);
+    await finishPlanning();
+    await service.decide('run', 'owner', { approved: true }, mastra);
+    await vi.waitFor(async () => expect(['completed', 'failed', 'recovering']).toContain((await repository.get('run', 'owner'))?.state));
+    const result = (await repository.get('run', 'owner'))!;
+    expect(result.state).toBe('failed');
+    expect(result.error).toBe('Answer grounding failed; report withheld');
+    expect(result.report).toBeNull();
+    // No worker outcome or worker source list is published for the run.
+    expect(result.verification).toBeNull();
+    expect(result.sources).toEqual([]);
+    expect(deepResearchReportAgent.generate).not.toHaveBeenCalled();
+    expect(await storedRunRow()).not.toContain('WITHHELD-DRAFT-SENTINEL');
+  });
+  it('keeps a verifier outage on one worker terminal instead of reporting it as a gap', async () => {
+    // Unavailable and not retryable: the verifier never judged the draft.
+    withholdDraftsFor(['Eligibility?'], { ...CLEAN, supported: false, failureRetryable: false,
+      unsupportedClaims: [{ claim: 'Full answer', reason: 'Verification service unavailable' }] });
+    await finishPlanning();
+    await service.decide('run', 'owner', { approved: true }, mastra);
+    await vi.waitFor(async () => expect(['completed', 'failed', 'recovering']).toContain((await repository.get('run', 'owner'))?.state));
+    const result = (await repository.get('run', 'owner'))!;
+    expect(result.state).toBe('failed');
+    expect(result.report).toBeNull();
+    expect(deepResearchReportAgent.generate).not.toHaveBeenCalled();
   });
 });

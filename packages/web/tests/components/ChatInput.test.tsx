@@ -125,3 +125,15 @@ describe('ChatInput', () => {
     expect(counter.className).toContain('text-destructive');
   });
 });
+
+describe('ChatInput Deep Research pill', () => {
+  it('names the state of a research run that is out of view', () => {
+    renderInput({ deepResearch: false, onToggleDeepResearch: () => {}, deepResearchStatus: 'report ready' });
+    expect(screen.getByTestId('deep-research-toggle')).toHaveTextContent('Deep Research off · report ready');
+  });
+
+  it('shows only the mode when there is no hidden run', () => {
+    renderInput({ deepResearch: true, onToggleDeepResearch: () => {} });
+    expect(screen.getByTestId('deep-research-toggle')).toHaveTextContent(/^Deep Research on$/);
+  });
+});

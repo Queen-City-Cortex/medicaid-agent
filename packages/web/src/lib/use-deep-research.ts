@@ -221,8 +221,11 @@ export function useDeepResearch({ getAccessToken, userId }: { getAccessToken: Ge
     return () => { controller.abort(); runIdRef.current = null; };
   }, [userId]);
 
-  const start = useCallback(async (q: string) => {
-    if (!userId) return;
+  // Resolves false when the start created no run (refused or failed), so the
+  // caller can put the question back in the input.
+  const start = useCallback(async (q: string): Promise<boolean> => {
+    if (!userId) return false;
+    let created = false;
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
@@ -242,19 +245,20 @@ export function useDeepResearch({ getAccessToken, userId }: { getAccessToken: Ge
         method: 'POST',
         body: JSON.stringify({ question: q }),
       }, controller.signal);
-      if (controller.signal.aborted) return;
+      if (controller.signal.aborted) return true;
+      created = true;
       runIdRef.current = run.runId;
       applyRun(run);
       await poll(run.runId, controller.signal);
+      return true;
     } catch (cause) {
-      if (controller.signal.aborted) return;
-      let shown = cause;
+      if (controller.signal.aborted) return true;
       if (cause instanceof ResearchRequestError && cause.code && DAILY_LIMIT_CODES.includes(cause.code)) {
         setNotice(dailyLimitNotice(cause));
         setQuestion('');
         setStartedAt(null);
         setStatus('idle');
-        return;
+        return false;
       }
       if (cause instanceof ResearchRequestError && cause.code === 'active_research_run') {
         // The start was refused because a run already exists: show that run,
@@ -263,20 +267,22 @@ export function useDeepResearch({ getAccessToken, userId }: { getAccessToken: Ge
         try {
           active = await currentRun(controller.signal);
         } catch { /* Keep the refusal as the message. */ }
-        if (controller.signal.aborted) return;
+        if (controller.signal.aborted) return true;
         if (active) {
           setNotice('You already have a research run in progress. Finish or cancel it before starting another.');
-          try {
-            await adopt(active, controller.signal);
-            return;
-          } catch (adoptCause) {
+          // Follow it in the background: the caller is waiting to hand the
+          // question back, and the run may be minutes from needing the user.
+          void adopt(active, controller.signal).catch((adoptCause) => {
             if (controller.signal.aborted) return;
-            shown = adoptCause;
-          }
+            setError(adoptCause instanceof Error ? adoptCause.message : String(adoptCause));
+            setStatus('error');
+          });
+          return false;
         }
       }
-      setError(shown instanceof Error ? shown.message : String(shown));
+      setError(cause instanceof Error ? cause.message : String(cause));
       setStatus('error');
+      return created;
     }
   }, [adopt, applyRun, currentRun, poll, request, userId]);
 

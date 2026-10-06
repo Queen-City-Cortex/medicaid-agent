@@ -151,7 +151,10 @@ describe('useDeepResearch', () => {
     // The plan was produced after this page looked: the page does not know the run.
     backend.active = run('awaiting_approval', { plan: PLAN });
 
-    await act(async () => { await result.current.start('A different question'); });
+    let accepted: boolean | undefined;
+    await act(async () => { accepted = await result.current.start('A different question'); });
+    // Not accepted: the caller still holds the question the user typed.
+    expect(accepted).toBe(false);
     expect(result.current.status).toBe('awaiting-approval');
     expect(result.current.error).toBeNull();
     expect(result.current.question).toBe('Does X?');
@@ -162,13 +165,31 @@ describe('useDeepResearch', () => {
     expect(result.current.status).toBe('cancelled');
   });
 
+  it('answers a refused start at once when the existing run is still researching', async () => {
+    const researching = () => json(run('researching', { plan: PLAN }));
+    const backend: Backend = { rejectStart: true, polls: [researching, researching, researching] };
+    const { result, fetchMock } = setup(backend);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    backend.active = run('researching', { plan: PLAN });
+
+    // Resolves while the adopted run is still being polled, not when it ends.
+    let accepted: boolean | undefined;
+    await act(async () => { accepted = await result.current.start('A different question'); });
+    expect(accepted).toBe(false);
+    expect(result.current.status).toBe('researching');
+    expect(result.current.notice).toMatch(/already have a research run/);
+    expect(requests(fetchMock)).not.toContain('POST /research/runs/run-1/cancel');
+  });
+
   it.each([
     ['research_daily_quota', 'You have used both research reports available in a 24-hour period.'],
     ['research_planning_limit', 'You have started the most research plans allowed in a 24-hour period.'],
   ])('shows %s as a notice with the time to try again, not as a failed report', async (code, message) => {
     const retryAt = '2026-07-24T12:00:00.000Z';
     const { result } = setup({ refuseStart: () => json({ error: { code, message, retryAfterSeconds: 3600, retryAt } }, 429) });
-    await act(async () => { await result.current.start('Does X?'); });
+    let accepted: boolean | undefined;
+    await act(async () => { accepted = await result.current.start('Does X?'); });
+    expect(accepted).toBe(false);
     expect(result.current.status).toBe('idle');
     expect(result.current.error).toBeNull();
     expect(result.current.isBusy).toBe(false);
@@ -228,7 +249,9 @@ describe('useDeepResearch', () => {
 
   it('starts an owned run and surfaces its durable plan', async () => {
     const { result, fetchMock } = setup();
-    await act(async () => { await result.current.start('Does X?'); });
+    let accepted: boolean | undefined;
+    await act(async () => { accepted = await result.current.start('Does X?'); });
+    expect(accepted).toBe(true);
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining('/research/runs'),
       expect.objectContaining({ method: 'POST' }),

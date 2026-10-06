@@ -97,22 +97,30 @@ export class ResearchService {
     }
   }
 
+  /** Best-effort: the run row is already cancelled. A failure leaves the run's
+   *  workflow id in place, which is what makes the recovery sweep try again. */
+  private async cancelWorkflow(runId: string, workflowRunId: string, mastra: ResearchMastra): Promise<void> {
+    try {
+      const workflowRun = await mastra.getWorkflow('deepResearchWorkflow').createRun({
+        runId: workflowRunId,
+        resourceId: runId,
+      });
+      await workflowRun.cancel();
+      await this.repository.workflowCancelled(runId);
+    } catch (error) {
+      log.warn('deep_research.cancel_workflow_failed', { runId, ...errorFields(error) });
+    }
+  }
+
   private async sweepRecovery(mastra: ResearchMastra): Promise<void> {
     const expired = await this.repository.recoverExpiredLeases();
     if (expired) log.warn('deep_research.expired_leases_recovering', { count: expired });
     const abandoned = await this.repository.expireAwaitingApproval();
     if (abandoned.length) log.info('deep_research.abandoned_plans_cancelled', { count: abandoned.length });
-    for (const { runId, workflowRunId } of abandoned) {
-      if (!workflowRunId) continue;
-      try {
-        const workflowRun = await mastra.getWorkflow('deepResearchWorkflow').createRun({
-          runId: workflowRunId,
-          resourceId: runId,
-        });
-        await workflowRun.cancel();
-      } catch (error) {
-        log.warn('deep_research.cancel_workflow_failed', { runId, ...errorFields(error) });
-      }
+    // Covers the plans expired just now and any earlier cancel, from this sweep,
+    // a decline or a user cancel, whose workflow could not be cancelled then.
+    for (const { runId, workflowRunId } of await this.repository.pendingWorkflowCancels()) {
+      await this.cancelWorkflow(runId, workflowRunId, mastra);
     }
     for (const runId of await this.repository.listQueued()) {
       this.schedulePlanning(runId, mastra);
@@ -254,20 +262,15 @@ export class ResearchService {
     const proposed = owned.plan?.subQuestions ?? [];
     const kept = decision.keptSubQuestions ?? proposed.map((_, index) => index);
     if (decision.approved && (!kept.length || kept.some(index => index >= proposed.length))) return 'invalid';
+    if (!decision.approved) {
+      await this.repository.cancel(runId, resourceId);
+      await this.cancelWorkflow(runId, internal.workflowRunId, mastra);
+      return 'accepted';
+    }
     const workflowRun = await mastra.getWorkflow('deepResearchWorkflow').createRun({
       runId: internal.workflowRunId,
       resourceId: runId,
     });
-
-    if (!decision.approved) {
-      await this.repository.cancel(runId, resourceId);
-      try {
-        await workflowRun.cancel();
-      } catch (error) {
-        log.warn('deep_research.cancel_workflow_failed', { runId, ...errorFields(error) });
-      }
-      return 'accepted';
-    }
 
     // Store the actual approved questions even when the user removed none.
     // Recovery must never substitute a newly generated plan for this decision.
@@ -353,17 +356,7 @@ export class ResearchService {
     this.retryTimers.delete(runId);
     const cancelled = await this.repository.cancel(runId, resourceId);
     if (!cancelled || cancelled.state !== 'cancelled' || priorState === 'cancelled') return false;
-    if (internal.workflowRunId) {
-      try {
-        const workflowRun = await mastra.getWorkflow('deepResearchWorkflow').createRun({
-          runId: internal.workflowRunId,
-          resourceId: runId,
-        });
-        await workflowRun.cancel();
-      } catch (error) {
-        log.warn('deep_research.cancel_workflow_failed', { runId, ...errorFields(error) });
-      }
-    }
+    if (internal.workflowRunId) await this.cancelWorkflow(runId, internal.workflowRunId, mastra);
     return true;
   }
 }

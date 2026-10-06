@@ -36,8 +36,15 @@ vi.mock('@/components/ThreadSidebar', () => ({
 }));
 
 vi.mock('@/components/ChatInput', () => ({
-  ChatInput: ({ deepResearch }: { deepResearch: boolean }) => (
-    <div data-testid="mock-chat-input" data-deep-research={String(deepResearch)}>Chat input</div>
+  ChatInput: ({ deepResearch, deepResearchStatus, input, setInput, onSend, onToggleDeepResearch }: {
+    deepResearch: boolean; deepResearchStatus?: string; input: string;
+    setInput: (value: string) => void; onSend: () => void; onToggleDeepResearch: () => void;
+  }) => (
+    <div data-testid="mock-chat-input" data-deep-research={String(deepResearch)} data-run-status={deepResearchStatus ?? ''}>
+      <textarea aria-label="Question" value={input} onChange={(event) => setInput(event.target.value)} />
+      <button type="button" data-testid="mock-send" onClick={onSend}>Ask</button>
+      <button type="button" data-testid="mock-toggle-deep-research" onClick={onToggleDeepResearch}>Deep Research</button>
+    </div>
   ),
 }));
 
@@ -159,18 +166,24 @@ describe('ChatPage deep research run recovery', () => {
   };
   const activeRun = () => new Response(JSON.stringify(ACTIVE_RUN), { status: 200, headers: { 'Content-Type': 'application/json' } });
 
-  /** Stubs the research API; `current` answers the page's active-run lookup. */
-  function stubResearch(current: () => Promise<Response>) {
+  /** Stubs the research API; `current` answers the page's active-run lookup and
+   *  `other` any other research request it chooses to (default: 204). */
+  function stubResearch(current: () => Promise<Response>, other?: (call: string) => Response | undefined) {
     const calls: string[] = [];
     vi.spyOn(globalThis, 'fetch').mockImplementation((input, init) => {
       const url = String(input);
       if (!url.includes('/research/')) return Promise.resolve(new Response(null, { status: 404 }));
-      calls.push(`${init?.method ?? 'GET'} ${url.replace(/^.*(?=\/research\/)/, '')}`);
+      const call = `${init?.method ?? 'GET'} ${url.replace(/^.*(?=\/research\/)/, '')}`;
+      calls.push(call);
       if (url.endsWith('/research/runs/current')) return current();
-      return Promise.resolve(new Response(null, { status: 204 }));
+      return Promise.resolve(other?.(call) ?? new Response(null, { status: 204 }));
     });
     return calls;
   }
+  const jsonResponse = (value: unknown, status = 200) => new Response(JSON.stringify(value), { status, headers: { 'Content-Type': 'application/json' } });
+  const chatInput = () => screen.getByTestId('mock-chat-input');
+  const switchThread = () => act(async () => { fireEvent.click(screen.getByTestId('mock-select-thread')); });
+  const toggleDeepResearch = () => act(async () => { fireEvent.click(screen.getByTestId('mock-toggle-deep-research')); });
 
   afterEach(() => { vi.restoreAllMocks(); });
 
@@ -215,15 +228,91 @@ describe('ChatPage deep research run recovery', () => {
     expect(calls).toEqual(['GET /research/runs/current']);
   });
 
-  it('cancels the shown run when the user leaves Deep Research by switching thread', async () => {
+  it('keeps a plan awaiting approval when the user switches thread, and shows it again from the pill', async () => {
     const calls = stubResearch(async () => activeRun());
     render(<ChatPage />);
     await screen.findByTestId('deep-research-plan');
 
-    await act(async () => { fireEvent.click(screen.getByTestId('mock-select-thread')); });
+    await switchThread();
 
-    await waitFor(() => expect(calls).toContain('POST /research/runs/run-1/cancel'));
     expect(screen.queryByTestId('deep-research-view')).not.toBeInTheDocument();
-    expect(screen.getByTestId('mock-chat-input')).toHaveAttribute('data-deep-research', 'false');
+    expect(chatInput()).toHaveAttribute('data-deep-research', 'false');
+    expect(chatInput()).toHaveAttribute('data-run-status', 'plan ready');
+
+    await toggleDeepResearch();
+    expect(screen.getByTestId('deep-research-plan')).toHaveTextContent('Which services need PA?');
+    expect(chatInput()).toHaveAttribute('data-run-status', '');
+    expect(calls).toEqual(['GET /research/runs/current']);
+  });
+
+  it('leaves a run in progress running across a thread switch and the toggle; only Cancel research cancels it', async () => {
+    const researching = { ...ACTIVE_RUN, state: 'researching' };
+    const calls = stubResearch(
+      async () => jsonResponse(researching),
+      call => (call === 'GET /research/runs/run-1' ? jsonResponse(researching) : undefined),
+    );
+    render(<ChatPage />);
+    await screen.findByTestId('cancel-research');
+
+    await switchThread();
+    expect(screen.queryByTestId('deep-research-view')).not.toBeInTheDocument();
+    expect(chatInput()).toHaveAttribute('data-run-status', 'running');
+
+    await toggleDeepResearch();
+    expect(screen.getByTestId('cancel-research')).toBeInTheDocument();
+    await toggleDeepResearch();
+    expect(screen.queryByTestId('deep-research-view')).not.toBeInTheDocument();
+    expect(calls.filter(call => call.startsWith('POST'))).toEqual([]);
+
+    await toggleDeepResearch();
+    fireEvent.click(screen.getByTestId('cancel-research'));
+    await waitFor(() => expect(calls).toContain('POST /research/runs/run-1/cancel'));
+    expect(await screen.findByText('Research was cancelled.')).toBeInTheDocument();
+  });
+
+  it('keeps a finished report across a thread switch and marks it ready on the pill', async () => {
+    const report = {
+      status: 'completed', question: 'Does X?', brief: 'b', reportMarkdown: 'The finished report body.',
+      subQuestions: [], corpusSources: [], webSources: [], workerFailures: [], citationProvenance: null,
+      stats: { reflectionRounds: 0, subQuestionCount: 1, corpusSourceCount: 0, webSourceCount: 0 },
+    };
+    const calls = stubResearch(
+      async () => activeRun(),
+      call => (call === 'GET /research/runs/run-1' ? jsonResponse({ ...ACTIVE_RUN, state: 'completed', report }) : undefined),
+    );
+    render(<ChatPage />);
+    fireEvent.click(await screen.findByTestId('approve-plan'));
+    expect(await screen.findByText('The finished report body.')).toBeInTheDocument();
+
+    await switchThread();
+    expect(screen.queryByText('The finished report body.')).not.toBeInTheDocument();
+    expect(chatInput()).toHaveAttribute('data-run-status', 'report ready');
+
+    await toggleDeepResearch();
+    expect(screen.getByText('The finished report body.')).toBeInTheDocument();
+    expect(calls.filter(call => call.endsWith('/cancel'))).toEqual([]);
+  });
+
+  it.each([
+    ['409 active run', () => jsonResponse({ error: { code: 'active_research_run', message: 'Only one active research run is allowed per user.' } }, 409)],
+    ['429 daily limit', () => jsonResponse({ error: { code: 'research_daily_quota', message: 'You have used both research reports available in a 24-hour period.' } }, 429)],
+  ])('puts the typed question back in the input when the start is refused: %s', async (label, refusal) => {
+    // No run when the page loads; by the time the start is refused there is one.
+    let lookups = 0;
+    stubResearch(
+      async () => (++lookups === 1 ? new Response(null, { status: 204 }) : activeRun()),
+      call => (call === 'POST /research/runs' ? refusal() : undefined),
+    );
+    render(<ChatPage />);
+    await waitFor(() => expect(lookups).toBe(1));
+    await toggleDeepResearch();
+    const input = screen.getByLabelText('Question');
+    fireEvent.change(input, { target: { value: 'How does therapeutic leave work?' } });
+    await act(async () => { fireEvent.click(screen.getByTestId('mock-send')); });
+
+    expect(await screen.findByTestId('deep-research-notice')).toBeInTheDocument();
+    await waitFor(() => expect(input).toHaveValue('How does therapeutic leave work?'));
+    if (label.startsWith('409')) expect(screen.getByTestId('deep-research-plan')).toBeInTheDocument();
+    else expect(screen.getByTestId('deep-research-empty')).toBeInTheDocument();
   });
 });

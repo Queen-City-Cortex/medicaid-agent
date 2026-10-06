@@ -155,6 +155,55 @@ describe('ResearchService', () => {
     }
   });
 
+  it.each(['expired plan', 'declined plan'])('retries a failed workflow cancel on later sweeps: %s', async path => {
+    vi.useFakeTimers();
+    vi.setSystemTime('2026-07-24T12:00:00.000Z');
+    const service = new ResearchService(repository, 2, undefined, async () => 'release-1');
+    try {
+      await repository.create('run-1', 'user-1', 'What is covered?');
+      const cancel = vi.fn().mockRejectedValueOnce(new Error('SQLITE_BUSY: database is locked')).mockResolvedValue(undefined);
+      const createRun = vi.fn().mockResolvedValue({
+        runId: 'workflow-1',
+        start: vi.fn().mockResolvedValue({ status: 'suspended', suspendPayload: { 'plan-approval': PLAN } }),
+        resume: vi.fn(),
+        cancel,
+      });
+      const mastra = { getWorkflow: vi.fn(() => ({ createRun })) } as unknown as ResearchMastra;
+      await service.plan('run-1', mastra);
+      await service.recover(mastra);
+
+      if (path === 'expired plan') await vi.advanceTimersByTimeAsync(86_400_000);
+      else expect(await service.decide('run-1', 'user-1', { approved: false }, mastra)).toBe('accepted');
+      // The run is cancelled for the user although its workflow is not yet.
+      expect(await repository.get('run-1', 'user-1')).toMatchObject({ state: 'cancelled' });
+      expect(cancel).toHaveBeenCalledTimes(1);
+      expect((await repository.getInternal('run-1'))?.workflowRunId).toBe('workflow-1');
+
+      await vi.advanceTimersByTimeAsync(60_000);
+      expect(cancel).toHaveBeenCalledTimes(2);
+      expect(createRun).toHaveBeenLastCalledWith({ runId: 'workflow-1', resourceId: 'run-1' });
+      expect((await repository.getInternal('run-1'))?.workflowRunId).toBeNull();
+
+      // Confirmed cancelled: later sweeps leave it alone.
+      await vi.advanceTimersByTimeAsync(5 * 60_000);
+      expect(cancel).toHaveBeenCalledTimes(2);
+    } finally {
+      service.dispose();
+      vi.useRealTimers();
+    }
+  });
+
+  it('stops retrying a workflow cancel a day after the run was cancelled', async () => {
+    const now = Date.now();
+    await repository.create('run-1', 'user-1', 'What is covered?', now);
+    await repository.acquire('run-1', 'queued', 'planning', 'planner', 2, now);
+    await repository.attachWorkflow('run-1', 'workflow-1', 'planner');
+    await repository.cancel('run-1', 'user-1', now);
+
+    expect(await repository.pendingWorkflowCancels(now + 86_400_000 - 1)).toEqual([{ runId: 'run-1', workflowRunId: 'workflow-1' }]);
+    expect(await repository.pendingWorkflowCancels(now + 86_400_000)).toEqual([]);
+  });
+
   it('revisits a valid lease after restart and recovers it once it expires', async () => {
     vi.useFakeTimers();
     vi.setSystemTime('2026-07-24T12:00:00.000Z');

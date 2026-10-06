@@ -23,6 +23,8 @@ interface ChatInputProps {
   /** When provided, renders a Deep Research mode toggle above the composer. */
   deepResearch?: boolean;
   onToggleDeepResearch?: () => void;
+  /** State of a research run the toggle would bring back into view, e.g. "running". */
+  deepResearchStatus?: string;
 }
 
 export function ChatInput({
@@ -34,6 +36,7 @@ export function ChatInput({
   inputRef,
   deepResearch = false,
   onToggleDeepResearch,
+  deepResearchStatus,
 }: ChatInputProps) {
   const helperTextId = 'chat-input-helper-text';
   // On mobile, Enter inserts a newline and sending is button-only — phone
@@ -65,6 +68,7 @@ export function ChatInput({
             >
               <Telescope className="size-3.5" />
               Deep Research {deepResearch ? 'on' : 'off'}
+              {deepResearchStatus && ` · ${deepResearchStatus}`}
             </button>
           </div>
         )}

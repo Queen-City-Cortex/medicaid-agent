@@ -62,31 +62,33 @@ export default function ChatPage() {
   } = useFeedback({ getAccessToken });
 
   // Deep Research is a distinct mode (declared before onThreadSwitch so the
-  // thread-switch reset can flip back to chat view). A HITL plan-approval gate
+  // thread switch can flip back to chat view). A HITL plan-approval gate
   // then a long cited report, driven by the deepResearchWorkflow via the
   // Mastra client — separate from the streaming chat agent.
   const [deepMode, setDeepMode] = useState(false);
   const deepResearch = useDeepResearch({ getAccessToken, userId: user?.id ?? null });
-  // A run the hook is holding is always shown, including one it found on the
-  // server at page load: hidden, it could be neither approved nor cancelled.
-  if (deepResearch.status !== 'idle' && !deepMode) setDeepMode(true);
-  // Pull out the stable `reset` callback so onThreadSwitch can depend on it
-  // rather than the whole `deepResearch` object (a new reference every render),
-  // keeping onThreadSwitch — and the useChatThread callbacks that list it —
-  // referentially stable.
-  const resetDeepResearch = deepResearch.reset;
+  // A run the hook has just picked up, including one it found on the server at
+  // page load, is shown once. After that the user may leave the view: the run
+  // keeps going and the pill says what is waiting behind it.
+  const [seenResearchStatus, setSeenResearchStatus] = useState(deepResearch.status);
+  if (seenResearchStatus !== deepResearch.status) {
+    setSeenResearchStatus(deepResearch.status);
+    if (seenResearchStatus === 'idle') setDeepMode(true);
+  }
+  const hiddenResearchStatus = deepMode ? undefined
+    : deepResearch.isBusy ? 'running'
+    : deepResearch.status === 'awaiting-approval' ? 'plan ready'
+    : deepResearch.status === 'done' ? 'report ready'
+    : undefined;
 
-  // Feedback and deep-research mode are per-thread client state — drop them
-  // both when the visible thread changes. Resetting deep mode
-  // here fixes the case where picking a past chat while Deep Research was on
-  // left the DeepResearchView mounted and the selection appeared to do nothing.
+  // Feedback is per-thread client state: drop it when the visible thread
+  // changes, and return to the chat view. The research run is not reset here.
+  // Leaving the view must not cancel a run or discard a finished report; only
+  // the buttons inside the view do that.
   const onThreadSwitch = useCallback(() => {
     resetFeedback();
-    // Only leave Deep Research if the user is in it. With the mode off the
-    // reset would abort the page-load lookup of the active run and hide it.
-    if (deepMode) resetDeepResearch();
     setDeepMode(false);
-  }, [resetFeedback, resetDeepResearch, deepMode]);
+  }, [resetFeedback]);
 
   const {
     threadId,
@@ -130,7 +132,9 @@ export default function ChatPage() {
     const question = input;
     setInput('');
     if (deepMode) {
-      await deepResearch.start(question);
+      // A start that created no run (one is already active, a daily limit, or
+      // a failed request) gives the question back, as a failed chat send does.
+      if (!await deepResearch.start(question)) setInput((current) => (current ? current : question));
       return;
     }
     try {
@@ -147,12 +151,10 @@ export default function ChatPage() {
     }
   }, [input, deepMode, deepResearch, messages.length, threadId, ensureThreadExists, sendMessage]);
 
-  // Toggling Deep Research OFF discards its (now-irrelevant) plan/report state
-  // so flipping back to chat — or toggling on again — starts clean.
+  // The toggle only changes what is shown; the research run is left alone.
   const toggleDeepResearch = useCallback(() => {
-    if (deepMode) deepResearch.reset();
     setDeepMode((v) => !v);
-  }, [deepMode, deepResearch]);
+  }, []);
 
   // "Ask again" sends the question as a new turn, which is what the agent
   // stores: it keeps only the newest user text and appends it to the thread.
@@ -356,6 +358,7 @@ export default function ChatPage() {
           inputRef={inputRef}
           deepResearch={deepMode}
           onToggleDeepResearch={toggleDeepResearch}
+          deepResearchStatus={hiddenResearchStatus}
         />
       </div>
     </div>

@@ -73,3 +73,25 @@ describe('DeepResearchReportView anchor scheme guard (G9)', () => {
     expect(screen.getByText('here')).toBeInTheDocument();
   });
 });
+
+describe('DeepResearchReportView gaps', () => {
+  it('lists the sub-questions with no verified finding under fixed wording, never the stored message', () => {
+    render(
+      <DeepResearchReportView
+        report={makeReport({
+          stats: { reflectionRounds: 0, subQuestionCount: 3, corpusSourceCount: 2, webSourceCount: 0 },
+          workerFailures: [{ subQuestion: 'Which services need prior approval?', message: 'RAW-WORKER-MESSAGE' }],
+        })}
+      />,
+    );
+    const gaps = screen.getByTestId('deep-research-gaps');
+    expect(gaps).toHaveTextContent('1 of 3 sub-questions could not be answered from verified sources. This report does not cover:');
+    expect(gaps).toHaveTextContent('Which services need prior approval?');
+    expect(gaps).not.toHaveTextContent('RAW-WORKER-MESSAGE');
+  });
+
+  it('shows no gap notice when every sub-question was answered', () => {
+    render(<DeepResearchReportView report={makeReport()} />);
+    expect(screen.queryByTestId('deep-research-gaps')).not.toBeInTheDocument();
+  });
+});

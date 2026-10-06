@@ -426,6 +426,26 @@ export class ResearchRepository {
     }));
   }
 
+  /** Cancelled runs whose workflow has not been confirmed cancelled: `workflow_run_id`
+   *  is cleared only once that succeeds. A cancel that keeps failing is retried for a
+   *  day after the run was cancelled; retention removes the snapshot after that. */
+  async pendingWorkflowCancels(now = Date.now()): Promise<Array<{ runId: string; workflowRunId: string }>> {
+    await this.database.migrate();
+    const result = await this.database.client.execute({
+      sql: `SELECT id, workflow_run_id FROM research_runs
+            WHERE state = 'cancelled' AND workflow_run_id IS NOT NULL AND updated_at > ?`,
+      args: [new Date(now - DAY_MS).toISOString()],
+    });
+    return result.rows.map((row) => ({ runId: String(row.id), workflowRunId: String(row.workflow_run_id) }));
+  }
+
+  async workflowCancelled(runId: string): Promise<void> {
+    await this.database.client.execute({
+      sql: `UPDATE research_runs SET workflow_run_id = NULL WHERE id = ? AND state = 'cancelled'`,
+      args: [runId],
+    });
+  }
+
   async initializeCheckpointRun(runId: string, owner: string, limits: Record<string, number>, corpusRelease: string | null): Promise<void> {
     const result = await this.database.client.execute({
       sql: `UPDATE research_runs SET limits_json = COALESCE(limits_json, ?), corpus_release = CASE WHEN limits_json IS NULL THEN ? ELSE corpus_release END

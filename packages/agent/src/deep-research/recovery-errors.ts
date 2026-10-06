@@ -5,6 +5,15 @@ export class VerificationWithheldError extends Error {
   }
 }
 
+/** The verifier answered and one worker's draft failed grounding. This is not a
+ *  verifier outage: the research step reports the sub-question as a gap. */
+export class FindingWithheldError extends VerificationWithheldError {
+  constructor() {
+    super(false);
+    this.name = 'FindingWithheldError';
+  }
+}
+
 export function isRetryableResearchError(error: unknown): boolean {
   if (error instanceof VerificationWithheldError) return error.unavailable;
   const value = error as { status?: number; statusCode?: number; message?: string; cause?: unknown };

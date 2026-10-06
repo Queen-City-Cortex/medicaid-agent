@@ -12,6 +12,12 @@ import { webSearch } from '../tools/web-search.js';
 import { ScopeGateProcessor } from '../processors/scope-gate.js';
 import { createInjectionDetector } from '../processors/injection-detector.js';
 
+// Mastra retries only the provider call (1 s, then 2 s), after the step budget
+// is reserved, so a rate limit or 5xx does not spend one of the run's two
+// recoveries or a second step. The verifier is not one of these agents and
+// keeps its zero retries.
+const MODEL_CALL_RETRIES = 2;
+
 const CORPUS_TOOLS = {
   resolveAnswerFrame,
   searchSections,
@@ -42,6 +48,7 @@ export const deepResearchPlannerAgent = new Agent({
   description: 'Decomposes a broad NC Medicaid research question into a research brief and independent sub-questions.',
   model: createModel(DEEP_RESEARCH_MODEL),
   defaultOptions: AGENT_DEFAULT_OPTIONS,
+  maxRetries: MODEL_CALL_RETRIES,
   instructions: `You are the planning lead for a deep-research run on NC Medicaid policy.
 
 ${CORPUS_OVERVIEW}
@@ -71,6 +78,7 @@ export const deepResearchWorkerAgent = new Agent({
   description: 'Researches a single NC Medicaid sub-question and returns cited findings.',
   model: createModel(DEEP_RESEARCH_MODEL),
   defaultOptions: AGENT_DEFAULT_OPTIONS,
+  maxRetries: MODEL_CALL_RETRIES,
   instructions: `You are a research worker. You are given ONE sub-question about NC Medicaid policy. Research it thoroughly, then return a compressed, citation-bearing summary.
 
 ${CORPUS_OVERVIEW}
@@ -96,6 +104,7 @@ export const deepResearchReportAgent = new Agent({
   description: 'Synthesizes deep-research findings into a long, cited NC Medicaid policy report.',
   model: createModel(DEEP_RESEARCH_MODEL),
   defaultOptions: AGENT_DEFAULT_OPTIONS,
+  maxRetries: MODEL_CALL_RETRIES,
   instructions: `You are the report writer for a deep-research run on NC Medicaid policy. You are given the research brief and a set of per-sub-question findings, each already carrying inline citations.
 
 The findings below are COMPLETE and are the only input you need. NEVER ask the user to paste findings, grant permission, or answer clarifying questions, and never offer to produce the report "once you have" more input — write the full report immediately from the findings provided. If a finding says the corpus was silent on something, report that gap; do not request more data.

@@ -169,7 +169,7 @@ function makeController(over: Partial<DeepResearchController>): DeepResearchCont
     question: '',
     elapsedMs: 0,
     isBusy: false,
-    start: asyncNoop,
+    start: async () => true,
     approve: asyncNoop,
     decline: asyncNoop,
     cancel: asyncNoop,

@@ -45,6 +45,27 @@ describe('DeepResearchView plan approval', () => {
   });
 });
 
+describe('DeepResearchView exclusions', () => {
+  it('starts the next plan with nothing excluded', () => {
+    const first = makeController({ status: 'awaiting-approval', plan: PLAN });
+    const { rerender } = render(<DeepResearchView controller={first} />);
+    fireEvent.click(screen.getAllByLabelText('Exclude sub-question')[1]);
+    fireEvent.click(screen.getByTestId('approve-plan'));
+    expect(first.approve).toHaveBeenCalledWith([0, 2]);
+
+    // The view stays mounted while the mode is on: the run finishes and a new question is planned.
+    rerender(<DeepResearchView controller={makeController({ status: 'researching', plan: PLAN })} />);
+    rerender(<DeepResearchView controller={makeController({ status: 'planning' })} />);
+    const second = makeController({ status: 'awaiting-approval', plan: { brief: 'Compare appeal rights', subQuestions: [question('Notice?'), question('Deadlines?'), question('Hearings?')] } });
+    rerender(<DeepResearchView controller={second} />);
+
+    expect(screen.getAllByLabelText('Exclude sub-question')).toHaveLength(3);
+    expect(screen.queryByLabelText('Include sub-question')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('approve-plan'));
+    expect(second.approve).toHaveBeenCalledWith(undefined);
+  });
+});
+
 describe('DeepResearchView daily limit', () => {
   it('shows a refused start as a notice beside the empty state, with nothing to retry', () => {
     const notice = 'You have used both research reports available in a 24-hour period. You can start another after Friday 8:00 AM.';

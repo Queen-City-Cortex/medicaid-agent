@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Telescope, Loader2, Check, X, AlertTriangle, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DeepResearchReportView } from '@/components/DeepResearchReport';
-import type { DeepResearchController } from '@/lib/use-deep-research';
+import type { DeepResearchController, DeepResearchPlan } from '@/lib/use-deep-research';
 
 function fmtElapsed(ms: number): string {
   const s = Math.floor(ms / 1000);
@@ -24,10 +24,98 @@ function Phase({ label, sub }: { label: string; sub?: string }) {
   );
 }
 
+/** The plan-approval card. It owns the excluded positions and is mounted only
+ *  while a plan awaits approval, so each plan starts with nothing excluded. */
+function PlanApproval({ plan, onApprove, onDecline }: {
+  plan: DeepResearchPlan;
+  onApprove: DeepResearchController['approve'];
+  onDecline: DeepResearchController['decline'];
+}) {
+  const [excluded, setExcluded] = useState<Set<number>>(new Set());
+  return (
+    <div data-testid="deep-research-plan" className="rounded-xl border border-accent/30 bg-accent/[0.04] p-5">
+      <h3 className="font-heading text-base font-semibold text-foreground">Proposed research plan</h3>
+      <p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">{plan.brief}</p>
+
+      <ol className="mt-4 space-y-2">
+        {plan.subQuestions.map((sq, i) => {
+          const off = excluded.has(i);
+          return (
+            <li
+              key={i}
+              className={`rounded-lg border px-3 py-2 text-sm transition-colors ${
+                off ? 'border-border bg-muted/40 opacity-50' : 'border-border bg-card'
+              }`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className={`font-medium text-foreground ${off ? 'line-through' : ''}`}>{sq.question}</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">{sq.rationale}</p>
+                  <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                    {sq.channels.map((c) => (
+                      <span key={c} className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide text-muted-foreground">
+                        {c}
+                      </span>
+                    ))}
+                    {sq.useWeb && (
+                      <span className="inline-flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide text-muted-foreground">
+                        <Globe className="size-2.5" /> web
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setExcluded((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(i)) next.delete(i);
+                      else next.add(i);
+                      return next;
+                    })
+                  }
+                  className="shrink-0 rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                  aria-label={off ? 'Include sub-question' : 'Exclude sub-question'}
+                >
+                  {off ? <Check className="size-4" /> : <X className="size-4" />}
+                </button>
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+
+      <div className="mt-5 flex items-center gap-3">
+        <Button
+          data-testid="approve-plan"
+          onClick={() => {
+            const kept = plan.subQuestions.map((_, i) => i).filter((i) => !excluded.has(i));
+            // Only name the kept questions when the user actually pruned the plan.
+            onApprove(kept.length === plan.subQuestions.length ? undefined : kept);
+          }}
+          disabled={excluded.size === plan.subQuestions.length}
+          size="sm"
+          className="font-mono text-xs uppercase tracking-wider"
+        >
+          Approve & research
+        </Button>
+        <Button
+          data-testid="decline-plan"
+          onClick={() => onDecline()}
+          variant="outline"
+          size="sm"
+          className="font-mono text-xs uppercase tracking-wider"
+        >
+          Cancel
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 /** The deep-research surface: plan-approval gate, phase progress, and report. */
 export function DeepResearchView({ controller }: { controller: DeepResearchController }) {
   const { status, plan, report, error, question, elapsedMs } = controller;
-  const [excluded, setExcluded] = useState<Set<number>>(new Set());
 
   if (status === 'idle') {
     return (
@@ -69,83 +157,7 @@ export function DeepResearchView({ controller }: { controller: DeepResearchContr
       {status === 'planning' && <Phase label="Planning the research…" sub={`Elapsed ${fmtElapsed(elapsedMs)}`} />}
 
       {status === 'awaiting-approval' && plan && (
-        <div data-testid="deep-research-plan" className="rounded-xl border border-accent/30 bg-accent/[0.04] p-5">
-          <h3 className="font-heading text-base font-semibold text-foreground">Proposed research plan</h3>
-          <p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">{plan.brief}</p>
-
-          <ol className="mt-4 space-y-2">
-            {plan.subQuestions.map((sq, i) => {
-              const off = excluded.has(i);
-              return (
-                <li
-                  key={i}
-                  className={`rounded-lg border px-3 py-2 text-sm transition-colors ${
-                    off ? 'border-border bg-muted/40 opacity-50' : 'border-border bg-card'
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className={`font-medium text-foreground ${off ? 'line-through' : ''}`}>{sq.question}</p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">{sq.rationale}</p>
-                      <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                        {sq.channels.map((c) => (
-                          <span key={c} className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide text-muted-foreground">
-                            {c}
-                          </span>
-                        ))}
-                        {sq.useWeb && (
-                          <span className="inline-flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide text-muted-foreground">
-                            <Globe className="size-2.5" /> web
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setExcluded((prev) => {
-                          const next = new Set(prev);
-                          if (next.has(i)) next.delete(i);
-                          else next.add(i);
-                          return next;
-                        })
-                      }
-                      className="shrink-0 rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-                      aria-label={off ? 'Include sub-question' : 'Exclude sub-question'}
-                    >
-                      {off ? <Check className="size-4" /> : <X className="size-4" />}
-                    </button>
-                  </div>
-                </li>
-              );
-            })}
-          </ol>
-
-          <div className="mt-5 flex items-center gap-3">
-            <Button
-              data-testid="approve-plan"
-              onClick={() => {
-                const kept = plan.subQuestions.map((_, i) => i).filter((i) => !excluded.has(i));
-                // Only name the kept questions when the user actually pruned the plan.
-                controller.approve(kept.length === plan.subQuestions.length ? undefined : kept);
-              }}
-              disabled={excluded.size === plan.subQuestions.length}
-              size="sm"
-              className="font-mono text-xs uppercase tracking-wider"
-            >
-              Approve & research
-            </Button>
-            <Button
-              data-testid="decline-plan"
-              onClick={() => controller.decline()}
-              variant="outline"
-              size="sm"
-              className="font-mono text-xs uppercase tracking-wider"
-            >
-              Cancel
-            </Button>
-          </div>
-        </div>
+        <PlanApproval plan={plan} onApprove={controller.approve} onDecline={controller.decline} />
       )}
 
       {['researching', 'recovering', 'verifying'].includes(status) && (

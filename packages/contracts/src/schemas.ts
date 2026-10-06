@@ -148,6 +148,10 @@ export const ResearchWebSourceSchema = z.object({
 });
 export type ResearchWebSource = z.infer<typeof ResearchWebSourceSchema>;
 
+/** The only wording a report carries for a sub-question that has no verified
+ *  finding. The server writes it; a worker's withheld draft or error never is. */
+export const RESEARCH_GAP_NOTICE = 'This sub-question could not be answered from verified sources.';
+
 export const ResearchWorkerFailureSchema = z.object({
   subQuestion: z.string().min(1).max(10_000),
   message: z.string().min(1).max(500),

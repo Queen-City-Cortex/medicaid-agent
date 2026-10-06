@@ -2,8 +2,9 @@ import { getConfig as getVerifierConfig } from '../processors/verifier/config.js
 import { createWorkflow, createStep } from '@mastra/core/workflows';
 import type { OnIterationCompleteHandler } from '@mastra/core/agent';
 import { z } from 'zod';
+import { RESEARCH_GAP_NOTICE } from '@nc-medicaid/contracts';
 import { checkpointed, questionKey, researchLimits, researchApproval, reserveResearchStep, publishResearchFollowUps, publishResearchVerification } from './checkpoints.js';
-import { VerificationWithheldError, isRetryableResearchError } from './recovery-errors.js';
+import { FindingWithheldError, VerificationWithheldError, isRetryableResearchError } from './recovery-errors.js';
 import { verifyAnswer, VERIFICATION_UNAVAILABLE } from '../processors/verifier/verify.js';
 import { log } from '../logger.js';
 import {
@@ -39,7 +40,7 @@ import { markResearchVerifying, recordResearchUsage } from './usage.js';
 import {
   isSystemicWorkerError,
   runSettledBatches,
-  workerFailureMessage,
+  type BatchFailure,
 } from './worker-pool.js';
 
 // ── Internal schemas (carry heavy state between steps) ────────────────────────
@@ -235,13 +236,32 @@ async function researchOne(sq: SubQuestion): Promise<ResearchOutcome> {
     });
     const sources = verificationSources(draft.corpus, draft.web);
     const verified = await verifyResearchAnswer(key, sq.question, draft.text, sources);
+    // A withheld draft stays in its private checkpoint. Only the report step
+    // publishes a verification outcome and source list for the run.
     if (verified.outcome.status === 'withheld') {
-      await publishResearchVerification(verified.outcome, sources.map(s => ({ key: s.key, label: sourceLabel(s), link: s.link ?? null })));
-      throw new VerificationWithheldError(verified.retryable);
+      throw verified.outcome.reason === 'unavailable' ? new VerificationWithheldError(verified.retryable) : new FindingWithheldError();
     }
     return { finding: { subQuestion: sq.question, summary: verified.finalAnswer, foundEvidence: sources.length > 0 },
       corpus: draft.corpus, web: draft.web };
   });
+}
+
+/** Sub-questions whose worker did not return a verified finding. A grounding
+ *  withhold or a one-off worker error becomes a gap the report names, in fixed
+ *  wording: neither the withheld draft nor the error text leaves the server. A
+ *  transient error, a verifier outage, a budget, lease, corpus or checkpoint
+ *  error, a systemic provider error, or gaps in more than half of the batch
+ *  end the step instead. */
+function gapsOrThrow(failures: BatchFailure<SubQuestion>[], batchSize: number): Array<{ subQuestion: string; message: string }> {
+  const fatal = failures.find(f => isRetryableResearchError(f.error)
+    || (f.error instanceof VerificationWithheldError && !(f.error instanceof FindingWithheldError))
+    || /budget|lease|corpus|checkpoint/i.test(String(f.error)));
+  if (fatal) throw fatal.error;
+  if (failures.some(({ error }) => isSystemicWorkerError(error)) || failures.length > batchSize / 2) throw failures[0].error;
+  for (const { error } of failures) {
+    log.warn('deep_research.sub_question_gap', { reason: error instanceof FindingWithheldError ? 'grounding_withheld' : 'worker_failed' });
+  }
+  return failures.map(({ item }) => ({ subQuestion: item.question, message: RESEARCH_GAP_NOTICE }));
 }
 
 function uniqueQuestions(questions: SubQuestion[], prior: SubQuestion[] = []): SubQuestion[] {
@@ -366,18 +386,7 @@ const researchStep = createStep({
       },
     );
     absorb(initial.values);
-    workerFailures.push(...initial.failures.map(({ item, error }) => ({
-      subQuestion: item.question,
-      message: workerFailureMessage(error),
-    })));
-    const fatalInitial = initial.failures.find(f => isRetryableResearchError(f.error) || f.error instanceof VerificationWithheldError || /budget|lease|corpus|checkpoint/i.test(String(f.error)));
-    if (fatalInitial) throw fatalInitial.error;
-    if (
-      initial.failures.some(({ error }) => isSystemicWorkerError(error))
-      || initial.failures.length > inputData.subQuestions.length / 2
-    ) {
-      throw initial.failures[0].error;
-    }
+    workerFailures.push(...gapsOrThrow(initial.failures, inputData.subQuestions.length));
 
     // Bounded reflection loop with a closed-corpus novelty stop. A plan the
     // user pruned gets no follow-ups: the brief was written for the full plan,
@@ -435,18 +444,7 @@ const researchStep = createStep({
         },
       );
       absorb(followUpResults.values);
-      workerFailures.push(...followUpResults.failures.map(({ item, error }) => ({
-        subQuestion: item.question,
-        message: workerFailureMessage(error),
-      })));
-      const fatalFollowup = followUpResults.failures.find(f => isRetryableResearchError(f.error) || f.error instanceof VerificationWithheldError || /budget|lease|corpus|checkpoint/i.test(String(f.error)));
-      if (fatalFollowup) throw fatalFollowup.error;
-      if (
-        followUpResults.failures.some(({ error }) => isSystemicWorkerError(error))
-        || followUpResults.failures.length > followUps.length / 2
-      ) {
-        throw followUpResults.failures[0].error;
-      }
+      workerFailures.push(...gapsOrThrow(followUpResults.failures, followUps.length));
       reflectionRounds += 1;
       if (seenIds.size - before < researchLimits().noveltyMinNewIds) break; // corpus exhausted
     }
@@ -485,7 +483,12 @@ const synthesizeStep = createStep({
     const webBlock = inputData.webSources.length
       ? `\n\nSupplementary web sources consulted:\n${inputData.webSources.map((w) => `- ${w.title} (${w.url})`).join('\n')}`
       : '';
-    const prompt = `Original question:\n${inputData.question}\n\nResearch brief:\n${inputData.brief}\n\nFindings (each already carries inline citations):\n\n${findingsBlock}${webBlock}\n\nWrite the full report now.`;
+    // The writer sees only the sub-question text of a gap, never the draft
+    // that was withheld for it.
+    const gapBlock = inputData.workerFailures.length
+      ? `\n\nUnresolved gaps: these sub-questions could not be answered from verified sources. State each one as an unresolved gap. Do not answer them, and do not write what their answers might be:\n${inputData.workerFailures.map((f) => `- ${f.subQuestion}`).join('\n')}`
+      : '';
+    const prompt = `Original question:\n${inputData.question}\n\nResearch brief:\n${inputData.brief}\n\nFindings (each already carries inline citations):\n\n${findingsBlock}${webBlock}${gapBlock}\n\nWrite the full report now.`;
     const res = await deepResearchReportAgent.generate(prompt, {
       maxSteps: 1, prepareStep: async () => { await reserveResearchStep('synthesis', 1); },
     });

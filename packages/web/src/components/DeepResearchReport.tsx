@@ -48,9 +48,18 @@ export function DeepResearchReportView({ report }: { report: DeepResearchReport 
     <div data-testid="deep-research-report" className="space-y-6">
       <VerificationLine v={report.citationProvenance} />
 
+      {/* Gaps are listed from the plan's own sub-question text under fixed
+          wording; the stored failure message is never rendered. */}
       {report.workerFailures.length > 0 && (
-        <div role="alert" className="rounded-md border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-sm text-amber-800 dark:text-amber-300">
-          {report.workerFailures.length} research worker(s) failed; the report preserves the successful findings and may have unresolved gaps.
+        <div role="alert" data-testid="deep-research-gaps" className="rounded-md border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-sm text-amber-800 dark:text-amber-300">
+          <p>
+            {report.workerFailures.length} of {report.stats.subQuestionCount} sub-questions could not be answered from verified sources. This report does not cover:
+          </p>
+          <ul className="mt-1 list-disc pl-5">
+            {report.workerFailures.map((failure, i) => (
+              <li key={i}>{failure.subQuestion}</li>
+            ))}
+          </ul>
         </div>
       )}
 
