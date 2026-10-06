@@ -186,6 +186,37 @@ SET r.effective = edge.effective,
     r.reason = edge.reason
 """
 
+# Year-stamped editions (pipeline/editions.py). Both statements run in one
+# transaction after a family has loaded.
+#
+# Scope of the delete: only edges that leave a document this load just rewrote
+# as current, and only where both ends carry the edition family's document
+# type. The federal supersession stubs are `federal_regulation` documents
+# written by the federal loader, so their edges can match neither condition.
+DELETE_EDITION_SUPERSEDED_BY_BATCH = """
+UNWIND $ids AS document_id
+MATCH (old:Document {id: document_id, document_type: $document_type})
+      -[r:SUPERSEDED_BY]->(:Document {document_type: $document_type})
+DELETE r
+"""
+
+# The mark and the edge are one statement: an older edition leaves search only
+# where the newer edition's node exists, so a newer table that did not load
+# hides nothing. The newer node's own status is not checked: an edition the
+# agency has archived still supersedes the older ones, and nothing is promoted
+# in its place.
+MARK_SUPERSEDED_EDITIONS_BATCH = """
+UNWIND $edges AS edge
+MATCH (old:Document {id: edge.source_id})
+MATCH (new:Document {id: edge.target_id})
+SET old.status = 'superseded',
+    old.retrieval_ready = false
+MERGE (old)-[r:SUPERSEDED_BY]->(new)
+SET r.effective = edge.effective,
+    r.reason = edge.reason
+RETURN count(old) AS marked
+"""
+
 MERGE_AMENDS_BATCH = """
 UNWIND $pairs AS pair
 MATCH (src:Document {id: pair.source_id})

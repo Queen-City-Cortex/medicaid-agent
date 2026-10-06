@@ -28,6 +28,21 @@ export function notArchived(alias: string): string {
 }
 
 /**
+ * Cypher predicate keeping documents the pipeline marked not retrieval-ready
+ * (archive, companion and reference fee schedules) out of search. It sits
+ * beside `notArchived` at every site that returns a document's sections as
+ * hits, and an explicit document-type filter does not lift it. A missing
+ * property reads as ready, so a graph loaded before the property existed
+ * keeps its corpus. Apply it to the document whose sections are returned,
+ * never to the amending node of an AMENDS edge: revision entries are written
+ * not retrieval-ready on purpose and are reached through that edge. Reads by
+ * id and `lookupPolicy` do not filter; they return `retrievalReady` instead.
+ */
+export function retrievalReady(alias: string): string {
+  return `coalesce(${alias}.retrieval_ready, true) = true`;
+}
+
+/**
  * Cypher sort keys putting the newest amending document first. A DHHS change
  * notice has no date: it orders by the year and sequence of its number
  * ("04-26"), which is comparable only within one manual's series. A clinical

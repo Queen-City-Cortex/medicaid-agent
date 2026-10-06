@@ -209,7 +209,7 @@ def test_dhhs_load_identity_smoke(monkeypatch, tmp_path):
             )
         )
 
-    assert stats == {"loaded": 4, "sections_total": 5, "skipped": 0, "errors": 0}
+    assert stats == {"loaded": 4, "sections_total": 5, "skipped": 0, "errors": 0, "superseded": 0}
     assert doc_count == stats["loaded"]
     assert section_count == stats["sections_total"]
     assert len(ma3200_docs) == 2
@@ -290,7 +290,7 @@ def test_spa_attachments_with_one_policy_number_load_one_to_one(
             )
         )
 
-    assert stats == {"loaded": 3, "sections_total": 3, "skipped": 0, "errors": 0}
+    assert stats == {"loaded": 3, "sections_total": 3, "skipped": 0, "errors": 0, "superseded": 0}
     assert len(rows) == len(stems)
     assert len({row["id"] for row in rows}) == len(stems)
     assert len({row["source_url"] for row in rows}) == len(stems)

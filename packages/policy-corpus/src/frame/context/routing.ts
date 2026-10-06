@@ -141,8 +141,11 @@ export function createFrameRoutingHelpers({
 
     const documents = await Promise.all(
       policyNumbers.map(async (policyNumber) => {
-        const [document] = await lookupPolicy({ policyNumber });
-        return document ?? null;
+        // lookupPolicy returns every document sharing the number, labelled.
+        // A document chosen by inference must be retrieval-ready, so a
+        // ready hit never routes the frame onto a not-ready sibling.
+        const candidates = await lookupPolicy({ policyNumber });
+        return candidates.find((candidate) => candidate.retrievalReady !== false) ?? null;
       }),
     );
     return uniqueBy(
@@ -157,7 +160,9 @@ export function createFrameRoutingHelpers({
   ): Promise<{ documents: DocumentWithSectionsView[]; droppedDocuments: DocumentWithSectionsView[] }> => {
     // A document the agency archived never routes a coverage frame; a query
     // that names only archived documents falls through to the hits.
-    const isCurrent = (document: DocumentWithSectionsView) => document.status !== 'archived';
+    // The same holds for a document the pipeline marked not retrieval-ready.
+    const isCurrent = (document: DocumentWithSectionsView) =>
+      document.status !== 'archived' && document.retrievalReady !== false;
     const lookupDocuments = (await collectLookupDocuments(query)).filter(isCurrent);
     if (lookupDocuments.length > 0) {
       const documents = isHcwdIncomePremiumQuery(normalizeSearchText(query))

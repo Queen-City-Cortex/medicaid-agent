@@ -1376,6 +1376,7 @@ def test_load_all_counts_duplicate_parsed_artifacts_as_one_document(
         "sections_total": 2,
         "skipped": 1,
         "errors": 0,
+        "superseded": 0,
     }
 
 
@@ -1451,6 +1452,7 @@ def test_load_all_deduplicates_before_an_ineligible_artifact_can_delete(
         "sections_total": 1,
         "skipped": 1,
         "errors": 0,
+        "superseded": 0,
     }
     assert len(writer.received("upsert_document_bundle")) == 1
     assert writer.received("delete_document") == []
@@ -1533,6 +1535,7 @@ def test_load_all_prefers_the_parse_matching_the_current_registry_hash(
         "sections_total": 1,
         "skipped": 1,
         "errors": 0,
+        "superseded": 0,
     }
     (bundle,) = writer.received("upsert_document_bundle")
     assert bundle.sections[0].content_text == "Current content"
@@ -1575,6 +1578,7 @@ def test_load_all_refuses_ambiguous_duplicate_parse_content(
         "sections_total": 0,
         "skipped": 1,
         "errors": 1,
+        "superseded": 0,
     }
     assert loaded_paths == []
     assert writer.received("delete_document") == [

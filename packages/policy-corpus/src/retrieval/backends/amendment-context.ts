@@ -6,6 +6,7 @@ import {
   AMENDMENT_CONTEXT_SECTION_WEIGHT,
   amendmentRecencyOrder,
   notArchived,
+  retrievalReady,
   recordToRetrievalHit,
   retrievalDocumentMetadataReturn,
   timeSearchStep,
@@ -27,6 +28,7 @@ export const amendmentContextBackend: RetrievalBackend = {
              WHERE (amend.document_type IN $docTypes
                 OR base.document_type IN $docTypes)
                AND ${notArchived('base')}
+               AND ${retrievalReady('base')}
              WITH amend, base,
                   reduce(
                     docScore = 0,

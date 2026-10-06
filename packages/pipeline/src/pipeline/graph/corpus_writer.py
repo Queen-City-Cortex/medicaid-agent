@@ -272,6 +272,48 @@ class CorpusGraphWriter:
 
         return len(edges)
 
+    def supersede_editions(
+        self,
+        edges: list[SupersessionEdge],
+        *,
+        document_type: str,
+        loaded_ids: list[str],
+    ) -> int:
+        """Replace the edition supersessions of the documents a load just wrote.
+
+        Returns the number of older editions actually marked: an edge whose
+        newer edition is not in the graph marks nothing. The edges left by an
+        earlier load are removed first, so an edition whose superseder has been
+        withdrawn does not keep pointing at it.
+        """
+        payload = [
+            {
+                "source_id": edge.source_id,
+                "target_id": edge.target_id,
+                "effective": edge.effective,
+                "reason": edge.reason,
+            }
+            for edge in edges
+        ]
+        marked = 0
+
+        def _work(tx: ManagedTransaction) -> None:
+            nonlocal marked
+            marked = 0
+            for batch in chunked(loaded_ids, GRAPH_BATCH_SIZE):
+                tx.run(
+                    queries.DELETE_EDITION_SUPERSEDED_BY_BATCH,
+                    {"ids": batch, "document_type": document_type},
+                )
+            for batch in chunked(payload, GRAPH_BATCH_SIZE):
+                record = tx.run(queries.MARK_SUPERSEDED_EDITIONS_BATCH, {"edges": batch}).single()
+                marked += record["marked"] if record else 0
+
+        with self._session_factory() as session:
+            self._execute_write(session, _work, "supersede_editions")
+
+        return marked
+
     def merge_concept_links(self, links: list[ConceptLink]) -> int:
         if not links:
             return 0

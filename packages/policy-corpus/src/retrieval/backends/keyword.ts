@@ -8,6 +8,7 @@ import {
   SECTION_KEYWORD_WEIGHT,
   amendmentRecencyOrder,
   notArchived,
+  retrievalReady,
   recordToRetrievalHit,
   retrievalDocumentMetadataReturn,
   timeSearchStep,
@@ -26,6 +27,7 @@ export const sectionKeywordBackend: RetrievalBackend = {
             `MATCH (d:Document)-[:HAS_SECTION]->(s:Section)
              WHERE d.document_type IN $docTypes
                AND ${notArchived('d')}
+               AND ${retrievalReady('d')}
                AND s.content_length > 0
              WITH d, s,
                   reduce(
@@ -93,6 +95,7 @@ export const documentKeywordBackend: RetrievalBackend = {
             `MATCH (d:Document)
              WHERE d.document_type IN $docTypes
                AND ${notArchived('d')}
+               AND ${retrievalReady('d')}
              WITH d,
                   reduce(
                     docScore = 0,

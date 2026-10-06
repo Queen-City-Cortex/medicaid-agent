@@ -8,6 +8,7 @@ import {
   DOCUMENT_EXPANSION_SECTION_WEIGHT,
   amendmentRecencyOrder,
   notArchived,
+  retrievalReady,
   recordToRetrievalHit,
   retrievalDocumentMetadataReturn,
   timeSearchStep,
@@ -32,6 +33,7 @@ export async function retrieveDocumentExpansionHits({
         `MATCH (d:Document)
          WHERE d.title IN $titles
            AND ${notArchived('d')}
+           AND ${retrievalReady('d')}
          MATCH (d)-[:HAS_SECTION]->(s:Section)
          WHERE s.content_length > 0
          WITH d, s,
@@ -91,6 +93,7 @@ export async function retrieveChangeNoticeHeaderHits({
         `MATCH (d:Document)
          WHERE d.title IN $titles
            AND ${notArchived('d')}
+           AND ${retrievalReady('d')}
          MATCH (d)-[:HAS_SECTION]->(s:Section)
          WITH d, s,
               CASE
@@ -146,6 +149,7 @@ export async function retrieveAmendmentTitleExpansionHits({
         `MATCH (amend)-[:AMENDS]->(base:Document)
          WHERE amend.title IN $titles
            AND ${notArchived('base')}
+           AND ${retrievalReady('base')}
          MATCH (base)-[:HAS_SECTION]->(s:Section)
          WHERE s.content_length > 0
          WITH base, s,

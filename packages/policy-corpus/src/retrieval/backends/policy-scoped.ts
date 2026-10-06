@@ -3,6 +3,7 @@ import {
   POLICY_SCOPED_BASE_SCORE,
   POLICY_SCOPED_SECTION_WEIGHT,
   notArchived,
+  retrievalReady,
   recordToRetrievalHit,
   retrievalDocumentMetadataReturn,
   timeSearchStep,
@@ -29,6 +30,7 @@ export const policyScopedBackend: RetrievalBackend = {
              WHERE d.document_type IN $docTypes
                AND toUpper(coalesce(d.policy_number, '')) IN $policyNumbers
                AND ${notArchived('d')}
+               AND ${retrievalReady('d')}
              RETURN
                s.id AS sectionId,
                s.section_number AS sectionNumber,
@@ -58,6 +60,7 @@ export const policyScopedBackend: RetrievalBackend = {
              WHERE d.document_type IN $docTypes
                AND toUpper(coalesce(d.policy_number, '')) IN $policyNumbers
                AND ${notArchived('d')}
+               AND ${retrievalReady('d')}
              MATCH (d)-[:HAS_SECTION]->(s:Section)
              WHERE s.content_length > 0
              WITH d, s,

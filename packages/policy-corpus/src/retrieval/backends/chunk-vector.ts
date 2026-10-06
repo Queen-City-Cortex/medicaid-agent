@@ -1,5 +1,5 @@
 import type { RetrievalBackend } from '../../contracts.js';
-import { notArchived, recordToRetrievalHit, retrievalDocumentMetadataReturn, timeSearchStep, vectorScanK } from '../../internal/shared.js';
+import { notArchived, retrievalReady, recordToRetrievalHit, retrievalDocumentMetadataReturn, timeSearchStep, vectorScanK } from '../../internal/shared.js';
 
 export const chunkVectorBackend: RetrievalBackend = {
   name: 'chunk_vector',
@@ -16,6 +16,7 @@ export const chunkVectorBackend: RetrievalBackend = {
              MATCH (d:Document)-[:HAS_SECTION]->(s)
              WHERE d.document_type IN $docTypes
                AND ${notArchived('d')}
+               AND ${retrievalReady('d')}
              RETURN
                s.id AS sectionId,
                s.section_number AS sectionNumber,

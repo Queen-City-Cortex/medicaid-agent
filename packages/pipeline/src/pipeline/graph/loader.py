@@ -21,13 +21,19 @@ from pipeline.crawler_registry import (
     read_index_listings,
     read_registry_rows,
 )
+from pipeline.editions import EDITION_SOURCE_TYPES, SupersededEdition, build_superseded_editions
 from pipeline.identity import build_document_id, canonicalize_source_url
 from pipeline.parse.post_process import (
     extract_section_number,
     infer_level_from_number,
     build_section_id,
 )
-from pipeline.graph.corpus_types import DocumentBundle, DocumentNode, SectionNode
+from pipeline.graph.corpus_types import (
+    DocumentBundle,
+    DocumentNode,
+    SectionNode,
+    SupersessionEdge,
+)
 from pipeline.graph.corpus_writer import graph_writer
 from pipeline.policy_dates import banner_date, notice_header_date
 from pipeline.policy_dates import logger as policy_dates_logger
@@ -54,6 +60,23 @@ _STATE_PLAN_PROPOSAL_TITLE_RE = re.compile(
     r"Public Notice|Proposed Amendment Sent to CMS|^Draft",
     re.IGNORECASE,
 )
+
+
+@lru_cache(maxsize=4)
+def _build_cached_superseded_editions(
+    db_path: str, db_mtime_ns: int | None
+) -> dict[str, SupersededEdition]:
+    listings = _build_cached_index_listings(db_path, db_mtime_ns)
+    return build_superseded_editions(
+        read_registry_rows(Path(db_path)),
+        delisted_urls=frozenset(url for url, listing in listings.items() if listing.delisted),
+    )
+
+
+def _superseded_edition(source_url: str | None) -> SupersededEdition | None:
+    """The newer edition of this year-stamped table, if the registry holds one."""
+    db_mtime_ns = CRAWLER_DB_PATH.stat().st_mtime_ns if CRAWLER_DB_PATH.exists() else None
+    return _build_cached_superseded_editions(str(CRAWLER_DB_PATH), db_mtime_ns).get(source_url)
 
 
 def _is_state_plan_proposal(source_type: str, title: str, crawler_meta: dict) -> bool:
@@ -879,10 +902,65 @@ def load_document(
     )
     graph_writer.upsert_document_bundle(bundle)
 
-    return {
-        "document_id": doc_id,
-        "sections": len(sections),
-    }
+    result = {"document_id": doc_id, "sections": len(sections)}
+    # Reported, never applied here: the document was just written exactly as it
+    # would be without the edition rule. `load_all` marks it only once the
+    # newer edition is known to have loaded. A document that is not `current`
+    # (the agency's Archived tag, an archive family, a proposal) is no
+    # candidate and stays exactly as its own rule made it.
+    if bundle.document.status == "current":
+        edition = _superseded_edition(crawler_meta.get("source_url"))
+        if edition:
+            result["newer_edition"] = edition
+    return result
+
+
+def _supersede_loaded_editions(
+    source_type: str,
+    loaded_ids: set[str],
+    older_editions: list[tuple[str, SupersededEdition]],
+) -> int:
+    """Mark each older edition whose newer edition loaded; return how many were marked.
+
+    Runs after the family has loaded. Every document in ``loaded_ids`` was just
+    written current and ready, so an older edition is hidden only here, and only
+    when the edition that supersedes it was written by this same load: a newer
+    table that has no parsed artifact, is not answer-ready or failed to load
+    hides nothing. The writer is called even with no edges, because it first
+    removes the edition edges an earlier load left on these documents.
+    """
+    edges: list[SupersessionEdge] = []
+    for document_id, edition in older_editions:
+        newer_id = build_document_id(source_type, edition.by_source_url, edition.by_local_path)
+        if newer_id not in loaded_ids:
+            console.print(
+                f"    [red]NOT SUPERSEDED[/red] {edition.year} edition of "
+                f"'{edition.group}' stays current ({document_id}): the {edition.by_year} "
+                f"edition did not load: {edition.by_title} ({edition.by_source_url})"
+            )
+            continue
+        console.print(
+            f"    [yellow]SUPERSEDED[/yellow] {edition.year} edition of "
+            f"'{edition.group}' by the {edition.by_year} edition: "
+            f"{edition.by_title} ({edition.by_source_url})"
+        )
+        edges.append(
+            SupersessionEdge(
+                source_id=document_id,
+                target_id=newer_id,
+                effective=None,
+                reason=f"Superseded by the {edition.by_year} edition of this table.",
+            )
+        )
+    marked = graph_writer.supersede_editions(
+        edges, document_type=source_type, loaded_ids=sorted(loaded_ids)
+    )
+    if marked != len(edges):
+        console.print(
+            f"    [red]NOT SUPERSEDED[/red] {len(edges) - marked} of {len(edges)} older "
+            f"{source_type} editions: the graph did not hold both editions"
+        )
+    return marked
 
 
 def load_all(source_type: str | None = None, reset: bool = False) -> dict:
@@ -895,7 +973,7 @@ def load_all(source_type: str | None = None, reset: bool = False) -> dict:
 
     ensure_schema()
 
-    stats = {"loaded": 0, "sections_total": 0, "skipped": 0, "errors": 0}
+    stats = {"loaded": 0, "sections_total": 0, "skipped": 0, "errors": 0, "superseded": 0}
     if source_type:
         dirs = [(source_type, SOURCE_TYPE_DIRS.get(source_type, source_type))]
     else:
@@ -905,6 +983,8 @@ def load_all(source_type: str | None = None, reset: bool = False) -> dict:
         parsed_dir = PARSED_DATA_DIR / dir_name
         if not parsed_dir.exists():
             continue
+        loaded_ids: set[str] = set()
+        older_editions: list[tuple[str, SupersededEdition]] = []
 
         json_files = sorted(parsed_dir.glob("*.json"))
         # Exclude .meta.json files
@@ -969,8 +1049,14 @@ def load_all(source_type: str | None = None, reset: bool = False) -> dict:
                 console.print(f"[green]OK[/green] ({result['sections']} sections)")
                 stats["loaded"] += 1
                 stats["sections_total"] += result["sections"]
+                loaded_ids.add(result["document_id"])
+                if result.get("newer_edition"):
+                    older_editions.append((result["document_id"], result["newer_edition"]))
             except Exception as e:
                 console.print(f"[red]ERROR: {e}[/red]")
                 stats["errors"] += 1
+
+        if st in EDITION_SOURCE_TYPES:
+            stats["superseded"] += _supersede_loaded_editions(st, loaded_ids, older_editions)
 
     return stats

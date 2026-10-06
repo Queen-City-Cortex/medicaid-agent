@@ -2,6 +2,7 @@ import type { RetrievalBackend } from '../../contracts.js';
 import {
   escapeLucene,
   notArchived,
+  retrievalReady,
   recordToRetrievalHit,
   retrievalDocumentMetadataReturn,
   timeSearchStep,
@@ -24,6 +25,7 @@ export const fulltextBackend: RetrievalBackend = {
              WHERE s.content_length > 0
                AND d.document_type IN $docTypes
                AND ${notArchived('d')}
+               AND ${retrievalReady('d')}
              RETURN
                s.id AS sectionId,
                s.section_number AS sectionNumber,
