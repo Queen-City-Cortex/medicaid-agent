@@ -11,6 +11,7 @@ import { deepResearchWorkflow } from '../../src/deep-research/workflow.js';
 import { deepResearchPlannerAgent, deepResearchWorkerAgent, deepResearchReportAgent } from '../../src/deep-research/agents.js';
 import { verifyAnswer } from '../../src/processors/verifier/verify.js';
 import { questionKey } from '../../src/deep-research/checkpoints.js';
+import { ANSWER_SCOPE_POLICY } from '@nc-medicaid/policy-corpus';
 
 const graph = vi.hoisted(() => ({ run: vi.fn() }));
 vi.mock('../../src/neo4j.js', () => ({
@@ -131,11 +132,59 @@ describe('checkpoint recovery through real Mastra workflow and SQLite', () => {
     expect(result.report?.citationProvenance).toEqual({ checkedCitations: 2, retrievedCitations: 1, allowedCitations: 1, unknownCitations: 0 });
     expect(result.report?.webSources).toEqual([{ title: 'Recent guidance', url: 'https://example.gov/recent' }]);
     expect(verifyAnswer).toHaveBeenCalledTimes(3);
+    // The report-level entry says which web sources the finding cited and that they stay supplementary.
+    const reportEvidence = vi.mocked(verifyAnswer).mock.calls[2][2];
+    expect(reportEvidence).toContain('[researchFinding]');
+    expect(reportEvidence).toContain('Supplementary sources cited by this finding: https://example.gov/recent\nThose are web excerpts with evidenceRole="supplementary". Statements this finding attributes to them remain supplementary evidence: they can support explicitly labeled background context only and cannot independently support any governing policy claim. The answer may not strengthen them into NC Medicaid policy.\nSub-question: Scope?');
+    expect(reportEvidence).not.toContain('cites retrieved corpus documents only');
     for (const call of vi.mocked(verifyAnswer).mock.calls) {
       expect(call[2]).toContain(snippet);
       expect(call[2]).toContain('"evidenceRole":"supplementary"');
       expect(call[5]).toMatchObject({ hasSupplementaryEvidence: true });
     }
+  });
+  it.each([true, false])('checks the report against verified findings but coverage against raw sources; table retrieved=%s', async retrieved => {
+    const table = ANSWER_SCOPE_POLICY.magi_tables[1].source_url;
+    const url = retrieved ? table : 'https://example.gov/policy';
+    const body = 'Effective: APRIL 1, 2026\nRAW-TABLE-BODY 133% MXP-N 1769';
+    const finding = `The listed amount is $1,769. [Table](${url})`;
+    vi.mocked(deepResearchWorkerAgent.generate).mockImplementation(async (_prompt: unknown, options?: any) => {
+      await options?.prepareStep?.({});
+      return { text: finding, toolResults: [{ toolName: 'getSection', result: { section: {
+        id: 'table', title: 'MAGI table', sectionNumber: '1', content: body, url, documentId: 'ma-3321', policyNumber: 'MA-3321',
+      } } }] } as any;
+    });
+    vi.mocked(deepResearchReportAgent.generate).mockImplementation(async (_prompt: unknown, options?: any) => {
+      await options?.prepareStep?.({});
+      return { text: `Report: ${finding}` } as any;
+    });
+    await repository.create('magi', 'other', 'What MAGI income limits apply in October 2026?');
+    await service.plan('magi', mastra);
+    await service.decide('magi', 'other', { approved: true }, mastra);
+    await vi.waitFor(async () => expect(['completed', 'failed']).toContain((await repository.get('magi', 'other'))?.state));
+    const result = (await repository.get('magi', 'other'))!;
+    const calls = vi.mocked(verifyAnswer).mock.calls;
+    // Each worker draft is checked against the section body it read.
+    for (const call of calls.slice(0, 2)) expect(call[2]).toContain('RAW-TABLE-BODY');
+    if (!retrieved) {
+      // coverageEvidenceIssue reads the raw sources: no dated table, no report, no model call.
+      expect(result.state).toBe('failed');
+      expect(result.report).toBeNull();
+      expect(result.verification).toMatchObject({ status: 'withheld', reason: 'unsupported', passCount: 0 });
+      expect(calls).toHaveLength(2);
+      return;
+    }
+    expect(result.state).toBe('completed');
+    expect(calls).toHaveLength(3);
+    expect(calls[2][1]).toBe(`Report: ${finding}`);
+    expect(calls[2][2]).toContain(`Sub-question: Scope?\n\nVerified finding:\n${finding}`);
+    expect(calls[2][2]).toContain('Sub-question: Eligibility?');
+    expect(calls[2][2]).toContain("A research worker's summary of one sub-question, verified against the sources that worker retrieved. It is a summary, not a corpus document.\nSupplementary sources cited by this finding: none. It cites retrieved corpus documents only.\nSub-question: Scope?");
+    expect(calls[2][2]).not.toContain('evidenceRole');
+    expect(calls[2][2]).not.toContain('RAW-TABLE-BODY');
+    // The dated-table requirement and URL provenance still come from the raw sources.
+    expect(calls[2][5]).toMatchObject({ unknownUrls: [], coverageRequirements: [expect.stringContaining('2026-04-01')] });
+    expect(result.report?.citationProvenance).toMatchObject({ checkedCitations: 1, retrievedCitations: 1, unknownCitations: 0 });
   });
   it('withholds web citations with no saved supporting excerpt', async () => {
     vi.mocked(deepResearchWorkerAgent.generate).mockResolvedValue({ text: 'A claim. [Web](https://example.gov/recent)', toolResults: [{

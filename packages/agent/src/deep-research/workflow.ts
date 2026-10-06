@@ -10,6 +10,9 @@ import {
   extractSourcesFromToolResults,
   runVerificationForAnswer,
   validateAnswerUrls,
+  answerUrlSet,
+  normalizeUrl,
+  RESEARCH_FINDING_TOOL,
   type SourceEntry,
   type ToolResultRecord,
 } from '../processors/hallucination-verifier.js';
@@ -164,6 +167,20 @@ function verificationSources(corpus: SourceEntry[], web: WebSource[]): SourceEnt
   }))];
 }
 
+/** Report-level evidence for one finding. The header uses the verifier
+ *  prompt's evidence-authority vocabulary so its existing rule applies: a
+ *  finding that passed verification does not turn what it attributes to a web
+ *  source into governing policy. */
+function findingEvidence(finding: Finding, index: number, web: WebSource[]): SourceEntry {
+  const cited = answerUrlSet(finding.summary);
+  const webUrls = [...new Set(web.map(source => source.url).filter(url => cited.has(normalizeUrl(url))))];
+  const role = webUrls.length
+    ? `Supplementary sources cited by this finding: ${webUrls.join(', ')}\nThose are web excerpts with evidenceRole="supplementary". Statements this finding attributes to them remain supplementary evidence: they can support explicitly labeled background context only and cannot independently support any governing policy claim. The answer may not strengthen them into NC Medicaid policy.`
+    : 'Supplementary sources cited by this finding: none. It cites retrieved corpus documents only.';
+  return { toolName: RESEARCH_FINDING_TOOL, key: `finding:${index + 1}`,
+    text: `[researchFinding]\nA research worker's summary of one sub-question, verified against the sources that worker retrieved. It is a summary, not a corpus document.\n${role}\nSub-question: ${finding.subQuestion}\n\nVerified finding:\n${finding.summary}` };
+}
+
 function workerPrompt(sq: SubQuestion): string {
   return `Research this NC Medicaid sub-question and return a compressed, citation-bearing summary.
 
@@ -194,9 +211,9 @@ const forceWorkerSynthesis: OnIterationCompleteHandler = ({ iteration, finishRea
   return undefined;
 };
 
-async function verifyResearchAnswer(key: string, question: string, answerText: string, sources: SourceEntry[]) {
+async function verifyResearchAnswer(key: string, question: string, answerText: string, sources: SourceEntry[], verifierSources?: SourceEntry[]) {
   let pass = 0;
-  return runVerificationForAnswer({ question, answerText, sources,
+  return runVerificationForAnswer({ question, answerText, sources, verifierSources,
     onUsage: usage => recordResearchUsage('verifier', getVerifierConfig().model, { usage }),
     verify: (...args) => checkpointed(`${key}:verification:${++pass}`, () => verifyAnswer(...args),
       value => !value.unsupportedClaims.some(c => c.reason === VERIFICATION_UNAVAILABLE)),
@@ -492,11 +509,19 @@ const verifyStep = createStep({
   id: 'verify',
   inputSchema: SynthStepOut,
   outputSchema: DeepResearchReportSchema,
-  execute: async ({ inputData, writer }) => checkpointed('report', async () => {
+  execute: async ({ inputData, writer, getStepResult }) => checkpointed('report', async () => {
     await markResearchVerifying();
     await emit(writer, { stage: 'verifying', detail: 'Checking the report against sources…' });
     const sources = verificationSources(inputData.corpusSources, inputData.webSources);
-    const verified = await verifyResearchAnswer('report', inputData.question, inputData.reportMarkdown, sources);
+    // The report restates findings that each passed verification against
+    // their own sources, so the model checks it against those findings and the
+    // role-tagged web excerpts instead of every worker's raw evidence. The
+    // coverage, URL and quotation checks still read the raw sources.
+    const verifierSources: SourceEntry[] = [
+      ...getStepResult(researchStep).findings.map((finding, i) => findingEvidence(finding, i, inputData.webSources)),
+      ...sources.filter(source => source.evidenceRole === 'supplementary'),
+    ];
+    const verified = await verifyResearchAnswer('report', inputData.question, inputData.reportMarkdown, sources, verifierSources);
     const safeSources = sources.map(s => ({ key: s.key, label: sourceLabel(s), link: s.link ?? null }));
     await publishResearchVerification(verified.outcome, safeSources);
     if (verified.outcome.status === 'withheld') throw new VerificationWithheldError(verified.retryable);

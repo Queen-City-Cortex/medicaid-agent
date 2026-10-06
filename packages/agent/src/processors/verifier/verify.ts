@@ -89,12 +89,13 @@ export async function verifyAnswer(
   signal?: AbortSignal,
   deterministicIssues?: { unknownUrls: string[]; unknownQuotes: string[]; hasSupplementaryEvidence?: boolean; coverageRequirements?: string[] },
 ): Promise<VerificationResult> {
+  const deadline = AbortSignal.timeout(30_000);
   try {
     const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const { object, usage } = await generateObject({
       model: openai(getConfig().model),
       schema: VerificationSchema,
-      abortSignal: signal ? AbortSignal.any([signal, AbortSignal.timeout(30_000)]) : AbortSignal.timeout(30_000),
+      abortSignal: signal ? AbortSignal.any([signal, deadline]) : deadline,
       maxRetries: 0,
       providerOptions: { openai: { reasoningEffort: 'low' } },
       system: VERIFIER_PROMPT + (deterministicIssues?.coverageRequirements?.length ? `\n\n## SERVER COVERAGE REQUIREMENTS\n${deterministicIssues.coverageRequirements.join('\n')}\nThese are server policy constraints, not source claims. Reject or correct statements that use the wrong effective period, invent an unavailable original, or infer standing-order withdrawal from payment termination. Apply these requirements to the exact corrected text too.` : '') + (deterministicIssues?.hasSupplementaryEvidence ? `
@@ -121,8 +122,11 @@ The server marks web excerpts with evidenceRole="supplementary". This role is au
   } catch (err) {
     // Fail closed: a verifier outage must surface as low-confidence, not a
     // silently-trusted answer. Log it so chronic verifier failures (the answer
-    // path users never see degrade) are detectable.
-    log.error('verifier.failed_closed', errorFields(err));
+    // path users never see degrade) are detectable. Our own deadline firing
+    // is not a provider outage: a slow pass on a long answer repeats on every
+    // retry, so it gets its own event.
+    log.error(deadline.aborted && !signal?.aborted ? 'verifier.deadline_aborted' : 'verifier.failed_closed',
+      { ...errorFields(err), answerChars: answerText.length, sourceChars: sourceText.length });
     return {
       failureRetryable: isRetryableResearchError(err),
       supported: false,

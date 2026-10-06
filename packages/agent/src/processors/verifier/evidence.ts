@@ -1,5 +1,6 @@
 import type { AnswerFrame, AnswerFrameSection } from '@nc-medicaid/policy-corpus';
 import { getConfig } from './config.js';
+import { answerUrlSet, sourceUrlSet } from './answer-validation.js';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -453,49 +454,78 @@ export function extractSources(messages: Array<{ content?: { parts?: any[] } }>)
 
 const NO_SOURCES_TEXT = '(No source documents were retrieved.)';
 
+/** Tools whose entry is one corpus section's text. Mirrors `SECTION_TOOLS`
+ *  in the evaluation judge (`packages/pipeline/src/pipeline/eval/evidence.py`). */
+const SECTION_BODY_TOOLS = new Set(['getSection', 'resolveAnswerFrame:section']);
+
+/** A research worker's verified summary. The report restates all of them, so
+ *  each one is required evidence for the report-level check. */
+export const RESEARCH_FINDING_TOOL = 'researchFinding';
+
+export interface VerifierEvidence {
+  text: string;
+  /** Entries left out because they did not fit the budget. */
+  dropped: SourceEntry[];
+  /** A dropped entry held section text the answer cites: the model cannot
+   *  check those claims, so the caller must withhold. */
+  citedBodyDropped: boolean;
+  /** A research finding was dropped: a report must never be checked against
+   *  part of its own findings, so the caller must withhold. */
+  findingDropped: boolean;
+}
+
 export function buildSourceText(
   sources: SourceEntry[],
   answerText: string,
   maxChars?: number,
-): string {
-  if (sources.length === 0) return NO_SOURCES_TEXT;
+): VerifierEvidence {
+  if (sources.length === 0) return { text: NO_SOURCES_TEXT, dropped: [], citedBodyDropped: false, findingDropped: false };
 
   const limit = maxChars ?? getConfig().maxSourceChars;
 
-  // Split into cited vs uncited so budget truncation drops uncited sources
-  // first. Answers cite via markdown links (raw section IDs are forbidden by
-  // the system prompt), so match on the source's citation URL; the raw-key
-  // check is kept as a fallback for ID-bearing answers (e.g. CLI debugging).
-  const cited: SourceEntry[] = [];
-  const uncited: SourceEntry[] = [];
-  for (const s of sources) {
-    const citedByLink = !!s.link && answerText.includes(s.link);
-    if (citedByLink || answerText.includes(s.key)) {
-      cited.push(s);
-    } else {
-      uncited.push(s);
-    }
-  }
+  // Answers cite via markdown links (raw section IDs are forbidden by the
+  // system prompt). "Cited" must agree with validateAnswerUrls: a source is
+  // cited when the answer uses any URL that source vouches for there, compared
+  // after the same normalization. A raw substring test missed a link that
+  // differed by host case, trailing slash or percent-encoding, and the body
+  // was then dropped as uncited. The raw link and raw key checks stay as
+  // fallbacks (ID-bearing CLI answers); every imprecision errs towards cited.
+  // The link is the document's, so a cited document's listings count as cited
+  // too: section text must claim the budget before them.
+  const answerUrls = answerUrlSet(answerText);
+  const isCited = (s: SourceEntry) => [...sourceUrlSet(s)].some(url => answerUrls.has(url))
+    || (!!s.link && answerText.includes(s.link)) || answerText.includes(s.key);
+  const isBody = (s: SourceEntry) => SECTION_BODY_TOOLS.has(s.toolName);
+  // Research findings first, then cited section bodies, cited other entries,
+  // uncited bodies, then the rest; tool-call order within each group.
+  const tier = (s: SourceEntry) => s.toolName === RESEARCH_FINDING_TOOL ? 0 : 1 + (isCited(s) ? 0 : 2) + (isBody(s) ? 0 : 1);
+  const ordered = sources.map((source, index) => ({ source, index, tier: tier(source) }))
+    .sort((a, b) => a.tier - b.tier || a.index - b.index);
 
-  // Concatenate cited first, then uncited, respecting char limit
-  const ordered = [...cited, ...uncited];
   const parts: string[] = [];
+  const dropped: SourceEntry[] = [];
+  let citedBodyDropped = false;
+  let findingDropped = false;
   let total = 0;
 
-  for (const s of ordered) {
+  for (const { source: s, tier: sourceTier } of ordered) {
     const evidence = s.evidenceRole === 'supplementary'
       ? JSON.stringify({ evidenceRole: 'supplementary', url: s.link, excerpt: s.text })
       : s.text;
     const block = evidence + '\n\n---\n\n';
+    // Skip an entry that does not fit and keep going: a later, smaller entry may.
     if (total + block.length > limit) {
-      // Try to fit a truncation notice instead
-      const notice = `[${ordered.length - parts.length} additional source(s) truncated due to length limit.]`;
-      parts.push(notice);
-      break;
+      dropped.push(s);
+      if (sourceTier === 0) findingDropped = true;
+      if (sourceTier === 1) citedBodyDropped = true;
+      continue;
     }
     parts.push(block);
     total += block.length;
   }
+  if (dropped.length > 0) {
+    parts.push(`[${dropped.length} source(s) omitted for length; claims that depend on omitted sources are unsupported.]`);
+  }
 
-  return parts.join('').trimEnd();
+  return { text: parts.join('').trimEnd(), dropped, citedBodyDropped, findingDropped };
 }

@@ -24,6 +24,7 @@ describe('verifyAnswer fail-closed logging', () => {
       'verifier.failed_closed',
       expect.objectContaining({ err: '429 rate limit' }),
     );
+    expect(error).not.toHaveBeenCalledWith('verifier.deadline_aborted', expect.anything());
     // Fail closed: not trusted, flagged unsupported with the unavailable reason.
     expect(result.supported).toBe(false);
     expect(result.unsupportedClaims[0]?.reason).toBe(VERIFICATION_UNAVAILABLE);

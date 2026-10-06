@@ -1,6 +1,6 @@
 # Verified answer release and research recovery
 
-Chat, research reports, and the default CLI/evaluation path now share a release gate. Assistant prose remains private until claims, citations, relevance, source URLs, and quotations pass. A failed first candidate may produce one corrected answer; the exact correction gets one recheck. The default verifier is `gpt-5.6-terra` with low reasoning effort. Each provider check has a 30-second deadline and no SDK retries. Failure returns a fixed withholding notice and available sources. Minor relevance observations do not block release.
+Chat, research reports, and the default CLI/evaluation path now share a release gate. Assistant prose remains private until claims, citations, relevance, source URLs, and quotations pass. A failed first candidate may produce one corrected answer; the exact correction gets one recheck. The default verifier is `gpt-5.6-terra` with low reasoning effort. Each provider check has a 30-second deadline and no SDK retries. A check that hits that deadline logs `verifier.deadline_aborted`; any other failed check logs `verifier.failed_closed`. Failure returns a fixed withholding notice and available sources. Minor relevance observations do not block release.
 
 ## Public answers and memory
 

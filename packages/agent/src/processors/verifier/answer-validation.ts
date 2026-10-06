@@ -206,6 +206,22 @@ export function validateAnswerUrls(answerText: string, sources: SourceEntry[]): 
   return { validatedAnswer, unknownUrls, checkedUrlCount, retrievedUrlCount, allowedUrlCount };
 }
 
+/** Every URL the answer uses, normalized exactly as `validateAnswerUrls`
+ *  compares them (markdown link targets, autolinks and plain URLs). */
+export function answerUrlSet(answerText: string): Set<string> {
+  const urls = new Set([...answerText.matchAll(MARKDOWN_LINK_PATTERN)].map(match => normalizeUrl(match[2])));
+  for (const rawUrl of answerText.match(BARE_URL_PATTERN) ?? []) urls.add(normalizeUrl(rawUrl.replace(/[.,;:!`*]+$/, '')));
+  return urls;
+}
+
+/** The URLs a source can vouch for in `validateAnswerUrls`: its link and any
+ *  URL in its text. An answer URL that matches one of them cites this source. */
+export function sourceUrlSet(source: SourceEntry): Set<string> {
+  const urls = new Set((source.text.match(BARE_URL_PATTERN) ?? []).map(normalizeUrl));
+  if (source.link) urls.add(normalizeUrl(source.link));
+  return urls;
+}
+
 export interface QuoteValidationResult {
   /** Answer with unknown long quotes marked `[unverified quote — ...]`. */
   validatedAnswer: string;

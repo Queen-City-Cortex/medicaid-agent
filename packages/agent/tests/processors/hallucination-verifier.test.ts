@@ -461,7 +461,7 @@ describe('extractSources', () => {
 describe('buildSourceText', () => {
   // Test 9: empty sources
   it('returns "(No source documents were retrieved.)" for empty sources', () => {
-    const result = buildSourceText([], 'some answer text');
+    const result = buildSourceText([], 'some answer text').text;
     expect(result).toBe('(No source documents were retrieved.)');
   });
 
@@ -474,7 +474,7 @@ describe('buildSourceText', () => {
 
     // Answer text mentions sec-cited but not sec-uncited
     const answerText = 'According to sec-cited, the policy states...';
-    const result = buildSourceText(sources, answerText);
+    const result = buildSourceText(sources, answerText).text;
 
     // sec-cited should appear before sec-uncited
     const citedPos = result.indexOf('Cited section content');
@@ -495,12 +495,12 @@ describe('buildSourceText', () => {
 
     // Set a tight limit that fits only ~1 source
     const maxChars = 600;
-    const result = buildSourceText(sources, '', maxChars);
+    const result = buildSourceText(sources, '', maxChars).text;
 
     // Should contain the first source's text
     expect(result).toContain('sec-1');
-    // Should contain a truncation notice
-    expect(result).toContain('truncated');
+    // Should contain an omission notice
+    expect(result).toContain('2 source(s) omitted for length');
     // Total length should not wildly exceed the limit
     expect(result.length).toBeLessThan(maxChars + 200);
   });
@@ -511,11 +511,11 @@ describe('buildSourceText', () => {
       { toolName: 'getSection', key: 'sec-b', text: '[getSection]\nShort B' },
     ];
 
-    const result = buildSourceText(sources, '', 10000);
+    const result = buildSourceText(sources, '', 10000).text;
 
     expect(result).toContain('Short A');
     expect(result).toContain('Short B');
-    expect(result).not.toContain('truncated');
+    expect(result).not.toContain('omitted');
   });
 });
 
@@ -826,7 +826,7 @@ describe('buildSourceText cited-first ordering', () => {
     const answer = 'Coverage applies [Policy 8C § 3.2.1](https://example.com/8c).';
 
     // Budget fits only one source block: the cited one must survive.
-    const text = buildSourceText(sources, answer, 120);
+    const text = buildSourceText(sources, answer, 120).text;
     expect(text).toContain('CITED-');
     expect(text).not.toContain('UNCITED-');
   });
@@ -837,7 +837,7 @@ describe('buildSourceText cited-first ordering', () => {
       { toolName: 'getSection', key: 'sec:doc-b:2', text: 'B'.repeat(80) },
     ];
     const answer = 'Debug answer referencing sec:doc-b:2 directly.';
-    const text = buildSourceText(sources, answer, 120);
+    const text = buildSourceText(sources, answer, 120).text;
     expect(text).toContain('B');
     expect(text).not.toContain('A'.repeat(10));
   });

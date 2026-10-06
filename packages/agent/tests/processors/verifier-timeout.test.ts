@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { generateObject } from 'ai';
 import { verifyAnswer, VERIFICATION_UNAVAILABLE } from '../../src/processors/verifier/verify.js';
+import { log } from '../../src/logger.js';
 
 vi.mock('ai', () => ({ generateObject: vi.fn() }));
 vi.mock('@ai-sdk/openai', () => ({ createOpenAI: () => () => 'test-model' }));
@@ -18,10 +19,26 @@ describe('verification deadline', () => {
       expect(maxRetries).toBe(0);
       return new Promise((_resolve, reject) => abortSignal!.addEventListener('abort', () => reject(abortSignal!.reason), { once: true })) as any;
     });
+    const error = vi.spyOn(log, 'error').mockImplementation(() => {});
     const pending = verifyAnswer('question', 'draft', 'source');
     await vi.advanceTimersByTimeAsync(30_000);
     expect(timeout).toHaveBeenCalledWith(30_000);
     expect(await pending).toMatchObject({ failureRetryable: true, supported: false,
       unsupportedClaims: [{ claim: 'Full answer', reason: VERIFICATION_UNAVAILABLE }] });
+    // Our own deadline is not reported as a provider outage.
+    expect(error).toHaveBeenCalledTimes(1);
+    expect(error).toHaveBeenCalledWith('verifier.deadline_aborted', expect.objectContaining({ answerChars: 5, sourceChars: 6 }));
+  });
+
+  it('reports a caller cancellation as a failed-closed call, not a deadline abort', async () => {
+    const error = vi.spyOn(log, 'error').mockImplementation(() => {});
+    vi.mocked(generateObject).mockImplementation(({ abortSignal }) =>
+      new Promise((_resolve, reject) => abortSignal!.addEventListener('abort', () => reject(abortSignal!.reason), { once: true })) as any);
+    const controller = new AbortController();
+    const pending = verifyAnswer('question', 'draft', 'source', undefined, controller.signal);
+    controller.abort(new Error('client went away'));
+    expect((await pending).unsupportedClaims[0]?.reason).toBe(VERIFICATION_UNAVAILABLE);
+    expect(error).toHaveBeenCalledTimes(1);
+    expect(error).toHaveBeenCalledWith('verifier.failed_closed', expect.anything());
   });
 });

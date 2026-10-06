@@ -17,6 +17,9 @@ import { WITHHELD_ANSWER, type VerificationOutcome } from '@nc-medicaid/contract
 import { log } from '../../logger.js';
 import { resolveCoverageScope, coverageEvidenceIssue } from '@nc-medicaid/policy-corpus';
 
+/** Withholding reason when cited section text or a research finding did not fit the evidence budget. */
+export const EVIDENCE_OVER_BUDGET = 'Cited source text or a research finding exceeded the verifier evidence budget';
+
 // ── Shared verification flow ────────────────────────────────────────────────
 
 /**
@@ -54,6 +57,10 @@ export interface VerifierTelemetry {
   rewrite_substance_ratio: number | null;
   fabricated_url_count: number;
   fabricated_quote_count: number;
+  /** Characters of evidence text in the most recent model call; 0 when none was made. */
+  evidence_chars_sent: number;
+  /** Source entries the evidence budget left out of the last evidence text. */
+  evidence_entries_dropped: number;
 }
 
 export interface VerificationRunResult {
@@ -76,18 +83,21 @@ export function emitVerifierTelemetry(telemetry: object): void {
 }
 
 /** Verify the exact outgoing text. A failed candidate is never a fallback. */
-export async function runVerificationForAnswer({ question, coverageQuery, answerText, sources, onUsage, signal, verify = verifyAnswer, capture = createPrivateVerificationCapture() }: {
+export async function runVerificationForAnswer({ question, coverageQuery, answerText, sources, verifierSources = sources, onUsage, signal, verify = verifyAnswer, capture = createPrivateVerificationCapture() }: {
   question: string;
   coverageQuery?: string;
   answerText: string;
   sources: SourceEntry[];
+  /** Evidence text for the model call only. The coverage, URL and quotation
+   *  checks always read the raw `sources`. */
+  verifierSources?: SourceEntry[];
   onUsage?: (usage: unknown) => void;
   signal?: AbortSignal;
   verify?: typeof verifyAnswer;
   capture?: PrivateVerificationCapture;
 }): Promise<VerificationRunResult> {
   const started = Date.now();
-  capture?.({ stage: 'input', question, sources, answerText });
+  capture?.({ stage: 'input', question, sources, ...(verifierSources !== sources ? { verifierSources } : {}), answerText });
   let candidate = answerText;
   let verification!: VerificationResult;
   let outcome: VerificationOutcome = { status: 'withheld', reason: 'unsupported', passCount: 0 };
@@ -96,6 +106,8 @@ export async function runVerificationForAnswer({ question, coverageQuery, answer
   const substanceLoss = false;
   let substanceRatio: number | null = null;
   let unavailable = false;
+  let evidenceCharsSent = 0;
+  let evidenceEntriesDropped = 0;
   const scope = resolveCoverageScope(coverageQuery ?? question);
   const scopeIssue = coverageEvidenceIssue(scope, sources);
   for (let pass = 1; pass <= 2; pass++) {
@@ -106,12 +118,28 @@ export async function runVerificationForAnswer({ question, coverageQuery, answer
     }
     const urls = validateAnswerUrls(candidate, sources);
     const quotes = validateAnswerQuotes(candidate, sources);
-    verification = await verify(question, candidate, buildSourceText(sources, candidate), onUsage, signal,
+    const evidence = buildSourceText(verifierSources, candidate);
+    const evidenceText = evidence.text;
+    evidenceEntriesDropped = evidence.dropped.length;
+    if (evidence.dropped.length) {
+      log.warn('verifier.evidence_dropped', { pass, entriesDropped: evidence.dropped.length, citedBodyDropped: evidence.citedBodyDropped, findingDropped: evidence.findingDropped });
+    }
+    if (evidence.citedBodyDropped || evidence.findingDropped) {
+      // The model would be judging claims whose cited text, or a report whose
+      // finding, it was never shown. Withhold instead of spending a call on a
+      // blind check.
+      verification = { supported: false, relevant: true, citationsComplete: false, unsupportedClaims: [{ claim: 'Full answer', reason: EVIDENCE_OVER_BUDGET }], missingCitationClaims: [], relevanceIssues: [], correctedAnswer: '' };
+      outcome.reason = 'unsupported';
+      capture?.({ stage: 'pass', pass, candidate, evidenceText, dropped: evidence.dropped.map(source => source.key), deterministic: { urls, quotes }, verification });
+      break;
+    }
+    evidenceCharsSent = evidenceText.length;
+    verification = await verify(question, candidate, evidenceText, onUsage, signal,
       { unknownUrls: urls.unknownUrls, unknownQuotes: quotes.unknownQuotes,
         coverageRequirements: scope?.requirements,
         ...(sources.some(source => source.evidenceRole === 'supplementary') ? { hasSupplementaryEvidence: true } : {}),
       });
-    capture?.({ stage: 'pass', pass, candidate, evidenceText: buildSourceText(sources, candidate), deterministic: { urls, quotes }, verification });
+    capture?.({ stage: 'pass', pass, candidate, evidenceText, dropped: evidence.dropped.map(source => source.key), deterministic: { urls, quotes }, verification });
     outcome.passCount = pass;
     unavailable = verification.unsupportedClaims.some(c => c.reason === VERIFICATION_UNAVAILABLE);
     if (unavailable) { outcome.reason = 'unavailable'; break; }
@@ -161,6 +189,7 @@ export async function runVerificationForAnswer({ question, coverageQuery, answer
     pure_marker_fallback: false, substance_loss_fallback: substanceLoss,
     rewrite_substance_ratio: substanceRatio, fabricated_url_count: fabricatedUrlCount,
     fabricated_quote_count: fabricatedQuoteCount,
+    evidence_chars_sent: evidenceCharsSent, evidence_entries_dropped: evidenceEntriesDropped,
   };
   capture?.({ stage: 'outcome', outcome, telemetry });
   log.info('verification.release', { ...outcome, latencyMs: Date.now()-started });
