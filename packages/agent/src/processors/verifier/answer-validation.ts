@@ -232,6 +232,83 @@ export function sourceUrlSet(source: SourceEntry): Set<string> {
   return urls;
 }
 
+export interface UnknownSection {
+  /** The link label as written, emphasis markers removed. */
+  label: string;
+  /** The link's URL, normalized. */
+  url: string;
+}
+
+export interface SectionValidationResult {
+  /** Labels naming a numbered section whose text the turn did not retrieve. */
+  unknownSections: UnknownSection[];
+  /** Labels with a numbered section after "§"; the rest are not checked. */
+  checkedSectionCount: number;
+}
+
+/** Section token of a citation label: the text after "§" up to the first
+ *  space, keeping attached parenthesised groups ("5.2.1", "441.302",
+ *  "1915(c)"); a spaced suffix such as " (last revised 2024-05-10)" is dropped. */
+function citedSectionNumber(label: string): string | null {
+  const m = label.match(/§\s*([A-Za-z0-9][A-Za-z0-9.-]*(?:\([A-Za-z0-9]+\))*)/);
+  return m ? m[1] : null;
+}
+
+/** "441.301(c)(2)" becomes [441, 301, c, 2]. A trailing "0" is dropped so a
+ *  "5.0" entry, which holds the text of its "5.x" subsections, is their parent. */
+function sectionSegments(sectionNumber: string): string[] {
+  const segments = sectionNumber.toLowerCase().split(/[.()]+/).filter(Boolean);
+  if (segments.length > 1 && segments[segments.length - 1] === '0') segments.pop();
+  return segments;
+}
+
+/**
+ * Measure, without enforcing, whether each section an answer names was
+ * retrieved. Every section of a document shares one URL, so `validateAnswerUrls`
+ * accepts `[Policy 8C § 9.9.9](<8C url>)` when only § 3.2.1 was read.
+ *
+ * A label is matched when an entry that is one section's text (it alone
+ * carries `sectionNumber`) shares the link's normalized URL and has the cited
+ * number or is an ancestor of it ("§ 5.2.1" on "5.2", "§ 5.6" on "5.0"): a
+ * container entry holds its children's text under its own number. A listing
+ * names sections without their text and vouches for none. The policy named in
+ * the label is not compared, because the URL already scopes the document
+ * ("Policy 1-H" and "42 CFR" labels match on the URL of "1H" and eCFR entries).
+ *
+ * `citedSectionNumber` and `sectionSegments` mirror the section tier of
+ * `findCitedSource` in `packages/web/src/lib/message-citations.ts`; keep them
+ * in step. Two differences are deliberate: the web falls back to a document's
+ * only row, which would match the § 9.9.9 above, and this check skips a label
+ * whose token after "§" does not start with a digit ("§ F. Income",
+ * "§ Appendix B"), since those name sections the corpus stores unnumbered.
+ */
+export function validateAnswerSections(answerText: string, sources: SourceEntry[]): SectionValidationResult {
+  const retrieved = new Map<string, string[]>();
+  for (const source of sources) {
+    if (!source.sectionNumber || !source.link) continue;
+    const url = normalizeUrl(source.link);
+    retrieved.set(url, [...(retrieved.get(url) ?? []), source.sectionNumber]);
+  }
+
+  const unknownSections: UnknownSection[] = [];
+  let checkedSectionCount = 0;
+  for (const [, rawLabel, rawUrl] of answerText.matchAll(MARKDOWN_LINK_PATTERN)) {
+    const label = rawLabel.replace(/[*`]/g, '').trim();
+    const cited = citedSectionNumber(label);
+    if (!cited || !/^\d/.test(cited)) continue;
+    checkedSectionCount += 1;
+    const url = normalizeUrl(rawUrl);
+    const citedSegments = sectionSegments(cited);
+    const matched = (retrieved.get(url) ?? []).some(sectionNumber => {
+      if (sectionNumber === cited) return true;
+      const segments = sectionSegments(sectionNumber);
+      return segments.length > 0 && segments.length <= citedSegments.length && segments.every((segment, i) => segment === citedSegments[i]);
+    });
+    if (!matched) unknownSections.push({ label, url });
+  }
+  return { unknownSections, checkedSectionCount };
+}
+
 export interface QuoteValidationResult {
   /** Answer with unknown long quotes marked `[unverified quote — ...]`. */
   validatedAnswer: string;

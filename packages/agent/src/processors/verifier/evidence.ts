@@ -15,6 +15,12 @@ export interface SourceEntry {
    *  raw IDs never appear in answers, so the key alone can't identify
    *  "cited" sources. */
   link?: string | null;
+  /** Set only on an entry that is one section's text (`getSection` and the
+   *  frame's corpus sections), from the tool's structured output. A listing
+   *  names sections without their text, so it sets neither field and cannot
+   *  vouch for a section label (`validateAnswerSections`). */
+  policyNumber?: string | null;
+  sectionNumber?: string | null;
 }
 
 // Tool result types ──────────────────────────────────────────────────────────
@@ -149,6 +155,8 @@ function extractGetSection(result: GetSectionResult): SourceEntry | null {
     key: sec.id,
     text: lines.join('\n'),
     link: sec.url ?? urlFromCitationLink(sec.citationLink),
+    policyNumber: sec.policyNumber,
+    sectionNumber: sec.sectionNumber,
   };
 }
 

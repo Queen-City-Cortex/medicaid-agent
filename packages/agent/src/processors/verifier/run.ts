@@ -3,8 +3,10 @@ import { getConfig } from './config.js';
 import { type SourceEntry, buildSourceText, isCorpusEvidence } from './evidence.js';
 import { type VerificationResult, VERIFICATION_UNAVAILABLE, verifyAnswer } from './verify.js';
 import {
+  type UnknownSection,
   assessRewriteSubstance,
   validateAnswerQuotes,
+  validateAnswerSections,
   validateAnswerUrls,
 } from './answer-validation.js';
 import {
@@ -24,6 +26,11 @@ export const EVIDENCE_OVER_BUDGET = 'Cited source text or a research finding exc
 export const NO_EVIDENCE_FOR_CITATION = 'The answer cites a link or quotation but no evidence was retrieved';
 /** Withholding reason when the turn produced no source entry at all. */
 export const NO_SOURCES_RETRIEVED = 'No sources were retrieved';
+
+/** Bounds on the `verifier.unknown_sections` log line. */
+const MAX_LOGGED_LABEL_CHARS = 80;
+const MAX_LOGGED_URL_CHARS = 200;
+const MAX_LOGGED_LABELS = 20;
 
 // ── Shared verification flow ────────────────────────────────────────────────
 
@@ -66,6 +73,9 @@ export interface VerifierTelemetry {
   evidence_chars_sent: number;
   /** Source entries the evidence budget left out of the last evidence text. */
   evidence_entries_dropped: number;
+  /** Citation labels in the last text checked that name a numbered section
+   *  the turn did not retrieve. Measured only: it decides no outcome. */
+  unknown_section_count: number;
 }
 
 export interface VerificationRunResult {
@@ -93,8 +103,8 @@ export async function runVerificationForAnswer({ question, coverageQuery, answer
   coverageQuery?: string;
   answerText: string;
   sources: SourceEntry[];
-  /** Evidence text for the model call only. The coverage, URL and quotation
-   *  checks always read the raw `sources`. */
+  /** Evidence text for the model call only. The coverage, URL, quotation and
+   *  section-label checks always read the raw `sources`. */
   verifierSources?: SourceEntry[];
   onUsage?: (usage: unknown) => void;
   signal?: AbortSignal;
@@ -113,6 +123,7 @@ export async function runVerificationForAnswer({ question, coverageQuery, answer
   let unavailable = false;
   let evidenceCharsSent = 0;
   let evidenceEntriesDropped = 0;
+  let unknownSections: UnknownSection[] = [];
   const scope = resolveCoverageScope(coverageQuery ?? question);
   const scopeIssue = coverageEvidenceIssue(scope, sources);
   const hasEvidence = sources.some(isCorpusEvidence);
@@ -124,6 +135,10 @@ export async function runVerificationForAnswer({ question, coverageQuery, answer
     }
     const urls = validateAnswerUrls(candidate, sources);
     const quotes = validateAnswerQuotes(candidate, sources);
+    // Measured only (issue #269): kept out of `clean`, the withholding reason
+    // and the model's findings until the unmatched rate is known.
+    const sections = validateAnswerSections(candidate, sources);
+    unknownSections = sections.unknownSections;
     const evidence = buildSourceText(verifierSources, candidate);
     const evidenceText = evidence.text;
     evidenceEntriesDropped = evidence.dropped.length;
@@ -142,7 +157,7 @@ export async function runVerificationForAnswer({ question, coverageQuery, answer
       outcome.reason = uncitable ? 'invalid_citation' : 'unsupported';
       fabricatedUrlCount += urls.unknownUrls.length;
       fabricatedQuoteCount += quotes.unknownQuotes.length;
-      capture?.({ stage: 'pass', pass, candidate, evidenceText, dropped: evidence.dropped.map(source => source.key), deterministic: { urls, quotes }, verification });
+      capture?.({ stage: 'pass', pass, candidate, evidenceText, dropped: evidence.dropped.map(source => source.key), deterministic: { urls, quotes, sections }, verification });
       break;
     }
     if (evidence.citedBodyDropped || evidence.findingDropped) {
@@ -151,7 +166,7 @@ export async function runVerificationForAnswer({ question, coverageQuery, answer
       // blind check.
       verification = { supported: false, relevant: true, citationsComplete: false, unsupportedClaims: [{ claim: 'Full answer', reason: EVIDENCE_OVER_BUDGET }], missingCitationClaims: [], relevanceIssues: [], correctedAnswer: '' };
       outcome.reason = 'unsupported';
-      capture?.({ stage: 'pass', pass, candidate, evidenceText, dropped: evidence.dropped.map(source => source.key), deterministic: { urls, quotes }, verification });
+      capture?.({ stage: 'pass', pass, candidate, evidenceText, dropped: evidence.dropped.map(source => source.key), deterministic: { urls, quotes, sections }, verification });
       break;
     }
     evidenceCharsSent = evidenceText.length;
@@ -160,7 +175,7 @@ export async function runVerificationForAnswer({ question, coverageQuery, answer
         coverageRequirements: scope?.requirements,
         ...(sources.some(source => source.evidenceRole === 'supplementary') ? { hasSupplementaryEvidence: true } : {}),
       });
-    capture?.({ stage: 'pass', pass, candidate, evidenceText, dropped: evidence.dropped.map(source => source.key), deterministic: { urls, quotes }, verification });
+    capture?.({ stage: 'pass', pass, candidate, evidenceText, dropped: evidence.dropped.map(source => source.key), deterministic: { urls, quotes, sections }, verification });
     outcome.passCount = pass;
     unavailable = verification.unsupportedClaims.some(c => c.reason === VERIFICATION_UNAVAILABLE);
     if (unavailable) { outcome.reason = 'unavailable'; break; }
@@ -211,7 +226,14 @@ export async function runVerificationForAnswer({ question, coverageQuery, answer
     rewrite_substance_ratio: substanceRatio, fabricated_url_count: fabricatedUrlCount,
     fabricated_quote_count: fabricatedQuoteCount,
     evidence_chars_sent: evidenceCharsSent, evidence_entries_dropped: evidenceEntriesDropped,
+    unknown_section_count: unknownSections.length,
   };
+  if (unknownSections.length) {
+    // Labels are model-written citation text; cap them so a malformed link
+    // cannot carry a paragraph of the answer into the log.
+    const labels = [...new Map(unknownSections.map(({ label, url }) => [`${label}\n${url}`, { label: label.slice(0, MAX_LOGGED_LABEL_CHARS), url: url.slice(0, MAX_LOGGED_URL_CHARS) }])).values()];
+    log.warn('verifier.unknown_sections', { status: outcome.status, count: unknownSections.length, labels: labels.slice(0, MAX_LOGGED_LABELS) });
+  }
   capture?.({ stage: 'outcome', outcome, telemetry });
   log.info('verification.release', { ...outcome, latencyMs: Date.now()-started });
   return { retryable: unavailable && verification.failureRetryable === true, finalAnswer: withheld ? WITHHELD_ANSWER : candidate, outcome, rewrote, telemetry, verification, confidence };
