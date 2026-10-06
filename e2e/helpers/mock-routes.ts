@@ -68,7 +68,10 @@ export async function mockMastraAPI(page: Page, options: MockMastraOptions = {})
     await route.fulfill(stream.toFulfill());
   });
 
-  // 2. GET /api/memory/threads — listMemoryThreads
+  // 2. GET /api/memory/threads — listMemoryThreads. The agent has no route
+  // that creates a thread: it creates one itself when it accepts the first
+  // message on /chat. A spec that needs the new thread listed adds it to the
+  // `threads` array it passed in, from its own /chat handler.
   await page.route('**/api/memory/threads?*', async (route) => {
     if (route.request().method() === 'GET') {
       const threads = options.threads ?? [];
@@ -85,26 +88,12 @@ export async function mockMastraAPI(page: Page, options: MockMastraOptions = {})
       });
       return;
     }
-
-    // 3. POST /api/memory/threads — createMemoryThread
     if (route.request().method() === 'POST') {
-      let body: Record<string, unknown> = {};
-      try {
-        body = route.request().postDataJSON() ?? {};
-      } catch {
-        // empty body is fine
-      }
+      // What the agent's gateway answers.
       await route.fulfill({
-        status: 200,
+        status: 404,
         contentType: 'application/json',
-        body: JSON.stringify({
-          id: (body.threadId as string) ?? crypto.randomUUID(),
-          title: (body.title as string) ?? 'New conversation',
-          resourceId: 'anonymous',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          metadata: {},
-        }),
+        body: JSON.stringify({ error: { code: 'not_found', message: 'Not found' } }),
       });
       return;
     }
@@ -112,7 +101,7 @@ export async function mockMastraAPI(page: Page, options: MockMastraOptions = {})
     await route.fallback();
   });
 
-  // 4. GET /api/memory/threads/:id/messages — listMessages
+  // 3. GET /api/memory/threads/:id/messages — listMessages
   await page.route('**/api/memory/threads/*/messages*', async (route) => {
     if (route.request().method() !== 'GET') {
       await route.fallback();
@@ -125,7 +114,7 @@ export async function mockMastraAPI(page: Page, options: MockMastraOptions = {})
     });
   });
 
-  // 4b. GET /api/memory/threads/:id — the thread record, read by export
+  // 3b. GET /api/memory/threads/:id — the thread record, read by export
   await page.route('**/api/memory/threads/*', async (route) => {
     const id = new URL(route.request().url()).pathname.split('/').pop();
     const thread = (options.threads ?? []).find((candidate) => candidate.id === id);
@@ -149,7 +138,7 @@ export async function mockMastraAPI(page: Page, options: MockMastraOptions = {})
     });
   });
 
-  // 6. POST /feedback — submitFeedback
+  // 4. POST /feedback — submitFeedback
   await page.route('**/feedback', async (route) => {
     if (route.request().method() !== 'POST') {
       await route.fallback();
@@ -162,7 +151,7 @@ export async function mockMastraAPI(page: Page, options: MockMastraOptions = {})
     });
   });
 
-  // 7. DELETE /feedback/* — deleteFeedback
+  // 5. DELETE /feedback/* — deleteFeedback
   await page.route('**/feedback/*', async (route) => {
     if (route.request().method() !== 'DELETE') {
       await route.fallback();
@@ -170,7 +159,7 @@ export async function mockMastraAPI(page: Page, options: MockMastraOptions = {})
     }
     await route.fulfill({ status: 204 });
   });
-  // 8. GET /research/runs/current — the chat page asks for the caller's active
+  // 6. GET /research/runs/current — the chat page asks for the caller's active
   // deep-research run on load; 204 means there is none.
   await page.route('**/research/runs/current', async (route) => {
     if (route.request().method() !== 'GET') {

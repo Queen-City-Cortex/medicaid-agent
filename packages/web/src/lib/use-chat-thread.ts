@@ -25,10 +25,9 @@ export interface UseChatThreadOptions {
   resourceId: string;
   /**
    * Runs a thread/memory op against a client built from a freshly-fetched
-   * token (with 401 refresh-retry) — see `useMastraClientRunner`. Thread
-   * creation + message loads must survive the access token expiring
-   * mid-session, so they go through this rather than a render-time client
-   * snapshot.
+   * token (with 401 refresh-retry) — see `useMastraClientRunner`. Message
+   * loads must survive the access token expiring mid-session, so they go
+   * through this rather than a render-time client snapshot.
    */
   run: MastraRunner;
   /** Returns the current WorkOS access token (for the chat transport). */
@@ -60,13 +59,15 @@ export interface UseChatThreadOptions {
  *   navigated away from never overwrites the newer thread's messages.
  * - Completed streams are cached per-thread so switching away and back shows
  *   the complete response even before the DB write settles.
- * - New threads are created lazily on first send (see `ensureThreadExists`),
- *   never eagerly on "+ New".
+ * - The browser never creates a thread. It picks an id, and the agent
+ *   creates the thread when it accepts the first message sent with that id,
+ *   titled from that message. Until then the id has no row on the server:
+ *   "+ New" and a first message the agent refuses leave nothing behind.
  * - A stored thread opens on its newest messages (see `thread-messages.ts`
  *   for the bound). `history` says whether older ones remain or failed to
  *   load, and `loadEarlierMessages` fetches the next batch above what is shown.
  * - `threadVersion` increments when a response finishes — used as the
- *   sidebar's refresh key.
+ *   sidebar's refresh key, which is how a new thread and its title appear.
  */
 export function useChatThread({
   resourceId,
@@ -169,21 +170,6 @@ export function useChatThread({
     prevStatus.current = status;
   }, [status, threadId, messages, error]);
 
-  const ensureThreadExists = useCallback(async (tid: string, title?: string) => {
-    try {
-      await run((client) =>
-        client.createMemoryThread({
-          threadId: tid,
-          resourceId,
-          agentId: AGENT_ID,
-          title: title ?? 'New conversation',
-        }),
-      );
-    } catch {
-      // Thread may already exist — that's fine
-    }
-  }, [resourceId, run]);
-
   const loadThread = useCallback(async (tid: string) => {
     const cursor = restoreCursors.current.get(tid);
     setHistory('loading');
@@ -260,9 +246,8 @@ export function useChatThread({
     setHistory('complete');
     onThreadSwitch();
     closeMobileSidebar();
-    // The thread is created lazily by handleSend (with the question as its
-    // title) — eager creation here accumulated empty "New conversation"
-    // threads in the sidebar for every + New click.
+    // Nothing is created here: the agent creates the thread when it accepts
+    // the first message sent with this id.
     focusInput();
   }, [messages.length, setMessages, onThreadSwitch, closeMobileSidebar, focusInput]);
 
@@ -277,7 +262,6 @@ export function useChatThread({
     sendMessage,
     stop,
     wasStopped,
-    ensureThreadExists,
     history,
     loadEarlierMessages,
     handleSelectThread,

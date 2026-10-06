@@ -13,6 +13,9 @@ const mocks = vi.hoisted(() => ({
     error: undefined as Error | undefined,
   },
   lastUseChatOptions: null as null | { onFinish?: (event: { messages: Array<{ id: string }>; isAbort: boolean }) => void },
+  transportOptions: null as null | {
+    prepareSendMessagesRequest: (options: { messages: Array<{ id: string; role: string; parts: Array<Record<string, unknown>> }> }) => { body: unknown };
+  },
 }));
 
 vi.mock('@ai-sdk/react', () => ({
@@ -30,7 +33,11 @@ vi.mock('@ai-sdk/react', () => ({
 }));
 
 vi.mock('ai', () => ({
-  DefaultChatTransport: class DefaultChatTransport {},
+  DefaultChatTransport: class DefaultChatTransport {
+    constructor(options: typeof mocks.transportOptions) {
+      mocks.transportOptions = options;
+    }
+  },
 }));
 
 function makeDeferred<T>() {
@@ -293,32 +300,36 @@ describe('useChatThread', () => {
     expect(focusInput).toHaveBeenCalledTimes(1);
   });
 
-  it('handleNewThread never creates the thread eagerly — creation is lazy via ensureThreadExists', async () => {
-    const { result, createMemoryThread } = setup();
+  it('never creates a thread from the browser: "+ New" only picks an id for the agent to create', async () => {
+    const { result, rerender, createMemoryThread, getMemoryThread } = setup();
     mocks.chat.messages = [{ id: 'u1', role: 'user', parts: [{ type: 'text', text: 'q' }] }];
+    rerender();
+    const before = result.current.threadId;
 
     await act(async () => {
       await result.current.handleNewThread();
     });
-    expect(createMemoryThread).not.toHaveBeenCalled();
 
-    await act(async () => {
-      await result.current.ensureThreadExists(result.current.threadId, 'My question');
-    });
-    expect(createMemoryThread).toHaveBeenCalledWith(
-      expect.objectContaining({ threadId: result.current.threadId, title: 'My question' }),
-    );
+    expect(result.current.threadId).not.toBe(before);
+    expect(result.current.history).toBe('complete');
+    // The new id has no row on the server yet, so nothing is asked of it.
+    expect(createMemoryThread).not.toHaveBeenCalled();
+    expect(getMemoryThread).not.toHaveBeenCalled();
+    expect(result.current).not.toHaveProperty('ensureThreadExists');
   });
 
-  it('ensureThreadExists swallows "already exists" errors', async () => {
-    const { result, createMemoryThread } = setup();
-    createMemoryThread.mockRejectedValueOnce(new Error('conflict'));
+  it('sends the thread id and the newest user message, and nothing that could title or own the thread', () => {
+    const { result } = setup();
+    const request = mocks.transportOptions!.prepareSendMessagesRequest({ messages: [
+      { id: 'u1', role: 'user', parts: [{ type: 'text', text: 'first' }] },
+      { id: 'a1', role: 'assistant', parts: [{ type: 'text', text: 'answer' }] },
+      { id: 'u2', role: 'user', parts: [{ type: 'text', text: 'second' }] },
+    ] });
 
-    await expect(
-      act(async () => {
-        await result.current.ensureThreadExists('thread-dup');
-      }),
-    ).resolves.not.toThrow();
+    expect(request.body).toEqual({
+      messages: [{ id: 'u2', role: 'user', parts: [{ type: 'text', text: 'second' }] }],
+      memory: { thread: result.current.threadId, resource: 'user-1' },
+    });
   });
 
   it('bumps threadVersion when a response finishes (sidebar refresh key)', () => {

@@ -13,10 +13,12 @@ test('the production smoke helpers rename and delete only the thread the run cre
   const writes: string[] = [];
   let created = '';
   await mockMastraAPI(page, { threads });
+  // The agent creates the thread when it accepts the first message, titled
+  // from the question; the page's own server actions also post to /chat.
   page.on('request', (request) => {
-    if (request.method() !== 'POST' || !new URL(request.url()).pathname.endsWith('/memory/threads')) return;
-    created = request.postDataJSON().threadId;
-    threads.unshift({ id: created, title: question, updatedAt: new Date().toISOString() });
+    if (request.method() !== 'POST' || new URL(request.url()).pathname !== '/chat' || request.headers()['next-action']) return;
+    created = request.postDataJSON().memory.thread;
+    threads.unshift({ id: created, title: question.slice(0, 60), updatedAt: new Date().toISOString() });
   });
   await page.route(/\/api\/memory\/threads\/[^/?]+(\?.*)?$/, async (route) => {
     const request = route.request();

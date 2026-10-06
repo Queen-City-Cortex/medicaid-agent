@@ -15,6 +15,9 @@ import { createChatRoute } from '../src/chat-route.js';
 import { createResourceBindingMiddleware } from '../src/auth-middleware.js';
 import { createExecutionGateway } from '../src/execution-gateway.js';
 import { installMemoryReleaseGate } from '../src/answer-release.js';
+import { createRateLimitMiddleware } from '../src/rate-limit/middleware.js';
+import type { RateLimitDecision, RateLimitRepository } from '../src/rate-limit/repository.js';
+import { MessageLengthGuard } from '../src/processors/message-length-guard.js';
 import { HallucinationVerifier } from '../src/processors/verifier/processor.js';
 import { clientRequestContext } from './helpers/client-request-context.js';
 import { verifyAnswer } from '../src/processors/verifier/verify.js';
@@ -486,15 +489,25 @@ describe('production HTTP handler with guarded observational memory', () => {
         headers: { 'content-type': 'application/json', authorization: `Bearer ${user}` },
         body: body === undefined ? undefined : JSON.stringify(body) });
       const threads = '/api/memory/threads?agentId=ncMedicaidAgent';
-      expect((await call('user-a', 'POST', threads, { threadId: 'thread-a', title: 'A title', resourceId: 'user-a' })).status).toBe(200);
-      expect((await call('user-b', 'POST', threads, { threadId: 'thread-b', title: 'B title', resourceId: 'user-b' })).status).toBe(200);
+      // The chat route creates threads; these stand in for two first turns.
+      for (const owner of ['a', 'b']) {
+        await store.saveThread({ thread: { id: `thread-${owner}`, resourceId: `user-${owner}`, title: `${owner.toUpperCase()} title`,
+          createdAt: new Date(), updatedAt: new Date() } });
+      }
       await store.saveMessages({ messages: [{ id: 'message-a', threadId: 'thread-a', resourceId: 'user-a', role: 'user',
         createdAt: new Date(), content: { format: 2, parts: [{ type: 'text', text: 'USER_A_PRIVATE_SENTINEL' }] } }] });
       const owned = (await store.getThreadById({ threadId: 'thread-a' }))!;
 
-      // Creating over an existing id must not move it to the caller.
-      const takeover = await call('user-b', 'POST', threads, { threadId: 'thread-a', title: 'Taken', resourceId: 'user-b' });
-      expect(takeover.status).toBe(404);
+      // No client may create a thread, over an existing id or a new one, its
+      // own included: the gateway does not expose the framework's create route.
+      for (const [user, threadId] of [['user-b', 'thread-a'], ['user-b', 'thread-new'], ['user-a', 'thread-a'], ['user-a', 'thread-new']]) {
+        const created = await call(user, 'POST', threads, { threadId, title: 'Taken', resourceId: user, agentId: 'ncMedicaidAgent' });
+        expect([user, threadId, created.status]).toEqual([user, threadId, 404]);
+      }
+      expect(await store.getThreadById({ threadId: 'thread-a' })).toEqual(owned);
+      expect(await store.getThreadById({ threadId: 'thread-new' })).toBeNull();
+      // The store refuses the same write if anything else reaches it.
+      await expect(store.saveThread({ thread: { ...owned, resourceId: 'user-b', title: 'Taken' } })).rejects.toMatchObject({ status: 404 });
       expect(await store.getThreadById({ threadId: 'thread-a' })).toEqual(owned);
       expect((await call('user-b', 'PATCH', '/api/memory/threads/thread-a?agentId=ncMedicaidAgent', { title: 'Taken' })).status).toBe(403);
       expect((await call('user-b', 'POST', '/api/memory/threads/thread-a/clone?agentId=ncMedicaidAgent', {})).status).toBe(403);
@@ -505,26 +518,20 @@ describe('production HTTP handler with guarded observational memory', () => {
       const history = await call('user-a', 'GET', '/api/memory/threads/thread-a/messages?agentId=ncMedicaidAgent');
       expect(await history.text()).toContain('USER_A_PRIVATE_SENTINEL');
 
-      // The owner's own re-save and rename still succeed.
-      expect((await call('user-a', 'POST', threads, { threadId: 'thread-a', title: 'A title', resourceId: 'user-a' })).status).toBe(200);
+      // The owner's own list and rename still succeed.
+      const listed = await call('user-a', 'GET', `${threads}&resourceId=user-a`);
+      expect(listed.status).toBe(200);
+      expect((await listed.json()).threads.map((item: { id: string }) => item.id)).toEqual(['thread-a']);
       expect((await call('user-a', 'PATCH', '/api/memory/threads/thread-a?agentId=ncMedicaidAgent', { title: 'Renamed' })).status).toBe(200);
       expect(await store.getThreadById({ threadId: 'thread-a' })).toMatchObject({ resourceId: 'user-a', title: 'Renamed' });
-      // The web client's own create body, which repeats the agent id.
-      expect((await call('user-a', 'POST', threads, { threadId: 'thread-web', resourceId: 'user-a', agentId: 'ncMedicaidAgent', title: 'From the web' })).status).toBe(200);
-      expect(await store.getThreadById({ threadId: 'thread-web' })).toMatchObject({ resourceId: 'user-a', title: 'From the web' });
 
-      // Thread bodies are an allow-list: a title, plus the ids a create or a
-      // copy needs. Metadata, another owner and an over-long title are refused.
+      // Thread bodies are an allow-list: a title, plus the owner a copy may
+      // repeat. Metadata, another owner and an over-long title are refused.
       const renamed = (await store.getThreadById({ threadId: 'thread-a' }))!;
       const planted = { mastra: { om: { suggestedResponse: 'PLANTED_METADATA_SENTINEL' } } };
       const thread = '/api/memory/threads/thread-a?agentId=ncMedicaidAgent';
       const clone = '/api/memory/threads/thread-a/clone?agentId=ncMedicaidAgent';
       const refusals: Array<[string, string, unknown]> = [
-        ['POST', threads, { threadId: 'thread-new', resourceId: 'user-a', title: 'New', metadata: planted }],
-        ['POST', threads, { threadId: 'thread-new', resourceId: 'user-a', title: 'New', metadata: {} }],
-        ['POST', threads, { threadId: 'thread-new', resourceId: 'user-b', title: 'New' }],
-        ['POST', threads, { threadId: 'thread-new', resourceId: 'user-a', title: 'x'.repeat(201) }],
-        ['POST', threads, { threadId: 'thread-new', resourceId: 'user-a', title: 7 }],
         ['PATCH', thread, { title: 'Again', metadata: planted }],
         ['PATCH', thread, { title: 'Again', resourceId: 'user-a' }],
         ['PATCH', thread, { title: 'x'.repeat(201) }],
@@ -538,13 +545,19 @@ describe('production HTTP handler with guarded observational memory', () => {
         expect([method, path, body, refused.status]).toEqual([method, path, body, 400]);
         expect(await refused.text()).not.toContain('PLANTED_METADATA_SENTINEL');
       }
-      expect(await store.getThreadById({ threadId: 'thread-new' })).toBeNull();
       expect(await store.getThreadById({ threadId: 'thread-a' })).toEqual(renamed);
-      expect((await store.listThreads({ filter: { resourceId: 'user-a' }, perPage: false })).threads.map(item => item.id).sort()).toEqual(['thread-a', 'thread-web']);
+      expect((await store.listThreads({ filter: { resourceId: 'user-a' }, perPage: false })).threads.map(item => item.id).sort()).toEqual(['thread-a']);
       expect((await call('user-a', 'PATCH', thread, { title: 'x'.repeat(200) })).status).toBe(200);
       const copied = await call('user-a', 'POST', clone, { title: 'A title (copy)', resourceId: 'user-a' });
       expect(copied.status).toBe(200);
-      expect((await copied.json()).thread).toMatchObject({ resourceId: 'user-a', title: 'A title (copy)' });
+      const copy = (await copied.json()).thread;
+      expect(copy).toMatchObject({ resourceId: 'user-a', title: 'A title (copy)' });
+      // Delete is the owner's alone.
+      const copyPath = `/api/memory/threads/${copy.id}?agentId=ncMedicaidAgent`;
+      expect((await call('user-b', 'DELETE', copyPath)).status).toBe(403);
+      expect(await store.getThreadById({ threadId: copy.id })).not.toBeNull();
+      expect((await call('user-a', 'DELETE', copyPath)).status).toBe(200);
+      expect(await store.getThreadById({ threadId: copy.id })).toBeNull();
 
       // `include` resolves message ids without an owner filter in the store.
       const include = encodeURIComponent(JSON.stringify([{ id: 'message-a', withPreviousMessages: 5, withNextMessages: 5 }]));
@@ -567,7 +580,7 @@ describe('production HTTP handler with guarded observational memory', () => {
       await raw.execute('ALTER TABLE mastra_threads RENAME TO mastra_threads_moved');
       raw.close();
       for (const [method, path, body] of [['GET', thread, undefined], ['PATCH', thread, { title: 'Broken' }],
-        ['POST', threads, { threadId: 'thread-c', resourceId: 'user-a', title: 'C' }], ['POST', clone, {}],
+        ['POST', clone, {}],
         ['GET', '/api/memory/threads/thread-a/messages?agentId=ncMedicaidAgent', undefined]] as const) {
         const failed = await call('user-a', method, path, body);
         expect([method, path, failed.status]).toEqual([method, path, 500]);
@@ -580,6 +593,178 @@ describe('production HTTP handler with guarded observational memory', () => {
     } finally {
       await storage.close();
       await rm(directory, { recursive: true, force: true });
+    }
+  }, 30_000);
+
+  /** The production route, rate limiter and memory options over a real store;
+   *  the token is the user id. */
+  async function threadHarness() {
+    const storage = new LibSQLStore({ id: `thread-${crypto.randomUUID()}`, url: ':memory:' });
+    await storage.init();
+    const store = (await storage.getStore('memory'))!;
+    installMemoryReleaseGate(store);
+    const saves = vi.spyOn(store, 'saveThread');
+    const prompts: string[] = [];
+    const model = new MockLanguageModelV3({ doStream: async options => {
+      prompts.push(JSON.stringify(options.prompt));
+      return { stream: simulateReadableStream({ chunks: [
+        { type: 'stream-start', warnings: [] }, { type: 'text-start', id: 'draft' },
+        { type: 'text-delta', id: 'draft', delta: 'The service is covered.' }, { type: 'text-end', id: 'draft' },
+        { type: 'finish', finishReason, usage },
+      ] }) };
+    } });
+    // No title option: what production passes.
+    const memory = await createChatMemory(storage);
+    const agent = new Agent({ id: 'test-agent', name: 'Test', instructions: 'Answer from policy.', model, memory,
+      inputProcessors: [new MessageLengthGuard()], outputProcessors: [new HallucinationVerifier()] });
+    const mastra = new Mastra({ agents: { ncMedicaidAgent: agent }, storage, logger: false });
+    const limit: { decision: RateLimitDecision } = { decision: { allowed: true } };
+    const authenticateToken = async (token: string) => token.startsWith('user-') ? { id: token } : null;
+    const app = new Hono();
+    app.use('*', async (c, next) => {
+      (c as any).set('requestContext', await clientRequestContext(c.req.raw));
+      (c as any).set('mastra', mastra);
+      await next();
+    });
+    app.use('*', createResourceBindingMiddleware({ authenticateToken }) as unknown as MiddlewareHandler);
+    app.use('*', createRateLimitMiddleware({ checkAndRecord: async () => limit.decision } as unknown as RateLimitRepository) as unknown as MiddlewareHandler);
+    const route = createChatRoute({ record: vi.fn().mockResolvedValue(undefined) }, { maxSteps: 2 });
+    if (!('handler' in route)) throw new Error('Expected a direct HTTP handler');
+    app.post('/chat', route.handler as unknown as Handler);
+    const post = async (user: string | null, thread: unknown, text: string, threadField: Record<string, unknown> = {}) => {
+      const response = await app.request('/chat', { method: 'POST',
+        headers: { 'content-type': 'application/json', ...(user ? { authorization: `Bearer ${user}` } : {}) },
+        body: JSON.stringify({ messages: [{ id: crypto.randomUUID(), role: 'user', parts: [{ type: 'text', text }] }],
+          memory: { thread, resource: 'attacker', ...threadField } }) });
+      return { status: response.status, body: await response.text() };
+    };
+    const rows = async () => (await store.listThreads({ perPage: false })).threads;
+    const userText = async (threadId: string) => (await store.listMessages({ threadId, perPage: false })).messages
+      .filter(message => message.role === 'user').map(message => JSON.stringify(message.content));
+    return { storage, store, memory, saves, prompts, limit, post, rows, userText };
+  }
+
+  it('leaves no thread row for a first message refused before the run starts', async () => {
+    const chat = await threadHarness();
+    const warn = vi.spyOn(log, 'warn').mockImplementation(() => {});
+    const error = vi.spyOn(log, 'error').mockImplementation(() => {});
+    try {
+      // The identifier screen: nothing of the refused text is kept, a title least of all.
+      const refused = await chat.post('user-a', 'refused', 'My client Jane Roe, SSN 123-45-6789, was denied personal care services.');
+      expect(refused.status).toBe(422);
+      expect(JSON.parse(refused.body).error.code).toBe('client_identifier_detected');
+      // No verified user.
+      expect((await chat.post(null, 'refused', 'Is dental care covered for adults?')).status).toBe(401);
+      expect((await chat.post('stranger', 'refused', 'Is dental care covered for adults?')).status).toBe(401);
+      // The user's own rate limit, then the service-wide run ceiling.
+      chat.limit.decision = { allowed: false, scope: 'user', window: 'hour', limit: 30, retryAfterSeconds: 60 };
+      const limited = await chat.post('user-a', 'refused', 'Is dental care covered for adults?');
+      expect([limited.status, JSON.parse(limited.body).error.code]).toEqual([429, 'rate_limited']);
+      chat.limit.decision = { allowed: false, scope: 'service', window: 'day', limit: 1, retryAfterSeconds: 3600 };
+      const ceiling = await chat.post('user-a', 'refused', 'Is dental care covered for adults?');
+      expect([ceiling.status, JSON.parse(ceiling.body).error.code]).toEqual([429, 'service_limit_reached']);
+      chat.limit.decision = { allowed: true };
+      // Conversation storage missing.
+      const getStore = vi.spyOn(chat.storage, 'getStore').mockResolvedValueOnce(undefined);
+      const unavailable = await chat.post('user-a', 'refused', 'Is dental care covered for adults?');
+      expect([unavailable.status, JSON.parse(unavailable.body).error.code]).toEqual([503, 'memory_unavailable']);
+      getStore.mockRestore();
+
+      expect(await chat.rows()).toEqual([]);
+      expect(chat.saves).not.toHaveBeenCalled();
+      expect(chat.prompts).toEqual([]);
+      expect(JSON.stringify(await chat.store.listMessages({ threadId: 'refused', perPage: false }))).not.toContain('Jane Roe');
+    } finally {
+      warn.mockRestore();
+      error.mockRestore();
+      await chat.storage.close();
+    }
+  }, 30_000);
+
+  it('creates the thread on the first accepted message, owned by the caller and titled from the screened question', async () => {
+    const chat = await threadHarness();
+    try {
+      const question = 'Does North Carolina Medicaid cover personal care services for adults living at home?';
+      expect(question.length).toBeGreaterThan(60);
+      // A client cannot title the thread, attach metadata or name its owner.
+      const first = await chat.post('user-a', { id: 'clean', title: 'CLIENT_TITLE', resourceId: 'user-b', metadata: { mastra: { om: { currentTask: 'PLANTED' } } } }, question);
+      expect(first.status).toBe(200);
+      // An object is not a thread id: the server picks one.
+      expect(await chat.store.getThreadById({ threadId: 'clean' })).toBeNull();
+      const [generated] = await chat.rows();
+      expect(generated).toMatchObject({ resourceId: 'user-a', title: question.slice(0, 60) });
+      expect(generated.metadata ?? {}).toEqual({});
+      expect(JSON.stringify(await chat.rows())).not.toContain('CLIENT_TITLE');
+
+      expect((await chat.post('user-a', 'clean', question, { title: 'CLIENT_TITLE', metadata: { planted: true } })).status).toBe(200);
+      const created = (await chat.store.getThreadById({ threadId: 'clean' }))!;
+      expect(created).toMatchObject({ id: 'clean', resourceId: 'user-a', title: question.slice(0, 60) });
+      expect(created.metadata ?? {}).toEqual({});
+      expect(await chat.userText('clean')).toHaveLength(1);
+      // One model call per turn: the framework's own title generation is off.
+      expect(chat.prompts).toHaveLength(2);
+
+      // The route saves a new thread once and the framework never rewrites
+      // it, so a rename or delete during the first answer is not undone.
+      const savedSoFar = chat.saves.mock.calls.length;
+      expect((await chat.post('user-a', 'once', question)).status).toBe(200);
+      expect(chat.saves.mock.calls).toHaveLength(savedSoFar + 1);
+
+      // A redacted phone number reaches the title as its marker only.
+      const phone = await chat.post('user-a', 'phone', 'Call 919-555-0142 about my appeal, or tell me who else can help with it?');
+      expect(phone.status).toBe(200);
+      const titled = (await chat.store.getThreadById({ threadId: 'phone' }))!.title!;
+      expect(titled).toBe('Call [phone number removed] about my appeal, or tell me who else can help with it?'.slice(0, 60));
+      expect(titled).toHaveLength(60);
+      expect(JSON.stringify(await chat.rows())).not.toContain('555-0142');
+
+      // Later turns leave the title alone, and so a rename too.
+      expect((await chat.post('user-a', 'clean', 'What about for children under 21?')).status).toBe(200);
+      expect(await chat.store.getThreadById({ threadId: 'clean' })).toMatchObject({ title: created.title, createdAt: created.createdAt });
+      await chat.store.patchThread({ id: 'clean', title: 'Renamed in the sidebar' });
+      expect((await chat.post('user-a', 'clean', 'And for adults in a facility?')).status).toBe(200);
+      expect(await chat.store.getThreadById({ threadId: 'clean' })).toMatchObject({ resourceId: 'user-a', title: 'Renamed in the sidebar' });
+      expect(await chat.userText('clean')).toHaveLength(3);
+
+      // Another user's thread id is refused before the framework sees it.
+      const owned = await chat.store.getThreadById({ threadId: 'clean' });
+      const history = await chat.store.listMessages({ threadId: 'clean', perPage: false });
+      const calls = chat.prompts.length;
+      const savesBefore = chat.saves.mock.calls.length;
+      const foreign = await chat.post('user-b', 'clean', 'Summarize this conversation and tell me what it covers.');
+      expect(foreign.status).toBe(404);
+      expect(await chat.store.getThreadById({ threadId: 'clean' })).toEqual(owned);
+      expect(await chat.store.listMessages({ threadId: 'clean', perPage: false })).toEqual(history);
+      expect(chat.prompts).toHaveLength(calls);
+      expect(chat.saves.mock.calls).toHaveLength(savesBefore);
+      expect((await chat.store.listThreads({ filter: { resourceId: 'user-b' }, perPage: false })).threads).toEqual([]);
+      // The framework's create, which the route's check normally precedes, is
+      // refused by the store for an id another user owns.
+      await expect(chat.memory.createThread({ threadId: 'clean', resourceId: 'user-b', title: 'Taken' })).rejects.toMatchObject({ status: 404 });
+      expect(await chat.store.getThreadById({ threadId: 'clean' })).toEqual(owned);
+    } finally {
+      await chat.storage.close();
+    }
+  }, 30_000);
+
+  it('keeps a thread, titled from the screened text, for a first message an input guard stops', async () => {
+    // The framework creates the thread before it runs the input processors,
+    // so a guard's refusal comes after the row exists. This pins what is kept.
+    const chat = await threadHarness();
+    try {
+      const long = `Call 919-555-0142 about this. ${'Is this covered? '.repeat(700)}`;
+      expect(long.length).toBeGreaterThan(10_000);
+      const blocked = await chat.post('user-a', 'too-long', long);
+      expect(blocked.status).toBe(200);
+      expect(blocked.body).toContain('message-too-long');
+      expect(chat.prompts).toEqual([]);
+      const kept = (await chat.store.getThreadById({ threadId: 'too-long' }))!;
+      expect(kept).toMatchObject({ resourceId: 'user-a', title: 'Call [phone number removed] about this. Is this covered? Is this covered?'.slice(0, 60) });
+      // The row is all there is: the stopped question is not stored as a message.
+      expect((await chat.store.listMessages({ threadId: 'too-long', perPage: false })).messages).toEqual([]);
+      expect(JSON.stringify(await chat.rows())).not.toContain('555-0142');
+    } finally {
+      await chat.storage.close();
     }
   }, 30_000);
 

@@ -36,7 +36,7 @@ import type { Thread } from '@/lib/thread-helpers';
 
 const AGENT_ID = 'nc-medicaid-navigator';
 
-// Server threads are created with the question as their title nowadays, so
+// The agent titles a thread from its first question when it creates it, so
 // deriving titles from messages is a legacy path for old threads. Cap how many
 // we derive so a sidebar of 50 untitled threads doesn't fan out 50 requests.
 const MAX_DERIVED_TITLE_THREADS = 10;

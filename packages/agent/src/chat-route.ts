@@ -17,6 +17,9 @@ import { finishChatDiagnostic, type ChatDiagnostic } from './processors/verifier
 
 type ChatFinishEvent = Parameters<NonNullable<AgentExecutionOptions['onFinish']>>[0];
 
+/** A new thread is titled with the start of its first question. */
+const THREAD_TITLE_CHARS = 60;
+
 /** Production handler reused by real-storage HTTP regression tests. */
 export function createChatRoute(usageRepo: Pick<UsageRepository, 'record'>, runLimits: AgentExecutionOptions) {
   return registerApiRoute('/chat', {
@@ -48,8 +51,15 @@ export function createChatRoute(usageRepo: Pick<UsageRepository, 'record'>, runL
       // numbers and e-mail addresses replaced by a marker: one text part for
       // storage, the gates and the model, and the same string for the verifier.
       const question = screened.text;
-      const input = { ...trusted, messages: [{ ...trusted.messages[0], parts: question ? [{ type: 'text' as const, text: question }] : [] }] };
-      const threadId = (body?.memory as { thread?: string } | undefined)?.thread;
+      const threadId = trusted.memory.thread.id;
+      // A thread that does not exist yet is created below with this title. It
+      // is cut from the screened text and nothing from the client, so a
+      // refused question is never stored as a title and a redacted number
+      // appears in one only as its marker. An existing thread keeps its title.
+      const input = {
+        messages: [{ ...trusted.messages[0], parts: question ? [{ type: 'text' as const, text: question }] : [] }],
+        memory: { ...trusted.memory, thread: { id: threadId, title: question.slice(0, THREAD_TITLE_CHARS) } },
+      };
       const requestContext = c.get('requestContext');
       // Mastra merges client context before this route. Only the server may
       // supply diagnostic state, including when diagnostics are disabled.
@@ -65,14 +75,30 @@ export function createChatRoute(usageRepo: Pick<UsageRepository, 'record'>, runL
       if (!memoryStore) {
         return c.json({ error: { code: 'memory_unavailable', message: 'Conversation storage is unavailable' } }, 503);
       }
-      const thread = await memoryStore.getThreadById({ threadId: input.memory.thread });
+      const thread = await memoryStore.getThreadById({ threadId });
       if (thread && thread.resourceId !== userId) {
         return c.json({ error: { code: 'not_found', message: 'Conversation not found' } }, 404);
+      }
+      // Create a new thread here, once. Left to the framework, the row is
+      // written again at the first step and at the end of the first turn,
+      // which overwrites a rename and restores a thread the user deleted
+      // while that answer was streaming. The store's owner guard refuses an
+      // id another user claimed since the lookup above.
+      if (!thread) {
+        const now = new Date();
+        try {
+          await memoryStore.saveThread({ thread: { id: threadId, resourceId: userId, title: input.memory.thread.title, createdAt: now, updatedAt: now } });
+        } catch (err) {
+          if ((err as { status?: number }).status === 404) {
+            return c.json({ error: { code: 'not_found', message: 'Conversation not found' } }, 404);
+          }
+          throw err;
+        }
       }
       // The coverage boundary and the scope gate judge a follow-up with the
       // turns before it. Those come from the owner's stored thread, already
       // screened and release-gated, and replace anything a client supplied.
-      if (thread) requestContext.set(CHAT_PRIOR_TURNS, await readPriorTurns(memoryStore, input.memory.thread));
+      if (thread) requestContext.set(CHAT_PRIOR_TURNS, await readPriorTurns(memoryStore, threadId));
       const signal = c.req.raw.signal;
       // Mastra does not pass the abort signal to input processors.
       requestContext.set(CHAT_ABORT_SIGNAL, signal);

@@ -82,7 +82,6 @@ vi.mock('@/lib/use-mastra-client', () => {
   // Stable pass-through runner over a mock client (page.tsx now consumes
   // useMastraClientRunner and threads `run` into useChatThread/useDeepResearch).
   const client = {
-    createMemoryThread: vi.fn().mockResolvedValue(undefined),
     getMemoryThread: vi.fn(() => ({
       listMessages: vi.fn().mockResolvedValue({ messages: [] }),
     })),

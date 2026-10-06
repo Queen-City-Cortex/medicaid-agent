@@ -91,7 +91,6 @@ describe('execution gateway', () => {
     ['DELETE', '/feedback/f-1'],
     ['GET', '/corpus-status'],
     ['GET', '/api/memory/threads'],
-    ['POST', '/api/memory/threads', '{"resourceId":"user-1"}'],
     ['GET', '/api/memory/threads/t-1'],
     ['PATCH', '/api/memory/threads/t-1', '{"title":"Renamed"}'],
     ['DELETE', '/api/memory/threads/t-1'],
@@ -181,5 +180,18 @@ describe('execution gateway', () => {
       headers: { 'content-type': 'application/json' },
       body: method === 'POST' ? '{}' : undefined,
     })).status).toBe(404);
+  });
+
+  it('does not let a client create a thread: the chat route creates it after the identifier screen', async () => {
+    const created = await app('user-1').request('/api/memory/threads?agentId=ncMedicaidAgent', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ threadId: 't-new', resourceId: 'user-1', agentId: 'ncMedicaidAgent', title: 'SSN 123-45-6789' }),
+    });
+    expect(created.status).toBe(404);
+    expect(await created.json()).toEqual({ error: { code: 'not_found', message: 'Not found' } });
+    // The list on the same path, and the cross-origin preflight for it, still pass.
+    expect((await app('user-1').request('/api/memory/threads?agentId=ncMedicaidAgent')).status).toBe(200);
+    expect((await app().request('/api/memory/threads', { method: 'OPTIONS' })).status).toBe(200);
   });
 });

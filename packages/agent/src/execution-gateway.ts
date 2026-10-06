@@ -1,5 +1,4 @@
 import type { ContextWithMastra } from '@mastra/core/server';
-import { IdentifierSchema } from '@nc-medicaid/contracts';
 import type { Next } from 'hono';
 import { z } from 'zod';
 import { getBoundUserId } from './auth-middleware.js';
@@ -34,24 +33,17 @@ function rule(
   };
 }
 
-/** The web titles a thread with the first 60 characters of its question. */
+/** A rename or a copy may carry a longer title than the 60 characters the
+ * chat route gives a new thread. */
 const THREAD_TITLE_MAX = 200;
-/** An allowed thread body is a title and three ids; this is several times that. */
+/** An allowed thread body is a title and an id; this is many times that. */
 const THREAD_BODY_MAX_BYTES = 4096;
 const threadTitle = z.string().min(1).max(THREAD_TITLE_MAX);
 
 // Everything a client may put in a thread request, by method; any other key is
 // refused. The framework stores `metadata` as sent and gives `metadata.mastra`
 // to the model as system messages, past every input guard, so no client may
-// write it. `resourceId` stays because the framework's create schema requires
-// the key; it must name the signed-in user. `agentId` is repeated in the body
-// by the framework's client and read from the query.
-const CREATE_THREAD = { POST: z.object({
-  title: threadTitle.optional(),
-  threadId: IdentifierSchema.optional(),
-  resourceId: z.string(),
-  agentId: IdentifierSchema.optional(),
-}).strict() };
+// write it. A copy may repeat `resourceId`, which must name the signed-in user.
 const UPDATE_THREAD = { PATCH: z.object({ title: threadTitle }).strict() };
 const CLONE_THREAD = { POST: z.object({
   title: threadTitle.optional(),
@@ -69,7 +61,9 @@ const OWNED_ROUTES: readonly RouteRule[] = [
   rule(['GET'], /^\/research\/runs\/[^/]+$/),
   rule(['POST'], /^\/research\/runs\/[^/]+\/(?:decision|cancel)$/),
   rule(['GET'], /^\/(?:livez|readyz|dependencyz|healthz)$/, { public: true }),
-  rule(['GET', 'POST'], /^\/api\/memory\/threads$/, { returnsThread: true, fixedErrors: true, bodies: CREATE_THREAD }),
+  // List only. The chat route creates a thread, after the identifier screen
+  // and the ownership check; the framework's create route screens nothing.
+  rule(['GET'], /^\/api\/memory\/threads$/, { returnsThread: true, fixedErrors: true }),
   rule(['GET', 'PATCH', 'DELETE'], /^\/api\/memory\/threads\/[^/]+$/, { returnsThread: true, fixedErrors: true, bodies: UPDATE_THREAD }),
   // The framework resolves `include` message ids without an owner filter, so
   // it would return another user's messages. The application never sends it.

@@ -101,7 +101,6 @@ export default function ChatPage() {
     sendMessage,
     stop,
     wasStopped,
-    ensureThreadExists,
     history,
     loadEarlierMessages,
     handleSelectThread,
@@ -138,9 +137,8 @@ export default function ChatPage() {
       return;
     }
     try {
-      if (messages.length === 0) {
-        await ensureThreadExists(threadId, question.slice(0, 60));
-      }
+      // The agent creates the thread, and titles it, once it has screened and
+      // accepted this message; the browser creates nothing first.
       await sendMessage({ text: question });
     } catch (err) {
       // A transient send/transport failure must not silently swallow the
@@ -149,7 +147,7 @@ export default function ChatPage() {
       console.error('[chat] send failed; restoring input', err);
       setInput((current) => (current ? current : question));
     }
-  }, [input, deepMode, deepResearch, messages.length, threadId, ensureThreadExists, sendMessage]);
+  }, [input, deepMode, deepResearch, sendMessage]);
 
   // The toggle only changes what is shown; the research run is left alone.
   const toggleDeepResearch = useCallback(() => {

@@ -71,12 +71,14 @@ export function guardMessage(message: MastraDBMessage): MastraDBMessage {
 }
 
 /** Client payloads carry user text and a thread ID, never execution options,
- * tool evidence, assistant history, release metadata, or resource ownership. */
+ * tool evidence, assistant history, release metadata, or resource ownership.
+ * The thread is an object so the chat route can add the title the framework
+ * gives a thread it creates; a client supplies the id and nothing else. */
 export function trustedChatInput(body: { messages?: UIMessage[]; memory?: { thread?: unknown } }, userId: string) {
   const input = [...(body.messages ?? [])].reverse().find(m => m.role === 'user');
   const parts = input?.parts.filter(p => p.type === 'text').map(p => ({ type: 'text' as const, text: p.text })) ?? [];
   return { messages: [{ id: crypto.randomUUID(), role: 'user' as const, parts }],
-    memory: { thread: typeof body.memory?.thread === 'string' ? body.memory.thread : crypto.randomUUID(), resource: userId } };
+    memory: { thread: { id: typeof body.memory?.thread === 'string' ? body.memory.thread : crypto.randomUUID() }, resource: userId } };
 }
 
 /** Store methods `installMemoryReleaseGate` replaces on the instance. */

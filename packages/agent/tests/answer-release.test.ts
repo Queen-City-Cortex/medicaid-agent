@@ -31,7 +31,12 @@ describe('answer release', () => {
     ], memory: { thread: 'thread', resource: 'attacker', options: { workingMemory: { enabled: true } } }, outputProcessors: [] } as any, 'owner');
     expect(input.messages[0].parts).toEqual([{ type: 'text', text: 'Coverage?' }]);
     expect(input.messages[0].id).not.toBe('overwrite-existing');
-    expect(input.memory).toEqual({ thread: 'thread', resource: 'owner' });
+    expect(input.memory).toEqual({ thread: { id: 'thread' }, resource: 'owner' });
+    // A thread object from a client is not an id: none of it is kept.
+    const forged = trustedChatInput({ memory: { thread: { id: 'thread', title: PRIVATE, resourceId: 'attacker', metadata: { mastra: {} } } } }, 'owner');
+    expect(Object.keys(forged.memory.thread)).toEqual(['id']);
+    expect(forged.memory.thread.id).not.toBe('thread');
+    expect(forged.memory.resource).toBe('owner');
     expect(JSON.stringify(input)).not.toContain(PRIVATE);
   });
   it('rechecks the corrected text once and releases only that answer', async () => {
