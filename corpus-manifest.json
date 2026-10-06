@@ -106,6 +106,8 @@
     {
       "source_type": "fee_schedule",
       "directory_name": "fee-schedules",
+      "as_of_cutoff": "2022-11-02",
+      "frozen": true,
       "authority_tier": "supporting",
       "answer_role": "reimbursement",
       "required_for_answering": false,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { config } from '../../src/config.js';
-import { MANIFEST_SOURCE_TYPES } from '../../src/corpus-manifest.js';
+import { MANIFEST_SOURCE_TYPES, isFrozenSourceType } from '../../src/corpus-manifest.js';
 import { discoverDocuments } from '../../src/crawl/discovery.js';
 import { pageCrawlSource } from '../../src/sources/crawl-helpers.js';
 import type { DiscoveredDocument, Fetcher, SourceType } from '../../src/sources/types.js';
@@ -19,8 +19,11 @@ function stubFetcher(
 // Families that read at least one configured page. beneficiary_guidance and
 // nc_statute are static seed lists and never fetch, so they cannot fail this way.
 const SEED_LIST_FAMILIES = ['beneficiary_guidance', 'nc_statute'];
+// The manifest marks the fee-schedule archive frozen: discovery skips it.
+const FROZEN_FAMILIES = ['fee_schedule'];
 const FETCHING_FAMILIES = MANIFEST_SOURCE_TYPES.filter(
-  (sourceType) => !SEED_LIST_FAMILIES.includes(sourceType),
+  (sourceType) =>
+    !SEED_LIST_FAMILIES.includes(sourceType) && !FROZEN_FAMILIES.includes(sourceType),
 );
 
 function providerManualPage(count: number): string {
@@ -48,6 +51,29 @@ describe('discoverDocuments', () => {
     expect(
       result.documents.every((doc) => SEED_LIST_FAMILIES.includes(doc.source_type)),
     ).toBe(true);
+  });
+
+  it('skips a frozen family: no fetch, no floor, neither passed nor failed', async () => {
+    expect(MANIFEST_SOURCE_TYPES.filter(isFrozenSourceType)).toEqual(FROZEN_FAMILIES);
+    expect(config.minDiscoveredDocuments.fee_schedule).toBeGreaterThan(0);
+    const fetched: string[] = [];
+    const fetcher = stubFetcher((url) => {
+      fetched.push(url);
+      return { body: providerManualPage(config.minDiscoveredDocuments.provider_manual), statusCode: 200 };
+    });
+
+    const result = await discoverDocuments(
+      fetcher,
+      ['fee_schedule', 'provider_manual'],
+      config.defaultSinceYear,
+      { enforceMinimums: true },
+    );
+
+    expect(result.failedSourceTypes).toEqual([]);
+    expect(result.successfulSourceTypes).toEqual(['provider_manual']);
+    expect(result.documents.every((doc) => doc.source_type === 'provider_manual')).toBe(true);
+    expect(fetched.length).toBeGreaterThan(0);
+    expect(fetched.some((url) => url.includes('fee-schedules'))).toBe(false);
   });
 
   it('records a family as failed when its index answers 403', async () => {

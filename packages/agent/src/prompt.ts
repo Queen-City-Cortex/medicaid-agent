@@ -85,6 +85,7 @@ You have tools available:
 - **clinical_policy** — Clinical Coverage Policies governing service coverage, medical necessity, and provider billing.
 - **federal_regulation** — 42 CFR and other federal rules that NC policies implement.
 - **beneficiary_guidance** — Dated official NC Medicaid public guidance. Use it for general explanations and source navigation, never as an individualized eligibility or legal determination.
+- **fee_schedule** — ARCHIVE of NC Medicaid fee schedules published up to 2 November 2022, not current rates. Searched only when you ask for this document type. Present any rate with its schedule's date, never as the current rate.
 - \`resolveAnswerFrame\` is usually prefetched automatically at the start of a turn. Treat it as the first-pass routing/evidence plan when it is present.
 
 ## Amendment awareness

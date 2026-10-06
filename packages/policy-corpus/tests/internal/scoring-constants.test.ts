@@ -5,7 +5,11 @@ import { BASE_TYPE_GROUPS, OPERATIONAL_TYPE_GROUPS } from '../../src/internal/sc
 // Source families deliberately left out of default search. Adding a family to
 // the manifest fails the test below until it is placed in a type group or
 // named here with the reason.
-const UNSEARCHED_SOURCE_TYPES: readonly string[] = [];
+const UNSEARCHED_SOURCE_TYPES: readonly string[] = [
+  // Frozen archive: the crawled page holds no schedule after 2 November 2022
+  // (DATA-3). Reachable only through an explicit documentTypes filter.
+  'fee_schedule',
+];
 
 function manifestSourceTypes(): string[] {
   const manifest = JSON.parse(

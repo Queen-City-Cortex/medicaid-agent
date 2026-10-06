@@ -212,7 +212,6 @@ export function finalizeHybridHits({
     queryLower: analysis.normalizedQuery,
     queryTerms: analysis.searchTerms,
     procedureCodes: analysis.procedureCodes,
-    requestedYears: analysis.requestedYears,
     exactPolicyNumbers: analysis.explicitPolicyNumbers,
     documentCoverageBoosts,
     latestChangeMarkerValue,

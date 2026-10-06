@@ -107,11 +107,32 @@ export function resolveCoverageScope(question: string, today = new Date()): Cove
   // after January 1, 2027. From that date the text is simply current law and
   // this branch stops firing; delete it then.
   if (today.toISOString().slice(0, 10) < RETROACTIVE_COVERAGE_CAVEAT_ENDS && RETROACTIVE_COVERAGE_QUESTION.test(q)) {
-    result.requirements = [RETROACTIVE_COVERAGE_CAVEAT];
-    return result;
+    result.requirements.push(RETROACTIVE_COVERAGE_CAVEAT);
   }
-  return null;
+  // The fee-schedule family is a frozen archive (DATA-3, issue #257). A rate
+  // question is answered, not refused, but any rate found must carry its date.
+  if (RATE_QUESTION.some(pattern => pattern.test(q)) && !NOT_A_RATE_QUESTION.test(q)) {
+    result.requirements.push(ARCHIVED_FEE_SCHEDULE_CAVEAT);
+  }
+  return result.requirements.length ? result : null;
 }
+
+// What Medicaid pays a provider for a service or code. Anchored on purpose:
+// "what does Medicaid cover", a copay, an income limit and a heart rate are
+// not rate questions.
+const MEDICAID = String.raw`(?:(?:nc|n\.c\.|north carolina|the)\s+)*medicaid`;
+const PROCEDURE_CODE = String.raw`(?:[a-z]\d{4}|\d{4}[a-z0-9])\b`;
+const RATE_QUESTION = [
+  /\bfee[\s-]schedules?\b/,
+  /\b(?:reimbursement|payment|per[\s-]diem)\s+rates?\b/,
+  new RegExp(String.raw`\bhow much\s+(?:does|do|will|would|did)\s+${MEDICAID}\s+(?:pay|reimburse)\b`),
+  new RegExp(String.raw`\bwhat\s+(?:does|do|will|would|did)\s+${MEDICAID}\s+reimburse\s+(?:\w+\s+)?for\s+\w`),
+  new RegExp(String.raw`\bwhat\s+(?:does|do|will|would|did)\s+${MEDICAID}\s+pay\s+(?:\w+\s+)?for\s+(?:(?:an?|each|one|per|cpt|hcpcs|procedure|code)\s|${PROCEDURE_CODE})`),
+  new RegExp(String.raw`\brates?\s+(?:for|of|on)\s+(?:(?:the|an?|cpt|hcpcs|procedure|billing|service|code)\s+)*${PROCEDURE_CODE}`),
+  /\brates?\s+(?:for|of|on)\s+(?:(?:the|an?)\s+)?(?:cpt|hcpcs|procedure|billing)\s+codes?\b/,
+];
+const NOT_A_RATE_QUESTION = /\bco-?pay(?:s|ments?)?\b|\bcost[\s-]?sharing\b|\bpremiums?\b|\bdeductibles?\b|\bcapitat\w*\b|\bliabilit\w*\b|\ballowances?\b|\bmileage\b/;
+export const ARCHIVED_FEE_SCHEDULE_CAVEAT = 'This corpus holds no NC Medicaid fee schedule published after November 2, 2022. A rate taken from a fee_schedule document comes from an archived schedule: present it only with that schedule\'s date, as the rate on that schedule, and never as the current rate. A figure stated in a current policy, manual or contract is not affected. Say that current rates must be checked against NC Medicaid\'s current fee schedules.';
 
 /** First day the amended section 1902(a)(34) wording applies; the caveat ends then. */
 export const RETROACTIVE_COVERAGE_CAVEAT_ENDS = '2027-01-01';

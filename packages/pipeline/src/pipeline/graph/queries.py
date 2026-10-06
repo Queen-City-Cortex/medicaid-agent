@@ -26,6 +26,7 @@ SET d.title = $title,
     d.variant_date = $variant_date,
     d.retrieval_ready = $retrieval_ready,
     d.archived = $archived,
+    d.as_of_cutoff = $as_of_cutoff,
     d.source_checked_at = CASE
       WHEN $source_checked_at IS NULL THEN NULL
       ELSE datetime($source_checked_at)

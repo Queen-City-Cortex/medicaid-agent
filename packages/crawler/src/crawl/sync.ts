@@ -1,4 +1,4 @@
-import { CORPUS_MANIFEST } from '../corpus-manifest.js';
+import { CORPUS_MANIFEST, isFrozenSourceType } from '../corpus-manifest.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import { config, SOURCE_TYPE_DIRS } from '../config.js';
@@ -178,6 +178,8 @@ async function processDocuments(
   const eligible: DocumentRecord[] = [];
   for (const doc of docs) {
     if (!ctx.sourceTypes.includes(doc.source_type as SourceType)) continue;
+    // A frozen family's rows are kept exactly as they are: no fetch, no stamp.
+    if (isFrozenSourceType(doc.source_type)) continue;
     if (!ctx.isAllowed(doc.source_url, doc.source_type as SourceType)) {
       const reason = 'URL rejected before download queueing';
       ctx.registry.recordRejectedUrl(doc.source_url, doc.source_type, reason);

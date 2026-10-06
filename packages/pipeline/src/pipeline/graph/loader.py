@@ -660,6 +660,14 @@ def _build_document_bundle(
     # material whatever tier its family carries.
     proposed = _is_state_plan_proposal(source_type, title, crawler_meta)
     change_year, change_sequence = _change_notice_number(source_type, title) or (None, None)
+    # An archive family (one with an as_of_cutoff) holds no current document.
+    # Only the status and the bucket say so: the `archived` flag stays false,
+    # because readers drop flagged documents from every search and a search
+    # that names this document type must still return them.
+    family_archive = source_family.as_of_cutoff is not None
+    corpus_bucket = selection.corpus_bucket
+    if family_archive and corpus_bucket == "primary":
+        corpus_bucket = "archive"
 
     return DocumentBundle(
         document=DocumentNode(
@@ -668,7 +676,11 @@ def _build_document_bundle(
             document_type=source_type,
             policy_number=policy_number or waiver_id,
             category=crawler_meta.get("category"),
-            status="archived" if archived else "proposed" if proposed else "current",
+            status=(
+                "archived" if archived or family_archive
+                else "proposed" if proposed
+                else "current"
+            ),
             source_url=(
                 canonicalize_source_url(crawler_meta["source_url"])
                 if crawler_meta.get("source_url")
@@ -691,13 +703,14 @@ def _build_document_bundle(
             answer_role=source_family.answer_role,
             source_format=meta.get("source_format"),
             answer_ready=bool(meta.get("answer_ready", True)),
-            corpus_bucket=selection.corpus_bucket,
+            corpus_bucket=corpus_bucket,
             variant_group=selection.variant_group,
             variant_date=selection.variant_date,
             retrieval_ready=selection.retrieval_ready,
             archived=archived,
             source_checked_at=crawler_meta.get("last_checked_at"),
             source_changed_at=crawler_meta.get("last_changed_at"),
+            as_of_cutoff=source_family.as_of_cutoff,
         ),
         sections=section_nodes,
     )

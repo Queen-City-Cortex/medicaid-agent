@@ -18,6 +18,14 @@ export interface SourceFamilyManifest {
   allowed_file_formats: string[];
   landing_pages: string[];
   seed_urls: string[];
+  /**
+   * The source stopped changing, so the crawl leaves the family alone: no
+   * discovery, no download, no re-check. Its registry rows and files stay as
+   * the last crawl left them.
+   */
+  frozen?: boolean;
+  /** ISO date of the last day a frozen source covers. Read by the pipeline. */
+  as_of_cutoff?: string;
 }
 
 export interface CorpusManifest {
@@ -49,6 +57,9 @@ function assertManifest(manifest: CorpusManifest): CorpusManifest {
     }
     seen.add(family.source_type);
 
+    if (family.frozen !== undefined && typeof family.frozen !== 'boolean') {
+      throw new Error(`Corpus manifest has a non-boolean frozen flag for ${family.source_type}`);
+    }
     if (!family.directory_name) {
       throw new Error(`Corpus manifest missing directory_name for ${family.source_type}`);
     }
@@ -107,6 +118,11 @@ export function getSourceFamily(sourceType: SourceType): SourceFamilyManifest {
     throw new Error(`Unknown source type in manifest: ${sourceType}`);
   }
   return family;
+}
+
+/** True for a family the crawl must not discover, download or re-check. */
+export function isFrozenSourceType(sourceType: string): boolean {
+  return SOURCE_FAMILY_MAP.get(sourceType as SourceType)?.frozen === true;
 }
 
 export function isAllowedSourceUrl(

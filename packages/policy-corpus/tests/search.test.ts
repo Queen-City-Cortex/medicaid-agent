@@ -247,7 +247,8 @@ describe('searchSectionsDetailed', () => {
       .filter(([query]) => (query as string).includes("CALL db.index.vector.queryNodes('section_embeddings'"))
       .map(([, params]) => (params as Record<string, unknown>).docTypes as string[]);
 
-    expect(operationalGroups.some((docTypes) => docTypes.includes('fee_schedule'))).toBe(true);
+    // The frozen fee-schedule archive is searched only on an explicit document-type request.
+    expect(operationalGroups.some((docTypes) => docTypes.includes('fee_schedule'))).toBe(false);
     expect(operationalGroups.some((docTypes) => docTypes.includes('billing_guidance'))).toBe(true);
   });
 
@@ -301,118 +302,26 @@ describe('searchSectionsDetailed', () => {
     expectAllHandlersUsed();
   });
 
-  it('prefers fee schedules for reimbursement questions', async () => {
+  it('returns the archived fee schedules only when the caller asks for that document type', async () => {
     const { corpus, expectAllHandlersUsed } = createCorpus([
-      {
-        label: 'vector clinical',
-        match: queries.sectionVector('clinical_policy'),
-        result: {
-          records: [
-            sectionHit({
-              sectionId: 'sec:clinical',
-              sectionNumber: '1',
-              sectionTitle: 'Coverage',
-              documentTitle: 'Clinical Policy',
-              policyNumber: '1A',
-              documentType: 'clinical_policy',
-              authorityTier: 'authoritative',
-              answerRole: 'coverage',
-              answerReady: true,
-              content: 'Coverage text',
-              score: 0.88,
-            }),
-            // The strongest clinical competitor: an answer-ready coverage
-            // section that names the queried code (T1001) at a higher raw
-            // score than the primary fee-schedule row. The fee-schedule
-            // preference must beat this, not an empty field.
-            sectionHit({
-              sectionId: 'sec:clinical-code',
-              sectionNumber: 'C',
-              sectionTitle: 'Code(s)',
-              documentTitle: 'Maternal Care Skilled Nurse Home Visit',
-              policyNumber: '1M-6',
-              documentType: 'clinical_policy',
-              authorityTier: 'authoritative',
-              answerRole: 'coverage',
-              answerReady: true,
-              retrievalReady: true,
-              content: 'Covered code T1001',
-              score: 0.95,
-            }),
-          ],
-        },
-      },
-      {
-        label: 'vector spa',
-        match: queries.sectionVector('state_plan_amendment'),
-        result: {
-          records: [
-            sectionHit({
-              sectionId: 'sec:spa',
-              sectionNumber: '.0109',
-              sectionTitle: 'Reimbursement methods',
-              documentTitle: 'State Plan Amendment',
-              policyNumber: 'SPA 25-0026',
-              documentType: 'state_plan_amendment',
-              authorityTier: 'authoritative',
-              answerRole: 'federal_authority',
-              answerReady: true,
-              retrievalReady: true,
-              content: 'General reimbursement methodology for facilities',
-              score: 0.97,
-            }),
-          ],
-        },
-      },
       {
         label: 'vector fee schedule',
         match: queries.sectionVector('fee_schedule'),
         result: {
           records: [
             sectionHit({
-              sectionId: 'sec:fee:primary',
+              sectionId: 'sec:fee:archived',
               sectionTitle: 'Rates',
               documentTitle: 'Fee Schedule 2022',
               documentType: 'fee_schedule',
               authorityTier: 'supporting',
               answerRole: 'reimbursement',
               sourceFormat: 'xlsx',
-              answerReady: true,
-              corpusBucket: 'primary',
+              corpusBucket: 'archive',
               variantDate: '2022-01-01',
               retrievalReady: true,
               content: 'T1001 rate 125.00',
               score: 0.82,
-            }),
-            sectionHit({
-              sectionId: 'sec:fee:archive',
-              sectionTitle: 'Rates',
-              documentTitle: 'Fee Schedule 2019',
-              documentType: 'fee_schedule',
-              authorityTier: 'supporting',
-              answerRole: 'reimbursement',
-              sourceFormat: 'pdf',
-              answerReady: true,
-              corpusBucket: 'archive',
-              variantDate: '2019-06-01',
-              retrievalReady: false,
-              content: 'T1001 rate 119.00',
-              score: 0.94,
-            }),
-            sectionHit({
-              sectionId: 'sec:fee:companion',
-              sectionTitle: 'Rates',
-              documentTitle: 'Fee Schedule 2022 PDF',
-              documentType: 'fee_schedule',
-              authorityTier: 'supporting',
-              answerRole: 'reimbursement',
-              sourceFormat: 'pdf',
-              answerReady: true,
-              corpusBucket: 'companion',
-              variantDate: '2022-01-01',
-              retrievalReady: false,
-              content: 'T1001 rate 125.00',
-              score: 0.9,
             }),
           ],
         },
@@ -422,64 +331,10 @@ describe('searchSectionsDetailed', () => {
     const results = await corpus.searchSectionsDetailed({
       query: 'What is the reimbursement rate for T1001?',
       topK: 2,
+      documentTypes: ['fee_schedule'],
     });
 
-    expect(results[0]?.documentType).toBe('fee_schedule');
-    expect(results[0]?.answerRole).toBe('reimbursement');
-    expect(results[0]?.corpusBucket).toBe('primary');
-    expect(results[0]?.sourceFormat).toBe('xlsx');
-    expectAllHandlersUsed();
-  });
-
-  it('can surface fee-schedule history when the query asks for a specific year', async () => {
-    const { corpus, expectAllHandlersUsed } = createCorpus([
-      {
-        label: 'vector fee schedule',
-        match: queries.sectionVector('fee_schedule'),
-        result: {
-          records: [
-            sectionHit({
-              sectionId: 'sec:fee:current',
-              sectionTitle: 'Rates',
-              documentTitle: 'Fee Schedule 2022',
-              documentType: 'fee_schedule',
-              authorityTier: 'supporting',
-              answerRole: 'reimbursement',
-              sourceFormat: 'xlsx',
-              answerReady: true,
-              corpusBucket: 'primary',
-              variantDate: '2022-01-01',
-              retrievalReady: true,
-              content: 'T1001 rate 125.00',
-              score: 0.9,
-            }),
-            sectionHit({
-              sectionId: 'sec:fee:history',
-              sectionTitle: 'Rates',
-              documentTitle: 'Fee Schedule 2020',
-              documentType: 'fee_schedule',
-              authorityTier: 'supporting',
-              answerRole: 'reimbursement',
-              sourceFormat: 'xlsx',
-              answerReady: true,
-              corpusBucket: 'history',
-              variantDate: '2020-07-28',
-              retrievalReady: true,
-              content: 'T1001 rate 121.00',
-              score: 0.82,
-            }),
-          ],
-        },
-      },
-    ]);
-
-    const results = await corpus.searchSectionsDetailed({
-      query: 'What was the reimbursement rate for T1001 in 2020?',
-      topK: 1,
-    });
-
-    expect(results[0]?.variantDate).toBe('2020-07-28');
-    expect(results[0]?.corpusBucket).toBe('history');
+    expect(results[0]).toMatchObject({ sectionId: 'sec:fee:archived', documentType: 'fee_schedule', corpusBucket: 'archive' });
     expectAllHandlersUsed();
   });
 

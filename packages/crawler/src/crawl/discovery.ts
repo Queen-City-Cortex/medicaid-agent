@@ -13,6 +13,7 @@ import { beneficiaryGuidanceSource } from '../sources/beneficiary-guidance.js';
 import { ncStatuteSource } from '../sources/nc-statutes.js';
 import { logger } from '../utils/logger.js';
 import { config } from '../config.js';
+import { isFrozenSourceType } from '../corpus-manifest.js';
 
 // Source modules registered here — add new sources as they're implemented
 const sourceModules: Partial<Record<SourceType, SourceModule>> = {
@@ -35,7 +36,8 @@ const sourceModules: Partial<Record<SourceType, SourceModule>> = {
  * without throwing and lists at least one document; with `enforceMinimums`
  * (default full runs) it must also reach its configured floor. Documents from
  * a family that fell short are still returned: recording them is harmless,
- * but the family is reported as failed so it is not stamped fresh.
+ * but the family is reported as failed so it is not stamped fresh. A family
+ * the manifest marks frozen is skipped and appears in neither list.
  */
 export async function discoverDocuments(
   fetcher: Fetcher,
@@ -59,6 +61,13 @@ export async function discoverDocuments(
     while (queue.length > 0) {
       const sourceType = queue.shift();
       if (!sourceType) break;
+      if (isFrozenSourceType(sourceType)) {
+        // Neither passed nor failed: nothing was listed, so the family is not
+        // stamped fresh, its floor does not apply, and no row can be judged
+        // absent from an index.
+        logger.info(`Skipping discovery for frozen source type: ${sourceType}`);
+        continue;
+      }
       const module = sourceModules[sourceType];
       if (!module) {
         logger.warn(`No discovery module for source type: ${sourceType}`);

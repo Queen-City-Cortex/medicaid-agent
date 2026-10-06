@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { ANSWER_SCOPE_POLICY, RETROACTIVE_COVERAGE_CAVEAT, RETROACTIVE_COVERAGE_CAVEAT_ENDS, coverageEvidenceIssue, resolveCoverageScope } from '../src/scope/coverage.js';
+import { ANSWER_SCOPE_POLICY, ARCHIVED_FEE_SCHEDULE_CAVEAT, RETROACTIVE_COVERAGE_CAVEAT, RETROACTIVE_COVERAGE_CAVEAT_ENDS, coverageEvidenceIssue, resolveCoverageScope } from '../src/scope/coverage.js';
 import { createAnswerFrameResolver } from '../src/frame/service.js';
 import type { LegalPrimitiveService } from '../src/contracts.js';
 import type { SessionExecutor } from '../src/types.js';
@@ -292,6 +292,28 @@ describe('bounded answer scope', () => {
     expect(result.coverageScope?.notice).toContain('not available in this graph');
   });
 
+  it('keeps the planned frame for a question whose scope only adds requirements', async () => {
+    const primitives = { getDocument: vi.fn(), getSection: vi.fn(), getAmendments: vi.fn(), lookupPolicy: vi.fn().mockResolvedValue([]) } as unknown as LegalPrimitiveService;
+    const session = { run: vi.fn().mockResolvedValue({ records: [] }) };
+    const withSession: SessionExecutor = fn => fn(session);
+    const searchSectionsDetailed = vi.fn().mockResolvedValue([]);
+    const resolver = createAnswerFrameResolver({ primitives, withSession, searchSectionsDetailed });
+    const result = await resolver.resolveAnswerFrame({ query: 'What is the reimbursement rate for T1019?' });
+    // The planner ran (it searched); the frame is not the bare pinned-source frame.
+    expect(searchSectionsDetailed).toHaveBeenCalled();
+    expect(session.run).not.toHaveBeenCalledWith(expect.stringContaining('d.source_url IN $urls'), expect.anything());
+    expect(result.coverageScope).toMatchObject({ notice: null, requiredSourceUrls: [], requirements: [ARCHIVED_FEE_SCHEDULE_CAVEAT] });
+  });
+
+  it.each([
+    'What is the capitation payment rate for Standard Plans?',
+    'What is the personal needs allowance payment rate?',
+    'What is the patient monthly liability payment rate?',
+    'What is the mileage reimbursement rate for NEMT?',
+  ])('does not treat %s as a fee-schedule rate question', question => {
+    expect(resolveCoverageScope(question)).toBeNull();
+  });
+
   describe('retroactive-coverage caveat for section 1902(a)(34), until 2027-01-01', () => {
     const before = new Date('2026-12-31T12:00:00Z');
     const after = new Date('2027-01-01T00:00:00Z');
@@ -324,6 +346,55 @@ describe('bounded answer scope', () => {
     it('does not displace a scope that already applies', () => {
       const scope = resolveCoverageScope('What is the MAGI income limit for retroactive coverage months?', before);
       expect(scope?.requirements).not.toContain(RETROACTIVE_COVERAGE_CAVEAT);
+    });
+  });
+
+  describe('archived fee schedules', () => {
+    it.each([
+      'What does NC Medicaid pay for CPT 99213?',
+      'What does Medicaid pay for an office visit?',
+      'What does Medicaid pay providers for a dental cleaning?',
+      'How much does North Carolina Medicaid reimburse for personal care services?',
+      'How much will Medicaid pay for T1019?',
+      'What does Medicaid reimburse for speech therapy?',
+      'Where is the physician fee schedule?',
+      'What is the reimbursement rate for T1001?',
+      'What was the per diem rate for nursing facilities in 2021?',
+      'What is the rate for procedure code 92507?',
+      'What is the Medicaid rate for 99213?',
+      'Is there a published rate for the HCPCS code for wheelchairs?',
+    ])('requires the archive date on a rate question without refusing it: %s', question => {
+      expect(scope(question)).toEqual({
+        policyId: ANSWER_SCOPE_POLICY.id, limitationIds: [], requestedDate: null,
+        notice: null, requiredSourceUrls: [], requirements: [ARCHIVED_FEE_SCHEDULE_CAVEAT],
+      });
+    });
+
+    it.each([
+      'What does Medicaid cover?',
+      'What does Medicaid pay for?',
+      'What does Medicaid pay for in a nursing home?',
+      'Does Medicaid pay for dentures?',
+      'Is physical therapy covered for adults?',
+      'What is the copay for a prescription?',
+      'How much does Medicaid pay for my copay?',
+      'What are the cost-sharing rules for adults?',
+      'How much is the payment rate of my HCWD premium?',
+      'What is the income limit for a family of four?',
+      'How much do I pay for prescriptions?',
+      'Does Medicaid cover a monitor that tracks heart rate?',
+      'What heart rate qualifies for cardiac rehabilitation under policy 1R-1?',
+      'What was the enrollment rate for 2025?',
+      'Is a rate change retroactive for providers?',
+      'What is the medical loss ratio for prepaid health plans?',
+      'How do I schedule a fair hearing?',
+    ])('leaves a question that is not about a rate alone: %s', question => {
+      expect(scope(question)?.requirements ?? []).not.toContain(ARCHIVED_FEE_SCHEDULE_CAVEAT);
+    });
+
+    it('adds to the retroactive-coverage caveat rather than replacing it', () => {
+      expect(scope('What is the reimbursement rate for services in the retroactive coverage period?')?.requirements)
+        .toEqual([RETROACTIVE_COVERAGE_CAVEAT, ARCHIVED_FEE_SCHEDULE_CAVEAT]);
     });
   });
 });

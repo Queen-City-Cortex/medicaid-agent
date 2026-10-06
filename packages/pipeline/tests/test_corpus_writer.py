@@ -502,3 +502,15 @@ def test_policy_revisions_are_written_under_their_own_label():
     assert "MERGE (r:Document" not in merge
     assert "MATCH (base:Document {id: revision.base_document_id})" in merge
     assert "MERGE (r)-[a:AMENDS]->(base)" in merge
+
+
+def test_document_merge_writes_the_archive_cutoff_and_clears_it_for_a_live_family():
+    bundle = _make_bundle()
+    for cutoff in ("2022-11-02", None):
+        session = FakeSession()
+        _writer_for(session).upsert_document_bundle(
+            replace(bundle, document=replace(bundle.document, as_of_cutoff=cutoff))
+        )
+        parameters = next(parameters for query, parameters in session.calls if query == queries.MERGE_DOCUMENT)
+        assert parameters["as_of_cutoff"] == cutoff
+    assert "d.as_of_cutoff = $as_of_cutoff" in queries.MERGE_DOCUMENT

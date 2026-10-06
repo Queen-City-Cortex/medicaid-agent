@@ -32,7 +32,6 @@ export const BASE_TYPE_GROUPS = [
   ['beneficiary_guidance'],
 ];
 export const OPERATIONAL_TYPE_GROUPS = [
-  ['fee_schedule'],
   ['billing_guidance'],
   ['managed_care_guidance', 'managed_care_contract'],
 ];
@@ -103,13 +102,6 @@ export const EXACT_REIMBURSEMENT_CODE_BOOST = 0.45;
 export const REIMBURSEMENT_CODE_ROLE_BOOST = 0.08;
 export const NON_REIMBURSEMENT_CODE_MATCH_PENALTY = 0.16;
 export const RETRIEVAL_READY_PENALTY = 0.18;
-export const PRIMARY_FEE_SCHEDULE_BOOST = 0.12;
-export const HISTORY_FEE_SCHEDULE_BOOST = 0.08;
-export const HISTORY_FEE_SCHEDULE_PENALTY = 0.08;
-export const ARCHIVE_FEE_SCHEDULE_PENALTY = 0.18;
-export const COMPANION_FEE_SCHEDULE_PENALTY = 0.16;
-export const SPREADSHEET_FEE_SCHEDULE_BOOST = 0.04;
-export const REQUESTED_YEAR_MATCH_BOOST = 0.18;
 export const COVERAGE_PROCESS_SECTION_PENALTY = 0.18;
 export const FEDERAL_DOCUMENT_TYPES = new Set(['federal_regulation', 'federal_statute']);
 export const POLICY_ROUTING_DOCUMENT_TYPES = new Set(['clinical_policy', 'dhhs_policy', 'provider_manual', 'waiver']);

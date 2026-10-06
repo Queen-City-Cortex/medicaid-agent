@@ -4,6 +4,7 @@ from collections.abc import Iterator
 import math
 
 from pipeline.config import EMBEDDING_DIMENSIONS, EMBEDDING_MODEL
+from pipeline.corpus_manifest import ARCHIVE_SOURCE_TYPES
 from pipeline.embeddings.planner import plan_inputs, plan_hash
 from pipeline.graph.connection import get_session
 from pipeline.utils.batching import chunked
@@ -25,6 +26,18 @@ RETURN s.id AS section_id, s.content_text AS body, s.title AS section_title,
        [d IN documents | {id:d.id, title:d.title, family:d.document_type}] AS documents,
        ancestors
 ORDER BY section_id
+"""
+
+
+# The sections an embedding run plans and a coverage check counts. An archive
+# family is left out of both: it is searched only by name, lexically. A section
+# with no document still comes through, so the scan below rejects it.
+EMBEDDED_SECTION_IDS_QUERY = """
+MATCH (s:Section)
+OPTIONAL MATCH (d:Document)-[:HAS_SECTION]->(s)
+WITH s, collect(d.document_type) AS families
+WHERE none(family IN families WHERE family IN $unembedded)
+RETURN s.id AS id ORDER BY s.id
 """
 
 
@@ -54,7 +67,7 @@ def iter_sections(section_ids=None, *, session_factory=None) -> Iterator[dict]:
         validate_plan_topology()
         with session_factory(default_access_mode="READ") as session:
             section_ids = [r["id"] for r in session.run(
-                "MATCH (s:Section) RETURN s.id AS id ORDER BY s.id"
+                EMBEDDED_SECTION_IDS_QUERY, unembedded=sorted(ARCHIVE_SOURCE_TYPES)
             )]
     for ids in chunked(section_ids, 10):
         with session_factory(default_access_mode="READ", fetch_size=1) as session:

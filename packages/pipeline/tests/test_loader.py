@@ -1305,10 +1305,40 @@ def test_build_document_bundle_applies_fee_schedule_selection(monkeypatch, tmp_p
         document_id="doc:fee:ambulance-2022",
     )
 
-    assert bundle.document.corpus_bucket == "primary"
+    # The family froze in November 2022: its newest variant is still not a
+    # primary, current document, and it carries the manifest's cutoff.
+    assert bundle.document.corpus_bucket == "archive"
+    assert bundle.document.status == "archived"
+    assert bundle.document.as_of_cutoff == "2022-11-02"
+    # The archived flag hides a document from every search; a search naming
+    # the fee_schedule type must still return these.
+    assert bundle.document.archived is False
     assert bundle.document.variant_group == "ambulance fee schedule"
     assert bundle.document.variant_date == "2022-01-01"
     assert bundle.document.retrieval_ready is True
+
+
+def test_build_document_bundle_keeps_a_live_family_current_with_no_cutoff(monkeypatch, tmp_path):
+    monkeypatch.setattr("pipeline.graph.loader._source_selection_index", lambda: {})
+    parsed_json = tmp_path / "manual.json"
+    parsed_json.write_text("{}")
+
+    document = _build_document_bundle(
+        json_path=parsed_json,
+        source_type="dhhs_policy",
+        title="Aged, Blind and Disabled Manual",
+        policy_number="MA-2000",
+        waiver_id=None,
+        crawler_meta={"source_url": "https://policies.ncdhhs.gov/ma-2000.pdf"},
+        meta={"source_file": str(tmp_path / "ma-2000.pdf"), "page_count": 1},
+        sections=[],
+        effective_date=None,
+        document_id="doc:ma-2000",
+    ).document
+
+    assert document.status == "current"
+    assert document.corpus_bucket is None
+    assert document.as_of_cutoff is None
 
 
 def test_load_all_counts_duplicate_parsed_artifacts_as_one_document(

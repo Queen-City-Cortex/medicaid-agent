@@ -16,7 +16,8 @@ export const searchSections = createTool({
   description:
     'Hybrid search (semantic + keyword) over NC Medicaid policy sections. ' +
     'Use this to find relevant policy sections for a topic or question. ' +
-    'Optionally filter by documentType (e.g. "dhhs_policy", "clinical_policy", "federal_regulation", "nc_statute", "beneficiary_guidance").',
+    'Optionally filter by documentType (e.g. "dhhs_policy", "clinical_policy", "federal_regulation", "nc_statute", "beneficiary_guidance"). ' +
+    'The "fee_schedule" type is an ARCHIVE of fee schedules up to 2 November 2022, not current rates; it is searched only when named in documentTypes.',
   inputSchema: z.object({
     query: z.string().describe('Natural language search query'),
     documentTypes: z

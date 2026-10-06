@@ -57,6 +57,13 @@ describe('server coverage boundaries', () => {
     expect(Boolean(scope?.notice)).toBe(!table);
   });
 
+  it('keeps a dated subject across a turn that only carries a caveat', () => {
+    // A rate question gets a requirements-only scope; it is not a subject a
+    // later dated turn continues, and it does not displace the MAGI table.
+    const scope = resolveCoverageScope(coverageConversationQuery(users(magi, 'What is the reimbursement rate for T1019?', 'and for 2025?')));
+    expect(scope).toMatchObject({ requestedDate: '2025-04-01', requiredSourceUrls: [tables[0]] });
+  });
+
   it.each([
     'My client applied in 2023 and was denied. Can they appeal that?',
     'Was dental covered for adults back in 2019? Is that still true?',

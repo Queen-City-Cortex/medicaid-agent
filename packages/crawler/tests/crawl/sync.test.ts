@@ -70,6 +70,47 @@ describe('crawl sync phases', () => {
     return id;
   }
 
+  describe('frozen family', () => {
+    it('fetches nothing and leaves its rows untouched, while other families sync', async () => {
+      const pending = registry.upsertDiscovered({
+        source_url: 'https://medicaid.ncdhhs.gov/fee/pending.xlsx',
+        discovered_from: 'https://medicaid.ncdhhs.gov/providers/fee-schedules-archive',
+        source_type: 'fee_schedule',
+        title: 'Ambulance Fee Schedule',
+        policy_number: null,
+        category: null,
+      });
+      const held = registry.upsertDiscovered({
+        source_url: 'https://medicaid.ncdhhs.gov/fee/held.xlsx',
+        discovered_from: 'https://medicaid.ncdhhs.gov/providers/fee-schedules-archive',
+        source_type: 'fee_schedule',
+        title: 'Dental Fee Schedule',
+        policy_number: null,
+        category: null,
+      });
+      registry.updateDownloaded(held, { ...sampleInfo, file_hash: 'held-hash' });
+      const live = addDownloaded('https://example.com/live.pdf');
+      const before = [pending, held].map((id) => ({ ...registry.getById(id)! }));
+
+      const fetched: number[] = [];
+      const ctx = makeContext(
+        registry,
+        (doc) => {
+          fetched.push(doc.id);
+          return { action: 'unchanged' };
+        },
+        { sourceTypes: ['clinical_policy', 'fee_schedule'] as SourceType[] },
+      );
+      const download = await runDownloadPhase(ctx);
+      const check = await runCheckPhase(ctx, download.processedIds);
+
+      expect(fetched).toEqual([live]);
+      expect(download.processedIds.size).toBe(0);
+      expect(check.unchanged).toBe(1);
+      expect([pending, held].map((id) => registry.getById(id)!)).toEqual(before);
+    });
+  });
+
   describe('same-run re-fetch prevention', () => {
     it('does not re-fetch documents downloaded earlier in the same run', async () => {
       const newId = addDiscovered('https://example.com/new.pdf');

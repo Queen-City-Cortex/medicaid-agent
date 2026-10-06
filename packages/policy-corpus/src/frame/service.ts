@@ -27,6 +27,12 @@ export function createAnswerFrameResolver({
     async resolveAnswerFrame(input): Promise<AnswerFrame> {
       const scope = resolveCoverageScope(input.query);
       if (!scope) return planner.resolveAnswerFrame(input);
+      // A scope that only adds requirements (a dated caveat, the archived
+      // fee-schedule rule) names no source to pin: the question keeps its
+      // planned frame and carries the requirements with it.
+      if (!scope.notice && scope.requiredSourceUrls.length === 0) {
+        return { ...(await planner.resolveAnswerFrame(input)), coverageScope: scope };
+      }
       const route = buildEvidencePlan(input).route;
       const frame: AnswerFrame = { questionType: 'general', route, authoritativeDocuments: [], primarySections: [], supportingSections: [], avoidSections: [], latestRevision: null, variantReasoning: null, coverageScope: scope };
       if (scope.notice) return frame;

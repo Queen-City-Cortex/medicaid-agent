@@ -16,7 +16,6 @@ import {
   isCoverageQuestion,
   isFederalAuthorityQuery,
   isHcwdIncomePremiumQuery,
-  isHistoricalReimbursementQuery,
   isLatestChangeNoticeQuery,
   isManagedCareContractQuery,
   isManagedCareOperationsQuery,
@@ -27,17 +26,14 @@ import {
   isWaiverApplicationQuery,
   isYesNoCoverageQuery,
   queryMentionsPolicyNumber,
-  variantDateMatchesRequestedYear,
 } from './query-intent.js';
 import { countProcedureCodeMatches, scoreTermMatches } from './search.js';
 import {
   ANSWER_READY_PENALTY,
-  ARCHIVE_FEE_SCHEDULE_PENALTY,
   ATTACHMENT_TITLE_PENALTY,
   AUTHORITATIVE_POLICY_BOOST,
   BOILERPLATE_TITLE_PENALTY,
   CHANGE_NOTICE_BOOST,
-  COMPANION_FEE_SCHEDULE_PENALTY,
   CONTENT_TERM_MATCH_BOOST,
   CONTRACT_FEDERAL_CONTEXT_PENALTY,
   CONTRACT_GOVERNING_SOURCE_BOOST,
@@ -51,8 +47,6 @@ import {
   FEDERAL_AUTHORITY_BOOST,
   FEDERAL_DOCUMENT_TYPES,
   GENERIC_SECTION_TITLE_PENALTY,
-  HISTORY_FEE_SCHEDULE_BOOST,
-  HISTORY_FEE_SCHEDULE_PENALTY,
   IMPLEMENTATION_SECTION_BOOST,
   LATEST_CHANGE_MARKER_BOOST,
   LATEST_CHANGE_QUERY_EFFECTIVE_SECTION_PENALTY,
@@ -65,12 +59,9 @@ import {
   OPERATIONAL_ROLE_BOOST,
   OPERATIONAL_ROLE_MISMATCH_PENALTY,
   POLICY_NUMBER_MATCH_BOOST,
-  PRIMARY_FEE_SCHEDULE_BOOST,
   REIMBURSEMENT_CODE_ROLE_BOOST,
-  REQUESTED_YEAR_MATCH_BOOST,
   RETRIEVAL_READY_PENALTY,
   REVISION_HEADER_BOOST,
-  SPREADSHEET_FEE_SCHEDULE_BOOST,
   TITLE_TERM_MATCH_BOOST,
 } from './scoring-constants.js';
 import {
@@ -105,7 +96,6 @@ export function isModificationReviewQuery(queryLower: string): boolean {
 /** Query-level intent flags consumed by `rerankRetrievalHit`. */
 export interface RerankQueryFlags {
   pediatricQuery: boolean;
-  historicalReimbursementQuery: boolean;
   federalAuthorityQuery: boolean;
   managedCareContractQuery: boolean;
   waiverApplicationQuery: boolean;
@@ -139,7 +129,6 @@ export interface RerankQueryContext {
   queryLower: string;
   queryTerms: string[];
   procedureCodes: string[];
-  requestedYears: string[];
   exactPolicyNumbers: string[];
   documentCoverageBoosts: Map<string, number>;
   latestChangeMarkerValue: number | null;
@@ -150,7 +139,6 @@ export function buildRerankQueryContext({
   queryLower,
   queryTerms,
   procedureCodes,
-  requestedYears,
   exactPolicyNumbers,
   documentCoverageBoosts,
   latestChangeMarkerValue,
@@ -159,13 +147,11 @@ export function buildRerankQueryContext({
     queryLower,
     queryTerms,
     procedureCodes,
-    requestedYears,
-    exactPolicyNumbers,
+      exactPolicyNumbers,
     documentCoverageBoosts,
     latestChangeMarkerValue,
     flags: {
       pediatricQuery: isPediatricQuery(queryLower),
-      historicalReimbursementQuery: isHistoricalReimbursementQuery(queryLower, requestedYears),
       federalAuthorityQuery: isFederalAuthorityQuery(queryLower),
       managedCareContractQuery: isManagedCareContractQuery(queryLower),
       waiverApplicationQuery: isWaiverApplicationQuery(queryLower),
@@ -203,21 +189,19 @@ interface RerankHitFeatures {
   contentMatches: number;
   hitChangeMarkerValue: number | null;
   sectionText: string;
-  requestedYearMatch: boolean;
   procedureCodeMatches: number;
   retrievalText: string;
   sectionNumber: string;
 }
 
 function deriveHitFeatures(hit: CorpusRetrievalHit, context: RerankQueryContext): RerankHitFeatures {
-  const { queryTerms, procedureCodes, requestedYears } = context;
+  const { queryTerms, procedureCodes } = context;
   return {
     titleMatches: scoreTermMatches(queryTerms, hit.sectionTitle),
     documentMatches: scoreTermMatches(queryTerms, hit.documentTitle),
     contentMatches: Math.min(scoreTermMatches(queryTerms, hit.content), 6),
     hitChangeMarkerValue: changeMarkerValueForHit(hit),
     sectionText: combineText(hit.sectionTitle, hit.content),
-    requestedYearMatch: variantDateMatchesRequestedYear(hit.variantDate, requestedYears),
     procedureCodeMatches: countProcedureCodeMatches(
       combineText(hit.sectionTitle, hit.documentTitle, hit.content),
       procedureCodes,
@@ -344,31 +328,6 @@ const scoreReimbursementCodes: HitScorer = (score, hit, context, f) => {
     score += REIMBURSEMENT_CODE_ROLE_BOOST;
   } else {
     score -= NON_REIMBURSEMENT_CODE_MATCH_PENALTY;
-  }
-  return score;
-};
-
-const scoreFeeScheduleBuckets: HitScorer = (score, hit, context, f) => {
-  if (!(hit.documentType === 'fee_schedule' && context.flags.reimbursementQuery)) {
-    return score;
-  }
-  if (hit.corpusBucket === 'primary') {
-    score += PRIMARY_FEE_SCHEDULE_BOOST;
-  } else if (hit.corpusBucket === 'history') {
-    score += context.flags.historicalReimbursementQuery || f.requestedYearMatch
-      ? HISTORY_FEE_SCHEDULE_BOOST
-      : -HISTORY_FEE_SCHEDULE_PENALTY;
-  } else if (hit.corpusBucket === 'archive') {
-    score += f.requestedYearMatch ? HISTORY_FEE_SCHEDULE_BOOST : -ARCHIVE_FEE_SCHEDULE_PENALTY;
-  } else if (hit.corpusBucket === 'companion' || hit.corpusBucket === 'reference') {
-    score -= COMPANION_FEE_SCHEDULE_PENALTY;
-  }
-
-  if (hit.sourceFormat === 'xlsx') {
-    score += SPREADSHEET_FEE_SCHEDULE_BOOST;
-  }
-  if (f.requestedYearMatch) {
-    score += REQUESTED_YEAR_MATCH_BOOST;
   }
   return score;
 };
@@ -553,7 +512,6 @@ const HIT_SCORERS: readonly HitScorer[] = [
   scoreCoverageAuthorityTier,
   scoreOperationalAlignment,
   scoreReimbursementCodes,
-  scoreFeeScheduleBuckets,
   scoreChangeNoticeTitle,
   scoreWaiverApplication,
   scoreCoverageExclusion,

@@ -104,6 +104,7 @@ class CorpusGraphWriter:
                 "variant_date": document.variant_date,
                 "retrieval_ready": document.retrieval_ready,
                 "archived": document.archived,
+                "as_of_cutoff": document.as_of_cutoff,
                 "source_checked_at": normalize_source_timestamp(document.source_checked_at),
                 "source_changed_at": normalize_source_timestamp(document.source_changed_at),
             })

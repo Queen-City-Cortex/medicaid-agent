@@ -38,6 +38,8 @@ class DocumentNode:
     # Number of a DHHS change notice ("04-26" is 2026, 4); None otherwise.
     change_year: int | None = None
     change_sequence: int | None = None
+    # Last day an archive family covers (ISO date); None for a live family.
+    as_of_cutoff: str | None = None
 
 
 @dataclass(frozen=True)

@@ -38,7 +38,12 @@ export function coverageConversationQuery(messages: Array<{ role?: string; conte
   let query = '';
   for (const latest of users) {
     query = latest;
-    if (resolveCoverageScope(latest)) { subject = latest; continue; }
+    // A scope that only adds requirements (a caveat with no date, source or
+    // limitation) is not a subject a later turn can continue: the turn stands
+    // alone and leaves an earlier dated subject in place.
+    const own = resolveCoverageScope(latest);
+    if (own && (own.notice || own.requestedDate !== null || own.requiredSourceUrls.length > 0 || own.limitationIds.length > 0)) { subject = latest; continue; }
+    if (own) continue;
     if (NAMED_POLICY.test(latest)) { subject = ''; continue; }
     const scope = subject ? resolveCoverageScope(subject) : null;
     const words = latest.split(/\s+/).length;

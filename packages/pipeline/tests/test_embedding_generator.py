@@ -169,3 +169,79 @@ def test_full_preflight_rejects_later_invalid_heading_before_writes_or_provider(
     monkeypatch.setattr(generator, "voyage_embed", lambda *_args,**_kwargs: pytest.fail("Provider called"))
     with pytest.raises(ValueError, match="heading"):
         generator.embed_all("voyage-4")
+
+
+def test_a_whole_corpus_scan_leaves_archive_families_out_of_planning_and_coverage(monkeypatch):
+    """The embedding run and the coverage gate read the same section list, so
+    a family that is not embedded is not reported as missing either."""
+    from pipeline.embeddings import plan_graph
+
+    def row(section_id, family):
+        return {
+            "section_id": section_id,
+            "documents": [{"id": "doc", "title": "Manual", "family": family}],
+            "source_epoch": "rev",
+            "section_title": "Eligibility",
+            "body": "Must qualify.",
+            "ancestors": [],
+        }
+
+    class Graph:
+        """Answers each query the way the graph would for one live section and
+        one fee-schedule section."""
+        sections = {"live:1": "dhhs_policy", "fee:1": "fee_schedule"}
+
+        def __init__(self):
+            self.listed = []
+
+        def run(self, query, parameters=None, **kwargs):
+            params = parameters or kwargs
+            if query == plan_graph.EMBEDDED_SECTION_IDS_QUERY:
+                self.listed.append(params["unembedded"])
+                return FakeResult([
+                    {"id": sid} for sid, family in sorted(self.sections.items())
+                    if family not in params["unembedded"]
+                ])
+            if query == plan_graph.CONTEXT_QUERY:
+                return FakeResult([row(sid, self.sections[sid]) for sid in params["section_ids"]])
+            if "RETURN count(" in query:
+                return FakeResult([{"invalid": 0}])
+            # stored_plan: a section holding a current direct vector.
+            return FakeResult([{
+                "id": params["sid"], "kind": "section", "text": None, "input_hash": None,
+                "body_start": None, "body_end": None, "chunk_index": None,
+                "plan": plan, "epoch": "rev", "input_count": 1, "vector": [0.5, 0.5],
+            }])
+
+    graph = Graph()
+    monkeypatch.setattr(plan_graph, "get_session", session_factory(graph))
+    inputs = list(plan_graph.plan_inputs("Manual > Eligibility", "Must qualify.", "voyage-4"))
+    plan = plan_graph.plan_hash(inputs, "voyage-4", 2)
+
+    assert "fee_schedule" in plan_graph.ARCHIVE_SOURCE_TYPES
+    assert [r["section_id"] for r in plan_graph.iter_sections()] == ["live:1"]
+    assert graph.listed == [sorted(plan_graph.ARCHIVE_SOURCE_TYPES)]
+
+    coverage = plan_graph.embedding_coverage("voyage-4", 2)
+    assert (coverage["total"], coverage["covered"]) == (1, 1)
+
+    # A caller naming sections still reads them: the exclusion is the default
+    # scan's, not a filter on the reader.
+    assert [r["section_id"] for r in plan_graph.iter_sections(["fee:1"])] == ["fee:1"]
+
+
+def test_an_embedding_section_with_no_document_is_still_listed_for_rejection():
+    from pipeline.embeddings import plan_graph
+
+    # OPTIONAL MATCH keeps an orphan section in the scan, where it fails the
+    # one-document check instead of silently leaving coverage.
+    assert "OPTIONAL MATCH (d:Document)-[:HAS_SECTION]->(s)" in plan_graph.EMBEDDED_SECTION_IDS_QUERY
+
+
+def test_manifest_rejects_a_cutoff_that_is_not_a_date():
+    from pipeline import corpus_manifest
+
+    assert corpus_manifest.get_source_family("fee_schedule").as_of_cutoff == "2022-11-02"
+    assert corpus_manifest.ARCHIVE_SOURCE_TYPES == {"fee_schedule"}
+    with pytest.raises(ValueError, match="as_of_cutoff"):
+        corpus_manifest._as_of_cutoff({"source_type": "fee_schedule", "as_of_cutoff": "November 2022"})

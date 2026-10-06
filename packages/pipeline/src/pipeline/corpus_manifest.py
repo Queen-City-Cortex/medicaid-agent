@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
 
 
@@ -24,6 +25,10 @@ class SourceFamilyManifest:
     allowed_file_formats: tuple[str, ...]
     landing_pages: tuple[str, ...]
     seed_urls: tuple[str, ...]
+    # Set on a family whose source stopped receiving documents: the ISO date of
+    # the last day it covers. Such a family is an archive: its documents load
+    # with status "archived", never as the primary copy, and are not embedded.
+    as_of_cutoff: str | None = None
 
 
 @dataclass(frozen=True)
@@ -42,6 +47,19 @@ class FederalSourceManifest:
     refresh_interval_hours: int
     freshness_sla_days: int
     source_url: str
+
+
+def _as_of_cutoff(raw_family: dict) -> str | None:
+    cutoff = raw_family.get("as_of_cutoff")
+    if cutoff is None:
+        return None
+    try:
+        date.fromisoformat(cutoff)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(
+            f"Invalid as_of_cutoff in corpus manifest: {raw_family['source_type']}"
+        ) from exc
+    return cutoff
 
 
 def load_corpus_manifest() -> CorpusManifest:
@@ -69,6 +87,7 @@ def load_corpus_manifest() -> CorpusManifest:
                 allowed_file_formats=tuple(raw_family["allowed_file_formats"]),
                 landing_pages=tuple(raw_family.get("landing_pages", [])),
                 seed_urls=tuple(raw_family.get("seed_urls", [])),
+                as_of_cutoff=_as_of_cutoff(raw_family),
             )
         )
 
@@ -107,6 +126,14 @@ SOURCE_FAMILY_MAP = {
     family.source_type: family
     for family in CORPUS_MANIFEST.source_families
 }
+
+
+# Families kept as an archive; see SourceFamilyManifest.as_of_cutoff.
+ARCHIVE_SOURCE_TYPES = frozenset(
+    family.source_type
+    for family in CORPUS_MANIFEST.source_families
+    if family.as_of_cutoff
+)
 
 
 def get_source_family(source_type: str) -> SourceFamilyManifest:
