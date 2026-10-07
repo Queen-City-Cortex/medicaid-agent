@@ -107,7 +107,7 @@ command, as in `CORPUS_JOB_MODE=rollback railway redeploy …`, is set for the
 Railway CLI on the operator's machine and never reaches the container: the job
 runs in the stored mode, normally `scheduled`, which crawls and can start a
 promotion. The modes are `scheduled`, `discover`, `recover-parse`, `bootstrap`,
-`release`, `rollback`, `recover`, `cleanup`, `audit`, `evaluate` and `backup`;
+`measure`, `release`, `rollback`, `recover`, `cleanup`, `audit`, `evaluate` and `backup`;
 any other value exits 64.
 
 Every mode other than `scheduled` is run the same way, with `<mode>` replaced:
@@ -332,6 +332,154 @@ in its parsed sidecar. If the hashes differ the loader skips it as
 mandatory `missingAnswerReadyLoads` gate rejects the release: re-parse the
 stored payload or repair the crawl, then rebuild. An `error` row whose parse
 failed counts in `requiredCurrentParseExceptions`.
+
+## Measuring a candidate graph before paying for a release
+
+`CORPUS_JOB_MODE=measure` builds the inactive graph and reads it against the
+release gates that need no answer run and no baseline, for the price of one
+embedding pass. It exists so the retrieval floors and the graph gates can be
+read before a paid qualification cycle
+([issue #259](https://github.com/Queen-City-Cortex/medicaid-agent/issues/259)).
+
+What it does, in order:
+
+1. `corpus-release.sh measure-check`: the reset settings and the commit, before
+   anything else, so a missing setting costs no crawl.
+2. Crawl, then `parse --strict-required`.
+3. `release-prepare` into `/data/pipeline/measurements/<id>.json`.
+4. Restart and reset the target graph; `release-build-graph` (load, federal
+   ingest, references, embeddings).
+5. `release-measure`: the corpus audit, the graph inspection (embedding
+   coverage and dimensions, duplicate identities, required source families)
+   and the retrieval evaluation, each recorded on the manifest. It prints
+   every gate it can decide as `PASS` or `FAIL` with the measured value and
+   the threshold, lists the golden section ids the graph does not hold, and
+   writes both to `/data/pipeline/measurements/<id>/measurement.json`. Gates
+   that compare with a baseline or a previous release are left out.
+6. Mirror the corpus, the measurements included; stop the target graph, on
+   success or failure.
+
+What it does not do: read a baseline, run `release-preflight` or
+`release-validate`, generate or judge an answer, mark the graph as a release,
+write a manifest among the releases, take or acknowledge a snapshot, or back
+up. The graph it leaves is not a release candidate: a later bootstrap resets
+and rebuilds it. A failing gate does not fail the run: the run fails only when
+a step could not be carried out (the audit could not read the graph, the
+evaluation did not score the whole benchmark).
+
+Four things to know before running it:
+
+- **It changes the corpus.** The crawl updates the registry and the documents,
+  which changes the source snapshot. A frozen snapshot, a backup receipt or a
+  paid baseline taken before it no longer matches. `MEASURE_SKIP_CRAWL=1`
+  leaves the registry and the documents alone; the corpus is still parsed and
+  the federal sources are still refreshed by the build.
+- **It resets the graph named by `BOOTSTRAP_TARGET_COLOR`.** The guards are
+  bootstrap's: `BOOTSTRAP_RESET_CONFIRM=neo4j-<color>`, a refusal to reset the
+  graph the agent serves, and the retention check. A validated candidate that
+  has not been activated is not protected: measuring on its color wipes it.
+  When the agent serves blue or green and a cutover is unfinished, the guard
+  first restores the agent to its previous release, as bootstrap does, and
+  `measure-check` is the first place that happens. Beside a legacy agent the
+  check only reads.
+- **Golden section ids are compared as they are.** `EVAL_IDENTITY_CATALOG` is
+  ignored: the graph was built by this code from this corpus. Ids of
+  unnumbered sections are positional, so a document parsed differently from
+  the copy the golden keys were quoted from scores as a miss. The measurement
+  lists the golden ids the graph lacks, which tells that case from weak
+  retrieval. A release compares mapped identities instead, so a floor met
+  here is evidence, not a prediction.
+- **A second look costs nothing.** `MEASURE_REUSE_GRAPH=1` with
+  `REQUESTED_CORPUS_RELEASE_ID=<id>` restarts the graph that measurement built
+  and runs step 5 again, with no crawl, parse, reset, embedding or mirror. It
+  refuses unless that manifest records a finished build on the same color.
+  Nothing else ties the graph to the manifest, so do not reuse after any other
+  build on that color.
+
+A crawler crash or a failed strict parse stops the run before any graph is
+touched. A failed required source family is logged, the measurement continues
+and the run still ends 0.
+
+On the maintenance configuration the mode is run inside the idle container.
+None of these commands had been run against Railway when this was written
+(2026-10-07): the first use settles whether the session starts in the
+repository and carries the service's variables. Uploading a commit to the
+corpus job voids any paid baseline (see [initial bootstrap](#initial-bootstrap),
+step 2).
+
+On a workstation whose shell exports a stale `RAILWAY_API_TOKEN`, prefix each
+`railway` command below with `env -u RAILWAY_API_TOKEN`.
+
+1. Confirm the service is on the maintenance configuration before uploading.
+   On the regular configuration an upload starts a `scheduled` run.
+
+   ```bash
+   railway deployment list --environment production --service corpus-job --limit 1 --json \
+     | jq '.[0].meta | {configFile, start: ((.fileServiceManifest | if type == "string" then fromjson else . end) | .deploy.startCommand)}'
+   ```
+
+   Require `/deploy/railway/corpus-maintenance.json` and `sleep infinity`.
+2. Upload the commit to measure from a clean checkout of it, and name it:
+
+   ```bash
+   git fetch origin
+   git worktree add /tmp/corpus-upload origin/main && cd /tmp/corpus-upload
+   git status --porcelain            # must print nothing
+   railway link --project <project-id> --environment production --service corpus-job
+   railway variable set --skip-deploys --environment production --service corpus-job \
+     RAILWAY_GIT_COMMIT_SHA="$(git rev-parse HEAD)"
+   railway up --detach --environment production --service corpus-job
+   ```
+
+   Repeat the step 1 command for the new deployment. `RAILWAY_GIT_COMMIT_SHA`
+   now names this upload: correct it with every later upload, as the bootstrap
+   section requires.
+3. Probe the container before starting anything. Name the RUNNING instance of
+   the new deployment (from `railway status --json`): the default can be an
+   instance of the previous one.
+
+   ```bash
+   railway ssh --environment production --service corpus-job --deployment-instance <instance-id> -- \
+     bash scripts/ops/measure-probe.sh
+   ```
+
+   `measure-probe.sh` reads only and prints no secret value. Require:
+
+   - `measure_mode_lines` of at least 2: the uploaded code has the mode;
+   - `commit` equal to the uploaded commit, all 40 characters;
+   - every `secret` line `present` and every `tool` line a path;
+   - `setting CORPUS_DATA_ROOT=/data`, and `REQUESTED_CORPUS_RELEASE_ID`,
+     `MEASURE_SKIP_CRAWL`, `MEASURE_REUSE_GRAPH`, `RELEASE_OVERRIDE_FILE` and
+     `JEV_SECTION_ROLES_ENABLED` all `unset`: a run started by hand inherits
+     whatever is stored on the service.
+
+   If the command is not found, the session did not start in the repository:
+   find it (`ls /app`) and run every later command from there. If the secrets
+   are missing, stop: the job would not have its credentials.
+4. Start the measurement detached from the session, passing the reset settings
+   on the command line and not relying on stored ones:
+
+   ```bash
+   railway ssh --environment production --service corpus-job --deployment-instance <instance-id>
+   # inside the container, from the repository directory:
+   mkdir -p /data/pipeline/run-state
+   LOG="/data/pipeline/run-state/measure-$(date -u +%Y%m%dT%H%M%SZ).log"
+   setsid nohup env CORPUS_JOB_MODE=measure BOOTSTRAP_TARGET_COLOR=blue BOOTSTRAP_RESET_CONFIRM=neo4j-blue \
+     bash scripts/ops/railway-corpus-job.sh > "$LOG" 2>&1 < /dev/null &
+   echo "$LOG"; tail -f "$LOG"
+   ```
+
+   `Ctrl-c` stops the `tail`, not the job. Whether the job outlives the
+   session is not established: reconnect and `tail` the log once, early, to
+   find out before the embedding pass starts. The run is over when the log
+   ends with a `CORPUS_RUN_SUMMARY` line; require `"mode":"measure"`,
+   `"status":"success"` and `"exit_code":0`. The `PASS`/`FAIL` lines above it
+   are the measurement.
+5. Afterwards confirm the target graph is stopped
+   (`railway deployment list --environment production --service neo4j-<color> --limit 1 --json`)
+   and that the agent's variables are unchanged. A killed run does not stop the
+   graph: stop it by hand with
+   `railway down --environment production --service neo4j-<color> --yes`.
 
 ## Initial bootstrap
 

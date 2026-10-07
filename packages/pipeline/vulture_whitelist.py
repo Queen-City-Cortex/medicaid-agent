@@ -41,6 +41,7 @@ release_prepare
 release_preflight
 release_build_graph
 release_validate
+release_measure
 release_mark_promoted
 release_mark_cutover_started
 release_mark_rolled_back

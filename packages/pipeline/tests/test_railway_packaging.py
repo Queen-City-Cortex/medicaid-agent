@@ -36,26 +36,23 @@ def test_railway_corpus_job_exposes_guarded_bootstrap_mode() -> None:
     assert "hc_trap" in entrypoint
     assert "\nhc_ok\n" in entrypoint
     assert "bootstrap) exec " not in entrypoint
-    assert 'expected_confirmation="$target_service"' in release_script
-    assert (
-        '[[ "${BOOTSTRAP_RESET_CONFIRM:-}" == "$expected_confirmation" ]]'
-        in release_script
-    )
-    assert (
-        '[[ "$current_uri" != "$target_uri" ]]'
-        in release_script
-    )
-    assert "Refusing to bootstrap the graph currently serving the agent" in (
-        release_script
-    )
-    bootstrap = release_script.split("bootstrap() {", 1)[1].split(
-        "\npromote() {", 1
-    )[0]
-    assert "release-retention-check" in bootstrap
-    assert bootstrap.index("release-retention-check") < bootstrap.index(
-        "redeploy_graph"
-    )
-    assert "redeploy_graph" in bootstrap
+    # The checks that keep a reset away from the serving graph live in one
+    # helper, which bootstrap and measure both call before the graph restarts.
+    guard = release_script.split("require_reset_target() {", 1)[1].split("\nbootstrap() {", 1)[0]
+    assert 'expected_confirmation="$RESET_TARGET_SERVICE"' in guard
+    assert '[[ "${BOOTSTRAP_RESET_CONFIRM:-}" == "$expected_confirmation" ]]' in guard
+    assert '[[ "$current_uri" != "$RESET_TARGET_URI" ]]' in guard
+    assert "Refusing to reset the graph currently serving the agent" in guard
+    assert "release-retention-check" in guard
+    bootstrap = release_script.split("\nbootstrap() {", 1)[1].split("\nrequire_measure_inputs() {", 1)[0]
+    assert bootstrap.index("require_reset_target") < bootstrap.index("redeploy_graph")
+    inputs = release_script.split("\nrequire_measure_inputs() {", 1)[1].split("\nmeasure_check() {", 1)[0]
+    assert "require_reset_target" in inputs and "RAILWAY_GIT_COMMIT_SHA" in inputs
+    measure = release_script.split("\nmeasure() {", 1)[1].split("\npromote() {", 1)[0]
+    assert measure.index("require_measure_inputs") < measure.index("redeploy_graph")
+    assert "unset EVAL_IDENTITY_CATALOG" in measure
+    for paid_or_release_step in ("release-validate", "release-preflight", "release-mark-graph", "BASELINE"):
+        assert paid_or_release_step not in measure
 
 
 def test_railway_corpus_job_accepts_the_recover_mode() -> None:

@@ -241,6 +241,100 @@ pass "a snapshot that is already the serving release is acknowledged without a r
 ) || exit $?
 pass "recover mode runs the release script's recover action"
 
+probe="$(env -i PATH="$PATH" VOYAGE_API_KEY=voyage-secret-value RAILWAY_GIT_COMMIT_SHA=0123abc \
+  CORPUS_DATA_ROOT=/data REQUESTED_CORPUS_RELEASE_ID=left-over bash "$REPO_ROOT/scripts/ops/measure-probe.sh")"
+grep -qx 'secret VOYAGE_API_KEY=present' <<<"$probe" || fail "the probe did not report a present secret"
+grep -qx 'secret NEO4J_BLUE_PASSWORD=MISSING' <<<"$probe" || fail "the probe did not report a missing secret"
+! grep -q 'voyage-secret-value' <<<"$probe" || fail "the probe printed a secret value"
+grep -qx 'setting REQUESTED_CORPUS_RELEASE_ID=left-over' <<<"$probe" || fail "the probe hid a stored setting a run would inherit"
+grep -qx 'setting MEASURE_REUSE_GRAPH=unset' <<<"$probe" || fail "the probe did not report an unset setting"
+[[ "$(sed -n 's/^measure_mode_lines=//p' <<<"$probe")" -ge 2 ]] || fail "the probe did not find the measure mode"
+pass "the measurement probe reports secrets as present or missing, never their values, and shows stored settings"
+
+# Run measure mode with a fake crawler exit status and a stub release script.
+# The release script fails at the action named in $4; the parser exits $5.
+run_measure_case() {
+  local name="$1" crawl_status="$2" settings="${3:-}" failing_action="${4:-}" parse_status="${5:-0}"
+  (
+    calls_log="$TEMP_ROOT/$name.calls"
+    fake_root="$TEMP_ROOT/$name-root"
+    fake_python="$TEMP_ROOT/python-$name"
+    make_fake_python "$fake_python" "$parse_status"
+    mkdir -p "$TEMP_ROOT/$name-home" "$fake_root/scripts/ops"
+    printf '#!/usr/bin/env bash\nprintf "corpus-release %%s\\n" "$*" >> "%s"\n[[ "$1" != "%s" ]] || exit 64\n' \
+      "$calls_log" "$failing_action" > "$fake_root/scripts/ops/corpus-release.sh"
+    chmod +x "$fake_root/scripts/ops/corpus-release.sh"
+    export HOME="$TEMP_ROOT/$name-home" OPS_ENV="$TEMP_ROOT/no-ops.env"
+    export CORPUS_DATA_ROOT="$TEMP_ROOT/$name-data" PIPELINE_PYTHON="$fake_python"
+    export PYTHON_ARGS_LOG="$calls_log" CORPUS_JOB_MODE=measure
+    [[ -z "$settings" ]] || export "$settings"
+    export CORPUS_JOB_TEST_SOURCE_ONLY=1
+    source "$ENTRYPOINT"
+    REPO_ROOT="$fake_root"
+    node() { printf 'crawl\n' >> "$calls_log"; return "$crawl_status"; }
+    promote_release() { printf 'promote\n' >> "$calls_log"; }
+    sync_current_corpus() { printf 'sync\n' >> "$calls_log"; }
+    backup_corpus() { printf 'backup\n' >> "$calls_log"; }
+    run_job_mode
+  ) >/dev/null 2>&1
+}
+
+status=0
+run_measure_case measure-clean 0 || status=$?
+[[ "$status" -eq 0 ]] || fail "measure mode exited $status"
+expected=$'corpus-release measure-check\ncrawl\n-m pipeline.cli parse --strict-required\ncorpus-release measure\nsync'
+[[ "$(<"$TEMP_ROOT/measure-clean.calls")" == "$expected" ]] \
+  || fail "measure mode ran: $(<"$TEMP_ROOT/measure-clean.calls")"
+pass "measure mode checks its settings, crawls, parses, measures and syncs, with no snapshot, promotion or backup"
+
+status=0
+run_measure_case measure-bad-settings 0 "" measure-check || status=$?
+[[ "$status" -eq 64 ]] || fail "measure mode exited $status on refused settings, expected 64"
+[[ "$(<"$TEMP_ROOT/measure-bad-settings.calls")" == 'corpus-release measure-check' ]] \
+  || fail "measure mode went on after its settings were refused: $(<"$TEMP_ROOT/measure-bad-settings.calls")"
+pass "measure mode stops before the crawl when its reset settings are refused"
+
+status=0
+run_measure_case measure-required-failed 3 || status=$?
+[[ "$status" -eq 0 ]] || fail "measure mode exited $status after a required-family discovery failure"
+called measure-required-failed '^corpus-release measure$' \
+  || fail "a required-family discovery failure stopped the measurement"
+pass "measure mode still measures after a required-family discovery failure"
+
+status=0
+run_measure_case measure-crawl-crash 1 || status=$?
+[[ "$status" -eq 1 ]] || fail "a crawler crash exited $status, expected 1"
+! called measure-crawl-crash '^corpus-release measure$' || fail "measure mode reset a graph after a crawler crash"
+pass "measure mode stops before any graph is touched when the crawler crashes"
+
+status=0
+run_measure_case measure-parse-fails 0 "" "" 23 || status=$?
+[[ "$status" -eq 23 ]] || fail "a strict parse failure exited $status, expected 23"
+! called measure-parse-fails '^corpus-release measure$' || fail "measure mode reset a graph after a failed parse"
+! called measure-parse-fails '^sync$' || fail "measure mode mirrored the corpus after a failed parse"
+pass "measure mode stops before any graph is touched when the strict parse fails"
+
+status=0
+run_measure_case measure-fails 0 "" measure || status=$?
+[[ "$status" -eq 64 ]] || fail "a failed measurement exited $status, expected 64"
+! called measure-fails '^sync$' || fail "measure mode mirrored the corpus after a failed measurement"
+pass "a failed measurement decides the exit status"
+
+status=0
+run_measure_case measure-skip-crawl 0 MEASURE_SKIP_CRAWL=1 || status=$?
+[[ "$status" -eq 0 ]] || fail "measure mode exited $status with MEASURE_SKIP_CRAWL=1"
+! called measure-skip-crawl '^crawl$' || fail "MEASURE_SKIP_CRAWL=1 still crawled"
+called measure-skip-crawl '^corpus-release measure$' || fail "MEASURE_SKIP_CRAWL=1 skipped the measurement"
+pass "MEASURE_SKIP_CRAWL=1 measures what an earlier crawl delivered"
+
+status=0
+run_measure_case measure-reuse 0 MEASURE_REUSE_GRAPH=1 || status=$?
+[[ "$status" -eq 0 ]] || fail "measure mode exited $status with MEASURE_REUSE_GRAPH=1"
+expected=$'corpus-release measure-check\ncorpus-release measure'
+[[ "$(<"$TEMP_ROOT/measure-reuse.calls")" == "$expected" ]] \
+  || fail "MEASURE_REUSE_GRAPH=1 ran: $(<"$TEMP_ROOT/measure-reuse.calls")"
+pass "MEASURE_REUSE_GRAPH=1 measures the built graph with no crawl, parse or mirror"
+
 # A failed required family outranks a skipped release in the exit status.
 set +e
 run_discovery_case rejected-after-failed-family scheduled 3 21

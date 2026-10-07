@@ -262,9 +262,10 @@ def test_repeated_voided_answer_runs_stop_validation_before_any_gate(tmp_path):
 
 def validate_release(
     tmp_path, monkeypatch, outcomes, *, recall=0.95, baseline=True, baseline_evidence=None,
-    scoped=False, overrides=None,
+    scoped=False, overrides=None, command="release-validate", graph_error=None,
+    absent_sections=(), scored=None,
 ):
-    """Run `release-validate` with every graph, audit and model call faked."""
+    """Run `release-validate` (or `release-measure`) with every graph, audit and model call faked."""
     from click.testing import CliRunner
 
     import pipeline.audit
@@ -286,6 +287,8 @@ def validate_release(
         result = complete_result()
         result["run_id"] = "retrieval-1"
         result["aggregate"]["recall_at_k"] = recall
+        if scored is not None:
+            result["per_question"] = result["per_question"][:scored]
         (fake.results_dir / "retrieval-1_retrieval.json").write_text(json.dumps(result))
         return result
 
@@ -293,15 +296,20 @@ def validate_release(
     monkeypatch.setattr(pipeline.eval.runner, "run_eval", run_eval)
     monkeypatch.setattr(
         pipeline.audit, "run_corpus_audit",
-        lambda **paths: {"report": audit_report()},
+        lambda **paths: {"report": {**audit_report(), "graph_error": graph_error}},
     )
     monkeypatch.setattr(evidence, "evaluation_fingerprint", lambda: {"model": "frozen"})
     monkeypatch.setattr(cli_release, "EVAL_RESULTS_DIR", fake.results_dir)
     monkeypatch.setattr(cli_release, "_require_parse_inventory_unchanged", lambda release: {})
     monkeypatch.setattr(cli_release, "inspect_release_graph", lambda *args: graph_metrics())
+    monkeypatch.setattr(
+        cli_release, "_golden_sections_absent_from_graph", lambda entries: list(absent_sections)
+    )
     monkeypatch.setattr(cli_release, "mark_graph_release", lambda release: {"releaseId": release["releaseId"]})
 
-    arguments = ["release-validate", "--manifest", str(manifest)]
+    arguments = [command, "--manifest", str(manifest)]
+    if command == "release-measure":
+        return CliRunner().invoke(cli, arguments), fake, manifest
     if baseline_evidence:
         path = tmp_path / "legacy-baseline.json"
         path.write_text(json.dumps(baseline_evidence))
@@ -331,6 +339,71 @@ def test_release_validate_gates_on_the_mean_of_three_answer_runs(tmp_path, monke
     assert release["evaluationResults"]["answerRuns"] == 3
     assert release["evaluationResults"]["answerScore"] == pytest.approx((2.6 + 2.8 + 2.9) / 3)
     assert len(release["verificationSummaries"]) == 3
+
+
+def test_release_measure_reports_the_gates_and_decides_nothing(tmp_path, monkeypatch):
+    outcome, fake, manifest = validate_release(
+        tmp_path, monkeypatch, [], recall=0.5, command="release-measure"
+    )
+
+    assert outcome.exit_code == 0, outcome.output
+    assert "FAIL  retrievalRecall: 0.5" in outcome.output
+    assert "would fail: retrievalRecall" in outcome.output
+    # No answer was generated, and the manifest was neither rejected nor validated.
+    assert fake.calls == 0
+    release = load_json_object(manifest)
+    assert release["promotionState"] == "building" and release["gates"] == []
+    assert [release["stageResults"][stage]["status"] for stage in (
+        "audit", "graphValidation", "retrievalEvaluation"
+    )] == ["passed"] * 3
+    measurement = load_json_object(manifest.parent / "release-2" / "measurement.json")
+    names = {gate["name"] for gate in measurement["gates"]}
+    assert {"retrievalRecall", "primaryDocumentHitRate", "embeddingCoverage"} <= names
+    # Nothing that needs an answer run, a baseline or a previous release is
+    # reported as measured.
+    assert not names & {"answerScore", "hallucinationScore", "withheldAnswers", "answerRuns"}
+    assert not names & {"sourceFamilyDocumentDrop", "answerReadyDrop"}
+    assert not any(name.endswith("Regression") for name in names)
+    assert measurement["goldenSectionsAbsentFromGraph"] == []
+
+
+def test_release_measure_reports_no_failure_when_every_measured_gate_passes(tmp_path, monkeypatch):
+    outcome, _, manifest = validate_release(tmp_path, monkeypatch, [], command="release-measure")
+
+    assert outcome.exit_code == 0, outcome.output
+    assert "; 0 would fail" in outcome.output and "FAIL" not in outcome.output
+    assert load_json_object(manifest)["promotionState"] == "building"
+
+
+def test_release_measure_lists_golden_sections_the_graph_does_not_hold(tmp_path, monkeypatch):
+    outcome, _, manifest = validate_release(
+        tmp_path, monkeypatch, [], command="release-measure", absent_sections=["sec:doc:a:_s3"]
+    )
+
+    assert outcome.exit_code == 0, outcome.output
+    assert "Golden section ids absent from the graph: 1 (sec:doc:a:_s3)" in outcome.output
+    measurement = load_json_object(manifest.parent / "release-2" / "measurement.json")
+    assert measurement["goldenSectionsAbsentFromGraph"] == ["sec:doc:a:_s3"]
+
+
+def test_release_measure_fails_when_the_benchmark_was_not_scored_whole(tmp_path, monkeypatch):
+    outcome, _, manifest = validate_release(
+        tmp_path, monkeypatch, [], command="release-measure", scored=3
+    )
+
+    assert outcome.exit_code != 0
+    assert "did not score the whole benchmark: 3 of" in outcome.output
+    assert not (manifest.parent / "release-2" / "measurement.json").exists()
+
+
+def test_release_measure_fails_when_the_audit_could_not_read_the_graph(tmp_path, monkeypatch):
+    outcome, _, manifest = validate_release(
+        tmp_path, monkeypatch, [], command="release-measure", graph_error="connection refused"
+    )
+
+    assert outcome.exit_code != 0
+    assert "could not read the release graph" in str(outcome.exception)
+    assert "retrievalEvaluation" not in load_json_object(manifest)["stageResults"]
 
 
 def test_release_validate_stops_on_a_retrieval_floor_breach_before_the_answer_stage(

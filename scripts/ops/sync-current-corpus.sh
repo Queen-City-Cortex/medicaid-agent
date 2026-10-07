@@ -41,7 +41,7 @@ rclone sync "$PIPELINE_DATA/parsed" \
   "$(release_object_path 'corpus/current/pipeline/parsed')" \
   --checksum --transfers "${RCLONE_TRANSFERS:-8}"
 
-for directory in audits eval-results releases ecfr-cache source-retirement-evidence source-audit-evidence section-labels; do
+for directory in audits eval-results releases measurements ecfr-cache source-retirement-evidence source-audit-evidence section-labels; do
   [[ -d "$PIPELINE_DATA/$directory" ]] || continue
   rclone sync "$PIPELINE_DATA/$directory" \
     "$(release_object_path "corpus/current/pipeline/$directory")" \

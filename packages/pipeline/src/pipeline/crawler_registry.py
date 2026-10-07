@@ -64,6 +64,11 @@ def normalize_local_path(path_value: str | None, data_dir: Path = CRAWLER_DATA_D
             path = path.relative_to(data_dir)
         except ValueError:
             pass
+    elif path.parts[:1] == ("..",) and data_dir.name in path.parts:
+        # A sidecar written from another working directory names the crawler
+        # data directory relatively ("../crawler/data/documents/..."): the join
+        # key is what follows that directory.
+        path = Path(*path.parts[path.parts.index(data_dir.name) + 1 :])
     return path.as_posix()
 
 

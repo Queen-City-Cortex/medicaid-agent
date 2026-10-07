@@ -561,6 +561,9 @@ _ANSWER_GATES = frozenset({
     "answerScoreAllRowsRegression",
     "hallucinationScoreRegression",
 })
+# Gates that compare document counts with the previous release: with none to
+# compare with they read 0.0 and pass, having measured nothing.
+_PREVIOUS_RELEASE_GATES = frozenset({"sourceFamilyDocumentDrop", "answerReadyDrop"})
 
 
 def _mean_across_runs(values: list[Any]) -> float | None:
@@ -1023,6 +1026,34 @@ def reject_before_answer_runs(
         gate["name"]
         for gate in decided
         if not gate["passed"] and not gate["overrideReason"]
+    ]
+
+
+def measured_gates(
+    manifest_path: Path,
+    *,
+    audit_report: dict[str, Any],
+    graph_metrics: dict[str, Any],
+    retrieval_result: dict[str, Any],
+) -> list[dict[str, Any]]:
+    """The gates a built graph can be read against with no answer run and no baseline.
+
+    Nothing is written and nothing is decided: the manifest keeps its state.
+    """
+    manifest = _gated_manifest(
+        manifest_path,
+        audit_report=audit_report,
+        graph_metrics=graph_metrics,
+        retrieval_result=retrieval_result,
+        answer_results=[],
+        previous_manifest=None,
+    )
+    return [
+        gate
+        for gate in manifest["gates"]
+        if gate["name"] not in _ANSWER_GATES
+        and gate["name"] not in _PREVIOUS_RELEASE_GATES
+        and not gate["name"].endswith("Regression")
     ]
 
 

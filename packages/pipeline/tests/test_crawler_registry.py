@@ -4,7 +4,13 @@ import sqlite3
 from pathlib import Path
 from types import SimpleNamespace
 
-from pipeline.crawler_registry import read_index_listings, read_registry_rows
+import pytest
+
+from pipeline.crawler_registry import (
+    normalize_local_path,
+    read_index_listings,
+    read_registry_rows,
+)
 
 INDEX = "https://policies.ncdhhs.gov/divisional-a-m/health-benefits-nc-medicaid/"
 UPLOADS = "https://policies.ncdhhs.gov/wp-content/uploads/"
@@ -144,3 +150,18 @@ def test_registry_rows_carry_the_derived_flag_and_keep_their_status(tmp_path):
         (True, "unchanged"),
         (False, "unchanged"),
     ]
+
+
+@pytest.mark.parametrize(
+    ("stored", "joined"),
+    [
+        ("clinical-policies/10a.pdf", "clinical-policies/10a.pdf"),
+        ("/data/crawler/documents/clinical-policies/10a.pdf", "clinical-policies/10a.pdf"),
+        # Two sidecars parsed on 2026-07-24 name the data directory relatively.
+        ("../crawler/data/documents/clinical-policies/10a.pdf", "clinical-policies/10a.pdf"),
+        ("../../elsewhere/clinical-policies/10a.pdf", "../../elsewhere/clinical-policies/10a.pdf"),
+        ("C:\\data\\clinical-policies\\10a.pdf", "C:/data/clinical-policies/10a.pdf"),
+    ],
+)
+def test_local_paths_join_on_the_part_below_the_crawler_data_directory(stored, joined):
+    assert normalize_local_path(stored, Path("/data/crawler/documents")) == joined

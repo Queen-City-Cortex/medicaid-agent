@@ -229,6 +229,47 @@ recover_parse() {
   backup_corpus
 }
 
+# Crawl, parse, then build and measure the inactive graph (corpus-release.sh
+# measure): no snapshot is taken or acknowledged and nothing is promoted. The
+# reset target and the commit are checked first, so a missing setting costs no
+# crawl. With MEASURE_SKIP_CRAWL=1 a rerun reuses what an earlier crawl
+# delivered; with MEASURE_REUSE_GRAPH=1 it measures the graph an earlier run
+# built, with no crawl, parse, reset or embedding.
+measure_candidate() {
+  "$REPO_ROOT/scripts/ops/corpus-release.sh" measure-check || return $?
+  if [[ "${MEASURE_REUSE_GRAPH:-}" == "1" ]]; then
+    log "measuring the graph built by ${REQUESTED_CORPUS_RELEASE_ID:-an earlier run}, without a crawl, parse or rebuild"
+    "$REPO_ROOT/scripts/ops/corpus-release.sh" measure
+    return $?
+  fi
+  if [[ "${MEASURE_SKIP_CRAWL:-}" == "1" ]]; then
+    log "measurement starting without a crawl (MEASURE_SKIP_CRAWL=1)"
+  else
+    log "measurement crawl starting"
+    if (
+      cd "$CRAWLER_DIR" &&
+        node "$REPO_ROOT/node_modules/tsx/dist/cli.mjs" src/index.ts crawl
+    ); then
+      CRAWL_EXIT=0
+    else
+      CRAWL_EXIT=$?
+    fi
+    # A failed required family is worth knowing about and does not stop a
+    # measurement; any other status is a crash.
+    if [[ "$CRAWL_EXIT" -eq "$CRAWL_DISCOVERY_FAILED_EXIT" ]]; then
+      log "discovery failed for a required source family; measuring what the crawl delivered"
+    elif [[ "$CRAWL_EXIT" -ne 0 ]]; then
+      return "$CRAWL_EXIT"
+    fi
+  fi
+  (
+    cd "$PIPELINE_DIR"
+    "$PY" -m pipeline.cli parse --strict-required
+  ) || return $?
+  "$REPO_ROOT/scripts/ops/corpus-release.sh" measure || return $?
+  sync_current_corpus
+}
+
 scheduled() {
   discover_and_release
   cleanup_releases
@@ -248,6 +289,7 @@ run_job_mode() {
       ;;
     recover-parse) recover_parse ;;
     bootstrap) "$REPO_ROOT/scripts/ops/corpus-release.sh" bootstrap ;;
+    measure) measure_candidate ;;
     release) promote_release ;;
     rollback) "$REPO_ROOT/scripts/ops/corpus-release.sh" rollback ;;
     recover) "$REPO_ROOT/scripts/ops/corpus-release.sh" recover ;;
@@ -386,7 +428,7 @@ if [[ "${CORPUS_JOB_CHILD:-0}" == "1" ]]; then
 fi
 
 case "$JOB_MODE" in
-  scheduled|discover|recover-parse|bootstrap|release|rollback|recover|cleanup|audit|evaluate|backup) ;;
+  scheduled|discover|recover-parse|bootstrap|measure|release|rollback|recover|cleanup|audit|evaluate|backup) ;;
   *) log "unknown CORPUS_JOB_MODE: $JOB_MODE"; exit 64 ;;
 esac
 

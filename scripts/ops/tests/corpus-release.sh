@@ -130,6 +130,7 @@ cat > "$FAKE_BIN/pipeline-python" <<'STUB'
 shift 2  # -m pipeline.cli
 command="$1"
 printf 'python %s\n' "$*" >> "$STATE/calls"
+printf '%s NEO4J_URI=%s CATALOG=%s\n' "$command" "${NEO4J_URI:-unset}" "${EVAL_IDENTITY_CATALOG:-unset}" >> "$STATE/python-env"
 option() {
   local name="$1"
   shift
@@ -389,6 +390,117 @@ expect_exit 1 bootstrap "${bootstrap_settings[@]}"
 ! called 'railway redeploy' || fail "a failed preflight still restarted the bootstrap graph"
 ! called 'release-build-graph' || fail "a failed preflight still reset the bootstrap graph"
 pass "a failed preflight stops bootstrap before the target graph is restarted"
+
+# ── Measurement ──────────────────────────────────────────────────────────────
+
+MEASURE_SHA=0123456789abcdef0123456789abcdef01234567
+measure_settings=(BOOTSTRAP_TARGET_COLOR=green BOOTSTRAP_RESET_CONFIRM=neo4j-green
+  REQUESTED_CORPUS_RELEASE_ID=measure-1 RAILWAY_GIT_COMMIT_SHA="$MEASURE_SHA")
+saw() { grep -qx -- "$1" "$STATE/python-env"; }
+MEASURE_FORBIDDEN=('release-preflight' 'release-validate' 'release-mark-graph' 'python eval'
+  'railway variable set' 'sync-corpus-artifacts' 'smoke' 'railway down .*--service neo4j-blue')
+
+new_case measure-order
+expect_exit 0 measure "${measure_settings[@]}" EVAL_IDENTITY_CATALOG=/data/stale-catalog.json
+before 'python release-prepare' 'railway redeploy .*--service neo4j-green' \
+  || fail "measure restarted the target graph before the corpus was parsed"
+before 'python release-build-graph' 'python release-measure' \
+  || fail "measure measured the graph before building it"
+called "python release-prepare .*--output $DATA/pipeline/measurements/measure-1.json\$" \
+  || fail "measure wrote its manifest among the releases"
+called "python release-measure --manifest $DATA/pipeline/measurements/measure-1.json\$" \
+  || fail "measure did not measure its own manifest"
+[[ ! -e "$DATA/pipeline/releases/measure-1.json" ]] || fail "measure left a manifest a release command could find"
+for forbidden in "${MEASURE_FORBIDDEN[@]}"; do
+  ! called "$forbidden" || fail "measure ran $forbidden"
+done
+[[ "$(count_of 'railway redeploy')" -eq 1 ]] || fail "measure redeployed something other than the target graph"
+called 'railway down --environment production --service neo4j-green --yes' \
+  || fail "measure left the target graph running"
+saw 'release-build-graph NEO4J_URI=bolt://green CATALOG=unset' \
+  || fail "measure did not build the target graph"
+saw 'release-measure NEO4J_URI=bolt://green CATALOG=unset' \
+  || fail "measure did not measure the target graph, or measured it against a stored identity catalog"
+printed 'the agent target was not changed' || fail "measure did not say the agent was untouched"
+pass "measure builds and measures the inactive graph, with no baseline, answer run, release step or identity catalog"
+
+new_case measure-legacy-agent
+printf '%s\n' 'CORPUS_RELEASE_ID=legacy-1' 'NEO4J_URI=bolt://legacy' 'NEO4J_PASSWORD=legacy-password' > "$STATE/agent.env"
+cp "$STATE/agent.env" "$STATE/deployed.env"
+expect_exit 0 measure BOOTSTRAP_TARGET_COLOR=blue BOOTSTRAP_RESET_CONFIRM=neo4j-blue REQUESTED_CORPUS_RELEASE_ID=measure-1 \
+  RAILWAY_GIT_COMMIT_SHA="$MEASURE_SHA"
+saw 'release-measure NEO4J_URI=bolt://blue CATALOG=unset' || fail "measure beside a legacy agent did not measure blue"
+! called 'railway variable set' || fail "measure changed a legacy agent's variables"
+! called 'railway redeploy .*--service @nc-medicaid/agent' || fail "measure redeployed a legacy agent"
+agent_names NEO4J_URI=bolt://legacy || fail "measure moved a legacy agent off its graph"
+pass "measure beside a legacy agent, which has no color, builds the named graph and leaves the agent alone"
+
+new_case measure-serving-graph
+expect_exit 64 measure BOOTSTRAP_TARGET_COLOR=blue BOOTSTRAP_RESET_CONFIRM=neo4j-blue
+! called 'railway redeploy' || fail "measure restarted the serving graph"
+! called 'release-build-graph' || fail "measure reset the serving graph"
+pass "measure refuses the graph the agent serves"
+
+new_case measure-unconfirmed
+expect_exit 64 measure BOOTSTRAP_TARGET_COLOR=green
+! called 'railway redeploy' || fail "measure reset a graph without the reset confirmation"
+pass "measure needs the same reset confirmation as bootstrap"
+
+new_case measure-check
+expect_exit 0 measure-check "${measure_settings[@]}"
+! called 'railway redeploy' || fail "measure-check restarted a graph"
+! called 'python release-prepare' || fail "measure-check parsed the corpus"
+expect_exit 64 measure-check BOOTSTRAP_TARGET_COLOR=green
+expect_exit 64 measure-check "${measure_settings[@]}" RAILWAY_GIT_COMMIT_SHA=abcdef1
+printed 'full 40-character commit' || fail "measure-check accepted a short commit"
+pass "measure-check passes or refuses on the reset settings and the commit without touching a graph"
+
+new_case measure-build-fails
+echo 1 > "$STATE/python-exit-release-build-graph"
+expect_exit 1 measure "${measure_settings[@]}"
+! called 'python release-measure' || fail "measure measured a graph that failed to build"
+called 'railway down --environment production --service neo4j-green --yes' \
+  || fail "measure left the target graph running after a failed build"
+pass "a failed build stops the measurement and the target graph"
+
+new_case measure-measurement-fails
+echo 1 > "$STATE/python-exit-release-measure"
+expect_exit 1 measure "${measure_settings[@]}"
+called 'railway down --environment production --service neo4j-green --yes' \
+  || fail "measure left the target graph running after a failed measurement"
+pass "a failed measurement ends the run non-zero and stops the target graph"
+
+new_case measure-reuse-graph
+mkdir -p "$DATA/pipeline/measurements"
+built_on() {
+  jq -n --arg color "$1" --arg status "$2" \
+    '{releaseId: "measure-1", targetColor: $color, stageResults: {schemaVersion: {status: $status}}}' \
+    > "$DATA/pipeline/measurements/measure-1.json"
+}
+built_on green passed
+expect_exit 0 measure "${measure_settings[@]}" MEASURE_REUSE_GRAPH=1
+! called 'python release-prepare' || fail "a reused graph was parsed again"
+! called 'python release-build-graph' || fail "a reused graph was reset and re-embedded"
+called 'railway redeploy .*--service neo4j-green' || fail "a reused graph was not restarted"
+saw 'release-measure NEO4J_URI=bolt://green CATALOG=unset' || fail "a reused graph was not measured"
+called 'railway down --environment production --service neo4j-green --yes' \
+  || fail "a reused graph was left running"
+pass "MEASURE_REUSE_GRAPH=1 measures the built graph again without a reset or an embedding pass"
+
+new_case measure-reuse-without-manifest
+expect_exit 64 measure "${measure_settings[@]}" MEASURE_REUSE_GRAPH=1
+! called 'railway redeploy' || fail "a reuse with no earlier manifest restarted a graph"
+pass "MEASURE_REUSE_GRAPH=1 refuses when the earlier measurement's manifest is missing"
+
+new_case measure-reuse-other-graph
+mkdir -p "$DATA/pipeline/measurements"
+built_on blue passed
+expect_exit 64 measure "${measure_settings[@]}" MEASURE_REUSE_GRAPH=1
+! called 'railway redeploy' || fail "a reuse restarted a graph the manifest was not built on"
+built_on green failed
+expect_exit 64 measure "${measure_settings[@]}" MEASURE_REUSE_GRAPH=1
+! called 'python release-measure' || fail "a reuse measured a graph whose build did not finish"
+pass "MEASURE_REUSE_GRAPH=1 refuses a manifest built on the other color or by an unfinished build"
 
 # ── Gate overrides at bootstrap ──────────────────────────────────────────────
 

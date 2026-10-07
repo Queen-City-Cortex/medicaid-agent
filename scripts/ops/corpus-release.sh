@@ -17,6 +17,7 @@ else
   RELEASES_DIR="$PIPELINE_DIR/data/releases"
 fi
 mkdir -p "$RELEASES_DIR"
+MEASUREMENTS_DIR="$(dirname "$RELEASES_DIR")/measurements"
 
 validate_runtime() {
   : "${SYNTHETIC_USER_EMAIL:?Fresh synthetic account email is required}"
@@ -509,44 +510,45 @@ UNSWITCHED_TARGET_SERVICE=""
 
 stop_unswitched_target() {
   [[ -n "$UNSWITCHED_TARGET_SERVICE" ]] || return 0
-  echo "Release ended before the agent switch; stopping $UNSWITCHED_TARGET_SERVICE" >&2
+  echo "Stopping $UNSWITCHED_TARGET_SERVICE, which the agent does not serve" >&2
   railway_cli down \
     --environment "$ENVIRONMENT" \
     --service "$UNSWITCHED_TARGET_SERVICE" \
     --yes
 }
 
-bootstrap() {
+# Sets RESET_TARGET_SERVICE, RESET_TARGET_URI and RESET_TARGET_PASSWORD for the
+# graph an operator-invoked build is about to wipe, after the checks that keep
+# it away from the graph the agent serves.
+require_reset_target() {
   local variables current_uri target_color expected_confirmation
-  local target_service target_uri target_password release_id manifest
-  local preflight_args validate_args
-  : "${BOOTSTRAP_BASELINE_EVIDENCE:?A fresh comparable legacy baseline is required}"
 
   target_color="${BOOTSTRAP_TARGET_COLOR:-}"
   [[ "$target_color" == "blue" || "$target_color" == "green" ]] || {
     echo "BOOTSTRAP_TARGET_COLOR must be blue or green" >&2
     exit 64
   }
-  target_service="neo4j-$target_color"
-  expected_confirmation="$target_service"
+  RESET_TARGET_COLOR="$target_color"
+  RESET_TARGET_SERVICE="neo4j-$target_color"
+  expected_confirmation="$RESET_TARGET_SERVICE"
   [[ "${BOOTSTRAP_RESET_CONFIRM:-}" == "$expected_confirmation" ]] || {
     echo "BOOTSTRAP_RESET_CONFIRM must equal $expected_confirmation" >&2
     exit 64
   }
 
-  target_uri="$(color_uri "$target_color")"
-  target_password="$(color_password "$target_color")"
+  RESET_TARGET_URI="$(color_uri "$target_color")"
+  RESET_TARGET_PASSWORD="$(color_password "$target_color")"
   variables="$(agent_variables)"
   current_uri="$(variable_from "$variables" NEO4J_URI)"
   [[ -n "$current_uri" ]] || {
     echo "Agent NEO4J_URI is missing" >&2
     exit 64
   }
-  [[ "$current_uri" != "$target_uri" ]] || {
-    echo "Refusing to bootstrap the graph currently serving the agent" >&2
+  [[ "$current_uri" != "$RESET_TARGET_URI" ]] || {
+    echo "Refusing to reset the graph currently serving the agent" >&2
     exit 64
   }
-  # Once the agent serves a blue or green release, a bootstrap resets the other
+  # Once the agent serves a blue or green release, the build resets the other
   # color: the one an unfinished cutover would be restored to. A legacy agent
   # has no color and no cutover to check.
   case "$(variable_from "$variables" ACTIVE_CORPUS_COLOR)" in
@@ -559,6 +561,18 @@ bootstrap() {
       --releases-dir "$RELEASES_DIR" \
       --target-color "$target_color"
   )
+}
+
+bootstrap() {
+  local target_color target_service target_uri target_password release_id manifest
+  local preflight_args validate_args
+  : "${BOOTSTRAP_BASELINE_EVIDENCE:?A fresh comparable legacy baseline is required}"
+
+  require_reset_target
+  target_color="$RESET_TARGET_COLOR"
+  target_service="$RESET_TARGET_SERVICE"
+  target_uri="$RESET_TARGET_URI"
+  target_password="$RESET_TARGET_PASSWORD"
 
   : "${RAILWAY_GIT_COMMIT_SHA:?RAILWAY_GIT_COMMIT_SHA is required}"
   release_id="${REQUESTED_CORPUS_RELEASE_ID:-$(date -u +%Y%m%dT%H%M%SZ)-${RAILWAY_GIT_COMMIT_SHA:0:7}}"
@@ -617,6 +631,87 @@ bootstrap() {
   "$REPO_ROOT/scripts/ops/sync-corpus-artifacts.sh" "$release_id" "$manifest"
   echo "Bootstrap release validated: $release_id on $target_service"
   echo "The agent target was not changed"
+}
+
+# What a measurement needs before anything is crawled, parsed or reset.
+require_measure_inputs() {
+  require_reset_target
+  [[ "${RAILWAY_GIT_COMMIT_SHA:-}" =~ ^[0-9a-f]{40}$ ]] || {
+    echo "RAILWAY_GIT_COMMIT_SHA must be the full 40-character commit" >&2
+    exit 64
+  }
+  if [[ "${MEASURE_REUSE_GRAPH:-}" == "1" ]]; then
+    local earlier
+    : "${REQUESTED_CORPUS_RELEASE_ID:?MEASURE_REUSE_GRAPH=1 needs REQUESTED_CORPUS_RELEASE_ID, the id of the measurement that built the graph}"
+    earlier="$MEASUREMENTS_DIR/$REQUESTED_CORPUS_RELEASE_ID.json"
+    [[ -f "$earlier" ]] || {
+      echo "No measurement manifest $earlier" >&2
+      exit 64
+    }
+    # The graph carries no marker, so the manifest is the only record of what
+    # was built where: it must name this color and a build that finished.
+    jq -e --arg color "$RESET_TARGET_COLOR" \
+      '.targetColor == $color and .stageResults.schemaVersion.status == "passed"' \
+      "$earlier" >/dev/null || {
+      echo "$earlier does not record a finished build on $RESET_TARGET_SERVICE" >&2
+      exit 64
+    }
+  fi
+}
+
+measure_check() {
+  require_measure_inputs
+  echo "Measurement inputs are in place for $RESET_TARGET_SERVICE"
+}
+
+# Builds the inactive graph from the parsed corpus and measures it, for the
+# price of one embedding pass: release-measure runs the corpus audit, the graph
+# inspection and the retrieval evaluation against it and prints the gates that
+# need no answer run or baseline. No baseline is read, no answer is generated
+# or judged, the graph is not marked as a release and no agent variable is
+# set. The manifest goes to its own directory so that no release command finds
+# it. The target graph is stopped when the run ends.
+#
+# MEASURE_REUSE_GRAPH=1 restarts the graph an earlier measurement built and
+# measures it again without resetting or re-embedding it.
+measure() {
+  local release_id manifest
+  require_measure_inputs
+  release_id="${REQUESTED_CORPUS_RELEASE_ID:-measure-$(date -u +%Y%m%dT%H%M%SZ)-${RAILWAY_GIT_COMMIT_SHA:0:7}}"
+  mkdir -p "$MEASUREMENTS_DIR"
+  manifest="$MEASUREMENTS_DIR/$release_id.json"
+
+  if [[ "${MEASURE_REUSE_GRAPH:-}" != "1" ]]; then
+    (
+      cd "$PIPELINE_DIR"
+      "$PY" -m pipeline.cli release-prepare \
+        --release-id "$release_id" \
+        --commit-sha "$RAILWAY_GIT_COMMIT_SHA" \
+        --target-color "$RESET_TARGET_COLOR" \
+        --output "$manifest"
+    )
+  fi
+
+  UNSWITCHED_TARGET_SERVICE="$RESET_TARGET_SERVICE"
+  add_exit_hook stop_unswitched_target
+  redeploy_graph "$RESET_TARGET_SERVICE" "$RESET_TARGET_URI" "$RESET_TARGET_PASSWORD"
+
+  (
+    cd "$PIPELINE_DIR"
+    export NEO4J_URI="$RESET_TARGET_URI" NEO4J_PASSWORD="$RESET_TARGET_PASSWORD"
+    export MASTRA_OBSERVABILITY_PATH=":memory:"
+    # The graph was built by this code from this corpus, so golden section ids
+    # are compared as they are. A frozen identity catalog is for a qualification
+    # cycle; a missing or older one would fail here, after the embedding pass.
+    unset EVAL_IDENTITY_CATALOG
+    if [[ "${MEASURE_REUSE_GRAPH:-}" != "1" ]]; then
+      "$PY" -m pipeline.cli release-build-graph --manifest "$manifest"
+    fi
+    "$PY" -m pipeline.cli release-measure --manifest "$manifest"
+  )
+
+  echo "Measurement finished: $release_id on $RESET_TARGET_SERVICE"
+  echo "Nothing was validated or released, and the agent target was not changed"
 }
 
 promote() {
@@ -886,11 +981,13 @@ main() {
   validate_runtime
   case "$ACTION" in
     bootstrap) bootstrap ;;
+    measure) measure ;;
+    measure-check) measure_check ;;
     promote) promote ;;
     rollback) rollback ;;
     recover) recover ;;
     *)
-      echo "Usage: $0 {bootstrap|promote|rollback|recover}" >&2
+      echo "Usage: $0 {bootstrap|measure|measure-check|promote|rollback|recover}" >&2
       exit 64
       ;;
   esac

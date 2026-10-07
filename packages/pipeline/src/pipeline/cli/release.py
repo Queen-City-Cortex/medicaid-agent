@@ -29,6 +29,7 @@ from pipeline.release import (
     mark_manifest_rolled_back,
     mark_release_service_stopped,
     record_release_stage,
+    measured_gates,
     reject_before_answer_runs,
     require_rollback_available,
     require_withheld_cap_for,
@@ -168,76 +169,17 @@ def release_build_graph(manifest: Path, refresh_federal: bool) -> None:
     console.print(json.dumps(load_json_object(manifest), sort_keys=True))
 
 
-@cli.command("release-validate")
-@click.option(
-    "--manifest",
-    type=click.Path(path_type=Path, exists=True, dir_okay=False),
-    required=True,
-)
-@click.option(
-    "--previous-manifest",
-    type=click.Path(path_type=Path, exists=True, dir_okay=False),
-    default=None,
-)
-@click.option(
-    "--override-file",
-    type=click.Path(path_type=Path, exists=True, dir_okay=False),
-    default=None,
-)
-@click.option(
-    "--baseline-evidence",
-    type=click.Path(path_type=Path, exists=True, dir_okay=False),
-    default=None,
-)
-def release_validate(
-    manifest: Path,
-    previous_manifest: Path | None,
-    override_file: Path | None,
-    baseline_evidence: Path | None = None,
-) -> None:
-    """Audit and evaluate the release, failing closed on every missing gate.
+def _measure_release_graph(manifest: Path) -> tuple[dict, dict, dict]:
+    """Run the stages that cost no agent answer: audit, graph inspection, retrieval.
 
-    Every gate that needs no agent answer is decided before the scope
-    acceptance cases and the answer runs, so a release that has already failed
-    is not charged for them.
+    Each is recorded on the manifest and its evidence kept beside it. Returns
+    the audit report, the graph metrics and the retrieval result.
     """
     from pipeline.audit import run_corpus_audit
-    from pipeline.eval.dataset import benchmark_entries, load_dataset
     from pipeline.eval.runner import run_eval
 
-    from pipeline.evaluation_evidence import (
-        baseline_metrics,
-        collect_answer_runs,
-        evaluation_fingerprint,
-        require_complete_results,
-        require_complete_retrieval,
-        verification_summary,
-    )
-
-    if baseline_evidence and previous_manifest:
-        raise click.ClickException(
-            "Choose bootstrap baseline evidence or a previous release, not both"
-        )
-    if not baseline_evidence and not previous_manifest:
-        raise click.ClickException(
-            "A release is compared with a baseline: pass --previous-manifest "
-            "or --baseline-evidence"
-        )
-    baseline = load_json_object(baseline_evidence) if baseline_evidence else None
-    metrics = baseline_metrics(baseline) if baseline else None
     release = load_json_object(manifest)
-    # A stale or malformed override file stops here, before any stage runs.
-    overrides = load_json_object(override_file) if override_file else {}
-    snapshot_bound_reasons(overrides, release["sourceSnapshotHash"])
-    # Before any paid run: a cap set for another benchmark size cannot pass.
-    require_withheld_cap_for(len(benchmark_entries(load_dataset())))
-    release["evaluationFingerprint"] = evaluation_fingerprint()
-    if baseline:
-        release["baselineEvidence"] = baseline
-    atomic_write_json(manifest, release)
-    _require_parse_inventory_unchanged(release)
-    release_id = release["releaseId"]
-    release_dir = manifest.parent / release_id
+    release_dir = manifest.parent / release["releaseId"]
     audit_json = release_dir / "corpus-audit.json"
     audit_markdown = release_dir / "corpus-audit.md"
 
@@ -286,6 +228,160 @@ def release_validate(
         }
 
     record_release_stage(manifest, "retrievalEvaluation", retrieval_operation)
+    return audit_payload, graph_metrics, retrieval_result
+
+
+def _golden_sections_absent_from_graph(entries: list[dict]) -> list[str]:
+    """Golden primary and supporting section ids the graph does not hold."""
+    from pipeline.graph.connection import get_session
+
+    cited = sorted({
+        section["section_id"]
+        for entry in entries
+        for kind in ("primary_sections", "supporting_sections")
+        for section in entry["evidence"].get(kind, [])
+    })
+    with get_session() as session:
+        present = {
+            record["id"]
+            for record in session.run(
+                "MATCH (section:Section) WHERE section.id IN $ids RETURN section.id AS id",
+                {"ids": cited},
+            )
+        }
+    return [section_id for section_id in cited if section_id not in present]
+
+
+@cli.command("release-measure")
+@click.option(
+    "--manifest",
+    type=click.Path(path_type=Path, exists=True, dir_okay=False),
+    required=True,
+)
+def release_measure(manifest: Path) -> None:
+    """Read a built graph against the gates that need no answer run or baseline.
+
+    Runs the corpus audit, the graph inspection and the retrieval evaluation,
+    then prints each such gate with its measured value and threshold. It
+    decides nothing: the manifest is not validated, rejected or marked.
+    """
+    from pipeline.eval.dataset import benchmark_entries, load_dataset
+
+    audit_payload, graph_metrics, retrieval_result = _measure_release_graph(manifest)
+    benchmark = benchmark_entries(load_dataset())
+    expected = {entry["id"] for entry in benchmark}
+    rows = retrieval_result.get("per_question", [])
+    scored = {row.get("id", row.get("question_id")) for row in rows}
+    if len(rows) != len(expected) or scored != expected:
+        raise click.ClickException(
+            "The retrieval evaluation did not score the whole benchmark: "
+            f"{len(scored & expected)} of {len(expected)} validated questions"
+        )
+    gates = measured_gates(
+        manifest,
+        audit_report=audit_payload,
+        graph_metrics=graph_metrics,
+        retrieval_result=retrieval_result,
+    )
+    release = load_json_object(manifest)
+    # Section ids are compared as they are, so a golden id the graph lacks is
+    # a miss whatever retrieval returned. Listing them tells a weak retrieval
+    # score from documents that parsed differently or did not load.
+    absent = _golden_sections_absent_from_graph(benchmark)
+    measurement = {
+        "releaseId": release["releaseId"],
+        "retrievalRunId": retrieval_result["run_id"],
+        "gates": gates,
+        "goldenSectionsAbsentFromGraph": absent,
+        "notMeasured": "answer gates and comparisons with a baseline",
+    }
+    atomic_write_json(manifest.parent / release["releaseId"] / "measurement.json", measurement)
+    for gate in gates:
+        console.print(
+            f"{'PASS' if gate['passed'] else 'FAIL'}  {gate['name']}: "
+            f"{gate['actual']} (threshold {gate['threshold']})"
+        )
+    console.print(
+        f"Golden section ids absent from the graph: {len(absent)}"
+        + (f" ({', '.join(absent)})" if absent else "")
+    )
+    failed = [gate["name"] for gate in gates if not gate["passed"]]
+    console.print(
+        f"Measured {len(gates)} gates; {len(failed)} would fail"
+        + (f": {', '.join(failed)}" if failed else "")
+    )
+
+
+@cli.command("release-validate")
+@click.option(
+    "--manifest",
+    type=click.Path(path_type=Path, exists=True, dir_okay=False),
+    required=True,
+)
+@click.option(
+    "--previous-manifest",
+    type=click.Path(path_type=Path, exists=True, dir_okay=False),
+    default=None,
+)
+@click.option(
+    "--override-file",
+    type=click.Path(path_type=Path, exists=True, dir_okay=False),
+    default=None,
+)
+@click.option(
+    "--baseline-evidence",
+    type=click.Path(path_type=Path, exists=True, dir_okay=False),
+    default=None,
+)
+def release_validate(
+    manifest: Path,
+    previous_manifest: Path | None,
+    override_file: Path | None,
+    baseline_evidence: Path | None = None,
+) -> None:
+    """Audit and evaluate the release, failing closed on every missing gate.
+
+    Every gate that needs no agent answer is decided before the scope
+    acceptance cases and the answer runs, so a release that has already failed
+    is not charged for them.
+    """
+    from pipeline.eval.dataset import benchmark_entries, load_dataset
+    from pipeline.eval.runner import run_eval
+
+    from pipeline.evaluation_evidence import (
+        baseline_metrics,
+        collect_answer_runs,
+        evaluation_fingerprint,
+        require_complete_results,
+        require_complete_retrieval,
+        verification_summary,
+    )
+
+    if baseline_evidence and previous_manifest:
+        raise click.ClickException(
+            "Choose bootstrap baseline evidence or a previous release, not both"
+        )
+    if not baseline_evidence and not previous_manifest:
+        raise click.ClickException(
+            "A release is compared with a baseline: pass --previous-manifest "
+            "or --baseline-evidence"
+        )
+    baseline = load_json_object(baseline_evidence) if baseline_evidence else None
+    metrics = baseline_metrics(baseline) if baseline else None
+    release = load_json_object(manifest)
+    # A stale or malformed override file stops here, before any stage runs.
+    overrides = load_json_object(override_file) if override_file else {}
+    snapshot_bound_reasons(overrides, release["sourceSnapshotHash"])
+    # Before any paid run: a cap set for another benchmark size cannot pass.
+    require_withheld_cap_for(len(benchmark_entries(load_dataset())))
+    release["evaluationFingerprint"] = evaluation_fingerprint()
+    if baseline:
+        release["baselineEvidence"] = baseline
+    atomic_write_json(manifest, release)
+    _require_parse_inventory_unchanged(release)
+    release_id = release["releaseId"]
+    release_dir = manifest.parent / release_id
+    audit_payload, graph_metrics, retrieval_result = _measure_release_graph(manifest)
     require_complete_retrieval(retrieval_result)
 
     evidence = {
