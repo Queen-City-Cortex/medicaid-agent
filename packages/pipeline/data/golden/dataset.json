@@ -102,7 +102,7 @@
     "id": "q-002",
     "version": 2,
     "created": "2026-03-26",
-    "updated": "2026-10-06",
+    "updated": "2026-10-07",
     "question": "What DME items are specifically NOT covered by NC Medicaid under the Orthotics and Prosthetics policy, and what general criteria must be met for coverage?",
     "difficulty": "moderate",
     "reasoning_type": "multi_hop",
@@ -155,8 +155,7 @@
     },
     "source": "legal_aid",
     "notes": "Multi-hop: must check both general covered and not-covered criteria.",
-    "status": "needs_validation",
-    "validation_note": "Reworded 2026-10-06 (review EVAL-1b): every fact is quoted from the cited sections, but the answer text changed, so it waits for the owner's or an attorney's approval. Changed: replaced: 'meet general criteria in section 3.1 including medical necessity and appropriate prescribing' with 'meet the general criteria in section 3.1, including medical necessity, and the specific criteria in section 3.2.1, including being ordered by a physician, physician assistant, or nurse practitioner'; removed: 'A beneficiary must first meet general coverage criteria before specific items are evaluated.'",
+    "status": "validated",
     "supporting_quotes": [
       {
         "section_id": "sec:doc:clinical_policy:fbd1a3f77a625d8d:3.1",
@@ -186,16 +185,16 @@
   },
   {
     "id": "q-003",
-    "version": 2,
+    "version": 3,
     "created": "2026-03-26",
-    "updated": "2026-10-06",
+    "updated": "2026-10-07",
     "question": "What are the entrance, continued service, and discharge criteria for outpatient behavioral health services in NC Medicaid?",
     "difficulty": "moderate",
     "reasoning_type": "multi_hop",
     "topics": ["behavioral_health", "outpatient", "level_of_care", "authorization"],
     "target_users": ["provider", "care_coordinator"],
     "answer": {
-      "text": "Clinical Coverage Policy 8C defines outpatient behavioral health service criteria across three phases: Entrance criteria (section 3.2.1.1) must all be met and include a current DSM-5 diagnosis and associated functional impairment. Continued service criteria (section 3.2.1.2) require both an outcome not yet restored, improved or sustained (or relapse risk or tenuous gains) and either achieved goals with additional goals indicated or satisfactory progress with documentation that continued service is expected to be effective. Discharge criteria (section 3.2.1.3) are met when any one applies: functioning has improved with respect to treatment plan goals, the beneficiary or legally responsible person no longer wishes services, or a more appropriate treatment modality is required.",
+      "text": "Clinical Coverage Policy 8C defines outpatient behavioral health service criteria across three phases: Entrance criteria (section 3.2.1.1) must all be met and include a current DSM-5 diagnosis and associated functional impairment. Continued service criteria (section 3.2.1.2) require both an outcome not yet restored, improved or sustained (or relapse risk or tenuous gains) and either achieved goals with additional goals indicated or satisfactory progress with documentation that continued service is expected to be effective. Discharge criteria (section 3.2.1.3) are met when any one applies: functioning has improved with respect to treatment plan goals, the beneficiary or legally responsible person no longer wishes services, or the beneficiary has failed to improve despite treatment plan modifications and requires a more appropriate treatment modality.",
       "confidence": "high",
       "caveats": [
         "Telephonic services have their own criteria in 3.2.2, referenced from 3.1.2",
@@ -254,8 +253,7 @@
     },
     "source": "legal_aid",
     "notes": "Common provider question about prior authorization criteria across service phases.",
-    "status": "needs_validation",
-    "validation_note": "Reworded 2026-10-06 (review EVAL-1b): every fact is quoted from the cited sections, but the answer text changed, so it waits for the owner's or an attorney's approval. Changed: replaced: 'defines behavioral health service criteria' with 'defines outpatient behavioral health service criteria'; replaced: 'specify the clinical conditions and functional impairments required for initial authorization' with 'must all be met and include a current DSM-5 diagnosis and associated functional impairment'; replaced: 'require documented progress or ongoing medical necessity' with the two-part test in 3.2.1.2 (outcome not restored, improved or sustained, or relapse risk or tenuous gains; and goals achieved with additional goals indicated, or satisfactory progress with documentation that continued service is expected to be effective); replaced: 'are met when goals are achieved,...",
+    "status": "validated",
     "supporting_quotes": [
       {
         "section_id": "sec:doc:clinical_policy:402b600bc86e3f2e:3.2.1",
@@ -479,7 +477,7 @@
     "id": "q-006",
     "version": 2,
     "created": "2026-03-26",
-    "updated": "2026-10-06",
+    "updated": "2026-10-07",
     "question": "Does NC Medicaid cover chiropractic services under Clinical Coverage Policy 5B?",
     "difficulty": "simple",
     "reasoning_type": "single_lookup",
@@ -532,8 +530,7 @@
     },
     "source": "edge_case",
     "notes": "Negative case: chiropractic is outside the scope of 5B. Tests that the retrieval system does not hallucinate coverage.",
-    "status": "needs_validation",
-    "validation_note": "Reworded 2026-10-06 (review EVAL-1b): every fact is quoted from the cited sections, but the answer text changed, so it waits for the owner's or an attorney's approval. Changed: replaced: 'Policy 5B specifically covers orthotic and prosthetic devices and related fitting services.' with 'Policy 5B covers orthotic and prosthetic devices; fitting is included in the payment for a device and is not paid separately.'; replaced: 'Chiropractic manipulative treatment is a distinct service category not addressed under this policy.' with 'Policy 5B does not mention chiropractic services, which are a distinct service not addressed under this policy.'; replaced caveat: 'Chiropractic may be addressed under a separate clinical policy' with 'Chiropractic services are addressed under a separate clinical coverage policy, Chiropractic Services'",
+    "status": "validated",
     "supporting_quotes": [
       {
         "section_id": "sec:doc:clinical_policy:fbd1a3f77a625d8d:_s1",
@@ -565,7 +562,7 @@
     "id": "q-007",
     "version": 2,
     "created": "2026-03-26",
-    "updated": "2026-10-06",
+    "updated": "2026-10-07",
     "question": "What is the treatment plan (plan of care) requirement for outpatient therapy services under NC Medicaid policy 10A?",
     "difficulty": "simple",
     "reasoning_type": "single_lookup",
@@ -604,8 +601,7 @@
     },
     "source": "lived_experience",
     "notes": "Simple single-section lookup for provider documentation requirements.",
-    "status": "needs_validation",
-    "validation_note": "Reworded 2026-10-06 (review EVAL-1b): every fact is quoted from the cited sections, but the answer text changed, so it waits for the owner's or an attorney's approval. Changed: replaced: 'must be established, signed, and periodically reviewed by the treating provider' with 'must be established after the evaluation and before treatment begins, signed by the professional completing it, and reviewed by the service provider at least every six calendar months'; replaced: 'The plan must document the patient's functional deficits, treatment goals, frequency and duration of services, and the expected outcomes.' with 'The plan, together with the evaluation report, must include, among other elements, the treatment diagnosis, measurable goals, frequency of services, and the plan's duration (no more than six calendar months).'",
+    "status": "validated",
     "supporting_quotes": [
       {
         "section_id": "sec:doc:clinical_policy:6a038eaf968a9a33:_s0",
@@ -651,9 +647,9 @@
   },
   {
     "id": "q-008",
-    "version": 2,
+    "version": 3,
     "created": "2026-03-26",
-    "updated": "2026-10-06",
+    "updated": "2026-10-07",
     "question": "Can a CAP/DA beneficiary transfer between service providers, and what rules govern transfers of eligible beneficiaries?",
     "difficulty": "moderate",
     "reasoning_type": "single_lookup",
@@ -662,7 +658,9 @@
     "answer": {
       "text": "Yes, a CAP/DA beneficiary may change provider agencies: Clinical Coverage Policy 3K-2 requires a POC update and a signed freedom of choice form consenting to the change in providers. Section 3.3, Transfers of Eligible Beneficiaries, governs a different kind of transfer, to another county or CME: the CME must coordinate it by the agreed transition date or in less than 30 calendar days of the request, preventing gaps in service, and the beneficiary remains eligible for CAP/DA regardless of county of residence.",
       "confidence": "high",
-      "caveats": []
+      "caveats": [
+        "Section 5.4.5 says a POC revision is required when there are changes in a service provider, while the change-of-provider-agency text says the POC update is not considered a revision."
+      ]
     },
     "evidence": {
       "primary_sections": [
@@ -691,6 +689,12 @@
           "section_id": "sec:doc:clinical_policy:b1d5bbb6d3448fea:3.2.4",
           "section_number": "3.2.4",
           "relevance": "Names the transfer as one to another county or CME"
+        },
+        {
+          "document_id": "doc:clinical_policy:b1d5bbb6d3448fea",
+          "section_id": "sec:doc:clinical_policy:b1d5bbb6d3448fea:5.4.5",
+          "section_number": "5.4.5",
+          "relevance": "Says a POC revision is required when there are changes in a service provider"
         }
       ],
       "cross_references": [],
@@ -699,7 +703,7 @@
     "source": "lived_experience",
     "notes": "Practical question from beneficiaries wanting to change providers.",
     "status": "needs_validation",
-    "validation_note": "Reworded 2026-10-06 (review EVAL-1b): every fact is quoted from the cited sections, but the answer text changed, so it waits for the owner's or an attorney's approval. Changed: replaced: 'CAP/DA beneficiaries may transfer between providers' with 'a CAP/DA beneficiary may change provider agencies', with the rule for it (POC update and signed freedom of choice form); replaced: 'section 3.3 governs transfers of eligible beneficiaries and outlines the process and conditions under which a beneficiary may change their CAP/DA service provider while maintaining continuity of care' with a statement that section 3.3 governs transfers to another county or CME, with its timing, gap-prevention and continued-eligibility rules; removed: 'The transfer process must comply with NC Medicaid's enrollment and authorization requirements.'; removed caveat: 'Specific transfer timelines...",
+    "validation_note": "Reworded 2026-10-06 (review EVAL-1b); every fact is quoted. Open finding from the final read (2026-10-07): the key gives the section 3.3 rules for a transfer to another case management entity but leaves out two conditions Appendix B sets on that transfer, a root cause analysis within five business days and NC Medicaid's approval.",
     "supporting_quotes": [
       {
         "section_id": "sec:doc:clinical_policy:b1d5bbb6d3448fea:5.4.2:dup1",
@@ -728,21 +732,25 @@
       {
         "section_id": "sec:doc:clinical_policy:b1d5bbb6d3448fea:3.3",
         "quote": "A transferring beneficiary continues to be eligible for CAP/DA regardless of their county of residence."
+      },
+      {
+        "section_id": "sec:doc:clinical_policy:b1d5bbb6d3448fea:5.4.5",
+        "quote": "A plan of care (POC) revision is required when a request is made to add, reduce, increase, delete a CAP/DA service or Medicaid State service, or when there are changes in a service provider."
       }
     ]
   },
   {
     "id": "q-009",
-    "version": 2,
+    "version": 3,
     "created": "2026-03-28",
-    "updated": "2026-10-06",
+    "updated": "2026-10-07",
     "question": "Is there a maximum earned income limit for people on HCWD (Health Coverage for Workers with Disabilities), and what premiums apply?",
     "difficulty": "complex",
     "reasoning_type": "cross_document",
     "topics": ["hcwd", "eligibility", "income", "premiums"],
     "target_users": ["beneficiary", "legal_aid", "case_manager"],
     "answer": {
-      "text": "There is no maximum earned income limit for HCWD. The HCWD changes in Change Notice for Manual No. 01-14 removed the 150% FPL cap on income. The only income limit is 150% FPL on unearned income. Beneficiaries with countable income above 150% FPL must pay a $50 per certification period enrollment fee. Those with countable income above 200% FPL must also pay a sliding-scale monthly premium that increases with income. HCWD covers individuals regardless of total countable income, as long as they are working in competitive, inclusive employment (or self-employed).",
+      "text": "There is no maximum earned income limit for HCWD. The HCWD changes in Change Notice for Manual No. 01-14 removed the 150% FPL cap on income. The only income limit is 150% FPL on unearned income. Beneficiaries with countable income above 150% FPL must pay a $50 per certification period enrollment fee. Those with countable income above 200% FPL must also pay a sliding-scale monthly premium that increases with income. HCWD covers individuals regardless of total countable income.",
       "confidence": "high",
       "caveats": [
         "Premium amounts are updated periodically — verify current schedule",
@@ -794,8 +802,7 @@
     },
     "source": "lived_experience",
     "notes": "Real beneficiary question. Answer requires DHHS eligibility manual + understanding that a change notice REMOVES a limit. The current HCWD notice body does not explicitly cite Section 1902, so federal authority is tracked through federal evidence rather than a DHHS-to-SSA reference edge.",
-    "status": "needs_validation",
-    "validation_note": "Reworded 2026-10-06 (review EVAL-1b): every fact is quoted from the cited sections, but the answer text changed, so it waits for the owner's or an attorney's approval. Changed: replaced: 'The HCWD Phase III changes (Change Notice for Manual No. 01-14) removed the 150% FPL cap on earned income' with 'The HCWD changes in Change Notice for Manual No. 01-14 removed the 150% FPL cap on income'; removed: 'and meet disability criteria' from the last sentence; removed caveat: 'SSI must have been terminated for non-medical reasons to qualify'; evidence: dropped empty section _s3 and _s16 (certification-period data entry, supports nothing); added _s7, _s2, _s4, _s1; kept _s6",
+    "status": "validated",
     "supporting_quotes": [
       {
         "section_id": "sec:doc:dhhs_policy:b10088932232d220:_s1",
@@ -845,16 +852,16 @@
   },
   {
     "id": "q-010",
-    "version": 2,
+    "version": 3,
     "created": "2026-03-28",
-    "updated": "2026-10-06",
+    "updated": "2026-10-07",
     "question": "What is the federal statutory authority for NC's CAP/DA waiver, and what does the state need to demonstrate in its waiver application?",
     "difficulty": "complex",
     "reasoning_type": "cross_document",
     "topics": ["cap_da", "waiver", "1915c", "federal_authority"],
     "target_users": ["legal_aid", "policy_analyst"],
     "answer": {
-      "text": "CAP/DA is a Medicaid home and community-based services (HCBS) waiver authorized under Section 1915(c) of the Social Security Act, which authorizes the Secretary of Health and Human Services to waive certain Medicaid statutory requirements so that a state may offer HCBS to target groups of beneficiaries who meet a nursing facility level of care. Under 42 CFR 441.301, the state's waiver request must describe the services to be furnished and the group or groups of individuals to whom they will be offered, and must include the assurances required by 42 CFR 441.302, among them that necessary safeguards protect beneficiaries' health and welfare. 42 CFR 441.303 specifies the supporting documentation required, which includes the number of unduplicated beneficiaries the state intends to serve each year.",
+      "text": "CAP/DA is a Medicaid home and community-based services (HCBS) waiver authorized under Section 1915(c) of the Social Security Act, which, as Policy 3K-2 describes it, authorizes the Secretary of Health and Human Services to waive certain Medicaid statutory requirements so that a state may offer HCBS to target groups of beneficiaries who meet a nursing facility level of care. Under 42 CFR 441.301, the state's waiver request must describe the services to be furnished and the group or groups of individuals to whom they will be offered, and must include the assurances required by 42 CFR 441.302, among them that necessary safeguards protect beneficiaries' health and welfare. 42 CFR 441.303 specifies the supporting documentation required, which includes the number of unduplicated beneficiaries the state intends to serve each year.",
       "confidence": "high",
       "caveats": [
         "Waiver applications are renewed periodically — the current application may differ from the original",
@@ -918,8 +925,7 @@
     },
     "source": "legal_aid",
     "notes": "Tests the three-tier authority chain: SSA 1915 → 42 CFR 441.301/303 → NC CCP 3K-2. A legal aid attorney challenging a waiver denial needs to understand this chain.",
-    "status": "needs_validation",
-    "validation_note": "Reworded 2026-10-06 (review EVAL-1b): every fact is quoted from the cited sections, but the answer text changed, so it waits for the owner's or an attorney's approval. Changed: replaced: 'CAP/DA operates under a Section 1915(c) home and community-based services waiver. Section 1915 of the Social Security Act authorizes states to waive certain Medicaid requirements to provide HCBS to individuals who would otherwise require institutional care.' with one sentence in Policy 3K-2's terms: the waiver is authorized under Section 1915(c), which authorizes the Secretary to waive certain statutory requirements so a state may offer HCBS to target groups who meet a nursing facility level of care; removed: 'the geographic area' as a required content of the request under 441.301; replaced: 'safeguards to protect health and welfare' as a 441.301 description item with the 441.3...",
+    "status": "validated",
     "supporting_quotes": [
       {
         "section_id": "sec:doc:clinical_policy:b1d5bbb6d3448fea:1.0",
@@ -1185,16 +1191,16 @@
   },
   {
     "id": "q-015",
-    "version": 2,
+    "version": 3,
     "created": "2026-03-28",
-    "updated": "2026-10-06",
+    "updated": "2026-10-07",
     "question": "What does federal law define as 'home health services' under Medicaid, and where must they be provided?",
     "difficulty": "moderate",
     "reasoning_type": "cross_document",
     "topics": ["home_health", "federal_definition", "setting"],
     "target_users": ["provider", "legal_aid", "policy_analyst"],
     "answer": {
-      "text": "Under 42 CFR 440.70, 'home health services' means the services listed there (nursing service, home health aide service, medical supplies, equipment and appliances, and therapy services) provided to a beneficiary at his place of residence and on a practitioner's orders as part of a written plan of care. For nursing, home health aide and therapy services, the orders are written by a physician, nurse practitioner, clinical nurse specialist, or physician assistant working in accordance with state law, and the ordering practitioner reviews the plan of care every 60 days. A beneficiary's place of residence does not include a hospital, nursing facility, or intermediate care facility for individuals with intellectual disabilities (with a limited exception for the last). NC's Clinical Coverage Policy 3A (Home Health Services) states that it has been updated to comply with 42 CFR 440.70.",
+      "text": "Under 42 CFR 440.70, 'home health services' means the services listed there (nursing service, home health aide service, medical supplies, equipment and appliances, and therapy services) provided to a beneficiary at his place of residence and on a practitioner's orders as part of a written plan of care. For nursing, home health aide and therapy services, the orders are written by a physician, nurse practitioner, clinical nurse specialist, or physician assistant working in accordance with state law, and the ordering practitioner reviews the plan of care every 60 days. A beneficiary's place of residence does not include a hospital, nursing facility, or intermediate care facility for individuals with intellectual disabilities (with a limited exception for the last). The regulation adds that services may be received in any setting in which normal life activities take place, other than those facilities or a setting where Medicaid pays or could pay for inpatient services that include room and board, and cannot be limited to homebound beneficiaries. NC's Clinical Coverage Policy 3A (Home Health Services) states that it has been updated to comply with 42 CFR 440.70.",
       "confidence": "high",
       "caveats": [
         "'Place of residence' definition may vary — verify current interpretation"
@@ -1237,8 +1243,7 @@
     },
     "source": "legal_aid",
     "notes": "Tests the three-tier authority chain for a mandatory Medicaid benefit: SSA 1905 → 42 CFR 440.70 → NC CCP 3A. Important for attorneys arguing that state policy is more restrictive than federal law allows.",
-    "status": "needs_validation",
-    "validation_note": "Reworded 2026-10-06 (review EVAL-1b): every fact is quoted from the cited sections, but the answer text changed, so it waits for the owner's or an attorney's approval. Changed: removed: 'The federal definition in SSA Section 1905(a) includes this as a mandatory Medicaid benefit.'; added: a parenthetical naming the services listed in 440.70(b), since the question asks what the regulation defines as home health services; replaced: 'on orders written by a physician, nurse practitioner, clinical nurse specialist, or physician assistant ... as part of a written plan of care reviewed every 60 days' with 'on a practitioner's orders as part of a written plan of care', followed by a sentence limiting the four-practitioner rule and 60-day review to nursing, home health aide and therapy services, as 440.70(a)(2) does; added: 'A beneficiary's place of residence does not inc...",
+    "status": "validated",
     "supporting_quotes": [
       {
         "section_id": "sec:doc:federal_regulation:6e79727337800325:440.70",
@@ -1267,6 +1272,10 @@
       {
         "section_id": "sec:doc:federal_regulation:6e79727337800325:440.70",
         "quote": "A beneficiary's place of residence, for home health services, does not include a hospital, nursing facility, or intermediate care facility for individuals with intellectual disabilities, except for home health services in an intermediate care facility for Individuals with Intellectual Disabilities that are not required to be provided by the facility"
+      },
+      {
+        "section_id": "sec:doc:federal_regulation:6e79727337800325:440.70",
+        "quote": "Nothing in this section should be read to prohibit a beneficiary from receiving home health services in any setting in which normal life activities take place, other than a hospital, nursing facility; intermediate care facility for individuals with intellectual disabilities; or any setting in which payment is or could be made under Medicaid for inpatient services that include room and board. Home health services cannot be limited to services furnished to beneficiaries who are homebound."
       },
       {
         "section_id": "sec:doc:clinical_policy:c4ea20d2964f1236:5.3.1",
@@ -1343,7 +1352,7 @@
     "id": "q-017",
     "version": 2,
     "created": "2026-03-28",
-    "updated": "2026-10-06",
+    "updated": "2026-10-07",
     "question": "What ambulance services are NOT covered by NC Medicaid?",
     "difficulty": "simple",
     "reasoning_type": "single_lookup",
@@ -1409,8 +1418,7 @@
     },
     "source": "edge_case",
     "notes": "Negative question — tests that the agent correctly identifies what is excluded, not just what is covered.",
-    "status": "needs_validation",
-    "validation_note": "Reworded 2026-10-06 (review EVAL-1b): every fact is quoted from the cited sections, but the answer text changed, so it waits for the owner's or an attorney's approval. Changed: replaced: 'lists ambulance services that are not covered' with 'lists other ambulance services that are not covered' (4.2.1.4 is one of several not-covered sections); replaced: 'ambulance transport that is not medically necessary, transport for the convenience of the patient or family, transport to a provider's office when other transportation is available and appropriate, and standby or waiting time charges' with items section 4.2.1.4 actually lists (no treatment needed, false alarm, refused services, transport for a non-covered service, commercial airline tickets, airstrip fees, waiting fees); replaced: 'Air ambulance transport is only covered when ground transport is contraindicated or...",
+    "status": "validated",
     "supporting_quotes": [
       {
         "section_id": "sec:doc:clinical_policy:df7d256757fe4914:4.2.1.4",
@@ -1458,7 +1466,7 @@
     "id": "q-018",
     "version": 2,
     "created": "2026-03-28",
-    "updated": "2026-10-06",
+    "updated": "2026-10-07",
     "question": "Are there quantity limits on prescription drugs under NC Medicaid, and when is prior authorization required for pharmacy claims?",
     "difficulty": "moderate",
     "reasoning_type": "multi_hop",
@@ -1518,8 +1526,7 @@
     },
     "source": "lived_experience",
     "notes": "Multi-hop: requires connecting quantity limits (5.4.3) to the PA criteria (Attachment K) and the PA drugs list. Tests attachment resolution.",
-    "status": "needs_validation",
-    "validation_note": "Reworded 2026-10-06 (review EVAL-1b): every fact is quoted from the cited sections, but the answer text changed, so it waits for the owner's or an attorney's approval. Changed: removed: 'Certain drugs have quantity limits per dispensing to minimize costs while ensuring adequate supply'; added: the 34-day maximum supply (section 5.4) and what section 5.4.3 says about quantity limitations for episodic drugs and where the limits are found; replaced: 'Prior authorization is required for specific drugs listed in the Pharmacy Prior Approval criteria (Attachment K)' with the rule in section 5.1 and an accurate description of Attachment K; replaced: 'details the drugs and conditions that trigger prior approval requirements' with 'lists those drugs and drug classes', plus a sentence that the medical necessity criteria are published on the NCTracks and NC Medicaid website...",
+    "status": "validated",
     "supporting_quotes": [
       {
         "section_id": "sec:doc:clinical_policy:3d04b79c3c3a598b:5.4",
@@ -1565,16 +1572,16 @@
   },
   {
     "id": "q-019",
-    "version": 2,
+    "version": 3,
     "created": "2026-03-28",
-    "updated": "2026-10-06",
+    "updated": "2026-10-07",
     "question": "Under what conditions can speech therapy be provided via telehealth under NC Medicaid?",
     "difficulty": "moderate",
     "reasoning_type": "single_lookup",
     "topics": ["telehealth", "speech_therapy", "outpatient_therapy", "access"],
     "target_users": ["provider", "beneficiary"],
     "answer": {
-      "text": "Under Clinical Coverage Policy 10A, select services may be provided via telehealth, and speech-language pathology services are covered when medically necessary. Section 3.1.1 sets the criteria for a beneficiary to receive telehealth services: informed consent for telehealth delivery must be provided by the beneficiary or their legally authorized representative; telehealth must be safe and effective, with a parent, guardian, or caregiver present if necessary; telehealth delivery must not compromise efficacy of care; in-person care must be made available if the beneficiary requests it; and telehealth must be used in the best interest of the beneficiary, not as a convenience for the therapist, and never solely to increase therapist productivity. Only the speech/language codes marked telehealth eligible in Attachment A qualify.",
+      "text": "Under Clinical Coverage Policy 10A, select services may be provided via telehealth, and speech-language pathology services are covered when medically necessary. Section 3.1.1 sets the criteria for a beneficiary to receive telehealth services: informed consent for telehealth delivery must be provided by the beneficiary or their legally authorized representative; telehealth must be safe and effective, with a parent, guardian, or caregiver present if necessary; telehealth delivery must not compromise efficacy of care; in-person care must be made available if the beneficiary requests it; and telehealth must be used in the best interest of the beneficiary, not as a convenience for the therapist, and never solely to increase therapist productivity. Only the speech/language codes marked telehealth eligible in Attachment A qualify. Section 3.1.1 refers to Clinical Coverage Policy 1-H for the requirements for service delivery via telehealth, and therapy must be discontinued when telehealth delivery cannot meet the same standard of care as in-person services.",
       "confidence": "medium",
       "caveats": [
         "Not all therapy codes are eligible for telehealth delivery",
@@ -1633,8 +1640,7 @@
     },
     "source": "lived_experience",
     "notes": "Practical question for rural/underserved beneficiaries. The medium confidence reflects potential policy changes since COVID-19 telehealth expansions.",
-    "status": "needs_validation",
-    "validation_note": "Reworded 2026-10-06 (review EVAL-1b): every fact is quoted from the cited sections, but the answer text changed, so it waits for the owner's or an attorney's approval. Changed: removed: 'and the beneficiary resides in a remote or underserved area where in-person services are not reasonably available'; replaced: 'The telehealth delivery must meet the same clinical standards as in-person services' with the discharge criterion as the policy words it; removed: 'the provider must document why telehealth is appropriate for the specific beneficiary's needs'; added: the six criteria in section 3.1.1, the Attachment A telehealth-eligible code examples, and the pointer to Policy 1-H; removed caveat: 'Telehealth policies expanded significantly during COVID-19 and may have been modified since'; replaced caveat: 'Not all therapy modalities are appropriate for telehealth deli...",
+    "status": "validated",
     "supporting_quotes": [
       {
         "section_id": "sec:doc:clinical_policy:6a038eaf968a9a33:3.1.1",
@@ -1690,7 +1696,7 @@
     "id": "q-020",
     "version": 2,
     "created": "2026-03-28",
-    "updated": "2026-10-06",
+    "updated": "2026-10-07",
     "question": "The Non-Emergency Medical Transportation (NEMT) policy has been amended multiple times. Which change notice is the most recent, and what did it change?",
     "difficulty": "moderate",
     "reasoning_type": "temporal",
@@ -1750,8 +1756,7 @@
     },
     "source": "regression",
     "notes": "Temporal reasoning question. Updated to track the latest identifiable NEMT revision in the current parsed corpus rather than a stale 2015 administrative-letter chain. The medium confidence reflects that the separate 04-26 change notice body is not currently extracted into section text.",
-    "status": "needs_validation",
-    "validation_note": "Reworded 2026-10-06 (review EVAL-1b): every fact is quoted from the cited sections, but the answer text changed, so it waits for the owner's or an attorney's approval. Changed: replaced: \"reflected in the MA-3550 manual header 'REVISED 03/16/2026 - CHANGE NO. 04-26.'\" with the date from the notices and the header as it appears in the MA-2910 manual text; removed: 'The companion 04-26 change notice document is present, but its parsed body is title-only in the current graph, so the corpus does not expose a reliable section-level summary of the substantive edits'; removed: 'the exact detailed changes require checking the source notice PDF'; added: what the two 04-26 change notices say changed (per diem and mileage rate charts) and when the change takes effect; removed caveat: 'The parsed 04-26 change notice sections are title-only in the current graph'; replaced ca...",
+    "status": "validated",
     "supporting_quotes": [
       {
         "section_id": "sec:doc:dhhs_policy:6a0f8adcba866df0:_s1",
@@ -1966,16 +1971,16 @@
   },
   {
     "id": "q-022",
-    "version": 2,
+    "version": 3,
     "created": "2026-03-28",
-    "updated": "2026-10-06",
+    "updated": "2026-10-07",
     "question": "What are the specific criteria for NC Medicaid coverage of CAR-T cell therapy?",
     "difficulty": "moderate",
     "reasoning_type": "single_lookup",
     "topics": ["car_t", "stem_cell", "specialty", "coverage_criteria"],
     "target_users": ["provider", "beneficiary"],
     "answer": {
-      "text": "Clinical Coverage Policy 11A-17 covers CAR T-Cell Therapy under NC Medicaid. Section 3.2.1 requires that ALL of the following be met: the therapy has received U.S. FDA approval; it is administered per U.S. FDA approved guidelines, including those on indications and usage; and it is administered at a certified or authorized treatment center, which must be enrolled in the REMS program if the therapy is subject to one. The therapy must also be medically necessary under the general criteria in Section 3.1. Section 4.2.1 excludes, among other things, repeat treatment in a beneficiary who has previously received another CAR T-Cell Therapy.",
+      "text": "Clinical Coverage Policy 11A-17 covers CAR T-Cell Therapy under NC Medicaid. Section 3.2.1 requires that ALL of the following be met: the therapy has received U.S. FDA approval; it is administered per U.S. FDA approved guidelines, including those on indications and usage; and it is administered at a certified or authorized treatment center, which must be enrolled in the REMS program if the therapy is subject to one, with providers trained on the management of cytokine release syndrome and neurological toxicities. The therapy must also be medically necessary under the general criteria in Section 3.1. Section 4.2.1 excludes, among other things, repeat treatment in a beneficiary who has previously received another CAR T-Cell Therapy.",
       "confidence": "high",
       "caveats": [
         "Prior authorization is required",
@@ -2016,8 +2021,7 @@
     },
     "source": "regression",
     "notes": "Tests retrieval of a specialized, niche clinical policy. CAR-T is a high-cost therapy with very specific criteria — the agent must find the right policy among the 11A series.",
-    "status": "needs_validation",
-    "validation_note": "Reworded 2026-10-06 (review EVAL-1b): every fact is quoted from the cited sections, but the answer text changed, so it waits for the owner's or an attorney's approval. Changed: replaced: 'Section 3.2.1 specifies the criteria that must be met for Medicaid coverage, including the specific diagnoses for which CAR-T is indicated, the clinical conditions that must be present, and the treatment setting requirements' with the three criteria Section 3.2.1 actually lists (U.S. FDA approval; administration per U.S. FDA approved guidelines, including those on indications and usage; a certified or authorized treatment center, enrolled in the REMS program where one applies); replaced: 'The therapy must be medically necessary, provided by an approved transplant center, and meet all general Medicaid coverage criteria' with 'The therapy must also be medically necessary under th...",
+    "status": "validated",
     "supporting_quotes": [
       {
         "section_id": "sec:doc:clinical_policy:f93b64666b9055af:3.2.1",
@@ -2033,7 +2037,7 @@
       },
       {
         "section_id": "sec:doc:clinical_policy:f93b64666b9055af:3.2.1",
-        "quote": "If the therapy is subject to a Risk Evaluation and Mitigation Strategies (REMS) program, the treatment center must be enrolled in the REMS"
+        "quote": "If the therapy is subject to a Risk Evaluation and Mitigation Strategies (REMS) program, the treatment center must be enrolled in the REMS, and providers must be trained on the management of cytokine release syndrome (CRS) and neurological toxicities"
       },
       {
         "section_id": "sec:doc:clinical_policy:f93b64666b9055af:3.1",
@@ -2057,7 +2061,7 @@
     "id": "q-023",
     "version": 2,
     "created": "2026-03-28",
-    "updated": "2026-10-06",
+    "updated": "2026-10-07",
     "question": "Until what age should physicians provide fluoride varnish applications for Medicaid beneficiaries, and what oral screening requirements apply?",
     "difficulty": "simple",
     "reasoning_type": "single_lookup",
@@ -2117,8 +2121,7 @@
     },
     "source": "regression",
     "notes": "Simple factual question with a specific numeric answer (age 3½). Tests precise retrieval of a preventive care guideline.",
-    "status": "needs_validation",
-    "validation_note": "Reworded 2026-10-06 (review EVAL-1b): every fact is quoted from the cited sections, but the answer text changed, so it waits for the owner's or an attorney's approval. Changed: replaced: 'as part of preventive care for young children' with 'as preventive procedures for young children'; replaced: 'The screening includes early caries detection and assessment of risk factors.' with the screening elements Section 7.2 lists (early caries screening and detection of notable findings using a dental mirror and directed light, counseling on oral hygiene and nutrition, prescribing a fluoride supplement if indicated); replaced: 'Fluoride varnish is indicated from the eruption of the first tooth until age 3½ years, at which point the child should transition to dental care.' with 'Fluoride varnish is applied to all erupted primary teeth, beginning at tooth eruption until the ...",
+    "status": "validated",
     "supporting_quotes": [
       {
         "section_id": "sec:doc:clinical_policy:e3a7cd834a0ebd1f:7.2",
@@ -2166,7 +2169,7 @@
     "id": "q-024",
     "version": 2,
     "created": "2026-03-28",
-    "updated": "2026-10-06",
+    "updated": "2026-10-07",
     "question": "Can an NC Innovations waiver participant request services that exceed their individual base budget, and what happens if they believe their needs cannot be met within the budget?",
     "difficulty": "complex",
     "reasoning_type": "single_lookup",
@@ -2213,8 +2216,7 @@
     },
     "source": "legal_aid",
     "notes": "Ambiguous question — the policy says the budget is a 'guideline' not a 'binding limit,' but the practical process for exceeding it is unclear. Tests whether the agent signals appropriate uncertainty rather than giving a definitive answer.",
-    "status": "needs_validation",
-    "validation_note": "Reworded 2026-10-06 (review EVAL-1b): every fact is quoted from the cited sections, but the answer text changed, so it waits for the owner's or an attorney's approval. Changed: replaced: 'guidelines that do not constitute a binding limit on services' with 'guidelines that do not constitute a binding limit on the amount of services that may be requested or authorized'; replaced: 'However, the process for obtaining additional funding involves demonstrating that the participant's needs require services beyond what the base budget supports, which may involve additional assessment and authorization from the LME/MCO.' with 'If the LME/MCO determines the requested services to be medically necessary, they will be authorized regardless of the base budget. If a request for authorization is denied, the LME/MCO notifies the individual of the reasons for the decision and how...",
+    "status": "validated",
     "supporting_quotes": [
       {
         "section_id": "sec:doc:clinical_policy:51e218070890fe07:_s564",
@@ -2333,7 +2335,7 @@
     "id": "q-026",
     "version": 2,
     "created": "2026-04-16",
-    "updated": "2026-10-06",
+    "updated": "2026-10-07",
     "question": "Is chiropractic care covered under Policy 5B (Orthotics and Prosthetics)?",
     "difficulty": "simple",
     "reasoning_type": "negative_answer",
@@ -2380,8 +2382,7 @@
     },
     "source": "regression",
     "notes": "Negative-answer template per AGENTS.md:59 — scope (2.1.1) + not-covered (4.1) pair. Forces cite_scope_and_not_covered hint compliance.",
-    "status": "needs_validation",
-    "validation_note": "Reworded 2026-10-06 (review EVAL-1b): every fact is quoted from the cited sections, but the answer text changed, so it waits for the owner's or an attorney's approval. Changed: replaced: 'Per the policy's description/scope section 2.1.1, the policy's scope is orthotic and prosthetic devices that meet medical-necessity criteria' with 'Per the policy's description in section 1.0 and its specific coverage criteria in section 3.2.1, what the policy covers is orthotic and prosthetic devices that are ordered by a physician, physician assistant, or nurse practitioner and are medically necessary'; replaced: 'chiropractic services are outside that scope and are not addressed by the not-covered section 4.1 exclusions because they never fall within the policy's coverage at all' with 'The policy does not mention chiropractic care at all: section 4.2.1 lists only devices and...",
+    "status": "validated",
     "supporting_quotes": [
       {
         "section_id": "sec:doc:clinical_policy:fbd1a3f77a625d8d:1.0",
@@ -2405,7 +2406,7 @@
     "id": "q-027",
     "version": 2,
     "created": "2026-04-16",
-    "updated": "2026-10-06",
+    "updated": "2026-10-07",
     "question": "Does Policy 1A-15 (Surgery for Clinically Severe or Morbid Obesity) cover bariatric / body-contouring surgery performed purely for cosmetic weight-loss reasons?",
     "difficulty": "simple",
     "reasoning_type": "negative_answer",
@@ -2446,8 +2447,7 @@
     },
     "source": "legal_aid",
     "notes": "Verified against live graph 2026-04-16: 1A-15:2.1.1 and 1A-15:4.1 exist.",
-    "status": "needs_validation",
-    "validation_note": "Reworded 2026-10-06 (review EVAL-1b): every fact is quoted from the cited sections, but the answer text changed, so it waits for the owner's or an attorney's approval. Changed: replaced: 'only when the beneficiary meets the policy's documented clinical criteria (BMI thresholds, failure of conservative management, medical necessity)' with 'only when health records show the beneficiary has met all the clinical criteria in section 3.2.1, which include a diagnosis of morbid obesity, or clinically severe obesity with a listed co-morbid condition, and demonstrated attempts to lose weight through non-surgical means'; replaced: 'Procedures performed solely for cosmetic weight-loss or body-contouring purposes — without meeting the clinical-severity criteria in section 2.1.1 — are not covered; section 4.1 confirms cosmetic procedures are a general exclusion.' with the sec...",
+    "status": "validated",
     "supporting_quotes": [
       {
         "section_id": "sec:doc:clinical_policy:cc1ad3d15a7a506e:3.2.1",
@@ -2477,9 +2477,9 @@
   },
   {
     "id": "q-028",
-    "version": 2,
+    "version": 3,
     "created": "2026-04-16",
-    "updated": "2026-10-06",
+    "updated": "2026-10-07",
     "question": "Is acupuncture a covered service under Clinical Coverage Policy 8C (Outpatient Behavioral Health)?",
     "difficulty": "simple",
     "reasoning_type": "negative_answer",
@@ -2489,7 +2489,7 @@
       "text": "No. Policy 8C governs outpatient behavioral health services, which section 1.0 describes as psychiatric and comprehensive clinical assessment, medication management, individual, group, and family therapies, psychotherapy for crisis, and psychological testing. Acupuncture is not among those services, and Policy 8C does not mention acupuncture at all. Policy 8C does not say whether acupuncture is covered under any other policy.",
       "confidence": "high",
       "caveats": [
-        "For beneficiaries under 21, the policy's EPSDT provision requires coverage of a service that is medically necessary health care to correct or ameliorate a condition, but does not require any service that is unsafe, ineffective, experimental or investigational, not medical in nature, or not generally recognized as an accepted method of medical practice or treatment"
+        "For beneficiaries under 21, the policy's EPSDT provision requires coverage of a service that is medically necessary health care to correct or ameliorate a condition identified through a screening examination, but does not require any service that is unsafe, ineffective, experimental or investigational, not medical in nature, or not generally recognized as an accepted method of medical practice or treatment"
       ]
     },
     "evidence": {
@@ -2514,8 +2514,7 @@
     },
     "source": "legal_aid",
     "notes": "Verified against live graph 2026-04-16: 8C:2.1.1 and 8C:4.1 exist. Tests scope + not-covered determinism hint pairing.",
-    "status": "needs_validation",
-    "validation_note": "Reworded 2026-10-06 (review EVAL-1b): every fact is quoted from the cited sections, but the answer text changed, so it waits for the owner's or an attorney's approval. Changed: replaced: 'Policy 8C governs outpatient behavioral health services (section 2.1.1 scope)' with a sentence citing the description in section 1.0 and listing the services it names; replaced: 'Acupuncture is not a behavioral health service and falls outside 8C's scope; section 4.1 confirms acupuncture is not among the covered behavioral health modalities' with 'Acupuncture is not among those services, and Policy 8C does not mention acupuncture at all'; replaced: 'Any acupuncture coverage would be governed by a different clinical policy, not 8C' with 'Policy 8C does not say whether acupuncture is covered under any other policy'; replaced caveat: 'EPSDT may permit broader coverage for benefici...",
+    "status": "validated",
     "supporting_quotes": [
       {
         "section_id": "sec:doc:clinical_policy:402b600bc86e3f2e:1.0",
@@ -2523,7 +2522,7 @@
       },
       {
         "section_id": "sec:doc:clinical_policy:402b600bc86e3f2e:_s15",
-        "quote": "requires the state Medicaid agency to cover services, products, or procedures for Medicaid beneficiary under 21 years of age if the service is medically necessary health care to correct or ameliorate a defect, physical or mental illness, or a condition"
+        "quote": "requires the state Medicaid agency to cover services, products, or procedures for Medicaid beneficiary under 21 years of age if the service is medically necessary health care to correct or ameliorate a defect, physical or mental illness, or a condition [health problem] identified through a screening examination"
       },
       {
         "section_id": "sec:doc:clinical_policy:402b600bc86e3f2e:_s15",
@@ -2533,16 +2532,16 @@
   },
   {
     "id": "q-029",
-    "version": 2,
+    "version": 3,
     "created": "2026-04-16",
-    "updated": "2026-10-06",
+    "updated": "2026-10-07",
     "question": "Does Policy 10A cover routine massage therapy for beneficiaries over age 21?",
     "difficulty": "moderate",
     "reasoning_type": "negative_answer",
     "topics": ["coverage_exclusions", "massage_therapy", "epsdt", "10A"],
     "target_users": ["beneficiary", "provider"],
     "answer": {
-      "text": "Policy 10A (Outpatient Specialized Therapies) does not mention massage therapy. It covers medically necessary skilled healthcare provided by a qualified therapist in physical therapy, occupational therapy, speech-language pathology and audiology therapy, so routine massage that is not such therapy is not covered under Policy 10A for a beneficiary over 21. EPSDT may permit coverage for beneficiaries under 21 when medically necessary.",
+      "text": "Policy 10A (Outpatient Specialized Therapies) does not mention massage therapy by name. It covers medically necessary skilled healthcare provided by a qualified therapist in physical therapy, occupational therapy, speech-language pathology and audiology therapy, so routine massage that is not such therapy is not covered under Policy 10A for a beneficiary over 21. EPSDT may permit coverage for beneficiaries under 21 when medically necessary.",
       "confidence": "medium",
       "caveats": [
         "EPSDT exception may apply under 21"
@@ -2577,7 +2576,7 @@
     "source": "legal_aid",
     "notes": "Negative-answer with EPSDT nuance. NEEDS_VALIDATION: confirm 10A sections 2.1.1 and 2.2.1 exist in the current graph.",
     "status": "needs_validation",
-    "validation_note": "Reworded 2026-10-06 (review EVAL-1b): every fact is quoted from the cited sections, but the answer text changed, so it waits for the owner's or an attorney's approval. Changed: replaced: 'No. Routine massage therapy is not covered under Policy 10A (Outpatient Therapy) for beneficiaries age 21 and older.' with 'Policy 10A (Outpatient Specialized Therapies) does not mention massage therapy.'; replaced: 'The policy's scope section defines covered outpatient therapy services, and routine massage falls outside that scope.' with the section 1.0 description (medically necessary skilled healthcare by a qualified therapist in four disciplines) and the conclusion that routine massage that is not such therapy is not covered under Policy 10A for a beneficiary over 21; removed caveat: 'NEEDS_VALIDATION' (a workflow marker, not a fact about policy); evidence: dropped generic ...",
+    "validation_note": "Reworded 2026-10-06 (review EVAL-1b); every fact is quoted. Open finding from the final read (2026-10-07): the conclusion that routine massage is not covered is inferred from the policy's scope, and no quote is not-covered language; section 4.1 would supply it.",
     "supporting_quotes": [
       {
         "section_id": "sec:doc:clinical_policy:6a038eaf968a9a33:1.0",
@@ -2601,7 +2600,7 @@
     "id": "q-030",
     "version": 2,
     "created": "2026-04-16",
-    "updated": "2026-10-06",
+    "updated": "2026-10-07",
     "question": "Are experimental or investigational drugs covered under the NC Medicaid outpatient pharmacy benefit?",
     "difficulty": "simple",
     "reasoning_type": "negative_answer",
@@ -2636,8 +2635,7 @@
     },
     "source": "regression",
     "notes": "NEEDS_VALIDATION: confirm outpatient pharmacy policy number (guessed 9) and section_id in the live graph.",
-    "status": "needs_validation",
-    "validation_note": "Reworded 2026-10-06 (review EVAL-1b): every fact is quoted from the cited sections, but the answer text changed, so it waits for the owner's or an attorney's approval. Changed: removed: '— including those not approved by the FDA for the indication being treated —'; replaced: 'The governing pharmacy policy lists experimental treatments among general exclusions' with 'The governing pharmacy policy (Clinical Coverage Policy 9) lists a product that is experimental, investigational, or part of a clinical trial among its general not-covered criteria (section 4.1)'; removed caveat: 'NEEDS_VALIDATION' (a workflow marker, not a fact about policy); evidence: kept 4.1; added 5.1 for the prior-authorization caveat",
+    "status": "validated",
     "supporting_quotes": [
       {
         "section_id": "sec:doc:clinical_policy:3d04b79c3c3a598b:4.1",
@@ -2650,6 +2648,10 @@
       {
         "section_id": "sec:doc:clinical_policy:3d04b79c3c3a598b:5.1",
         "quote": "Medicaid shall require prior authorization for selected prescription drugs."
+      },
+      {
+        "section_id": "sec:doc:clinical_policy:3d04b79c3c3a598b:5.1",
+        "quote": "shall be based on FDA indications, FDA approved dosages, and medically acceptable indications, and can involve prior approval"
       }
     ]
   },
@@ -2657,7 +2659,7 @@
     "id": "q-031",
     "version": 2,
     "created": "2026-04-16",
-    "updated": "2026-10-06",
+    "updated": "2026-10-07",
     "question": "Does Policy 1A-2 (Preventive Medicine Annual Health Assessment) cover gym memberships or wellness club fees as part of preventive care?",
     "difficulty": "simple",
     "reasoning_type": "negative_answer",
@@ -2696,8 +2698,7 @@
     },
     "source": "legal_aid",
     "notes": "Verified against live graph 2026-04-16: 1A-2:2.1.1 and 1A-2:4.1 exist.",
-    "status": "needs_validation",
-    "validation_note": "Reworded 2026-10-06 (review EVAL-1b): every fact is quoted from the cited sections, but the answer text changed, so it waits for the owner's or an attorney's approval. Changed: replaced: 'Policy 1A-2 covers the clinician-performed annual health assessment (scope section 2.1.1)' with 'Policy 1A-2 covers the adult annual health assessment (described in section 1.0)'; removed: 'clinician-performed' (no section says who performs the assessment); replaced: 'are confirmed as not-covered in section 4.1' with 'The policy does not mention gym memberships or wellness-club fees; its own not-covered criteria (section 4.2.2) concern only when the assessment itself is not covered'; replaced: 'not a covered Medicaid benefit under Policy 1A-2' with 'not a covered benefit under Policy 1A-2'; evidence: dropped generic sections 2.1.1 and 4.1; added 1.0, 3.2.2 and 4.2.2",
+    "status": "validated",
     "supporting_quotes": [
       {
         "section_id": "sec:doc:clinical_policy:0f7ef850e723556c:1.0",
@@ -2717,7 +2718,7 @@
     "id": "q-032",
     "version": 2,
     "created": "2026-04-16",
-    "updated": "2026-10-06",
+    "updated": "2026-10-07",
     "question": "Does Policy 9 (Outpatient Pharmacy) cover over-the-counter fertility or hormone supplements purchased without a prescription?",
     "difficulty": "simple",
     "reasoning_type": "negative_answer",
@@ -2757,8 +2758,7 @@
     },
     "source": "legal_aid",
     "notes": "Verified against live graph 2026-04-16: 9:2.1.1 and 9:4.1 exist.",
-    "status": "needs_validation",
-    "validation_note": "Reworded 2026-10-06 (review EVAL-1b): every fact is quoted from the cited sections, but the answer text changed, so it waits for the owner's or an attorney's approval. Changed: replaced: 'Policy 9's pharmacy benefit scope (section 2.1.1) requires a prescription from an enrolled prescriber and limits OTC coverage to drugs on the state's approved OTC list' with the scope from section 1.0 and the prescribed-drug and selected-OTC criteria from section 3.2.1 (selected OTC products are covered when they meet the criteria in Policy 9A); removed: 'from an enrolled prescriber' and 'the state's approved OTC list' (neither is in Policy 9's own sections); replaced: 'section 4.1 confirms non-prescription retail items are not covered' with 'Section 4.2.1 lists OTC products (other than those selected under section 3.2.1) and fertility drugs among the items Medicaid shall not c...",
+    "status": "validated",
     "supporting_quotes": [
       {
         "section_id": "sec:doc:clinical_policy:3d04b79c3c3a598b:1.0",
@@ -2995,7 +2995,7 @@
     "id": "q-034",
     "version": 2,
     "created": "2026-04-16",
-    "updated": "2026-10-06",
+    "updated": "2026-10-07",
     "question": "Does the NC Medicaid dental benefit cover cosmetic teeth whitening for adults?",
     "difficulty": "simple",
     "reasoning_type": "negative_answer",
@@ -3052,8 +3052,7 @@
     },
     "source": "legal_aid",
     "notes": "NEEDS_VALIDATION: confirm dental policy number and section.",
-    "status": "needs_validation",
-    "validation_note": "Reworded 2026-10-06 (review EVAL-1b): every fact is quoted from the cited sections, but the answer text changed, so it waits for the owner's or an attorney's approval. Changed: replaced: 'under the NC Medicaid adult dental benefit' with 'under the NC Medicaid dental benefit for adults' (Policy 4A is not an adult-only policy); added: 'Clinical Coverage Policy 4A (Dental Services) states that Medicaid shall not cover cosmetic procedures, and that only the procedure codes listed in the policy are covered.'; replaced: '(e.g., extractions, restorations, oral surgery under defined criteria)' with '(e.g., extractions and restorations, within the policy's limitations)'; added: 'and the policy also says resin-based composite restorations are not covered for treatment of cosmetic problems such as discolored teeth'",
+    "status": "validated",
     "supporting_quotes": [
       {
         "section_id": "sec:doc:clinical_policy:3e43ff175d169b09:4.2.1",
@@ -3089,7 +3088,7 @@
     "id": "q-035",
     "version": 2,
     "created": "2026-04-16",
-    "updated": "2026-10-06",
+    "updated": "2026-10-07",
     "question": "Under Policy 5A-2 (Respiratory Equipment and Supplies), can an adult beneficiary get a replacement CPAP machine every year?",
     "difficulty": "moderate",
     "reasoning_type": "negative_answer",
@@ -3136,12 +3135,15 @@
     },
     "source": "legal_aid",
     "notes": "Verified against live graph 2026-04-16: 5A-2:3.2.1 and 5A-2:4.2.1 exist. Repointed from hearing-aid question since there is no 5A-hearing-aid policy in the corpus.",
-    "status": "needs_validation",
-    "validation_note": "Reworded 2026-10-06 (review EVAL-1b): every fact is quoted from the cited sections, but the answer text changed, so it waits for the owner's or an attorney's approval. Changed: replaced: 'Policy 5A-2 sets coverage criteria (section 3.2.1) that include frequency-of-replacement limits for durable respiratory equipment.' with 'Attachment A, Section C of the policy lists a lifetime expectancy of 5 years for the CPAP device (HCPCS E0601).'; replaced: 'replacement is authorized only after a defined minimum useful-life interval or when medically necessary due to documented device failure not repairable under warranty' with the section 5.9 rule (Medicaid may consider replacing an item when repair is no longer cost-effective and the item is out of warranty; early replacement requests must explain why on the CMN/PA form); replaced: 'Section 4.2.1 lists specific items and ...",
+    "status": "validated",
     "supporting_quotes": [
       {
         "section_id": "sec:doc:clinical_policy:aa4e5eecdda151ba:_s93",
         "quote": "| E0601 | Continuous airway pressure (CPAP) device | 5 years |"
+      },
+      {
+        "section_id": "sec:doc:clinical_policy:aa4e5eecdda151ba:5.5",
+        "quote": "Refer to Attachment A, Section C: Procedure Code(s) for a listing of the established lifetime expectancies and quantity limitations for Durable Medical Equipment and Supplies."
       },
       {
         "section_id": "sec:doc:clinical_policy:aa4e5eecdda151ba:5.9",
@@ -3177,7 +3179,7 @@
     "id": "q-036",
     "version": 2,
     "created": "2026-04-16",
-    "updated": "2026-10-06",
+    "updated": "2026-10-07",
     "question": "Does Policy 1-H authorize routine general-wellness telehealth visits without a specific clinical indication?",
     "difficulty": "moderate",
     "reasoning_type": "negative_answer",
@@ -3230,8 +3232,7 @@
     },
     "source": "regression",
     "notes": "Per AGENTS.md:49, 1-H telehealth sections can be thin in the graph; NEEDS_VALIDATION before scoring.",
-    "status": "needs_validation",
-    "validation_note": "Reworded 2026-10-06 (review EVAL-1b): every fact is quoted from the cited sections, but the answer text changed, so it waits for the owner's or an attorney's approval. Changed: replaced: 'Policy 1-H governs telehealth as a modality for delivering specific covered clinical services; it does not authorize routine general-wellness visits via telehealth absent a clinical indication.' with 'Policy 1-H gives overarching guidance on delivering services via telehealth; its coverage sections do not mention general-wellness visits, so nothing in it authorizes a routine wellness visit via telehealth without a clinical indication.'; replaced: 'The covered service must itself be a Medicaid-covered benefit' with 'The service must be one eligible for telehealth under Attachment A of the policy or a related coverage policy, must be medically necessary under the general rule in ...",
+    "status": "validated",
     "supporting_quotes": [
       {
         "section_id": "sec:doc:clinical_policy:e9c1fe4b166ed0e5:_s5",
@@ -3259,7 +3260,7 @@
     "id": "q-037",
     "version": 2,
     "created": "2026-04-16",
-    "updated": "2026-10-06",
+    "updated": "2026-10-07",
     "question": "Does NEMT (Non-Emergency Medical Transportation) cover transportation to non-medical errands such as grocery shopping?",
     "difficulty": "simple",
     "reasoning_type": "negative_answer",
@@ -3300,8 +3301,7 @@
     },
     "source": "legal_aid",
     "notes": "Uses the MA-3550 document_id hash observed in the existing dataset; still NEEDS_VALIDATION for the specific _s2 section.",
-    "status": "needs_validation",
-    "validation_note": "Reworded 2026-10-06 (review EVAL-1b): every fact is quoted from the cited sections, but the answer text changed, so it waits for the owner's or an attorney's approval. Changed: replaced: 'NEMT under MA-3550 covers transportation to and from medically necessary covered Medicaid services only.' with 'NEMT under MA-3550 is only provided for Medicaid covered services and when the primary reason for the trip is medical care.'; replaced caveat: 'eligibility and ride authorization are locally managed' with 'ride authorization is locally managed'; evidence: removed empty heading section _s2; added sections _s11, _s102 and _s22 of the same document",
+    "status": "validated",
     "supporting_quotes": [
       {
         "section_id": "sec:doc:dhhs_policy:9c740a6f1f22f51c:_s11",
@@ -3325,7 +3325,7 @@
     "id": "q-038",
     "version": 2,
     "created": "2026-04-16",
-    "updated": "2026-10-06",
+    "updated": "2026-10-07",
     "question": "Does the CAP/DA waiver cover a beneficiary's room and board in their own home?",
     "difficulty": "moderate",
     "reasoning_type": "negative_answer",
@@ -3390,8 +3390,7 @@
     },
     "source": "legal_aid",
     "notes": "Tests negative-answer with federal backing. NEEDS_VALIDATION for 42 CFR 441.310 presence.",
-    "status": "needs_validation",
-    "validation_note": "Reworded 2026-10-06 (review EVAL-1b): every fact is quoted from the cited sections, but the answer text changed, so it waits for the owner's or an attorney's approval. Changed: replaced: 'by federal design it cannot pay for a beneficiary's room and board in their own home' with 'under 42 CFR 441.310 federal funding for HCBS waiver services is not available for the cost of room and board, apart from narrow exceptions'; replaced: 'rent, utilities, and groceries are explicitly excluded' with 'Policy 3K-2 says community transition and community integration services do not cover room and board, and community integration services do not include monthly rental or mortgage expense, food, or regular utility charges'; replaced: 'in-home services (personal care, case management, assistive technology, etc.) that support community living' with 'services such as in-home aide,...",
+    "status": "validated",
     "supporting_quotes": [
       {
         "section_id": "sec:doc:clinical_policy:b1d5bbb6d3448fea:1.0",
@@ -3447,7 +3446,7 @@
     "id": "q-039",
     "version": 2,
     "created": "2026-04-16",
-    "updated": "2026-10-06",
+    "updated": "2026-10-07",
     "question": "Is private-duty nursing covered under NC Medicaid Policy 3G-1 for adult beneficiaries who do not meet medical-complexity criteria?",
     "difficulty": "moderate",
     "reasoning_type": "negative_answer",
@@ -3494,8 +3493,7 @@
     },
     "source": "legal_aid",
     "notes": "Verified against live graph 2026-04-16: 3G-1:2.1.1 and 3G-1:3.2.1 exist. Policy 3G-1 is the correct PDN policy for adults (AGENTS.md distinction vs 3G-2 for under 21).",
-    "status": "needs_validation",
-    "validation_note": "Reworded 2026-10-06 (review EVAL-1b): every fact is quoted from the cited sections, but the answer text changed, so it waits for the owner's or an attorney's approval. Changed: replaced: 'restricts PDN to beneficiaries meeting the medical-complexity and continuous-skilled-nursing criteria in section 3.2.1' with the coverage condition in section 3.2.2 and the Level 1 health criteria in section 3.3.1; replaced: 'are not eligible for PDN' with 'are not eligible for PDN under this policy'; removed: 'their care needs are addressed through lower-intensity benefits such as personal care services under a different policy'; replaced: caveat 'Policy 3G-2 governs PDN for beneficiaries under 21 and has different criteria (EPSDT)' with what 3G-1 itself states about 3G-2 and the removal of under-21 content; evidence: replaced sections 2.1.1 (generic) and 3.2.1 ('None Apply.')...",
+    "status": "validated",
     "supporting_quotes": [
       {
         "section_id": "sec:doc:clinical_policy:5455fd215c3fd6f6:_s101",
@@ -3523,7 +3521,7 @@
     "id": "q-040",
     "version": 2,
     "created": "2026-04-16",
-    "updated": "2026-10-06",
+    "updated": "2026-10-07",
     "question": "Does NC Medicaid cover over-the-counter medications without a prescription?",
     "difficulty": "moderate",
     "reasoning_type": "negative_answer",
@@ -3557,8 +3555,7 @@
     },
     "source": "regression",
     "notes": "NEEDS_VALIDATION: confirm outpatient pharmacy policy and OTC rules.",
-    "status": "needs_validation",
-    "validation_note": "Reworded 2026-10-06 (review EVAL-1b): every fact is quoted from the cited sections, but the answer text changed, so it waits for the owner's or an attorney's approval. Changed: replaced: 'covers prescribed drugs, including selected OTC drugs, only when a prescription is written by an enrolled prescriber and the drug is on the state's approved OTC list' with Policy 9's own rule: it covers prescribed drugs and lists OTC products as not covered, except that selected OTC products, including insulin, are covered when they meet the criteria in Policy 9A; replaced: 'Self-purchased OTC items without a prescription are not reimbursable' with 'Policy 9 itself gives no coverage for OTC items obtained without a prescription'; replaced caveat: 'Some OTCs (e.g., prenatal vitamins, certain contraceptives) are covered with a prescription' with 'Selected OTC products (e.g., insu...",
+    "status": "validated",
     "supporting_quotes": [
       {
         "section_id": "sec:doc:clinical_policy:3d04b79c3c3a598b:3.2.1",
@@ -3586,7 +3583,7 @@
     "id": "q-041",
     "version": 3,
     "created": "2026-04-16",
-    "updated": "2026-10-06",
+    "updated": "2026-10-07",
     "question": "What is the current governing federal regulation for grants administration applied to Medicaid — 45 CFR Part 74 or 45 CFR Part 75?",
     "difficulty": "moderate",
     "reasoning_type": "temporal",
@@ -3658,8 +3655,7 @@
     },
     "source": "regression",
     "notes": "Temporal / supersession regression. 2 CFR Part 200 was ingested on 2026-04-17 to provide a concrete anchor now that 45 CFR Parts 74 and 75 are both [Reserved]. Exercises resolver.py CFR_SUPERSESSIONS map (both 45/74 and 45/75 → 2/200).",
-    "status": "needs_validation",
-    "validation_note": "Reworded 2026-10-06 (review EVAL-1b): every fact is quoted from the cited sections, but the answer text changed, so it waits for the owner's or an attorney's approval. Changed: replaced: 'Neither is currently in force.' with 'Neither is what 42 CFR § 430.30(e) names.' followed by the 2 CFR Part 200 rule; removed: '45 CFR Part 74 was superseded by 45 CFR Part 75 in December 2014 when HHS adopted the OMB Uniform Guidance, and in late 2025 HHS rescinded Part 75 as well — both 45 CFR Parts 74 and 75 are now [Reserved] in the current eCFR.'; removed: 'The pipeline's CFR supersession resolver remaps both 45 CFR 74 and 45 CFR 75 citations to 2 CFR Part 200.'; added: the wording of 42 CFR § 430.30(e), including 2 CFR part 300 and the two exceptions; added: a behaviour sentence that the corpus lacks 45 CFR Parts 74 and 75 and the answer should not state their history; re...",
+    "status": "validated",
     "supporting_quotes": [
       {
         "section_id": "sec:doc:federal_regulation:f8e557026ca6658c:430.30",
@@ -3728,7 +3724,7 @@
     "id": "q-043",
     "version": 3,
     "created": "2026-04-16",
-    "updated": "2026-10-06",
+    "updated": "2026-10-07",
     "question": "When was the most recent change notice issued for Clinical Coverage Policy 8C (Outpatient Behavioral Health)?",
     "difficulty": "moderate",
     "reasoning_type": "temporal",
@@ -3763,8 +3759,7 @@
     },
     "source": "regression",
     "notes": "Temporal regression exercising getAmendments. Answer reflects graph state after Phase 5.4 clinical-policy revision-table extraction.",
-    "status": "needs_validation",
-    "validation_note": "Reworded 2026-10-06 (review EVAL-1b): every fact is quoted from the cited sections, but the answer text changed, so it waits for the owner's or an attorney's approval. Changed: replaced: 'The most recent revision to Clinical Coverage Policy 8C has an effective date of April 15, 2025 (amending Section 3.2.2), as recorded in the policy's own revision-information table' with a statement of what the table's latest row says: dated 04/15/2025, Section 3.2.2, the Parity Act correction, and 'Policy posted 4/15/25 amendment date not changed'; added: the header's Amended Date of January 1, 2025 and that the rows immediately before the last one are dated 01/01/2025; removed: 'The agent should pull amendments for doc:clinical_policy:8C via getAmendments, identify the latest effective date, and cite both Policy 8C and the revision.' (instruction to the agent, not an answer);...",
+    "status": "validated",
     "supporting_quotes": [
       {
         "section_id": "sec:doc:clinical_policy:402b600bc86e3f2e:_s74",
@@ -3788,7 +3783,7 @@
     "id": "q-044",
     "version": 2,
     "created": "2026-04-16",
-    "updated": "2026-10-06",
+    "updated": "2026-10-07",
     "question": "Has the CAP/DA waiver policy been amended since 2024?",
     "difficulty": "moderate",
     "reasoning_type": "temporal",
@@ -3823,8 +3818,7 @@
     "source": "regression",
     "notes": "Temporal yes/no regression. Tests that agent actually calls getAmendments (AGENTS.md:47: do not claim you checked amendments unless you called the tool).",
     "expected_behavior": "The agent should answer by calling getAmendments for the CAP/DA clinical policy (Policy 3K-2) and reporting whether any change notices have effective dates in 2024 or later. If none, the answer is 'No' and the agent should state the most recent effective date actually present in the corpus.",
-    "status": "needs_validation",
-    "validation_note": "Reworded 2026-10-06 (review EVAL-1b): every fact is quoted from the cited sections, but the answer text changed, so it waits for the owner's or an attorney's approval. Changed: added: a factual answer text (the original key had no answer text, only instructions now held in expected_behavior): Yes, with the 11/15/2024 and 09/01/2025 revision entries and the September 1, 2025 Amended Date; replaced: caveat 'Exact answer depends on live graph state — NEEDS_VALIDATION' with 'Answer reflects the copy of Policy 3K-2 in the corpus (Amended Date September 1, 2025)'; evidence: replaced section 1.0 (no revision information) with the Revision Information section and the policy header section",
+    "status": "validated",
     "supporting_quotes": [
       {
         "section_id": "sec:doc:clinical_policy:b1d5bbb6d3448fea:_s0",
@@ -3850,16 +3844,16 @@
   },
   {
     "id": "q-045",
-    "version": 2,
+    "version": 3,
     "created": "2026-04-16",
-    "updated": "2026-10-06",
+    "updated": "2026-10-07",
     "question": "What is the most recent revision to 42 CFR Part 441 as it applies to HCBS waiver applications?",
     "difficulty": "complex",
     "reasoning_type": "temporal",
     "topics": ["federal_authority", "hcbs_waiver", "42_cfr_441", "latest_revision"],
     "target_users": ["legal_aid", "policy_researcher"],
     "answer": {
-      "text": "In the corpus copy of 42 CFR Part 441, the section 1915(c) waiver-request sections each end with a note (labelled Authority) listing Federal Register citations, and the most recent amendment listed for each is dated May 10, 2024: § 441.301 (contents of the request) at 89 FR 40863, § 441.302 (State assurances) at 89 FR 40865, and § 441.303 (supporting documentation) at 89 FR 40866. In the separate provisions for section 1915(d) waivers serving individuals age 65 or older, § 441.353 (supporting documentation) lists a later amendment, 89 FR 80069, Oct. 2, 2024.",
+      "text": "In the corpus copy of 42 CFR Part 441, the section 1915(c) waiver-request sections each end with a note (labelled Authority) listing Federal Register citations, and the most recent amendment listed for each is dated May 10, 2024: § 441.301 (contents of the request) at 89 FR 40863, § 441.302 (State assurances) at 89 FR 40865, and § 441.303 (supporting documentation) at 89 FR 40866. Among the neighbouring 1915(c) sections, § 441.312 (HCBS quality measure set) lists a later amendment, 89 FR 53502, June 27, 2024. In the separate provisions for section 1915(d) waivers serving individuals age 65 or older, § 441.353 (supporting documentation) lists a later amendment, 89 FR 80069, Oct. 2, 2024.",
       "confidence": "medium",
       "caveats": [
         "The corpus text does not state the date of the eCFR snapshot that was ingested, and the notes give only Federal Register citations and dates: they do not describe what each amendment changed."
@@ -3895,6 +3889,12 @@
         },
         {
           "document_id": "doc:federal_regulation:22dfab6c7a192acc",
+          "section_id": "sec:doc:federal_regulation:22dfab6c7a192acc:441.312",
+          "section_number": "441.312",
+          "relevance": "HCBS quality measure set for 1915(c) waiver programs; source note with amendment June 27, 2024"
+        },
+        {
+          "document_id": "doc:federal_regulation:22dfab6c7a192acc",
           "section_id": "sec:doc:federal_regulation:22dfab6c7a192acc:441.350",
           "section_number": "441.350",
           "relevance": "Identifies the parallel subpart as section 1915(d), age 65 or older"
@@ -3918,7 +3918,7 @@
     "notes": "Temporal / federal-reference combo. Exercises eCFR freshness and the 441.30x / 441.35x parallel-numbering issue per AGENTS.md:56.",
     "expected_behavior": "The agent should cite the effective date from the ingested 42 CFR Part 441 source, name the specific Subpart (Subpart G for 1915(c) waivers), and note if both the older (441.301–441.303) and newer parallel (441.351–441.355) numbering families are present per AGENTS.md:56.",
     "status": "needs_validation",
-    "validation_note": "Reworded 2026-10-06 (review EVAL-1b): every fact is quoted from the cited sections, but the answer text changed, so it waits for the owner's or an attorney's approval. Changed: replaced: 'The latest revision is the one reflected in the eCFR snapshot currently ingested into the corpus.' with the amendment citations and dates the corpus states for the waiver-request sections (May 10, 2024 for §§ 441.301-441.303; Oct. 2, 2024 for § 441.353); replaced: caveat 'NEEDS_VALIDATION: fill actual eCFR ingestion date' with a caveat saying the corpus text does not state the snapshot date or describe what each amendment changed; evidence: added sections 441.300, 441.302, 441.303, 441.350 and 441.353; removed 441.351 (no note in the corpus, supports nothing)",
+    "validation_note": "Reworded 2026-10-06 (review EVAL-1b); every fact is quoted. Open finding from the final read (2026-10-07): the source note for 42 CFR 441.312 lists the June 27, 2024 Federal Register citation without calling it an amendment, so 'lists a later amendment' says slightly more than the text.",
     "supporting_quotes": [
       {
         "section_id": "sec:doc:federal_regulation:22dfab6c7a192acc:441.300",
@@ -3953,6 +3953,14 @@
         "quote": "[Authority: [46 FR 48532, Oct. 1, 1981, as amended at 50 FR 10027, Mar. 13, 1985; 50 FR 25080, June 17, 1985; 59 FR 37718, July 25, 1994; 89 FR 40866, May 10, 2024]]"
       },
       {
+        "section_id": "sec:doc:federal_regulation:22dfab6c7a192acc:441.312",
+        "quote": "This section describes the Home and Community-Based Services Quality Measure Set, which States are required to use in section 1915(c) waiver programs"
+      },
+      {
+        "section_id": "sec:doc:federal_regulation:22dfab6c7a192acc:441.312",
+        "quote": "[Authority: [89 FR 40868, May 10, 2024; 89 FR 53502, June 27, 2024]]"
+      },
+      {
         "section_id": "sec:doc:federal_regulation:22dfab6c7a192acc:441.350",
         "quote": "Section 1915(d) of the Act permits States to offer, under a waiver of statutory requirements, home and community-based services not otherwise available under Medicaid to individuals age 65 or older"
       },
@@ -3970,7 +3978,7 @@
     "id": "q-046",
     "version": 2,
     "created": "2026-04-16",
-    "updated": "2026-10-06",
+    "updated": "2026-10-07",
     "question": "What federal regulation authorizes NC Medicaid's 1915(c) HCBS waivers such as CAP/DA?",
     "difficulty": "moderate",
     "reasoning_type": "federal_reference",
@@ -4038,8 +4046,7 @@
     },
     "source": "legal_aid",
     "notes": "Federal-reference with populated federal_references array. Tests that the agent surfaces both 42 USC and 42 CFR authorities.",
-    "status": "needs_validation",
-    "validation_note": "Reworded 2026-10-06 (review EVAL-1b): every fact is quoted from the cited sections, but the answer text changed, so it waits for the owner's or an attorney's approval. Changed: removed: '(42 USC § 1396n(c))' (the United States Code citation appears nowhere in the local corpus); replaced: 'in 42 CFR Part 441 Subpart G — specifically' with 'in 42 CFR Part 441 — specifically' (the Subpart G label is now attributed to the CAP/DA policy, which is where the corpus states it); replaced: '§ 441.301 (state plan requirements)' with '§ 441.301 (contents of the request for a waiver)'; replaced: '§ 441.302 (assurances)' with '§ 441.302 (State assurances)'; replaced: 'CAP/DA is North Carolina's 1915(c) waiver implementing those requirements for disabled adults' with 'CAP/DA is North Carolina's HCBS waiver authorized under section 1915(c) for adults with disabilities; its clin...",
+    "status": "validated",
     "supporting_quotes": [
       {
         "section_id": "sec:doc:federal_regulation:22dfab6c7a192acc:441.300",
@@ -4072,6 +4079,10 @@
       {
         "section_id": "sec:doc:clinical_policy:b1d5bbb6d3448fea:1.0",
         "quote": "is a waiver that serves an adult with disabilities 18 years of age and older who is at risk of institutionalization"
+      },
+      {
+        "section_id": "sec:doc:clinical_policy:b1d5bbb6d3448fea:1.0",
+        "quote": "Pursuant to 42 CFR§ 431.10, NC Medicaid is the administrative authority of the waiver and outlines the policies and procedures governing the waiver."
       }
     ]
   },
@@ -4079,7 +4090,7 @@
     "id": "q-047",
     "version": 2,
     "created": "2026-04-16",
-    "updated": "2026-10-06",
+    "updated": "2026-10-07",
     "question": "Which federal regulation governs timeliness requirements for state Medicaid plan amendments (SPAs)?",
     "difficulty": "moderate",
     "reasoning_type": "federal_reference",
@@ -4116,8 +4127,7 @@
     },
     "source": "legal_aid",
     "notes": "NEEDS_VALIDATION: confirm 42 CFR Part 430 is ingested.",
-    "status": "needs_validation",
-    "validation_note": "Reworded 2026-10-06 (review EVAL-1b): every fact is quoted from the cited sections, but the answer text changed, so it waits for the owner's or an attorney's approval. Changed: replaced: 'governs the submission and amendment of the state Medicaid plan, including requirements for timely submission of plan amendments to CMS for review and approval' with what § 430.12 states: the plan must be amended whenever necessary to reflect the listed changes, and prompt submittal of amendments is necessary; replaced: 'It establishes when states must submit SPAs and the federal review timeline' with the one fixed deadline § 430.12 sets (60 days, advance directive changes only) and a statement that the federal review timeline is in § 430.16 (90 days); added: 42 CFR § 430.16 as a primary section; shortened on review: the advance-directive 60-day deadline, the FFP clause and the...",
+    "status": "validated",
     "supporting_quotes": [
       {
         "section_id": "sec:doc:federal_regulation:f8e557026ca6658c:430.12",
@@ -4145,7 +4155,7 @@
     "id": "q-048",
     "version": 2,
     "created": "2026-04-16",
-    "updated": "2026-10-06",
+    "updated": "2026-10-07",
     "question": "What federal rule governs the Medical Loss Ratio (MLR) requirements for Medicaid managed care contracts?",
     "difficulty": "moderate",
     "reasoning_type": "federal_reference",
@@ -4176,8 +4186,7 @@
     },
     "source": "regression",
     "notes": "Per AGENTS.md:43, MLR questions like q-021 require managed_care_contract in the federal-authority search path. This entry is the pure federal-reference version.",
-    "status": "needs_validation",
-    "validation_note": "Reworded 2026-10-06 (review EVAL-1b): every fact is quoted from the cited sections, but the answer text changed, so it waits for the owner's or an attorney's approval. Changed: removed: 'and CHIP' from 'Medicaid and CHIP managed care contracts'; replaced: 'It sets the minimum percentage of capitation payments that plans must spend on clinical services and quality-improvement activities (85% minimum for MCOs)' with a conditional statement that 85 percent is the floor only if a State elects to mandate a minimum MLR for its MCOs, PIHPs, or PAHPs; replaced: 'clinical services and quality-improvement activities' with the regulation's numerator terms (incurred claims, activities that improve health care quality, fraud prevention activities) over adjusted premium revenue; added: that States must ensure through contracts that each MCO, PIHP, and PAHP calculates and repo...",
+    "status": "validated",
     "supporting_quotes": [
       {
         "section_id": "sec:doc:federal_regulation:9abe74a2a6cfee6c:438.8",
@@ -4338,7 +4347,7 @@
     "id": "q-050",
     "version": 2,
     "created": "2026-04-16",
-    "updated": "2026-10-06",
+    "updated": "2026-10-07",
     "question": "What federal regulation governs provider enrollment screening requirements for Medicaid?",
     "difficulty": "moderate",
     "reasoning_type": "federal_reference",
@@ -4388,6 +4397,12 @@
           "section_id": "sec:doc:federal_regulation:9abe74a2a6cfee6c:438.608",
           "section_number": "438.608",
           "relevance": "42 CFR § 438.608: names part 455, subparts B and E as the provider disclosure, screening and enrollment requirements"
+        },
+        {
+          "document_id": "doc:federal_regulation:92cccbfc996f1fc1",
+          "section_id": "sec:doc:federal_regulation:92cccbfc996f1fc1:457.990",
+          "section_number": "457.990",
+          "relevance": "42 CFR § 457.990 (provider and supplier screening, oversight, and reporting requirements): names part 455, subpart E alone"
         }
       ],
       "cross_references": [],
@@ -4400,8 +4415,7 @@
     },
     "source": "regression",
     "notes": "Federal-reference. NEEDS_VALIDATION: confirm 42 CFR Part 455 is ingested in the corpus.",
-    "status": "needs_validation",
-    "validation_note": "Reworded 2026-10-06 (review EVAL-1b): every fact is quoted from the cited sections, but the answer text changed, so it waits for the owner's or an attorney's approval. Changed: removed: the parenthetical section range '(§§ 455.400–455.470)'; added: citations to sections 455.400, 455.414 and 455.432, and to 42 CFR § 438.608 for the Subpart E label",
+    "status": "validated",
     "supporting_quotes": [
       {
         "section_id": "sec:doc:federal_regulation:3e6a5fae7ea1e6b5:455.400",
@@ -4410,6 +4424,10 @@
       {
         "section_id": "sec:doc:federal_regulation:9abe74a2a6cfee6c:438.608",
         "quote": "consistent with the provider disclosure, screening and enrollment requirements of part 455, subparts B and E of this chapter"
+      },
+      {
+        "section_id": "sec:doc:federal_regulation:92cccbfc996f1fc1:457.990",
+        "quote": "(b) Part 455, subpart E, of this chapter."
       },
       {
         "section_id": "sec:doc:federal_regulation:3e6a5fae7ea1e6b5:455.410",

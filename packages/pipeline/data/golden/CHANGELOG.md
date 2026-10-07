@@ -80,7 +80,7 @@ and 3.1 are not comparable**, and issue #188 must name the version that is froze
   sections that hold the text instead of empty headings and the generic 2.1.1, 3.1 and
   4.1 template sections. They stay `needs_validation`: a reworded key is a statement of
   what Medicaid policy says, so the owner or an attorney approves the wording before it
-  is scored. `validation_note` lists what changed; `key-review-3.1.md` pairs each
+  is scored. `validation_note` lists what changed; `key-review-3.1.md` (replaced in 3.2 by `key-review-3.2.md`) pairs each
   claim with the text it rests on, for the owner's review. Approving a key is a change of `status` and
   a version bump.
 - Where a policy never mentions the thing asked about (chiropractic care in 5B,
@@ -102,3 +102,29 @@ and 3.1 are not comparable**, and issue #188 must name the version that is froze
   against the corpus by a second, independent pass, and three that it found defective
   (q-021, q-033, q-049) were corrected. Social Security Act text is not in the local
   corpus, so no key rests on statute text alone.
+
+## v3.2 — 2026-10-07
+
+Review EVAL-1b (issue #554): approvals. **`benchmarkHash` changed; scores on 3.1 and 3.2
+are not comparable**, and issue #188 must name the version that is frozen.
+
+- 44 of 56 entries are validated. 34 of the keys reworded in 3.1 join the ten: q-002,
+  q-003, q-006, q-007, q-009, q-010, q-015, q-017 to q-020, q-022 to q-024, q-026 to
+  q-028, q-030 to q-032, q-034 to q-041, q-043, q-044, q-046 to q-048 and q-050.
+- Approval rule, by the owner's decision of 2026-10-07: the owner is not a lawyer and
+  has no access to one, so a reworded key is marked validated when a strict, independent
+  read of its final text against the corpus returns no findings. 23 keys passed that
+  read as they stood in 3.1. 14 had one small finding each (a dropped qualifier, a
+  missing quote for a true claim, or a one-sided omission); each was fixed and read
+  again, and 11 then passed. Their text differs from 3.1 by those fixes. The owner
+  spot-checks a sample; `key-review-3.2.md` pairs each claim with the text it rests on
+  and puts a suggested sample first.
+- q-008, q-029 and q-045 stay `needs_validation` with the open finding from that last
+  read in `validation_note`. Their text carries the 3.2 fixes.
+- q-021, q-033 and q-049 stay `needs_validation`: they depend on legal judgment (which
+  contract amendment is operative; appeal routes and deadlines for agency and plan
+  denials; the federal authority for EPSDT).
+- q-042 and q-051 to q-055 are unchanged from 3.1.
+- q-044 is the first of the three former instruction-only keys to be scored: its answer
+  is quoted from the CAP/DA policy's revision table.
+
