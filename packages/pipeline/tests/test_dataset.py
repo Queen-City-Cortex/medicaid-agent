@@ -207,15 +207,16 @@ class TestGoldenDataset:
 
         for question_id in ("q-042", "q-044", "q-045"):
             entry = entries[question_id]
-            # q-044 has had a factual answer, quoted from the revision table, since 3.2.
-            assert entry["status"] == ("validated" if question_id == "q-044" else "needs_validation")
+            # q-044 and q-045 have had factual answers, quoted from the revision table
+            # and the regulations' source notes, since 3.2 and 3.3.
+            assert entry["status"] == ("needs_validation" if question_id == "q-042" else "validated")
             assert "getAmendments" in entry["expected_behavior"] or "agent should" in entry["expected_behavior"]
             assert "agent" not in entry["answer"].get("text", "")
 
     def test_dataset_is_versioned(self):
-        assert dataset_version() == "3.2"
-        assert dataset_version(HELDOUT_PATH) == "3.2"
-        assert "## v3.2" in (GOLDEN_DATASET_PATH.parent / "CHANGELOG.md").read_text()
+        assert dataset_version() == "3.3"
+        assert dataset_version(HELDOUT_PATH) == "3.3"
+        assert "## v3.3" in (GOLDEN_DATASET_PATH.parent / "CHANGELOG.md").read_text()
 
     def test_every_paraphrase_inherits_its_key_from_a_golden_parent(self):
         golden = {entry["id"]: entry for entry in load_dataset()}

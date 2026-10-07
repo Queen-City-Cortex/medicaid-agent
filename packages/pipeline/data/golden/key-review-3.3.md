@@ -1,6 +1,6 @@
-# Golden answer keys: review list for dataset 3.2
+# Golden answer keys: review list for dataset 3.3
 
-Forty answer keys were reworded in dataset 3.1 (review EVAL-1b, issue #554). In 3.2, 34 of them are validated and scored; 3 wait on one small finding each; 3 depend on legal judgment and stay unscored.
+Forty answer keys were reworded in dataset 3.1 (review EVAL-1b, issue #554). In 3.3, 37 of them are validated and scored; 3 depend on legal judgment and stay unscored.
 
 ## How the validated keys were approved
 
@@ -15,6 +15,7 @@ If a pair does not hold, set that key's `status` back to `needs_validation` in `
 # Part 1: suggested spot-check sample (6 keys)
 
 Chosen to cover different kinds of question: service criteria, exclusions, a drug therapy, a surgical policy, a waiver, and a federal regulation.
+Spot-check record: the owner read q-003 on 2026-10-07 and found it sound. The owner questioned pair 4 of q-038 the same day; the key was narrowed and re-read (see the 3.3 changelog entry), and is shown here as revised.
 
 ## q-003
 
@@ -258,9 +259,9 @@ No. Policy 1A-15 covers surgery for clinically severe or morbid obesity only whe
 
 **Question.** Does the CAP/DA waiver cover a beneficiary's room and board in their own home?
 
-**Proposed key.** No. CAP/DA is a Medicaid Home and Community-Based Services (HCBS) waiver, and under 42 CFR 441.310 federal funding for HCBS waiver services is not available for the cost of room and board, apart from narrow exceptions. Policy 3K-2 says community transition and community integration services do not cover room and board, and community integration services do not include monthly rental or mortgage expense, food, or regular utility charges. The waiver funds services such as in-home aide, personal assistance and case management that allow a beneficiary to remain in or return to a home and community-based setting.
+**Proposed key.** No. CAP/DA is a Medicaid Home and Community-Based Services (HCBS) waiver, and under 42 CFR 441.310 federal funding for HCBS waiver services is not available for the cost of room and board, apart from narrow exceptions. Policy 3K-2 says community integration services do not cover room and board and do not include monthly rental or mortgage expense, food, or regular utility charges, and community transition services do not include rent or back rent. The waiver funds services such as in-home aide, personal assistance and case management that allow a beneficiary to remain in or return to a home and community-based setting.
 
-**Caveats.** 42 CFR 441.310 excepts room and board provided as part of respite care in a State-approved facility that is not a private residence, and a portion of rent and food attributable to an unrelated live-in caregiver; Community transition services, for a beneficiary moving from an institution to the community, may cover set-up costs such as a security deposit or first month's rent required to obtain a lease and utility set-up fees or deposits, but not rent or back rent
+**Caveats.** The exceptions in 42 CFR 441.310 concern room and board that is part of respite care in a State-approved facility that is not a private residence, and an unrelated live-in caregiver's share of rent and food in waivers that allow personal caregivers as providers, each with its own conditions; Policy 3K-2 says its coordinated caregiving reimbursement rate does not include room and board; Community transition services, for a beneficiary moving from an institution to the community, may cover set-up costs such as a security deposit or first month's rent required to obtain a lease and utility set-up fees or deposits, but not rent or back rent
 
 **Check each pair: does the policy text say what the key says?**
 
@@ -276,41 +277,45 @@ No. Policy 1A-15 covers surgery for clinically severe or morbid obesity only whe
    **Text says:** "The cost of room and board except when provided as— (i) Part of respite care services in a facility approved by the State that is not a private residence; or (ii) For waivers that allow personal caregivers as providers of approved waiver services, a portion of the rent and food that may be reasonably attributed to the unrelated caregiver who resides in the same household with the waiver beneficiary."
    *42 CFR § 441.310*
 
-4. **Key says:** The sentence that follows concerns community transition services
-   **Text says:** "Community transition services are available to cover initial set-up expenses"
-   *Policy 3K-2 (Community Alternatives Program for Disabled Adults (CAP/DA)), 5.8.6*
-
-5. **Key says:** Community transition and community integration services do not cover room and board
+4. **Key says:** Community integration services do not cover room and board
    **Text says:** "Community Integration services are available to cover tenancy-related issues, not to exceed $2,500 over the CAP/DA Waiver approval cycle. These services do not cover room and board."
    *Policy 3K-2 (Community Alternatives Program for Disabled Adults (CAP/DA)), 5.8.6*
 
-6. **Key says:** Community integration services do not include rent or mortgage, food, or regular utility charges
+5. **Key says:** Community integration services do not include rent or mortgage, food, or regular utility charges
    **Text says:** "Community Integration Services do not include monthly rental or mortgage expense; food, regular utility charges;"
    *Policy 3K-2 (Community Alternatives Program for Disabled Adults (CAP/DA)), Limits, Amount And Frequency*
 
-7. **Key says:** Waiver services include case management and personal assistance
+6. **Key says:** Waiver services include case management and personal assistance
    **Text says:** "Case management - case management and care advisement; Personal assistance; and Financial management."
    *Policy 3K-2 (Community Alternatives Program for Disabled Adults (CAP/DA)), The CAP/DA waiver services are:*
 
-8. **Key says:** The services allow the beneficiary to remain in or return to a home and community-based setting
+7. **Key says:** The services allow the beneficiary to remain in or return to a home and community-based setting
    **Text says:** "These services allow this targeted individual to remain in or return to a home and community-based setting."
    *Policy 3K-2 (Community Alternatives Program for Disabled Adults (CAP/DA)), 1.0*
 
-9. **Key says:** In-home aide is a CAP/DA waiver service
+8. **Key says:** In-home aide is a CAP/DA waiver service
    **Text says:** "Adult day health; CAP In-home aide I & II;"
    *Policy 3K-2 (Community Alternatives Program for Disabled Adults (CAP/DA)), The CAP/DA waiver services are:*
 
-10. **Key says:** Community transition services are for a beneficiary moving from an institution to the community
+9. **Key says:** Community transition services are for a beneficiary moving from an institution to the community
    **Text says:** "A service for a prospective CAP/DA beneficiary for transitioning from an institutional setting to a community setting."
    *Policy 3K-2 (Community Alternatives Program for Disabled Adults (CAP/DA)), COMMUNITY TRANSITION SERVICES*
 
-11. **Key says:** Transition services may cover a security deposit or first month's rent and utility set-up fees or deposits
+10. **Key says:** Transition services may cover a security deposit or first month's rent and utility set-up fees or deposits
    **Text says:** "Security deposits or other such payments (such as first month's rent) required to obtain a lease on an apartment or home; Set-up fees or deposits for utility or service access (such as telephone, electricity, heating)"
    *Policy 3K-2 (Community Alternatives Program for Disabled Adults (CAP/DA)), COMMUNITY TRANSITION SERVICES*
 
-12. **Key says:** Transition services do not cover rent or back rent
+11. **Key says:** Community transition services do not include rent or back rent (answer and caveat)
    **Text says:** "This service does not include rent or back rent payments."
    *Policy 3K-2 (Community Alternatives Program for Disabled Adults (CAP/DA)), COMMUNITY TRANSITION SERVICES*
+
+12. **Key says:** caveat: Policy 3K-2's coordinated caregiving rate does not include room and board
+   **Text says:** "The coordinated caregiving Medicaid reimbursement rate does not include room and board."
+   *Policy 3K-2 (Community Alternatives Program for Disabled Adults (CAP/DA)), Limits, Amount And Frequency*
+
+13. **Key says:** caveat: the live-in caregiver exception has its own conditions
+   **Text says:** "FFP for a live-in caregiver is not available if the beneficiary lives in the caregiver's home or in a residence that is owned or leased by the provider of Medicaid services (the caregiver)."
+   *42 CFR § 441.310*
 
 <details><summary>Original key and what was wrong with it</summary>
 
@@ -364,7 +369,7 @@ No. CAP/DA is a home- and community-based services (HCBS) waiver; by federal des
 
 ---
 
-# Part 2: the other validated keys (28 keys)
+# Part 2: the other validated keys (31 keys)
 
 ## q-002
 
@@ -512,6 +517,68 @@ Clinical Coverage Policy 10A section 3.2.1.6 specifies Treatment Plan (Plan of C
 - The plan must document 'the patient's functional deficits': 3.2.1.6 does not list functional deficits; it lists the discipline-specific treatment diagnosis and related medical diagnoses.
 - The plan must document 'the expected outcomes': 3.2.1.6 does not list expected outcomes as a plan element; it requires measurable goals.
 - 'duration of services': the listed element is the duration of the treatment plan (start and end date, no more than six calendar months), and the elements are required of the plan in combination with the evaluation report.
+
+</details>
+
+---
+
+## q-008
+
+**Question.** Can a CAP/DA beneficiary transfer between service providers, and what rules govern transfers of eligible beneficiaries?
+
+**Proposed key.** Yes, a CAP/DA beneficiary may change provider agencies: Clinical Coverage Policy 3K-2 requires a POC update and a signed freedom of choice form consenting to the change in providers. Section 3.3, Transfers of Eligible Beneficiaries, governs a different kind of transfer, to another county or CME: the CME must coordinate it by the agreed transition date or in less than 30 calendar days of the request, preventing gaps in service, and the beneficiary remains eligible for CAP/DA regardless of county of residence.
+
+**Caveats.** Section 5.4.5 says a POC revision is required when there are changes in a service provider, while the change-of-provider-agency text says the POC update is not considered a revision.; For a transfer to another case management entity, Appendix B also requires a root cause analysis within five business days and NC Medicaid's approval of the transfer.
+
+**Check each pair: does the policy text say what the key says?**
+
+1. **Key says:** Yes, a beneficiary may change provider agencies
+   **Text says:** "Ensure the beneficiary's right to choose among providers as evidenced by a signed freedom of choice form"
+   *Policy 3K-2 (Community Alternatives Program for Disabled Adults (CAP/DA)), 5.4.2*
+
+2. **Key says:** a change of provider agency requires a POC update
+   **Text says:** "A POC update is required for a change in provider agency, but the change is not considered a revision."
+   *Policy 3K-2 (Community Alternatives Program for Disabled Adults (CAP/DA)), Documenting a change of provider agency:*
+
+3. **Key says:** a signed freedom of choice form consenting to the change in providers
+   **Text says:** "The CME designee obtains a signed freedom of choice form from the beneficiary or the responsible party consenting to the change in providers."
+   *Policy 3K-2 (Community Alternatives Program for Disabled Adults (CAP/DA)), Documenting a change of provider agency:*
+
+4. **Key says:** section 3.3 governs transfers to another county or entity; the CME coordinates by the agreed date or in less than 30 calendar days
+   **Text says:** "the CME shall coordinate the transfer of an eligible CAP/DA beneficiary to another county or entity within the approved, agreed upon transition date or less than 30 calendar days of the request to transfer"
+   *Policy 3K-2 (Community Alternatives Program for Disabled Adults (CAP/DA)), 3.3*
+
+5. **Key says:** the transfer is to another county or CME
+   **Text says:** "An eligible CAP/DA beneficiary who is transferring to another county or CME"
+   *Policy 3K-2 (Community Alternatives Program for Disabled Adults (CAP/DA)), 3.2.4*
+
+6. **Key says:** preventing gaps in service
+   **Text says:** "CME shall coordinate the transfer to prevent gaps in service provisions."
+   *Policy 3K-2 (Community Alternatives Program for Disabled Adults (CAP/DA)), 3.3*
+
+7. **Key says:** the beneficiary remains eligible regardless of county of residence
+   **Text says:** "A transferring beneficiary continues to be eligible for CAP/DA regardless of their county of residence."
+   *Policy 3K-2 (Community Alternatives Program for Disabled Adults (CAP/DA)), 3.3*
+
+8. **Key says:** caveat: 5.4.5 calls a change in service provider a POC revision
+   **Text says:** "A plan of care (POC) revision is required when a request is made to add, reduce, increase, delete a CAP/DA service or Medicaid State service, or when there are changes in a service provider."
+   *Policy 3K-2 (Community Alternatives Program for Disabled Adults (CAP/DA)), 5.4.5*
+
+9. **Key says:** caveat: a transfer to another case management entity requires a root cause analysis within five business days
+   **Text says:** "If a request is made to transfer to another case management entity, a root cause analysis must be performed within five business days"
+   *Policy 3K-2 (Community Alternatives Program for Disabled Adults (CAP/DA)), COORDINATION OF CARE: CASE MANAGEMENT AND CARE ADVISEMENT*
+
+10. **Key says:** caveat: NC Medicaid's approval of the transfer
+   **Text says:** "NC Medicaid shall approve the transfer of CME."
+   *Policy 3K-2 (Community Alternatives Program for Disabled Adults (CAP/DA)), COORDINATION OF CARE: CASE MANAGEMENT AND CARE ADVISEMENT*
+
+<details><summary>Original key and what was wrong with it</summary>
+
+Yes, CAP/DA beneficiaries may transfer between providers. Clinical Coverage Policy 3K-2 section 3.3 governs transfers of eligible beneficiaries and outlines the process and conditions under which a beneficiary may change their CAP/DA service provider while maintaining continuity of care. The transfer process must comply with NC Medicaid's enrollment and authorization requirements.
+
+- Section 3.3 outlines the process and conditions under which a beneficiary may change their CAP/DA service provider (3.3 covers transfers to another county or case management entity, not changes of service provider)
+- The transfer process must comply with NC Medicaid's enrollment and authorization requirements (not stated in 3.3 or in the change-of-provider section)
+- Caveat that timelines and steps may be detailed in operational guidance beyond the policy (nothing in 3K-2 points to outside guidance for transfers; 3.3 itself gives the timelines and steps)
 
 </details>
 
@@ -1079,6 +1146,49 @@ No. Policy 8C governs outpatient behavioral health services (section 2.1.1 scope
 
 ---
 
+## q-029
+
+**Question.** Does Policy 10A cover routine massage therapy for beneficiaries over age 21?
+
+**Proposed key.** Policy 10A (Outpatient Specialized Therapies) does not mention massage therapy by name. It covers medically necessary skilled healthcare provided by a qualified therapist in physical therapy, occupational therapy, speech-language pathology and audiology therapy, so routine massage that is not such therapy is not covered under Policy 10A for a beneficiary over 21. EPSDT may permit coverage for beneficiaries under 21 when medically necessary.
+
+**Caveats.** EPSDT exception may apply under 21
+
+**Check each pair: does the policy text say what the key says?**
+
+1. **Key says:** Policy 10A covers medically necessary skilled healthcare provided by a qualified therapist
+   **Text says:** "Outpatient Specialized Therapy (OST) Services are medically necessary skilled healthcare, provided by a qualified therapist, that supports a beneficiary's functional skills for daily living."
+   *Policy 10A (Outpatient Specialized Therapies), 1.0*
+
+2. **Key says:** The services are evaluations and treatments in physical therapy, occupational therapy, speech-language pathology and audiology therapy
+   **Text says:** "The services consist of evaluations, re-evaluations, multidisciplinary evaluations, and treatments for the following: Physical Therapy; Occupational Therapy; Speech-Language Pathology; and Audiology Therapy."
+   *Policy 10A (Outpatient Specialized Therapies), 1.0*
+
+3. **Key says:** Physical therapy is covered when medically necessary
+   **Text says:** "Medicaid shall cover outpatient physical therapy services for a beneficiary when medically necessary."
+   *Policy 10A (Outpatient Specialized Therapies), 3.2.1.1*
+
+4. **Key says:** EPSDT may permit coverage for beneficiaries under 21 when medically necessary (answer and caveat)
+   **Text says:** "requires the state Medicaid agency to cover services, products, or procedures for Medicaid beneficiary under 21 years of age if the service is medically necessary health care to correct or ameliorate a defect, physical or mental illness, or a condition"
+   *Policy 10A (Outpatient Specialized Therapies), 2.2.1*
+
+5. **Key says:** a service that does not meet the section 3.0 coverage criteria is not covered (the conclusion that routine massage that is not such therapy is not covered under Policy 10A)
+   **Text says:** "Medicaid shall not cover procedures, products, and services related to this policy when: the beneficiary does not meet the eligibility requirements listed in Section 2.0; the beneficiary does not meet the criteria listed in Section 3.0"
+   *Policy 10A (Outpatient Specialized Therapies), 4.1*
+
+<details><summary>Original key and what was wrong with it</summary>
+
+No. Routine massage therapy is not covered under Policy 10A (Outpatient Therapy) for beneficiaries age 21 and older. The policy's scope section defines covered outpatient therapy services, and routine massage falls outside that scope. EPSDT may permit coverage for beneficiaries under 21 when medically necessary.
+
+- Routine massage therapy is not covered under Policy 10A, stated as a flat rule (the policy never mentions massage; no section states a massage exclusion)
+- The policy's 'scope section' 2.1.1 defines covered outpatient therapy services (2.1.1 is generic eligibility text; the description is in 1.0)
+- Section 4.1 as the basis for the exclusion (4.1 is the generic not-covered rule and says nothing about massage)
+- Policy title 'Outpatient Therapy' (the document is 'Outpatient Specialized Therapies')
+
+</details>
+
+---
+
 ## q-030
 
 **Question.** Are experimental or investigational drugs covered under the NC Medicaid outpatient pharmacy benefit?
@@ -1600,6 +1710,79 @@ The most recent revision to Clinical Coverage Policy 8C has an effective date of
 
 ---
 
+## q-045
+
+**Question.** What is the most recent revision to 42 CFR Part 441 as it applies to HCBS waiver applications?
+
+**Proposed key.** In the corpus copy of 42 CFR Part 441, the section 1915(c) waiver-request sections each end with a note (labelled Authority) listing Federal Register citations, and the most recent amendment listed for each is dated May 10, 2024: § 441.301 (contents of the request) at 89 FR 40863, § 441.302 (State assurances) at 89 FR 40865, and § 441.303 (supporting documentation) at 89 FR 40866. Among the neighbouring 1915(c) sections, § 441.312 (HCBS quality measure set) lists a later Federal Register citation, 89 FR 53502, June 27, 2024. In the separate provisions for section 1915(d) waivers serving individuals age 65 or older, § 441.353 (supporting documentation) lists a later amendment, 89 FR 80069, Oct. 2, 2024.
+
+**Caveats.** The corpus text does not state the date of the eCFR snapshot that was ingested, and the notes give only Federal Register citations and dates: they do not describe what each amendment changed.
+
+**Check each pair: does the policy text say what the key says?**
+
+1. **Key says:** These sections are the section 1915(c) waiver subpart
+   **Text says:** "Section 1915(c) of the Act permits States to offer, under a waiver of statutory requirements, an array of home and community-based services that an individual needs to avoid institutionalization."
+   *42 CFR § 441.300*
+
+2. **Key says:** The subpart describes what the agency must do to obtain a waiver
+   **Text says:** "This subpart describes what the Medicaid agency must do to obtain a waiver."
+   *42 CFR § 441.300*
+
+3. **Key says:** § 441.301 sets the contents of the waiver request
+   **Text says:** "(a) A request for a waiver under this section must consist of the following:"
+   *42 CFR § 441.301*
+
+4. **Key says:** § 441.301's most recent listed amendment is 89 FR 40863, May 10, 2024
+   **Text says:** "[Authority: [46 FR 48541, Oct. 1, 1981, as amended at 50 FR 10026, Mar. 13, 1985; 59 FR 37717, July 25, 1994; 65 FR 60107, Oct. 10, 2000; 79 FR 3029, Jan. 16, 2014; 89 FR 40863, May 10, 2024]]"
+   *42 CFR § 441.301*
+
+5. **Key says:** § 441.302 sets the State assurances
+   **Text says:** "Unless the Medicaid agency provides the following satisfactory assurances to CMS, CMS will not grant a waiver under this subpart"
+   *42 CFR § 441.302*
+
+6. **Key says:** § 441.302's most recent listed amendment is 89 FR 40865, May 10, 2024
+   **Text says:** "[Authority: [50 FR 10026, Mar. 13, 1985, as amended at 59 FR 37717, July 25, 1994; 65 FR 60107, Oct. 10, 2000; 79 FR 3031, Jan. 16, 2014; 89 FR 40865, May 10, 2024]]"
+   *42 CFR § 441.302*
+
+7. **Key says:** § 441.303 sets the supporting documentation
+   **Text says:** "The agency must furnish CMS with sufficient information to support the assurances required by § 441.302."
+   *42 CFR § 441.303*
+
+8. **Key says:** § 441.303's most recent listed amendment is 89 FR 40866, May 10, 2024
+   **Text says:** "[Authority: [46 FR 48532, Oct. 1, 1981, as amended at 50 FR 10027, Mar. 13, 1985; 50 FR 25080, June 17, 1985; 59 FR 37718, July 25, 1994; 89 FR 40866, May 10, 2024]]"
+   *42 CFR § 441.303*
+
+9. **Key says:** § 441.312 is a section 1915(c) waiver section on the HCBS quality measure set
+   **Text says:** "This section describes the Home and Community-Based Services Quality Measure Set, which States are required to use in section 1915(c) waiver programs"
+   *42 CFR § 441.312*
+
+10. **Key says:** § 441.312 lists a later citation, 89 FR 53502, June 27, 2024
+   **Text says:** "[Authority: [89 FR 40868, May 10, 2024; 89 FR 53502, June 27, 2024]]"
+   *42 CFR § 441.312*
+
+11. **Key says:** The parallel subpart is for section 1915(d) waivers serving individuals age 65 or older
+   **Text says:** "Section 1915(d) of the Act permits States to offer, under a waiver of statutory requirements, home and community-based services not otherwise available under Medicaid to individuals age 65 or older"
+   *42 CFR § 441.350*
+
+12. **Key says:** § 441.353 sets supporting documentation for the 1915(d) waiver
+   **Text says:** "The agency must furnish CMS with sufficient information to support the assurances required under § 441.352"
+   *42 CFR § 441.353*
+
+13. **Key says:** § 441.353 lists an amendment at 89 FR 80069, Oct. 2, 2024
+   **Text says:** "[Authority: [57 FR 29156, June 30, 1992, as amended at 81 FR 3012, Jan. 20, 2016; 89 FR 80069, Oct. 2, 2024]]"
+   *42 CFR § 441.353*
+
+<details><summary>Original key and what was wrong with it</summary>
+
+The latest revision is the one reflected in the eCFR snapshot currently ingested into the corpus.
+
+- 'The latest revision is the one reflected in the eCFR snapshot currently ingested into the corpus': names no revision or date, and no section text states a snapshot or ingestion date
+- the evidence note calling §§ 441.351 onward a 'parallel newer numbering family': § 441.350 shows it is a different subpart, for section 1915(d) waivers serving individuals age 65 or older
+
+</details>
+
+---
+
 ## q-046
 
 **Question.** What federal regulation authorizes NC Medicaid's 1915(c) HCBS waivers such as CAP/DA?
@@ -1764,183 +1947,7 @@ Section 1915(c) of the Social Security Act (42 USC § 1396n(c)) provides the sta
 
 ---
 
-# Part 3: waiting on one finding (3 keys)
-
-Each has been through the same passes; the last read raised the point shown. They stay unscored until it is resolved and re-read.
-
-**Open finding on q-008.** The key gives the section 3.3 rules for a transfer to another case management entity but leaves out two conditions Appendix B of the same policy sets on that transfer: a root cause analysis within five business days, and NC Medicaid's approval.
-
-## q-008
-
-**Question.** Can a CAP/DA beneficiary transfer between service providers, and what rules govern transfers of eligible beneficiaries?
-
-**Proposed key.** Yes, a CAP/DA beneficiary may change provider agencies: Clinical Coverage Policy 3K-2 requires a POC update and a signed freedom of choice form consenting to the change in providers. Section 3.3, Transfers of Eligible Beneficiaries, governs a different kind of transfer, to another county or CME: the CME must coordinate it by the agreed transition date or in less than 30 calendar days of the request, preventing gaps in service, and the beneficiary remains eligible for CAP/DA regardless of county of residence.
-
-**Caveats.** Section 5.4.5 says a POC revision is required when there are changes in a service provider, while the change-of-provider-agency text says the POC update is not considered a revision.
-
-**Check each pair: does the policy text say what the key says?**
-
-1. **Key says:** Yes, a beneficiary may change provider agencies
-   **Text says:** "Ensure the beneficiary's right to choose among providers as evidenced by a signed freedom of choice form"
-   *Policy 3K-2 (Community Alternatives Program for Disabled Adults (CAP/DA)), 5.4.2*
-
-2. **Key says:** a change of provider agency requires a POC update
-   **Text says:** "A POC update is required for a change in provider agency, but the change is not considered a revision."
-   *Policy 3K-2 (Community Alternatives Program for Disabled Adults (CAP/DA)), Documenting a change of provider agency:*
-
-3. **Key says:** a signed freedom of choice form consenting to the change in providers
-   **Text says:** "The CME designee obtains a signed freedom of choice form from the beneficiary or the responsible party consenting to the change in providers."
-   *Policy 3K-2 (Community Alternatives Program for Disabled Adults (CAP/DA)), Documenting a change of provider agency:*
-
-4. **Key says:** section 3.3 governs transfers to another county or entity; the CME coordinates by the agreed date or in less than 30 calendar days
-   **Text says:** "the CME shall coordinate the transfer of an eligible CAP/DA beneficiary to another county or entity within the approved, agreed upon transition date or less than 30 calendar days of the request to transfer"
-   *Policy 3K-2 (Community Alternatives Program for Disabled Adults (CAP/DA)), 3.3*
-
-5. **Key says:** the transfer is to another county or CME
-   **Text says:** "An eligible CAP/DA beneficiary who is transferring to another county or CME"
-   *Policy 3K-2 (Community Alternatives Program for Disabled Adults (CAP/DA)), 3.2.4*
-
-6. **Key says:** preventing gaps in service
-   **Text says:** "CME shall coordinate the transfer to prevent gaps in service provisions."
-   *Policy 3K-2 (Community Alternatives Program for Disabled Adults (CAP/DA)), 3.3*
-
-7. **Key says:** the beneficiary remains eligible regardless of county of residence
-   **Text says:** "A transferring beneficiary continues to be eligible for CAP/DA regardless of their county of residence."
-   *Policy 3K-2 (Community Alternatives Program for Disabled Adults (CAP/DA)), 3.3*
-
-8. **Key says:** caveat: 5.4.5 calls a change in service provider a POC revision
-   **Text says:** "A plan of care (POC) revision is required when a request is made to add, reduce, increase, delete a CAP/DA service or Medicaid State service, or when there are changes in a service provider."
-   *Policy 3K-2 (Community Alternatives Program for Disabled Adults (CAP/DA)), 5.4.5*
-
-<details><summary>Original key and what was wrong with it</summary>
-
-Yes, CAP/DA beneficiaries may transfer between providers. Clinical Coverage Policy 3K-2 section 3.3 governs transfers of eligible beneficiaries and outlines the process and conditions under which a beneficiary may change their CAP/DA service provider while maintaining continuity of care. The transfer process must comply with NC Medicaid's enrollment and authorization requirements.
-
-- Section 3.3 outlines the process and conditions under which a beneficiary may change their CAP/DA service provider (3.3 covers transfers to another county or case management entity, not changes of service provider)
-- The transfer process must comply with NC Medicaid's enrollment and authorization requirements (not stated in 3.3 or in the change-of-provider section)
-- Caveat that timelines and steps may be detailed in operational guidance beyond the policy (nothing in 3K-2 points to outside guidance for transfers; 3.3 itself gives the timelines and steps)
-
-</details>
-
----
-
-**Open finding on q-029.** Nothing stated is wrong, but the conclusion that routine massage is not covered is inferred from the policy's scope; no quote is not-covered language. Section 4.1 (not covered when the section 3.0 criteria are not met) would supply it.
-
-## q-029
-
-**Question.** Does Policy 10A cover routine massage therapy for beneficiaries over age 21?
-
-**Proposed key.** Policy 10A (Outpatient Specialized Therapies) does not mention massage therapy by name. It covers medically necessary skilled healthcare provided by a qualified therapist in physical therapy, occupational therapy, speech-language pathology and audiology therapy, so routine massage that is not such therapy is not covered under Policy 10A for a beneficiary over 21. EPSDT may permit coverage for beneficiaries under 21 when medically necessary.
-
-**Caveats.** EPSDT exception may apply under 21
-
-**Check each pair: does the policy text say what the key says?**
-
-1. **Key says:** Policy 10A covers medically necessary skilled healthcare provided by a qualified therapist
-   **Text says:** "Outpatient Specialized Therapy (OST) Services are medically necessary skilled healthcare, provided by a qualified therapist, that supports a beneficiary's functional skills for daily living."
-   *Policy 10A (Outpatient Specialized Therapies), 1.0*
-
-2. **Key says:** The services are evaluations and treatments in physical therapy, occupational therapy, speech-language pathology and audiology therapy
-   **Text says:** "The services consist of evaluations, re-evaluations, multidisciplinary evaluations, and treatments for the following: Physical Therapy; Occupational Therapy; Speech-Language Pathology; and Audiology Therapy."
-   *Policy 10A (Outpatient Specialized Therapies), 1.0*
-
-3. **Key says:** Physical therapy is covered when medically necessary
-   **Text says:** "Medicaid shall cover outpatient physical therapy services for a beneficiary when medically necessary."
-   *Policy 10A (Outpatient Specialized Therapies), 3.2.1.1*
-
-4. **Key says:** EPSDT may permit coverage for beneficiaries under 21 when medically necessary (answer and caveat)
-   **Text says:** "requires the state Medicaid agency to cover services, products, or procedures for Medicaid beneficiary under 21 years of age if the service is medically necessary health care to correct or ameliorate a defect, physical or mental illness, or a condition"
-   *Policy 10A (Outpatient Specialized Therapies), 2.2.1*
-
-<details><summary>Original key and what was wrong with it</summary>
-
-No. Routine massage therapy is not covered under Policy 10A (Outpatient Therapy) for beneficiaries age 21 and older. The policy's scope section defines covered outpatient therapy services, and routine massage falls outside that scope. EPSDT may permit coverage for beneficiaries under 21 when medically necessary.
-
-- Routine massage therapy is not covered under Policy 10A, stated as a flat rule (the policy never mentions massage; no section states a massage exclusion)
-- The policy's 'scope section' 2.1.1 defines covered outpatient therapy services (2.1.1 is generic eligibility text; the description is in 1.0)
-- Section 4.1 as the basis for the exclusion (4.1 is the generic not-covered rule and says nothing about massage)
-- Policy title 'Outpatient Therapy' (the document is 'Outpatient Specialized Therapies')
-
-</details>
-
----
-
-**Open finding on q-045.** The source note for 42 CFR 441.312 lists the June 27, 2024 Federal Register citation without calling it an amendment, so 'lists a later amendment' says slightly more than the text.
-
-## q-045
-
-**Question.** What is the most recent revision to 42 CFR Part 441 as it applies to HCBS waiver applications?
-
-**Proposed key.** In the corpus copy of 42 CFR Part 441, the section 1915(c) waiver-request sections each end with a note (labelled Authority) listing Federal Register citations, and the most recent amendment listed for each is dated May 10, 2024: § 441.301 (contents of the request) at 89 FR 40863, § 441.302 (State assurances) at 89 FR 40865, and § 441.303 (supporting documentation) at 89 FR 40866. Among the neighbouring 1915(c) sections, § 441.312 (HCBS quality measure set) lists a later amendment, 89 FR 53502, June 27, 2024. In the separate provisions for section 1915(d) waivers serving individuals age 65 or older, § 441.353 (supporting documentation) lists a later amendment, 89 FR 80069, Oct. 2, 2024.
-
-**Caveats.** The corpus text does not state the date of the eCFR snapshot that was ingested, and the notes give only Federal Register citations and dates: they do not describe what each amendment changed.
-
-**Check each pair: does the policy text say what the key says?**
-
-1. **Key says:** These sections are the section 1915(c) waiver subpart
-   **Text says:** "Section 1915(c) of the Act permits States to offer, under a waiver of statutory requirements, an array of home and community-based services that an individual needs to avoid institutionalization."
-   *42 CFR § 441.300*
-
-2. **Key says:** The subpart describes what the agency must do to obtain a waiver
-   **Text says:** "This subpart describes what the Medicaid agency must do to obtain a waiver."
-   *42 CFR § 441.300*
-
-3. **Key says:** § 441.301 sets the contents of the waiver request
-   **Text says:** "(a) A request for a waiver under this section must consist of the following:"
-   *42 CFR § 441.301*
-
-4. **Key says:** § 441.301's most recent listed amendment is 89 FR 40863, May 10, 2024
-   **Text says:** "[Authority: [46 FR 48541, Oct. 1, 1981, as amended at 50 FR 10026, Mar. 13, 1985; 59 FR 37717, July 25, 1994; 65 FR 60107, Oct. 10, 2000; 79 FR 3029, Jan. 16, 2014; 89 FR 40863, May 10, 2024]]"
-   *42 CFR § 441.301*
-
-5. **Key says:** § 441.302 sets the State assurances
-   **Text says:** "Unless the Medicaid agency provides the following satisfactory assurances to CMS, CMS will not grant a waiver under this subpart"
-   *42 CFR § 441.302*
-
-6. **Key says:** § 441.302's most recent listed amendment is 89 FR 40865, May 10, 2024
-   **Text says:** "[Authority: [50 FR 10026, Mar. 13, 1985, as amended at 59 FR 37717, July 25, 1994; 65 FR 60107, Oct. 10, 2000; 79 FR 3031, Jan. 16, 2014; 89 FR 40865, May 10, 2024]]"
-   *42 CFR § 441.302*
-
-7. **Key says:** § 441.303 sets the supporting documentation
-   **Text says:** "The agency must furnish CMS with sufficient information to support the assurances required by § 441.302."
-   *42 CFR § 441.303*
-
-8. **Key says:** § 441.303's most recent listed amendment is 89 FR 40866, May 10, 2024
-   **Text says:** "[Authority: [46 FR 48532, Oct. 1, 1981, as amended at 50 FR 10027, Mar. 13, 1985; 50 FR 25080, June 17, 1985; 59 FR 37718, July 25, 1994; 89 FR 40866, May 10, 2024]]"
-   *42 CFR § 441.303*
-
-9. **Key says:** § 441.312 is a section 1915(c) waiver section on the HCBS quality measure set
-   **Text says:** "This section describes the Home and Community-Based Services Quality Measure Set, which States are required to use in section 1915(c) waiver programs"
-   *42 CFR § 441.312*
-
-10. **Key says:** § 441.312 lists an amendment at 89 FR 53502, June 27, 2024
-   **Text says:** "[Authority: [89 FR 40868, May 10, 2024; 89 FR 53502, June 27, 2024]]"
-   *42 CFR § 441.312*
-
-11. **Key says:** The parallel subpart is for section 1915(d) waivers serving individuals age 65 or older
-   **Text says:** "Section 1915(d) of the Act permits States to offer, under a waiver of statutory requirements, home and community-based services not otherwise available under Medicaid to individuals age 65 or older"
-   *42 CFR § 441.350*
-
-12. **Key says:** § 441.353 sets supporting documentation for the 1915(d) waiver
-   **Text says:** "The agency must furnish CMS with sufficient information to support the assurances required under § 441.352"
-   *42 CFR § 441.353*
-
-13. **Key says:** § 441.353 lists an amendment at 89 FR 80069, Oct. 2, 2024
-   **Text says:** "[Authority: [57 FR 29156, June 30, 1992, as amended at 81 FR 3012, Jan. 20, 2016; 89 FR 80069, Oct. 2, 2024]]"
-   *42 CFR § 441.353*
-
-<details><summary>Original key and what was wrong with it</summary>
-
-The latest revision is the one reflected in the eCFR snapshot currently ingested into the corpus.
-
-- 'The latest revision is the one reflected in the eCFR snapshot currently ingested into the corpus': names no revision or date, and no section text states a snapshot or ingestion date
-- the evidence note calling §§ 441.351 onward a 'parallel newer numbering family': § 441.350 shows it is a different subpart, for section 1915(d) waivers serving individuals age 65 or older
-
-</details>
-
----
-
-# Part 4: set aside unless someone with legal training reads them (3 keys)
+# Part 3: set aside unless someone with legal training reads them (3 keys)
 
 - **q-021** (medical loss ratio) depends on which contract amendment is currently operative.
 - **q-033** (appeals of a prior authorization denial) depends on how the State agency route and the managed care plan route differ, and on which deadline applies to each.

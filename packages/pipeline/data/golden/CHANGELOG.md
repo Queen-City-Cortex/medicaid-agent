@@ -117,7 +117,7 @@ are not comparable**, and issue #188 must name the version that is frozen.
   read as they stood in 3.1. 14 had one small finding each (a dropped qualifier, a
   missing quote for a true claim, or a one-sided omission); each was fixed and read
   again, and 11 then passed. Their text differs from 3.1 by those fixes. The owner
-  spot-checks a sample; `key-review-3.2.md` pairs each claim with the text it rests on
+  spot-checks a sample; `key-review-3.2.md` (replaced in 3.3 by `key-review-3.3.md`) pairs each claim with the text it rests on
   and puts a suggested sample first.
 - q-008, q-029 and q-045 stay `needs_validation` with the open finding from that last
   read in `validation_note`. Their text carries the 3.2 fixes.
@@ -127,4 +127,26 @@ are not comparable**, and issue #188 must name the version that is frozen.
 - q-042 and q-051 to q-055 are unchanged from 3.1.
 - q-044 is the first of the three former instruction-only keys to be scored: its answer
   is quoted from the CAP/DA policy's revision table.
+
+## v3.3 — 2026-10-07
+
+Review EVAL-1b (issue #554). **`benchmarkHash` changed; scores on 3.2 and 3.3 are not
+comparable.**
+
+- 47 of 56 entries are validated. q-008, q-029 and q-045 join them: the open finding on
+  each was fixed (an Appendix B caveat on transfers between case management entities; a
+  section 4.1 quote for the not-covered conclusion; "Federal Register citation" for an
+  entry the source note does not call an amendment) and each then passed a strict,
+  independent read.
+- q-038, version 4, from the owner's spot-check. The key said "community transition and
+  community integration services do not cover room and board", which rested on reading
+  "These services" in section 5.8.6 as both services; it may mean community integration
+  services alone. The key now states what each service's own text says, and its first
+  caveat names the two exceptions in 42 CFR 441.310 as having their own conditions and
+  adds that Policy 3K-2's coordinated caregiving rate does not include room and board.
+  It passed a strict read after two further corrections to that caveat.
+- No other validated key has a pair that only sets context for another quote; quotes that
+  open with a pronoun were checked for what they refer to.
+- Still `needs_validation`: q-021, q-033 and q-049 (legal judgment), q-042 (revision
+  marker is only a section title) and q-051 to q-055 (wait for the corpus release).
 

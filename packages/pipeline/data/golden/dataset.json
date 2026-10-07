@@ -647,7 +647,7 @@
   },
   {
     "id": "q-008",
-    "version": 3,
+    "version": 4,
     "created": "2026-03-26",
     "updated": "2026-10-07",
     "question": "Can a CAP/DA beneficiary transfer between service providers, and what rules govern transfers of eligible beneficiaries?",
@@ -659,7 +659,8 @@
       "text": "Yes, a CAP/DA beneficiary may change provider agencies: Clinical Coverage Policy 3K-2 requires a POC update and a signed freedom of choice form consenting to the change in providers. Section 3.3, Transfers of Eligible Beneficiaries, governs a different kind of transfer, to another county or CME: the CME must coordinate it by the agreed transition date or in less than 30 calendar days of the request, preventing gaps in service, and the beneficiary remains eligible for CAP/DA regardless of county of residence.",
       "confidence": "high",
       "caveats": [
-        "Section 5.4.5 says a POC revision is required when there are changes in a service provider, while the change-of-provider-agency text says the POC update is not considered a revision."
+        "Section 5.4.5 says a POC revision is required when there are changes in a service provider, while the change-of-provider-agency text says the POC update is not considered a revision.",
+        "For a transfer to another case management entity, Appendix B also requires a root cause analysis within five business days and NC Medicaid's approval of the transfer."
       ]
     },
     "evidence": {
@@ -695,6 +696,12 @@
           "section_id": "sec:doc:clinical_policy:b1d5bbb6d3448fea:5.4.5",
           "section_number": "5.4.5",
           "relevance": "Says a POC revision is required when there are changes in a service provider"
+        },
+        {
+          "document_id": "doc:clinical_policy:b1d5bbb6d3448fea",
+          "section_id": "sec:doc:clinical_policy:b1d5bbb6d3448fea:_s244",
+          "section_number": null,
+          "relevance": "Appendix B, Coordination of Care: root cause analysis and NC Medicaid approval for a transfer to another case management entity"
         }
       ],
       "cross_references": [],
@@ -702,8 +709,7 @@
     },
     "source": "lived_experience",
     "notes": "Practical question from beneficiaries wanting to change providers.",
-    "status": "needs_validation",
-    "validation_note": "Reworded 2026-10-06 (review EVAL-1b); every fact is quoted. Open finding from the final read (2026-10-07): the key gives the section 3.3 rules for a transfer to another case management entity but leaves out two conditions Appendix B sets on that transfer, a root cause analysis within five business days and NC Medicaid's approval.",
+    "status": "validated",
     "supporting_quotes": [
       {
         "section_id": "sec:doc:clinical_policy:b1d5bbb6d3448fea:5.4.2:dup1",
@@ -736,6 +742,14 @@
       {
         "section_id": "sec:doc:clinical_policy:b1d5bbb6d3448fea:5.4.5",
         "quote": "A plan of care (POC) revision is required when a request is made to add, reduce, increase, delete a CAP/DA service or Medicaid State service, or when there are changes in a service provider."
+      },
+      {
+        "section_id": "sec:doc:clinical_policy:b1d5bbb6d3448fea:_s244",
+        "quote": "If a request is made to transfer to another case management entity, a root cause analysis must be performed within five business days"
+      },
+      {
+        "section_id": "sec:doc:clinical_policy:b1d5bbb6d3448fea:_s244",
+        "quote": "NC Medicaid shall approve the transfer of CME."
       }
     ]
   },
@@ -2568,6 +2582,12 @@
           "section_id": "sec:doc:clinical_policy:6a038eaf968a9a33:2.2.1",
           "section_number": "2.2.1",
           "relevance": "EPSDT supplemental coverage for beneficiaries under 21"
+        },
+        {
+          "document_id": "doc:clinical_policy:6a038eaf968a9a33",
+          "section_id": "sec:doc:clinical_policy:6a038eaf968a9a33:4.1",
+          "section_number": "4.1",
+          "relevance": "General not-covered rule: no coverage when the beneficiary does not meet the criteria listed in Section 3.0"
         }
       ],
       "cross_references": [],
@@ -2575,8 +2595,7 @@
     },
     "source": "legal_aid",
     "notes": "Negative-answer with EPSDT nuance. NEEDS_VALIDATION: confirm 10A sections 2.1.1 and 2.2.1 exist in the current graph.",
-    "status": "needs_validation",
-    "validation_note": "Reworded 2026-10-06 (review EVAL-1b); every fact is quoted. Open finding from the final read (2026-10-07): the conclusion that routine massage is not covered is inferred from the policy's scope, and no quote is not-covered language; section 4.1 would supply it.",
+    "status": "validated",
     "supporting_quotes": [
       {
         "section_id": "sec:doc:clinical_policy:6a038eaf968a9a33:1.0",
@@ -2593,6 +2612,10 @@
       {
         "section_id": "sec:doc:clinical_policy:6a038eaf968a9a33:2.2.1",
         "quote": "requires the state Medicaid agency to cover services, products, or procedures for Medicaid beneficiary under 21 years of age if the service is medically necessary health care to correct or ameliorate a defect, physical or mental illness, or a condition"
+      },
+      {
+        "section_id": "sec:doc:clinical_policy:6a038eaf968a9a33:4.1",
+        "quote": "Medicaid shall not cover procedures, products, and services related to this policy when: the beneficiary does not meet the eligibility requirements listed in Section 2.0; the beneficiary does not meet the criteria listed in Section 3.0"
       }
     ]
   },
@@ -3323,7 +3346,7 @@
   },
   {
     "id": "q-038",
-    "version": 2,
+    "version": 3,
     "created": "2026-04-16",
     "updated": "2026-10-07",
     "question": "Does the CAP/DA waiver cover a beneficiary's room and board in their own home?",
@@ -3332,10 +3355,10 @@
     "topics": ["coverage_exclusions", "cap_da", "waiver", "room_and_board"],
     "target_users": ["beneficiary", "care_coordinator"],
     "answer": {
-      "text": "No. CAP/DA is a Medicaid Home and Community-Based Services (HCBS) waiver, and under 42 CFR 441.310 federal funding for HCBS waiver services is not available for the cost of room and board, apart from narrow exceptions. Policy 3K-2 says community transition and community integration services do not cover room and board, and community integration services do not include monthly rental or mortgage expense, food, or regular utility charges. The waiver funds services such as in-home aide, personal assistance and case management that allow a beneficiary to remain in or return to a home and community-based setting.",
+      "text": "No. CAP/DA is a Medicaid Home and Community-Based Services (HCBS) waiver, and under 42 CFR 441.310 federal funding for HCBS waiver services is not available for the cost of room and board, apart from narrow exceptions. Policy 3K-2 says community integration services do not cover room and board and do not include monthly rental or mortgage expense, food, or regular utility charges, and community transition services do not include rent or back rent. The waiver funds services such as in-home aide, personal assistance and case management that allow a beneficiary to remain in or return to a home and community-based setting.",
       "confidence": "high",
       "caveats": [
-        "42 CFR 441.310 excepts room and board provided as part of respite care in a State-approved facility that is not a private residence, and a portion of rent and food attributable to an unrelated live-in caregiver",
+        "The exceptions in 42 CFR 441.310 concern room and board that is part of respite care in a State-approved facility that is not a private residence, and an unrelated live-in caregiver's share of rent and food in waivers that allow personal caregivers as providers, each with its own conditions; Policy 3K-2 says its coordinated caregiving reimbursement rate does not include room and board",
         "Community transition services, for a beneficiary moving from an institution to the community, may cover set-up costs such as a security deposit or first month's rent required to obtain a lease and utility set-up fees or deposits, but not rent or back rent"
       ]
     },
@@ -3378,6 +3401,12 @@
           "section_id": "sec:doc:clinical_policy:b1d5bbb6d3448fea:_s272",
           "section_number": null,
           "relevance": "Appendix B community transition services: set-up costs allowed, rent and back rent excluded"
+        },
+        {
+          "document_id": "doc:clinical_policy:b1d5bbb6d3448fea",
+          "section_id": "sec:doc:clinical_policy:b1d5bbb6d3448fea:_s266",
+          "section_number": null,
+          "relevance": "Coordinated caregiving: the reimbursement rate does not include room and board"
         }
       ],
       "cross_references": [],
@@ -3403,10 +3432,6 @@
       {
         "section_id": "sec:doc:federal_regulation:22dfab6c7a192acc:441.310",
         "quote": "The cost of room and board except when provided as— (i) Part of respite care services in a facility approved by the State that is not a private residence; or (ii) For waivers that allow personal caregivers as providers of approved waiver services, a portion of the rent and food that may be reasonably attributed to the unrelated caregiver who resides in the same household with the waiver beneficiary."
-      },
-      {
-        "section_id": "sec:doc:clinical_policy:b1d5bbb6d3448fea:5.8.6",
-        "quote": "Community transition services are available to cover initial set-up expenses"
       },
       {
         "section_id": "sec:doc:clinical_policy:b1d5bbb6d3448fea:5.8.6",
@@ -3439,6 +3464,14 @@
       {
         "section_id": "sec:doc:clinical_policy:b1d5bbb6d3448fea:_s272",
         "quote": "This service does not include rent or back rent payments."
+      },
+      {
+        "section_id": "sec:doc:clinical_policy:b1d5bbb6d3448fea:_s266",
+        "quote": "The coordinated caregiving Medicaid reimbursement rate does not include room and board."
+      },
+      {
+        "section_id": "sec:doc:federal_regulation:22dfab6c7a192acc:441.310",
+        "quote": "FFP for a live-in caregiver is not available if the beneficiary lives in the caregiver's home or in a residence that is owned or leased by the provider of Medicaid services (the caregiver)."
       }
     ]
   },
@@ -3844,7 +3877,7 @@
   },
   {
     "id": "q-045",
-    "version": 3,
+    "version": 4,
     "created": "2026-04-16",
     "updated": "2026-10-07",
     "question": "What is the most recent revision to 42 CFR Part 441 as it applies to HCBS waiver applications?",
@@ -3853,7 +3886,7 @@
     "topics": ["federal_authority", "hcbs_waiver", "42_cfr_441", "latest_revision"],
     "target_users": ["legal_aid", "policy_researcher"],
     "answer": {
-      "text": "In the corpus copy of 42 CFR Part 441, the section 1915(c) waiver-request sections each end with a note (labelled Authority) listing Federal Register citations, and the most recent amendment listed for each is dated May 10, 2024: § 441.301 (contents of the request) at 89 FR 40863, § 441.302 (State assurances) at 89 FR 40865, and § 441.303 (supporting documentation) at 89 FR 40866. Among the neighbouring 1915(c) sections, § 441.312 (HCBS quality measure set) lists a later amendment, 89 FR 53502, June 27, 2024. In the separate provisions for section 1915(d) waivers serving individuals age 65 or older, § 441.353 (supporting documentation) lists a later amendment, 89 FR 80069, Oct. 2, 2024.",
+      "text": "In the corpus copy of 42 CFR Part 441, the section 1915(c) waiver-request sections each end with a note (labelled Authority) listing Federal Register citations, and the most recent amendment listed for each is dated May 10, 2024: § 441.301 (contents of the request) at 89 FR 40863, § 441.302 (State assurances) at 89 FR 40865, and § 441.303 (supporting documentation) at 89 FR 40866. Among the neighbouring 1915(c) sections, § 441.312 (HCBS quality measure set) lists a later Federal Register citation, 89 FR 53502, June 27, 2024. In the separate provisions for section 1915(d) waivers serving individuals age 65 or older, § 441.353 (supporting documentation) lists a later amendment, 89 FR 80069, Oct. 2, 2024.",
       "confidence": "medium",
       "caveats": [
         "The corpus text does not state the date of the eCFR snapshot that was ingested, and the notes give only Federal Register citations and dates: they do not describe what each amendment changed."
@@ -3891,7 +3924,7 @@
           "document_id": "doc:federal_regulation:22dfab6c7a192acc",
           "section_id": "sec:doc:federal_regulation:22dfab6c7a192acc:441.312",
           "section_number": "441.312",
-          "relevance": "HCBS quality measure set for 1915(c) waiver programs; source note with amendment June 27, 2024"
+          "relevance": "HCBS quality measure set for 1915(c) waiver programs; source note with citation dated June 27, 2024"
         },
         {
           "document_id": "doc:federal_regulation:22dfab6c7a192acc",
@@ -3917,8 +3950,7 @@
     "source": "regression",
     "notes": "Temporal / federal-reference combo. Exercises eCFR freshness and the 441.30x / 441.35x parallel-numbering issue per AGENTS.md:56.",
     "expected_behavior": "The agent should cite the effective date from the ingested 42 CFR Part 441 source, name the specific Subpart (Subpart G for 1915(c) waivers), and note if both the older (441.301–441.303) and newer parallel (441.351–441.355) numbering families are present per AGENTS.md:56.",
-    "status": "needs_validation",
-    "validation_note": "Reworded 2026-10-06 (review EVAL-1b); every fact is quoted. Open finding from the final read (2026-10-07): the source note for 42 CFR 441.312 lists the June 27, 2024 Federal Register citation without calling it an amendment, so 'lists a later amendment' says slightly more than the text.",
+    "status": "validated",
     "supporting_quotes": [
       {
         "section_id": "sec:doc:federal_regulation:22dfab6c7a192acc:441.300",
