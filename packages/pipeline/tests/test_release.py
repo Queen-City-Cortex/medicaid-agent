@@ -28,6 +28,12 @@ from pipeline.release import (
     release_is_promotable,
 )
 
+# The gates are exercised at the size and cap the release policy holds today, so
+# re-setting the cap for a new benchmark size is a change to the policy alone.
+_CAP = load_release_policy()["evaluation"]["withheldAnswers"]
+BENCHMARK_SIZE = _CAP["benchmarkSize"]
+CAP_MAX = _CAP["max"]
+
 
 SNAPSHOT = "sha256:" + "a" * 64
 
@@ -59,7 +65,7 @@ def passing_manifest():
             "answerScoreAllRows": 2.7,
             "hallucinationScore": 2.6,
             "withheldAnswers": 2,
-            "benchmarkQuestions": 55,
+            "benchmarkQuestions": BENCHMARK_SIZE,
             "answerRuns": 3,
             "retrievalPrecisionRegression": 0.01,
             "retrievalRecallRegression": 0.01,
@@ -170,7 +176,7 @@ def retrieval_result():
 
 def answer_result(*, overall=2.9, released=2.9, hallucination=2.8, withheld=0):
     return {
-        "config": {"dataset_count": 55},
+        "config": {"dataset_count": BENCHMARK_SIZE},
         "aggregate": {
             "overall": overall,
             "overall_released": released,
@@ -219,7 +225,7 @@ def test_sparse_label_precision_is_reported_without_an_absolute_gate():
     ('primaryDocumentHitRate', 0.94),
     ('answerScore', 2.74),
     ('hallucinationScore', 2.49),
-    ('withheldAnswers', 6),
+    ('withheldAnswers', CAP_MAX + 1),
     ('answerRuns', 2),
     ('retrievalPrecisionRegression', 0.026),
     ('retrievalRecallRegression', 0.026),
@@ -853,7 +859,7 @@ def test_a_question_the_candidate_cannot_answer_stays_in_the_comparison():
 def test_answer_floor_reads_released_answers_and_reports_all_rows():
     evaluation = build_release_evaluation_results(
         retrieval_result(),
-        [answer_result(overall=2.5, released=2.8, withheld=5)] * 3,
+        [answer_result(overall=2.5, released=2.8, withheld=CAP_MAX)] * 3,
         baseline(),
     )
     manifest = passing_manifest()
@@ -863,8 +869,8 @@ def test_answer_floor_reads_released_answers_and_reports_all_rows():
 
     assert evaluation["answerScore"] == 2.8
     assert evaluation["answerScoreAllRows"] == 2.5
-    assert evaluation["withheldAnswers"] == 5
-    assert evaluation["benchmarkQuestions"] == 55
+    assert evaluation["withheldAnswers"] == CAP_MAX
+    assert evaluation["benchmarkQuestions"] == BENCHMARK_SIZE
     floor = next(gate for gate in gates if gate["name"] == "answerScore")
     assert floor["actual"] == 2.8 and floor["passed"]
     assert release_is_promotable(gates)
@@ -885,7 +891,7 @@ def test_results_from_the_old_harness_fail_the_released_floor_and_the_cap():
     manifest = passing_manifest()
     manifest["evaluationResults"] = build_release_evaluation_results(
         retrieval_result(),
-        [{"config": {"dataset_count": 55}, "aggregate": {"overall": 2.9, "hallucination": 2.8}}] * 3,
+        [{"config": {"dataset_count": BENCHMARK_SIZE}, "aggregate": {"overall": 2.9, "hallucination": 2.8}}] * 3,
         baseline(),
     )
 
@@ -898,7 +904,7 @@ def test_results_from_the_old_harness_fail_the_released_floor_and_the_cap():
     assert failed == {"answerScore", "withheldAnswers"}
 
 
-@pytest.mark.parametrize(("withheld", "passes"), [(5, True), (6, False)])
+@pytest.mark.parametrize(("withheld", "passes"), [(CAP_MAX, True), (CAP_MAX + 1, False)])
 def test_withheld_answer_cap_is_a_mandatory_gate(withheld, passes):
     manifest = passing_manifest()
     manifest["evaluationResults"]["withheldAnswers"] = withheld
@@ -907,14 +913,14 @@ def test_withheld_answer_cap_is_a_mandatory_gate(withheld, passes):
     cap = next(gate for gate in gates if gate["name"] == "withheldAnswers")
 
     assert cap["passed"] is passes
-    assert cap["threshold"] == 5
+    assert cap["threshold"] == CAP_MAX
     assert cap["overridable"] is False
     assert release_is_promotable(gates) is passes
 
 
 def test_withheld_answer_cap_cannot_be_overridden(tmp_path):
     manifest = passing_manifest()
-    manifest["evaluationResults"]["withheldAnswers"] = 6
+    manifest["evaluationResults"]["withheldAnswers"] = CAP_MAX + 1
     reason = {"withheldAnswers": override("The verifier was unusually strict on this run")}
 
     with pytest.raises(ValueError, match="withheldAnswers cannot be overridden"):
@@ -928,7 +934,7 @@ def test_withheld_answer_cap_cannot_be_overridden(tmp_path):
             audit_report=audit_report(),
             graph_metrics=graph_metrics(),
             retrieval_result=retrieval_result(),
-            answer_results=[answer_result(overall=2.5, released=2.9, withheld=6)] * 3,
+            answer_results=[answer_result(overall=2.5, released=2.9, withheld=CAP_MAX + 1)] * 3,
             previous_manifest=None,
             overrides=reason,
         )
@@ -937,7 +943,7 @@ def test_withheld_answer_cap_cannot_be_overridden(tmp_path):
 
 def test_withheld_answer_cap_fails_closed_on_another_benchmark_size():
     manifest = passing_manifest()
-    manifest["evaluationResults"]["benchmarkQuestions"] = 60
+    manifest["evaluationResults"]["benchmarkQuestions"] = BENCHMARK_SIZE + 5
 
     gates = evaluate_release_manifest(manifest)
     cap = next(gate for gate in gates if gate["name"] == "withheldAnswers")
@@ -946,13 +952,8 @@ def test_withheld_answer_cap_fails_closed_on_another_benchmark_size():
     assert not release_is_promotable(gates)
 
 
-# Golden dataset 3.0 scores only entries with a validated answer key, far fewer
-# than the 55 questions the cap was set for. The owner re-sets the cap (issue
-# #259); this then passes, strict xfail turns it red, and the marker goes.
-@pytest.mark.xfail(
-    strict=True,
-    reason="owner must re-set evaluation.withheldAnswers for the validated benchmark size",
-)
+# Re-set by the owner whenever the number of validated golden keys changes
+# (issue #259): a cap for another benchmark size refuses every validation.
 def test_withheld_answer_cap_was_set_against_the_current_benchmark():
     from pipeline.eval.dataset import benchmark_entries, load_dataset
 
@@ -970,7 +971,8 @@ def test_validation_refuses_a_cap_set_for_another_benchmark_size():
     size = policy["evaluation"]["withheldAnswers"]["benchmarkSize"]
 
     require_withheld_cap_for(size, policy)
-    with pytest.raises(ValueError, match=rf"5 of {size}\).*scores 8 validated questions.*re-set"):
+    cap = policy["evaluation"]["withheldAnswers"]["max"]
+    with pytest.raises(ValueError, match=rf"{cap} of {size}\).*scores 8 validated questions.*re-set"):
         require_withheld_cap_for(8, policy)
 
 
@@ -992,7 +994,7 @@ def test_baseline_comparison_charges_withheld_answers_on_all_rows():
 
     evaluation = build_release_evaluation_results(
         retrieval_result(),
-        [answer_result(overall=2.6, released=2.95, withheld=5)] * 3,
+        [answer_result(overall=2.6, released=2.95, withheld=CAP_MAX)] * 3,
         baseline,
     )
     manifest = passing_manifest()
@@ -1007,7 +1009,7 @@ def test_baseline_comparison_charges_withheld_answers_on_all_rows():
 
 def test_baseline_comparison_ignores_released_score_and_withheld_count():
     baseline = {"evaluationResults": build_release_evaluation_results(
-        retrieval_result(), [answer_result(overall=2.8, released=3.0, withheld=5)], None,
+        retrieval_result(), [answer_result(overall=2.8, released=3.0, withheld=CAP_MAX)], None,
     )}
 
     evaluation = build_release_evaluation_results(
@@ -1034,11 +1036,11 @@ def finalize_with_answer_runs(tmp_path, runs, **kwargs):
 
 
 def test_answer_gates_read_the_three_run_mean_not_the_first_run(tmp_path):
-    # The first run alone is under the 2.75 floor and over the cap of 5.
+    # The first run alone is under the 2.75 floor and over the cap.
     result = finalize_with_answer_runs(tmp_path, [
-        answer_result(overall=2.3, released=2.6, hallucination=2.4, withheld=7),
-        answer_result(overall=2.7, released=2.8, hallucination=2.7, withheld=4),
-        answer_result(overall=2.8, released=2.9, hallucination=2.7, withheld=4),
+        answer_result(overall=2.3, released=2.6, hallucination=2.4, withheld=CAP_MAX + 2),
+        answer_result(overall=2.7, released=2.8, hallucination=2.7, withheld=CAP_MAX - 1),
+        answer_result(overall=2.8, released=2.9, hallucination=2.7, withheld=CAP_MAX - 1),
     ])
 
     evaluation = result["evaluationResults"]
@@ -1046,7 +1048,7 @@ def test_answer_gates_read_the_three_run_mean_not_the_first_run(tmp_path):
     assert evaluation["answerScore"] == pytest.approx((2.6 + 2.8 + 2.9) / 3)
     assert evaluation["answerScoreAllRows"] == pytest.approx(2.6)
     assert evaluation["hallucinationScore"] == pytest.approx(2.6)
-    assert evaluation["withheldAnswers"] == pytest.approx(5)
+    assert evaluation["withheldAnswers"] == pytest.approx(CAP_MAX)
     assert result["promotionState"] == "validated"
 
 
@@ -1067,9 +1069,9 @@ def test_baseline_comparison_uses_the_three_run_all_rows_mean(tmp_path):
     result = finalize_with_answer_runs(
         tmp_path,
         [
-            answer_result(overall=2.5, released=2.9, withheld=5),
-            answer_result(overall=2.6, released=2.9, withheld=5),
-            answer_result(overall=2.7, released=2.9, withheld=5),
+            answer_result(overall=2.5, released=2.9, withheld=CAP_MAX),
+            answer_result(overall=2.6, released=2.9, withheld=CAP_MAX),
+            answer_result(overall=2.7, released=2.9, withheld=CAP_MAX),
         ],
         baseline_evaluation=baseline(answerScoreAllRows=2.8)["evaluationResults"],
     )

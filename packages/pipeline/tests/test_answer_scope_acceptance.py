@@ -25,7 +25,7 @@ def passing_manifest():
             "answerScore": 2.8,
             "hallucinationScore": 2.6,
             "withheldAnswers": 2,
-            "benchmarkQuestions": 55,
+            "benchmarkQuestions": load_release_policy()["evaluation"]["withheldAnswers"]["benchmarkSize"],
             "answerRuns": 3,
             **dict.fromkeys(
                 [

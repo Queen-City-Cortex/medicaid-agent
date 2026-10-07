@@ -31,8 +31,8 @@
     "answerScore": 2.75,
     "hallucinationScore": 2.5,
     "withheldAnswers": {
-      "max": 5,
-      "benchmarkSize": 55,
+      "max": 4,
+      "benchmarkSize": 47,
       "provisional": true,
       "revisit": "Issue #259 (EVAL-2) sets this from the measured candidate graph"
     },

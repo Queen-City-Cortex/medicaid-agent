@@ -544,9 +544,10 @@ build from meeting the floors by answering less:
   benchmark size (`evaluation.withheldAnswers` holds `max` and `benchmarkSize`);
   a run of any other size fails the gate until the cap is set again. No override
   can waive it. Golden dataset 3 scores only validated entries (47 on
-  2026-10-07, version 3.3), so the current value no longer matches: `release-validate` stops
-  before any run, naming both sizes, until the owner sets the cap again for the
-  validated count. The value, 5 of 55, is provisional (`"provisional": true`):
+  2026-10-07, version 3.3). When the validated count and `benchmarkSize` differ,
+  `release-validate` stops before any run, naming both sizes, until the owner
+  sets the cap again for the validated count. The value, 4 of 47, keeps the
+  proportion of the earlier 5 of 55 and is provisional (`"provisional": true`):
   [issue #259](https://github.com/Queen-City-Cortex/medicaid-agent/issues/259)
   replaces it once the candidate graph has been measured. The 2.75 floor is
   revisited there too and is unchanged until then.

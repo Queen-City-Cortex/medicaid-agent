@@ -4,11 +4,19 @@ from datetime import UTC, datetime
 import pytest
 
 from pipeline import evaluation_evidence as evidence
-from pipeline.release import atomic_write_json, create_release_manifest, load_json_object
+from pipeline.release import (
+    atomic_write_json,
+    create_release_manifest,
+    load_json_object,
+    load_release_policy,
+)
 
 # These tests exercise the gates with the benchmark size the release policy's
 # withheld-answer cap is set for, whatever the golden dataset holds today.
-BENCHMARK = [{"id": f"q-{number:03d}", "status": "validated"} for number in range(1, 56)]
+BENCHMARK = [
+    {"id": f"q-{number:03d}", "status": "validated"}
+    for number in range(1, load_release_policy()["evaluation"]["withheldAnswers"]["benchmarkSize"] + 1)
+]
 
 
 @pytest.fixture(autouse=True)
