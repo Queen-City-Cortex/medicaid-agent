@@ -1031,6 +1031,24 @@ def save_parsed(
     return json_path
 
 
+def recorded_failure_for_unchanged_source(source_path: Path, meta_path: Path) -> bool:
+    """Whether this exact file has already failed to parse.
+
+    A parse failure is a property of the file: the same bytes time out or are
+    rejected again, at up to the full timeout each. A pass that is not a
+    deliberate retry leaves such a file alone, whatever parser version recorded
+    the failure, until the source changes or `--retry-failures` is used.
+    """
+    try:
+        meta = json.loads(meta_path.read_text())
+    except (OSError, json.JSONDecodeError):
+        return False
+    if not isinstance(meta, dict) or meta.get("parse_status") != "parse_exception":
+        return False
+    stored_hash = meta.get("source_file_hash") or meta.get("source_pdf_hash")
+    return stored_hash == f"sha256:{file_sha256(source_path)}"
+
+
 def save_parse_error(source_path: Path, source_type: str, error: Exception) -> None:
     """Persist parse failure metadata so audit-corpus can classify exceptions explicitly."""
     _, _, meta_path = parsed_output_paths(source_path, source_type)
@@ -1743,6 +1761,24 @@ def parse_all(
                 _write_run_state(run_state)
                 console.print(
                     f"  [{index}/{total_files}] Skipping {source_path.name} (cached)"
+                )
+                continue
+
+            if (
+                not force
+                and not retry_failures
+                and not file_path
+                and recorded_failure_for_unchanged_source(source_path, meta_path)
+            ):
+                # Still a failure in the inventory below, so every strict check
+                # and release gate counts it; it is only not attempted again.
+                stats["skipped"] += 1
+                run_state["processed_file_count"] += 1
+                run_state["stats"] = {**stats, "terminal_state": "running"}
+                _write_run_state(run_state)
+                console.print(
+                    f"  [{index}/{total_files}] Skipping {source_path.name} "
+                    "(failed before and the file is unchanged; --retry-failures retries it)"
                 )
                 continue
 

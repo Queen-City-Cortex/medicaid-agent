@@ -1627,3 +1627,79 @@ def test_v5_migration_rejects_changed_artifacts(tmp_path, artifact):
         meta_path=meta_path, meta=meta, json_path=json_path, md_path=md_path,
     ) is False
     assert not meta_path.exists()
+
+
+def _failed_before(tmp_path, monkeypatch, *, recorded_bytes=b"%PDF-1.4 fake", cache_version=None):
+    """One source whose sidecar records a parse failure; returns it and the parser's call log."""
+    import hashlib
+
+    source_path = tmp_path / "fee-schedule.pdf"
+    source_path.write_bytes(b"%PDF-1.4 fake")
+    meta_path = tmp_path / "fee-schedule.meta.json"
+    meta_path.write_text(json.dumps({
+        "parse_status": "parse_exception",
+        "failure_kind": "timeout",
+        "source_file_hash": f"sha256:{hashlib.sha256(recorded_bytes).hexdigest()}",
+        "parse_cache_version": cache_version or PARSE_CACHE_VERSION,
+    }))
+    attempts: list[Path] = []
+
+    def parse(path, *_args, **_kwargs):
+        attempts.append(path)
+        raise TimeoutError("parse timed out after 600 seconds")
+
+    monkeypatch.setattr("pipeline.parse.converter.PIPELINE_DATA_DIR", tmp_path / "pipeline")
+    monkeypatch.setattr("pipeline.parse.converter.read_registry_rows", lambda: [])
+    monkeypatch.setattr("pipeline.parse.converter.CRAWLER_DB_PATH", tmp_path / "missing.db")
+    monkeypatch.setattr(
+        "pipeline.parse.converter.discover_source_files", lambda _source_type=None: [source_path]
+    )
+    monkeypatch.setattr(
+        "pipeline.parse.converter.source_type_for_file", lambda _source_path: "managed_care_contract"
+    )
+    monkeypatch.setattr(
+        "pipeline.parse.converter.parsed_output_paths",
+        lambda _source_path, _source_type: (
+            tmp_path / "fee-schedule.json", tmp_path / "fee-schedule.md", meta_path
+        ),
+    )
+    monkeypatch.setattr(
+        "pipeline.parse.converter.parse_and_save_supported_file_with_timeout", parse
+    )
+    return source_path, attempts
+
+
+@pytest.mark.parametrize("cache_version", [PARSE_CACHE_VERSION, PARSE_CACHE_VERSION - 1])
+def test_a_normal_parse_does_not_attempt_a_file_that_already_failed(
+    monkeypatch, tmp_path, cache_version
+):
+    # In production 269 fee-schedule PDFs fail at the ten-minute timeout; a
+    # normal pass retried each of them on every run, whatever parser recorded it.
+    _, attempts = _failed_before(tmp_path, monkeypatch, cache_version=cache_version)
+
+    stats = parse_all()
+
+    assert attempts == []
+    assert stats["skipped"] == 1 and stats["errors"] == 0 and stats["timed_out"] == 0
+    # Not attempting it does not make it a success: strict checks still see it.
+    assert stats["remaining_failures"] == 1
+
+
+def test_a_normal_parse_attempts_a_failed_file_again_once_its_source_changes(monkeypatch, tmp_path):
+    source_path, attempts = _failed_before(
+        tmp_path, monkeypatch, recorded_bytes=b"%PDF-1.4 the earlier download"
+    )
+
+    stats = parse_all()
+
+    assert attempts == [source_path]
+    assert stats["timed_out"] == 1
+
+
+def test_retry_failures_and_force_still_attempt_a_file_that_already_failed(monkeypatch, tmp_path):
+    source_path, attempts = _failed_before(tmp_path, monkeypatch)
+
+    parse_all(retry_failures=True)
+    parse_all(force=True)
+
+    assert attempts == [source_path, source_path]
