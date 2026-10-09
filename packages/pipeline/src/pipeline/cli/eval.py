@@ -422,6 +422,43 @@ def eval_validate_golden(dataset: str | None, catalog: str | None):
         )
 
 
+@cli.command("eval-relocate-golden")
+@click.option("--output", type=click.Path(dir_okay=False, path_type=str), required=True)
+def eval_relocate_golden(output: str):
+    """Report where golden quotes live now, for cited sections the parsed corpus lacks.
+
+    Reads the parsed corpus and the registry; no graph, no model. It proposes
+    new section ids and changes nothing.
+    """
+    from pathlib import Path
+
+    from pipeline.eval.dataset import load_dataset
+    from pipeline.eval.relocate import relocate_golden_sections
+    from pipeline.release import atomic_write_json
+
+    report = relocate_golden_sections(load_dataset())
+    atomic_write_json(Path(output), report)
+    click.echo(
+        f"Scanned {report['sections_scanned']} sections in "
+        f"{', '.join(report['families_scanned'])}; "
+        f"{len(report['moved'])} cited sections are not in the parsed corpus"
+    )
+    for moved in report["moved"]:
+        click.echo(f"{moved['id']} {moved['kind']} {moved['section_id']}")
+        if not moved["quotes"]:
+            click.echo("    no quote cites this section, so it cannot be traced")
+        for quote in moved["quotes"]:
+            click.echo(f"    quote: {quote['quote'][:90]}")
+            for found in quote["found_in"]:
+                click.echo(
+                    f"      now in {found['section_id']} "
+                    f"[{found['section_number'] or found['section_title']}] "
+                    f"{found['document_title']} <{found['source_url']}>"
+                )
+            if not quote["found_in"]:
+                click.echo("      not found in any section of that source family")
+
+
 @cli.command("eval-identity-catalog")
 @click.option("--output", type=click.Path(dir_okay=False, path_type=str), required=True)
 def eval_identity_catalog(output: str):

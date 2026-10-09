@@ -25,6 +25,7 @@ eval_runs
 eval_answer_stability
 eval_validate
 eval_validate_golden
+eval_relocate_golden
 eval_identity_catalog
 source_audit
 ingest_cfr
