@@ -282,7 +282,7 @@ run_measure_case() {
 status=0
 run_measure_case measure-clean 0 || status=$?
 [[ "$status" -eq 0 ]] || fail "measure mode exited $status"
-expected=$'corpus-release measure-check\ncrawl\n-m pipeline.cli parse --strict-required\ncorpus-release measure\nsync'
+expected=$'corpus-release measure-check\ncrawl\n-m pipeline.cli parse\ncorpus-release measure\nsync'
 [[ "$(<"$TEMP_ROOT/measure-clean.calls")" == "$expected" ]] \
   || fail "measure mode ran: $(<"$TEMP_ROOT/measure-clean.calls")"
 pass "measure mode checks its settings, crawls, parses, measures and syncs, with no snapshot, promotion or backup"

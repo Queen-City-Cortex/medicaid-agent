@@ -66,6 +66,41 @@ def _parse_strict() -> dict:
     return result
 
 
+def _parse_for_measurement() -> dict:
+    """Parse as a release would, reporting what would refuse a release instead of raising.
+
+    A measurement reads the corpus as it is: required sources with no payload,
+    removals without retirement evidence and required parse failures are
+    recorded under `wouldRefuseRelease`. Only a parse that did not finish stops it.
+    """
+    from pipeline.config import CRAWLER_DB_PATH
+    from pipeline.parse.converter import parse_all
+    from pipeline.recovery_inventory import require_downloaded_sources
+    from pipeline.retirement import require_documented_removals
+
+    refusals = []
+    for check in (require_downloaded_sources, require_documented_removals):
+        try:
+            check(CRAWLER_DB_PATH)
+        except RuntimeError as error:
+            refusals.append(str(error))
+    result = parse_all()
+    terminal_state = result.get("terminal_state")
+    if terminal_state != "completed":
+        raise RuntimeError(f"parse ended in terminal state {terminal_state!r}")
+    remaining_failures = int(
+        result.get(
+            "remaining_blocking_required_failures",
+            result.get("remaining_required_failures", 0),
+        )
+    )
+    if remaining_failures:
+        refusals.append(
+            f"{remaining_failures} required sources have an unresolved parse failure"
+        )
+    return {**result, "wouldRefuseRelease": refusals}
+
+
 def _require_parse_inventory_unchanged(release: dict) -> dict:
     from pipeline.parse.converter import build_parse_inventory_evidence
     from pipeline.config import CRAWLER_DB_PATH
@@ -115,12 +150,19 @@ def _require_parse_inventory_unchanged(release: dict) -> dict:
     type=click.Path(path_type=Path, dir_okay=False),
     required=True,
 )
+@click.option(
+    "--measurement",
+    is_flag=True,
+    help="Record what would refuse a release instead of stopping on it. "
+         "For release-measure only: the manifest is not a release candidate.",
+)
 def release_prepare(
     release_id: str,
     commit_sha: str,
     target_color: str,
     previous_manifest: Path | None,
     output: Path,
+    measurement: bool,
 ) -> None:
     """Parse strictly and initialize a durable release manifest."""
     previous = load_json_object(previous_manifest) if previous_manifest else None
@@ -132,8 +174,16 @@ def release_prepare(
         source_snapshot_hash=source_snapshot_hash(initial_snapshot),
         previous_manifest=previous,
     )
+    if measurement:
+        # Read back by release-validate, which refuses it: this manifest was
+        # prepared without the checks a release candidate must pass.
+        manifest["measurementOnly"] = True
     atomic_write_json(output, manifest)
-    record_release_stage(output, "parse", _parse_strict)
+    parse_result = record_release_stage(
+        output, "parse", _parse_for_measurement if measurement else _parse_strict
+    )
+    for refusal in parse_result.get("wouldRefuseRelease", []):
+        console.print(f"WOULD REFUSE A RELEASE: {refusal}")
 
     final_snapshot = build_answer_ready_snapshot(PARSED_DATA_DIR)
     manifest = load_json_object(output)
@@ -369,6 +419,11 @@ def release_validate(
     baseline = load_json_object(baseline_evidence) if baseline_evidence else None
     metrics = baseline_metrics(baseline) if baseline else None
     release = load_json_object(manifest)
+    if release.get("measurementOnly"):
+        raise click.ClickException(
+            "This manifest was prepared for a measurement and cannot be validated "
+            "as a release: prepare a release manifest without --measurement"
+        )
     # A stale or malformed override file stops here, before any stage runs.
     overrides = load_json_object(override_file) if override_file else {}
     snapshot_bound_reasons(overrides, release["sourceSnapshotHash"])

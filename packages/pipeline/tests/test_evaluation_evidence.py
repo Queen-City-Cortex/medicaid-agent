@@ -341,6 +341,25 @@ def test_release_validate_gates_on_the_mean_of_three_answer_runs(tmp_path, monke
     assert len(release["verificationSummaries"]) == 3
 
 
+def test_release_validate_refuses_a_manifest_prepared_for_a_measurement(tmp_path, monkeypatch):
+    from click.testing import CliRunner
+
+    from pipeline.cli import cli
+
+    manifest = building_manifest(tmp_path)
+    atomic_write_json(manifest, {**load_json_object(manifest), "measurementOnly": True})
+    previous = tmp_path / "releases" / "release-1.json"
+    atomic_write_json(previous, {"releaseId": "release-1"})
+
+    outcome = CliRunner().invoke(
+        cli, ["release-validate", "--manifest", str(manifest), "--previous-manifest", str(previous)]
+    )
+
+    assert outcome.exit_code != 0
+    assert "prepared for a measurement" in outcome.output
+    assert load_json_object(manifest)["stageResults"] == {}
+
+
 def test_release_measure_reports_the_gates_and_decides_nothing(tmp_path, monkeypatch):
     outcome, fake, manifest = validate_release(
         tmp_path, monkeypatch, [], recall=0.5, command="release-measure"

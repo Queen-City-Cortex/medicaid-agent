@@ -345,8 +345,14 @@ What it does, in order:
 
 1. `corpus-release.sh measure-check`: the reset settings and the commit, before
    anything else, so a missing setting costs no crawl.
-2. Crawl, then `parse --strict-required`.
-3. `release-prepare` into `/data/pipeline/measurements/<id>.json`.
+2. Crawl, then `parse`.
+3. `release-prepare --measurement` into `/data/pipeline/measurements/<id>.json`.
+   It parses as a release does, and prints what would refuse a release as
+   `WOULD REFUSE A RELEASE: …` lines (required sources with no payload,
+   removals without retirement evidence, required sources that failed to
+   parse) instead of stopping on them. They are kept on the manifest's parse
+   stage as `wouldRefuseRelease`. The manifest is marked `measurementOnly`,
+   and `release-validate` refuses it.
 4. Restart and reset the target graph; `release-build-graph` (load, federal
    ingest, references, embeddings).
 5. `release-measure`: the corpus audit, the graph inspection (embedding
@@ -396,8 +402,9 @@ Four things to know before running it:
   Nothing else ties the graph to the manifest, so do not reuse after any other
   build on that color.
 
-A crawler crash or a failed strict parse stops the run before any graph is
-touched. A failed required source family is logged, the measurement continues
+A crawler crash, or a parse that did not finish, stops the run before any
+graph is touched. Required sources that failed to parse do not: they are
+reported, and the `requiredCurrentParseExceptions` gate shows them. A failed required source family is logged, the measurement continues
 and the run still ends 0.
 
 On the maintenance configuration the mode is run inside the idle container.

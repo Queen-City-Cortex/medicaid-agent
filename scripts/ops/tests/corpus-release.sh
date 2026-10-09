@@ -382,6 +382,7 @@ called "python release-preflight --manifest $DATA/pipeline/releases/release-2.js
   || fail "bootstrap did not preflight the legacy baseline"
 ! called 'railway variable set' || fail "bootstrap changed the agent target"
 ! called 'railway down' || fail "bootstrap stopped the graph it validated"
+! called 'release-prepare .*--measurement' || fail "bootstrap prepared its manifest as a measurement"
 pass "bootstrap prepares and preflights the release before the target graph is restarted"
 
 bootstrap_case bootstrap-preflight-fails
@@ -406,8 +407,8 @@ before 'python release-prepare' 'railway redeploy .*--service neo4j-green' \
   || fail "measure restarted the target graph before the corpus was parsed"
 before 'python release-build-graph' 'python release-measure' \
   || fail "measure measured the graph before building it"
-called "python release-prepare .*--output $DATA/pipeline/measurements/measure-1.json\$" \
-  || fail "measure wrote its manifest among the releases"
+called "python release-prepare .*--output $DATA/pipeline/measurements/measure-1.json --measurement\$" \
+  || fail "measure wrote its manifest among the releases, or prepared it as a release candidate"
 called "python release-measure --manifest $DATA/pipeline/measurements/measure-1.json\$" \
   || fail "measure did not measure its own manifest"
 [[ ! -e "$DATA/pipeline/releases/measure-1.json" ]] || fail "measure left a manifest a release command could find"

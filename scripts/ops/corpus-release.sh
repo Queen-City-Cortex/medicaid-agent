@@ -688,7 +688,8 @@ measure() {
         --release-id "$release_id" \
         --commit-sha "$RAILWAY_GIT_COMMIT_SHA" \
         --target-color "$RESET_TARGET_COLOR" \
-        --output "$manifest"
+        --output "$manifest" \
+        --measurement
     )
   fi
 

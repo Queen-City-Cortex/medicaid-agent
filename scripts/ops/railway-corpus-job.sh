@@ -262,9 +262,11 @@ measure_candidate() {
       return "$CRAWL_EXIT"
     fi
   fi
+  # Not strict: a required source that failed to parse is a gate the
+  # measurement reports (release-prepare --measurement), not a reason to stop.
   (
     cd "$PIPELINE_DIR"
-    "$PY" -m pipeline.cli parse --strict-required
+    "$PY" -m pipeline.cli parse
   ) || return $?
   "$REPO_ROOT/scripts/ops/corpus-release.sh" measure || return $?
   sync_current_corpus

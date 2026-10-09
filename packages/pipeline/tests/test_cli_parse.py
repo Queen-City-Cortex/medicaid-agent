@@ -4,7 +4,11 @@ from click.testing import CliRunner
 import pytest
 
 from pipeline.cli import cli
-from pipeline.cli.release import _parse_strict, _require_parse_inventory_unchanged
+from pipeline.cli.release import (
+    _parse_for_measurement,
+    _parse_strict,
+    _require_parse_inventory_unchanged,
+)
 
 
 def test_parse_cli_forwards_recovery_selectors(monkeypatch):
@@ -173,6 +177,52 @@ def test_release_parse_strict_blocks_required_failure_or_incomplete_run(monkeypa
     for _ in range(2):
         with pytest.raises(RuntimeError):
             _parse_strict()
+
+
+def test_a_measurement_parse_reports_what_would_refuse_a_release_and_goes_on(monkeypatch):
+    def refuse(message):
+        def check(_db_path):
+            raise RuntimeError(message)
+        return check
+
+    monkeypatch.setattr(
+        "pipeline.recovery_inventory.require_downloaded_sources",
+        refuse("2 required sources have no downloaded payload"),
+    )
+    monkeypatch.setattr("pipeline.retirement.require_documented_removals", lambda _db_path: None)
+    monkeypatch.setattr(
+        "pipeline.parse.converter.parse_all",
+        lambda: {"errors": 1, "remaining_blocking_required_failures": 3, "terminal_state": "completed"},
+    )
+
+    result = _parse_for_measurement()
+
+    assert result["wouldRefuseRelease"] == [
+        "2 required sources have no downloaded payload",
+        "3 required sources have an unresolved parse failure",
+    ]
+    # The same corpus still refuses a release.
+    monkeypatch.setattr("pipeline.recovery_inventory.require_downloaded_sources", lambda _db_path: None)
+    with pytest.raises(RuntimeError, match="3 remaining required failures"):
+        _parse_strict()
+
+
+def test_a_measurement_parse_stops_only_when_the_parse_did_not_finish(monkeypatch):
+    monkeypatch.setattr("pipeline.recovery_inventory.require_downloaded_sources", lambda _db_path: None)
+    monkeypatch.setattr("pipeline.retirement.require_documented_removals", lambda _db_path: None)
+    monkeypatch.setattr(
+        "pipeline.parse.converter.parse_all",
+        lambda: {"remaining_required_failures": 0, "terminal_state": "max_runtime_reached"},
+    )
+
+    with pytest.raises(RuntimeError, match="max_runtime_reached"):
+        _parse_for_measurement()
+
+    monkeypatch.setattr(
+        "pipeline.parse.converter.parse_all",
+        lambda: {"remaining_required_failures": 0, "terminal_state": "completed"},
+    )
+    assert _parse_for_measurement()["wouldRefuseRelease"] == []
 
 
 def test_release_validation_rejects_parse_inventory_mutation(monkeypatch):
