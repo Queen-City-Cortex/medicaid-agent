@@ -501,7 +501,7 @@ gate. Scope records are not retirement evidence or permission to override gates.
 
 1. Complete `recovery-inventory` with zero blocking required failures and zero undocumented
    removals. Freeze the code revision, source snapshot, retirement evidence and
-   golden dataset 3.3 (its validated entries are the benchmark; run
+   golden dataset 3.4 (its validated entries are the benchmark; run
    `eval-validate-golden` against the catalog). Keep maintenance mode and the writer lock.
 2. Run a fresh baseline against the **legacy** graph using that exact code and
    model configuration. Run the CLI from `packages/pipeline` with its legacy
@@ -699,7 +699,7 @@ build from meeting the floors by answering less:
   benchmark size (`evaluation.withheldAnswers` holds `max` and `benchmarkSize`);
   a run of any other size fails the gate until the cap is set again. No override
   can waive it. Golden dataset 3 scores only validated entries (47 on
-  2026-10-07, version 3.3). When the validated count and `benchmarkSize` differ,
+  2026-10-09, version 3.4). When the validated count and `benchmarkSize` differ,
   `release-validate` stops before any run, naming both sizes, until the owner
   sets the cap again for the validated count. The value, 4 of 47, keeps the
   proportion of the earlier 5 of 55 and is provisional (`"provisional": true`):

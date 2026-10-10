@@ -150,3 +150,29 @@ comparable.**
 - Still `needs_validation`: q-021, q-033 and q-049 (legal judgment), q-042 (revision
   marker is only a section title) and q-051 to q-055 (wait for the corpus release).
 
+## v3.4 — 2026-10-09
+
+Section ids re-pointed after the production corpus was re-crawled (issues #259, #554).
+**`benchmarkHash` changed; scores on 3.3 and 3.4 are not comparable.** Still 47 of 56
+validated.
+
+- The first production measurement found golden section ids the built graph did not
+  hold. Two causes: the agency republished MA-2420, MA-3430 and MA-3550 at new
+  addresses (new document ids; the loader leaves the de-listed old copies out), and the
+  production parse numbers unnumbered sections differently from the workstation copy
+  the keys were quoted from. `eval-relocate-golden`, run on the production corpus,
+  found each quote verbatim in the section now cited.
+- Re-pointed with no change to answer text: q-007 (one section), q-019 (five), q-037
+  (three; its definitions quote now comes from MA-2910, the only loadable manual that
+  holds it), q-041 (one; the 45 C.F.R. § 74.53 sentence, now cited from Standard Plan
+  Amendment 21/22) and q-056 (both).
+- q-020, version 4: five sections re-pointed, and one clause removed. The key said the
+  MA-2910 manual carries the header 'REVISED 03/16/2026 -CHANGE NO. 04-26'; no loadable
+  section holds that text now. Nothing else in the key rested on it.
+- q-033 (awaiting review): three sections re-pointed. Its Tailored Plan contract quotes
+  and one of q-021's base-contract quotes were not found in any loadable document; both
+  notes say so.
+- These ids could not be checked against the workstation corpus, which holds the older
+  copies. The check is the production trace, and `eval-relocate-golden` after the change.
+- `key-review-3.3.md` still describes the keys; only q-020's removed clause was edited in it.
+

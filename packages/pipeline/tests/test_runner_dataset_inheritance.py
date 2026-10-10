@@ -122,7 +122,7 @@ def test_run_skips_unvalidated_entries_and_records_the_count_and_version(monkeyp
 
     assert seen["ids"] == ["q-1"]
     assert seen["config"]["skipped_unvalidated"] == 1
-    assert seen["config"]["dataset_version"] == "3.3"
+    assert seen["config"]["dataset_version"] == "3.4"
     assert "scoring 1 validated questions; skipped 1" in capsys.readouterr().out
 
 

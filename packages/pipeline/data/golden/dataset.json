@@ -562,7 +562,7 @@
     "id": "q-007",
     "version": 2,
     "created": "2026-03-26",
-    "updated": "2026-10-07",
+    "updated": "2026-10-09",
     "question": "What is the treatment plan (plan of care) requirement for outpatient therapy services under NC Medicaid policy 10A?",
     "difficulty": "simple",
     "reasoning_type": "single_lookup",
@@ -585,7 +585,7 @@
       "supporting_sections": [
         {
           "document_id": "doc:clinical_policy:6a038eaf968a9a33",
-          "section_id": "sec:doc:clinical_policy:6a038eaf968a9a33:_s0",
+          "section_id": "sec:doc:clinical_policy:6a038eaf968a9a33:_s1",
           "section_number": null,
           "relevance": "Policy header giving the policy number 10A"
         },
@@ -604,7 +604,7 @@
     "status": "validated",
     "supporting_quotes": [
       {
-        "section_id": "sec:doc:clinical_policy:6a038eaf968a9a33:_s0",
+        "section_id": "sec:doc:clinical_policy:6a038eaf968a9a33:_s1",
         "quote": "Clinical Coverage Policy No: 10A"
       },
       {
@@ -1588,7 +1588,7 @@
     "id": "q-019",
     "version": 3,
     "created": "2026-03-28",
-    "updated": "2026-10-07",
+    "updated": "2026-10-09",
     "question": "Under what conditions can speech therapy be provided via telehealth under NC Medicaid?",
     "difficulty": "moderate",
     "reasoning_type": "single_lookup",
@@ -1612,13 +1612,13 @@
         },
         {
           "document_id": "doc:clinical_policy:6a038eaf968a9a33",
-          "section_id": "sec:doc:clinical_policy:6a038eaf968a9a33:_s68",
+          "section_id": "sec:doc:clinical_policy:6a038eaf968a9a33:_s66",
           "section_number": null,
           "relevance": "Attachment A code table: speech/language evaluation codes and telehealth eligibility"
         },
         {
           "document_id": "doc:clinical_policy:6a038eaf968a9a33",
-          "section_id": "sec:doc:clinical_policy:6a038eaf968a9a33:_s69",
+          "section_id": "sec:doc:clinical_policy:6a038eaf968a9a33:_s67",
           "section_number": null,
           "relevance": "Attachment A code table: speech/language treatment codes and telehealth eligibility"
         }
@@ -1632,19 +1632,19 @@
         },
         {
           "document_id": "doc:clinical_policy:6a038eaf968a9a33",
-          "section_id": "sec:doc:clinical_policy:6a038eaf968a9a33:_s32",
+          "section_id": "sec:doc:clinical_policy:6a038eaf968a9a33:_s31",
           "section_number": null,
           "relevance": "Discharge criteria: telehealth that cannot meet the in-person standard of care"
         },
         {
           "document_id": "doc:clinical_policy:6a038eaf968a9a33",
-          "section_id": "sec:doc:clinical_policy:6a038eaf968a9a33:_s65",
+          "section_id": "sec:doc:clinical_policy:6a038eaf968a9a33:_s63",
           "section_number": null,
           "relevance": "Telehealth claims: modifier GT"
         },
         {
           "document_id": "doc:clinical_policy:6a038eaf968a9a33",
-          "section_id": "sec:doc:clinical_policy:6a038eaf968a9a33:_s76",
+          "section_id": "sec:doc:clinical_policy:6a038eaf968a9a33:_s74",
           "section_number": null,
           "relevance": "Place of service for telehealth claims"
         }
@@ -1681,15 +1681,15 @@
         "quote": "Note: CPT codes applicable to OST telehealth service delivery are indicated in Attachment A, Section C: Codes."
       },
       {
-        "section_id": "sec:doc:clinical_policy:6a038eaf968a9a33:_s68",
+        "section_id": "sec:doc:clinical_policy:6a038eaf968a9a33:_s66",
         "quote": "| 92521 | (1 unit = 1 event) | Yes |"
       },
       {
-        "section_id": "sec:doc:clinical_policy:6a038eaf968a9a33:_s69",
+        "section_id": "sec:doc:clinical_policy:6a038eaf968a9a33:_s67",
         "quote": "| 92507 | (1 unit = 1 event) | Yes | | 92508 | (1 unit = 1 event) | No |"
       },
       {
-        "section_id": "sec:doc:clinical_policy:6a038eaf968a9a33:_s32",
+        "section_id": "sec:doc:clinical_policy:6a038eaf968a9a33:_s31",
         "quote": "telehealth service delivery cannot meet the same standard of care as in-person services"
       },
       {
@@ -1697,27 +1697,27 @@
         "quote": "Refer to Clinical Coverage Policy, 1-H, Telehealth, Virtual Communications, and Remote Patient Monitoring, for requirements for service delivery via telehealth"
       },
       {
-        "section_id": "sec:doc:clinical_policy:6a038eaf968a9a33:_s65",
+        "section_id": "sec:doc:clinical_policy:6a038eaf968a9a33:_s63",
         "quote": "Modifier GT must be appended to the CPT or HCPCS code to indicate that a service has been provided via interactive audio-visual communication."
       },
       {
-        "section_id": "sec:doc:clinical_policy:6a038eaf968a9a33:_s76",
+        "section_id": "sec:doc:clinical_policy:6a038eaf968a9a33:_s74",
         "quote": "Telehealth claims should be filed with the provider's usual place of service code(s)."
       }
     ]
   },
   {
     "id": "q-020",
-    "version": 2,
+    "version": 3,
     "created": "2026-03-28",
-    "updated": "2026-10-07",
+    "updated": "2026-10-09",
     "question": "The Non-Emergency Medical Transportation (NEMT) policy has been amended multiple times. Which change notice is the most recent, and what did it change?",
     "difficulty": "moderate",
     "reasoning_type": "temporal",
     "topics": ["nemt", "transportation", "amendments", "policy_history"],
     "target_users": ["policy_analyst", "provider"],
     "answer": {
-      "text": "In the current DHHS corpus, the latest identifiable NEMT revision is Change No. 04-26, dated March 16, 2026; the MA-2910 manual carries the header 'REVISED 03/16/2026 -CHANGE NO. 04-26.' The corpus holds a 04-26 change notice for each manual, one for the Family and Children's Medicaid manual (MA-3550) and one for the Aged, Blind, and Disabled Medicaid manual (MA-2910). Both notices say the same thing: NC Medicaid updated the charts in the NEMT section for In-State and Out-of-State Per Diem Rates and Mileage Rates. The change is effective upon receipt for all applications processing and ongoing recertifications. The notices name the charts that changed but do not give the old or new rate amounts.",
+      "text": "In the current DHHS corpus, the latest identifiable NEMT revision is Change No. 04-26, dated March 16, 2026. The corpus holds a 04-26 change notice for each manual, one for the Family and Children's Medicaid manual (MA-3550) and one for the Aged, Blind, and Disabled Medicaid manual (MA-2910). Both notices say the same thing: NC Medicaid updated the charts in the NEMT section for In-State and Out-of-State Per Diem Rates and Mileage Rates. The change is effective upon receipt for all applications processing and ongoing recertifications. The notices name the charts that changed but do not give the old or new rate amounts.",
       "confidence": "medium",
       "caveats": [
         "NEMT exists in both MA-3550 and MA-2910 manual variants in the corpus",
@@ -1728,19 +1728,19 @@
       "primary_sections": [
         {
           "document_id": "doc:dhhs_policy:6a0f8adcba866df0",
-          "section_id": "sec:doc:dhhs_policy:6a0f8adcba866df0:_s1",
+          "section_id": "sec:doc:dhhs_policy:6a0f8adcba866df0:_s0",
           "section_number": null,
           "relevance": "04-26 change notice for the Family and Children's Medicaid manual: date and change number"
         },
         {
           "document_id": "doc:dhhs_policy:6a0f8adcba866df0",
-          "section_id": "sec:doc:dhhs_policy:6a0f8adcba866df0:_s2",
+          "section_id": "sec:doc:dhhs_policy:6a0f8adcba866df0:_s1",
           "section_number": null,
           "relevance": "What Change No. 04-26 changed in MA-3550"
         },
         {
           "document_id": "doc:dhhs_policy:6a0f8adcba866df0",
-          "section_id": "sec:doc:dhhs_policy:6a0f8adcba866df0:_s3",
+          "section_id": "sec:doc:dhhs_policy:6a0f8adcba866df0:_s2",
           "section_number": null,
           "relevance": "Effective date of the change"
         }
@@ -1748,21 +1748,15 @@
       "supporting_sections": [
         {
           "document_id": "doc:dhhs_policy:672c78be85045eea",
-          "section_id": "sec:doc:dhhs_policy:672c78be85045eea:_s1",
+          "section_id": "sec:doc:dhhs_policy:672c78be85045eea:_s0",
           "section_number": null,
           "relevance": "04-26 change notice for the Aged, Blind, and Disabled Medicaid manual: date and change number"
         },
         {
           "document_id": "doc:dhhs_policy:672c78be85045eea",
-          "section_id": "sec:doc:dhhs_policy:672c78be85045eea:_s2",
+          "section_id": "sec:doc:dhhs_policy:672c78be85045eea:_s1",
           "section_number": null,
           "relevance": "What Change No. 04-26 changed in MA-2910"
-        },
-        {
-          "document_id": "doc:dhhs_policy:e4bf5c2c1fc66566",
-          "section_id": "sec:doc:dhhs_policy:e4bf5c2c1fc66566:_s2",
-          "section_number": null,
-          "relevance": "MA-2910 manual revision header naming Change No. 04-26"
         }
       ],
       "cross_references": [],
@@ -1773,27 +1767,23 @@
     "status": "validated",
     "supporting_quotes": [
       {
-        "section_id": "sec:doc:dhhs_policy:6a0f8adcba866df0:_s1",
+        "section_id": "sec:doc:dhhs_policy:6a0f8adcba866df0:_s0",
         "quote": "DATE: March 16, 2026 Manual: Family and Children's Medicaid Change No: 04-26"
       },
       {
-        "section_id": "sec:doc:dhhs_policy:672c78be85045eea:_s1",
+        "section_id": "sec:doc:dhhs_policy:672c78be85045eea:_s0",
         "quote": "DATE: March 16, 2026 Manual: Aged, Blind, and Disabled Medicaid Change No: 04-26"
       },
       {
-        "section_id": "sec:doc:dhhs_policy:e4bf5c2c1fc66566:_s2",
-        "quote": "REVISED 03/16/2026 -CHANGE NO. 04-26"
-      },
-      {
-        "section_id": "sec:doc:dhhs_policy:6a0f8adcba866df0:_s2",
+        "section_id": "sec:doc:dhhs_policy:6a0f8adcba866df0:_s1",
         "quote": "has updated the charts in MA-3550, NonEmergency Medical Transportation (NEMT) for In-State and Out-of-State Per Diem Rates and Mileage Rates."
       },
       {
-        "section_id": "sec:doc:dhhs_policy:672c78be85045eea:_s2",
+        "section_id": "sec:doc:dhhs_policy:672c78be85045eea:_s1",
         "quote": "has updated the charts in MA-2910, NonEmergency Medical Transportation (NEMT) for In-State and Out-of-State Per Diem Rates and Mileage Rates."
       },
       {
-        "section_id": "sec:doc:dhhs_policy:6a0f8adcba866df0:_s3",
+        "section_id": "sec:doc:dhhs_policy:6a0f8adcba866df0:_s2",
         "quote": "This change notice is effective upon receipt for all applications processing and ongoing recertifications."
       }
     ]
@@ -1899,7 +1889,7 @@
     "source": "legal_aid",
     "notes": "Federal-state comparison question. Tests whether the agent can explain a federal requirement and how it applies at the state level. The complexity is in connecting the federal regulation to NC's specific implementation.",
     "status": "needs_validation",
-    "validation_note": "Reworded 2026-10-06 (review EVAL-1b): every fact is quoted from the cited sections, but the answer text changed, so it waits for the owner's or an attorney's approval. Changed: replaced: 'Medicaid managed care organizations must meet medical loss ratio standards' with the rule that States must ensure through their contracts that each plan calculates and reports an MLR; removed: 'The MLR is calculated as the ratio of clinical services spending to total premium revenue, ensuring that a minimum percentage of premiums is spent on medical care rather than administrative costs or profit'; replaced: 'States must set an MLR standard in their managed care contracts' with 'if a State elects to mandate a minimum MLR, it must be equal to or higher than 85 percent'; removed: 'The federal regulation specifies the methodology for calculating the MLR, including what counts as c...",
+    "validation_note": "Reworded 2026-10-06 (review EVAL-1b): every fact is quoted from the cited sections, but the answer text changed, so it waits for the owner's or an attorney's approval. Changed: replaced: 'Medicaid managed care organizations must meet medical loss ratio standards' with the rule that States must ensure through their contracts that each plan calculates and reports an MLR; removed: 'The MLR is calculated as the ratio of clinical services spending to total premium revenue, ensuring that a minimum percentage of premiums is spent on medical care rather than administrative costs or profit'; replaced: 'States must set an MLR standard in their managed care contracts' with 'if a State elects to mandate a minimum MLR, it must be equal to or higher than 85 percent'; removed: 'The federal regulation specifies the methodology for calculating the MLR, including what counts as c... 2026-10-09: the base contract section it quotes (a0e6b718d2c56ac5:_s142) is not among the documents the loader loads on the production corpus; one of its two quotes was not found in any loadable contract section.",
     "supporting_quotes": [
       {
         "section_id": "sec:doc:federal_regulation:9abe74a2a6cfee6c:438.8",
@@ -2817,7 +2807,7 @@
     "id": "q-033",
     "version": 3,
     "created": "2026-04-16",
-    "updated": "2026-10-06",
+    "updated": "2026-10-09",
     "question": "If NC Medicaid denies prior authorization for a service, can the beneficiary appeal directly to CMS?",
     "difficulty": "moderate",
     "reasoning_type": "negative_answer",
@@ -2860,7 +2850,7 @@
         },
         {
           "document_id": "doc:state_plan_amendment:4c9c70b77f363cc2",
-          "section_id": "sec:doc:state_plan_amendment:4c9c70b77f363cc2:_s1856",
+          "section_id": "sec:doc:state_plan_amendment:4c9c70b77f363cc2:_s1776",
           "section_number": null,
           "relevance": "North Carolina State Plan, 'Medicaid Administration': the Office of Administrative Hearings makes final agency decisions in contested Medicaid beneficiary cases, defined as those where the State agency or one of its contractors or agents denies a Medicaid-reimbursable service"
         },
@@ -2898,13 +2888,13 @@
         },
         {
           "document_id": "doc:dhhs_policy:1f17671d1184765d",
-          "section_id": "sec:doc:dhhs_policy:1f17671d1184765d:_s28",
+          "section_id": "sec:doc:dhhs_policy:1f17671d1184765d:_s29",
           "section_number": null,
           "relevance": "Older example only (MA-2905 II.H, revised 2011), limited to services requested by a CCNC/CA provider: the appeal request form is sent to the Office of Administrative Hearings, within 30 days of mailing of the notice. Not the source for the general route."
         },
         {
           "document_id": "doc:state_plan_amendment:286a34bdfb808cac",
-          "section_id": "sec:doc:state_plan_amendment:286a34bdfb808cac:_s379",
+          "section_id": "sec:doc:state_plan_amendment:286a34bdfb808cac:_s417",
           "section_number": null,
           "relevance": "Waiver document, Appendix F-1 (waiver scope only): gives 30 days from mailing of the notice for appealing a Medicaid adverse decision; corroborates the 30-day North Carolina figure for a State agency decision"
         },
@@ -2930,7 +2920,7 @@
     "source": "legal_aid",
     "notes": "NEEDS_VALIDATION: confirm 42 CFR 431.220 is present in the graph. Tests negative-answer on an administrative-procedure question. Key amended 2026-10-05 (review SAFE-1) to follow the agent's federal-bound rule: the stored 2026-09-22 release answer gave the federal 90-day ceiling as the only time limit under an NC Medicaid Direct heading and scored 3. The key deliberately names no North Carolina figure for a service denial; that case waits for the hearing statutes to be in the corpus.",
     "status": "needs_validation",
-    "validation_note": "Reworded 2026-10-06 (review EVAL-1b): every fact is quoted from the cited sections, but the answer text changed, so it waits for the owner's or an attorney's approval. Changed: replaced: 'The beneficiary must first request reconsideration or a state fair hearing under NC's procedures; CMS is the federal oversight agency for state Medicaid programs but does not adjudicate individual beneficiary appeals.' with 'Federal rules require the State agency to grant a hearing on a prior authorization decision (42 CFR 431.220), and in North Carolina the Office of Administrative Hearings makes the final decision when NC Medicaid or one of its contractors denies a service; a plan member must first appeal to the plan and may request a State Fair Hearing if it upholds the denial or misses its notice and timing requirements.'; added: after 'a North Carolina limit taken from a N...",
+    "validation_note": "Reworded 2026-10-06 (review EVAL-1b): every fact is quoted from the cited sections, but the answer text changed, so it waits for the owner's or an attorney's approval. Changed: replaced: 'The beneficiary must first request reconsideration or a state fair hearing under NC's procedures; CMS is the federal oversight agency for state Medicaid programs but does not adjudicate individual beneficiary appeals.' with 'Federal rules require the State agency to grant a hearing on a prior authorization decision (42 CFR 431.220), and in North Carolina the Office of Administrative Hearings makes the final decision when NC Medicaid or one of its contractors denies a service; a plan member must first appeal to the plan and may request a State Fair Hearing if it upholds the denial or misses its notice and timing requirements.'; added: after 'a North Carolina limit taken from a N... Section ids re-pointed 2026-10-09 after the production corpus was re-crawled; the BH I/DD Tailored Plan contract section it quotes (310e100aca2dabbf:_s96) is not among the documents the loader loads and could not be traced.",
     "supporting_quotes": [
       {
         "section_id": "sec:doc:federal_regulation:07ef8df866ef204f:431.220",
@@ -2945,7 +2935,7 @@
         "quote": "(4) Any MCO, PIHP, or PAHP enrollee who is entitled to a hearing under subpart F of part 438 of this chapter."
       },
       {
-        "section_id": "sec:doc:dhhs_policy:1f17671d1184765d:_s28",
+        "section_id": "sec:doc:dhhs_policy:1f17671d1184765d:_s29",
         "quote": "If the recipient decides to appeal Medicaid's decision to deny, terminate, reduce, or suspend the services requested by the CCNC/CA provider, the recipient or personal representative must sign and date the appeal request form and send it to the Office of Administrative Hearings (OAH) by mail or fax within 30 days of the date the notice was mailed"
       },
       {
@@ -2973,11 +2963,11 @@
         "quote": "(3) The single State agency is responsible for determining eligibility for all individuals applying for or receiving benefits in accordance with regulations in part 435 of this chapter and for fair hearings filed in accordance with subpart E of this part."
       },
       {
-        "section_id": "sec:doc:state_plan_amendment:4c9c70b77f363cc2:_s1856",
+        "section_id": "sec:doc:state_plan_amendment:4c9c70b77f363cc2:_s1776",
         "quote": "The Office of Administrative Hearings will make final agency decisions in contested Medicaid beneficiary and provider cases as defined in paragraphs (1) and (2) below."
       },
       {
-        "section_id": "sec:doc:state_plan_amendment:4c9c70b77f363cc2:_s1856",
+        "section_id": "sec:doc:state_plan_amendment:4c9c70b77f363cc2:_s1776",
         "quote": "\"Contested Medicaid beneficiary cases\" are those defined in N.C.G.S. §150B-22 in which the single state Medicaid agency or one of its contractors or agents denies, reduces, terminates or suspends (or alleges such a decision was not acted upon with reasonable promptness), a Medicaid-reimbursable service."
       },
       {
@@ -3005,7 +2995,7 @@
         "quote": "the enrollee is deemed to have exhausted the MCO's, PIHP's, or PAHP's appeals process. The enrollee may initiate a State fair hearing."
       },
       {
-        "section_id": "sec:doc:state_plan_amendment:286a34bdfb808cac:_s379",
+        "section_id": "sec:doc:state_plan_amendment:286a34bdfb808cac:_s417",
         "quote": "Appealing a Medicaid Adverse decision 30 days of the date the notice was mailed"
       },
       {
@@ -3283,7 +3273,7 @@
     "id": "q-037",
     "version": 2,
     "created": "2026-04-16",
-    "updated": "2026-10-07",
+    "updated": "2026-10-09",
     "question": "Does NEMT (Non-Emergency Medical Transportation) cover transportation to non-medical errands such as grocery shopping?",
     "difficulty": "simple",
     "reasoning_type": "negative_answer",
@@ -3299,22 +3289,22 @@
     "evidence": {
       "primary_sections": [
         {
-          "document_id": "doc:dhhs_policy:9c740a6f1f22f51c",
-          "section_id": "sec:doc:dhhs_policy:9c740a6f1f22f51c:_s11",
+          "document_id": "doc:dhhs_policy:ce19ac9d618504ff",
+          "section_id": "sec:doc:dhhs_policy:ce19ac9d618504ff:_s7",
           "section_number": null,
           "relevance": "IV.A: NEMT only for Medicaid covered services and when the primary reason for the trip is medical care"
         }
       ],
       "supporting_sections": [
         {
-          "document_id": "doc:dhhs_policy:9c740a6f1f22f51c",
-          "section_id": "sec:doc:dhhs_policy:9c740a6f1f22f51c:_s102",
+          "document_id": "doc:dhhs_policy:3902ce8f86064b64",
+          "section_id": "sec:doc:dhhs_policy:3902ce8f86064b64:_s86",
           "section_number": null,
-          "relevance": "Definitions: the local agency is the County Department of Social Services"
+          "relevance": "Definitions in MA-2910, the Aged, Blind and Disabled manual's NEMT section: the local agency is the County Department of Social Services"
         },
         {
-          "document_id": "doc:dhhs_policy:9c740a6f1f22f51c",
-          "section_id": "sec:doc:dhhs_policy:9c740a6f1f22f51c:_s22",
+          "document_id": "doc:dhhs_policy:ce19ac9d618504ff",
+          "section_id": "sec:doc:dhhs_policy:ce19ac9d618504ff:_s18",
           "section_number": null,
           "relevance": "The local agency arranges, provides and authorizes trips"
         }
@@ -3327,19 +3317,19 @@
     "status": "validated",
     "supporting_quotes": [
       {
-        "section_id": "sec:doc:dhhs_policy:9c740a6f1f22f51c:_s11",
+        "section_id": "sec:doc:dhhs_policy:ce19ac9d618504ff:_s7",
         "quote": "Non-Emergency Medical transportation is only provided for Medicaid covered services and when the primary reason for the trip is medical care."
       },
       {
-        "section_id": "sec:doc:dhhs_policy:9c740a6f1f22f51c:_s11",
+        "section_id": "sec:doc:dhhs_policy:ce19ac9d618504ff:_s7",
         "quote": "Because the primary reason for the trip is to participate in the sheltered workshop program, transportation would not be covered even though a medical service is received during the course of the day."
       },
       {
-        "section_id": "sec:doc:dhhs_policy:9c740a6f1f22f51c:_s102",
+        "section_id": "sec:doc:dhhs_policy:3902ce8f86064b64:_s86",
         "quote": "Local AgencyCounty Department of Social Services"
       },
       {
-        "section_id": "sec:doc:dhhs_policy:9c740a6f1f22f51c:_s22",
+        "section_id": "sec:doc:dhhs_policy:ce19ac9d618504ff:_s18",
         "quote": "The local agency where the Medicaid beneficiary is physically located is responsible for arranging, providing, requesting reimbursement for transportation, or authorizing the trip."
       }
     ]
@@ -3616,7 +3606,7 @@
     "id": "q-041",
     "version": 3,
     "created": "2026-04-16",
-    "updated": "2026-10-07",
+    "updated": "2026-10-09",
     "question": "What is the current governing federal regulation for grants administration applied to Medicaid — 45 CFR Part 74 or 45 CFR Part 75?",
     "difficulty": "moderate",
     "reasoning_type": "temporal",
@@ -3664,10 +3654,10 @@
           "relevance": "NC state plan page citing 45 CFR 75.326"
         },
         {
-          "document_id": "doc:managed_care_contract:a0e6b718d2c56ac5",
-          "section_id": "sec:doc:managed_care_contract:a0e6b718d2c56ac5:_s48",
+          "document_id": "doc:managed_care_contract:5cb962e3ddc56659",
+          "section_id": "sec:doc:managed_care_contract:5cb962e3ddc56659:_s2",
           "section_number": null,
-          "relevance": "NC managed care contract citing 45 C.F.R. § 74.53"
+          "relevance": "NC managed care contract (Standard Plan Amendment 21/22) citing 45 C.F.R. § 74.53"
         }
       ],
       "cross_references": [],
@@ -3711,7 +3701,7 @@
         "quote": "The state assures that all applicable requirements of 45 CFR 75.326 for procurement of contracts will be met."
       },
       {
-        "section_id": "sec:doc:managed_care_contract:a0e6b718d2c56ac5:_s48",
+        "section_id": "sec:doc:managed_care_contract:5cb962e3ddc56659:_s2",
         "quote": "Federal record retention standards are located in 45 C.F.R. § 74.53."
       }
     ]
@@ -4754,21 +4744,12 @@
     "id": "q-056",
     "version": 1,
     "created": "2026-10-05",
-    "updated": "2026-10-05",
+    "updated": "2026-10-09",
     "question": "The county DSS office sent me a notice that my Medicaid is ending. How long do I have to appeal and request a hearing?",
     "difficulty": "moderate",
     "reasoning_type": "single_lookup",
-    "topics": [
-      "appeals",
-      "eligibility",
-      "notice_and_hearings",
-      "deadlines"
-    ],
-    "target_users": [
-      "beneficiary",
-      "caregiver",
-      "legal_aid"
-    ],
+    "topics": ["appeals", "eligibility", "notice_and_hearings", "deadlines"],
+    "target_users": ["beneficiary", "caregiver", "legal_aid"],
     "answer": {
       "text": "North Carolina's Medicaid eligibility manuals (MA-2420 and MA-3430, Notice and Hearings Process) say the applicant or beneficiary must request a hearing within 60 calendar days from the date the notice of action is mailed or given, unless they can show good cause for a later request; if good cause exists, the request must be no later than 90 calendar days from the date of the notice of action. Both figures are North Carolina manual text for these county eligibility notices. The answer must give 60 calendar days as the limit, must not present 90 days as the ordinary deadline, and must not substitute the federal maximum for the North Carolina limit. A safe answer also tells the person to check the deadline printed on their notice, not to wait, and to contact the county DSS or qualified legal help, without deciding whether this person's request is on time or whether good cause exists.",
       "confidence": "high",
@@ -4781,16 +4762,16 @@
     "evidence": {
       "primary_sections": [
         {
-          "document_id": "doc:dhhs_policy:6b4992cfb7cff199",
-          "section_id": "sec:doc:dhhs_policy:6b4992cfb7cff199:_s33",
+          "document_id": "doc:dhhs_policy:ced5f2088fe9c5ca",
+          "section_id": "sec:doc:dhhs_policy:ced5f2088fe9c5ca:_s26",
           "section_number": null,
           "relevance": "MA-2420 Notice and Hearings Process, B. Applicant's/Beneficiary's Rights: hearing request within 60 calendar days of the notice of action, 90 with good cause"
         }
       ],
       "supporting_sections": [
         {
-          "document_id": "doc:dhhs_policy:0fa56aa231310eb4",
-          "section_id": "sec:doc:dhhs_policy:0fa56aa231310eb4:_s35",
+          "document_id": "doc:dhhs_policy:3500c3503ee6df19",
+          "section_id": "sec:doc:dhhs_policy:3500c3503ee6df19:_s26",
           "section_number": null,
           "relevance": "MA-3430 Notice and Hearings Process, B. Applicant's/Beneficiary's Rights: the same 60 / 90 calendar-day text in the Family and Children's manual"
         }
@@ -4803,11 +4784,11 @@
     "status": "validated",
     "supporting_quotes": [
       {
-        "section_id": "sec:doc:dhhs_policy:6b4992cfb7cff199:_s33",
+        "section_id": "sec:doc:dhhs_policy:ced5f2088fe9c5ca:_s26",
         "quote": "The applicant/ beneficiary must request a hearing within 60 calendar days from the date the notice of action is mailed or given, unless they can show good cause for a later request. If good cause exists, the request must be no later than 90 calendar days from the date of the notice of action."
       },
       {
-        "section_id": "sec:doc:dhhs_policy:0fa56aa231310eb4:_s35",
+        "section_id": "sec:doc:dhhs_policy:3500c3503ee6df19:_s26",
         "quote": "The applicant/ beneficiary must request a hearing within 60 calendar days from the date the notice of action is mailed or given, unless they can show good cause for a later request. If good cause exists, the request must be no later than 90 calendar days from the date of the notice of action."
       }
     ]
