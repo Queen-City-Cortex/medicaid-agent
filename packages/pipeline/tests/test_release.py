@@ -33,6 +33,10 @@ from pipeline.release import (
 _CAP = load_release_policy()["evaluation"]["withheldAnswers"]
 BENCHMARK_SIZE = _CAP["benchmarkSize"]
 CAP_MAX = _CAP["max"]
+# The floors too: they are set from a measurement (issue #259) and move with it.
+_FLOORS = load_release_policy()["evaluation"]
+RECALL_FLOOR = _FLOORS["retrievalRecall"]
+HIT_RATE_FLOOR = _FLOORS["primaryDocumentHitRate"]
 
 
 SNAPSHOT = "sha256:" + "a" * 64
@@ -221,8 +225,8 @@ def test_sparse_label_precision_is_reported_without_an_absolute_gate():
 
 
 @pytest.mark.parametrize(('metric', 'failing_value'), [
-    ('retrievalRecall', 0.89),
-    ('primaryDocumentHitRate', 0.94),
+    ('retrievalRecall', round(RECALL_FLOOR - 0.01, 4)),
+    ('primaryDocumentHitRate', round(HIT_RATE_FLOOR - 0.01, 4)),
     ('answerScore', 2.74),
     ('hallucinationScore', 2.49),
     ('withheldAnswers', CAP_MAX + 1),
@@ -1146,8 +1150,9 @@ def decide_before_answer_runs(tmp_path, measured, **kwargs):
 
 def test_a_retrieval_floor_breach_rejects_the_release_before_any_answer_run(tmp_path):
     measured = retrieval_result()
-    measured["aggregate"]["recall_at_k"] = 0.5
-    measured["aggregate"]["primary_hit_rate"] = 0.6
+    below_recall = round(RECALL_FLOOR - 0.1, 4)
+    measured["aggregate"]["recall_at_k"] = below_recall
+    measured["aggregate"]["primary_hit_rate"] = round(HIT_RATE_FLOOR - 0.1, 4)
 
     failed, manifest = decide_before_answer_runs(tmp_path, measured)
 
@@ -1159,7 +1164,7 @@ def test_a_retrieval_floor_breach_rejects_the_release_before_any_answer_run(tmp_
     ]
     assert manifest["promotionState"] == "rejected"
     assert manifest["validatedAt"]
-    assert manifest["evaluationResults"]["retrievalRecall"] == 0.5
+    assert manifest["evaluationResults"]["retrievalRecall"] == below_recall
     # Only the gates that were decided are recorded; no answer run existed.
     recorded = {gate["name"] for gate in manifest["gates"]}
     assert {"retrievalRecall", "duplicateIdentities", "freshnessSla"} <= recorded

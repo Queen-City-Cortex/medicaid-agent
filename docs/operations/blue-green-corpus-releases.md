@@ -739,13 +739,24 @@ is paid for, and the retrieval result is already saved as
 `<release-id>/retrieval-evaluation.json`.
 
 The two retrieval floors (`evaluation.retrievalRecall` and
-`evaluation.primaryDocumentHitRate`) are **not calibrated**. 0.9 and 0.95
-predate the 55-question benchmark; no retrieval run on that benchmark or on a
-rebuilt graph is stored. Set them once, from a measurement:
+`evaluation.primaryDocumentHitRate`) were set on 2026-10-10 from the first
+measurement of a rebuilt graph: 0.31 and 0.62, against a measured recall of
+0.349 and a hit rate of 0.660 (31 of 47 validated questions, golden dataset
+3.4, commit `4708685`; issue #259 holds the figures). They are provisional,
+from one measurement. The earlier 0.9 and 0.95 had never been measured.
 
-1. Build the candidate graph (bootstrap does this). With the floors as they
-   are, expect validation to stop before the answer stage on the two retrieval
-   floors. That stop is the measurement.
+What the two figures count: the hit rate is a hit only when a key's exact
+primary **section** is in the top ten, despite the gate's name; counted by
+document the same run scored 42 of 47. Recall counts every section a key
+cites, and the repaired keys cite about four each.
+
+Set them again, from a measurement, whenever the golden dataset or the
+retrieval code changes what they measure:
+
+1. Build and measure the candidate graph with
+   [`CORPUS_JOB_MODE=measure`](#measuring-a-candidate-graph-before-paying-for-a-release),
+   which costs one embedding pass and no answer run. `MEASURE_REUSE_GRAPH=1`
+   measures a graph it already built at no cost.
 2. Read the result:
 
    ```bash

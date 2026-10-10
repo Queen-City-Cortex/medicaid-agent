@@ -13,6 +13,8 @@ from pipeline.release import (
 
 # These tests exercise the gates with the benchmark size the release policy's
 # withheld-answer cap is set for, whatever the golden dataset holds today.
+# Below the retrieval recall floor, whatever a measurement has set it to.
+BELOW_RECALL_FLOOR = round(load_release_policy()["evaluation"]["retrievalRecall"] - 0.1, 4)
 BENCHMARK = [
     {"id": f"q-{number:03d}", "status": "validated"}
     for number in range(1, load_release_policy()["evaluation"]["withheldAnswers"]["benchmarkSize"] + 1)
@@ -362,11 +364,11 @@ def test_release_validate_refuses_a_manifest_prepared_for_a_measurement(tmp_path
 
 def test_release_measure_reports_the_gates_and_decides_nothing(tmp_path, monkeypatch):
     outcome, fake, manifest = validate_release(
-        tmp_path, monkeypatch, [], recall=0.5, command="release-measure"
+        tmp_path, monkeypatch, [], recall=BELOW_RECALL_FLOOR, command="release-measure"
     )
 
     assert outcome.exit_code == 0, outcome.output
-    assert "FAIL  retrievalRecall: 0.5" in outcome.output
+    assert f"FAIL  retrievalRecall: {BELOW_RECALL_FLOOR}" in outcome.output
     assert "would fail: retrievalRecall" in outcome.output
     # No answer was generated, and the manifest was neither rejected nor validated.
     assert fake.calls == 0
@@ -429,7 +431,7 @@ def test_release_validate_stops_on_a_retrieval_floor_breach_before_the_answer_st
     tmp_path, monkeypatch
 ):
     outcome, fake, manifest = validate_release(
-        tmp_path, monkeypatch, [(2.9, 0)] * 3, recall=0.5
+        tmp_path, monkeypatch, [(2.9, 0)] * 3, recall=BELOW_RECALL_FLOOR
     )
 
     assert outcome.exit_code != 0
@@ -441,7 +443,7 @@ def test_release_validate_stops_on_a_retrieval_floor_breach_before_the_answer_st
     assert not any(name.startswith("answerEvaluation") for name in release["stageResults"])
     assert (manifest.parent / "release-2" / "retrieval-evaluation.json").exists()
     recall = next(gate for gate in release["gates"] if gate["name"] == "retrievalRecall")
-    assert recall["actual"] == 0.5 and not recall["passed"] and not recall["overridable"]
+    assert recall["actual"] == BELOW_RECALL_FLOOR and not recall["passed"] and not recall["overridable"]
 
 
 def test_a_scoped_release_that_fails_retrieval_is_not_charged_for_scope_acceptance(
@@ -454,7 +456,7 @@ def test_a_scoped_release_that_fails_retrieval_is_not_charged_for_scope_acceptan
 
     monkeypatch.setattr(pipeline.eval.answer_scope, "run_scope_acceptance", paid_scope_cases)
     outcome, fake, manifest = validate_release(
-        tmp_path, monkeypatch, [(2.9, 0)] * 3, recall=0.5, scoped=True
+        tmp_path, monkeypatch, [(2.9, 0)] * 3, recall=BELOW_RECALL_FLOOR, scoped=True
     )
 
     assert "rejected before the answer stage by: retrievalRecall" in outcome.output

@@ -26,8 +26,8 @@
     "freshnessSlaMet": 1
   },
   "evaluation": {
-    "retrievalRecall": 0.9,
-    "primaryDocumentHitRate": 0.95,
+    "retrievalRecall": 0.31,
+    "primaryDocumentHitRate": 0.62,
     "answerScore": 2.75,
     "hallucinationScore": 2.5,
     "withheldAnswers": {
