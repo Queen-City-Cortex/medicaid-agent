@@ -425,10 +425,12 @@ def eval_validate_golden(dataset: str | None, catalog: str | None):
 @cli.command("eval-relocate-golden")
 @click.option("--output", type=click.Path(dir_okay=False, path_type=str), required=True)
 def eval_relocate_golden(output: str):
-    """Report where golden quotes live now, for cited sections the parsed corpus lacks.
+    """Report where golden quotes live now, for cited sections that have moved.
 
-    Reads the parsed corpus and the registry; no graph, no model. It proposes
-    new section ids and changes nothing.
+    A section has moved when no document the loader would load holds its id,
+    or when its text no longer contains a quote the key takes from it. Reads
+    the parsed corpus and the registry; no graph, no model. It proposes new
+    section ids and changes nothing.
     """
     from pathlib import Path
 
@@ -441,10 +443,10 @@ def eval_relocate_golden(output: str):
     click.echo(
         f"Scanned {report['sections_scanned']} sections in "
         f"{', '.join(report['families_scanned'])}; "
-        f"{len(report['moved'])} cited sections are not in the parsed corpus"
+        f"{len(report['moved'])} cited sections have moved"
     )
     for moved in report["moved"]:
-        click.echo(f"{moved['id']} {moved['kind']} {moved['section_id']}")
+        click.echo(f"{moved['id']} {moved['kind']} {moved['section_id']} ({moved['reason']})")
         if not moved["quotes"]:
             click.echo("    no quote cites this section, so it cannot be traced")
         for quote in moved["quotes"]:

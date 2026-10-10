@@ -2,9 +2,10 @@
 
 An agency that republishes a document gives it a new address, and so a new
 document id; a re-parse can renumber unnumbered sections. Either leaves a
-golden key citing section ids the corpus no longer holds. This reads the
-parsed corpus, with no graph, and reports for each such id the sections that
-now contain the key's quotes. It proposes; a person re-points the key.
+golden key citing sections a built graph no longer holds, or whose id now
+names different text. This reads the parsed corpus, with no graph, and reports
+for each such section where the key's quotes are found now, among the documents
+the loader would load. It proposes; a person re-points the key.
 """
 
 from __future__ import annotations
@@ -26,7 +27,12 @@ def family_of(section_or_document_id: str) -> str:
 
 
 def corpus_sections(source_types: Iterable[str]) -> Iterator[dict]:
-    """Sections of every loadable parsed document of these source types."""
+    """Sections of every parsed document of these source types that the loader would load.
+
+    The loader's own exclusion rule decides, so a document the agency has
+    dropped from its index, or whose parse is not answer-ready, is left out
+    here as it is left out of the graph.
+    """
     from pipeline.config import CRAWLER_DATA_DIR, PARSED_DATA_DIR, SOURCE_TYPE_DIRS
     from pipeline.crawler_registry import (
         PAYLOAD_RETAINED_STATUSES,
@@ -34,6 +40,7 @@ def corpus_sections(source_types: Iterable[str]) -> Iterator[dict]:
         read_registry_rows,
     )
     from pipeline.graph.loader import (
+        _document_exclusion_reason,
         build_sections_from_items,
         build_sections_from_synthetic_items,
     )
@@ -48,15 +55,18 @@ def corpus_sections(source_types: Iterable[str]) -> Iterator[dict]:
         directory = PARSED_DATA_DIR / SOURCE_TYPE_DIRS.get(source_type, source_type)
         for meta_file in sorted(directory.glob("*.meta.json")):
             meta = json.loads(meta_file.read_text())
-            if meta.get("parse_status", "parsed") != "parsed" or meta.get("answer_ready") is False:
-                continue
             row = registry.get(
                 normalize_local_path(
                     meta.get("source_file") or meta.get("source_pdf"), CRAWLER_DATA_DIR
                 )
             )
             artifact = meta_file.with_name(meta_file.name.removesuffix(".meta.json") + ".json")
-            if not row or row["source_type"] != source_type or not artifact.is_file():
+            if (
+                not row
+                or row["source_type"] != source_type
+                or not artifact.is_file()
+                or _document_exclusion_reason(meta, row)
+            ):
                 continue
             document_id = build_document_id(source_type, row["source_url"])
             payload = json.loads(artifact.read_text())
@@ -78,10 +88,13 @@ def corpus_sections(source_types: Iterable[str]) -> Iterator[dict]:
 
 
 def relocate_golden_sections(entries: list[dict], sections: Iterable[dict] | None = None) -> dict:
-    """Where the quotes of each cited section the corpus lacks are found now.
+    """Where the quotes of each cited section that has moved are found now.
 
-    Every quoted entry is checked, validated or not. A cited section with no
-    quote cannot be traced and is listed without candidates.
+    A cited section has moved when no loadable document holds its id, or when
+    one does but a quote the key takes from it is no longer in its text (a
+    re-parse renumbered the sections). Every quoted entry is checked, validated
+    or not. A missing section with no quote cannot be traced and is listed
+    without candidates.
     """
     quoted = [entry for entry in entries if entry.get("supporting_quotes")]
     cited = {
@@ -96,7 +109,11 @@ def relocate_golden_sections(entries: list[dict], sections: Iterable[dict] | Non
         by_family.setdefault(family_of(section["section_id"]), []).append(
             {**section, "normalized": normalize_quote(section["content_text"])}
         )
-    present = {section["section_id"] for rows in by_family.values() for section in rows}
+    text_of = {
+        section["section_id"]: section["normalized"]
+        for rows in by_family.values()
+        for section in rows
+    }
 
     moved = []
     for entry in quoted:
@@ -104,18 +121,23 @@ def relocate_golden_sections(entries: list[dict], sections: Iterable[dict] | Non
             for cited_section in entry["evidence"].get(kind, []):
                 section_id = cited_section["section_id"]
                 family = family_of(section_id)
-                if family in _FEDERAL_FAMILIES or section_id in present:
+                if family in _FEDERAL_FAMILIES:
                     continue
                 quotes = [
                     quote["quote"]
                     for quote in entry["supporting_quotes"]
                     if quote["section_id"] == section_id
                 ]
+                if section_id in text_of and all(
+                    normalize_quote(quote) in text_of[section_id] for quote in quotes
+                ):
+                    continue
                 moved.append({
                     "id": entry["id"],
                     "status": entry.get("status"),
                     "kind": kind,
                     "section_id": section_id,
+                    "reason": "absent" if section_id not in text_of else "text_changed",
                     "relevance": cited_section.get("relevance"),
                     "quotes": [
                         {
@@ -134,7 +156,7 @@ def relocate_golden_sections(entries: list[dict], sections: Iterable[dict] | Non
                 })
     return {
         "families_scanned": sorted(by_family),
-        "sections_scanned": len(present),
+        "sections_scanned": len(text_of),
         "cited_sections": len(cited),
         "moved": moved,
     }

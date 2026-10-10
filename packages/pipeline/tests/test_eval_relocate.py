@@ -53,11 +53,61 @@ def test_a_quote_is_traced_to_the_republished_document():
     )
 
     assert [moved["section_id"] for moved in report["moved"]] == ["sec:doc:dhhs_policy:old:_s35"]
+    assert report["moved"][0]["reason"] == "absent"
     found = report["moved"][0]["quotes"][0]["found_in"]
     assert [row["section_id"] for row in found] == ["sec:doc:dhhs_policy:new:_s33"]
     assert found[0]["source_url"] == "https://example.test/ma-3430-new.pdf"
     # Federal sections are read from caches, not from the parsed corpus scanned here.
     assert report["families_scanned"] == ["dhhs_policy"]
+
+
+def test_a_section_whose_id_now_names_other_text_is_reported_as_changed():
+    # A re-parse renumbered the unnumbered sections: _s35 exists, with other text.
+    report = relocate_golden_sections(
+        [entry()],
+        [
+            section("sec:doc:dhhs_policy:old:_s35", "C. Agency responsibilities."),
+            section("sec:doc:dhhs_policy:old:_s34", "A request must be made within 60 calendar days."),
+        ],
+    )
+
+    moved = report["moved"][0]
+    assert moved["reason"] == "text_changed"
+    assert [row["section_id"] for row in moved["quotes"][0]["found_in"]] == ["sec:doc:dhhs_policy:old:_s34"]
+
+
+def test_only_documents_the_loader_would_load_are_scanned(tmp_path, monkeypatch):
+    import json
+
+    from pipeline.eval import relocate
+
+    parsed = tmp_path / "parsed" / "dhhs-policies"
+    parsed.mkdir(parents=True)
+    rows = []
+    for stem in ("listed", "delisted"):
+        (parsed / f"{stem}.json").write_text(json.dumps({"fixture": stem}))
+        (parsed / f"{stem}.meta.json").write_text(json.dumps({
+            "source_file": f"dhhs-policies/{stem}.pdf", "parse_status": "parsed", "answer_ready": True,
+        }))
+        rows.append({
+            "local_path": f"dhhs-policies/{stem}.pdf", "status": "unchanged", "source_type": "dhhs_policy",
+            "source_url": f"https://example.test/{stem}.pdf", "title": stem,
+        })
+    monkeypatch.setattr("pipeline.config.PARSED_DATA_DIR", tmp_path / "parsed")
+    monkeypatch.setattr("pipeline.config.SOURCE_TYPE_DIRS", {"dhhs_policy": "dhhs-policies"})
+    monkeypatch.setattr("pipeline.crawler_registry.read_registry_rows", lambda: rows)
+    monkeypatch.setattr(
+        "pipeline.graph.loader._document_exclusion_reason",
+        lambda meta, row: "delisted_from_index" if row["title"] == "delisted" else None,
+    )
+    monkeypatch.setattr(
+        "pipeline.graph.loader.build_sections_from_items",
+        lambda payload, document_id: [{"id": f"sec:{document_id}:_s0", "content_text": payload["fixture"]}],
+    )
+
+    sections = list(relocate.corpus_sections(["dhhs_policy"]))
+
+    assert [section["document_title"] for section in sections] == ["listed"]
 
 
 def test_a_section_still_in_the_corpus_is_not_reported():
