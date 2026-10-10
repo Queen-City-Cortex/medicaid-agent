@@ -1703,3 +1703,79 @@ def test_retry_failures_and_force_still_attempt_a_file_that_already_failed(monke
     parse_all(force=True)
 
     assert attempts == [source_path, source_path]
+
+
+class _Pages:
+    def __init__(self, count):
+        self.pages = [None] * count
+
+
+def test_long_required_pdf_gets_time_in_proportion_to_its_pages(monkeypatch, tmp_path):
+    from pipeline.parse import converter
+
+    monkeypatch.setattr(converter, "PdfReader", lambda *_a, **_k: _Pages(1722))
+    # The State Plan: 1,722 pages took about 75 minutes on the corpus job.
+    assert converter.parse_timeout_for(tmp_path / "x.pdf", "state_plan_amendment", 600) == 8610
+
+    monkeypatch.setattr(converter, "PdfReader", lambda *_a, **_k: _Pages(40))
+    assert converter.parse_timeout_for(tmp_path / "x.pdf", "state_plan_amendment", 600) == 600
+
+    monkeypatch.setattr(converter, "PdfReader", lambda *_a, **_k: _Pages(100_000))
+    assert (
+        converter.parse_timeout_for(tmp_path / "x.pdf", "state_plan_amendment", 600)
+        == converter.MAX_PARSE_TIMEOUT_SECONDS
+    )
+
+
+def test_optional_unreadable_and_unlimited_pdfs_keep_the_base_limit(monkeypatch, tmp_path):
+    from pipeline.parse import converter
+
+    monkeypatch.setattr(converter, "PdfReader", lambda *_a, **_k: _Pages(1722))
+    # Fee schedules are optional: a cluster of failing ones must not slow a pass.
+    assert converter.parse_timeout_for(tmp_path / "x.pdf", "fee_schedule", 600) == 600
+    # Zero means no limit, and stays that way.
+    assert converter.parse_timeout_for(tmp_path / "x.pdf", "state_plan_amendment", 0) == 0
+
+    def unreadable(*_a, **_k):
+        raise ValueError("not a PDF")
+
+    monkeypatch.setattr(converter, "PdfReader", unreadable)
+    assert converter.parse_timeout_for(tmp_path / "x.pdf", "state_plan_amendment", 600) == 600
+
+
+def test_parse_all_gives_a_long_required_pdf_its_longer_limit_within_the_run_budget(
+    monkeypatch, tmp_path
+):
+    from pipeline.parse import converter
+
+    source = tmp_path / "plan.pdf"
+    source.write_bytes(b"pdf")
+    monkeypatch.setattr(converter, "PIPELINE_DATA_DIR", tmp_path / "pipeline")
+    monkeypatch.setattr(converter, "read_registry_rows", lambda: [])
+    monkeypatch.setattr(converter, "CRAWLER_DB_PATH", tmp_path / "missing.db")
+    monkeypatch.setattr(converter, "discover_source_files", lambda _source=None: [source])
+    monkeypatch.setattr(converter, "discover_unsupported_files", lambda _source=None: [])
+    monkeypatch.setattr(converter, "source_type_for_file", lambda _path: "state_plan_amendment")
+    monkeypatch.setattr(
+        converter,
+        "parsed_output_paths",
+        lambda _source, _type: (
+            tmp_path / "out.json",
+            tmp_path / "out.md",
+            tmp_path / "plan.meta.json",
+        ),
+    )
+    monkeypatch.setattr(converter, "PdfReader", lambda *_a, **_k: _Pages(1722))
+    limits = []
+
+    def timeout(_source, _type, seconds):
+        limits.append(seconds)
+        raise TimeoutError("slow")
+
+    monkeypatch.setattr(converter, "parse_and_save_supported_file_with_timeout", timeout)
+
+    parse_all()
+    parse_all(force=True, max_runtime_seconds=1000)
+
+    assert limits[0] == 8610
+    assert 900 < limits[1] <= 995

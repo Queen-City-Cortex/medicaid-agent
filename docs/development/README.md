@@ -39,7 +39,7 @@ Use the [chunked retrieval eval](../../packages/pipeline/src/pipeline/eval/level
 uv run python -m pipeline.cli eval-answer-stability --last 5 --full-only
 ```
 
-The [parser](../../packages/pipeline/src/pipeline/parse/converter.py) caches using source hashes and `PARSE_CACHE_VERSION`; changed parser logic needs a cache-version bump, a targeted representation marker, or `parse --force` when regenerating existing artifacts. Fee-schedule XLSX compaction uses its own representation marker so other formats retain their caches. Per-file PDF work defaults to a 600-second timeout controlled by `PIPELINE_PARSE_TIMEOUT_SECONDS`. Load corpus families sequentially against one Neo4j instance to avoid schema races.
+The [parser](../../packages/pipeline/src/pipeline/parse/converter.py) caches using source hashes and `PARSE_CACHE_VERSION`; changed parser logic needs a cache-version bump, a targeted representation marker, or `parse --force` when regenerating existing artifacts. Fee-schedule XLSX compaction uses its own representation marker so other formats retain their caches. Per-file PDF work defaults to a 600-second timeout controlled by `PIPELINE_PARSE_TIMEOUT_SECONDS`. A PDF in a required family gets five seconds a page when that is longer, up to four hours. Load corpus families sequentially against one Neo4j instance to avoid schema races.
 
 See [project gotchas](gotchas.md) for source identity, path normalization, policy-family routing, and past evaluation failures. Keep durable benchmark snapshots according to the [eval-results guide](../../packages/pipeline/data/eval-results/README.md).
 

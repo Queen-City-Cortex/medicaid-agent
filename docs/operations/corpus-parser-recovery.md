@@ -38,7 +38,9 @@ deployment that owns the lock.
    deployment and starting its replacement.
 4. Keep `HC_URL_CORPUS_JOB` configured in Railway, but never print its value.
 5. Start with the default five-hour runtime budget. Do not solve clustered PDF
-   timeouts by increasing the per-document 600-second timeout.
+   timeouts by increasing the per-document 600-second timeout. A long PDF in a
+   required family already gets five seconds a page, up to four hours; optional
+   families keep 600 seconds.
 
 List deployments:
 

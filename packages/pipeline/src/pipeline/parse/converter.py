@@ -59,6 +59,8 @@ console = Console()
 PARSE_CACHE_VERSION = 7
 MIGRATABLE_PARSE_CACHE_VERSIONS = frozenset({4, 5, 6})
 DEFAULT_PARSE_TIMEOUT_SECONDS = 600
+REQUIRED_PARSE_SECONDS_PER_PAGE = 5
+MAX_PARSE_TIMEOUT_SECONDS = 4 * 60 * 60
 WORKER_ERROR_MESSAGE_LIMIT = 4096
 WORKER_CLEANUP_RESERVE_SECONDS = 5
 WORKER_TERMINATE_GRACE_SECONDS = 2
@@ -111,6 +113,26 @@ def get_parse_timeout_seconds() -> int:
         return max(0, int(raw_value))
     except ValueError:
         return DEFAULT_PARSE_TIMEOUT_SECONDS
+
+
+def parse_timeout_for(source_path: Path, source_type: str, base_seconds: int) -> int:
+    """Give a long required PDF time in proportion to its page count.
+
+    A required source that times out refuses the release, and the 1,722-page
+    State Plan needs about 75 minutes. Optional families keep the base limit,
+    so a cluster of unparseable fee-schedule PDFs costs no more than before.
+    """
+    family = SOURCE_FAMILY_MAP.get(source_type)
+    if base_seconds <= 0 or (family is not None and not family.required_for_answering):
+        return base_seconds
+    try:
+        page_count = len(PdfReader(str(source_path), strict=False).pages)
+    except Exception:
+        return base_seconds
+    return min(
+        max(base_seconds, page_count * REQUIRED_PARSE_SECONDS_PER_PAGE),
+        max(base_seconds, MAX_PARSE_TIMEOUT_SECONDS),
+    )
 
 
 def should_parse(source_path: Path, meta_path: Path, source_type: str | None = None) -> bool:
@@ -1737,7 +1759,7 @@ def parse_all(
         consecutive_timeouts = 0
         total_files = len(source_files)
         for index, source_path in enumerate(source_files, start=1):
-            worker_timeout = parse_timeout_seconds
+            available_worker_time = None
             if max_runtime_seconds is not None:
                 remaining_runtime = max_runtime_seconds - (time.monotonic() - started)
                 available_worker_time = (
@@ -1746,9 +1768,6 @@ def parse_all(
                 if available_worker_time <= 0:
                     terminal_state = "max_runtime_reached"
                     break
-                worker_timeout = min(
-                    parse_timeout_seconds, max(1, int(available_worker_time))
-                )
 
             source_type_name = source_type_for_file(source_path)
             _, _, meta_path = parsed_output_paths(source_path, source_type_name)
@@ -1787,6 +1806,13 @@ def parse_all(
                     f"  [{index}/{total_files}] Parsing {source_path.name}...", end=" "
                 )
                 if source_path.suffix.lower() == ".pdf" and parse_timeout_seconds > 0:
+                    worker_timeout = parse_timeout_for(
+                        source_path, source_type_name, parse_timeout_seconds
+                    )
+                    if available_worker_time is not None:
+                        worker_timeout = min(
+                            worker_timeout, max(1, int(available_worker_time))
+                        )
                     parsed_summary = parse_and_save_supported_file_with_timeout(
                         source_path, source_type_name, worker_timeout
                     )
