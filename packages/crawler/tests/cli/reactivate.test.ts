@@ -12,7 +12,7 @@ import { registerReactivateCommand } from '../../src/cli/reactivate.js';
 import { downloadDocument } from '../../src/crawl/downloader.js';
 import { digest, stableJson } from '../../src/cli/source-audit.js';
 import * as sourceAudit from '../../src/cli/source-audit.js';
-import { readRelocationEvidence, relocationFetcher } from '../../src/cli/relocation-evidence.js';
+import { archiveFetcher, readRelocationEvidence, relocationFetcher } from '../../src/cli/relocation-evidence.js';
 import { reconcileDocuments } from '../../src/cli/reconcile.js';
 
 vi.mock('../../src/cli/shared.js', async original => ({ ...await original<typeof import('../../src/cli/shared.js')>(), buildFetcher: () => ({}) }));
@@ -242,4 +242,86 @@ it('blocks unreviewed redirects even inside the same approved source family', as
   });
   const fetcher = relocationFetcher({ fetchHtml: vi.fn(), fetchFile }, payloadUrl);
   await expect(fetcher.fetchFile(payloadUrl, 'file', { isAllowedUrl: () => true })).rejects.toThrow('redirect');
+});
+
+// The registry holds `?attachment=`; the archive keys the same address as `?attachment`.
+const archivedUrl = 'https://web.archive.org/web/20230326222414id_/https://policies.ncdhhs.gov/document/form/';
+function archiveArgs(change: { rows?: string[][]; index?: string; payload?: string } = {}) {
+  const db = new Database(config.dbPath);
+  const row = db.prepare('SELECT * FROM documents WHERE source_url=?').get(url);
+  db.close();
+  const rows = change.rows ?? [['timestamp', 'original', 'mimetype', 'statuscode'],
+    ['20230326222414', 'https://policies.ncdhhs.gov/document/form/', 'application/pdf', '200'],
+    ['20250203002829', 'https://policies.ncdhhs.gov/document/form/', 'text/html', '301']];
+  const bytes = Buffer.from(JSON.stringify(rows));
+  const directory = path.join(root, 'archive-proof');
+  fs.mkdirSync(directory, { recursive: true });
+  fs.writeFileSync(path.join(directory, 'cdx.json'), bytes);
+  const index = change.index ?? `https://web.archive.org/cdx/search/cdx?url=${encodeURIComponent(url)}&output=json`;
+  const payload = change.payload ?? archivedUrl;
+  const manifest = path.join(directory, 'identity-evidence.json');
+  fs.writeFileSync(manifest, JSON.stringify({ schema_version: 1, source_url: url, payload_url: payload,
+    expected_payload_sha256: digest(Buffer.from('%PDF-valid recovery')), reviewed_identity_finding: 'Archive capture of the exact registered address; two captures a year apart are byte-identical.',
+    captures: [{ url: index, final_url: index, status_code: 200, capture_path: 'cdx.json', sha256: digest(bytes) }] }));
+  return ['--payload-url', payload, '--identity-evidence', manifest, '--expected-registry-hash', digest(stableJson(row)), '--recovery-id', 'reviewed-archive-1'];
+}
+it('recovers the archive capture of the exact registered address under its original URL', async () => {
+  const args = archiveArgs();
+  vi.mocked(downloadDocument).mockClear();
+  await run(true, args);
+  await run(true, args);
+  // The download runs against the registered address, so the family's ordinary payload checks apply.
+  expect(vi.mocked(downloadDocument).mock.calls.at(-1)![0].source_url).toBe(url);
+  expect(vi.mocked(downloadDocument)).toHaveBeenCalledTimes(1);
+  const db = new Database(config.dbPath);
+  expect(db.prepare('SELECT source_url,status,download_attempts FROM documents').get()).toEqual({ source_url: url, status: 'downloaded', download_attempts: 1 });
+  db.close();
+});
+it('refuses an archive capture of any other address, a rewritten capture, or another host', async () => {
+  for (const payload of [
+    'https://web.archive.org/web/20230326222414id_/https://policies.ncdhhs.gov/document/other-form/',
+    'https://web.archive.org/web/20230326222414/https://policies.ncdhhs.gov/document/form/',
+    'https://web.archive.org/web/2023id_/https://policies.ncdhhs.gov/document/form/',
+    'https://archive.example/web/20230326222414id_/https://policies.ncdhhs.gov/document/form/',
+  ]) {
+    await expect(run(true, archiveArgs({ payload }))).rejects.toThrow('Invalid reviewed relocation identity evidence');
+  }
+});
+it('refuses an archive capture the index does not list as a 200 for this address', async () => {
+  const header = ['timestamp', 'original', 'mimetype', 'statuscode'];
+  for (const rows of [
+    [header, ['20230326222414', 'https://policies.ncdhhs.gov/document/form/', 'text/html', '301']],
+    [header, ['20240104235850', 'https://policies.ncdhhs.gov/document/form/', 'application/pdf', '200']],
+    [header, ['20230326222414', 'https://policies.ncdhhs.gov/document/other-form/', 'application/pdf', '200']],
+  ]) {
+    await expect(run(true, archiveArgs({ rows }))).rejects.toThrow('must list the reviewed capture');
+  }
+  await expect(run(true, archiveArgs({ index: 'https://web.archive.org/cdx/search/cdx?url=https%3A%2F%2Fpolicies.ncdhhs.gov%2Fdocument%2Fother-form%2F&output=json' }))).rejects.toThrow('Invalid archive index capture');
+  await expect(run(true, archiveArgs({ index: 'https://policies.ncdhhs.gov/index/' }))).rejects.toThrow('Invalid archive index capture');
+});
+it('treats an address that differs only by an empty query value as the same address', async () => {
+  const db = new Database(config.dbPath);
+  const doc = { ...createRegistry(db).getByUrl(url)!, source_url: 'https://policies.ncdhhs.gov/form/download?attachment=' }; db.close();
+  const payload = 'https://web.archive.org/web/20230326222414id_/https://policies.ncdhhs.gov/form/download?attachment';
+  const bytes = Buffer.from(JSON.stringify([['timestamp', 'original', 'statuscode'], ['20230326222414', 'https://policies.ncdhhs.gov/form/download?attachment', '200']]));
+  const directory = path.join(root, 'query-proof'); fs.mkdirSync(directory);
+  fs.writeFileSync(path.join(directory, 'cdx.json'), bytes);
+  const index = 'https://web.archive.org/cdx/search/cdx?url=' + encodeURIComponent('https://policies.ncdhhs.gov/form/download?attachment') + '&output=json';
+  fs.writeFileSync(path.join(directory, 'identity-evidence.json'), JSON.stringify({ schema_version: 1, source_url: doc.source_url, payload_url: payload,
+    expected_payload_sha256: digest(Buffer.from('x')), reviewed_identity_finding: 'Reviewed.', captures: [{ url: index, final_url: index, status_code: 200, capture_path: 'cdx.json', sha256: digest(bytes) }] }));
+  expect(readRelocationEvidence(path.join(directory, 'identity-evidence.json'), doc, payload).evidence.payload_url).toBe(payload);
+});
+it('fetches only the reviewed archive capture and reports it as the registered address', async () => {
+  const fetchFile = vi.fn(async (_url, _destination, options) => {
+    expect(options.isAllowedUrl(archivedUrl)).toBe(true);
+    expect(options.isAllowedUrl('https://web.archive.org/web/20240104235850id_/https://policies.ncdhhs.gov/document/form/')).toBe(false);
+    expect(options.etag).toBeUndefined();
+    return { statusCode: 200, headers: {}, filePath: 'file', downloaded: true, finalUrl: archivedUrl };
+  });
+  const fetcher = archiveFetcher({ fetchHtml: vi.fn(), fetchFile }, url, archivedUrl);
+  expect((await fetcher.fetchFile(url, 'file', { isAllowedUrl: () => false, etag: 'stale' })).finalUrl).toBe(url);
+  expect(fetchFile.mock.calls[0]![0]).toBe(archivedUrl);
+  await expect(fetcher.fetchFile(archivedUrl, 'file', {})).rejects.toThrow('Unreviewed relocation URL');
+  fetchFile.mockResolvedValueOnce({ statusCode: 200, headers: {}, filePath: 'file', downloaded: true, finalUrl: 'https://web.archive.org/web/20230525070331id_/https://policies.ncdhhs.gov/document/form/' });
+  await expect(fetcher.fetchFile(url, 'file', {})).rejects.toThrow('redirect');
 });

@@ -44,6 +44,22 @@ export function validateCapture(directory: string, capture: Capture): void {
   if (!relative || path.isAbsolute(relative) || relative.split(/[\\/]/).includes('..') || digest(fs.readFileSync(path.join(directory, relative))) !== capture.sha256) throw new Error('Audit capture is missing or has changed');
 }
 
+/**
+ * True for the Internet Archive's capture index of exactly this address. It is
+ * the one request outside a family's hosts that evidence collection makes:
+ * a relocation to an archive capture needs it, and it carries no document.
+ * Captures are keyed by address across the whole selection, so collection
+ * allows the index of any selected source, whichever entry asks first.
+ */
+export function isArchiveIndexFor(url: string, sourceUrl: string): boolean {
+  try {
+    const query = new URL(url);
+    return query.origin === 'https://web.archive.org' && query.pathname === '/cdx/search/cdx'
+      && query.searchParams.get('output') === 'json' && query.searchParams.getAll('url').length === 1
+      && canonicalizeSourceUrl(query.searchParams.get('url')!) === canonicalizeSourceUrl(sourceUrl);
+  } catch { return false; }
+}
+
 export async function collectAudit(input: { documents: DocumentRecord[]; urls?: string[] }, directory: string): Promise<Audit> {
   const manifest = path.join(directory, 'audit.json');
   const inputHash = digest(stableJson(input));
@@ -84,7 +100,7 @@ export async function collectAudit(input: { documents: DocumentRecord[]; urls?: 
           capture.blocked_by = blockedBy;
           throw new Error('Not requested: host DNS lookup exhausted retries; see ' + blockedBy);
         }
-        const response = await fetcher.fetchEvidence(url, config.maxFileSizeBytes, candidate => isAllowedSourceUrl(entry.registry.source_type as SourceType, candidate), beforeRequest);
+        const response = await fetcher.fetchEvidence(url, config.maxFileSizeBytes, candidate => isAllowedSourceUrl(entry.registry.source_type as SourceType, candidate) || (candidate === url && audit.entries.some(selected => isArchiveIndexFor(url, selected.source_url))), beforeRequest);
         capture.status_code = response.statusCode;
         capture.final_url = response.finalUrl;
         capture.redirects = response.redirects;

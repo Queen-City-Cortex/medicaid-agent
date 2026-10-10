@@ -25,6 +25,7 @@ def archive(
     omit_availability=False,
     relocation=False,
     relocation_change=None,
+    archive_proof=None,
 ):
     db_path = tmp_path / "crawler.db"
     evidence = b"Official removal notice and index"
@@ -117,6 +118,9 @@ def archive(
             "reviewed_identity_finding": "Exact original and migrated document reviewed.",
             "captures": [{"url": "https://policies.ncdhhs.gov/index/", "final_url": "https://policies.ncdhhs.gov/index/", "status_code": 200, "capture_path": "captures/index.html", "sha256": hashlib.sha256(capture_bytes).hexdigest()}],
         }
+        if archive_proof:
+            proof["payload_url"], index = archive_proof
+            proof["captures"][0].update(url=index, final_url=index)
         fingerprint = stable_hash(proof)
         proof_path = "crawler/documents/.recovery-evidence/" + fingerprint + "/identity-evidence.json"
         capture_path = "crawler/documents/.recovery-evidence/" + fingerprint + "/captures/index.html"
@@ -270,3 +274,34 @@ def test_completed_relocation_backup_survives_later_error_and_completion_marker_
 def test_backup_rejects_broken_relocation_proof_or_journal(tmp_path, change):
     with pytest.raises(ValueError, match="(?i)relocation"):
         backup.inspect_archive(archive(tmp_path, relocation=True, relocation_change=change))
+
+
+ARCHIVE_INDEX = "https://web.archive.org/cdx/search/cdx?url=https%3A%2F%2Fpolicies.ncdhhs.gov%2Ftest.pdf&output=json"
+
+
+def test_backup_accepts_an_archive_capture_of_the_registered_address(tmp_path):
+    proof = ("https://web.archive.org/web/20230326222414id_/https://policies.ncdhhs.gov/test.pdf", ARCHIVE_INDEX)
+    receipt = backup.inspect_archive(archive(tmp_path, relocation=True, archive_proof=proof))
+    assert receipt["relocationRecordsChecked"] == 1
+
+
+@pytest.mark.parametrize(
+    "proof",
+    [
+        # Another address, a rewritten capture, another host, an index for another address, a non-index capture.
+        ("https://web.archive.org/web/20230326222414id_/https://policies.ncdhhs.gov/other.pdf", ARCHIVE_INDEX),
+        ("https://web.archive.org/web/20230326222414/https://policies.ncdhhs.gov/test.pdf", ARCHIVE_INDEX),
+        ("https://archive.example/web/20230326222414id_/https://policies.ncdhhs.gov/test.pdf", ARCHIVE_INDEX),
+        (
+            "https://web.archive.org/web/20230326222414id_/https://policies.ncdhhs.gov/test.pdf",
+            "https://web.archive.org/cdx/search/cdx?url=https%3A%2F%2Fpolicies.ncdhhs.gov%2Fother.pdf&output=json",
+        ),
+        (
+            "https://web.archive.org/web/20230326222414id_/https://policies.ncdhhs.gov/test.pdf",
+            "https://policies.ncdhhs.gov/index/",
+        ),
+    ],
+)
+def test_backup_rejects_any_other_archive_evidence(tmp_path, proof):
+    with pytest.raises(ValueError, match="Relocation"):
+        backup.inspect_archive(archive(tmp_path, relocation=True, archive_proof=proof))

@@ -1177,6 +1177,22 @@ is unresolved. Use the existing writer lock for all mutations and inventories.
    and the new attachment. The operator reviews document number, revision,
    language, and the agency's migration relationship; similar titles alone do
    not establish identity. Obtain captures with normal source-audit collection.
+   One payload host outside the family is accepted: the Internet Archive's
+   unmodified capture of the registered address itself,
+   `https://web.archive.org/web/<14-digit timestamp>id_/<registered address>`.
+   The address inside that URL is the identity, so no linking page is needed;
+   the captures are instead the archive's index for that address
+   (`https://web.archive.org/cdx/search/cdx?url=<registered address>&output=json`),
+   which must list that timestamp with status 200. Collect it by naming that
+   index address in the audit selection's `urls`; collection allows the index
+   of a selected source's own address and no other archive request. The registry stores an
+   empty query value as `?name=` and the archive as `?name`; they are the same
+   address. Ask the index for the archive's form: it returns nothing for the
+   `?name=` form. A redirect to another capture is refused. A capture of any other
+   address, a rewritten capture (no `id_`) and every other archive are
+   refused. Record in the finding why the capture is the document: its title
+   and date, and a second capture with the same bytes where one exists.
+
    The new payload must pass normal family, format and download checks and
    match the reviewed hash. Redirects away from that exact URL require another
    review and are rejected. The registry keeps the original URL. Applied

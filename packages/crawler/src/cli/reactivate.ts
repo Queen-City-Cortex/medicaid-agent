@@ -9,7 +9,7 @@ import { archiveOldVersion, downloadDocument } from '../crawl/downloader.js';
 import { buildFetcher } from './shared.js';
 import { hashFile } from '../utils/hash.js';
 import { atomicJson, digest, stableJson } from './source-audit.js';
-import { readRelocationEvidence, relocationFetcher, retainRelocationEvidence } from './relocation-evidence.js';
+import { archiveFetcher, archivedCaptureTimestamp, readRelocationEvidence, relocationFetcher, retainRelocationEvidence } from './relocation-evidence.js';
 
 function artifactPath(relative: string): string {
   if (path.isAbsolute(relative) || relative.split(/[\\/]/).includes('..')) throw new Error('Invalid artifact path');
@@ -72,7 +72,11 @@ export function registerReactivateCommand(program: Command): void {
           if (pending && originalHash !== pending.originalHash) throw new Error('Original artifact changed during interrupted recovery');
           const title = doc.title || new URL(doc.source_url).pathname.split('/').filter(Boolean).filter(part => !['download', 'open'].includes(part)).at(-1) || 'source-' + doc.id;
           const fetcher = buildFetcher();
-          const result = await downloadDocument({ ...doc, source_url: opts.payloadUrl ?? doc.source_url, title, etag: null, last_modified: null, file_hash: null, local_path: null }, proof ? relocationFetcher(fetcher, proof.evidence.payload_url) : fetcher, new Set(), staging);
+          const archived = proof ? archivedCaptureTimestamp(doc.source_url, proof.evidence.payload_url) : null;
+          const relocated = !proof ? fetcher
+            : archived ? archiveFetcher(fetcher, doc.source_url, proof.evidence.payload_url)
+              : relocationFetcher(fetcher, proof.evidence.payload_url);
+          const result = await downloadDocument({ ...doc, source_url: archived ? doc.source_url : opts.payloadUrl ?? doc.source_url, title, etag: null, last_modified: null, file_hash: null, local_path: null }, relocated, new Set(), staging);
           if (!result.info || !['downloaded', 'updated'].includes(result.action)) throw new Error('Source still unavailable or invalid: ' + result.error);
           info = result.info;
           recovered = path.join(staging, info.local_path);

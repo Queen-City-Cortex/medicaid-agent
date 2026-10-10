@@ -47,3 +47,29 @@ it('preserves exhausted DNS evidence and marks other host links unvisited', asyn
   expect(fetchEvidence).toHaveBeenCalledTimes(1);
   db.close();
 });
+
+it('collects the archive index for a selected address and no other archive request', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'source-audit-')); roots.push(root);
+  const db = new Database(':memory:'); initializeSchema(db);
+  const registry = createRegistry(db);
+  const url = 'https://policies.ncdhhs.gov/form/download?attachment=';
+  // Another selected document comes first: every entry shares the extra addresses.
+  const first = registry.upsertDiscovered({ source_url: 'https://policies.ncdhhs.gov/document/unrelated/', discovered_from: 'https://policies.ncdhhs.gov/', source_type: 'dhhs_policy', title: 'Unrelated', policy_number: null, category: null });
+  const id = registry.upsertDiscovered({ source_url: url, discovered_from: 'https://policies.ncdhhs.gov/', source_type: 'dhhs_policy', title: 'Form', policy_number: null, category: null });
+  const index = `https://web.archive.org/cdx/search/cdx?url=${encodeURIComponent('https://policies.ncdhhs.gov/form/download?attachment')}&output=json`;
+  const otherIndex = `https://web.archive.org/cdx/search/cdx?url=${encodeURIComponent('https://policies.ncdhhs.gov/other/')}&output=json`;
+  const capture = 'https://web.archive.org/web/20230326222414id_/https://policies.ncdhhs.gov/form/download?attachment';
+  const allowed: Record<string, boolean> = {};
+  fetchEvidence.mockImplementation(async (requested: string, _max: number, isAllowedUrl: (candidate: string) => boolean) => {
+    allowed[requested] = isAllowedUrl(requested);
+    // A redirect from the index to anywhere else on the archive is not the index.
+    expect(isAllowedUrl(capture)).toBe(false);
+    return { body: Buffer.from('[]'), statusCode: 200, headers: { 'content-type': 'application/json' }, finalUrl: requested, redirects: [] };
+  });
+  await collectAudit({ documents: [registry.getById(first)!, registry.getById(id)!], urls: [index, otherIndex, capture] }, root);
+  const archive = Object.entries(allowed).filter(([requested]) => requested.includes('web.archive.org'));
+  const kind = (requested: string) => !requested.includes('/cdx/') ? 'capture' : requested.includes('other') ? 'other index' : 'index';
+  expect(archive.map(([requested, permitted]) => [kind(requested), permitted]).sort())
+    .toEqual([['capture', false], ['index', true], ['other index', false]]);
+  expect(allowed[url]).toBe(true);
+});

@@ -11,7 +11,7 @@ import tarfile
 import tempfile
 import uuid
 import sys
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -19,6 +19,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "packages/pipeline/src"))
 from pipeline.source_lifecycle import lifecycle_snapshot, validate_never_downloaded  # noqa: E402
 from pipeline.corpus_manifest import get_source_family  # noqa: E402
+from pipeline.identity import canonicalize_source_url  # noqa: E402
 
 
 def keychain_identity():
@@ -75,14 +76,27 @@ def check_relocations(hashes, proofs, journals, registry):
         def official(url):
             parsed = urlparse(url)
             return parsed.scheme == "https" and any(parsed.hostname == domain or (domain != "policies-inactive.ncdhhs.gov" and (parsed.hostname or "").endswith("." + domain)) for domain in family.allowed_domains)
-        if not official(proof["source_url"]) or not official(proof["payload_url"]):
+        # The one unofficial payload host: the Internet Archive's raw capture of the registered address itself.
+        archived = re.fullmatch(r"https://web\.archive\.org/web/\d{14}id_/(.+)", proof["payload_url"])
+        def same_address(url):
+            try:
+                return canonicalize_source_url(url) == canonicalize_source_url(proof["source_url"])
+            except ValueError:
+                return False
+        archived = archived is not None and same_address(archived.group(1))
+        def archive_index(url):
+            parsed = urlparse(url)
+            query = parse_qs(parsed.query)
+            return parsed.scheme == "https" and parsed.netloc == "web.archive.org" and parsed.path == "/cdx/search/cdx" and query.get("output") == ["json"] and len(query.get("url", [])) == 1 and same_address(query["url"][0])
+        evidence_host = archive_index if archived else official
+        if not official(proof["source_url"]) or not (archived or official(proof["payload_url"])):
             raise ValueError("Relocation URL outside source family in backup")
         for capture in proof["captures"]:
             relative = Path(capture["capture_path"])
             if not relative.parts or relative.is_absolute() or ".." in relative.parts or "\\" in capture["capture_path"]:
                 raise ValueError("Invalid relocation capture path in backup")
             capture_name = prefix + fingerprint + "/" + relative.as_posix()
-            if capture["status_code"] != 200 or capture["url"] != capture["final_url"] or not official(capture["url"]) or hashes.get(capture_name) != "sha256:" + capture["sha256"]:
+            if capture["status_code"] != 200 or capture["url"] != capture["final_url"] or not evidence_host(capture["url"]) or hashes.get(capture_name) != "sha256:" + capture["sha256"]:
                 raise ValueError("Relocation capture missing or changed in backup")
         by_hash[fingerprint] = proof
     checked = 0
