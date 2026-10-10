@@ -486,18 +486,68 @@ wait_for_railway_deployment() {
   return 1
 }
 
+# The latest deployment of a service as "<id> <status>", or nothing when the
+# service has none.
+latest_deployment() {
+  local deployments
+  deployments="$(railway_cli deployment list \
+    --environment "$ENVIRONMENT" \
+    --service "$1" \
+    --limit 1 \
+    --json)" || return
+  jq -r '.[0] // empty | "\(.id) \(.status)"' <<<"$deployments"
+}
+
+# Whether a service has nothing running: no deployment, or one already removed.
+service_is_stopped() {
+  local latest
+  latest="$(latest_deployment "$1")" || return 2
+  [[ -z "$latest" || "${latest##* }" == REMOVED || "${latest##* }" == REMOVING ]]
+}
+
+# The id of the deployment that replaces $2 as the service's latest.
+wait_for_new_deployment() {
+  local service="$1" previous_id="$2" attempt latest
+  for attempt in $(seq 1 "${RAILWAY_DEPLOYMENT_WAIT_ATTEMPTS:-120}"); do
+    latest="$(latest_deployment "$service")" || return
+    if [[ -n "$latest" && "${latest%% *}" != "$previous_id" ]]; then
+      printf '%s\n' "${latest%% *}"
+      return 0
+    fi
+    sleep "${RAILWAY_DEPLOYMENT_WAIT_INTERVAL_SECONDS:-5}"
+  done
+  echo "No new Railway deployment appeared for $service" >&2
+  return 1
+}
+
 redeploy_graph() {
   local service="$1"
   local uri="$2"
   local password="$3"
-  local response deployment_id
+  local response deployment_id latest stopped=0
 
-  response="$(railway_cli redeploy \
-    --environment "$ENVIRONMENT" \
-    --service "$service" \
-    --yes \
-    --json)" || return
-  deployment_id="$(jq -er '.id' <<<"$response")" || return
+  service_is_stopped "$service" || stopped=$?
+  [[ "$stopped" -le 1 ]] || return 1
+  if [[ "$stopped" -eq 0 ]]; then
+    # `railway down` removes a graph's deployment, and `railway redeploy` then
+    # has nothing to redeploy ("No deployment found for service"). Start it
+    # from its image instead; the volume, and so the graph, is kept.
+    latest="$(latest_deployment "$service")" || return
+    railway_cli redeploy \
+      --environment "$ENVIRONMENT" \
+      --service "$service" \
+      --from-source \
+      --yes \
+      --json >/dev/null || return
+    deployment_id="$(wait_for_new_deployment "$service" "${latest%% *}")" || return
+  else
+    response="$(railway_cli redeploy \
+      --environment "$ENVIRONMENT" \
+      --service "$service" \
+      --yes \
+      --json)" || return
+    deployment_id="$(jq -er '.id' <<<"$response")" || return
+  fi
   wait_for_railway_deployment "$service" "$deployment_id" || return
   wait_for_graph "$uri" "$password"
 }
@@ -510,6 +560,12 @@ UNSWITCHED_TARGET_SERVICE=""
 
 stop_unswitched_target() {
   [[ -n "$UNSWITCHED_TARGET_SERVICE" ]] || return 0
+  # Nothing to stop when the run ended before the graph was started:
+  # `railway down` fails on a service with no deployment.
+  if service_is_stopped "$UNSWITCHED_TARGET_SERVICE"; then
+    echo "$UNSWITCHED_TARGET_SERVICE is already stopped" >&2
+    return 0
+  fi
   echo "Stopping $UNSWITCHED_TARGET_SERVICE, which the agent does not serve" >&2
   railway_cli down \
     --environment "$ENVIRONMENT" \

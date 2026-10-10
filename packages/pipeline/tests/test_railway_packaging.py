@@ -260,7 +260,13 @@ def test_redeploy_graph_does_not_probe_after_deployment_failure() -> None:
     result = run_release_shell(
         """
         source scripts/ops/corpus-release.sh
-        railway_cli() { printf '{"id":"new-deployment"}\\n'; }
+        railway_cli() {
+          if [[ "$1" == deployment ]]; then
+            printf '[{"id":"running","status":"SUCCESS"}]\\n'
+          else
+            printf '{"id":"new-deployment"}\\n'
+          fi
+        }
         wait_for_railway_deployment() { return 7; }
         wait_for_graph() { echo "readiness probe should not run" >&2; return 0; }
         if redeploy_graph neo4j-blue bolt://blue:7687 secret; then

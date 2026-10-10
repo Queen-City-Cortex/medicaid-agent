@@ -66,6 +66,19 @@ case "$1" in
     done
     ;;
   redeploy)
+    # $STATE/stopped-<service> exists while that graph has no live deployment,
+    # as after `railway down`: a plain redeploy then has nothing to redeploy.
+    if [[ -e "$STATE/stopped-$service" ]]; then
+      if [[ " $* " == *" --from-source "* ]]; then
+        [[ ! -e "$STATE/fail-from-source" ]] || exit 1
+        rm "$STATE/stopped-$service"
+        echo "$service" > "$STATE/restarted"
+        printf '{"success":true}\n'
+        exit 0
+      fi
+      echo "No deployment found for service" >&2
+      exit 1
+    fi
     if [[ "$service" != neo4j-* ]]; then
       # $STATE/agent-redeploys-left holds how many more agent redeploys succeed.
       if [[ -e "$STATE/agent-redeploys-left" ]]; then
@@ -77,8 +90,21 @@ case "$1" in
     fi
     printf '{"id":"deployment-1"}\n'
     ;;
-  deployment) printf '[{"id":"deployment-1","status":"SUCCESS"}]\n' ;;
-  down) ;;
+  deployment)
+    if [[ -e "$STATE/stopped-$service" ]]; then
+      printf '[{"id":"deployment-0","status":"REMOVED"}]\n'
+    elif [[ -e "$STATE/restarted" && "$(<"$STATE/restarted")" == "$service" ]]; then
+      printf '[{"id":"deployment-2","status":"SUCCESS"}]\n'
+    else
+      printf '[{"id":"deployment-1","status":"SUCCESS"}]\n'
+    fi
+    ;;
+  down)
+    if [[ -e "$STATE/stopped-$service" ]]; then
+      echo "No deployments found" >&2
+      exit 1
+    fi
+    ;;
   *) exit 64 ;;
 esac
 STUB
@@ -502,6 +528,41 @@ built_on green failed
 expect_exit 64 measure "${measure_settings[@]}" MEASURE_REUSE_GRAPH=1
 ! called 'python release-measure' || fail "a reuse measured a graph whose build did not finish"
 pass "MEASURE_REUSE_GRAPH=1 refuses a manifest built on the other color or by an unfinished build"
+
+# ── A graph that was stopped ─────────────────────────────────────────────────
+
+new_case measure-restarts-stopped-graph
+mkdir -p "$DATA/pipeline/measurements"
+built_on green passed
+: > "$STATE/stopped-neo4j-green"
+expect_exit 0 measure "${measure_settings[@]}" MEASURE_REUSE_GRAPH=1
+called 'railway redeploy .*--service neo4j-green --from-source' \
+  || fail "a stopped graph was not started from its image"
+! called 'railway redeploy --environment production --service neo4j-green --yes --json$' \
+  || fail "a stopped graph was redeployed as if it had a deployment"
+saw 'release-measure NEO4J_URI=bolt://green CATALOG=unset' || fail "the restarted graph was not measured"
+called 'railway down --environment production --service neo4j-green --yes' \
+  || fail "the restarted graph was left running"
+pass "a graph stopped by railway down is started from its image, measured and stopped again"
+
+new_case measure-nothing-to-stop
+: > "$STATE/stopped-neo4j-green"
+: > "$STATE/fail-from-source"
+expect_exit 1 measure "${measure_settings[@]}"
+! called 'python release-build-graph' || fail "measure built a graph that never started"
+! called 'railway down' || fail "the exit hook tried to stop a graph that was never started"
+printed 'neo4j-green is already stopped' || fail "the exit hook did not say the graph was already stopped"
+! printed 'exit hook failed' || fail "an already-stopped graph made the exit hook fail"
+pass "when the graph cannot be started, the run fails and the exit hook leaves the stopped graph alone"
+
+new_case bootstrap-restarts-stopped-graph
+bootstrap_settings=(BOOTSTRAP_TARGET_COLOR=green BOOTSTRAP_RESET_CONFIRM=neo4j-green
+  BOOTSTRAP_BASELINE_EVIDENCE="$DATA/pipeline/releases/legacy-baseline.json")
+: > "$STATE/stopped-neo4j-green"
+expect_exit 0 bootstrap "${bootstrap_settings[@]}"
+called 'railway redeploy .*--service neo4j-green --from-source' \
+  || fail "bootstrap could not start a stopped target graph"
+pass "bootstrap starts a stopped target graph from its image"
 
 # ── Gate overrides at bootstrap ──────────────────────────────────────────────
 
