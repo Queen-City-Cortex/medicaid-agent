@@ -1705,22 +1705,17 @@ def test_retry_failures_and_force_still_attempt_a_file_that_already_failed(monke
     assert attempts == [source_path, source_path]
 
 
-class _Pages:
-    def __init__(self, count):
-        self.pages = [None] * count
-
-
 def test_long_required_pdf_gets_time_in_proportion_to_its_pages(monkeypatch, tmp_path):
     from pipeline.parse import converter
 
-    monkeypatch.setattr(converter, "PdfReader", lambda *_a, **_k: _Pages(1722))
+    monkeypatch.setattr(converter, "_pdf_page_count", lambda _path: 1722)
     # The State Plan: 1,722 pages took about 75 minutes on the corpus job.
     assert converter.parse_timeout_for(tmp_path / "x.pdf", "state_plan_amendment", 600) == 8610
 
-    monkeypatch.setattr(converter, "PdfReader", lambda *_a, **_k: _Pages(40))
+    monkeypatch.setattr(converter, "_pdf_page_count", lambda _path: 40)
     assert converter.parse_timeout_for(tmp_path / "x.pdf", "state_plan_amendment", 600) == 600
 
-    monkeypatch.setattr(converter, "PdfReader", lambda *_a, **_k: _Pages(100_000))
+    monkeypatch.setattr(converter, "_pdf_page_count", lambda _path: 100_000)
     assert (
         converter.parse_timeout_for(tmp_path / "x.pdf", "state_plan_amendment", 600)
         == converter.MAX_PARSE_TIMEOUT_SECONDS
@@ -1730,16 +1725,13 @@ def test_long_required_pdf_gets_time_in_proportion_to_its_pages(monkeypatch, tmp
 def test_optional_unreadable_and_unlimited_pdfs_keep_the_base_limit(monkeypatch, tmp_path):
     from pipeline.parse import converter
 
-    monkeypatch.setattr(converter, "PdfReader", lambda *_a, **_k: _Pages(1722))
+    monkeypatch.setattr(converter, "_pdf_page_count", lambda _path: 1722)
     # Fee schedules are optional: a cluster of failing ones must not slow a pass.
     assert converter.parse_timeout_for(tmp_path / "x.pdf", "fee_schedule", 600) == 600
     # Zero means no limit, and stays that way.
     assert converter.parse_timeout_for(tmp_path / "x.pdf", "state_plan_amendment", 0) == 0
 
-    def unreadable(*_a, **_k):
-        raise ValueError("not a PDF")
-
-    monkeypatch.setattr(converter, "PdfReader", unreadable)
+    monkeypatch.setattr(converter, "_pdf_page_count", lambda _path: None)
     assert converter.parse_timeout_for(tmp_path / "x.pdf", "state_plan_amendment", 600) == 600
 
 
@@ -1765,7 +1757,7 @@ def test_parse_all_gives_a_long_required_pdf_its_longer_limit_within_the_run_bud
             tmp_path / "plan.meta.json",
         ),
     )
-    monkeypatch.setattr(converter, "PdfReader", lambda *_a, **_k: _Pages(1722))
+    monkeypatch.setattr(converter, "_pdf_page_count", lambda _path: 1722)
     limits = []
 
     def timeout(_source, _type, seconds):
@@ -1779,3 +1771,30 @@ def test_parse_all_gives_a_long_required_pdf_its_longer_limit_within_the_run_bud
 
     assert limits[0] == 8610
     assert 900 < limits[1] <= 995
+
+
+def test_page_count_runs_outside_the_parent_and_gives_up_on_a_stalled_pdf(
+    monkeypatch, tmp_path
+):
+    from pypdf import PdfWriter
+
+    from pipeline.parse import converter
+
+    pdf = tmp_path / "three.pdf"
+    writer = PdfWriter()
+    for _ in range(3):
+        writer.add_blank_page(width=72, height=72)
+    with pdf.open("wb") as handle:
+        writer.write(handle)
+    assert converter._pdf_page_count(pdf) == 3
+
+    broken = tmp_path / "broken.pdf"
+    broken.write_bytes(b"not a pdf")
+    assert converter._pdf_page_count(broken) is None
+
+    def stalled(*_args, **kwargs):
+        raise converter.subprocess.TimeoutExpired("pypdf", kwargs["timeout"])
+
+    monkeypatch.setattr(converter.subprocess, "run", stalled)
+    assert converter._pdf_page_count(pdf) is None
+    assert converter.parse_timeout_for(pdf, "state_plan_amendment", 600) == 600

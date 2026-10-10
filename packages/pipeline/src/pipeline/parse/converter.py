@@ -7,6 +7,7 @@ import json
 import os
 import re
 import subprocess
+import sys
 import tempfile
 import time
 import uuid
@@ -61,6 +62,7 @@ MIGRATABLE_PARSE_CACHE_VERSIONS = frozenset({4, 5, 6})
 DEFAULT_PARSE_TIMEOUT_SECONDS = 600
 REQUIRED_PARSE_SECONDS_PER_PAGE = 5
 MAX_PARSE_TIMEOUT_SECONDS = 4 * 60 * 60
+PAGE_COUNT_TIMEOUT_SECONDS = 30
 WORKER_ERROR_MESSAGE_LIMIT = 4096
 WORKER_CLEANUP_RESERVE_SECONDS = 5
 WORKER_TERMINATE_GRACE_SECONDS = 2
@@ -115,6 +117,27 @@ def get_parse_timeout_seconds() -> int:
         return DEFAULT_PARSE_TIMEOUT_SECONDS
 
 
+def _pdf_page_count(source_path: Path) -> int | None:
+    """Count pages in a child process: a malformed page tree must not stall the run."""
+    try:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-c",
+                "import sys; from pypdf import PdfReader; "
+                "print(len(PdfReader(sys.argv[1], strict=False).pages))",
+                str(source_path),
+            ],
+            capture_output=True,
+            text=True,
+            timeout=PAGE_COUNT_TIMEOUT_SECONDS,
+            check=True,
+        )
+        return int(result.stdout.strip())
+    except (subprocess.SubprocessError, OSError, ValueError):
+        return None
+
+
 def parse_timeout_for(source_path: Path, source_type: str, base_seconds: int) -> int:
     """Give a long required PDF time in proportion to its page count.
 
@@ -125,9 +148,8 @@ def parse_timeout_for(source_path: Path, source_type: str, base_seconds: int) ->
     family = SOURCE_FAMILY_MAP.get(source_type)
     if base_seconds <= 0 or (family is not None and not family.required_for_answering):
         return base_seconds
-    try:
-        page_count = len(PdfReader(str(source_path), strict=False).pages)
-    except Exception:
+    page_count = _pdf_page_count(source_path)
+    if page_count is None:
         return base_seconds
     return min(
         max(base_seconds, page_count * REQUIRED_PARSE_SECONDS_PER_PAGE),
