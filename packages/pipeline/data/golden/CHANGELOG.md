@@ -176,3 +176,32 @@ validated.
   copies. The check is the production trace, and `eval-relocate-golden` after the change.
 - `key-review-3.3.md` still describes the keys; only q-020's removed clause was edited in it.
 
+## v3.5 — 2026-10-11
+
+Three keys trimmed to what their questions ask. **`benchmarkHash` changed; scores on 3.4
+and 3.5 are not comparable.** Still 47 of 56 validated.
+
+The judge scores an answer against the key's `answer.text` alone, so a fact in the text
+that the question does not ask for lowers the score of a correct answer that leaves it
+out. A review of the stored runs (22 from July 2026, three from September) found three
+keys where the 3.1 to 3.4 rewording had added such facts. Each moved to `caveats`, which
+the judge does not see:
+
+- q-026 (is chiropractic care covered under Policy 5B), version 3: the sentence naming
+  Policy 1F as the chiropractic policy. No stored answer names 1F, and the question asks
+  only about 5B.
+- q-043 (most recent change notice for Policy 8C), version 4: the parity-act detail and
+  the header's unchanged Amended Date. The key still gives the date, 04/15/2025, and the
+  section revised. The caveat says an answer giving January 1, 2025 is wrong.
+- q-029 (routine massage under Policy 10A for a beneficiary over 21), version 4: the
+  EPSDT sentence about beneficiaries under 21, which was already a caveat.
+
+The supporting section and quote behind each moved fact left the scored evidence too
+(Policy 1F section 3.2.1 from q-026, Policy 10A section 2.2.1 from q-029, the Policy 8C
+header from q-043): recall counts every cited section, so a retriever that returned
+exactly what the question needs would have lost recall on a section only a caveat uses. Each
+caveat now quotes its source and names the section, so the fact stays checkable without
+being a retrieval label.
+
+Notes corrected on q-029 and q-030, which still said NEEDS_VALIDATION on validated keys.
+

@@ -2337,19 +2337,20 @@
   },
   {
     "id": "q-026",
-    "version": 2,
+    "version": 3,
     "created": "2026-04-16",
-    "updated": "2026-10-07",
+    "updated": "2026-10-11",
     "question": "Is chiropractic care covered under Policy 5B (Orthotics and Prosthetics)?",
     "difficulty": "simple",
     "reasoning_type": "negative_answer",
     "topics": ["coverage_exclusions", "orthotics", "chiropractic", "scope"],
     "target_users": ["beneficiary", "legal_aid"],
     "answer": {
-      "text": "No. Policy 5B (Orthotics and Prosthetics) governs devices, not chiropractic services. Per the policy's description in section 1.0 and its specific coverage criteria in section 3.2.1, what the policy covers is orthotic and prosthetic devices that are ordered by a physician, physician assistant, or nurse practitioner and are medically necessary. The policy does not mention chiropractic care at all: section 4.2.1 lists only devices and supplies that are not covered and does not name chiropractic services, so they are not a listed exclusion but simply fall outside what the policy addresses. Chiropractic coverage is governed by a different clinical coverage policy, 1F (Chiropractic Services).",
+      "text": "No. Policy 5B (Orthotics and Prosthetics) governs devices, not chiropractic services. Per the policy's description in section 1.0 and its specific coverage criteria in section 3.2.1, what the policy covers is orthotic and prosthetic devices that are ordered by a physician, physician assistant, or nurse practitioner and are medically necessary. The policy does not mention chiropractic care at all: section 4.2.1 lists only devices and supplies that are not covered and does not name chiropractic services, so they are not a listed exclusion but simply fall outside what the policy addresses.",
       "confidence": "high",
       "caveats": [
-        "Policy 5B is silent on chiropractic care; the answer rests on the policy's own scope (sections 1.0 and 3.2.1) and its specific not-covered list (section 4.2.1), not on a stated chiropractic exclusion"
+        "Policy 5B is silent on chiropractic care; the answer rests on the policy's own scope (sections 1.0 and 3.2.1) and its specific not-covered list (section 4.2.1), not on a stated chiropractic exclusion",
+        "Chiropractic services have their own clinical coverage policy, 1F (Chiropractic Services). Naming it is a useful pointer and is not required: the question asks only about Policy 5B. Source, not scored as retrieval evidence: Policy 1F section 3.2.1, \"Medicaid shall cover chiropractic services when the beneficiary meets the following specific criteria\""
       ]
     },
     "evidence": {
@@ -2373,14 +2374,7 @@
           "relevance": "Specific not-covered list: devices and supplies only, no mention of chiropractic"
         }
       ],
-      "supporting_sections": [
-        {
-          "document_id": "doc:clinical_policy:1edb4621cce73406",
-          "section_id": "sec:doc:clinical_policy:1edb4621cce73406:3.2.1",
-          "section_number": "3.2.1",
-          "relevance": "Policy 1F is the clinical coverage policy that states when Medicaid covers chiropractic services"
-        }
-      ],
+      "supporting_sections": [],
       "cross_references": [],
       "federal_references": []
     },
@@ -2399,10 +2393,6 @@
       {
         "section_id": "sec:doc:clinical_policy:fbd1a3f77a625d8d:4.2.1",
         "quote": "Medicaid shall not cover the following devices and supplies: Devices for the beneficiary's comfort or convenience or for the convenience of the beneficiary's caregiver(s)"
-      },
-      {
-        "section_id": "sec:doc:clinical_policy:1edb4621cce73406:3.2.1",
-        "quote": "Medicaid shall cover chiropractic services when the beneficiary meets the following specific criteria"
       }
     ]
   },
@@ -2536,19 +2526,19 @@
   },
   {
     "id": "q-029",
-    "version": 3,
+    "version": 4,
     "created": "2026-04-16",
-    "updated": "2026-10-07",
+    "updated": "2026-10-11",
     "question": "Does Policy 10A cover routine massage therapy for beneficiaries over age 21?",
     "difficulty": "moderate",
     "reasoning_type": "negative_answer",
     "topics": ["coverage_exclusions", "massage_therapy", "epsdt", "10A"],
     "target_users": ["beneficiary", "provider"],
     "answer": {
-      "text": "Policy 10A (Outpatient Specialized Therapies) does not mention massage therapy by name. It covers medically necessary skilled healthcare provided by a qualified therapist in physical therapy, occupational therapy, speech-language pathology and audiology therapy, so routine massage that is not such therapy is not covered under Policy 10A for a beneficiary over 21. EPSDT may permit coverage for beneficiaries under 21 when medically necessary.",
+      "text": "Policy 10A (Outpatient Specialized Therapies) does not mention massage therapy by name. It covers medically necessary skilled healthcare provided by a qualified therapist in physical therapy, occupational therapy, speech-language pathology and audiology therapy, so routine massage that is not such therapy is not covered under Policy 10A for a beneficiary over 21.",
       "confidence": "medium",
       "caveats": [
-        "EPSDT exception may apply under 21"
+        "EPSDT exception may apply under 21. Source, not scored as retrieval evidence: Policy 10A section 2.2.1, \"requires the state Medicaid agency to cover services, products, or procedures for Medicaid beneficiary under 21 years of age if the service is medically necessary health care to correct or ameliorate a defect, physical or mental illness, or a condition\""
       ]
     },
     "evidence": {
@@ -2567,12 +2557,7 @@
         }
       ],
       "supporting_sections": [
-        {
-          "document_id": "doc:clinical_policy:6a038eaf968a9a33",
-          "section_id": "sec:doc:clinical_policy:6a038eaf968a9a33:2.2.1",
-          "section_number": "2.2.1",
-          "relevance": "EPSDT supplemental coverage for beneficiaries under 21"
-        },
+        
         {
           "document_id": "doc:clinical_policy:6a038eaf968a9a33",
           "section_id": "sec:doc:clinical_policy:6a038eaf968a9a33:4.1",
@@ -2584,7 +2569,7 @@
       "federal_references": []
     },
     "source": "legal_aid",
-    "notes": "Negative-answer with EPSDT nuance. NEEDS_VALIDATION: confirm 10A sections 2.1.1 and 2.2.1 exist in the current graph.",
+    "notes": "Negative-answer with EPSDT nuance. The question is about beneficiaries over 21; the EPSDT exception for those under 21 is a caveat, not part of the answer.",
     "status": "validated",
     "supporting_quotes": [
       {
@@ -2599,10 +2584,7 @@
         "section_id": "sec:doc:clinical_policy:6a038eaf968a9a33:3.2.1.1",
         "quote": "Medicaid shall cover outpatient physical therapy services for a beneficiary when medically necessary."
       },
-      {
-        "section_id": "sec:doc:clinical_policy:6a038eaf968a9a33:2.2.1",
-        "quote": "requires the state Medicaid agency to cover services, products, or procedures for Medicaid beneficiary under 21 years of age if the service is medically necessary health care to correct or ameliorate a defect, physical or mental illness, or a condition"
-      },
+      
       {
         "section_id": "sec:doc:clinical_policy:6a038eaf968a9a33:4.1",
         "quote": "Medicaid shall not cover procedures, products, and services related to this policy when: the beneficiary does not meet the eligibility requirements listed in Section 2.0; the beneficiary does not meet the criteria listed in Section 3.0"
@@ -2647,7 +2629,7 @@
       "federal_references": []
     },
     "source": "regression",
-    "notes": "NEEDS_VALIDATION: confirm outpatient pharmacy policy number (guessed 9) and section_id in the live graph.",
+    "notes": "Outpatient pharmacy is Clinical Coverage Policy 9; the cited sections were confirmed when the key was validated (v3.2).",
     "status": "validated",
     "supporting_quotes": [
       {
@@ -3745,18 +3727,19 @@
   },
   {
     "id": "q-043",
-    "version": 3,
+    "version": 4,
     "created": "2026-04-16",
-    "updated": "2026-10-07",
+    "updated": "2026-10-11",
     "question": "When was the most recent change notice issued for Clinical Coverage Policy 8C (Outpatient Behavioral Health)?",
     "difficulty": "moderate",
     "reasoning_type": "temporal",
     "topics": ["behavioral_health", "8C", "change_notice", "amendment_history"],
     "target_users": ["provider", "legal_aid"],
     "answer": {
-      "text": "The latest row in the Revision Information table of Clinical Coverage Policy 8C is dated 04/15/2025 and revises Section 3.2.2, correcting missed language complying with the Mental Health Parity and Addiction Equity Act. The same row says \"Policy posted 4/15/25 amendment date not changed\"; the policy header shows an Amended Date of January 1, 2025, and the rows immediately before the last one are dated 01/01/2025.",
+      "text": "The latest row in the Revision Information table of Clinical Coverage Policy 8C is dated 04/15/2025 and revises Section 3.2.2.",
       "confidence": "high",
       "caveats": [
+        "The 04/15/2025 row corrects missed language complying with the Mental Health Parity and Addiction Equity Act and says \"Policy posted 4/15/25 amendment date not changed\". The policy header still shows an Amended Date of January 1, 2025, and the rows before the last one are dated 01/01/2025: an answer that gives January 1, 2025 as the most recent change is wrong. Source for the header date, not scored as retrieval evidence: the first section of Policy 8C, \"Clinical Coverage Policy No. 8C Amended Date: January 1, 2025\"",
         "Revision dates derive from the 'Revision Information' table embedded in the Policy 8C PDF. If the PDF is re-parsed, the latest date may change — validate against the live graph before rejecting an answer that cites a newer date."
       ]
     },
@@ -3769,14 +3752,7 @@
           "relevance": "Revision-information table listing all dated amendments to Policy 8C"
         }
       ],
-      "supporting_sections": [
-        {
-          "document_id": "doc:clinical_policy:402b600bc86e3f2e",
-          "section_id": "sec:doc:clinical_policy:402b600bc86e3f2e:_s0",
-          "section_number": null,
-          "relevance": "Policy 8C header stating the Amended Date"
-        }
-      ],
+      "supporting_sections": [],
       "cross_references": [],
       "federal_references": []
     },
@@ -3795,10 +3771,6 @@
       {
         "section_id": "sec:doc:clinical_policy:402b600bc86e3f2e:_s74",
         "quote": "| 01/01/2025 | Attachment A: Claims-Related Information | Removed reference to LPC and LPCA."
-      },
-      {
-        "section_id": "sec:doc:clinical_policy:402b600bc86e3f2e:_s0",
-        "quote": "Clinical Coverage Policy No. 8C Amended Date: January 1, 2025"
       }
     ]
   },
