@@ -750,6 +750,12 @@ primary **section** is in the top ten, despite the gate's name; counted by
 document the same run scored 42 of 47. Recall counts every section a key
 cites, and the repaired keys cite about four each.
 
+A measurement also records `documentHitRate` in the manifest's
+`evaluationResults`: a hit when any section of a primary section's document
+is in the top ten. It is reported and not gated. Set a floor for it from a
+measurement that recorded it (`MEASURE_REUSE_GRAPH=1` costs nothing), not
+from the 42 of 47, which was counted by hand from the saved result.
+
 Set them again, from a measurement, whenever the golden dataset or the
 retrieval code changes what they measure:
 

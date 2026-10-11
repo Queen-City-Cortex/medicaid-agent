@@ -659,6 +659,9 @@ def _gated_metrics(
         "retrievalPrecision": retrieval.get("precision_at_k"),
         "retrievalRecall": retrieval.get("recall_at_k"),
         "primaryDocumentHitRate": retrieval.get("primary_hit_rate"),
+        # Reported, not gated: `primaryDocumentHitRate` counts the exact primary
+        # section despite its name; this counts any section of its document.
+        "documentHitRate": retrieval.get("document_hit_rate"),
         # The floors read released answers: the harness reports their mean
         # beside the all-rows mean, and scores hallucination on them only.
         "answerScore": _mean_across_runs(

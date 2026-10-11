@@ -7,6 +7,14 @@ from pipeline.retrieval.agent_bridge import search_sections_batch_via_agent_cli
 RETRIEVAL_EVAL_BATCH_SIZE = 5
 
 
+def _document_prefix(section_id: str) -> str | None:
+    """`sec:doc:<type>:<hash>:` for a graph section id; None for one absent from the graph."""
+    parts = section_id.split(":")
+    if len(parts) < 5 or parts[:2] != ["sec", "doc"]:
+        return None
+    return ":".join(parts[:4]) + ":"
+
+
 def evaluate_retrieval(entries: list[dict], top_k: int | None = None) -> list[dict]:
     """
     Run retrieval eval for each golden dataset entry.
@@ -55,6 +63,16 @@ def evaluate_retrieval(entries: list[dict], top_k: int | None = None) -> list[di
         r_val = recall_at_k(retrieved_ids, all_relevant_ids)
         m = mrr(retrieved_ids, primary_ids)
         primary_hit = any(rid in primary_ids for rid in retrieved_ids)
+        # The exact section is a strict test: a neighbouring section of the
+        # right document misses it. This counts the document instead, read
+        # from the primary section ids as the graph names them: under an
+        # identity catalog those are mapped and `document_id` is not.
+        primary_document_prefixes = tuple(
+            prefix for sid in primary_ids if (prefix := _document_prefix(sid))
+        )
+        document_hit = any(
+            rid.startswith(primary_document_prefixes) for rid in retrieved_ids
+        ) if primary_ids else None
 
         results.append({
             "id": entry["id"],
@@ -64,6 +82,7 @@ def evaluate_retrieval(entries: list[dict], top_k: int | None = None) -> list[di
             "recall": r_val,
             "mrr": m,
             "primary_hit": primary_hit,
+            "document_hit": document_hit,
             "retrieved": retrieved_ids[:top_k],
             "expected_primary": list(primary_ids),
             "expected_supporting": list(supporting_ids),

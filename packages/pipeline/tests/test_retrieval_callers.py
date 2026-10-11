@@ -51,6 +51,8 @@ def test_evaluate_retrieval_uses_bridge_results(monkeypatch):
             "recall": 1.0,
             "mrr": 1.0,
             "primary_hit": True,
+            # No primary id is a graph section id, so no document can be hit.
+            "document_hit": False,
             "retrieved": ["sec:primary", "sec:supporting", "sec:other"],
             "expected_primary": ["sec:primary"],
             "expected_supporting": ["sec:supporting"],
@@ -118,3 +120,48 @@ def test_evaluate_retrieval_batches_large_runs(monkeypatch):
     ]
     assert len(results) == 6
     assert all(result["primary_hit"] for result in results)
+
+
+def test_a_neighbouring_section_of_the_right_document_is_a_document_hit(monkeypatch):
+    from pipeline.eval.results import compute_rollup
+
+    retrieved = {
+        # The exact primary section.
+        "q-1": [{"section_id": "sec:doc:clinical_policy:aaaa:3.2.1"}],
+        # Another section of the right document: a section miss, a document hit.
+        "q-2": [{"section_id": "sec:doc:clinical_policy:aaaa:_s4"}],
+        # A document whose id only begins the same way is another document.
+        "q-3": [{"section_id": "sec:doc:clinical_policy:aaaabbbb:3.2.1"}],
+    }
+    monkeypatch.setattr(
+        retrieval, "search_sections_batch_via_agent_cli", lambda requests, **_: {r["id"]: retrieved[r["id"]] for r in requests}
+    )
+    entry = lambda qid: {  # noqa: E731
+        "id": qid,
+        "difficulty": "simple",
+        "reasoning_type": "direct_lookup",
+        "question": "?",
+        "evidence": {
+            # `document_id` stays canonical when an identity catalog maps the
+            # section to a republished document; the section id is what counts.
+            "primary_sections": [
+                {"document_id": "doc:clinical_policy:before-republication", "section_id": "sec:doc:clinical_policy:aaaa:3.2.1"}
+            ],
+        },
+    }
+
+    results = retrieval.evaluate_retrieval([entry("q-1"), entry("q-2"), entry("q-3")], top_k=1)
+
+    assert [(r["primary_hit"], r["document_hit"]) for r in results] == [
+        (True, True),
+        (False, True),
+        (False, False),
+    ]
+    # A key whose section is absent from the graph is a miss, not unscored.
+    absent = entry("q-1")
+    absent["evidence"]["primary_sections"][0]["section_id"] = "missing:sec:doc:clinical_policy:aaaa:3.2.1"
+    assert retrieval.evaluate_retrieval([absent], top_k=1)[0]["document_hit"] is False
+
+    rollup = compute_rollup(results)
+    assert rollup["primary_hit_rate"] == 1 / 3
+    assert rollup["document_hit_rate"] == 2 / 3

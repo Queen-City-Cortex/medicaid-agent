@@ -51,6 +51,10 @@ def _compute_retrieval_rollup(rows: list[dict]) -> tuple[dict, int, int]:
             if value is not None:
                 rollup[out_key] = value
         rollup["primary_hit_rate"] = sum(1 for q in scorable if q.get("primary_hit")) / len(scorable)
+        # Only the retrieval level records it, and only for keys that name a document.
+        by_document = [q for q in scorable if q.get("document_hit") is not None]
+        if by_document:
+            rollup["document_hit_rate"] = sum(1 for q in by_document if q["document_hit"]) / len(by_document)
 
     return rollup, len(scorable), unscored
 
