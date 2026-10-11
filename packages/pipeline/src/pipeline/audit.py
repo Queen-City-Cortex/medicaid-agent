@@ -624,9 +624,12 @@ def run_corpus_audit(
 
     report["source_retirements"] = read_retirements(CRAWLER_DB_PATH)
     report["undocumented_removals"] = undocumented_removals(CRAWLER_DB_PATH)
-    from pipeline.answer_scope import approved_scope_map
-    approved_scopes = approved_scope_map(CRAWLER_DB_PATH)
-    report["answer_scope_limitations"] = len(approved_scopes)
+    from pipeline.answer_scope import scope_records, usable_scope_map
+    approved_scopes, scope_invalid_reason = usable_scope_map(CRAWLER_DB_PATH)
+    # Scope records switch on the live acceptance gate whether or not the
+    # approval still holds; an approval that does not hold excludes nothing.
+    report["answer_scope_limitations"] = len(scope_records(CRAWLER_DB_PATH))
+    report["answer_scope_invalid_reason"] = scope_invalid_reason
     for document in report["documents"]:
         document["scope_limitation_id"] = approved_scopes.get(document.get("source_url"))
     from pipeline.recovery_inventory import missing_source_payloads

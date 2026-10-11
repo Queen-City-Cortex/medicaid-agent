@@ -198,8 +198,11 @@ def lifecycle_snapshot(db_path: Path, artifact_hashes: dict[str, str]) -> dict:
     observations = [r for r in read_table(db_path, "source_audit_actions") if r["disposition"] == "availability"]
     if observations:
         result["availability_observations"] = observations
-    from pipeline.answer_scope import scope_records
+    from pipeline.answer_scope import scope_records, superseded_scope_records
     scopes = scope_records(db_path)
     if scopes:
         result["answer_scopes"] = scopes
+    superseded = superseded_scope_records(db_path)
+    if superseded:
+        result["superseded_answer_scopes"] = superseded
     return result

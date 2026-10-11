@@ -266,8 +266,12 @@ def inspect_archive(stream, *, include_history=False):
                 else []
             )
         lifecycle = lifecycle_snapshot(db_path, hashes)
-        from pipeline.answer_scope import validate_scope_records
-        validate_scope_records(lifecycle.get("answer_scopes", []), registry, hashes)
+        from pipeline.answer_scope import validate_scope_records, validate_superseded_records
+        from pipeline.crawler_registry import read_registry_rows
+        # The loader's view: a required source classified as an index or de-listed is not coverage.
+        effective_registry = read_registry_rows(db_path, validate_classification_evidence=False)
+        validate_scope_records(lifecycle.get("answer_scopes", []), effective_registry, hashes)
+        superseded_scopes = validate_superseded_records(lifecycle.get("superseded_answer_scopes", []), lifecycle.get("answer_scopes", []))
         relocations_checked = check_relocations(hashes, proofs, journals, registry)
         checked = 0
         for name, meta in metas.items():
@@ -346,10 +350,6 @@ def inspect_archive(stream, *, include_history=False):
                     ).removeprefix("sha256:"),
                 }
             )
-        unscoped_lifecycle = {key: value for key, value in lifecycle.items() if key != "answer_scopes"}
-        unscoped_hash = hashlib.sha256(json.dumps({"documents": documents, "lifecycle": unscoped_lifecycle}, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
-        if any(json.loads(record["evidence_json"])["qualification"]["source_snapshot_hash"] != unscoped_hash for record in lifecycle.get("answer_scopes", [])):
-            raise ValueError("Complete archive corpus changed after scope approval")
         snapshot = (
             "sha256:"
             + hashlib.sha256(
@@ -374,6 +374,7 @@ def inspect_archive(stream, *, include_history=False):
             "sqliteIntegrity": integrity,
             "artifactHashesChecked": checked,
             "answerScopesChecked": len(lifecycle.get("answer_scopes", [])),
+            **({"supersededAnswerScopesChecked": superseded_scopes} if superseded_scopes else {}),
             "retirementRecordsChecked": len(retirements),
             "classificationRecordsChecked": len(lifecycle["classifications"]),
             "availabilityObservationsChecked": availability_checked,

@@ -45,9 +45,20 @@ def recovery_inventory(output: Path) -> None:
             CRAWLER_DB_PATH, "source_classifications"
         )
         report["source_retirements"] = read_table(CRAWLER_DB_PATH, "source_retirements")
-        from pipeline.answer_scope import scoped_failure_count, scope_records
+        from pipeline.answer_scope import (
+            scope_records,
+            scoped_failure_count,
+            usable_scope_map,
+        )
 
         report["answer_scope_records"] = scope_records(CRAWLER_DB_PATH)
+        report["answer_scope_invalid_reason"] = usable_scope_map(CRAWLER_DB_PATH)[1]
+        from pipeline.answer_scope import qualification_snapshot_hash
+
+        # The value a scope bundle's `source_snapshot_hash` must carry.
+        report["scope_qualification_snapshot_hash"] = qualification_snapshot_hash(
+            CORPUS_DATA_ROOT
+        )
         report["scoped_required_failure_count"] = scoped_failure_count(
             [*report["unresolved"], *report["unresolved_downloads"]], CRAWLER_DB_PATH
         )
@@ -88,14 +99,10 @@ def recovery_inventory(output: Path) -> None:
 )
 @click.option("--apply", is_flag=True)
 @click.option(
-    "--baseline-archive",
-    type=click.Path(path_type=Path, exists=True, dir_okay=False),
-    required=True,
+    "--supersede",
+    help="Action ID of the existing approval this one replaces",
 )
-@click.option("--backup-image", required=True)
-def source_scope(
-    evidence: Path, apply: bool, baseline_archive: Path, backup_image: str
-) -> None:
+def source_scope(evidence: Path, apply: bool, supersede: str | None) -> None:
     """Validate a qualified product-scope bundle; preserve unresolved source state."""
     from pipeline.answer_scope import apply_answer_scope
 
@@ -107,8 +114,7 @@ def source_scope(
                 CORPUS_DATA_ROOT,
                 json.loads(evidence.read_text()),
                 apply=apply,
-                baseline_archive=baseline_archive,
-                backup_image=backup_image,
+                supersede=supersede,
             )
         )
     )

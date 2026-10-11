@@ -132,7 +132,15 @@ def read_index_listings(db_path: Path = CRAWLER_DB_PATH) -> dict[str, IndexListi
         conn.close()
 
 
-def read_registry_rows(db_path: Path = CRAWLER_DB_PATH) -> list[dict[str, Any]]:
+def read_registry_rows(
+    db_path: Path = CRAWLER_DB_PATH, *, validate_classification_evidence: bool = True
+) -> list[dict[str, Any]]:
+    """Registry rows as the loader sees them: index roles and de-listing applied.
+
+    A restored archive has no capture files beside its registry, so the backup
+    inspector derives the same view without re-reading classification evidence,
+    which it verifies separately from the archive's own hashes.
+    """
     if not db_path.exists():
         return []
 
@@ -142,8 +150,9 @@ def read_registry_rows(db_path: Path = CRAWLER_DB_PATH) -> list[dict[str, Any]]:
         order = "id" if any(row[1] == "id" for row in conn.execute("PRAGMA table_info(documents)")) else "source_url"
         rows = [dict(row) for row in conn.execute(f"SELECT * FROM documents ORDER BY {order}")]
         if conn.execute("SELECT 1 FROM sqlite_master WHERE name='source_classifications'").fetchone():
-            from pipeline.source_audit import validate_classifications
-            validate_classifications(db_path)
+            if validate_classification_evidence:
+                from pipeline.source_audit import validate_classifications
+                validate_classifications(db_path)
             roles = dict(conn.execute("SELECT source_url,resource_role FROM source_classifications"))
             for row in rows:
                 row["resource_role"] = roles.get(row["source_url"], "document")

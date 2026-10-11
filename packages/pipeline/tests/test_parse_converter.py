@@ -1304,6 +1304,7 @@ def test_parse_all_records_timeout_failures(monkeypatch, tmp_path):
         "remaining_optional_failures": 1,
         "remaining_scoped_required_failures": 0,
         "remaining_blocking_required_failures": 0,
+        "answer_scope_invalid_reason": None,
         "terminal_state": "completed",
     }
     assert meta["parse_status"] == "parse_exception"

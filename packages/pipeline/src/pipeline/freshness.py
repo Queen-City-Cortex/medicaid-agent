@@ -67,6 +67,7 @@ def build_answer_ready_snapshot(
     lifecycle = lifecycle_snapshot(db_path, hashes)
     if not include_answer_scopes:
         lifecycle.pop("answer_scopes", None)
+        lifecycle.pop("superseded_answer_scopes", None)
     encoded = json.dumps(
         {"documents": documents, "lifecycle": lifecycle},
         sort_keys=True,

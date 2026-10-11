@@ -27,7 +27,7 @@ Keep the active graph serving. Follow the [release runbook](blue-green-corpus-re
 1. Freeze a clean implementation revision. Run corpus/agent/crawler tests, agent and corpus builds, and pipeline tests/lint. Inspect the eight scenario results and the matching review evidence; do not mark cases passed merely because a JSON field accepts `true`.
 2. Discover/download the declared full September 25, 2024 bulletin and parse it through the normal pipeline. It is an explicit HTML seed in `corpus-manifest.json`. Bulletin HTML is accepted only for that declared seed and must pass substantive article/title validation. HTML returned for an ordinary PDF attachment remains a failed download.
 3. Verify all required source hashes and parsed artifacts on the isolated copy. Existing originals, errors and unknown identities must remain intact. If a reviewed identity has changed, investigate and update the policy through review; do not rewrite the registry to satisfy its guard.
-4. Produce a fresh encrypted baseline archive and run the native decryption/restore verifier. The receipt must identify the exact pre-scope source snapshot. Keep the archive and receipt durable. A backup from before ingesting the full bulletin cannot establish this snapshot.
+4. Take an encrypted backup before applying, as before any source mutation. The approval no longer embeds its receipt; the restore check that matters is the one on the backup taken after the scope records are written (below).
 5. Prepare a private, reviewed bundle with the fields below. The eight case flags attest to the implementation/boundary review; they do **not** substitute for the repeated live candidate checks below.
 
 ```json
@@ -38,7 +38,7 @@ Keep the active graph serving. Follow the [release runbook](blue-green-corpus-re
     "policy_hash": "<same policy hash>",
     "implementation_revision": "<40-character Git revision>",
     "implementation_hash": "<implementation_hash()>",
-    "source_snapshot_hash": "<pre-scope snapshot hash, without sha256:>",
+    "source_snapshot_hash": "<scope_qualification_snapshot_hash from recovery-inventory>",
     "cases": {
       "magi-2026": true,
       "magi-2025": true,
@@ -48,8 +48,7 @@ Keep the active graph serving. Follow the [release runbook](blue-green-corpus-re
       "gujarati-official-form": true,
       "covid-payment-after-2024": true,
       "covid-standing-order-authority": true
-    },
-    "baseline_backup_receipt": "<replace this string with the complete verified receipt object>"
+    }
   }
 }
 ```
@@ -57,14 +56,14 @@ Keep the active graph serving. Follow the [release runbook](blue-green-corpus-re
 From `packages/pipeline`, with `CORPUS_DATA_ROOT` pointing to the isolated corpus:
 
 ```bash
-uv run python -m pipeline.cli source-scope --evidence /private/scope-review.json --baseline-archive /private/corpus-baseline.tar.gz.age --backup-image corpus-job:TESTED_REVISION
-uv run python -m pipeline.cli source-scope --evidence /private/scope-review.json --baseline-archive /private/corpus-baseline.tar.gz.age --backup-image corpus-job:TESTED_REVISION --apply
+uv run python -m pipeline.cli source-scope --evidence /private/scope-review.json
+uv run python -m pipeline.cli source-scope --evidence /private/scope-review.json --apply
 uv run python -m pipeline.cli recovery-inventory --output /private/scoped-inventory.json
 ```
 
-Run these commands on the local isolated complete corpus using the reviewed corpus-job image and the existing macOS Keychain backup identity. Both initial validation and application rerun the native encrypted-archive decryption/restore verifier and compare its independently produced receipt with the declared evidence; supplied receipt fields alone cannot authorize an approval. The validation command writes no scope records. Application takes the corpus writer lock and writes only `source_answer_scopes`; it does not change source status, family requiredness, download attempts, payloads, retirement or availability history. Each record embeds the policy, qualification, baseline receipt and exact coverage-artifact hashes. Repeating the identical action is idempotent. A differing existing approval is rejected rather than overwritten.
+Validation writes no scope records. Application takes the corpus writer lock and writes only `source_answer_scopes`; it does not change source status, family requiredness, download attempts, payloads, retirement or availability history. It requires the bundle's `source_snapshot_hash` to equal the corpus snapshot at that moment, so the operator qualified this corpus; that is checked once, at application, and not again. Take the value from `scope_qualification_snapshot_hash` in the `recovery-inventory` report: it hashes every source and artifact and leaves scope records out, so it is the same before an approval, after it and when qualifying a replacement. `complete_snapshot` includes scope records and is not the value to use. Each record embeds the policy, qualification and exact coverage-artifact hashes. Repeating the identical action is idempotent. A differing existing approval is refused unless the new bundle has its own `action_id` and names the one it replaces: `source-scope --evidence <bundle> --apply --supersede <old action id>`. The replaced records move to `source_answer_scopes_superseded` and are kept. Each approval's evidence names the one it replaced, with a digest of that approval's stored records and the time of replacement, so the history is a chain: it is part of the corpus snapshot, and a restore check or a later replacement refuses a chain with a missing, altered or extra record. An action ID, once used, is never accepted again. `--supersede` is refused when no approval is active.
 
-Inventory continues to report every unresolved required failure. It separately reports approved scoped failures and remaining blocking required failures. Any new required failure or undocumented removal still blocks release. New content/status/identity, policy, implementation or any change to the complete pre-scope corpus snapshot invalidate approvals; harmless failed-download retry timestamps/counters do not. Snapshots and encrypted backups include the scope records and verify their retained dependencies. Snapshots with no scopes keep their previous identity.
+Inventory continues to report every unresolved required failure. It separately reports approved scoped failures and remaining blocking required failures. Any new required failure or undocumented removal still blocks release. An approval answers for its own sources: a change to a scoped source's content, status or identity, to the policy, or to a required coverage source or its parsed artifacts invalidates it, as does a required coverage source being removed, classified as an index, or de-listed from its official index: the approval reads the registry as the graph loader does. Unrelated corpus changes (a new bulletin, another source's download error) and code changes do not; the code is answered for by the live acceptance gate below. Harmless failed-download retry timestamps and counters do not either. An invalid approval does not stop the parser, the audit or the inventory: it excludes nothing, the sources it covered block again, and the reason is reported as `answer_scope_invalid_reason`. Snapshots and encrypted backups include the scope records and verify their retained dependencies. Snapshots with no scopes keep their previous identity.
 
 ## Qualify before activation
 
@@ -74,4 +73,4 @@ This is a mandatory, non-overridable gate in addition to the versioned golden be
 
 After applying scope records or making any other source mutation, create and decrypt-test a new matching encrypted backup. The pre-scope archive is rollback evidence; it cannot authorize activation of the scoped snapshot. Sync the manifest, acceptance evidence and audit artifacts durably, then use the ordinary activation/browser acceptance procedure. Assess qualification and activation separately; keep agency inquiries unsent.
 
-If approval becomes invalid, stop release work. Retain the scoped archive and evidence, restore a tested complete pre-scope corpus into an isolated location, and repeat reviewed preparation with current identities/code. Do not delete or edit scope rows to bypass the guard. Existing graph rollback remains available through the release runbook.
+If approval becomes invalid, release preparation refuses on the sources it covered. Review what changed, qualify again with current identities and code, and apply the new bundle with `--supersede`. Do not delete or edit scope rows by hand. Existing graph rollback remains available through the release runbook.
