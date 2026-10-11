@@ -86,7 +86,12 @@ GOLDEN_DATASET_SCHEMA = PROJECT_ROOT / "data" / "golden" / "dataset.schema.json"
 EVAL_RESULTS_DIR = PIPELINE_DATA_DIR / "eval-results"
 EVAL_DEFAULT_TOP_K = 10
 EVAL_REGRESSION_THRESHOLD = 0.05  # 5% drop = regression flag
-EVAL_JUDGE_MODEL = "claude-sonnet-4-6"
+# The judge is part of the evaluation fingerprint, so runs under different
+# judges never compare. The default is the model the thresholds were set with;
+# EVAL_JUDGE_MODEL selects a successor (claude-sonnet-5-5) for a measurement.
+EVAL_JUDGE_MODEL = os.getenv("EVAL_JUDGE_MODEL", "").strip() or "claude-sonnet-4-6"
+if not EVAL_JUDGE_MODEL.startswith("claude-"):
+    raise ValueError(f"EVAL_JUDGE_MODEL must be an Anthropic model id: {EVAL_JUDGE_MODEL}")
 
 CFR_PARTS = [
     # 2 CFR — OMB / federal-wide grants. Part 200 is the Uniform Guidance

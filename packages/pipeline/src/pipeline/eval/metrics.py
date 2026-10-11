@@ -72,6 +72,17 @@ def compare_runs(
             f"({version_a or 'unversioned'} vs {version_b or 'unversioned'})"
         )
 
+    # A different judge is a different scale, and an answer run that does not
+    # record its judge cannot show it shares one. Other levels use no judge.
+    judge_a = (run_a.get("config") or {}).get("judge_model")
+    judge_b = (run_b.get("config") or {}).get("judge_model")
+    judged = "answer" in {level_a, level_b}
+    if (judged and not (judge_a and judge_b)) or judge_a != judge_b:
+        raise ValueError(
+            "cannot compare runs scored by different judges "
+            f"({judge_a or 'not recorded'} vs {judge_b or 'not recorded'})"
+        )
+
     diffs: list[dict] = []
     agg_a = run_a.get("aggregate", {})
     agg_b = run_b.get("aggregate", {})

@@ -1,6 +1,6 @@
 import { sectionRoleAllowlist } from '@nc-medicaid/policy-corpus';
 import { z } from 'zod';
-import { REASONING_EFFORTS, parseReasoningEffort } from './model.js';
+import { REASONING_EFFORTS, assertReasoningEffortSupported, parseReasoningEffort } from './model.js';
 
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '::1']);
 
@@ -87,6 +87,9 @@ export function loadRuntimeConfig(
   const publicProduction = production && nonEmpty(env, 'PUBLIC_PRODUCTION') === 'true';
   const agentModel = nonEmpty(env, 'AGENT_MODEL') ?? 'gpt-5.6-terra';
   const agentReasoningEffort = parseReasoningEffort(env.AGENT_REASONING_EFFORT);
+  assertReasoningEffortSupported(agentModel, agentReasoningEffort);
+  // The deep-research agents share the effort and may run another model.
+  assertReasoningEffortSupported(nonEmpty(env, 'DEEP_RESEARCH_MODEL') ?? agentModel, agentReasoningEffort);
   const databaseUrl = nonEmpty(env, 'DATABASE_URL') ?? 'file:./mastra.db';
   const neo4j = {
     uri: nonEmpty(env, 'NEO4J_URI') ?? 'bolt://localhost:7687',

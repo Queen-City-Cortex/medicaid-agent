@@ -33,9 +33,40 @@ export function openaiModel(modelId: string): ProviderModel {
   return wrapLanguageModel({
     model: openai(modelId),
     middleware: defaultSettingsMiddleware({
-      settings: { providerOptions: { openai: { store: false } } },
+      settings: {
+        providerOptions: {
+          openai: { store: false, ...(isGpt6(modelId) ? { forceReasoning: true } : {}) },
+        },
+      },
     }),
   });
+}
+
+/** The GPT-6 family (gpt-6.1-sol, gpt-6-luna, gpt-6-astra) are reasoning
+ *  models, but the installed provider's own rule stops at gpt-5: left alone it
+ *  would drop `reasoningEffort`, send instructions as a system message and,
+ *  with storage off, not ask for the encrypted reasoning it must replay
+ *  between tool steps. `forceReasoning` is the provider's switch for an id it
+ *  does not know. Remove this once the pinned provider recognises gpt-6. */
+function isGpt6(modelId: string): boolean {
+  return modelId.startsWith('gpt-6');
+}
+
+/** Efforts a GPT-6 model is documented to reject (OpenAI model pages, October
+ *  2026): none takes `minimal`; GPT-6.1 Sol and Astra also reject `none`, which
+ *  GPT-6 Sol and Luna accept. Other models are not policed here: the provider
+ *  answers for what they accept. */
+function unsupportedEfforts(modelId: string): readonly ReasoningEffort[] {
+  if (!isGpt6(modelId)) return [];
+  return modelId.startsWith('gpt-6.1-sol') || modelId.startsWith('gpt-6-astra') ? ['none', 'minimal'] : ['minimal'];
+}
+
+/** Start-up check: a model that rejects the configured effort fails every
+ *  request, so refuse to boot instead. */
+export function assertReasoningEffortSupported(modelId: string, effort: ReasoningEffort): void {
+  if (unsupportedEfforts(modelId).includes(effort)) {
+    throw new Error(`AGENT_REASONING_EFFORT ${effort} is not supported by ${modelId}`);
+  }
 }
 
 /** `model` with a deadline on every call it makes, joined to any signal the
@@ -84,7 +115,7 @@ export const AGENT_MODEL = strEnv('AGENT_MODEL', 'gpt-5.6-terra');
 // gpt-5.6-terra), so changing AGENT_MODEL silently changed effort too. The
 // 2026-07-09 comparison above ran each model at that default and so varied
 // both. Medium is what the gpt-5.6-terra evaluations ran at.
-export const REASONING_EFFORTS = ['none', 'minimal', 'low', 'medium', 'high', 'xhigh'] as const;
+export const REASONING_EFFORTS = ['none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'] as const;
 export type ReasoningEffort = (typeof REASONING_EFFORTS)[number];
 
 /** Unset or blank means medium; anything outside the allow-list throws. */
@@ -107,11 +138,13 @@ export const AGENT_DEFAULT_OPTIONS = {
 /** The reasoning effort a request to `modelId` actually carries, or null when
  *  none is sent: Anthropic models ignore the `openai` options, and the OpenAI
  *  provider drops the setting for ids it does not treat as reasoning models
- *  (its rule, copied here: o1, o3, o4-mini and gpt-5 other than gpt-5-chat).
+ *  (its rule, copied here: o1, o3, o4-mini and gpt-5 other than gpt-5-chat;
+ *  gpt-6 ids are forced on in `openaiModel`).
  *  tests/reasoning-effort.test.ts checks this against the installed provider. */
 export function sentReasoningEffort(modelId: string): ReasoningEffort | null {
   const reasoning = modelId.startsWith('o1') || modelId.startsWith('o3') || modelId.startsWith('o4-mini')
-    || (modelId.startsWith('gpt-5') && !modelId.startsWith('gpt-5-chat'));
+    || (modelId.startsWith('gpt-5') && !modelId.startsWith('gpt-5-chat'))
+    || isGpt6(modelId);
   return reasoning ? AGENT_REASONING_EFFORT : null;
 }
 

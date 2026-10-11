@@ -250,3 +250,21 @@ def test_a_thinking_block_before_the_text_is_skipped(monkeypatch):
 def test_reference_is_not_presented_to_the_judge_as_verified():
     assert "verified correct" not in judge.REFERENCE_PROMPT
     assert "verified correct" not in judge.GROUNDING_PROMPT
+
+
+def test_the_judge_model_can_be_selected_and_must_be_an_anthropic_model(monkeypatch):
+    import importlib
+
+    from pipeline import config
+
+    try:
+        monkeypatch.setenv("EVAL_JUDGE_MODEL", "claude-sonnet-5-5")
+        assert importlib.reload(config).EVAL_JUDGE_MODEL == "claude-sonnet-5-5"
+        monkeypatch.setenv("EVAL_JUDGE_MODEL", "  ")
+        assert importlib.reload(config).EVAL_JUDGE_MODEL == "claude-sonnet-4-6"
+        monkeypatch.setenv("EVAL_JUDGE_MODEL", "gpt-6.1-sol")
+        with pytest.raises(ValueError, match="must be an Anthropic model id"):
+            importlib.reload(config)
+    finally:
+        monkeypatch.delenv("EVAL_JUDGE_MODEL", raising=False)
+        importlib.reload(config)

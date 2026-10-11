@@ -62,6 +62,6 @@ describe('agent startup validation', () => {
     });
 
     expect(code).not.toBe(0);
-    expect(output).toContain('AGENT_REASONING_EFFORT must be one of: none, minimal, low, medium, high, xhigh');
+    expect(output).toContain('AGENT_REASONING_EFFORT must be one of: none, minimal, low, medium, high, xhigh, max');
   }, 25_000);
 });

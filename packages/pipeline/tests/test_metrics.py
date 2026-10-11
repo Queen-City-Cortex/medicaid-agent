@@ -107,11 +107,29 @@ class TestCompareRuns:
 
     @pytest.mark.parametrize("other", [{"dataset_version": "2.1"}, {}])
     def test_rejects_cross_dataset_version_comparison(self, other):
-        run_a = {"level": "answer", "config": {"dataset_version": "3.0"}, "aggregate": {"overall": 2.8}}
-        run_b = {"level": "answer", "config": other, "aggregate": {"overall": 2.6}}
+        judge = {"judge_model": "claude-sonnet-4-6"}
+        run_a = {"level": "answer", "config": {"dataset_version": "3.0", **judge}, "aggregate": {"overall": 2.8}}
+        run_b = {"level": "answer", "config": {**other, **judge}, "aggregate": {"overall": 2.6}}
         with pytest.raises(ValueError, match="different golden dataset versions"):
             compare_runs(run_a, run_b)
         assert compare_runs(run_a, run_a) is not None
+
+    def test_rejects_comparison_across_judges(self):
+        config = {"dataset_version": "3.5"}
+        run_a = {"level": "answer", "config": {**config, "judge_model": "claude-sonnet-4-6"}, "aggregate": {"overall": 2.8}}
+        run_b = {"level": "answer", "config": {**config, "judge_model": "claude-sonnet-5-5"}, "aggregate": {"overall": 2.6}}
+        with pytest.raises(ValueError, match="different judges"):
+            compare_runs(run_a, run_b)
+        assert compare_runs(run_a, run_a) is not None
+        # An answer run that records no judge cannot show it shares the scale.
+        with pytest.raises(ValueError, match="not recorded"):
+            compare_runs(run_a, {"level": "answer", "config": config, "aggregate": {"overall": 2.6}})
+        unjudged = {"level": "answer", "config": config, "aggregate": {"overall": 2.6}}
+        with pytest.raises(ValueError, match="not recorded"):
+            compare_runs(unjudged, unjudged)
+        # Levels that use no judge compare as before.
+        retrieval = {"level": "retrieval", "config": config, "aggregate": {"recall_at_k": 0.4}}
+        assert compare_runs(retrieval, retrieval) is not None
 
     def test_rejects_cross_level_comparison(self):
         run_a = {"level": "answer", "aggregate": {"overall": 2.8}}
