@@ -39,3 +39,6 @@ packages/pipeline/data/section-labels/
 
 # macOS
 .DS_Store
+
+# Evidence written by the verify-medicaid-agent skill (.cursor/skills/verify-medicaid-agent).
+/.verify-evidence/

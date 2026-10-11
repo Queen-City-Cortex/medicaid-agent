@@ -1,0 +1,2 @@
+# Symlink to e2e/node_modules, created by scripts/verify.sh drive.
+drive/node_modules
