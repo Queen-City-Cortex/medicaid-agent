@@ -268,3 +268,26 @@ def test_the_judge_model_can_be_selected_and_must_be_an_anthropic_model(monkeypa
     finally:
         monkeypatch.delenv("EVAL_JUDGE_MODEL", raising=False)
         importlib.reload(config)
+
+
+def test_the_reference_call_knows_the_date_and_leaves_extra_detail_to_the_grounding_call(monkeypatch):
+    from datetime import datetime, timezone
+
+    prompts: list[str] = []
+    real_score = judge._score
+
+    def capture(prompt, dimensions):
+        prompts.append(prompt)
+        return real_score(prompt, dimensions)
+
+    fake_judge(monkeypatch, REFERENCE_OK, GROUNDING_OK)
+    monkeypatch.setattr(judge, "_score", capture)
+
+    run_judge()
+
+    reference, grounding = prompts
+    today = datetime.now(timezone.utc).date().isoformat()
+    assert f"Today's date is {today}." in reference
+    assert "Do not lower a score because a detail is absent from the reference" in reference
+    # The grounding call has the evidence and is unchanged.
+    assert "Today's date" not in grounding

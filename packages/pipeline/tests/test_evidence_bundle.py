@@ -115,7 +115,7 @@ def test_budget_trims_lowest_priority_agent_source_first():
         _source("getAmendments", "cn:keep", big),
     ]
     # Budget fits two sources + headers, not four.
-    bundle = build_judge_evidence([], sources, budget_bytes=12_000)
+    bundle = build_judge_evidence([], sources, budget_chars=12_000)
     joined = "\n".join(bundle.blocks)
     assert "sec:keep" in joined
     assert "cn:keep" in joined
@@ -129,7 +129,7 @@ def test_budget_never_trims_golden():
     # 20 KB of golden + 5 KB budget → golden still included (golden is
     # mandatory; budget applies only to agent sources).
     golden = [_golden("sec:a", "G" * 20_000)]
-    bundle = build_judge_evidence(golden, [], budget_bytes=5_000)
+    bundle = build_judge_evidence(golden, [], budget_chars=5_000)
     assert bundle.golden_blocks_used == 1
     assert bundle.blocks[0].startswith("--- Golden section: sec:a ---\nG")
     # No agent sources to trim → budget_trimmed stays False.
@@ -164,7 +164,7 @@ def test_frame_section_bodies_outrank_the_routing_hint():
         "--- Evidence: mysteryTool → m-1 ---",
     ]
     # With room for one large block, the section body claims it.
-    trimmed = build_judge_evidence([], sources, budget_bytes=6_000)
+    trimmed = build_judge_evidence([], sources, budget_chars=6_000)
     joined = "\n".join(trimmed.blocks)
     assert "sec:frame" in joined
     assert "raf-hint" not in joined
@@ -190,7 +190,7 @@ def test_section_entries_already_covered_are_skipped():
 def test_budget_trimmed_true_when_agent_source_overflows():
     golden = [_golden("sec:a", "small")]
     sources = [_source("getSection", "sec:big", "X" * 10_000)]
-    bundle = build_judge_evidence(golden, sources, budget_bytes=1_000)
+    bundle = build_judge_evidence(golden, sources, budget_chars=1_000)
     # Golden survived; agent source didn't.
     assert bundle.golden_blocks_used == 1
     assert bundle.sources_used == 0
@@ -249,3 +249,21 @@ def test_a_window_of_a_golden_section_is_not_added_beside_it():
     assert bundle.sources_used == 1
     assert not any("A window of alpha" in block for block in bundle.blocks)
     assert any("A window of beta" in block for block in bundle.blocks)
+
+
+def test_the_default_budget_holds_what_the_verifier_reads():
+    from pipeline.eval.evidence import JUDGE_AGENT_EVIDENCE_BUDGET_CHARS
+
+    # A long revision history beside the section bodies: about what the
+    # verifier saw (94,000 characters) on the two questions the old budget cut.
+    sources = [
+        {"toolName": "getSection", "key": "sec:a:1", "text": "s" * 25_000},
+        {"toolName": "getAmendments", "key": "policy-10a", "text": "a" * 68_000},
+    ]
+    assert JUDGE_AGENT_EVIDENCE_BUDGET_CHARS == 120_000
+    bundle = build_judge_evidence([], sources)
+    assert bundle.sources_used == 2 and bundle.budget_trimmed is False
+    assert build_judge_evidence([], sources, budget_chars=80_000).budget_trimmed is True
+    # Counted in characters, like the verifier: two-byte text is not charged double.
+    wide = [{"toolName": "getSection", "key": "sec:b:1", "text": "§" * 70_000}]
+    assert build_judge_evidence([], wide).budget_trimmed is False

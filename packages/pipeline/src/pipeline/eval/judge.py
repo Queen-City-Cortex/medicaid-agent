@@ -2,6 +2,7 @@
 
 import json
 import time
+from datetime import datetime, timezone
 
 import httpx
 
@@ -34,8 +35,16 @@ GROUNDING_DIMENSIONS = ("hallucination", "citation_quality")
 _JSON_ONLY = """Your response MUST be a single JSON object and NOTHING ELSE — no preamble, no markdown fences, no prose before or after the JSON. The judging harness parses your response as strict JSON."""
 
 # Scores agreement with the reference. It carries no evidence, so the amount
-# of text the agent retrieved cannot move these dimensions.
+# of text the agent retrieved cannot move these dimensions. For the same
+# reason it cannot tell a true detail from an invented one, and it does not
+# know the date: on the first full candidate run it called correct 2026
+# revision dates fabricated on four answers. The prompt gives it the date and
+# leaves unsupported detail to the grounding call, which has the evidence.
 REFERENCE_PROMPT = """You are evaluating an AI agent's answer to a Medicaid policy question.
+
+Today's date is {today}. A date on or before today is in the past.
+
+The reference answer states the key facts a correct answer needs. The agent's answer may add detail the reference does not mention, such as revision dates, section numbers or related provisions. The reference neither confirms nor contradicts that detail, and a separate check verifies it against the source documents. Do not lower a score because a detail is absent from the reference or because you cannot confirm it. Lower a score for a key fact that is missing, or for a statement that contradicts the reference.
 
 Question: {question}
 
@@ -123,6 +132,7 @@ def judge_answer(
             question=question,
             golden_answer=golden_answer,
             agent_answer=agent_answer,
+            today=datetime.now(timezone.utc).date().isoformat(),
         ),
         REFERENCE_DIMENSIONS,
     )

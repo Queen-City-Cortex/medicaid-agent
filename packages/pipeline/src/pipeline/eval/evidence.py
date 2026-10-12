@@ -14,6 +14,14 @@ from dataclasses import dataclass
 from typing import Iterable
 
 
+# The agent's own verifier reads up to 120,000 characters of the evidence the
+# agent retrieved. A judge given less scores as unsupported what the verifier
+# checked against text the judge never saw: at 80,000 the first full run on the
+# candidate graph (2026-10-12) dropped a block on two questions, and those two
+# were the only answers scored 1 for hallucination, each for a claim the
+# policy's revision table states.
+JUDGE_AGENT_EVIDENCE_BUDGET_CHARS = 120_000
+
 # Lower = higher priority (claims the agent budget first). Keyed by the
 # ``toolName`` values the agent CLI emits (see processors/verifier/evidence.ts);
 # names missing here rank after every listed one. Corpus section bodies come
@@ -83,7 +91,7 @@ def build_judge_evidence(
     golden_sections: list[dict],
     agent_sources: list[dict],
     *,
-    budget_bytes: int = 80_000,
+    budget_chars: int = JUDGE_AGENT_EVIDENCE_BUDGET_CHARS,
 ) -> EvidenceBundle:
     """Assemble evidence blocks for the judge.
 
@@ -101,7 +109,7 @@ def build_judge_evidence(
       (section bodies > getAmendments > getDocument > …). Section entries whose
       key matches a golden section id, or a section already taken from another
       tool, are skipped.
-    - ``budget_bytes`` caps the agent blocks only. A block that does not fit in
+    - ``budget_chars`` caps the agent blocks only. A block that does not fit in
       what remains is skipped, so priority decides who claims the budget first.
     """
     golden_ids = _golden_section_ids(golden_sections)
@@ -132,8 +140,8 @@ def build_judge_evidence(
     agent_blocks = [_render_agent_block(src) for src in agent_ordered]
 
     # Budget: golden is mandatory and uncharged; agent blocks are accepted
-    # while they fit the budget. We account for block bytes (utf-8) plus the
-    # `\n\n` separator the judge renderer joins with.
+    # while they fit the budget, counted in characters plus the `\n\n`
+    # separator the judge renderer joins with.
     separator_len = len("\n\n")
 
     def size_of(blocks: list[str]) -> int:
@@ -144,15 +152,17 @@ def build_judge_evidence(
         return total
 
     accepted: list[str] = []
-    remaining = budget_bytes
+    remaining = budget_chars
     budget_trimmed = False
 
     for block in agent_blocks:
-        block_bytes = len(block.encode("utf-8"))
+        # Characters, as the verifier counts: a byte count would drop a block
+        # of accented or symbol-heavy text that the verifier accepted.
+        block_chars = len(block)
         overhead = separator_len if accepted else 0
-        if block_bytes + overhead <= remaining:
+        if block_chars + overhead <= remaining:
             accepted.append(block)
-            remaining -= block_bytes + overhead
+            remaining -= block_chars + overhead
         else:
             budget_trimmed = True
 

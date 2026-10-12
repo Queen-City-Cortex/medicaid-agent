@@ -681,7 +681,7 @@ def evaluate_answers(entries: list[dict], *, use_unified_evidence: bool = True) 
                 "golden_blocks_used": evidence_bundle.golden_blocks_used,
                 "bytes_in_prompt": evidence_bundle.bytes_in_prompt,
                 "budget_trimmed": evidence_bundle.budget_trimmed,
-                "evidence_mode": "unified-v2" if use_unified_evidence else "legacy",
+                "evidence_mode": "unified-v3" if use_unified_evidence else "legacy-v2",
             },
             "agent_elapsed_seconds": agent_elapsed_seconds,
             # Alias fields for results.py aggregate compatibility

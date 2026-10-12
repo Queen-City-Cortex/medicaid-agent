@@ -138,7 +138,10 @@ def run_eval(
     if level == "answer":
         from pipeline.config import EVAL_JUDGE_MODEL
         config_overrides["judge_model"] = EVAL_JUDGE_MODEL
-        config_overrides["evidence_mode"] = "legacy" if legacy_evidence else "unified-v2"
+        config_overrides["evidence_mode"] = "legacy-v2" if legacy_evidence else "unified-v3"
+        # The reference call is told this date, and the agent answered on it.
+        from datetime import datetime, timezone
+        config_overrides["judge_date"] = datetime.now(timezone.utc).date().isoformat()
         # Reported by the agent itself: stamping from this process's environment
         # would record nothing on a default run and miss the agent's own .env.
         agent_configs = [row["agent_config"] for row in per_question if row.get("agent_config")]
