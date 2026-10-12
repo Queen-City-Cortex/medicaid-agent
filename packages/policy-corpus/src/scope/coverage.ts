@@ -57,24 +57,60 @@ export function resolveCoverageScope(question: string, today = new Date()): Cove
   const pharmacist = /pharmacist/.test(q);
   const authorityTerms = /\boriginal\s+(?:(?:standing|statewide|pharmacist|covid(?:-19)?)\s+)*orders?\b|standing.order|statewide.order|dispens|prescrib|prescription|(?<!prior )authori|without a (?:doctor|prescription)/.test(q)
     || (pharmacist && /\ballow|\bpermit|\border(?:s|ed|ing)?\b|conditions?|withdr[ae]w|rescind/.test(q));
-  const authority = /covid|sars.cov.2/.test(q) && (covid || /standing.order/.test(q)) && (authorityTerms || (pharmacist && !paymentQuestion));
+  // Naming the order by its address asks about the order, whatever words surround it.
+  const authority = q.includes(STANDING_ORDER_ADDRESS)
+    || (/covid|sars.cov.2/.test(q) && (covid || /standing.order/.test(q)) && (authorityTerms || (pharmacist && !paymentQuestion)));
   const originalArtifact = /original\w*.{0,60}(?:attachment|file|document|source|pdf|upload|version|copy|copies|post(?:ed|ing))|(?:attachment|file|document|pdf)s?.{0,30}original/.test(q)
     || /originals\b/.test(q)
     || (/original/.test(q) && /supersed|withdr[ae]w|duplicat|compar|differ|repost|replac/.test(q));
   const availableMagiTable = policy.magi_tables.some(item => q.includes(item.source_url.split('/').at(-1)!.toLowerCase()));
   const missingOriginalIntent = /supersed|withdr[ae]w|duplicat|compar|differ|repost|replac|\bversus\b|\bvs\b|\bsame\b|identical|\bmatch|originals\b|original\w*.{0,60}(?:attachments?|uploads?|sources?|documents?|pdfs\b)/.test(q);
   const archives = /2025/.test(q) && /magi/.test(q) && (/archiv|wrapper/.test(q) || (originalArtifact && !(availableMagiTable && !missingOriginalIntent)));
-  if (matched.length || gujarati || authority || archives) {
-    result.limitationIds = matched.length ? matched.map(item => item.id) : gujarati ? ['gujarati-dhb-5097'] : authority ? ['covid-standing-order'] : ['magi-2025-archive', 'magi-2025-archive-2'];
+  // An unavailable original declines the whole question, whatever else it asks.
+  if (matched.length || gujarati || archives) {
+    result.limitationIds = matched.length ? matched.map(item => item.id) : gujarati ? ['gujarati-dhb-5097'] : ['magi-2025-archive', 'magi-2025-archive-2'];
     result.notice = gujarati ? 'The official Gujarati DHB-5097 attachment is unavailable in this corpus. I cannot supply or quote it, or infer what a completed Gujarati notice says. General request-for-information procedure can be researched separately using the available manuals and forms.'
-      : authority ? 'The original pharmacist standing order for OTC COVID-19 home tests is unavailable in this corpus. I cannot establish its exact dispensing authority, conditions, or withdrawal history. Medicaid payment coverage is a separate question.'
-        : 'These original source attachments are unavailable in this corpus. I cannot reconstruct or compare their contents, or confirm that they were duplicates, withdrawn, or superseded. Questions supported by available dated documents can be researched separately.';
+      : 'These original source attachments are unavailable in this corpus. I cannot reconstruct or compare their contents, or confirm that they were duplicates, withdrawn, or superseded. Questions supported by available dated documents can be researched separately.';
     return result;
   }
   // An income limit is asked about, not a word that merely contains "table" or "limit".
   const incomeLimit = (/\bincome\b/.test(q) && /\b(?:limits?|thresholds?|tables?|charts?|amounts?|standards?)\b/.test(q))
     || /(?:\bmagi\b|ma[\s-]*3321|medicaid expansion)\s+(?:(?:income|eligibility|financial)\s+)?(?:limits?|thresholds?|tables?|charts?)\b/.test(q);
   const magi = /\bmagi\b|ma[\s-]*3321|medicaid expansion/.test(q) && incomeLimit && !/non[\s-]*magi/.test(q);
+  const form5097 = /\b(?:dhb[\s-]*)?5097\b/.test(q);
+  // The order itself is in the corpus (recovered October 2026); what it cannot
+  // show is whether it is still in force.
+  if (authority) {
+    // Each dated family is checked against its own source. One scope carries
+    // one family, so a question spanning two is declined, not half-checked.
+    // That includes the topics that only add a caveat (archived rates, the
+    // retroactive-coverage wording): asked with the order, they wait their turn.
+    const rateQuestion = RATE_QUESTION.some(pattern => pattern.test(q)) && !NOT_A_RATE_QUESTION.test(q);
+    if (magi || form5097 || rateQuestion || RETROACTIVE_COVERAGE_QUESTION.test(q)) {
+      result.notice = SEPARATE_QUESTIONS_NOTICE;
+      return result;
+    }
+    result.requiredSourceUrls = [STANDING_ORDER_URL];
+    result.requirements = [STANDING_ORDER_REQUIREMENT];
+    // A question that also asks about payment needs the dated bulletin as well,
+    // and is declined for any other period, as a payment question alone is.
+    // The order has already identified the tests, so "OTC" need not be repeated;
+    // "what did the order cover" describes the order, and naming the Medicaid
+    // program is not asking what it paid for.
+    if (/\bpa(?:y|ys|id|ying|yable|yment|yments)\b|reimburs|billing|\bbill(?:s|ed)?\b|\bfree\b|\bcosts?\b|co-?pay|cost[\s-]?shar|deductibles?|premiums?|\bcharg(?:e|es|ed)\b|\bprice[sd]?\b|\bowe[sd]?\b|out[\s-]of[\s-]pocket|\bcovered\b|(?<!\b(?:order|it)\s)\bcovers?\b|\bcoverage\b|\bbenefits?\b|\binsurance\b|\bpos\b|\bmedicaid\b[^.?!]{0,40}\bcover|\bcover[^.?!]{0,40}\bmedicaid\b/.test(q)) {
+      // The order's own date identifies the document, not the payment period asked about.
+      result.requestedDate = requestedDate(q.replace(STANDING_ORDER_DATE, ' '), today);
+      if (result.requestedDate !== '2024-10-01') {
+        result.requiredSourceUrls = [];
+        result.requirements = [];
+        result.notice = PAYMENT_PERIOD_NOTICE;
+      } else {
+        result.requiredSourceUrls.push(policy.required_bulletin.source_url);
+        result.requirements.push(PAYMENT_BULLETIN_REQUIREMENT);
+      }
+    }
+    return result;
+  }
   if (magi) {
     result.requestedDate = requestedDate(q, today);
     const table = policy.magi_tables.find(item => result.requestedDate && item.effective_from <= result.requestedDate && item.supported_until >= result.requestedDate);
@@ -86,7 +122,7 @@ export function resolveCoverageScope(question: string, today = new Date()): Cove
     }
     return result;
   }
-  if (/\b(?:dhb[\s-]*)?5097\b/.test(q)) {
+  if (form5097) {
     result.requiredSourceUrls = [policy.required_coverage.find(item => item.source_url.includes('DHB-5097-_4.1.26'))!.source_url];
     result.requirements = ['Explain the form using the available English DHB-5097. Do not infer filled-in deadlines or facts from a blank template; use the applicable manual for procedure. Do not present another language variant or a generated translation as the missing official Gujarati form.'];
     return result;
@@ -94,13 +130,19 @@ export function resolveCoverageScope(question: string, today = new Date()): Cove
   if (covid && paymentQuestion) {
     result.requestedDate = requestedDate(q, today);
     if (!result.requestedDate || result.requestedDate !== '2024-10-01') {
-      result.notice = 'The September 2024 bulletin establishes the payment change effective October 1, 2024. It does not alone establish payment coverage on another date; that period needs additional dated evidence.';
+      result.notice = PAYMENT_PERIOD_NOTICE;
     } else {
       result.requiredSourceUrls = [policy.required_bulletin.source_url];
-      result.requirements = ['Use the full September 25, 2024 coverage-end bulletin. Older ongoing-coverage guidance cannot establish current payment coverage. Check later amendments before asserting current applicability. Payment coverage ending does not establish withdrawal of pharmacist dispensing authority.'];
+      result.requirements = [PAYMENT_BULLETIN_REQUIREMENT];
     }
     return result;
   }
+  addDatedCaveats(result, q, today);
+  return result.requirements.length ? result : null;
+}
+
+/** Caveats that attach to any answer the question may draw: they add requirements and decline nothing. */
+function addDatedCaveats(result: CoverageScope, q: string, today: Date): void {
   // Dated caveat (owner decision on issue #255). The statute compilation this
   // corpus loads prints the amended retroactive-coverage wording of section
   // 1902(a)(34) with no note, though it governs only applications made on or
@@ -114,8 +156,16 @@ export function resolveCoverageScope(question: string, today = new Date()): Cove
   if (RATE_QUESTION.some(pattern => pattern.test(q)) && !NOT_A_RATE_QUESTION.test(q)) {
     result.requirements.push(ARCHIVED_FEE_SCHEDULE_CAVEAT);
   }
-  return result.requirements.length ? result : null;
 }
+
+const PAYMENT_PERIOD_NOTICE = 'The September 2024 bulletin establishes the payment change effective October 1, 2024. It does not alone establish payment coverage on another date; that period needs additional dated evidence.';
+const PAYMENT_BULLETIN_REQUIREMENT = 'Use the full September 25, 2024 coverage-end bulletin. Older ongoing-coverage guidance cannot establish current payment coverage. Check later amendments before asserting current applicability. Payment coverage ending does not establish withdrawal of pharmacist dispensing authority.';
+const STANDING_ORDER_DATE = /\bjan(?:uary|\.)?\s+14(?:th)?,?\s+2022\b|\b0?1\/14\/(?:20)?22\b|\b2022-01-14\b|\b2022\b(?=[^.?!;]{0,40}\b(?:standing|statewide|order)\b)|(?<=\b(?:standing|statewide|order)\b[^.?!;]{0,40})\b2022\b/g;
+const SEPARATE_QUESTIONS_NOTICE = 'Please ask about the pharmacist standing order for OTC COVID-19 tests separately from the other topic in this question. Each is checked against its own dated source, and I cannot do that for both in one answer.';
+const STANDING_ORDER_URL = policy.required_coverage.find(item => item.source_url.includes('swso-pharmacists-dispense-otc-covid-19-tests'))!.source_url;
+// Host and path only: a pasted link may lack the registry's trailing `?attachment=`.
+const STANDING_ORDER_ADDRESS = new URL(STANDING_ORDER_URL).host + new URL(STANDING_ORDER_URL).pathname;
+export const STANDING_ORDER_REQUIREMENT = 'Answer from the retrieved State Health Director standing order for pharmacists dispensing over-the-counter COVID-19 tests, dated January 14, 2022, and state that date. Describe what it authorized as of that date; do not present it as current authority. This corpus holds no later order, amendment or withdrawal notice, so say that it does not establish whether the order was amended, expired or withdrawn. The end of Medicaid payment coverage on September 30, 2024 is a separate matter and does not establish withdrawal of dispensing authority; do not state whether Medicaid paid for the tests unless the dated bulletin was also retrieved.';
 
 // What Medicaid pays a provider for a service or code. Anchored on purpose:
 // "what does Medicaid cover", a copay, an income limit and a heart rate are
@@ -155,6 +205,10 @@ export function coverageEvidenceIssue(scope: CoverageScope | null, sources: Cove
     const body = sections.map(section => section.text).join('\n');
     if (!sections.length) return `The required dated source was not retrieved: ${url}`;
     if (url === policy.required_bulletin.source_url && !/ends?\s+Sept\.?\s*30,?\s*2024/i.test(body)) return 'The coverage-end bulletin body was not retrieved.';
+    // A title or signature block is not the order: its date and the paragraph
+    // saying what pharmacists may dispense must both be among the retrieved text.
+    if (url === STANDING_ORDER_URL && !(/january\s+14(?:th)?,?\s+2022/i.test(body)
+      && /this standing order authorizes any north carolina licensed pharmacist[\s\S]{0,160}to dispense any over-the-counter/i.test(body))) return 'The standing order body was not retrieved.';
     const table = policy.magi_tables.find(item => item.source_url === url);
     if (table && !new RegExp(`effective[^\n]{0,20}april\\s+1,?\\s+${table.effective_from.slice(0, 4)}`, 'i').test(body)) return 'The table effective date was not retrieved.';
   }

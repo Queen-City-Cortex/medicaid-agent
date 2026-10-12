@@ -4,14 +4,6 @@
   "review": "docs/validation/product-scope-review-2026-10-03/README.md",
   "limitations": [
     {
-      "id": "covid-standing-order",
-      "source_url": "https://covid19.ncdhhs.gov/swso-pharmacists-dispense-otc-covid-19-tests/download?attachment=",
-      "source_type": "bulletin",
-      "registry_sha256": "0019e4ca9533a8040518c7878b68290db3c546ca0722abd73e26c1eb47af33f5",
-      "retained_payload_sha256": "9614129d403f5226f8c9222a4aaa8a7389b87fa998f2702108063f7c89f04f6f",
-      "finding": "Original unavailable; outside the supported exact-original answer scope. Preserve unresolved state; this is not withdrawal or supersession."
-    },
-    {
       "id": "gujarati-dhb-5097",
       "source_url": "https://policies.ncdhhs.gov/document/dhb-5097-gu-%e0%aa%ae%e0%aa%be%e0%aa%b9%e0%aa%bf%e0%aa%a4%e0%ab%80-%e0%aa%ae%e0%aa%be%e0%aa%9f%e0%ab%87%e0%aa%b5%e0%aa%bf%e0%aa%a8-%e0%aa%82%e0%aa%a4%e0%ab%80/",
       "source_type": "dhhs_policy",
@@ -60,6 +52,10 @@
     {
       "source_url": "https://policies.ncdhhs.gov/wp-content/uploads/MA-3321-MAGI-Income-2.pdf",
       "payload_sha256": "f160d14ce07a9a8d8db956caa3a13f8f696c39aed892d57b4136edb20b62d10b"
+    },
+    {
+      "source_url": "https://covid19.ncdhhs.gov/swso-pharmacists-dispense-otc-covid-19-tests/download?attachment=",
+      "payload_sha256": "c078cc9fcab10d42994584417bfa6cec9a76f8f7ae29e843f3cb56297071c154"
     }
   ],
   "required_bulletin": {

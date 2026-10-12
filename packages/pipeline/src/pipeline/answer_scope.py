@@ -9,6 +9,7 @@ import sqlite3
 from datetime import UTC, datetime
 from pathlib import Path
 
+from pipeline.crawler_registry import PAYLOAD_RETAINED_STATUSES
 from pipeline.source_lifecycle import private_path, stable_hash
 from pipeline.parse.artifact_paths import artifact_stem_for_source_path
 
@@ -452,10 +453,14 @@ def apply_answer_scope(
         obligations = [*policy["required_coverage"], policy["required_bulletin"]]
         for obligation in obligations:
             row = by_url.get(obligation["source_url"])
+            # A failed re-check keeps the payload, as it does for the graph
+            # loader: the standing order's address now redirects, so every
+            # crawl marks its row `error`. The hash checks below prove the
+            # stored bytes are the reviewed ones.
             if (
                 not row
                 or not row.get("local_path")
-                or row["status"] not in {"downloaded", "unchanged", "updated"}
+                or row["status"] not in PAYLOAD_RETAINED_STATUSES
             ):
                 raise ValueError("Required coverage has not been downloaded")
             name = "crawler/documents/" + row["local_path"]

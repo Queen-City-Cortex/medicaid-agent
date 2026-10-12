@@ -50,9 +50,9 @@ CASES = [
     ),
     (
         "covid-standing-order-authority",
-        "What exact dispensing authority does the pharmacist standing order for OTC COVID-19 home tests grant, and was that order withdrawn?",
-        "withheld",
-        [],
+        "What did the State Health Director's standing order for pharmacists dispensing OTC COVID-19 home tests authorize, and what is the order's date?",
+        "passed",
+        ["2022"],
     ),
 ]
 

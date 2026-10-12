@@ -37,10 +37,6 @@ describe('bounded answer scope', () => {
     ['Translate my Gujarati DHB-5097 and tell me the next steps.', 'gujarati-dhb-5097'],
     ['What deadline does my Gujarati DHB-5097 give, and how do I reply?', 'gujarati-dhb-5097'],
     ['How do I complete the Gujarati DHB-5097? Show me the form.', 'gujarati-dhb-5097'],
-    ['Is pharmacist authority for OTC COVID home tests still in effect and is it a covered benefit?', 'covid-standing-order'],
-    ['Were pharmacists allowed to give out free OTC COVID home tests without a doctor?', 'covid-standing-order'],
-    ['Who allowed pharmacists to hand out OTC COVID home tests on October 1, 2024, and did Medicaid cover them?', 'covid-standing-order'],
-    ['Does Medicaid cover OTC COVID tests ordered by a pharmacist on October 1, 2024?', 'covid-standing-order'],
     ['What did the original 2025 MAGI income limit PDFs say?', 'magi-2025-archive'],
     ['Were the original 2025 MAGI income limits later superseded or withdrawn?', 'magi-2025-archive'],
     ['Compare the original 2025 MAGI income limits with the reposted version.', 'magi-2025-archive'],
@@ -59,11 +55,7 @@ describe('bounded answer scope', () => {
     ['Under my language-access rights, please provide the official Gujarati DHB-5097 form.', 'gujarati-dhb-5097'],
     ['Could you provide the official Gujarati DHB-5097 form and translation services?', 'gujarati-dhb-5097'],
     ['What language-access rights apply, and interpret the exact wording of my Gujarati DHB-5097 notice?', 'gujarati-dhb-5097'],
-    ['What authority does the pharmacist standing order for OTC COVID-19 tests grant?', 'covid-standing-order'],
-    ['Was the original order allowing distribution of OTC COVID home tests rescinded?', 'covid-standing-order'],
-    ['Was the pharmacist COVID standing order withdrawn?', 'covid-standing-order'],
     ['Quote the Gujarati DHB-5097 and explain what I should do next.', 'gujarati-dhb-5097'],
-    ['Did Medicaid pay pharmacists for OTC COVID tests and authorize dispensing them?', 'covid-standing-order'],
     ['What did the original 2025 MAGI attachments say?', 'magi-2025-archive'],
     ['Were the two archived 2025 MAGI income-limit wrappers duplicates?', 'magi-2025-archive'],
   ])('declines unavailable original evidence: %s', (question, id) => {
@@ -123,6 +115,122 @@ describe('bounded answer scope', () => {
     expect(coverageEvidenceIssue(selected, [{ ...source, text: 'Effective: APRIL 1, 2025' }])).toBeTruthy();
     expect(coverageEvidenceIssue(selected, [{ ...source, link: source.link + '.fake' }])).toBeTruthy();
     expect(coverageEvidenceIssue(selected, [{ ...source, toolName: 'searchSections' }])).toBeTruthy();
+  });
+
+  const ORDER_TEXT = `Title: NC State Health Director's Statewide Standing Order to Allow Pharmacists to Dispense Over the Counter At-Home COVID-19 Tests January 14th, 2022\nThis standing order authorizes any North Carolina licensed pharmacist, in accordance with the conditions of their licensure, to dispense any over-the-counter (OTC) at-home COVID-19 test`;
+  const standingOrder = ANSWER_SCOPE_POLICY.required_coverage.find(item => item.source_url.includes('swso-pharmacists'))!.source_url;
+  const bulletin = ANSWER_SCOPE_POLICY.required_bulletin.source_url;
+
+  it.each([
+    'What authority does the pharmacist standing order for OTC COVID-19 tests grant?',
+    'Was the original order allowing distribution of OTC COVID home tests rescinded?',
+    'Was the pharmacist COVID standing order withdrawn?',
+  ])('answers a standing-order question only from the recovered order, as a dated document: %s', question => {
+    const selected = scope(question)!;
+    expect(selected.notice).toBeNull();
+    expect(selected.limitationIds).toEqual([]);
+    expect(selected.requiredSourceUrls).toEqual([standingOrder]);
+    expect(selected.requirements.join(' ')).toContain('January 14, 2022');
+    expect(selected.requirements.join(' ')).toContain('does not establish whether the order was amended, expired or withdrawn');
+    expect(coverageEvidenceIssue(selected, [{ toolName: 'getSection', link: 'https://example.com/other', text: 'Another order.' }])).toContain('was not retrieved');
+    expect(coverageEvidenceIssue(selected, [{ toolName: 'searchSections', link: standingOrder, text: ORDER_TEXT }])).toBeTruthy();
+    expect(coverageEvidenceIssue(selected, [{ toolName: 'getSection', link: standingOrder, text: ORDER_TEXT }])).toBeNull();
+  });
+
+  it.each([
+    'Who allowed pharmacists to hand out OTC COVID home tests on October 1, 2024, and did Medicaid cover them?',
+    'Does Medicaid cover OTC COVID tests ordered by a pharmacist on October 1, 2024?',
+  ])('needs the order and the dated bulletin when authority and payment are asked together: %s', question => {
+    const selected = scope(question)!;
+    expect(selected.notice).toBeNull();
+    expect(selected.requiredSourceUrls).toEqual([standingOrder, bulletin]);
+    const order = { toolName: 'getSection', link: standingOrder, text: ORDER_TEXT };
+    expect(coverageEvidenceIssue(selected, [order])).toContain('was not retrieved');
+    expect(coverageEvidenceIssue(selected, [order, { toolName: 'getSection', link: bulletin, text: 'Coverage ends Sept. 30, 2024.' }])).toBeNull();
+  });
+
+  it.each([
+    'What did the January 14, 2022 pharmacist standing order for OTC COVID tests authorize, and did Medicaid cover the tests on October 1, 2024?',
+    'What did the 2022 pharmacist standing order for OTC COVID tests authorize, and did Medicaid cover the tests on October 1, 2024?',
+    'What did the pharmacist COVID standing order authorize, and did Medicaid cover those tests on October 1, 2024?',
+    'What did the pharmacist COVID standing order authorize, and were those OTC home tests covered on October 1, 2024?',
+    'What did the pharmacist COVID standing order authorize, and were those tests payable by Medicaid on October 1, 2024?',
+    'What did the pharmacist COVID standing order authorize, and did patients owe a copay for those tests on October 1, 2024?',
+    'What did the pharmacist COVID standing order authorize, and was there a deductible for those tests on October 1, 2024?',
+    'What did the pharmacist COVID standing order authorize, and what was the out-of-pocket charge for those tests on October 1, 2024?',
+    'What did the pharmacist COVID standing order authorize, and does the plan cover those tests on October 1, 2024?',
+  ])('needs both when the order is named and payment on October 1, 2024 is asked: %s', question => {
+    const selected = scope(question)!;
+    expect(selected.notice).toBeNull();
+    expect(selected.requiredSourceUrls).toEqual([standingOrder, bulletin]);
+  });
+
+  it.each([
+    'What does https://covid19.ncdhhs.gov/swso-pharmacists-dispense-otc-covid-19-tests/download?attachment= say?',
+    'Summarize covid19.ncdhhs.gov/swso-pharmacists-dispense-otc-covid-19-tests/download for me',
+  ])('requires the order when a question names it by its address: %s', question => {
+    const selected = scope(question)!;
+    expect(selected.notice).toBeNull();
+    expect(selected.requiredSourceUrls).toEqual([standingOrder]);
+  });
+
+  it('reads "cover" as describing the order, not as a payment question', () => {
+    const selected = scope('What did the pharmacist COVID standing order cover?')!;
+    expect(selected.notice).toBeNull();
+    expect(selected.requiredSourceUrls).toEqual([standingOrder]);
+  });
+
+  it('needs the dated authorizing paragraph, not just any section of the order', () => {
+    const selected = scope('What authority does the pharmacist standing order for OTC COVID-19 tests grant?')!;
+    const section = { toolName: 'getSection', link: standingOrder };
+    const [title, body] = ORDER_TEXT.split('\n');
+    for (const text of [title!, body!, 'Approved by: State Health Director', `${title}\nThis standing order authorizes any North Carolina licensed pharmacist`]) {
+      expect(coverageEvidenceIssue(selected, [{ ...section, text }])).toBe('The standing order body was not retrieved.');
+    }
+    expect(coverageEvidenceIssue(selected, [{ ...section, text: ORDER_TEXT }])).toBeNull();
+    // The date and the paragraph may arrive as separate sections of the order.
+    expect(coverageEvidenceIssue(selected, [{ ...section, text: title! }, { ...section, text: body! }])).toBeNull();
+  });
+
+  it('does not read the program name alone as a payment question', () => {
+    const selected = scope('Under Medicaid, what did the pharmacist COVID standing order authorize?')!;
+    expect(selected.notice).toBeNull();
+    expect(selected.requiredSourceUrls).toEqual([standingOrder]);
+  });
+
+  it('declines payment for another year even when the order is named by its year', () => {
+    expect(scope('What did the 2022 pharmacist COVID standing order authorize, and did Medicaid cover those tests in 2022?')?.notice).toContain('additional dated evidence');
+  });
+
+  it.each([
+    'What authority did the pharmacist COVID standing order grant, and what MAGI income limits applied in October 2026?',
+    'What authority did the pharmacist COVID standing order grant, and what is DHB-5097 for?',
+    'What did the pharmacist COVID standing order authorize, and what is the reimbursement rate for T1019?',
+    'What did the pharmacist COVID standing order authorize, did Medicaid cover those tests on October 1, 2024, and what was the reimbursement rate for T1019?',
+    'What did the pharmacist COVID standing order authorize, and how many months of retroactive coverage can I get?',
+  ])('asks for separate questions when a standing-order question spans another dated family: %s', question => {
+    const selected = scope(question)!;
+    expect(selected.notice).toContain('separately');
+    expect(selected.requiredSourceUrls).toEqual([]);
+  });
+
+  it.each([
+    'Was the pharmacist COVID standing order withdrawn, and were the original 2025 MAGI attachments duplicates?',
+    'What authority does the pharmacist standing order for OTC COVID-19 tests grant? Also quote the official Gujarati DHB-5097 form.',
+  ])('declines the whole question when it also asks for an unavailable original: %s', question => {
+    const selected = scope(question)!;
+    expect(selected.notice).toContain('unavailable in this corpus');
+    expect(selected.limitationIds.length).toBeGreaterThan(0);
+    expect(selected.requiredSourceUrls).toEqual([]);
+  });
+
+  it.each([
+    'Is pharmacist authority for OTC COVID home tests still in effect and is it a covered benefit?',
+    'Were pharmacists allowed to give out free OTC COVID home tests without a doctor?',
+    'Did Medicaid pay pharmacists for OTC COVID tests and authorize dispensing them?',
+  ])('still declines authority asked together with payment for another period: %s', question => {
+    expect(scope(question)?.notice).toContain('additional dated evidence');
+    expect(scope(question)?.requiredSourceUrls).toEqual([]);
   });
 
   it('separates COVID payment coverage from standing-order authority', () => {

@@ -29,14 +29,14 @@ def corpus(tmp_path, monkeypatch):
     )
     policy = copy.deepcopy(scope.scope_policy())
     original_url = policy["limitations"][0]["source_url"]
-    missing_url = policy["limitations"][2]["source_url"]
+    missing_url = policy["limitations"][1]["source_url"]
     original = b"<html>Retained invalid original</html>"
     original_hash = hashlib.sha256(original).hexdigest()
     (root / "crawler/documents/bulletins").mkdir(parents=True)
     (root / "crawler/documents/bulletins/original.pdf").write_bytes(original)
     db.execute(
-        "INSERT INTO documents VALUES(1,?,'bulletin','Missing original','bulletins/original.pdf',?,'error','old',1)",
-        (original_url, original_hash),
+        "INSERT INTO documents VALUES(1,?,?,'Missing original','bulletins/original.pdf',?,'error','old',1)",
+        (original_url, policy["limitations"][0]["source_type"], original_hash),
     )
     db.execute(
         "INSERT INTO documents VALUES(2,?,'dhhs_policy','Missing archive',NULL,NULL,'error','old',0)",
@@ -515,3 +515,20 @@ def test_history_must_hold_every_record_of_every_approval(corpus, damage):
         scope.validate_superseded_records(
             scope.superseded_scope_records(db_path), scope.scope_records(db_path)
         )
+
+
+def test_required_coverage_whose_last_check_failed_still_counts_with_its_payload(corpus):
+    root, db_path, policy, bundle, _, _ = corpus
+    required = policy["required_coverage"][0]["source_url"]
+    # The recovered standing order: its address redirects, so each crawl marks it `error`.
+    with sqlite3.connect(db_path) as db:
+        db.execute("UPDATE documents SET status='error' WHERE source_url=?", (required,))
+    bundle["qualification"]["source_snapshot_hash"] = scope.qualification_snapshot_hash(root)
+    assert apply_scope(root, bundle, apply=True)["status"] == "applied"
+    assert len(scope.approved_scope_map(db_path)) == 2
+    # Without the reviewed bytes it does not.
+    with sqlite3.connect(db_path) as db:
+        path = db.execute("SELECT local_path FROM documents WHERE source_url=?", (required,)).fetchone()[0]
+    (root / "crawler/documents" / path).write_bytes(b"something else")
+    with pytest.raises(ValueError):
+        scope.approved_scope_map(db_path)
