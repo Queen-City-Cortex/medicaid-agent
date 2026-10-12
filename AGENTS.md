@@ -46,3 +46,17 @@ When something surprises you, tell the developer and update this file or the [pr
 - Every route that reads or writes a conversation, research run or feedback row takes the user from the verified token, never from the request body or query. Flag a handler that trusts a client-supplied owner or thread id without checking the stored owner.
 
 See the [development guide](docs/development/README.md) for commands and the [operations index](docs/operations/README.md) for release procedures.
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in GitHub Issues on this repo, via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five default triage labels (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: one root `CONTEXT.md`, decision records in `docs/decisions/`. See `docs/agents/domain.md`.
