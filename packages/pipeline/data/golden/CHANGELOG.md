@@ -205,3 +205,16 @@ being a retrieval label.
 
 Notes corrected on q-029 and q-030, which still said NEEDS_VALIDATION on validated keys.
 
+## v3.6 — 2026-10-12
+
+One key trimmed to what its question asks. **`benchmarkHash` changed; scores on 3.5 and
+3.6 are not comparable.** Still 47 of 56 validated.
+
+- q-004 (how the EPSDT special provision affects outpatient therapy coverage, and the
+  ordering-practitioner requirements for beneficiaries under 21), version 2: the sentence
+  "Speech-Language Therapy (3.2.1.3) and Audiology (3.2.1.4) each have specific criteria"
+  moved to `caveats`, with its two sources quoted there, and those two sections left the
+  scored evidence. The question asks about neither therapy. On the first full run against
+  the candidate graph (2026-10-12) the answer gave the EPSDT provision and the ordering
+  requirements and was marked down for leaving the sentence out.
+

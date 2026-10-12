@@ -307,21 +307,22 @@
   },
   {
     "id": "q-004",
-    "version": 1,
+    "version": 2,
     "created": "2026-03-26",
-    "updated": "2026-07-24",
+    "updated": "2026-10-12",
     "question": "How does the EPSDT special provision affect coverage for outpatient therapy services, and what ordering practitioner requirements apply to beneficiaries under 21?",
     "difficulty": "complex",
     "reasoning_type": "cross_document",
     "topics": ["epsdt", "outpatient_therapy", "ordering_requirements", "pediatric"],
     "target_users": ["provider", "beneficiary", "legal_aid"],
     "answer": {
-      "text": "Under Clinical Coverage Policy 10A, the EPSDT Special Provision (section 2.2.1) allows beneficiaries under 21 to receive medically necessary therapy services even when they would otherwise not meet standard policy limitations. Section 3.1.2 specifies ordering practitioner requirements that apply broadly, while the EPSDT exception may override certain coverage limits. Speech-Language Therapy (3.2.1.3) and Audiology (3.2.1.4) each have specific criteria. The EPSDT provision requires that services be medically necessary for the correction or amelioration of a condition.",
+      "text": "Under Clinical Coverage Policy 10A, the EPSDT Special Provision (section 2.2.1) allows beneficiaries under 21 to receive medically necessary therapy services even when they would otherwise not meet standard policy limitations. Section 3.1.2 specifies ordering practitioner requirements that apply broadly, while the EPSDT exception may override certain coverage limits. The EPSDT provision requires that services be medically necessary for the correction or amelioration of a condition.",
       "confidence": "medium",
       "caveats": [
         "EPSDT provision applies to beneficiaries strictly under age 21",
         "Medical necessity must still be documented",
-        "Ordering practitioner requirements in 3.1.2 still apply under EPSDT"
+        "Ordering practitioner requirements in 3.1.2 still apply under EPSDT",
+        "Policy 10A also sets therapy-specific coverage criteria, which the question does not ask for. Sources, not scored as retrieval evidence: section 3.2.1.3, \"Medicaid shall cover outpatient speech-language pathology services for a beneficiary when medically necessary.\"; section 3.2.1.4, \"Audiology services are medically necessary when the beneficiary demonstrates the following\""
       ]
     },
     "evidence": {
@@ -340,18 +341,8 @@
         }
       ],
       "supporting_sections": [
-        {
-          "document_id": "doc:clinical_policy:6a038eaf968a9a33",
-          "section_id": "sec:doc:clinical_policy:6a038eaf968a9a33:3.2.1.3",
-          "section_number": "3.2.1.3",
-          "relevance": "Speech-Language Therapy specific criteria"
-        },
-        {
-          "document_id": "doc:clinical_policy:6a038eaf968a9a33",
-          "section_id": "sec:doc:clinical_policy:6a038eaf968a9a33:3.2.1.4",
-          "section_number": "3.2.1.4",
-          "relevance": "Audiology therapy criteria"
-        },
+        
+        
         {
           "document_id": "doc:clinical_policy:b1d5bbb6d3448fea",
           "section_id": "sec:doc:clinical_policy:b1d5bbb6d3448fea:2.2.1",
@@ -377,14 +368,6 @@
       {
         "section_id": "sec:doc:clinical_policy:6a038eaf968a9a33:3.1.2",
         "quote": "The OST service must be ordered by one of these NC Medicaid enrolled practitioners"
-      },
-      {
-        "section_id": "sec:doc:clinical_policy:6a038eaf968a9a33:3.2.1.3",
-        "quote": "Medicaid shall cover outpatient speech-language pathology services for a beneficiary when medically necessary."
-      },
-      {
-        "section_id": "sec:doc:clinical_policy:6a038eaf968a9a33:3.2.1.4",
-        "quote": "Audiology services are medically necessary when the beneficiary demonstrates the following"
       }
     ]
   },
