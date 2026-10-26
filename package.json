@@ -14,7 +14,7 @@
       "fast-uri": "4.2.1"
     },
     "cheerio": {
-      "undici": "7.30.0"
+      "undici": "7.30.1"
     },
     "postcss": "8.5.28",
     "express": {
@@ -25,12 +25,14 @@
     },
     "proxy-addr": "2.0.8",
     "source-map-js": "1.2.2",
-    "fast-copy": "4.1.2"
+    "fast-copy": "4.1.2",
+    "zod": "$zod"
   },
   "dependencies": {
-    "fast-uri": "4.2.1",
-    "undici": "7.30.0",
-    "ws": "8.22.0"
+    "fast-uri": "4.2.3",
+    "undici": "7.30.1",
+    "ws": "8.22.0",
+    "zod": "4.6.7"
   },
   "scripts": {
     "build": "turbo run build",
@@ -56,8 +58,8 @@
   },
   "devDependencies": {
     "@vitest/coverage-v8": "4.1.10",
+    "tsx": "^4.23.15",
     "turbo": "^2.9.18",
-    "typescript": "^6.0.3",
-    "tsx": "^4.23.15"
+    "typescript": "^6.0.3"
   }
 }

@@ -5,6 +5,7 @@ import { Mastra } from '@mastra/core';
 import { MastraAuthWorkos } from '@mastra/auth-workos';
 import { deepResearchWorkflow } from './deep-research/workflow.js';
 import { createAgentRuntime, refuseFrameworkRoutes } from './runtime.js';
+import { AgentServerAuth } from './workos-auth.js';
 
 // The HTTP server entrypoint. `createAgentRuntime` builds the agent, storage
 // and server options; this file owns what only a long-running server has: the
@@ -15,9 +16,7 @@ const runtime = await createAgentRuntime({
   promptInjectionDetector: true,
   verifyOutput: true,
   server: () => ({
-    auth: new (class extends MastraAuthWorkos {
-      async authorizeUser() { return true; } // allow any authenticated WorkOS user
-    })(),
+    auth: new AgentServerAuth(new MastraAuthWorkos()),
     // trustJwtClaims = local JWKS check, no per-request WorkOS API call.
     tokenVerifier: new MastraAuthWorkos({ trustJwtClaims: true }),
   }),

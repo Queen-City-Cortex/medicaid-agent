@@ -167,7 +167,7 @@ describe('getSection', () => {
     expect(result.section).toMatchObject({ contentOffset: 6000, totalChars: 18400, nextOffset: 12000 });
     expect(result.section!.contentNote).toContain('Showing characters 6000-12000 of 18400. Call getSection with offset=12000 to read on.');
     // The window fields must be in the output schema, which strips what it does not name.
-    expect((getSection.outputSchema as unknown as z.ZodTypeAny).parse(result).section).toMatchObject({ nextOffset: 12000, totalChars: 18400 });
+    expect(((getSection.outputSchema as unknown as z.ZodType).parse(result) as typeof result).section).toMatchObject({ nextOffset: 12000, totalChars: 18400 });
   });
 
   it('accepts only whole, non-negative offsets and lengths within the ceiling', () => {

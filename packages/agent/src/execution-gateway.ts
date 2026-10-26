@@ -79,9 +79,9 @@ function notFound(c: ContextWithMastra): Response {
   return c.json({ error: { code: 'not_found', message: 'Not found' } }, 404);
 }
 
-// The installed server (@mastra/deployer 1.45.0, createHonoServer) registers
+// The installed server (@mastra/deployer 1.79.0, createHonoServer) registers
 // these before `server.middleware`: the browser screencast routes, including
-// the WebSocket upgrade, and its own health check. The gateway never sees
+// the WebSocket upgrade and its ticket, and its own health check. The gateway never sees
 // them. They are refused by `createFrameworkRouteRefusal`, which runs ahead of
 // them; `/health` is refused rather than ruled public because nothing uses it
 // (Railway probes /readyz, the ops scripts /healthz). Keep this list equal to
@@ -89,7 +89,7 @@ function notFound(c: ContextWithMastra): Response {
 const ROUTES_AHEAD_OF_GATEWAY: readonly RegExp[] = [
   /^\/health$/,
   /^\/browser\/[^/]+\/stream$/,
-  /^\/api\/agents\/[^/]+\/browser\/(?:session|close)$/,
+  /^\/api\/agents\/[^/]+\/browser\/(?:session|close|stream-ticket)$/,
 ];
 
 /** Answers the gateway's 404 to the routes the framework registers ahead of

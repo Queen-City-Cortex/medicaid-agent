@@ -2,19 +2,19 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Mastra } from '@mastra/core';
-import { MastraAuthProvider } from '@mastra/core/server';
 import type { LibSQLStore } from '@mastra/libsql';
 import { createHonoServer } from '@mastra/deployer/server';
 import { deepResearchWorkflow } from '../../src/deep-research/workflow.js';
+import { AgentServerAuth } from '../../src/workos-auth.js';
 import { createAgentRuntime, refuseFrameworkRoutes, type AgentRuntimeOptions, type AgentServerRuntime } from '../../src/runtime.js';
 import { STUB_OPENAI_KEY } from './openai-responses-stub.js';
 
-/** Stands in for WorkOS: a known token is its user, any other token is nobody. */
-class StubAuth extends MastraAuthProvider<{ id: string }> {
-  constructor(private readonly users: Readonly<Record<string, string>>) { super(); }
-  async authenticateToken(token: string) { return Object.hasOwn(this.users, token) ? { id: this.users[token] } : null; }
-  async authorizeUser() { return true; }
-}
+/** Stands in for WorkOS's token check: a known token is its user, any other
+ *  token is nobody. Nothing reaches WorkOS. */
+const stubWorkos = (users: Readonly<Record<string, string>>) => ({
+  authenticateToken: async (token: string) =>
+    Object.hasOwn(users, token) ? { id: users[token], workosId: users[token] } as Awaited<ReturnType<AgentServerAuth['authenticateToken']>> : null,
+});
 
 export interface ProductionServer {
   runtime: AgentServerRuntime;
@@ -38,7 +38,7 @@ export async function bootProductionServer(
 ): Promise<ProductionServer> {
   const directory = await mkdtemp(join(tmpdir(), 'production-server-'));
   try {
-    const auth = new StubAuth(users);
+    const auth = new AgentServerAuth(stubWorkos(users));
     const runtime = await createAgentRuntime(
       { ...options, server: () => ({ auth, tokenVerifier: auth }) },
       { NODE_ENV: 'test', OPENAI_API_KEY: STUB_OPENAI_KEY, VOYAGE_API_KEY: 'stub', DATABASE_URL: `file:${directory}/app.db`, TRACE_STORE: 'off' },

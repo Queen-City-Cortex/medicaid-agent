@@ -233,6 +233,9 @@ export async function createAgentRuntime(options: AgentRuntimeOptions, env: Node
       return `Current date: ${date}.\n\n${SYSTEM_PROMPT}`;
     },
     model: options.model ?? createModel(AGENT_MODEL),
+    // Mastra's default error processors retry failed provider calls; retries
+    // here are only the ones `maxRetries` asks for.
+    errorProcessorDefaults: false,
     defaultOptions: AGENT_DEFAULT_OPTIONS,
     tools: {
       resolveAnswerFrame,

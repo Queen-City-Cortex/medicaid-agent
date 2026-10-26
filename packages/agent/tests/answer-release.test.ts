@@ -342,6 +342,28 @@ describe('answer release', () => {
     await storage.close();
     await rm(directory, { recursive: true, force: true });
   });
+  it('guards rows copied by copyThread and never changes a thread\'s owner', async () => {
+    const storage = new LibSQLStore({ id: crypto.randomUUID(), url: ':memory:' });
+    await storage.init();
+    const memory = (await storage.getStore('memory'))!;
+    const now = new Date();
+    await memory.saveThread({ thread: { id: 'thread', title: 'Test', resourceId: 'owner', createdAt: now, updatedAt: now } });
+    // A pre-gate row, stored before the gate was installed.
+    await memory.saveMessages({ messages: [message()] });
+    const storedMessages = memory.listMessages.bind(memory);
+    installMemoryReleaseGate(memory);
+    // The framework's clone route copies in the store and reads the copy back later.
+    const { thread } = await memory.copyThread({ sourceThreadId: 'thread', newThreadId: 'copy' });
+    const copied = JSON.stringify(await storedMessages({ threadId: thread.id, perPage: false }));
+    expect(copied).not.toContain(PRIVATE);
+    expect(copied).toContain(UNVERIFIED_HISTORY);
+
+    await expect(memory.updateThreadResourceId({ threadId: 'thread', resourceId: 'intruder' })).rejects.toMatchObject({ status: 404 });
+    await expect(memory.updateThreadResourceId({ threadId: 'missing', resourceId: 'owner' })).rejects.toMatchObject({ status: 404 });
+    expect((await memory.updateThreadResourceId({ threadId: 'thread', resourceId: 'owner' })).resourceId).toBe('owner');
+    expect((await memory.getThreadById({ threadId: 'thread' }))?.resourceId).toBe('owner');
+    await storage.close();
+  });
   it('classifies every store method and refuses to install over an unknown one', async () => {
     const storage = new LibSQLStore({ id: crypto.randomUUID(), url: ':memory:' });
     await storage.init();
@@ -357,9 +379,9 @@ describe('answer release', () => {
     for (const reason of Object.values(PASS_THROUGH_MEMORY_METHODS)) expect(reason.length).toBeGreaterThan(20);
 
     // A method a later adapter release adds, on the class or on the instance.
-    const upgraded = Object.create(Object.getPrototypeOf(memory), { copyThread: { value: async () => undefined } });
-    for (const store of [Object.create(upgraded), Object.assign(Object.create(Object.getPrototypeOf(memory)), { updateThreadResourceId: async () => undefined })]) {
-      expect(() => installMemoryReleaseGate(store)).toThrow(/unclassified methods: (copyThread|updateThreadResourceId)/);
+    const upgraded = Object.create(Object.getPrototypeOf(memory), { exportThread: { value: async () => undefined } });
+    for (const store of [Object.create(upgraded), Object.assign(Object.create(Object.getPrototypeOf(memory)), { mergeThreads: async () => undefined })]) {
+      expect(() => installMemoryReleaseGate(store)).toThrow(/unclassified methods: (exportThread|mergeThreads)/);
       expect(Object.hasOwn(store, 'saveMessages')).toBe(false);
     }
 

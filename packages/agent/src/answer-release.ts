@@ -65,7 +65,9 @@ export function guardMessage(message: MastraDBMessage): MastraDBMessage {
     }
   }
   if (!text.trim()) {
-    return { ...message, content: { format: 2, parts: content?.parts.filter(p => p.type === 'tool-invocation').map(redactedPart) ?? [] } };
+    // A tool-only step is its own message, so observer markers can land on it.
+    return { ...message, content: { format: 2, parts: content?.parts
+      .filter(p => p.type === 'tool-invocation' || p.type.startsWith('data-om-')).map(redactedPart) ?? [] } };
   }
   return releaseMessage(message, UNVERIFIED_HISTORY, { status: 'withheld', reason: 'unverified_history', passCount: 0 });
 }
@@ -84,8 +86,8 @@ export function trustedChatInput(body: { messages?: UIMessage[]; memory?: { thre
 /** Store methods `installMemoryReleaseGate` replaces on the instance. */
 export const GUARDED_MEMORY_METHODS = [
   'saveThread', 'getObservationalMemory', 'getObservationalMemoryHistory', 'initializeObservationalMemory',
-  'saveMessages', 'listMessages', 'listMessagesById', 'listMessagesByResourceId', 'cloneThread', 'updateMessages',
-  'deleteThread',
+  'saveMessages', 'listMessages', 'listMessagesById', 'listMessagesByResourceId', 'cloneThread', 'copyThread',
+  'updateMessages', 'deleteThread', 'updateThreadResourceId',
 ] as const;
 
 const PLUMBING = 'Class or framework plumbing; touches no stored row.';
@@ -93,6 +95,7 @@ const MAINTENANCE = 'Creates the schema or deletes rows; returns none.';
 const HELPER = 'Internal helper; the rows it shapes leave the store only through the guarded readers.';
 const THREAD_READ = 'Returns thread rows (owner, title, metadata), never message text.';
 const THREAD_UPDATE = 'Writes title and metadata only; cannot change the owner.';
+const RUN_FENCE = 'Run-fence bookkeeping; reads and writes only the fence table, never a thread or message row.';
 const WORKING_MEMORY = 'Resource working memory, which chat-memory.ts disables; review again before enabling it.';
 const OBSERVATION_STATE = 'Writes observation state derived from guarded messages; returns no record and leaves the release marker alone.';
 const OBSERVATION_RECORD = 'Returns a new record that copies the config, and so the release marker, of one read through the guarded reader.';
@@ -109,12 +112,15 @@ export const PASS_THROUGH_MEMORY_METHODS: Readonly<Record<string, string>> = {
   parseOrderBy: HELPER, deepMergeConfig: HELPER, validateMetadataKeys: HELPER, validatePagination: HELPER,
   validatePaginationInput: HELPER,
   getThreadById: THREAD_READ, listThreads: THREAD_READ,
-  updateThread: THREAD_UPDATE, patchThread: THREAD_UPDATE,
+  updateThread: THREAD_UPDATE, patchThread: THREAD_UPDATE, updateThreadMetadata: THREAD_UPDATE,
+  supportsRunFencing: RUN_FENCE, raiseRunFence: RUN_FENCE, retireRunFence: RUN_FENCE,
   getResourceById: WORKING_MEMORY, saveResource: WORKING_MEMORY, updateResource: WORKING_MEMORY,
+  mergeResourceWorkingMemory: WORKING_MEMORY,
   updateActiveObservations: OBSERVATION_STATE, updateBufferedObservations: OBSERVATION_STATE,
   updateBufferedReflection: OBSERVATION_STATE, setReflectingFlag: OBSERVATION_STATE,
   setObservingFlag: OBSERVATION_STATE, setBufferingObservationFlag: OBSERVATION_STATE,
   setBufferingReflectionFlag: OBSERVATION_STATE, setPendingMessageTokens: OBSERVATION_STATE,
+  commitActiveObservations: OBSERVATION_STATE, appendBufferedObservations: OBSERVATION_STATE,
   swapBufferedToActive: 'Moves buffered observations into the active record; returns counts and ids only.',
   createReflectionGeneration: OBSERVATION_RECORD, swapBufferedReflectionToActive: OBSERVATION_RECORD,
   insertObservationalMemoryRecord: OBSERVATION_CONFIG, updateObservationalMemoryConfig: OBSERVATION_CONFIG,
@@ -187,7 +193,17 @@ export function installMemoryReleaseGate(
   memory.getObservationalMemoryHistory = async (...args) => (await observations(...args))
     .filter(record => record.config?.answerReleaseVersion === 1);
   const initialize = memory.initializeObservationalMemory.bind(memory);
-  memory.initializeObservationalMemory = args => initialize({ ...args, config: { ...args.config, answerReleaseVersion: 1 } });
+  // The adapter returns an existing head record instead of creating one, so a
+  // record without the marker is cleared and started again.
+  memory.initializeObservationalMemory = async args => {
+    const marked = { ...args, config: { ...args.config, answerReleaseVersion: 1 } };
+    const record = await initialize(marked);
+    if (record.config?.answerReleaseVersion === 1) return record;
+    await memory.clearObservationalMemory(args.threadId, args.resourceId);
+    const fresh = await initialize(marked);
+    if (fresh.config?.answerReleaseVersion !== 1) throw new Error('Observational memory record has no release marker');
+    return fresh;
+  };
   const save = memory.saveMessages.bind(memory);
   memory.saveMessages = args => save({ ...args, messages: args.messages.map(guardMessage) });
   for (const name of ['listMessages', 'listMessagesById', 'listMessagesByResourceId'] as const) {
@@ -198,6 +214,24 @@ export function installMemoryReleaseGate(
       return { ...result, messages: result.messages.map(guardMessage) };
     } });
   }
+  // A thread's owner never changes here. The framework's transfer route is not
+  // in the gateway's route list; this keeps the store method closed as well.
+  memory.updateThreadResourceId = async ({ threadId, resourceId }) => {
+    const thread = await memory.getThreadById({ threadId });
+    if (!thread || thread.resourceId !== resourceId) {
+      throw Object.assign(new Error('Conversation not found'), { status: 404 });
+    }
+    return thread;
+  };
+  // The framework's clone route copies rows inside the store and reads them
+  // back later, so the copied rows are guarded and saved again here.
+  const copy = memory.copyThread.bind(memory);
+  memory.copyThread = async args => {
+    const result = await copy(args);
+    const { messages } = await memory.listMessages({ threadId: result.thread.id, resourceId: result.thread.resourceId, perPage: false });
+    if (messages.length > 0) await save({ messages });
+    return result;
+  };
   const clone = memory.cloneThread.bind(memory);
   memory.cloneThread = async args => {
     const result = await clone(args);

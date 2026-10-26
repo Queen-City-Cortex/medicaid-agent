@@ -21,8 +21,9 @@ export function isDetectorFailure({ detectionResult }: PromptInjectionDetectionE
 /** The one prompt-injection detector configuration, shared by the chat agent
  *  and the deep-research planner. The installed detector takes no deadline or
  *  abort signal, so the deadline is put on its model; a call that outlasts it
- *  fails open like any other detector error. Its internal agent already makes
- *  one attempt only. `lastMessageOnly` means one call, and so at most one
+ *  fails open like any other detector error. The wrapper also keeps Mastra's
+ *  default error processors from retrying, so the detector makes one attempt.
+ *  `lastMessageOnly` means one call, and so at most one
  *  failure report, per request. */
 export function createInjectionDetector(): PromptInjectionDetector {
   return new PromptInjectionDetector({

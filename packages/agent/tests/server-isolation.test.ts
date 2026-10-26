@@ -59,6 +59,27 @@ const PUBLIC_ROUTES = [
   // others probe Neo4j and the providers.
   'GET /livez', 'GET /readyz', 'GET /dependencyz', 'GET /healthz',
 ];
+// Routes the framework marks `requiresAuth: false`. The server skips every
+// application middleware for them, the gateway included, so none of ours can
+// refuse them. They answer from the auth provider, which only checks Bearer
+// tokens (`AgentServerAuth`), so each says "not configured" or
+// rejects the forged request before its handler runs. Each is pinned to the
+// answer it gives any caller, so a framework upgrade that adds one, or makes
+// one say more, fails the sweep below.
+const CREDENTIALS_REJECTED = { error: 'Invalid request body', issues: [
+  { field: 'email', message: 'Invalid input: expected string, received undefined' },
+  { field: 'password', message: 'Invalid input: expected string, received undefined' },
+] };
+const FRAMEWORK_PUBLIC_ROUTES: Readonly<Record<string, readonly [number, unknown]>> = {
+  'GET /api/auth/capabilities': [200, { enabled: true, login: null }],
+  'GET /api/auth/me': [200, null],
+  'GET /api/auth/sso/login': [404, { error: 'SSO not configured' }],
+  'GET /api/auth/sso/callback': [400, { error: 'Invalid query parameters', issues: [{ field: 'code', message: 'Invalid input: expected string, received undefined' }] }],
+  'POST /api/auth/logout': [404, { error: 'Logout not configured' }],
+  'POST /api/auth/refresh': [404, { error: 'Session refresh not configured' }],
+  'POST /api/auth/credentials/sign-in': [400, CREDENTIALS_REJECTED],
+  'POST /api/auth/credentials/sign-up': [400, CREDENTIALS_REJECTED],
+};
 const OWNED_ROUTES = [
   // Application routes: the user is the verified token's.
   'POST /chat',
@@ -100,13 +121,14 @@ const MEMORY_ROUTES = [
   'POST /api/memory/save-messages',
   'POST /api/memory/threads',
   'POST /api/memory/threads/:threadId/clone',
+  'POST /api/memory/threads/:threadId/transfer',
   'POST /api/memory/threads/:threadId/working-memory',
 ];
 // Every family of framework route on the installed server (the segment after
 // `/api/`). All of them are refused but `memory`; a family not listed here is
 // new surface and fails the sweep until someone has read what it does.
 const FRAMEWORK_FAMILIES = [
-  '.well-known', 'a2a', 'agent-builder', 'agents', 'auth', 'background-tasks', 'channels', 'datasets', 'editor',
+  '.well-known', 'a2a', 'agent-builder', 'agent-controller', 'agents', 'auth', 'background-tasks', 'channels', 'datasets', 'editor',
   'embedders', 'experiments', 'logs', 'mcp', 'memory', 'observability', 'processor-providers', 'processors',
   'schedules', 'scores', 'stored', 'system', 'tool-providers', 'tools', 'v1', 'vector', 'vectors', 'workflows',
   'workspaces',
@@ -116,6 +138,7 @@ const FRAMEWORK_FAMILIES = [
 // through `setServerMiddleware` runs before them instead. See the tests on them.
 const AHEAD_OF_GATEWAY = [
   'GET /browser/:agentId/stream',
+  'POST /api/agents/:agentId/browser/stream-ticket',
   'GET /api/agents/:agentId/browser/session',
   'POST /api/agents/:agentId/browser/close',
   'GET /health',
@@ -148,7 +171,7 @@ const FORGED_QUERIES = [
   ['base64', encodeURIComponent(Buffer.from(JSON.stringify(FORGED_CONTEXT)).toString('base64'))],
 ] as const;
 
-interface Sent { status: number; text: string; json: () => any }
+interface Sent { status: number; headers: Headers; text: string; json: () => any }
 interface SendOptions { body?: unknown; headers?: Record<string, string> }
 
 function client(app: ProductionServer['app']) {
@@ -165,7 +188,7 @@ function client(app: ProductionServer['app']) {
       expect(text, `${method} ${path} as ${caller ?? 'nobody'}`).not.toContain(SECRET_A);
       expect(text, `${method} ${path} as ${caller ?? 'nobody'}`).not.toContain('ALPHAONLYCOMMENT');
     }
-    return { status: response.status, text, json: () => JSON.parse(text) };
+    return { status: response.status, headers: response.headers, text, json: () => JSON.parse(text) };
   };
   const chat = (caller: Caller, thread: string, text: string, extra: Record<string, unknown> = {}, options: SendOptions & { query?: string } = {}) =>
     send(caller, 'POST', `/chat${options.query ?? ''}`, { ...options,
@@ -256,7 +279,10 @@ describe('two users on the production server', () => {
   });
 
   const routeTable = () => {
-    const gateway = app.routes.findIndex(route => route.handler.name === 'executionGateway');
+    // The server wraps `server.middleware` in an anonymous handler and
+    // registers it immediately before the application's own routes, so the
+    // first of those marks where the gateway starts to run.
+    const gateway = app.routes.findIndex(route => route.path === '/chat');
     expect(gateway).toBeGreaterThan(0);
     const names = (routes: typeof app.routes) => [...new Set(routes.filter(route => route.path !== '/*').map(route => `${route.method} ${route.path}`))];
     return { ahead: names(app.routes.slice(0, gateway)), behind: names(app.routes.slice(gateway)) };
@@ -293,6 +319,16 @@ describe('two users on the production server', () => {
       for (const verb of method === 'ALL' ? ['GET', 'POST'] : [method]) {
         const query = `?${new URLSearchParams(FORGED_IDS)}`;
         const body = verb === 'GET' ? undefined : FORGED_IDS;
+        const pinned = FRAMEWORK_PUBLIC_ROUTES[name];
+        if (pinned) {
+          for (const caller of [null, 'b'] as const) {
+            const response = await send(caller, verb, concretePath(path) + query, { body, headers: STUDIO_HEADERS });
+            if (response.status !== pinned[0] || response.text !== JSON.stringify(pinned[1])) {
+              failures.push(`${verb} ${path} (framework-public) as ${caller ?? 'nobody'}: ${response.status} ${response.text.slice(0, 200)}`);
+            }
+          }
+          continue;
+        }
         const anonymous = await send(null, verb, concretePath(path) + query, { body });
         if (anonymous.status === 401 && anonymous.text === JSON.stringify(UNAUTHORIZED)) {
           needsUser.push(name);
@@ -311,10 +347,23 @@ describe('two users on the production server', () => {
     // The failure message is the list of routes to classify.
     expect(failures).toEqual([]);
     expect([...new Set(needsUser)].sort()).toEqual([...OWNED_ROUTES].sort());
-    expect(behind).toEqual(expect.arrayContaining(PUBLIC_ROUTES));
+    expect(behind).toEqual(expect.arrayContaining([...PUBLIC_ROUTES, ...Object.keys(FRAMEWORK_PUBLIC_ROUTES)]));
     expect(behind.filter(route => route.includes(' /api/memory')).sort()).toEqual(MEMORY_ROUTES);
     expect(behind.length).toBeGreaterThan(300);
   }, 60_000);
+
+  // The sweep's forged requests fail validation on two of these routes; a
+  // well-formed one reaches the handler, which finds no method to call.
+  it.each([
+    ['GET', '/api/auth/sso/callback?code=forged', 302, ''],
+    ['POST', '/api/auth/credentials/sign-in', 404, JSON.stringify({ error: 'Credentials authentication not configured' })],
+    ['POST', '/api/auth/credentials/sign-up', 404, JSON.stringify({ error: 'Credentials authentication not configured' })],
+  ])('answers a well-formed %s %s as not configured', async (method, path, status, text) => {
+    const body = method === 'POST' ? { email: 'b@example.com', password: 'forged-password', name: 'B' } : undefined;
+    const response = await send('b', method, path, { body });
+    expect([response.status, response.text]).toEqual([status, text]);
+    if (status === 302) expect(response.headers.get('location')).toContain('error=sso_not_configured');
+  });
 
   // The installed server (@mastra/deployer 1.45.0) registers these framework
   // routes before `server.middleware`, so neither the resource binding nor the
@@ -672,8 +721,9 @@ describe('the Studio flag on the production server', () => {
     expect((await send(null, 'GET', '/api/agents')).status).toBe(401);
     // SEC-2: the framework's create route looks up no existing owner and the
     // adapter writes with INSERT OR REPLACE. The store's guard refuses it.
+    // The framework now checks the owner first and answers 403; either way the thread keeps its owner.
     const seized = await seize();
-    expect(seized.status).toBe(404);
+    expect([403, 404]).toContain(seized.status);
     expect(await thread()).toEqual([{ id: THREAD_A, resourceId: 'user-a', title: QUESTION_A }]);
     // The same route does create a thread for an id nobody holds.
     const created = await send('b', 'POST', `/api/memory/threads?agentId=${AGENT}`, { body: { threadId: 'thread-new', resourceId: 'user-b', title: 'Mine' } });

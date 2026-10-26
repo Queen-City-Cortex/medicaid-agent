@@ -81,8 +81,22 @@ export function withCallDeadline(model: ProviderModel, deadlineMs: number): Prov
         const deadline = AbortSignal.timeout(deadlineMs);
         return { ...params, abortSignal: params.abortSignal ? AbortSignal.any([params.abortSignal, deadline]) : deadline };
       },
+      // Mastra's default error processors retry a call whose error looks
+      // transient, and the detector's internal agent cannot turn them off. A
+      // plain error, without the provider's error as its cause, is never
+      // retried, so the deadline bounds the one attempt.
+      wrapGenerate: async ({ doGenerate }) => {
+        try { return await doGenerate(); } catch (error) { throw unretryable(error); }
+      },
+      wrapStream: async ({ doStream }) => {
+        try { return await doStream(); } catch (error) { throw unretryable(error); }
+      },
     },
   });
+}
+
+function unretryable(error: unknown): Error {
+  return new Error(error instanceof Error ? error.message : String(error));
 }
 
 // Model for the cheap classifiers that run before the agent: the scope gate,
@@ -138,11 +152,11 @@ export const AGENT_DEFAULT_OPTIONS = {
 /** The reasoning effort a request to `modelId` actually carries, or null when
  *  none is sent: Anthropic models ignore the `openai` options, and the OpenAI
  *  provider drops the setting for ids it does not treat as reasoning models
- *  (its rule, copied here: o1, o3, o4-mini and gpt-5 other than gpt-5-chat;
- *  gpt-6 ids are forced on in `openaiModel`).
+ *  (its rule, copied here: any o-series id, and gpt-5 or later other than
+ *  gpt-5-chat; gpt-6 ids are forced on in `openaiModel`).
  *  tests/reasoning-effort.test.ts checks this against the installed provider. */
 export function sentReasoningEffort(modelId: string): ReasoningEffort | null {
-  const reasoning = modelId.startsWith('o1') || modelId.startsWith('o3') || modelId.startsWith('o4-mini')
+  const reasoning = /^o\d/.test(modelId)
     || (modelId.startsWith('gpt-5') && !modelId.startsWith('gpt-5-chat'))
     || isGpt6(modelId);
   return reasoning ? AGENT_REASONING_EFFORT : null;

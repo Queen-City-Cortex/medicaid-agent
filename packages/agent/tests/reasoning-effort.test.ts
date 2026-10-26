@@ -31,7 +31,7 @@ describe('sentReasoningEffort, the value the CLI reports in agent_config', () =>
     model: createModel(modelId), defaultOptions: AGENT_DEFAULT_OPTIONS,
   });
 
-  // The last three are OpenAI ids the provider does not treat as reasoning models.
+  // gpt-4.1 and gpt-5-chat-latest are OpenAI ids the provider does not treat as reasoning models.
   it.each(['gpt-5.6-terra', 'gpt-5.4', 'gpt-5-mini', 'o3', 'o4-mini', 'gpt-6.1-sol', 'gpt-6-luna', 'gpt-6-astra', 'gpt-4.1', 'gpt-5-chat-latest', 'o4'])(
     'matches what the installed OpenAI provider puts on the wire for %s', async (modelId) => {
       const { bodies } = stubOpenAIResponses([ANSWER]);
