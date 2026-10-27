@@ -12,6 +12,12 @@ export interface TokenVerifier {
   ): Promise<{ userId?: string; id?: string } | null | undefined>;
 }
 
+/** The resource id for a verified user: its `userId`, else its `id`. */
+export function userIdOf(user: { userId?: string; id?: string }): string | null {
+  const userId = user.userId ?? user.id;
+  return userId ? String(userId) : null;
+}
+
 /**
  * Resolves the authenticated user id at middleware time.
  *
@@ -34,8 +40,7 @@ async function resolveAuthenticatedUserId(
   if (!token) return null;
   try {
     const user = await verifier.authenticateToken(token, c.req.raw);
-    const userId = user?.userId ?? user?.id;
-    return userId ? String(userId) : null;
+    return user ? userIdOf(user) : null;
   } catch (err) {
     log.warn('auth_middleware.token_verify_failed', errorFields(err));
     return null;
@@ -52,9 +57,12 @@ async function resolveAuthenticatedUserId(
  * entirely client-supplied, so any authenticated user could read, write, or
  * delete any other user's threads, messages, and working memory (IDOR).
  *
- * Downstream middleware (the rate limiter) reads the bound
- * MASTRA_RESOURCE_ID_KEY instead of re-verifying the token, so this must be
- * first in the `server.middleware` array.
+ * Route-level authentication binds the same id later through
+ * `AgentServerAuth.mapUserToResourceId`, but Mastra runs it after every
+ * `server.middleware` entry. The gateway, the rate limiter and the application
+ * routes need the user before then, so they read the MASTRA_RESOURCE_ID_KEY
+ * bound here instead of re-verifying the token, and this must be first in the
+ * `server.middleware` array.
  */
 export function createResourceBindingMiddleware(verifier: TokenVerifier) {
   return async function bindResourceToAuthenticatedUser(c: ContextWithMastra, next: Next): Promise<void> {

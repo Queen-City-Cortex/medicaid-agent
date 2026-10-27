@@ -3,6 +3,7 @@ import { Hono } from 'hono';
 import type { MiddlewareHandler } from 'hono';
 import { MASTRA_RESOURCE_ID_KEY, RequestContext } from '@mastra/core/request-context';
 import { createResourceBindingMiddleware, getBoundUserId, type TokenVerifier } from '../src/auth-middleware.js';
+import { AgentServerAuth } from '../src/workos-auth.js';
 import { createExecutionGateway } from '../src/execution-gateway.js';
 import { createRateLimitMiddleware } from '../src/rate-limit/middleware.js';
 import { RateLimitRepository } from '../src/rate-limit/repository.js';
@@ -49,6 +50,17 @@ describe('createResourceBindingMiddleware', () => {
     expect(res.status).toBe(200);
     expect(getContext()!.get(MASTRA_RESOURCE_ID_KEY)).toBe('user_A');
     expect(verifier.authenticateToken).toHaveBeenCalledWith('tok-123', expect.anything());
+  });
+
+  it('binds the same resource id as route-level authentication', async () => {
+    for (const user of [{ id: 'user_A' }, { userId: 'user_B', id: 'other' }]) {
+      const verifier: TokenVerifier = { authenticateToken: async () => user };
+      const { app, getContext } = buildApp(verifier);
+      await app.request('/probe', { headers: { authorization: 'Bearer tok' } });
+      const auth = new AgentServerAuth(verifier as ConstructorParameters<typeof AgentServerAuth>[0]);
+      expect(auth.mapUserToResourceId?.(await auth.authenticateToken('tok') as Parameters<NonNullable<AgentServerAuth['mapUserToResourceId']>>[0]))
+        .toBe(getContext()!.get(MASTRA_RESOURCE_ID_KEY));
+    }
   });
 
   it('prefers userId over id when the verifier returns both', async () => {
