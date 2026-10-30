@@ -18,7 +18,7 @@
     },
     "postcss": "8.5.28",
     "express": {
-      "qs": "6.16.0"
+      "qs": "6.17.1"
     },
     "@mastra/memory": {
       "probe-image-size": "7.4.0"

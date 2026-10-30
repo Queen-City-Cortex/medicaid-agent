@@ -3,6 +3,7 @@ import { Hono } from 'hono';
 import type { MiddlewareHandler } from 'hono';
 import { MASTRA_RESOURCE_ID_KEY, RequestContext } from '@mastra/core/request-context';
 import { createResourceBindingMiddleware, getBoundUserId, type TokenVerifier } from '../src/auth-middleware.js';
+import { MastraAuthWorkos } from '@mastra/auth-workos';
 import { AgentServerAuth } from '../src/workos-auth.js';
 import { createExecutionGateway } from '../src/execution-gateway.js';
 import { createRateLimitMiddleware } from '../src/rate-limit/middleware.js';
@@ -58,9 +59,20 @@ describe('createResourceBindingMiddleware', () => {
       const { app, getContext } = buildApp(verifier);
       await app.request('/probe', { headers: { authorization: 'Bearer tok' } });
       const auth = new AgentServerAuth(verifier as ConstructorParameters<typeof AgentServerAuth>[0]);
-      expect(auth.mapUserToResourceId?.(await auth.authenticateToken('tok') as Parameters<NonNullable<AgentServerAuth['mapUserToResourceId']>>[0]))
+      expect(auth.mapUserToResourceId?.(await auth.authenticateToken('tok', new Request('http://agent.test/')) as Parameters<NonNullable<AgentServerAuth['mapUserToResourceId']>>[0]))
         .toBe(getContext()!.get(MASTRA_RESOURCE_ID_KEY));
     }
+  });
+
+  it('passes route-level authentication the request WorkOS needs to read the token', async () => {
+    // WorkOS dereferences the request before reading the token and swallows
+    // the error, so a missing request answered every token with null (401).
+    const workos = new MastraAuthWorkos({ apiKey: 'sk_test', clientId: 'client_test', session: { cookiePassword: 'p'.repeat(32) } });
+    const jwksUrl = vi.spyOn(workos['workos'].userManagement, 'getJwksUrl').mockImplementation(() => {
+      throw new Error('reached the token check');
+    });
+    await new AgentServerAuth(workos).authenticateToken('tok', new Request('http://agent.test/api/memory/threads'));
+    expect(jwksUrl).toHaveBeenCalledWith('client_test');
   });
 
   it('prefers userId over id when the verifier returns both', async () => {

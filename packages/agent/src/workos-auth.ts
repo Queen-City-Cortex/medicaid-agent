@@ -3,8 +3,9 @@ import { MastraAuthProvider } from '@mastra/core/server';
 import { userIdOf } from './auth-middleware.js';
 
 type WorkosUser = NonNullable<Awaited<ReturnType<MastraAuthWorkos['authenticateToken']>>>;
-/** WorkOS's token check, which reads a session cookie only when given a request. */
-interface WorkosTokenCheck { authenticateToken(token: string, request?: unknown): Promise<WorkosUser | null> }
+/** WorkOS's token check. It needs the request: without one it fails before
+ *  reading the token, and returns null as if the token were invalid. */
+interface WorkosTokenCheck { authenticateToken(token: string, request: unknown): Promise<WorkosUser | null> }
 
 /**
  * Route-level authentication for the agent server: any WorkOS user with a
@@ -25,8 +26,7 @@ export class AgentServerAuth extends MastraAuthProvider<WorkosUser> {
     super({ name: 'workos', mapUserToResourceId: userIdOf });
   }
 
-  // No request, so no session cookie: the Bearer token alone.
-  async authenticateToken(token: string) { return this.workos.authenticateToken(token); }
+  async authenticateToken(token: string, request: unknown) { return this.workos.authenticateToken(token, request); }
 
   async authorizeUser() { return true; }
 }
