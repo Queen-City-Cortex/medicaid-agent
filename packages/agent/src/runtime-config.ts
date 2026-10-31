@@ -125,6 +125,12 @@ export function loadRuntimeConfig(
     for (const name of ['WORKOS_CLIENT_ID', 'WORKOS_API_KEY']) {
       if (!nonEmpty(env, name)) missing.push(name);
     }
+    // WorkOS Staging is not for customer traffic and its users cannot be
+    // copied to Production, so a Staging key here means real users would land
+    // in an environment they later have to be recreated from (issue #30).
+    if (nonEmpty(env, 'WORKOS_API_KEY')?.startsWith('sk_test_')) {
+      throw new Error('WORKOS_API_KEY is a WorkOS Staging key (sk_test_); production needs a WorkOS Production key');
+    }
     if (databaseUrl === 'file:./mastra.db' || databaseUrl === 'file:mastra.db') {
       throw new Error('DATABASE_URL must use persistent storage in production');
     }

@@ -214,6 +214,8 @@ sleeping agent purges when it next wakes.
 
 ### Abuse Protections
 
+**Release check: WorkOS Production.** The agent refuses to start in production with a `sk_test_` (Staging) `WORKOS_API_KEY`. The web, agent and corpus-job services must all carry the same Production client id, API key and cookie password. WorkOS users cannot be copied between environments: moving a user to a new environment gives them a new user id, and the threads, research runs and feedback stored under the old id stay with the old id. Update `SYNTHETIC_RESOURCE_ID` on corpus-job to the synthetic account's new id.
+
 **Release check: sign-up is by invitation only.** Before any release that real users can reach, confirm in the WorkOS dashboard that self-registration is off, that validation users are admitted by invitation, and that email verification is required. The agent admits every authenticated WorkOS user (`authorizeUser` in `packages/agent/src/index.ts` returns true), so the dashboard setting is the only control on who can spend the shared model budget. Until that check has been done and recorded on issue #23, treat sign-up as open: each scripted account can start up to 150 runs a day against one OpenAI balance, and the service-wide ceiling below must stay off. Keep the production OpenAI project on prepaid credit with automatic recharge off or capped; the repository cannot see or enforce that setting.
 
 The web chat path (CLI/eval runs are unaffected) has four layers, all env-tunable:
@@ -573,7 +575,7 @@ cites the Railway dashboard (the service's Deployments list, an earlier
 successful deployment, Rollback); that has not been exercised here, and the
 CLI commands in this runbook cannot select an older deployment.
 
-`npm run smoke:prod` uses `TEST_USER_EMAIL` and `TEST_USER_PASSWORD` from the environment or local env files, asks a real production question, checks for a substantive answer with tool steps and sources, and writes a screenshot to `/tmp/nc-medicaid-prod-smoke.png` by default. Override with `SMOKE_BASE_URL`, `SMOKE_QUESTION`, `SMOKE_TIMEOUT_MS`, or `SMOKE_SCREENSHOT_PATH` when needed.
+`npm run smoke:prod` uses `TEST_USER_EMAIL` and `TEST_USER_PASSWORD` (and, against WorkOS Production, the web service's WorkOS settings as `SMOKE_WORKOS_CLIENT_ID`, `SMOKE_WORKOS_API_KEY`, `SMOKE_WORKOS_COOKIE_PASSWORD`; see the gotchas) from the environment or local env files, asks a real production question, checks for a substantive answer with tool steps and sources, and writes a screenshot to `/tmp/nc-medicaid-prod-smoke.png` by default. Override with `SMOKE_BASE_URL`, `SMOKE_QUESTION`, `SMOKE_TIMEOUT_MS`, or `SMOKE_SCREENSHOT_PATH` when needed.
 
 A run that starts a fresh thread renames it to `smoke <timestamp>` (with `SMOKE_TEST_RUN_ID` in front when set) before the persistence check, so repeat runs never collide on the question's title. A passing run then deletes that thread; if the delete fails it prints a warning and still passes. A failing run keeps the thread and prints its title and id for diagnosis: delete it from the test account's sidebar when done. The script only renames or deletes a thread whose id it recorded being created in that run.
 
