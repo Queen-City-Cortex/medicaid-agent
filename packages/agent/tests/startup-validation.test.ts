@@ -52,6 +52,26 @@ describe('agent startup validation', () => {
     expect(output).toContain('DATABASE_URL must use persistent storage in production');
   }, 25_000);
 
+  it('refuses a WorkOS Staging key in production before starting the service', async () => {
+    const { code, output } = await runAgent({
+      PATH: process.env.PATH,
+      NODE_ENV: 'production',
+      OPENAI_API_KEY: 'test-openai-key',
+      VOYAGE_API_KEY: 'test-voyage-key',
+      WORKOS_CLIENT_ID: 'client_production',
+      WORKOS_API_KEY: 'sk_test_staging',
+      DATABASE_URL: 'file:/data/mastra.db',
+      NEO4J_URI: 'neo4j+s://graph.example.com',
+      NEO4J_USER: 'neo4j',
+      NEO4J_PASSWORD: 'production-password',
+      CORS_ORIGINS: 'https://app.example.com',
+      FORCE_COLOR: '0',
+    });
+
+    expect(code).not.toBe(0);
+    expect(output).toContain('WORKOS_API_KEY is a WorkOS Staging key');
+  }, 25_000);
+
   it('refuses a reasoning effort outside the allow-list', async () => {
     const { code, output } = await runAgent({
       PATH: process.env.PATH,
