@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { chromium } from '@playwright/test';
+import { sealData } from 'iron-session';
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
@@ -182,7 +183,40 @@ async function verifyExpectedRelease() {
   return status;
 }
 
+// WorkOS Production puts a bot check on the hosted sign-in page, which a
+// headless browser cannot pass, and WorkOS advises against driving that page
+// from automation. With the deployed web service's WorkOS settings in
+// SMOKE_WORKOS_CLIENT_ID, SMOKE_WORKOS_API_KEY and SMOKE_WORKOS_COOKIE_PASSWORD,
+// sign in through the API instead and hand the browser the same sealed
+// `wos-session` cookie the web app's callback would set.
+async function signInThroughApi(context) {
+  const clientId = process.env.SMOKE_WORKOS_CLIENT_ID;
+  const apiKey = process.env.SMOKE_WORKOS_API_KEY;
+  const cookiePassword = process.env.SMOKE_WORKOS_COOKIE_PASSWORD;
+  if (!clientId || !apiKey || !cookiePassword) return false;
+  const response = await fetch('https://api.workos.com/user_management/authenticate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ client_id: clientId, client_secret: apiKey, grant_type: 'password', email, password }),
+    signal: AbortSignal.timeout(30_000),
+  });
+  if (!response.ok) throw new Error(`WorkOS password sign-in failed with HTTP ${response.status}`);
+  const auth = await response.json();
+  const u = auth.user;
+  const user = { object: 'user', id: u.id, email: u.email, emailVerified: u.email_verified,
+    firstName: u.first_name, lastName: u.last_name, profilePictureUrl: u.profile_picture_url,
+    lastSignInAt: u.last_sign_in_at, externalId: u.external_id, metadata: u.metadata ?? {},
+    createdAt: u.created_at, updatedAt: u.updated_at };
+  const sealed = await sealData({ accessToken: auth.access_token, refreshToken: auth.refresh_token, user,
+    authenticationMethod: auth.authentication_method },
+    { password: cookiePassword, ttl: 0 });
+  await context.addCookies([{ name: 'wos-session', value: sealed, url: baseUrl, httpOnly: true,
+    secure: baseUrl.startsWith('https:'), sameSite: 'Lax' }]);
+  return true;
+}
+
 async function openAuthenticatedChat(page) {
+  await signInThroughApi(page.context());
   await page.goto(`${baseUrl}/chat`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
 
   if (await isChatReady(page, 8_000)) {
