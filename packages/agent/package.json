@@ -30,7 +30,7 @@
     "@nc-medicaid/contracts": "*",
     "@nc-medicaid/policy-corpus": "*",
     "@sentry/node": "^10.75.3",
-    "ai": "^6.0.311",
+    "ai": "^6.0.317",
     "exa-js": "^2.26.0",
     "neo4j-driver": "^6.2.0",
     "zod": "^4.6.7"
@@ -42,7 +42,7 @@
     "@vitest/coverage-v8": "4.1.10",
     "eslint": "^9.39.5",
     "hono": "^4.12.27",
-    "mastra": "1.35.0",
+    "mastra": "1.36.0",
     "tsx": "^4.23.15",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.71.0",
