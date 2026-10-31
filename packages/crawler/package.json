@@ -32,7 +32,7 @@
     "tsx": "^4.23.15",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.71.0",
-    "vitest": "4.1.10",
+    "vitest": "4.1.12",
     "@types/node": "^22.20.5"
   }
 }
