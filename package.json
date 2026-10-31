@@ -61,9 +61,9 @@
     "preview:web": "NEXT_PUBLIC_WORKOS_REDIRECT_URI=http://localhost:3000/auth/callback WORKOS_CLIENT_ID=client_local_preview WORKOS_COOKIE_PASSWORD=local-preview-only-not-a-secret-0123456789 npm run dev -w @nc-medicaid/web"
   },
   "devDependencies": {
-    "@vitest/coverage-v8": "4.1.10",
+    "@vitest/coverage-v8": "4.1.12",
     "tsx": "^4.23.15",
-    "turbo": "^2.9.18",
+    "turbo": "^2.11.10",
     "typescript": "^6.0.3"
   }
 }
