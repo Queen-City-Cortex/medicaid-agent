@@ -214,7 +214,7 @@ sleeping agent purges when it next wakes.
 
 ### Abuse Protections
 
-**Release check: sign-up is by invitation only.** Before any release that real users can reach, confirm in the WorkOS dashboard that self-registration is off, that validation users are admitted by invitation, and that email verification is required. The agent admits every authenticated WorkOS user (`authorizeUser` in `packages/agent/src/index.ts` returns true), so the dashboard setting is the only control on who can spend the shared model budget. Until that check has been done and recorded on issue #244, treat sign-up as open: each scripted account can start up to 150 runs a day against one OpenAI balance, and the service-wide ceiling below must stay off. Keep the production OpenAI project on prepaid credit with automatic recharge off or capped; the repository cannot see or enforce that setting.
+**Release check: sign-up is by invitation only.** Before any release that real users can reach, confirm in the WorkOS dashboard that self-registration is off, that validation users are admitted by invitation, and that email verification is required. The agent admits every authenticated WorkOS user (`authorizeUser` in `packages/agent/src/index.ts` returns true), so the dashboard setting is the only control on who can spend the shared model budget. Until that check has been done and recorded on issue #23, treat sign-up as open: each scripted account can start up to 150 runs a day against one OpenAI balance, and the service-wide ceiling below must stay off. Keep the production OpenAI project on prepaid credit with automatic recharge off or capped; the repository cannot see or enforce that setting.
 
 The web chat path (CLI/eval runs are unaffected) has four layers, all env-tunable:
 
