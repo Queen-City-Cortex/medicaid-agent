@@ -1,0 +1,10 @@
+NC Medicaid Navigator
+Copyright 2026 Queen City Cortex LLC
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+Excerpts of North Carolina Medicaid and federal policy documents appear in test
+fixtures, evaluation datasets and evaluation results. Those excerpts are the
+work of their publishers (NC Department of Health and Human Services, the NC
+General Assembly and U.S. federal agencies) and are not licensed under this
+project's licence. See docs/legal/terms-of-use-analysis.md.

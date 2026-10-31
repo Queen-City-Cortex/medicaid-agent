@@ -1,0 +1,11 @@
+name: Question about a design choice
+description: Ask why something works the way it does
+labels: [needs-triage]
+body:
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: Link the code or document you are asking about. Check docs/architecture/tradeoffs.md and docs/decisions first.
+    validations:
+      required: true

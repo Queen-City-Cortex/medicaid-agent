@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/Queen-City-Cortex/medicaid-agent/security/advisories/new
+    about: Report privately. Do not open a public issue.
+  - name: Questions about NC Medicaid coverage or your own case
+    url: https://medicaid.ncdhhs.gov/
+    about: This project cannot answer questions about individual cases. Contact NC Medicaid or a legal aid organisation.

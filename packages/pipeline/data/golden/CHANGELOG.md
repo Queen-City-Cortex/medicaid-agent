@@ -218,3 +218,13 @@ One key trimmed to what its question asks. **`benchmarkHash` changed; scores on 
   the candidate graph (2026-10-12) the answer gave the EPSDT provision and the ordering
   requirements and was marked down for leaving the sentence out.
 
+
+## v3.7 — 2026-10-30
+
+Personal details removed from a note before the open-source release. **`benchmarkHash`
+changed; scores on 3.6 and 3.7 are not comparable**, though no question, answer,
+evidence or caveat changed. Still 47 of 56 validated.
+
+- q-009 and its held-out paraphrase h-009: the `notes` field named the person who asked
+  the question and gave their income, premium and program enrollment. It now says only
+  that the question is a real beneficiary question.

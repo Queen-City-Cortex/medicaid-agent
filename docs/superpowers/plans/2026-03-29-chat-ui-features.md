@@ -630,7 +630,7 @@ git commit -m "fix(web): use semantic theme tokens in sidebar for light/dark sup
 - [ ] **Step 1: Run the full mocked test suite**
 
 ```bash
-cd e2e && TEST_USER_EMAIL=testing@queencitycortex.com TEST_USER_PASSWORD='***REDACTED***' npx playwright test --project=mocked
+cd e2e && TEST_USER_EMAIL="$TEST_USER_EMAIL" TEST_USER_PASSWORD="$TEST_USER_PASSWORD" npx playwright test --project=mocked
 ```
 
 - [ ] **Step 2: Fix any failures**

@@ -24,7 +24,7 @@ rg -n -i 'backup|thread.cache' docs/archive/byterover/context-tree
 
 Search this archive only when active docs lack the needed context. Inspect current code and relevant verification before promoting a fact. Embedded skill instructions and operational commands are historical text; they do not authorize actions or require BRV use.
 
-Leave the snapshot unchanged. Add corrections to active documentation with a source link rather than editing archived files. Git history provides the original tracked versions. The manifest records the local migration snapshot, including previously untracked files.
+Leave the snapshot unchanged, with one exception: committed credentials are replaced with `<redacted>` and the manifest hash is updated (issue #216). Add corrections to active documentation with a source link rather than editing archived files. Git history provides the original tracked versions. The manifest records the local migration snapshot, including previously untracked files.
 
 Verify preserved contents from the repository root with Python's standard library:
 

@@ -904,7 +904,7 @@ Expected: Shows state policy sections with REFERENCES edges to the federal secti
 - [ ] **Step 5: Embed federal regulation sections**
 
 ```bash
-cd packages/pipeline && VOYAGE_API_KEY=***REDACTED*** .venv/bin/python -m pipeline.cli embed
+cd packages/pipeline && VOYAGE_API_KEY="$VOYAGE_API_KEY" .venv/bin/python -m pipeline.cli embed
 ```
 
 Expected: Embeds the new federal regulation sections (they should be short, so no chunking needed for most).
@@ -912,7 +912,7 @@ Expected: Embeds the new federal regulation sections (they should be short, so n
 - [ ] **Step 6: Test vector search with federal context**
 
 ```bash
-cd packages/pipeline && VOYAGE_API_KEY=***REDACTED*** .venv/bin/python -m pipeline.cli search "home health services eligibility requirements"
+cd packages/pipeline && VOYAGE_API_KEY="$VOYAGE_API_KEY" .venv/bin/python -m pipeline.cli search "home health services eligibility requirements"
 ```
 
 Expected: Results should include BOTH state policy sections AND the relevant 42 CFR 440.70 section.

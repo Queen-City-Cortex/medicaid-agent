@@ -292,3 +292,27 @@ jobs:
 
       - name: Build corpus-job image
         run: docker build -f packages/pipeline/Dockerfile -t corpus-job-ci .
+
+  # Scans the checked-out tree, not history, for committed credentials (issues
+  # #216 and #218). Rules and the reviewed allowlist live in .gitleaks.toml.
+  # The binary is pinned by version and SHA-256 rather than using the
+  # gitleaks action, which needs a licence key on organisation repositories.
+  secret-scan:
+    name: Secret scan (gitleaks)
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    env:
+      GITLEAKS_VERSION: 8.30.1
+      GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Install pinned gitleaks
+        run: |
+          archive="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          curl -fsSL -o "$RUNNER_TEMP/$archive" \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/${archive}"
+          echo "${GITLEAKS_SHA256}  $RUNNER_TEMP/$archive" | sha256sum --check --strict
+          tar -xzf "$RUNNER_TEMP/$archive" -C "$RUNNER_TEMP" gitleaks
+
+      - name: Scan the working tree
+        run: '"$RUNNER_TEMP/gitleaks" dir --config .gitleaks.toml --redact --no-banner .'

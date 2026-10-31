@@ -1297,7 +1297,7 @@ Expected: Schema validation PASS. Reference integrity may have some misses if se
 - [ ] **Step 2: Run a retrieval eval**
 
 ```bash
-cd packages/pipeline && VOYAGE_API_KEY=***REDACTED*** .venv/bin/python -m pipeline.cli eval --level retrieval
+cd packages/pipeline && VOYAGE_API_KEY="$VOYAGE_API_KEY" .venv/bin/python -m pipeline.cli eval --level retrieval
 ```
 
 Expected: Prints the formatted report with precision, recall, MRR, primary hit rate.
@@ -1305,7 +1305,7 @@ Expected: Prints the formatted report with precision, recall, MRR, primary hit r
 - [ ] **Step 3: Run a second eval (to test comparison)**
 
 ```bash
-cd packages/pipeline && VOYAGE_API_KEY=***REDACTED*** .venv/bin/python -m pipeline.cli eval --level retrieval --top-k 20
+cd packages/pipeline && VOYAGE_API_KEY="$VOYAGE_API_KEY" .venv/bin/python -m pipeline.cli eval --level retrieval --top-k 20
 ```
 
 - [ ] **Step 4: Compare runs**

@@ -79,7 +79,6 @@
 - 5 benefits counselors / case managers (CAP/DA, ADRC, independent)
 - Pitch: "Free access to an AI Medicaid policy research tool. I need your honest feedback."
 
-
 ### 3B — Structured Validation Sessions
 - Watch them use it (screen share or in-person). Don't guide them.
 - Record what questions they ask naturally — these are your real-world test cases

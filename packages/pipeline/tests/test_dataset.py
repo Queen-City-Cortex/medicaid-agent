@@ -214,9 +214,9 @@ class TestGoldenDataset:
             assert "agent" not in entry["answer"].get("text", "")
 
     def test_dataset_is_versioned(self):
-        assert dataset_version() == "3.6"
-        assert dataset_version(HELDOUT_PATH) == "3.6"
-        assert "## v3.6" in (GOLDEN_DATASET_PATH.parent / "CHANGELOG.md").read_text()
+        assert dataset_version() == "3.7"
+        assert dataset_version(HELDOUT_PATH) == "3.7"
+        assert "## v3.7" in (GOLDEN_DATASET_PATH.parent / "CHANGELOG.md").read_text()
 
     def test_every_paraphrase_inherits_its_key_from_a_golden_parent(self):
         golden = {entry["id"]: entry for entry in load_dataset()}

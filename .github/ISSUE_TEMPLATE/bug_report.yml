@@ -1,0 +1,24 @@
+name: Bug report
+description: Something in the code does not work as documented
+labels: [needs-triage]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: How to reproduce
+      description: Commands, inputs and the commit you were on. Do not paste API keys or personal information.
+      render: shell
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Operating system, Node version, Python version if relevant.

@@ -14,7 +14,7 @@ related: [database_operations/neo4j_hybrid_search/neo4j_hybrid_search_indexing.m
 Document the Neo4j authentication failure on Railway caused by a URL-encoded password and how it was remediated.
 
 **Changes:**
-- Rotated the Neo4j password to an alphanumeric-only value (***REDACTED***).
+- Rotated the Neo4j password to an alphanumeric-only value (<redacted>).
 - Ran ALTER CURRENT USER SET PASSWORD through the bolt TCP proxy to apply the new password to the running instance.
 - Captured that NEO4J_AUTH only sets the password on the first volume initialization.
 
@@ -36,4 +36,4 @@ Rotated to an alphanumeric password that survives Railway decoding and applied i
 ## Facts
 - **railway_env_encoding**: Railway URL-decodes '+' characters in environment variables when injecting them into containers. [environment]
 - **neo4j_auth_env**: NEO4J_AUTH env var only sets the password on first volume init and has no effect on existing databases. [environment]
-- **neo4j_password_rotation**: Rotated Neo4j password via ALTER CURRENT USER SET PASSWORD through the bolt TCP proxy to the alphanumeric value ***REDACTED***. [project]
+- **neo4j_password_rotation**: Rotated Neo4j password via ALTER CURRENT USER SET PASSWORD through the bolt TCP proxy to the alphanumeric value <redacted>. [project]

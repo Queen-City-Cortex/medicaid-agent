@@ -290,6 +290,16 @@ Do **not** regenerate the whitelist with a bare `vulture src --make-whitelist` a
 
 - A green `claude-review` check is not evidence that a review happened. On 5 October 2026 its runs finished in two model turns and about three seconds and posted nothing, both before and after the workflow was made read-only. Greptile is the review bot that comments; confirm from the job log that `claude-review` did work before counting it as a second reviewer.
 
+- The `secret-scan` CI job runs gitleaks over the working tree with `.gitleaks.toml`, not over history. Default gitleaks rules missed both live credentials found in October 2026 (a password in prose and one inside a quoted shell command); the config adds a Voyage key rule and a literal `*PASSWORD=` rule, but a password written in plain prose still passes. Use `$VAR` or `<placeholder>` in documented commands, and remove and rotate a real credential rather than allowlisting it.
+
+- A fix on a branch is not a fix. The credential scrub for issues #216 and #218 sat on `codex/scrub-committed-secrets` unmerged from 10 October 2026 while `main` still held the Voyage key, the Neo4j password and the smoke-test password; it was found during open-source release preparation on 25 October. Before closing a security issue, check `main`, not the branch.
+
+## Fresh-clone setup
+
+- `npm test` from a clean clone fails at once with `.venv/bin/python: not found`, because turbo runs the pipeline's pytest and aborts the other packages with it. Run `npm run setup -w @nc-medicaid/pipeline` first, or test the TypeScript packages alone with `npx turbo run test --filter='!@nc-medicaid/pipeline'`.
+- The dev-only `/preview` gallery needs no backend, but every route, `/preview` included, returns 500 until `NEXT_PUBLIC_WORKOS_REDIRECT_URI`, a 32-character `WORKOS_COOKIE_PASSWORD` and a `WORKOS_CLIENT_ID` are set, because the AuthKit middleware in `packages/web/src/proxy.ts` validates them on every request. `npm run preview:web` sets placeholders; no WorkOS call is made for `/preview`.
+- Pipeline setup downloads tokenizer files from huggingface.co. Where that host is blocked, setup stops after `uv sync` and two pipeline tests fail with "Provision tokenizer first"; the other tests pass.
+
 ## Branch and worktree cleanup
 
 Squash-merged branches can appear ahead of main even when all their work is merged. Match the branch tip to the merged PR head and inspect changes made afterward before deleting it. A merged branch can also contain valuable uncommitted work. Save dirty files, ignored non-regenerable artifacts, patches, and Git bundles before removing worktrees. See the [2026-10-02 repository audit](repository-audit-2026-10-02.md).

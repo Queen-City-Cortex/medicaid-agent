@@ -1,0 +1,62 @@
+# Secret scan for CI (issues #216, #218). Run locally from the repository root:
+#   gitleaks dir --config .gitleaks.toml --redact .
+# The scan covers the working tree, not Git history: history still holds
+# credentials committed before this guard, which is why they must be rotated.
+# Never allowlist a real credential here; remove it and rotate it instead.
+
+title = "medicaid-agent secret scan"
+
+[extend]
+useDefault = true
+
+# Voyage AI keys (pa-...). The default rules do not know this format.
+[[rules]]
+id = "voyage-api-key"
+description = "Voyage AI API key"
+regex = '''\bpa-[A-Za-z0-9_-]{40,}'''
+keywords = ["pa-"]
+
+# A literal value assigned to a *PASSWORD variable, e.g. in a copied shell
+# command. Values that start with $, < or { are references or placeholders.
+[[rules]]
+id = "inline-password-assignment"
+description = "Literal password assigned to a *_PASSWORD variable"
+regex = '''(?i)\b[A-Z0-9_]*PASSWORD=(?:'([^'$<{\s]{8,})'|"([^"$<{\s]{8,})"|([^\s'"`$<{]{8,}))'''
+keywords = ["password="]
+
+[[allowlists]]
+description = "Known non-secrets: development defaults, CI placeholders, content hashes"
+regexTarget = "secret"
+regexes = [
+  # SHA-256 digests in manifests, attestations and evidence files.
+  '''^[a-f0-9]{64}$''',
+  # Local and CI Neo4j development default (production refuses it, runtime-config.ts).
+  '''^medicaid-dev$''',
+  '''^ci-placeholder$''',
+  # Stub values in the ops shell tests (blue-password, legacy-password, ...).
+  '''^[a-z]+-password$''',
+  # Fake WorkOS key in startup-validation tests (lowercase words only).
+  '''^sk_live_[a-z_]+$''',
+  # Placeholder cookie password in the root `preview:web` script, which
+  # serves the dev-only /preview gallery with no WorkOS account.
+  '''^local-preview-only-not-a-secret-[0-9]+$''',
+]
+
+[[allowlists]]
+description = "Non-secret identifiers that the generic rule mistakes for keys"
+regexTarget = "line"
+regexes = [
+  # localStorage key names.
+  '''STORAGE_KEY = ''',
+  # RFC 6455 sample WebSocket handshake key in a test request.
+  '''sec-websocket-key''',
+  # Prose in the 2026-10 review that names the sk_test_ prefix, not a key.
+  '''starts with sk_test_''',
+]
+
+[[allowlists]]
+description = "Third-party page captures"
+paths = [
+  # Scraped DHHS pages: public site-analytics tokens.
+  '''^packages/crawler/tests/fixtures/.*\.html$''',
+]
