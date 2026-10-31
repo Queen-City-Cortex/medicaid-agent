@@ -26,6 +26,9 @@
     "proxy-addr": "2.0.8",
     "source-map-js": "1.2.2",
     "fast-copy": "4.1.2",
+    "@sentry/bundler-plugin-core": {
+      "glob": "14.0.3"
+    },
     "zod": "$zod"
   },
   "dependencies": {
