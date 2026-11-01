@@ -82,6 +82,9 @@ git clone https://github.com/Queen-City-Cortex/medicaid-agent.git
 cd medicaid-agent
 npm ci                                                     # about 1 minute
 
+# The answer release path on five scripted answers: no keys, database or network
+npm run demo                                               # a few seconds
+
 # The UI component gallery, with fixtures and no backend
 npm run preview:web                                        # then open http://localhost:3000/preview
 
@@ -96,6 +99,8 @@ npm run build                                              # about 1 minute
 (cd e2e && npm ci && npx playwright install chromium)
 npm run test:e2e                                           # about 2.5 minutes, 96 tests
 ```
+
+`npm run demo` runs the production verification and release code (the coverage, link and quotation checks, the two-pass correction rule and the release decision) on five answers to questions about a small sample corpus of public documents. The drafts and the verifier model's replies are scripted, so no model is called; the walkthrough shows a grounded answer released, a made-up quotation caught and corrected, a wrong-jurisdiction answer withheld, a cited answer with no evidence withheld before any model call, and a verifier outage withheld. The scenarios are in [`packages/agent/scripts/demo/scenarios.ts`](packages/agent/scripts/demo/scenarios.ts), and a test keeps each one ending the way the walkthrough says.
 
 `npm run preview:web` sets placeholder WorkOS values that let the sign-in middleware start; no WorkOS account is involved and `/preview` never calls it. The landing page also loads; anything behind sign-in redirects to WorkOS and will not work without a real account.
 
