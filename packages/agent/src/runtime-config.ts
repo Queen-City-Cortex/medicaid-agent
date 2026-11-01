@@ -85,7 +85,7 @@ export function loadRuntimeConfig(
   }
   const production = environment === 'production';
   const publicProduction = production && nonEmpty(env, 'PUBLIC_PRODUCTION') === 'true';
-  const agentModel = nonEmpty(env, 'AGENT_MODEL') ?? 'gpt-5.6-terra';
+  const agentModel = nonEmpty(env, 'AGENT_MODEL') ?? 'gpt-6.1-terra';
   const agentReasoningEffort = parseReasoningEffort(env.AGENT_REASONING_EFFORT);
   assertReasoningEffortSupported(agentModel, agentReasoningEffort);
   // The deep-research agents share the effort and may run another model.

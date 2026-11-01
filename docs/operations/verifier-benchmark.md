@@ -120,6 +120,16 @@ Read the medium-effort arm and the Claude arm each against the baseline. A candi
 
 A winner is adopted at the next `release-baseline` regeneration and not before, so the swap costs no extra paid run. One commit changes both the agent's code defaults (`DEFAULT_VERIFIER_MODEL`, `DEFAULT_VERIFIER_REASONING_EFFORT` in `packages/agent/src/processors/verifier/config.ts`) and the pipeline qualification environment ([qualification preparation](qualification-preparation.md)). Both are in the evaluation fingerprint, so changing one alone means evaluation and production verify differently.
 
+## A cheaper same-family candidate (November 2026)
+
+The model upgrade moved the verifier from `gpt-5.6-terra` to `gpt-6.1-terra` (half the price) under the cost-swap rule in decision 0002. It is a fourth arm with the same fixtures, effort and bounds:
+
+| Arm | `VERIFIER_MODEL` | `VERIFIER_REASONING_EFFORT` | Printed bound, full run |
+| --- | --- | --- | --- |
+| Cost swap | `gpt-6.1-terra` | `low` | about half the baseline's (re-read it from a mock run) |
+
+`scripts/model-upgrade-checks.sh verifier` runs the baseline and this arm: a $5 trial each, a forecast from the trial, and each full arm only when its forecast is under $60, stopped at $60 of measured spend. Read the candidate against the baseline with the non-inferiority rule: no seeded kind drops, the originals' withhold rate does not rise, and deadline aborts stay under 2 percent. A rise is not required. The figures go in [the model upgrade record](../validation/model-upgrade-2026-11/README.md).
+
 ## Reading the report
 
 Each row gives runs, hits, the rate and a Wilson 95% interval over runs. Three repeats of one item are not independent, so read the interval with the per-item columns: `items 3/3` were hit on every repeat, `some` on one or two, `none` never. An item in `some` is the verifier disagreeing with itself.

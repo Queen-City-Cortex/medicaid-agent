@@ -20,7 +20,8 @@ JUDGE_MAX_BACKOFF_SECS = 30.0
 # same way every time and must surface on the first call.
 _RETRYABLE_STATUS = frozenset({429}) | frozenset(range(500, 600))
 # Thresholds were set with this model and request shape. Any other model gets
-# the successor shape and needs calibrating on stored rows first.
+# the successor shape and needs calibrating on stored rows first
+# (pipeline.eval.judge_calibration).
 CALIBRATED_JUDGE_MODEL = "claude-sonnet-4-6"
 
 _sleep = time.sleep

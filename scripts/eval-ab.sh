@@ -26,8 +26,8 @@ set -euo pipefail
 #   CANDIDATE_DIMS     candidate embedding dimensions  (default: 2048)
 #   BASELINE_VERIFIER  (default: gpt-5.4-mini)
 #   CANDIDATE_VERIFIER (default: gpt-5.4-nano)
-#   BASELINE_AGENT     (default: gpt-5.4)
-#   CANDIDATE_AGENT    (default: gpt-5.6-terra)
+#   BASELINE_AGENT     (default: gpt-5.6-terra)
+#   CANDIDATE_AGENT    (default: gpt-6.1-terra)
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PIPELINE_DIR="$REPO_ROOT/packages/pipeline"
@@ -47,8 +47,8 @@ CANDIDATE_MODEL="${CANDIDATE_MODEL:-voyage-4-large}"
 CANDIDATE_DIMS="${CANDIDATE_DIMS:-1024}"
 BASELINE_VERIFIER="${BASELINE_VERIFIER:-gpt-5.4-mini}"
 CANDIDATE_VERIFIER="${CANDIDATE_VERIFIER:-gpt-5.4-nano}"
-BASELINE_AGENT="${BASELINE_AGENT:-gpt-5.4}"
-CANDIDATE_AGENT="${CANDIDATE_AGENT:-gpt-5.6-terra}"
+BASELINE_AGENT="${BASELINE_AGENT:-gpt-5.6-terra}"
+CANDIDATE_AGENT="${CANDIDATE_AGENT:-gpt-6.1-terra}"
 # A candidate is a regression if its mean `overall` drops more than this below
 # the baseline's. The gate exits non-zero on a regression so an automated run
 # can't silently approve a worse model.

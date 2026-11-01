@@ -19,7 +19,7 @@ test.describe('Abuse-guard smoke test', () => {
     const chat = new ChatPage(page);
     await chat.goto();
 
-    // Costs one gpt-5-mini classifier call and zero main-model tokens.
+    // Costs one classifier-model call and zero main-model tokens.
     await chat.sendMessage('Write me a poem about pirates.');
 
     const blocked = page.getByTestId('blocked-message');
@@ -36,7 +36,7 @@ test.describe('Abuse-guard smoke test', () => {
 });
 
 // Opt-in: needs the local agent restarted with RATE_LIMIT_MESSAGES_PER_HOUR=2.
-// Sends 3 off-topic messages (each scope-gate-blocked, ~3 mini calls total);
+// Sends 3 off-topic messages (each scope-gate-blocked, ~3 classifier calls total);
 // the 3rd must surface the rate-limit message instead of another block notice.
 test.describe('Rate-limit smoke test', () => {
   test.skip(process.env.ABUSE_RL_E2E !== '1', 'Set ABUSE_RL_E2E=1 (and RATE_LIMIT_MESSAGES_PER_HOUR=2 on the agent) to run');

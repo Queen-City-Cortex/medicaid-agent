@@ -54,7 +54,7 @@ VOYAGE_API_KEY = os.environ.get("VOYAGE_API_KEY", "")
 
 # LLM (optional, for cross-reference extraction pass 2)
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
-LLM_MODEL = "claude-haiku-4-5-20251001"
+LLM_MODEL = "claude-haiku-5-5"
 
 # Processing
 EMBED_BATCH_SIZE = 128
@@ -87,9 +87,11 @@ EVAL_RESULTS_DIR = PIPELINE_DATA_DIR / "eval-results"
 EVAL_DEFAULT_TOP_K = 10
 EVAL_REGRESSION_THRESHOLD = 0.05  # 5% drop = regression flag
 # The judge is part of the evaluation fingerprint, so runs under different
-# judges never compare. The default is the model the thresholds were set with;
-# EVAL_JUDGE_MODEL selects a successor (claude-sonnet-5-5) for a measurement.
-EVAL_JUDGE_MODEL = os.getenv("EVAL_JUDGE_MODEL", "").strip() or "claude-sonnet-4-6"
+# judges never compare. claude-sonnet-5-5 replaced claude-sonnet-4-6, the model
+# the thresholds were set with, after pipeline.eval.judge_calibration showed
+# the two agree on the same stored answers. EVAL_JUDGE_MODEL=claude-sonnet-4-6
+# reproduces a run judged before the switch.
+EVAL_JUDGE_MODEL = os.getenv("EVAL_JUDGE_MODEL", "").strip() or "claude-sonnet-5-5"
 if not EVAL_JUDGE_MODEL.startswith("claude-"):
     raise ValueError(f"EVAL_JUDGE_MODEL must be an Anthropic model id: {EVAL_JUDGE_MODEL}")
 

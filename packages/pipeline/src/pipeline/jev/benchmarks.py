@@ -13,17 +13,20 @@ from pipeline.jev.inference import INPUT_USD_PER_MILLION, budgeted_classify
 REPO_ROOT = Path(__file__).resolve().parents[5]
 FIXTURES = REPO_ROOT / "packages/pipeline/data/jev"
 WORKER = REPO_ROOT / "packages/agent/src/jev/eval-worker.ts"
-# The scope baseline is the agent's classifier default, CLASSIFIER_MODEL in
-# packages/agent/src/model.ts; keep the two equal. gpt-5-mini leaves the OpenAI
-# API on 2026-12-11. Moving it means a new scope campaign and confirmed rates:
-# the 0.25/2 USD per million below belong to gpt-5-mini only.
+# The frozen Jev scope campaign's OpenAI baseline. It was the agent's
+# classifier default until November 2026, when CLASSIFIER_MODEL moved to
+# gpt-6-luna; the campaign stays pinned to the model its fixtures name and
+# cannot run after gpt-5-mini leaves the OpenAI API on 2026-12-11 (issue #193
+# removes Jev). The 0.25/2 USD per million below belong to gpt-5-mini only.
 SCOPE_BASELINE_MODEL = "gpt-5-mini"
 
 
 def worker(payload: dict) -> dict:
     result = subprocess.run([str(REPO_ROOT / "node_modules/.bin/tsx"), str(WORKER)],
                             input=canonical(payload), text=True, capture_output=True,
-                            cwd=REPO_ROOT, timeout=45, env={**os.environ, "MASTRA_OBSERVABILITY_PATH": ":memory:", "TRACE_STORE": "off"})
+                            cwd=REPO_ROOT, timeout=45, env={**os.environ, "MASTRA_OBSERVABILITY_PATH": ":memory:", "TRACE_STORE": "off",
+                                 # The worker's classifier default is no longer the baseline.
+                                 "SCOPE_GATE_MODEL": os.environ.get("SCOPE_GATE_MODEL", SCOPE_BASELINE_MODEL)})
     if result.returncode:
         raise ValueError("Offline classifier worker failed; inspect local setup")
     # Logging stays outside the JSON record. Never persist classifier raw prose.

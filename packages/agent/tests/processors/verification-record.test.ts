@@ -64,7 +64,7 @@ describe('the chat verification record', () => {
     expect(records[0]).toMatchObject({ messageId: 'assistant-message', threadId: 'thread-1', resourceId: 'user-1',
       outcome: { status: 'passed', passCount: 1 }, corpusRelease: 'release-7', agentModel: AGENT_MODEL,
       usage: [tokens(1000)] });
-    expect(records[0].telemetry).toMatchObject({ pass_count: 1, verifier_model: 'gpt-5.6-terra', source_entry_count: 1,
+    expect(records[0].telemetry).toMatchObject({ pass_count: 1, verifier_model: 'gpt-6.1-terra', source_entry_count: 1,
       evidence_chars_sent: expect.any(Number), latency_ms: expect.any(Number), unsupported_claim_count: 0 });
     expect(records[0].findings).toEqual([{ pass: 1, unsupportedClaims: [], missingCitationClaims: [], relevanceIssues: [],
       unknownUrls: [], unknownQuotes: [] }]);
@@ -83,7 +83,7 @@ describe('the chat verification record', () => {
     expect(records[0].usage).toEqual([tokens(1000), tokens(2000)]);
     // One usage row per model call, attributed to the thread's owner.
     expect(usage).toEqual([1000, 2000].map(inputTokens => ({ userId: 'user-1', route: 'chat', phase: 'verifier', threadId: 'thread-1',
-      modelId: 'gpt-5.6-terra', provider: 'openai', ...tokens(inputTokens) })));
+      modelId: 'gpt-6.1-terra', provider: 'openai', ...tokens(inputTokens) })));
   });
 
   it('records a withheld answer with the failing findings and without the draft, the correction, the question or the evidence', async () => {

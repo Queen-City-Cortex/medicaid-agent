@@ -75,7 +75,7 @@ async function checkOpenAI(): Promise<ProviderHealth> {
     // Classify by status, not response.ok: 401/403 (bad key), 404 (the model
     // is gone: a retired classifier model makes both gates fail open), 429
     // (quota / rate) and 5xx (provider down) are the outages chats would hit.
-    // Other 4xx prove the key AND billing work — e.g. gpt-5-mini spends its 1-token
+    // Other 4xx prove the key AND billing work — e.g. a reasoning classifier model spends its 1-token
     // budget on reasoning and returns an invalid_request "output limit
     // reached" 400 (observed 2026-07-10 right after the quota top-up), which
     // must not read as an outage.
