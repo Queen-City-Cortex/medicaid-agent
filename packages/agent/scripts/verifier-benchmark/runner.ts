@@ -357,7 +357,8 @@ export const mockVerify: VerifyFn = async (_question, answerText, sourceText) =>
   return verdict;
 };
 
-/** Output tokens assumed per call for the bound: findings, a full rewrite and low-effort reasoning. */
+/** Output tokens per call for the bound: findings, a full rewrite and low-effort reasoning.
+ *  Live runs send it as the call's output cap, so no call can cost more than the bound assumes. */
 export const BOUND_OUTPUT_TOKENS_PER_CALL = 6_000;
 
 export interface CostBound {
@@ -406,6 +407,8 @@ export interface BenchmarkOptions {
   verify: VerifyFn;
   /** Called with each model call's usage; return false to stop starting new runs. */
   onUsage?: (usage: unknown) => boolean;
+  /** Asked before each run starts, including the first batch, with the runs still in flight. */
+  mayStart?: (runsInFlight: number) => boolean;
   onProgress?: (done: number, total: number) => void;
 }
 
@@ -414,10 +417,17 @@ export async function runBenchmark(cases: PlannedCase[], options: BenchmarkOptio
   const records: RunRecord[] = [];
   let next = 0;
   let stop = false;
+  let inFlight = 0;
   const worker = async () => {
     while (!stop && next < queue.length) {
+      if (options.mayStart?.(inFlight) === false) { stop = true; break; }
       const { planned, repeat } = queue[next++];
-      records.push(await replayCase(planned, repeat, options.verify, usage => { if (options.onUsage?.(usage) === false) stop = true; }));
+      inFlight += 1;
+      try {
+        records.push(await replayCase(planned, repeat, options.verify, usage => { if (options.onUsage?.(usage) === false) stop = true; }));
+      } finally {
+        inFlight -= 1;
+      }
       options.onProgress?.(records.length, queue.length);
     }
   };

@@ -115,6 +115,8 @@ export async function verifyAnswer(
   deterministicIssues?: { unknownUrls: string[]; unknownQuotes: string[]; hasSupplementaryEvidence?: boolean; coverageRequirements?: string[];
     /** The user's earlier messages in the conversation, oldest first: context for the QUESTION, never evidence. */
     earlierUserTurns?: string[] },
+  /** Only the verifier benchmark sets this, so its spending bound holds; the chat path leaves the provider default. */
+  limits?: { maxOutputTokens?: number },
 ): Promise<VerificationResult> {
   const { earlierUserTurns = [], ...issues } = deterministicIssues ?? { unknownUrls: [], unknownQuotes: [] };
   const deadline = AbortSignal.timeout(30_000);
@@ -125,6 +127,7 @@ export async function verifyAnswer(
       schema: VerificationSchema,
       abortSignal: signal ? AbortSignal.any([signal, deadline]) : deadline,
       maxRetries: 0,
+      ...(limits?.maxOutputTokens ? { maxOutputTokens: limits.maxOutputTokens } : {}),
       // Each provider reads only its own key. The start-up check refuses an
       // effort the configured model rejects (none and minimal for Claude).
       providerOptions: {

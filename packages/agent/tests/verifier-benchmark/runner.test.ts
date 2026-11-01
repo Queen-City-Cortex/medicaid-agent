@@ -266,6 +266,17 @@ describe('end to end against the mock verifier', () => {
     expect(stoppedEarly).toBe(true);
     expect(records).toHaveLength(4);
   });
+
+  it('asks before every run, the first batch included, with the runs still in flight', async () => {
+    const plan = planCases([cleanItem], [], new Map());
+    const seen: number[] = [];
+    const { records, stoppedEarly } = await runBenchmark(plan.cases, { repeats: 3, concurrency: 4, verify: mockVerify,
+      mayStart: inFlight => { seen.push(inFlight); return inFlight < 1; } });
+    // The second worker of the first batch is refused while the first run is in flight.
+    expect(seen.slice(0, 2)).toEqual([0, 1]);
+    expect(stoppedEarly).toBe(true);
+    expect(records.length).toBeLessThan(plan.cases.length * 3);
+  });
 });
 
 describe('cost bound', () => {
@@ -306,9 +317,14 @@ describe('command line', () => {
     expect(() => parseArgs(['--live', '--max-usd', '50', '--stop-usd', '0'], {})).toThrow('--stop-usd must be a positive number');
   });
 
-  it('stops starting runs once measured spend plus one call per worker could cross the stop', () => {
-    expect(mayStartRun(50, 4, 2, 60)).toBe(true);
-    expect(mayStartRun(52.01, 4, 2, 60)).toBe(false);
+  it('reserves both passes of every run in flight and of the new run before starting it', () => {
+    // $50 spent, 3 runs in flight, $1 a call: 50 + 4 runs x 2 calls x $1 = 58.
+    expect(mayStartRun(50, 3, 1, 58)).toBe(true);
+    expect(mayStartRun(50.01, 3, 1, 58)).toBe(false);
+    // Four two-pass runs at $0.10 a call need $0.80, so a $0.71 stop admits only three.
+    expect([0, 1, 2, 3].map(inFlight => mayStartRun(0, inFlight, 0.1, 0.71))).toEqual([true, true, true, false]);
+    // A stop below one run's two calls admits nothing.
+    expect(mayStartRun(0, 0, 1, 1.99)).toBe(false);
   });
 
   it('rejects malformed options', () => {

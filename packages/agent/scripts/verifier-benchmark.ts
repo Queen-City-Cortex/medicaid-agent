@@ -78,10 +78,12 @@ export function parseArgs(argv: string[], env: NodeJS.ProcessEnv): Args {
   };
 }
 
-/** Whether another run may start: calls already in flight can still land, so
- *  leave room for one call per worker at the most one call can cost. */
-export function mayStartRun(spentUsd: number, concurrency: number, maxUsdPerCall: number, stopUsd: number): boolean {
-  return spentUsd + concurrency * maxUsdPerCall <= stopUsd;
+/** Whether another run may start. Every run in flight may still make both of
+ *  its passes, so reserve two calls at the most one call can cost for each of
+ *  them and for the new run. Their spend so far is counted twice, which errs
+ *  toward stopping early. */
+export function mayStartRun(spentUsd: number, runsInFlight: number, maxUsdPerCall: number, stopUsd: number): boolean {
+  return spentUsd + (runsInFlight + 1) * 2 * maxUsdPerCall <= stopUsd;
 }
 
 async function main(): Promise<number> {
@@ -98,7 +100,7 @@ async function main(): Promise<number> {
   if (args.mode === 'live') await import('../src/load-env.js');
 
   const { loadFixture, loadLabels } = await import('./verifier-benchmark/fixture.js');
-  const { costBound, formatSummary, mockVerify, planCases, runBenchmark, summarize } = await import('./verifier-benchmark/runner.js');
+  const { BOUND_OUTPUT_TOKENS_PER_CALL, costBound, formatSummary, mockVerify, planCases, runBenchmark, summarize } = await import('./verifier-benchmark/runner.js');
   const { assertVerifierModelUsable, getConfig } = await import('../src/processors/verifier/config.js');
   const { verifyAnswer } = await import('../src/processors/verifier/verify.js');
   const { estimateCostUsd } = await import('../src/usage/pricing.js');
@@ -120,6 +122,7 @@ async function main(): Promise<number> {
   let spentUsd = 0;
   let modelCalls = 0;
   let onUsage: ((usage: unknown) => boolean) | undefined;
+  let mayStart: ((runsInFlight: number) => boolean) | undefined;
   if (args.mode === 'live') {
     assertVerifierModelUsable(process.env);
     if (!getConfig().enabled) throw new Error('VERIFIER_ENABLED=false: nothing to measure');
@@ -128,21 +131,30 @@ async function main(): Promise<number> {
       throw new Error(`The upper bound $${bound.maxUsd.toFixed(2)} exceeds --max-usd ${args.maxUsd}. Raise the cap or narrow the run with --limit, --arms or --repeats.`);
     }
     const stopUsd = args.stopUsd ?? args.maxUsd!;
+    if (!mayStartRun(0, 0, bound.maxUsdPerCall, stopUsd)) {
+      throw new Error(`The stop $${stopUsd.toFixed(2)} is below the most one run can cost ($${(2 * bound.maxUsdPerCall).toFixed(2)}), so no run could start.`);
+    }
     if (args.stopUsd !== null) console.log(`Measured-spend stop: $${stopUsd.toFixed(2)} (--stop-usd).`);
     onUsage = usage => {
       const { inputTokens, outputTokens, cachedInputTokens } = (usage ?? {}) as Record<string, number | undefined>;
       modelCalls += 1;
       spentUsd += estimateCostUsd({ modelId: model, inputTokens, outputTokens, cachedInputTokens }).costUsd;
-      return mayStartRun(spentUsd, args.concurrency, bound.maxUsdPerCall, stopUsd);
+      return true;
     };
+    mayStart = runsInFlight => mayStartRun(spentUsd, runsInFlight, bound.maxUsdPerCall, stopUsd);
   }
 
   const started = Date.now();
   const { records, stoppedEarly } = await runBenchmark(plan.cases, {
     repeats: args.repeats,
     concurrency: args.concurrency,
-    verify: args.mode === 'live' ? verifyAnswer : mockVerify,
+    // The cap is what the cost bound assumes per call. A reply cut off by it
+    // fails closed and is reported as an unavailable run.
+    verify: args.mode === 'live'
+      ? (question, answer, sources, usage, signal, issues) => verifyAnswer(question, answer, sources, usage, signal, issues, { maxOutputTokens: BOUND_OUTPUT_TOKENS_PER_CALL })
+      : mockVerify,
     onUsage,
+    mayStart,
     onProgress: (done, total) => { if (args.mode === 'live' && done % 25 === 0) console.error(`${done}/${total} runs, $${spentUsd.toFixed(2)} spent`); },
   });
   const summary = summarize(records);
