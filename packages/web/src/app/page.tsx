@@ -102,7 +102,7 @@ export default async function Home() {
               <a
                 href="#disclaimer"
                 className="ml-0.5 font-mono text-[11px] text-accent underline-offset-2 hover:underline"
-                aria-label="See disclaimer: research tool, not legal advice"
+                aria-label="Footnote 1: see disclaimer, research tool, not legal advice"
               >
                 [1]
               </a>

@@ -5,7 +5,7 @@
  */
 import { getConfig } from '../../src/processors/verifier/config.js';
 import { EVIDENCE_OVER_BUDGET, NO_EVIDENCE_FOR_CITATION, NO_SOURCES_RETRIEVED, runVerificationForAnswer, type VerificationRunResult } from '../../src/processors/verifier/run.js';
-import { VERIFIER_PROMPT, type VerificationResult, type verifyAnswer } from '../../src/processors/verifier/verify.js';
+import { VERIFIER_PROMPT, type UnavailableReason, type VerificationResult, type verifyAnswer } from '../../src/processors/verifier/verify.js';
 import { pricingFor } from '../../src/usage/pricing.js';
 import { VERIFIER_MARKER, type BenchmarkItem, type Label } from './fixture.js';
 import { SEED_KINDS, hasNumber, seedFault, seedSurvives, type SeedKind, type SeededAnswer } from './seeding.js';
@@ -79,6 +79,11 @@ export interface RunRecord {
   deterministicDetail?: 'coverage_scope' | 'no_evidence' | 'link_or_quotation' | 'marker';
   /** Seeded arm: the seeded error is in the released text. */
   seedReleased?: boolean;
+  /** Seeded arm: the correction removed the seed but also changed text outside
+   *  the seeded span, which only the candidate approved. Not a catch. */
+  strayCorrection?: boolean;
+  /** Unavailable runs: the verifier's own deadline, or any other failure. */
+  unavailableReason?: UnavailableReason;
   /** Section labels the measured-only section check did not match. */
   unknownSectionCount: number;
   latencyMs: number;
@@ -87,14 +92,26 @@ export interface RunRecord {
   correctedAnswer?: string;
 }
 
-export function classifyRun(planned: PlannedCase, result: VerificationRunResult, modelCalls: number, passCandidates: string[]): Pick<RunRecord, 'layer' | 'deterministicDetail' | 'seedReleased'> {
+/** The corrected text equals the clean original everywhere outside the seeded
+ *  span (the seed records where it is), whatever the span now holds. */
+export function matchesCleanOutsideSeed(planned: PlannedCase, text: string): boolean {
+  const { offset, original } = planned.seed!.change;
+  const clean = planned.item.answer.trimEnd();
+  const before = clean.slice(0, offset);
+  const after = clean.slice(offset + original.length);
+  const corrected = text.trimEnd();
+  return corrected.length >= before.length + after.length && corrected.startsWith(before) && corrected.endsWith(after);
+}
+
+export function classifyRun(planned: PlannedCase, result: VerificationRunResult, modelCalls: number, passCandidates: string[]): Pick<RunRecord, 'layer' | 'deterministicDetail' | 'seedReleased' | 'strayCorrection'> {
   const { outcome, findings, telemetry } = result;
   const seedIn = (text: string) => !!planned.seed && seedSurvives(planned.seed, planned.item.answer, text);
   if (telemetry.verifier_unavailable) return { layer: 'unavailable' };
   if (outcome.status === 'passed') return { layer: 'none', ...(planned.seed ? { seedReleased: true } : {}) };
 
   const seedReleased = planned.seed ? outcome.status === 'corrected' && seedIn(result.finalAnswer) : undefined;
-  const seeded = seedReleased === undefined ? {} : { seedReleased };
+  const stray = seedReleased === false && outcome.status === 'corrected' && !matchesCleanOutsideSeed(planned, result.finalAnswer);
+  const seeded = seedReleased === undefined ? {} : { seedReleased, ...(stray ? { strayCorrection: true } : {}) };
   if (seedReleased) return { layer: 'none', ...seeded };
 
   const first = findings[0];
@@ -134,6 +151,7 @@ export async function replayCase(planned: PlannedCase, repeat: number, verify: V
     passCount: outcome.passCount,
     modelCalls,
     ...classifyRun(planned, result, modelCalls, passCandidates),
+    ...(result.telemetry.verifier_unavailable_reason ? { unavailableReason: result.telemetry.verifier_unavailable_reason } : {}),
     unknownSectionCount: result.telemetry.unknown_section_count,
     latencyMs: result.telemetry.latency_ms,
     findings: result.findings,
@@ -179,12 +197,33 @@ export interface GroupSummary {
   correctedRuns: number;
   /** Seeded arm: the seeded error was released inside a "corrected" answer. */
   seedReleasedInCorrection: number;
+  /** Seeded arm: corrections that removed the seed but changed other text too. Not catches. */
+  strayCorrections: number;
+  /** Per run over every run in the group, unavailable ones included. A run may
+   *  make two calls, each under its own 30-second deadline. Null when empty. */
+  latencyMedianMs: number | null;
+  latencyP95Ms: number | null;
+  /** Runs that made one model call and took over 25 seconds: drift toward the deadline. */
+  onePassOver25s: number;
+  /** `unavailableRuns`, split by why. */
+  deadlineAborts: number;
+  otherFailures: number;
 }
+
+/** Nearest-rank percentile of `values`, null when there are none. */
+export function percentile(values: number[], p: number): number | null {
+  if (!values.length) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  return sorted[Math.max(0, Math.ceil(p * sorted.length) - 1)];
+}
+
+/** Over 25 seconds a single call is within 5 seconds of the verifier's deadline. */
+export const DRIFT_MS = 25_000;
 
 /** A run counts as a hit when the bad text was stopped (seeded, judged bad) or a clean answer was withheld (original). */
 export function isHit(record: RunRecord): boolean {
   if (record.arm === 'original') return record.status === 'withheld';
-  if (record.arm === 'seeded') return record.seedReleased === false;
+  if (record.arm === 'seeded') return record.seedReleased === false && !record.strayCorrection;
   return record.status !== 'passed';
 }
 
@@ -216,6 +255,12 @@ export function summarizeGroup(group: string, records: RunRecord[]): GroupSummar
     modelInterval: wilson(modelHits.length, modelDecided.length),
     correctedRuns: scored.filter(record => record.status === 'corrected').length,
     seedReleasedInCorrection: scored.filter(record => record.status === 'corrected' && record.seedReleased === true).length,
+    strayCorrections: scored.filter(record => record.strayCorrection).length,
+    latencyMedianMs: percentile(records.map(record => record.latencyMs), 0.5),
+    latencyP95Ms: percentile(records.map(record => record.latencyMs), 0.95),
+    onePassOver25s: records.filter(record => record.modelCalls === 1 && record.latencyMs > DRIFT_MS).length,
+    deadlineAborts: records.filter(record => record.layer === 'unavailable' && record.unavailableReason === 'deadline').length,
+    otherFailures: records.filter(record => record.layer === 'unavailable' && record.unavailableReason !== 'deadline').length,
   };
 }
 
@@ -244,6 +289,15 @@ function table(header: string[], rows: string[][]): string {
   return [line(header), line(widths.map(width => '-'.repeat(width))), ...rows.map(line)].join('\n');
 }
 
+const seconds = (ms: number | null) => (ms === null ? 'n/a' : `${(ms / 1000).toFixed(1)} s`);
+
+function latencyRows(groups: GroupSummary[]): string {
+  return table(
+    ['group', 'median per run', '95th percentile per run', 'one-pass runs over 25 s', 'deadline aborts', 'other failures'],
+    groups.map(g => [g.group, seconds(g.latencyMedianMs), seconds(g.latencyP95Ms), String(g.onePassOver25s), String(g.deadlineAborts), String(g.otherFailures)]),
+  );
+}
+
 function groupRows(groups: GroupSummary[], hit: string): string {
   return table(
     ['group', 'items', 'runs', hit, 'rate', '95% interval', 'items 3/3', 'some', 'none', 'deterministic', 'budget', 'model p1', 'model p2', 'not stopped', 'model rate (of runs it decided)', 'corrected', 'unavailable'],
@@ -259,17 +313,22 @@ function groupRows(groups: GroupSummary[], hit: string): string {
 
 export function formatSummary(summary: Summary, plan: Plan): string {
   const seedReleased = summary.seeded[summary.seeded.length - 1].seedReleasedInCorrection;
+  const stray = summary.seeded.map(group => `${group.group} ${group.strayCorrections}`).join(', ');
   return [
     'SEEDED ERRORS: catch rate (a catch is a run that did not release the seeded error)',
     groupRows(summary.seeded, 'caught'),
     `Clean answers with no place to seed: ${SEED_KINDS.map(kind => `${kind} ${plan.unseedable[kind]}`).join(', ')}.`,
     `Runs that released the seeded error inside a "corrected" answer: ${seedReleased}.`,
+    `Stray corrections (seed removed, other text changed too; not counted as catches): ${stray}.`,
     '',
     'UNSEEDED ORIGINALS: false-withhold rate (a hit is a clean answer withheld; "corrected" is an unneeded rewrite)',
     groupRows([summary.original], 'withheld'),
     '',
     'STORED JUDGED-BAD ANSWERS: catch rate by label (a catch is a run withheld or corrected; corrected text is not judged)',
     groupRows(summary.judgedBad, 'caught'),
+    '',
+    'LATENCY AND UNAVAILABLE RUNS (per run, unavailable runs included; a run may make two calls, each under its own 30 s deadline)',
+    latencyRows([...summary.seeded, summary.original, ...summary.judgedBad]),
     '',
     'The interval is a Wilson 95% interval over runs. Repeats of one item are not independent, so read it',
     'with the per-item columns: an item caught on some repeats only is the verifier disagreeing with itself.',

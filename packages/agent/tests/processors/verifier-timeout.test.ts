@@ -23,8 +23,11 @@ describe('verification deadline', () => {
     const pending = verifyAnswer('question', 'draft', 'source');
     await vi.advanceTimersByTimeAsync(30_000);
     expect(timeout).toHaveBeenCalledWith(30_000);
-    expect(await pending).toMatchObject({ failureRetryable: true, supported: false,
+    const result = await pending;
+    expect(result).toMatchObject({ failureRetryable: true, supported: false, unavailableReason: 'deadline',
       unsupportedClaims: [{ claim: 'Full answer', reason: VERIFICATION_UNAVAILABLE }] });
+    // The reason is a fixed value; no error text travels in the result.
+    expect(JSON.stringify(result)).not.toContain('timed out');
     // Our own deadline is not reported as a provider outage.
     expect(error).toHaveBeenCalledTimes(1);
     expect(error).toHaveBeenCalledWith('verifier.deadline_aborted', expect.objectContaining({ answerChars: 5, sourceChars: 6 }));
@@ -37,7 +40,10 @@ describe('verification deadline', () => {
     const controller = new AbortController();
     const pending = verifyAnswer('question', 'draft', 'source', undefined, controller.signal);
     controller.abort(new Error('client went away'));
-    expect((await pending).unsupportedClaims[0]?.reason).toBe(VERIFICATION_UNAVAILABLE);
+    const result = await pending;
+    expect(result.unsupportedClaims[0]?.reason).toBe(VERIFICATION_UNAVAILABLE);
+    expect(result.unavailableReason).toBe('other');
+    expect(JSON.stringify(result)).not.toContain('client went away');
     expect(error).toHaveBeenCalledTimes(1);
     expect(error).toHaveBeenCalledWith('verifier.failed_closed', expect.anything());
   });

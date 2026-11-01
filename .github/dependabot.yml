@@ -4,22 +4,35 @@ updates:
     directory: /
     schedule: { interval: weekly }
     groups:
-      # Runtime libraries and their CLI/client packages must move together.
-      agent-sdk-compatible:
-        patterns: ['@mastra/*', 'mastra', 'ai', '@ai-sdk/*']
-        update-types: [minor, patch]
+      # vitest and @vitest/* must land in every manifest at once, or two
+      # copies install and the jest-dom matcher types stop applying.
       test-runner-compatible:
         patterns: ['vitest', '@vitest/*']
         update-types: [minor, patch]
       production-compatible:
         dependency-type: production
         update-types: [minor, patch]
+        exclude-patterns: ['vitest', '@vitest/*']
       development-compatible:
         dependency-type: development
         update-types: [minor, patch]
+        exclude-patterns: ['vitest', '@vitest/*']
     # These migrations require coordinated application/toolchain changes.
     # Keep patch/minor and security maintenance flowing independently.
     ignore:
+      # The Mastra and AI SDK family moves only by hand under issue #11, with
+      # a live smoke run; Dependabot split it across groups at mismatched
+      # versions (#64). Dependabot alerts still report advisories for them.
+      - dependency-name: '@mastra/*'
+      - dependency-name: mastra
+      - dependency-name: ai
+      - dependency-name: '@ai-sdk/*'
+      - dependency-name: react
+        update-types: [version-update:semver-major, version-update:semver-minor]
+      - dependency-name: react-dom
+        update-types: [version-update:semver-major, version-update:semver-minor]
+      - dependency-name: '@sentry/*'
+        update-types: [version-update:semver-major]
       - dependency-name: '@types/node'
         update-types: [version-update:semver-major]
       - dependency-name: eslint
@@ -35,10 +48,6 @@ updates:
       - dependency-name: '@testing-library/jest-dom'
         update-types: [version-update:semver-major]
       - dependency-name: typescript
-        update-types: [version-update:semver-major]
-      - dependency-name: ai
-        update-types: [version-update:semver-major]
-      - dependency-name: '@ai-sdk/*'
         update-types: [version-update:semver-major]
       - dependency-name: zod
         update-types: [version-update:semver-major]
