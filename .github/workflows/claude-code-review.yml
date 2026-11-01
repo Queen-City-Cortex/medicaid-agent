@@ -3,11 +3,10 @@ name: Claude Code Review
 on:
   pull_request:
     types: [opened, synchronize, ready_for_review, reopened]
-    # Artifact-only PRs (memory/knowledge-graph refreshes) don't need review.
+    # Artifact-only PRs (archived knowledge) don't need review.
     paths-ignore:
       - '.brv/**'
       - 'docs/archive/**'
-      - 'graphify-out/**'
     # Optional: Only run on specific file changes
     # paths:
     #   - "src/**/*.ts"

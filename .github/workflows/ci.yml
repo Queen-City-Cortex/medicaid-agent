@@ -5,13 +5,12 @@ on:
     branches: [main]
   pull_request:
     # Test every PR base, including the parser/chart stack.
-    # Artifact-only PRs (memory/knowledge-graph refreshes) don't need tests.
+    # Artifact-only PRs (archived knowledge) don't need tests.
     # push:main deliberately has NO paths-ignore — Railway gates deploys on
     # main's CI runs (see the concurrency note below).
     paths-ignore:
       - '.brv/**'
       - 'docs/archive/**'
-      - 'graphify-out/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

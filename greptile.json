@@ -1,5 +1,5 @@
 {
-  "ignorePatterns": ".brv/**\ngraphify-out/**\ndocs/archive/**",
+  "ignorePatterns": ".brv/**\ndocs/archive/**",
   "disabledLabels": [
     "skip-review"
   ]

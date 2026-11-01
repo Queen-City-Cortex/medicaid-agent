@@ -24,9 +24,9 @@ packages/pipeline/data/eval-results/*.json
 packages/agent/benchmark-results/
 packages/**/.brv/
 
-# graphify knowledge-graph output (ignore the heavy artifacts, keep the report)
-graphify-out/*
-!graphify-out/GRAPH_REPORT.md
+# Local graphify knowledge-graph output
+graphify-out/
+.graphifyignore
 
 # Historical project knowledge is versioned under docs/archive.
 /.brv/
