@@ -36,7 +36,7 @@ Each check runs from `scripts/model-upgrade-checks.sh <stage>` with the owner's 
 | `classifiers` | `gpt-5-mini` vs `gpt-6-luna` on 200 scope conversations and 22 injection probes ([gotchas](../../development/gotchas.md)) | No more real questions or benign probes blocked, no fail-opens, p95 under 5 s | under $1 |
 | `judge` | `claude-sonnet-4-6` vs `claude-sonnet-5-5` on the stored answers of the 2026-09-22 release evidence | Each dimension's mean within 0.15; at least 90 percent agreement on overall ≥ 2 and hallucination ≥ 2 | at most $15 |
 | `verifier` | `gpt-5.6-terra` vs `gpt-6.1-terra`, low effort, seeded and originals fixtures ([runbook](../../operations/verifier-benchmark.md)) | Decision 0002's cost-swap rule: no seeded kind drops, no more withholding, aborts under 2 percent | $10 of trials, then at most $60 per arm |
-| `agent` | `gpt-5.6-terra` vs `gpt-6.1-terra` on the held-out paraphrases, 3 runs per arm, with the old verifier and judge held fixed | `scripts/eval-ab.sh agent` verdict: overall within 0.05, and hallucination not lower | about $35 |
+| `agent` | `gpt-5.6-terra` vs `gpt-6.1-terra` and `gpt-6.1-sol` ($2 / $10) on the held-out paraphrases, 3 runs per arm, with the old verifier and judge held fixed | `scripts/eval-ab.sh agent` verdict: overall within 0.05, and hallucination not lower. Terra is the default if it passes; Sol is adopted instead only if it scores clearly higher | about $50 |
 
 The agent stage needs a Neo4j holding the corpus. Each stage's output goes to `model-upgrade-results/` (gitignored) and stays outside Git with the commit.
 

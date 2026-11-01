@@ -8,7 +8,7 @@ set -euo pipefail
 #   scripts/model-upgrade-checks.sh classifiers   # gpt-5-mini vs gpt-6-luna, under $1
 #   scripts/model-upgrade-checks.sh judge         # claude-sonnet-4-6 vs claude-sonnet-5-5, cap $15
 #   scripts/model-upgrade-checks.sh verifier      # gpt-5.6-terra vs gpt-6.1-terra, $5 trials then arms stopped at $60 each
-#   scripts/model-upgrade-checks.sh agent         # gpt-5.6-terra vs gpt-6.1-terra, 3 x 50 questions per arm, about $35
+#   scripts/model-upgrade-checks.sh agent         # gpt-5.6-terra vs gpt-6.1-terra and gpt-6.1-sol, 3 x 50 questions per arm, about $50
 #   scripts/model-upgrade-checks.sh all           # the four in that order
 #
 # Needs OPENAI_API_KEY and ANTHROPIC_API_KEY (from packages/agent/.env or the
@@ -66,10 +66,10 @@ verifier() {
 }
 
 agent() {
-  log "agent A/B: gpt-5.6-terra vs gpt-6.1-terra (judge and verifier held fixed)"
+  log "agent A/B: gpt-5.6-terra vs gpt-6.1-terra and gpt-6.1-sol (judge and verifier held fixed)"
   # Both arms keep the old verifier and the calibrated judge, so the agent
   # model is the only thing that changes.
-  (cd "$REPO_ROOT" && RUNS=3 BASELINE_AGENT=gpt-5.6-terra CANDIDATE_AGENT=gpt-6.1-terra \
+  (cd "$REPO_ROOT" && RUNS=3 BASELINE_AGENT=gpt-5.6-terra CANDIDATE_AGENT=gpt-6.1-terra SECOND_CANDIDATE_AGENT=gpt-6.1-sol \
     VERIFIER_MODEL=gpt-5.6-terra VERIFIER_REASONING_EFFORT=low EVAL_JUDGE_MODEL=claude-sonnet-4-6 \
     MASTRA_OBSERVABILITY_PATH=:memory: TRACE_STORE=off scripts/eval-ab.sh agent) | tee "$OUT/agent.txt"
 }
