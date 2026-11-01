@@ -1,7 +1,7 @@
 import { createPrivateVerificationCapture, type PrivateVerificationCapture } from './diagnostics.js';
 import { getConfig } from './config.js';
 import { type SourceEntry, buildSourceText, isCorpusEvidence } from './evidence.js';
-import { type VerificationResult, VERIFICATION_UNAVAILABLE, verifyAnswer } from './verify.js';
+import { type UnavailableReason, type VerificationResult, VERIFICATION_UNAVAILABLE, verifyAnswer } from './verify.js';
 import {
   type UnknownSection,
   assessRewriteSubstance,
@@ -51,6 +51,8 @@ export interface VerifierTelemetry {
   relevance_issue_count: number;
   major_relevance_issue: boolean;
   verifier_unavailable: boolean;
+  /** Why the verifier was unavailable: its own deadline or another failure; null when it was available. */
+  verifier_unavailable_reason: UnavailableReason | null;
   verifier_model: string;
   source_entry_count: number;
   evidence_bytes: number;
@@ -269,7 +271,9 @@ export async function runVerificationForAnswer({ question, coverageQuery, frameQ
     missing_citation_count: verification.missingCitationClaims?.length ?? 0,
     relevance_issue_count: verification.relevanceIssues?.length ?? 0,
     major_relevance_issue: verification.relevanceIssues?.some(i => i.severity === 'major') ?? false,
-    verifier_unavailable: unavailable, verifier_model: getConfig().model,
+    verifier_unavailable: unavailable,
+    verifier_unavailable_reason: unavailable ? verification.unavailableReason ?? 'other' : null,
+    verifier_model: getConfig().model,
     source_entry_count: sources.length, evidence_bytes: sources.reduce((n,s) => n+s.text.length,0),
     rewrite_substance_ratio: substanceRatio, fabricated_url_count: fabricatedUrlCount,
     fabricated_quote_count: fabricatedQuoteCount,

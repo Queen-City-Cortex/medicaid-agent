@@ -49,7 +49,7 @@ VERIFIER_FIELDS = {
     "evidence_entries_dropped": int,
     "unknown_section_count": int,
 }
-NULLABLE_VERIFIER_FIELDS = {"coverage_policy_id", "coverage_issue", "withholding_reason", "rewrite_substance_ratio"}
+NULLABLE_VERIFIER_FIELDS = {"coverage_policy_id", "coverage_issue", "withholding_reason", "rewrite_substance_ratio", "verifier_unavailable_reason"}
 
 
 def _stdout(name: str) -> str:
@@ -87,6 +87,7 @@ def test_released_answer_blocks_parse_with_every_field_the_evaluation_reads():
     assert not _is_verifier_unavailable(verifier)
     assert verifier["pass_count"] == 1
     assert verifier["withholding_reason"] is None
+    assert verifier["verifier_unavailable_reason"] is None
     assert verifier["latency_ms"] == 1234
     assert verifier["coverage_policy_id"] is None and verifier["coverage_issue"] is None
     assert verifier["supported"] is True and verifier["rewrote"] is False

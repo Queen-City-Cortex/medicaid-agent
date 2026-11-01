@@ -5,7 +5,7 @@
 
 ---VERIFIER---
 
-{"coverage_policy_id":null,"coverage_issue":null,"latency_ms":1234,"pass_count":1,"withholding_reason":null,"outcome":{"status":"passed","passCount":1},"rewrote":false,"supported":true,"relevant":true,"citations_complete":true,"unsupported_claim_count":0,"missing_citation_count":0,"relevance_issue_count":0,"major_relevance_issue":false,"verifier_unavailable":false,"verifier_model":"golden-verifier-model","source_entry_count":2,"evidence_bytes":673,"rewrite_substance_ratio":null,"fabricated_url_count":0,"fabricated_quote_count":0,"evidence_chars_sent":685,"evidence_entries_dropped":0,"unknown_section_count":0}
+{"coverage_policy_id":null,"coverage_issue":null,"latency_ms":1234,"pass_count":1,"withholding_reason":null,"outcome":{"status":"passed","passCount":1},"rewrote":false,"supported":true,"relevant":true,"citations_complete":true,"unsupported_claim_count":0,"missing_citation_count":0,"relevance_issue_count":0,"major_relevance_issue":false,"verifier_unavailable":false,"verifier_unavailable_reason":null,"verifier_model":"golden-verifier-model","source_entry_count":2,"evidence_bytes":673,"rewrite_substance_ratio":null,"fabricated_url_count":0,"fabricated_quote_count":0,"evidence_chars_sent":685,"evidence_entries_dropped":0,"unknown_section_count":0}
 
 ---ANSWER---
 
