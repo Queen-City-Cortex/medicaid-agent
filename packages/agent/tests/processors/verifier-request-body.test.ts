@@ -73,4 +73,29 @@ describe('verifier request', () => {
     expect(requests[0].body.model).toBe('claude-sonnet-4-6');
     expect(result).toMatchObject({ supported: true, unsupportedClaims: [] });
   });
+
+  // Issue #62: older Anthropic providers sent Claude 5.5 a 4,096-token output
+  // cap and a forced tool choice, which Anthropic rejects for structured
+  // output. Pin what the updated provider sends instead.
+  it('sends Claude 5.5 the full output cap and native JSON-schema output, with no tool choice', async () => {
+    vi.stubEnv('VERIFIER_MODEL', 'claude-sonnet-5-5');
+    vi.stubEnv('ANTHROPIC_API_KEY', 'sk-ant-test-stub-not-a-real-key');
+    const requests: Array<{ url: string; body: any }> = [];
+    vi.stubGlobal('fetch', vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+      requests.push({ url: String(url), body: JSON.parse(String(init?.body)) });
+      if (!String(url).startsWith('https://api.anthropic.com/')) throw new Error(`Unexpected request in offline test: ${String(url)}`);
+      return new Response(JSON.stringify({
+        id: 'msg_stub', type: 'message', role: 'assistant', model: 'claude-sonnet-5-5',
+        content: [{ type: 'text', text: JSON.stringify(CLEAN) }],
+        stop_reason: 'end_turn', stop_sequence: null, usage: { input_tokens: 1, output_tokens: 1 },
+      }), { headers: { 'content-type': 'application/json' } });
+    }));
+
+    expect((await verifyFixedInput()).supported).toBe(true);
+    expect(requests.map(request => request.url)).toEqual(['https://api.anthropic.com/v1/messages']);
+    const { body } = requests[0];
+    expect(Object.keys(body)).toEqual(['model', 'max_tokens', 'output_config', 'system', 'messages']);
+    expect(body).toMatchObject({ model: 'claude-sonnet-5-5', max_tokens: 128000, output_config: { format: { type: 'json_schema' } } });
+    expect(body.output_config.format.schema.required).toEqual(Object.keys(CLEAN));
+  });
 });
