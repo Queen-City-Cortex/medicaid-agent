@@ -102,6 +102,18 @@ describe('verifier request', () => {
     expect(body.output_config.format.schema.required).toEqual(Object.keys(CLEAN));
   });
 
+  it('caps output only when the caller sets a limit, as the benchmark does', async () => {
+    vi.stubEnv('VERIFIER_MODEL', '');
+    const { bodies } = stubOpenAIResponses([
+      [{ type: 'message', id: 'msg_1', text: JSON.stringify(CLEAN) }],
+      [{ type: 'message', id: 'msg_2', text: JSON.stringify(CLEAN) }],
+    ]);
+    await verifyFixedInput();
+    await verifyAnswer('q', 'a', 's', undefined, undefined, undefined, { maxOutputTokens: 6000 });
+    expect(bodies[0].max_output_tokens).toBeUndefined();
+    expect(bodies[1].max_output_tokens).toBe(6000);
+  });
+
   it('sends OpenAI the effort VERIFIER_REASONING_EFFORT names', async () => {
     vi.stubEnv('VERIFIER_MODEL', '');
     vi.stubEnv('VERIFIER_REASONING_EFFORT', 'medium');
