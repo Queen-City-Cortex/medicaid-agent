@@ -5,6 +5,12 @@
 
 A research agent that answers questions about North Carolina Medicaid policy from a corpus of state and federal policy documents, and shows an answer only after a verifier has checked that exact text against the sources it cites.
 
+<p align="center">
+  <img src="docs/assets/demo.gif" width="800" alt="Asking the NC Medicaid Navigator whether NC Medicaid covers speech therapy by telehealth: the agent plans its evidence, checks amendments, and returns an answer marked corrected and verified against cited sources, with links to the clinical coverage policy sections it cites.">
+</p>
+
+<sub>Recorded on the deployed test instance on 1 November 2026. The clip is trimmed to the question and answer, and the research and verification wait is sped up and labelled; the answer is shown as the site released it.</sub>
+
 It was built by one engineer between March and October 2026, with coding agents doing much of the typing and the engineering governance described below deciding what shipped.
 
 ## Status
