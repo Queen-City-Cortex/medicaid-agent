@@ -339,7 +339,7 @@ failed counts in `requiredCurrentParseExceptions`.
 release gates that need no answer run and no baseline, for the price of one
 embedding pass. It exists so the retrieval floors and the graph gates can be
 read before a paid qualification cycle
-([issue #259](https://github.com/Queen-City-Cortex/medicaid-agent/issues/259)).
+([issue #24](https://github.com/Queen-City-Cortex/medicaid-agent/issues/24)).
 
 What it does, in order:
 
@@ -703,7 +703,7 @@ build from meeting the floors by answering less:
   `release-validate` stops before any run, naming both sizes, until the owner
   sets the cap again for the validated count. The value, 4 of 47, keeps the
   proportion of the earlier 5 of 55 and is provisional (`"provisional": true`):
-  [issue #259](https://github.com/Queen-City-Cortex/medicaid-agent/issues/259)
+  [issue #24](https://github.com/Queen-City-Cortex/medicaid-agent/issues/24)
   replaces it once the candidate graph has been measured. The 2.75 floor is
   revisited there too and is unchanged until then.
 - `answerScoreAllRowsRegression` compares the all-rows answer score
@@ -742,7 +742,7 @@ The two retrieval floors (`evaluation.retrievalRecall` and
 `evaluation.primaryDocumentHitRate`) were set on 2026-10-10 from the first
 measurement of a rebuilt graph: 0.31 and 0.62, against a measured recall of
 0.349 and a hit rate of 0.660 (31 of 47 validated questions, golden dataset
-3.4, commit `4708685`; issue #259 holds the figures). They are provisional,
+3.4, commit `4708685`; issue #24 holds the figures). They are provisional,
 from one measurement. The earlier 0.9 and 0.95 had never been measured.
 
 What the two figures count: the hit rate is a hit only when a key's exact
@@ -791,7 +791,7 @@ retrieval code changes what they measure:
    that margin allows one or two questions of drift between rebuilds and no
    more. Change only those two numbers in `corpus-release-policy.json`, merge
    the change, and record the measured values, the graph's release id and the
-   chosen floors in issue #188.
+   chosen floors in issue #18.
 5. Deploy the merged commit to the corpus job. The merge is a new commit and
    the evaluation fingerprint names the commit, so the legacy baseline from
    step 2 of [initial bootstrap](#initial-bootstrap) no longer matches: run

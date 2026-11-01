@@ -24,14 +24,14 @@ Nothing it says is legal advice or a benefits determination.
 
 ## Numbers
 
-Each figure was produced by the command or file named beside it, on 25 October 2026, at commit `159755c`.
+Each figure was produced by the command or file named beside it, on 25 October 2026, at commit `57f5c49`.
 
 | | Figure | Source |
 | --- | --- | --- |
 | Documents in the serving graph | 6,725 | `/corpus-status` response recorded on 2 October 2026 in [`health-checks.json`](docs/validation/chat-acceptance-2026-10-02/health-checks.json) |
 | Golden questions (dataset 3.6) | 56, plus 50 held-out paraphrases | `packages/pipeline/data/golden/dataset.json`, `heldout-paraphrase.json` |
 | Held-out answer score, three runs, June 2026 | 2.82 mean of 2.86, 2.78, 2.82 (0 to 3 judge scale) | `aggregate.overall` in the `2026-06-12T23:32`, `2026-06-13T00:11` and `2026-06-13T00:39` files under `packages/pipeline/data/eval-results/milestones/` |
-| Reranker A/B that removed it | 9 runs, 150 scored answers per arm | `git show 1329d4f` |
+| Reranker A/B that removed it | 9 runs, 150 scored answers per arm | `git show 8e03a33` |
 | TypeScript unit tests | 2,719 passed, 21 skipped | `npx turbo run test --filter='!@nc-medicaid/pipeline'` from a clean clone |
 | Python pipeline tests | 1,171 passed, 30 skipped, 2 need tokenizer files | `pytest tests/` in `packages/pipeline` |
 | Browser tests against a mocked backend | 96 passed | `npm run test:e2e` |
@@ -109,7 +109,7 @@ This path needs paid API keys and a corpus you build yourself. It was not run du
 3. **Ask a question** from the command line, without the web app or WorkOS: `npm run cli -w @nc-medicaid/agent -- "Does NC Medicaid cover speech therapy by telehealth?"`.
 4. **The web app** additionally needs a WorkOS AuthKit project (`WORKOS_*` variables) and `npm run dev`.
 
-Before running the agent for real users, read Mastra's `ee/LICENSE`: the WorkOS auth provider imports code that `@mastra/core` ships under its Enterprise licence (issue #430).
+Before running the agent for real users, read Mastra's `ee/LICENSE`: the WorkOS auth provider imports code that `@mastra/core` ships under its Enterprise licence (issue #136).
 
 ## Built with coding agents
 

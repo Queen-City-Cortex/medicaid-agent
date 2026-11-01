@@ -33,12 +33,8 @@ rg -n -i 'waiver|fee.schedule' docs/archive/byterover/context-tree
 
 [Design specs and plans](superpowers/) and [review findings](reviews/) are historical records. Verify their conclusions against current code before treating them as implemented behavior. The March roadmap, the March status updates and the June refactor log are [archived as historical](archive/early-planning/README.md).
 
-The [2026-10-02 cleanup execution](reviews/cleanup-completion-2026-10-02.md) records merged replacements, preserved work and explicit follow-up gates.
+Dated evidence from validation runs, cost audits and qualification cycles is under [validation/](validation/). Each folder's README says what was checked and what it does not establish.
 
-The [October 3 corpus cost audit and usage sample](validation/cost-audit-sample-2026-10-03/README.md) identifies spreadsheet padding and replaces conservative context assumptions with measured diagnostic usage.
-The [October 4 spreadsheet corpus repair](validation/spreadsheet-corpus-repair-2026-10-04/README.md) records an unmerged cache-v7 repair candidate, superseded by fee-schedule compaction, with its cell-preservation receipts and full-corpus embedding-input measurements.
-The [October 3 qualification cycle](validation/qualification-cycle-2026-10-03/README.md) records ready PR merges, bounded embedding preparation, the deployed model audit and remaining qualification gates.
+## Issue and commit numbers in older documents
 
-The [October 4 Jev integration](validation/jev-integration-2026-10-04/README.md) records source-attested checks and preserved diagnostic evidence with runtime adoption disabled.
-
-The [Jev activation readiness assessment](validation/jev-readiness-2026-10-04/README.md) records the safeguards, preserved diagnostic findings and a gated qualification proposal without further inference.
+The repository was republished with a cleaned history on 31 October 2026. Commit ids changed, and open issues were renumbered when they moved. Issue, pull request and commit references in dated records (reviews, validation reports, plans and the archive) written before then point at the private archived repository, not at this one. The guides linked in the table above use current numbers.

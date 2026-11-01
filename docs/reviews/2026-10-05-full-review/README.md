@@ -2,6 +2,8 @@
 
 Reviewed 4 and 5 October 2026 at commit `c48a9d4` on `main`. The review was read-only; this report was saved into the repository afterwards at the owner's request.
 
+Issue numbers such as `#188` and commit ids in this report refer to the repository before it was republished on 31 October 2026; see the [documentation index](../../README.md#issue-and-commit-numbers-in-older-documents). The area ids such as `SAFE-1` still match the issue titles.
+
 **How to read this.** The first section is the whole review in two pages: what to do today, the verdict, what is strong, and the changes that matter most. The sections after it cover the baseline, Mastra, the models, the architecture, and then every issue by area. Issue ids such as `SAFE-1` are stable within this report. Every issue is written up in the `issues/` folder next to this file, one file per area, and the evidence behind each issue (file and line, the verified claim, how it was checked, the detailed fix) is in `findings/`.
 
 ## Summary

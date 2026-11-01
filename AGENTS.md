@@ -34,8 +34,8 @@ When something surprises you, tell the developer and update this file or the [pr
 
 ### Verifier bounds
 
-- Do not raise the verifier's 30-second deadline or its two-pass ceiling, and do not add verifier retries (issue #188).
-  Exception: a change for deep-research reports only, when it cites the owner's decision in issue #188.
+- Do not raise the verifier's 30-second deadline or its two-pass ceiling, and do not add verifier retries (issue #18).
+  Exception: a change for deep-research reports only, when it cites the owner's decision in issue #18.
 
 ### Inference providers
 
