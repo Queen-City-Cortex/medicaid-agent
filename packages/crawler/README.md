@@ -93,7 +93,3 @@ npm test              # Run all tests
 npm run test:watch    # Watch mode
 npm run test:coverage # With line-level coverage report
 ```
-
-## Design
-
-See `docs/superpowers/specs/2026-03-26-nc-medicaid-crawler-design.md` for the full specification.

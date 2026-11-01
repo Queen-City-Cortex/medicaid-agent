@@ -40,5 +40,10 @@ packages/pipeline/data/section-labels/
 # macOS
 .DS_Store
 
-# Evidence written by the verify-medicaid-agent skill (.cursor/skills/verify-medicaid-agent).
+# Editor and local agent-tool settings (shared skills live in .agents/skills).
+.cursor/
+.idea/
+.vscode/
+
+# Evidence written by the verify-medicaid-agent skill (.agents/skills/verify-medicaid-agent).
 /.verify-evidence/

@@ -31,7 +31,7 @@ rg -n -i 'verifier|research recovery' AGENTS.md docs/architecture docs/developme
 rg -n -i 'waiver|fee.schedule' docs/archive/byterover/context-tree
 ```
 
-[Design specs and plans](superpowers/) and [review findings](reviews/) are historical records. Verify their conclusions against current code before treating them as implemented behavior. The March roadmap, the March status updates and the June refactor log are [archived as historical](archive/early-planning/README.md).
+The [October 2026 review](reviews/2026-10-05-full-review/README.md) is a historical record. Verify its conclusions against current code before treating them as implemented behavior. Earlier design specs, plans, reviews and status updates were removed from this repository on 1 November 2026; they remain in the archived private repository.
 
 Dated evidence from validation runs, cost audits and qualification cycles is under [validation/](validation/). Each folder's README says what was checked and what it does not establish.
 

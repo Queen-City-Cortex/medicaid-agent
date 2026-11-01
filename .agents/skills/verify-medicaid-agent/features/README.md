@@ -1,6 +1,6 @@
 # NC Medicaid Navigator verification map
 
-This directory is the maintained source for verifying the user-facing behavior of NC Medicaid Navigator. The primary surface is the web chat. Read this index before driving the app, then use the matching feature file as the recipe. Every command below assumes `V=.cursor/skills/verify-medicaid-agent/scripts/verify.sh`, run from the repo root.
+This directory is the maintained source for verifying the user-facing behavior of NC Medicaid Navigator. The primary surface is the web chat. Read this index before driving the app, then use the matching feature file as the recipe. Every command below assumes `V=.agents/skills/verify-medicaid-agent/scripts/verify.sh`, run from the repo root.
 
 ## Baseline preconditions
 

@@ -45,7 +45,7 @@ See [project gotchas](gotchas.md) for source identity, path normalization, polic
 
 ## Starting fresh
 
-Start new work from updated `main`. The [repository audit](repository-audit-2026-10-02.md) records retired branches, preserved drafts, remaining PRs, and recovery instructions.
+Start new work from updated `main`.
 
 ## Dependency maintenance
 

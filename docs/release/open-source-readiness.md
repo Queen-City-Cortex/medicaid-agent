@@ -106,7 +106,7 @@ The counts include the seven review issues kept individually above; they would s
 - Adds `LICENSE` (Apache-2.0), `NOTICE`, `CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md` and issue templates.
 - Rewrites `README.md` for the three audiences, with a tested quickstart and a numbers table whose every figure names its source.
 - Adds [design tradeoffs](../architecture/tradeoffs.md) and a reading order at the top of the [documentation index](../README.md).
-- Moves the March roadmap, the March status updates and the June refactor log to [`docs/archive/early-planning/`](../archive/early-planning/README.md), date-stamped as historical. Their content is unchanged apart from the personal details removed under decision 3.
+- Moves the March roadmap, the March status updates and the June refactor log to `docs/archive/early-planning/` (since removed, 1 November 2026), date-stamped as historical. Their content is unchanged apart from the personal details removed under decision 3.
 - Removes the personal details in decision 3 from the current files, as golden dataset 3.7.
 - Adds the `preview:web` script so the component gallery runs with no accounts.
 - Records the fresh-clone failures in [project gotchas](../development/gotchas.md).
