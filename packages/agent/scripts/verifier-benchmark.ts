@@ -13,10 +13,13 @@
  * report format and nothing else. `--live` calls the configured
  * VERIFIER_MODEL and costs money. It refuses to start without `--max-usd`,
  * under CI, or when its printed upper bound exceeds `--max-usd`, and it stops
- * starting runs once the spend it has measured could cross that cap.
+ * starting runs once the spend it has measured could cross that cap, or
+ * `--stop-usd` when given. `--stop-usd` holds a run below its printed bound;
+ * it may not exceed `--max-usd`.
  *
  * Options: --repeats <n> (3)  --concurrency <n> (4)  --limit <n> items per
  * fixture  --arms seeded,original,judged_bad  --out <file>  --fixtures <dir>
+ * --stop-usd <dollars>
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -28,6 +31,8 @@ const ARMS = ['seeded', 'original', 'judged_bad'] as const;
 export interface Args {
   mode: 'mock' | 'live';
   maxUsd: number | null;
+  /** The measured-spend stop, when it differs from `maxUsd`. */
+  stopUsd: number | null;
   repeats: number;
   concurrency: number;
   limit: number | null;
@@ -53,11 +58,17 @@ export function parseArgs(argv: string[], env: NodeJS.ProcessEnv): Args {
     if (env.CI) throw new Error('--live is refused under CI');
     if (maxUsd === null || !Number.isFinite(maxUsd) || maxUsd <= 0) throw new Error('--live requires --max-usd <dollars>, the most this run may spend');
   }
+  const stopUsd = value('--stop-usd') === undefined ? null : Number(value('--stop-usd'));
+  if (stopUsd !== null) {
+    if (!Number.isFinite(stopUsd) || stopUsd <= 0) throw new Error('--stop-usd must be a positive number of dollars');
+    if (maxUsd === null || stopUsd > maxUsd) throw new Error('--stop-usd may not exceed --max-usd');
+  }
   const arms = (value('--arms') ?? ARMS.join(',')).split(',') as Args['arms'];
   if (!arms.length || arms.some(arm => !ARMS.includes(arm))) throw new Error(`--arms takes a comma-separated list of: ${ARMS.join(', ')}`);
   return {
     mode: live ? 'live' : 'mock',
     maxUsd,
+    stopUsd,
     repeats: count('--repeats', 3),
     concurrency: count('--concurrency', 4),
     limit: value('--limit') === undefined ? null : count('--limit', 0),
@@ -65,6 +76,12 @@ export function parseArgs(argv: string[], env: NodeJS.ProcessEnv): Args {
     out: value('--out') ?? null,
     fixtures: value('--fixtures') ?? join(AGENT_ROOT, 'tests', 'fixtures', 'verifier-benchmark'),
   };
+}
+
+/** Whether another run may start: calls already in flight can still land, so
+ *  leave room for one call per worker at the most one call can cost. */
+export function mayStartRun(spentUsd: number, concurrency: number, maxUsdPerCall: number, stopUsd: number): boolean {
+  return spentUsd + concurrency * maxUsdPerCall <= stopUsd;
 }
 
 async function main(): Promise<number> {
@@ -110,12 +127,13 @@ async function main(): Promise<number> {
     if (bound.maxUsd > args.maxUsd!) {
       throw new Error(`The upper bound $${bound.maxUsd.toFixed(2)} exceeds --max-usd ${args.maxUsd}. Raise the cap or narrow the run with --limit, --arms or --repeats.`);
     }
+    const stopUsd = args.stopUsd ?? args.maxUsd!;
+    if (args.stopUsd !== null) console.log(`Measured-spend stop: $${stopUsd.toFixed(2)} (--stop-usd).`);
     onUsage = usage => {
       const { inputTokens, outputTokens, cachedInputTokens } = (usage ?? {}) as Record<string, number | undefined>;
       modelCalls += 1;
       spentUsd += estimateCostUsd({ modelId: model, inputTokens, outputTokens, cachedInputTokens }).costUsd;
-      // Calls already in flight can still land: leave room for one per worker.
-      return spentUsd + args.concurrency * bound.maxUsdPerCall <= args.maxUsd!;
+      return mayStartRun(spentUsd, args.concurrency, bound.maxUsdPerCall, stopUsd);
     };
   }
 
@@ -130,15 +148,15 @@ async function main(): Promise<number> {
   const summary = summarize(records);
   console.log(`\n${formatSummary(summary, plan)}\n`);
   if (args.mode === 'live') console.log(`Spent about $${spentUsd.toFixed(2)} over ${modelCalls} model calls in ${Math.round((Date.now() - started) / 1000)} s.`);
-  if (stoppedEarly) console.log(`STOPPED EARLY at the spending cap: ${records.length} of ${bound.runs} runs finished. The rates above cover those runs only.`);
+  if (stoppedEarly) console.log(`STOPPED EARLY at the spending stop: ${records.length} of ${bound.runs} runs finished. The rates above cover those runs only.`);
 
   // The record holds model-written findings about stored drafts: keep it out of Git.
   const out = args.out ?? (args.mode === 'live' ? join(AGENT_ROOT, 'benchmark-results', `${new Date().toISOString().replace(/[:.]/g, '-')}_${model}.json`) : null);
   if (out) {
     mkdirSync(dirname(out), { recursive: true, mode: 0o700 });
     writeFileSync(out, JSON.stringify({
-      schemaVersion: 1, mode: args.mode, model, startedAt: new Date(started).toISOString(), repeats: args.repeats,
-      arms: args.arms, limit: args.limit, stoppedEarly, spentUsd, modelCalls, bound, unseedable: plan.unseedable, summary,
+      schemaVersion: 2, mode: args.mode, model, startedAt: new Date(started).toISOString(), repeats: args.repeats,
+      arms: args.arms, limit: args.limit, maxUsd: args.maxUsd, stopUsd: args.stopUsd, stoppedEarly, spentUsd, modelCalls, bound, unseedable: plan.unseedable, summary,
       seeds: plan.cases.filter(planned => planned.seed).map(planned => ({ caseId: planned.id, ...planned.seed!.change })),
       runs: records,
     }, null, 1) + '\n', { mode: 0o600 });

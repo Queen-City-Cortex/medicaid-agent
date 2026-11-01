@@ -1,10 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { toSourceEntry, type BenchmarkItem } from '../../scripts/verifier-benchmark/fixture.js';
 import {
-  costBound, formatSummary, isHit, mockVerify, planCases, replayCase, runBenchmark, summarize, summarizeGroup, wilson,
+  costBound, formatSummary, isHit, mockVerify, percentile, planCases, replayCase, runBenchmark, summarize, summarizeGroup, wilson,
   type PlannedCase, type RunRecord, type VerifyFn,
 } from '../../scripts/verifier-benchmark/runner.js';
-import { parseArgs } from '../../scripts/verifier-benchmark.js';
+import { mayStartRun, parseArgs } from '../../scripts/verifier-benchmark.js';
 import { VERIFICATION_UNAVAILABLE, type VerificationResult } from '../../src/processors/verifier/verify.js';
 
 const LINK = 'https://example.test/8c';
@@ -111,10 +111,43 @@ describe('which layer stopped the answer', () => {
   });
 
   it('unavailable: a failed verifier call measures nothing', async () => {
-    const outage = verdict({ supported: false, unsupportedClaims: [{ claim: 'Full answer', reason: VERIFICATION_UNAVAILABLE }] });
+    const outage = verdict({ supported: false, unsupportedClaims: [{ claim: 'Full answer', reason: VERIFICATION_UNAVAILABLE }], unavailableReason: 'other' });
     const record = await replayCase(seededCase('figure'), 1, scripted(outage));
-    expect(record).toMatchObject({ status: 'withheld', reason: 'unavailable', layer: 'unavailable' });
-    expect(summarizeGroup('figure', [record])).toMatchObject({ runs: 0, unavailableRuns: 1, hitRate: null });
+    expect(record).toMatchObject({ status: 'withheld', reason: 'unavailable', layer: 'unavailable', unavailableReason: 'other' });
+    expect(summarizeGroup('figure', [record])).toMatchObject({ runs: 0, unavailableRuns: 1, hitRate: null, deadlineAborts: 0, otherFailures: 1 });
+  });
+
+  it('unavailable: the run records a deadline abort as such', async () => {
+    const outage = verdict({ supported: false, unsupportedClaims: [{ claim: 'Full answer', reason: VERIFICATION_UNAVAILABLE }], unavailableReason: 'deadline' });
+    const record = await replayCase(seededCase('figure'), 1, scripted(outage));
+    expect(record).toMatchObject({ layer: 'unavailable', unavailableReason: 'deadline' });
+    expect(summarizeGroup('figure', [record])).toMatchObject({ unavailableRuns: 1, deadlineAborts: 1, otherFailures: 0 });
+  });
+
+  it('available runs carry no unavailable reason', async () => {
+    const record = await replayCase(seededCase('figure'), 1, scripted(verdict()));
+    expect(record).not.toHaveProperty('unavailableReason');
+  });
+
+  it('stray correction: the seed is gone but other text changed too, so it is not a catch', async () => {
+    const planned = seededCase('figure');
+    const rewritten = ANSWER.replace('The provider must submit', 'Providers submit');
+    const record = await replayCase(planned, 1, scripted(reject(rewritten), verdict()));
+    expect(record).toMatchObject({ status: 'corrected', seedReleased: false, strayCorrection: true });
+    expect(isHit(record)).toBe(false);
+    expect(summarizeGroup('figure', [record])).toMatchObject({ hitRuns: 0, strayCorrections: 1 });
+  });
+
+  it('a correction that restores the clean original, or changes only the seeded span, is a catch', async () => {
+    const planned = seededCase('figure');
+    const { offset, original } = planned.seed!.change;
+    const spanOnly = ANSWER.slice(0, offset) + 'about a month' + ANSWER.slice(offset + original.length);
+    for (const corrected of [ANSWER, `${ANSWER}\n`, spanOnly]) {
+      const record = await replayCase(planned, 1, scripted(reject(corrected), verdict()));
+      expect(record).toMatchObject({ status: 'corrected', seedReleased: false });
+      expect(record).not.toHaveProperty('strayCorrection');
+      expect(isHit(record)).toBe(true);
+    }
   });
 
   it('never writes to the private diagnostics directory', async () => {
@@ -164,6 +197,28 @@ describe('rates', () => {
     expect(summary).toMatchObject({ runs: 3, hitRuns: 1, correctedRuns: 1, itemsSometimes: 1 });
   });
 
+  it('reports latency per run and splits unavailable runs by reason', () => {
+    const records = [
+      record('a', 1, { latencyMs: 1_000 }), record('a', 2, { latencyMs: 26_000 }), record('a', 3, { latencyMs: 40_000, modelCalls: 2 }),
+      record('b', 1, { latencyMs: 30_000, layer: 'unavailable', unavailableReason: 'deadline' }),
+      record('b', 2, { latencyMs: 2_000, layer: 'unavailable', unavailableReason: 'other' }),
+    ];
+    expect(summarizeGroup('figure', records)).toMatchObject({
+      unavailableRuns: 2, deadlineAborts: 1, otherFailures: 1,
+      latencyMedianMs: 26_000, latencyP95Ms: 40_000,
+      // The two-call 40 s run is two deadlines, not drift; the 30 s abort is one call past 25 s.
+      onePassOver25s: 2,
+    });
+    expect(summarizeGroup('figure', [])).toMatchObject({ latencyMedianMs: null, latencyP95Ms: null, onePassOver25s: 0 });
+  });
+
+  it('nearest-rank percentiles', () => {
+    expect(percentile([], 0.5)).toBeNull();
+    expect(percentile([5], 0.95)).toBe(5);
+    expect(percentile([4, 1, 3, 2], 0.5)).toBe(2);
+    expect(percentile(Array.from({ length: 20 }, (_, i) => i + 1), 0.95)).toBe(19);
+  });
+
   it('reports confirmed, unconfirmed and rejected judged-bad labels separately', () => {
     const bad = (label: RunRecord['label'], status: RunRecord['status']) => record(`${label}-${status}`, 1, { arm: 'judged_bad', kind: undefined, seedReleased: undefined, label, status, layer: status === 'passed' ? 'none' : 'model_pass_1' });
     const summary = summarize([bad('confirmed-bad', 'withheld'), bad('confirmed-bad', 'passed'), bad('unconfirmed', 'corrected'), bad('not-bad', 'passed')]);
@@ -179,10 +234,12 @@ describe('end to end against the mock verifier', () => {
     expect(stoppedEarly).toBe(false);
     expect(records).toHaveLength(plan.cases.length * 3);
     const summary = summarize(records);
-    // The mock only knows figures: it catches the seeded figure and the wrong
-    // figure in the judged-bad answer, and misses the other three kinds.
-    expect(summary.seeded.map(group => [group.group, group.hitRuns, group.runs])).toEqual([
-      ['figure', 3, 3], ['date', 0, 3], ['qualifier', 0, 3], ['section_label', 0, 3], ['all kinds', 3, 12],
+    // The mock only knows figures: it stops the seeded figure and the wrong
+    // figure in the judged-bad answer, and misses the other three kinds. It
+    // corrects by dropping the whole line, which changes text outside the
+    // seeded span, so its figure corrections are stray, not catches.
+    expect(summary.seeded.map(group => [group.group, group.hitRuns, group.strayCorrections, group.runs])).toEqual([
+      ['figure', 0, 3, 3], ['date', 0, 0, 3], ['qualifier', 0, 0, 3], ['section_label', 0, 0, 3], ['all kinds', 0, 3, 12],
     ]);
     expect(summary.original).toMatchObject({ runs: 3, hitRuns: 0 });
     expect(summary.judgedBad[1]).toMatchObject({ group: 'unconfirmed', runs: 3, hitRuns: 3 });
@@ -190,7 +247,15 @@ describe('end to end against the mock verifier', () => {
     expect(report).toContain('SEEDED ERRORS');
     expect(report).toContain('UNSEEDED ORIGINALS: false-withhold rate');
     expect(report).toContain('STORED JUDGED-BAD ANSWERS');
-    expect(report).toMatch(/figure\s+1\s+3\s+3\s+100\.0%/);
+    expect(report).toMatch(/figure\s+1\s+3\s+0\s+0\.0%/);
+    // The latency, abort and stray lines print under the mock too, so the shape can be checked for free.
+    expect(report).toContain('LATENCY AND UNAVAILABLE RUNS');
+    expect(report).toMatch(/median per run\s+95th percentile per run\s+one-pass runs over 25 s\s+deadline aborts\s+other failures/);
+    expect(report).toMatch(/unseeded originals\s+\d+\.\d s\s+\d+\.\d s\s+0\s+0\s+0/);
+    expect(report).toContain('Stray corrections (seed removed, other text changed too; not counted as catches): figure 3, date 0, qualifier 0, section_label 0, all kinds 3.');
+    // The JSON output is the summary itself, so it carries the same figures.
+    expect(JSON.parse(JSON.stringify(summary)).original).toMatchObject({ deadlineAborts: 0, otherFailures: 0, onePassOver25s: 0, strayCorrections: 0 });
+    expect(typeof summary.original.latencyMedianMs).toBe('number');
   });
 
   it('stops starting runs once the usage callback says the cap is reached', async () => {
@@ -231,6 +296,19 @@ describe('command line', () => {
     expect(() => parseArgs(['--live', '--max-usd', '0'], {})).toThrow('--live requires --max-usd');
     expect(() => parseArgs(['--live', '--max-usd', '50'], { CI: 'true' })).toThrow('--live is refused under CI');
     expect(parseArgs(['--live', '--max-usd', '50', '--repeats', '1', '--arms', 'judged_bad'], {})).toMatchObject({ mode: 'live', maxUsd: 50, repeats: 1, arms: ['judged_bad'] });
+  });
+
+  it('takes a measured-spend stop no higher than the cap', () => {
+    expect(parseArgs(['--live', '--max-usd', '121', '--stop-usd', '60'], {})).toMatchObject({ maxUsd: 121, stopUsd: 60 });
+    expect(parseArgs(['--live', '--max-usd', '121'], {})).toMatchObject({ maxUsd: 121, stopUsd: null });
+    expect(() => parseArgs(['--live', '--max-usd', '50', '--stop-usd', '60'], {})).toThrow('--stop-usd may not exceed --max-usd');
+    expect(() => parseArgs(['--mock', '--stop-usd', '5'], {})).toThrow('--stop-usd may not exceed --max-usd');
+    expect(() => parseArgs(['--live', '--max-usd', '50', '--stop-usd', '0'], {})).toThrow('--stop-usd must be a positive number');
+  });
+
+  it('stops starting runs once measured spend plus one call per worker could cross the stop', () => {
+    expect(mayStartRun(50, 4, 2, 60)).toBe(true);
+    expect(mayStartRun(52.01, 4, 2, 60)).toBe(false);
   });
 
   it('rejects malformed options', () => {

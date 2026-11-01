@@ -32,7 +32,14 @@ const VerificationSchema = z.object({
   ),
 });
 
-export type VerificationResult = z.infer<typeof VerificationSchema> & { failureRetryable?: boolean };
+/** Why a verifier call returned no verdict: its own 30-second deadline, or anything else. */
+export type UnavailableReason = 'deadline' | 'other';
+
+export type VerificationResult = z.infer<typeof VerificationSchema> & {
+  failureRetryable?: boolean;
+  /** Set only on the fail-closed result. A fixed value, never error text. */
+  unavailableReason?: UnavailableReason;
+};
 
 export const VERIFIER_PROMPT = `You are a factual verification and relevance assistant for NC Medicaid policy answers. Given a QUESTION, an ANSWER, and SOURCE DOCUMENTS, perform four checks:
 
@@ -151,10 +158,12 @@ The server marks web excerpts with evidenceRole="supplementary". This role is au
     // path users never see degrade) are detectable. Our own deadline firing
     // is not a provider outage: a slow pass on a long answer repeats on every
     // retry, so it gets its own event.
-    log.error(deadline.aborted && !signal?.aborted ? 'verifier.deadline_aborted' : 'verifier.failed_closed',
+    const unavailableReason: UnavailableReason = deadline.aborted && !signal?.aborted ? 'deadline' : 'other';
+    log.error(unavailableReason === 'deadline' ? 'verifier.deadline_aborted' : 'verifier.failed_closed',
       { ...errorFields(err), answerChars: answerText.length, sourceChars: sourceText.length });
     return {
       failureRetryable: isRetryableResearchError(err),
+      unavailableReason,
       supported: false,
       relevant: true,
       citationsComplete: true,
