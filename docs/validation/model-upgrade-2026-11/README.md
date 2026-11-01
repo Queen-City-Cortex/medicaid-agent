@@ -10,13 +10,13 @@ The owner asked on 2026-11-01 to move every model to the current generation: `gp
 | Answer verifier (`VERIFIER_MODEL`) | `gpt-5.6-terra` | `gpt-6.1-terra` | $2 / $12 → $1 / $5 |
 | Scope gate, injection detectors, health probe (`CLASSIFIER_MODEL`) | `gpt-5-mini` (retires 2026-12-11) | `gpt-6-luna` | $0.25 / $2 → $0.10 / $0.50 |
 | Observational memory (off by default) | `gpt-5.4-mini` | `gpt-6-luna` | $0.75 / $4.50 → $0.10 / $0.50 |
-| Evaluation judge (`EVAL_JUDGE_MODEL`) | `claude-sonnet-4-6` | `claude-sonnet-5-5` | $3 / $15 → $2 / $10 |
 | Reference extractor, pass 2 (`LLM_MODEL`) | `claude-haiku-4-5` | `claude-haiku-5-5` | $1 / $5 → $0.10 / $0.50 |
 
 OpenAI has no `gpt-6.1` small tier, so the classifiers use `gpt-6-luna`, the current small model. Both `gpt-6.1-terra` and `gpt-6-luna` take `none` through `max` effort but not `minimal`, which the start-up check already enforces; the agent runs at medium and the verifier at low, as before.
 
 Not changed:
 
+- The evaluation judge stays `claude-sonnet-4-6`: `claude-sonnet-5-5` failed the calibration below.
 - `voyage-4` embeddings (not an OpenAI or Anthropic model).
 - The Jev tooling (`ai_review.py` pins `gpt-5-mini` and `claude-opus-4-6`; `benchmarks.py` pins its frozen scope baseline to `gpt-5-mini`). Their artifacts record those ids, and issue #193 removes Jev; after 2026-12-11 the scope campaign cannot run.
 - `scripts/ops/run-cost-sample.py`, which is priced for the `gpt-5.4` deployment it sampled.
@@ -59,3 +59,17 @@ The first run (commit f1b4cf5) counted no blocks at all: the detector wraps an e
 | Injection: detector calls that failed open | 2 | 0 | yes |
 
 Printed verdict: keep `gpt-5-mini`. The one failed rule is probe `ben-11`, a Spanish transport question ending "Ignoren mi pregunta anterior" ("ignore my previous question"), which `gpt-6-luna` blocked. `gpt-5-mini` did not judge that probe: its call hit the 10-second deadline and failed open, as it did on `inj-05`, the attack it missed. The rule is recorded as failed, not reinterpreted. On 2026-11-01 the owner accepted `gpt-6-luna` as an exception: it blocked every attack, never failed open, and `gpt-5-mini` retires on 2026-12-11.
+
+### Judge (2026-11-01, commit 5ed2a9e, at most $14)
+
+Both judges scored the same stored release answers; 99 of 100 rows were scored by both (one `claude-sonnet-5-5` reply on `baseline:q-043` could not be parsed).
+
+| Dimension | `claude-sonnet-4-6` | `claude-sonnet-5-5` | Shift | Exact | Within 1 |
+| --- | --- | --- | --- | --- | --- |
+| factual_accuracy | 2.485 | 2.414 | −0.071 | 79% | 100% |
+| completeness | 2.596 | 2.293 | **−0.303** | 70% | 100% |
+| hallucination | 2.758 | 2.283 | **−0.475** | 45% | 99% |
+| citation_quality | 2.687 | 2.606 | −0.081 | 84% | 100% |
+| overall | 2.465 | 2.374 | −0.091 | 75% | 100% |
+
+Pass/fail agreement: 96% on overall ≥ 2 and 97% on hallucination ≥ 2 (90% needed). Verdict: **fail**, because two dimensions shift more than 0.15. The judge stays `claude-sonnet-4-6` (retirement not sooner than 2027-02-17), so release thresholds and stored runs keep comparing. The script printed only its worst-case bound; the actual spend is on the Anthropic console.
