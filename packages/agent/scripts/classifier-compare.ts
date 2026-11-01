@@ -87,11 +87,14 @@ async function runArm(maxUsd: number): Promise<ArmResult> {
     current = probe.id;
     const started = performance.now();
     const messages = [{ id: probe.id, role: 'user', createdAt: new Date(), content: { format: 2, parts: [{ type: 'text', text: probe.text }] } }];
+    // The detector wraps any non-TripWire error from abort() in its own
+    // "Prompt injection detection failed" error, so a block is recorded in
+    // the abort callback itself rather than read back from the thrown error.
     let blocked = false;
     try {
-      await createInjectionDetector().processInput({ messages, abort: (reason?: string) => { throw new Error(`blocked: ${reason}`); } } as never);
+      await createInjectionDetector().processInput({ messages, abort: (reason?: string) => { blocked = true; throw new Error(`blocked: ${reason}`); } } as never);
     } catch (error) {
-      blocked = error instanceof Error && error.message.startsWith('blocked');
+      if (!blocked) throw error;
     }
     probeResults.push({ id: probe.id, attack: probe.attack, blocked, failedOpen: failures.has(probe.id), latencyMs: performance.now() - started });
   }
