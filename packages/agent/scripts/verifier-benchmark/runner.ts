@@ -407,7 +407,8 @@ export interface BenchmarkOptions {
   verify: VerifyFn;
   /** Called with each model call's usage; return false to stop starting new runs. */
   onUsage?: (usage: unknown) => boolean;
-  /** Asked before each run starts, including the first batch, with the runs still in flight. */
+  /** Asked before each run starts, including the first batch, with the runs still in flight.
+   *  A refusal with runs in flight retires one worker; a refusal with none stops the benchmark. */
   mayStart?: (runsInFlight: number) => boolean;
   onProgress?: (done: number, total: number) => void;
 }
@@ -420,7 +421,9 @@ export async function runBenchmark(cases: PlannedCase[], options: BenchmarkOptio
   let inFlight = 0;
   const worker = async () => {
     while (!stop && next < queue.length) {
-      if (options.mayStart?.(inFlight) === false) { stop = true; break; }
+      // Runs in flight hold reservations that clear as they finish, so a refusal
+      // while others run only retires this worker; with nothing in flight it is final.
+      if (options.mayStart?.(inFlight) === false) { if (inFlight === 0) stop = true; break; }
       const { planned, repeat } = queue[next++];
       inFlight += 1;
       try {

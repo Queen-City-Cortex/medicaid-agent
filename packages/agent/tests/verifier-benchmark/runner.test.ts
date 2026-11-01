@@ -267,15 +267,24 @@ describe('end to end against the mock verifier', () => {
     expect(records).toHaveLength(4);
   });
 
-  it('asks before every run, the first batch included, with the runs still in flight', async () => {
+  it('asks before every run, the first batch included, and retires workers while reservations are held', async () => {
     const plan = planCases([cleanItem], [], new Map());
     const seen: number[] = [];
+    // Room for one run at a time: the extra workers retire and the queue still finishes.
     const { records, stoppedEarly } = await runBenchmark(plan.cases, { repeats: 3, concurrency: 4, verify: mockVerify,
       mayStart: inFlight => { seen.push(inFlight); return inFlight < 1; } });
-    // The second worker of the first batch is refused while the first run is in flight.
     expect(seen.slice(0, 2)).toEqual([0, 1]);
+    expect(stoppedEarly).toBe(false);
+    expect(records).toHaveLength(plan.cases.length * 3);
+  });
+
+  it('stops for good only when a run cannot start with nothing in flight', async () => {
+    const plan = planCases([cleanItem], [], new Map());
+    let started = 0;
+    const { records, stoppedEarly } = await runBenchmark(plan.cases, { repeats: 3, concurrency: 2, verify: mockVerify,
+      mayStart: inFlight => inFlight === 0 && started++ < 2 });
     expect(stoppedEarly).toBe(true);
-    expect(records.length).toBeLessThan(plan.cases.length * 3);
+    expect(records).toHaveLength(2);
   });
 });
 
