@@ -216,8 +216,12 @@ async function signInThroughApi(context) {
 }
 
 async function openAuthenticatedChat(page) {
-  await signInThroughApi(page.context());
+  const signedInThroughApi = await signInThroughApi(page.context());
   await page.goto(`${baseUrl}/chat`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+  if (signedInThroughApi) {
+    if (await isChatReady(page, 45_000)) return;
+    throw new Error(`Signed in through the WorkOS API, but /chat did not load the chat; the browser is at ${new URL(page.url()).origin}${new URL(page.url()).pathname}`);
+  }
 
   if (await isChatReady(page, 8_000)) {
     return;
@@ -364,7 +368,9 @@ async function verifyRestoredAnswer(page, expected) {
 }
 
 async function isChatReady(page, timeout) {
-  return page.getByTestId('chat-input').isVisible({ timeout }).catch(() => false);
+  // isVisible() does not wait (its timeout option is ignored), so a chat that
+  // renders after domcontentloaded would read as signed out.
+  return page.getByTestId('chat-input').waitFor({ state: 'visible', timeout }).then(() => true, () => false);
 }
 
 async function saveScreenshot(page, targetPath) {
