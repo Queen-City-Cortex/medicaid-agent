@@ -1,6 +1,0 @@
-{
-  "ignorePatterns": ".brv/**\ndocs/archive/**",
-  "disabledLabels": [
-    "skip-review"
-  ]
-}

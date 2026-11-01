@@ -40,7 +40,7 @@ A July 2026 A/B on the same harness already rejected one candidate: `gpt-5.6-lun
 
 ## Why a graph
 
-**Choice.** The corpus lives in Neo4j: documents, a section hierarchy (`HAS_SECTION`, `PARENT_OF`, `NEXT_SIBLING`), amendment and supersession edges (`AMENDS`, `SUPERSEDED_BY`) and cross-references (`REFERENCES`, `REFERENCES_DOCUMENT`), with vector and full-text indexes over sections in the same store ([original design](../superpowers/specs/2026-03-27-pipeline-knowledge-graph-design.md)).
+**Choice.** The corpus lives in Neo4j: documents, a section hierarchy (`HAS_SECTION`, `PARENT_OF`, `NEXT_SIBLING`), amendment and supersession edges (`AMENDS`, `SUPERSEDED_BY`) and cross-references (`REFERENCES`, `REFERENCES_DOCUMENT`), with vector and full-text indexes over sections in the same store.
 
 **What it buys.** Medicaid policy questions are often about which text governs. Clinical coverage policies are revised by change notices, plan amendments supersede earlier ones, and manuals cite statutes. Answer frames walk those edges to find the authoritative document and its latest amendment ([`amendments.ts`](../../packages/policy-corpus/src/primitives/amendments.ts)) and to read a whole section, or its neighbours, rather than an isolated chunk.
 

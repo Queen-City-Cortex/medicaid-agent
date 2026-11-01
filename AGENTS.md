@@ -22,7 +22,7 @@ When something surprises you, tell the developer and update this file or the [pr
 - Policy-family routing belongs in `PolicyCorpus`, not prompt patches. Validate live evidence identities before interpreting evaluation scores.
 - Use isolated observability storage for answer evals, and check repeated full runs before treating a single score as a regression.
 - Keep source retirement evidence, availability accounting, and audit artifacts durable. A missing payload or DNS failure is not proof of withdrawal.
-- Work from current main for new tasks. Preserve pending files and Git refs before removing old branches or worktrees; see the [repository audit](docs/development/repository-audit-2026-10-02.md).
+- Work from current main for new tasks. Preserve pending files and Git refs before removing old branches or worktrees.
 
 ## Code Review Rules
 

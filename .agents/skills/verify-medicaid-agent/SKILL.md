@@ -17,7 +17,7 @@ Hard rules:
 All commands run from the repo root. They need `curl`, `ss` or `lsof`, and Node matching `.nvmrc` (22.23.3) on PATH plus `npm ci` at the root and in `e2e/` (`cd e2e && npm ci && npx playwright install chromium`).
 
 ```bash
-V=.cursor/skills/verify-medicaid-agent/scripts/verify.sh
+V=.agents/skills/verify-medicaid-agent/scripts/verify.sh
 $V launch                # start JWKS stub + next dev with the hermetic env, wait until ready
 $V doctor                # read-only health check; run first whenever anything looks off
 $V drive ask-question    # drive one feature recipe (drive/<name>.verify.ts)
