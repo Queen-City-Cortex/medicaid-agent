@@ -17,7 +17,7 @@ dependencies = [
     "xlrd>=2.0.2,<3",
     "python-pptx>=1.0.2,<2",
     "pypdf>=6.0,<7",
-    "tokenizers==0.22.2",
+    "tokenizers==0.23.3",
 ]
 
 [project.optional-dependencies]
