@@ -293,7 +293,7 @@ describe('cost bound', () => {
     vi.stubEnv('VERIFIER_MODEL', '');
     const plan = planCases([cleanItem], [], new Map());
     const bound = costBound(plan.cases, 3);
-    expect(bound).toMatchObject({ model: 'gpt-6.1-terra', priced: true, runs: 15, maxModelCalls: 30, maxOutputTokens: 180_000 });
+    expect(bound).toMatchObject({ model: 'gpt-5.6-terra', priced: true, runs: 15, maxModelCalls: 30, maxOutputTokens: 180_000 });
     expect(bound.maxUsd).toBeGreaterThan(0);
     expect(bound.maxUsd).toBeLessThan(30 * bound.maxUsdPerCall + 1e-9);
   });

@@ -122,7 +122,7 @@ A winner is adopted at the next `release-baseline` regeneration and not before, 
 
 ## A cheaper same-family candidate (November 2026)
 
-The model upgrade moved the verifier from `gpt-5.6-terra` to `gpt-6.1-terra` (half the price) under the cost-swap rule in decision 0002. It is a fourth arm with the same fixtures, effort and bounds:
+The model upgrade measured `gpt-6.1-terra` (half the price) as a replacement for `gpt-5.6-terra` under the cost-swap rule in decision 0002; it failed, and the verifier stays `gpt-5.6-terra`. It is a fourth arm with the same fixtures, effort and bounds:
 
 | Arm | `VERIFIER_MODEL` | `VERIFIER_REASONING_EFFORT` | Printed bound, full run |
 | --- | --- | --- | --- |

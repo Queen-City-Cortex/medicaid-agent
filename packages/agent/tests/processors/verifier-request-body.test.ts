@@ -51,9 +51,9 @@ describe('verifier request', () => {
   it('pins the default model, low effort and storage off (issue #18)', () => {
     vi.stubEnv('VERIFIER_MODEL', '');
     vi.stubEnv('VERIFIER_REASONING_EFFORT', '');
-    expect(getConfig().model).toBe('gpt-6.1-terra');
+    expect(getConfig().model).toBe('gpt-5.6-terra');
     expect(getConfig().reasoningEffort).toBe('low');
-    expect(RECORDED).toMatchObject({ model: 'gpt-6.1-terra', store: false, reasoning: { effort: 'low' } });
+    expect(RECORDED).toMatchObject({ model: 'gpt-5.6-terra', store: false, reasoning: { effort: 'low' } });
     expect(RECORDED.text.format).toMatchObject({ type: 'json_schema', strict: true });
   });
 

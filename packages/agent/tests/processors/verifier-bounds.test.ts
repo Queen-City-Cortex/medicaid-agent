@@ -13,9 +13,9 @@ import type { VerificationResult } from '../../src/processors/verifier/verify.js
 afterEach(() => vi.unstubAllEnvs());
 
 describe('verifier bounds (issue #18)', () => {
-  it('defaults to gpt-6.1-terra', () => {
+  it('defaults to gpt-5.6-terra', () => {
     vi.stubEnv('VERIFIER_MODEL', '');
-    expect(getConfig().model).toBe('gpt-6.1-terra');
+    expect(getConfig().model).toBe('gpt-5.6-terra');
   });
 
   it('makes at most two model passes, then withholds', async () => {
