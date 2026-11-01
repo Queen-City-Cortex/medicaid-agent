@@ -4,7 +4,7 @@ import { runVerificationForAnswer } from '../../src/processors/verifier/run.js';
 import type { SourceEntry } from '../../src/processors/verifier/evidence.js';
 import type { VerificationResult } from '../../src/processors/verifier/verify.js';
 
-// Issue #188 fixes the verifier's model, effort, deadline, pass ceiling and
+// Issue #18 fixes the verifier's model, effort, deadline, pass ceiling and
 // retry count. Where each is pinned:
 //   default model and the two-pass ceiling   here
 //   low effort, storage off, schema mode     verifier-request-body.test.ts
@@ -12,7 +12,7 @@ import type { VerificationResult } from '../../src/processors/verifier/verify.js
 
 afterEach(() => vi.unstubAllEnvs());
 
-describe('verifier bounds (issue #188)', () => {
+describe('verifier bounds (issue #18)', () => {
   it('defaults to gpt-5.6-terra', () => {
     vi.stubEnv('VERIFIER_MODEL', '');
     expect(getConfig().model).toBe('gpt-5.6-terra');

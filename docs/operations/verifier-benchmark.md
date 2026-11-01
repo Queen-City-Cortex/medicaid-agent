@@ -1,8 +1,8 @@
 # Verifier benchmark
 
-An offline measurement of how often the answer verifier stops a wrong answer and how often it withholds a good one (issue #268). It replays `runVerificationForAnswer`, the function the chat route, the CLI and deep research all release through, over stored answers. It never runs in CI, and the paid mode runs only when a person asks for it with a spending cap.
+An offline measurement of how often the answer verifier stops a wrong answer and how often it withholds a good one. It replays `runVerificationForAnswer`, the function the chat route, the CLI and deep research all release through, over stored answers. It never runs in CI, and the paid mode runs only when a person asks for it with a spending cap.
 
-Change the verifier's model or reasoning effort only against this benchmark, and only within the limits issue #188 fixes: a 30-second deadline, two passes, no retries.
+Change the verifier's model or reasoning effort only against this benchmark, and only within the limits issue #18 fixes: a 30-second deadline, two passes, no retries.
 
 ## What it replays
 

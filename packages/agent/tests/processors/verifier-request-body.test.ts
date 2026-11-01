@@ -6,7 +6,7 @@ import { getConfig } from '../../src/processors/verifier/config.js';
 import { stubOpenAIResponses } from '../helpers/openai-responses-stub.js';
 
 // The JSON the verifier sends to OpenAI for a fixed input, recorded before
-// `verifyAnswer` moved from `openaiModel()` to `createModel()` (issue #268).
+// `verifyAnswer` moved from `openaiModel()` to `createModel()`.
 // Model, reasoning effort, response storage, the encrypted-reasoning include,
 // the strict JSON-schema mode and the message layout are all in this body, so
 // drift in any provider setting fails here. The system prompt is asserted on
@@ -47,7 +47,7 @@ describe('verifier request', () => {
     expect(Object.keys(bodies[0])).toEqual(Object.keys(RECORDED));
   });
 
-  it('pins the default model, low effort and storage off (issue #188)', () => {
+  it('pins the default model, low effort and storage off (issue #18)', () => {
     vi.stubEnv('VERIFIER_MODEL', '');
     expect(getConfig().model).toBe('gpt-5.6-terra');
     expect(RECORDED).toMatchObject({ model: 'gpt-5.6-terra', store: false, reasoning: { effort: 'low' } });

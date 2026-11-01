@@ -1,7 +1,7 @@
 import { intEnv, isVerifierEnabled, strEnv } from '../../env.js';
 
 /** Code default for `VERIFIER_MODEL`. Changing it is a verifier change under
- *  issue #188: measure it with the seeded-fault benchmark first
+ *  issue #18: measure it with the seeded-fault benchmark first
  *  (docs/operations/verifier-benchmark.md). */
 export const DEFAULT_VERIFIER_MODEL = 'gpt-5.6-terra';
 

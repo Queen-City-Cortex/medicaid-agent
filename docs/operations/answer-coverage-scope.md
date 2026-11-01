@@ -1,6 +1,6 @@
 # Bounded answer coverage
 
-The [October 3 review](../validation/product-scope-review-2026-10-03/README.md) identified four unavailable originals whose absence need not prevent every supported policy question. Three remain: the pharmacist standing order was recovered on 2026-10-11 from the Internet Archive's capture of its registered address (issue #187), and is now a required source instead of a limitation. The implementation separates those limitations from source recovery and retirement. Its presence in Git does not approve a corpus exclusion, qualify a graph, or authorize activation.
+The [October 3 review](../validation/product-scope-review-2026-10-03/README.md) identified four unavailable originals whose absence need not prevent every supported policy question. Three remain: the pharmacist standing order was recovered on 2026-10-11 from the Internet Archive's capture of its registered address (issue #17), and is now a required source instead of a limitation. The implementation separates those limitations from source recovery and retirement. Its presence in Git does not approve a corpus exclusion, qualify a graph, or authorize activation.
 
 ## Runtime behavior
 
