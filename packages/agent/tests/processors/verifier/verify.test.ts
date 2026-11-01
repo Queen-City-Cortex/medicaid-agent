@@ -28,6 +28,8 @@ describe('verifyAnswer fail-closed logging', () => {
     // Fail closed: not trusted, flagged unsupported with the unavailable reason.
     expect(result.supported).toBe(false);
     expect(result.unsupportedClaims[0]?.reason).toBe(VERIFICATION_UNAVAILABLE);
+    expect(result.unavailableReason).toBe('other');
+    expect(JSON.stringify(result)).not.toContain('429');
   });
 
   it('enforces supplementary evidence authority in the system instructions', async () => {

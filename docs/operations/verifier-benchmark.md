@@ -46,7 +46,7 @@ npx tsx scripts/verifier-benchmark.ts --live --max-usd 170
 For the default model, `gpt-5.6-terra`, the full run is 738 runs and at most 1,476 model calls. The script prints its upper bound before the first call: about $165, which assumes every run makes both passes, every call sends evidence up to the verifier's budget at 3 characters per token, and every call returns 6,000 output tokens. Most runs make one pass, so expect a fraction of that. A `--live` run:
 
 - refuses to start without `--max-usd`, under CI (`CI` set), when the printed bound exceeds `--max-usd`, when the model has no entry in `src/usage/pricing.ts`, or when the model's provider key is missing;
-- adds up the cost of each call from its reported token usage and stops starting runs once the next calls could cross the cap (exit code 3, with the rates for the runs that finished);
+- adds up the cost of each call from its reported token usage and stops starting runs once the next calls could cross the cap, or `--stop-usd` when given (exit code 3, with the rates for the runs that finished). `--max-usd` must still cover the printed bound; `--stop-usd`, which may not exceed it, holds the run to a budget below that bound;
 - reads `VERIFIER_MODEL` and the provider key from the environment or `packages/agent/.env`, sends the stored questions, answers and corpus evidence to that provider only, and with OpenAI keeps response storage off;
 - writes every run, including the model's findings, to `packages/agent/benchmark-results/` (gitignored, mode 0600). Keep that file with the release evidence, outside Git.
 
@@ -56,7 +56,7 @@ Useful options: `--limit 5` (first five items of each fixture, for a cheap trial
 
 Each row gives runs, hits, the rate and a Wilson 95% interval over runs. Three repeats of one item are not independent, so read the interval with the per-item columns: `items 3/3` were hit on every repeat, `some` on one or two, `none` never. An item in `some` is the verifier disagreeing with itself.
 
-A hit is, for a seeded error, a run that did not release it; for an original, a clean answer withheld; for a judged-bad answer, a run withheld or corrected.
+A hit is, for a seeded error, a run that did not release it; for an original, a clean answer withheld; for a judged-bad answer, a run withheld or corrected. A seeded run counts as caught by correction only when the corrected text matches the clean original everywhere outside the seeded span. A correction that removes the seed but changes other text too is a **stray correction**: it is not a hit, and the seeded section prints the stray count for each group. Only the verifier approved that other text.
 
 The layer columns say what stopped the answer:
 
@@ -66,7 +66,9 @@ The layer columns say what stopped the answer:
 - **model p2**: seeded arm only. The first verdict rejected the text for something else, its correction kept the seeded error, and the recheck withheld it.
 - **not stopped**: released as written, or released as a correction that still carries the seeded error. The second case is also counted on its own line under the seeded table.
 
-**model rate** is the card's question: of the runs no deterministic layer decided, the share the model stopped. `corrected` counts answers released after a rewrite: for an original that is an unneeded rewrite, and for a judged-bad answer it is released text that nobody has judged. `unavailable` runs (the provider call failed) are left out of every rate.
+**model rate** is the card's question: of the runs no deterministic layer decided, the share the model stopped. `corrected` counts answers released after a rewrite: for an original that is an unneeded rewrite, and for a judged-bad answer it is released text that nobody has judged. `unavailable` runs (no verdict) are left out of every rate.
+
+The last table, **latency and unavailable runs**, covers every group with unavailable runs included. It gives the median and 95th-percentile latency per run, the count of one-pass runs over 25 seconds (the verifier drifting toward its 30-second deadline), and unavailable runs split into **deadline aborts** and **other failures**. A run can make two calls, each with its own deadline, so these are per-run figures and not per-call figures.
 
 Limits to state with any result:
 
