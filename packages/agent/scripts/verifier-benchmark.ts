@@ -144,22 +144,39 @@ async function main(): Promise<number> {
     mayStart = runsInFlight => mayStartRun(spentUsd, runsInFlight, bound.maxUsdPerCall, stopUsd);
   }
 
+  // A failed call (a reply cut off by the output cap, the deadline, a provider
+  // error) reports no usage but may still be billed. Charge it at the most one
+  // call can cost, so the stop and the forecast never undercount.
+  let unreportedCalls = 0;
+  const liveVerify: typeof verifyAnswer = async (question, answer, sources, usage, signal, issues) => {
+    let reported = false;
+    const result = await verifyAnswer(question, answer, sources, value => { reported = true; usage?.(value); }, signal, issues,
+      { maxOutputTokens: BOUND_OUTPUT_TOKENS_PER_CALL });
+    if (!reported) {
+      unreportedCalls += 1;
+      modelCalls += 1;
+      spentUsd += bound.maxUsdPerCall;
+    }
+    return result;
+  };
+
   const started = Date.now();
   const { records, stoppedEarly } = await runBenchmark(plan.cases, {
     repeats: args.repeats,
     concurrency: args.concurrency,
     // The cap is what the cost bound assumes per call. A reply cut off by it
     // fails closed and is reported as an unavailable run.
-    verify: args.mode === 'live'
-      ? (question, answer, sources, usage, signal, issues) => verifyAnswer(question, answer, sources, usage, signal, issues, { maxOutputTokens: BOUND_OUTPUT_TOKENS_PER_CALL })
-      : mockVerify,
+    verify: args.mode === 'live' ? liveVerify : mockVerify,
     onUsage,
     mayStart,
     onProgress: (done, total) => { if (args.mode === 'live' && done % 25 === 0) console.error(`${done}/${total} runs, $${spentUsd.toFixed(2)} spent`); },
   });
   const summary = summarize(records);
   console.log(`\n${formatSummary(summary, plan)}\n`);
-  if (args.mode === 'live') console.log(`Spent about $${spentUsd.toFixed(2)} over ${modelCalls} model calls in ${Math.round((Date.now() - started) / 1000)} s.`);
+  if (args.mode === 'live') {
+    console.log(`Spent about $${spentUsd.toFixed(2)} over ${modelCalls} model calls in ${Math.round((Date.now() - started) / 1000)} s.`);
+    if (unreportedCalls) console.log(`${unreportedCalls} failed calls reported no usage and were charged at the per-call maximum, $${bound.maxUsdPerCall.toFixed(4)} each.`);
+  }
   if (stoppedEarly) console.log(`STOPPED EARLY at the spending stop: ${records.length} of ${bound.runs} runs finished. The rates above cover those runs only.`);
 
   // The record holds model-written findings about stored drafts: keep it out of Git.
@@ -168,7 +185,7 @@ async function main(): Promise<number> {
     mkdirSync(dirname(out), { recursive: true, mode: 0o700 });
     writeFileSync(out, JSON.stringify({
       schemaVersion: 2, mode: args.mode, model, startedAt: new Date(started).toISOString(), repeats: args.repeats,
-      arms: args.arms, limit: args.limit, maxUsd: args.maxUsd, stopUsd: args.stopUsd, stoppedEarly, spentUsd, modelCalls, bound, unseedable: plan.unseedable, summary,
+      arms: args.arms, limit: args.limit, maxUsd: args.maxUsd, stopUsd: args.stopUsd, stoppedEarly, spentUsd, modelCalls, unreportedCalls, bound, unseedable: plan.unseedable, summary,
       seeds: plan.cases.filter(planned => planned.seed).map(planned => ({ caseId: planned.id, ...planned.seed!.change })),
       runs: records,
     }, null, 1) + '\n', { mode: 0o600 });
