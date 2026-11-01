@@ -4,7 +4,7 @@ import { verifyAnswer, VERIFICATION_UNAVAILABLE } from '../../src/processors/ver
 import { log } from '../../src/logger.js';
 
 vi.mock('ai', async original => ({ ...await original<typeof import('ai')>(), generateObject: vi.fn() }));
-vi.mock('../../src/model.js', () => ({ createModel: () => 'test-model' }));
+vi.mock('../../src/model.js', async original => ({ ...await original<typeof import('../../src/model.js')>(), createModel: () => 'test-model' }));
 afterEach(() => { vi.restoreAllMocks(); vi.useRealTimers(); });
 
 describe('verification deadline', () => {

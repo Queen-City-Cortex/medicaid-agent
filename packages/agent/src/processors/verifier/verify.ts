@@ -119,12 +119,18 @@ export async function verifyAnswer(
   const { earlierUserTurns = [], ...issues } = deterministicIssues ?? { unknownUrls: [], unknownQuotes: [] };
   const deadline = AbortSignal.timeout(30_000);
   try {
+    const { model, reasoningEffort } = getConfig();
     const { object, usage } = await generateObject({
-      model: createModel(getConfig().model),
+      model: createModel(model),
       schema: VerificationSchema,
       abortSignal: signal ? AbortSignal.any([signal, deadline]) : deadline,
       maxRetries: 0,
-      providerOptions: { openai: { reasoningEffort: 'low' } },
+      // Each provider reads only its own key. The start-up check refuses an
+      // effort the configured model rejects (none and minimal for Claude).
+      providerOptions: {
+        openai: { reasoningEffort },
+        ...(reasoningEffort === 'none' || reasoningEffort === 'minimal' ? {} : { anthropic: { effort: reasoningEffort } }),
+      },
       system: VERIFIER_PROMPT + (deterministicIssues?.coverageRequirements?.length ? `\n\n## SERVER COVERAGE REQUIREMENTS\n${deterministicIssues.coverageRequirements.join('\n')}\nThese are server policy constraints, not source claims. Reject or correct statements that use the wrong effective period, invent an unavailable original, or infer standing-order withdrawal from payment termination. Apply these requirements to the exact corrected text too.` : '') + (deterministicIssues?.hasSupplementaryEvidence ? `
 
 ## EVIDENCE AUTHORITY

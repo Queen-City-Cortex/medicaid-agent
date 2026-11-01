@@ -59,6 +59,26 @@ describe('assertVerifierModelUsable', () => {
       .toThrow('VERIFIER_MODEL must be an OpenAI (gpt-, o1, o3, o4) or Anthropic (claude-) model id: llama-4');
   });
 
+  it('refuses a VERIFIER_REASONING_EFFORT outside the allow-list', () => {
+    expect(() => assertVerifierModelUsable({ OPENAI_API_KEY: 'sk-test', VERIFIER_REASONING_EFFORT: 'extreme' }))
+      .toThrow('VERIFIER_REASONING_EFFORT must be one of: none, minimal, low, medium, high, xhigh, max');
+    expect(() => assertVerifierModelUsable({ OPENAI_API_KEY: 'sk-test', VERIFIER_REASONING_EFFORT: 'medium' })).not.toThrow();
+  });
+
+  it('refuses an effort a GPT-6 verifier is documented to reject', () => {
+    expect(() => assertVerifierModelUsable({ VERIFIER_MODEL: 'gpt-6.1-sol', OPENAI_API_KEY: 'sk-test', VERIFIER_REASONING_EFFORT: 'none' }))
+      .toThrow('VERIFIER_REASONING_EFFORT none is not supported by gpt-6.1-sol');
+    expect(() => assertVerifierModelUsable({ VERIFIER_MODEL: 'gpt-6.1-sol', OPENAI_API_KEY: 'sk-test', VERIFIER_REASONING_EFFORT: 'low' })).not.toThrow();
+  });
+
+  it('refuses none and minimal for a Claude verifier, which takes low through max', () => {
+    for (const effort of ['none', 'minimal']) {
+      expect(() => assertVerifierModelUsable({ VERIFIER_MODEL: 'claude-sonnet-5-5', ANTHROPIC_API_KEY: 'sk-ant-test', VERIFIER_REASONING_EFFORT: effort }))
+        .toThrow(`VERIFIER_REASONING_EFFORT ${effort} is not supported by claude-sonnet-5-5`);
+    }
+    expect(() => assertVerifierModelUsable({ VERIFIER_MODEL: 'claude-sonnet-5-5', ANTHROPIC_API_KEY: 'sk-ant-test', VERIFIER_REASONING_EFFORT: 'max' })).not.toThrow();
+  });
+
   it('checks nothing when the verifier is disabled', () => {
     expect(() => assertVerifierModelUsable({ VERIFIER_ENABLED: 'false', VERIFIER_MODEL: 'claude-sonnet-4-6' })).not.toThrow();
   });

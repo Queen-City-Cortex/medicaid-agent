@@ -63,9 +63,9 @@ function unsupportedEfforts(modelId: string): readonly ReasoningEffort[] {
 
 /** Start-up check: a model that rejects the configured effort fails every
  *  request, so refuse to boot instead. */
-export function assertReasoningEffortSupported(modelId: string, effort: ReasoningEffort): void {
+export function assertReasoningEffortSupported(modelId: string, effort: ReasoningEffort, variable = 'AGENT_REASONING_EFFORT'): void {
   if (unsupportedEfforts(modelId).includes(effort)) {
-    throw new Error(`AGENT_REASONING_EFFORT ${effort} is not supported by ${modelId}`);
+    throw new Error(`${variable} ${effort} is not supported by ${modelId}`);
   }
 }
 
@@ -132,11 +132,12 @@ export const AGENT_MODEL = strEnv('AGENT_MODEL', 'gpt-5.6-terra');
 export const REASONING_EFFORTS = ['none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'] as const;
 export type ReasoningEffort = (typeof REASONING_EFFORTS)[number];
 
-/** Unset or blank means medium; anything outside the allow-list throws. */
-export function parseReasoningEffort(raw: string | undefined): ReasoningEffort {
-  const value = raw?.trim() || 'medium';
+/** Unset or blank means `fallback` (medium for the agents); anything outside
+ *  the allow-list throws, naming `variable`. */
+export function parseReasoningEffort(raw: string | undefined, fallback: ReasoningEffort = 'medium', variable = 'AGENT_REASONING_EFFORT'): ReasoningEffort {
+  const value = raw?.trim() || fallback;
   if (!(REASONING_EFFORTS as readonly string[]).includes(value)) {
-    throw new Error(`AGENT_REASONING_EFFORT must be one of: ${REASONING_EFFORTS.join(', ')}`);
+    throw new Error(`${variable} must be one of: ${REASONING_EFFORTS.join(', ')}`);
   }
   return value as ReasoningEffort;
 }
