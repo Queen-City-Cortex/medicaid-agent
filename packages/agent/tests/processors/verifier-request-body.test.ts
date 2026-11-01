@@ -35,6 +35,7 @@ afterEach(() => {
 describe('verifier request', () => {
   it('sends OpenAI the recorded body for the default model', async () => {
     vi.stubEnv('VERIFIER_MODEL', '');
+    vi.stubEnv('VERIFIER_REASONING_EFFORT', '');
     const { bodies } = stubOpenAIResponses([[{ type: 'message', id: 'msg_1', text: JSON.stringify(CLEAN) }]]);
     expect((await verifyFixedInput()).supported).toBe(true);
     expect(bodies).toHaveLength(1);
@@ -49,7 +50,9 @@ describe('verifier request', () => {
 
   it('pins the default model, low effort and storage off (issue #18)', () => {
     vi.stubEnv('VERIFIER_MODEL', '');
+    vi.stubEnv('VERIFIER_REASONING_EFFORT', '');
     expect(getConfig().model).toBe('gpt-5.6-terra');
+    expect(getConfig().reasoningEffort).toBe('low');
     expect(RECORDED).toMatchObject({ model: 'gpt-5.6-terra', store: false, reasoning: { effort: 'low' } });
     expect(RECORDED.text.format).toMatchObject({ type: 'json_schema', strict: true });
   });
@@ -95,7 +98,32 @@ describe('verifier request', () => {
     expect(requests.map(request => request.url)).toEqual(['https://api.anthropic.com/v1/messages']);
     const { body } = requests[0];
     expect(Object.keys(body)).toEqual(['model', 'max_tokens', 'output_config', 'system', 'messages']);
-    expect(body).toMatchObject({ model: 'claude-sonnet-5-5', max_tokens: 128000, output_config: { format: { type: 'json_schema' } } });
+    expect(body).toMatchObject({ model: 'claude-sonnet-5-5', max_tokens: 128000, output_config: { effort: 'low', format: { type: 'json_schema' } } });
     expect(body.output_config.format.schema.required).toEqual(Object.keys(CLEAN));
+  });
+
+  it('sends OpenAI the effort VERIFIER_REASONING_EFFORT names', async () => {
+    vi.stubEnv('VERIFIER_MODEL', '');
+    vi.stubEnv('VERIFIER_REASONING_EFFORT', 'medium');
+    const { bodies } = stubOpenAIResponses([[{ type: 'message', id: 'msg_1', text: JSON.stringify(CLEAN) }]]);
+    await verifyFixedInput();
+    expect(bodies[0].reasoning).toEqual({ effort: 'medium' });
+  });
+
+  it('sends a Claude verifier the effort under the Anthropic setting', async () => {
+    vi.stubEnv('VERIFIER_MODEL', 'claude-sonnet-5-5');
+    vi.stubEnv('ANTHROPIC_API_KEY', 'sk-ant-test-stub-not-a-real-key');
+    vi.stubEnv('VERIFIER_REASONING_EFFORT', 'high');
+    const bodies: any[] = [];
+    vi.stubGlobal('fetch', vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
+      bodies.push(JSON.parse(String(init?.body)));
+      return new Response(JSON.stringify({
+        id: 'msg_stub', type: 'message', role: 'assistant', model: 'claude-sonnet-5-5',
+        content: [{ type: 'text', text: JSON.stringify(CLEAN) }],
+        stop_reason: 'end_turn', stop_sequence: null, usage: { input_tokens: 1, output_tokens: 1 },
+      }), { headers: { 'content-type': 'application/json' } });
+    }));
+    await verifyFixedInput();
+    expect(bodies[0].output_config.effort).toBe('high');
   });
 });

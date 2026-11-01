@@ -125,7 +125,7 @@ def evaluation_fingerprint(*, read_graph: bool = True) -> dict:
             if (
                 key.endswith("_MODEL")
                 or key.endswith("_TEMPERATURE")
-                or key in {"VERIFIER_ENABLED", "VERIFIER_MAX_SOURCE_TOKENS", "AGENT_REASONING_EFFORT"}
+                or key in {"VERIFIER_ENABLED", "VERIFIER_MAX_SOURCE_TOKENS", "AGENT_REASONING_EFFORT", "VERIFIER_REASONING_EFFORT"}
             )
             and not any(secret in key for secret in ["KEY", "TOKEN", "SECRET"])
         },

@@ -547,6 +547,21 @@ def test_the_fingerprint_names_the_commit_of_a_clean_checkout(tmp_path, monkeypa
     assert {**after, "implementationCommit": head} == before
 
 
+def test_the_fingerprint_names_the_verifier_effort(tmp_path, monkeypatch):
+    fake_repository(tmp_path, monkeypatch)
+    monkeypatch.delenv("VERIFIER_REASONING_EFFORT", raising=False)
+    unset = evidence.evaluation_fingerprint()
+    assert "VERIFIER_REASONING_EFFORT" not in unset["modelEnvironment"]
+
+    monkeypatch.setenv("VERIFIER_REASONING_EFFORT", "low")
+    low = evidence.evaluation_fingerprint()
+    monkeypatch.setenv("VERIFIER_REASONING_EFFORT", "medium")
+    medium = evidence.evaluation_fingerprint()
+    assert low["modelEnvironment"]["VERIFIER_REASONING_EFFORT"] == "low"
+    assert medium["modelEnvironment"]["VERIFIER_REASONING_EFFORT"] == "medium"
+    assert low != medium
+
+
 @pytest.mark.parametrize("path", ["module.py", "untracked.py", "corpus-release-policy.json"])
 def test_a_checkout_with_a_changed_or_untracked_file_has_no_fingerprint(
     tmp_path, monkeypatch, path
