@@ -16,8 +16,8 @@
     "cli": "tsx src/cli.ts"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "^3.0.134",
-    "@ai-sdk/openai": "^3.0.130",
+    "@ai-sdk/anthropic": "^3.0.137",
+    "@ai-sdk/openai": "^3.0.135",
     "@libsql/client": "^0.18.0",
     "@mastra/ai-sdk": "1.11.1",
     "@mastra/auth-workos": "1.6.6",
