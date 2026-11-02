@@ -98,7 +98,7 @@ The agent defaults to **`gpt-6.1-terra`** (OpenAI, $1/$5 per million tokens), wh
 
 Reasoning effort is a separate, explicit setting (`AGENT_REASONING_EFFORT`, default `medium`). The 2026-07-09 comparison ran each model at its own API default (none for `gpt-5.4`, medium for `gpt-5.6-terra`), so it varied model and effort together. Answer evaluation results record the model and effort the agent resolved, under `config.agent_config` and on each row.
 
-**Production override.** The 2026-10-03 model audit records the production agent and corpus job setting `AGENT_MODEL=gpt-5.4`, a configuration that has not been evaluated. Remove that variable (or set it to the default) when the model upgrade is deployed, so production runs the evaluated default.
+**Production.** The 2026-10-03 model audit found an unevaluated `AGENT_MODEL=gpt-5.4` override on the production agent and corpus job. The November 2026 upgrade removed it, so production runs the evaluated default. Do not set `AGENT_MODEL` in production unless an evaluation supports the change.
 
 ```bash
 # Default (gpt-6.1-terra)
