@@ -30,9 +30,14 @@ from pipeline.eval import judge
 from pipeline.eval.evidence import build_judge_evidence
 
 DIMENSIONS = ("factual_accuracy", "completeness", "hallucination", "citation_quality", "overall")
-# Worst-case dollars per judged row: two calls, evidence at its character
-# budget, generous output. Used to stop before the cap, not to report spend.
-ROW_BOUND_USD = {"claude-sonnet-4-6": 0.08, "claude-sonnet-5-5": 0.06}
+# Dollars per million input and output tokens. Spend is measured from each
+# reply's usage block; before every row the run also reserves that row's worst
+# case, two calls per judge at the largest input seen so far (at least
+# MIN_INPUT_TOKENS) and the request's full max_tokens, so a row never starts
+# unless it fits under --max-usd even if every reply uses its whole budget.
+PRICE_PER_MTOK = {"claude-sonnet-4-6": (3.0, 15.0), "claude-sonnet-5-5": (2.0, 10.0)}
+MIN_INPUT_TOKENS = 40_000
+CALLS_PER_ROW = 2
 # A candidate replaces the baseline only when, over all judged rows, each
 # dimension's mean moves by at most this much and at least this share of
 # release-relevant decisions (overall >= 2, hallucination >= 2) match.
@@ -59,6 +64,32 @@ def released_rows(results_paths: list[Path], dataset_path: Path, limit: int | No
                 "evidence_texts": build_judge_evidence(golden_sections=[], agent_sources=sources).blocks,
             })
     return rows[:limit] if limit else rows
+
+
+class Meter:
+    """Measured spend, read from the usage block of every judge reply."""
+
+    def __init__(self) -> None:
+        self.spent_usd = 0.0
+        self.max_input_tokens = MIN_INPUT_TOKENS
+        self._post = judge._post
+
+    def post(self, prompt: str) -> dict:
+        body = self._post(prompt)
+        usage = body.get("usage") or {}
+        inputs = sum(int(usage.get(k) or 0) for k in ("input_tokens", "cache_creation_input_tokens", "cache_read_input_tokens"))
+        price_in, price_out = PRICE_PER_MTOK[judge.EVAL_JUDGE_MODEL]
+        self.spent_usd += (inputs * price_in + int(usage.get("output_tokens") or 0) * price_out) / 1e6
+        self.max_input_tokens = max(self.max_input_tokens, inputs)
+        return body
+
+    def row_reserve(self, models: tuple[str, ...]) -> float:
+        total = 0.0
+        for model in models:
+            price_in, price_out = PRICE_PER_MTOK[model]
+            max_out = judge._request_body(model, "")["max_tokens"]
+            total += CALLS_PER_ROW * (self.max_input_tokens * price_in + max_out * price_out) / 1e6
+        return total
 
 
 def judge_with(model: str, row: dict) -> dict | None:
@@ -106,20 +137,25 @@ def main() -> int:
         raise SystemExit("judge calibration makes paid calls and is refused under CI")
     if not judge.ANTHROPIC_API_KEY:
         raise SystemExit("ANTHROPIC_API_KEY is not set")
+    models = (args.baseline, args.candidate)
+    unpriced = [m for m in models if m not in PRICE_PER_MTOK]
+    if unpriced:
+        raise SystemExit(f"no price for {', '.join(unpriced)}: add it to PRICE_PER_MTOK")
     rows = released_rows(args.results, args.dataset, args.limit)
-    per_row = sum(ROW_BOUND_USD.get(m, 0.1) for m in (args.baseline, args.candidate))
-    print(f"{len(rows)} released rows; worst case ${per_row * len(rows):.2f} for both judges, cap ${args.max_usd:.2f}")
-    pairs, records, bound = [], [], 0.0
+    meter = Meter()
+    judge._post = meter.post
+    print(f"{len(rows)} released rows; cap ${args.max_usd:.2f}, first-row reserve ${meter.row_reserve(models):.2f}")
+    pairs, records = [], []
     for index, row in enumerate(rows, 1):
-        if bound + per_row > args.max_usd:
-            print(f"stopped at row {index}: the next row could pass --max-usd")
+        if meter.spent_usd + meter.row_reserve(models) > args.max_usd:
+            print(f"stopped at row {index}: its worst case could pass --max-usd")
             break
-        bound += per_row
         a, b = judge_with(args.baseline, row), judge_with(args.candidate, row)
         records.append({"key": row["key"], args.baseline: a, args.candidate: b})
         if a and b:
             pairs.append((a, b))
         print(f"  {index}/{len(rows)} {row['key']}: {a and a['overall']} vs {b and b['overall']}", flush=True)
+    print(f"measured spend ${meter.spent_usd:.2f}")
     if args.out:
         args.out.parent.mkdir(parents=True, exist_ok=True)
         args.out.write_text(json.dumps(records, indent=2) + "\n")
