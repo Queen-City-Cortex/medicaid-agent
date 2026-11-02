@@ -188,6 +188,9 @@ export function useDeepResearch({ getAccessToken, userId }: { getAccessToken: Ge
     abortRef.current?.abort();
     abortRef.current = null;
     runIdRef.current = null;
+    // Switching threads resets the run state before the new thread's run is
+    // loaded from the server below.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- see above
     setStatus('idle');
     setPlan(null);
     setReport(null);
