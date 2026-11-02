@@ -40,7 +40,6 @@ export function usePinnedScroll({ messages, status }: UsePinnedScrollOptions) {
     // Intentional DOM discovery: the viewport only exists after ScrollArea
     // mounts, and it must live in state (not a ref) so consumers re-subscribe
     // when it appears.
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- see above
     if (el) setViewport(el as HTMLElement);
   }, [messages, viewport]);
 
