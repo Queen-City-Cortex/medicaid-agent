@@ -47,3 +47,4 @@ packages/pipeline/data/section-labels/
 
 # Evidence written by the verify-medicaid-agent skill (.agents/skills/verify-medicaid-agent).
 /.verify-evidence/
+model-upgrade-results/

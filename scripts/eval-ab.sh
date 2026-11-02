@@ -26,8 +26,9 @@ set -euo pipefail
 #   CANDIDATE_DIMS     candidate embedding dimensions  (default: 2048)
 #   BASELINE_VERIFIER  (default: gpt-5.4-mini)
 #   CANDIDATE_VERIFIER (default: gpt-5.4-nano)
-#   BASELINE_AGENT     (default: gpt-5.4)
-#   CANDIDATE_AGENT    (default: gpt-5.6-terra)
+#   BASELINE_AGENT     (default: gpt-5.6-terra)
+#   CANDIDATE_AGENT    (default: gpt-6.1-terra)
+#   SECOND_CANDIDATE_AGENT  optional third agent arm, compared with the baseline too
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PIPELINE_DIR="$REPO_ROOT/packages/pipeline"
@@ -47,8 +48,9 @@ CANDIDATE_MODEL="${CANDIDATE_MODEL:-voyage-4-large}"
 CANDIDATE_DIMS="${CANDIDATE_DIMS:-1024}"
 BASELINE_VERIFIER="${BASELINE_VERIFIER:-gpt-5.4-mini}"
 CANDIDATE_VERIFIER="${CANDIDATE_VERIFIER:-gpt-5.4-nano}"
-BASELINE_AGENT="${BASELINE_AGENT:-gpt-5.4}"
-CANDIDATE_AGENT="${CANDIDATE_AGENT:-gpt-5.6-terra}"
+BASELINE_AGENT="${BASELINE_AGENT:-gpt-5.6-terra}"
+CANDIDATE_AGENT="${CANDIDATE_AGENT:-gpt-6.1-terra}"
+SECOND_CANDIDATE_AGENT="${SECOND_CANDIDATE_AGENT:-}"
 # A candidate is a regression if its mean `overall` drops more than this below
 # the baseline's. The gate exits non-zero on a regression so an automated run
 # can't silently approve a worse model.
@@ -116,14 +118,19 @@ answer_arm() {
 # EVAL_REGRESSION_THRESHOLD — so an automated run fails loudly instead of
 # exiting 0 on a worse model. (The per-dimension summaries above still print
 # for the human read; this only gates on the headline `overall` metric.)
+# Optional third and fourth arguments: how many arms the gate ran (default 2)
+# and which of them, counting from 1, is the candidate (default 2). The
+# baseline is always the gate's first arm.
 compare_answer_arms() {
-  local baseline_label="$1" candidate_label="$2"
-  .venv/bin/python - "$RESULTS_DIR" "$RUNS" "$EVAL_REGRESSION_THRESHOLD" "$baseline_label" "$candidate_label" <<'PY'
+  local baseline_label="$1" candidate_label="$2" arms="${3:-2}" index="${4:-2}"
+  .venv/bin/python - "$RESULTS_DIR" "$RUNS" "$EVAL_REGRESSION_THRESHOLD" "$baseline_label" "$candidate_label" "$arms" "$index" <<'PY'
 import json, sys, glob, os, statistics
 results_dir, runs, thr, base_label, cand_label = sys.argv[1], int(sys.argv[2]), float(sys.argv[3]), sys.argv[4], sys.argv[5]
-files = sorted(glob.glob(os.path.join(results_dir, "*_answer.json")), key=os.path.getmtime)[-2*runs:]
-if len(files) < 2*runs:
-    print(f"  verdict: not enough runs ({len(files)}/{2*runs}) to compare — inspect summaries manually"); sys.exit(0)
+arms, index = int(sys.argv[6]), int(sys.argv[7])
+files = sorted(glob.glob(os.path.join(results_dir, "*_answer.json")), key=os.path.getmtime)[-arms*runs:]
+if len(files) < arms*runs:
+    print(f"  verdict: not enough runs ({len(files)}/{arms*runs}) to compare — inspect summaries manually"); sys.exit(0)
+files = files[:runs] + files[(index-1)*runs:index*runs]
 def mean_overall(fs):
     vals = [json.load(open(f)).get("aggregate", {}).get("overall") for f in fs]
     vals = [v for v in vals if v is not None]
@@ -185,15 +192,25 @@ gate_agent() {
   # judge dimensions within noise vs the baseline.
   answer_arm "agent-baseline ($BASELINE_AGENT)" "AGENT_MODEL=$BASELINE_AGENT"
   answer_arm "agent-candidate ($CANDIDATE_AGENT)" "AGENT_MODEL=$CANDIDATE_AGENT"
+  local arms=2
+  if [ -n "$SECOND_CANDIDATE_AGENT" ]; then
+    answer_arm "agent-candidate-2 ($SECOND_CANDIDATE_AGENT)" "AGENT_MODEL=$SECOND_CANDIDATE_AGENT"
+    arms=3
+  fi
 
-  banner "Stability across all $((RUNS * 2)) runs"
-  "${PY[@]}" eval-answer-stability --last "$((RUNS * 2))" || true
+  banner "Stability across all $((RUNS * arms)) runs"
+  "${PY[@]}" eval-answer-stability --last "$((RUNS * arms))" || true
 
+  # Non-zero exit when any candidate regresses, so an automated run can't
+  # approve a worse default model; every verdict still prints.
+  local status=0
   banner "Verdict: $CANDIDATE_AGENT vs $BASELINE_AGENT (overall, threshold -$EVAL_REGRESSION_THRESHOLD)"
-  # Non-zero exit on a real regression so an automated run can't approve a
-  # worse default model. `set -e` (top of file) propagates it as the gate's
-  # exit status.
-  compare_answer_arms "agent-baseline ($BASELINE_AGENT)" "agent-candidate ($CANDIDATE_AGENT)"
+  compare_answer_arms "agent-baseline ($BASELINE_AGENT)" "agent-candidate ($CANDIDATE_AGENT)" "$arms" 2 || status=1
+  if [ -n "$SECOND_CANDIDATE_AGENT" ]; then
+    banner "Verdict: $SECOND_CANDIDATE_AGENT vs $BASELINE_AGENT (overall, threshold -$EVAL_REGRESSION_THRESHOLD)"
+    compare_answer_arms "agent-baseline ($BASELINE_AGENT)" "agent-candidate-2 ($SECOND_CANDIDATE_AGENT)" "$arms" 3 || status=1
+  fi
+  return "$status"
 }
 
 gate_verifier() {

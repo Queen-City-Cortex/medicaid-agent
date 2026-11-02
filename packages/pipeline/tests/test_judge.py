@@ -258,10 +258,10 @@ def test_the_judge_model_can_be_selected_and_must_be_an_anthropic_model(monkeypa
     from pipeline import config
 
     try:
-        monkeypatch.setenv("EVAL_JUDGE_MODEL", "claude-sonnet-5-5")
-        assert importlib.reload(config).EVAL_JUDGE_MODEL == "claude-sonnet-5-5"
-        monkeypatch.setenv("EVAL_JUDGE_MODEL", "  ")
+        monkeypatch.setenv("EVAL_JUDGE_MODEL", "claude-sonnet-4-6")
         assert importlib.reload(config).EVAL_JUDGE_MODEL == "claude-sonnet-4-6"
+        monkeypatch.setenv("EVAL_JUDGE_MODEL", "  ")
+        assert importlib.reload(config).EVAL_JUDGE_MODEL == "claude-sonnet-5-5"
         monkeypatch.setenv("EVAL_JUDGE_MODEL", "gpt-6.1-sol")
         with pytest.raises(ValueError, match="must be an Anthropic model id"):
             importlib.reload(config)

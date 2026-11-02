@@ -13,13 +13,14 @@ export interface ModelPricing {
  * usage_events rows never bake in a price, so a rate change is a one-line
  * edit here, retroactively correct.
  *
- * Standard rates checked 2026-10-03 (per 1M tokens, USD).
+ * Standard rates checked 2026-11-01 (per 1M tokens, USD).
  * Sources: https://developers.openai.com/api/docs/models and
  * https://platform.claude.com/docs/en/about-claude/pricing.
  * Rollups are estimates; they do not enforce a provider spending limit.
  */
 const PRICING: Record<string, ModelPricing> = {
   'gpt-6.1-sol': { inputPerMTok: 2, outputPerMTok: 10, cachedInputPerMTok: 0.1 },
+  'gpt-6.1-terra': { inputPerMTok: 1, outputPerMTok: 5, cachedInputPerMTok: 0.05 },
   'gpt-6-luna': { inputPerMTok: 0.1, outputPerMTok: 0.5, cachedInputPerMTok: 0.01 },
   'gpt-6-astra': { inputPerMTok: 10, outputPerMTok: 50, cachedInputPerMTok: 1 },
   'claude-sonnet-5-5': { inputPerMTok: 2, outputPerMTok: 10, cachedInputPerMTok: 0.2 },
@@ -27,6 +28,8 @@ const PRICING: Record<string, ModelPricing> = {
   'gpt-5.4-mini': { inputPerMTok: 0.75, outputPerMTok: 4.5, cachedInputPerMTok: 0.075 },
   'gpt-5.4': { inputPerMTok: 2.5, outputPerMTok: 15, cachedInputPerMTok: 0.25 },
   'gpt-5-mini': { inputPerMTok: 0.25, outputPerMTok: 2, cachedInputPerMTok: 0.025 },
+  'claude-haiku-5-5': { inputPerMTok: 0.1, outputPerMTok: 0.5, cachedInputPerMTok: 0.01 },
+  'claude-opus-5-5': { inputPerMTok: 4, outputPerMTok: 20, cachedInputPerMTok: 0.2 },
   'claude-sonnet-4-6': { inputPerMTok: 3, outputPerMTok: 15, cachedInputPerMTok: 0.3 },
   'claude-opus-4-8': { inputPerMTok: 5, outputPerMTok: 25, cachedInputPerMTok: 0.5 },
 };

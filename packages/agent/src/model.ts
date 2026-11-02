@@ -42,7 +42,7 @@ export function openaiModel(modelId: string): ProviderModel {
   });
 }
 
-/** The GPT-6 family (gpt-6.1-sol, gpt-6-luna, gpt-6-astra) are reasoning
+/** The GPT-6 family (gpt-6.1-sol, gpt-6.1-terra, gpt-6-luna, gpt-6-astra) are reasoning
  *  models, but the installed provider's own rule stops at gpt-5: left alone it
  *  would drop `reasoningEffort`, send instructions as a system message and,
  *  with storage off, not ask for the encrypted reasoning it must replay
@@ -101,12 +101,12 @@ function unretryable(error: unknown): Error {
 
 // Model for the cheap classifiers that run before the agent: the scope gate,
 // both prompt-injection detectors, and the health probe's default target.
-// SCOPE_GATE_MODEL overrides it for all of them. gpt-5-mini's only snapshot
-// (gpt-5-mini-2025-08-07) leaves the OpenAI API on 2026-12-11, and both
-// classifiers fail open, so screening would switch off silently. Change the
-// default here to gpt-5.4-mini before that date, after the qualification
-// steps in docs/development/gotchas.md.
-export const CLASSIFIER_MODEL = strEnv('SCOPE_GATE_MODEL', 'gpt-5-mini');
+// SCOPE_GATE_MODEL overrides it for all of them. gpt-6-luna replaced
+// gpt-5-mini, whose only snapshot leaves the OpenAI API on 2026-12-11; OpenAI
+// has no gpt-6.1 small tier. Both classifiers fail open, so a retired model
+// switches screening off silently. Change it only after the classifier
+// comparison in docs/development/gotchas.md (scripts/classifier-compare.ts).
+export const CLASSIFIER_MODEL = strEnv('SCOPE_GATE_MODEL', 'gpt-6-luna');
 
 // Deadline for one classifier call on the request path (scope gate and
 // prompt-injection detector). Both run before the agent starts and both fail
@@ -116,19 +116,18 @@ export const CLASSIFIER_MODEL = strEnv('SCOPE_GATE_MODEL', 'gpt-5-mini');
 // not been measured. Set it from a measured run (docs/development/gotchas.md).
 export const CLASSIFIER_DEADLINE_MS = 10_000;
 
-// Default chosen by the 2026-07-09 agent-model A/B gate (scripts/eval-ab.sh
-// agent, 3 runs × 50 held-out questions per arm): gpt-5.6-terra matched or beat
-// gpt-5.4 on every judge dimension — overall 2.800 vs 2.760, hallucination
-// 2.640 vs 2.553 (the safety-critical one) — at the SAME price ($2.50/$15) and
-// a generation newer. Both arms' stable misses were the pre-existing
-// judge-variance questions, not model regressions.
-export const AGENT_MODEL = strEnv('AGENT_MODEL', 'gpt-5.6-terra');
+// Default: gpt-6.1-terra ($1/$5 per million tokens), half the price of the
+// gpt-5.6-terra it replaced ($2/$12). Adopted on the same A/B gate that chose
+// gpt-5.6-terra over gpt-5.4 in July 2026 (scripts/eval-ab.sh agent, 3 runs ×
+// 50 held-out questions per arm); the November 2026 run and its result are in
+// docs/validation/model-upgrade-2026-11/.
+export const AGENT_MODEL = strEnv('AGENT_MODEL', 'gpt-6.1-terra');
 
 // Reasoning effort for the chat agent and the three deep-research agents. Left
 // unset, each model runs at its own API default (none for gpt-5.4, medium for
-// gpt-5.6-terra), so changing AGENT_MODEL silently changed effort too. The
-// 2026-07-09 comparison above ran each model at that default and so varied
-// both. Medium is what the gpt-5.6-terra evaluations ran at.
+// the gpt-5.6 and gpt-6.1 models), so changing AGENT_MODEL silently changed
+// effort too. Medium is what the gpt-5.6-terra and gpt-6.1-terra evaluations
+// ran at.
 export const REASONING_EFFORTS = ['none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'] as const;
 export type ReasoningEffort = (typeof REASONING_EFFORTS)[number];
 
@@ -163,7 +162,7 @@ export function sentReasoningEffort(modelId: string): ReasoningEffort | null {
   return reasoning ? AGENT_REASONING_EFFORT : null;
 }
 
-/** Resolve a model id ("gpt-5.6-terra", "claude-…") to an AI SDK model instance.
+/** Resolve a model id ("gpt-6.1-terra", "claude-…") to an AI SDK model instance.
  *  OpenAI reasoning models use the o1/o3/o4 prefixes; everything non-OpenAI
  *  (claude-*) routes to Anthropic. */
 export function createModel(modelId: string): ProviderModel {

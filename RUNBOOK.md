@@ -55,13 +55,13 @@ Copy `.env.example` to `.env` at the repo root and fill in keys. The agent and w
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `OPENAI_API_KEY` | Yes (agent) | — | OpenAI API key — always required: the verifier (`gpt-5.6-terra` unless `VERIFIER_MODEL` names a Claude model), the scope gate and prompt-injection detector (`gpt-5-mini`), and observational memory when enabled (`gpt-5.4-mini`) run on OpenAI even when the main agent model is Claude |
+| `OPENAI_API_KEY` | Yes (agent) | — | OpenAI API key — always required: the verifier (`gpt-6.1-terra` unless `VERIFIER_MODEL` names a Claude model), the scope gate and prompt-injection detector (`gpt-6-luna`), and observational memory when enabled (`gpt-5.4-mini`) run on OpenAI even when the main agent model is Claude |
 | `EVAL_OPENAI_API_KEY` | No | falls back to `OPENAI_API_KEY` | OpenAI key the **answer-level eval** runs the agent on, isolated from production. Set it to a separate OpenAI project/account so a research run can't drain the live agent's quota (which would surface to users as failing chats). |
 | `VOYAGE_API_KEY` | Yes (search/embed) | — | Voyage AI API key for embeddings |
 | `ANTHROPIC_API_KEY` | Only for a Claude model | — | Anthropic API key; needed only when `AGENT_MODEL` or `VERIFIER_MODEL` is a `claude-*` model |
-| `AGENT_MODEL` | No | `gpt-5.6-terra` | Main agent model (`gpt-*`/`o3*`/`o4*` route to OpenAI, anything else to Anthropic) |
+| `AGENT_MODEL` | No | `gpt-6.1-terra` | Main agent model (`gpt-*`/`o3*`/`o4*` route to OpenAI, anything else to Anthropic) |
 | `AGENT_REASONING_EFFORT` | No | `medium` | Reasoning effort for the chat agent and the three deep-research agents on OpenAI models: `none`, `minimal`, `low`, `medium`, `high` or `xhigh`. Any other value stops startup. Set explicitly on every request so it no longer follows each model's API default. |
-| `VERIFIER_MODEL` | No | `gpt-5.6-terra` | Answer-verifier model: an OpenAI id (`gpt-*`, `o1*`, `o3*`, `o4*`) or a `claude-*` id, which needs `ANTHROPIC_API_KEY`. The agent refuses to start on any other id, or on one whose provider key is missing, because such a verifier would withhold every answer. Change it only against the [verifier benchmark](docs/operations/verifier-benchmark.md) |
+| `VERIFIER_MODEL` | No | `gpt-6.1-terra` | Answer-verifier model: an OpenAI id (`gpt-*`, `o1*`, `o3*`, `o4*`) or a `claude-*` id, which needs `ANTHROPIC_API_KEY`. The agent refuses to start on any other id, or on one whose provider key is missing, because such a verifier would withhold every answer. Change it only against the [verifier benchmark](docs/operations/verifier-benchmark.md) |
 | `VERIFIER_REASONING_EFFORT` | No | `low` | Reasoning effort for the verifier's model call, sent under both the OpenAI and the Anthropic setting: `none`, `minimal`, `low`, `medium`, `high`, `xhigh` or `max`. The agent refuses to start on any other value, on one a GPT-6 verifier rejects, or on `none` or `minimal` with a Claude verifier, because each would withhold every answer. Recorded in the evaluation fingerprint. Change it only against the [verifier benchmark](docs/operations/verifier-benchmark.md) |
 | `TRACE_STORE` | No | `off` in production and CLI runs, else `duckdb` | Where Mastra persists traces/metrics for Studio. `duckdb` writes a local DuckDB file (`MASTRA_OBSERVABILITY_PATH`, default `mastra.duckdb`); `off` skips the store and exporter entirely. Off in production because the file is ephemeral, nothing reads it without Studio, and DuckDB's buffer pool grew the agent to ~10 GB idle on Railway. |
 | `OBSERVATIONAL_MEMORY_ENABLED` | No | `false` | Observational memory: a model-written summary of a conversation's earlier turns, stored server-side. Off unless `true` or `1` (owner decision, October 2026); do not build on it. With it off the agent recalls the newest ten stored messages of the thread through the release gate, bounded by the 128,000-token input limiter. Working memory is always disabled. The coverage boundary and scope gate read prior turns from the stored thread and behave the same in either mode. |
@@ -94,21 +94,21 @@ To enable in production (Railway):
 
 ### Model Selection
 
-The agent defaults to **`gpt-5.6-terra`** (OpenAI) — adopted 2026-07-09 after an A/B gate (`scripts/eval-ab.sh agent`) showed it matched or beat the prior `gpt-5.4` default on every judge dimension at the same price. Override `AGENT_MODEL` to experiment with other models — Claude models work for the main agent loop, but the scope gate, injection detector, and observational memory remain OpenAI-wired, and the verifier runs on OpenAI unless `VERIFIER_MODEL` names a Claude model, so `OPENAI_API_KEY` is required regardless:
+The agent defaults to **`gpt-6.1-terra`** (OpenAI, $1/$5 per million tokens), which replaced `gpt-5.6-terra` ($2/$12) in November 2026 after the checks in [the model upgrade record](docs/validation/model-upgrade-2026-11/README.md); `gpt-5.6-terra` itself was adopted on 2026-07-09 by the same A/B gate (`scripts/eval-ab.sh agent`). Override `AGENT_MODEL` to experiment with other models — Claude models work for the main agent loop, but the scope gate, injection detector, and observational memory remain OpenAI-wired, and the verifier runs on OpenAI unless `VERIFIER_MODEL` names a Claude model, so `OPENAI_API_KEY` is required regardless:
 
 Reasoning effort is a separate, explicit setting (`AGENT_REASONING_EFFORT`, default `medium`). The 2026-07-09 comparison ran each model at its own API default (none for `gpt-5.4`, medium for `gpt-5.6-terra`), so it varied model and effort together. Answer evaluation results record the model and effort the agent resolved, under `config.agent_config` and on each row.
 
-**Unqualified production override.** The 2026-10-03 model audit records the production agent and corpus job setting `AGENT_MODEL=gpt-5.4`. That configuration is not the one release evidence was gathered on (`gpt-5.6-terra` at medium effort), and `gpt-5.4` at medium effort has not been evaluated. Until the override is removed or a qualification run covers it, treat production answers as coming from an unqualified model configuration.
+**Production override.** The 2026-10-03 model audit records the production agent and corpus job setting `AGENT_MODEL=gpt-5.4`, a configuration that has not been evaluated. Remove that variable (or set it to the default) when the model upgrade is deployed, so production runs the evaluated default.
 
 ```bash
-# Default (gpt-5.6-terra)
+# Default (gpt-6.1-terra)
 npx mastra dev --dir src
 
-# Cheaper OpenAI model
-AGENT_MODEL=gpt-5.4-mini npx mastra dev --dir src
+# Previous default
+AGENT_MODEL=gpt-5.6-terra npx mastra dev --dir src
 
 # Claude (also requires ANTHROPIC_API_KEY)
-AGENT_MODEL=claude-sonnet-4-6 npx mastra dev --dir src
+AGENT_MODEL=claude-sonnet-5-5 npx mastra dev --dir src
 ```
 
 ### Data classification & retention
@@ -221,7 +221,7 @@ sleeping agent purges when it next wakes.
 
 The web chat path (CLI/eval runs are unaffected) has four layers, all env-tunable:
 
-- **Scope gate** — one classifier-model call (`CLASSIFIER_MODEL` in `packages/agent/src/model.ts`, currently `gpt-5-mini`, retiring 2026-12-11) classifies each message; clearly-off-topic requests (creative writing, homework, general trivia) are blocked before the main model runs. Ambiguous/messy benefits questions always pass. Kill switch: `SCOPE_GATE_ENABLED=false`; model override: `SCOPE_GATE_MODEL`, which also sets the injection detector and the default health-probe model. Fails open (logged + Sentry).
+- **Scope gate** — one classifier-model call (`CLASSIFIER_MODEL` in `packages/agent/src/model.ts`, currently `gpt-6-luna`; OpenAI has no gpt-6.1 small tier) classifies each message; clearly-off-topic requests (creative writing, homework, general trivia) are blocked before the main model runs. Ambiguous/messy benefits questions always pass. Kill switch: `SCOPE_GATE_ENABLED=false`; model override: `SCOPE_GATE_MODEL`, which also sets the injection detector and the default health-probe model. Fails open (logged + Sentry).
 - **Rate limits** — per-user sliding windows on agent-run starts (chat + deep-research): `RATE_LIMIT_MESSAGES_PER_HOUR` (30) and `RATE_LIMIT_MESSAGES_PER_DAY` (150). Set a window `<= 0` to disable it. Counters live in the `rate_limit_events` table in the LibSQL store (durable across deploys; doubles as a usage audit log). To raise limits for a trusted org, bump the env vars on the Railway agent service. `RATE_LIMIT_GLOBAL_PER_DAY` is one service-wide ceiling on the same rows: allowed chat turns and research starts by all users in any 24 hours. It is off at `0` or less, the default, and is checked inside the same atomic insert as the per-user windows. **Leave it off while self-registration is open:** a shared ceiling can be used up by a few throwaway accounts, which locks every user out until runs age out of the day. Set it only after the sign-up release check above, to a number well above expected daily use (the per-user daily limit times the invited users is the upper bound). When it is reached every user gets `429` with code `service_limit_reached`, the agent logs `rate_limit.service_ceiling_reached` and reports to Sentry; raise the variable or set it to `0` to lift it at once.
 - **Input caps** — `MAX_MESSAGE_CHARS` (10,000; server-side mirror of the browser cap) and `MAX_BODY_BYTES` (2 MB per request; the body carries the whole thread history).
 - **Prompt injection detector** — Mastra processor on the same classifier model; blocks injection/jailbreak attempts. Fails open; a failed classifier call logs `prompt_injection.failed_open`.
@@ -547,8 +547,8 @@ curl -i https://medicaid-agent-backend.up.railway.app/dependencyz
   show. The log line `dependencyz.openai_failed` carries the HTTP status: 429
   is quota or rate limit (the 2026-07-10 production outage was an exhausted
   quota: every chat failed until credit was added), 401 or 403 is the key, 404
-  means the probed model no longer exists (`gpt-5-mini` leaves the API on
-  2026-12-11; see the [project gotchas](docs/development/gotchas.md)), and 5xx
+  means the probed model no longer exists (a retired classifier model; see
+  the [project gotchas](docs/development/gotchas.md)), and 5xx
   is the provider. For quota, add credit or raise the limit in the OpenAI
   project the production key belongs to, wait for the cache to expire, and
   check `/dependencyz` again. Keep answer evaluations on `EVAL_OPENAI_API_KEY`

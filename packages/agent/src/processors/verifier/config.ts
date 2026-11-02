@@ -3,8 +3,10 @@ import { assertReasoningEffortSupported, parseReasoningEffort, type ReasoningEff
 
 /** Code default for `VERIFIER_MODEL`. Changing it is a verifier change under
  *  issue #18: measure it with the seeded-fault benchmark first
- *  (docs/operations/verifier-benchmark.md). */
-export const DEFAULT_VERIFIER_MODEL = 'gpt-5.6-terra';
+ *  (docs/operations/verifier-benchmark.md). gpt-6.1-terra replaced
+ *  gpt-5.6-terra on the owner's decision although it failed decision 0002's
+ *  cost-swap rule (docs/validation/model-upgrade-2026-11/). */
+export const DEFAULT_VERIFIER_MODEL = 'gpt-6.1-terra';
 
 /** Code default for `VERIFIER_REASONING_EFFORT`. Changing it is a verifier
  *  change under issue #18, decided by the benchmark in decision 0002. */
