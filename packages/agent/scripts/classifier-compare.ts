@@ -23,6 +23,7 @@ import { fileURLToPath } from 'node:url';
 
 const AGENT_ROOT = fileURLToPath(new URL('..', import.meta.url));
 const SCOPE_FIXTURE = join(AGENT_ROOT, '../pipeline/data/jev/scope-conversations.json');
+const PROBE_RESERVE_USD = 0.01;
 const PROBES = join(AGENT_ROOT, 'scripts/classifier-compare/injection-probes.json');
 const CONCURRENCY = 4;
 
@@ -83,7 +84,13 @@ async function runArm(maxUsd: number): Promise<ArmResult> {
     else original(event, fields);
   }) as typeof log.error;
   const probeResults: ProbeResult[] = [];
+  // The detector reports no usage, so each probe is charged a conservative
+  // reservation (a probe prompt plus the detector's instructions is a few
+  // thousand tokens, well under a cent at classifier prices) and the arm
+  // stops before a probe that would not fit under --max-usd.
   for (const probe of probes) {
+    if (spentUsd + PROBE_RESERVE_USD > maxUsd) { stoppedEarly = true; break; }
+    spentUsd += PROBE_RESERVE_USD;
     current = probe.id;
     const started = performance.now();
     const messages = [{ id: probe.id, role: 'user', createdAt: new Date(), content: { format: 2, parts: [{ type: 'text', text: probe.text }] } }];
@@ -144,7 +151,7 @@ function report(baseline: ArmResult, candidate: ArmResult): boolean {
     .map((r) => `${r.id} (${r.label}): ${r.verdict} -> ${candidateVerdicts.get(r.id)}`);
   console.log(`\nscope verdicts that differ: ${disagreements.length}`);
   for (const line of disagreements.slice(0, 40)) console.log(`  ${line}`);
-  console.log(`\nscope spend: ${baseline.model} $${baseline.spentUsd.toFixed(4)}, ${candidate.model} $${candidate.spentUsd.toFixed(4)} (detector calls not metered)`);
+  console.log(`\nspend: ${baseline.model} $${baseline.spentUsd.toFixed(4)}, ${candidate.model} $${candidate.spentUsd.toFixed(4)} (scope measured; each detector probe charged a $${PROBE_RESERVE_USD} reservation)`);
   // A baseline that also failed (a bad key, an outage) gives no comparison.
   if (a.scopeFailures > 10 || a.detectorFailures > 2) {
     console.log(`verdict: none; ${baseline.model} failed too often for a comparison`);
