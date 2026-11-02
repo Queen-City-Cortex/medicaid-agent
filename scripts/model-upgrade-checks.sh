@@ -46,8 +46,10 @@ verifier_arm() {
 
 verifier() {
   log "verifier trials (\$5 each)"
-  verifier_arm gpt-5.6-terra trial-baseline --limit 5 --repeats 1 --max-usd 5
-  verifier_arm gpt-6.1-terra trial-candidate --limit 5 --repeats 1 --max-usd 5
+  # Explicit returns: errexit does not hold inside a function called from a
+  # `||` list, and a full arm must never start without a finished trial.
+  verifier_arm gpt-5.6-terra trial-baseline --limit 5 --repeats 1 --max-usd 5 || return 1
+  verifier_arm gpt-6.1-terra trial-candidate --limit 5 --repeats 1 --max-usd 5 || return 1
   # The runbook's rule: forecast each full arm from its trial (spend per run
   # times 546 runs) and run it only when the forecast is under $60. The
   # measured spend still stops it at $60; --max-usd only has to cover the
@@ -55,10 +57,11 @@ verifier() {
   for pair in "gpt-5.6-terra baseline" "gpt-6.1-terra candidate"; do
     set -- $pair
     local forecast
-    forecast="$(node -e 'const r=require(process.argv[1]);console.log((r.spentUsd/r.bound.runs*546).toFixed(2))' "$OUT/verifier-trial-$2.json")"
+    forecast="$(node -e 'const r=require(process.argv[1]);const f=r.spentUsd/r.bound.runs*546;if(!Number.isFinite(f)||f<=0)process.exit(1);console.log(f.toFixed(2))' "$OUT/verifier-trial-$2.json")" \
+      || { echo "no valid forecast for $1: not starting its full arm" >&2; return 1; }
     log "verifier full arm $1: forecast \$$forecast"
     if node -e 'process.exit(Number(process.argv[1]) < 60 ? 0 : 1)' "$forecast"; then
-      verifier_arm "$1" "$2" --max-usd 170 --stop-usd 60
+      verifier_arm "$1" "$2" --max-usd 170 --stop-usd 60 || return 1
     else
       echo "SKIPPED: forecast \$$forecast is not under \$60" | tee "$OUT/verifier-$2.txt"
     fi
@@ -80,7 +83,8 @@ case "${1:-}" in
   verifier) verifier ;;
   agent) agent ;;
   all) status=0
-       for stage in classifiers judge verifier agent; do "$stage" || status=1; done
+       # Each stage in its own process, so errexit holds inside it.
+       for stage in classifiers judge verifier agent; do bash "$0" "$stage" || status=1; done
        exit "$status" ;;
   *) sed -n '4,17p' "$0"; exit 2 ;;
 esac
