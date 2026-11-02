@@ -99,6 +99,9 @@ export function ThreadSidebar({ currentThreadId, resourceId, refreshKey, onSelec
   // Fetch threads on mount and when dependencies change; abort stale requests
   useEffect(() => {
     const ac = new AbortController();
+    // Fetching from the server is the external sync this effect exists for;
+    // the loading state it sets is part of that request.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- see above
     fetchThreads(ac.signal);
     return () => ac.abort();
   }, [fetchThreads, currentThreadId, refreshKey]);
