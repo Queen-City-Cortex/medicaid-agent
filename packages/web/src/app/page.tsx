@@ -123,6 +123,18 @@ export default async function Home() {
               Read the terms
             </Link>
           </div>
+          {!user && (
+            <p className="mx-auto mt-6 max-w-xl text-sm text-muted-foreground">
+              This is an invite-only test deployment. To see how it works, read the{' '}
+              <a
+                href="https://github.com/Queen-City-Cortex/medicaid-agent"
+                className="text-accent underline underline-offset-2"
+              >
+                source and demo on GitHub
+              </a>
+              .
+            </p>
+          )}
         </section>
 
         {/* The record it searches — a docket, not a feature grid. */}
