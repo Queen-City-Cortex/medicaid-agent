@@ -7,16 +7,16 @@ The owner asked on 2026-11-01 to move every model to the current generation: `gp
 | Use | Before | After | Price before → after |
 | --- | --- | --- | --- |
 | Chat agent and deep research (`AGENT_MODEL`) | `gpt-5.6-terra` | `gpt-6.1-terra` | $2 / $12 → $1 / $5 |
+| Answer verifier (`VERIFIER_MODEL`) | `gpt-5.6-terra` | `gpt-6.1-terra` | $2 / $12 → $1 / $5 |
 | Scope gate, injection detectors, health probe (`CLASSIFIER_MODEL`) | `gpt-5-mini` (retires 2026-12-11) | `gpt-6-luna` | $0.25 / $2 → $0.10 / $0.50 |
 | Observational memory (off by default) | `gpt-5.4-mini` | `gpt-6-luna` | $0.75 / $4.50 → $0.10 / $0.50 |
+| Evaluation judge (`EVAL_JUDGE_MODEL`) | `claude-sonnet-4-6` | `claude-sonnet-5-5` | $3 / $15 → $2 / $10 |
 | Reference extractor, pass 2 (`LLM_MODEL`) | `claude-haiku-4-5` | `claude-haiku-5-5` | $1 / $5 → $0.10 / $0.50 |
 
 OpenAI has no `gpt-6.1` small tier, so the classifiers use `gpt-6-luna`, the current small model. Both `gpt-6.1-terra` and `gpt-6-luna` take `none` through `max` effort but not `minimal`, which the start-up check already enforces; the agent runs at medium and the verifier at low, as before.
 
 Not changed:
 
-- The answer verifier stays `gpt-5.6-terra`: `gpt-6.1-terra` failed the cost-swap benchmark below.
-- The evaluation judge stays `claude-sonnet-4-6`: `claude-sonnet-5-5` failed the calibration below.
 - `voyage-4` embeddings (not an OpenAI or Anthropic model).
 - The Jev tooling (`ai_review.py` pins `gpt-5-mini` and `claude-opus-4-6`; `benchmarks.py` pins its frozen scope baseline to `gpt-5-mini`). Their artifacts record those ids, and issue #193 removes Jev; after 2026-12-11 the scope campaign cannot run.
 - `scripts/ops/run-cost-sample.py`, which is priced for the `gpt-5.4` deployment it sampled.
@@ -25,7 +25,7 @@ Production: the October audit recorded `AGENT_MODEL=gpt-5.4` set on the producti
 
 ## Expected cost
 
-About $0.075 per chat answer before (agent plus verifier, estimated from the October measurement repriced to `gpt-5.6-terra`). With only the agent moving to `gpt-6.1-terra` (if its check passes) and the verifier unchanged, the saving is roughly a quarter to a third, depending on how the cost splits between agent and verifier. The classifiers' cost was already under $0.001 per turn.
+About $0.075 per chat answer before (agent plus verifier, estimated from the October measurement repriced to `gpt-5.6-terra`), about $0.035 after: roughly 53 percent less.
 
 ## Checks
 
@@ -42,7 +42,9 @@ The agent stage needs a Neo4j holding the corpus. Each stage's output goes to `m
 
 ## Results
 
-Each stage's summary table, spend and commit go here, and the change merges only after every stage passes or the owner accepts a recorded exception.
+Each stage's summary table, spend and commit go here.
+
+**Owner decision (2026-11-02).** The judge and verifier checks below failed, and the agent check was not run. The owner chose to adopt every new model anyway: the project has no users yet, and it should run the current generation. The failures stay recorded as measured. Consequences: judge scores before and after the switch do not compare, so the release baseline must be regenerated under `claude-sonnet-5-5` before the next release gate; and the verifier rewrites clean answers more freely and drops `section_label` catches, which the follow-up below should address.
 
 ### Classifiers (2026-11-01, commit ed2398a, about $0.10)
 
@@ -72,7 +74,7 @@ Both judges scored the same stored release answers; 99 of 100 rows were scored b
 | citation_quality | 2.687 | 2.606 | −0.081 | 84% | 100% |
 | overall | 2.465 | 2.374 | −0.091 | 75% | 100% |
 
-Pass/fail agreement: 96% on overall ≥ 2 and 97% on hallucination ≥ 2 (90% needed). Verdict: **fail**, because two dimensions shift more than 0.15. The judge stays `claude-sonnet-4-6` (retirement not sooner than 2027-02-17), so release thresholds and stored runs keep comparing. The script printed only its worst-case bound; the actual spend is on the Anthropic console.
+Pass/fail agreement: 96% on overall ≥ 2 and 97% on hallucination ≥ 2 (90% needed). Verdict: **fail**, because two dimensions shift more than 0.15. The owner adopted `claude-sonnet-5-5` anyway (see the owner decision above); the release baseline is regenerated under it. The script printed only its worst-case bound; the actual spend is on the Anthropic console.
 
 ### Verifier (2026-11-01, commit 5ed2a9e, $32.49 for both full arms)
 
@@ -94,4 +96,8 @@ Full arms, seeded and originals fixtures, 3 repeats, low effort, `--max-usd 170 
 | Seeded items caught on all 3 repeats | 0 | 4 |
 | p95 latency, seeded / originals | 23.4 / 21.7 s | 21.4 / 21.4 s |
 
-Verdict under decision 0002's cost-swap rule: **fail**. `section_label` drops below the baseline's lower bound, and the per-item withhold column worsens. The verifier stays `gpt-5.6-terra`. Both arms catch under 10 percent of seeded errors overall; that low absolute recall is the existing state, which issue #190's arms measure further, and #190 can reuse this baseline arm.
+Verdict under decision 0002's cost-swap rule: **fail**. `section_label` drops below the baseline's lower bound, and the per-item withhold column worsens. The owner adopted `gpt-6.1-terra` anyway (see the owner decision above). Both arms catch under 10 percent of seeded errors overall; that low absolute recall is the existing state, which issue #190's arms measure further, and #190 can reuse this baseline arm.
+
+### Follow-up
+
+The prompts for the verifier and judge were tuned on the older models, and the comparison held effort at `low`. A rerun counting every run in which the seeded error did not reach the user puts `gpt-6.1-terra` at about 85 percent against 72 percent for `gpt-5.6-terra`. Much of its "miss" is a correction that removed the seed but also rewrote other text, which the benchmark does not credit. The next steps: a minimal-edit instruction in the correction prompt, a medium-effort trial, and scoring judges against a small hand-graded set, not against the previous judge.

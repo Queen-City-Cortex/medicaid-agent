@@ -87,11 +87,11 @@ EVAL_RESULTS_DIR = PIPELINE_DATA_DIR / "eval-results"
 EVAL_DEFAULT_TOP_K = 10
 EVAL_REGRESSION_THRESHOLD = 0.05  # 5% drop = regression flag
 # The judge is part of the evaluation fingerprint, so runs under different
-# judges never compare. The default is the model the thresholds were set with.
-# claude-sonnet-5-5 failed calibration in November 2026 (it scores completeness
-# and hallucination lower; docs/validation/model-upgrade-2026-11/), so it is not
-# the default; EVAL_JUDGE_MODEL selects it for a measurement.
-EVAL_JUDGE_MODEL = os.getenv("EVAL_JUDGE_MODEL", "").strip() or "claude-sonnet-4-6"
+# judges never compare. claude-sonnet-5-5 replaced claude-sonnet-4-6, the model
+# the thresholds were set with, on the owner's decision in November 2026,
+# although it failed calibration (docs/validation/model-upgrade-2026-11/).
+# EVAL_JUDGE_MODEL=claude-sonnet-4-6 reproduces a run judged before the switch.
+EVAL_JUDGE_MODEL = os.getenv("EVAL_JUDGE_MODEL", "").strip() or "claude-sonnet-5-5"
 if not EVAL_JUDGE_MODEL.startswith("claude-"):
     raise ValueError(f"EVAL_JUDGE_MODEL must be an Anthropic model id: {EVAL_JUDGE_MODEL}")
 

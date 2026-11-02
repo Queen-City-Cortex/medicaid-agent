@@ -30,7 +30,7 @@ Each section names a choice, what it costs, and what would change it. Where a ch
 
 ## The verifier uses the agent's model family, for now
 
-**Choice.** The code default verifier is `gpt-5.6-terra` ([`config.ts`](../../packages/agent/src/processors/verifier/config.ts)), the agent's previous model; the cheaper `gpt-6.1-terra` failed the November 2026 cost swap ([record](../validation/model-upgrade-2026-11/README.md)). It also writes the correction that pass 2 re-verifies.
+**Choice.** The code default verifier is the same model as the agent (`gpt-6.1-terra`, [`config.ts`](../../packages/agent/src/processors/verifier/config.ts)), adopted by the owner in November 2026 although it failed the cost-swap benchmark ([record](../validation/model-upgrade-2026-11/README.md)). It also writes the correction that pass 2 re-verifies.
 
 **Cost.** A model is plausibly worse at catching its own family's errors. The miss rate has never been measured. The October review called this out directly: "verified" promises more than one low-effort same-vendor call has shown it delivers.
 

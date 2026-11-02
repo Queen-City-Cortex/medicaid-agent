@@ -17,7 +17,7 @@ The sealed JSON manifest mounted read-only at `/inputs.json` contains:
 
 Mount the complete corpus read-only at `/data` and at the original corpus root (`originalDocumentsRoot` minus `/crawler/documents`). The harness proves these are the same tree, rejects writable submounts, and requires an EROFS write probe. The static registry must have no uncheckpointed WAL/journal; immutable read-only connections avoid SQLite locking-sidecar writes. Do not rewrite sidecars or fall back to a development registry.
 
-The pipeline environment contains only disposable Neo4j connection settings, `CORPUS_DATA_ROOT=/data`, `MASTRA_OBSERVABILITY_PATH=:memory:`, `AGENT_MODEL=gpt-6.1-terra`, `VERIFIER_MODEL=gpt-5.6-terra`, and `VERIFIER_ENABLED=true`, plus allowlisted image defaults. The harness additionally blocks HTTP and non-candidate sockets. Use a fresh output directory for each build; preserve every failed attempt.
+The pipeline environment contains only disposable Neo4j connection settings, `CORPUS_DATA_ROOT=/data`, `MASTRA_OBSERVABILITY_PATH=:memory:`, `AGENT_MODEL=gpt-6.1-terra`, `VERIFIER_MODEL=gpt-6.1-terra`, and `VERIFIER_ENABLED=true`, plus allowlisted image defaults. The harness additionally blocks HTTP and non-candidate sockets. Use a fresh output directory for each build; preserve every failed attempt.
 
 ## Build and inspect
 
