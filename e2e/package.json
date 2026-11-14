@@ -4,9 +4,9 @@
   "type": "module",
   "devDependencies": {
     "@axe-core/playwright": "^4.14.0",
-    "@playwright/test": "^1.64.1",
+    "@playwright/test": "^1.65.0",
     "dotenv": "^17.4.2",
     "iron-session": "^8.0.4",
-    "jose": "^6.2.13"
+    "jose": "^6.2.17"
   }
 }
