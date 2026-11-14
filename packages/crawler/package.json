@@ -17,11 +17,11 @@
   "dependencies": {
     "better-sqlite3": "^12.11.1",
     "cheerio": "^1.0.0",
-    "commander": "^15.0.0",
-    "file-type": "^22.2.0",
+    "commander": "^15.1.0",
+    "file-type": "^22.3.0",
     "p-queue": "^10.0.0",
     "robots-parser": "^3.0.0",
-    "undici": "^8.12.3"
+    "undici": "^8.12.4"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
